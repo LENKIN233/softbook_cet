@@ -28,6 +28,7 @@ import {
 import { createLearningSessionRepository } from './src/learning/learningRepository';
 import { resolveLearningSessionRepositoryConfig } from './src/learning/learningRuntimeConfig';
 import { SpaceSurface } from './src/space/SpaceSurface';
+import { StatisticsSurface } from './src/statistics/StatisticsSurface';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
@@ -120,13 +121,13 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '服务核心价值',
     title: '轻量统计与签到',
     summary:
-      '统计只用于增强信心和连续性，不成为产品中心。当前壳层只保留入口和信息位。',
+      '当前已经把统计入口收成轻量签到与学习摘要，只承接最小必要的连续性反馈，不扩成复杂大盘。',
     highlights: [
-      '不把复杂计数器和状态机抬成核心体验。',
-      '后续只补最小必要的签到、学习趋势和反馈摘要。',
+      '签到只和真实学习进展挂钩，不做空转打卡。',
+      '首轮与回看结果会以低成本摘要方式展示。',
       '页面会跟随设备形态变化，但入口顺序保持一致。',
     ],
-    focus: ['basic check-in', 'light progress summary'],
+    focus: ['defer heavy stats', 'keep confidence and continuity light'],
   },
   {
     key: 'mine',
@@ -222,6 +223,7 @@ function AppShell() {
   const [reviewCompletedResults, setReviewCompletedResults] = useState<
     LearningCardResult[]
   >([]);
+  const [checkedInDayKey, setCheckedInDayKey] = useState<string | null>(null);
   const [spaceCardStateById, setSpaceCardStateById] = useState<
     Record<string, SpaceCardState>
   >({});
@@ -264,6 +266,17 @@ function AppShell() {
     visibleLearningCards,
     learningCompletedResults,
   );
+  const pendingReviewCount = reviewCandidateCards.filter(
+    card =>
+      !reviewCompletedResults.some(
+        result => result.cardId === card.card_id,
+      ),
+  ).length;
+  const todayKey = getTodayKey();
+  const hasCheckedInToday = checkedInDayKey === todayKey;
+  const canCheckInToday =
+    !hasCheckedInToday &&
+    learningCompletedResults.length + reviewCompletedResults.length > 0;
 
   const resetLearningDeck = (
     stateMap: Record<string, SpaceCardState> = spaceCardStateById,
@@ -300,6 +313,7 @@ function AppShell() {
       setReviewCompletedResults([]);
       setLearningCardState(null);
       setSpaceCardStateById({});
+      setCheckedInDayKey(null);
       return;
     }
 
@@ -435,6 +449,7 @@ function AppShell() {
       setReviewSessionCards([]);
       setReviewCompletedResults([]);
       setSpaceCardStateById({});
+      setCheckedInDayKey(null);
       startTransition(() => {
         setActiveRoute('mine');
       });
@@ -608,6 +623,16 @@ function AppShell() {
     },
   };
 
+  const statisticsHandlers = {
+    onCheckIn: () => {
+      if (!canCheckInToday) {
+        return;
+      }
+
+      setCheckedInDayKey(todayKey);
+    },
+  };
+
   const content = shouldShowAuthGate ? (
     <AuthGate
       authState={authState}
@@ -683,6 +708,18 @@ function AppShell() {
       onToggleFavoriteTag={spaceHandlers.onToggleFavoriteTag}
       onToggleSleepState={spaceHandlers.onToggleSleepState}
       palette={palette}
+    />
+  ) : route.key === 'statistics' ? (
+    <StatisticsSurface
+      canCheckInToday={canCheckInToday}
+      dayLabel={todayKey}
+      deviceClass={deviceClass}
+      hasCheckedInToday={hasCheckedInToday}
+      learningResults={learningCompletedResults}
+      onCheckIn={statisticsHandlers.onCheckIn}
+      palette={palette}
+      pendingReviewCount={pendingReviewCount}
+      reviewResults={reviewCompletedResults}
     />
   ) : (
     <RouteCanvas palette={palette} route={route} deviceClass={deviceClass} />
@@ -1477,6 +1514,10 @@ function InfoCard({
 
 function getDeviceClass(width: number, height: number): DeviceClass {
   return Math.min(width, height) >= 768 ? 'tablet' : 'phone';
+}
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function maskPhoneNumber(phoneNumber: string) {
