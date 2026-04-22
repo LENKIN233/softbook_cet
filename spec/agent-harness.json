@@ -1,5 +1,5 @@
 {
-  "version": "vnext-7",
+  "version": "vnext-8",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -212,6 +212,11 @@
       "id": "AP-18",
       "name": "autoplay_audio_or_require_front_subtitles",
       "correction": "audio_does_not_autoplay_and_front_side_subtitles_are_not_required"
+    },
+    {
+      "id": "AP-19",
+      "name": "treat_module_selection_as_primary_learning_mode",
+      "correction": "keep_system_sequenced_single_flow_primary_and_use_module_browsing_only_for_targeted_review"
     }
   ],
   "compaction_keep": [
