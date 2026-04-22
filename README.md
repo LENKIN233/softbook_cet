@@ -57,6 +57,36 @@ cd apps/mobile
 npm run ios
 ```
 
+### 学习卡源 runtime config
+
+`apps/mobile` 现在会在启动时读取 `src/runtime/appRuntimeConfig.ts`，并把配置注入到全局 runtime。
+
+- 默认配置是本地卡源：
+
+```ts
+export const SOFTBOOK_APP_RUNTIME_CONFIG = {
+  learningSource: {
+    mode: 'local',
+  },
+};
+```
+
+- 如果你要切到远端卡源，临时改成：
+
+```ts
+export const SOFTBOOK_APP_RUNTIME_CONFIG = {
+  learningSource: {
+    mode: 'remote',
+    remote: {
+      baseUrl: 'https://your-api.example.com',
+      apiKey: 'your-dev-key',
+    },
+  },
+};
+```
+
+不要把真实密钥提交进仓库；提交前请恢复成安全的默认本地配置。
+
 ### 常见恢复
 
 如果 Xcode 报 iOS platform / simulator runtime 缺失，可以先执行：
