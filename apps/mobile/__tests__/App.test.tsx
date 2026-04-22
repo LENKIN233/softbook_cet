@@ -28,9 +28,7 @@ async function loginIntoLearningFlow(
   });
 
   await ReactTestRenderer.act(() => {
-    root
-      .findByProps({ testID: 'auth-request-code-button' })
-      .props.onPress();
+    root.findByProps({ testID: 'auth-request-code-button' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -70,7 +68,7 @@ test('can unlock the learning flow after fake sms verification', async () => {
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('单卡推进，不把学习入口做成按钮堆');
   expect(output).toContain('已登录 138****8000');
-  expect(output).toContain('看到 however 时');
+  expect(output).toContain('however');
 });
 
 test('can complete the local single-card deck and restart it', async () => {
@@ -91,14 +89,16 @@ test('can complete the local single-card deck and restart it', async () => {
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('knowledge_ref');
-  expect(output).toContain('作者是在收回前一句');
+  expect(output).toContain('给出真正立场');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-flip-confident-button' }).props.onPress();
+    root
+      .findByProps({ testID: 'learning-flip-confident-button' })
+      .props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -121,9 +121,7 @@ test('can complete the local single-card deck and restart it', async () => {
     root
       .findByProps({ testID: 'learning-lock-subject-the-policy' })
       .props.onPress();
-    root
-      .findByProps({ testID: 'learning-lock-verb-reduces' })
-      .props.onPress();
+    root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
     root
       .findByProps({ testID: 'learning-lock-object-test-anxiety' })
       .props.onPress();
@@ -138,9 +136,13 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-elimination-relative_clause' }).props.onPress();
+    root
+      .findByProps({ testID: 'learning-elimination-relative_clause' })
+      .props.onPress();
     root.findByProps({ testID: 'learning-elimination-adverb' }).props.onPress();
-    root.findByProps({ testID: 'learning-elimination-time_phrase' }).props.onPress();
+    root
+      .findByProps({ testID: 'learning-elimination-time_phrase' })
+      .props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -164,14 +166,14 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本轮测试卡已走完');
+  expect(output).toContain('本轮卡源已走完');
   expect(output).toContain('完成明细');
-  expect(output).toContain('再跑一轮测试卡');
+  expect(output).toContain('再跑一轮当前卡源');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-restart-button' }).props.onPress();
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('看到 however 时');
+  expect(output).toContain('however');
 });
