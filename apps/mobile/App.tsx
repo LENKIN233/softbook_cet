@@ -24,6 +24,7 @@ import {
   evaluateLearningCard,
 } from './src/learning/session';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
+import { resolveLearningSessionRepositoryConfig } from './src/learning/learningRuntimeConfig';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
@@ -176,7 +177,7 @@ const INITIAL_AUTH_STATE: AuthState = {
 
 const LEARNING_TRACK: LearningTrack = 'cet4';
 const learningSessionRepository = createLearningSessionRepository({
-  mode: 'local',
+  ...resolveLearningSessionRepositoryConfig(),
 });
 
 function App(): React.JSX.Element {
