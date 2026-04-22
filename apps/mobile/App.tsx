@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -31,6 +32,18 @@ import {
   evaluateLearningCard,
   selectReviewCards,
 } from './src/learning/session';
+import {
+  createInitialMembershipState,
+  dismissMembershipRecovery,
+  expireMembershipTrial,
+  expirePremiumMembership,
+  MembershipStage,
+  MembershipState,
+  purchaseMembership,
+  resolveAccessibleLearningCardCount,
+  resolveMembershipAccess,
+  startMembershipTrial,
+} from './src/membership/localMembership';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
 import { readSoftbookAppRuntimeConfig, resolveLearningSessionRepositoryConfig } from './src/learning/learningRuntimeConfig';
 import { SpaceSurface } from './src/space/SpaceSurface';
@@ -44,6 +57,7 @@ import { resolveProgressSyncRepositoryConfig } from './src/sync/progressSyncRunt
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
 type AuthStage = 'logged_out' | 'code_sent' | 'authenticated';
+type MembershipGate = 'space' | 'review' | 'library';
 
 type ShellRoute = {
   key: RouteKey;
@@ -101,6 +115,14 @@ type AuthHandlers = {
   onLogout: () => void;
 };
 
+type MembershipHandlers = {
+  onDismissRecovery: () => void;
+  onExpirePremium: () => void;
+  onExpireTrial: () => void;
+  onPurchase: () => void;
+  onStartTrial: () => void;
+};
+
 const ROUTES: ShellRoute[] = [
   {
     key: 'learning',
@@ -154,13 +176,13 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '账户与会员',
     title: '个人页',
     summary:
-      '当前已经把“我的”收成个人主页：先承接账号概览、本地学习摘要与空间标签摘要，同时把会员与购买边界留清楚。',
+      '当前已经把“我的”收成个人主页，并接入本地 entitlement 宿主：账号、学习、空间摘要与试用/会员边界都在这里承接。',
     highlights: [
-      '已登录后能直接看到账号、学习和空间摘要。',
-      '手机号验证码仍是主登录方式，但这里只承接 profile 本身。',
-      '会员、试用和恢复购买仍留给独立合同分支。',
+      '已登录后能看到账号、学习、空间与会员摘要。',
+      '试用在首个计入入口开始，不在注册时偷跑。',
+      '基础学习保留，完整空间、完整卡库和完整算法挂到试用/会员后。',
     ],
-    focus: ['profile overview', 'local learning snapshot', 'membership boundary'],
+    focus: ['profile overview', 'trial/paywall', 'purchase recovery'],
   },
 ];
 
@@ -254,15 +276,23 @@ function AppShell() {
   const [lastSyncedProgressKey, setLastSyncedProgressKey] = useState<
     string | null
   >(null);
+  const [membershipState, setMembershipState] = useState<MembershipState>(
+    createInitialMembershipState,
+  );
+  const [membershipGate, setMembershipGate] = useState<MembershipGate | null>(
+    null,
+  );
   const [spaceCardStateById, setSpaceCardStateById] = useState<
     Record<string, SpaceCardState>
   >({});
+  const previousMembershipStage = useRef<MembershipStage>(membershipState.stage);
   const { width, height } = useWindowDimensions();
   const deviceClass = getDeviceClass(width, height);
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
   const isAuthenticated = authState.stage === 'authenticated';
   const routeRequiresAuth = PROTECTED_ROUTES.includes(route.key);
   const shouldShowAuthGate = routeRequiresAuth && !isAuthenticated;
+  const membershipAccess = resolveMembershipAccess(membershipState);
   const readSpaceCardState = useCallback(
     (
       cardId: string,
@@ -278,13 +308,28 @@ function AppShell() {
     ) => ({
       ...createLearningCardState(card),
       isFavorited: readSpaceCardState(card.card_id, stateMap).isFavorited,
-    }),
+      }),
     [readSpaceCardState, spaceCardStateById],
   );
-  const visibleLearningCards =
-    learningSession?.cards.filter(
-      card => !readSpaceCardState(card.card_id).isSleeping,
-    ) ?? [];
+  const resolveVisibleLearningCards = (
+    nextSession: LearningSession | null = learningSession,
+    stateMap: Record<string, SpaceCardState> = spaceCardStateById,
+    nextMembershipState: MembershipState = membershipState,
+  ) => {
+    const accessibleCardCount = nextSession
+      ? resolveAccessibleLearningCardCount(
+          nextSession.cards.length,
+          nextMembershipState,
+        )
+      : 0;
+    const accessibleCards =
+      nextSession?.cards.slice(0, accessibleCardCount) ?? [];
+
+    return accessibleCards.filter(
+      card => !readSpaceCardState(card.card_id, stateMap).isSleeping,
+    );
+  };
+  const visibleLearningCards = resolveVisibleLearningCards();
   const activeSessionCards =
     learningPhase === 'review' ? reviewSessionCards : visibleLearningCards;
   const activeCompletedResults =
@@ -339,11 +384,13 @@ function AppShell() {
   const resetLearningDeck = (
     stateMap: Record<string, SpaceCardState> = spaceCardStateById,
     nextSession: LearningSession | null = learningSession,
+    nextMembershipState: MembershipState = membershipState,
   ) => {
-    const nextVisibleCards =
-      nextSession?.cards.filter(
-        card => !readSpaceCardState(card.card_id, stateMap).isSleeping,
-      ) ?? [];
+    const nextVisibleCards = resolveVisibleLearningCards(
+      nextSession,
+      stateMap,
+      nextMembershipState,
+    );
 
     setLearningIndex(0);
     setLearningPhase('learning');
@@ -478,9 +525,16 @@ function AppShell() {
         setLearningPhase('learning');
         setReviewSessionCards([]);
         setReviewCompletedResults([]);
+        const accessibleCardCount = resolveAccessibleLearningCardCount(
+          session.cards.length,
+          membershipState,
+        );
+        const nextVisibleCards = session.cards
+          .slice(0, accessibleCardCount)
+          .filter(card => !readSpaceCardState(card.card_id).isSleeping);
         setLearningCardState(
-          session.cards[0]
-            ? createTrackedLearningCardState(session.cards[0])
+          nextVisibleCards[0]
+            ? createTrackedLearningCardState(nextVisibleCards[0])
             : null,
         );
         setLearningBootstrapStatus('ready');
@@ -501,7 +555,56 @@ function AppShell() {
     return () => {
       isCancelled = true;
     };
-  }, [createTrackedLearningCardState, isAuthenticated, learningBootstrapStatus]);
+  }, [
+    createTrackedLearningCardState,
+    isAuthenticated,
+    learningBootstrapStatus,
+    membershipState,
+    readSpaceCardState,
+  ]);
+
+  useEffect(() => {
+    if (
+      !isAuthenticated ||
+      learningBootstrapStatus !== 'ready' ||
+      learningSession === null
+    ) {
+      return;
+    }
+
+    if (previousMembershipStage.current === membershipState.stage) {
+      return;
+    }
+
+    previousMembershipStage.current = membershipState.stage;
+    const accessibleCardCount = resolveAccessibleLearningCardCount(
+      learningSession.cards.length,
+      membershipState,
+    );
+    const nextVisibleCards = learningSession.cards
+      .slice(0, accessibleCardCount)
+      .filter(card => !readSpaceCardState(card.card_id, spaceCardStateById).isSleeping);
+
+    setLearningIndex(0);
+    setLearningPhase('learning');
+    setLearningCurrentResult(null);
+    setLearningCompletedResults([]);
+    setReviewSessionCards([]);
+    setReviewCompletedResults([]);
+    setLearningCardState(
+      nextVisibleCards[0]
+        ? createTrackedLearningCardState(nextVisibleCards[0], spaceCardStateById)
+        : null,
+    );
+  }, [
+    createTrackedLearningCardState,
+    isAuthenticated,
+    learningBootstrapStatus,
+    learningSession,
+    membershipState,
+    readSpaceCardState,
+    spaceCardStateById,
+  ]);
 
   const patchLearningCardState = (
     updater: (state: LearningCardState) => LearningCardState,
@@ -574,12 +677,15 @@ function AppShell() {
           smsCode: '',
         };
       });
+      setMembershipGate(null);
     },
     onLogout: () => {
       setAuthState(INITIAL_AUTH_STATE);
       setLearningPhase('learning');
       setReviewSessionCards([]);
       setReviewCompletedResults([]);
+      setMembershipGate(null);
+      setMembershipState(createInitialMembershipState());
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
       setLastSyncedProgressKey(null);
@@ -591,6 +697,39 @@ function AppShell() {
       startTransition(() => {
         setActiveRoute('mine');
       });
+    },
+  };
+
+  const unlockMembership = (
+    updater: (current: MembershipState) => MembershipState,
+  ) => {
+    const nextGate = membershipGate;
+
+    setMembershipState(current => updater(current));
+    setMembershipGate(null);
+
+    if (nextGate === 'review') {
+      startTransition(() => {
+        setActiveRoute('learning');
+      });
+    }
+  };
+
+  const membershipHandlers: MembershipHandlers = {
+    onStartTrial: () => {
+      unlockMembership(current => startMembershipTrial(current));
+    },
+    onPurchase: () => {
+      unlockMembership(current => purchaseMembership(current));
+    },
+    onExpireTrial: () => {
+      setMembershipState(current => expireMembershipTrial(current));
+    },
+    onExpirePremium: () => {
+      setMembershipState(current => expirePremiumMembership(current));
+    },
+    onDismissRecovery: () => {
+      setMembershipState(current => dismissMembershipRecovery(current));
     },
   };
 
@@ -716,6 +855,14 @@ function AppShell() {
         return;
       }
 
+      if (!membershipAccess.completeAlgorithm) {
+        setMembershipGate('review');
+        startTransition(() => {
+          setActiveRoute('mine');
+        });
+        return;
+      }
+
       setLearningPhase('review');
       setReviewSessionCards(reviewCandidateCards);
       setReviewCompletedResults([]);
@@ -785,11 +932,21 @@ function AppShell() {
       favoriteCount={favoriteCount}
       handlers={authHandlers}
       learningResults={learningCompletedResults}
+      membershipGate={membershipGate}
+      membershipHandlers={membershipHandlers}
+      membershipState={membershipState}
       palette={palette}
       progressSyncState={progressSyncState}
       reviewResults={reviewCompletedResults}
       route={route}
       sleepingCount={sleepingCount}
+    />
+  ) : route.key === 'space' && !membershipAccess.completePhysicalSpace ? (
+    <MembershipPaywallSurface
+      gate="space"
+      handlers={membershipHandlers}
+      membershipState={membershipState}
+      palette={palette}
     />
   ) : route.key === 'learning' && learningBootstrapStatus !== 'ready' ? (
     <LearningBootstrapSurface
@@ -1346,7 +1503,7 @@ function AuthGate({
         handlers={handlers}
         palette={palette}
         title="手机号验证码登录"
-        summary="先把主登录方式接进壳层。真实短信服务、试用起算和会员矩阵后续再接。"
+        summary="先把主登录方式接进壳层。真实短信服务后续再接；试用和会员矩阵已经在本地 entitlement 宿主里闭环。"
       />
       <InfoCard
         palette={palette}
@@ -1354,7 +1511,7 @@ function AuthGate({
         items={[
           '学习开始前必须登录。',
           '手机号验证码是主登录方式。',
-          '本地状态机只服务壳层验证，不等于后端真实认证。',
+          '试用不会在注册时偷跑，而是在首个计入入口开始。',
         ]}
       />
     </ScrollView>
@@ -1367,6 +1524,9 @@ function MineSurface({
   favoriteCount,
   handlers,
   learningResults,
+  membershipGate,
+  membershipHandlers,
+  membershipState,
   palette,
   progressSyncState,
   reviewResults,
@@ -1378,6 +1538,9 @@ function MineSurface({
   favoriteCount: number;
   handlers: AuthHandlers;
   learningResults: LearningCardResult[];
+  membershipGate: MembershipGate | null;
+  membershipHandlers: MembershipHandlers;
+  membershipState: MembershipState;
   palette: Palette;
   progressSyncState: ProgressSyncState;
   reviewResults: LearningCardResult[];
@@ -1405,8 +1568,8 @@ function MineSurface({
         </Text>
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
           {isAuthenticated
-            ? '当前这里先承接账号概览、学习摘要和空间摘要，让“我的”不再只是一个登录壳。'
-            : '“我的”作为个人主页入口，当前先支持身份建立；会员、试用与购买恢复仍留在后续独立分支。'}
+            ? '当前这里先承接账号概览、学习摘要、日级同步状态与空间摘要，同时把会员与购买边界落到同一宿主页。'
+            : '“我的”作为个人主页入口，当前先支持身份建立；会员、试用与购买恢复留在这个宿主页继续承接。'}
         </Text>
       </View>
       <PhoneSmsPanel
@@ -1416,7 +1579,7 @@ function MineSurface({
         title={isAuthenticated ? '当前登录状态' : '手机号验证码登录'}
         summary={
           isAuthenticated
-            ? '当前是本地 profile 登录态：你能看到基础账号信息与摘要，但会员合同还没有并进来。'
+            ? '当前是本地 profile 登录态：你能看到基础账号信息、学习摘要、同步状态，以及本地 entitlement 宿主。'
             : '先从这里完成身份建立，再让学习流和用户态页面具备真实入口。'
         }
       />
@@ -1431,12 +1594,12 @@ function MineSurface({
                   `手机号：${maskPhoneNumber(authState.phoneNumber)}`,
                   `今日签到：${checkedInToday ? '已完成' : '尚未完成'}`,
                   `日级同步：${progressSyncState.label}`,
-                  '当前仍是本地账号态，不代表会员 entitlement 已接通。',
+                  '当前仍是本地账号态，不代表真实跨端 entitlement 已接通。',
                 ]
               : [
                   '还没有完成身份建立。',
                   '手机号验证码仍是主登录方式。',
-                  '登录后这里会显示你的账号与学习摘要。',
+                  '登录后这里会显示你的账号、学习与会员摘要。',
                 ]
           }
         />
@@ -1479,17 +1642,264 @@ function MineSurface({
           palette={palette}
           title="当前不做什么"
           items={[
-            '不在这里接试用天数、价格和购买恢复。',
-            '不在这里实现会员权限矩阵。',
+            '不在这里接真实购买、恢复购买或跨端 entitlement。',
+            '不在这里把会员壳层伪装成已接服务端事实。',
             '不把“我的”扩成设置中心或复杂账户系统。',
           ]}
         />
       </View>
 
-      {!isAuthenticated ? (
+      {isAuthenticated ? (
+        <MembershipHostCard
+          focusGate={membershipGate}
+          handlers={membershipHandlers}
+          membershipState={membershipState}
+          palette={palette}
+        />
+      ) : (
         <RouteCanvas palette={palette} route={route} deviceClass="phone" />
-      ) : null}
+      )}
     </ScrollView>
+  );
+}
+
+function MembershipHostCard({
+  focusGate,
+  handlers,
+  membershipState,
+  palette,
+}: {
+  focusGate: MembershipGate | null;
+  handlers: MembershipHandlers;
+  membershipState: MembershipState;
+  palette: Palette;
+}) {
+  const access = resolveMembershipAccess(membershipState);
+  const accessSummary = [
+    `基础学习：${access.basicLearning ? '已开放' : '未开放'}`,
+    `完整卡库：${access.completeCardLibrary ? '已开放' : '需试用或会员'}`,
+    `完整空间：${access.completePhysicalSpace ? '已开放' : '需试用或会员'}`,
+    `完整算法：${access.completeAlgorithm ? '已开放' : '需试用或会员'}`,
+  ];
+  const focusCopy =
+    focusGate === null
+      ? null
+      : focusGate === 'review'
+      ? '完整回看算法当前被会员矩阵拦住。开始试用或升级后，会回到学习流继续这轮回看。'
+      : focusGate === 'space'
+      ? '完整物理空间当前被会员矩阵拦住。开始试用或升级后，会直接放开空间入口。'
+      : '完整卡库当前被会员矩阵拦住。开始试用或升级后，会放开完整卡源。';
+
+  return (
+    <View
+      style={[
+        styles.infoCard,
+        { backgroundColor: palette.panel, borderColor: palette.border },
+      ]}
+      testID="membership-host-card"
+    >
+      <Text style={[styles.infoTitle, { color: palette.text }]}>
+        {getMembershipCardTitle(membershipState.stage)}
+      </Text>
+      <Text style={[styles.authSummary, { color: palette.textMuted }]}>
+        {getMembershipCardSummary(membershipState)}
+      </Text>
+      {focusCopy ? (
+        <View
+          style={[
+            styles.membershipFocusCard,
+            {
+              backgroundColor: palette.accentSoft,
+              borderColor: palette.border,
+            },
+          ]}
+          testID="membership-focus-gate"
+        >
+          <Text style={[styles.membershipFocusTitle, { color: palette.accentStrong }]}>
+            当前拦截点
+          </Text>
+          <Text style={[styles.authSummary, { color: palette.textMuted }]}>
+            {focusCopy}
+          </Text>
+        </View>
+      ) : null}
+      <InfoCard palette={palette} title="当前权限矩阵" items={accessSummary} />
+      {membershipState.recoveryPromptVisible ? (
+        <View
+          style={[
+            styles.membershipRecoveryCard,
+            { backgroundColor: palette.panelStrong, borderColor: palette.border },
+          ]}
+        >
+          <Text style={[styles.membershipFocusTitle, { color: palette.text }]}>
+            恢复购买提醒
+          </Text>
+          <Text style={[styles.authSummary, { color: palette.textMuted }]}>
+            {membershipState.lastExperienceEndedBy === 'premium'
+              ? '正式会员体验结束后，提醒用户恢复购买，继续保留完整空间、完整卡库和完整算法。'
+              : '完整试用体验结束后，当前只保留基础学习。若要继续完整空间与算法，请恢复购买。'}
+          </Text>
+          <Pressable
+            onPress={handlers.onDismissRecovery}
+            style={[
+              styles.secondaryButton,
+              {
+                borderColor: palette.border,
+                backgroundColor: palette.panel,
+              },
+            ]}
+            testID="membership-dismiss-recovery-button"
+          >
+            <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
+              收起恢复购买提醒
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+      <MembershipActionGroup
+        handlers={handlers}
+        membershipState={membershipState}
+        palette={palette}
+      />
+    </View>
+  );
+}
+
+function MembershipPaywallSurface({
+  gate,
+  handlers,
+  membershipState,
+  palette,
+}: {
+  gate: MembershipGate;
+  handlers: MembershipHandlers;
+  membershipState: MembershipState;
+  palette: Palette;
+}) {
+  return (
+    <ScrollView contentContainerStyle={styles.canvasContent}>
+      <View
+        style={[
+          styles.hero,
+          { backgroundColor: palette.panel, borderColor: palette.border },
+        ]}
+        testID={`membership-paywall-${gate}`}
+      >
+        <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
+          MEMBERSHIP / PAYWALL
+        </Text>
+        <Text style={[styles.heroTitle, { color: palette.text }]}>
+          {gate === 'space'
+            ? '完整物理空间需要试用或会员'
+            : gate === 'review'
+            ? '完整回看算法需要试用或会员'
+            : '完整卡库需要试用或会员'}
+        </Text>
+        <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
+          {gate === 'space'
+            ? '根据会员合同，免费态保留基础学习，但完整物理空间属于试用/会员完整体验的一部分。'
+            : gate === 'review'
+            ? '根据会员合同，完整算法属于试用/会员完整体验的一部分，免费态只保留基础学习。'
+            : '根据会员合同，免费态应只开放接近一半卡量，完整卡库需要试用/会员。'}
+        </Text>
+      </View>
+      <MembershipHostCard
+        focusGate={gate}
+        handlers={handlers}
+        membershipState={membershipState}
+        palette={palette}
+      />
+    </ScrollView>
+  );
+}
+
+function MembershipActionGroup({
+  handlers,
+  membershipState,
+  palette,
+}: {
+  handlers: MembershipHandlers;
+  membershipState: MembershipState;
+  palette: Palette;
+}) {
+  return membershipState.stage === 'trial_available' ? (
+    <View style={styles.authActions}>
+      <Pressable
+        onPress={handlers.onStartTrial}
+        style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+        testID="membership-start-trial-button"
+      >
+        <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+          开始完整试用
+        </Text>
+      </Pressable>
+      <Pressable
+        onPress={handlers.onPurchase}
+        style={[
+          styles.secondaryButton,
+          { borderColor: palette.border, backgroundColor: palette.panelStrong },
+        ]}
+        testID="membership-purchase-button"
+      >
+        <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
+          直接开通会员
+        </Text>
+      </Pressable>
+    </View>
+  ) : membershipState.stage === 'trial' ? (
+    <View style={styles.authActions}>
+      <Pressable
+        onPress={handlers.onPurchase}
+        style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+        testID="membership-purchase-button"
+      >
+        <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+          直接开通会员
+        </Text>
+      </Pressable>
+      <Pressable
+        onPress={handlers.onExpireTrial}
+        style={[
+          styles.secondaryButton,
+          { borderColor: palette.border, backgroundColor: palette.panelStrong },
+        ]}
+        testID="membership-expire-trial-button"
+      >
+        <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
+          结束本地试用体验
+        </Text>
+      </Pressable>
+    </View>
+  ) : membershipState.stage === 'premium' ? (
+    <View style={styles.authActions}>
+      <Text style={[styles.authSuccess, { color: palette.success }]}>
+        当前本地 entitlement 已是会员态。
+      </Text>
+      <Pressable
+        onPress={handlers.onExpirePremium}
+        style={[
+          styles.secondaryButton,
+          { borderColor: palette.border, backgroundColor: palette.panelStrong },
+        ]}
+        testID="membership-expire-premium-button"
+      >
+        <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
+          结束本地会员体验
+        </Text>
+      </Pressable>
+    </View>
+  ) : (
+    <View style={styles.authActions}>
+      <Pressable
+        onPress={handlers.onPurchase}
+        style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+        testID="membership-purchase-button"
+      >
+        <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+          恢复购买并开通会员
+        </Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -1682,7 +2092,7 @@ function RouteCanvas({
           items={[
             '顶层顺序固定为 学习 / 空间 / 统计 / 我的。',
             '学习保持最重要入口，空间保持顶层入口。',
-            '认证先落到壳层，会员与同步后续独立接入。',
+            '认证与会员矩阵已接进壳层，同步合同后续独立接入。',
           ]}
         />
         <InfoCard
@@ -1755,6 +2165,32 @@ function maskPhoneNumber(phoneNumber: string) {
   }
 
   return `${phoneNumber.slice(0, 3)}****${phoneNumber.slice(-4)}`;
+}
+
+function getMembershipCardTitle(stage: MembershipStage) {
+  switch (stage) {
+    case 'trial_available':
+      return '试用待开始';
+    case 'trial':
+      return '完整试用进行中';
+    case 'free':
+      return '当前是基础学习态';
+    case 'premium':
+      return '当前是会员态';
+  }
+}
+
+function getMembershipCardSummary(membershipState: MembershipState) {
+  switch (membershipState.stage) {
+    case 'trial_available':
+      return '试用不会在注册时自动起算，而是在首个计入入口开始。开始后会放开完整卡库、完整空间和完整算法。';
+    case 'trial':
+      return `当前用本地壳层模拟 ${membershipState.trialDurationDays} 天完整试用，确保用户能完整感受到内容、算法和物理空间的价值。`;
+    case 'free':
+      return '当前只保留基础学习，并把完整卡库、完整空间和完整算法收回到试用/会员权限后。';
+    case 'premium':
+      return '当前本地 entitlement 已统一为会员态，完整卡库、完整空间和完整算法都已放开。';
+  }
 }
 
 const styles = StyleSheet.create({
@@ -2016,6 +2452,24 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     lineHeight: 21,
+  },
+  membershipFocusCard: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 6,
+  },
+  membershipFocusTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  membershipRecoveryCard: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 10,
   },
   phoneTabBar: {
     borderTopWidth: 1,
