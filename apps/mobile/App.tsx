@@ -1,4 +1,4 @@
-import React, { startTransition, useEffect, useState } from 'react';
+import React, { startTransition, useCallback, useEffect, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -65,6 +65,11 @@ type AuthState = {
 };
 
 type LearningBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
+
+type SpaceCardState = {
+  isFavorited: boolean;
+  isSleeping: boolean;
+};
 
 type AuthHandlers = {
   onChangePhone: (value: string) => void;
@@ -209,21 +214,54 @@ function AppShell() {
   >([]);
   const [learningCurrentResult, setLearningCurrentResult] =
     useState<LearningCardResult | null>(null);
+  const [spaceCardStateById, setSpaceCardStateById] = useState<
+    Record<string, SpaceCardState>
+  >({});
   const { width, height } = useWindowDimensions();
   const deviceClass = getDeviceClass(width, height);
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
   const isAuthenticated = authState.stage === 'authenticated';
   const routeRequiresAuth = PROTECTED_ROUTES.includes(route.key);
   const shouldShowAuthGate = routeRequiresAuth && !isAuthenticated;
-  const currentLearningCard = learningSession?.cards[learningIndex] ?? null;
+  const readSpaceCardState = useCallback(
+    (
+      cardId: string,
+      stateMap: Record<string, SpaceCardState> = spaceCardStateById,
+    ): SpaceCardState =>
+      stateMap[cardId] ?? {isFavorited: false, isSleeping: false},
+    [spaceCardStateById],
+  );
+  const createTrackedLearningCardState = useCallback(
+    (
+      card: LearningSession['cards'][number],
+      stateMap: Record<string, SpaceCardState> = spaceCardStateById,
+    ) => ({
+      ...createLearningCardState(card),
+      isFavorited: readSpaceCardState(card.card_id, stateMap).isFavorited,
+    }),
+    [readSpaceCardState, spaceCardStateById],
+  );
+  const visibleLearningCards =
+    learningSession?.cards.filter(
+      card => !readSpaceCardState(card.card_id).isSleeping,
+    ) ?? [];
+  const currentLearningCard = visibleLearningCards[learningIndex] ?? null;
 
-  const resetLearningDeck = () => {
+  const resetLearningDeck = (
+    stateMap: Record<string, SpaceCardState> = spaceCardStateById,
+    nextSession: LearningSession | null = learningSession,
+  ) => {
+    const nextVisibleCards =
+      nextSession?.cards.filter(
+        card => !readSpaceCardState(card.card_id, stateMap).isSleeping,
+      ) ?? [];
+
     setLearningIndex(0);
     setLearningCurrentResult(null);
     setLearningCompletedResults([]);
     setLearningCardState(
-      learningSession?.cards[0]
-        ? createLearningCardState(learningSession.cards[0])
+      nextVisibleCards[0]
+        ? createTrackedLearningCardState(nextVisibleCards[0], stateMap)
         : null,
     );
   };
@@ -237,6 +275,7 @@ function AppShell() {
       setLearningCurrentResult(null);
       setLearningCompletedResults([]);
       setLearningCardState(null);
+      setSpaceCardStateById({});
       return;
     }
 
@@ -267,7 +306,9 @@ function AppShell() {
         setLearningCurrentResult(null);
         setLearningCompletedResults([]);
         setLearningCardState(
-          session.cards[0] ? createLearningCardState(session.cards[0]) : null,
+          session.cards[0]
+            ? createTrackedLearningCardState(session.cards[0])
+            : null,
         );
         setLearningBootstrapStatus('ready');
       })
@@ -287,7 +328,7 @@ function AppShell() {
     return () => {
       isCancelled = true;
     };
-  }, [isAuthenticated, learningBootstrapStatus]);
+  }, [createTrackedLearningCardState, isAuthenticated, learningBootstrapStatus]);
 
   const patchLearningCardState = (
     updater: (state: LearningCardState) => LearningCardState,
@@ -363,6 +404,7 @@ function AppShell() {
     },
     onLogout: () => {
       setAuthState(INITIAL_AUTH_STATE);
+      setSpaceCardStateById({});
       startTransition(() => {
         setActiveRoute('mine');
       });
@@ -377,9 +419,22 @@ function AppShell() {
       }));
     },
     onToggleFavorite: () => {
-      patchLearningCardState(current => ({
+      if (currentLearningCard === null || learningCardState === null) {
+        return;
+      }
+
+      const nextFavorited = !learningCardState.isFavorited;
+
+      setLearningCardState({
+        ...learningCardState,
+        isFavorited: nextFavorited,
+      });
+      setSpaceCardStateById(current => ({
         ...current,
-        isFavorited: !current.isFavorited,
+        [currentLearningCard.card_id]: {
+          ...readSpaceCardState(currentLearningCard.card_id, current),
+          isFavorited: nextFavorited,
+        },
       }));
     },
     onToggleHint: () => {
@@ -461,18 +516,53 @@ function AppShell() {
 
       if (
         learningSession === null ||
-        nextIndex >= learningSession.cards.length
+        nextIndex >= visibleLearningCards.length
       ) {
         setLearningIndex(nextIndex);
         setLearningCardState(null);
         return;
       }
 
-      const nextCard = learningSession.cards[nextIndex];
+      const nextCard = visibleLearningCards[nextIndex];
       setLearningIndex(nextIndex);
-      setLearningCardState(createLearningCardState(nextCard));
+      setLearningCardState(createTrackedLearningCardState(nextCard));
     },
     onRestartDeck: resetLearningDeck,
+  };
+
+  const spaceHandlers = {
+    onToggleFavoriteTag: (cardId: string) => {
+      const currentState = readSpaceCardState(cardId);
+      const nextFavorited = !currentState.isFavorited;
+
+      setSpaceCardStateById(current => ({
+        ...current,
+        [cardId]: {
+          ...readSpaceCardState(cardId, current),
+          isFavorited: nextFavorited,
+        },
+      }));
+
+      if (currentLearningCard?.card_id === cardId && learningCardState !== null) {
+        setLearningCardState({
+          ...learningCardState,
+          isFavorited: nextFavorited,
+        });
+      }
+    },
+    onToggleSleepState: (cardId: string) => {
+      const currentState = readSpaceCardState(cardId);
+      const nextStateMap = {
+        ...spaceCardStateById,
+        [cardId]: {
+          ...currentState,
+          isSleeping: !currentState.isSleeping,
+        },
+      };
+
+      setSpaceCardStateById(nextStateMap);
+      resetLearningDeck(nextStateMap);
+    },
   };
 
   const content = shouldShowAuthGate ? (
@@ -501,6 +591,15 @@ function AppShell() {
       palette={palette}
       status={learningBootstrapStatus}
     />
+  ) : route.key === 'learning' && visibleLearningCards.length === 0 ? (
+    <LearningSleepSurface
+      onGoToSpace={() => {
+        startTransition(() => {
+          setActiveRoute('space');
+        });
+      }}
+      palette={palette}
+    />
   ) : route.key === 'learning' ? (
     <LearningSurface
       completedResults={learningCompletedResults}
@@ -521,13 +620,16 @@ function AppShell() {
       onToggleHint={learningHandlers.onToggleHint}
       onTogglePeek={learningHandlers.onTogglePeek}
       palette={palette}
-      sessionCards={learningSession?.cards ?? []}
+      sessionCards={visibleLearningCards}
       sessionLabel={learningSession?.sourceLabel ?? '学习卡源'}
     />
   ) : route.key === 'space' ? (
     <SpaceSurface
+      cardStateById={spaceCardStateById}
       currentLearningCard={currentLearningCard}
       deviceClass={deviceClass}
+      onToggleFavoriteTag={spaceHandlers.onToggleFavoriteTag}
+      onToggleSleepState={spaceHandlers.onToggleSleepState}
       palette={palette}
     />
   ) : (
@@ -640,6 +742,53 @@ function LearningBootstrapSurface({
           </Text>
         </View>
       )}
+    </ScrollView>
+  );
+}
+
+function LearningSleepSurface({
+  onGoToSpace,
+  palette,
+}: {
+  onGoToSpace: () => void;
+  palette: Palette;
+}) {
+  return (
+    <ScrollView contentContainerStyle={styles.canvasContent}>
+      <View
+        style={[
+          styles.hero,
+          { backgroundColor: palette.panel, borderColor: palette.border },
+        ]}
+      >
+        <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
+          SLEEP ZONE
+        </Text>
+        <Text style={[styles.heroTitle, { color: palette.text }]}>
+          当前学习卡都已进入休眠区
+        </Text>
+        <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
+          根据空间规则，进入休眠区的卡不会继续出现在学习流里。先去空间里把需要恢复的卡移出休眠区，再继续当前学习。
+        </Text>
+      </View>
+      <InfoCard
+        palette={palette}
+        title="这一步为什么拦住学习流"
+        items={[
+          '休眠是 remove-from-flow 行为，不是普通标签。',
+          '当前实现会立刻把休眠卡移出当前学习集合。',
+          '恢复后再回学习入口，就能重新进入学习流。',
+        ]}
+      />
+      <Pressable
+        onPress={onGoToSpace}
+        style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+        testID="learning-go-space-button"
+      >
+        <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+          去空间管理休眠卡
+        </Text>
+      </Pressable>
     </ScrollView>
   );
 }

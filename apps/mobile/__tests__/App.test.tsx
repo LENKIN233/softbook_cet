@@ -334,3 +334,65 @@ test('can browse the seeded knowledge map after login', async () => {
   expect(output).toContain('The article offers a ____ explanation');
   expect(output).toContain('052102');
 });
+
+test('can move a card into sleep zone and remove it from learning flow', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'route-tab-space' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-sleep-002001' }).props.onPress();
+  });
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('休眠区');
+  expect(output).toContain('移出休眠');
+  expect(output).toContain('002001');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'route-tab-learning' }).props.onPress();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('The committee postponed the vote');
+  expect(output).not.toContain('短对话里听到 however');
+});
+
+test('can favorite a card from space and reflect it in learning flow', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'route-tab-space' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-favorite-002001' }).props.onPress();
+  });
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('收藏标签');
+  expect(output).toContain('取消收藏');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'route-tab-learning' }).props.onPress();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('已收藏');
+});

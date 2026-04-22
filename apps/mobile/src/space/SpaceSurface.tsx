@@ -15,6 +15,7 @@ type SpacePalette = {
   accentSoft: string;
   accentStrong: string;
   border: string;
+  danger: string;
   panel: string;
   panelStrong: string;
   success: string;
@@ -49,6 +50,7 @@ type SpaceLibraryNode = {
 };
 
 type SpaceSeed = {
+  allCards: SpaceCardPreview[];
   boxCount: number;
   cardCount: number;
   groupCount: number;
@@ -57,15 +59,23 @@ type SpaceSeed = {
 };
 
 export function SpaceSurface({
+  cardStateById,
   currentLearningCard,
   deviceClass,
+  onToggleFavoriteTag,
+  onToggleSleepState,
   palette,
 }: {
+  cardStateById: Record<string, {isFavorited: boolean; isSleeping: boolean}>;
   currentLearningCard: LearningCard | null;
   deviceClass: DeviceClass;
+  onToggleFavoriteTag: (cardId: string) => void;
+  onToggleSleepState: (cardId: string) => void;
   palette: SpacePalette;
 }) {
   const seed = useMemo(() => buildSpaceSeed(), []);
+  const favoriteCards = seed.allCards.filter(card => cardStateById[card.cardId]?.isFavorited);
+  const sleepingCards = seed.allCards.filter(card => cardStateById[card.cardId]?.isSleeping);
   const [selectedLibraryName, setSelectedLibraryName] = useState(
     seed.libraries[0]?.libraryName ?? '',
   );
@@ -127,6 +137,8 @@ export function SpaceSurface({
           <SummaryPill label="group" palette={palette} value={seed.groupCount} />
           <SummaryPill label="box" palette={palette} value={seed.boxCount} />
           <SummaryPill label="card" palette={palette} value={seed.cardCount} />
+          <SummaryPill label="favorite" palette={palette} value={favoriteCards.length} />
+          <SummaryPill label="sleep" palette={palette} value={sleepingCards.length} />
         </View>
       </SurfaceCard>
 
@@ -165,6 +177,45 @@ export function SpaceSurface({
             palette={palette}
             text="当前模块只做低成本浏览与盒内查看，不把空间做成复杂管理器。"
           />
+        </SurfaceCard>
+
+        <SurfaceCard palette={palette} testID="space-sleep-zone">
+          <Text style={[styles.cardTitle, { color: palette.text }]}>休眠区</Text>
+          <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+            进入休眠区的卡会立刻移出当前学习流，直到你把它移出来。
+          </Text>
+          {sleepingCards.length > 0 ? (
+            <View style={styles.statusList}>
+              {sleepingCards.map(card => (
+                <View
+                  key={card.cardId}
+                  style={[
+                    styles.statusRow,
+                    { backgroundColor: palette.panelStrong, borderColor: palette.border },
+                  ]}
+                >
+                  <View style={styles.statusCopy}>
+                    <Text style={[styles.statusTitle, { color: palette.text }]}>
+                      {card.prompt}
+                    </Text>
+                    <Text style={[styles.statusMeta, { color: palette.textMuted }]}>
+                      {card.cardId} · box_ref {card.boxRef}
+                    </Text>
+                  </View>
+                  <ActionChip
+                    label="移出休眠"
+                    onPress={() => onToggleSleepState(card.cardId)}
+                    palette={palette}
+                    testID={`space-wake-${card.cardId}`}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+              当前还没有卡进入休眠区。
+            </Text>
+          )}
         </SurfaceCard>
       </View>
 
@@ -252,6 +303,45 @@ export function SpaceSurface({
         </View>
       </SurfaceCard>
 
+      <SurfaceCard palette={palette}>
+        <Text style={[styles.cardTitle, { color: palette.text }]}>收藏标签</Text>
+        <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+          收藏是轻标签，不会改变卡片的物理位置。
+        </Text>
+        {favoriteCards.length > 0 ? (
+          <View style={styles.statusList}>
+            {favoriteCards.map(card => (
+              <View
+                key={card.cardId}
+                style={[
+                  styles.statusRow,
+                  { backgroundColor: palette.panelStrong, borderColor: palette.border },
+                ]}
+              >
+                <View style={styles.statusCopy}>
+                  <Text style={[styles.statusTitle, { color: palette.text }]}>
+                    {card.prompt}
+                  </Text>
+                  <Text style={[styles.statusMeta, { color: palette.textMuted }]}>
+                    {card.cardId} · {card.boxRef}
+                  </Text>
+                </View>
+                <ActionChip
+                  label="取消收藏"
+                  onPress={() => onToggleFavoriteTag(card.cardId)}
+                  palette={palette}
+                  testID={`space-unfavorite-${card.cardId}`}
+                />
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+            当前还没有收藏标签；你可以在学习卡或空间里直接加上它。
+          </Text>
+        )}
+      </SurfaceCard>
+
       <View style={styles.sectionGrid}>
         <SurfaceCard palette={palette}>
           <Text style={[styles.cardTitle, { color: palette.text }]}>盒列表</Text>
@@ -303,6 +393,8 @@ export function SpaceSurface({
           <View style={styles.cardList}>
             {selectedBox.cards.map(card => {
               const isCurrent = currentLearningCard?.card_id === card.cardId;
+              const isFavorited = cardStateById[card.cardId]?.isFavorited ?? false;
+              const isSleeping = cardStateById[card.cardId]?.isSleeping ?? false;
 
               return (
                 <View
@@ -321,11 +413,37 @@ export function SpaceSurface({
                   <Text style={[styles.cardMeta, { color: palette.textMuted }]}>
                     {card.cardId} · {card.interactionLabel} · {card.track}
                   </Text>
-                  {isCurrent ? (
-                    <Text style={[styles.currentTag, { color: palette.success }]}>
-                      当前学习卡
-                    </Text>
-                  ) : null}
+                  <View style={styles.badgeRow}>
+                    {isFavorited ? (
+                      <Text style={[styles.stateTag, { color: palette.accentStrong }]}>
+                        已收藏
+                      </Text>
+                    ) : null}
+                    {isSleeping ? (
+                      <Text style={[styles.stateTag, { color: palette.danger ?? palette.textMuted }]}>
+                        休眠中
+                      </Text>
+                    ) : null}
+                    {isCurrent ? (
+                      <Text style={[styles.currentTag, { color: palette.success }]}>
+                        当前学习卡
+                      </Text>
+                    ) : null}
+                  </View>
+                  <View style={styles.actionWrap}>
+                    <ActionChip
+                      label={isFavorited ? '取消收藏' : '收藏'}
+                      onPress={() => onToggleFavoriteTag(card.cardId)}
+                      palette={palette}
+                      testID={`space-favorite-${card.cardId}`}
+                    />
+                    <ActionChip
+                      label={isSleeping ? '移出休眠' : '放入休眠'}
+                      onPress={() => onToggleSleepState(card.cardId)}
+                      palette={palette}
+                      testID={`space-sleep-${card.cardId}`}
+                    />
+                  </View>
                 </View>
               );
             })}
@@ -333,6 +451,33 @@ export function SpaceSurface({
         </SurfaceCard>
       </View>
     </ScrollView>
+  );
+}
+
+function ActionChip({
+  label,
+  onPress,
+  palette,
+  testID,
+}: {
+  label: string;
+  onPress: () => void;
+  palette: SpacePalette;
+  testID?: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.actionChip,
+        { backgroundColor: palette.accentSoft, borderColor: palette.border },
+      ]}
+      testID={testID}
+    >
+      <Text style={[styles.actionChipLabel, { color: palette.accentStrong }]}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -405,6 +550,7 @@ function buildSpaceSeed(): SpaceSeed {
     string,
     Map<string, Map<string, { boxName: string; cards: SpaceCardPreview[] }>>
   >();
+  const allCards: SpaceCardPreview[] = [];
 
   for (const record of localLearningCardRecords) {
     const library =
@@ -426,13 +572,16 @@ function buildSpaceSeed(): SpaceSeed {
         })
         .get(record.space_metadata.box_ref)!;
 
-    box.cards.push({
+    const preview = {
       boxRef: record.space_metadata.box_ref,
       cardId: record.card_id,
       interactionLabel: INTERACTION_LABELS[record.interaction_id],
       prompt: record.front.prompt,
       track: record.track,
-    });
+    };
+
+    box.cards.push(preview);
+    allCards.push(preview);
   }
 
   const libraries: SpaceLibraryNode[] = [];
@@ -470,6 +619,7 @@ function buildSpaceSeed(): SpaceSeed {
   }
 
   return {
+    allCards,
     boxCount,
     cardCount,
     groupCount,
@@ -533,6 +683,31 @@ const styles = StyleSheet.create({
   },
   sectionGrid: {
     gap: 14,
+  },
+  statusList: {
+    gap: 10,
+  },
+  statusRow: {
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  statusCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  statusTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  statusMeta: {
+    fontSize: 12,
+    lineHeight: 18,
   },
   cardTitle: {
     fontSize: 18,
@@ -612,6 +787,30 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   currentTag: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  stateTag: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  actionWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  actionChip: {
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  actionChipLabel: {
     fontSize: 12,
     fontWeight: '700',
   },
