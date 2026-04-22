@@ -10,19 +10,19 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import {
-  SafeAreaProvider,
-  SafeAreaView,
-} from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { LearningSurface } from './src/learning/LearningSurface';
 import {
-  createLearningCardState,
-  evaluateLearningCard,
-  LEARNING_TEST_CARDS,
   LearningCardResult,
   LearningCardState,
-} from './src/learning/testDeck';
+  LearningTrack,
+} from './src/learning/model';
+import {
+  createLearningCardState,
+  createLocalLearningSession,
+  evaluateLearningCard,
+} from './src/learning/session';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
@@ -77,13 +77,13 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '最重要入口',
     title: '单卡学习流',
     summary:
-      '当前分支用本地测试卡把学习主路径接起来，先跑通单卡推进、核心交互和轻量动作。',
+      '当前分支把学习主路径接到结构化本地卡源，先跑通单卡推进、核心交互和最小出卡规则。',
     highlights: [
       '一次只推进一张卡，不把学习入口做成按钮堆。',
-      '本地测试卡覆盖 flip / multiple_choice / lock / elimination / swipe。',
+      '当前卡源首轮出卡覆盖 flip / multiple_choice / lock / elimination / swipe。',
       'Peek、收藏和提示层保持轻量，不抢主交互。',
     ],
-    focus: ['test deck', 'single-card flow', 'core interactions'],
+    focus: ['structured card source', 'single-card flow', 'minimal scheduling'],
   },
   {
     key: 'space',
@@ -171,7 +171,9 @@ const INITIAL_AUTH_STATE: AuthState = {
   error: null,
 };
 
-const INITIAL_LEARNING_CARD = LEARNING_TEST_CARDS[0] ?? null;
+const LEARNING_TRACK: LearningTrack = 'cet4';
+const LEARNING_SESSION = createLocalLearningSession(LEARNING_TRACK);
+const INITIAL_LEARNING_CARD = LEARNING_SESSION.cards[0] ?? null;
 
 function App(): React.JSX.Element {
   return (
@@ -189,7 +191,9 @@ function AppShell() {
   const [learningIndex, setLearningIndex] = useState(0);
   const [learningCardState, setLearningCardState] =
     useState<LearningCardState | null>(() =>
-      INITIAL_LEARNING_CARD ? createLearningCardState(INITIAL_LEARNING_CARD) : null,
+      INITIAL_LEARNING_CARD
+        ? createLearningCardState(INITIAL_LEARNING_CARD)
+        : null,
     );
   const [learningCompletedResults, setLearningCompletedResults] = useState<
     LearningCardResult[]
@@ -202,14 +206,16 @@ function AppShell() {
   const isAuthenticated = authState.stage === 'authenticated';
   const routeRequiresAuth = PROTECTED_ROUTES.includes(route.key);
   const shouldShowAuthGate = routeRequiresAuth && !isAuthenticated;
-  const currentLearningCard = LEARNING_TEST_CARDS[learningIndex] ?? null;
+  const currentLearningCard = LEARNING_SESSION.cards[learningIndex] ?? null;
 
   const resetLearningDeck = () => {
     setLearningIndex(0);
     setLearningCurrentResult(null);
     setLearningCompletedResults([]);
     setLearningCardState(
-      INITIAL_LEARNING_CARD ? createLearningCardState(INITIAL_LEARNING_CARD) : null,
+      INITIAL_LEARNING_CARD
+        ? createLearningCardState(INITIAL_LEARNING_CARD)
+        : null,
     );
   };
 
@@ -331,7 +337,9 @@ function AppShell() {
       };
 
       setLearningCardState(nextState);
-      setLearningCurrentResult(evaluateLearningCard(currentLearningCard, nextState));
+      setLearningCurrentResult(
+        evaluateLearningCard(currentLearningCard, nextState),
+      );
     },
     onSelectOption: (optionId: string) => {
       patchLearningCardState(current => ({
@@ -382,13 +390,13 @@ function AppShell() {
       setLearningCompletedResults(nextResults);
       setLearningCurrentResult(null);
 
-      if (nextIndex >= LEARNING_TEST_CARDS.length) {
+      if (nextIndex >= LEARNING_SESSION.cards.length) {
         setLearningIndex(nextIndex);
         setLearningCardState(null);
         return;
       }
 
-      const nextCard = LEARNING_TEST_CARDS[nextIndex];
+      const nextCard = LEARNING_SESSION.cards[nextIndex];
       setLearningIndex(nextIndex);
       setLearningCardState(createLearningCardState(nextCard));
     },
@@ -429,6 +437,8 @@ function AppShell() {
       onToggleHint={learningHandlers.onToggleHint}
       onTogglePeek={learningHandlers.onTogglePeek}
       palette={palette}
+      sessionCards={LEARNING_SESSION.cards}
+      sessionLabel={LEARNING_SESSION.sourceLabel}
     />
   ) : (
     <RouteCanvas palette={palette} route={route} deviceClass={deviceClass} />
@@ -436,7 +446,8 @@ function AppShell() {
 
   return (
     <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: palette.background }]}>
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+    >
       <StatusBar
         barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'}
       />
@@ -491,7 +502,8 @@ function PhoneShell({
         style={[
           styles.phoneTabBar,
           { backgroundColor: palette.panel, borderTopColor: palette.border },
-        ]}>
+        ]}
+      >
         {ROUTES.map(item => {
           const isActive = item.key === activeRoute;
 
@@ -502,21 +514,24 @@ function PhoneShell({
               onPress={() => {
                 startTransition(() => onSelectRoute(item.key));
               }}
-              style={styles.phoneTabButton}>
+              style={styles.phoneTabButton}
+            >
               <Text
                 style={[
                   styles.phoneTabBadge,
                   {
                     color: isActive ? palette.accentStrong : palette.tabIdle,
                   },
-                ]}>
+                ]}
+              >
                 {item.badge}
               </Text>
               <Text
                 style={[
                   styles.phoneTabLabel,
                   { color: isActive ? palette.text : palette.tabIdle },
-                ]}>
+                ]}
+              >
                 {item.label}
               </Text>
               <View
@@ -556,7 +571,8 @@ function TabletShell({
         style={[
           styles.sidebar,
           { backgroundColor: palette.panel, borderRightColor: palette.border },
-        ]}>
+        ]}
+      >
         <Text style={[styles.brandEyebrow, { color: palette.accent }]}>
           LEARNING / SHELL
         </Text>
@@ -564,7 +580,8 @@ function TabletShell({
           软书四六级
         </Text>
         <Text style={[styles.brandSummary, { color: palette.textMuted }]}>
-          当前分支把已登录后的单卡学习流接进 iOS 壳层，空间、统计和“我的”先保持边界清楚。
+          当前分支把已登录后的单卡学习流接进 iOS
+          壳层，空间、统计和“我的”先保持边界清楚。
         </Text>
         <AuthStatusBadge authState={authState} palette={palette} />
         <View style={styles.sidebarNav}>
@@ -586,12 +603,16 @@ function TabletShell({
                       : palette.panelStrong,
                     borderColor: isActive ? palette.accent : palette.border,
                   },
-                ]}>
+                ]}
+              >
                 <Text
                   style={[
                     styles.sidebarBadge,
-                    { color: isActive ? palette.accentStrong : palette.tabIdle },
-                  ]}>
+                    {
+                      color: isActive ? palette.accentStrong : palette.tabIdle,
+                    },
+                  ]}
+                >
                   {item.badge}
                 </Text>
                 <View style={styles.sidebarCopy}>
@@ -599,11 +620,13 @@ function TabletShell({
                     style={[
                       styles.sidebarLabel,
                       { color: isActive ? palette.text : palette.textMuted },
-                    ]}>
+                    ]}
+                  >
                     {item.label}
                   </Text>
                   <Text
-                    style={[styles.sidebarEyebrow, { color: palette.tabIdle }]}>
+                    style={[styles.sidebarEyebrow, { color: palette.tabIdle }]}
+                  >
                     {item.eyebrow}
                   </Text>
                 </View>
@@ -649,7 +672,8 @@ function ShellHeader({
           backgroundColor: palette.panel,
           borderBottomColor: palette.border,
         },
-      ]}>
+      ]}
+    >
       <View style={styles.headerCopy}>
         <Text style={[styles.headerEyebrow, { color: palette.accent }]}>
           {route.eyebrow}
@@ -663,17 +687,23 @@ function ShellHeader({
               ? 'iPhone 上直接进入单卡学习流，底部导航只负责模块切换，不把主学习动作拆散。'
               : 'iPad 侧边导航保留顶层顺序一致，右侧内容区承接更完整的单卡学习画布。'
             : deviceClass === 'phone'
-              ? 'iPhone 使用底部导航，登录门禁仍先挂在学习、空间和统计入口前。'
-              : 'iPad 使用侧边导航，保留顶层顺序一致，同时用更宽内容区承接登录与业务入口。'}
+            ? 'iPhone 使用底部导航，登录门禁仍先挂在学习、空间和统计入口前。'
+            : 'iPad 使用侧边导航，保留顶层顺序一致，同时用更宽内容区承接登录与业务入口。'}
         </Text>
       </View>
       <View style={styles.headerMeta}>
         <View
           style={[
             styles.headerPill,
-            { backgroundColor: palette.accentSoft, borderColor: palette.border },
-          ]}>
-          <Text style={[styles.headerPillText, { color: palette.accentStrong }]}>
+            {
+              backgroundColor: palette.accentSoft,
+              borderColor: palette.border,
+            },
+          ]}
+        >
+          <Text
+            style={[styles.headerPillText, { color: palette.accentStrong }]}
+          >
             {route.badge}
           </Text>
         </View>
@@ -699,19 +729,25 @@ function AuthStatusBadge({
       style={[
         styles.statusBadge,
         {
-          backgroundColor: isAuthenticated ? palette.accentSoft : palette.panelStrong,
+          backgroundColor: isAuthenticated
+            ? palette.accentSoft
+            : palette.panelStrong,
           borderColor: palette.border,
         },
-      ]}>
+      ]}
+    >
       <Text
         style={[
           styles.statusBadgeLabel,
           { color: isAuthenticated ? palette.success : palette.textMuted },
-        ]}>
+        ]}
+      >
         {isAuthenticated ? '身份已确认' : '等待登录'}
       </Text>
       <Text style={[styles.statusBadgeValue, { color: palette.text }]}>
-        {isAuthenticated ? maskPhoneNumber(authState.phoneNumber) : '手机号验证码'}
+        {isAuthenticated
+          ? maskPhoneNumber(authState.phoneNumber)
+          : '手机号验证码'}
       </Text>
     </View>
   );
@@ -735,12 +771,15 @@ function AuthGate({
           styles.hero,
           styles.authHero,
           { backgroundColor: palette.panel, borderColor: palette.border },
-        ]}>
+        ]}
+      >
         <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
           AUTH GATE
         </Text>
         <Text style={[styles.heroTitle, { color: palette.text }]}>
-          {route.key === 'learning' ? '学习前先登录' : `进入${route.label}前先确认身份`}
+          {route.key === 'learning'
+            ? '学习前先登录'
+            : `进入${route.label}前先确认身份`}
         </Text>
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
           根据认证合同，游客不能开始学习；当前壳层同时把空间与统计一起挂在登录态之后，避免无身份状态下承接个人连续性数据。
@@ -785,7 +824,8 @@ function MineSurface({
         style={[
           styles.hero,
           { backgroundColor: palette.panel, borderColor: palette.border },
-        ]}>
+        ]}
+      >
         <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
           ACCOUNT HOST
         </Text>
@@ -834,7 +874,8 @@ function PhoneSmsPanel({
       style={[
         styles.authPanel,
         { backgroundColor: palette.panel, borderColor: palette.border },
-      ]}>
+      ]}
+    >
       <Text style={[styles.infoTitle, { color: palette.text }]}>{title}</Text>
       <Text style={[styles.authSummary, { color: palette.textMuted }]}>
         {summary}
@@ -873,7 +914,8 @@ function PhoneSmsPanel({
             styles.compactButton,
             { backgroundColor: palette.accent },
           ]}
-          testID="auth-request-code-button">
+          testID="auth-request-code-button"
+        >
           <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
             {authState.stage === 'code_sent' ? '重新发送验证码' : '请求验证码'}
           </Text>
@@ -926,10 +968,16 @@ function PhoneSmsPanel({
             onPress={handlers.onLogout}
             style={[
               styles.secondaryButton,
-              { borderColor: palette.border, backgroundColor: palette.panelStrong },
+              {
+                borderColor: palette.border,
+                backgroundColor: palette.panelStrong,
+              },
             ]}
-            testID="auth-logout-button">
-            <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
+            testID="auth-logout-button"
+          >
+            <Text
+              style={[styles.secondaryButtonLabel, { color: palette.text }]}
+            >
               退出当前登录态
             </Text>
           </Pressable>
@@ -938,7 +986,8 @@ function PhoneSmsPanel({
         <Pressable
           onPress={handlers.onSubmitCode}
           style={[styles.primaryButton, { backgroundColor: palette.accent }]}
-          testID="auth-submit-button">
+          testID="auth-submit-button"
+        >
           <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
             完成登录
           </Text>
@@ -962,12 +1011,14 @@ function RouteCanvas({
       contentContainerStyle={[
         styles.canvasContent,
         deviceClass === 'tablet' ? styles.canvasContentTablet : null,
-      ]}>
+      ]}
+    >
       <View
         style={[
           styles.hero,
           { backgroundColor: palette.panel, borderColor: palette.border },
-        ]}>
+        ]}
+      >
         <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
           当前阶段
         </Text>
@@ -985,11 +1036,7 @@ function RouteCanvas({
           title="本分支只做什么"
           items={route.highlights}
         />
-        <InfoCard
-          palette={palette}
-          title="下一步会接入"
-          items={route.focus}
-        />
+        <InfoCard palette={palette} title="下一步会接入" items={route.focus} />
         <InfoCard
           palette={palette}
           title="导航与权限"
@@ -1035,7 +1082,8 @@ function InfoCard({
       style={[
         styles.infoCard,
         { backgroundColor: palette.panel, borderColor: palette.border },
-      ]}>
+      ]}
+    >
       <Text style={[styles.infoTitle, { color: palette.text }]}>{title}</Text>
       {items.map(item => (
         <View key={item} style={styles.infoRow}>
