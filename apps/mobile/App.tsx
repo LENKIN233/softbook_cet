@@ -25,6 +25,7 @@ import {
 } from './src/learning/session';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
 import { resolveLearningSessionRepositoryConfig } from './src/learning/learningRuntimeConfig';
+import { SpaceSurface } from './src/space/SpaceSurface';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
@@ -96,13 +97,13 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '顶层入口',
     title: '知识地图与物理空间',
     summary:
-      '空间不是收藏夹，也不是两个盒子的展示页。这里会承接 library / group / box / card 的层级和位置语义。',
+      '当前已经把已接入卡片的 library / group / box / card 层级接进空间入口，先收口知识地图浏览、盒内卡片查看和当前位置可见性。',
     highlights: [
-      '必须能看见卡片在空间中的位置。',
-      '允许受控的收藏、休眠和位置调整，不允许任意改写知识归属。',
-      '后续模块会补盒内浏览、位置反馈和知识层级展开。',
+      '能看见当前学习卡在空间中的位置。',
+      '能按 library / group / box 层级浏览已接入卡片。',
+      '先收口低成本浏览，不开放任意拖拽改盒。',
     ],
-    focus: ['knowledge-map', 'box contents', 'sleep zone rules'],
+    focus: ['sleep zone rules', 'supported position adjustments'],
   },
   {
     key: 'statistics',
@@ -523,6 +524,12 @@ function AppShell() {
       sessionCards={learningSession?.cards ?? []}
       sessionLabel={learningSession?.sourceLabel ?? '学习卡源'}
     />
+  ) : route.key === 'space' ? (
+    <SpaceSurface
+      currentLearningCard={currentLearningCard}
+      deviceClass={deviceClass}
+      palette={palette}
+    />
   ) : (
     <RouteCanvas palette={palette} route={route} deviceClass={deviceClass} />
   );
@@ -678,6 +685,7 @@ function PhoneShell({
                 startTransition(() => onSelectRoute(item.key));
               }}
               style={styles.phoneTabButton}
+              testID={`route-tab-${item.key}`}
             >
               <Text
                 style={[
@@ -767,6 +775,7 @@ function TabletShell({
                     borderColor: isActive ? palette.accent : palette.border,
                   },
                 ]}
+                testID={`route-sidebar-${item.key}`}
               >
                 <Text
                   style={[
