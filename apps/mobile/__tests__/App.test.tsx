@@ -404,6 +404,51 @@ test('can start a review round from cards that need revisiting', async () => {
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看已走完');
   expect(output).toContain('回到首轮重新开始');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'route-tab-statistics' }).props.onPress();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('已完成 1 张回看卡，当前还剩 0 张待回看。');
+});
+
+test('can check in from statistics after making learning progress', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-confident-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'route-tab-statistics' }).props.onPress();
+  });
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('今日可签到');
+  expect(output).toContain('今天已经产生有效学习进展，可以把连续性落成一次轻量签到。');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'statistics-checkin-button' }).props.onPress();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('今日已签到');
 });
 
 test('can browse the seeded knowledge map after login', async () => {
