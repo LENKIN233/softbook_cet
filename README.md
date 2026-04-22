@@ -4,14 +4,17 @@
 
 - `spec/requirement-memory.json`
 - `spec/authority-map.json`
+- `spec/product-core.json`
+- `spec/account-sync-contract.json`
+- `spec/membership.json`
 - `spec/platform-contract.json`
 - `spec/runtime-boundaries.json`
 - `spec/agent-harness.json`
 
 ## 当前阶段
 
-- `product_truth`: 产品 scope 仍然是 `iOS + Android + Web`，且移动端优先；不能把产品做成泛英语教学系统。
-- `implementation_hypothesis`: 先在 `apps/mobile` 落一个 React Native 原生工程，优先打通 iOS 开发闭环，再进入第一个业务模块。
+- `product_truth`: 试用是完整体验；试用后仍保留基础学习，但完整卡库、完整空间和完整算法属于试用/会员权限；购买与 entitlement 必须跨端统一。
+- `implementation_hypothesis`: `apps/mobile` 当前先用本地 entitlement 宿主验证 `trial -> free -> premium`、paywall 和恢复购买提醒，再接真实服务。
 
 ## 目录
 
@@ -86,6 +89,17 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
 ```
 
 不要把真实密钥提交进仓库；提交前请恢复成安全的默认本地配置。
+
+### 本地会员/付费墙壳层
+
+`apps/mobile` 现在还会在本地壳层里表达会员矩阵：
+
+- 试用不会在注册时偷跑，而是在首个计入入口开始
+- 免费态保留基础学习，并把可学习卡量收口到接近一半
+- `space` 和 `review` 会被试用/会员权限 gate 住
+- “我的”页会承接试用起算、开通会员、恢复购买提醒
+
+当前这些都是本地 entitlement 实现，用于验证产品合同，不代表真实计费服务已经接通。
 
 ### 常见恢复
 

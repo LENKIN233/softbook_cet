@@ -73,6 +73,30 @@ async function loginIntoLearningFlow(
   await waitForLearningSurface(root);
 }
 
+async function openRoute(
+  root: ReactTestRenderer.ReactTestInstance,
+  route: 'learning' | 'space' | 'statistics' | 'mine',
+) {
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: `route-tab-${route}` }).props.onPress();
+  });
+}
+
+async function startTrialFromMine(
+  root: ReactTestRenderer.ReactTestInstance,
+  returnRoute: 'learning' | 'space' | 'mine' = 'learning',
+) {
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'membership-start-trial-button' }).props.onPress();
+  });
+
+  if (returnRoute !== 'mine') {
+    await openRoute(root, returnRoute);
+  }
+}
+
 async function resolveLearningBootstrap(
   session: LearningSession = createLocalLearningSession('cet4'),
 ) {
@@ -198,6 +222,7 @@ test('can complete the local single-card deck and restart it', async () => {
 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
+  await startTrialFromMine(root);
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-favorite-button' }).props.onPress();
@@ -305,6 +330,7 @@ test('can start a review round from cards that need revisiting', async () => {
 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
+  await startTrialFromMine(root);
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
@@ -522,10 +548,7 @@ test('can browse the seeded knowledge map after login', async () => {
 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'route-tab-space' }).props.onPress();
-  });
+  await startTrialFromMine(root, 'space');
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('已接入卡片的物理空间');
@@ -561,10 +584,7 @@ test('can move a card into sleep zone and remove it from learning flow', async (
 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'route-tab-space' }).props.onPress();
-  });
+  await startTrialFromMine(root, 'space');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'space-sleep-002001' }).props.onPress();
@@ -593,10 +613,7 @@ test('can favorite a card from space and reflect it in learning flow', async () 
 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'route-tab-space' }).props.onPress();
-  });
+  await startTrialFromMine(root, 'space');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'space-favorite-002001' }).props.onPress();
@@ -612,4 +629,127 @@ test('can favorite a card from space and reflect it in learning flow', async () 
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('已收藏');
+});
+
+test('gates space behind trial before unlocking it', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'space');
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('完整物理空间需要试用或会员');
+  expect(output).toContain('完整物理空间当前被会员矩阵拦住');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'membership-start-trial-button' }).props.onPress();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('已接入卡片的物理空间');
+  expect(output).toContain('知识地图浏览');
+});
+
+test('keeps free learning near half library and gates review into mine', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-review-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'learning-lock-subject-the-policy' })
+      .props.onPress();
+    root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+    root
+      .findByProps({ testID: 'learning-lock-object-test-anxiety' })
+      .props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('首轮抽出 3 张卡');
+  expect(root.findByProps({ testID: 'learning-start-review-button' })).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-start-review-button' }).props.onPress();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('完整回看算法当前被会员矩阵拦住');
+  expect(output).toContain('试用待开始');
+});
+
+test('shows recovery reminder after local trial ends and clears it after purchase', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'membership-start-trial-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'membership-expire-trial-button' }).props.onPress();
+  });
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('恢复购买提醒');
+  expect(output).toContain('当前是基础学习态');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'membership-purchase-button' }).props.onPress();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('当前是会员态');
+  expect(
+    root.findAllByProps({ testID: 'membership-dismiss-recovery-button' }).length,
+  ).toBe(0);
 });
