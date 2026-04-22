@@ -11,18 +11,32 @@ import { localLearningCardSource } from './localCardSource';
 export const DEFAULT_LEARNING_SESSION_CARD_COUNT =
   CORE_INTERACTION_ORDER.length;
 
+export function createLearningSession(
+  track: LearningTrack,
+  sourceId: string,
+  sourceLabel: string,
+  availableCards: LearningCard[],
+  cardCount: number = DEFAULT_LEARNING_SESSION_CARD_COUNT,
+): LearningSession {
+  return {
+    sourceId,
+    sourceLabel,
+    track,
+    cards: selectSessionCards(availableCards, cardCount),
+  };
+}
+
 export function createLocalLearningSession(
   track: LearningTrack,
   cardCount: number = DEFAULT_LEARNING_SESSION_CARD_COUNT,
 ): LearningSession {
-  const availableCards = localLearningCardSource.loadCards(track);
-
-  return {
-    sourceId: localLearningCardSource.sourceId,
-    sourceLabel: localLearningCardSource.sourceLabel,
+  return createLearningSession(
     track,
-    cards: selectSessionCards(availableCards, cardCount),
-  };
+    localLearningCardSource.sourceId,
+    localLearningCardSource.sourceLabel,
+    localLearningCardSource.loadCards(track),
+    cardCount,
+  );
 }
 
 export function selectSessionCards(

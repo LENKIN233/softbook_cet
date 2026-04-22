@@ -4,7 +4,17 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
+import { LearningSession } from '../src/learning/model';
+import { createLocalLearningSession } from '../src/learning/session';
 import App from '../App';
+
+const mockLoadSession = jest.fn();
+
+jest.mock('../src/learning/learningRepository', () => ({
+  createLearningSessionRepository: () => ({
+    loadSession: (...args: unknown[]) => mockLoadSession(...args),
+  }),
+}));
 
 jest.mock('react-native-safe-area-context', () => {
   const mockReact = require('react');
@@ -18,7 +28,21 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
-async function loginIntoLearningFlow(
+type Deferred<T> = {
+  promise: Promise<T>;
+  reject: (error: unknown) => void;
+  resolve: (value: T) => void;
+};
+
+let pendingSession: Deferred<LearningSession>;
+
+beforeEach(() => {
+  pendingSession = createDeferred<LearningSession>();
+  mockLoadSession.mockReset();
+  mockLoadSession.mockImplementation(() => pendingSession.promise);
+});
+
+async function authenticateIntoLearningBootstrap(
   root: ReactTestRenderer.ReactTestInstance,
 ) {
   await ReactTestRenderer.act(() => {
@@ -35,9 +59,73 @@ async function loginIntoLearningFlow(
     root.findByProps({ testID: 'auth-code-input' }).props.onChangeText('2468');
   });
 
-  await ReactTestRenderer.act(() => {
+  await ReactTestRenderer.act(async () => {
     root.findByProps({ testID: 'auth-submit-button' }).props.onPress();
+    await Promise.resolve();
   });
+}
+
+async function loginIntoLearningFlow(
+  root: ReactTestRenderer.ReactTestInstance,
+) {
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap();
+  await waitForLearningSurface(root);
+}
+
+async function resolveLearningBootstrap(
+  session: LearningSession = createLocalLearningSession('cet4'),
+) {
+  await ReactTestRenderer.act(async () => {
+    pendingSession.resolve(session);
+    await flushAsyncEffects();
+  });
+}
+
+async function waitForLearningSurface(
+  root: ReactTestRenderer.ReactTestInstance,
+) {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+
+    if (
+      root.findAllByProps({ testID: 'learning-favorite-button' }).length > 0
+    ) {
+      return;
+    }
+  }
+
+  throw new Error('Learning surface bootstrap did not finish in time.');
+}
+
+async function flushAsyncEffects() {
+  await Promise.resolve();
+  await Promise.resolve();
+  await new Promise(resolve => setTimeout(resolve, 0));
+}
+
+async function rejectLearningBootstrap(message: string) {
+  await ReactTestRenderer.act(async () => {
+    pendingSession.reject(new Error(message));
+    await flushAsyncEffects();
+  });
+}
+
+function createDeferred<T>(): Deferred<T> {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+
+  return {
+    promise,
+    reject,
+    resolve,
+  };
 }
 
 test('renders correctly', async () => {
@@ -68,6 +156,36 @@ test('can unlock the learning flow after fake sms verification', async () => {
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('单卡推进，不把学习入口做成按钮堆');
   expect(output).toContain('已登录 138****8000');
+  expect(output).toContain('however');
+});
+
+test('keeps source bootstrap errors inside learning and can retry', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await rejectLearningBootstrap('学习卡源暂时不可达。');
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('学习卡源暂时不可用');
+  expect(output).toContain('学习卡源暂时不可达。');
+  expect(output).toContain('重新加载学习卡源');
+
+  pendingSession = createDeferred<LearningSession>();
+
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'learning-bootstrap-retry-button' }).props.onPress();
+    await flushAsyncEffects();
+  });
+
+  await resolveLearningBootstrap();
+  await waitForLearningSurface(root);
+
+  output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('however');
 });
 

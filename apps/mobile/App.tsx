@@ -1,4 +1,4 @@
-import React, { startTransition, useState } from 'react';
+import React, { startTransition, useEffect, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -16,13 +16,14 @@ import { LearningSurface } from './src/learning/LearningSurface';
 import {
   LearningCardResult,
   LearningCardState,
+  LearningSession,
   LearningTrack,
 } from './src/learning/model';
 import {
   createLearningCardState,
-  createLocalLearningSession,
   evaluateLearningCard,
 } from './src/learning/session';
+import { createLearningSessionRepository } from './src/learning/learningRepository';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
@@ -61,6 +62,8 @@ type AuthState = {
   error: string | null;
 };
 
+type LearningBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
+
 type AuthHandlers = {
   onChangePhone: (value: string) => void;
   onChangeCode: (value: string) => void;
@@ -77,13 +80,13 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '最重要入口',
     title: '单卡学习流',
     summary:
-      '当前分支把学习主路径接到结构化本地卡源，先跑通单卡推进、核心交互和最小出卡规则。',
+      '当前分支把学习主路径切到异步卡源 bootstrap，先收口学习入口的加载与失败边界。',
     highlights: [
       '一次只推进一张卡，不把学习入口做成按钮堆。',
-      '当前卡源首轮出卡覆盖 flip / multiple_choice / lock / elimination / swipe。',
+      '学习卡源改成异步加载，先保住本地 source，再预留远端切换口。',
       'Peek、收藏和提示层保持轻量，不抢主交互。',
     ],
-    focus: ['structured card source', 'single-card flow', 'minimal scheduling'],
+    focus: ['async source bootstrap', 'single-card flow', 'source fallback'],
   },
   {
     key: 'space',
@@ -172,8 +175,9 @@ const INITIAL_AUTH_STATE: AuthState = {
 };
 
 const LEARNING_TRACK: LearningTrack = 'cet4';
-const LEARNING_SESSION = createLocalLearningSession(LEARNING_TRACK);
-const INITIAL_LEARNING_CARD = LEARNING_SESSION.cards[0] ?? null;
+const learningSessionRepository = createLearningSessionRepository({
+  mode: 'local',
+});
 
 function App(): React.JSX.Element {
   return (
@@ -188,13 +192,16 @@ function AppShell() {
   const palette = scheme === 'dark' ? DARK_PALETTE : LIGHT_PALETTE;
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
   const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
+  const [learningSession, setLearningSession] =
+    useState<LearningSession | null>(null);
+  const [learningBootstrapStatus, setLearningBootstrapStatus] =
+    useState<LearningBootstrapStatus>('idle');
+  const [learningBootstrapError, setLearningBootstrapError] = useState<
+    string | null
+  >(null);
   const [learningIndex, setLearningIndex] = useState(0);
   const [learningCardState, setLearningCardState] =
-    useState<LearningCardState | null>(() =>
-      INITIAL_LEARNING_CARD
-        ? createLearningCardState(INITIAL_LEARNING_CARD)
-        : null,
-    );
+    useState<LearningCardState | null>(null);
   const [learningCompletedResults, setLearningCompletedResults] = useState<
     LearningCardResult[]
   >([]);
@@ -206,18 +213,79 @@ function AppShell() {
   const isAuthenticated = authState.stage === 'authenticated';
   const routeRequiresAuth = PROTECTED_ROUTES.includes(route.key);
   const shouldShowAuthGate = routeRequiresAuth && !isAuthenticated;
-  const currentLearningCard = LEARNING_SESSION.cards[learningIndex] ?? null;
+  const currentLearningCard = learningSession?.cards[learningIndex] ?? null;
 
   const resetLearningDeck = () => {
     setLearningIndex(0);
     setLearningCurrentResult(null);
     setLearningCompletedResults([]);
     setLearningCardState(
-      INITIAL_LEARNING_CARD
-        ? createLearningCardState(INITIAL_LEARNING_CARD)
+      learningSession?.cards[0]
+        ? createLearningCardState(learningSession.cards[0])
         : null,
     );
   };
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLearningSession(null);
+      setLearningBootstrapStatus('idle');
+      setLearningBootstrapError(null);
+      setLearningIndex(0);
+      setLearningCurrentResult(null);
+      setLearningCompletedResults([]);
+      setLearningCardState(null);
+      return;
+    }
+
+    if (learningBootstrapStatus !== 'idle') {
+      return;
+    }
+
+    setLearningBootstrapStatus('loading');
+    setLearningBootstrapError(null);
+  }, [isAuthenticated, learningBootstrapStatus]);
+
+  useEffect(() => {
+    if (!isAuthenticated || learningBootstrapStatus !== 'loading') {
+      return;
+    }
+
+    let isCancelled = false;
+
+    learningSessionRepository
+      .loadSession(LEARNING_TRACK)
+      .then(session => {
+        if (isCancelled) {
+          return;
+        }
+
+        setLearningSession(session);
+        setLearningIndex(0);
+        setLearningCurrentResult(null);
+        setLearningCompletedResults([]);
+        setLearningCardState(
+          session.cards[0] ? createLearningCardState(session.cards[0]) : null,
+        );
+        setLearningBootstrapStatus('ready');
+      })
+      .catch((error: unknown) => {
+        if (isCancelled) {
+          return;
+        }
+
+        setLearningSession(null);
+        setLearningCardState(null);
+        setLearningBootstrapStatus('error');
+        setLearningBootstrapError(
+          error instanceof Error ? error.message : '学习卡源加载失败。',
+        );
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isAuthenticated, learningBootstrapStatus]);
 
   const patchLearningCardState = (
     updater: (state: LearningCardState) => LearningCardState,
@@ -293,7 +361,6 @@ function AppShell() {
     },
     onLogout: () => {
       setAuthState(INITIAL_AUTH_STATE);
-      resetLearningDeck();
       startTransition(() => {
         setActiveRoute('mine');
       });
@@ -390,13 +457,16 @@ function AppShell() {
       setLearningCompletedResults(nextResults);
       setLearningCurrentResult(null);
 
-      if (nextIndex >= LEARNING_SESSION.cards.length) {
+      if (
+        learningSession === null ||
+        nextIndex >= learningSession.cards.length
+      ) {
         setLearningIndex(nextIndex);
         setLearningCardState(null);
         return;
       }
 
-      const nextCard = LEARNING_SESSION.cards[nextIndex];
+      const nextCard = learningSession.cards[nextIndex];
       setLearningIndex(nextIndex);
       setLearningCardState(createLearningCardState(nextCard));
     },
@@ -416,6 +486,18 @@ function AppShell() {
       handlers={authHandlers}
       palette={palette}
       route={route}
+    />
+  ) : route.key === 'learning' && learningBootstrapStatus !== 'ready' ? (
+    <LearningBootstrapSurface
+      error={
+        learningBootstrapStatus === 'error' ? learningBootstrapError : null
+      }
+      onRetry={() => {
+        setLearningBootstrapStatus('idle');
+        setLearningBootstrapError(null);
+      }}
+      palette={palette}
+      status={learningBootstrapStatus}
     />
   ) : route.key === 'learning' ? (
     <LearningSurface
@@ -437,8 +519,8 @@ function AppShell() {
       onToggleHint={learningHandlers.onToggleHint}
       onTogglePeek={learningHandlers.onTogglePeek}
       palette={palette}
-      sessionCards={LEARNING_SESSION.cards}
-      sessionLabel={LEARNING_SESSION.sourceLabel}
+      sessionCards={learningSession?.cards ?? []}
+      sessionLabel={learningSession?.sourceLabel ?? '学习卡源'}
     />
   ) : (
     <RouteCanvas palette={palette} route={route} deviceClass={deviceClass} />
@@ -471,6 +553,86 @@ function AppShell() {
         />
       )}
     </SafeAreaView>
+  );
+}
+
+function LearningBootstrapSurface({
+  error,
+  onRetry,
+  palette,
+  status,
+}: {
+  error: string | null;
+  onRetry: () => void;
+  palette: Palette;
+  status: LearningBootstrapStatus;
+}) {
+  const isLoading = status === 'idle' || status === 'loading';
+
+  return (
+    <ScrollView contentContainerStyle={styles.canvasContent}>
+      <View
+        style={[
+          styles.hero,
+          { backgroundColor: palette.panel, borderColor: palette.border },
+        ]}
+      >
+        <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
+          SOURCE BOOTSTRAP
+        </Text>
+        <Text style={[styles.heroTitle, { color: palette.text }]}>
+          {isLoading ? '正在接学习卡源' : '学习卡源暂时不可用'}
+        </Text>
+        <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
+          {isLoading
+            ? '当前先完成异步卡源 bootstrap。学习入口仍是一张张推进，只是先把卡源加载边界收口。'
+            : '学习入口已经登录，但这次没能拿到可用卡源。先留在学习模块内重试，不把错误扩散到交互层。'}
+        </Text>
+      </View>
+      <InfoCard
+        palette={palette}
+        title={isLoading ? '当前在做什么' : '这一步拦住了什么'}
+        items={
+          isLoading
+            ? [
+                '先加载学习 session，再进入单卡流。',
+                '本地 source 仍可作为当前默认实现。',
+                '远端 source 后续只替换 repository，不重写学习页面。',
+              ]
+            : [
+                error ?? '学习卡源加载失败。',
+                '错误还停留在 source bootstrap，没有进入答题状态。',
+                '重试后会重新发起本轮学习 session 加载。',
+              ]
+        }
+      />
+      {!isLoading ? (
+        <Pressable
+          onPress={onRetry}
+          style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+          testID="learning-bootstrap-retry-button"
+        >
+          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            重新加载学习卡源
+          </Text>
+        </Pressable>
+      ) : (
+        <View
+          style={[
+            styles.infoCard,
+            { backgroundColor: palette.panel, borderColor: palette.border },
+          ]}
+          testID="learning-bootstrap-loading"
+        >
+          <Text style={[styles.infoTitle, { color: palette.text }]}>
+            加载中
+          </Text>
+          <Text style={[styles.authSummary, { color: palette.textMuted }]}>
+            卡源加载完成后才会进入单卡流。
+          </Text>
+        </View>
+      )}
+    </ScrollView>
   );
 }
 
