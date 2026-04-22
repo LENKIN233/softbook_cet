@@ -18,9 +18,34 @@ export type RemoteLearningCardSourcePayload = {
   cards: LearningCardRecord[];
 };
 
+export type SoftbookRemoteLearningCardSourcePayload = {
+  data: {
+    source: {
+      id: string;
+      label: string;
+    };
+    track: LearningTrack;
+    card_records: LearningCardRecord[];
+  };
+};
+
+export type RemoteLearningCardSourcePayloadParser = (
+  payload: unknown,
+  expectedTrack?: LearningTrack,
+) => LearningCardSourceResponse;
+
 export type RemoteLearningCardSourceConfig = {
   endpoint: string;
   apiKey?: string;
+  apiKeyHeader?: string;
+  headers?: Record<string, string>;
+  parsePayload?: RemoteLearningCardSourcePayloadParser;
+  trackQueryParam?: string;
+};
+
+export type SoftbookRemoteLearningCardSourceRuntimeConfig = {
+  apiKey?: string;
+  baseUrl: string;
 };
 
 export type FetchLikeResponse = {
@@ -42,13 +67,19 @@ export async function loadRemoteLearningCardSource(
   config: RemoteLearningCardSourceConfig,
   fetchImpl: FetchLike,
 ): Promise<LearningCardSourceResponse> {
+  const apiKeyHeader = config.apiKeyHeader ?? 'x-api-key';
   const response = await fetchImpl(
-    buildRemoteLearningCardSourceUrl(config.endpoint, track),
+    buildRemoteLearningCardSourceUrl(
+      config.endpoint,
+      track,
+      config.trackQueryParam,
+    ),
     {
       method: 'GET',
       headers: {
         Accept: 'application/json',
-        ...(config.apiKey ? { 'x-api-key': config.apiKey } : {}),
+        ...config.headers,
+        ...(config.apiKey ? { [apiKeyHeader]: config.apiKey } : {}),
       },
     },
   );
@@ -60,8 +91,10 @@ export async function loadRemoteLearningCardSource(
   }
 
   const payload = await response.json();
+  const parsePayload =
+    config.parsePayload ?? parseRemoteLearningCardSourcePayload;
 
-  return parseRemoteLearningCardSourcePayload(payload, track);
+  return parsePayload(payload, track);
 }
 
 export function parseRemoteLearningCardSourcePayload(
@@ -122,15 +155,104 @@ export function parseRemoteLearningCardSourcePayload(
   };
 }
 
+export function parseSoftbookRemoteLearningCardSourcePayload(
+  payload: unknown,
+  expectedTrack?: LearningTrack,
+): LearningCardSourceResponse {
+  if (!isObject(payload)) {
+    throw new Error('Remote learning bootstrap payload must be an object.');
+  }
+
+  if (!isObject(payload.data)) {
+    throw new Error(
+      'Remote learning bootstrap payload.data must be an object.',
+    );
+  }
+
+  const { source, track, card_records } = payload.data;
+
+  if (!isObject(source)) {
+    throw new Error(
+      'Remote learning bootstrap payload.data.source must be an object.',
+    );
+  }
+
+  if (typeof source.id !== 'string' || source.id.trim().length === 0) {
+    throw new Error(
+      'Remote learning bootstrap payload.data.source.id is required.',
+    );
+  }
+
+  if (typeof source.label !== 'string' || source.label.trim().length === 0) {
+    throw new Error(
+      'Remote learning bootstrap payload.data.source.label is required.',
+    );
+  }
+
+  if (track !== 'cet4' && track !== 'cet6') {
+    throw new Error(
+      'Remote learning bootstrap payload.data.track must be cet4 or cet6.',
+    );
+  }
+
+  if (expectedTrack !== undefined && track !== expectedTrack) {
+    throw new Error(
+      `Remote learning bootstrap payload.data.track must match requested track ${expectedTrack}.`,
+    );
+  }
+
+  if (!Array.isArray(card_records)) {
+    throw new Error(
+      'Remote learning bootstrap payload.data.card_records must be an array.',
+    );
+  }
+
+  const normalizedCards = normalizeLearningCardRecords(
+    card_records as LearningCardRecord[],
+  );
+
+  if (!normalizedCards.every(card => card.track === track)) {
+    throw new Error(
+      'Remote learning bootstrap cards must all match payload.data.track.',
+    );
+  }
+
+  return {
+    sourceId: source.id,
+    sourceLabel: source.label,
+    track,
+    cards: normalizedCards,
+  };
+}
+
+export function createSoftbookRemoteLearningCardSourceConfig(
+  config: SoftbookRemoteLearningCardSourceRuntimeConfig,
+): RemoteLearningCardSourceConfig {
+  return {
+    endpoint: `${trimTrailingSlash(config.baseUrl)}/v1/learning/card-source`,
+    apiKey: config.apiKey,
+    headers: {
+      'x-softbook-client': 'mobile',
+    },
+    parsePayload: parseSoftbookRemoteLearningCardSourcePayload,
+    trackQueryParam: 'track',
+  };
+}
+
 function buildRemoteLearningCardSourceUrl(
   endpoint: string,
   track: LearningTrack,
+  trackQueryParam: string = 'track',
 ) {
   const separator = endpoint.includes('?') ? '&' : '?';
 
-  return `${endpoint}${separator}track=${track}`;
+  return `${endpoint}${separator}${trackQueryParam}=${track}`;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function trimTrailingSlash(value: string) {
+  return value.endsWith('/') ? value.slice(0, -1) : value;
 }
