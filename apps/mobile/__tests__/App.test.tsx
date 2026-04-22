@@ -439,16 +439,26 @@ test('can check in from statistics after making learning progress', async () => 
     root.findByProps({ testID: 'route-tab-statistics' }).props.onPress();
   });
 
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('今日可签到');
   expect(output).toContain('今天已经产生有效学习进展，可以把连续性落成一次轻量签到。');
+  expect(output).toContain('本地已记录');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'statistics-checkin-button' }).props.onPress();
   });
 
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('今日已签到');
+  expect(output).toContain('今天的学习进展已在本地记录；远端同步将在配置接通后启用。');
 });
 
 test('mine page shows profile, learning, and space summaries after login', async () => {
@@ -489,11 +499,17 @@ test('mine page shows profile, learning, and space summaries after login', async
     root.findByProps({ testID: 'route-tab-mine' }).props.onPress();
   });
 
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('个人主页已经接进当前模块');
   expect(output).toContain('手机号：138****8000');
   expect(output).toContain('今日签到：已完成');
+  expect(output).toContain('日级同步：本地已记录');
   expect(output).toContain('今日已完成 1 张卡，其中首轮 1 张、回看 0 张。');
+  expect(output).toContain('同步说明：今天的学习进展已在本地记录；远端同步将在配置接通后启用。');
   expect(output).toContain('收藏标签 1 张。');
 });
 

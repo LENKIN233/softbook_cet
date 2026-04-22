@@ -5,4 +5,7 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
   learningSource: {
     mode: 'local',
   },
+  progressSync: {
+    mode: 'local',
+  },
 };

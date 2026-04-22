@@ -14,8 +14,17 @@ export type LearningSourceRuntimeConfig = {
   remote?: LearningRemoteRuntimeConfig;
 };
 
+export type ProgressSyncRuntimeConfig = {
+  mode?: 'local' | 'remote';
+  remote?: {
+    apiKey?: string;
+    baseUrl: string;
+  };
+};
+
 export type SoftbookAppRuntimeConfig = {
   learningSource?: LearningSourceRuntimeConfig;
+  progressSync?: ProgressSyncRuntimeConfig;
 };
 
 type SoftbookGlobalThis = typeof globalThis & {
