@@ -451,6 +451,52 @@ test('can check in from statistics after making learning progress', async () => 
   expect(output).toContain('今日已签到');
 });
 
+test('mine page shows profile, learning, and space summaries after login', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-favorite-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-confident-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'route-tab-statistics' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'statistics-checkin-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'route-tab-mine' }).props.onPress();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('个人主页已经接进当前模块');
+  expect(output).toContain('手机号：138****8000');
+  expect(output).toContain('今日签到：已完成');
+  expect(output).toContain('今日已完成 1 张卡，其中首轮 1 张、回看 0 张。');
+  expect(output).toContain('收藏标签 1 张。');
+});
+
 test('can browse the seeded knowledge map after login', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
