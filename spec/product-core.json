@@ -1,5 +1,5 @@
 {
-  "version": "vnext-7",
+  "version": "vnext-8",
   "product_promise": "帮助中国大学生以更轻松、更低负担、但仍然可信的方式通过 CET4/CET6。",
   "target_users": {
     "primary": "备考 CET4/CET6 的中国大学生",
@@ -36,6 +36,9 @@
   ],
   "learning_experience": {
     "single_card_flow": true,
+    "default_learning_path": "system_sequenced_single_flow",
+    "module_browsing_role": "secondary_entry_for_targeted_review_not_primary_learning_mode",
+    "path_strategy_reason": "reduce_mode_switching_and_keep_users_following_a_clear_exam_oriented_sequence",
     "primary_user_feeling": "我正在被一个懂四六级的系统高效带着走。",
     "secondary_user_feeling": "我在管理自己掌握度的物理空间。",
     "scoring_preference": "auto_then_light_self_assess",

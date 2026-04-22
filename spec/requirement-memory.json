@@ -1,5 +1,5 @@
 {
-  "version": "vnext-6",
+  "version": "vnext-7",
   "purpose": "Persistent machine-readable memory of user-provided requirements from this conversation so they do not collapse during compaction or future rewrites.",
   "product_intent": {
     "goal": "Let users pass CET4/CET6 more easily by brushing knowledge points through cards.",
@@ -56,7 +56,9 @@
   "learning_model": {
     "single_card_flow": true,
     "card_is_progress_unit": true,
-    "main_flow_unification_reason": "algorithm_need_not_user_mode_switching_dogma"
+    "main_flow_unification_reason": "algorithm_need_not_user_mode_switching_dogma",
+    "default_learning_path": "system_sequenced_single_flow",
+    "module_learning_role": "secondary_for_targeted_review_not_primary_recommendation"
   },
   "physical_space": {
     "is_core_differentiator": true,

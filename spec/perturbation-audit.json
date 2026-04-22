@@ -1,5 +1,5 @@
 {
-  "version": "vnext-6",
+  "version": "vnext-7",
   "purpose": "Counterfactual perturbation audit used to avoid local optima and catch silent drift away from the user's original requirements.",
   "perturbations": [
     {
@@ -148,6 +148,13 @@
       "expected_failure": "breaks confirmed audio presentation policy",
       "guarded_by": ["spec/interactions.json", "spec/product-core.json", "spec/evals.json"],
       "status": "rejected"
+    },
+    {
+      "id": "P-22",
+      "change": "Promote module-first learning or treat free module choice as equal to the main learning flow",
+      "expected_failure": "breaks guided low-burden sequencing and reintroduces user-side mode switching as primary learning work",
+      "guarded_by": ["spec/requirement-memory.json", "spec/product-core.json", "spec/evals.json"],
+      "status": "rejected"
     }
   ],
   "audit_summary": {
@@ -166,6 +173,7 @@
         "exam_oriented_low_burden_promise",
         "cards_interactions_knowledge_points",
         "single_card_flow",
+        "system_sequenced_default_learning_path_with_secondary_module_review",
         "physical_space_core_differentiator",
         "ios_android_web_with_phone_tablet_pc_web",
         "learning_and_space_as_top_level_entries",

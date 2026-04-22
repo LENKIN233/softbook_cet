@@ -1,5 +1,5 @@
 {
-  "version": "vnext-7",
+  "version": "vnext-8",
   "regressions": [
     {
       "id": "HR-01",
@@ -106,10 +106,22 @@
         "cards_are_progress_unit",
         "interaction_is_core_content_contract",
         "physical_space_is_core_differentiator",
+        "system_sequenced_default_learning_path",
         "ios_android_web",
         "learning_and_space_are_top_level_entries",
         "login_required_before_learning",
         "membership_shared_purchase_all_surfaces"
+      ]
+    },
+    {
+      "id": "HR-18",
+      "prompt": "说明学习路径策略",
+      "fail_signal": "recommends_module_first_learning_or_treats_module_choice_as_equal_to_main_flow",
+      "must_hit": [
+        "system_sequenced_default_learning_path",
+        "single_card_flow",
+        "module_browsing_secondary_for_targeted_review",
+        "avoid_user_mode_switching"
       ]
     }
   ],
@@ -176,10 +188,21 @@
         "pass_cet_more_easily",
         "cards_interactions_knowledge_points",
         "single_card_flow",
+        "system_sequenced_default_learning_path",
         "physical_space_core",
         "ios_android_web_phone_tablet_pc_web",
         "login_required",
         "shared_membership_and_all_surface_purchase"
+      ]
+    },
+    {
+      "id": "GT-13",
+      "task": "定义学习路径策略",
+      "must_include": [
+        "system_sequenced_default_learning_path",
+        "single_card_flow",
+        "module_browsing_secondary_for_targeted_review",
+        "not_primary_learning_mode"
       ]
     }
   ]
