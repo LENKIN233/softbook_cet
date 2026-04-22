@@ -28,11 +28,13 @@ type LearningSurfaceProps = {
   palette: LearningSurfacePalette;
   sessionCards: LearningCard[];
   sessionLabel: string;
+  phase: 'learning' | 'review';
   currentCard: LearningCard | null;
   currentCardState: LearningCardState | null;
   currentIndex: number;
   currentResult: LearningCardResult | null;
   completedResults: LearningCardResult[];
+  reviewCandidateCount: number;
   onTogglePeek: () => void;
   onToggleFavorite: () => void;
   onToggleHint: () => void;
@@ -45,6 +47,7 @@ type LearningSurfaceProps = {
   onSubmitCurrentCard: () => void;
   onAdvanceCard: () => void;
   onRestartDeck: () => void;
+  onStartReview?: () => void;
 };
 
 type InteractionTone = {
@@ -85,11 +88,13 @@ export function LearningSurface({
   palette,
   sessionCards,
   sessionLabel,
+  phase,
   currentCard,
   currentCardState,
   currentIndex,
   currentResult,
   completedResults,
+  reviewCandidateCount,
   onTogglePeek,
   onToggleFavorite,
   onToggleHint,
@@ -102,7 +107,10 @@ export function LearningSurface({
   onSubmitCurrentCard,
   onAdvanceCard,
   onRestartDeck,
+  onStartReview,
 }: LearningSurfaceProps) {
+  const isReviewPhase = phase === 'review';
+
   if (currentCard === null || currentCardState === null) {
     const summary = summarizeLearningResults(
       completedResults,
@@ -123,14 +131,15 @@ export function LearningSurface({
           ]}
         >
           <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-            SINGLE CARD FLOW
+            {isReviewPhase ? 'REVIEW FLOW' : 'SINGLE CARD FLOW'}
           </Text>
           <Text style={[styles.heroTitle, { color: palette.text }]}>
-            本轮卡源已走完
+            {isReviewPhase ? '本轮回看已走完' : '本轮卡源已走完'}
           </Text>
           <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
-            当前分支从{sessionLabel}首轮抽出 {sessionCards.length}{' '}
-            张卡，把学习主路径、核心交互和最小出卡规则串起来。
+            {isReviewPhase
+              ? `这轮从${sessionLabel}里回看了 ${sessionCards.length} 张卡，把“需要回看”的部分收成一次低成本复习。`
+              : `当前分支从${sessionLabel}首轮抽出 ${sessionCards.length} 张卡，把学习主路径、核心交互和最小出卡规则串起来。`}
           </Text>
           <View style={styles.metricWrap}>
             <MetricPill
@@ -156,6 +165,11 @@ export function LearningSurface({
               palette={palette}
             />
             <MetricPill
+              label="翻面回看"
+              value={`${summary.reviewFlipCount}`}
+              palette={palette}
+            />
+            <MetricPill
               label="提示层"
               value={`${summary.hintUseCount}`}
               palette={palette}
@@ -176,21 +190,37 @@ export function LearningSurface({
         <View style={styles.detailGrid}>
           <InfoGlassCard
             palette={palette}
-            title="这一步落实了什么"
-            lines={[
-              '学习入口不再是说明页，而是已登录后即可进入的单卡流。',
-              '本地测试卡覆盖 5 个核心交互，提示层附着在具体卡上出现。',
-              'Peek 和收藏保持轻量，不抢占答题动作。',
-            ]}
+            title={isReviewPhase ? '这轮回看落实了什么' : '这一步落实了什么'}
+            lines={
+              isReviewPhase
+                ? [
+                    '首轮里自动判错和翻面回看的卡，被收成一轮独立回看。',
+                    '复习仍然沿用单卡推进，不改成高成本列表管理。',
+                    '已有交互、提示层和轻量动作会完整保留到回看阶段。',
+                  ]
+                : [
+                    '学习入口不再是说明页，而是已登录后即可进入的单卡流。',
+                    '本地测试卡覆盖 5 个核心交互，提示层附着在具体卡上出现。',
+                    'Peek 和收藏保持轻量，不抢占答题动作。',
+                  ]
+            }
           />
           <InfoGlassCard
             palette={palette}
-            title="还没有做什么"
-            lines={[
-              '没有接学习算法、真实卡池和跨端同步。',
-              '没有把音频单独拉成一类交互。',
-              '没有把统计或复杂状态机抬成产品中心。',
-            ]}
+            title={isReviewPhase ? '这轮回看仍没做什么' : '还没有做什么'}
+            lines={
+              isReviewPhase
+                ? [
+                    '没有接真实调度算法，只用了本地 review 队列。',
+                    '没有把回看扩成独立顶层入口或复杂进度面板。',
+                    '没有把同步、会员或统计合同提前带进来。',
+                  ]
+                : [
+                    '没有接学习算法、真实卡池和跨端同步。',
+                    '没有把音频单独拉成一类交互。',
+                    '没有把统计或复杂状态机抬成产品中心。',
+                  ]
+            }
           />
         </View>
 
@@ -224,16 +254,27 @@ export function LearningSurface({
                   {result.cardId}
                 </Text>
               </View>
-              <ResultBadge outcome={result.outcome} palette={palette} />
-            </View>
-          ))}
+            <ResultBadge outcome={result.outcome} palette={palette} />
+          </View>
+        ))}
+          {!isReviewPhase && reviewCandidateCount > 0 && onStartReview ? (
+            <Pressable
+              onPress={onStartReview}
+              style={[styles.primaryButton, { backgroundColor: palette.accentStrong }]}
+              testID="learning-start-review-button"
+            >
+              <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+                开始回看这 {reviewCandidateCount} 张卡
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable
             onPress={onRestartDeck}
             style={[styles.primaryButton, { backgroundColor: palette.accent }]}
             testID="learning-restart-button"
           >
             <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-              再跑一轮当前卡源
+              {isReviewPhase ? '回到首轮重新开始' : '再跑一轮当前卡源'}
             </Text>
           </Pressable>
         </View>
@@ -270,20 +311,24 @@ export function LearningSurface({
               label={`${currentIndex + 1} / ${sessionCards.length}`}
               toneColor={palette.accent}
             />
+            {isReviewPhase ? (
+              <TagChip label="回看队列" toneColor={palette.accentStrong} />
+            ) : null}
           </View>
           <Text style={[styles.heroKicker, { color: palette.textMuted }]}>
-            learning / single-card-flow
+            {isReviewPhase ? 'learning / review-flow' : 'learning / single-card-flow'}
           </Text>
         </View>
         <Text style={[styles.heroEyebrow, { color: tone.stroke }]}>
           {currentCard.front.eyebrow}
         </Text>
         <Text style={[styles.heroTitle, { color: palette.text }]}>
-          单卡推进，不把学习入口做成按钮堆
+          {isReviewPhase ? '把需要回看的卡单独再刷一轮' : '单卡推进，不把学习入口做成按钮堆'}
         </Text>
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
-          当前用{sessionLabel}
-          验证学习主路径。每次只推进一张卡，把交互、提示层和轻量动作压在同一块面板里。
+          {isReviewPhase
+            ? `当前用${sessionLabel}回看上一轮里没稳住的卡。仍然一次只推进一张，避免把复习做成高成本管理。`
+            : `当前用${sessionLabel}验证学习主路径。每次只推进一张卡，把交互、提示层和轻量动作压在同一块面板里。`}
         </Text>
         <View style={styles.progressRail}>
           {sessionCards.map((card, index) => {

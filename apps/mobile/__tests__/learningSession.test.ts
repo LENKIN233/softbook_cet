@@ -4,6 +4,7 @@ import {
   createLearningCardState,
   createLocalLearningSession,
   evaluateLearningCard,
+  selectReviewCards,
 } from '../src/learning/session';
 
 test('local card source exposes structured TLGBNN ownership data', () => {
@@ -86,4 +87,41 @@ test('multiple choice, lock, elimination and swipe cards can all be auto-scored'
   expect(evaluateLearningCard(swipeCard, swipeState)?.outcome).toBe(
     'incorrect',
   );
+});
+
+test('review flow only pulls incorrect and review cards in original order', () => {
+  const session = createLocalLearningSession('cet4');
+  const [flipCard, multipleChoiceCard, lockCard] = session.cards;
+
+  const results = [
+    {
+      cardId: lockCard.card_id,
+      interactionId: lockCard.interaction_id,
+      outcome: 'incorrect' as const,
+      usedHint: false,
+      usedPeek: false,
+      isFavorited: false,
+    },
+    {
+      cardId: flipCard.card_id,
+      interactionId: flipCard.interaction_id,
+      outcome: 'review' as const,
+      usedHint: false,
+      usedPeek: false,
+      isFavorited: false,
+    },
+    {
+      cardId: multipleChoiceCard.card_id,
+      interactionId: multipleChoiceCard.interaction_id,
+      outcome: 'correct' as const,
+      usedHint: false,
+      usedPeek: false,
+      isFavorited: false,
+    },
+  ];
+
+  expect(selectReviewCards(session.cards, results).map(card => card.card_id)).toEqual([
+    flipCard.card_id,
+    lockCard.card_id,
+  ]);
 });

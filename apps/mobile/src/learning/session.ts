@@ -228,6 +228,19 @@ export function summarizeLearningResults(
   };
 }
 
+export function selectReviewCards(
+  sessionCards: LearningCard[],
+  results: LearningCardResult[],
+) {
+  const reviewCardIds = new Set(
+    results
+      .filter(result => result.outcome === 'incorrect' || result.outcome === 'review')
+      .map(result => result.cardId),
+  );
+
+  return sessionCards.filter(card => reviewCardIds.has(card.card_id));
+}
+
 function areStringSetsEqual(left: string[], right: string[]) {
   if (left.length !== right.length) {
     return false;
