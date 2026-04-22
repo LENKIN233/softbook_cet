@@ -296,6 +296,116 @@ test('can complete the local single-card deck and restart it', async () => {
   expect(output).toContain('however');
 });
 
+test('can start a review round from cards that need revisiting', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-review-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'learning-lock-subject-the-policy' })
+      .props.onPress();
+    root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+    root
+      .findByProps({ testID: 'learning-lock-object-test-anxiety' })
+      .props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'learning-elimination-relative_clause' })
+      .props.onPress();
+    root.findByProps({ testID: 'learning-elimination-adverb' }).props.onPress();
+    root
+      .findByProps({ testID: 'learning-elimination-time_phrase' })
+      .props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-swipe-safe' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  expect(root.findByProps({ testID: 'learning-start-review-button' })).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-start-review-button' }).props.onPress();
+  });
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('回看队列');
+  expect(output).toContain('把需要回看的卡单独再刷一轮');
+  expect(output).toContain('however');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-confident-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('本轮回看已走完');
+  expect(output).toContain('回到首轮重新开始');
+});
+
 test('can browse the seeded knowledge map after login', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 

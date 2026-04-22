@@ -14,6 +14,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { LearningSurface } from './src/learning/LearningSurface';
 import {
+  LearningCard,
   LearningCardResult,
   LearningCardState,
   LearningSession,
@@ -22,6 +23,7 @@ import {
 import {
   createLearningCardState,
   evaluateLearningCard,
+  selectReviewCards,
 } from './src/learning/session';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
 import { resolveLearningSessionRepositoryConfig } from './src/learning/learningRuntimeConfig';
@@ -65,6 +67,7 @@ type AuthState = {
 };
 
 type LearningBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
+type LearningPhase = 'learning' | 'review';
 
 type SpaceCardState = {
   isFavorited: boolean;
@@ -214,6 +217,11 @@ function AppShell() {
   >([]);
   const [learningCurrentResult, setLearningCurrentResult] =
     useState<LearningCardResult | null>(null);
+  const [learningPhase, setLearningPhase] = useState<LearningPhase>('learning');
+  const [reviewSessionCards, setReviewSessionCards] = useState<LearningCard[]>([]);
+  const [reviewCompletedResults, setReviewCompletedResults] = useState<
+    LearningCardResult[]
+  >([]);
   const [spaceCardStateById, setSpaceCardStateById] = useState<
     Record<string, SpaceCardState>
   >({});
@@ -245,7 +253,17 @@ function AppShell() {
     learningSession?.cards.filter(
       card => !readSpaceCardState(card.card_id).isSleeping,
     ) ?? [];
-  const currentLearningCard = visibleLearningCards[learningIndex] ?? null;
+  const activeSessionCards =
+    learningPhase === 'review' ? reviewSessionCards : visibleLearningCards;
+  const activeCompletedResults =
+    learningPhase === 'review'
+      ? reviewCompletedResults
+      : learningCompletedResults;
+  const currentLearningCard = activeSessionCards[learningIndex] ?? null;
+  const reviewCandidateCards = selectReviewCards(
+    visibleLearningCards,
+    learningCompletedResults,
+  );
 
   const resetLearningDeck = (
     stateMap: Record<string, SpaceCardState> = spaceCardStateById,
@@ -257,8 +275,11 @@ function AppShell() {
       ) ?? [];
 
     setLearningIndex(0);
+    setLearningPhase('learning');
     setLearningCurrentResult(null);
     setLearningCompletedResults([]);
+    setReviewSessionCards([]);
+    setReviewCompletedResults([]);
     setLearningCardState(
       nextVisibleCards[0]
         ? createTrackedLearningCardState(nextVisibleCards[0], stateMap)
@@ -274,6 +295,9 @@ function AppShell() {
       setLearningIndex(0);
       setLearningCurrentResult(null);
       setLearningCompletedResults([]);
+      setLearningPhase('learning');
+      setReviewSessionCards([]);
+      setReviewCompletedResults([]);
       setLearningCardState(null);
       setSpaceCardStateById({});
       return;
@@ -305,6 +329,9 @@ function AppShell() {
         setLearningIndex(0);
         setLearningCurrentResult(null);
         setLearningCompletedResults([]);
+        setLearningPhase('learning');
+        setReviewSessionCards([]);
+        setReviewCompletedResults([]);
         setLearningCardState(
           session.cards[0]
             ? createTrackedLearningCardState(session.cards[0])
@@ -404,6 +431,9 @@ function AppShell() {
     },
     onLogout: () => {
       setAuthState(INITIAL_AUTH_STATE);
+      setLearningPhase('learning');
+      setReviewSessionCards([]);
+      setReviewCompletedResults([]);
       setSpaceCardStateById({});
       startTransition(() => {
         setActiveRoute('mine');
@@ -508,24 +538,37 @@ function AppShell() {
         return;
       }
 
-      const nextResults = [...learningCompletedResults, learningCurrentResult];
+      const nextResults = [...activeCompletedResults, learningCurrentResult];
       const nextIndex = learningIndex + 1;
 
-      setLearningCompletedResults(nextResults);
+      if (learningPhase === 'review') {
+        setReviewCompletedResults(nextResults);
+      } else {
+        setLearningCompletedResults(nextResults);
+      }
       setLearningCurrentResult(null);
 
-      if (
-        learningSession === null ||
-        nextIndex >= visibleLearningCards.length
-      ) {
+      if (nextIndex >= activeSessionCards.length) {
         setLearningIndex(nextIndex);
         setLearningCardState(null);
         return;
       }
 
-      const nextCard = visibleLearningCards[nextIndex];
+      const nextCard = activeSessionCards[nextIndex];
       setLearningIndex(nextIndex);
       setLearningCardState(createTrackedLearningCardState(nextCard));
+    },
+    onStartReview: () => {
+      if (reviewCandidateCards.length === 0) {
+        return;
+      }
+
+      setLearningPhase('review');
+      setReviewSessionCards(reviewCandidateCards);
+      setReviewCompletedResults([]);
+      setLearningIndex(0);
+      setLearningCurrentResult(null);
+      setLearningCardState(createTrackedLearningCardState(reviewCandidateCards[0]));
     },
     onRestartDeck: resetLearningDeck,
   };
@@ -591,7 +634,9 @@ function AppShell() {
       palette={palette}
       status={learningBootstrapStatus}
     />
-  ) : route.key === 'learning' && visibleLearningCards.length === 0 ? (
+  ) : route.key === 'learning' &&
+    learningPhase === 'learning' &&
+    visibleLearningCards.length === 0 ? (
     <LearningSleepSurface
       onGoToSpace={() => {
         startTransition(() => {
@@ -602,14 +647,16 @@ function AppShell() {
     />
   ) : route.key === 'learning' ? (
     <LearningSurface
-      completedResults={learningCompletedResults}
+      completedResults={activeCompletedResults}
       currentCard={currentLearningCard}
       currentCardState={learningCardState}
       currentIndex={learningIndex}
       currentResult={learningCurrentResult}
+      phase={learningPhase}
       onAdvanceCard={learningHandlers.onAdvanceCard}
       onFlip={learningHandlers.onFlip}
       onRestartDeck={learningHandlers.onRestartDeck}
+      onStartReview={learningHandlers.onStartReview}
       onSelectOption={learningHandlers.onSelectOption}
       onSelectSwipeState={learningHandlers.onSelectSwipeState}
       onSetFlipConfidence={learningHandlers.onSetFlipConfidence}
@@ -620,8 +667,13 @@ function AppShell() {
       onToggleHint={learningHandlers.onToggleHint}
       onTogglePeek={learningHandlers.onTogglePeek}
       palette={palette}
-      sessionCards={visibleLearningCards}
-      sessionLabel={learningSession?.sourceLabel ?? '学习卡源'}
+      reviewCandidateCount={reviewCandidateCards.length}
+      sessionCards={activeSessionCards}
+      sessionLabel={
+        learningPhase === 'review'
+          ? '首轮回看队列'
+          : learningSession?.sourceLabel ?? '学习卡源'
+      }
     />
   ) : route.key === 'space' ? (
     <SpaceSurface
