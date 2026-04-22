@@ -10,26 +10,26 @@ export type LearningInteractionId = (typeof CORE_INTERACTION_ORDER)[number];
 
 export type LearningTrack = 'cet4' | 'cet6';
 
-type LearningFront = {
+export type LearningFront = {
   eyebrow: string;
   prompt: string;
   support: string;
   context: string;
 };
 
-type LearningAnalysis = {
+export type LearningAnalysis = {
   title: string;
   summary: string;
   exam_tip: string;
 };
 
-type LearningHintLayer = {
+export type LearningHintLayer = {
   label: string;
   content: string;
   reveal_gesture: '下滑';
 };
 
-type SpaceMetadata = {
+export type SpaceMetadata = {
   box_ref: string;
   library: string;
   group: string;
@@ -48,24 +48,24 @@ type LearningBaseCard = {
   space_metadata: SpaceMetadata;
 };
 
-type LearningOption = {
+export type LearningOption = {
   id: string;
   label: string;
   text: string;
 };
 
-type LockSlot = {
+export type LockSlot = {
   id: string;
   label: string;
   options: string[];
 };
 
-type EliminationItem = {
+export type EliminationItem = {
   id: string;
   text: string;
 };
 
-type SwipeState = {
+export type SwipeState = {
   id: string;
   label: string;
   description: string;
