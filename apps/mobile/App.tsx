@@ -136,13 +136,13 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '账户与会员',
     title: '个人页',
     summary:
-      '这里承接账号、会员、恢复购买和设置等内容。当前阶段先把手机号验证码登录挂进来，再在后续分支接入会员合同。',
+      '当前已经把“我的”收成个人主页：先承接账号概览、本地学习摘要与空间标签摘要，同时把会员与购买边界留清楚。',
     highlights: [
-      '手机号验证码是主登录方式。',
-      '当前分支只做本地门禁，不接真实短信服务。',
-      '试用、购买恢复和会员统一权限后续再接。',
+      '已登录后能直接看到账号、学习和空间摘要。',
+      '手机号验证码仍是主登录方式，但这里只承接 profile 本身。',
+      '会员、试用和恢复购买仍留给独立合同分支。',
     ],
-    focus: ['phone sms login', 'trial/paywall', 'purchase recovery'],
+    focus: ['profile overview', 'local learning snapshot', 'membership boundary'],
   },
 ];
 
@@ -643,9 +643,13 @@ function AppShell() {
   ) : route.key === 'mine' ? (
     <MineSurface
       authState={authState}
+      checkedInDayKey={checkedInDayKey}
       handlers={authHandlers}
+      learningResults={learningCompletedResults}
       palette={palette}
+      reviewResults={reviewCompletedResults}
       route={route}
+      spaceCardStateById={spaceCardStateById}
     />
   ) : route.key === 'learning' && learningBootstrapStatus !== 'ready' ? (
     <LearningBootstrapSurface
@@ -1217,16 +1221,33 @@ function AuthGate({
 
 function MineSurface({
   authState,
+  checkedInDayKey,
   handlers,
+  learningResults,
   palette,
+  reviewResults,
   route,
+  spaceCardStateById,
 }: {
   authState: AuthState;
+  checkedInDayKey: string | null;
   handlers: AuthHandlers;
+  learningResults: LearningCardResult[];
   palette: Palette;
+  reviewResults: LearningCardResult[];
   route: ShellRoute;
+  spaceCardStateById: Record<string, SpaceCardState>;
 }) {
   const isAuthenticated = authState.stage === 'authenticated';
+  const favoriteCount = Object.values(spaceCardStateById).filter(
+    state => state.isFavorited,
+  ).length;
+  const sleepingCount = Object.values(spaceCardStateById).filter(
+    state => state.isSleeping,
+  ).length;
+  const completedCount = learningResults.length + reviewResults.length;
+  const todayKey = getTodayKey();
+  const checkedInToday = checkedInDayKey === todayKey;
 
   return (
     <ScrollView contentContainerStyle={styles.canvasContent}>
@@ -1237,15 +1258,15 @@ function MineSurface({
         ]}
       >
         <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-          ACCOUNT HOST
+          PROFILE PAGE
         </Text>
         <Text style={[styles.heroTitle, { color: palette.text }]}>
-          {isAuthenticated ? '账号已接入壳层' : '从“我的”完成身份建立'}
+          {isAuthenticated ? '个人主页已经接进当前模块' : '从“我的”建立个人主页入口'}
         </Text>
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
           {isAuthenticated
-            ? '当前已经完成本地登录态验证。后续会在这里接入试用、会员、恢复购买和账号设置。'
-            : '“我的”作为账号与会员宿主页，当前先承接手机号验证码登录。'}
+            ? '当前这里先承接账号概览、学习摘要和空间摘要，让“我的”不再只是一个登录壳。'
+            : '“我的”作为个人主页入口，当前先支持身份建立；会员、试用与购买恢复仍留在后续独立分支。'}
         </Text>
       </View>
       <PhoneSmsPanel
@@ -1255,11 +1276,77 @@ function MineSurface({
         title={isAuthenticated ? '当前登录状态' : '手机号验证码登录'}
         summary={
           isAuthenticated
-            ? '当前是本地壳层登录态。继续后会接试用起算、会员权限和跨端统一 entitlement。'
+            ? '当前是本地 profile 登录态：你能看到基础账号信息与摘要，但会员合同还没有并进来。'
             : '先从这里完成身份建立，再让学习流和用户态页面具备真实入口。'
         }
       />
-      <RouteCanvas palette={palette} route={route} deviceClass="phone" />
+
+      <View style={styles.sectionGrid}>
+        <InfoCard
+          palette={palette}
+          title="账号概览"
+          items={
+            isAuthenticated
+              ? [
+                  `手机号：${maskPhoneNumber(authState.phoneNumber)}`,
+                  `今日签到：${checkedInToday ? '已完成' : '尚未完成'}`,
+                  '当前仍是本地账号态，不代表会员 entitlement 已接通。',
+                ]
+              : [
+                  '还没有完成身份建立。',
+                  '手机号验证码仍是主登录方式。',
+                  '登录后这里会显示你的账号与学习摘要。',
+                ]
+          }
+        />
+        <InfoCard
+          palette={palette}
+          title="个人学习摘要"
+          items={
+            isAuthenticated
+              ? [
+                  `今日已完成 ${completedCount} 张卡，其中首轮 ${learningResults.length} 张、回看 ${reviewResults.length} 张。`,
+                  `当前待回看 ${Math.max(learningResults.filter(result => result.outcome === 'incorrect' || result.outcome === 'review').length - reviewResults.length, 0)} 张。`,
+                  '这里先保留低成本摘要，不扩成重统计中心。',
+                ]
+              : [
+                  '未登录时不承接个人学习连续性。',
+                  '完成登录后，学习摘要会回到这里。',
+                  '统计页仍负责更明确的签到与轻量进展反馈。',
+                ]
+          }
+        />
+        <InfoCard
+          palette={palette}
+          title="空间标签摘要"
+          items={
+            isAuthenticated
+              ? [
+                  `收藏标签 ${favoriteCount} 张。`,
+                  `休眠区 ${sleepingCount} 张。`,
+                  'favorite 和 sleep 当前仍是本地状态承接，不是最终同步合同。',
+                ]
+              : [
+                  '登录后才能承接个人空间摘要。',
+                  '空间入口仍保持独立顶层导航。',
+                  '这里不会把 favorite 或 sleep 改写成账号合同。',
+                ]
+          }
+        />
+        <InfoCard
+          palette={palette}
+          title="当前不做什么"
+          items={[
+            '不在这里接试用天数、价格和购买恢复。',
+            '不在这里实现会员权限矩阵。',
+            '不把“我的”扩成设置中心或复杂账户系统。',
+          ]}
+        />
+      </View>
+
+      {!isAuthenticated ? (
+        <RouteCanvas palette={palette} route={route} deviceClass="phone" />
+      ) : null}
     </ScrollView>
   );
 }
