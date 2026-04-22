@@ -1,0 +1,85 @@
+{
+  "version": "vnext-4",
+  "audio_is_interaction_family": false,
+  "interaction_contract_status": "core_content_contract",
+  "audio_binding_policy": {
+    "audio_must_be_available_on_all_release_targets": true,
+    "audio_is_not_forced_by_any_specific_interaction_family": true,
+    "audio_is_front_content_for": [
+      "listening_cards",
+      "some_other_cards_when_content_requires_it"
+    ],
+    "auto_play": false,
+    "front_side_subtitles": false,
+    "back_side_text_or_transcript_may_exist": true
+  },
+  "expansion_rule": "new interactions may exist, but must be specified here before content production depends on them",
+  "interactions": [
+    {
+      "id": "flip",
+      "name": "翻面",
+      "kind": "core",
+      "scoring_mode": "light_self_assess",
+      "supports_audio": "optional_resource",
+      "supports_hint_layer": true,
+      "required_fields": ["front", "analysis"],
+      "notes": "适合知识点识别与短解释"
+    },
+    {
+      "id": "multiple_choice",
+      "name": "四选一",
+      "kind": "core",
+      "scoring_mode": "auto",
+      "supports_audio": "optional_resource",
+      "supports_hint_layer": true,
+      "required_fields": ["front", "options", "answer_key.correct_option"],
+      "notes": "适合明确辨析"
+    },
+    {
+      "id": "lock",
+      "name": "开锁",
+      "kind": "core",
+      "scoring_mode": "auto",
+      "supports_audio": "optional_resource",
+      "supports_hint_layer": true,
+      "required_fields": ["front", "lock_slots", "answer_key.lock_pattern"],
+      "notes": "适合调整多个位置，只有全部正确时才开锁"
+    },
+    {
+      "id": "elimination",
+      "name": "消除",
+      "kind": "core",
+      "scoring_mode": "auto",
+      "supports_audio": "optional_resource",
+      "supports_hint_layer": true,
+      "required_fields": ["front", "elimination_items", "answer_key.correct_items"],
+      "notes": "适合提取句子主干或剥离干扰内容"
+    },
+    {
+      "id": "swipe",
+      "name": "滑动",
+      "kind": "core",
+      "scoring_mode": "auto",
+      "supports_audio": "optional_resource",
+      "supports_hint_layer": true,
+      "required_fields": ["front", "swipe_states", "answer_key.correct_state"],
+      "notes": "适合低成本双态判断"
+    },
+    {
+      "id": "hint_layer",
+      "name": "提示层",
+      "kind": "enhancement",
+      "scoring_mode": "none",
+      "supports_audio": false,
+      "supports_hint_layer": false,
+      "required_fields": ["hint_layer.content", "hint_layer.reveal_gesture"],
+      "notes": "附着于其他核心交互，以下滑或扳动卡片露出物理空间的一片提示区域；不能单独作为卡型"
+    }
+  ],
+  "not_core_for_v1": [
+    {
+      "id": "audio_timing_family",
+      "reason": "音频是需要的，但不把时机类音频交互作为 V1 核心交互家族"
+    }
+  ]
+}

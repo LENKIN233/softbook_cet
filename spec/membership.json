@@ -1,0 +1,56 @@
+{
+  "version": "vnext-6",
+  "policy": {
+    "trial_goal": "让用户在 3-7 天内完整感受到内容、算法和物理空间的价值",
+    "free_after_trial_goal": "保留入口和基础学习，但不再等于完整体验",
+    "premium_value_expression": "smarter_guidance_plus_complete_space_plus_complete_card_library",
+    "all_release_targets_must_support_purchase": true,
+    "membership_entitlement_is_shared_across_ios_android_web": true,
+    "trial_start_trigger": "first_entry_counted_as_membership_trial",
+    "purchase_recovery_reminder": "after_membership_experience_ends",
+    "web_and_app_purchase_authority": "equal"
+  },
+  "states": {
+    "trial": {
+      "duration_days": {
+        "min": 3,
+        "max": 7
+      },
+      "access": {
+        "basic_learning": true,
+        "complete_card_library": true,
+        "complete_physical_space": true,
+        "complete_algorithm": true
+      },
+      "user_should_perceive": [
+        "content_value",
+        "algorithm_power",
+        "physical_space_help"
+      ]
+    },
+    "free": {
+      "access": {
+        "basic_learning": true,
+        "complete_card_library": false,
+        "complete_physical_space": false,
+        "complete_algorithm": false
+      },
+      "content_access_contract": {
+        "mode": "approximate_share_of_total_cards",
+        "target_ratio": 0.5,
+        "description": "free users should be able to normally learn close to half of total cards",
+        "must_not_be": ["tiny_demo_only", "full_library"]
+      },
+      "free_state_is_not_complete_experience": true
+    },
+    "premium": {
+      "access": {
+        "basic_learning": true,
+        "complete_card_library": true,
+        "complete_physical_space": true,
+        "complete_algorithm": true
+      },
+      "core_reason_to_pay": "without_membership_no_complete_physical_space_no_complete_algorithm_no_full_card_library"
+    }
+  }
+}

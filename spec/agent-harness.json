@@ -1,0 +1,228 @@
+{
+  "version": "vnext-7",
+  "read_paths": {
+    "product_or_scope": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json"
+    ],
+    "auth_or_sync_or_purchase": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/account-sync-contract.json",
+      "spec/membership.json",
+      "spec/runtime-boundaries.json"
+    ],
+    "platform_or_multisurface": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/platform-contract.json",
+      "spec/runtime-boundaries.json"
+    ],
+    "navigation_or_input_surface": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/platform-contract.json",
+      "spec/interactions.json"
+    ],
+    "card_or_interaction": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/action-surface.json",
+      "spec/card-system.json",
+      "spec/interactions.json"
+    ],
+    "physical_space_or_box_codes": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/knowledge-map.json",
+      "spec/space-operations.json",
+      "spec/box-catalog.json"
+    ],
+    "membership_or_trial": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/membership.json"
+    ],
+    "continuity_or_commerce": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/account-sync-contract.json",
+      "spec/platform-contract.json",
+      "spec/product-core.json",
+      "spec/membership.json",
+      "spec/runtime-boundaries.json"
+    ],
+    "implementation": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "related_product_specs",
+      "related_contract_specs",
+      "spec/runtime-boundaries.json"
+    ],
+    "review_or_acceptance": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "related_specs",
+      "spec/agent-harness.json",
+      "spec/evals.json"
+    ]
+  },
+  "progressive_disclosure_policy": {
+    "default_behavior": "read_only_the_minimum_spec_subset_needed_for_the_current_task",
+    "escalate_when": [
+      "task_crosses_multiple_truth_domains",
+      "two_specs_conflict_or_leave_a_gap",
+      "platform_specific_behavior_changes_product_shape",
+      "membership_or_space_rules_change_interaction_or_surface_design"
+    ],
+    "forbidden_behavior": [
+      "loading_the_entire_active_tree_by_default",
+      "using_archive_as_shortcut_for_missing_active_truth",
+      "inventing_cross_domain_requirements_without_loading_the_relevant_contract",
+      "editing_a_mirrored_fact_without_checking_its_owner_in_authority_map"
+    ]
+  },
+  "task_briefs": {
+    "design": {
+      "inputs": [
+        "spec/requirement-memory.json",
+        "product_specs",
+        "relevant_contract_specs"
+      ],
+      "outputs": ["experience_goal", "information_goal", "key_actions", "misunderstanding_risks"],
+      "stop_when": "no_more_implementation_detail_is_needed_to_guide_design"
+    },
+    "product": {
+      "inputs": [
+        "spec/requirement-memory.json",
+        "spec/product-core.json"
+      ],
+      "outputs": ["requirement_interpretation", "scope_judgment", "value_priority", "non_goals"],
+      "stop_when": "product_truth_and_implementation_hypothesis_are_clearly_separated"
+    },
+    "coding": {
+      "inputs": ["product_specs", "contract_specs", "spec/runtime-boundaries.json"],
+      "outputs": ["implementation", "explicit_hypotheses"],
+      "stop_when": "implementation_does_not_invent_product_requirements"
+    },
+    "review": {
+      "inputs": ["relevant_specs", "anti_patterns"],
+      "outputs": ["product_distortion_risks_first", "then_implementation_findings"],
+      "stop_when": "violated_truth_or_contract_is_named"
+    },
+    "acceptance": {
+      "inputs": ["relevant_specs", "spec/evals.json"],
+      "outputs": ["validation_result", "coverage_gap"],
+      "stop_when": "old_anti_patterns_are_ruled_out"
+    }
+  },
+  "anti_patterns": [
+    {
+      "id": "AP-01",
+      "name": "teaching_system_instead_of_exam_product",
+      "correction": "pass_exam_first"
+    },
+    {
+      "id": "AP-02",
+      "name": "physical_space_as_two_boxes_only",
+      "correction": "knowledge_map_plus_card_position_system"
+    },
+    {
+      "id": "AP-03",
+      "name": "hint_as_standalone_card_type",
+      "correction": "hint_is_enhancement_layer"
+    },
+    {
+      "id": "AP-04",
+      "name": "audio_as_standalone_interaction_family",
+      "correction": "audio_is_resource_medium"
+    },
+    {
+      "id": "AP-05",
+      "name": "stats_and_state_machine_as_product_center",
+      "correction": "stats_only_serve_core_value"
+    },
+    {
+      "id": "AP-06",
+      "name": "screen_spec_over_implementationized",
+      "correction": "define_goals_and_risks_not_component_constants"
+    },
+    {
+      "id": "AP-07",
+      "name": "drop_confirmed_user_facing_actions_like_peek",
+      "correction": "preserve_low_cost_learning_and_management_actions"
+    },
+    {
+      "id": "AP-08",
+      "name": "treat_space_as_fully_free_drag_or_fully_locked",
+      "correction": "algorithm_primary_with_partial_user_control"
+    },
+    {
+      "id": "AP-09",
+      "name": "assume_one_ui_can_be_adapted_to_all_device_classes",
+      "correction": "phone_tablet_pc_web_need_dedicated_ui_and_page_design"
+    },
+    {
+      "id": "AP-10",
+      "name": "treat_pc_as_native_desktop_client_instead_of_web_surface",
+      "correction": "pc_means_web_on_personal_computer_sized_screens"
+    },
+    {
+      "id": "AP-11",
+      "name": "force_literal_touch_gestures_on_non_touch_surfaces",
+      "correction": "preserve_meaning_and_low_cost_with_equivalent_non_touch_mapping"
+    },
+    {
+      "id": "AP-12",
+      "name": "assume_exact_cross_device_resume_is_required_product_truth",
+      "correction": "daily_sync_and_some_progress_inheritance_are_required_but_exact_resume_is_not"
+    },
+    {
+      "id": "AP-13",
+      "name": "drop_purchase_or_membership_unification_on_web_or_one_mobile_platform",
+      "correction": "all_release_targets_support_purchase_and_share_membership"
+    },
+    {
+      "id": "AP-14",
+      "name": "treat_audio_as_optional_on_web_even_when_card_content_requires_it",
+      "correction": "audio_availability_must_hold_on_all_release_targets"
+    },
+    {
+      "id": "AP-15",
+      "name": "assume_guest_learning_is_allowed_before_login",
+      "correction": "login_is_required_before_learning"
+    },
+    {
+      "id": "AP-16",
+      "name": "change_top_level_navigation_across_surfaces",
+      "correction": "keep_learning_space_statistics_mine_consistent_while_adapting_page_composition"
+    },
+    {
+      "id": "AP-17",
+      "name": "make_trial_start_at_install_or_registration_instead_of_first_counted_entry",
+      "correction": "trial_starts_when_first_entry_is_counted_as_membership_trial"
+    },
+    {
+      "id": "AP-18",
+      "name": "autoplay_audio_or_require_front_subtitles",
+      "correction": "audio_does_not_autoplay_and_front_side_subtitles_are_not_required"
+    }
+  ],
+  "compaction_keep": [
+    "spec/requirement-memory.json",
+    "current_task_related_specs",
+    "current_decisions",
+    "open_questions",
+    "membership_structure",
+    "core_interactions",
+    "physical_space_semantics",
+    "detailed_box_catalog",
+    "edited_files"
+  ]
+}

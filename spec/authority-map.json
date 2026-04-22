@@ -1,0 +1,72 @@
+{
+  "version": "vnext-1",
+  "purpose": "Single-source ownership map for active harness facts. If the same concept appears in multiple files, the owner here wins and non-owner copies must stay consistent.",
+  "domains": {
+    "user_origin_memory": {
+      "owner": "spec/requirement-memory.json",
+      "notes": "raw user-provided intent snapshot"
+    },
+    "auth_trial_sync_purchase": {
+      "owner": "spec/account-sync-contract.json",
+      "mirrors": [
+        "spec/requirement-memory.json",
+        "spec/platform-contract.json",
+        "spec/product-core.json",
+        "spec/membership.json",
+        "spec/runtime-boundaries.json"
+      ]
+    },
+    "release_targets_device_classes_navigation_input": {
+      "owner": "spec/platform-contract.json",
+      "mirrors": [
+        "spec/requirement-memory.json",
+        "spec/product-core.json",
+        "spec/runtime-boundaries.json"
+      ]
+    },
+    "product_promise_scope_experience": {
+      "owner": "spec/product-core.json"
+    },
+    "card_surface_actions": {
+      "owner": "spec/action-surface.json"
+    },
+    "interaction_and_audio_contract": {
+      "owner": "spec/interactions.json",
+      "mirrors": [
+        "spec/card-system.json",
+        "spec/requirement-memory.json",
+        "spec/product-core.json"
+      ]
+    },
+    "card_schema": {
+      "owner": "spec/card-system.json"
+    },
+    "knowledge_map_and_boxes": {
+      "owner": "spec/knowledge-map.json",
+      "related_owner": "spec/box-catalog.json"
+    },
+    "space_operations": {
+      "owner": "spec/space-operations.json"
+    },
+    "membership_access_matrix": {
+      "owner": "spec/membership.json",
+      "mirrors": [
+        "spec/product-core.json",
+        "spec/requirement-memory.json",
+        "spec/runtime-boundaries.json"
+      ]
+    },
+    "runtime_hypotheses_and_boundaries": {
+      "owner": "spec/runtime-boundaries.json"
+    },
+    "agent_read_paths_and_anti_patterns": {
+      "owner": "spec/agent-harness.json"
+    },
+    "regressions_and_golden_tasks": {
+      "owner": "spec/evals.json"
+    },
+    "drift_guards": {
+      "owner": "spec/perturbation-audit.json"
+    }
+  }
+}

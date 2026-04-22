@@ -1,0 +1,44 @@
+{
+  "version": "vnext-2",
+  "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, default sync strategy, and offline behavior.",
+  "authentication": {
+    "login_is_required_before_learning": true,
+    "guest_learning_before_authentication": false,
+    "primary_login_method": "phone_sms_code"
+  },
+  "trial_and_purchase": {
+    "trial_starts_when": "first_entry_counted_as_membership_trial",
+    "purchase_recovery_reminder": "after_membership_experience_ends",
+    "web_and_app_purchase_authority": "equal"
+  },
+  "sync_scope": {
+    "must_sync": [
+      "learning_state",
+      "physical_space_state",
+      "membership_entitlement"
+    ],
+    "target_sync_mode": "best_effort_realtime",
+    "minimum_guarantee": "daily_level"
+  },
+  "default_sync_strategy": {
+    "classification": "implementation_hypothesis",
+    "server_is_source_of_truth": true,
+    "ordering_basis": [
+      "server_received_at",
+      "client_sequence_if_same_batch"
+    ],
+    "learning_state_rule": "latest_valid_learning_event_wins_per_card; aggregate progress and counters are derived on the server from accepted events",
+    "physical_space_rule": "latest_valid_explicit_space_action_wins unless it violates box knowledge ownership or contract constraints; invalid actions are rejected and client refreshes from server canonical state",
+    "membership_rule": "server_entitlement_wins"
+  },
+  "offline_policy": {
+    "classification": "implementation_hypothesis",
+    "offline_learning_allowed_if": [
+      "user_is_already_authenticated",
+      "required_card_content_and_state_are_cached"
+    ],
+    "offline_learning_for_new_unauthenticated_user": false,
+    "offline_mutations": "queue_locally_and_replay_on_reconnect",
+    "reconnect_behavior": "reconcile_with_server_canonical_state_and_refresh_if_needed"
+  }
+}

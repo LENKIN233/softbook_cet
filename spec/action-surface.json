@@ -1,0 +1,61 @@
+{
+  "version": "vnext-1",
+  "purpose": "Machine-readable contract for what should be explicit or hidden on the card surface.",
+  "surface_principles": {
+    "show_only_if_useful_for_learning_or_card_management": true,
+    "reduce_total_operations": true,
+    "avoid_interruptions": [
+      "spending_too_much_time_deciding_mastery",
+      "irrelevant_non_learning_information",
+      "high_learning_software_cost"
+    ]
+  },
+  "card_surface_contract": {
+    "confirmed_user_facing_actions": [
+      {
+        "id": "peek",
+        "status": "confirmed_by_user",
+        "visibility": "explicit_but_lightweight",
+        "product_role": "useful_learning_action",
+        "notes": "peek must remain part of the action surface; runtime semantics stay outside product truth unless separately contracted"
+      },
+      {
+        "id": "favorite",
+        "status": "confirmed_by_user",
+        "visibility": "explicit_but_secondary",
+        "product_role": "light_tag_for_card_management",
+        "space_effect": "does_not_define_physical_location"
+      }
+    ],
+    "interaction_bound_actions": [
+      {
+        "id": "interaction_specific_primary_action",
+        "visibility": "primary",
+        "notes": "the core gesture or decision required by the selected interaction"
+      },
+      {
+        "id": "hint_reveal",
+        "visibility": "conditional",
+        "appears_when": "card_has_hint_layer"
+      }
+    ],
+    "conditionally_exposed_management_actions": [
+      {
+        "id": "sleep_entry_or_exit",
+        "visibility": "secondary_or_space_contextual",
+        "notes": "appears only when the product exposes a meaningful remove-from-flow or restore-to-flow action"
+      }
+    ],
+    "must_not_be_required_every_card": [
+      "heavy_mastery_self_rating",
+      "manual_box_management_before_learning",
+      "irrelevant_status_decisions"
+    ],
+    "background_or_system_actions": [
+      "algorithmic_reordering",
+      "membership_checks",
+      "non_learning_state_updates",
+      "card_position_updates_that_do_not_need_user_decision"
+    ]
+  }
+}

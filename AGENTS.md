@@ -1,0 +1,74 @@
+---
+authority: agent_entrypoint
+audience:
+  - agent
+load_when:
+  - every active task
+depends_on:
+  - spec/doc-manifest.json
+status: active
+---
+# 软书四六级 Agent 入口
+
+## 产品一句话
+
+软书四六级是一个面向中国大学生的 CET4/6 备考产品：用单卡流、高价值交互和物理空间知识地图，让用户更轻松地通过考试。
+
+## 活跃源
+
+- `spec/requirement-memory.json`
+- `spec/authority-map.json`
+- `spec/product-core.json`
+- `spec/account-sync-contract.json`
+- `spec/platform-contract.json`
+- `spec/action-surface.json`
+- `spec/card-system.json`
+- `spec/interactions.json`
+- `spec/knowledge-map.json`
+- `spec/space-operations.json`
+- `spec/box-catalog.json`
+- `spec/membership.json`
+- `spec/runtime-boundaries.json`
+- `spec/agent-harness.json`
+- `spec/evals.json`
+- `spec/doc-manifest.json`
+
+## 读取顺序
+
+- 原始需求校准：`requirement-memory`
+- 权威定位：`authority-map`
+- 产品/范围：`requirement-memory -> product-core`
+- 认证/同步/购买：`requirement-memory -> account-sync-contract -> membership -> runtime-boundaries`
+- 多端/端形态：`requirement-memory -> product-core -> platform-contract -> runtime-boundaries`
+- 卡片/交互：`requirement-memory -> product-core -> action-surface -> card-system -> interactions`
+- 物理空间/盒码：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog`
+- 会员/试用：`requirement-memory -> product-core -> membership`
+- 实现：相关产品 spec -> 合同 spec -> `runtime-boundaries`
+- 审查/验收：相关 spec -> `agent-harness` -> `evals`
+
+## 硬约束
+
+- 不要把产品写成泛英语教学系统或背单词工具
+- 不要把物理空间缩成收藏/休眠二盒展示
+- 不要把提示层写成独立卡型
+- 不要把音频写成独立交互家族
+- 不要把统计、计数器、复杂状态机写成产品核心
+- 不要默认读取 `archive/legacy-v3/` 或 `archive/transitional-vnext-prose/` 作为活跃真相源
+
+## 输出要求
+
+- 先指出当前任务引用了哪些 spec
+- 若任务会影响产品定义，先用 `spec/requirement-memory.json` 对齐原始需求
+- 如果多个 spec 出现同一概念，严格以 `spec/authority-map.json` 指定的 owner 为准
+- 默认只读完成任务所需的最小 spec 子集；只有跨域耦合或明确冲突时才升级读取范围
+- 明确区分 `product_truth` 与 `implementation_hypothesis`
+- 如果新增交互、盒码或访问规则，先更新对应 spec，再给结论
+
+## 压缩保留
+
+- `spec/requirement-memory.json`
+- 当前任务依赖的 spec 文件
+- 当前关键决定与未决点
+- 会员/试用结构
+- 核心交互和空间语义
+- 已修改文件列表

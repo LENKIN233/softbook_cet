@@ -1,0 +1,210 @@
+{
+  "version": "vnext-6",
+  "purpose": "Persistent machine-readable memory of user-provided requirements from this conversation so they do not collapse during compaction or future rewrites.",
+  "product_intent": {
+    "goal": "Let users pass CET4/CET6 more easily by brushing knowledge points through cards.",
+    "user_value_per_short_session": "Master a concrete subset of CET knowledge points.",
+    "irreducible_constructs": ["cards", "interaction", "knowledge_points"]
+  },
+  "user_and_context": {
+    "primary_users": "Chinese college students preparing for CET4/CET6",
+    "shared_group_similarity": "CET4 and CET6 users are highly similar, but CET6 has higher difficulty and requires passing CET4 first",
+    "main_scenarios": ["fragmented_time_card_brushing", "score_boosting"],
+    "non_target_users": ["word_only_learners", "non_CET_users"]
+  },
+  "product_philosophy": {
+    "product_first_over_algorithm": true,
+    "technical_constraints_only": [
+      "react_native",
+      "ios_app",
+      "android_app",
+      "web",
+      "phone",
+      "tablet",
+      "pc_web"
+    ],
+    "if_product_conflicts_with_api_or_algorithm": "change_api_or_algorithm_first"
+  },
+  "platform_requirements": {
+    "release_targets": ["ios_app", "android_app", "web"],
+    "harmonyos_is_not_in_scope_now": true,
+    "pc_means_web_on_personal_computer_sized_screens": true,
+    "phone_tablet_pc_web_each_need_dedicated_ui_and_page_design": true,
+    "different_device_classes_may_have_clearly_different_information_architecture": true,
+    "v1_parity_across_release_targets": true,
+    "priority_order": "ios_equals_android_before_web",
+    "learning_flow_is_most_important_entry_on_all_release_targets": true,
+    "physical_space_is_top_level_entry_on_all_release_targets": true
+  },
+  "cross_surface_continuity": {
+    "sync_targets": [
+      "learning_state",
+      "physical_space_state",
+      "membership_entitlement"
+    ],
+    "target_sync_mode": "best_effort_realtime",
+    "progress_sync_granularity": "daily_level",
+    "exact_cross_device_resume_is_not_required": true,
+    "some_progress_should_be_inherited_across_surfaces": true,
+    "membership_state_must_be_unified": true
+  },
+  "authentication_policy": {
+    "login_is_required_before_learning": true,
+    "guest_learning_before_authentication": false,
+    "primary_login_method": "phone_sms_code"
+  },
+  "learning_model": {
+    "single_card_flow": true,
+    "card_is_progress_unit": true,
+    "main_flow_unification_reason": "algorithm_need_not_user_mode_switching_dogma"
+  },
+  "physical_space": {
+    "is_core_differentiator": true,
+    "is_navigation_icon": true,
+    "all_cards_physically_exist": true,
+    "interaction_changes_physical_state": ["position", "other_form_if_needed"],
+    "user_should_see": [
+      "card_current_physical_position",
+      "every_box_and_its_contents",
+      "nested_box_regions"
+    ],
+    "favorite_is_tag_not_box": true,
+    "sleep_is_box_or_zone_affecting_learning_flow": true,
+    "position_is_driven_by": ["algorithm", "user_operations"],
+    "user_has_some_position_power": true
+  },
+  "interaction_contract": {
+    "interaction_is_core_content_contract": true,
+    "v1_core": [
+      "flip",
+      "multiple_choice",
+      "lock",
+      "elimination",
+      "swipe",
+      "hint_layer"
+    ],
+    "audio_required_as_medium": true,
+    "audio_is_not_interaction_family": true,
+    "hint_is_enhancement_layer": true,
+    "new_interactions_allowed_if_specified": true
+  },
+  "audio_role": {
+    "must_be_available_on_all_release_targets": true,
+    "is_not_forced_by_interaction_family": true,
+    "is_front_content_for": [
+      "listening_cards",
+      "some_other_cards_when_needed"
+    ],
+    "is_rendered_through_existing_core_interactions": true,
+    "auto_play": false,
+    "front_side_subtitles": false,
+    "back_side_text_or_transcript_may_exist": true
+  },
+  "interaction_details": {
+    "flip": "similar_to_anki_like_front_then_reveal",
+    "multiple_choice": "four_options",
+    "lock": "adjust_multiple_slots_for_tense_prep_or_other_changes_until_all_correct",
+    "elimination": "remove_until_only_correct_content_remains_such_as_sentence_trunk",
+    "swipe": "left_right_state_judgment_for_fast_single_surface_knowledge",
+    "hint_layer": "slide_or_tilt_card_down_to_expose_blank_area_of_physical_space_with_tip"
+  },
+  "card_quality": {
+    "front_style": "mixed_exam_context_and_knowledge_point_signal",
+    "good_card_traits": [
+      "product_really_understands_exam",
+      "low_cognitive_burden",
+      "detailed_analysis",
+      "emotionally_hits_user"
+    ],
+    "moment_of_understanding": [
+      "when_analysis_is_seen",
+      "when_front_already_signals_what_knowledge_point_is_involved"
+    ]
+  },
+  "page_and_spec_needs": {
+    "most_important_feelings": [
+      "fluent_continuity",
+      "sense_of_knowledge_mastery"
+    ],
+    "user_feels_like": "managing_physical_space_of_mastery",
+    "page_docs_should_be": "high_level_experience_and_information_goals",
+    "page_doc_failure": "prototype_content_and_logic_are_unclear_so_agents_invent_extra_requirements_and_wrong_structure",
+    "single_adaptive_ui_for_all_device_classes_is_not_acceptable": true,
+    "top_level_navigation_is_consistent_across_surfaces": [
+      "learning",
+      "space",
+      "statistics",
+      "mine"
+    ]
+  },
+  "actions_visibility": {
+    "show_only_if_useful_for_learning_or_card_management": true,
+    "reduce_total_operations": true,
+    "confirmed_user_facing_actions": ["peek", "favorite"],
+    "other_states_follow_algorithm_and_review_needs": true,
+    "avoid_interruptions": [
+      "spending_too_much_time_deciding_mastery",
+      "irrelevant_non_learning_information",
+      "high_learning_software_cost"
+    ]
+  },
+  "business": {
+    "main_success_metric": [
+      "user_trust",
+      "paid_conversion"
+    ],
+    "premium_core_value": "smarter_guidance_for_passing_exam",
+    "free_user_should_perceive_value_in": ["content", "algorithm", "physical_space"],
+    "trial_days": {
+      "min": 3,
+      "max": 7
+    },
+    "trial_is_complete_experience": true,
+    "trial_starts_when": "first_entry_counted_as_membership_trial",
+    "free_after_trial": "basic_learning_remains",
+    "free_content_access": "near_half_of_cards",
+    "premium_gates": [
+      "physical_space",
+      "full_card_library",
+      "complete_algorithm"
+    ],
+    "all_release_targets_must_support_purchase": true,
+    "membership_purchase_and_entitlement_must_interoperate_across_surfaces": true,
+    "purchase_recovery_reminder": "after_membership_experience_ends"
+  },
+  "v1_scope": {
+    "must_have": [
+      "card_learning",
+      "review_flow",
+      "physical_space",
+      "simple_stats_and_checkin",
+      "profile_page",
+      "paywall_page",
+      "all_core_interaction_effects"
+    ]
+  },
+  "content_asset_requirements": {
+    "detailed_box_catalog_is_required": true,
+    "box_catalog_is_content_team_knowledge_decomposition": true,
+    "box_catalog_may_be_reworked_if_needed": true,
+    "detailed_box_catalog_must_exist": true
+  },
+  "space_operation_boundary": {
+    "user_has_some_position_power_but_not_full_free_reassignment": true,
+    "algorithm_still_drives_primary_positioning": true
+  },
+  "platform_interaction_boundary": {
+    "aim_for_high_fidelity_across_surfaces": true,
+    "touch_exclusive_mechanics_need_not_be_forced_literally_on_non_touch_surfaces": true,
+    "tablet_and_pc_may_show_more_hierarchy_without_becoming_complex_manager": true,
+    "non_touch_surfaces_should_use_keyboard_shortcuts_plus_mouse": true
+  },
+  "document_system_requirements": {
+    "three_layers_separated": true,
+    "active_system_should_be_agent_first": true,
+    "human_readable_docs_not_required_as_active_surface": true,
+    "progressive_disclosure_is_required": true,
+    "low_coupling_is_required": true
+  },
+  "open_questions": {}
+}

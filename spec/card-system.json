@@ -1,0 +1,61 @@
+{
+  "version": "vnext-4",
+  "minimum_card_requirements": {
+    "must_answer": [
+      "这张卡在考什么知识点",
+      "用户要做什么交互动作",
+      "解析如何让用户感觉这对过级有帮助"
+    ],
+    "required_fields": [
+      "card_id",
+      "track",
+      "knowledge_ref",
+      "interaction_id",
+      "front",
+      "analysis"
+    ],
+    "optional_fields": [
+      "audio",
+      "hint_layer",
+      "auto_scoring",
+      "answer_key",
+      "space_metadata"
+    ]
+  },
+  "field_semantics": {
+    "card_id": "TLGBNN card identity",
+    "track": "cet4_or_cet6",
+    "knowledge_ref": "library_group_box ownership",
+    "interaction_id": "core interaction contract id",
+    "front": "first visible content, using mixed exam context and knowledge-point signaling when needed",
+    "analysis": "why this matters for passing the exam",
+    "audio": "resource medium that can be front content for listening cards and some other cards when needed; it does not autoplay and front-side subtitles are absent by default",
+    "hint_layer": "optional enhancement layer",
+    "auto_scoring": "whether the system can score directly",
+    "answer_key": "data required for auto scoring",
+    "space_metadata": "physical-space related metadata, including card position or form changes if needed"
+  },
+  "content_constraints": {
+    "front_should_be": [
+      "low_burden",
+      "fast_to_enter",
+      "obviously_related_to_cet"
+    ],
+    "analysis_should_be": [
+      "specific",
+      "exam_useful",
+      "non_generic",
+      "detailed",
+      "capable_of_making_user_feel_the_product_understands_the_exam"
+    ]
+  },
+  "interaction_contract_rule": "if a new interaction changes how cards must be authored, it must be added to interactions spec before use",
+  "audio_usage_rule": "audio may appear through existing core interactions without creating an audio-specific interaction family",
+  "audio_presentation_rule": "front side does not autoplay audio and does not require subtitles; back side may contain text or transcript when useful",
+  "forbidden": [
+    "cards_without_knowledge_ownership",
+    "cards_without_analysis_value",
+    "hint_as_standalone_card_type",
+    "audio_as_standalone_interaction_family"
+  ]
+}

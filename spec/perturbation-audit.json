@@ -1,0 +1,197 @@
+{
+  "version": "vnext-6",
+  "purpose": "Counterfactual perturbation audit used to avoid local optima and catch silent drift away from the user's original requirements.",
+  "perturbations": [
+    {
+      "id": "P-01",
+      "change": "Reframe product as general English teaching system",
+      "expected_failure": "breaks exam-first promise and paid trust model",
+      "guarded_by": ["spec/product-core.json", "spec/evals.json", "spec/agent-harness.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-02",
+      "change": "Reduce physical space to favorite box plus sleep box",
+      "expected_failure": "destroys knowledge-map semantics and core differentiation",
+      "guarded_by": ["spec/product-core.json", "spec/knowledge-map.json", "spec/box-catalog.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-03",
+      "change": "Remove detailed box catalog and keep only library/group skeleton",
+      "expected_failure": "drops content team's knowledge decomposition asset",
+      "guarded_by": ["spec/box-catalog.json", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-04",
+      "change": "Treat hint as standalone card type",
+      "expected_failure": "breaks card authoring model and user-specified hint behavior",
+      "guarded_by": ["spec/interactions.json", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-05",
+      "change": "Treat audio as independent interaction family",
+      "expected_failure": "adds an interaction family the user explicitly rejected",
+      "guarded_by": ["spec/interactions.json", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-06",
+      "change": "Require heavy self-rating on every card",
+      "expected_failure": "increases software cost and breaks fluent continuity",
+      "guarded_by": ["spec/product-core.json", "spec/interactions.json", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-07",
+      "change": "Make free-after-trial equivalent to full experience",
+      "expected_failure": "weakens paywall structure and contradicts user input",
+      "guarded_by": ["spec/membership.json", "spec/product-core.json", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-08",
+      "change": "Return to prose-first active docs",
+      "expected_failure": "moves active truth away from agent-first structured harness",
+      "guarded_by": ["spec/doc-manifest.json", "AGENTS.md", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-09",
+      "change": "Drop peek from visible card actions",
+      "expected_failure": "removes a user-confirmed low-cost learning action",
+      "guarded_by": ["spec/action-surface.json", "spec/requirement-memory.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-10",
+      "change": "Shrink free-after-trial into a tiny demo instead of near-half normal learning",
+      "expected_failure": "breaks the intended free-to-paid value bridge",
+      "guarded_by": ["spec/membership.json", "spec/product-core.json", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-11",
+      "change": "Turn physical space into either arbitrary free drag or fully locked system",
+      "expected_failure": "breaks the partial-control model specified by the user",
+      "guarded_by": ["spec/space-operations.json", "spec/product-core.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-12",
+      "change": "Assume one adaptive UI can cover phone, tablet, and PC web without dedicated design",
+      "expected_failure": "breaks the explicit multi-surface product requirement",
+      "guarded_by": ["spec/platform-contract.json", "spec/product-core.json", "spec/agent-harness.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-13",
+      "change": "Treat PC as a separate native desktop client or drop Web parity",
+      "expected_failure": "misstates the release matrix and priority model",
+      "guarded_by": ["spec/platform-contract.json", "spec/runtime-boundaries.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-14",
+      "change": "Require exact same-card cross-device resume as product truth",
+      "expected_failure": "over-constrains continuity beyond what the user asked for",
+      "guarded_by": ["spec/platform-contract.json", "spec/runtime-boundaries.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-15",
+      "change": "Allow membership to diverge across iOS, Android, and Web or make Web non-purchasable",
+      "expected_failure": "breaks unified entitlement and all-surface commerce requirement",
+      "guarded_by": ["spec/membership.json", "spec/platform-contract.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-16",
+      "change": "Make audio unavailable on Web or tie it to one interaction family",
+      "expected_failure": "breaks audio content parity and misstates audio's role",
+      "guarded_by": ["spec/interactions.json", "spec/platform-contract.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-17",
+      "change": "Demote physical space below top-level entry on one or more release targets",
+      "expected_failure": "breaks the required entry structure across surfaces",
+      "guarded_by": ["spec/platform-contract.json", "spec/product-core.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-18",
+      "change": "Allow guest learning before login",
+      "expected_failure": "breaks the required authentication gate before learning starts",
+      "guarded_by": ["spec/platform-contract.json", "spec/product-core.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-19",
+      "change": "Use a different login method or start trial at install/registration time",
+      "expected_failure": "breaks the confirmed authentication and trial trigger policy",
+      "guarded_by": ["spec/account-sync-contract.json", "spec/requirement-memory.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-20",
+      "change": "Change top-level navigation across release targets or drop keyboard/mouse adaptation on non-touch surfaces",
+      "expected_failure": "breaks confirmed navigation consistency and non-touch input policy",
+      "guarded_by": ["spec/platform-contract.json", "spec/product-core.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-21",
+      "change": "Autoplay audio or require front-side subtitles",
+      "expected_failure": "breaks confirmed audio presentation policy",
+      "guarded_by": ["spec/interactions.json", "spec/product-core.json", "spec/evals.json"],
+      "status": "rejected"
+    }
+  ],
+  "audit_summary": {
+    "result": "pass",
+    "restatement_capability_after_perturbation": {
+      "result": "pass",
+      "anchored_by": [
+        "spec/requirement-memory.json",
+        "spec/authority-map.json",
+        "spec/product-core.json",
+        "spec/account-sync-contract.json",
+        "spec/platform-contract.json",
+        "spec/evals.json"
+      ],
+      "required_restated_anchors": [
+        "exam_oriented_low_burden_promise",
+        "cards_interactions_knowledge_points",
+        "single_card_flow",
+        "physical_space_core_differentiator",
+        "ios_android_web_with_phone_tablet_pc_web",
+        "learning_and_space_as_top_level_entries",
+        "login_required_before_learning",
+        "shared_membership_and_purchase_on_all_surfaces"
+      ]
+    },
+    "reviewed_active_specs": [
+      "spec/product-core.json",
+      "spec/account-sync-contract.json",
+      "spec/card-system.json",
+      "spec/interactions.json",
+      "spec/action-surface.json",
+      "spec/knowledge-map.json",
+      "spec/space-operations.json",
+      "spec/platform-contract.json",
+      "spec/box-catalog.json",
+      "spec/membership.json",
+      "spec/runtime-boundaries.json",
+      "spec/agent-harness.json",
+      "spec/evals.json",
+      "spec/requirement-memory.json"
+    ],
+    "remaining_risk": [
+      "future edits might shrink box catalog if not validated",
+      "future edits might over-spec implementation details unless runtime boundaries stay minimal"
+    ]
+  }
+}

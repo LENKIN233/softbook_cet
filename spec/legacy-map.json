@@ -1,0 +1,18 @@
+{
+  "version": "vnext-2",
+  "legacy_to_current": {
+    "AGENTS.md": ["AGENTS.md", "spec/agent-harness.json", "spec/doc-manifest.json"],
+    "00-产品愿景与核心规则.md": ["spec/product-core.json"],
+    "01-信息架构与页面规格.md": ["spec/product-core.json", "spec/interactions.json"],
+    "02-算法与调度规格.md": ["spec/runtime-boundaries.json"],
+    "03-API契约与数据模型.md": ["spec/runtime-boundaries.json"],
+    "04-卡片内容模型与编码规范.md": ["spec/card-system.json", "spec/knowledge-map.json", "spec/box-catalog.json"],
+    "05-验收标准与测试用例.md": ["spec/evals.json"],
+    "06-卡片内容生产规范.md": [],
+    "07-卡片数量清单.md": ["spec/box-catalog.json"]
+  },
+  "inactive_sources": [
+    "archive/legacy-v3/",
+    "archive/transitional-vnext-prose/"
+  ]
+}

@@ -1,0 +1,186 @@
+{
+  "version": "vnext-7",
+  "regressions": [
+    {
+      "id": "HR-01",
+      "prompt": "解释软书四六级是什么产品",
+      "fail_signal": "answered_as_general_english_teaching_or_vocab_tool",
+      "must_hit": ["exam_oriented", "low_burden", "cards", "interactions", "physical_space"]
+    },
+    {
+      "id": "HR-02",
+      "prompt": "设计主学习流页面",
+      "fail_signal": "starts_with_component_tree_or_timing_constants",
+      "must_hit": ["experience_goal", "information_goal", "key_actions"]
+    },
+    {
+      "id": "HR-03",
+      "prompt": "解释物理空间",
+      "fail_signal": "favorite_box_plus_sleep_box_only",
+      "must_hit": ["knowledge_map", "card_position_system", "library_group_box_card"]
+    },
+    {
+      "id": "HR-04",
+      "prompt": "定义提示",
+      "fail_signal": "hint_as_standalone_card_type",
+      "must_hit": ["enhancement_layer"]
+    },
+    {
+      "id": "HR-05",
+      "prompt": "定义音频交互",
+      "fail_signal": "audio_as_interaction_family",
+      "must_hit": ["audio_as_medium"]
+    },
+    {
+      "id": "HR-06",
+      "prompt": "说明产品重点指标",
+      "fail_signal": "counters_before_user_value",
+      "must_hit": ["trust", "easier_exam_passing", "paid_value"]
+    },
+    {
+      "id": "HR-07",
+      "prompt": "说明免费与会员差异",
+      "fail_signal": "trial_missing_or_free_equals_complete",
+      "must_hit": ["full_trial", "limited_free_after_trial", "premium_core_value", "near_half_free_access"]
+    },
+    {
+      "id": "HR-08",
+      "prompt": "说明卡片页应该显性暴露哪些动作",
+      "fail_signal": "drops_peek_or_requires_heavy_mastery_decision_every_card",
+      "must_hit": ["peek", "favorite", "interaction_primary_action", "low_operation_cost"]
+    },
+    {
+      "id": "HR-09",
+      "prompt": "说明用户在物理空间里能做什么",
+      "fail_signal": "arbitrary_free_drag_or_no_user_control_at_all",
+      "must_hit": ["partial_user_control", "algorithm_primary", "sleep_zone_rule", "favorite_not_box"]
+    },
+    {
+      "id": "HR-10",
+      "prompt": "说明多端发布与适配策略",
+      "fail_signal": "omits_web_or_uses_one_ui_for_all_or_treats_pc_as_native_desktop",
+      "must_hit": ["ios_android_web", "phone_tablet_pc_web", "dedicated_ui_per_device_class", "ios_equals_android_before_web"]
+    },
+    {
+      "id": "HR-11",
+      "prompt": "说明三端连续性、会员与购买策略",
+      "fail_signal": "requires_exact_cross_device_resume_or_drops_shared_membership_or_web_purchase",
+      "must_hit": ["daily_level_sync", "some_progress_inheritance", "shared_membership", "purchase_on_all_release_targets"]
+    },
+    {
+      "id": "HR-12",
+      "prompt": "说明音频在产品里的角色",
+      "fail_signal": "audio_missing_on_some_release_targets_or_bound_to_interaction_family",
+      "must_hit": ["audio_on_all_release_targets", "audio_as_front_content", "audio_not_interaction_family"]
+    },
+    {
+      "id": "HR-13",
+      "prompt": "说明登录与开始学习的关系",
+      "fail_signal": "allows_guest_learning_before_login",
+      "must_hit": ["login_required_before_learning", "no_guest_learning"]
+    },
+    {
+      "id": "HR-14",
+      "prompt": "说明认证、试用与购买规则",
+      "fail_signal": "wrong_login_method_or_wrong_trial_start_or_web_purchase_weaker_than_app",
+      "must_hit": ["phone_sms_login", "trial_starts_on_first_counted_entry", "web_app_purchase_equal", "recovery_reminder_after_membership_experience"]
+    },
+    {
+      "id": "HR-15",
+      "prompt": "说明三端导航与非触摸输入",
+      "fail_signal": "changes_top_level_nav_or_ignores_keyboard_mouse_strategy",
+      "must_hit": ["learning_space_statistics_mine", "device_specific_page_composition", "keyboard_plus_mouse_on_non_touch"]
+    },
+    {
+      "id": "HR-16",
+      "prompt": "说明音频播放与字幕策略",
+      "fail_signal": "autoplays_audio_or_requires_front_subtitles",
+      "must_hit": ["no_autoplay", "no_front_subtitles", "back_text_or_transcript_may_exist"]
+    },
+    {
+      "id": "HR-17",
+      "prompt": "在经历多轮错误引导后，重新复述软书四六级的原始需求",
+      "fail_signal": "restatement_misses_exam_first_cards_interactions_physical_space_or_multisurface_truth",
+      "must_hit": [
+        "exam_oriented_low_burden_promise",
+        "cards_are_progress_unit",
+        "interaction_is_core_content_contract",
+        "physical_space_is_core_differentiator",
+        "ios_android_web",
+        "learning_and_space_are_top_level_entries",
+        "login_required_before_learning",
+        "membership_shared_purchase_all_surfaces"
+      ]
+    }
+  ],
+  "golden_tasks": [
+    {
+      "id": "GT-01",
+      "task": "解释产品定位",
+      "must_include": ["exam_oriented", "low_burden", "single_card_flow", "physical_space"]
+    },
+    {
+      "id": "GT-02",
+      "task": "设计主学习流",
+      "must_include": ["experience_goal", "user_actions", "auto_scoring_first", "not_overly_disruptive"]
+    },
+    {
+      "id": "GT-03",
+      "task": "设计物理空间",
+      "must_include": ["library_group_box_card", "card_position", "partial_move_power", "favorites_not_physical_box"]
+    },
+    {
+      "id": "GT-04",
+      "task": "定义一张卡",
+      "must_include": ["knowledge_ownership", "interaction", "front", "analysis", "optional_audio_and_hint"]
+    },
+    {
+      "id": "GT-05",
+      "task": "选择交互",
+      "must_include": ["why_this_interaction", "scoring_mode", "hint_need"]
+    },
+    {
+      "id": "GT-06",
+      "task": "解释付费结构",
+      "must_include": ["full_trial", "limited_free_after_trial", "premium_is_smarter_guidance", "near_half_free_access"]
+    },
+    {
+      "id": "GT-07",
+      "task": "定义卡片页动作显隐",
+      "must_include": ["peek", "favorite", "interaction_primary_action", "avoid_heavy_mastery_every_card"]
+    },
+    {
+      "id": "GT-08",
+      "task": "定义多端产品面",
+      "must_include": ["ios_android_web", "phone_tablet_pc_web", "different_information_architecture_allowed", "do_not_force_touch_literalism"]
+    },
+    {
+      "id": "GT-09",
+      "task": "定义跨端连续性与会员购买",
+      "must_include": ["daily_level_sync", "exact_resume_not_required", "membership_shared", "purchase_on_all_release_targets"]
+    },
+    {
+      "id": "GT-10",
+      "task": "定义登录门槛",
+      "must_include": ["login_required_before_learning", "guest_learning_not_supported"]
+    },
+    {
+      "id": "GT-11",
+      "task": "定义账号、试用与同步",
+      "must_include": ["phone_sms_login", "trial_start_on_first_counted_entry", "sync_learning_and_space_state", "server_authoritative_default_merge_as_hypothesis"]
+    },
+    {
+      "id": "GT-12",
+      "task": "复述原始产品需求",
+      "must_include": [
+        "pass_cet_more_easily",
+        "cards_interactions_knowledge_points",
+        "single_card_flow",
+        "physical_space_core",
+        "ios_android_web_phone_tablet_pc_web",
+        "login_required",
+        "shared_membership_and_all_surface_purchase"
+      ]
+    }
+  ]
+}

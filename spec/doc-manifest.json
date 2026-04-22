@@ -1,0 +1,36 @@
+{
+  "version": "vnext-2",
+  "active_documents": [
+    {
+      "path": "AGENTS.md",
+      "authority": "agent_entrypoint",
+      "audience": ["agent"],
+      "load_when": ["every active task"],
+      "depends_on": ["spec/doc-manifest.json"],
+      "status": "active"
+    }
+  ],
+  "active_specs": [
+    "spec/doc-manifest.json",
+    "spec/product-core.json",
+    "spec/requirement-memory.json",
+    "spec/authority-map.json",
+    "spec/account-sync-contract.json",
+    "spec/platform-contract.json",
+    "spec/action-surface.json",
+    "spec/card-system.json",
+    "spec/interactions.json",
+    "spec/knowledge-map.json",
+    "spec/space-operations.json",
+    "spec/box-catalog.json",
+    "spec/membership.json",
+    "spec/runtime-boundaries.json",
+    "spec/agent-harness.json",
+    "spec/evals.json",
+    "spec/perturbation-audit.json"
+  ],
+  "inactive_paths": [
+    "archive/legacy-v3/",
+    "archive/transitional-vnext-prose/"
+  ]
+}
