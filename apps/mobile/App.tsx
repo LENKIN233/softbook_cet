@@ -5,6 +5,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   useColorScheme,
   useWindowDimensions,
   View,
@@ -16,6 +17,7 @@ import {
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
+type AuthStage = 'logged_out' | 'code_sent' | 'authenticated';
 
 type ShellRoute = {
   key: RouteKey;
@@ -39,6 +41,23 @@ type Palette = {
   accentSoft: string;
   accentStrong: string;
   tabIdle: string;
+  success: string;
+  danger: string;
+};
+
+type AuthState = {
+  stage: AuthStage;
+  phoneNumber: string;
+  smsCode: string;
+  error: string | null;
+};
+
+type AuthHandlers = {
+  onChangePhone: (value: string) => void;
+  onChangeCode: (value: string) => void;
+  onRequestCode: () => void;
+  onSubmitCode: () => void;
+  onLogout: () => void;
 };
 
 const ROUTES: ShellRoute[] = [
@@ -53,9 +72,9 @@ const ROUTES: ShellRoute[] = [
     highlights: [
       '保持单卡流而不是堆按钮和复杂状态。',
       '解释“这张卡为什么出现”，但不抢占答题主路径。',
-      '当前壳层只验证入口结构，不实现登录门禁和学习算法。',
+      '当前壳层只验证入口结构，不实现学习算法和试用矩阵。',
     ],
-    focus: ['single-card-flow', 'core-interactions', 'auth gate'],
+    focus: ['single-card-flow', 'core-interactions', 'trial entry trigger'],
   },
   {
     key: 'space',
@@ -94,11 +113,11 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '账户与会员',
     title: '个人页',
     summary:
-      '这里承接账号、会员、恢复购买和设置等内容。当前阶段只保留入口骨架，后续再接短信登录和会员合同。',
+      '这里承接账号、会员、恢复购买和设置等内容。当前阶段先把手机号验证码登录挂进来，再在后续分支接入会员合同。',
     highlights: [
-      '登录仍然是学习前置条件，但真实门禁在 auth 分支接入。',
-      '会员、试用、恢复购买属于跨模块合同，不在壳层分支里展开。',
-      '页面会作为 profile 和 paywall 的宿主，而不是散乱设置页。',
+      '手机号验证码是主登录方式。',
+      '当前分支只做本地门禁，不接真实短信服务。',
+      '试用、购买恢复和会员统一权限后续再接。',
     ],
     focus: ['phone sms login', 'trial/paywall', 'purchase recovery'],
   },
@@ -115,6 +134,8 @@ const LIGHT_PALETTE: Palette = {
   accentSoft: '#D9E9E6',
   accentStrong: '#123F49',
   tabIdle: '#7E766B',
+  success: '#2A7D46',
+  danger: '#A33C35',
 };
 
 const DARK_PALETTE: Palette = {
@@ -128,6 +149,17 @@ const DARK_PALETTE: Palette = {
   accentSoft: '#193C3C',
   accentStrong: '#B9E8DF',
   tabIdle: '#8A9389',
+  success: '#7DE5A0',
+  danger: '#FF8A7A',
+};
+
+const PROTECTED_ROUTES: RouteKey[] = ['learning', 'space', 'statistics'];
+
+const INITIAL_AUTH_STATE: AuthState = {
+  stage: 'logged_out',
+  phoneNumber: '',
+  smsCode: '',
+  error: null,
 };
 
 function App(): React.JSX.Element {
@@ -142,18 +174,107 @@ function AppShell() {
   const scheme = useColorScheme();
   const palette = scheme === 'dark' ? DARK_PALETTE : LIGHT_PALETTE;
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
+  const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
   const { width, height } = useWindowDimensions();
   const deviceClass = getDeviceClass(width, height);
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
+  const isAuthenticated = authState.stage === 'authenticated';
+  const routeRequiresAuth = PROTECTED_ROUTES.includes(route.key);
+  const shouldShowAuthGate = routeRequiresAuth && !isAuthenticated;
+
+  const authHandlers: AuthHandlers = {
+    onChangePhone: value => {
+      setAuthState(current => ({
+        ...current,
+        phoneNumber: value.replace(/[^\d]/g, '').slice(0, 11),
+        error: null,
+      }));
+    },
+    onChangeCode: value => {
+      setAuthState(current => ({
+        ...current,
+        smsCode: value.replace(/[^\d]/g, '').slice(0, 6),
+        error: null,
+      }));
+    },
+    onRequestCode: () => {
+      setAuthState(current => {
+        if (current.phoneNumber.length !== 11) {
+          return {
+            ...current,
+            error: '请输入 11 位手机号后再请求验证码。',
+          };
+        }
+
+        return {
+          ...current,
+          stage: 'code_sent',
+          error: null,
+          smsCode: '',
+        };
+      });
+    },
+    onSubmitCode: () => {
+      setAuthState(current => {
+        if (current.stage !== 'code_sent') {
+          return {
+            ...current,
+            error: '请先请求验证码。',
+          };
+        }
+
+        if (current.smsCode.length < 4) {
+          return {
+            ...current,
+            error: '请输入 4-6 位验证码。',
+          };
+        }
+
+        return {
+          ...current,
+          stage: 'authenticated',
+          error: null,
+          smsCode: '',
+        };
+      });
+    },
+    onLogout: () => {
+      setAuthState(INITIAL_AUTH_STATE);
+      startTransition(() => {
+        setActiveRoute('mine');
+      });
+    },
+  };
+
+  const content = shouldShowAuthGate ? (
+    <AuthGate
+      authState={authState}
+      handlers={authHandlers}
+      palette={palette}
+      route={route}
+    />
+  ) : route.key === 'mine' ? (
+    <MineSurface
+      authState={authState}
+      handlers={authHandlers}
+      palette={palette}
+      route={route}
+    />
+  ) : (
+    <RouteCanvas palette={palette} route={route} deviceClass={deviceClass} />
+  );
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}>
       <StatusBar
         barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'}
       />
       {deviceClass === 'tablet' ? (
         <TabletShell
           activeRoute={activeRoute}
+          authState={authState}
+          content={content}
           onSelectRoute={setActiveRoute}
           palette={palette}
           route={route}
@@ -161,6 +282,8 @@ function AppShell() {
       ) : (
         <PhoneShell
           activeRoute={activeRoute}
+          authState={authState}
+          content={content}
           onSelectRoute={setActiveRoute}
           palette={palette}
           route={route}
@@ -172,19 +295,28 @@ function AppShell() {
 
 function PhoneShell({
   activeRoute,
+  authState,
+  content,
   onSelectRoute,
   palette,
   route,
 }: {
   activeRoute: RouteKey;
+  authState: AuthState;
+  content: React.ReactNode;
   onSelectRoute: (route: RouteKey) => void;
   palette: Palette;
   route: ShellRoute;
 }) {
   return (
     <View style={styles.shellRoot}>
-      <ShellHeader palette={palette} route={route} deviceClass="phone" />
-      <RouteCanvas palette={palette} route={route} deviceClass="phone" />
+      <ShellHeader
+        authState={authState}
+        palette={palette}
+        route={route}
+        deviceClass="phone"
+      />
+      {content}
       <View
         style={[
           styles.phoneTabBar,
@@ -192,9 +324,6 @@ function PhoneShell({
         ]}>
         {ROUTES.map(item => {
           const isActive = item.key === activeRoute;
-          const indicatorStyle = isActive
-            ? { backgroundColor: palette.accent }
-            : styles.phoneTabIndicatorHidden;
 
           return (
             <Pressable
@@ -223,7 +352,9 @@ function PhoneShell({
               <View
                 style={[
                   styles.phoneTabIndicator,
-                  indicatorStyle,
+                  isActive
+                    ? { backgroundColor: palette.accent }
+                    : styles.phoneTabIndicatorHidden,
                 ]}
               />
             </Pressable>
@@ -236,11 +367,15 @@ function PhoneShell({
 
 function TabletShell({
   activeRoute,
+  authState,
+  content,
   onSelectRoute,
   palette,
   route,
 }: {
   activeRoute: RouteKey;
+  authState: AuthState;
+  content: React.ReactNode;
   onSelectRoute: (route: RouteKey) => void;
   palette: Palette;
   route: ShellRoute;
@@ -253,14 +388,15 @@ function TabletShell({
           { backgroundColor: palette.panel, borderRightColor: palette.border },
         ]}>
         <Text style={[styles.brandEyebrow, { color: palette.accent }]}>
-          SHELL / IOS
+          AUTH / SHELL
         </Text>
         <Text style={[styles.brandTitle, { color: palette.text }]}>
           软书四六级
         </Text>
         <Text style={[styles.brandSummary, { color: palette.textMuted }]}>
-          当前分支只打磨壳层导航，让 iPhone 与 iPad 都有明确的入口结构和信息重心。
+          当前分支把手机号验证码登录接进壳层，并把学习前置登录门禁落实到 iOS 结构里。
         </Text>
+        <AuthStatusBadge authState={authState} palette={palette} />
         <View style={styles.sidebarNav}>
           {ROUTES.map(item => {
             const isActive = item.key === activeRoute;
@@ -296,7 +432,8 @@ function TabletShell({
                     ]}>
                     {item.label}
                   </Text>
-                  <Text style={[styles.sidebarEyebrow, { color: palette.tabIdle }]}>
+                  <Text
+                    style={[styles.sidebarEyebrow, { color: palette.tabIdle }]}>
                     {item.eyebrow}
                   </Text>
                 </View>
@@ -306,22 +443,34 @@ function TabletShell({
         </View>
       </View>
       <View style={styles.tabletContent}>
-        <ShellHeader palette={palette} route={route} deviceClass="tablet" />
-        <RouteCanvas palette={palette} route={route} deviceClass="tablet" />
+        <ShellHeader
+          authState={authState}
+          palette={palette}
+          route={route}
+          deviceClass="tablet"
+        />
+        {content}
       </View>
     </View>
   );
 }
 
 function ShellHeader({
+  authState,
   palette,
   route,
   deviceClass,
 }: {
+  authState: AuthState;
   palette: Palette;
   route: ShellRoute;
   deviceClass: DeviceClass;
 }) {
+  const authText =
+    authState.stage === 'authenticated'
+      ? `已登录 ${maskPhoneNumber(authState.phoneNumber)}`
+      : '未登录';
+
   return (
     <View
       style={[
@@ -340,19 +489,287 @@ function ShellHeader({
         </Text>
         <Text style={[styles.headerSummary, { color: palette.textMuted }]}>
           {deviceClass === 'phone'
-            ? 'iPhone 使用底部导航；后续业务模块从这里接入。'
-            : 'iPad 使用侧边导航；保持顶层顺序一致，但页面组成与手机不同。'}
+            ? 'iPhone 使用底部导航，并把学习门禁直接挂在壳层入口上。'
+            : 'iPad 使用侧边导航，保留顶层顺序一致，同时用更宽内容区承接登录与业务入口。'}
         </Text>
       </View>
+      <View style={styles.headerMeta}>
+        <View
+          style={[
+            styles.headerPill,
+            { backgroundColor: palette.accentSoft, borderColor: palette.border },
+          ]}>
+          <Text style={[styles.headerPillText, { color: palette.accentStrong }]}>
+            {route.badge}
+          </Text>
+        </View>
+        <Text style={[styles.headerAuthText, { color: palette.textMuted }]}>
+          {authText}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function AuthStatusBadge({
+  authState,
+  palette,
+}: {
+  authState: AuthState;
+  palette: Palette;
+}) {
+  const isAuthenticated = authState.stage === 'authenticated';
+
+  return (
+    <View
+      style={[
+        styles.statusBadge,
+        {
+          backgroundColor: isAuthenticated ? palette.accentSoft : palette.panelStrong,
+          borderColor: palette.border,
+        },
+      ]}>
+      <Text
+        style={[
+          styles.statusBadgeLabel,
+          { color: isAuthenticated ? palette.success : palette.textMuted },
+        ]}>
+        {isAuthenticated ? '身份已确认' : '等待登录'}
+      </Text>
+      <Text style={[styles.statusBadgeValue, { color: palette.text }]}>
+        {isAuthenticated ? maskPhoneNumber(authState.phoneNumber) : '手机号验证码'}
+      </Text>
+    </View>
+  );
+}
+
+function AuthGate({
+  authState,
+  handlers,
+  palette,
+  route,
+}: {
+  authState: AuthState;
+  handlers: AuthHandlers;
+  palette: Palette;
+  route: ShellRoute;
+}) {
+  return (
+    <ScrollView contentContainerStyle={styles.canvasContent}>
       <View
         style={[
-          styles.headerPill,
-          { backgroundColor: palette.accentSoft, borderColor: palette.border },
+          styles.hero,
+          styles.authHero,
+          { backgroundColor: palette.panel, borderColor: palette.border },
         ]}>
-        <Text style={[styles.headerPillText, { color: palette.accentStrong }]}>
-          {route.badge}
+        <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
+          AUTH GATE
+        </Text>
+        <Text style={[styles.heroTitle, { color: palette.text }]}>
+          {route.key === 'learning' ? '学习前先登录' : `进入${route.label}前先确认身份`}
+        </Text>
+        <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
+          根据认证合同，游客不能开始学习；当前壳层同时把空间与统计一起挂在登录态之后，避免无身份状态下承接个人连续性数据。
         </Text>
       </View>
+      <PhoneSmsPanel
+        authState={authState}
+        handlers={handlers}
+        palette={palette}
+        title="手机号验证码登录"
+        summary="先把主登录方式接进壳层。真实短信服务、试用起算和会员矩阵后续再接。"
+      />
+      <InfoCard
+        palette={palette}
+        title="当前门禁只落实什么"
+        items={[
+          '学习开始前必须登录。',
+          '手机号验证码是主登录方式。',
+          '本地状态机只服务壳层验证，不等于后端真实认证。',
+        ]}
+      />
+    </ScrollView>
+  );
+}
+
+function MineSurface({
+  authState,
+  handlers,
+  palette,
+  route,
+}: {
+  authState: AuthState;
+  handlers: AuthHandlers;
+  palette: Palette;
+  route: ShellRoute;
+}) {
+  const isAuthenticated = authState.stage === 'authenticated';
+
+  return (
+    <ScrollView contentContainerStyle={styles.canvasContent}>
+      <View
+        style={[
+          styles.hero,
+          { backgroundColor: palette.panel, borderColor: palette.border },
+        ]}>
+        <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
+          ACCOUNT HOST
+        </Text>
+        <Text style={[styles.heroTitle, { color: palette.text }]}>
+          {isAuthenticated ? '账号已接入壳层' : '从“我的”完成身份建立'}
+        </Text>
+        <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
+          {isAuthenticated
+            ? '当前已经完成本地登录态验证。后续会在这里接入试用、会员、恢复购买和账号设置。'
+            : '“我的”作为账号与会员宿主页，当前先承接手机号验证码登录。'}
+        </Text>
+      </View>
+      <PhoneSmsPanel
+        authState={authState}
+        handlers={handlers}
+        palette={palette}
+        title={isAuthenticated ? '当前登录状态' : '手机号验证码登录'}
+        summary={
+          isAuthenticated
+            ? '当前是本地壳层登录态。继续后会接试用起算、会员权限和跨端统一 entitlement。'
+            : '先从这里完成身份建立，再让学习流和用户态页面具备真实入口。'
+        }
+      />
+      <RouteCanvas palette={palette} route={route} deviceClass="phone" />
+    </ScrollView>
+  );
+}
+
+function PhoneSmsPanel({
+  authState,
+  handlers,
+  palette,
+  title,
+  summary,
+}: {
+  authState: AuthState;
+  handlers: AuthHandlers;
+  palette: Palette;
+  title: string;
+  summary: string;
+}) {
+  const isAuthenticated = authState.stage === 'authenticated';
+
+  return (
+    <View
+      style={[
+        styles.authPanel,
+        { backgroundColor: palette.panel, borderColor: palette.border },
+      ]}>
+      <Text style={[styles.infoTitle, { color: palette.text }]}>{title}</Text>
+      <Text style={[styles.authSummary, { color: palette.textMuted }]}>
+        {summary}
+      </Text>
+
+      <View style={styles.fieldGroup}>
+        <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
+          手机号
+        </Text>
+        <TextInput
+          autoCapitalize="none"
+          keyboardType="number-pad"
+          maxLength={11}
+          onChangeText={handlers.onChangePhone}
+          placeholder="输入 11 位手机号"
+          placeholderTextColor={palette.tabIdle}
+          style={[
+            styles.input,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+              color: palette.text,
+            },
+          ]}
+          testID="auth-phone-input"
+          textContentType="telephoneNumber"
+          value={authState.phoneNumber}
+        />
+      </View>
+
+      <View style={styles.authActions}>
+        <Pressable
+          onPress={handlers.onRequestCode}
+          style={[
+            styles.primaryButton,
+            styles.compactButton,
+            { backgroundColor: palette.accent },
+          ]}
+          testID="auth-request-code-button">
+          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            {authState.stage === 'code_sent' ? '重新发送验证码' : '请求验证码'}
+          </Text>
+        </Pressable>
+        <Text style={[styles.authHint, { color: palette.textMuted }]}>
+          {authState.stage === 'code_sent'
+            ? `已向 ${maskPhoneNumber(authState.phoneNumber)} 发送验证码。`
+            : '当前是本地壳层验证，不会真的发短信。'}
+        </Text>
+      </View>
+
+      {authState.stage !== 'logged_out' ? (
+        <View style={styles.fieldGroup}>
+          <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
+            验证码
+          </Text>
+          <TextInput
+            keyboardType="number-pad"
+            maxLength={6}
+            onChangeText={handlers.onChangeCode}
+            placeholder="输入 4-6 位验证码"
+            placeholderTextColor={palette.tabIdle}
+            style={[
+              styles.input,
+              {
+                backgroundColor: palette.panelStrong,
+                borderColor: palette.border,
+                color: palette.text,
+              },
+            ]}
+            testID="auth-code-input"
+            textContentType="oneTimeCode"
+            value={authState.smsCode}
+          />
+        </View>
+      ) : null}
+
+      {authState.error ? (
+        <Text style={[styles.authError, { color: palette.danger }]}>
+          {authState.error}
+        </Text>
+      ) : null}
+
+      {isAuthenticated ? (
+        <View style={styles.authActions}>
+          <Text style={[styles.authSuccess, { color: palette.success }]}>
+            已完成本地登录态验证。
+          </Text>
+          <Pressable
+            onPress={handlers.onLogout}
+            style={[
+              styles.secondaryButton,
+              { borderColor: palette.border, backgroundColor: palette.panelStrong },
+            ]}
+            testID="auth-logout-button">
+            <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
+              退出当前登录态
+            </Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable
+          onPress={handlers.onSubmitCode}
+          style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+          testID="auth-submit-button">
+          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            完成登录
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -401,11 +818,11 @@ function RouteCanvas({
         />
         <InfoCard
           palette={palette}
-          title="导航合同"
+          title="导航与权限"
           items={[
             '顶层顺序固定为 学习 / 空间 / 统计 / 我的。',
             '学习保持最重要入口，空间保持顶层入口。',
-            '壳层先跑通信息架构，不提前写会员、算法或卡片实现。',
+            '认证先落到壳层，会员与同步后续独立接入。',
           ]}
         />
         <InfoCard
@@ -465,6 +882,14 @@ function InfoCard({
 
 function getDeviceClass(width: number, height: number): DeviceClass {
   return Math.min(width, height) >= 768 ? 'tablet' : 'phone';
+}
+
+function maskPhoneNumber(phoneNumber: string) {
+  if (phoneNumber.length !== 11) {
+    return phoneNumber || '未填写手机号';
+  }
+
+  return `${phoneNumber.slice(0, 3)}****${phoneNumber.slice(-4)}`;
 }
 
 const styles = StyleSheet.create({
@@ -530,6 +955,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  statusBadge: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 6,
+  },
+  statusBadgeLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.05,
+  },
+  statusBadgeValue: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
   header: {
     borderBottomWidth: 1,
     paddingHorizontal: 20,
@@ -557,6 +998,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
   },
+  headerMeta: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
   headerPill: {
     minWidth: 56,
     borderWidth: 1,
@@ -569,6 +1014,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1.1,
+  },
+  headerAuthText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   canvasContent: {
     paddingHorizontal: 20,
@@ -586,6 +1035,9 @@ const styles = StyleSheet.create({
     paddingVertical: 22,
     gap: 8,
   },
+  authHero: {
+    marginTop: 2,
+  },
   heroEyebrow: {
     fontSize: 12,
     fontWeight: '700',
@@ -598,6 +1050,76 @@ const styles = StyleSheet.create({
   heroSummary: {
     fontSize: 15,
     lineHeight: 23,
+  },
+  authPanel: {
+    borderWidth: 1,
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    gap: 14,
+  },
+  authSummary: {
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  fieldGroup: {
+    gap: 8,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  authActions: {
+    gap: 10,
+  },
+  authHint: {
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  authError: {
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 19,
+  },
+  authSuccess: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  primaryButton: {
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+  },
+  compactButton: {
+    alignSelf: 'flex-start',
+    minWidth: 128,
+  },
+  primaryButtonLabel: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  secondaryButtonLabel: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   sectionGrid: {
     gap: 14,
