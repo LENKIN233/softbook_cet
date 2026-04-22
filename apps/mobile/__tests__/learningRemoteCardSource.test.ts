@@ -1,7 +1,9 @@
 import { localLearningCardRecords } from '../src/learning/localCardRecords';
 import {
+  createSoftbookRemoteLearningCardSourceConfig,
   loadRemoteLearningCardSource,
   parseRemoteLearningCardSourcePayload,
+  parseSoftbookRemoteLearningCardSourcePayload,
 } from '../src/learning/remoteCardSource';
 
 test('remote learning card source loads and normalizes a valid payload', async () => {
@@ -90,5 +92,66 @@ test('remote learning card source rejects track drift between request and payloa
     ),
   ).toThrow(
     'Remote learning card source payload.track must match requested track cet4.',
+  );
+});
+
+test('softbook remote learning config maps runtime baseUrl and payload envelope', async () => {
+  const fetchMock = jest.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      data: {
+        source: {
+          id: 'softbook-remote-source',
+          label: '正式远端卡源',
+        },
+        track: 'cet4',
+        card_records: localLearningCardRecords,
+      },
+    }),
+  });
+
+  const result = await loadRemoteLearningCardSource(
+    'cet4',
+    createSoftbookRemoteLearningCardSourceConfig({
+      apiKey: 'runtime-key',
+      baseUrl: 'https://api.softbook.example/',
+    }),
+    fetchMock,
+  );
+
+  expect(fetchMock).toHaveBeenCalledWith(
+    'https://api.softbook.example/v1/learning/card-source?track=cet4',
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'x-softbook-client': 'mobile',
+        'x-api-key': 'runtime-key',
+      },
+    },
+  );
+  expect(result.sourceId).toBe('softbook-remote-source');
+  expect(result.sourceLabel).toBe('正式远端卡源');
+  expect(result.cards).toHaveLength(localLearningCardRecords.length);
+});
+
+test('softbook remote learning payload parser rejects missing envelope data', () => {
+  expect(() =>
+    parseSoftbookRemoteLearningCardSourcePayload(
+      {
+        data: {
+          source: {
+            id: 'softbook-remote-source',
+            label: '正式远端卡源',
+          },
+          track: 'cet4',
+          card_records: 'not-an-array',
+        },
+      },
+      'cet4',
+    ),
+  ).toThrow(
+    'Remote learning bootstrap payload.data.card_records must be an array.',
   );
 });
