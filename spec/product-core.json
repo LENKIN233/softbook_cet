@@ -1,6 +1,9 @@
 {
   "version": "vnext-8",
   "product_promise": "帮助中国大学生以更轻松、更低负担、但仍然可信的方式通过 CET4/CET6。",
+  "source_anchors": {
+    "default_learning_path": "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
+  },
   "target_users": {
     "primary": "备考 CET4/CET6 的中国大学生",
     "scenarios": [

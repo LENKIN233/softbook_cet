@@ -55,6 +55,13 @@ status: active
 - 不要把统计、计数器、复杂状态机写成产品核心
 - 不要默认读取 `archive/legacy-v3/` 或 `archive/transitional-vnext-prose/` 作为活跃真相源
 
+## 工程治理约束
+
+- `main` 是只读集成分支，不要直接在 `main` 上开发、提交、合并或推送
+- 开发前先切到 `infra/*`、`shell/*`、`module/*`、`cross/*` 或 `fix/*`
+- clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`
+- 若发现本地 hooks 或 GitHub `main` 保护漂移，先修治理再继续功能开发
+
 ## 输出要求
 
 - 先指出当前任务引用了哪些 spec

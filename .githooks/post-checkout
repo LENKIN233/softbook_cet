@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+COMMON_DIR="$(git rev-parse --path-format=absolute --git-common-dir)"
+ROOT_DIR="$(cd "$COMMON_DIR/.." && pwd)"
+
+"$ROOT_DIR/scripts/guard_main_branch.sh" post-checkout "$@"

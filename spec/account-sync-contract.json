@@ -1,6 +1,11 @@
 {
   "version": "vnext-2",
   "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, default sync strategy, and offline behavior.",
+  "source_anchors": {
+    "login_gate": "必须登入",
+    "primary_login_method": "手机号+验证码",
+    "purchase_authority": "web与app购买同权"
+  },
   "authentication": {
     "login_is_required_before_learning": true,
     "guest_learning_before_authentication": false,

@@ -13,25 +13,35 @@
 
 ## 当前阶段
 
-- `product_truth`: 试用是完整体验；试用后仍保留基础学习，但完整卡库、完整空间和完整算法属于试用/会员权限；购买与 entitlement 必须跨端统一。
-- `implementation_hypothesis`: `apps/mobile` 当前先用本地 entitlement 宿主验证 `trial -> free -> premium`、paywall 和恢复购买提醒，再接真实服务。
+- `product_truth`: `v1` 仍然要闭合 `learning / space / statistics / mine` 四个顶层入口，并满足登录先于学习、试用/会员矩阵、日级进度同步和跨端统一 entitlement。
+- `implementation_hypothesis`: `main` 上的 `apps/mobile` 已经形成 iOS 优先的本地安全基线：手机号验证码登录门槛、学习/复习、知识地图空间、统计签到、我的页、会员试用/付费墙、日级进度同步都先在本地宿主闭环；下一步优先推进真实账号 / entitlement / sync 合同接线，而不是继续堆新页面。
 
 ## 目录
 
 - `spec/`: 活跃产品与合同真相源
 - `apps/mobile/`: React Native 移动端工程
 - `docs/`: 工程协作约定与流程文档
-- `scripts/validate_harness.py`: harness 校验脚本
+- `scripts/validate_harness.py`: harness 校验脚本（spec owner 一致性 + main 分支治理护栏）
 - `scripts/bootstrap_mobile_ios.sh`: iOS 依赖重装脚本
 
 ## iOS 开发基线
 
 当前仓库已经初始化为 React Native 0.85.x 工程，目录在 `apps/mobile`。
 
+### 当前主线已覆盖
+
+- 手机号验证码登录门槛
+- 单卡学习主流与 review flow
+- 物理空间知识地图与 sleep / favorite 动作
+- 统计 / 签到 / 我的页壳层
+- 本地会员试用、付费墙、恢复购买提醒
+- 日级进度同步 runtime（本地安全默认，可切远端）
+
 ## 分支策略
 
 分支策略文档见 [docs/branching-strategy.md](/Users/lenkin/programing/softbook_cet/docs/branching-strategy.md)。
 原则是按需求域推进，一次只打磨一个模块，不设长期 `develop` 分支。
+clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`，再执行 `python3 scripts/validate_harness.py` 确认本地 hooks 与 GitHub `main` 保护都仍然生效。
 
 ### 依赖前提
 
@@ -64,21 +74,51 @@ npm run ios
 
 `apps/mobile` 现在会在启动时读取 `src/runtime/appRuntimeConfig.ts`，并把配置注入到全局 runtime。
 
-- 默认配置是本地卡源：
+- 默认配置是本地登录 + 本地卡源 + 本地会员 entitlement + 本地日级同步：
 
 ```ts
 export const SOFTBOOK_APP_RUNTIME_CONFIG = {
+  auth: {
+    mode: 'local',
+  },
   learningSource: {
+    mode: 'local',
+  },
+  membership: {
+    mode: 'local',
+  },
+  progressSync: {
     mode: 'local',
   },
 };
 ```
 
-- 如果你要切到远端卡源，临时改成：
+- 如果你要切到远端认证 / 卡源 / entitlement / 日级同步，临时改成：
 
 ```ts
 export const SOFTBOOK_APP_RUNTIME_CONFIG = {
+  auth: {
+    mode: 'remote',
+    remote: {
+      baseUrl: 'https://your-api.example.com',
+      apiKey: 'your-dev-key',
+    },
+  },
   learningSource: {
+    mode: 'remote',
+    remote: {
+      baseUrl: 'https://your-api.example.com',
+      apiKey: 'your-dev-key',
+    },
+  },
+  membership: {
+    mode: 'remote',
+    remote: {
+      baseUrl: 'https://your-api.example.com',
+      apiKey: 'your-dev-key',
+    },
+  },
+  progressSync: {
     mode: 'remote',
     remote: {
       baseUrl: 'https://your-api.example.com',
@@ -90,6 +130,11 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
 
 不要把真实密钥提交进仓库；提交前请恢复成安全的默认本地配置。
 
+- `auth`：手机号验证码请求 / 校验仓储
+- `learningSource`：学习卡源仓储
+- `membership`：entitlement 读取、开始试用、开通会员、恢复购买提醒状态更新
+- `progressSync`：日级进展同步仓储
+
 ### 本地会员/付费墙壳层
 
 `apps/mobile` 现在还会在本地壳层里表达会员矩阵：
@@ -100,6 +145,12 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
 - “我的”页会承接试用起算、开通会员、恢复购买提醒
 
 当前这些都是本地 entitlement 实现，用于验证产品合同，不代表真实计费服务已经接通。
+
+### 接下来优先做什么
+
+- 继续沿 `cross/*` 的合同分支推进真实账号 / entitlement / daily sync 接线
+- 保持一次只推进一个主线分支；新分支开始前先把 `main` 上的 README / 分支文档 / harness 校验同步到当前基线
+- 暂不提前开 Android / Web 业务工程，也不提前扩统计或其它外围页面
 
 ### 常见恢复
 

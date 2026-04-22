@@ -1,6 +1,9 @@
 {
   "version": "vnext-5",
   "purpose": "Machine-readable contract for release targets, device-class strategy, parity expectations, and acceptable platform-specific adaptation.",
+  "source_anchors": {
+    "top_level_information_architecture": "三端信息架构导航是一致的：学习 空间 统计 我的"
+  },
   "release_targets": {
     "ios_app": true,
     "android_app": true,
