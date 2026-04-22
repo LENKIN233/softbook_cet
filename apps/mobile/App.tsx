@@ -15,6 +15,15 @@ import {
   SafeAreaView,
 } from 'react-native-safe-area-context';
 
+import { LearningSurface } from './src/learning/LearningSurface';
+import {
+  createLearningCardState,
+  evaluateLearningCard,
+  LEARNING_TEST_CARDS,
+  LearningCardResult,
+  LearningCardState,
+} from './src/learning/testDeck';
+
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
 type AuthStage = 'logged_out' | 'code_sent' | 'authenticated';
@@ -68,13 +77,13 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '最重要入口',
     title: '单卡学习流',
     summary:
-      '用低负担、单卡推进的方式进入备考主线，后续在业务分支接入真实卡片、分析层和交互效果。',
+      '当前分支用本地测试卡把学习主路径接起来，先跑通单卡推进、核心交互和轻量动作。',
     highlights: [
-      '保持单卡流而不是堆按钮和复杂状态。',
-      '解释“这张卡为什么出现”，但不抢占答题主路径。',
-      '当前壳层只验证入口结构，不实现学习算法和试用矩阵。',
+      '一次只推进一张卡，不把学习入口做成按钮堆。',
+      '本地测试卡覆盖 flip / multiple_choice / lock / elimination / swipe。',
+      'Peek、收藏和提示层保持轻量，不抢主交互。',
     ],
-    focus: ['single-card-flow', 'core-interactions', 'trial entry trigger'],
+    focus: ['test deck', 'single-card flow', 'core interactions'],
   },
   {
     key: 'space',
@@ -162,6 +171,8 @@ const INITIAL_AUTH_STATE: AuthState = {
   error: null,
 };
 
+const INITIAL_LEARNING_CARD = LEARNING_TEST_CARDS[0] ?? null;
+
 function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
@@ -175,12 +186,48 @@ function AppShell() {
   const palette = scheme === 'dark' ? DARK_PALETTE : LIGHT_PALETTE;
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
   const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
+  const [learningIndex, setLearningIndex] = useState(0);
+  const [learningCardState, setLearningCardState] =
+    useState<LearningCardState | null>(() =>
+      INITIAL_LEARNING_CARD ? createLearningCardState(INITIAL_LEARNING_CARD) : null,
+    );
+  const [learningCompletedResults, setLearningCompletedResults] = useState<
+    LearningCardResult[]
+  >([]);
+  const [learningCurrentResult, setLearningCurrentResult] =
+    useState<LearningCardResult | null>(null);
   const { width, height } = useWindowDimensions();
   const deviceClass = getDeviceClass(width, height);
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
   const isAuthenticated = authState.stage === 'authenticated';
   const routeRequiresAuth = PROTECTED_ROUTES.includes(route.key);
   const shouldShowAuthGate = routeRequiresAuth && !isAuthenticated;
+  const currentLearningCard = LEARNING_TEST_CARDS[learningIndex] ?? null;
+
+  const resetLearningDeck = () => {
+    setLearningIndex(0);
+    setLearningCurrentResult(null);
+    setLearningCompletedResults([]);
+    setLearningCardState(
+      INITIAL_LEARNING_CARD ? createLearningCardState(INITIAL_LEARNING_CARD) : null,
+    );
+  };
+
+  const patchLearningCardState = (
+    updater: (state: LearningCardState) => LearningCardState,
+  ) => {
+    if (currentLearningCard === null || learningCurrentResult !== null) {
+      return;
+    }
+
+    setLearningCardState(current => {
+      if (current === null) {
+        return current;
+      }
+
+      return updater(current);
+    });
+  };
 
   const authHandlers: AuthHandlers = {
     onChangePhone: value => {
@@ -240,10 +287,112 @@ function AppShell() {
     },
     onLogout: () => {
       setAuthState(INITIAL_AUTH_STATE);
+      resetLearningDeck();
       startTransition(() => {
         setActiveRoute('mine');
       });
     },
+  };
+
+  const learningHandlers = {
+    onTogglePeek: () => {
+      patchLearningCardState(current => ({
+        ...current,
+        isPeeked: !current.isPeeked,
+      }));
+    },
+    onToggleFavorite: () => {
+      patchLearningCardState(current => ({
+        ...current,
+        isFavorited: !current.isFavorited,
+      }));
+    },
+    onToggleHint: () => {
+      patchLearningCardState(current => ({
+        ...current,
+        isHintVisible: !current.isHintVisible,
+      }));
+    },
+    onFlip: () => {
+      patchLearningCardState(current => ({
+        ...current,
+        isFlipped: true,
+      }));
+    },
+    onSetFlipConfidence: (value: 'confident' | 'review') => {
+      if (currentLearningCard === null || learningCardState === null) {
+        return;
+      }
+
+      const nextState = {
+        ...learningCardState,
+        isFlipped: true,
+        flipConfidence: value,
+      };
+
+      setLearningCardState(nextState);
+      setLearningCurrentResult(evaluateLearningCard(currentLearningCard, nextState));
+    },
+    onSelectOption: (optionId: string) => {
+      patchLearningCardState(current => ({
+        ...current,
+        selectedOptionId: optionId,
+      }));
+    },
+    onSetLockSelection: (slotId: string, value: string) => {
+      patchLearningCardState(current => ({
+        ...current,
+        lockSelections: {
+          ...current.lockSelections,
+          [slotId]: value,
+        },
+      }));
+    },
+    onToggleEliminationItem: (itemId: string) => {
+      patchLearningCardState(current => ({
+        ...current,
+        eliminatedItemIds: current.eliminatedItemIds.includes(itemId)
+          ? current.eliminatedItemIds.filter(currentId => currentId !== itemId)
+          : [...current.eliminatedItemIds, itemId],
+      }));
+    },
+    onSelectSwipeState: (stateId: string) => {
+      patchLearningCardState(current => ({
+        ...current,
+        swipeSelection: stateId,
+      }));
+    },
+    onSubmitCurrentCard: () => {
+      if (currentLearningCard === null || learningCardState === null) {
+        return;
+      }
+
+      setLearningCurrentResult(
+        evaluateLearningCard(currentLearningCard, learningCardState),
+      );
+    },
+    onAdvanceCard: () => {
+      if (learningCurrentResult === null) {
+        return;
+      }
+
+      const nextResults = [...learningCompletedResults, learningCurrentResult];
+      const nextIndex = learningIndex + 1;
+
+      setLearningCompletedResults(nextResults);
+      setLearningCurrentResult(null);
+
+      if (nextIndex >= LEARNING_TEST_CARDS.length) {
+        setLearningIndex(nextIndex);
+        setLearningCardState(null);
+        return;
+      }
+
+      const nextCard = LEARNING_TEST_CARDS[nextIndex];
+      setLearningIndex(nextIndex);
+      setLearningCardState(createLearningCardState(nextCard));
+    },
+    onRestartDeck: resetLearningDeck,
   };
 
   const content = shouldShowAuthGate ? (
@@ -259,6 +408,27 @@ function AppShell() {
       handlers={authHandlers}
       palette={palette}
       route={route}
+    />
+  ) : route.key === 'learning' ? (
+    <LearningSurface
+      completedResults={learningCompletedResults}
+      currentCard={currentLearningCard}
+      currentCardState={learningCardState}
+      currentIndex={learningIndex}
+      currentResult={learningCurrentResult}
+      onAdvanceCard={learningHandlers.onAdvanceCard}
+      onFlip={learningHandlers.onFlip}
+      onRestartDeck={learningHandlers.onRestartDeck}
+      onSelectOption={learningHandlers.onSelectOption}
+      onSelectSwipeState={learningHandlers.onSelectSwipeState}
+      onSetFlipConfidence={learningHandlers.onSetFlipConfidence}
+      onSetLockSelection={learningHandlers.onSetLockSelection}
+      onSubmitCurrentCard={learningHandlers.onSubmitCurrentCard}
+      onToggleEliminationItem={learningHandlers.onToggleEliminationItem}
+      onToggleFavorite={learningHandlers.onToggleFavorite}
+      onToggleHint={learningHandlers.onToggleHint}
+      onTogglePeek={learningHandlers.onTogglePeek}
+      palette={palette}
     />
   ) : (
     <RouteCanvas palette={palette} route={route} deviceClass={deviceClass} />
@@ -388,13 +558,13 @@ function TabletShell({
           { backgroundColor: palette.panel, borderRightColor: palette.border },
         ]}>
         <Text style={[styles.brandEyebrow, { color: palette.accent }]}>
-          AUTH / SHELL
+          LEARNING / SHELL
         </Text>
         <Text style={[styles.brandTitle, { color: palette.text }]}>
           软书四六级
         </Text>
         <Text style={[styles.brandSummary, { color: palette.textMuted }]}>
-          当前分支把手机号验证码登录接进壳层，并把学习前置登录门禁落实到 iOS 结构里。
+          当前分支把已登录后的单卡学习流接进 iOS 壳层，空间、统计和“我的”先保持边界清楚。
         </Text>
         <AuthStatusBadge authState={authState} palette={palette} />
         <View style={styles.sidebarNav}>
@@ -488,9 +658,13 @@ function ShellHeader({
           {route.label}
         </Text>
         <Text style={[styles.headerSummary, { color: palette.textMuted }]}>
-          {deviceClass === 'phone'
-            ? 'iPhone 使用底部导航，并把学习门禁直接挂在壳层入口上。'
-            : 'iPad 使用侧边导航，保留顶层顺序一致，同时用更宽内容区承接登录与业务入口。'}
+          {route.key === 'learning'
+            ? deviceClass === 'phone'
+              ? 'iPhone 上直接进入单卡学习流，底部导航只负责模块切换，不把主学习动作拆散。'
+              : 'iPad 侧边导航保留顶层顺序一致，右侧内容区承接更完整的单卡学习画布。'
+            : deviceClass === 'phone'
+              ? 'iPhone 使用底部导航，登录门禁仍先挂在学习、空间和统计入口前。'
+              : 'iPad 使用侧边导航，保留顶层顺序一致，同时用更宽内容区承接登录与业务入口。'}
         </Text>
       </View>
       <View style={styles.headerMeta}>
