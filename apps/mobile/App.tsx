@@ -1,4 +1,10 @@
-import React, { startTransition, useCallback, useEffect, useState } from 'react';
+import React, {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   Pressable,
   ScrollView,
@@ -26,9 +32,14 @@ import {
   selectReviewCards,
 } from './src/learning/session';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
-import { resolveLearningSessionRepositoryConfig } from './src/learning/learningRuntimeConfig';
+import { readSoftbookAppRuntimeConfig, resolveLearningSessionRepositoryConfig } from './src/learning/learningRuntimeConfig';
 import { SpaceSurface } from './src/space/SpaceSurface';
 import { StatisticsSurface } from './src/statistics/StatisticsSurface';
+import {
+  createDailyProgressSnapshot,
+  createProgressSyncRepository,
+} from './src/sync/progressSyncRepository';
+import { resolveProgressSyncRepositoryConfig } from './src/sync/progressSyncRuntimeConfig';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
@@ -66,6 +77,13 @@ type AuthState = {
   smsCode: string;
   error: string | null;
 };
+
+type ProgressSyncState =
+  | {
+      detail: string;
+      label: string;
+      state: 'idle' | 'syncing' | 'synced' | 'error';
+    };
 
 type LearningBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
 type LearningPhase = 'learning' | 'review';
@@ -186,9 +204,13 @@ const INITIAL_AUTH_STATE: AuthState = {
 };
 
 const LEARNING_TRACK: LearningTrack = 'cet4';
+const runtimeConfig = readSoftbookAppRuntimeConfig();
 const learningSessionRepository = createLearningSessionRepository({
-  ...resolveLearningSessionRepositoryConfig(),
+  ...resolveLearningSessionRepositoryConfig(runtimeConfig),
 });
+const progressSyncRepository = createProgressSyncRepository(
+  resolveProgressSyncRepositoryConfig(runtimeConfig),
+);
 
 function App(): React.JSX.Element {
   return (
@@ -224,6 +246,14 @@ function AppShell() {
     LearningCardResult[]
   >([]);
   const [checkedInDayKey, setCheckedInDayKey] = useState<string | null>(null);
+  const [progressSyncState, setProgressSyncState] = useState<ProgressSyncState>({
+    detail: '今天还没有需要同步的学习进展。',
+    label: '等待今日进展',
+    state: 'idle',
+  });
+  const [lastSyncedProgressKey, setLastSyncedProgressKey] = useState<
+    string | null
+  >(null);
   const [spaceCardStateById, setSpaceCardStateById] = useState<
     Record<string, SpaceCardState>
   >({});
@@ -277,6 +307,34 @@ function AppShell() {
   const canCheckInToday =
     !hasCheckedInToday &&
     learningCompletedResults.length + reviewCompletedResults.length > 0;
+  const favoriteCount = Object.values(spaceCardStateById).filter(
+    state => state.isFavorited,
+  ).length;
+  const sleepingCount = Object.values(spaceCardStateById).filter(
+    state => state.isSleeping,
+  ).length;
+  const dailyProgressSnapshot = useMemo(
+    () =>
+      createDailyProgressSnapshot({
+        checkedInToday: hasCheckedInToday,
+        dayKey: todayKey,
+        favoriteCount,
+        learningCompletedCount: learningCompletedResults.length,
+        pendingReviewCount,
+        reviewCompletedCount: reviewCompletedResults.length,
+        sleepingCount,
+      }),
+    [
+      favoriteCount,
+      hasCheckedInToday,
+      learningCompletedResults.length,
+      pendingReviewCount,
+      reviewCompletedResults.length,
+      sleepingCount,
+      todayKey,
+    ],
+  );
+  const dailyProgressKey = JSON.stringify(dailyProgressSnapshot);
 
   const resetLearningDeck = (
     stateMap: Record<string, SpaceCardState> = spaceCardStateById,
@@ -314,6 +372,12 @@ function AppShell() {
       setLearningCardState(null);
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
+      setLastSyncedProgressKey(null);
+      setProgressSyncState({
+        detail: '今天还没有需要同步的学习进展。',
+        label: '等待今日进展',
+        state: 'idle',
+      });
       return;
     }
 
@@ -324,6 +388,74 @@ function AppShell() {
     setLearningBootstrapStatus('loading');
     setLearningBootstrapError(null);
   }, [isAuthenticated, learningBootstrapStatus]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    if (dailyProgressSnapshot.totalCompletedCount === 0) {
+      setProgressSyncState({
+        detail: '先产生今天的学习进展，再进入日级同步。',
+        label: '等待今日进展',
+        state: 'idle',
+      });
+      return;
+    }
+
+    if (lastSyncedProgressKey === dailyProgressKey) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    setProgressSyncState({
+      detail: `正在同步 ${dailyProgressSnapshot.dayKey} 的日级进展快照。`,
+      label: '同步中',
+      state: 'syncing',
+    });
+
+    progressSyncRepository
+      .syncDailyProgress(dailyProgressSnapshot)
+      .then(result => {
+        if (isCancelled) {
+          return;
+        }
+
+        setLastSyncedProgressKey(dailyProgressKey);
+        setProgressSyncState({
+          detail:
+            result.mode === 'remote'
+              ? '今天的学习进展已推送到远端日级同步端点。'
+              : '今天的学习进展已在本地记录；远端同步将在配置接通后启用。',
+          label: result.mode === 'remote' ? '远端已同步' : '本地已记录',
+          state: 'synced',
+        });
+      })
+      .catch((error: unknown) => {
+        if (isCancelled) {
+          return;
+        }
+
+        setProgressSyncState({
+          detail:
+            error instanceof Error
+              ? error.message
+              : '日级进展同步失败。',
+          label: '同步失败',
+          state: 'error',
+        });
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    dailyProgressKey,
+    dailyProgressSnapshot,
+    isAuthenticated,
+    lastSyncedProgressKey,
+  ]);
 
   useEffect(() => {
     if (!isAuthenticated || learningBootstrapStatus !== 'loading') {
@@ -450,6 +582,12 @@ function AppShell() {
       setReviewCompletedResults([]);
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
+      setLastSyncedProgressKey(null);
+      setProgressSyncState({
+        detail: '今天还没有需要同步的学习进展。',
+        label: '等待今日进展',
+        state: 'idle',
+      });
       startTransition(() => {
         setActiveRoute('mine');
       });
@@ -644,12 +782,14 @@ function AppShell() {
     <MineSurface
       authState={authState}
       checkedInDayKey={checkedInDayKey}
+      favoriteCount={favoriteCount}
       handlers={authHandlers}
       learningResults={learningCompletedResults}
       palette={palette}
+      progressSyncState={progressSyncState}
       reviewResults={reviewCompletedResults}
       route={route}
-      spaceCardStateById={spaceCardStateById}
+      sleepingCount={sleepingCount}
     />
   ) : route.key === 'learning' && learningBootstrapStatus !== 'ready' ? (
     <LearningBootstrapSurface
@@ -724,6 +864,8 @@ function AppShell() {
       palette={palette}
       pendingReviewCount={pendingReviewCount}
       reviewResults={reviewCompletedResults}
+      syncStatusDetail={progressSyncState.detail}
+      syncStatusLabel={progressSyncState.label}
     />
   ) : (
     <RouteCanvas palette={palette} route={route} deviceClass={deviceClass} />
@@ -1222,29 +1364,27 @@ function AuthGate({
 function MineSurface({
   authState,
   checkedInDayKey,
+  favoriteCount,
   handlers,
   learningResults,
   palette,
+  progressSyncState,
   reviewResults,
   route,
-  spaceCardStateById,
+  sleepingCount,
 }: {
   authState: AuthState;
   checkedInDayKey: string | null;
+  favoriteCount: number;
   handlers: AuthHandlers;
   learningResults: LearningCardResult[];
   palette: Palette;
+  progressSyncState: ProgressSyncState;
   reviewResults: LearningCardResult[];
   route: ShellRoute;
-  spaceCardStateById: Record<string, SpaceCardState>;
+  sleepingCount: number;
 }) {
   const isAuthenticated = authState.stage === 'authenticated';
-  const favoriteCount = Object.values(spaceCardStateById).filter(
-    state => state.isFavorited,
-  ).length;
-  const sleepingCount = Object.values(spaceCardStateById).filter(
-    state => state.isSleeping,
-  ).length;
   const completedCount = learningResults.length + reviewResults.length;
   const todayKey = getTodayKey();
   const checkedInToday = checkedInDayKey === todayKey;
@@ -1290,6 +1430,7 @@ function MineSurface({
               ? [
                   `手机号：${maskPhoneNumber(authState.phoneNumber)}`,
                   `今日签到：${checkedInToday ? '已完成' : '尚未完成'}`,
+                  `日级同步：${progressSyncState.label}`,
                   '当前仍是本地账号态，不代表会员 entitlement 已接通。',
                 ]
               : [
@@ -1307,6 +1448,7 @@ function MineSurface({
               ? [
                   `今日已完成 ${completedCount} 张卡，其中首轮 ${learningResults.length} 张、回看 ${reviewResults.length} 张。`,
                   `当前待回看 ${Math.max(learningResults.filter(result => result.outcome === 'incorrect' || result.outcome === 'review').length - reviewResults.length, 0)} 张。`,
+                  `同步说明：${progressSyncState.detail}`,
                   '这里先保留低成本摘要，不扩成重统计中心。',
                 ]
               : [

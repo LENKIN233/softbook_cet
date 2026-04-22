@@ -31,6 +31,8 @@ export function StatisticsSurface({
   palette,
   pendingReviewCount,
   reviewResults,
+  syncStatusDetail,
+  syncStatusLabel,
 }: {
   canCheckInToday: boolean;
   dayLabel: string;
@@ -41,6 +43,8 @@ export function StatisticsSurface({
   palette: StatisticsPalette;
   pendingReviewCount: number;
   reviewResults: LearningCardResult[];
+  syncStatusDetail: string;
+  syncStatusLabel: string;
 }) {
   const combinedResults = [...learningResults, ...reviewResults];
   const combinedSummary = summarizeLearningResults(
@@ -158,6 +162,22 @@ export function StatisticsSurface({
           </Text>
         </SurfaceCard>
       </View>
+
+      <SurfaceCard palette={palette}>
+        <Text style={[styles.cardTitle, { color: palette.text }]}>日级同步</Text>
+        <Text
+          style={[styles.cardSummary, { color: palette.textMuted }]}
+          testID="statistics-sync-label"
+        >
+          {syncStatusLabel}
+        </Text>
+        <Text
+          style={[styles.cardSummary, { color: palette.textMuted }]}
+          testID="statistics-sync-detail"
+        >
+          {syncStatusDetail}
+        </Text>
+      </SurfaceCard>
 
       <View style={styles.sectionGrid}>
         <SurfaceCard palette={palette}>
