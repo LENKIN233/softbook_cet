@@ -9,6 +9,12 @@ test('membership runtime config defaults repository mode to local', () => {
 test('membership runtime config can switch repository mode to remote', () => {
   expect(
     resolveMembershipRepositoryConfig({
+      auth: {
+        mode: 'remote',
+        remote: {
+          baseUrl: 'https://api.softbook.example/',
+        },
+      },
       membership: {
         mode: 'remote',
         remote: {
@@ -37,9 +43,31 @@ test('membership runtime config can switch repository mode to remote', () => {
 test('membership runtime config rejects remote mode without baseUrl', () => {
   expect(() =>
     resolveMembershipRepositoryConfig({
+      auth: {
+        mode: 'remote',
+        remote: {
+          baseUrl: 'https://api.softbook.example',
+        },
+      },
       membership: {
         mode: 'remote',
       },
     }),
   ).toThrow('Remote membership mode requires membership.remote.baseUrl.');
+});
+
+test('membership runtime config requires remote auth when membership is remote', () => {
+  expect(() =>
+    resolveMembershipRepositoryConfig({
+      auth: {
+        mode: 'local',
+      },
+      membership: {
+        mode: 'remote',
+        remote: {
+          baseUrl: 'https://api.softbook.example',
+        },
+      },
+    }),
+  ).toThrow('Remote membership mode requires auth.mode to also be remote.');
 });

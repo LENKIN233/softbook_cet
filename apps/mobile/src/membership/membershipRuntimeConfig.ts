@@ -1,4 +1,7 @@
-import type {SoftbookAppRuntimeConfig} from '../learning/learningRuntimeConfig';
+import {
+  assertRemoteRuntimeUsesRemoteAuth,
+  type SoftbookAppRuntimeConfig,
+} from '../learning/learningRuntimeConfig';
 
 import {
   MembershipRepositoryConfig,
@@ -12,6 +15,8 @@ export function resolveMembershipRepositoryConfig(
   const mode = membership?.mode ?? 'local';
 
   if (mode === 'remote') {
+    assertRemoteRuntimeUsesRemoteAuth(runtimeConfig, 'membership');
+
     if (!membership?.remote?.baseUrl) {
       throw new Error(
         'Remote membership mode requires membership.remote.baseUrl.',

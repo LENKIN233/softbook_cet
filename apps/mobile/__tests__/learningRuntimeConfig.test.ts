@@ -20,6 +20,12 @@ test('learning runtime config defaults repository mode to local', () => {
 
 test('learning runtime config can switch repository mode to remote', () => {
   const config = resolveLearningSessionRepositoryConfig({
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example/',
+      },
+    },
     learningSource: {
       mode: 'remote',
       remote: {
@@ -40,6 +46,12 @@ test('learning runtime config can switch repository mode to remote', () => {
 
 test('learning runtime config reads global runtime overrides', () => {
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
     learningSource: {
       mode: 'remote',
       remote: {
@@ -57,11 +69,35 @@ test('learning runtime config reads global runtime overrides', () => {
 test('learning runtime config rejects remote mode without baseUrl', () => {
   expect(() =>
     resolveLearningSessionRepositoryConfig({
+      auth: {
+        mode: 'remote',
+        remote: {
+          baseUrl: 'https://api.softbook.example',
+        },
+      },
       learningSource: {
         mode: 'remote',
       },
     }),
   ).toThrow(
     'Remote learning source mode requires learningSource.remote.baseUrl.',
+  );
+});
+
+test('learning runtime config requires remote auth when source is remote', () => {
+  expect(() =>
+    resolveLearningSessionRepositoryConfig({
+      auth: {
+        mode: 'local',
+      },
+      learningSource: {
+        mode: 'remote',
+        remote: {
+          baseUrl: 'https://api.softbook.example',
+        },
+      },
+    }),
+  ).toThrow(
+    'Remote learning source mode requires auth.mode to also be remote.',
   );
 });
