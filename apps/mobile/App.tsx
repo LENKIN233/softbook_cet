@@ -10,12 +10,14 @@ import {
   Pressable,
   ScrollView,
   StatusBar,
+  StyleProp,
   StyleSheet,
   Text,
   TextInput,
   useColorScheme,
   useWindowDimensions,
   View,
+  ViewStyle,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
@@ -57,6 +59,7 @@ import {
   createProgressSyncRepository,
 } from './src/sync/progressSyncRepository';
 import { resolveProgressSyncRepositoryConfig } from './src/sync/progressSyncRuntimeConfig';
+import { LIBRARY_IDENTITY, hexToRgba } from './src/visual/tokens';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
@@ -86,6 +89,7 @@ type Palette = {
   accentStrong: string;
   tabIdle: string;
   success: string;
+  warning: string;
   danger: string;
 };
 
@@ -193,33 +197,35 @@ const ROUTES: ShellRoute[] = [
 ];
 
 const LIGHT_PALETTE: Palette = {
-  background: '#F5F1E8',
-  panel: '#FFFDF7',
-  panelStrong: '#F0E6D3',
-  border: '#D5C7B1',
-  text: '#1F2421',
-  textMuted: '#5F635D',
-  accent: '#1E5B67',
-  accentSoft: '#D9E9E6',
-  accentStrong: '#123F49',
-  tabIdle: '#7E766B',
-  success: '#2A7D46',
-  danger: '#A33C35',
+  background: '#F1F0F6',
+  panel: 'rgba(255,255,255,0.82)',
+  panelStrong: 'rgba(255,255,255,0.94)',
+  border: 'rgba(11,11,20,0.08)',
+  text: '#0B0B14',
+  textMuted: '#7A7A90',
+  accent: LIBRARY_IDENTITY.listening,
+  accentSoft: hexToRgba(LIBRARY_IDENTITY.listening, 0.12),
+  accentStrong: '#4152E1',
+  tabIdle: '#ACACBF',
+  success: '#22C58B',
+  warning: '#F5B100',
+  danger: '#F15B6E',
 };
 
 const DARK_PALETTE: Palette = {
-  background: '#121513',
-  panel: '#1B201D',
-  panelStrong: '#24312C',
-  border: '#324139',
+  background: '#0B0B12',
+  panel: 'rgba(28,28,42,0.74)',
+  panelStrong: 'rgba(34,36,52,0.92)',
+  border: 'rgba(255,255,255,0.08)',
   text: '#F2F1EB',
-  textMuted: '#B6BBB3',
-  accent: '#8ED0C3',
-  accentSoft: '#193C3C',
-  accentStrong: '#B9E8DF',
-  tabIdle: '#8A9389',
-  success: '#7DE5A0',
-  danger: '#FF8A7A',
+  textMuted: '#B8B8CE',
+  accent: '#7C8BFF',
+  accentSoft: hexToRgba(LIBRARY_IDENTITY.listening, 0.2),
+  accentStrong: '#D5DAFF',
+  tabIdle: '#86869C',
+  success: '#4FDE9C',
+  warning: '#F5B100',
+  danger: '#F15B6E',
 };
 
 const PROTECTED_ROUTES: RouteKey[] = ['learning', 'space', 'statistics'];
@@ -1305,6 +1311,7 @@ function AppShell() {
       authRepositoryMode={runtimeAuthRepositoryMode}
       authState={authState}
       checkedInDayKey={checkedInDayKey}
+      deviceClass={deviceClass}
       favoriteCount={favoriteCount}
       handlers={authHandlers}
       learningResults={learningCompletedResults}
@@ -1322,6 +1329,7 @@ function AppShell() {
     />
   ) : route.key === 'space' && !membershipAccess.completePhysicalSpace ? (
     <MembershipPaywallSurface
+      deviceClass={deviceClass}
       gate="space"
       handlers={membershipHandlers}
       membershipError={membershipError}
@@ -1426,25 +1434,28 @@ function AppShell() {
       <StatusBar
         barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'}
       />
-      {deviceClass === 'tablet' ? (
-        <TabletShell
-          activeRoute={activeRoute}
-          authState={authState}
-          content={content}
-          onSelectRoute={handleSelectRoute}
-          palette={palette}
-          route={route}
-        />
-      ) : (
-        <PhoneShell
-          activeRoute={activeRoute}
-          authState={authState}
-          content={content}
-          onSelectRoute={handleSelectRoute}
-          palette={palette}
-          route={route}
-        />
-      )}
+      <AuroraBackdrop />
+      <View style={styles.safeAreaBody}>
+        {deviceClass === 'tablet' ? (
+          <TabletShell
+            activeRoute={activeRoute}
+            authState={authState}
+            content={content}
+            onSelectRoute={handleSelectRoute}
+            palette={palette}
+            route={route}
+          />
+        ) : (
+          <PhoneShell
+            activeRoute={activeRoute}
+            authState={authState}
+            content={content}
+            onSelectRoute={handleSelectRoute}
+            palette={palette}
+            route={route}
+          />
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -1608,6 +1619,41 @@ function LearningSleepSurface({
   );
 }
 
+function AuroraBackdrop() {
+  return (
+    <View pointerEvents="none" style={styles.auroraRoot}>
+      <View
+        style={[
+          styles.auroraOrb,
+          styles.auroraOrbPrimary,
+          { backgroundColor: hexToRgba(LIBRARY_IDENTITY.listening, 0.18) },
+        ]}
+      />
+      <View
+        style={[
+          styles.auroraOrb,
+          styles.auroraOrbSecondary,
+          { backgroundColor: hexToRgba(LIBRARY_IDENTITY.writing, 0.14) },
+        ]}
+      />
+      <View
+        style={[
+          styles.auroraOrb,
+          styles.auroraOrbWarm,
+          { backgroundColor: hexToRgba(LIBRARY_IDENTITY.reading, 0.12) },
+        ]}
+      />
+      <View
+        style={[
+          styles.auroraOrb,
+          styles.auroraOrbCool,
+          { backgroundColor: hexToRgba(LIBRARY_IDENTITY.translation, 0.12) },
+        ]}
+      />
+    </View>
+  );
+}
+
 function PhoneShell({
   activeRoute,
   authState,
@@ -1631,55 +1677,63 @@ function PhoneShell({
         route={route}
         deviceClass="phone"
       />
-      {content}
-      <View
-        style={[
-          styles.phoneTabBar,
-          { backgroundColor: palette.panel, borderTopColor: palette.border },
-        ]}
-      >
-        {ROUTES.map(item => {
-          const isActive = item.key === activeRoute;
+      <View style={styles.shellContent}>{content}</View>
+      <View style={styles.phoneTabBarWrap}>
+        <View
+          style={[
+            styles.phoneTabBar,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+              shadowColor: palette.text,
+            },
+          ]}
+        >
+          {ROUTES.map(item => {
+            const isActive = item.key === activeRoute;
 
-          return (
-            <Pressable
-              accessibilityRole="button"
-              key={item.key}
-              onPress={() => {
-                startTransition(() => onSelectRoute(item.key));
-              }}
-              style={styles.phoneTabButton}
-              testID={`route-tab-${item.key}`}
-            >
-              <Text
+            return (
+              <Pressable
+                accessibilityRole="button"
+                key={item.key}
+                onPress={() => {
+                  startTransition(() => onSelectRoute(item.key));
+                }}
                 style={[
-                  styles.phoneTabBadge,
-                  {
-                    color: isActive ? palette.accentStrong : palette.tabIdle,
-                  },
-                ]}
-              >
-                {item.badge}
-              </Text>
-              <Text
-                style={[
-                  styles.phoneTabLabel,
-                  { color: isActive ? palette.text : palette.tabIdle },
-                ]}
-              >
-                {item.label}
-              </Text>
-              <View
-                style={[
-                  styles.phoneTabIndicator,
+                  styles.phoneTabButton,
                   isActive
-                    ? { backgroundColor: palette.accent }
-                    : styles.phoneTabIndicatorHidden,
+                    ? {
+                        backgroundColor: palette.text,
+                        shadowColor: palette.text,
+                      }
+                    : null,
                 ]}
-              />
-            </Pressable>
-          );
-        })}
+                testID={`route-tab-${item.key}`}
+              >
+                <Text
+                  style={[
+                    styles.phoneTabBadge,
+                    {
+                      color: isActive ? palette.panelStrong : palette.tabIdle,
+                    },
+                  ]}
+                >
+                  {item.badge}
+                </Text>
+                <Text
+                  style={[
+                    styles.phoneTabLabel,
+                    {
+                      color: isActive ? palette.panelStrong : palette.textMuted,
+                    },
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     </View>
   );
@@ -1705,7 +1759,7 @@ function TabletShell({
       <View
         style={[
           styles.sidebar,
-          { backgroundColor: palette.panel, borderRightColor: palette.border },
+          { backgroundColor: palette.panel, borderColor: palette.border },
         ]}
       >
         <Text style={[styles.brandEyebrow, { color: palette.accent }]}>
@@ -1806,7 +1860,7 @@ function ShellHeader({
         styles.header,
         {
           backgroundColor: palette.panel,
-          borderBottomColor: palette.border,
+          borderColor: palette.border,
         },
       ]}
     >
@@ -1820,11 +1874,11 @@ function ShellHeader({
         <Text style={[styles.headerSummary, { color: palette.textMuted }]}>
           {route.key === 'learning'
             ? deviceClass === 'phone'
-              ? 'iPhone 上直接进入单卡学习流，底部导航只负责模块切换，不把主学习动作拆散。'
-              : 'iPad 侧边导航保留顶层顺序一致，右侧内容区承接更完整的单卡学习画布。'
+              ? '系统顺序推进，只把当前这一张留在首读路径里。'
+              : '左侧只负责顶层切换，右侧把单卡学习留成主画布。'
             : deviceClass === 'phone'
-            ? 'iPhone 使用底部导航，登录门禁仍先挂在学习、空间和统计入口前。'
-            : 'iPad 使用侧边导航，保留顶层顺序一致，同时用更宽内容区承接登录与业务入口。'}
+            ? '顶层切换留在壳层，页面内部只承接该模块最小必要信息。'
+            : '导航与内容拆层处理，减少同屏的等权抢焦。'}
         </Text>
       </View>
       <View style={styles.headerMeta}>
@@ -1952,6 +2006,7 @@ function MineSurface({
   authRepositoryMode,
   authState,
   checkedInDayKey,
+  deviceClass,
   favoriteCount,
   handlers,
   learningResults,
@@ -1970,6 +2025,7 @@ function MineSurface({
   authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   checkedInDayKey: string | null;
+  deviceClass: DeviceClass;
   favoriteCount: number;
   handlers: AuthHandlers;
   learningResults: LearningCardResult[];
@@ -1987,8 +2043,16 @@ function MineSurface({
 }) {
   const isAuthenticated = authState.stage === 'authenticated';
   const completedCount = learningResults.length + reviewResults.length;
+  const pendingReviewCount = Math.max(
+    learningResults.filter(
+      result => result.outcome === 'incorrect' || result.outcome === 'review',
+    ).length - reviewResults.length,
+    0,
+  );
   const todayKey = getTodayKey();
   const checkedInToday = checkedInDayKey === todayKey;
+  const detailCardStyle =
+    deviceClass === 'tablet' ? styles.infoCardHalf : null;
 
   return (
     <ScrollView contentContainerStyle={styles.canvasContent}>
@@ -2025,9 +2089,44 @@ function MineSurface({
         }
       />
 
-      <View style={styles.sectionGrid}>
+      <View
+        style={[
+          styles.profileMetricRow,
+          deviceClass === 'tablet' ? styles.profileMetricRowTablet : null,
+        ]}
+      >
+        <SummaryMetricCard
+          label={isAuthenticated ? '已完成' : '登录状态'}
+          value={isAuthenticated ? `${completedCount}` : '待登录'}
+          palette={palette}
+        />
+        <SummaryMetricCard
+          label={isAuthenticated ? '待回看' : '签到'}
+          value={isAuthenticated ? `${pendingReviewCount}` : '未建立'}
+          palette={palette}
+          tone={isAuthenticated && pendingReviewCount > 0 ? 'warning' : 'neutral'}
+        />
+        <SummaryMetricCard
+          label="收藏"
+          value={isAuthenticated ? `${favoriteCount}` : '--'}
+          palette={palette}
+        />
+        <SummaryMetricCard
+          label="休眠"
+          value={isAuthenticated ? `${sleepingCount}` : '--'}
+          palette={palette}
+        />
+      </View>
+
+      <View
+        style={[
+          styles.sectionGrid,
+          deviceClass === 'tablet' ? styles.sectionGridTablet : null,
+        ]}
+      >
         <InfoCard
           palette={palette}
+          style={detailCardStyle}
           title="账号概览"
           items={
             isAuthenticated
@@ -2048,12 +2147,13 @@ function MineSurface({
         />
         <InfoCard
           palette={palette}
+          style={detailCardStyle}
           title="个人学习摘要"
           items={
             isAuthenticated
               ? [
                   `今日已完成 ${completedCount} 张卡，其中首轮 ${learningResults.length} 张、回看 ${reviewResults.length} 张。`,
-                  `当前待回看 ${Math.max(learningResults.filter(result => result.outcome === 'incorrect' || result.outcome === 'review').length - reviewResults.length, 0)} 张。`,
+                  `当前待回看 ${pendingReviewCount} 张。`,
                   `同步说明：${progressSyncState.detail}`,
                   '这里先保留低成本摘要，不扩成重统计中心。',
                 ]
@@ -2066,6 +2166,7 @@ function MineSurface({
         />
         <InfoCard
           palette={palette}
+          style={detailCardStyle}
           title="空间标签摘要"
           items={
             isAuthenticated
@@ -2083,6 +2184,7 @@ function MineSurface({
         />
         <InfoCard
           palette={palette}
+          style={detailCardStyle}
           title="当前不做什么"
           items={[
             '不在这里接真实购买、恢复购买或跨端 entitlement。',
@@ -2094,6 +2196,7 @@ function MineSurface({
 
       {isAuthenticated ? (
         <MembershipHostCard
+          deviceClass={deviceClass}
           focusGate={membershipGate}
           handlers={membershipHandlers}
           membershipError={membershipError}
@@ -2110,6 +2213,7 @@ function MineSurface({
 }
 
 function MembershipHostCard({
+  deviceClass,
   focusGate,
   handlers,
   membershipError,
@@ -2118,6 +2222,7 @@ function MembershipHostCard({
   membershipState,
   palette,
 }: {
+  deviceClass: DeviceClass;
   focusGate: MembershipGate | null;
   handlers: MembershipHandlers;
   membershipError: string | null;
@@ -2161,13 +2266,13 @@ function MembershipHostCard({
           style={[
             styles.membershipFocusCard,
             {
-              backgroundColor: palette.accentSoft,
+              backgroundColor: hexToRgba(palette.warning, 0.12),
               borderColor: palette.border,
             },
           ]}
           testID="membership-focus-gate"
         >
-          <Text style={[styles.membershipFocusTitle, { color: palette.accentStrong }]}>
+          <Text style={[styles.membershipFocusTitle, { color: palette.warning }]}>
             当前拦截点
           </Text>
           <Text style={[styles.authSummary, { color: palette.textMuted }]}>
@@ -2175,7 +2280,26 @@ function MembershipHostCard({
           </Text>
         </View>
       ) : null}
-      <InfoCard palette={palette} title="当前权限矩阵" items={accessSummary} />
+      <View
+        style={[
+          styles.membershipAccessGrid,
+          deviceClass === 'tablet' ? styles.membershipAccessGridTablet : null,
+        ]}
+      >
+        {accessSummary.map(item => {
+          const [label, value] = item.split('：');
+
+          return (
+            <SummaryMetricCard
+              key={item}
+              label={label}
+              value={value}
+              palette={palette}
+              tone={value === '已开放' ? 'success' : 'warning'}
+            />
+          );
+        })}
+      </View>
       {membershipState.recoveryPromptVisible ? (
         <View
           style={[
@@ -2234,6 +2358,7 @@ function MembershipHostCard({
 }
 
 function MembershipPaywallSurface({
+  deviceClass,
   gate,
   handlers,
   membershipError,
@@ -2242,6 +2367,7 @@ function MembershipPaywallSurface({
   membershipState,
   palette,
 }: {
+  deviceClass: DeviceClass;
   gate: MembershipGate;
   handlers: MembershipHandlers;
   membershipError: string | null;
@@ -2259,7 +2385,7 @@ function MembershipPaywallSurface({
         ]}
         testID={`membership-paywall-${gate}`}
       >
-        <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
+        <Text style={[styles.heroEyebrow, { color: palette.warning }]}>
           MEMBERSHIP / PAYWALL
         </Text>
         <Text style={[styles.heroTitle, { color: palette.text }]}>
@@ -2277,7 +2403,32 @@ function MembershipPaywallSurface({
             : '根据会员合同，免费态应只开放接近一半卡量，完整卡库需要试用/会员。'}
         </Text>
       </View>
+      <View
+        style={[
+          styles.infoCard,
+          { backgroundColor: palette.panelStrong, borderColor: palette.border },
+        ]}
+      >
+        <Text style={[styles.infoTitle, { color: palette.text }]}>此刻会放开什么</Text>
+        <View
+          style={[
+            styles.membershipAccessGrid,
+            deviceClass === 'tablet' ? styles.membershipAccessGridTablet : null,
+          ]}
+        >
+          <SummaryMetricCard label="基础学习" value="保留" palette={palette} />
+          <SummaryMetricCard
+            label={gate === 'space' ? '完整空间' : gate === 'review' ? '完整算法' : '完整卡库'}
+            value="试用/会员"
+            palette={palette}
+            tone="warning"
+          />
+          <SummaryMetricCard label="购买权" value="web / app 同权" palette={palette} />
+          <SummaryMetricCard label="恢复购买" value="体验结束后提醒" palette={palette} />
+        </View>
+      </View>
       <MembershipHostCard
+        deviceClass={deviceClass}
         focusGate={gate}
         handlers={handlers}
         membershipError={membershipError}
@@ -2639,10 +2790,12 @@ function RouteCanvas({
 
 function InfoCard({
   palette,
+  style,
   title,
   items,
 }: {
   palette: Palette;
+  style?: StyleProp<ViewStyle>;
   title: string;
   items: string[];
 }) {
@@ -2650,6 +2803,7 @@ function InfoCard({
     <View
       style={[
         styles.infoCard,
+        style,
         { backgroundColor: palette.panel, borderColor: palette.border },
       ]}
     >
@@ -2667,6 +2821,39 @@ function InfoCard({
           </Text>
         </View>
       ))}
+    </View>
+  );
+}
+
+function SummaryMetricCard({
+  label,
+  value,
+  palette,
+  tone = 'neutral',
+}: {
+  label: string;
+  value: string;
+  palette: Palette;
+  tone?: 'neutral' | 'success' | 'warning';
+}) {
+  const valueColor =
+    tone === 'success'
+      ? palette.success
+      : tone === 'warning'
+      ? palette.warning
+      : palette.text;
+
+  return (
+    <View
+      style={[
+        styles.summaryMetricCard,
+        { backgroundColor: palette.panelStrong, borderColor: palette.border },
+      ]}
+    >
+      <Text style={[styles.summaryMetricValue, { color: valueColor }]}>{value}</Text>
+      <Text style={[styles.summaryMetricLabel, { color: palette.textMuted }]}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -2744,19 +2931,66 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  safeAreaBody: {
+    flex: 1,
+  },
+  auroraRoot: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  auroraOrb: {
+    position: 'absolute',
+    borderRadius: 999,
+  },
+  auroraOrbPrimary: {
+    width: 320,
+    height: 320,
+    top: -64,
+    left: -88,
+  },
+  auroraOrbSecondary: {
+    width: 280,
+    height: 280,
+    top: 84,
+    right: -96,
+  },
+  auroraOrbWarm: {
+    width: 260,
+    height: 260,
+    bottom: 132,
+    right: -72,
+  },
+  auroraOrbCool: {
+    width: 220,
+    height: 220,
+    bottom: -24,
+    left: 32,
+  },
   shellRoot: {
+    flex: 1,
+    gap: 12,
+  },
+  shellContent: {
     flex: 1,
   },
   tabletRoot: {
     flex: 1,
     flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    gap: 16,
   },
   sidebar: {
     width: 300,
     paddingHorizontal: 20,
-    paddingVertical: 24,
-    borderRightWidth: 1,
+    paddingVertical: 22,
+    borderWidth: 1,
+    borderRadius: 32,
     gap: 18,
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.12,
+    shadowRadius: 36,
+    elevation: 6,
   },
   sidebarNav: {
     gap: 12,
@@ -2766,7 +3000,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 24,
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
@@ -2789,6 +3023,7 @@ const styles = StyleSheet.create({
   },
   tabletContent: {
     flex: 1,
+    gap: 12,
   },
   brandEyebrow: {
     fontSize: 12,
@@ -2820,14 +3055,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   header: {
-    borderBottomWidth: 1,
+    borderWidth: 1,
+    borderRadius: 28,
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingTop: 18,
+    paddingBottom: 18,
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 16,
+    marginHorizontal: 20,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.1,
+    shadowRadius: 32,
+    elevation: 5,
   },
   headerCopy: {
     flex: 1,
@@ -2839,7 +3080,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
   },
   headerTitle: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '800',
   },
   headerSummary: {
@@ -2870,11 +3111,12 @@ const styles = StyleSheet.create({
   canvasContent: {
     paddingHorizontal: 20,
     paddingVertical: 18,
+    paddingBottom: 28,
     gap: 16,
   },
   canvasContentTablet: {
-    paddingHorizontal: 28,
-    paddingVertical: 24,
+    paddingHorizontal: 0,
+    paddingVertical: 4,
   },
   hero: {
     borderWidth: 1,
@@ -2882,6 +3124,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 22,
     gap: 8,
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.12,
+    shadowRadius: 36,
+    elevation: 6,
   },
   authHero: {
     marginTop: 2,
@@ -2901,10 +3147,14 @@ const styles = StyleSheet.create({
   },
   authPanel: {
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 28,
     paddingHorizontal: 18,
     paddingVertical: 18,
     gap: 14,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.1,
+    shadowRadius: 28,
+    elevation: 4,
   },
   authSummary: {
     fontSize: 14,
@@ -2920,7 +3170,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 14,
     fontSize: 16,
@@ -2948,6 +3198,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 15,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.14,
+    shadowRadius: 24,
+    elevation: 4,
   },
   compactButton: {
     alignSelf: 'flex-start',
@@ -2972,12 +3226,50 @@ const styles = StyleSheet.create({
   sectionGrid: {
     gap: 14,
   },
+  sectionGridTablet: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  infoCardHalf: {
+    width: '48%',
+  },
+  profileMetricRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  profileMetricRowTablet: {
+    gap: 12,
+  },
+  summaryMetricCard: {
+    minWidth: 112,
+    flexGrow: 1,
+    borderWidth: 1,
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 6,
+  },
+  summaryMetricValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
+  summaryMetricLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
   infoCard: {
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 28,
     paddingHorizontal: 18,
     paddingVertical: 18,
     gap: 12,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.08,
+    shadowRadius: 28,
+    elevation: 3,
   },
   infoTitle: {
     fontSize: 18,
@@ -3002,7 +3294,7 @@ const styles = StyleSheet.create({
   },
   membershipFocusCard: {
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 22,
     paddingHorizontal: 14,
     paddingVertical: 14,
     gap: 6,
@@ -3013,23 +3305,44 @@ const styles = StyleSheet.create({
   },
   membershipRecoveryCard: {
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 22,
     paddingHorizontal: 14,
     paddingVertical: 14,
     gap: 10,
   },
-  phoneTabBar: {
-    borderTopWidth: 1,
+  membershipAccessGrid: {
     flexDirection: 'row',
-    paddingHorizontal: 8,
-    paddingTop: 8,
-    paddingBottom: 10,
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  membershipAccessGridTablet: {
+    gap: 12,
+  },
+  phoneTabBarWrap: {
+    paddingHorizontal: 18,
+    paddingBottom: 16,
+  },
+  phoneTabBar: {
+    borderWidth: 1,
+    borderRadius: 999,
+    flexDirection: 'row',
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.16,
+    shadowRadius: 28,
+    elevation: 6,
   },
   phoneTabButton: {
     flex: 1,
     alignItems: 'center',
     gap: 2,
-    paddingVertical: 6,
+    paddingVertical: 10,
+    borderRadius: 999,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 3,
   },
   phoneTabBadge: {
     fontSize: 11,
@@ -3039,15 +3352,6 @@ const styles = StyleSheet.create({
   phoneTabLabel: {
     fontSize: 13,
     fontWeight: '700',
-  },
-  phoneTabIndicator: {
-    width: 24,
-    height: 3,
-    borderRadius: 999,
-    marginTop: 4,
-  },
-  phoneTabIndicatorHidden: {
-    backgroundColor: 'transparent',
   },
 });
 

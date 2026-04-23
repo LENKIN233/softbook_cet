@@ -2,13 +2,16 @@ import React, { useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
+  StyleProp,
   StyleSheet,
   Text,
   View,
+  ViewStyle,
 } from 'react-native';
 
 import { localLearningCardRecords } from '../learning/localCardRecords';
 import { INTERACTION_LABELS, LearningCard, LearningTrack } from '../learning/model';
+import { resolveLibraryTone } from '../visual/tokens';
 
 type SpacePalette = {
   accent: string;
@@ -21,6 +24,7 @@ type SpacePalette = {
   success: string;
   text: string;
   textMuted: string;
+  warning: string;
 };
 
 type DeviceClass = 'phone' | 'tablet';
@@ -96,6 +100,8 @@ export function SpaceSurface({
   const selectedBox =
     selectedGroup?.boxes.find(box => box.boxRef === selectedBoxRef) ??
     selectedGroup?.boxes[0];
+  const selectedTone = resolveLibraryTone(selectedLibrary?.libraryName);
+  const currentTone = resolveLibraryTone(currentLearningCard?.space_metadata.library);
 
   if (!selectedLibrary || !selectedGroup || !selectedBox) {
     return (
@@ -123,7 +129,7 @@ export function SpaceSurface({
       ]}
     >
       <SurfaceCard palette={palette}>
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>
+        <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
           KNOWLEDGE MAP / SPACE
         </Text>
         <Text style={[styles.title, { color: palette.text }]}>
@@ -143,14 +149,18 @@ export function SpaceSurface({
       </SurfaceCard>
 
       <View style={styles.sectionGrid}>
-        <SurfaceCard palette={palette} testID="space-current-position">
+        <SurfaceCard
+          palette={palette}
+          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+          testID="space-current-position"
+        >
           <Text style={[styles.cardTitle, { color: palette.text }]}>当前位置</Text>
           {currentLearningCard ? (
             <>
-              <Text style={[styles.locationText, { color: palette.success }]}>
-                当前学习卡位于 {currentLearningCard.space_metadata.library} /{' '}
-                {currentLearningCard.space_metadata.group} /{' '}
-                {currentLearningCard.space_metadata.box}
+               <Text style={[styles.locationText, { color: currentTone.accent }]}>
+                 当前学习卡位于 {currentLearningCard.space_metadata.library} /{' '}
+                 {currentLearningCard.space_metadata.group} /{' '}
+                 {currentLearningCard.space_metadata.box}
               </Text>
               <Text style={[styles.ruleText, { color: palette.textMuted }]}>
                 {currentLearningCard.card_id} · {currentLearningCard.front.prompt}
@@ -163,7 +173,10 @@ export function SpaceSurface({
           )}
         </SurfaceCard>
 
-        <SurfaceCard palette={palette}>
+        <SurfaceCard
+          palette={palette}
+          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+        >
           <Text style={[styles.cardTitle, { color: palette.text }]}>空间规则</Text>
           <RuleItem
             palette={palette}
@@ -219,131 +232,168 @@ export function SpaceSurface({
         </SurfaceCard>
       </View>
 
-      <SurfaceCard palette={palette}>
-        <Text style={[styles.cardTitle, { color: palette.text }]}>知识地图浏览</Text>
-        <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-          先选 library，再缩到 group，最后查看 box 内卡片。
-        </Text>
-
-        <Text style={[styles.selectorTitle, { color: palette.textMuted }]}>
-          Library
-        </Text>
-        <View style={styles.selectorWrap}>
-          {seed.libraries.map((library, index) => {
-            const isActive = library.libraryName === selectedLibrary.libraryName;
-
-            return (
-              <Pressable
-                key={library.libraryName}
-                onPress={() => {
-                  setSelectedLibraryName(library.libraryName);
-                  setSelectedGroupName(library.groups[0]?.groupName ?? '');
-                  setSelectedBoxRef(library.groups[0]?.boxes[0]?.boxRef ?? '');
-                }}
-                style={[
-                  styles.selectorChip,
-                  {
-                    backgroundColor: isActive ? palette.accentSoft : palette.panelStrong,
-                    borderColor: isActive ? palette.accent : palette.border,
-                  },
-                ]}
-                testID={`space-library-${index}`}
-              >
-                <Text
-                  style={[
-                    styles.selectorLabel,
-                    { color: isActive ? palette.accentStrong : palette.textMuted },
-                  ]}
-                >
-                  {library.libraryName}
-                </Text>
-                <Text style={[styles.selectorMeta, { color: palette.textMuted }]}>
-                  {library.groups.length} 个 group
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Text style={[styles.selectorTitle, { color: palette.textMuted }]}>Group</Text>
-        <View style={styles.selectorWrap}>
-          {selectedLibrary.groups.map((group, index) => {
-            const isActive = group.groupName === selectedGroup.groupName;
-
-            return (
-              <Pressable
-                key={`${selectedLibrary.libraryName}-${group.groupName}`}
-                onPress={() => {
-                  setSelectedGroupName(group.groupName);
-                  setSelectedBoxRef(group.boxes[0]?.boxRef ?? '');
-                }}
-                style={[
-                  styles.selectorChip,
-                  {
-                    backgroundColor: isActive ? palette.accentSoft : palette.panelStrong,
-                    borderColor: isActive ? palette.accent : palette.border,
-                  },
-                ]}
-                testID={`space-group-${index}`}
-              >
-                <Text
-                  style={[
-                    styles.selectorLabel,
-                    { color: isActive ? palette.accentStrong : palette.textMuted },
-                  ]}
-                >
-                  {group.groupName}
-                </Text>
-                <Text style={[styles.selectorMeta, { color: palette.textMuted }]}>
-                  {group.boxes.length} 个 box
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </SurfaceCard>
-
-      <SurfaceCard palette={palette}>
-        <Text style={[styles.cardTitle, { color: palette.text }]}>收藏标签</Text>
-        <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-          收藏是轻标签，不会改变卡片的物理位置。
-        </Text>
-        {favoriteCards.length > 0 ? (
-          <View style={styles.statusList}>
-            {favoriteCards.map(card => (
-              <View
-                key={card.cardId}
-                style={[
-                  styles.statusRow,
-                  { backgroundColor: palette.panelStrong, borderColor: palette.border },
-                ]}
-              >
-                <View style={styles.statusCopy}>
-                  <Text style={[styles.statusTitle, { color: palette.text }]}>
-                    {card.prompt}
-                  </Text>
-                  <Text style={[styles.statusMeta, { color: palette.textMuted }]}>
-                    {card.cardId} · {card.boxRef}
-                  </Text>
-                </View>
-                <ActionChip
-                  label="取消收藏"
-                  onPress={() => onToggleFavoriteTag(card.cardId)}
-                  palette={palette}
-                  testID={`space-unfavorite-${card.cardId}`}
-                />
-              </View>
-            ))}
-          </View>
-        ) : (
+      <View
+        style={[
+          styles.sectionGrid,
+          deviceClass === 'tablet' ? styles.sectionGridTablet : null,
+        ]}
+      >
+        <SurfaceCard
+          palette={palette}
+          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+        >
+          <Text style={[styles.cardTitle, { color: palette.text }]}>知识地图浏览</Text>
           <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-            当前还没有收藏标签；你可以在学习卡或空间里直接加上它。
+            先选 library，再缩到 group，最后查看 box 内卡片。
           </Text>
-        )}
-      </SurfaceCard>
 
-      <View style={styles.sectionGrid}>
-        <SurfaceCard palette={palette}>
+          <Text style={[styles.selectorTitle, { color: palette.textMuted }]}>
+            Library
+          </Text>
+          <View style={styles.selectorWrap}>
+            {seed.libraries.map((library, index) => {
+              const isActive = library.libraryName === selectedLibrary.libraryName;
+
+              return (
+                <Pressable
+                  key={library.libraryName}
+                  onPress={() => {
+                    setSelectedLibraryName(library.libraryName);
+                    setSelectedGroupName(library.groups[0]?.groupName ?? '');
+                    setSelectedBoxRef(library.groups[0]?.boxes[0]?.boxRef ?? '');
+                  }}
+                  style={[
+                      styles.selectorChip,
+                      {
+                        backgroundColor: isActive
+                          ? selectedTone.accentSoft
+                          : palette.panelStrong,
+                        borderColor: isActive ? selectedTone.accent : palette.border,
+                      },
+                    ]}
+                    testID={`space-library-${index}`}
+                  >
+                    <View style={styles.selectorHeader}>
+                      <View
+                        style={[
+                          styles.selectorDot,
+                          {
+                            backgroundColor: resolveLibraryTone(library.libraryName).accent,
+                          },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.selectorLabel,
+                          {
+                            color: isActive ? palette.text : palette.textMuted,
+                          },
+                        ]}
+                      >
+                        {library.libraryName}
+                      </Text>
+                    </View>
+                    <Text style={[styles.selectorMeta, { color: palette.textMuted }]}>
+                      {library.groups.length} 个 group
+                    </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Text style={[styles.selectorTitle, { color: palette.textMuted }]}>Group</Text>
+          <View style={styles.selectorWrap}>
+            {selectedLibrary.groups.map((group, index) => {
+              const isActive = group.groupName === selectedGroup.groupName;
+
+              return (
+                <Pressable
+                  key={`${selectedLibrary.libraryName}-${group.groupName}`}
+                  onPress={() => {
+                    setSelectedGroupName(group.groupName);
+                    setSelectedBoxRef(group.boxes[0]?.boxRef ?? '');
+                  }}
+                  style={[
+                      styles.selectorChip,
+                      {
+                        backgroundColor: isActive
+                          ? selectedTone.accentSoft
+                          : palette.panelStrong,
+                        borderColor: isActive ? selectedTone.accent : palette.border,
+                      },
+                    ]}
+                    testID={`space-group-${index}`}
+                >
+                  <Text
+                    style={[
+                      styles.selectorLabel,
+                      { color: isActive ? palette.accentStrong : palette.textMuted },
+                    ]}
+                  >
+                    {group.groupName}
+                  </Text>
+                  <Text style={[styles.selectorMeta, { color: palette.textMuted }]}>
+                    {group.boxes.length} 个 box
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </SurfaceCard>
+
+        <SurfaceCard
+          palette={palette}
+          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+        >
+          <Text style={[styles.cardTitle, { color: palette.text }]}>收藏标签</Text>
+          <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+            收藏是轻标签，不会改变卡片的物理位置。
+          </Text>
+          {favoriteCards.length > 0 ? (
+            <View style={styles.statusList}>
+              {favoriteCards.map(card => (
+                <View
+                  key={card.cardId}
+                  style={[
+                    styles.statusRow,
+                    { backgroundColor: palette.panelStrong, borderColor: palette.border },
+                  ]}
+                >
+                  <View style={styles.statusCopy}>
+                    <Text style={[styles.statusTitle, { color: palette.text }]}>
+                      {card.prompt}
+                    </Text>
+                    <Text style={[styles.statusMeta, { color: palette.textMuted }]}>
+                      {card.cardId} · {card.boxRef}
+                    </Text>
+                  </View>
+                  <ActionChip
+                    label="取消收藏"
+                    onPress={() => onToggleFavoriteTag(card.cardId)}
+                    palette={palette}
+                    testID={`space-unfavorite-${card.cardId}`}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+              当前还没有收藏标签；你可以在学习卡或空间里直接加上它。
+            </Text>
+          )}
+        </SurfaceCard>
+      </View>
+
+      <View
+        style={[
+          styles.sectionGrid,
+          deviceClass === 'tablet' ? styles.sectionGridTablet : null,
+        ]}
+      >
+        <SurfaceCard
+          palette={palette}
+          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+        >
           <Text style={[styles.cardTitle, { color: palette.text }]}>盒列表</Text>
           <Text style={[styles.ruleText, { color: palette.textMuted }]}>
             盒是知识点容器，不允许直接改写归属。
@@ -360,8 +410,10 @@ export function SpaceSurface({
                   style={[
                     styles.boxRow,
                     {
-                      backgroundColor: isActive ? palette.accentSoft : palette.panelStrong,
-                      borderColor: isActive ? palette.accent : palette.border,
+                      backgroundColor: isActive
+                        ? selectedTone.accentSoft
+                        : palette.panelStrong,
+                      borderColor: isActive ? selectedTone.accent : palette.border,
                     },
                   ]}
                   testID={`space-box-${box.boxRef}`}
@@ -374,18 +426,22 @@ export function SpaceSurface({
                       box_ref {box.boxRef} · {box.cards.length} 张已接入卡片
                     </Text>
                   </View>
-                  {isCurrent ? (
-                    <Text style={[styles.currentTag, { color: palette.success }]}>
-                      当前卡在此
-                    </Text>
-                  ) : null}
+                   {isCurrent ? (
+                     <Text style={[styles.currentTag, { color: currentTone.accent }]}>
+                       当前卡在此
+                     </Text>
+                   ) : null}
                 </Pressable>
               );
             })}
           </View>
         </SurfaceCard>
 
-        <SurfaceCard palette={palette} testID="space-box-detail">
+        <SurfaceCard
+          palette={palette}
+          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+          testID="space-box-detail"
+        >
           <Text style={[styles.cardTitle, { color: palette.text }]}>盒内卡片</Text>
           <Text style={[styles.ruleText, { color: palette.textMuted }]}>
             {selectedLibrary.libraryName} / {selectedGroup.groupName} / {selectedBox.boxName}
@@ -420,15 +476,15 @@ export function SpaceSurface({
                       </Text>
                     ) : null}
                     {isSleeping ? (
-                      <Text style={[styles.stateTag, { color: palette.danger ?? palette.textMuted }]}>
-                        休眠中
-                      </Text>
-                    ) : null}
-                    {isCurrent ? (
-                      <Text style={[styles.currentTag, { color: palette.success }]}>
-                        当前学习卡
-                      </Text>
-                    ) : null}
+                       <Text style={[styles.stateTag, { color: palette.warning }]}>
+                         休眠中
+                       </Text>
+                     ) : null}
+                     {isCurrent ? (
+                       <Text style={[styles.currentTag, { color: currentTone.accent }]}>
+                         当前学习卡
+                       </Text>
+                     ) : null}
                   </View>
                   <View style={styles.actionWrap}>
                     <ActionChip
@@ -506,16 +562,19 @@ function SummaryPill({
 function SurfaceCard({
   children,
   palette,
+  style,
   testID,
 }: {
   children: React.ReactNode;
   palette: SpacePalette;
+  style?: StyleProp<ViewStyle>;
   testID?: string;
 }) {
   return (
     <View
       style={[
         styles.surfaceCard,
+        style,
         { backgroundColor: palette.panel, borderColor: palette.border },
       ]}
       testID={testID}
@@ -674,6 +733,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 18,
     fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
   summaryLabel: {
     fontSize: 12,
@@ -683,6 +743,13 @@ const styles = StyleSheet.create({
   },
   sectionGrid: {
     gap: 14,
+  },
+  sectionGridTablet: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  surfaceCardHalf: {
+    width: '48%',
   },
   statusList: {
     gap: 10,
@@ -753,6 +820,16 @@ const styles = StyleSheet.create({
     minWidth: 124,
     paddingHorizontal: 14,
     paddingVertical: 12,
+  },
+  selectorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  selectorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
   },
   selectorLabel: {
     fontSize: 15,
