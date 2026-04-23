@@ -65,3 +65,48 @@ test('remote learning session repository delegates to remote source loading', as
   expect(session.cards).toHaveLength(5);
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
+
+test('remote learning session repository falls back to local cards when remote source fails', async () => {
+  const fetchMock = jest.fn().mockResolvedValue({
+    ok: false,
+    status: 503,
+    json: async () => ({}),
+  });
+
+  const repository = createLearningSessionRepository({
+    fallbackToLocalOnRemoteError: true,
+    mode: 'remote',
+    remoteConfig: {
+      endpoint: 'https://example.com/api/learning/cards',
+    },
+    fetchImpl: fetchMock,
+  });
+
+  const session = await repository.loadSession(authenticatedContext, 'cet4');
+
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(session.sourceId).toBe('local-structured-card-source');
+  expect(session.sourceLabel).toBe('本地结构化卡源');
+  expect(session.cards).toHaveLength(5);
+});
+
+test('remote learning session repository still surfaces remote failures when fallback is disabled', async () => {
+  const fetchMock = jest.fn().mockResolvedValue({
+    ok: false,
+    status: 503,
+    json: async () => ({}),
+  });
+
+  const repository = createLearningSessionRepository({
+    fallbackToLocalOnRemoteError: false,
+    mode: 'remote',
+    remoteConfig: {
+      endpoint: 'https://example.com/api/learning/cards',
+    },
+    fetchImpl: fetchMock,
+  });
+
+  await expect(repository.loadSession(authenticatedContext, 'cet4')).rejects.toThrow(
+    'Remote learning card source request failed with status 503.',
+  );
+});

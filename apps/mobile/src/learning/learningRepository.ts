@@ -26,6 +26,7 @@ export type LearningSessionRepository = {
 
 export type LearningSessionRepositoryConfig = {
   cardCount?: number;
+  fallbackToLocalOnRemoteError?: boolean;
   fetchImpl?: FetchLike;
   localSource?: LearningCardSource;
   mode: LearningRepositoryMode;
@@ -37,6 +38,16 @@ export function createLearningSessionRepository(
 ): LearningSessionRepository {
   const cardCount = config.cardCount ?? DEFAULT_LEARNING_SESSION_CARD_COUNT;
   const localSource = config.localSource ?? localLearningCardSource;
+  const createLocalSession = (track: LearningTrack) =>
+    assertNonEmptySession(
+      createLearningSession(
+        track,
+        localSource.sourceId,
+        localSource.sourceLabel,
+        localSource.loadCards(track),
+        cardCount,
+      ),
+    );
 
   return {
     loadSession: async (context, track) => {
@@ -45,34 +56,34 @@ export function createLearningSessionRepository(
           throw new Error('Remote learning repository requires remoteConfig.');
         }
 
-        const fetchImpl = config.fetchImpl ?? fetch;
-        const sourceResponse = await loadRemoteLearningCardSource(
-          context,
-          track,
-          config.remoteConfig,
-          fetchImpl,
-        );
+        try {
+          const fetchImpl = config.fetchImpl ?? fetch;
+          const sourceResponse = await loadRemoteLearningCardSource(
+            context,
+            track,
+            config.remoteConfig,
+            fetchImpl,
+          );
 
-        return assertNonEmptySession(
-          createLearningSession(
-            sourceResponse.track,
-            sourceResponse.sourceId,
-            sourceResponse.sourceLabel,
-            sourceResponse.cards,
-            cardCount,
-          ),
-        );
+          return assertNonEmptySession(
+            createLearningSession(
+              sourceResponse.track,
+              sourceResponse.sourceId,
+              sourceResponse.sourceLabel,
+              sourceResponse.cards,
+              cardCount,
+            ),
+          );
+        } catch (error) {
+          if (!config.fallbackToLocalOnRemoteError) {
+            throw error;
+          }
+
+          return createLocalSession(track);
+        }
       }
 
-      return assertNonEmptySession(
-        createLearningSession(
-          track,
-          localSource.sourceId,
-          localSource.sourceLabel,
-          localSource.loadCards(track),
-          cardCount,
-        ),
-      );
+      return createLocalSession(track);
     },
   };
 }
