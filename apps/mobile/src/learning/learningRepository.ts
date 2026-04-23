@@ -12,8 +12,16 @@ import { LearningCardSource, localLearningCardSource } from './localCardSource';
 
 export type LearningRepositoryMode = 'local' | 'remote';
 
+export type LearningSessionRepositoryContext = {
+  authToken?: string;
+  phoneNumber: string;
+};
+
 export type LearningSessionRepository = {
-  loadSession: (track: LearningTrack) => Promise<LearningSession>;
+  loadSession: (
+    context: LearningSessionRepositoryContext,
+    track: LearningTrack,
+  ) => Promise<LearningSession>;
 };
 
 export type LearningSessionRepositoryConfig = {
@@ -31,7 +39,7 @@ export function createLearningSessionRepository(
   const localSource = config.localSource ?? localLearningCardSource;
 
   return {
-    loadSession: async track => {
+    loadSession: async (context, track) => {
       if (config.mode === 'remote') {
         if (!config.remoteConfig) {
           throw new Error('Remote learning repository requires remoteConfig.');
@@ -39,6 +47,7 @@ export function createLearningSessionRepository(
 
         const fetchImpl = config.fetchImpl ?? fetch;
         const sourceResponse = await loadRemoteLearningCardSource(
+          context,
           track,
           config.remoteConfig,
           fetchImpl,

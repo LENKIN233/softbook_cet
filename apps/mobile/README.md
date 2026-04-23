@@ -106,7 +106,7 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
 提交前恢复为本地安全默认值，不要把真实密钥提交进仓库。
 
 - `auth`：手机号验证码请求 / 校验仓储
-- `learningSource`：学习卡源仓储
+- `learningSource`：学习卡源仓储；远端模式要求登录上下文
 - `membership`：entitlement 读取、开始试用、开通会员、恢复购买提醒状态更新
 - `progressSync`：日级进展同步仓储；远端模式要求登录上下文
 

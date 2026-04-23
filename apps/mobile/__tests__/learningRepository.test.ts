@@ -1,12 +1,17 @@
 import { localLearningCardRecords } from '../src/learning/localCardRecords';
 import { createLearningSessionRepository } from '../src/learning/learningRepository';
 
+const authenticatedContext = {
+  authToken: 'user-token',
+  phoneNumber: '13800138000',
+};
+
 test('local learning session repository loads a usable session', async () => {
   const repository = createLearningSessionRepository({
     mode: 'local',
   });
 
-  const session = await repository.loadSession('cet4');
+  const session = await repository.loadSession(authenticatedContext, 'cet4');
 
   expect(session.track).toBe('cet4');
   expect(session.cards).toHaveLength(5);
@@ -29,7 +34,7 @@ test('learning session repository rejects empty sessions', async () => {
     },
   });
 
-  await expect(repository.loadSession('cet4')).rejects.toThrow(
+  await expect(repository.loadSession(authenticatedContext, 'cet4')).rejects.toThrow(
     'Learning session repository returned an empty session.',
   );
 });
@@ -54,7 +59,7 @@ test('remote learning session repository delegates to remote source loading', as
     fetchImpl: fetchMock,
   });
 
-  const session = await repository.loadSession('cet4');
+  const session = await repository.loadSession(authenticatedContext, 'cet4');
 
   expect(session.sourceId).toBe('remote-learning-cards');
   expect(session.cards).toHaveLength(5);
