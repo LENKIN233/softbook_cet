@@ -1,5 +1,13 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from 'react-native';
 
 import { LearningCardResult } from '../learning/model';
 import { summarizeLearningResults } from '../learning/session';
@@ -17,6 +25,7 @@ type StatisticsPalette = {
   tabIdle: string;
   text: string;
   textMuted: string;
+  warning: string;
 };
 
 type DeviceClass = 'phone' | 'tablet';
@@ -113,14 +122,23 @@ export function StatisticsSurface({
             label="待回看"
             palette={palette}
             testID="statistics-metric-pending-review"
-            tone={pendingReviewCount > 0 ? 'danger' : 'success'}
+            tone={pendingReviewCount > 0 ? 'warning' : 'success'}
             value={`${pendingReviewCount}`}
           />
         </View>
       </View>
 
-      <View style={styles.sectionGrid}>
-        <SurfaceCard palette={palette} testID="statistics-checkin-card">
+      <View
+        style={[
+          styles.sectionGrid,
+          deviceClass === 'tablet' ? styles.sectionGridTablet : null,
+        ]}
+      >
+        <SurfaceCard
+          palette={palette}
+          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+          testID="statistics-checkin-card"
+        >
           <Text style={[styles.cardTitle, { color: palette.text }]}>
             {checkInTitle}
           </Text>
@@ -150,7 +168,10 @@ export function StatisticsSurface({
           </Pressable>
         </SurfaceCard>
 
-        <SurfaceCard palette={palette}>
+        <SurfaceCard
+          palette={palette}
+          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+        >
           <Text style={[styles.cardTitle, { color: palette.text }]}>
             回看状态
           </Text>
@@ -179,8 +200,16 @@ export function StatisticsSurface({
         </Text>
       </SurfaceCard>
 
-      <View style={styles.sectionGrid}>
-        <SurfaceCard palette={palette}>
+      <View
+        style={[
+          styles.sectionGrid,
+          deviceClass === 'tablet' ? styles.sectionGridTablet : null,
+        ]}
+      >
+        <SurfaceCard
+          palette={palette}
+          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+        >
           <Text style={[styles.cardTitle, { color: palette.text }]}>
             今日行为信号
           </Text>
@@ -208,7 +237,10 @@ export function StatisticsSurface({
           </View>
         </SurfaceCard>
 
-        <SurfaceCard palette={palette}>
+        <SurfaceCard
+          palette={palette}
+          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+        >
           <Text style={[styles.cardTitle, { color: palette.text }]}>
             当前只保留什么
           </Text>
@@ -240,12 +272,14 @@ function MetricCard({
   label: string;
   palette: StatisticsPalette;
   testID?: string;
-  tone?: 'success' | 'danger';
+  tone?: 'success' | 'warning' | 'danger';
   value: string;
 }) {
   const valueColor =
     tone === 'success'
       ? palette.success
+      : tone === 'warning'
+      ? palette.warning
       : tone === 'danger'
       ? palette.danger
       : palette.accentStrong;
@@ -267,16 +301,19 @@ function MetricCard({
 function SurfaceCard({
   children,
   palette,
+  style,
   testID,
 }: {
   children: React.ReactNode;
   palette: StatisticsPalette;
+  style?: StyleProp<ViewStyle>;
   testID?: string;
 }) {
   return (
     <View
       style={[
         styles.surfaceCard,
+        style,
         { backgroundColor: palette.panel, borderColor: palette.border },
       ]}
       testID={testID}
@@ -369,6 +406,7 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 18,
     fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
   metricLabel: {
     fontSize: 11,
@@ -377,11 +415,18 @@ const styles = StyleSheet.create({
   sectionGrid: {
     gap: 12,
   },
+  sectionGridTablet: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
   surfaceCard: {
     borderWidth: 1,
     borderRadius: 24,
     padding: 18,
     gap: 12,
+  },
+  surfaceCardHalf: {
+    width: '48%',
   },
   cardTitle: {
     fontSize: 17,

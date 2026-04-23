@@ -703,7 +703,6 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('当前是会员态');
-
   await openRoute(root, 'space');
 
   await ReactTestRenderer.act(async () => {
