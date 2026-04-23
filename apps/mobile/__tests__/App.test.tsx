@@ -330,6 +330,7 @@ test('wires remote auth, learning source config, membership, and progress sync t
   const repositoryConfig =
     mockCreateLearningSessionRepository.mock.calls[0]?.[0];
   expect(repositoryConfig).toMatchObject({
+    fallbackToLocalOnRemoteError: true,
     mode: 'remote',
     remoteConfig: {
       endpoint: 'https://api.softbook.example/v1/learning/card-source',
