@@ -637,6 +637,89 @@ test('can dismiss remote recovery reminder from mine', async () => {
   });
 });
 
+test('refreshes remote entitlement when opening mine and keeps later gates in sync', async () => {
+  const fetchCalls: MockFetchCall[] = [];
+  let entitlementRequestCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(
+    async (input: string, init?: MockFetchInit) => {
+      fetchCalls.push({init, input});
+
+      if (input === 'https://api.softbook.example/v1/auth/request-code') {
+        return createJsonResponse({});
+      }
+
+      if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+        return createJsonResponse({
+          data: {
+            auth_token: 'remote-auth-token',
+            phone_number: '13800138000',
+          },
+        });
+      }
+
+      if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+        entitlementRequestCount += 1;
+
+        return createJsonResponse(
+          createRemoteMembershipPayload(
+            entitlementRequestCount === 1 ? 'free' : 'premium',
+          ),
+        );
+      }
+
+      throw new Error(`Unexpected remote fetch: ${input}`);
+    },
+  );
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('当前是会员态');
+
+  await openRoute(root, 'space');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('已接入卡片的物理空间');
+  expect(output).toContain('知识地图浏览');
+  expect(
+    fetchCalls.filter(
+      call => call.input === 'https://api.softbook.example/v1/membership/entitlement',
+    ),
+  ).toHaveLength(2);
+});
+
 test('can unlock the learning flow after fake sms verification', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 

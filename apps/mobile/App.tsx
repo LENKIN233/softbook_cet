@@ -327,6 +327,8 @@ function AppShell() {
     Record<string, SpaceCardState>
   >({});
   const previousMembershipStage = useRef<MembershipStage>(membershipState.stage);
+  const lastMembershipRefreshKey = useRef<string | null>(null);
+  const pendingMembershipRefreshKey = useRef<string | null>(null);
   const { width, height } = useWindowDimensions();
   const deviceClass = getDeviceClass(width, height);
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
@@ -451,6 +453,12 @@ function AppShell() {
         : null,
     [authState.authToken, authState.phoneNumber, authState.stage],
   );
+  const activeMembershipRefreshKey =
+    runtimeMembershipRepositoryMode === 'remote' &&
+    authenticatedRuntimeContext !== null &&
+    activeRoute === 'mine'
+      ? `${authenticatedRuntimeContext.authToken ?? ''}:${activeRoute}`
+      : null;
 
   const resetLearningDeck = (
     stateMap: Record<string, SpaceCardState> = spaceCardStateById,
@@ -478,6 +486,8 @@ function AppShell() {
 
   useEffect(() => {
     if (!isAuthenticated) {
+      lastMembershipRefreshKey.current = null;
+      pendingMembershipRefreshKey.current = null;
       setLearningSession(null);
       setLearningBootstrapStatus('idle');
       setLearningBootstrapError(null);
@@ -508,6 +518,71 @@ function AppShell() {
     setLearningBootstrapStatus('loading');
     setLearningBootstrapError(null);
   }, [isAuthenticated, learningBootstrapStatus]);
+
+  useEffect(() => {
+    if (
+      !isAuthenticated ||
+      runtimeMembershipRepositoryMode !== 'remote' ||
+      authenticatedRuntimeContext === null ||
+      activeMembershipRefreshKey === null ||
+      membershipPendingAction !== null
+    ) {
+      return;
+    }
+
+    if (
+      lastMembershipRefreshKey.current === activeMembershipRefreshKey ||
+      pendingMembershipRefreshKey.current === activeMembershipRefreshKey
+    ) {
+      return;
+    }
+
+    let isCancelled = false;
+    pendingMembershipRefreshKey.current = activeMembershipRefreshKey;
+
+    membershipRepository
+      .loadState(authenticatedRuntimeContext)
+      .then(nextMembershipState => {
+        if (isCancelled) {
+          return;
+        }
+
+        lastMembershipRefreshKey.current = activeMembershipRefreshKey;
+        pendingMembershipRefreshKey.current = null;
+        setMembershipError(null);
+        setMembershipState(nextMembershipState);
+        setMembershipGate(currentGate =>
+          shouldClearMembershipGate(currentGate, nextMembershipState)
+            ? null
+            : currentGate,
+        );
+      })
+      .catch((error: unknown) => {
+        if (isCancelled) {
+          return;
+        }
+
+        pendingMembershipRefreshKey.current = null;
+        setMembershipError(
+          error instanceof Error ? error.message : '远端 entitlement 刷新失败。',
+        );
+      });
+
+    return () => {
+      isCancelled = true;
+
+      if (pendingMembershipRefreshKey.current === activeMembershipRefreshKey) {
+        pendingMembershipRefreshKey.current = null;
+      }
+    };
+  }, [
+    activeMembershipRefreshKey,
+    authenticatedRuntimeContext,
+    isAuthenticated,
+    membershipPendingAction,
+    membershipRepository,
+    runtimeMembershipRepositoryMode,
+  ]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -896,6 +971,10 @@ function AppShell() {
             })),
         )
         .then(({membershipState: nextMembershipState, session}) => {
+          if (runtimeMembershipRepositoryMode === 'remote') {
+            lastMembershipRefreshKey.current = `${session.authToken ?? ''}:${activeRoute}`;
+            pendingMembershipRefreshKey.current = null;
+          }
           setMembershipState(nextMembershipState);
           setMembershipGate(null);
           setAuthState(current => ({
@@ -917,6 +996,8 @@ function AppShell() {
         });
     },
     onLogout: () => {
+      lastMembershipRefreshKey.current = null;
+      pendingMembershipRefreshKey.current = null;
       setAuthState(INITIAL_AUTH_STATE);
       setLearningPhase('learning');
       setReviewSessionCards([]);
@@ -2616,6 +2697,26 @@ function getMembershipCardTitle(stage: MembershipStage) {
       return '当前是基础学习态';
     case 'premium':
       return '当前是会员态';
+  }
+}
+
+function shouldClearMembershipGate(
+  gate: MembershipGate | null,
+  membershipState: MembershipState,
+) {
+  if (gate === null) {
+    return false;
+  }
+
+  const access = resolveMembershipAccess(membershipState);
+
+  switch (gate) {
+    case 'space':
+      return access.completePhysicalSpace;
+    case 'review':
+      return access.completeAlgorithm;
+    case 'library':
+      return access.completeCardLibrary;
   }
 }
 
