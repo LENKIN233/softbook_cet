@@ -844,10 +844,6 @@ function AppShell() {
     membershipRepository
       .startTrial(authenticatedRuntimeContext, membershipState)
       .then(result => {
-        markMembershipRefreshSettled(
-          authenticatedRuntimeContext.authToken,
-          nextGate === 'review' ? 'learning' : nextGate === 'space' ? 'space' : activeRoute,
-        );
         setMembershipPendingAction(null);
         completeMembershipUnlock(result.state, nextGate);
       })
@@ -1052,7 +1048,6 @@ function AppShell() {
       membershipRepository
         .purchase(authenticatedRuntimeContext, membershipState)
         .then(result => {
-          markMembershipRefreshSettled(authenticatedRuntimeContext.authToken);
           setMembershipPendingAction(null);
           completeMembershipUnlock(result.state);
         })
@@ -1097,7 +1092,6 @@ function AppShell() {
       membershipRepository
         .dismissRecovery(authenticatedRuntimeContext, membershipState)
         .then(result => {
-          markMembershipRefreshSettled(authenticatedRuntimeContext.authToken);
           setMembershipError(null);
           setMembershipPendingAction(null);
           setMembershipState(result.state);
