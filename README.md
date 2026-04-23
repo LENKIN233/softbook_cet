@@ -135,6 +135,10 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
 - `membership`：entitlement 读取、开始试用、开通会员、恢复购买提醒状态更新
 - `progressSync`：日级进展同步仓储
 
+如果 `learningSource.mode === 'remote'`，则 `auth.mode` 也必须是 `remote`，否则 runtime config 解析会直接失败。
+
+如果远端学习卡源请求失败或 payload 不合法，`learningRepository` 会自动回退到本地结构化卡源，保持现有学习 UI 和交互不变。
+
 ### 本地会员/付费墙壳层
 
 `apps/mobile` 现在还会在本地壳层里表达会员矩阵：
