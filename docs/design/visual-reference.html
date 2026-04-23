@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>软书四六级 · Visual Anchor v2 · Aurora Glass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════ TOKENS ═══════ */
+:root{
+  /* Library identity — 7 subjects, tuned for editorial feel (less saturated, more vivid at low-alpha) */
+  --lib-listen:   #5B6DF5;  /* 听力 indigo */
+  --lib-read:     #FF8A3D;  /* 阅读 coral */
+  --lib-cloze:    #22C58B;  /* 选词填空 mint */
+  --lib-write:    #B568F5;  /* 写作 violet */
+  --lib-trans:    #18C4E0;  /* 翻译 cyan */
+  --lib-vocab:    #F15B6E;  /* 词汇 rose */
+  --lib-grammar:  #F5B100;  /* 语法 amber */
+
+  /* Feedback (4-level self-assess) */
+  --fb-prof:   #22C58B;
+  --fb-know:   #5B6DF5;
+  --fb-unsure: #FF8A3D;
+  --fb-forgot: #F15B6E;
+
+  /* Surface (light) */
+  --page:        #F1F0F6;
+  --page-tint:   #ECEAF4;
+  --glass-50:    rgba(255,255,255,.48);
+  --glass-100:   rgba(255,255,255,.68);
+  --glass-200:   rgba(255,255,255,.82);
+  --glass-300:   rgba(255,255,255,.94);
+  --glass-edge:  rgba(255,255,255,.72);
+  --glass-hair:  rgba(11,11,20,.06);
+  --glass-inner: inset 0 1px 0 rgba(255,255,255,.85), inset 0 -1px 0 rgba(11,11,20,.03);
+
+  /* Text (light) */
+  --ink-1: #0B0B14;
+  --ink-2: #3A3A4E;
+  --ink-3: #7A7A90;
+  --ink-4: #ACACBF;
+
+  /* Night */
+  --night:       #0B0B12;
+  --night-2:     #12131C;
+  --glass-n-100: rgba(28,28,42,.56);
+  --glass-n-200: rgba(28,28,42,.74);
+  --glass-n-edge:rgba(255,255,255,.08);
+  --glass-n-hair:rgba(255,255,255,.06);
+  --glass-n-inner:inset 0 1px 0 rgba(255,255,255,.08), inset 0 -1px 0 rgba(0,0,0,.3);
+  --ink-n-1: #F2F2FA;
+  --ink-n-2: #B8B8CE;
+  --ink-n-3: #86869C;
+
+  /* Elevation */
+  --sh-1: 0 1px 2px rgba(11,11,20,.04);
+  --sh-2: 0 4px 14px rgba(11,11,20,.06), 0 1px 2px rgba(11,11,20,.04);
+  --sh-3: 0 14px 40px rgba(11,11,20,.10), 0 2px 6px rgba(11,11,20,.05);
+  --sh-4: 0 28px 72px rgba(11,11,20,.14), 0 6px 18px rgba(11,11,20,.08);
+
+  /* Type */
+  --f-disp: "Outfit", "Inter", -apple-system, sans-serif;
+  --f-cn:   "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+
+  /* Space */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s7:32px; --s8:48px; --s9:64px; --sa:96px;
+
+  /* Radius */
+  --r-xs:8px; --r-sm:12px; --r-md:16px; --r-lg:22px; --r-xl:28px; --r-2xl:36px; --r-full:999px;
+
+  /* Motion */
+  --ease: cubic-bezier(.2,.8,.2,1);
+  --dur: 280ms;
+}
+
+/* ═══════ RESET + ATMOSPHERE ═══════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;scroll-behavior:smooth}
+body{
+  font-family:var(--f-cn);
+  font-size:15px;line-height:1.6;
+  color:var(--ink-1);
+  background:var(--page);
+  min-height:100vh;
+  overflow-x:hidden;
+  position:relative;
+}
+
+/* Aurora — 5 large organic orbs, heavy blur */
+body::before{
+  content:""; position:fixed; inset:-10%;
+  z-index:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 900px 700px at 8% 12%, rgba(91,109,245,.22), transparent 60%),
+    radial-gradient(ellipse 1100px 800px at 95% 8%, rgba(181,104,245,.16), transparent 62%),
+    radial-gradient(ellipse 800px 600px at 75% 55%, rgba(255,138,61,.14), transparent 58%),
+    radial-gradient(ellipse 700px 600px at 15% 78%, rgba(24,196,224,.14), transparent 58%),
+    radial-gradient(ellipse 600px 500px at 55% 95%, rgba(34,197,139,.10), transparent 60%);
+  filter: blur(40px) saturate(1.05);
+}
+/* Subtle grain for tactile premium */
+body::after{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  opacity:.04; mix-blend-mode: multiply;
+}
+
+/* ═══════ LAYOUT ═══════ */
+.wrap{max-width:1280px;margin:0 auto;padding:var(--sa) var(--s7) var(--s9);position:relative;z-index:1}
+
+/* ═══════ MASTHEAD ═══════ */
+.mast{display:grid;grid-template-columns:1fr auto;align-items:end;gap:var(--s7);margin-bottom:var(--sa)}
+.mast .brand{font-family:var(--f-mono);font-size:11px;letter-spacing:.28em;color:var(--ink-3);text-transform:uppercase;margin-bottom:var(--s5);display:flex;align-items:center;gap:10px}
+.mast .brand::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--lib-listen);box-shadow:0 0 0 4px rgba(91,109,245,.18)}
+.mast h1{
+  font-family:var(--f-disp);font-weight:800;
+  font-size:clamp(56px,7vw,96px);line-height:.98;letter-spacing:-.045em;
+  color:var(--ink-1);
+}
+.mast h1 .accent{color:var(--lib-listen);font-style:italic;font-weight:900}
+.mast .sub{margin-top:var(--s5);font-size:16px;color:var(--ink-2);max-width:58ch;line-height:1.6}
+.mast aside{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);
+  writing-mode:vertical-rl;transform:rotate(180deg);align-self:end;padding-bottom:8px;
+}
+
+/* ═══════ SECTION ═══════ */
+.sec{margin-top:var(--sa)}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s7);padding-bottom:var(--s6);border-bottom:1px solid var(--glass-hair);margin-bottom:var(--s8)}
+.sec-meta{font-family:var(--f-mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sec-meta .num{color:var(--lib-listen);font-weight:600}
+.sec-meta .dot{width:4px;height:4px;border-radius:50%;background:var(--ink-4)}
+.sec h2{font-family:var(--f-disp);font-weight:700;font-size:clamp(36px,4.5vw,56px);line-height:1.05;letter-spacing:-.035em;color:var(--ink-1);flex:1}
+.sec h2 em{font-style:italic;font-weight:400;color:var(--ink-3)}
+.sec .lede{font-size:16px;line-height:1.65;color:var(--ink-2);max-width:68ch;margin-top:var(--s5)}
+
+/* ═══════ 01 · PILLARS ═══════ */
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s5);margin-top:var(--s8)}
+.pillar{
+  background:var(--glass-100);backdrop-filter:blur(40px) saturate(1.3);-webkit-backdrop-filter:blur(40px) saturate(1.3);
+  border:1px solid var(--glass-edge);border-radius:var(--r-xl);
+  padding:var(--s7);box-shadow:var(--sh-2),var(--glass-inner);
+  position:relative;overflow:hidden;
+  transition:transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.pillar:hover{transform:translateY(-2px);box-shadow:var(--sh-3),var(--glass-inner)}
+.pillar .idx{font-family:var(--f-disp);font-size:12px;font-weight:600;letter-spacing:.16em;color:var(--lib-listen);text-transform:uppercase}
+.pillar h3{font-family:var(--f-disp);font-weight:700;font-size:26px;line-height:1.15;letter-spacing:-.02em;margin:var(--s3) 0 var(--s4);color:var(--ink-1)}
+.pillar p{font-size:14px;line-height:1.7;color:var(--ink-2)}
+.pillar .src{margin-top:var(--s5);padding-top:var(--s4);border-top:1px dashed var(--glass-hair);font-family:var(--f-mono);font-size:10px;letter-spacing:.06em;color:var(--ink-3)}
+.pillar.feature{grid-column:span 3;background:linear-gradient(135deg, rgba(91,109,245,.12), rgba(181,104,245,.08) 40%, rgba(255,138,61,.08));border-color:rgba(91,109,245,.18)}
+.pillar.feature h3{font-size:40px;letter-spacing:-.025em}
+.pillar.feature p{font-size:16px;max-width:64ch}
+
+/* ═══════ 02 · PALETTE ═══════ */
+.pal-group{margin-top:var(--s8)}
+.pal-group h4{font-family:var(--f-disp);font-size:14px;font-weight:600;letter-spacing:.04em;color:var(--ink-3);text-transform:uppercase;margin-bottom:var(--s4);display:flex;align-items:baseline;gap:var(--s3)}
+.pal-group h4 span{font-family:var(--f-mono);font-size:11px;color:var(--ink-4);text-transform:none;letter-spacing:0}
+.pal{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--s3)}
+.pal.fb{grid-template-columns:repeat(4,1fr)}
+.sw{border-radius:var(--r-md);overflow:hidden;background:var(--glass-200);backdrop-filter:blur(32px);border:1px solid var(--glass-edge);box-shadow:var(--sh-1),var(--glass-inner)}
+.sw .chip{height:92px;position:relative}
+.sw .chip::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.22),transparent 40%)}
+.sw .meta{padding:14px 14px 16px}
+.sw .zh{font-family:var(--f-cn);font-weight:700;font-size:15px;color:var(--ink-1);letter-spacing:.01em}
+.sw .en{font-family:var(--f-disp);font-size:12px;font-weight:500;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+.sw .hex{font-family:var(--f-mono);font-size:10px;color:var(--ink-3);margin-top:6px;letter-spacing:.02em}
+
+/* Neutrals row */
+.neutrals{display:grid;grid-template-columns:repeat(8,1fr);gap:var(--s2);margin-top:var(--s5)}
+.n{border-radius:10px;overflow:hidden;border:1px solid var(--glass-hair)}
+.n .chip{height:56px}
+.n .meta{padding:8px 10px;background:#fff}
+.n .name{font-family:var(--f-mono);font-size:10px;color:var(--ink-2);letter-spacing:.04em}
+.n .val{font-family:var(--f-mono);font-size:9px;color:var(--ink-4)}
+
+/* ═══════ 03 · TYPE ═══════ */
+.type-stage{
+  background:var(--glass-100);backdrop-filter:blur(40px);border:1px solid var(--glass-edge);
+  border-radius:var(--r-2xl);padding:var(--s9);box-shadow:var(--sh-3),var(--glass-inner);
+  position:relative;overflow:hidden;
+}
+.type-stage::before{content:"";position:absolute;top:0;left:var(--s9);width:56px;height:2px;background:var(--lib-listen)}
+.type-hero{font-family:var(--f-disp);font-weight:900;font-size:clamp(64px,9vw,120px);line-height:.92;letter-spacing:-.05em;color:var(--ink-1)}
+.type-hero em{font-style:italic;font-weight:400;color:var(--lib-listen)}
+.type-sub{font-family:var(--f-disp);font-weight:500;font-size:24px;letter-spacing:-.01em;color:var(--ink-2);margin-top:var(--s5);max-width:48ch;line-height:1.35}
+.type-scale{display:grid;grid-template-columns:auto 1fr auto;gap:var(--s5);margin-top:var(--s8);padding-top:var(--s7);border-top:1px solid var(--glass-hair)}
+.type-scale .row{display:contents}
+.type-scale .row > *{padding:14px 0;border-bottom:1px dashed var(--glass-hair);align-self:baseline}
+.type-scale .row:last-child > *{border-bottom:none}
+.type-scale .lbl{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase}
+.type-scale .spec{font-family:var(--f-mono);font-size:10px;color:var(--ink-4);letter-spacing:.04em;text-align:right}
+.type-scale .samp{color:var(--ink-1)}
+
+/* ═══════ 04 · SURFACES / PHONES ═══════ */
+.surfaces{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s6);margin-top:var(--s8)}
+.phone{
+  position:relative;
+  aspect-ratio:393/852;
+  border-radius:55px;
+  padding:10px;
+  background:linear-gradient(145deg,#2a2a3a,#0B0B14);
+  box-shadow:
+    0 40px 80px rgba(11,11,20,.22),
+    0 10px 30px rgba(11,11,20,.14),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+.phone .bezel{
+  position:relative;
+  width:100%;height:100%;
+  border-radius:46px;
+  overflow:hidden;
+  background:var(--page);
+}
+/* Screen atmosphere (subtle, so it doesn't fight the card) */
+.phone .bezel::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 380px 260px at 20% 10%, rgba(91,109,245,.18), transparent 65%),
+    radial-gradient(ellipse 360px 260px at 90% 100%, rgba(181,104,245,.14), transparent 65%),
+    radial-gradient(ellipse 300px 220px at 80% 30%, rgba(255,138,61,.10), transparent 65%);
+}
+.phone .island{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  width:122px;height:37px;border-radius:22px;background:#000;z-index:30;
+}
+.phone .cap{
+  position:absolute;left:50%;bottom:-32px;transform:translateX(-50%);
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase;white-space:nowrap;
+}
+.screen{position:relative;width:100%;height:100%;z-index:1;display:flex;flex-direction:column}
+
+/* Status bar */
+.sb{padding:14px 28px 4px;display:flex;justify-content:space-between;align-items:center;font-family:var(--f-disp);font-size:12px;font-weight:600;color:var(--ink-1);z-index:10;position:relative}
+.sb .ri{display:flex;gap:5px;align-items:center;opacity:.75}
+.sb svg{width:13px;height:13px}
+
+/* Phone topbar */
+.p-top{padding:18px 22px 6px;display:flex;justify-content:space-between;align-items:center;z-index:5;position:relative}
+.p-top .title{font-family:var(--f-disp);font-weight:700;font-size:22px;letter-spacing:-.02em;color:var(--ink-1)}
+.p-top .crumb{font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase;margin-top:2px}
+.p-top .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--lib-listen),var(--lib-write));box-shadow:0 4px 14px rgba(91,109,245,.35)}
+
+/* Progress pill */
+.prog{
+  margin:10px 22px 0;
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;
+  background:var(--glass-200);backdrop-filter:blur(24px);
+  border:1px solid var(--glass-edge);border-radius:var(--r-full);
+  box-shadow:var(--sh-1),var(--glass-inner);
+}
+.prog .bar{flex:1;height:4px;border-radius:2px;background:rgba(11,11,20,.08);position:relative;overflow:hidden}
+.prog .bar::after{content:"";position:absolute;inset:0 70% 0 0;background:linear-gradient(90deg,var(--lib-listen),var(--lib-write));border-radius:inherit}
+.prog .n{font-family:var(--f-mono);font-size:10px;color:var(--ink-2);letter-spacing:.06em;font-weight:600}
+
+/* ── Learning card (absorbed from v4, modernized) ── */
+.lcard{
+  margin:var(--s4) 18px 0;
+  background:var(--glass-300);
+  backdrop-filter:blur(40px) saturate(1.2);-webkit-backdrop-filter:blur(40px) saturate(1.2);
+  border:1px solid var(--glass-edge);
+  border-radius:24px;
+  overflow:hidden;
+  box-shadow:
+    0 20px 48px rgba(11,11,20,.10),
+    0 4px 12px rgba(11,11,20,.05),
+    var(--glass-inner);
+  position:relative;
+}
+/* Ambient band: color fades into nothing, not a slab */
+.lcard .band{
+  padding:16px 20px 14px;position:relative;
+  background:linear-gradient(180deg, color-mix(in srgb, var(--band-color) 80%, transparent), color-mix(in srgb, var(--band-color) 0%, transparent));
+}
+.lcard .band::after{content:"";position:absolute;left:20px;right:20px;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent)}
+.lcard .pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px;background:rgba(255,255,255,.28);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.32);border-radius:var(--r-full);
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.12em;color:#fff;text-transform:uppercase;font-weight:600;
+}
+.lcard .pill .d{width:5px;height:5px;border-radius:50%;background:#fff}
+.lcard .band h3{font-family:var(--f-disp);font-weight:700;font-size:16px;color:#fff;margin-top:8px;letter-spacing:-.005em;text-shadow:0 1px 2px rgba(0,0,0,.12)}
+
+.lcard .body{padding:22px 22px 18px}
+.lcard .prompt{
+  font-family:var(--f-disp);font-weight:800;font-size:44px;line-height:1.02;letter-spacing:-.035em;color:var(--ink-1);
+}
+.lcard .phon{font-family:var(--f-mono);font-size:13px;color:var(--ink-3);margin-top:6px;letter-spacing:.03em}
+.lcard .stem{
+  font-family:var(--f-cn);font-size:14px;line-height:1.75;color:var(--ink-2);
+  margin-top:var(--s5);padding-top:var(--s5);border-top:1px dashed var(--glass-hair);
+}
+.lcard .stem em{font-style:normal;background:linear-gradient(180deg,transparent 60%,color-mix(in srgb,var(--band-color) 28%,transparent) 60%);padding:0 2px;color:var(--ink-1);font-weight:500}
+.lcard .choices{display:flex;flex-direction:column;gap:8px;margin-top:var(--s4)}
+.lcard .ch{
+  display:grid;grid-template-columns:24px 1fr;gap:12px;align-items:center;
+  padding:12px 14px;background:var(--glass-100);border:1px solid var(--glass-hair);
+  border-radius:14px;font-size:14px;color:var(--ink-1);line-height:1.4;
+  transition:all var(--dur) var(--ease);
+}
+.lcard .ch .k{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);font-weight:700;letter-spacing:.08em}
+.lcard .ch.picked{background:color-mix(in srgb,var(--band-color) 10%,#fff);border-color:color-mix(in srgb,var(--band-color) 40%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--band-color) 12%,transparent)}
+.lcard .ch.picked .k{color:var(--band-color)}
+
+/* feedback row */
+.fb-row{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;
+  margin:16px 22px 0;padding:10px;
+  background:var(--glass-200);backdrop-filter:blur(24px);
+  border:1px solid var(--glass-edge);border-radius:var(--r-full);
+  box-shadow:var(--sh-1),var(--glass-inner);
+}
+.fb{padding:9px 6px;border-radius:var(--r-full);text-align:center;font-size:11px;font-weight:600;color:var(--ink-2);letter-spacing:.02em;line-height:1.2;position:relative}
+.fb::before{content:"";display:block;width:5px;height:5px;border-radius:50%;margin:0 auto 4px}
+.fb.p::before{background:var(--fb-prof)}
+.fb.k::before{background:var(--fb-know)}
+.fb.u::before{background:var(--fb-unsure)}
+.fb.f::before{background:var(--fb-forgot)}
+
+/* Floating tab bar (VisionOS-style pill) */
+.tabbar{
+  margin-top:auto;
+  margin-bottom:16px;margin-left:22px;margin-right:22px;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
+  padding:6px;
+  background:var(--glass-300);backdrop-filter:blur(40px) saturate(1.3);-webkit-backdrop-filter:blur(40px) saturate(1.3);
+  border:1px solid var(--glass-edge);border-radius:var(--r-full);
+  box-shadow:var(--sh-3),var(--glass-inner);
+}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:var(--r-full);font-size:10px;color:var(--ink-3);letter-spacing:.04em;font-weight:500;transition:all var(--dur) var(--ease)}
+.tab.active{background:var(--ink-1);color:#fff;box-shadow:0 4px 14px rgba(11,11,20,.18)}
+.tab svg{width:16px;height:16px;stroke-width:1.75}
+
+/* ── Space surface content ── */
+.space-body{padding:14px 22px 12px;flex:1;overflow:hidden;display:flex;flex-direction:column;gap:10px}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{padding:12px 10px;background:var(--glass-200);backdrop-filter:blur(24px);border:1px solid var(--glass-edge);border-radius:16px;box-shadow:var(--sh-1),var(--glass-inner)}
+.stat .v{font-family:var(--f-disp);font-size:24px;font-weight:800;letter-spacing:-.02em;color:var(--ink-1);line-height:1;font-variant-numeric:tabular-nums}
+.stat .v small{font-size:11px;color:var(--ink-3);font-weight:500;margin-left:2px}
+.stat .l{font-family:var(--f-mono);font-size:9px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase;margin-top:5px}
+
+.lib-list{display:flex;flex-direction:column;gap:8px;flex:1}
+.lib-row{
+  display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;
+  padding:11px 14px;
+  background:var(--glass-200);backdrop-filter:blur(24px);
+  border:1px solid var(--glass-edge);border-radius:14px;box-shadow:var(--sh-1),var(--glass-inner);
+  transition:all var(--dur) var(--ease);
+}
+.lib-row:hover{transform:translateX(2px)}
+.lib-row .swatch{width:28px;height:28px;border-radius:8px;background:var(--c);box-shadow:0 2px 8px color-mix(in srgb,var(--c) 40%,transparent)}
+.lib-row .t{font-family:var(--f-cn);font-weight:600;font-size:13px;color:var(--ink-1)}
+.lib-row .m{font-family:var(--f-mono);font-size:10px;color:var(--ink-3);letter-spacing:.04em;margin-top:2px}
+.lib-row .c{font-family:var(--f-mono);font-size:11px;color:var(--ink-2);font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.lib-row .c small{display:block;font-size:9px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;font-weight:500;margin-top:2px}
+.lib-row.current{background:color-mix(in srgb,var(--c) 8%,#fff);border-color:color-mix(in srgb,var(--c) 30%,transparent)}
+.lib-row.sleep{opacity:.55;filter:saturate(.4)}
+.lib-row.sleep .swatch{box-shadow:none}
+
+/* ── Paywall surface ── */
+.pw-head{padding:20px 22px 14px}
+.pw-head .kicker{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:color-mix(in srgb,var(--lib-grammar) 14%,#fff);border:1px solid color-mix(in srgb,var(--lib-grammar) 32%,transparent);border-radius:var(--r-full);font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;color:color-mix(in srgb,var(--lib-grammar) 60%, var(--ink-1));text-transform:uppercase;font-weight:600}
+.pw-head .kicker .d{width:5px;height:5px;border-radius:50%;background:var(--lib-grammar)}
+.pw-head h3{font-family:var(--f-disp);font-weight:800;font-size:30px;line-height:1.1;letter-spacing:-.03em;margin-top:12px;color:var(--ink-1)}
+.pw-head h3 em{font-style:italic;font-weight:400;color:var(--lib-grammar)}
+.pw-head p{font-size:13px;color:var(--ink-2);margin-top:10px;line-height:1.65}
+
+.pw-card{
+  margin:14px 22px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.88), rgba(255,255,255,.72)),
+    linear-gradient(135deg, var(--lib-grammar), var(--lib-read));
+  background-blend-mode:normal;
+  backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
+  border:1px solid rgba(245,177,0,.22);
+  border-radius:24px;padding:22px;box-shadow:var(--sh-3),var(--glass-inner);
+  position:relative;overflow:hidden;
+}
+.pw-card::before{content:"";position:absolute;top:0;left:22px;right:22px;height:1px;background:linear-gradient(90deg,transparent,rgba(245,177,0,.6),transparent)}
+.pw-card .tier{font-family:var(--f-mono);font-size:10px;letter-spacing:.2em;color:color-mix(in srgb,var(--lib-grammar) 70%,var(--ink-1));text-transform:uppercase;font-weight:700}
+.pw-card .price{font-family:var(--f-disp);font-size:54px;font-weight:800;letter-spacing:-.035em;line-height:1;margin-top:8px;color:var(--ink-1);font-variant-numeric:tabular-nums}
+.pw-card .price small{font-family:var(--f-cn);font-size:12px;font-weight:500;color:var(--ink-3);letter-spacing:0;margin-left:6px}
+.pw-card ul{list-style:none;margin:16px 0 20px;display:flex;flex-direction:column;gap:8px}
+.pw-card li{display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:baseline;font-size:13px;color:var(--ink-2);line-height:1.5}
+.pw-card li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--lib-grammar);margin-top:6px;justify-self:center}
+.pw-card .cta{
+  display:block;text-align:center;padding:14px;border-radius:16px;
+  background:var(--ink-1);color:#fff;
+  font-family:var(--f-disp);font-weight:600;font-size:15px;letter-spacing:.01em;
+  box-shadow:0 10px 24px rgba(11,11,20,.2), var(--glass-inner);
+}
+.pw-card .alt{display:block;text-align:center;padding:10px;margin-top:4px;font-size:12px;color:var(--ink-3)}
+
+/* ═══════ 05 · NIGHT ═══════ */
+.night-stage{margin-top:var(--s8);display:grid;grid-template-columns:1fr 1fr;gap:var(--s6);align-items:start}
+.night-phone{
+  aspect-ratio:393/852;
+  border-radius:55px;padding:10px;
+  background:linear-gradient(145deg,#1a1a24,#060609);
+  box-shadow:0 40px 80px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.3);
+}
+.night-bezel{
+  width:100%;height:100%;border-radius:46px;overflow:hidden;
+  background:var(--night);color:var(--ink-n-1);position:relative;
+}
+.night-bezel::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 380px 260px at 20% 15%, rgba(91,109,245,.28), transparent 60%),
+    radial-gradient(ellipse 340px 260px at 85% 90%, rgba(181,104,245,.22), transparent 60%),
+    radial-gradient(ellipse 280px 240px at 80% 25%, rgba(24,196,224,.14), transparent 60%);
+}
+.night-bezel .island{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:122px;height:37px;border-radius:22px;background:#000;z-index:30}
+.night-bezel .sb{color:var(--ink-n-1)}
+.night-bezel .p-top .title{color:var(--ink-n-1)}
+.night-bezel .p-top .crumb{color:var(--ink-n-3)}
+.night-bezel .prog{background:var(--glass-n-200);border-color:var(--glass-n-edge);box-shadow:var(--sh-1),var(--glass-n-inner)}
+.night-bezel .prog .bar{background:rgba(255,255,255,.08)}
+.night-bezel .prog .n{color:var(--ink-n-2)}
+.night-bezel .lcard{background:var(--glass-n-200);border-color:var(--glass-n-edge);box-shadow:0 20px 48px rgba(0,0,0,.4),var(--glass-n-inner)}
+.night-bezel .lcard .body{color:var(--ink-n-1)}
+.night-bezel .lcard .prompt{color:var(--ink-n-1)}
+.night-bezel .lcard .phon{color:var(--ink-n-3)}
+.night-bezel .lcard .stem{color:var(--ink-n-2);border-top-color:var(--glass-n-hair)}
+.night-bezel .lcard .stem em{color:var(--ink-n-1)}
+.night-bezel .lcard .ch{background:var(--glass-n-100);border-color:var(--glass-n-hair);color:var(--ink-n-1)}
+.night-bezel .lcard .ch .k{color:var(--ink-n-3)}
+.night-bezel .lcard .ch.picked{background:color-mix(in srgb,var(--band-color) 18%,#0B0B14);border-color:color-mix(in srgb,var(--band-color) 60%,transparent)}
+.night-bezel .fb-row{background:var(--glass-n-200);border-color:var(--glass-n-edge)}
+.night-bezel .fb{color:var(--ink-n-2)}
+.night-bezel .tabbar{background:var(--glass-n-200);border-color:var(--glass-n-edge);box-shadow:var(--sh-3),var(--glass-n-inner)}
+.night-bezel .tab{color:var(--ink-n-3)}
+.night-bezel .tab.active{background:#fff;color:var(--night)}
+
+.night-notes{
+  background:var(--glass-100);backdrop-filter:blur(40px);border:1px solid var(--glass-edge);
+  border-radius:var(--r-2xl);padding:var(--s7);box-shadow:var(--sh-2),var(--glass-inner);
+}
+.night-notes h4{font-family:var(--f-disp);font-weight:700;font-size:24px;letter-spacing:-.02em;margin-bottom:var(--s5)}
+.night-notes ul{list-style:none;display:flex;flex-direction:column;gap:var(--s4)}
+.night-notes li{display:grid;grid-template-columns:28px 1fr;gap:12px;font-size:14px;line-height:1.65;color:var(--ink-2)}
+.night-notes li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--lib-listen);margin-top:8px}
+.night-notes li:nth-child(2)::before{background:var(--lib-write)}
+.night-notes li:nth-child(3)::before{background:var(--lib-trans)}
+.night-notes li:nth-child(4)::before{background:var(--lib-grammar)}
+.night-notes li:nth-child(5)::before{background:var(--lib-vocab)}
+.night-notes li strong{font-family:var(--f-disp);font-weight:700;color:var(--ink-1);letter-spacing:-.005em}
+
+/* ═══════ 06 · COMPONENT VOCABULARY ═══════ */
+.vocab{display:grid;grid-template-columns:1fr 1fr;gap:var(--s6);margin-top:var(--s8)}
+.vo-block{
+  background:var(--glass-100);backdrop-filter:blur(40px);border:1px solid var(--glass-edge);
+  border-radius:var(--r-xl);padding:var(--s7);box-shadow:var(--sh-2),var(--glass-inner);
+}
+.vo-block h4{font-family:var(--f-disp);font-weight:700;font-size:18px;letter-spacing:-.01em;color:var(--ink-1);margin-bottom:var(--s5);display:flex;align-items:center;gap:8px}
+.vo-block h4 .tag{font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;padding:3px 8px;background:var(--glass-200);border-radius:var(--r-full);color:var(--ink-3);text-transform:uppercase;font-weight:500}
+
+/* Chips demo */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:var(--s5)}
+.chip-s{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;background:color-mix(in srgb,var(--c) 12%,#fff);
+  border:1px solid color-mix(in srgb,var(--c) 30%,transparent);
+  border-radius:var(--r-full);font-family:var(--f-cn);font-size:12px;font-weight:600;
+  color:color-mix(in srgb,var(--c) 70%,var(--ink-1));
+}
+.chip-s .d{width:6px;height:6px;border-radius:50%;background:var(--c)}
+
+/* Buttons demo */
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:14px;font-family:var(--f-disp);font-weight:600;font-size:14px;letter-spacing:.01em;border:none;cursor:pointer;transition:all var(--dur) var(--ease)}
+.btn.primary{background:var(--ink-1);color:#fff;box-shadow:0 8px 20px rgba(11,11,20,.18),var(--glass-inner)}
+.btn.primary:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(11,11,20,.24),var(--glass-inner)}
+.btn.glass{background:var(--glass-200);backdrop-filter:blur(20px);color:var(--ink-1);border:1px solid var(--glass-edge);box-shadow:var(--sh-1),var(--glass-inner)}
+.btn.ghost{background:transparent;color:var(--ink-2)}
+.btn.lib{background:color-mix(in srgb,var(--c) 14%,#fff);color:color-mix(in srgb,var(--c) 60%,var(--ink-1));border:1px solid color-mix(in srgb,var(--c) 28%,transparent)}
+
+/* Stat grid demo */
+.st-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:var(--s5)}
+.st-card{padding:16px;background:var(--glass-200);backdrop-filter:blur(24px);border:1px solid var(--glass-edge);border-radius:18px;box-shadow:var(--sh-1),var(--glass-inner)}
+.st-card .v{font-family:var(--f-disp);font-size:32px;font-weight:800;letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink-1)}
+.st-card .v small{font-size:13px;font-weight:500;color:var(--ink-3);margin-left:3px}
+.st-card .l{font-family:var(--f-mono);font-size:10px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
+.st-card .trend{font-family:var(--f-mono);font-size:10px;margin-top:4px;letter-spacing:.04em}
+.st-card .trend.up{color:var(--fb-prof)}
+.st-card .trend.down{color:var(--fb-forgot)}
+
+/* ═══════ 07 · RULES ═══════ */
+.rules{display:grid;grid-template-columns:1fr 1fr;gap:var(--s5);margin-top:var(--s8)}
+.rule{
+  background:var(--glass-100);backdrop-filter:blur(40px);border:1px solid var(--glass-edge);
+  border-radius:var(--r-xl);padding:var(--s7);box-shadow:var(--sh-2),var(--glass-inner);
+  position:relative;overflow:hidden;
+}
+.rule::before{content:"";position:absolute;top:0;left:var(--s7);right:var(--s7);height:2px}
+.rule.do::before{background:linear-gradient(90deg,var(--fb-prof),transparent)}
+.rule.dont::before{background:linear-gradient(90deg,var(--fb-forgot),transparent)}
+.rule h4{font-family:var(--f-disp);font-weight:800;font-size:22px;letter-spacing:-.02em;margin-bottom:var(--s5);display:flex;align-items:center;gap:10px}
+.rule h4 .tag{font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;padding:4px 10px;border-radius:var(--r-full);text-transform:uppercase;font-weight:600}
+.rule.do h4 .tag{background:color-mix(in srgb,var(--fb-prof) 12%,#fff);color:var(--fb-prof);border:1px solid color-mix(in srgb,var(--fb-prof) 28%,transparent)}
+.rule.dont h4 .tag{background:color-mix(in srgb,var(--fb-forgot) 12%,#fff);color:var(--fb-forgot);border:1px solid color-mix(in srgb,var(--fb-forgot) 28%,transparent)}
+.rule ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.rule li{display:grid;grid-template-columns:14px 1fr;gap:10px;font-size:14px;line-height:1.6;color:var(--ink-2)}
+.rule li::before{content:"";width:6px;height:6px;border-radius:50%;margin-top:8px;justify-self:center}
+.rule.do li::before{background:var(--fb-prof)}
+.rule.dont li::before{background:var(--fb-forgot)}
+
+/* ═══════ FOOTER ═══════ */
+footer{margin-top:var(--sa);padding-top:var(--s7);border-top:1px solid var(--glass-hair);display:flex;justify-content:space-between;align-items:center;font-family:var(--f-mono);font-size:10px;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase}
+footer .dot{width:6px;height:6px;border-radius:50%;background:var(--lib-listen);box-shadow:0 0 0 4px rgba(91,109,245,.16);display:inline-block;margin-right:8px;vertical-align:-1px}
+
+/* SVG icons default */
+svg.ico{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+
+/* Responsive mercy */
+@media (max-width:1024px){
+  .pillars,.surfaces,.vocab,.rules,.pal{grid-template-columns:1fr 1fr!important}
+  .pillar.feature{grid-column:span 2}
+}
+@media (max-width:640px){
+  .pillars,.surfaces,.vocab,.rules,.pal,.pal.fb,.night-stage{grid-template-columns:1fr!important}
+  .pillar.feature{grid-column:auto}
+  .wrap{padding:48px 20px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ═══════ MASTHEAD ═══════ -->
+<header class="mast">
+  <div>
+    <div class="brand">Softbook CET · Visual Anchor v2 · implementation hypothesis</div>
+    <h1>Aurora&nbsp;Glass<br/><span class="accent">for quiet study.</span></h1>
+    <p class="sub">吸收彩色玻璃的词汇，推到 VisionOS 级的克制与编辑化。Aurora 氛围、单库单强色、40px 玻璃、grain 颗粒、Outfit 大字与 Noto Sans 正文——让"被懂四六级的系统带着走"这句话有了具体的空气。</p>
+    <p class="sub" style="margin-top:10px;font-size:13px;color:var(--ink-4);max-width:58ch">本页是 <strong style="color:var(--ink-2)">视觉实现假设</strong>（implementation hypothesis）的稳定锚点。结构真相在 <code style="font-family:var(--f-mono);font-size:12px;color:var(--ink-2)">spec/visual-language.json</code>——色号、字号、模糊半径可以 ±5% 微调，但承重柱与身份语义不可替换。</p>
+  </div>
+  <aside>derived · not · imported</aside>
+</header>
+
+<!-- ═══════ 01 · PILLARS ═══════ -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="sec-meta"><span class="num">01</span><span class="dot"></span>Pillars</div>
+    <h2>五根承重柱，其余都<em>可以换</em>。</h2>
+  </div>
+
+  <div class="pillars">
+    <div class="pillar feature">
+      <div class="idx">Law of One</div>
+      <h3>一屏一个当前学科，一屏一种强色。</h3>
+      <p>用户一次只在一个 library 里（听力蓝 / 阅读橙 / 写作紫 ...）。当前学科色是这屏的主轴，所有 chip、picked、分隔、重点高亮都向它靠拢；其余 6 色只能以 10–20% 透明度出现在导航或空间地图里。违反即失格。</p>
+    </div>
+
+    <div class="pillar">
+      <div class="idx">Pillar 01</div>
+      <h3>Aurora 氛围，不是装饰</h3>
+      <p>背景的 3–5 个色球是当前屏幕情绪的暗示——玻璃之所以显色，是因为身后真有色。不要在玻璃上再叠装饰。</p>
+      <div class="src">← interface_principles.quiet + glass_depends_on_atmosphere</div>
+    </div>
+    <div class="pillar">
+      <div class="idx">Pillar 02</div>
+      <h3>玻璃有厚度</h3>
+      <p>40–60px 模糊 + 1px 亮边 + inset 顶光 + 4% grain。纸是克制的玻璃，玻璃是克制的体积。不做平面色块。</p>
+      <div class="src">← card-as-object · VisionOS vocabulary</div>
+    </div>
+    <div class="pillar">
+      <div class="idx">Pillar 03</div>
+      <h3>排印承载权威</h3>
+      <p>Outfit display 驱动标题（-0.045em 紧字距，800–900），Noto Sans 驱动中文正文，JetBrains Mono 驱动数字与 label。衬线不来，但权威感靠尺度与紧度建立。</p>
+      <div class="src">← desk-authority reimagined in modern sans</div>
+    </div>
+    <div class="pillar">
+      <div class="idx">Pillar 04</div>
+      <h3>交互即轮廓</h3>
+      <p>翻面 / 四选一 / 开锁 / 消除 / 滑动——五种交互的屏幕轮廓必须远看可辨。不是"四个按钮换图标"。</p>
+      <div class="src">← interaction_contract_status · interactions.json</div>
+    </div>
+    <div class="pillar">
+      <div class="idx">Pillar 05</div>
+      <h3>空间是彩色地图</h3>
+      <p>七学科色让 library 在空间视图里一眼可认。sleep 不是灰色，是"掉饱和 + 降透明度"。层级永远 library→group→box→card。</p>
+      <div class="src">← must_not_be_reduced_to · AP-02</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 02 · PALETTE ═══════ -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="sec-meta"><span class="num">02</span><span class="dot"></span>Palette</div>
+    <h2>七学科 × 四反馈 × 中性。<em>纯色只出现在身份上。</em></h2>
+  </div>
+  <p class="lede">身份色（library identity）是 CET 学科的视觉标签，只在 chip / band / swatch / picked-border 出现；反馈色只在 flip 后的四级自评出现；其他一切——按钮、文字、分隔、背景——全部走中性灰阶。</p>
+
+  <div class="pal-group">
+    <h4>Library Identity <span>七学科身份色 · 只用在 library 范围内</span></h4>
+    <div class="pal">
+      <div class="sw"><div class="chip" style="background:var(--lib-listen)"></div><div class="meta"><div class="zh">听力</div><div class="en">Listening</div><div class="hex">#5B6DF5</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--lib-read)"></div><div class="meta"><div class="zh">阅读</div><div class="en">Reading</div><div class="hex">#FF8A3D</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--lib-cloze)"></div><div class="meta"><div class="zh">选词填空</div><div class="en">Cloze</div><div class="hex">#22C58B</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--lib-write)"></div><div class="meta"><div class="zh">写作</div><div class="en">Writing</div><div class="hex">#B568F5</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--lib-trans)"></div><div class="meta"><div class="zh">翻译</div><div class="en">Translation</div><div class="hex">#18C4E0</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--lib-vocab)"></div><div class="meta"><div class="zh">词汇</div><div class="en">Vocabulary</div><div class="hex">#F15B6E</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--lib-grammar)"></div><div class="meta"><div class="zh">语法</div><div class="en">Grammar</div><div class="hex">#F5B100</div></div></div>
+    </div>
+  </div>
+
+  <div class="pal-group">
+    <h4>Self-Assess Feedback <span>翻面后四级自评 · 除 flip 外禁用</span></h4>
+    <div class="pal fb">
+      <div class="sw"><div class="chip" style="background:var(--fb-prof)"></div><div class="meta"><div class="zh">掌握</div><div class="en">Proficient</div><div class="hex">#22C58B</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--fb-know)"></div><div class="meta"><div class="zh">知道</div><div class="en">Know</div><div class="hex">#5B6DF5</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--fb-unsure)"></div><div class="meta"><div class="zh">不确定</div><div class="en">Unsure</div><div class="hex">#FF8A3D</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--fb-forgot)"></div><div class="meta"><div class="zh">忘了</div><div class="en">Forgot</div><div class="hex">#F15B6E</div></div></div>
+    </div>
+  </div>
+
+  <div class="pal-group">
+    <h4>Neutrals <span>承载 90% 的界面</span></h4>
+    <div class="neutrals">
+      <div class="n"><div class="chip" style="background:#0B0B14"></div><div class="meta"><div class="name">ink-1</div><div class="val">#0B0B14</div></div></div>
+      <div class="n"><div class="chip" style="background:#3A3A4E"></div><div class="meta"><div class="name">ink-2</div><div class="val">#3A3A4E</div></div></div>
+      <div class="n"><div class="chip" style="background:#7A7A90"></div><div class="meta"><div class="name">ink-3</div><div class="val">#7A7A90</div></div></div>
+      <div class="n"><div class="chip" style="background:#ACACBF"></div><div class="meta"><div class="name">ink-4</div><div class="val">#ACACBF</div></div></div>
+      <div class="n"><div class="chip" style="background:#ECEAF4"></div><div class="meta"><div class="name">page-tint</div><div class="val">#ECEAF4</div></div></div>
+      <div class="n"><div class="chip" style="background:#F1F0F6"></div><div class="meta"><div class="name">page</div><div class="val">#F1F0F6</div></div></div>
+      <div class="n"><div class="chip" style="background:#12131C"></div><div class="meta"><div class="name">night-2</div><div class="val">#12131C</div></div></div>
+      <div class="n"><div class="chip" style="background:#0B0B12"></div><div class="meta"><div class="name">night</div><div class="val">#0B0B12</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 03 · TYPE ═══════ -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="sec-meta"><span class="num">03</span><span class="dot"></span>Typography</div>
+    <h2>尺度做权威，<em>不靠衬线。</em></h2>
+  </div>
+  <p class="lede">Outfit 的几何骨架在 80–120px 时仍不松散，足以承载考试工具该有的确定感；italic variant 用作强调而非装饰，像编辑排版中的 lede。</p>
+
+  <div class="type-stage">
+    <div class="type-hero">however, <em>then.</em></div>
+    <div class="type-sub">ADV · 用于转折；六级真题近三年出现频次 11 · 已掌握 7 · 待巩固 4</div>
+
+    <div class="type-scale">
+      <div class="row"><span class="lbl">Display / Hero</span><span class="samp" style="font-family:var(--f-disp);font-size:72px;font-weight:900;letter-spacing:-.045em;line-height:.95">however</span><span class="spec">Outfit 900 · 72 · -4.5%</span></div>
+      <div class="row"><span class="lbl">Display / Section</span><span class="samp" style="font-family:var(--f-disp);font-size:44px;font-weight:800;letter-spacing:-.035em">知识地图</span><span class="spec">Outfit 800 · 44 · -3.5%</span></div>
+      <div class="row"><span class="lbl">Display / Card</span><span class="samp" style="font-family:var(--f-disp);font-size:28px;font-weight:700;letter-spacing:-.02em">CET-6 · Unit 07</span><span class="spec">Outfit 700 · 28 · -2%</span></div>
+      <div class="row"><span class="lbl">Body / CN</span><span class="samp" style="font-family:var(--f-cn);font-size:15px;line-height:1.65">报告很详尽，然而它遗漏了关于职场改革的核心论据。</span><span class="spec">Noto Sans 400 · 15 · 1.65</span></div>
+      <div class="row"><span class="lbl">Caption</span><span class="samp" style="font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;color:var(--ink-3);text-transform:uppercase">PROGRESS · 04 / 12</span><span class="spec">JetBrains Mono 500 · 11 · +16%</span></div>
+      <div class="row"><span class="lbl">Numeric</span><span class="samp" style="font-family:var(--f-disp);font-size:48px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums">128<span style="font-size:14px;font-weight:500;color:var(--ink-3);margin-left:4px">/年</span></span><span class="spec">Outfit 800 · tabular</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 04 · SURFACES ═══════ -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="sec-meta"><span class="num">04</span><span class="dot"></span>Surfaces</div>
+    <h2>三个核心端面，<em>远看即可辨。</em></h2>
+  </div>
+  <p class="lede">不是 pixel mock；是轮廓锚点。如果把下面三张图糊到 10% 分辨率，你还应该一眼认出：学习是"中心单卡 + 底部胶囊 tab"，空间是"顶部统计 + 垂直七学科列"，付费墙是"上半解释下半大数字"。</p>
+
+  <div class="surfaces">
+
+    <!-- LEARNING -->
+    <div class="phone" style="--band-color:var(--lib-listen)">
+      <div class="bezel">
+        <div class="island"></div>
+        <div class="screen">
+          <div class="sb"><span>9:41</span><span class="ri">
+            <svg class="ico" viewBox="0 0 18 18"><path d="M2 10a7 7 0 0 1 14 0"/><path d="M5 12a4 4 0 0 1 8 0"/><circle cx="9" cy="14" r="1" fill="currentColor"/></svg>
+            <svg class="ico" viewBox="0 0 22 12"><rect x="1" y="2" width="18" height="8" rx="2"/><rect x="2.5" y="3.5" width="13" height="5" rx="1" fill="currentColor"/><rect x="20" y="4" width="1.5" height="4" rx=".75" fill="currentColor"/></svg>
+          </span></div>
+          <div class="p-top">
+            <div>
+              <div class="crumb">CET-6 · Listening</div>
+              <div class="title">Unit 07</div>
+            </div>
+            <div class="avatar"></div>
+          </div>
+          <div class="prog"><span class="n">04</span><div class="bar"></div><span class="n">12</span></div>
+
+          <div class="lcard">
+            <div class="band">
+              <span class="pill"><span class="d"></span>LISTENING · FLIP</span>
+              <h3>转折连词在听力语境中的辨析</h3>
+            </div>
+            <div class="body">
+              <div class="prompt">however</div>
+              <div class="phon">/haʊˈevə/ · adv.</div>
+              <div class="stem">The report was detailed; <em>______</em>, it missed the core argument about workplace reform.</div>
+              <div style="margin-top:14px;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:rgba(91,109,245,.08);border:1px solid rgba(91,109,245,.18)">
+                <svg class="ico" viewBox="0 0 20 20" style="color:var(--lib-listen)"><path d="M4 10a6 6 0 0 1 12 0M4 10a6 6 0 0 0 12 0M4 10v-2M16 10v2" stroke-linecap="round"/></svg>
+                <span style="font-size:12px;color:var(--ink-2);flex:1">轻点卡片 · 翻面看解析</span>
+                <span style="font-family:var(--f-mono);font-size:10px;color:var(--ink-4);letter-spacing:.1em">AUDIO</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fb-row" title="翻面后出现 · 4 级自评">
+            <div class="fb p">掌握</div>
+            <div class="fb k">知道</div>
+            <div class="fb u">不确定</div>
+            <div class="fb f">忘了</div>
+          </div>
+
+          <div class="tabbar">
+            <div class="tab active"><svg class="ico" viewBox="0 0 20 20"><rect x="3" y="5" width="14" height="10" rx="2"/><path d="M3 9h14"/></svg>学习</div>
+            <div class="tab"><svg class="ico" viewBox="0 0 20 20"><path d="M3 16V7l7-4 7 4v9"/><path d="M7 16V10h6v6"/></svg>空间</div>
+            <div class="tab"><svg class="ico" viewBox="0 0 20 20"><path d="M4 16V10M10 16V5M16 16v-8"/></svg>统计</div>
+            <div class="tab"><svg class="ico" viewBox="0 0 20 20"><circle cx="10" cy="7.5" r="3"/><path d="M4 16.5c1-3 4-5 6-5s5 2 6 5"/></svg>我的</div>
+          </div>
+        </div>
+      </div>
+      <div class="cap">LEARNING · flip · light</div>
+    </div>
+
+    <!-- SPACE -->
+    <div class="phone" style="--band-color:var(--lib-listen)">
+      <div class="bezel">
+        <div class="island"></div>
+        <div class="screen">
+          <div class="sb"><span>9:41</span><span class="ri">
+            <svg class="ico" viewBox="0 0 18 18"><path d="M2 10a7 7 0 0 1 14 0"/></svg>
+            <svg class="ico" viewBox="0 0 22 12"><rect x="1" y="2" width="18" height="8" rx="2"/><rect x="2.5" y="3.5" width="13" height="5" rx="1" fill="currentColor"/><rect x="20" y="4" width="1.5" height="4" rx=".75" fill="currentColor"/></svg>
+          </span></div>
+          <div class="p-top">
+            <div>
+              <div class="crumb">My Knowledge Map</div>
+              <div class="title">空间</div>
+            </div>
+            <div class="avatar" style="background:linear-gradient(135deg,var(--lib-trans),var(--lib-cloze))"></div>
+          </div>
+
+          <div class="space-body">
+            <div class="stat-row">
+              <div class="stat"><div class="v">1 248</div><div class="l">Cards</div></div>
+              <div class="stat"><div class="v">7 <small>libs</small></div><div class="l">Active</div></div>
+              <div class="stat"><div class="v">24 <small>sleep</small></div><div class="l">Resting</div></div>
+            </div>
+
+            <div class="lib-list">
+              <div class="lib-row current" style="--c:var(--lib-listen)">
+                <div class="swatch"></div>
+                <div><div class="t">听力 · Listening</div><div class="m">Unit 07 · 04 / 12 · 正在学</div></div>
+                <div class="c">186<small>cards</small></div>
+              </div>
+              <div class="lib-row" style="--c:var(--lib-read)">
+                <div class="swatch"></div>
+                <div><div class="t">阅读 · Reading</div><div class="m">3 groups · 42 boxes</div></div>
+                <div class="c">312<small>cards</small></div>
+              </div>
+              <div class="lib-row" style="--c:var(--lib-write)">
+                <div class="swatch"></div>
+                <div><div class="t">写作 · Writing</div><div class="m">2 groups · 18 boxes</div></div>
+                <div class="c">94<small>cards</small></div>
+              </div>
+              <div class="lib-row" style="--c:var(--lib-trans)">
+                <div class="swatch"></div>
+                <div><div class="t">翻译 · Translation</div><div class="m">1 group · 9 boxes</div></div>
+                <div class="c">62<small>cards</small></div>
+              </div>
+              <div class="lib-row" style="--c:var(--lib-vocab)">
+                <div class="swatch"></div>
+                <div><div class="t">词汇 · Vocabulary</div><div class="m">5 groups · 60 boxes</div></div>
+                <div class="c">520<small>cards</small></div>
+              </div>
+              <div class="lib-row sleep" style="--c:var(--lib-grammar)">
+                <div class="swatch"></div>
+                <div><div class="t">语法 · Grammar</div><div class="m">睡眠中 · 7 boxes</div></div>
+                <div class="c">74<small>cards</small></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tabbar">
+            <div class="tab"><svg class="ico" viewBox="0 0 20 20"><rect x="3" y="5" width="14" height="10" rx="2"/><path d="M3 9h14"/></svg>学习</div>
+            <div class="tab active"><svg class="ico" viewBox="0 0 20 20"><path d="M3 16V7l7-4 7 4v9"/><path d="M7 16V10h6v6"/></svg>空间</div>
+            <div class="tab"><svg class="ico" viewBox="0 0 20 20"><path d="M4 16V10M10 16V5M16 16v-8"/></svg>统计</div>
+            <div class="tab"><svg class="ico" viewBox="0 0 20 20"><circle cx="10" cy="7.5" r="3"/><path d="M4 16.5c1-3 4-5 6-5s5 2 6 5"/></svg>我的</div>
+          </div>
+        </div>
+      </div>
+      <div class="cap">SPACE · colored knowledge map</div>
+    </div>
+
+    <!-- PAYWALL -->
+    <div class="phone">
+      <div class="bezel">
+        <div class="island"></div>
+        <div class="screen">
+          <div class="sb"><span>9:41</span><span class="ri">
+            <svg class="ico" viewBox="0 0 18 18"><path d="M2 10a7 7 0 0 1 14 0"/></svg>
+            <svg class="ico" viewBox="0 0 22 12"><rect x="1" y="2" width="18" height="8" rx="2"/><rect x="2.5" y="3.5" width="13" height="5" rx="1" fill="currentColor"/><rect x="20" y="4" width="1.5" height="4" rx=".75" fill="currentColor"/></svg>
+          </span></div>
+          <div class="pw-head">
+            <span class="kicker"><span class="d"></span>TRIAL · ENDED</span>
+            <h3>你已经走完一半<em>默认路径。</em></h3>
+            <p>基础翻面与今日回顾仍然免费；完整知识地图、系统排序与真题扩展由会员承载。</p>
+          </div>
+
+          <div class="pw-card">
+            <div class="tier">Year · 年度会员</div>
+            <div class="price">¥128<small>/ 年 · 自动续费可关</small></div>
+            <ul>
+              <li>完整知识地图 · 七学科 + sleep 区</li>
+              <li>系统排序的默认学习路径</li>
+              <li>真题扩展 · 新词库持续加入</li>
+              <li>多端同源 · iOS / Android / Web</li>
+            </ul>
+            <a class="cta" href="#">开通年度会员</a>
+            <a class="alt" href="#">恢复购买 · 稍后再说</a>
+          </div>
+
+          <div class="tabbar">
+            <div class="tab"><svg class="ico" viewBox="0 0 20 20"><rect x="3" y="5" width="14" height="10" rx="2"/><path d="M3 9h14"/></svg>学习</div>
+            <div class="tab"><svg class="ico" viewBox="0 0 20 20"><path d="M3 16V7l7-4 7 4v9"/><path d="M7 16V10h6v6"/></svg>空间</div>
+            <div class="tab"><svg class="ico" viewBox="0 0 20 20"><path d="M4 16V10M10 16V5M16 16v-8"/></svg>统计</div>
+            <div class="tab active"><svg class="ico" viewBox="0 0 20 20"><circle cx="10" cy="7.5" r="3"/><path d="M4 16.5c1-3 4-5 6-5s5 2 6 5"/></svg>我的</div>
+          </div>
+        </div>
+      </div>
+      <div class="cap">PAYWALL · explain before price</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════ 05 · NIGHT ═══════ -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="sec-meta"><span class="num">05</span><span class="dot"></span>Night</div>
+    <h2>夜读不是反色，<em>是把玻璃换成漆。</em></h2>
+  </div>
+
+  <div class="night-stage">
+    <div class="night-phone" style="--band-color:var(--lib-write)">
+      <div class="night-bezel">
+        <div class="island"></div>
+        <div class="screen">
+          <div class="sb"><span>23:08</span><span class="ri" style="color:var(--ink-n-2)">
+            <svg class="ico" viewBox="0 0 18 18"><path d="M2 10a7 7 0 0 1 14 0"/></svg>
+            <svg class="ico" viewBox="0 0 22 12"><rect x="1" y="2" width="18" height="8" rx="2"/><rect x="2.5" y="3.5" width="9" height="5" rx="1" fill="currentColor"/><rect x="20" y="4" width="1.5" height="4" rx=".75" fill="currentColor"/></svg>
+          </span></div>
+          <div class="p-top">
+            <div>
+              <div class="crumb">CET-6 · Writing</div>
+              <div class="title">Unit 03</div>
+            </div>
+            <div class="avatar" style="background:linear-gradient(135deg,var(--lib-write),var(--lib-vocab))"></div>
+          </div>
+          <div class="prog"><span class="n">06</span><div class="bar"></div><span class="n">10</span></div>
+
+          <div class="lcard">
+            <div class="band">
+              <span class="pill"><span class="d"></span>WRITING · COMPOSE</span>
+              <h3>段首连接词的选择</h3>
+            </div>
+            <div class="body">
+              <div class="prompt">nevertheless</div>
+              <div class="phon">/ˌnevəðəˈles/ · adv.</div>
+              <div class="stem">A strong transition word for the second body paragraph. Try replacing <em>but</em> with a more formal register.</div>
+              <div class="choices">
+                <div class="ch"><span class="k">A</span><span>besides</span></div>
+                <div class="ch picked"><span class="k">B</span><span>nevertheless</span></div>
+                <div class="ch"><span class="k">C</span><span>otherwise</span></div>
+                <div class="ch"><span class="k">D</span><span>instead</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="fb-row" style="grid-template-columns:1fr;gap:0" title="auto · immediate reveal after submit">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-radius:16px;background:rgba(34,197,139,.12);border:1px solid rgba(34,197,139,.28);color:#8EEBC0">
+              <span style="display:inline-flex;align-items:center;gap:10px;font-size:13px;font-weight:500">
+                <svg class="ico" viewBox="0 0 20 20" style="color:#22C58B"><path d="M4 10l4 4 8-8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                正确 · nevertheless
+              </span>
+              <span style="font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;color:#8EEBC0;opacity:.7">AUTO</span>
+            </div>
+          </div>
+
+          <div class="tabbar">
+            <div class="tab active"><svg class="ico" viewBox="0 0 20 20"><rect x="3" y="5" width="14" height="10" rx="2"/><path d="M3 9h14"/></svg>学习</div>
+            <div class="tab"><svg class="ico" viewBox="0 0 20 20"><path d="M3 16V7l7-4 7 4v9"/><path d="M7 16V10h6v6"/></svg>空间</div>
+            <div class="tab"><svg class="ico" viewBox="0 0 20 20"><path d="M4 16V10M10 16V5M16 16v-8"/></svg>统计</div>
+            <div class="tab"><svg class="ico" viewBox="0 0 20 20"><circle cx="10" cy="7.5" r="3"/><path d="M4 16.5c1-3 4-5 6-5s5 2 6 5"/></svg>我的</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="night-notes">
+      <h4>Night ≠ Inverted Day</h4>
+      <ul>
+        <li><strong>漆面 lacquer 而非纯黑</strong>。背景 #0B0B12，玻璃 rgba(28,28,42,.72)，文字 #F2F2FA——所有值都偏冷蓝微紫，不用纯黑纯白。</li>
+        <li><strong>学科色不变，但氛围球亮度 +20%</strong>。夜里玻璃更透，需要更亮的身后色把玻璃"点亮"。</li>
+        <li><strong>反馈色保持同色相，-10% 饱和</strong>。#22C58B → 看起来更沉，但可辨识。</li>
+        <li><strong>阴影关闭，改用 1px 亮边分层</strong>。夜里阴影不再承担分层——上亮边 + 下暗边解决。</li>
+        <li><strong>所有排印权重 -100</strong>。display 从 800 → 700，body 从 400 → 300。夜里眼睛不需要那么重的字。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 06 · COMPONENT VOCABULARY ═══════ -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="sec-meta"><span class="num">06</span><span class="dot"></span>Vocabulary</div>
+    <h2>组件词汇，<em>不是组件库。</em></h2>
+  </div>
+  <p class="lede">下面是会稳定出现的视觉单元。给任何 agent / 设计师看到这页，他就知道"软书四六级用 chip 不用 tag badge，用 pill tabbar 不用底部全宽 bar，用 grain 颗粒不用 noise-shader"。</p>
+
+  <div class="vocab">
+
+    <div class="vo-block">
+      <h4>Chips <span class="tag">library scoped</span></h4>
+      <div class="chips">
+        <span class="chip-s" style="--c:var(--lib-listen)"><span class="d"></span>听力</span>
+        <span class="chip-s" style="--c:var(--lib-read)"><span class="d"></span>阅读</span>
+        <span class="chip-s" style="--c:var(--lib-cloze)"><span class="d"></span>选词填空</span>
+        <span class="chip-s" style="--c:var(--lib-write)"><span class="d"></span>写作</span>
+        <span class="chip-s" style="--c:var(--lib-trans)"><span class="d"></span>翻译</span>
+        <span class="chip-s" style="--c:var(--lib-vocab)"><span class="d"></span>词汇</span>
+        <span class="chip-s" style="--c:var(--lib-grammar)"><span class="d"></span>语法</span>
+      </div>
+      <div class="chips" style="margin-bottom:0">
+        <span class="chip-s" style="--c:var(--fb-prof)"><span class="d"></span>掌握</span>
+        <span class="chip-s" style="--c:var(--fb-know)"><span class="d"></span>知道</span>
+        <span class="chip-s" style="--c:var(--fb-unsure)"><span class="d"></span>不确定</span>
+        <span class="chip-s" style="--c:var(--fb-forgot)"><span class="d"></span>忘了</span>
+      </div>
+    </div>
+
+    <div class="vo-block">
+      <h4>Buttons <span class="tag">one primary per screen</span></h4>
+      <div class="btns">
+        <button class="btn primary">开通会员</button>
+        <button class="btn glass">稍后提醒</button>
+        <button class="btn lib" style="--c:var(--lib-listen)">继续听力</button>
+        <button class="btn ghost">跳过</button>
+      </div>
+    </div>
+
+    <div class="vo-block" style="grid-column:span 2">
+      <h4>Stat cards <span class="tag">statistics surface · no trend dashboard</span></h4>
+      <div class="st-grid">
+        <div class="st-card"><div class="v">12<small>张</small></div><div class="l">Today</div><div class="trend up">+4 vs 昨日</div></div>
+        <div class="st-card"><div class="v">86<small>%</small></div><div class="l">Accuracy · 7 days</div><div class="trend up">+3%</div></div>
+        <div class="st-card"><div class="v">4<small>d</small></div><div class="l">Streak · 克制记录</div><div class="trend" style="color:var(--ink-3)">不做礼花</div></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════ 07 · RULES ═══════ -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="sec-meta"><span class="num">07</span><span class="dot"></span>Canon</div>
+    <h2>做 与 不做。<em>两份清单，PR 时照查。</em></h2>
+  </div>
+
+  <div class="rules">
+    <div class="rule do">
+      <h4>做 <span class="tag">DO</span></h4>
+      <ul>
+        <li>一屏一个当前 library，一屏一种强色（学科色）。</li>
+        <li>玻璃 40–60px 模糊 + 1px 亮边 + inset 顶光 + 4% grain。</li>
+        <li>数字一律 tabular-nums + Outfit 800，统计不跳动。</li>
+        <li>空间视图用七学科色直接识别，sleep = 掉饱和 + 降透明度。</li>
+        <li>付费墙先解释"为什么此刻被拦"，再给价格，再给 CTA。</li>
+        <li>tabbar 用胶囊浮岛玻璃，不贴底全宽。</li>
+        <li>图标 1.75 px stroke, rounded joins, 16–20px 尺寸。</li>
+        <li>动效 240–360ms, cubic-bezier(.2,.8,.2,1)，全部能用物理解释。</li>
+      </ul>
+    </div>
+    <div class="rule dont">
+      <h4>不做 <span class="tag">DON'T</span></h4>
+      <ul>
+        <li>不做 streak 礼花 / 徽章 / XP / 等级 / 排行榜。</li>
+        <li>不做渐变文字大标题，不做彩虹描边。</li>
+        <li>不做"AI 思考中"的粒子或光效。</li>
+        <li>不在单屏上让两种学科色同时作为强色出现。</li>
+        <li>不用纯黑 #000 / 纯白 #FFF / 100% 饱和色做大块面积。</li>
+        <li>不把 favorite 画成物理盒，不把 hint 做成独立卡型。</li>
+        <li>不把空间缩成"收藏 + 休眠"两盒。</li>
+        <li>不自动播放音频，不做波形跳动动画。</li>
+        <li>不做趋势大盘、不做"本周洞察"卡片。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span><span class="dot"></span>Softbook CET · Visual Anchor v2 · Aurora Glass</span>
+  <span>Not product truth · visual anchor only</span>
+</footer>
+
+</div>
+</body>
+</html>

@@ -67,6 +67,17 @@
     },
     "drift_guards": {
       "owner": "spec/perturbation-audit.json"
+    },
+    "visual_language_anchor": {
+      "owner": "spec/visual-language.json",
+      "related_anchor": "docs/design/visual-reference.html",
+      "prose_anchor": "docs/design/canon.md",
+      "mirrors": [
+        "spec/knowledge-map.json",
+        "spec/interactions.json",
+        "spec/product-core.json"
+      ],
+      "notes": "Stabilizes visual output across agents. Product_truth here is narrow (library identity, Law of One, self-assess scoping to flip, map hierarchy, interaction silhouettes); everything else is implementation hypothesis."
     }
   }
 }
