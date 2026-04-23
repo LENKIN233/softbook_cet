@@ -727,17 +727,70 @@ function AppShell() {
     });
   };
 
-  const completeMembershipUnlock = (nextState: MembershipState) => {
-    const nextGate = membershipGate;
+  const completeMembershipUnlock = (
+    nextState: MembershipState,
+    nextGate: MembershipGate | null = membershipGate,
+  ) => {
+    const unlockedGate = nextGate;
 
     setMembershipState(nextState);
     setMembershipGate(null);
 
-    if (nextGate === 'review') {
+    if (unlockedGate === 'review') {
       startTransition(() => {
         setActiveRoute('learning');
       });
     }
+  };
+
+  const beginMembershipTrial = (nextGate: MembershipGate | null) => {
+    if (
+      authenticatedRuntimeContext === null ||
+      membershipPendingAction !== null
+    ) {
+      return;
+    }
+
+    setMembershipError(null);
+    setMembershipGate(nextGate);
+
+    if (runtimeMembershipRepositoryMode === 'local') {
+      completeMembershipUnlock(startMembershipTrial(membershipState), nextGate);
+      return;
+    }
+
+    setMembershipPendingAction('start_trial');
+    membershipRepository
+      .startTrial(authenticatedRuntimeContext, membershipState)
+      .then(result => {
+        setMembershipPendingAction(null);
+        completeMembershipUnlock(result.state, nextGate);
+      })
+      .catch((error: unknown) => {
+        setMembershipError(
+          error instanceof Error ? error.message : '试用开通暂时失败。',
+        );
+        setMembershipPendingAction(null);
+      });
+  };
+
+  const handleSelectRoute = (nextRoute: RouteKey) => {
+    if (
+      nextRoute === 'space' &&
+      isAuthenticated &&
+      membershipState.stage === 'trial_available' &&
+      !membershipAccess.completePhysicalSpace
+    ) {
+      startTransition(() => {
+        setActiveRoute('space');
+      });
+      beginMembershipTrial('space');
+      return;
+    }
+
+    startTransition(() => {
+      setActiveRoute(nextRoute);
+    });
   };
 
   const authHandlers: AuthHandlers = {
@@ -888,32 +941,7 @@ function AppShell() {
 
   const membershipHandlers: MembershipHandlers = {
     onStartTrial: () => {
-      if (
-        authenticatedRuntimeContext === null ||
-        membershipPendingAction !== null
-      ) {
-        return;
-      }
-
-      setMembershipError(null);
-      if (runtimeMembershipRepositoryMode === 'local') {
-        completeMembershipUnlock(startMembershipTrial(membershipState));
-        return;
-      }
-
-      setMembershipPendingAction('start_trial');
-      membershipRepository
-        .startTrial(authenticatedRuntimeContext, membershipState)
-        .then(result => {
-          setMembershipPendingAction(null);
-          completeMembershipUnlock(result.state);
-        })
-        .catch((error: unknown) => {
-          setMembershipError(
-            error instanceof Error ? error.message : '试用开通暂时失败。',
-          );
-          setMembershipPendingAction(null);
-        });
+      beginMembershipTrial(membershipGate);
     },
     onPurchase: () => {
       if (
@@ -1113,6 +1141,14 @@ function AppShell() {
       }
 
       if (!membershipAccess.completeAlgorithm) {
+        if (membershipState.stage === 'trial_available') {
+          startTransition(() => {
+            setActiveRoute('mine');
+          });
+          beginMembershipTrial('review');
+          return;
+        }
+
         setMembershipGate('review');
         startTransition(() => {
           setActiveRoute('mine');
@@ -1314,7 +1350,7 @@ function AppShell() {
           activeRoute={activeRoute}
           authState={authState}
           content={content}
-          onSelectRoute={setActiveRoute}
+          onSelectRoute={handleSelectRoute}
           palette={palette}
           route={route}
         />
@@ -1323,7 +1359,7 @@ function AppShell() {
           activeRoute={activeRoute}
           authState={authState}
           content={content}
-          onSelectRoute={setActiveRoute}
+          onSelectRoute={handleSelectRoute}
           palette={palette}
           route={route}
         />
