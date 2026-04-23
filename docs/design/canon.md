@@ -35,13 +35,12 @@ Law of One 可作为单独 PR 检查项：**任何单屏同时出现两种学科
 语法 Grammar      #F5B100   amber
 ```
 
-### 反馈色（Self-Assess · 4）
+### 反馈色（Self-Assess · 2）
 ```
-掌握 Proficient   #22C58B    — flip 后自评，禁用在其他 surface
-知道 Know         #5B6DF5
-不确定 Unsure     #FF8A3D
-忘了 Forgot       #F15B6E
+有把握 Confident  #22C58B    — flip 翻面后的两档轻自评，禁用在其他 surface
+再回看 Review     #F5B100    — 暖琥珀，不是红色：表示"回来再看一次"，不是"错了/惩罚"
 ```
+对齐 `apps/mobile/src/learning/LearningSurface.tsx`。两档而非四档，因为 `spec/product-core.json` 明确禁止"反复做高成本掌握度判断"——多一档都不叫 light。
 
 ### 中性 & 表面
 ```
@@ -117,7 +116,7 @@ Law of One invalidates the design.
 ```
 Libraries: listen #5B6DF5 · read #FF8A3D · cloze #22C58B · write #B568F5
 · trans #18C4E0 · vocab #F15B6E · grammar #F5B100
-Feedback: prof #22C58B · know #5B6DF5 · unsure #FF8A3D · forgot #F15B6E
+Feedback: confident #22C58B · review #F5B100 （仅 flip）
 Neutrals: ink-1 #0B0B14 · ink-2 #3A3A4E · ink-3 #7A7A90 · ink-4 #ACACBF
            page #F1F0F6 · night #0B0B12
 Glass: blur 40–60px + saturate(1.2–1.3) + 1px edge rgba(255,255,255,.72)
@@ -195,5 +194,5 @@ harness 明令 `design` 任务只能输出 page_goal / information_goal / key_ac
 
 - v2 以 product-core v0.4.0 · interactions v0.2.0 · platform-contract v0.3.0 · `design-system-v4.html` 中的学科/反馈色语义为锚。
 - 任何 spec 变更若改动 `primary_user_feeling` / `secondary_user_feeling` / `physical_space` / `interaction_contract_status` / `ui_requires_dedicated_design`，canon 重做一轮。
-- 学科色与反馈色的语义（哪个学科对应哪个色 / 四级自评的语义）改动会让 canon 失效——这一层是**产品身份**而非视觉偏好。
+- 学科色与反馈色的语义（哪个学科对应哪个色 / 两档自评的语义）改动会让 canon 失效——这一层是**产品身份**而非视觉偏好。
 - 色号可微调（±5 明度/饱和），比例、公理、身份映射不可调。

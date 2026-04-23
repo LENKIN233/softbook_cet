@@ -40,9 +40,11 @@
     },
 
     "self_assess_feedback_scoped_to_flip": {
-      "claim": "The 4-level self-assess color family (proficient / known / unsure / forgot) is the visual vocabulary for spec/interactions.json#flip.scoring_mode=light_self_assess. It must not leak into interactions whose scoring_mode is auto (multiple_choice, lock, elimination, swipe) — those render auto judgement instead.",
+      "claim": "The self-assess feedback color family is a 2-level light judgement (confident / review, rendered as 有把握 / 再回看) scoped to spec/interactions.json#flip.scoring_mode=light_self_assess. It must not leak into interactions whose scoring_mode is auto (multiple_choice, lock, elimination, swipe) — those render auto judgement instead. Two levels (not four) is the product_truth: spec/product-core.json#user_cost_minimization explicitly forbids '反复做高成本掌握度判断', and apps/mobile/src/learning/LearningSurface.tsx is the canonical implementation.",
       "binding": [
-        "spec/interactions.json"
+        "spec/interactions.json",
+        "spec/product-core.json",
+        "apps/mobile/src/learning/LearningSurface.tsx"
       ],
       "violation_is": "product_distortion_risk"
     },
@@ -79,10 +81,9 @@
         "grammar":     "#F5B100"
       },
       "self_assess_hex_defaults": {
-        "proficient": "#22C58B",
-        "known":      "#5BB8F5",
-        "unsure":     "#F5B100",
-        "forgot":     "#F15B6E"
+        "_note": "Two levels, not four. 'review' is a warm amber (not red): it means '回来再看一次', not '错了/惩罚'.",
+        "confident": "#22C58B",
+        "review":    "#F5B100"
       },
       "neutral_scale": {
         "page_day":   "#F5F3EE",
