@@ -606,8 +606,16 @@ function AppShell() {
 
     let isCancelled = false;
 
+    if (authenticatedRuntimeContext === null) {
+      setLearningSession(null);
+      setLearningCardState(null);
+      setLearningBootstrapStatus('error');
+      setLearningBootstrapError('当前缺少可用的登录上下文，学习卡源无法加载。');
+      return;
+    }
+
     learningSessionRepository
-      .loadSession(LEARNING_TRACK)
+      .loadSession(authenticatedRuntimeContext, LEARNING_TRACK)
       .then(session => {
         if (isCancelled) {
           return;
@@ -652,6 +660,7 @@ function AppShell() {
     };
   }, [
     createTrackedLearningCardState,
+    authenticatedRuntimeContext,
     isAuthenticated,
     learningBootstrapStatus,
     learningSessionRepository,

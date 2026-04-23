@@ -6,6 +6,11 @@ import {
   parseSoftbookRemoteLearningCardSourcePayload,
 } from '../src/learning/remoteCardSource';
 
+const authenticatedContext = {
+  authToken: 'user-token',
+  phoneNumber: '13800138000',
+};
+
 test('remote learning card source loads and normalizes a valid payload', async () => {
   const fetchMock = jest.fn().mockResolvedValue({
     ok: true,
@@ -19,6 +24,7 @@ test('remote learning card source loads and normalizes a valid payload', async (
   });
 
   const result = await loadRemoteLearningCardSource(
+    authenticatedContext,
     'cet4',
     {
       endpoint: 'https://example.com/api/learning/cards',
@@ -33,6 +39,7 @@ test('remote learning card source loads and normalizes a valid payload', async (
       method: 'GET',
       headers: {
         Accept: 'application/json',
+        Authorization: 'Bearer user-token',
         'x-api-key': 'test-key',
       },
     },
@@ -53,6 +60,7 @@ test('remote learning card source rejects HTTP failures', async () => {
 
   await expect(
     loadRemoteLearningCardSource(
+      authenticatedContext,
       'cet4',
       { endpoint: 'https://example.com/api/learning/cards' },
       fetchMock,
@@ -112,6 +120,7 @@ test('softbook remote learning config maps runtime baseUrl and payload envelope'
   });
 
   const result = await loadRemoteLearningCardSource(
+    authenticatedContext,
     'cet4',
     createSoftbookRemoteLearningCardSourceConfig({
       apiKey: 'runtime-key',
@@ -126,6 +135,7 @@ test('softbook remote learning config maps runtime baseUrl and payload envelope'
       method: 'GET',
       headers: {
         Accept: 'application/json',
+        Authorization: 'Bearer user-token',
         'x-softbook-client': 'mobile',
         'x-api-key': 'runtime-key',
       },
@@ -154,4 +164,19 @@ test('softbook remote learning payload parser rejects missing envelope data', ()
   ).toThrow(
     'Remote learning bootstrap payload.data.card_records must be an array.',
   );
+});
+
+test('remote learning card source requires auth token', async () => {
+  await expect(
+    loadRemoteLearningCardSource(
+      {
+        phoneNumber: '13800138000',
+      },
+      'cet4',
+      {
+        endpoint: 'https://example.com/api/learning/cards',
+      },
+      jest.fn(),
+    ),
+  ).rejects.toThrow('Remote learning card source requires authToken.');
 });

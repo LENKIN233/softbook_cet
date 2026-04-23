@@ -11,6 +11,11 @@ export type LearningCardSourceResponse = {
   cards: LearningCard[];
 };
 
+export type RemoteLearningCardSourceContext = {
+  authToken?: string;
+  phoneNumber: string;
+};
+
 export type RemoteLearningCardSourcePayload = {
   source_id: string;
   source_label: string;
@@ -63,6 +68,7 @@ export type FetchLike = (
 ) => Promise<FetchLikeResponse>;
 
 export async function loadRemoteLearningCardSource(
+  context: RemoteLearningCardSourceContext,
   track: LearningTrack,
   config: RemoteLearningCardSourceConfig,
   fetchImpl: FetchLike,
@@ -76,11 +82,11 @@ export async function loadRemoteLearningCardSource(
     ),
     {
       method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        ...config.headers,
-        ...(config.apiKey ? { [apiKeyHeader]: config.apiKey } : {}),
-      },
+      headers: buildRemoteLearningCardSourceHeaders(
+        context,
+        config,
+        apiKeyHeader,
+      ),
     },
   );
 
@@ -247,6 +253,23 @@ function buildRemoteLearningCardSourceUrl(
   const separator = endpoint.includes('?') ? '&' : '?';
 
   return `${endpoint}${separator}${trackQueryParam}=${track}`;
+}
+
+function buildRemoteLearningCardSourceHeaders(
+  context: RemoteLearningCardSourceContext,
+  config: RemoteLearningCardSourceConfig,
+  apiKeyHeader: string,
+) {
+  if (!context.authToken) {
+    throw new Error('Remote learning card source requires authToken.');
+  }
+
+  return {
+    Accept: 'application/json',
+    Authorization: `Bearer ${context.authToken}`,
+    ...config.headers,
+    ...(config.apiKey ? {[apiKeyHeader]: config.apiKey} : {}),
+  };
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
