@@ -1,19 +1,10 @@
+import type {SoftbookAppRuntimeConfig} from '../src/learning/learningRuntimeConfig';
 import { readSoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
 import { SOFTBOOK_APP_RUNTIME_CONFIG } from '../src/runtime/appRuntimeConfig';
 import { installSoftbookAppRuntimeConfig } from '../src/runtime/installRuntimeConfig';
 
 declare global {
-  var __SOFTBOOK_CET_RUNTIME_CONFIG__:
-    | {
-        learningSource?: {
-          mode?: 'local' | 'remote';
-          remote?: {
-            apiKey?: string;
-            baseUrl: string;
-          };
-        };
-      }
-    | undefined;
+  var __SOFTBOOK_CET_RUNTIME_CONFIG__: SoftbookAppRuntimeConfig | undefined;
 }
 
 afterEach(() => {

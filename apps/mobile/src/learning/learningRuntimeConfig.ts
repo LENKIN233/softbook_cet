@@ -14,6 +14,22 @@ export type LearningSourceRuntimeConfig = {
   remote?: LearningRemoteRuntimeConfig;
 };
 
+export type AuthRuntimeConfig = {
+  mode?: 'local' | 'remote';
+  remote?: {
+    apiKey?: string;
+    baseUrl: string;
+  };
+};
+
+export type MembershipRuntimeConfig = {
+  mode?: 'local' | 'remote';
+  remote?: {
+    apiKey?: string;
+    baseUrl: string;
+  };
+};
+
 export type ProgressSyncRuntimeConfig = {
   mode?: 'local' | 'remote';
   remote?: {
@@ -23,7 +39,9 @@ export type ProgressSyncRuntimeConfig = {
 };
 
 export type SoftbookAppRuntimeConfig = {
+  auth?: AuthRuntimeConfig;
   learningSource?: LearningSourceRuntimeConfig;
+  membership?: MembershipRuntimeConfig;
   progressSync?: ProgressSyncRuntimeConfig;
 };
 

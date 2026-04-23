@@ -3,6 +3,11 @@ import {
   createProgressSyncRepository,
 } from '../src/sync/progressSyncRepository';
 
+const authenticatedContext = {
+  authToken: 'user-token',
+  phoneNumber: '13800138000',
+};
+
 test('daily progress snapshot derives a total completed count', () => {
   expect(
     createDailyProgressSnapshot({
@@ -26,6 +31,7 @@ test('local progress sync repository acknowledges a snapshot without fetch', asy
   });
 
   const result = await repository.syncDailyProgress(
+    authenticatedContext,
     createDailyProgressSnapshot({
       checkedInToday: true,
       dayKey: '2026-04-22',
@@ -51,7 +57,8 @@ test('remote progress sync repository posts the day snapshot to the configured e
     remoteConfig: {
       endpoint: 'https://example.com/v1/progress/daily-sync',
       headers: {
-        Authorization: 'Bearer test-key',
+        'x-api-key': 'test-key',
+        'x-softbook-client': 'mobile',
       },
     },
     fetchImpl: fetchMock,
@@ -67,13 +74,43 @@ test('remote progress sync repository posts the day snapshot to the configured e
     sleepingCount: 1,
   });
 
-  const result = await repository.syncDailyProgress(snapshot);
+  const result = await repository.syncDailyProgress(authenticatedContext, snapshot);
 
   expect(result.mode).toBe('remote');
   expect(fetchMock).toHaveBeenCalledWith(
     'https://example.com/v1/progress/daily-sync',
     expect.objectContaining({
+      headers: expect.objectContaining({
+        Authorization: 'Bearer user-token',
+      }),
       method: 'POST',
     }),
   );
+});
+
+test('remote progress sync repository requires auth token', async () => {
+  const repository = createProgressSyncRepository({
+    fetchImpl: jest.fn(),
+    mode: 'remote',
+    remoteConfig: {
+      endpoint: 'https://example.com/v1/progress/daily-sync',
+    },
+  });
+
+  await expect(
+    repository.syncDailyProgress(
+      {
+        phoneNumber: '13800138000',
+      },
+      createDailyProgressSnapshot({
+        checkedInToday: true,
+        dayKey: '2026-04-22',
+        favoriteCount: 0,
+        learningCompletedCount: 1,
+        pendingReviewCount: 0,
+        reviewCompletedCount: 0,
+        sleepingCount: 0,
+      }),
+    ),
+  ).rejects.toThrow('Remote progress sync requires authToken.');
 });

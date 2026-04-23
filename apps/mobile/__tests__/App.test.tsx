@@ -4,6 +4,7 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
+import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
 import { LearningSession } from '../src/learning/model';
 import { createLocalLearningSession } from '../src/learning/session';
 import App from '../App';
@@ -36,10 +37,18 @@ type Deferred<T> = {
 
 let pendingSession: Deferred<LearningSession>;
 
+declare global {
+  var __SOFTBOOK_CET_RUNTIME_CONFIG__: SoftbookAppRuntimeConfig | undefined;
+}
+
 beforeEach(() => {
   pendingSession = createDeferred<LearningSession>();
   mockLoadSession.mockReset();
   mockLoadSession.mockImplementation(() => pendingSession.promise);
+});
+
+afterEach(() => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = undefined;
 });
 
 async function authenticateIntoLearningBootstrap(
@@ -51,8 +60,9 @@ async function authenticateIntoLearningBootstrap(
       .props.onChangeText('13800138000');
   });
 
-  await ReactTestRenderer.act(() => {
+  await ReactTestRenderer.act(async () => {
     root.findByProps({ testID: 'auth-request-code-button' }).props.onPress();
+    await flushAsyncEffects();
   });
 
   await ReactTestRenderer.act(() => {
@@ -61,7 +71,7 @@ async function authenticateIntoLearningBootstrap(
 
   await ReactTestRenderer.act(async () => {
     root.findByProps({ testID: 'auth-submit-button' }).props.onPress();
-    await Promise.resolve();
+    await flushAsyncEffects();
   });
 }
 
@@ -88,8 +98,9 @@ async function startTrialFromMine(
 ) {
   await openRoute(root, 'mine');
 
-  await ReactTestRenderer.act(() => {
+  await ReactTestRenderer.act(async () => {
     root.findByProps({ testID: 'membership-start-trial-button' }).props.onPress();
+    await flushAsyncEffects();
   });
 
   if (returnRoute !== 'mine') {
@@ -165,6 +176,28 @@ test('renders correctly', async () => {
   expect(output).toContain('统计');
   expect(output).toContain('我的');
   expect(output).toContain('学习前先登录');
+});
+
+test('reads installed runtime config when the app mounts', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('当前认证已切到远端短信合同');
+  expect(output).toContain('当前会走远端短信验证码合同。');
+  expect(output).not.toContain('当前是本地壳层验证，不会真的发短信。');
 });
 
 test('can unlock the learning flow after fake sms verification', async () => {
@@ -752,4 +785,71 @@ test('shows recovery reminder after local trial ends and clears it after purchas
   expect(
     root.findAllByProps({ testID: 'membership-dismiss-recovery-button' }).length,
   ).toBe(0);
+});
+
+test('keeps basic learning recoverable when free cards all enter sleep zone', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await startTrialFromMine(root, 'space');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-sleep-002001' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-library-2' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-group-1' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-box-0521' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-sleep-052101' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-library-1' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-box-0121' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-sleep-012101' }).props.onPress();
+  });
+
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'membership-expire-trial-button' }).props.onPress();
+  });
+
+  await openRoute(root, 'learning');
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('当前免费态还不能进入完整空间');
+  expect(output).toContain('恢复一张可学习卡');
+  expect(output).toContain('下一张可恢复卡：短对话里听到 however');
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'learning-recover-sleeping-card-button' })
+      .props.onPress();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('however');
+  expect(output).not.toContain('当前学习卡都已进入休眠区');
 });
