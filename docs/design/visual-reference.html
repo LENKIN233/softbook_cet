@@ -22,9 +22,9 @@
   /* Feedback (2-level light self-assess, flip only — matches apps/mobile flip: 有把握 / 再回看) */
   --fb-confident: #22C58B;  /* 已经稳定，继续走 */
   --fb-review:    #F5B100;  /* 需要回看，不是失败 */
-  /* Legacy hues retained for non-feedback semantics (do/dont rules, trend deltas) */
-  --fb-prof:   #22C58B;
-  --fb-forgot: #F15B6E;
+  /* Semantic tones for trend deltas and rule callouts — NOT self-assess. */
+  --ok:   #22C58B;  /* trend.up, rule.do */
+  --err:  #F15B6E;  /* trend.down, rule.dont (red is reserved for don't, NEVER for self-assess) */
 
   /* Surface (light) */
   --page:        #F1F0F6;
@@ -488,8 +488,8 @@ body::after{
 .st-card .v small{font-size:13px;font-weight:500;color:var(--ink-3);margin-left:3px}
 .st-card .l{font-family:var(--f-mono);font-size:10px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
 .st-card .trend{font-family:var(--f-mono);font-size:10px;margin-top:4px;letter-spacing:.04em}
-.st-card .trend.up{color:var(--fb-prof)}
-.st-card .trend.down{color:var(--fb-forgot)}
+.st-card .trend.up{color:var(--ok)}
+.st-card .trend.down{color:var(--err)}
 
 /* ═══════ 07 · RULES ═══════ */
 .rules{display:grid;grid-template-columns:1fr 1fr;gap:var(--s5);margin-top:var(--s8)}
@@ -499,24 +499,24 @@ body::after{
   position:relative;overflow:hidden;
 }
 .rule::before{content:"";position:absolute;top:0;left:var(--s7);right:var(--s7);height:2px}
-.rule.do::before{background:linear-gradient(90deg,var(--fb-prof),transparent)}
-.rule.dont::before{background:linear-gradient(90deg,var(--fb-forgot),transparent)}
+.rule.do::before{background:linear-gradient(90deg,var(--ok),transparent)}
+.rule.dont::before{background:linear-gradient(90deg,var(--err),transparent)}
 .rule h4{font-family:var(--f-disp);font-weight:800;font-size:22px;letter-spacing:-.02em;margin-bottom:var(--s5);display:flex;align-items:center;gap:10px}
 .rule h4 .tag{font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;padding:4px 10px;border-radius:var(--r-full);text-transform:uppercase;font-weight:600}
-.rule.do h4 .tag{background:color-mix(in srgb,var(--fb-prof) 12%,#fff);color:var(--fb-prof);border:1px solid color-mix(in srgb,var(--fb-prof) 28%,transparent)}
-.rule.dont h4 .tag{background:color-mix(in srgb,var(--fb-forgot) 12%,#fff);color:var(--fb-forgot);border:1px solid color-mix(in srgb,var(--fb-forgot) 28%,transparent)}
+.rule.do h4 .tag{background:color-mix(in srgb,var(--ok) 12%,#fff);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 28%,transparent)}
+.rule.dont h4 .tag{background:color-mix(in srgb,var(--err) 12%,#fff);color:var(--err);border:1px solid color-mix(in srgb,var(--err) 28%,transparent)}
 .rule ul{list-style:none;display:flex;flex-direction:column;gap:10px}
 .rule li{display:grid;grid-template-columns:14px 1fr;gap:10px;font-size:14px;line-height:1.6;color:var(--ink-2)}
 .rule li::before{content:"";width:6px;height:6px;border-radius:50%;margin-top:8px;justify-self:center}
-.rule.do li::before{background:var(--fb-prof)}
-.rule.dont li::before{background:var(--fb-forgot)}
+.rule.do li::before{background:var(--ok)}
+.rule.dont li::before{background:var(--err)}
 
 /* ═══════ FOOTER ═══════ */
 footer{margin-top:var(--sa);padding-top:var(--s7);border-top:1px solid var(--glass-hair);display:flex;justify-content:space-between;align-items:center;font-family:var(--f-mono);font-size:10px;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase}
 footer .dot{width:6px;height:6px;border-radius:50%;background:var(--lib-listen);box-shadow:0 0 0 4px rgba(91,109,245,.16);display:inline-block;margin-right:8px;vertical-align:-1px}
 
 /* SVG icons default */
-svg.ico{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+svg.ico{width:16px;height:16px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 
 /* Responsive mercy */
 @media (max-width:1024px){
@@ -992,6 +992,103 @@ svg.ico{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;str
       </ul>
     </div>
   </div>
+</section>
+
+<!-- ═══════ 08 · DO vs DON'T GALLERY ═══════ -->
+<!-- Paired comparisons. Each "wrong" column is intentionally bad. -->
+<!-- NEGATIVE blocks are scrubbed by scripts/validate_harness.py when -->
+<!-- scanning for forbidden_design_patterns, sizeless SVGs, and legacy tokens. -->
+<section class="sec">
+  <div class="sec-head">
+    <div class="sec-meta"><span class="num">08</span><span class="dot"></span>Gallery</div>
+    <h2>错与对，<em>对着看。</em></h2>
+  </div>
+
+  <!-- NEGATIVE -->
+  <style>
+    .dd-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s6)}
+    .dd-col{padding:var(--s6);border-radius:var(--r-lg);background:var(--glass-100);border:1px solid var(--glass-edge);box-shadow:var(--sh-1),var(--glass-inner)}
+    .dd-col h4{font-family:var(--f-disp);font-weight:800;font-size:18px;margin-bottom:var(--s2);letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+    .dd-col.wrong h4::before{content:"✕";width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#F15B6E;color:#fff;font-size:13px;font-weight:700}
+    .dd-col.right h4::before{content:"✓";width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#22C58B;color:#fff;font-size:13px;font-weight:700}
+    .dd-col p.why{font-size:12px;color:var(--ink-3);margin-top:var(--s3);line-height:1.55;font-family:var(--f-mono);letter-spacing:.01em}
+    .dd-demo{padding:var(--s6) var(--s5);margin-top:var(--s4);border-radius:var(--r-md);background:var(--glass-200);border:1px solid var(--glass-edge);min-height:120px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+    .dd-row + .dd-row{margin-top:var(--s8)}
+    /* NEGATIVE-region-only demos below — these classes illustrate anti-patterns. */
+    .demo-grad-title{font-family:var(--f-disp);font-size:32px;font-weight:900;background:linear-gradient(90deg,#B568F5,#F15B6E,#F5B100);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.03em}
+    .demo-solid-title{font-family:var(--f-disp);font-size:32px;font-weight:900;color:var(--ink-1);letter-spacing:-.03em}
+    .demo-bottombar{position:absolute;left:0;right:0;bottom:0;width:100%;height:44px;background:var(--ink-1);color:#F2F2FA;display:flex;align-items:center;justify-content:space-around;font-size:11px;font-family:var(--f-mono)}
+    .demo-capsule{padding:10px 18px;border-radius:999px;background:var(--glass-300);border:1px solid var(--glass-edge);box-shadow:var(--sh-1),var(--glass-inner);display:flex;gap:18px;font-size:11px;font-family:var(--f-mono);color:var(--ink-2);letter-spacing:.08em}
+    .demo-fb4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:100%}
+    .demo-fb4 .fbx{padding:10px;border-radius:999px;text-align:center;font-size:12px;font-weight:600;color:#fff}
+    .demo-fb2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%}
+    .demo-fb2 .fbx{padding:12px;border-radius:999px;text-align:center;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px}
+    .demo-fb2 .fbx::before{content:"";width:7px;height:7px;border-radius:50%}
+  </style>
+  <!-- /NEGATIVE -->
+
+  <!-- NEGATIVE -->
+  <div class="dd-row">
+    <div class="dd-grid">
+      <div class="dd-col wrong">
+        <h4>渐变彩字大标题</h4>
+        <div class="dd-demo"><span class="demo-grad-title">软书四六级</span></div>
+        <p class="why">FDP-01 / FDP-02 · 渐变文字让标题变成装饰物，失去权威感。editorial → marketing 漂移。</p>
+      </div>
+      <div class="dd-col right">
+        <h4>实心 Outfit 大标题</h4>
+        <div class="dd-demo"><span class="demo-solid-title">软书四六级</span></div>
+        <p class="why">Outfit 900 · 紧字距 · ink-1 实心。排印承载权威，颜色留给学科身份。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="dd-row">
+    <div class="dd-grid">
+      <div class="dd-col wrong">
+        <h4>贴底全宽 tabbar</h4>
+        <div class="dd-demo" style="padding:0;min-height:120px">
+          <div class="demo-bottombar"><span>学习</span><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+        <p class="why">FDP-04 · 贴底全宽 = Material/Android 语汇，与 Aurora Glass 的浮岛材性矛盾。</p>
+      </div>
+      <div class="dd-col right">
+        <h4>浮岛胶囊 tabbar</h4>
+        <div class="dd-demo" style="min-height:120px">
+          <div class="demo-capsule"><span>学习</span><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+        <p class="why">胶囊玻璃悬浮，离底 24–32，保留 safe-area 留白。VisionOS 级克制。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="dd-row">
+    <div class="dd-grid">
+      <div class="dd-col wrong">
+        <h4>四档红绿灯自评</h4>
+        <div class="dd-demo" style="padding:var(--s4)">
+          <div class="demo-fb4">
+            <div class="fbx" style="background:#22C58B">掌握</div>
+            <div class="fbx" style="background:#5B6DF5">知道</div>
+            <div class="fbx" style="background:#FF8A3D">不确定</div>
+            <div class="fbx" style="background:#F15B6E">忘了</div>
+          </div>
+        </div>
+        <p class="why">AP-23 / P-25 · 四档 = 每张卡都要做掌握度判断，违反 user_cost_minimization。"忘了" 红色 = 惩罚叙事。</p>
+      </div>
+      <div class="dd-col right">
+        <h4>两档轻自评（仅 flip）</h4>
+        <div class="dd-demo" style="padding:var(--s4)">
+          <div class="demo-fb2">
+            <div class="fbx" style="background:color-mix(in srgb,#22C58B 8%,transparent);border:1px solid color-mix(in srgb,#22C58B 22%,transparent);color:color-mix(in srgb,#22C58B 55%,#0B0B14)"><span style="background:#22C58B;width:7px;height:7px;border-radius:50%"></span>有把握</div>
+            <div class="fbx" style="background:color-mix(in srgb,#F5B100 10%,transparent);border:1px solid color-mix(in srgb,#F5B100 26%,transparent);color:color-mix(in srgb,#F5B100 50%,#0B0B14)"><span style="background:#F5B100;width:7px;height:7px;border-radius:50%"></span>再回看</div>
+          </div>
+        </div>
+        <p class="why">对齐 LearningSurface.tsx。"再回看" 暖琥珀 ≠ 红，它是"回来再看一次"，不是失败。</p>
+      </div>
+    </div>
+  </div>
+  <!-- /NEGATIVE -->
 </section>
 
 <footer>

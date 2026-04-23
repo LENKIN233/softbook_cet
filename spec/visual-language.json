@@ -145,7 +145,82 @@
       "Tabbar is a floating VisionOS-style capsule; never a full-width bottom bar.",
       "Progress is a single thin bar with tabular-numeric flanks; never circular dashboards on the main learning surface.",
       "Dividers prefer spacing over lines; when a line is needed, it is 1px at ink_4 opacity 0.2."
-    ]
+    ],
+
+    "taste_axes": {
+      "_note": "Six pinned dimensions. These are not scores — they are directions. A design that drifts toward the anti_pole column is wrong by construction, regardless of how 'nice' it looks in isolation.",
+      "restraint_vs_expression":     { "target": "restraint",     "anti_pole": "expression",     "test": "If you removed the decorative element, would the content still be understandable? If yes, remove it." },
+      "material_vs_flat":            { "target": "material",      "anti_pole": "flat",           "test": "Glass surfaces must have measurable thickness: blur + 1px inner highlight + edge rim + 3-4% grain. Pure flat fills are forbidden on primary surfaces." },
+      "editorial_vs_marketing":      { "target": "editorial",     "anti_pole": "marketing",      "test": "No promotional language, no exclamation marks in chrome, no 'limited time' ribbons. Typography carries authority the way a book does, not the way a landing page does." },
+      "quiet_vs_loud":               { "target": "quiet",         "anti_pole": "loud",           "test": "Max one strong accent per screen (Law of One). Max one motion loop visible at a time. No competing animations." },
+      "geometric_vs_organic":        { "target": "geometric",     "anti_pole": "organic",        "test": "Display type is geometric sans (Outfit). No serifs, no handwritten scripts, no wavy dividers. Icons share a single stroke weight and join style." },
+      "sparse_vs_dense":             { "target": "sparse",        "anti_pole": "dense",          "test": "If a screen needs a scroll just to finish the primary action, it is too dense. Whitespace is content." }
+    },
+
+    "interaction_silhouettes": {
+      "_note": "When blurred, each of the five core interactions must be identifiable by its silhouette alone. These are the canonical shapes; bind to spec/interactions.json interaction ids.",
+      "flip": {
+        "shape": "single large centered card occupies ~60% vertical; below it a 2-slot pill row (confident / review); audio + hint live as inline chips on the card, not as separate surfaces.",
+        "binding": "spec/interactions.json#flip",
+        "silhouette_hash": "card_center + pill_row_2_below"
+      },
+      "multiple_choice": {
+        "shape": "prompt block top ~30%; 4 option tiles in a 2×2 grid below; the option grid is the silhouette — a single scrolling list of options is wrong.",
+        "binding": "spec/interactions.json#multiple_choice",
+        "silhouette_hash": "prompt_top + 2x2_grid_below"
+      },
+      "lock": {
+        "shape": "vertical scrolling list of rows; each row has a leading lock icon; progress is implied by count of unlocked rows; no card frame around individual rows.",
+        "binding": "spec/interactions.json#lock",
+        "silhouette_hash": "list_rows_with_leading_lock"
+      },
+      "elimination": {
+        "shape": "grid or column of candidates (3–6); tap to strike through (strike-through is the key affordance); remaining candidates at end are the answer.",
+        "binding": "spec/interactions.json#elimination",
+        "silhouette_hash": "candidate_set_with_strike_through_state"
+      },
+      "swipe": {
+        "shape": "deck of stacked cards with directional trail hints (left/right); exactly one card visible on top; horizontal motion is the primary affordance.",
+        "binding": "spec/interactions.json#swipe",
+        "silhouette_hash": "single_top_card_with_left_right_trails"
+      }
+    },
+
+    "contrast_floor": {
+      "body_text_on_surface":        { "ratio": 4.5, "standard": "WCAG AA" },
+      "large_text_on_surface":       { "ratio": 3.0, "standard": "WCAG AA large (≥24px regular or ≥19px bold)" },
+      "non_text_ui_on_surface":      { "ratio": 3.0, "standard": "WCAG AA non-text" },
+      "minimum_tap_target_px":       44,
+      "minimum_body_size_px":        13,
+      "reduce_motion_must_be_honored": true,
+      "_note": "Day and night both. When a chip/button uses library identity at low alpha, the text color inside must still clear the floor against the computed background, not against the base surface."
+    },
+
+    "forbidden_design_patterns": {
+      "_note": "Machine-checkable blocklist. Scope: any HTML/CSS fragment outside <!-- NEGATIVE --> ... <!-- /NEGATIVE --> blocks in docs/design/visual-reference.html. High-signal patterns only — broad words like 'streak' or raw '#000' are intentionally NOT listed because they have legitimate uses (daily-checkin counter, dynamic island, on-color text).",
+      "tokens": [
+        {"id": "FDP-01", "pattern": "-webkit-background-clip:\\s*text",                           "reason": "gradient-text display violates editorial restraint"},
+        {"id": "FDP-02", "pattern": "background:\\s*linear-gradient\\([^)]*\\)\\s*;[^}]*color:\\s*transparent", "reason": "gradient-text display violates editorial restraint"},
+        {"id": "FDP-03", "pattern": "confetti|medal-earned|xp-bar\\b|level-up-toast",              "reason": "gamification chrome forbidden by product-core; daily-checkin counters are fine, chrome is not"},
+        {"id": "FDP-04", "pattern": "position:\\s*fixed[^}]*bottom:\\s*0[^}]*width:\\s*100%",      "reason": "full-width bottom tabbar; use floating capsule"},
+        {"id": "FDP-05", "pattern": "--fb-know|--fb-unsure|--fb-prof\\b|--fb-forgot",              "reason": "removed self-assess tokens; 2-level only (fb-confident / fb-review)"},
+        {"id": "FDP-06", "pattern": "font-family:[^;]*serif",                                      "reason": "serifs forbidden in this product (geometric sans only)"}
+      ]
+    },
+
+    "design_review_checklist": {
+      "_note": "Any agent producing visual output (mock, component, screen, reference HTML) must answer these before declaring work complete. 4 universal + 2 conditional. Answers go into the PR body or agent output; missing answers = incomplete work.",
+      "universal": [
+        {"id": "Q1", "question": "Which library is the current one on this screen, and is the single strong accent bound to it? (Law of One)"},
+        {"id": "Q2", "question": "What is the focal object, and is the first-read path (focal → secondary → chrome) clear when squinted?"},
+        {"id": "Q3", "question": "Does the screen silhouette match the interaction's canonical silhouette in visual-language.json#interaction_silhouettes? If not, which interaction is it and why does the shape differ?"},
+        {"id": "Q4", "question": "Any forbidden_design_patterns present? Gradient text, gamification chrome, full-width tabbar, pure #000/#fff, removed self-assess tokens, serifs?"}
+      ],
+      "conditional": [
+        {"id": "Q5", "condition": "any rendered phone frame or constrained viewport", "question": "Layout containment: no horizontal overflow, safe-area respected, no clipped CTA or tabbar at target width?"},
+        {"id": "Q6", "condition": "surface is stats/learning/flip", "question": "Surface-specific: flip uses exactly 2 self-assess pills (有把握 / 再回看); stats uses tabular-nums; learning does not expose module-selection as primary path."}
+      ]
+    }
   },
 
   "anti_patterns": [
@@ -178,6 +253,16 @@
       "id": "VL-AP-06",
       "name": "full_width_bottom_tabbar_or_square_corner_card_frames",
       "correction": "floating_capsule_tabbar_and_28px_card_radius_unless_surface_contract_overrides"
+    },
+    {
+      "id": "VL-AP-07",
+      "name": "skipping_design_review_checklist_on_visual_output",
+      "correction": "any_visual_output_must_answer_universal_Q1_Q4_plus_conditional_Q5_Q6_where_applicable"
+    },
+    {
+      "id": "VL-AP-08",
+      "name": "promoting_implementation_hypothesis_hex_into_product_truth",
+      "correction": "only_hue_family_and_semantic_binding_are_product_truth_hex_values_are_tunable_within_plus_minus_5_percent_but_the_7_library_identity_hex_and_2_self_assess_hex_are_locked_as_mirrored_source_of_truth"
     }
   ],
 

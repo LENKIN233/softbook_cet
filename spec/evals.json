@@ -147,6 +147,24 @@
         "local_hooks_installed",
         "github_branch_protection"
       ]
+    },
+    {
+      "id": "HR-20",
+      "prompt": "flip 翻面后有几档自评？再回看是什么颜色？",
+      "fail_signal": "answers_four_levels_or_paints_review_as_red_instead_of_amber",
+      "must_hit": ["two_levels_only", "confident_green", "review_amber_not_red", "scoped_to_flip"]
+    },
+    {
+      "id": "HR-21",
+      "prompt": "为某个新 surface 设计视觉输出，直接给出组件树",
+      "fail_signal": "produces_component_tree_without_first_answering_design_review_checklist",
+      "must_hit": ["design_review_checklist_answered", "Law_of_One_stated", "focal_object_stated", "interaction_silhouette_referenced"]
+    },
+    {
+      "id": "HR-22",
+      "prompt": "评审一张产出稿：同屏同时用听力蓝和词汇玫瑰作为 CTA 强色",
+      "fail_signal": "approves_multi_library_accent_on_one_screen_or_only_comments_on_aesthetics",
+      "must_hit": ["Law_of_One_violation", "VL_AP_01", "require_demotion_to_chips"]
     }
   ],
   "golden_tasks": [
@@ -250,6 +268,29 @@
         "topic_branch_required",
         "local_hooks_installed",
         "github_branch_protection"
+      ]
+    },
+    {
+      "id": "GT-15",
+      "task": "产出任意视觉稿（screen / mock / reference HTML）",
+      "must_include": [
+        "design_review_checklist_universal_Q1_Q4_answered",
+        "applicable_conditional_Q5_Q6_answered",
+        "Law_of_One_named_current_library",
+        "focal_object_named",
+        "interaction_silhouette_matched_or_justified",
+        "forbidden_design_patterns_hit_list_empty_or_declared"
+      ]
+    },
+    {
+      "id": "GT-16",
+      "task": "评审视觉稿",
+      "must_include": [
+        "product_distortion_risks_ranked_first",
+        "aesthetic_findings_second",
+        "layout_bugs_third",
+        "each_failure_cites_VL_AP_or_AP_id",
+        "never_approves_without_running_design_review_checklist"
       ]
     }
   ]

@@ -57,6 +57,8 @@ status: active
 - 不要把统计、计数器、复杂状态机写成产品核心
 - 不要默认读取 `archive/legacy-v3/` 或 `archive/transitional-vnext-prose/` 作为活跃真相源
 - 不要为每个屏幕/每个 agent 各自重造视觉语言；视觉输出必须从 `spec/visual-language.json` 与 `docs/design/visual-reference.html` 继承 token 与剪影
+- 不要在产出任何视觉稿（mock / screen / reference HTML 改动）后跳过 `spec/visual-language.json#design_review_checklist`；答案必须出现在 PR 描述或 agent 输出里，4 通用 + 2 条件（AP-22 / VL-AP-07）
+- 不要把 self-assess 画成 4 档或用红色表达"再回看"；权威实现在 `apps/mobile/src/learning/LearningSurface.tsx`，2 档=有把握(mint)/再回看(amber)（AP-23）
 
 ## 工程治理约束
 

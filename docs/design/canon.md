@@ -5,6 +5,43 @@
 
 ---
 
+## Agent 入口 · 视觉任务强制入口
+
+**你在产出任何视觉稿（mock / screen / component / reference HTML 改动）之前，必须先答完 6 问。产出里不带答案 = 未完成（AP-22）。**
+
+### 通用 4 问
+
+| # | 问 | 失败信号 |
+|---|---|---|
+| Q1 | 这屏的"当前 library"是哪一个？强色有且只有这一个吗？ | 同屏出现 ≥2 个学科色作为强色 → VL-AP-01 |
+| Q2 | 焦点物是什么？眯眼看，首读路径（焦点→次级→chrome）清晰吗？ | 多个等权元素争抢 → 层级失败 |
+| Q3 | 屏幕剪影是否匹配 `visual-language.json#interaction_silhouettes` 里对应交互的形状？不匹配时，指出是哪种交互、为什么要偏差。 | 一个通用卡壳 + 换按钮图标冒充不同交互 → VL-AP-05 / AP-06 |
+| Q4 | 是否命中任何 `forbidden_design_patterns`？渐变文字 / 游戏化 chrome（confetti/medal-earned/xp-bar/level-up-toast）/ 贴底全宽 tabbar / 衬线字体 / 已移除的 `--fb-know/--fb-unsure/--fb-prof/--fb-forgot` token？ | 命中即返工 |
+
+### 条件 2 问
+
+| # | 触发条件 | 问 |
+|---|---|---|
+| Q5 | 任何手机/窄视口渲染 | 布局收敛：目标宽度下无横向溢出、safe-area 被尊重、CTA 与 tabbar 未被剪裁？ |
+| Q6 | surface 是 flip / stats / learning | flip 必须恰好 2 档自评（有把握 / 再回看）；stats 必须 tabular-nums；learning 不能把"模块选择"做成主路径。 |
+
+验证器（`scripts/validate_harness.py`）会**机检**其中的一部分（级数、token 一致性、SVG 必带尺寸、保留区内禁用 token）。清单里的其余 = 审稿环节人看。
+
+---
+
+## Do vs Don't · 审美收敛
+
+| Do | Don't |
+|---|---|
+| Outfit 700–900 实心大字，tracking -0.02 ~ -0.05 | 渐变彩色字 / 衬线 / 霓虹描边（AP-03 / FDP-01/02/06） |
+| 浮岛胶囊 tabbar，离底 24–32，玻璃 + 1px 亮边 | 贴底全宽 tabbar（AP-06 / FDP-04） |
+| flip 下方两档 pill：mint + amber | 4 档红绿灯自评 / 用红色表达"再回看"（AP-23 / P-25/P-26） |
+| 玻璃厚度：blur 40–60 + inset 顶光 + edge rim + 3–4% grain | 纯色卡片 / 方角 / 无光无噪（塑料感） |
+| 一屏一强色（当前 library）；其他学科色以小 chip 形式共处 | 两种学科色都做 CTA（VL-AP-01 / P-24） |
+| 进度=单根细线 + tabular 数字 | 圆环仪表盘 + 百分比巨字 + XP 条（AP-05 / FDP-03） |
+
+---
+
 ## 承重柱（五 + 一）
 
 | # | 公理 | 直接映回 |
@@ -22,9 +59,9 @@ Law of One 可作为单独 PR 检查项：**任何单屏同时出现两种学科
 
 ## Tokens 摘要
 
-完整渲染见 `docs/design/visual-reference.html`。这里是清单：
+完整渲染见 `docs/design/visual-reference.html`。这里是清单。**加粗号**是 `validate_harness.py` 的 mirror gate 锁定对象（即：改一处必须 3 处同步改，否则验证失败）。
 
-### 身份色（Library · 7）
+### 身份色（Library · 7）· locked mirror
 ```
 听力 Listening    #5B6DF5   indigo
 阅读 Reading      #FF8A3D   coral
@@ -35,7 +72,7 @@ Law of One 可作为单独 PR 检查项：**任何单屏同时出现两种学科
 语法 Grammar      #F5B100   amber
 ```
 
-### 反馈色（Self-Assess · 2）
+### 反馈色（Self-Assess · 2）· locked mirror
 ```
 有把握 Confident  #22C58B    — flip 翻面后的两档轻自评，禁用在其他 surface
 再回看 Review     #F5B100    — 暖琥珀，不是红色：表示"回来再看一次"，不是"错了/惩罚"
