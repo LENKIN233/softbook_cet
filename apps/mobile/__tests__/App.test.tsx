@@ -262,6 +262,103 @@ test('reads installed runtime config when the app mounts', async () => {
   expect(output).not.toContain('当前是本地壳层验证，不会真的发短信。');
 });
 
+test('shows remote request-code failure inside the auth gate', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async input => {
+    if (input === 'https://api.softbook.example/v1/auth/request-code') {
+      return createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({testID: 'auth-phone-input'})
+      .props.onChangeText('13800138000');
+  });
+
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({testID: 'auth-request-code-button'}).props.onPress();
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('Remote auth request-code failed with 503.');
+  expect(output).toContain('当前会走远端短信验证码合同。');
+});
+
+test('shows remote verify-code failure inside the auth gate', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async input => {
+    if (input === 'https://api.softbook.example/v1/auth/request-code') {
+      return createJsonResponse({});
+    }
+
+    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+      return createJsonResponse({}, 401);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({testID: 'auth-phone-input'})
+      .props.onChangeText('13800138000');
+  });
+
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({testID: 'auth-request-code-button'}).props.onPress();
+    await flushAsyncEffects();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'auth-code-input'}).props.onChangeText('2468');
+  });
+
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({testID: 'auth-submit-button'}).props.onPress();
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('Remote auth verify-code failed with 401.');
+  expect(output).toContain('当前认证已切到远端短信合同');
+});
+
 test('wires remote auth, learning source config, membership, and progress sync through App', async () => {
   const fetchCalls: MockFetchCall[] = [];
 
