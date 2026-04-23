@@ -1,4 +1,7 @@
-import type { SoftbookAppRuntimeConfig } from '../learning/learningRuntimeConfig';
+import {
+  assertRemoteRuntimeUsesRemoteAuth,
+  type SoftbookAppRuntimeConfig,
+} from '../learning/learningRuntimeConfig';
 
 import type { ProgressSyncRepositoryConfig } from './progressSyncRepository';
 
@@ -19,6 +22,8 @@ export function resolveProgressSyncRepositoryConfig(
   const mode = progressSync?.mode ?? 'local';
 
   if (mode === 'remote') {
+    assertRemoteRuntimeUsesRemoteAuth(runtimeConfig, 'progressSync');
+
     if (!progressSync?.remote?.baseUrl) {
       throw new Error(
         'Remote progress sync mode requires progressSync.remote.baseUrl.',

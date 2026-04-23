@@ -45,9 +45,39 @@ export type SoftbookAppRuntimeConfig = {
   progressSync?: ProgressSyncRuntimeConfig;
 };
 
+type RemoteRuntimeFeature = 'learningSource' | 'membership' | 'progressSync';
+
 type SoftbookGlobalThis = typeof globalThis & {
   __SOFTBOOK_CET_RUNTIME_CONFIG__?: SoftbookAppRuntimeConfig;
 };
+
+function resolveRuntimeMode(
+  mode: 'local' | 'remote' | undefined,
+): 'local' | 'remote' {
+  return mode ?? 'local';
+}
+
+export function assertRemoteRuntimeUsesRemoteAuth(
+  runtimeConfig: SoftbookAppRuntimeConfig | undefined,
+  feature: RemoteRuntimeFeature,
+) {
+  const authMode = resolveRuntimeMode(runtimeConfig?.auth?.mode);
+  const featureMode = resolveRuntimeMode(runtimeConfig?.[feature]?.mode);
+
+  if (featureMode !== 'remote' || authMode === 'remote') {
+    return;
+  }
+
+  const labelByFeature: Record<RemoteRuntimeFeature, string> = {
+    learningSource: 'Remote learning source mode',
+    membership: 'Remote membership mode',
+    progressSync: 'Remote progress sync mode',
+  };
+
+  throw new Error(
+    `${labelByFeature[feature]} requires auth.mode to also be remote.`,
+  );
+}
 
 export function readSoftbookAppRuntimeConfig():
   | SoftbookAppRuntimeConfig
@@ -63,6 +93,8 @@ export function resolveLearningSessionRepositoryConfig(
   const mode = learningSource?.mode ?? 'local';
 
   if (mode === 'remote') {
+    assertRemoteRuntimeUsesRemoteAuth(runtimeConfig, 'learningSource');
+
     if (!learningSource?.remote?.baseUrl) {
       throw new Error(
         'Remote learning source mode requires learningSource.remote.baseUrl.',
