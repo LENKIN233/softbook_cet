@@ -9,12 +9,29 @@ import { LearningSession } from '../src/learning/model';
 import { createLocalLearningSession } from '../src/learning/session';
 import App from '../App';
 
+const mockCreateLearningSessionRepository = jest.fn();
 const mockLoadSession = jest.fn();
+const mockFetch = jest.fn();
+
+type MockFetchInit = {
+  body?: string;
+  headers?: Record<string, string>;
+  method?: string;
+};
+
+type MockFetchCall = {
+  init: MockFetchInit | undefined;
+  input: string;
+};
 
 jest.mock('../src/learning/learningRepository', () => ({
-  createLearningSessionRepository: () => ({
-    loadSession: (...args: unknown[]) => mockLoadSession(...args),
-  }),
+  createLearningSessionRepository: (...args: unknown[]) => {
+    mockCreateLearningSessionRepository(...args);
+
+    return {
+      loadSession: (...loadArgs: unknown[]) => mockLoadSession(...loadArgs),
+    };
+  },
 }));
 
 jest.mock('react-native-safe-area-context', () => {
@@ -36,6 +53,11 @@ type Deferred<T> = {
 };
 
 let pendingSession: Deferred<LearningSession>;
+let originalFetch: typeof global.fetch | undefined;
+
+const globalWithFetch = global as typeof global & {
+  fetch?: typeof global.fetch;
+};
 
 declare global {
   var __SOFTBOOK_CET_RUNTIME_CONFIG__: SoftbookAppRuntimeConfig | undefined;
@@ -43,11 +65,19 @@ declare global {
 
 beforeEach(() => {
   pendingSession = createDeferred<LearningSession>();
+  mockCreateLearningSessionRepository.mockReset();
   mockLoadSession.mockReset();
   mockLoadSession.mockImplementation(() => pendingSession.promise);
+  mockFetch.mockReset();
+  mockFetch.mockImplementation(async (input: string) => {
+    throw new Error(`Unexpected fetch call in App test: ${input}`);
+  });
+  originalFetch = globalWithFetch.fetch;
+  globalWithFetch.fetch = mockFetch as typeof global.fetch;
 });
 
 afterEach(() => {
+  globalWithFetch.fetch = originalFetch;
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = undefined;
 });
 
@@ -92,18 +122,17 @@ async function openRoute(
   });
 }
 
-async function startTrialFromMine(
+async function startTrialFromProtectedEntry(
   root: ReactTestRenderer.ReactTestInstance,
   returnRoute: 'learning' | 'space' | 'mine' = 'learning',
 ) {
-  await openRoute(root, 'mine');
+  await openRoute(root, 'space');
 
   await ReactTestRenderer.act(async () => {
-    root.findByProps({ testID: 'membership-start-trial-button' }).props.onPress();
     await flushAsyncEffects();
   });
 
-  if (returnRoute !== 'mine') {
+  if (returnRoute !== 'space') {
     await openRoute(root, returnRoute);
   }
 }
@@ -163,6 +192,39 @@ function createDeferred<T>(): Deferred<T> {
   };
 }
 
+function createJsonResponse(payload: unknown, status = 200) {
+  return {
+    json: async () => payload,
+    ok: status >= 200 && status < 300,
+    status,
+  };
+}
+
+function createRemoteMembershipPayload(
+  stage: 'trial_available' | 'trial' | 'free' | 'premium',
+  overrides: Partial<{
+    counted_entry_count: number;
+    last_experience_ended_by: 'trial' | 'premium' | null;
+    recovery_prompt_visible: boolean;
+    trial_duration_days: number;
+    trial_started_at_entry_count: number | null;
+  }> = {},
+) {
+  return {
+    data: {
+      entitlement: {
+        counted_entry_count: 0,
+        last_experience_ended_by: null,
+        recovery_prompt_visible: false,
+        stage,
+        trial_duration_days: 5,
+        trial_started_at_entry_count: stage === 'trial' ? 1 : null,
+        ...overrides,
+      },
+    },
+  };
+}
+
 test('renders correctly', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
@@ -198,6 +260,207 @@ test('reads installed runtime config when the app mounts', async () => {
   expect(output).toContain('当前认证已切到远端短信合同');
   expect(output).toContain('当前会走远端短信验证码合同。');
   expect(output).not.toContain('当前是本地壳层验证，不会真的发短信。');
+});
+
+test('wires remote auth, learning source config, membership, and progress sync through App', async () => {
+  const fetchCalls: MockFetchCall[] = [];
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    learningSource: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    progressSync: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(
+    async (input: string, init?: MockFetchInit) => {
+      fetchCalls.push({init, input});
+
+      if (input === 'https://api.softbook.example/v1/auth/request-code') {
+        return createJsonResponse({});
+      }
+
+      if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+        return createJsonResponse({
+          data: {
+            auth_token: 'remote-auth-token',
+            phone_number: '13800138000',
+          },
+        });
+      }
+
+      if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+        return createJsonResponse(createRemoteMembershipPayload('free'));
+      }
+
+      if (input === 'https://api.softbook.example/v1/progress/daily-sync') {
+        return createJsonResponse({});
+      }
+
+      throw new Error(`Unexpected remote fetch: ${input}`);
+    },
+  );
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const repositoryConfig =
+    mockCreateLearningSessionRepository.mock.calls[0]?.[0];
+  expect(repositoryConfig).toMatchObject({
+    mode: 'remote',
+    remoteConfig: {
+      endpoint: 'https://api.softbook.example/v1/learning/card-source',
+      headers: {
+        'x-softbook-client': 'mobile',
+      },
+    },
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  expect(mockLoadSession).toHaveBeenCalledWith(
+    {
+      authToken: 'remote-auth-token',
+      phoneNumber: '13800138000',
+    },
+    'cet4',
+  );
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-confident-button'}).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-next-button'}).props.onPress();
+  });
+
+  await openRoute(root, 'statistics');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('远端已同步');
+  expect(output).toContain('今天的学习进展已推送到远端日级同步端点。');
+
+  const membershipRequest = fetchCalls.find(
+    call => call.input === 'https://api.softbook.example/v1/membership/entitlement',
+  );
+  expect(membershipRequest?.init?.headers).toMatchObject({
+    Authorization: 'Bearer remote-auth-token',
+  });
+
+  const progressSyncRequest = fetchCalls.find(
+    call => call.input === 'https://api.softbook.example/v1/progress/daily-sync',
+  );
+  expect(progressSyncRequest?.init?.headers).toMatchObject({
+    Authorization: 'Bearer remote-auth-token',
+    'content-type': 'application/json',
+  });
+  expect(progressSyncRequest?.init?.body).toContain('"day_key"');
+  expect(progressSyncRequest?.init?.body).toContain('"learning_completed_count":1');
+});
+
+test('auto-starts remote trial when first entering space', async () => {
+  const fetchCalls: MockFetchCall[] = [];
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(
+    async (input: string, init?: MockFetchInit) => {
+      fetchCalls.push({init, input});
+
+      if (input === 'https://api.softbook.example/v1/auth/request-code') {
+        return createJsonResponse({});
+      }
+
+      if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+        return createJsonResponse({
+          data: {
+            auth_token: 'remote-auth-token',
+            phone_number: '13800138000',
+          },
+        });
+      }
+
+      if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+        return createJsonResponse(createRemoteMembershipPayload('trial_available'));
+      }
+
+      if (input === 'https://api.softbook.example/v1/membership/start-trial') {
+        return createJsonResponse(createRemoteMembershipPayload('trial'));
+      }
+
+      throw new Error(`Unexpected remote fetch: ${input}`);
+    },
+  );
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'space');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('已接入卡片的物理空间');
+  expect(output).toContain('知识地图浏览');
+
+  const startTrialRequest = fetchCalls.find(
+    call => call.input === 'https://api.softbook.example/v1/membership/start-trial',
+  );
+  expect(startTrialRequest?.init?.headers).toMatchObject({
+    Authorization: 'Bearer remote-auth-token',
+  });
 });
 
 test('can unlock the learning flow after fake sms verification', async () => {
@@ -255,7 +518,7 @@ test('can complete the local single-card deck and restart it', async () => {
 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
-  await startTrialFromMine(root);
+  await startTrialFromProtectedEntry(root);
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-favorite-button' }).props.onPress();
@@ -363,7 +626,7 @@ test('can start a review round from cards that need revisiting', async () => {
 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
-  await startTrialFromMine(root);
+  await startTrialFromProtectedEntry(root);
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
@@ -581,7 +844,7 @@ test('can browse the seeded knowledge map after login', async () => {
 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
-  await startTrialFromMine(root, 'space');
+  await startTrialFromProtectedEntry(root, 'space');
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('已接入卡片的物理空间');
@@ -617,7 +880,7 @@ test('can move a card into sleep zone and remove it from learning flow', async (
 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
-  await startTrialFromMine(root, 'space');
+  await startTrialFromProtectedEntry(root, 'space');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'space-sleep-002001' }).props.onPress();
@@ -646,7 +909,7 @@ test('can favorite a card from space and reflect it in learning flow', async () 
 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
-  await startTrialFromMine(root, 'space');
+  await startTrialFromProtectedEntry(root, 'space');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'space-favorite-002001' }).props.onPress();
@@ -664,7 +927,7 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   expect(output).toContain('已收藏');
 });
 
-test('gates space behind trial before unlocking it', async () => {
+test('auto-starts local trial when first entering space', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -675,20 +938,16 @@ test('gates space behind trial before unlocking it', async () => {
   await loginIntoLearningFlow(root);
   await openRoute(root, 'space');
 
-  let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('完整物理空间需要试用或会员');
-  expect(output).toContain('完整物理空间当前被会员矩阵拦住');
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'membership-start-trial-button' }).props.onPress();
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
   });
 
-  output = JSON.stringify(tree!.toJSON());
+  const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('已接入卡片的物理空间');
   expect(output).toContain('知识地图浏览');
 });
 
-test('keeps free learning near half library and gates review into mine', async () => {
+test('auto-starts trial from the first gated review entry', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -748,9 +1007,15 @@ test('keeps free learning near half library and gates review into mine', async (
     root.findByProps({ testID: 'learning-start-review-button' }).props.onPress();
   });
 
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  await openRoute(root, 'mine');
+
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('完整回看算法当前被会员矩阵拦住');
-  expect(output).toContain('试用待开始');
+  expect(output).toContain('完整试用进行中');
+  expect(output).not.toContain('试用待开始');
 });
 
 test('shows recovery reminder after local trial ends and clears it after purchase', async () => {
@@ -762,11 +1027,7 @@ test('shows recovery reminder after local trial ends and clears it after purchas
 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
-  await openRoute(root, 'mine');
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'membership-start-trial-button' }).props.onPress();
-  });
+  await startTrialFromProtectedEntry(root, 'mine');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'membership-expire-trial-button' }).props.onPress();
@@ -796,7 +1057,7 @@ test('keeps basic learning recoverable when free cards all enter sleep zone', as
 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
-  await startTrialFromMine(root, 'space');
+  await startTrialFromProtectedEntry(root, 'space');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'space-sleep-002001' }).props.onPress();
