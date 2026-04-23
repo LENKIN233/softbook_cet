@@ -22,7 +22,8 @@ test('progress sync runtime config can switch repository mode to remote', () => 
     remoteConfig: {
       endpoint: 'https://api.softbook.example/v1/progress/daily-sync',
       headers: {
-        Authorization: 'Bearer progress-key',
+        'x-api-key': 'progress-key',
+        'x-softbook-client': 'mobile',
       },
     },
   });

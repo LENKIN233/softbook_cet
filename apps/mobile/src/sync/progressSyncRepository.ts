@@ -16,6 +16,11 @@ export type ProgressSyncResult = {
   mode: ProgressSyncRepositoryMode;
 };
 
+export type ProgressSyncContext = {
+  authToken?: string;
+  phoneNumber: string;
+};
+
 export type ProgressSyncRemoteConfig = {
   endpoint: string;
   headers?: Record<string, string>;
@@ -25,6 +30,7 @@ export type FetchLike = typeof fetch;
 
 export type ProgressSyncRepository = {
   syncDailyProgress: (
+    context: ProgressSyncContext,
     snapshot: DailyProgressSnapshot,
   ) => Promise<ProgressSyncResult>;
 };
@@ -54,7 +60,7 @@ export function createProgressSyncRepository(
   config: ProgressSyncRepositoryConfig,
 ): ProgressSyncRepository {
   return {
-    syncDailyProgress: async snapshot => {
+    syncDailyProgress: async (context, snapshot) => {
       const acknowledgedAt = new Date().toISOString();
 
       if (config.mode === 'remote') {
@@ -70,15 +76,12 @@ export function createProgressSyncRepository(
             favorite_count: snapshot.favoriteCount,
             learning_completed_count: snapshot.learningCompletedCount,
             pending_review_count: snapshot.pendingReviewCount,
+            phone_number: context.phoneNumber,
             review_completed_count: snapshot.reviewCompletedCount,
             sleeping_count: snapshot.sleepingCount,
             total_completed_count: snapshot.totalCompletedCount,
           }),
-          headers: {
-            'content-type': 'application/json',
-            'x-softbook-client': 'mobile',
-            ...config.remoteConfig.headers,
-          },
+          headers: buildRemoteProgressSyncHeaders(config.remoteConfig, context),
           method: 'POST',
         });
 
@@ -99,5 +102,20 @@ export function createProgressSyncRepository(
         mode: 'local',
       };
     },
+  };
+}
+
+function buildRemoteProgressSyncHeaders(
+  config: ProgressSyncRemoteConfig,
+  context: ProgressSyncContext,
+) {
+  if (!context.authToken) {
+    throw new Error('Remote progress sync requires authToken.');
+  }
+
+  return {
+    'content-type': 'application/json',
+    Authorization: `Bearer ${context.authToken}`,
+    ...config.headers,
   };
 }

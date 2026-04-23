@@ -19,6 +19,8 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
+import { createAuthRepository } from './src/auth/authRepository';
+import { resolveAuthRepositoryConfig } from './src/auth/authRuntimeConfig';
 import { LearningSurface } from './src/learning/LearningSurface';
 import {
   LearningCard,
@@ -44,6 +46,8 @@ import {
   resolveMembershipAccess,
   startMembershipTrial,
 } from './src/membership/localMembership';
+import { createMembershipRepository } from './src/membership/membershipRepository';
+import { resolveMembershipRepositoryConfig } from './src/membership/membershipRuntimeConfig';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
 import { readSoftbookAppRuntimeConfig, resolveLearningSessionRepositoryConfig } from './src/learning/learningRuntimeConfig';
 import { SpaceSurface } from './src/space/SpaceSurface';
@@ -86,8 +90,10 @@ type Palette = {
 };
 
 type AuthState = {
+  authToken: string | null;
   stage: AuthStage;
   phoneNumber: string;
+  pendingAction: 'request_code' | 'verify_code' | null;
   smsCode: string;
   error: string | null;
 };
@@ -219,20 +225,15 @@ const DARK_PALETTE: Palette = {
 const PROTECTED_ROUTES: RouteKey[] = ['learning', 'space', 'statistics'];
 
 const INITIAL_AUTH_STATE: AuthState = {
+  authToken: null,
   stage: 'logged_out',
   phoneNumber: '',
+  pendingAction: null,
   smsCode: '',
   error: null,
 };
 
 const LEARNING_TRACK: LearningTrack = 'cet4';
-const runtimeConfig = readSoftbookAppRuntimeConfig();
-const learningSessionRepository = createLearningSessionRepository({
-  ...resolveLearningSessionRepositoryConfig(runtimeConfig),
-});
-const progressSyncRepository = createProgressSyncRepository(
-  resolveProgressSyncRepositoryConfig(runtimeConfig),
-);
 
 function App(): React.JSX.Element {
   return (
@@ -245,6 +246,42 @@ function App(): React.JSX.Element {
 function AppShell() {
   const scheme = useColorScheme();
   const palette = scheme === 'dark' ? DARK_PALETTE : LIGHT_PALETTE;
+  const runtimeConfig = useMemo(() => readSoftbookAppRuntimeConfig(), []);
+  const authRepositoryConfig = useMemo(
+    () => resolveAuthRepositoryConfig(runtimeConfig),
+    [runtimeConfig],
+  );
+  const authRepository = useMemo(
+    () => createAuthRepository(authRepositoryConfig),
+    [authRepositoryConfig],
+  );
+  const runtimeAuthRepositoryMode = authRepositoryConfig.mode;
+  const learningSessionRepositoryConfig = useMemo(
+    () => resolveLearningSessionRepositoryConfig(runtimeConfig),
+    [runtimeConfig],
+  );
+  const learningSessionRepository = useMemo(
+    () => createLearningSessionRepository(learningSessionRepositoryConfig),
+    [learningSessionRepositoryConfig],
+  );
+  const membershipRepositoryConfig = useMemo(
+    () => resolveMembershipRepositoryConfig(runtimeConfig),
+    [runtimeConfig],
+  );
+  const membershipRepository = useMemo(
+    () => createMembershipRepository(membershipRepositoryConfig),
+    [membershipRepositoryConfig],
+  );
+  const runtimeMembershipRepositoryMode = membershipRepositoryConfig.mode;
+  const progressSyncRepositoryConfig = useMemo(
+    () => resolveProgressSyncRepositoryConfig(runtimeConfig),
+    [runtimeConfig],
+  );
+  const progressSyncRepository = useMemo(
+    () => createProgressSyncRepository(progressSyncRepositoryConfig),
+    [progressSyncRepositoryConfig],
+  );
+  const runtimeProgressSyncMode = progressSyncRepositoryConfig.mode;
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
   const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
   const [learningSession, setLearningSession] =
@@ -279,6 +316,10 @@ function AppShell() {
   const [membershipState, setMembershipState] = useState<MembershipState>(
     createInitialMembershipState,
   );
+  const [membershipPendingAction, setMembershipPendingAction] = useState<
+    'dismiss_recovery' | 'purchase' | 'start_trial' | null
+  >(null);
+  const [membershipError, setMembershipError] = useState<string | null>(null);
   const [membershipGate, setMembershipGate] = useState<MembershipGate | null>(
     null,
   );
@@ -329,7 +370,27 @@ function AppShell() {
       card => !readSpaceCardState(card.card_id, stateMap).isSleeping,
     );
   };
+  const resolveSleepingAccessibleCards = (
+    nextSession: LearningSession | null = learningSession,
+    stateMap: Record<string, SpaceCardState> = spaceCardStateById,
+    nextMembershipState: MembershipState = membershipState,
+  ) => {
+    const accessibleCardCount = nextSession
+      ? resolveAccessibleLearningCardCount(
+          nextSession.cards.length,
+          nextMembershipState,
+        )
+      : 0;
+    const accessibleCards =
+      nextSession?.cards.slice(0, accessibleCardCount) ?? [];
+
+    return accessibleCards.filter(card =>
+      readSpaceCardState(card.card_id, stateMap).isSleeping,
+    );
+  };
   const visibleLearningCards = resolveVisibleLearningCards();
+  const sleepingAccessibleCards = resolveSleepingAccessibleCards();
+  const recoverableSleepingCard = sleepingAccessibleCards[0] ?? null;
   const activeSessionCards =
     learningPhase === 'review' ? reviewSessionCards : visibleLearningCards;
   const activeCompletedResults =
@@ -380,6 +441,16 @@ function AppShell() {
     ],
   );
   const dailyProgressKey = JSON.stringify(dailyProgressSnapshot);
+  const authenticatedRuntimeContext = useMemo(
+    () =>
+      authState.stage === 'authenticated'
+        ? {
+            authToken: authState.authToken ?? undefined,
+            phoneNumber: authState.phoneNumber,
+          }
+        : null,
+    [authState.authToken, authState.phoneNumber, authState.stage],
+  );
 
   const resetLearningDeck = (
     stateMap: Record<string, SpaceCardState> = spaceCardStateById,
@@ -417,6 +488,8 @@ function AppShell() {
       setReviewSessionCards([]);
       setReviewCompletedResults([]);
       setLearningCardState(null);
+      setMembershipError(null);
+      setMembershipPendingAction(null);
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
       setLastSyncedProgressKey(null);
@@ -454,6 +527,16 @@ function AppShell() {
       return;
     }
 
+    if (runtimeProgressSyncMode === 'local') {
+      setLastSyncedProgressKey(dailyProgressKey);
+      setProgressSyncState({
+        detail: '今天的学习进展已在本地记录；远端同步将在配置接通后启用。',
+        label: '本地已记录',
+        state: 'synced',
+      });
+      return;
+    }
+
     let isCancelled = false;
 
     setProgressSyncState({
@@ -462,8 +545,17 @@ function AppShell() {
       state: 'syncing',
     });
 
+    if (authenticatedRuntimeContext === null) {
+      setProgressSyncState({
+        detail: '当前缺少可用的登录上下文，暂时不能同步日级进展。',
+        label: '同步失败',
+        state: 'error',
+      });
+      return;
+    }
+
     progressSyncRepository
-      .syncDailyProgress(dailyProgressSnapshot)
+      .syncDailyProgress(authenticatedRuntimeContext, dailyProgressSnapshot)
       .then(result => {
         if (isCancelled) {
           return;
@@ -498,10 +590,13 @@ function AppShell() {
       isCancelled = true;
     };
   }, [
+    authenticatedRuntimeContext,
     dailyProgressKey,
     dailyProgressSnapshot,
     isAuthenticated,
     lastSyncedProgressKey,
+    progressSyncRepository,
+    runtimeProgressSyncMode,
   ]);
 
   useEffect(() => {
@@ -559,6 +654,7 @@ function AppShell() {
     createTrackedLearningCardState,
     isAuthenticated,
     learningBootstrapStatus,
+    learningSessionRepository,
     membershipState,
     readSpaceCardState,
   ]);
@@ -622,6 +718,19 @@ function AppShell() {
     });
   };
 
+  const completeMembershipUnlock = (nextState: MembershipState) => {
+    const nextGate = membershipGate;
+
+    setMembershipState(nextState);
+    setMembershipGate(null);
+
+    if (nextGate === 'review') {
+      startTransition(() => {
+        setActiveRoute('learning');
+      });
+    }
+  };
+
   const authHandlers: AuthHandlers = {
     onChangePhone: value => {
       setAuthState(current => ({
@@ -638,52 +747,120 @@ function AppShell() {
       }));
     },
     onRequestCode: () => {
-      setAuthState(current => {
-        if (current.phoneNumber.length !== 11) {
-          return {
-            ...current,
-            error: '请输入 11 位手机号后再请求验证码。',
-          };
-        }
+      if (authState.pendingAction !== null) {
+        return;
+      }
 
-        return {
+      if (authState.phoneNumber.length !== 11) {
+        setAuthState(current => ({
           ...current,
-          stage: 'code_sent',
-          error: null,
-          smsCode: '',
-        };
-      });
+          error: '请输入 11 位手机号后再请求验证码。',
+        }));
+        return;
+      }
+
+      const phoneNumber = authState.phoneNumber;
+      setAuthState(current => ({
+        ...current,
+        error: null,
+        pendingAction: 'request_code',
+      }));
+
+      authRepository
+        .requestSmsCode(phoneNumber)
+        .then(() => {
+          setAuthState(current => ({
+            ...current,
+            error: null,
+            pendingAction: null,
+            smsCode: '',
+            stage: 'code_sent',
+          }));
+        })
+        .catch((error: unknown) => {
+          setAuthState(current => ({
+            ...current,
+            error:
+              error instanceof Error ? error.message : '验证码请求暂时失败。',
+            pendingAction: null,
+          }));
+        });
     },
     onSubmitCode: () => {
-      setAuthState(current => {
-        if (current.stage !== 'code_sent') {
-          return {
-            ...current,
-            error: '请先请求验证码。',
-          };
-        }
+      if (authState.pendingAction !== null) {
+        return;
+      }
 
-        if (current.smsCode.length < 4) {
-          return {
-            ...current,
-            error: '请输入 4-6 位验证码。',
-          };
-        }
-
-        return {
+      if (authState.stage !== 'code_sent') {
+        setAuthState(current => ({
           ...current,
-          stage: 'authenticated',
-          error: null,
-          smsCode: '',
-        };
-      });
-      setMembershipGate(null);
+          error: '请先请求验证码。',
+        }));
+        return;
+      }
+
+      if (authState.smsCode.length < 4) {
+        setAuthState(current => ({
+          ...current,
+          error: '请输入 4-6 位验证码。',
+        }));
+        return;
+      }
+
+      const phoneNumber = authState.phoneNumber;
+      const smsCode = authState.smsCode;
+      setAuthState(current => ({
+        ...current,
+        error: null,
+        pendingAction: 'verify_code',
+      }));
+      setMembershipError(null);
+      setMembershipPendingAction(null);
+
+      authRepository
+        .verifySmsCode({
+          phoneNumber,
+          smsCode,
+        })
+        .then(session =>
+          membershipRepository
+            .loadState({
+              authToken: session.authToken,
+              phoneNumber: session.phoneNumber,
+            })
+            .then(nextMembershipState => ({
+              membershipState: nextMembershipState,
+              session,
+            })),
+        )
+        .then(({membershipState: nextMembershipState, session}) => {
+          setMembershipState(nextMembershipState);
+          setMembershipGate(null);
+          setAuthState(current => ({
+            ...current,
+            authToken: session.authToken ?? null,
+            error: null,
+            pendingAction: null,
+            phoneNumber: session.phoneNumber,
+            smsCode: '',
+            stage: 'authenticated',
+          }));
+        })
+        .catch((error: unknown) => {
+          setAuthState(current => ({
+            ...current,
+            error: error instanceof Error ? error.message : '登录暂时失败。',
+            pendingAction: null,
+          }));
+        });
     },
     onLogout: () => {
       setAuthState(INITIAL_AUTH_STATE);
       setLearningPhase('learning');
       setReviewSessionCards([]);
       setReviewCompletedResults([]);
+      setMembershipError(null);
+      setMembershipPendingAction(null);
       setMembershipGate(null);
       setMembershipState(createInitialMembershipState());
       setSpaceCardStateById({});
@@ -700,36 +877,107 @@ function AppShell() {
     },
   };
 
-  const unlockMembership = (
-    updater: (current: MembershipState) => MembershipState,
-  ) => {
-    const nextGate = membershipGate;
-
-    setMembershipState(current => updater(current));
-    setMembershipGate(null);
-
-    if (nextGate === 'review') {
-      startTransition(() => {
-        setActiveRoute('learning');
-      });
-    }
-  };
-
   const membershipHandlers: MembershipHandlers = {
     onStartTrial: () => {
-      unlockMembership(current => startMembershipTrial(current));
+      if (
+        authenticatedRuntimeContext === null ||
+        membershipPendingAction !== null
+      ) {
+        return;
+      }
+
+      setMembershipError(null);
+      if (runtimeMembershipRepositoryMode === 'local') {
+        completeMembershipUnlock(startMembershipTrial(membershipState));
+        return;
+      }
+
+      setMembershipPendingAction('start_trial');
+      membershipRepository
+        .startTrial(authenticatedRuntimeContext, membershipState)
+        .then(result => {
+          setMembershipPendingAction(null);
+          completeMembershipUnlock(result.state);
+        })
+        .catch((error: unknown) => {
+          setMembershipError(
+            error instanceof Error ? error.message : '试用开通暂时失败。',
+          );
+          setMembershipPendingAction(null);
+        });
     },
     onPurchase: () => {
-      unlockMembership(current => purchaseMembership(current));
+      if (
+        authenticatedRuntimeContext === null ||
+        membershipPendingAction !== null
+      ) {
+        return;
+      }
+
+      setMembershipError(null);
+      if (runtimeMembershipRepositoryMode === 'local') {
+        completeMembershipUnlock(purchaseMembership(membershipState));
+        return;
+      }
+
+      setMembershipPendingAction('purchase');
+      membershipRepository
+        .purchase(authenticatedRuntimeContext, membershipState)
+        .then(result => {
+          setMembershipPendingAction(null);
+          completeMembershipUnlock(result.state);
+        })
+        .catch((error: unknown) => {
+          setMembershipError(
+            error instanceof Error ? error.message : '会员开通暂时失败。',
+          );
+          setMembershipPendingAction(null);
+        });
     },
     onExpireTrial: () => {
+      if (runtimeMembershipRepositoryMode !== 'local') {
+        return;
+      }
+
+      setMembershipError(null);
       setMembershipState(current => expireMembershipTrial(current));
     },
     onExpirePremium: () => {
+      if (runtimeMembershipRepositoryMode !== 'local') {
+        return;
+      }
+
+      setMembershipError(null);
       setMembershipState(current => expirePremiumMembership(current));
     },
     onDismissRecovery: () => {
-      setMembershipState(current => dismissMembershipRecovery(current));
+      if (
+        authenticatedRuntimeContext === null ||
+        membershipPendingAction !== null
+      ) {
+        return;
+      }
+
+      setMembershipError(null);
+      if (runtimeMembershipRepositoryMode === 'local') {
+        setMembershipState(current => dismissMembershipRecovery(current));
+        return;
+      }
+
+      setMembershipPendingAction('dismiss_recovery');
+      membershipRepository
+        .dismissRecovery(authenticatedRuntimeContext, membershipState)
+        .then(result => {
+          setMembershipError(null);
+          setMembershipPendingAction(null);
+          setMembershipState(result.state);
+        })
+        .catch((error: unknown) => {
+          setMembershipError(
+            error instanceof Error ? error.message : '恢复购买提醒暂时无法更新。',
+          );
+          setMembershipPendingAction(null);
+        });
     },
   };
 
@@ -920,6 +1168,7 @@ function AppShell() {
 
   const content = shouldShowAuthGate ? (
     <AuthGate
+      authRepositoryMode={runtimeAuthRepositoryMode}
       authState={authState}
       handlers={authHandlers}
       palette={palette}
@@ -927,13 +1176,17 @@ function AppShell() {
     />
   ) : route.key === 'mine' ? (
     <MineSurface
+      authRepositoryMode={runtimeAuthRepositoryMode}
       authState={authState}
       checkedInDayKey={checkedInDayKey}
       favoriteCount={favoriteCount}
       handlers={authHandlers}
       learningResults={learningCompletedResults}
+      membershipError={membershipError}
       membershipGate={membershipGate}
       membershipHandlers={membershipHandlers}
+      membershipPendingAction={membershipPendingAction}
+      membershipRepositoryMode={runtimeMembershipRepositoryMode}
       membershipState={membershipState}
       palette={palette}
       progressSyncState={progressSyncState}
@@ -945,6 +1198,9 @@ function AppShell() {
     <MembershipPaywallSurface
       gate="space"
       handlers={membershipHandlers}
+      membershipError={membershipError}
+      membershipPendingAction={membershipPendingAction}
+      membershipRepositoryMode={runtimeMembershipRepositoryMode}
       membershipState={membershipState}
       palette={palette}
     />
@@ -964,12 +1220,21 @@ function AppShell() {
     learningPhase === 'learning' &&
     visibleLearningCards.length === 0 ? (
     <LearningSleepSurface
+      canOpenSpace={membershipAccess.completePhysicalSpace}
       onGoToSpace={() => {
         startTransition(() => {
           setActiveRoute('space');
         });
       }}
+      onRecoverCard={
+        recoverableSleepingCard
+          ? () => {
+              spaceHandlers.onToggleSleepState(recoverableSleepingCard.card_id);
+            }
+          : null
+      }
       palette={palette}
+      recoverableCard={recoverableSleepingCard}
     />
   ) : route.key === 'learning' ? (
     <LearningSurface
@@ -1139,12 +1404,20 @@ function LearningBootstrapSurface({
 }
 
 function LearningSleepSurface({
+  canOpenSpace,
   onGoToSpace,
+  onRecoverCard,
   palette,
+  recoverableCard,
 }: {
+  canOpenSpace: boolean;
   onGoToSpace: () => void;
+  onRecoverCard: (() => void) | null;
   palette: Palette;
+  recoverableCard: LearningCard | null;
 }) {
+  const canRecoverInPlace = !canOpenSpace && recoverableCard !== null;
+
   return (
     <ScrollView contentContainerStyle={styles.canvasContent}>
       <View
@@ -1160,27 +1433,51 @@ function LearningSleepSurface({
           当前学习卡都已进入休眠区
         </Text>
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
-          根据空间规则，进入休眠区的卡不会继续出现在学习流里。先去空间里把需要恢复的卡移出休眠区，再继续当前学习。
+          {canRecoverInPlace
+            ? '当前免费态还不能进入完整空间，但为了保留基础学习，可以先把一张可学习卡移出休眠区，再继续当前学习。'
+            : '根据空间规则，进入休眠区的卡不会继续出现在学习流里。先去空间里把需要恢复的卡移出休眠区，再继续当前学习。'}
         </Text>
       </View>
       <InfoCard
         palette={palette}
         title="这一步为什么拦住学习流"
-        items={[
-          '休眠是 remove-from-flow 行为，不是普通标签。',
-          '当前实现会立刻把休眠卡移出当前学习集合。',
-          '恢复后再回学习入口，就能重新进入学习流。',
-        ]}
+        items={
+          canRecoverInPlace
+            ? [
+                '休眠是 remove-from-flow 行为，不是普通标签。',
+                '免费态仍需保留基础学习，所以这里提供一条窄恢复口，不直接放开完整空间。',
+                recoverableCard
+                  ? `下一张可恢复卡：${recoverableCard.front.prompt}`
+                  : '当前没有可恢复卡。',
+              ]
+            : [
+                '休眠是 remove-from-flow 行为，不是普通标签。',
+                '当前实现会立刻把休眠卡移出当前学习集合。',
+                '恢复后再回学习入口，就能重新进入学习流。',
+              ]
+        }
       />
-      <Pressable
-        onPress={onGoToSpace}
-        style={[styles.primaryButton, { backgroundColor: palette.accent }]}
-        testID="learning-go-space-button"
-      >
-        <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-          去空间管理休眠卡
-        </Text>
-      </Pressable>
+      {canRecoverInPlace ? (
+        <Pressable
+          onPress={onRecoverCard}
+          style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+          testID="learning-recover-sleeping-card-button"
+        >
+          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            恢复一张可学习卡
+          </Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={onGoToSpace}
+          style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+          testID="learning-go-space-button"
+        >
+          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            去空间管理休眠卡
+          </Text>
+        </Pressable>
+      )}
     </ScrollView>
   );
 }
@@ -1467,11 +1764,13 @@ function AuthStatusBadge({
 }
 
 function AuthGate({
+  authRepositoryMode,
   authState,
   handlers,
   palette,
   route,
 }: {
+  authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   handlers: AuthHandlers;
   palette: Palette;
@@ -1499,11 +1798,16 @@ function AuthGate({
         </Text>
       </View>
       <PhoneSmsPanel
+        authRepositoryMode={authRepositoryMode}
         authState={authState}
         handlers={handlers}
         palette={palette}
         title="手机号验证码登录"
-        summary="先把主登录方式接进壳层。真实短信服务后续再接；试用和会员矩阵已经在本地 entitlement 宿主里闭环。"
+        summary={
+          authRepositoryMode === 'remote'
+            ? '先把主登录方式接进 runtime 仓储。当前认证已切到远端短信合同；会员和同步继续按各自 runtime 配置运行。'
+            : '先把主登录方式接进 runtime 仓储。当前仍走本地安全模式，但认证、entitlement 和同步都已经预留远端接线位。'
+        }
       />
       <InfoCard
         palette={palette}
@@ -1519,13 +1823,17 @@ function AuthGate({
 }
 
 function MineSurface({
+  authRepositoryMode,
   authState,
   checkedInDayKey,
   favoriteCount,
   handlers,
   learningResults,
+  membershipError,
   membershipGate,
   membershipHandlers,
+  membershipPendingAction,
+  membershipRepositoryMode,
   membershipState,
   palette,
   progressSyncState,
@@ -1533,13 +1841,17 @@ function MineSurface({
   route,
   sleepingCount,
 }: {
+  authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   checkedInDayKey: string | null;
   favoriteCount: number;
   handlers: AuthHandlers;
   learningResults: LearningCardResult[];
+  membershipError: string | null;
   membershipGate: MembershipGate | null;
   membershipHandlers: MembershipHandlers;
+  membershipPendingAction: 'dismiss_recovery' | 'purchase' | 'start_trial' | null;
+  membershipRepositoryMode: 'local' | 'remote';
   membershipState: MembershipState;
   palette: Palette;
   progressSyncState: ProgressSyncState;
@@ -1573,13 +1885,16 @@ function MineSurface({
         </Text>
       </View>
       <PhoneSmsPanel
+        authRepositoryMode={authRepositoryMode}
         authState={authState}
         handlers={handlers}
         palette={palette}
         title={isAuthenticated ? '当前登录状态' : '手机号验证码登录'}
         summary={
           isAuthenticated
-            ? '当前是本地 profile 登录态：你能看到基础账号信息、学习摘要、同步状态，以及本地 entitlement 宿主。'
+            ? authRepositoryMode === 'remote'
+              ? '当前登录态已经过远端短信验证；学习、会员与同步会继续按各自 runtime 合同接线。'
+              : '当前是本地 profile 登录态：你能看到基础账号信息、学习摘要、同步状态，以及本地 entitlement 宿主。'
             : '先从这里完成身份建立，再让学习流和用户态页面具备真实入口。'
         }
       />
@@ -1594,7 +1909,9 @@ function MineSurface({
                   `手机号：${maskPhoneNumber(authState.phoneNumber)}`,
                   `今日签到：${checkedInToday ? '已完成' : '尚未完成'}`,
                   `日级同步：${progressSyncState.label}`,
-                  '当前仍是本地账号态，不代表真实跨端 entitlement 已接通。',
+                  authRepositoryMode === 'remote'
+                    ? '当前账号态已经通过远端认证合同建立；跨端 entitlement 仍按当前会员 runtime 模式加载。'
+                    : '当前仍是本地账号态，不代表真实跨端 entitlement 已接通。',
                 ]
               : [
                   '还没有完成身份建立。',
@@ -1653,6 +1970,9 @@ function MineSurface({
         <MembershipHostCard
           focusGate={membershipGate}
           handlers={membershipHandlers}
+          membershipError={membershipError}
+          membershipPendingAction={membershipPendingAction}
+          membershipRepositoryMode={membershipRepositoryMode}
           membershipState={membershipState}
           palette={palette}
         />
@@ -1666,11 +1986,17 @@ function MineSurface({
 function MembershipHostCard({
   focusGate,
   handlers,
+  membershipError,
+  membershipPendingAction,
+  membershipRepositoryMode,
   membershipState,
   palette,
 }: {
   focusGate: MembershipGate | null;
   handlers: MembershipHandlers;
+  membershipError: string | null;
+  membershipPendingAction: 'dismiss_recovery' | 'purchase' | 'start_trial' | null;
+  membershipRepositoryMode: 'local' | 'remote';
   membershipState: MembershipState;
   palette: Palette;
 }) {
@@ -1702,7 +2028,7 @@ function MembershipHostCard({
         {getMembershipCardTitle(membershipState.stage)}
       </Text>
       <Text style={[styles.authSummary, { color: palette.textMuted }]}>
-        {getMembershipCardSummary(membershipState)}
+        {getMembershipCardSummary(membershipState, membershipRepositoryMode)}
       </Text>
       {focusCopy ? (
         <View
@@ -1756,8 +2082,24 @@ function MembershipHostCard({
           </Pressable>
         </View>
       ) : null}
+      {membershipPendingAction ? (
+        <Text style={[styles.authHint, { color: palette.textMuted }]}>
+          {membershipPendingAction === 'start_trial'
+            ? '正在同步完整试用状态。'
+            : membershipPendingAction === 'purchase'
+            ? '正在同步会员 entitlement。'
+            : '正在更新恢复购买提醒状态。'}
+        </Text>
+      ) : null}
+      {membershipError ? (
+        <Text style={[styles.authError, { color: palette.danger }]}>
+          {membershipError}
+        </Text>
+      ) : null}
       <MembershipActionGroup
         handlers={handlers}
+        membershipPendingAction={membershipPendingAction}
+        membershipRepositoryMode={membershipRepositoryMode}
         membershipState={membershipState}
         palette={palette}
       />
@@ -1768,11 +2110,17 @@ function MembershipHostCard({
 function MembershipPaywallSurface({
   gate,
   handlers,
+  membershipError,
+  membershipPendingAction,
+  membershipRepositoryMode,
   membershipState,
   palette,
 }: {
   gate: MembershipGate;
   handlers: MembershipHandlers;
+  membershipError: string | null;
+  membershipPendingAction: 'dismiss_recovery' | 'purchase' | 'start_trial' | null;
+  membershipRepositoryMode: 'local' | 'remote';
   membershipState: MembershipState;
   palette: Palette;
 }) {
@@ -1806,6 +2154,9 @@ function MembershipPaywallSurface({
       <MembershipHostCard
         focusGate={gate}
         handlers={handlers}
+        membershipError={membershipError}
+        membershipPendingAction={membershipPendingAction}
+        membershipRepositoryMode={membershipRepositoryMode}
         membershipState={membershipState}
         palette={palette}
       />
@@ -1815,25 +2166,36 @@ function MembershipPaywallSurface({
 
 function MembershipActionGroup({
   handlers,
+  membershipPendingAction,
+  membershipRepositoryMode,
   membershipState,
   palette,
 }: {
   handlers: MembershipHandlers;
+  membershipPendingAction: 'dismiss_recovery' | 'purchase' | 'start_trial' | null;
+  membershipRepositoryMode: 'local' | 'remote';
   membershipState: MembershipState;
   palette: Palette;
 }) {
+  const isPending = membershipPendingAction !== null;
+  const showLocalDebugActions = membershipRepositoryMode === 'local';
+
   return membershipState.stage === 'trial_available' ? (
     <View style={styles.authActions}>
       <Pressable
+        disabled={isPending}
         onPress={handlers.onStartTrial}
         style={[styles.primaryButton, { backgroundColor: palette.accent }]}
         testID="membership-start-trial-button"
       >
         <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-          开始完整试用
+          {membershipPendingAction === 'start_trial'
+            ? '正在开通完整试用'
+            : '开始完整试用'}
         </Text>
       </Pressable>
       <Pressable
+        disabled={isPending}
         onPress={handlers.onPurchase}
         style={[
           styles.secondaryButton,
@@ -1849,54 +2211,68 @@ function MembershipActionGroup({
   ) : membershipState.stage === 'trial' ? (
     <View style={styles.authActions}>
       <Pressable
+        disabled={isPending}
         onPress={handlers.onPurchase}
         style={[styles.primaryButton, { backgroundColor: palette.accent }]}
         testID="membership-purchase-button"
       >
         <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-          直接开通会员
+          {membershipPendingAction === 'purchase'
+            ? '正在开通会员'
+            : '直接开通会员'}
         </Text>
       </Pressable>
-      <Pressable
-        onPress={handlers.onExpireTrial}
-        style={[
-          styles.secondaryButton,
-          { borderColor: palette.border, backgroundColor: palette.panelStrong },
-        ]}
-        testID="membership-expire-trial-button"
-      >
-        <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
-          结束本地试用体验
-        </Text>
-      </Pressable>
+      {showLocalDebugActions ? (
+        <Pressable
+          disabled={isPending}
+          onPress={handlers.onExpireTrial}
+          style={[
+            styles.secondaryButton,
+            { borderColor: palette.border, backgroundColor: palette.panelStrong },
+          ]}
+          testID="membership-expire-trial-button"
+        >
+          <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
+            结束本地试用体验
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   ) : membershipState.stage === 'premium' ? (
     <View style={styles.authActions}>
       <Text style={[styles.authSuccess, { color: palette.success }]}>
-        当前本地 entitlement 已是会员态。
+        {membershipRepositoryMode === 'remote'
+          ? '当前 entitlement 已由远端账号合同回填为会员态。'
+          : '当前本地 entitlement 已是会员态。'}
       </Text>
-      <Pressable
-        onPress={handlers.onExpirePremium}
-        style={[
-          styles.secondaryButton,
-          { borderColor: palette.border, backgroundColor: palette.panelStrong },
-        ]}
-        testID="membership-expire-premium-button"
-      >
-        <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
-          结束本地会员体验
-        </Text>
-      </Pressable>
+      {showLocalDebugActions ? (
+        <Pressable
+          disabled={isPending}
+          onPress={handlers.onExpirePremium}
+          style={[
+            styles.secondaryButton,
+            { borderColor: palette.border, backgroundColor: palette.panelStrong },
+          ]}
+          testID="membership-expire-premium-button"
+        >
+          <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
+            结束本地会员体验
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   ) : (
     <View style={styles.authActions}>
       <Pressable
+        disabled={isPending}
         onPress={handlers.onPurchase}
         style={[styles.primaryButton, { backgroundColor: palette.accent }]}
         testID="membership-purchase-button"
       >
         <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-          恢复购买并开通会员
+          {membershipPendingAction === 'purchase'
+            ? '正在恢复购买'
+            : '恢复购买并开通会员'}
         </Text>
       </Pressable>
     </View>
@@ -1904,12 +2280,14 @@ function MembershipActionGroup({
 }
 
 function PhoneSmsPanel({
+  authRepositoryMode,
   authState,
   handlers,
   palette,
   title,
   summary,
 }: {
+  authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   handlers: AuthHandlers;
   palette: Palette;
@@ -1917,6 +2295,7 @@ function PhoneSmsPanel({
   summary: string;
 }) {
   const isAuthenticated = authState.stage === 'authenticated';
+  const isPending = authState.pendingAction !== null;
 
   return (
     <View
@@ -1936,6 +2315,7 @@ function PhoneSmsPanel({
         </Text>
         <TextInput
           autoCapitalize="none"
+          editable={!isPending && !isAuthenticated}
           keyboardType="number-pad"
           maxLength={11}
           onChangeText={handlers.onChangePhone}
@@ -1957,6 +2337,7 @@ function PhoneSmsPanel({
 
       <View style={styles.authActions}>
         <Pressable
+          disabled={isPending || isAuthenticated}
           onPress={handlers.onRequestCode}
           style={[
             styles.primaryButton,
@@ -1966,12 +2347,20 @@ function PhoneSmsPanel({
           testID="auth-request-code-button"
         >
           <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-            {authState.stage === 'code_sent' ? '重新发送验证码' : '请求验证码'}
+            {authState.pendingAction === 'request_code'
+              ? '正在请求验证码'
+              : authState.stage === 'code_sent'
+              ? '重新发送验证码'
+              : '请求验证码'}
           </Text>
         </Pressable>
         <Text style={[styles.authHint, { color: palette.textMuted }]}>
-          {authState.stage === 'code_sent'
+          {authState.pendingAction === 'request_code'
+            ? '正在向当前手机号请求验证码。'
+            : authState.stage === 'code_sent'
             ? `已向 ${maskPhoneNumber(authState.phoneNumber)} 发送验证码。`
+            : authRepositoryMode === 'remote'
+            ? '当前会走远端短信验证码合同。'
             : '当前是本地壳层验证，不会真的发短信。'}
         </Text>
       </View>
@@ -1982,6 +2371,7 @@ function PhoneSmsPanel({
             验证码
           </Text>
           <TextInput
+            editable={!isPending && !isAuthenticated}
             keyboardType="number-pad"
             maxLength={6}
             onChangeText={handlers.onChangeCode}
@@ -2011,9 +2401,12 @@ function PhoneSmsPanel({
       {isAuthenticated ? (
         <View style={styles.authActions}>
           <Text style={[styles.authSuccess, { color: palette.success }]}>
-            已完成本地登录态验证。
+            {authRepositoryMode === 'remote'
+              ? '已完成远端短信验证码登录。'
+              : '已完成本地登录态验证。'}
           </Text>
           <Pressable
+            disabled={isPending}
             onPress={handlers.onLogout}
             style={[
               styles.secondaryButton,
@@ -2033,12 +2426,13 @@ function PhoneSmsPanel({
         </View>
       ) : (
         <Pressable
+          disabled={isPending}
           onPress={handlers.onSubmitCode}
           style={[styles.primaryButton, { backgroundColor: palette.accent }]}
           testID="auth-submit-button"
         >
           <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-            完成登录
+            {authState.pendingAction === 'verify_code' ? '正在登录' : '完成登录'}
           </Text>
         </Pressable>
       )}
@@ -2092,7 +2486,7 @@ function RouteCanvas({
           items={[
             '顶层顺序固定为 学习 / 空间 / 统计 / 我的。',
             '学习保持最重要入口，空间保持顶层入口。',
-            '认证与会员矩阵已接进壳层，同步合同后续独立接入。',
+            '认证、会员矩阵与日级同步都已接进 runtime；默认仍是本地安全实现。',
           ]}
         />
         <InfoCard
@@ -2180,16 +2574,23 @@ function getMembershipCardTitle(stage: MembershipStage) {
   }
 }
 
-function getMembershipCardSummary(membershipState: MembershipState) {
+function getMembershipCardSummary(
+  membershipState: MembershipState,
+  mode: 'local' | 'remote',
+) {
   switch (membershipState.stage) {
     case 'trial_available':
       return '试用不会在注册时自动起算，而是在首个计入入口开始。开始后会放开完整卡库、完整空间和完整算法。';
     case 'trial':
-      return `当前用本地壳层模拟 ${membershipState.trialDurationDays} 天完整试用，确保用户能完整感受到内容、算法和物理空间的价值。`;
+      return mode === 'remote'
+        ? `当前 entitlement 已通过远端合同回填为 ${membershipState.trialDurationDays} 天完整试用态，继续验证完整卡库、空间和算法的放开边界。`
+        : `当前用本地壳层模拟 ${membershipState.trialDurationDays} 天完整试用，确保用户能完整感受到内容、算法和物理空间的价值。`;
     case 'free':
       return '当前只保留基础学习，并把完整卡库、完整空间和完整算法收回到试用/会员权限后。';
     case 'premium':
-      return '当前本地 entitlement 已统一为会员态，完整卡库、完整空间和完整算法都已放开。';
+      return mode === 'remote'
+        ? '当前 entitlement 已通过远端合同统一为会员态，完整卡库、完整空间和完整算法都已放开。'
+        : '当前本地 entitlement 已统一为会员态，完整卡库、完整空间和完整算法都已放开。';
   }
 }
 

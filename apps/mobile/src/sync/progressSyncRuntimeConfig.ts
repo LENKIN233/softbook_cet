@@ -29,11 +29,14 @@ export function resolveProgressSyncRepositoryConfig(
       mode: 'remote',
       remoteConfig: {
         endpoint: `${progressSync.remote.baseUrl.replace(/\/$/, '')}/v1/progress/daily-sync`,
-        headers: progressSync.remote.apiKey
-          ? {
-              Authorization: `Bearer ${progressSync.remote.apiKey}`,
-            }
-          : undefined,
+        headers: {
+          'x-softbook-client': 'mobile',
+          ...(progressSync.remote.apiKey
+            ? {
+                'x-api-key': progressSync.remote.apiKey,
+              }
+            : {}),
+        },
       },
     };
   }
