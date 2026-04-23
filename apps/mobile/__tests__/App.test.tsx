@@ -463,6 +463,180 @@ test('auto-starts remote trial when first entering space', async () => {
   });
 });
 
+test('can unlock gated space after remote purchase', async () => {
+  const fetchCalls: MockFetchCall[] = [];
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(
+    async (input: string, init?: MockFetchInit) => {
+      fetchCalls.push({init, input});
+
+      if (input === 'https://api.softbook.example/v1/auth/request-code') {
+        return createJsonResponse({});
+      }
+
+      if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+        return createJsonResponse({
+          data: {
+            auth_token: 'remote-auth-token',
+            phone_number: '13800138000',
+          },
+        });
+      }
+
+      if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+        return createJsonResponse(createRemoteMembershipPayload('free'));
+      }
+
+      if (input === 'https://api.softbook.example/v1/membership/purchase') {
+        return createJsonResponse(createRemoteMembershipPayload('premium'));
+      }
+
+      throw new Error(`Unexpected remote fetch: ${input}`);
+    },
+  );
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'space');
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('完整物理空间需要试用或会员');
+
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({testID: 'membership-purchase-button'}).props.onPress();
+    await flushAsyncEffects();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('已接入卡片的物理空间');
+  expect(output).toContain('知识地图浏览');
+
+  const purchaseRequest = fetchCalls.find(
+    call => call.input === 'https://api.softbook.example/v1/membership/purchase',
+  );
+  expect(purchaseRequest?.init?.headers).toMatchObject({
+    Authorization: 'Bearer remote-auth-token',
+  });
+});
+
+test('can dismiss remote recovery reminder from mine', async () => {
+  const fetchCalls: MockFetchCall[] = [];
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(
+    async (input: string, init?: MockFetchInit) => {
+      fetchCalls.push({init, input});
+
+      if (input === 'https://api.softbook.example/v1/auth/request-code') {
+        return createJsonResponse({});
+      }
+
+      if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+        return createJsonResponse({
+          data: {
+            auth_token: 'remote-auth-token',
+            phone_number: '13800138000',
+          },
+        });
+      }
+
+      if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+        return createJsonResponse(
+          createRemoteMembershipPayload('free', {
+            last_experience_ended_by: 'trial',
+            recovery_prompt_visible: true,
+          }),
+        );
+      }
+
+      if (
+        input === 'https://api.softbook.example/v1/membership/dismiss-recovery'
+      ) {
+        return createJsonResponse(
+          createRemoteMembershipPayload('free', {
+            last_experience_ended_by: 'trial',
+            recovery_prompt_visible: false,
+          }),
+        );
+      }
+
+      throw new Error(`Unexpected remote fetch: ${input}`);
+    },
+  );
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('恢复购买提醒');
+  expect(
+    root.findAllByProps({testID: 'membership-dismiss-recovery-button'}).length,
+  ).toBeGreaterThan(0);
+
+  await ReactTestRenderer.act(async () => {
+    root
+      .findByProps({testID: 'membership-dismiss-recovery-button'})
+      .props.onPress();
+    await flushAsyncEffects();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).not.toContain('恢复购买提醒');
+  expect(
+    root.findAllByProps({testID: 'membership-dismiss-recovery-button'}).length,
+  ).toBe(0);
+
+  const dismissRecoveryRequest = fetchCalls.find(
+    call =>
+      call.input === 'https://api.softbook.example/v1/membership/dismiss-recovery',
+  );
+  expect(dismissRecoveryRequest?.init?.headers).toMatchObject({
+    Authorization: 'Bearer remote-auth-token',
+  });
+});
+
 test('can unlock the learning flow after fake sms verification', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
