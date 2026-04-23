@@ -32,6 +32,7 @@ status: active
 - `spec/agent-harness.json`
 - `spec/evals.json`
 - `spec/doc-manifest.json`
+- `spec/visual-language.json`（视觉实现假设锚，绑定 `docs/design/visual-reference.html` 与 `docs/design/canon.md`）
 
 ## 读取顺序
 
@@ -43,7 +44,8 @@ status: active
 - 卡片/交互：`requirement-memory -> product-core -> action-surface -> card-system -> interactions`
 - 物理空间/盒码：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog`
 - 会员/试用：`requirement-memory -> product-core -> membership`
-- 实现：相关产品 spec -> 合同 spec -> `runtime-boundaries`
+- 视觉输出/设计反推：`requirement-memory -> 相关产品 spec -> visual-language -> docs/design/visual-reference.html`
+- 实现：相关产品 spec -> 合同 spec -> `runtime-boundaries`（若需渲染视觉，追加 `visual-language`）
 - 审查/验收：相关 spec -> `agent-harness` -> `evals`
 
 ## 硬约束
@@ -54,6 +56,9 @@ status: active
 - 不要把音频写成独立交互家族
 - 不要把统计、计数器、复杂状态机写成产品核心
 - 不要默认读取 `archive/legacy-v3/` 或 `archive/transitional-vnext-prose/` 作为活跃真相源
+- 不要为每个屏幕/每个 agent 各自重造视觉语言；视觉输出必须从 `spec/visual-language.json` 与 `docs/design/visual-reference.html` 继承 token 与剪影
+- 不要在产出任何视觉稿（mock / screen / reference HTML 改动）后跳过 `spec/visual-language.json#design_review_checklist`；答案必须出现在 PR 描述或 agent 输出里，4 通用 + 2 条件（AP-22 / VL-AP-07）
+- 不要把 self-assess 画成 4 档或用红色表达"再回看"；权威实现在 `apps/mobile/src/learning/LearningSurface.tsx`，2 档=有把握(mint)/再回看(amber)（AP-23）
 
 ## 工程治理约束
 

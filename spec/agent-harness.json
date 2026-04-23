@@ -71,6 +71,22 @@
       "related_specs",
       "spec/agent-harness.json",
       "spec/evals.json"
+    ],
+    "visual_or_design_output": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "relevant_product_specs",
+      "spec/visual-language.json",
+      "docs/design/visual-reference.html"
+    ],
+    "visual_review_or_design_critique": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/visual-language.json",
+      "docs/design/visual-reference.html",
+      "docs/design/canon.md",
+      "spec/agent-harness.json",
+      "the_artifact_under_review"
     ]
   },
   "progressive_disclosure_policy": {
@@ -93,10 +109,12 @@
       "inputs": [
         "spec/requirement-memory.json",
         "product_specs",
-        "relevant_contract_specs"
+        "relevant_contract_specs",
+        "spec/visual-language.json_when_output_is_visual"
       ],
       "outputs": ["experience_goal", "information_goal", "key_actions", "misunderstanding_risks"],
-      "stop_when": "no_more_implementation_detail_is_needed_to_guide_design"
+      "stop_when": "no_more_implementation_detail_is_needed_to_guide_design",
+      "visual_output_rule": "if_the_design_task_produces_visual_artifacts_mocks_or_renderings_the_agent_must_inherit_tokens_and_silhouettes_from_spec_visual_language_json_and_docs_design_visual_reference_html_instead_of_inventing_new_ones"
     },
     "product": {
       "inputs": [
@@ -115,6 +133,23 @@
       "inputs": ["relevant_specs", "anti_patterns"],
       "outputs": ["product_distortion_risks_first", "then_implementation_findings"],
       "stop_when": "violated_truth_or_contract_is_named"
+    },
+    "design_review": {
+      "inputs": [
+        "spec/requirement-memory.json",
+        "spec/visual-language.json",
+        "docs/design/visual-reference.html",
+        "docs/design/canon.md",
+        "the_artifact_under_review"
+      ],
+      "outputs": [
+        "answers_to_visual_language_design_review_checklist_universal_Q1_through_Q4",
+        "answers_to_applicable_conditional_Q5_and_Q6",
+        "product_distortion_risks_first_then_aesthetic_findings_then_layout_bugs",
+        "forbidden_design_patterns_hit_list_if_any"
+      ],
+      "stop_when": "checklist_is_answered_and_each_failure_is_named_with_its_anti_pattern_id",
+      "ordering_rule": "product_truth_violations_rank_above_taste_findings_rank_above_token_drift_rank_above_micro_styling"
     },
     "acceptance": {
       "inputs": ["relevant_specs", "spec/evals.json"],
@@ -277,6 +312,21 @@
       "id": "AP-20",
       "name": "treat_main_as_normal_development_branch",
       "correction": "main_is_read_only_integration_branch_and_topic_branches_are_required"
+    },
+    {
+      "id": "AP-21",
+      "name": "reinvent_visual_language_per_screen_or_per_agent",
+      "correction": "inherit_from_spec_visual_language_json_and_docs_design_visual_reference_html_and_treat_hex_as_implementation_hypothesis_but_library_identity_and_self_assess_scoping_and_law_of_one_as_product_truth"
+    },
+    {
+      "id": "AP-22",
+      "name": "ship_visual_output_without_answering_design_review_checklist",
+      "correction": "any_task_that_produces_visual_output_must_emit_answers_to_visual_language_design_review_checklist_universal_Q1_Q4_plus_applicable_conditional_Q5_Q6"
+    },
+    {
+      "id": "AP-23",
+      "name": "use_red_for_self_assess_review_level_implying_punishment",
+      "correction": "self_assess_has_two_levels_confident_green_and_review_amber_red_is_reserved_for_rule_dont_and_trend_down_only"
     }
   ],
   "compaction_keep": [

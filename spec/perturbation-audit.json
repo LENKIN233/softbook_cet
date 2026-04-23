@@ -168,6 +168,41 @@
       "expected_failure": "bypasses review flow and destroys the read-only integration baseline",
       "guarded_by": ["spec/agent-harness.json", "spec/evals.json"],
       "status": "rejected"
+    },
+    {
+      "id": "P-24",
+      "change": "Use two library identity colors simultaneously as strong accents on a single screen (e.g. listening indigo CTA + vocabulary rose highlight together)",
+      "expected_failure": "breaks Law of One and dissolves the library identity semantics the user can learn to navigate by",
+      "guarded_by": ["spec/visual-language.json", "spec/knowledge-map.json", "spec/agent-harness.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-25",
+      "change": "Re-inflate self-assess feedback from 2 levels (有把握/再回看) back to 4 levels (掌握/知道/不确定/忘了)",
+      "expected_failure": "violates product-core user_cost_minimization ('反复做高成本掌握度判断') and diverges from apps/mobile/src/learning/LearningSurface.tsx canonical implementation",
+      "guarded_by": ["spec/visual-language.json", "spec/product-core.json", "spec/interactions.json", "scripts/validate_harness.py"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-26",
+      "change": "Paint the review self-assess level red (#F15B6E) instead of amber, implying '错了/惩罚'",
+      "expected_failure": "turns a warm 'come back to this' signal into punishment, contradicting the light_self_assess semantic in spec/interactions.json",
+      "guarded_by": ["spec/visual-language.json", "spec/interactions.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-27",
+      "change": "Ship visual output (screens, mocks, reference HTML changes) without answering the design_review_checklist",
+      "expected_failure": "removes the last gate between agent-produced design and user review; reintroduces taste drift and layout bugs that the checklist would have caught",
+      "guarded_by": ["spec/visual-language.json", "spec/agent-harness.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-28",
+      "change": "Promote hex values in visual-language.json#implementation_hypothesis into inflexible product_truth and enforce them as literal strings across all docs and code",
+      "expected_failure": "collapses the implementation_hypothesis layer and makes micro-tuning a governance event; only the 7 library identities + 2 self-assess hexes belong in the locked mirror set",
+      "guarded_by": ["spec/visual-language.json", "spec/authority-map.json"],
+      "status": "rejected"
     }
   ],
   "audit_summary": {
