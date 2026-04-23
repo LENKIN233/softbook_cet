@@ -1,6 +1,24 @@
 {
   "version": "vnext-7",
   "purpose": "Persistent machine-readable memory of user-provided requirements from this conversation so they do not collapse during compaction or future rewrites.",
+  "source_anchors": {
+    "authentication": {
+      "login_gate": "必须登入",
+      "primary_login_method": "手机号+验证码"
+    },
+    "commerce": {
+      "purchase_authority": "web与app购买同权"
+    },
+    "navigation": {
+      "top_level_information_architecture": "三端信息架构导航是一致的：学习 空间 统计 我的"
+    },
+    "audio": {
+      "presentation_policy": "不自动播放，没有字幕（背面可以有）"
+    },
+    "learning_path": {
+      "default_strategy": "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
+    }
+  },
   "product_intent": {
     "goal": "Let users pass CET4/CET6 more easily by brushing knowledge points through cards.",
     "user_value_per_short_session": "Master a concrete subset of CET knowledge points.",

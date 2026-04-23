@@ -1,30 +1,50 @@
 #!/usr/bin/env python3
 import json
+import subprocess
 import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = ROOT / "spec"
+errors = []
 
 
 def load(name: str):
-    return json.loads((SPEC / name).read_text())
-
-
-def get_path(data, path):
-    cur = data
-    for key in path.split("."):
-        cur = cur[key]
-    return cur
-
-
-errors = []
+    return json.loads((SPEC / name).read_text(encoding="utf-8"))
 
 
 def check_equal(label, expected, actual):
     if expected != actual:
         errors.append(f"{label}: expected {expected!r}, got {actual!r}")
+
+
+def check_contains(label, text, expected):
+    if expected not in text:
+        errors.append(f"{label}: missing exact snippet {expected!r}")
+
+
+def find_by_id(entries, entry_id):
+    for entry in entries:
+        if entry["id"] == entry_id:
+            return entry
+
+    errors.append(f"missing entry id: {entry_id}")
+    return None
+
+
+def run_command(*args):
+    try:
+        return subprocess.run(
+            args,
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        errors.append(f"missing required command: {args[0]}")
+        return None
 
 
 req = load("requirement-memory.json")
@@ -35,6 +55,22 @@ membership = load("membership.json")
 interactions = load("interactions.json")
 manifest = load("doc-manifest.json")
 authority = load("authority-map.json")
+harness = load("agent-harness.json")
+evals = load("evals.json")
+perturbation_audit = load("perturbation-audit.json")
+
+literal_source_anchors = {
+    "login_gate": "必须登入",
+    "primary_login_method": "手机号+验证码",
+    "purchase_authority": "web与app购买同权",
+    "top_level_navigation": "三端信息架构导航是一致的：学习 空间 统计 我的",
+    "audio_presentation_policy": "不自动播放，没有字幕（背面可以有）",
+    "default_learning_path": "建议用户按照我们拟定的顺序学习，不建议用户按模块学习",
+}
+
+
+def anchor_texts(*keys):
+    return [literal_source_anchors[key] for key in keys]
 
 
 # Manifest targets exist.
@@ -55,6 +91,344 @@ for domain, meta in authority["domains"].items():
     for mirror in meta.get("mirrors", []):
         if not (ROOT / mirror).exists():
             errors.append(f"authority-map missing mirror target for {domain}: {mirror}")
+
+
+# Literal source anchors must remain verbatim across raw memory, owner specs, evals, and drift guards.
+check_equal(
+    "requirement-memory source anchor login_gate",
+    literal_source_anchors["login_gate"],
+    req["source_anchors"]["authentication"]["login_gate"],
+)
+check_equal(
+    "requirement-memory source anchor primary_login_method",
+    literal_source_anchors["primary_login_method"],
+    req["source_anchors"]["authentication"]["primary_login_method"],
+)
+check_equal(
+    "requirement-memory source anchor purchase_authority",
+    literal_source_anchors["purchase_authority"],
+    req["source_anchors"]["commerce"]["purchase_authority"],
+)
+check_equal(
+    "requirement-memory source anchor top_level_navigation",
+    literal_source_anchors["top_level_navigation"],
+    req["source_anchors"]["navigation"]["top_level_information_architecture"],
+)
+check_equal(
+    "requirement-memory source anchor audio_presentation_policy",
+    literal_source_anchors["audio_presentation_policy"],
+    req["source_anchors"]["audio"]["presentation_policy"],
+)
+check_equal(
+    "requirement-memory source anchor default_learning_path",
+    literal_source_anchors["default_learning_path"],
+    req["source_anchors"]["learning_path"]["default_strategy"],
+)
+
+check_equal(
+    "account-sync source anchor login_gate",
+    literal_source_anchors["login_gate"],
+    auth["source_anchors"]["login_gate"],
+)
+check_equal(
+    "account-sync source anchor primary_login_method",
+    literal_source_anchors["primary_login_method"],
+    auth["source_anchors"]["primary_login_method"],
+)
+check_equal(
+    "account-sync source anchor purchase_authority",
+    literal_source_anchors["purchase_authority"],
+    auth["source_anchors"]["purchase_authority"],
+)
+check_equal(
+    "platform-contract source anchor top_level_navigation",
+    literal_source_anchors["top_level_navigation"],
+    platform["source_anchors"]["top_level_information_architecture"],
+)
+check_equal(
+    "interactions source anchor audio_presentation_policy",
+    literal_source_anchors["audio_presentation_policy"],
+    interactions["source_anchors"]["audio_presentation_policy"],
+)
+check_equal(
+    "product-core source anchor default_learning_path",
+    literal_source_anchors["default_learning_path"],
+    product["source_anchors"]["default_learning_path"],
+)
+
+hr13 = find_by_id(evals["regressions"], "HR-13")
+if hr13:
+    check_equal(
+        "HR-13 must_preserve_source_anchors",
+        anchor_texts("login_gate"),
+        hr13["must_preserve_source_anchors"],
+    )
+
+hr14 = find_by_id(evals["regressions"], "HR-14")
+if hr14:
+    check_equal(
+        "HR-14 must_preserve_source_anchors",
+        anchor_texts("primary_login_method", "purchase_authority"),
+        hr14["must_preserve_source_anchors"],
+    )
+
+hr15 = find_by_id(evals["regressions"], "HR-15")
+if hr15:
+    check_equal(
+        "HR-15 must_preserve_source_anchors",
+        anchor_texts("top_level_navigation"),
+        hr15["must_preserve_source_anchors"],
+    )
+
+hr16 = find_by_id(evals["regressions"], "HR-16")
+if hr16:
+    check_equal(
+        "HR-16 must_preserve_source_anchors",
+        anchor_texts("audio_presentation_policy"),
+        hr16["must_preserve_source_anchors"],
+    )
+
+hr17 = find_by_id(evals["regressions"], "HR-17")
+if hr17:
+    check_equal(
+        "HR-17 must_preserve_source_anchors",
+        anchor_texts(
+            "login_gate",
+            "primary_login_method",
+            "purchase_authority",
+            "top_level_navigation",
+            "audio_presentation_policy",
+            "default_learning_path",
+        ),
+        hr17["must_preserve_source_anchors"],
+    )
+
+hr18 = find_by_id(evals["regressions"], "HR-18")
+if hr18:
+    check_equal(
+        "HR-18 must_preserve_source_anchors",
+        anchor_texts("default_learning_path"),
+        hr18["must_preserve_source_anchors"],
+    )
+
+gt08 = find_by_id(evals["golden_tasks"], "GT-08")
+if gt08:
+    check_equal(
+        "GT-08 must_preserve_source_anchors",
+        anchor_texts("top_level_navigation"),
+        gt08["must_preserve_source_anchors"],
+    )
+
+gt09 = find_by_id(evals["golden_tasks"], "GT-09")
+if gt09:
+    check_equal(
+        "GT-09 must_preserve_source_anchors",
+        anchor_texts("purchase_authority"),
+        gt09["must_preserve_source_anchors"],
+    )
+
+gt10 = find_by_id(evals["golden_tasks"], "GT-10")
+if gt10:
+    check_equal(
+        "GT-10 must_preserve_source_anchors",
+        anchor_texts("login_gate"),
+        gt10["must_preserve_source_anchors"],
+    )
+
+gt11 = find_by_id(evals["golden_tasks"], "GT-11")
+if gt11:
+    check_equal(
+        "GT-11 must_preserve_source_anchors",
+        anchor_texts("login_gate", "primary_login_method", "purchase_authority"),
+        gt11["must_preserve_source_anchors"],
+    )
+
+gt12 = find_by_id(evals["golden_tasks"], "GT-12")
+if gt12:
+    check_equal(
+        "GT-12 must_preserve_source_anchors",
+        anchor_texts(
+            "login_gate",
+            "primary_login_method",
+            "purchase_authority",
+            "top_level_navigation",
+            "audio_presentation_policy",
+            "default_learning_path",
+        ),
+        gt12["must_preserve_source_anchors"],
+    )
+
+gt13 = find_by_id(evals["golden_tasks"], "GT-13")
+if gt13:
+    check_equal(
+        "GT-13 must_preserve_source_anchors",
+        anchor_texts("default_learning_path"),
+        gt13["must_preserve_source_anchors"],
+    )
+
+p15 = find_by_id(perturbation_audit["perturbations"], "P-15")
+if p15:
+    check_equal(
+        "P-15 must_preserve_source_anchors",
+        anchor_texts("purchase_authority"),
+        p15["must_preserve_source_anchors"],
+    )
+
+p18 = find_by_id(perturbation_audit["perturbations"], "P-18")
+if p18:
+    check_equal(
+        "P-18 must_preserve_source_anchors",
+        anchor_texts("login_gate"),
+        p18["must_preserve_source_anchors"],
+    )
+
+p19 = find_by_id(perturbation_audit["perturbations"], "P-19")
+if p19:
+    check_equal(
+        "P-19 must_preserve_source_anchors",
+        anchor_texts("primary_login_method"),
+        p19["must_preserve_source_anchors"],
+    )
+
+p20 = find_by_id(perturbation_audit["perturbations"], "P-20")
+if p20:
+    check_equal(
+        "P-20 must_preserve_source_anchors",
+        anchor_texts("top_level_navigation"),
+        p20["must_preserve_source_anchors"],
+    )
+
+p21 = find_by_id(perturbation_audit["perturbations"], "P-21")
+if p21:
+    check_equal(
+        "P-21 must_preserve_source_anchors",
+        anchor_texts("audio_presentation_policy"),
+        p21["must_preserve_source_anchors"],
+    )
+
+p22 = find_by_id(perturbation_audit["perturbations"], "P-22")
+if p22:
+    check_equal(
+        "P-22 must_preserve_source_anchors",
+        anchor_texts("default_learning_path"),
+        p22["must_preserve_source_anchors"],
+    )
+
+check_equal(
+    "perturbation audit required_literal_source_anchors",
+    anchor_texts(
+        "login_gate",
+        "primary_login_method",
+        "purchase_authority",
+        "top_level_navigation",
+        "audio_presentation_policy",
+        "default_learning_path",
+    ),
+    perturbation_audit["audit_summary"]["restatement_capability_after_perturbation"][
+        "required_literal_source_anchors"
+    ],
+)
+
+
+# Governance contract must stay explicit across harness, evals, drift guards, and active agent docs.
+main_branch_policy = harness["governance"]["main_branch_policy"]
+local_guard = harness["governance"]["local_guard"]
+remote_guard = harness["governance"]["remote_guard"]
+
+check_equal("main_branch_policy.branch_name", "main", main_branch_policy["branch_name"])
+check_equal(
+    "main_branch_policy.role",
+    "read_only_integration_branch",
+    main_branch_policy["role"],
+)
+check_equal(
+    "main_branch_policy.allowed_topic_branch_prefixes",
+    ["infra/", "shell/", "module/", "cross/", "fix/"],
+    main_branch_policy["allowed_topic_branch_prefixes"],
+)
+
+ap20 = find_by_id(harness["anti_patterns"], "AP-20")
+if ap20:
+    check_equal("AP-20 name", "treat_main_as_normal_development_branch", ap20["name"])
+    check_equal(
+        "AP-20 correction",
+        "main_is_read_only_integration_branch_and_topic_branches_are_required",
+        ap20["correction"],
+    )
+
+hr19 = find_by_id(evals["regressions"], "HR-19")
+if hr19:
+    check_equal(
+        "HR-19 fail_signal",
+        "allows_direct_main_development_or_treats_protection_as_doc_only",
+        hr19["fail_signal"],
+    )
+    check_equal(
+        "HR-19 must_hit",
+        [
+            "main_read_only_integration_branch",
+            "topic_branch_required",
+            "local_hooks_installed",
+            "github_branch_protection",
+        ],
+        hr19["must_hit"],
+    )
+
+gt14 = find_by_id(evals["golden_tasks"], "GT-14")
+if gt14:
+    check_equal("GT-14 task", "定义 main 分支治理", gt14["task"])
+    check_equal(
+        "GT-14 must_include",
+        [
+            "main_read_only_integration_branch",
+            "topic_branch_required",
+            "local_hooks_installed",
+            "github_branch_protection",
+        ],
+        gt14["must_include"],
+    )
+
+p23 = find_by_id(perturbation_audit["perturbations"], "P-23")
+if p23:
+    check_equal(
+        "P-23 change",
+        "Treat direct development or direct push on main as normal workflow",
+        p23["change"],
+    )
+    check_equal(
+        "P-23 guarded_by",
+        ["spec/agent-harness.json", "spec/evals.json"],
+        p23["guarded_by"],
+    )
+
+agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+for snippet in [
+    "`main` 是只读集成分支，不要直接在 `main` 上开发、提交、合并或推送",
+    "开发前先切到 `infra/*`、`shell/*`、`module/*`、`cross/*` 或 `fix/*`",
+    "clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`",
+    "若发现本地 hooks 或 GitHub `main` 保护漂移，先修治理再继续功能开发",
+]:
+    check_contains("AGENTS governance mirror", agents_text, snippet)
+
+branching_text = (ROOT / "docs/branching-strategy.md").read_text(encoding="utf-8")
+check_contains("branching strategy references evals", branching_text, "- `spec/evals.json`")
+check_contains(
+    "branching strategy validate_harness mention",
+    branching_text,
+    "`python3 scripts/validate_harness.py` 会同时检查 hooksPath、hook wrapper 分发、以及 GitHub 上 `main` 的 branch protection 是否仍然符合 harness 合同。",
+)
+
+readme_text = (ROOT / "README.md").read_text(encoding="utf-8")
+check_contains(
+    "README validate_harness scope",
+    readme_text,
+    "- `scripts/validate_harness.py`: harness 校验脚本（spec owner 一致性 + main 分支治理护栏）",
+)
+check_contains(
+    "README hook install guidance",
+    readme_text,
+    "clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`，再执行 `python3 scripts/validate_harness.py` 确认本地 hooks 与 GitHub `main` 保护都仍然生效。",
+)
 
 
 # Auth / trial / purchase owner: account-sync-contract.
@@ -230,6 +604,114 @@ check_equal(
     interactions["audio_binding_policy"]["back_side_text_or_transcript_may_exist"],
     product["audio_product_role"]["back_side_text_or_transcript_may_exist"],
 )
+
+
+# Governance enforcement must remain wired, not just documented.
+guard_script = ROOT / local_guard["guard_script"]
+install_script = ROOT / local_guard["install_command"].removeprefix("./")
+hooks_path = ROOT / local_guard["hooks_path"]
+
+for asset in [guard_script, install_script]:
+    if not asset.exists():
+        errors.append(f"governance asset missing: {asset.relative_to(ROOT)}")
+
+if guard_script.exists():
+    guard_text = guard_script.read_text(encoding="utf-8")
+    for snippet in [
+        local_guard["bypass_env"],
+        "pre-commit | pre-merge-commit",
+        "refs/heads/main",
+        "post-checkout)",
+        "main is a read-only integration branch in this repository.",
+    ]:
+        check_contains("guard_main_branch.sh behavior", guard_text, snippet)
+
+if install_script.exists():
+    install_text = install_script.read_text(encoding="utf-8")
+    check_contains(
+        "install hooksPath wiring",
+        install_text,
+        'git -C "$ROOT_DIR" config core.hooksPath "$HOOKS_DIR"',
+    )
+
+for hook in local_guard["required_hooks"]:
+    hook_path = ROOT / hook["path"]
+    if not hook_path.exists():
+        errors.append(f"required hook missing: {hook['path']}")
+        continue
+
+    hook_text = hook_path.read_text(encoding="utf-8")
+    check_contains(
+        f"{hook['path']} root resolution",
+        hook_text,
+        local_guard["hook_wrapper_root_resolution"],
+    )
+    check_contains(
+        f"{hook['path']} dispatch",
+        hook_text,
+        f'"$ROOT_DIR/{local_guard["guard_script"]}" {hook["action"]} "$@"',
+    )
+
+git_dir = run_command("git", "rev-parse", "--git-dir")
+if git_dir is None or git_dir.returncode != 0:
+    errors.append("repository is not in a git checkout")
+else:
+    configured_hooks = run_command("git", "config", "--path", "--get", "core.hooksPath")
+    if configured_hooks is None or configured_hooks.returncode != 0:
+        errors.append("core.hooksPath is not configured; run ./scripts/install_git_hooks.sh")
+    else:
+        actual_hooks_path = Path(configured_hooks.stdout.strip()).resolve()
+        expected_hooks_path = hooks_path.resolve()
+        check_equal("core.hooksPath", expected_hooks_path, actual_hooks_path)
+
+    current_branch = run_command("git", "symbolic-ref", "--quiet", "--short", "HEAD")
+    if (
+        current_branch is not None
+        and current_branch.returncode == 0
+        and current_branch.stdout.strip() == main_branch_policy["branch_name"]
+    ):
+        worktree_status = run_command("git", "status", "--porcelain")
+        if worktree_status is not None and worktree_status.stdout.strip():
+            errors.append("current checkout is dirty on main; move changes to a topic branch")
+
+gh_protection = run_command(
+    "gh",
+    "api",
+    f"repos/{remote_guard['repository']}/branches/{remote_guard['protected_branch']}/protection",
+)
+if gh_protection is None:
+    pass
+elif gh_protection.returncode != 0:
+    errors.append(
+        "unable to read GitHub branch protection for "
+        f"{remote_guard['repository']}:{remote_guard['protected_branch']}; "
+        "run gh auth login and confirm repo access"
+    )
+else:
+    protection = json.loads(gh_protection.stdout)
+    check_equal(
+        "remote allow_force_pushes",
+        remote_guard["allow_force_pushes"],
+        protection["allow_force_pushes"]["enabled"],
+    )
+    check_equal(
+        "remote allow_deletions",
+        remote_guard["allow_deletions"],
+        protection["allow_deletions"]["enabled"],
+    )
+
+    has_pr_requirement = protection["required_pull_request_reviews"] is not None
+    check_equal(
+        "remote require_pull_request",
+        remote_guard["require_pull_request"],
+        has_pr_requirement,
+    )
+    if has_pr_requirement:
+        check_equal(
+            "remote required_approving_review_count",
+            remote_guard["required_approving_review_count"],
+            protection["required_pull_request_reviews"]["required_approving_review_count"],
+        )
 
 
 if errors:

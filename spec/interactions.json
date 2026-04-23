@@ -2,6 +2,9 @@
   "version": "vnext-4",
   "audio_is_interaction_family": false,
   "interaction_contract_status": "core_content_contract",
+  "source_anchors": {
+    "audio_presentation_policy": "不自动播放，没有字幕（背面可以有）"
+  },
   "audio_binding_policy": {
     "audio_must_be_available_on_all_release_targets": true,
     "audio_is_not_forced_by_any_specific_interaction_family": true,

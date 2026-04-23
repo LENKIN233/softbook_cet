@@ -8,6 +8,7 @@
 - `spec/platform-contract.json`
 - `spec/runtime-boundaries.json`
 - `spec/agent-harness.json`
+- `spec/evals.json`
 
 ## product_truth
 
@@ -80,6 +81,17 @@
 - 当前模块的 spec 范围闭合，没有偷偷引入下个模块的需求。
 - lint / test / build 至少覆盖当前分支实际改动。
 - README 或相关开发文档只补当前阶段必需信息，不提前写远期架构。
+
+## 本地分支保护
+
+- `main` 只用于查看和同步集成基线，不应直接承接开发改动。
+- 运行 `./scripts/install_git_hooks.sh` 后，仓库会启用本地 hooks：
+  - `pre-commit`：阻止在 `main` 上直接提交
+  - `pre-merge-commit`：阻止在 `main` 上本地合并出提交
+  - `pre-push`：阻止把本地 `main` 直接推到远端 `main`
+  - `post-checkout`：当你切到带脏工作区的 `main` 时直接报错，干净切到 `main` 时也会提醒它是只读集成分支
+- `python3 scripts/validate_harness.py` 会同时检查 hooksPath、hook wrapper 分发、以及 GitHub 上 `main` 的 branch protection 是否仍然符合 harness 合同。
+- 只有在紧急修复且你明确知道自己在做什么时，才允许临时设置 `SOFTBOOK_ALLOW_MAIN_BYPASS=1` 绕过保护。
 
 ## 当前分支建议
 

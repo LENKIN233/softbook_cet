@@ -1,5 +1,5 @@
 {
-  "version": "vnext-7",
+  "version": "vnext-8",
   "purpose": "Counterfactual perturbation audit used to avoid local optima and catch silent drift away from the user's original requirements.",
   "perturbations": [
     {
@@ -105,6 +105,7 @@
       "change": "Allow membership to diverge across iOS, Android, and Web or make Web non-purchasable",
       "expected_failure": "breaks unified entitlement and all-surface commerce requirement",
       "guarded_by": ["spec/membership.json", "spec/platform-contract.json", "spec/evals.json"],
+      "must_preserve_source_anchors": ["web与app购买同权"],
       "status": "rejected"
     },
     {
@@ -126,6 +127,7 @@
       "change": "Allow guest learning before login",
       "expected_failure": "breaks the required authentication gate before learning starts",
       "guarded_by": ["spec/platform-contract.json", "spec/product-core.json", "spec/evals.json"],
+      "must_preserve_source_anchors": ["必须登入"],
       "status": "rejected"
     },
     {
@@ -133,6 +135,7 @@
       "change": "Use a different login method or start trial at install/registration time",
       "expected_failure": "breaks the confirmed authentication and trial trigger policy",
       "guarded_by": ["spec/account-sync-contract.json", "spec/requirement-memory.json", "spec/evals.json"],
+      "must_preserve_source_anchors": ["手机号+验证码"],
       "status": "rejected"
     },
     {
@@ -140,6 +143,7 @@
       "change": "Change top-level navigation across release targets or drop keyboard/mouse adaptation on non-touch surfaces",
       "expected_failure": "breaks confirmed navigation consistency and non-touch input policy",
       "guarded_by": ["spec/platform-contract.json", "spec/product-core.json", "spec/evals.json"],
+      "must_preserve_source_anchors": ["三端信息架构导航是一致的：学习 空间 统计 我的"],
       "status": "rejected"
     },
     {
@@ -147,6 +151,7 @@
       "change": "Autoplay audio or require front-side subtitles",
       "expected_failure": "breaks confirmed audio presentation policy",
       "guarded_by": ["spec/interactions.json", "spec/product-core.json", "spec/evals.json"],
+      "must_preserve_source_anchors": ["不自动播放，没有字幕（背面可以有）"],
       "status": "rejected"
     },
     {
@@ -154,6 +159,14 @@
       "change": "Promote module-first learning or treat free module choice as equal to the main learning flow",
       "expected_failure": "breaks guided low-burden sequencing and reintroduces user-side mode switching as primary learning work",
       "guarded_by": ["spec/requirement-memory.json", "spec/product-core.json", "spec/evals.json"],
+      "must_preserve_source_anchors": ["建议用户按照我们拟定的顺序学习，不建议用户按模块学习"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-23",
+      "change": "Treat direct development or direct push on main as normal workflow",
+      "expected_failure": "bypasses review flow and destroys the read-only integration baseline",
+      "guarded_by": ["spec/agent-harness.json", "spec/evals.json"],
       "status": "rejected"
     }
   ],
@@ -179,6 +192,14 @@
         "learning_and_space_as_top_level_entries",
         "login_required_before_learning",
         "shared_membership_and_purchase_on_all_surfaces"
+      ],
+      "required_literal_source_anchors": [
+        "必须登入",
+        "手机号+验证码",
+        "web与app购买同权",
+        "三端信息架构导航是一致的：学习 空间 统计 我的",
+        "不自动播放，没有字幕（背面可以有）",
+        "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
       ]
     },
     "reviewed_active_specs": [
