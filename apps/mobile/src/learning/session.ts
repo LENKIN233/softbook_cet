@@ -18,11 +18,14 @@ export function createLearningSession(
   availableCards: LearningCard[],
   cardCount: number = DEFAULT_LEARNING_SESSION_CARD_COUNT,
 ): LearningSession {
+  const orderedCards = orderLearningCards(availableCards);
+
   return {
+    catalogCards: orderedCards,
     sourceId,
     sourceLabel,
     track,
-    cards: selectSessionCards(availableCards, cardCount),
+    cards: selectSessionCards(orderedCards, cardCount),
   };
 }
 
@@ -43,9 +46,7 @@ export function selectSessionCards(
   availableCards: LearningCard[],
   cardCount: number = DEFAULT_LEARNING_SESSION_CARD_COUNT,
 ) {
-  const orderedCards = [...availableCards].sort((left, right) =>
-    left.card_id.localeCompare(right.card_id),
-  );
+  const orderedCards = orderLearningCards(availableCards);
   const selectedCardIds = new Set<string>();
   const selectedCards: LearningCard[] = [];
 
@@ -82,6 +83,12 @@ export function selectSessionCards(
   }
 
   return selectedCards;
+}
+
+function orderLearningCards(cards: LearningCard[]) {
+  return [...cards].sort((left, right) =>
+    left.card_id.localeCompare(right.card_id),
+  );
 }
 
 export function createLearningCardState(card: LearningCard): LearningCardState {

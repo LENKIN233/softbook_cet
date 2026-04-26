@@ -4,6 +4,7 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
+import { Text } from 'react-native';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
 import { LearningSession } from '../src/learning/model';
 import { createLocalLearningSession } from '../src/learning/session';
@@ -175,6 +176,41 @@ async function rejectLearningBootstrap(message: string) {
     pendingSession.reject(new Error(message));
     await flushAsyncEffects();
   });
+}
+
+function readMetricValue(
+  root: ReactTestRenderer.ReactTestInstance,
+  testID: string,
+) {
+  return root.findByProps({testID}).findAllByType(Text)[0].props.children;
+}
+
+function createRemoteSpaceSession(track: 'cet4' | 'cet6' = 'cet4'): LearningSession {
+  const baseSession = createLocalLearningSession(track);
+  const mapCard = (
+    card: LearningSession['cards'][number],
+    index: number,
+  ) => ({
+    ...card,
+    front: {
+      ...card.front,
+      prompt: `远端卡片 ${index + 1}`,
+    },
+    space_metadata: {
+      ...card.space_metadata,
+      library: '远端空间',
+      group: index < 3 ? '远端逻辑组' : '远端词汇组',
+      box: `远端盒 ${card.space_metadata.box_ref}`,
+    },
+  });
+
+  return {
+    ...baseSession,
+    sourceId: 'remote-space-source',
+    sourceLabel: '远端卡源',
+    cards: baseSession.cards.map(mapCard),
+    catalogCards: baseSession.catalogCards.map(mapCard),
+  };
 }
 
 function createDeferred<T>(): Deferred<T> {
@@ -561,6 +597,26 @@ test('auto-starts remote trial when first entering space', async () => {
   });
 });
 
+test('space surface follows the loaded session catalog instead of local fixtures', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(createRemoteSpaceSession());
+  await waitForLearningSurface(root);
+  await startTrialFromProtectedEntry(root, 'space');
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('远端空间');
+  expect(output).toContain('远端逻辑组');
+  expect(output).toContain('远端盒 0020');
+  expect(output).not.toContain('听力');
+});
+
 test('can unlock gated space after remote purchase', async () => {
   const fetchCalls: MockFetchCall[] = [];
 
@@ -817,6 +873,85 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
   ).toHaveLength(2);
 });
 
+test('refreshes remote entitlement again after leaving mine and reopening it', async () => {
+  let entitlementRequestCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v1/auth/request-code') {
+      return createJsonResponse({});
+    }
+
+    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+      return createJsonResponse({
+        data: {
+          auth_token: 'remote-auth-token',
+          phone_number: '13800138000',
+        },
+      });
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      entitlementRequestCount += 1;
+
+      return createJsonResponse(
+        createRemoteMembershipPayload(
+          entitlementRequestCount >= 3 ? 'premium' : 'free',
+        ),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('当前是基础学习态');
+
+  await openRoute(root, 'learning');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('当前是会员态');
+  expect(entitlementRequestCount).toBe(3);
+});
+
 test('can unlock the learning flow after fake sms verification', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
@@ -831,6 +966,31 @@ test('can unlock the learning flow after fake sms verification', async () => {
   expect(output).toContain('单卡推进，不把学习入口做成按钮堆');
   expect(output).toContain('已登录 138****8000');
   expect(output).toContain('however');
+});
+
+test('can boot the app into cet6 through runtime config', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    learningTrack: 'cet6',
+  };
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(createLocalLearningSession('cet6'));
+  await waitForLearningSurface(root);
+
+  expect(mockLoadSession).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      phoneNumber: '13800138000',
+    }),
+    'cet6',
+  );
+  expect(JSON.stringify(tree!.toJSON())).toContain('CET6');
 });
 
 test('keeps source bootstrap errors inside learning and can retry', async () => {
@@ -1137,6 +1297,43 @@ test('can check in from statistics after making learning progress', async () => 
   expect(output).toContain('今天的学习进展已在本地记录；远端同步将在配置接通后启用。');
 });
 
+test('keeps completed progress when first gated space entry starts trial', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-confident-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await openRoute(root, 'statistics');
+
+  expect(readMetricValue(root, 'statistics-metric-completed')).toBe('1');
+
+  await openRoute(root, 'space');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  await openRoute(root, 'statistics');
+
+  expect(readMetricValue(root, 'statistics-metric-completed')).toBe('1');
+});
+
 test('mine page shows profile, learning, and space summaries after login', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
@@ -1252,6 +1449,40 @@ test('can move a card into sleep zone and remove it from learning flow', async (
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('The committee postponed the vote');
   expect(output).not.toContain('短对话里听到 however');
+});
+
+test('keeps completed progress after changing sleep state', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await startTrialFromProtectedEntry(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-confident-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await openRoute(root, 'space');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-sleep-002001' }).props.onPress();
+  });
+
+  await openRoute(root, 'statistics');
+
+  expect(readMetricValue(root, 'statistics-metric-completed')).toBe('1');
 });
 
 test('can favorite a card from space and reflect it in learning flow', async () => {

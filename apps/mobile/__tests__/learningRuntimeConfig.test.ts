@@ -1,6 +1,7 @@
 import {
   type SoftbookAppRuntimeConfig,
   readSoftbookAppRuntimeConfig,
+  resolveLearningTrack,
   resolveLearningSessionRepositoryConfig,
 } from '../src/learning/learningRuntimeConfig';
 
@@ -16,6 +17,7 @@ test('learning runtime config defaults repository mode to local', () => {
   expect(resolveLearningSessionRepositoryConfig()).toEqual({
     mode: 'local',
   });
+  expect(resolveLearningTrack()).toBe('cet4');
 });
 
 test('learning runtime config can switch repository mode to remote', () => {
@@ -53,6 +55,7 @@ test('learning runtime config reads global runtime overrides', () => {
         baseUrl: 'https://api.softbook.example',
       },
     },
+    learningTrack: 'cet6',
     learningSource: {
       mode: 'remote',
       remote: {
@@ -65,6 +68,7 @@ test('learning runtime config reads global runtime overrides', () => {
     global.__SOFTBOOK_CET_RUNTIME_CONFIG__,
   );
   expect(resolveLearningSessionRepositoryConfig().mode).toBe('remote');
+  expect(resolveLearningTrack()).toBe('cet6');
 });
 
 test('learning runtime config rejects remote mode without baseUrl', () => {
