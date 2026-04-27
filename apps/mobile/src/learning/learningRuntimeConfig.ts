@@ -13,6 +13,7 @@ export type LearningRemoteRuntimeConfig = {
 export type LearningSourceRuntimeConfig = {
   mode?: LearningRepositoryMode;
   remote?: LearningRemoteRuntimeConfig;
+  track?: 'cet4' | 'cet6';
 };
 
 export type AuthRuntimeConfig = {
@@ -39,15 +40,24 @@ export type ProgressSyncRuntimeConfig = {
   };
 };
 
+export type SpaceStateRuntimeConfig = {
+  mode?: 'local' | 'remote';
+  remote?: {
+    apiKey?: string;
+    baseUrl: string;
+  };
+};
+
 export type SoftbookAppRuntimeConfig = {
   auth?: AuthRuntimeConfig;
   learningTrack?: LearningTrack;
   learningSource?: LearningSourceRuntimeConfig;
   membership?: MembershipRuntimeConfig;
   progressSync?: ProgressSyncRuntimeConfig;
+  spaceState?: SpaceStateRuntimeConfig;
 };
 
-type RemoteRuntimeFeature = 'learningSource' | 'membership' | 'progressSync';
+type RemoteRuntimeFeature = 'learningSource' | 'membership' | 'progressSync' | 'spaceState';
 
 type SoftbookGlobalThis = typeof globalThis & {
   __SOFTBOOK_CET_RUNTIME_CONFIG__?: SoftbookAppRuntimeConfig;
@@ -74,6 +84,7 @@ export function assertRemoteRuntimeUsesRemoteAuth(
     learningSource: 'Remote learning source mode',
     membership: 'Remote membership mode',
     progressSync: 'Remote progress sync mode',
+    spaceState: 'Remote space state mode',
   };
 
   throw new Error(
@@ -122,4 +133,11 @@ export function resolveLearningSessionRepositoryConfig(
   return {
     mode: 'local',
   };
+}
+
+export function resolveLearningTrack(
+  runtimeConfig: SoftbookAppRuntimeConfig | undefined =
+    readSoftbookAppRuntimeConfig(),
+): 'cet4' | 'cet6' {
+  return runtimeConfig?.learningSource?.track ?? 'cet4';
 }
