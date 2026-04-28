@@ -1,3 +1,4 @@
+import type { LearningTrack } from './model';
 import type {
   LearningRepositoryMode,
   LearningSessionRepositoryConfig,
@@ -40,6 +41,7 @@ export type ProgressSyncRuntimeConfig = {
 
 export type SoftbookAppRuntimeConfig = {
   auth?: AuthRuntimeConfig;
+  learningTrack?: LearningTrack;
   learningSource?: LearningSourceRuntimeConfig;
   membership?: MembershipRuntimeConfig;
   progressSync?: ProgressSyncRuntimeConfig;
@@ -83,6 +85,13 @@ export function readSoftbookAppRuntimeConfig():
   | SoftbookAppRuntimeConfig
   | undefined {
   return (globalThis as SoftbookGlobalThis).__SOFTBOOK_CET_RUNTIME_CONFIG__;
+}
+
+export function resolveLearningTrack(
+  runtimeConfig: SoftbookAppRuntimeConfig | undefined =
+    readSoftbookAppRuntimeConfig(),
+): LearningTrack {
+  return runtimeConfig?.learningTrack === 'cet6' ? 'cet6' : 'cet4';
 }
 
 export function resolveLearningSessionRepositoryConfig(

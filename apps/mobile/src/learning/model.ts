@@ -147,6 +147,7 @@ export type LearningCardResult = {
 };
 
 export type LearningSession = {
+  catalogCards: LearningCard[];
   sourceId: string;
   sourceLabel: string;
   track: LearningTrack;

@@ -20,6 +20,16 @@ test('local card source exposes structured TLGBNN ownership data', () => {
   });
 });
 
+test('local card source can derive a usable cet6 track', () => {
+  const cards = localLearningCardSource.loadCards('cet6');
+
+  expect(cards.length).toBeGreaterThan(CORE_INTERACTION_ORDER.length);
+  expect(cards.every(card => card.track === 'cet6')).toBe(true);
+  expect(
+    cards.every(card => card.card_id.startsWith(card.knowledge_ref)),
+  ).toBe(true);
+});
+
 test('local learning session picks one card per core interaction before duplicates', () => {
   const session = createLocalLearningSession('cet4');
 
@@ -29,6 +39,16 @@ test('local learning session picks one card per core interaction before duplicat
   expect(new Set(session.cards.map(card => card.card_id)).size).toBe(
     session.cards.length,
   );
+  expect(session.catalogCards.length).toBeGreaterThan(session.cards.length);
+  expect(session.catalogCards[0].track).toBe('cet4');
+});
+
+test('local learning session keeps the active track across the catalog and deck', () => {
+  const session = createLocalLearningSession('cet6');
+
+  expect(session.track).toBe('cet6');
+  expect(session.cards.every(card => card.track === 'cet6')).toBe(true);
+  expect(session.catalogCards.every(card => card.track === 'cet6')).toBe(true);
 });
 
 test('flip card supports both confident and review outcomes', () => {

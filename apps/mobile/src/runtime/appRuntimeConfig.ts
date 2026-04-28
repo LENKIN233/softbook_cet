@@ -5,6 +5,7 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
   auth: {
     mode: 'local',
   },
+  learningTrack: 'cet4',
   learningSource: {
     mode: 'local',
   },

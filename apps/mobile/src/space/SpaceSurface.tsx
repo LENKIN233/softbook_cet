@@ -9,7 +9,6 @@ import {
   ViewStyle,
 } from 'react-native';
 
-import { localLearningCardRecords } from '../learning/localCardRecords';
 import { INTERACTION_LABELS, LearningCard, LearningTrack } from '../learning/model';
 import { resolveLibraryTone } from '../visual/tokens';
 
@@ -69,6 +68,7 @@ export function SpaceSurface({
   onToggleFavoriteTag,
   onToggleSleepState,
   palette,
+  spaceCards,
 }: {
   cardStateById: Record<string, {isFavorited: boolean; isSleeping: boolean}>;
   currentLearningCard: LearningCard | null;
@@ -76,8 +76,9 @@ export function SpaceSurface({
   onToggleFavoriteTag: (cardId: string) => void;
   onToggleSleepState: (cardId: string) => void;
   palette: SpacePalette;
+  spaceCards: LearningCard[];
 }) {
-  const seed = useMemo(() => buildSpaceSeed(), []);
+  const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
   const favoriteCards = seed.allCards.filter(card => cardStateById[card.cardId]?.isFavorited);
   const sleepingCards = seed.allCards.filter(card => cardStateById[card.cardId]?.isSleeping);
   const [selectedLibraryName, setSelectedLibraryName] = useState(
@@ -604,39 +605,39 @@ function RuleItem({
   );
 }
 
-function buildSpaceSeed(): SpaceSeed {
+function buildSpaceSeed(spaceCards: readonly LearningCard[]): SpaceSeed {
   const libraryMap = new Map<
     string,
     Map<string, Map<string, { boxName: string; cards: SpaceCardPreview[] }>>
   >();
   const allCards: SpaceCardPreview[] = [];
 
-  for (const record of localLearningCardRecords) {
+  for (const card of spaceCards) {
     const library =
-      libraryMap.get(record.space_metadata.library) ??
+      libraryMap.get(card.space_metadata.library) ??
       libraryMap
-        .set(record.space_metadata.library, new Map())
-        .get(record.space_metadata.library)!;
+        .set(card.space_metadata.library, new Map())
+        .get(card.space_metadata.library)!;
     const group =
-      library.get(record.space_metadata.group) ??
+      library.get(card.space_metadata.group) ??
       library
-        .set(record.space_metadata.group, new Map())
-        .get(record.space_metadata.group)!;
+        .set(card.space_metadata.group, new Map())
+        .get(card.space_metadata.group)!;
     const box =
-      group.get(record.space_metadata.box_ref) ??
+      group.get(card.space_metadata.box_ref) ??
       group
-        .set(record.space_metadata.box_ref, {
-          boxName: record.space_metadata.box,
+        .set(card.space_metadata.box_ref, {
+          boxName: card.space_metadata.box,
           cards: [],
         })
-        .get(record.space_metadata.box_ref)!;
+        .get(card.space_metadata.box_ref)!;
 
     const preview = {
-      boxRef: record.space_metadata.box_ref,
-      cardId: record.card_id,
-      interactionLabel: INTERACTION_LABELS[record.interaction_id],
-      prompt: record.front.prompt,
-      track: record.track,
+      boxRef: card.space_metadata.box_ref,
+      cardId: card.card_id,
+      interactionLabel: INTERACTION_LABELS[card.interaction_id],
+      prompt: card.front.prompt,
+      track: card.track,
     };
 
     box.cards.push(preview);

@@ -29,7 +29,6 @@ import {
   LearningCardResult,
   LearningCardState,
   LearningSession,
-  LearningTrack,
 } from './src/learning/model';
 import {
   createLearningCardState,
@@ -51,7 +50,11 @@ import {
 import { createMembershipRepository } from './src/membership/membershipRepository';
 import { resolveMembershipRepositoryConfig } from './src/membership/membershipRuntimeConfig';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
-import { readSoftbookAppRuntimeConfig, resolveLearningSessionRepositoryConfig } from './src/learning/learningRuntimeConfig';
+import {
+  readSoftbookAppRuntimeConfig,
+  resolveLearningSessionRepositoryConfig,
+  resolveLearningTrack,
+} from './src/learning/learningRuntimeConfig';
 import { SpaceSurface } from './src/space/SpaceSurface';
 import { StatisticsSurface } from './src/statistics/StatisticsSurface';
 import {
@@ -239,8 +242,6 @@ const INITIAL_AUTH_STATE: AuthState = {
   error: null,
 };
 
-const LEARNING_TRACK: LearningTrack = 'cet4';
-
 function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
@@ -253,6 +254,10 @@ function AppShell() {
   const scheme = useColorScheme();
   const palette = scheme === 'dark' ? DARK_PALETTE : LIGHT_PALETTE;
   const runtimeConfig = useMemo(() => readSoftbookAppRuntimeConfig(), []);
+  const learningTrack = useMemo(
+    () => resolveLearningTrack(runtimeConfig),
+    [runtimeConfig],
+  );
   const authRepositoryConfig = useMemo(
     () => resolveAuthRepositoryConfig(runtimeConfig),
     [runtimeConfig],
@@ -360,7 +365,7 @@ function AppShell() {
       }),
     [readSpaceCardState, spaceCardStateById],
   );
-  const resolveVisibleLearningCards = (
+  const resolveVisibleLearningCards = useCallback((
     nextSession: LearningSession | null = learningSession,
     stateMap: Record<string, SpaceCardState> = spaceCardStateById,
     nextMembershipState: MembershipState = membershipState,
@@ -377,8 +382,8 @@ function AppShell() {
     return accessibleCards.filter(
       card => !readSpaceCardState(card.card_id, stateMap).isSleeping,
     );
-  };
-  const resolveSleepingAccessibleCards = (
+  }, [learningSession, membershipState, readSpaceCardState, spaceCardStateById]);
+  const resolveSleepingAccessibleCards = useCallback((
     nextSession: LearningSession | null = learningSession,
     stateMap: Record<string, SpaceCardState> = spaceCardStateById,
     nextMembershipState: MembershipState = membershipState,
@@ -395,7 +400,7 @@ function AppShell() {
     return accessibleCards.filter(card =>
       readSpaceCardState(card.card_id, stateMap).isSleeping,
     );
-  };
+  }, [learningSession, membershipState, readSpaceCardState, spaceCardStateById]);
   const visibleLearningCards = resolveVisibleLearningCards();
   const sleepingAccessibleCards = resolveSleepingAccessibleCards();
   const recoverableSleepingCard = sleepingAccessibleCards[0] ?? null;
@@ -466,7 +471,15 @@ function AppShell() {
       ? `${authenticatedRuntimeContext.authToken ?? ''}:${activeRoute}`
       : null;
 
-  const resetLearningDeck = (
+  const countCompletedCards = useCallback(
+    (cards: LearningCard[], results: LearningCardResult[]) =>
+      cards.filter(card =>
+        results.some(result => result.cardId === card.card_id),
+      ).length,
+    [],
+  );
+
+  const resetLearningDeck = useCallback((
     stateMap: Record<string, SpaceCardState> = spaceCardStateById,
     nextSession: LearningSession | null = learningSession,
     nextMembershipState: MembershipState = membershipState,
@@ -488,7 +501,60 @@ function AppShell() {
         ? createTrackedLearningCardState(nextVisibleCards[0], stateMap)
         : null,
     );
-  };
+  }, [
+    createTrackedLearningCardState,
+    learningSession,
+    membershipState,
+    resolveVisibleLearningCards,
+    spaceCardStateById,
+  ]);
+
+  const reconcileLearningDeckState = useCallback((
+    stateMap: Record<string, SpaceCardState> = spaceCardStateById,
+    nextSession: LearningSession | null = learningSession,
+    nextMembershipState: MembershipState = membershipState,
+  ) => {
+    const nextVisibleCards = resolveVisibleLearningCards(
+      nextSession,
+      stateMap,
+      nextMembershipState,
+    );
+    const nextReviewCards = selectReviewCards(
+      nextVisibleCards,
+      learningCompletedResults,
+    );
+    const shouldStayInReview =
+      learningPhase === 'review' &&
+      resolveMembershipAccess(nextMembershipState).completeAlgorithm &&
+      nextReviewCards.length > 0;
+    const nextPhase = shouldStayInReview ? 'review' : 'learning';
+    const nextSessionCards = shouldStayInReview
+      ? nextReviewCards
+      : nextVisibleCards;
+    const nextIndex = shouldStayInReview
+      ? countCompletedCards(nextReviewCards, reviewCompletedResults)
+      : countCompletedCards(nextVisibleCards, learningCompletedResults);
+
+    setLearningIndex(nextIndex);
+    setLearningPhase(nextPhase);
+    setLearningCurrentResult(null);
+    setReviewSessionCards(shouldStayInReview ? nextReviewCards : []);
+    setLearningCardState(
+      nextSessionCards[nextIndex]
+        ? createTrackedLearningCardState(nextSessionCards[nextIndex], stateMap)
+        : null,
+    );
+  }, [
+    countCompletedCards,
+    createTrackedLearningCardState,
+    learningCompletedResults,
+    learningPhase,
+    learningSession,
+    membershipState,
+    resolveVisibleLearningCards,
+    reviewCompletedResults,
+    spaceCardStateById,
+  ]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -524,6 +590,14 @@ function AppShell() {
     setLearningBootstrapStatus('loading');
     setLearningBootstrapError(null);
   }, [isAuthenticated, learningBootstrapStatus]);
+
+  useEffect(() => {
+    if (activeRoute === 'mine') {
+      return;
+    }
+
+    lastMembershipRefreshKey.current = null;
+  }, [activeRoute]);
 
   useEffect(() => {
     if (
@@ -696,7 +770,7 @@ function AppShell() {
     }
 
     learningSessionRepository
-      .loadSession(authenticatedRuntimeContext, LEARNING_TRACK)
+      .loadSession(authenticatedRuntimeContext, learningTrack)
       .then(session => {
         if (isCancelled) {
           return;
@@ -743,6 +817,7 @@ function AppShell() {
     createTrackedLearningCardState,
     authenticatedRuntimeContext,
     isAuthenticated,
+    learningTrack,
     learningBootstrapStatus,
     learningSessionRepository,
     membershipState,
@@ -763,32 +838,17 @@ function AppShell() {
     }
 
     previousMembershipStage.current = membershipState.stage;
-    const accessibleCardCount = resolveAccessibleLearningCardCount(
-      learningSession.cards.length,
+    reconcileLearningDeckState(
+      spaceCardStateById,
+      learningSession,
       membershipState,
     );
-    const nextVisibleCards = learningSession.cards
-      .slice(0, accessibleCardCount)
-      .filter(card => !readSpaceCardState(card.card_id, spaceCardStateById).isSleeping);
-
-    setLearningIndex(0);
-    setLearningPhase('learning');
-    setLearningCurrentResult(null);
-    setLearningCompletedResults([]);
-    setReviewSessionCards([]);
-    setReviewCompletedResults([]);
-    setLearningCardState(
-      nextVisibleCards[0]
-        ? createTrackedLearningCardState(nextVisibleCards[0], spaceCardStateById)
-        : null,
-    );
   }, [
-    createTrackedLearningCardState,
     isAuthenticated,
     learningBootstrapStatus,
     learningSession,
     membershipState,
-    readSpaceCardState,
+    reconcileLearningDeckState,
     spaceCardStateById,
   ]);
 
@@ -1284,7 +1344,7 @@ function AppShell() {
       };
 
       setSpaceCardStateById(nextStateMap);
-      resetLearningDeck(nextStateMap);
+      reconcileLearningDeckState(nextStateMap);
     },
   };
 
@@ -1408,6 +1468,7 @@ function AppShell() {
       onToggleFavoriteTag={spaceHandlers.onToggleFavoriteTag}
       onToggleSleepState={spaceHandlers.onToggleSleepState}
       palette={palette}
+      spaceCards={learningSession?.catalogCards ?? []}
     />
   ) : route.key === 'statistics' ? (
     <StatisticsSurface
