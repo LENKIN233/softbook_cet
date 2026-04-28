@@ -45,7 +45,7 @@
 分支策略文档见 [docs/branching-strategy.md](/Users/lenkin/programing/softbook_cet/docs/branching-strategy.md)。
 原则是按需求域推进，一次只打磨一个模块，不设长期 `develop` 分支。
 clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`，再执行 `python3 scripts/validate_harness.py` 确认本地 hooks 与 GitHub `main` 保护都仍然生效。
-任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR；未经明确要求不要直接合并到 `main`。
+任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。
 
 ### 依赖前提
 

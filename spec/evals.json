@@ -1,5 +1,5 @@
 {
-  "version": "vnext-10",
+  "version": "vnext-11",
   "regressions": [
     {
       "id": "HR-01",
@@ -169,12 +169,13 @@
     {
       "id": "HR-23",
       "prompt": "说明默认代码交付路径与 PR 规则",
-      "fail_signal": "keeps_code_changes_local_by_default_or_merges_without_explicit_user_request",
+      "fail_signal": "keeps_code_changes_local_by_default_or_leaves_reviewed_green_pr_waiting_for_explicit_merge_instruction",
       "must_hit": [
         "topic_branch_default",
         "pull_request_default_unless_local_only",
         "handoff_branch_commit_validation_when_pr_blocked",
-        "no_auto_merge_without_explicit_request"
+        "agent_review_before_merge",
+        "auto_merge_after_clean_review_and_green_gates"
       ]
     }
   ],
@@ -308,10 +309,11 @@
       "id": "GT-17",
       "task": "定义代码交付与 PR 规则",
       "must_include": [
-        "topic_branch_commit_pull_request_default",
+        "topic_branch_commit_pull_request_agent_review_auto_merge_default",
         "local_only_must_be_explicit",
         "pull_request_body_contains_specs_summary_validation",
-        "merge_to_main_requires_explicit_instruction"
+        "agent_review_before_merge",
+        "merge_only_blocks_on_review_gate_or_permission_failure"
       ]
     }
   ]

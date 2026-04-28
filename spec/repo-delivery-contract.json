@@ -1,9 +1,9 @@
 {
-  "version": "vnext-1",
-  "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, PR body requirements, and CI gates.",
+  "version": "vnext-2",
+  "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
   "delivery_defaults": {
     "code_change_tasks": {
-      "default_strategy": "topic_branch_commit_pull_request",
+      "default_strategy": "topic_branch_commit_pull_request_agent_review_auto_merge",
       "topic_branch_required": true,
       "allowed_topic_branch_prefixes": [
         "infra/",
@@ -14,13 +14,19 @@
       ],
       "local_only_requires_explicit_user_instruction": true,
       "pull_request_required_unless_local_only": true,
-      "merge_to_main_requires_explicit_user_instruction": true,
+      "agent_review_required_before_merge": true,
+      "auto_merge_after_agent_review_and_green_gates": true,
+      "merge_blockers": [
+        "blocking_review_findings",
+        "required_gates_not_green",
+        "pull_request_or_merge_permission_failure"
+      ],
       "if_pull_request_cannot_be_created": "handoff_branch_commit_validation_and_blocker"
     }
   },
   "pull_request_contract": {
     "target_branch": "main",
-    "default_action": "open_or_update_pull_request",
+    "default_action": "open_or_update_pull_request_then_review_and_merge_when_green",
     "required_body_sections": [
       "当前任务引用的 spec",
       "变更摘要",

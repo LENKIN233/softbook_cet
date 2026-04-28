@@ -372,17 +372,17 @@ check_equal(
 )
 check_equal(
     "repo_delivery_contract default_behavior",
-    "code-changing tasks default to topic branch -> commit -> pull request unless the user explicitly requests local-only delivery",
+    "code-changing tasks default to topic branch -> commit -> pull request -> agent review -> merge unless the user explicitly requests local-only delivery",
     repo_delivery_contract["default_behavior"],
 )
 check_equal(
     "repo_delivery_contract merge_policy",
-    "merge to main requires explicit user instruction",
+    "merge to main defaults to automatic merge after clean agent review and required gates are green",
     repo_delivery_contract["merge_policy"],
 )
 check_equal(
     "repo_delivery default_strategy",
-    "topic_branch_commit_pull_request",
+    "topic_branch_commit_pull_request_agent_review_auto_merge",
     delivery_defaults["default_strategy"],
 )
 check_equal("repo_delivery topic_branch_required", True, delivery_defaults["topic_branch_required"])
@@ -402,9 +402,23 @@ check_equal(
     delivery_defaults["pull_request_required_unless_local_only"],
 )
 check_equal(
-    "repo_delivery merge_to_main_requires_explicit_user_instruction",
+    "repo_delivery agent_review_required_before_merge",
     True,
-    delivery_defaults["merge_to_main_requires_explicit_user_instruction"],
+    delivery_defaults["agent_review_required_before_merge"],
+)
+check_equal(
+    "repo_delivery auto_merge_after_agent_review_and_green_gates",
+    True,
+    delivery_defaults["auto_merge_after_agent_review_and_green_gates"],
+)
+check_equal(
+    "repo_delivery merge_blockers",
+    [
+        "blocking_review_findings",
+        "required_gates_not_green",
+        "pull_request_or_merge_permission_failure",
+    ],
+    delivery_defaults["merge_blockers"],
 )
 check_equal(
     "repo_delivery if_pull_request_cannot_be_created",
@@ -414,7 +428,7 @@ check_equal(
 check_equal("pull_request_contract target_branch", "main", pull_request_contract["target_branch"])
 check_equal(
     "pull_request_contract default_action",
-    "open_or_update_pull_request",
+    "open_or_update_pull_request_then_review_and_merge_when_green",
     pull_request_contract["default_action"],
 )
 check_equal(
@@ -478,12 +492,12 @@ ap25 = find_by_id(harness["anti_patterns"], "AP-25")
 if ap25:
     check_equal(
         "AP-25 name",
-        "merge_topic_branch_to_main_without_explicit_user_instruction",
+        "leave_reviewed_green_pull_request_waiting_for_explicit_merge_instruction",
         ap25["name"],
     )
     check_equal(
         "AP-25 correction",
-        "open_or_update_pull_request_by_default_and_wait_for_explicit_merge_instruction",
+        "open_or_update_pull_request_then_merge_after_clean_agent_review_and_green_required_gates",
         ap25["correction"],
     )
 
@@ -523,7 +537,7 @@ hr23 = find_by_id(evals["regressions"], "HR-23")
 if hr23:
     check_equal(
         "HR-23 fail_signal",
-        "keeps_code_changes_local_by_default_or_merges_without_explicit_user_request",
+        "keeps_code_changes_local_by_default_or_leaves_reviewed_green_pr_waiting_for_explicit_merge_instruction",
         hr23["fail_signal"],
     )
     check_equal(
@@ -532,7 +546,8 @@ if hr23:
             "topic_branch_default",
             "pull_request_default_unless_local_only",
             "handoff_branch_commit_validation_when_pr_blocked",
-            "no_auto_merge_without_explicit_request",
+            "agent_review_before_merge",
+            "auto_merge_after_clean_review_and_green_gates",
         ],
         hr23["must_hit"],
     )
@@ -543,10 +558,11 @@ if gt17:
     check_equal(
         "GT-17 must_include",
         [
-            "topic_branch_commit_pull_request_default",
+            "topic_branch_commit_pull_request_agent_review_auto_merge_default",
             "local_only_must_be_explicit",
             "pull_request_body_contains_specs_summary_validation",
-            "merge_to_main_requires_explicit_instruction",
+            "agent_review_before_merge",
+            "merge_only_blocks_on_review_gate_or_permission_failure",
         ],
         gt17["must_include"],
     )
@@ -581,7 +597,7 @@ p30 = find_by_id(perturbation_audit["perturbations"], "P-30")
 if p30:
     check_equal(
         "P-30 change",
-        "Allow agent to merge topic branches into main without explicit user instruction",
+        "Leave a reviewed green pull request waiting for explicit user merge instruction",
         p30["change"],
     )
     check_equal(
@@ -590,16 +606,29 @@ if p30:
         p30["guarded_by"],
     )
 
+p31 = find_by_id(perturbation_audit["perturbations"], "P-31")
+if p31:
+    check_equal(
+        "P-31 change",
+        "Merge a pull request before agent review finishes or while required gates are red",
+        p31["change"],
+    )
+    check_equal(
+        "P-31 guarded_by",
+        ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+        p31["guarded_by"],
+    )
+
 agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
 for snippet in [
     "`main` 是只读集成分支，不要直接在 `main` 上开发、提交、合并或推送",
     "开发前先切到 `infra/*`、`shell/*`、`module/*`、`cross/*` 或 `fix/*`",
     "clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`",
     "若发现本地 hooks 或 GitHub `main` 保护漂移，先修治理再继续功能开发",
-    "任何会持久化仓库改动的任务，除非用户明确要求只做本地修改，否则默认在 topic branch 上完成提交并开/更新指向 `main` 的 PR",
-    "未经用户明确要求，不要自行把 topic branch 合并到 `main`",
+    "任何会持久化仓库改动的任务，除非用户明确要求只做本地修改，否则默认在 topic branch 上完成提交、开/更新指向 `main` 的 PR，并在 agent review 通过且 required gates 全绿后自动合并",
+    "未完成 agent review、required gates 未全绿，或权限/环境阻止 merge 时，不要提前合并到 `main`",
     "如果权限或环境阻止创建 PR，必须明确交付 branch、commit、验证结果与阻塞原因",
-    "若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若有视觉稿改动，再追加 design review checklist",
+    "若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若有视觉稿改动，再追加 design review checklist；默认在 review + gate 通过后自动收口合并",
 ]:
     check_contains("AGENTS governance mirror", agents_text, snippet)
 
@@ -618,10 +647,12 @@ check_contains(
 for snippet in [
     "会持久化 repo 改动的任务默认走 `topic branch -> commit -> PR(main)`。",
     "若用户明确要求只做本地修改，才允许停在本地 handoff，不开 PR。",
-    "未经用户明确要求，不要自行把 topic branch 合并到 `main`。",
+    "PR 创建后，默认在 agent review 通过且 required gates 全绿时自动合并到 `main`。",
+    "只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。",
     "如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。",
     "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`，若有视觉稿改动再补 `design_review_checklist（如适用）`。",
     "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。",
+    "merge 的默认前置条件是：agent review 无 blocking finding，且 required gates 全绿。",
 ]:
     check_contains("branching strategy delivery mirror", branching_text, snippet)
 
@@ -640,7 +671,7 @@ for snippet in [
     "- `spec/repo-delivery-contract.json`",
     "- `.github/workflows/pr-gates.yml`: PR 质量门禁（harness 校验 + mobile lint + mobile test）",
     "- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）",
-    "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR；未经明确要求不要直接合并到 `main`。",
+    "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",
 ]:
     check_contains("README delivery mirror", readme_text, snippet)
 
@@ -914,6 +945,19 @@ if not SKIP_REMOTE_GUARD:
             remote_guard["allow_deletions"],
             protection["allow_deletions"]["enabled"],
         )
+
+        required_status_checks = protection["required_status_checks"]
+        if required_status_checks is None:
+            errors.append("remote required_status_checks missing; configure branch protection for required CI gates")
+        else:
+            check_equal(
+                "remote require_strict_status_checks",
+                remote_guard["require_strict_status_checks"],
+                required_status_checks["strict"],
+            )
+            actual_contexts = sorted(required_status_checks.get("contexts", []))
+            expected_contexts = sorted(remote_guard["required_status_checks"])
+            check_equal("remote required_status_checks", expected_contexts, actual_contexts)
 
         has_pr_requirement = protection["required_pull_request_reviews"] is not None
         check_equal(

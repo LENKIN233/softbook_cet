@@ -68,8 +68,8 @@ status: active
 - 开发前先切到 `infra/*`、`shell/*`、`module/*`、`cross/*` 或 `fix/*`
 - clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`
 - 若发现本地 hooks 或 GitHub `main` 保护漂移，先修治理再继续功能开发
-- 任何会持久化仓库改动的任务，除非用户明确要求只做本地修改，否则默认在 topic branch 上完成提交并开/更新指向 `main` 的 PR
-- 未经用户明确要求，不要自行把 topic branch 合并到 `main`
+- 任何会持久化仓库改动的任务，除非用户明确要求只做本地修改，否则默认在 topic branch 上完成提交、开/更新指向 `main` 的 PR，并在 agent review 通过且 required gates 全绿后自动合并
+- 未完成 agent review、required gates 未全绿，或权限/环境阻止 merge 时，不要提前合并到 `main`
 - 如果权限或环境阻止创建 PR，必须明确交付 branch、commit、验证结果与阻塞原因
 
 ## 输出要求
@@ -80,7 +80,7 @@ status: active
 - 默认只读完成任务所需的最小 spec 子集；只有跨域耦合或明确冲突时才升级读取范围
 - 明确区分 `product_truth` 与 `implementation_hypothesis`
 - 如果新增交互、盒码或访问规则，先更新对应 spec，再给结论
-- 若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若有视觉稿改动，再追加 design review checklist
+- 若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若有视觉稿改动，再追加 design review checklist；默认在 review + gate 通过后自动收口合并
 
 ## 压缩保留
 

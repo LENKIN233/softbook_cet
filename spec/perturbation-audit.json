@@ -1,5 +1,5 @@
 {
-  "version": "vnext-9",
+  "version": "vnext-10",
   "purpose": "Counterfactual perturbation audit used to avoid local optima and catch silent drift away from the user's original requirements.",
   "perturbations": [
     {
@@ -213,8 +213,15 @@
     },
     {
       "id": "P-30",
-      "change": "Allow agent to merge topic branches into main without explicit user instruction",
-      "expected_failure": "turns main back into an agent-controlled branch and bypasses explicit human merge intent",
+      "change": "Leave a reviewed green pull request waiting for explicit user merge instruction",
+      "expected_failure": "reintroduces repetitive orchestration and contradicts the repo delivery default of review-then-merge",
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-31",
+      "change": "Merge a pull request before agent review finishes or while required gates are red",
+      "expected_failure": "bypasses the review-and-gate contract and can land unchecked changes on main",
       "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
       "status": "rejected"
     }

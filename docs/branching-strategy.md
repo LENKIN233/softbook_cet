@@ -80,13 +80,15 @@
 
 - 会持久化 repo 改动的任务默认走 `topic branch -> commit -> PR(main)`。
 - 若用户明确要求只做本地修改，才允许停在本地 handoff，不开 PR。
-- 未经用户明确要求，不要自行把 topic branch 合并到 `main`。
+- PR 创建后，默认在 agent review 通过且 required gates 全绿时自动合并到 `main`。
+- 只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。
 - 如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。
 
 ## PR 合同与 CI 门槛
 
 - `.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`，若有视觉稿改动再补 `design_review_checklist（如适用）`。
 - `.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。
+- merge 的默认前置条件是：agent review 无 blocking finding，且 required gates 全绿。
 - 本地开 PR 前仍然应该执行完整的 `python3 scripts/validate_harness.py`，不要只依赖 CI 的 `--skip-remote-guard` 版本。
 
 ## 合并门槛
