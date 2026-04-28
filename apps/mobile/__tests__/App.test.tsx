@@ -6,7 +6,7 @@ import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import { Text } from 'react-native';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
-import { LearningSession } from '../src/learning/model';
+import { LearningCard, LearningSession } from '../src/learning/model';
 import { createLocalLearningSession } from '../src/learning/session';
 import App from '../App';
 
@@ -108,9 +108,10 @@ async function authenticateIntoLearningBootstrap(
 
 async function loginIntoLearningFlow(
   root: ReactTestRenderer.ReactTestInstance,
+  session?: LearningSession,
 ) {
   await authenticateIntoLearningBootstrap(root);
-  await resolveLearningBootstrap();
+  await resolveLearningBootstrap(session);
   await waitForLearningSurface(root);
 }
 
@@ -261,6 +262,33 @@ function createRemoteMembershipPayload(
   };
 }
 
+function createRemoteCatalogSession(): LearningSession {
+  const baseSession = createLocalLearningSession('cet4');
+  const remoteCard: LearningCard = {
+    ...baseSession.catalogCards[0],
+    card_id: '999901',
+    front: {
+      ...baseSession.catalogCards[0].front,
+      prompt: '远端专属题干用于空间地图验证',
+    },
+    knowledge_ref: '9999',
+    space_metadata: {
+      box: '远端专属盒',
+      box_ref: '9999',
+      group: '远端专属组',
+      library: '远端专属库',
+    },
+  };
+
+  return {
+    catalogCards: [remoteCard],
+    cards: [remoteCard],
+    sourceId: 'remote-catalog-source',
+    sourceLabel: '远端 catalog 卡源',
+    track: 'cet4',
+  };
+}
+
 test('renders correctly', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
@@ -395,7 +423,7 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expect(output).toContain('当前认证已切到远端短信合同');
 });
 
-test('wires remote auth, learning source config, membership, and progress sync through App', async () => {
+test('wires remote auth, learning source config, membership, progress sync, and space sync through App', async () => {
   const fetchCalls: MockFetchCall[] = [];
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
@@ -418,6 +446,12 @@ test('wires remote auth, learning source config, membership, and progress sync t
       },
     },
     progressSync: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    spaceState: {
       mode: 'remote',
       remote: {
         baseUrl: 'https://api.softbook.example',
@@ -447,6 +481,10 @@ test('wires remote auth, learning source config, membership, and progress sync t
       }
 
       if (input === 'https://api.softbook.example/v1/progress/daily-sync') {
+        return createJsonResponse({});
+      }
+
+      if (input === 'https://api.softbook.example/v1/space/state-sync') {
         return createJsonResponse({});
       }
 
@@ -483,6 +521,10 @@ test('wires remote auth, learning source config, membership, and progress sync t
     },
     'cet4',
   );
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-favorite-button'}).props.onPress();
+  });
 
   await ReactTestRenderer.act(() => {
     root.findByProps({testID: 'learning-flip-button'}).props.onPress();
@@ -522,6 +564,405 @@ test('wires remote auth, learning source config, membership, and progress sync t
   });
   expect(progressSyncRequest?.init?.body).toContain('"day_key"');
   expect(progressSyncRequest?.init?.body).toContain('"learning_completed_count":1');
+
+  const spaceSyncRequest = fetchCalls.find(
+    call => call.input === 'https://api.softbook.example/v1/space/state-sync',
+  );
+  expect(spaceSyncRequest?.init?.headers).toMatchObject({
+    Authorization: 'Bearer remote-auth-token',
+    'content-type': 'application/json',
+  });
+  expect(spaceSyncRequest?.init?.body).toContain('"states"');
+  expect(spaceSyncRequest?.init?.body).toContain('"is_favorited":true');
+});
+
+test('space map uses the active learning session catalog', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root, createRemoteCatalogSession());
+  await openRoute(root, 'space');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('远端专属库');
+  expect(output).toContain('远端专属盒');
+  expect(output).toContain('远端专属题干用于空间地图验证');
+});
+
+test('queues failed remote daily progress sync for later replay', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    learningSource: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    progressSync: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v1/auth/request-code') {
+      return createJsonResponse({});
+    }
+
+    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+      return createJsonResponse({
+        data: {
+          auth_token: 'remote-auth-token',
+          phone_number: '13800138000',
+        },
+      });
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      return createJsonResponse(createRemoteMembershipPayload('free'));
+    }
+
+    if (input === 'https://api.softbook.example/v1/progress/daily-sync') {
+      return createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-confident-button'}).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-next-button'}).props.onPress();
+  });
+
+  await openRoute(root, 'statistics');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('已排队');
+  expect(output).toContain('已加入离线重试队列');
+});
+
+test('replays queued daily progress after network reconnect', async () => {
+  const {emitNetInfoState} = jest.requireMock('@react-native-community/netinfo');
+  let shouldFailProgressSync = true;
+  const fetchCalls: MockFetchCall[] = [];
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    learningSource: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    progressSync: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    fetchCalls.push({init, input});
+
+    if (input === 'https://api.softbook.example/v1/auth/request-code') {
+      return createJsonResponse({});
+    }
+
+    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+      return createJsonResponse({
+        data: {
+          auth_token: 'remote-auth-token',
+          phone_number: '13800138000',
+        },
+      });
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      return createJsonResponse(createRemoteMembershipPayload('free'));
+    }
+
+    if (input === 'https://api.softbook.example/v1/progress/daily-sync') {
+      return shouldFailProgressSync
+        ? createJsonResponse({}, 503)
+        : createJsonResponse({});
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-confident-button'}).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-next-button'}).props.onPress();
+  });
+
+  await openRoute(root, 'statistics');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  expect(JSON.stringify(tree!.toJSON())).toContain('已排队');
+
+  shouldFailProgressSync = false;
+
+  await ReactTestRenderer.act(async () => {
+    emitNetInfoState({isConnected: true, isInternetReachable: true});
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('远端已同步');
+  expect(output).toContain('离线队列补推到远端日级同步端点');
+  expect(
+    fetchCalls.filter(
+      call => call.input === 'https://api.softbook.example/v1/progress/daily-sync',
+    ).length,
+  ).toBeGreaterThanOrEqual(2);
+});
+
+test('replays queued space state after network reconnect', async () => {
+  const {emitNetInfoState} = jest.requireMock('@react-native-community/netinfo');
+  let shouldFailSpaceSync = true;
+  const fetchCalls: MockFetchCall[] = [];
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    learningSource: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    spaceState: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    fetchCalls.push({init, input});
+
+    if (input === 'https://api.softbook.example/v1/auth/request-code') {
+      return createJsonResponse({});
+    }
+
+    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+      return createJsonResponse({
+        data: {
+          auth_token: 'remote-auth-token',
+          phone_number: '13800138000',
+        },
+      });
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      return createJsonResponse(createRemoteMembershipPayload('free'));
+    }
+
+    if (input === 'https://api.softbook.example/v1/space/state-sync') {
+      return shouldFailSpaceSync
+        ? createJsonResponse({}, 503)
+        : createJsonResponse({});
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-favorite-button'}).props.onPress();
+  });
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  shouldFailSpaceSync = false;
+
+  await ReactTestRenderer.act(async () => {
+    emitNetInfoState({isConnected: true, isInternetReachable: true});
+    await flushAsyncEffects();
+  });
+
+  expect(
+    fetchCalls.filter(
+      call => call.input === 'https://api.softbook.example/v1/space/state-sync',
+    ).length,
+  ).toBeGreaterThanOrEqual(2);
+});
+
+test('replays queued membership refresh after network reconnect', async () => {
+  const {emitNetInfoState} = jest.requireMock('@react-native-community/netinfo');
+  let entitlementRequestCount = 0;
+  const fetchCalls: MockFetchCall[] = [];
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    fetchCalls.push({init, input});
+
+    if (input === 'https://api.softbook.example/v1/auth/request-code') {
+      return createJsonResponse({});
+    }
+
+    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+      return createJsonResponse({
+        data: {
+          auth_token: 'remote-auth-token',
+          phone_number: '13800138000',
+        },
+      });
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      entitlementRequestCount += 1;
+
+      if (entitlementRequestCount === 2) {
+        return createJsonResponse({}, 503);
+      }
+
+      return createJsonResponse(
+        createRemoteMembershipPayload(
+          entitlementRequestCount >= 3 ? 'premium' : 'free',
+        ),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  expect(JSON.stringify(tree!.toJSON())).toContain('已加入离线重试队列');
+
+  await ReactTestRenderer.act(async () => {
+    emitNetInfoState({isConnected: true, isInternetReachable: true});
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('当前是会员态');
+  expect(output).not.toContain('已加入离线重试队列');
+  expect(
+    fetchCalls.filter(
+      call => call.input === 'https://api.softbook.example/v1/membership/entitlement',
+    ).length,
+  ).toBeGreaterThanOrEqual(2);
 });
 
 test('auto-starts remote trial when first entering space', async () => {

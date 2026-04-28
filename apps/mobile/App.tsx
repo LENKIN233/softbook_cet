@@ -6,7 +6,9 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import NetInfo from '@react-native-community/netinfo';
 import {
+  AppState,
   Pressable,
   ScrollView,
   StatusBar,
@@ -55,8 +57,14 @@ import {
   resolveLearningSessionRepositoryConfig,
   resolveLearningTrack,
 } from './src/learning/learningRuntimeConfig';
+import {
+  createSpaceStateRepository,
+  createSpaceStateSnapshot,
+} from './src/space/spaceStateRepository';
+import { resolveSpaceStateRepositoryConfig } from './src/space/spaceStateRuntimeConfig';
 import { SpaceSurface } from './src/space/SpaceSurface';
 import { StatisticsSurface } from './src/statistics/StatisticsSurface';
+import { createMutationQueueRepository } from './src/sync/mutationQueueRepository';
 import {
   createDailyProgressSnapshot,
   createProgressSyncRepository,
@@ -293,6 +301,24 @@ function AppShell() {
     [progressSyncRepositoryConfig],
   );
   const runtimeProgressSyncMode = progressSyncRepositoryConfig.mode;
+  const spaceStateRepositoryConfig = useMemo(
+    () => resolveSpaceStateRepositoryConfig(runtimeConfig ?? {}),
+    [runtimeConfig],
+  );
+  const spaceStateRepository = useMemo(
+    () => createSpaceStateRepository(spaceStateRepositoryConfig),
+    [spaceStateRepositoryConfig],
+  );
+  const runtimeSpaceStateMode = spaceStateRepositoryConfig.mode;
+  const mutationQueueRepository = useMemo(
+    () =>
+      createMutationQueueRepository({
+        membershipRepository,
+        progressSyncRepository,
+        spaceStateRepository,
+      }),
+    [membershipRepository, progressSyncRepository, spaceStateRepository],
+  );
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
   const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
   const [learningSession, setLearningSession] =
@@ -322,6 +348,9 @@ function AppShell() {
     state: 'idle',
   });
   const [lastSyncedProgressKey, setLastSyncedProgressKey] = useState<
+    string | null
+  >(null);
+  const [lastSyncedSpaceStateKey, setLastSyncedSpaceStateKey] = useState<
     string | null
   >(null);
   const [membershipState, setMembershipState] = useState<MembershipState>(
@@ -454,6 +483,15 @@ function AppShell() {
     ],
   );
   const dailyProgressKey = JSON.stringify(dailyProgressSnapshot);
+  const spaceStateSnapshot = useMemo(
+    () =>
+      createSpaceStateSnapshot({
+        dayKey: todayKey,
+        spaceCardStateById,
+      }),
+    [spaceCardStateById, todayKey],
+  );
+  const spaceStateSyncKey = JSON.stringify(spaceStateSnapshot);
   const authenticatedRuntimeContext = useMemo(
     () =>
       authState.stage === 'authenticated'
@@ -470,6 +508,60 @@ function AppShell() {
     activeRoute === 'mine'
       ? `${authenticatedRuntimeContext.authToken ?? ''}:${activeRoute}`
       : null;
+  const startMutationReplay = useCallback(async () => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    if (authenticatedRuntimeContext === null) {
+      return;
+    }
+
+    const replayedResults = await mutationQueueRepository.startReplay(
+      authenticatedRuntimeContext,
+    );
+
+    replayedResults.forEach(result => {
+      if (result.entry.type === 'sync_daily_progress') {
+        const replayedProgressKey = JSON.stringify(result.entry.payload.snapshot);
+
+        setLastSyncedProgressKey(replayedProgressKey);
+
+        if (replayedProgressKey === dailyProgressKey) {
+          setProgressSyncState({
+            detail: '今天的学习进展已从离线队列补推到远端日级同步端点。',
+            label: '远端已同步',
+            state: 'synced',
+          });
+        }
+
+        return;
+      }
+
+      if (result.entry.type === 'sync_space_state') {
+        setLastSyncedSpaceStateKey(JSON.stringify(result.entry.payload.snapshot));
+        return;
+      }
+
+      pendingMembershipRefreshKey.current = null;
+      lastMembershipRefreshKey.current = result.entry.id.replace(
+        /^membership:/,
+        '',
+      );
+      setMembershipError(null);
+      setMembershipState(result.membershipState);
+      setMembershipGate(currentGate =>
+        shouldClearMembershipGate(currentGate, result.membershipState)
+          ? null
+          : currentGate,
+      );
+    });
+  }, [
+    authenticatedRuntimeContext,
+    dailyProgressKey,
+    isAuthenticated,
+    mutationQueueRepository,
+  ]);
 
   const countCompletedCards = useCallback(
     (cards: LearningCard[], results: LearningCardResult[]) =>
@@ -575,6 +667,7 @@ function AppShell() {
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
       setLastSyncedProgressKey(null);
+      setLastSyncedSpaceStateKey(null);
       setProgressSyncState({
         detail: '今天还没有需要同步的学习进展。',
         label: '等待今日进展',
@@ -643,8 +736,19 @@ function AppShell() {
         }
 
         pendingMembershipRefreshKey.current = null;
+        mutationQueueRepository
+          .enqueueMutation(
+            'refresh_membership',
+            {
+              context: authenticatedRuntimeContext,
+            },
+            `membership:${activeMembershipRefreshKey}`,
+          )
+          .catch(() => undefined);
         setMembershipError(
-          error instanceof Error ? error.message : '远端 entitlement 刷新失败。',
+          error instanceof Error
+            ? `${error.message} 已加入离线重试队列。`
+            : '远端 entitlement 刷新失败，已加入离线重试队列。',
         );
       });
 
@@ -661,8 +765,40 @@ function AppShell() {
     isAuthenticated,
     membershipPendingAction,
     membershipRepository,
+    mutationQueueRepository,
     runtimeMembershipRepositoryMode,
   ]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    startMutationReplay().catch(() => undefined);
+  }, [activeRoute, isAuthenticated, startMutationReplay]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    const unsubscribeNetInfo = NetInfo.addEventListener(state => {
+      if (state.isConnected && state.isInternetReachable !== false) {
+        startMutationReplay().catch(() => undefined);
+      }
+    });
+
+    const subscription = AppState.addEventListener('change', nextState => {
+      if (nextState === 'active') {
+        startMutationReplay().catch(() => undefined);
+      }
+    });
+
+    return () => {
+      unsubscribeNetInfo();
+      subscription.remove();
+    };
+  }, [isAuthenticated, startMutationReplay]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -709,6 +845,8 @@ function AppShell() {
       return;
     }
 
+    startMutationReplay().catch(() => undefined);
+
     progressSyncRepository
       .syncDailyProgress(authenticatedRuntimeContext, dailyProgressSnapshot)
       .then(result => {
@@ -731,12 +869,22 @@ function AppShell() {
           return;
         }
 
+        mutationQueueRepository
+          .enqueueMutation(
+            'sync_daily_progress',
+            {
+              context: authenticatedRuntimeContext,
+              snapshot: dailyProgressSnapshot,
+            },
+            `progress:${dailyProgressKey}`,
+          )
+          .catch(() => undefined);
         setProgressSyncState({
           detail:
             error instanceof Error
-              ? error.message
-              : '日级进展同步失败。',
-          label: '同步失败',
+              ? `${error.message} 已加入离线重试队列。`
+              : '日级进展同步失败，已加入离线重试队列。',
+          label: '已排队',
           state: 'error',
         });
       });
@@ -750,8 +898,74 @@ function AppShell() {
     dailyProgressSnapshot,
     isAuthenticated,
     lastSyncedProgressKey,
+    mutationQueueRepository,
     progressSyncRepository,
     runtimeProgressSyncMode,
+    startMutationReplay,
+  ]);
+
+  useEffect(() => {
+    if (!isAuthenticated || Object.keys(spaceCardStateById).length === 0) {
+      return;
+    }
+
+    if (lastSyncedSpaceStateKey === spaceStateSyncKey) {
+      return;
+    }
+
+    if (runtimeSpaceStateMode === 'local') {
+      setLastSyncedSpaceStateKey(spaceStateSyncKey);
+      return;
+    }
+
+    if (authenticatedRuntimeContext === null) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    startMutationReplay().catch(() => undefined);
+
+    spaceStateRepository
+      .syncSpaceState(authenticatedRuntimeContext, spaceStateSnapshot)
+      .then(() => {
+        if (isCancelled) {
+          return;
+        }
+
+        setLastSyncedSpaceStateKey(spaceStateSyncKey);
+      })
+      .catch(() => {
+        if (isCancelled) {
+          return;
+        }
+
+        mutationQueueRepository
+          .enqueueMutation(
+            'sync_space_state',
+            {
+              context: authenticatedRuntimeContext,
+              snapshot: spaceStateSnapshot,
+            },
+            `space:${spaceStateSyncKey}`,
+          )
+          .catch(() => undefined);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    authenticatedRuntimeContext,
+    isAuthenticated,
+    lastSyncedSpaceStateKey,
+    mutationQueueRepository,
+    runtimeSpaceStateMode,
+    spaceCardStateById,
+    spaceStateRepository,
+    spaceStateSnapshot,
+    spaceStateSyncKey,
+    startMutationReplay,
   ]);
 
   useEffect(() => {
@@ -817,8 +1031,8 @@ function AppShell() {
     createTrackedLearningCardState,
     authenticatedRuntimeContext,
     isAuthenticated,
-    learningTrack,
     learningBootstrapStatus,
+    learningTrack,
     learningSessionRepository,
     membershipState,
     readSpaceCardState,
@@ -1075,6 +1289,8 @@ function AppShell() {
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
       setLastSyncedProgressKey(null);
+      setLastSyncedSpaceStateKey(null);
+      mutationQueueRepository.clear().catch(() => undefined);
       setProgressSyncState({
         detail: '今天还没有需要同步的学习进展。',
         label: '等待今日进展',

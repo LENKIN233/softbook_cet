@@ -33,6 +33,7 @@ test('local card source can derive a usable cet6 track', () => {
 test('local learning session picks one card per core interaction before duplicates', () => {
   const session = createLocalLearningSession('cet4');
 
+  expect(session.catalogCards.length).toBeGreaterThan(session.cards.length);
   expect(session.cards.map(card => card.interaction_id)).toEqual(
     CORE_INTERACTION_ORDER,
   );

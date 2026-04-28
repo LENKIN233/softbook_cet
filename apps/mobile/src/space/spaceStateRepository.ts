@@ -47,7 +47,6 @@ export function createSpaceStateSnapshot(input: {
   spaceCardStateById: Record<string, {isFavorited: boolean; isSleeping: boolean}>;
 }): SpaceStateSnapshot {
   const states: CardSpaceState[] = Object.entries(input.spaceCardStateById)
-    .filter(([, state]) => state.isFavorited || state.isSleeping)
     .map(([cardId, state]) => ({
       cardId,
       isFavorited: state.isFavorited,

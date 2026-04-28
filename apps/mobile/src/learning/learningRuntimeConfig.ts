@@ -48,6 +48,10 @@ export type SpaceStateRuntimeConfig = {
   };
 };
 
+export type MutationQueueRuntimeConfig = {
+  mode?: 'local' | 'remote';
+};
+
 export type SoftbookAppRuntimeConfig = {
   auth?: AuthRuntimeConfig;
   learningTrack?: LearningTrack;
@@ -55,6 +59,7 @@ export type SoftbookAppRuntimeConfig = {
   membership?: MembershipRuntimeConfig;
   progressSync?: ProgressSyncRuntimeConfig;
   spaceState?: SpaceStateRuntimeConfig;
+  mutationQueue?: MutationQueueRuntimeConfig;
 };
 
 type RemoteRuntimeFeature = 'learningSource' | 'membership' | 'progressSync' | 'spaceState';
@@ -102,7 +107,9 @@ export function resolveLearningTrack(
   runtimeConfig: SoftbookAppRuntimeConfig | undefined =
     readSoftbookAppRuntimeConfig(),
 ): LearningTrack {
-  return runtimeConfig?.learningTrack === 'cet6' ? 'cet6' : 'cet4';
+  return (
+    runtimeConfig?.learningTrack ?? runtimeConfig?.learningSource?.track ?? 'cet4'
+  );
 }
 
 export function resolveLearningSessionRepositoryConfig(
@@ -133,11 +140,4 @@ export function resolveLearningSessionRepositoryConfig(
   return {
     mode: 'local',
   };
-}
-
-export function resolveLearningTrack(
-  runtimeConfig: SoftbookAppRuntimeConfig | undefined =
-    readSoftbookAppRuntimeConfig(),
-): 'cet4' | 'cet6' {
-  return runtimeConfig?.learningSource?.track ?? 'cet4';
 }
