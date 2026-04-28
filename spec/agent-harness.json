@@ -1,5 +1,5 @@
 {
-  "version": "vnext-9",
+  "version": "vnext-10",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -64,6 +64,12 @@
       "related_product_specs",
       "related_contract_specs",
       "spec/runtime-boundaries.json"
+    ],
+    "repo_delivery_or_pull_request": [
+      "spec/authority-map.json",
+      "spec/agent-harness.json",
+      "spec/repo-delivery-contract.json",
+      "spec/evals.json"
     ],
     "review_or_acceptance": [
       "spec/requirement-memory.json",
@@ -210,6 +216,11 @@
       "required_approving_review_count": 0,
       "allow_force_pushes": false,
       "allow_deletions": false
+    },
+    "repo_delivery_contract": {
+      "owner": "spec/repo-delivery-contract.json",
+      "default_behavior": "code-changing tasks default to topic branch -> commit -> pull request unless the user explicitly requests local-only delivery",
+      "merge_policy": "merge to main requires explicit user instruction"
     }
   },
   "anti_patterns": [
@@ -327,6 +338,16 @@
       "id": "AP-23",
       "name": "use_red_for_self_assess_review_level_implying_punishment",
       "correction": "self_assess_has_two_levels_confident_green_and_review_amber_red_is_reserved_for_rule_dont_and_trend_down_only"
+    },
+    {
+      "id": "AP-24",
+      "name": "treat_local_dirty_worktree_as_default_delivery_for_code_changes",
+      "correction": "code_changes_default_to_topic_branch_commit_pull_request_unless_local_only_is_explicitly_requested"
+    },
+    {
+      "id": "AP-25",
+      "name": "merge_topic_branch_to_main_without_explicit_user_instruction",
+      "correction": "open_or_update_pull_request_by_default_and_wait_for_explicit_merge_instruction"
     }
   ],
   "compaction_keep": [
@@ -338,6 +359,7 @@
     "core_interactions",
     "physical_space_semantics",
     "detailed_box_catalog",
+    "repo_delivery_policy",
     "edited_files"
   ]
 }

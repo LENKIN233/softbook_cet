@@ -1,5 +1,5 @@
 {
-  "version": "vnext-1",
+  "version": "vnext-2",
   "purpose": "Single-source ownership map for active harness facts. If the same concept appears in multiple files, the owner here wins and non-owner copies must stay consistent.",
   "domains": {
     "user_origin_memory": {
@@ -58,6 +58,12 @@
     },
     "runtime_hypotheses_and_boundaries": {
       "owner": "spec/runtime-boundaries.json"
+    },
+    "repo_delivery_and_pull_request_contract": {
+      "owner": "spec/repo-delivery-contract.json",
+      "mirrors": [
+        "spec/agent-harness.json"
+      ]
     },
     "agent_read_paths_and_anti_patterns": {
       "owner": "spec/agent-harness.json"

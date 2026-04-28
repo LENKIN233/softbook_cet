@@ -1,5 +1,5 @@
 {
-  "version": "vnext-8",
+  "version": "vnext-9",
   "purpose": "Counterfactual perturbation audit used to avoid local optima and catch silent drift away from the user's original requirements.",
   "perturbations": [
     {
@@ -202,6 +202,20 @@
       "change": "Promote hex values in visual-language.json#implementation_hypothesis into inflexible product_truth and enforce them as literal strings across all docs and code",
       "expected_failure": "collapses the implementation_hypothesis layer and makes micro-tuning a governance event; only the 7 library identities + 2 self-assess hexes belong in the locked mirror set",
       "guarded_by": ["spec/visual-language.json", "spec/authority-map.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-29",
+      "change": "Treat local dirty working tree as acceptable default delivery for code-changing tasks",
+      "expected_failure": "drops reviewable artifacts and makes branch / PR history optional instead of default",
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-30",
+      "change": "Allow agent to merge topic branches into main without explicit user instruction",
+      "expected_failure": "turns main back into an agent-controlled branch and bypasses explicit human merge intent",
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
       "status": "rejected"
     }
   ],

@@ -9,6 +9,7 @@
 - `spec/membership.json`
 - `spec/platform-contract.json`
 - `spec/runtime-boundaries.json`
+- `spec/repo-delivery-contract.json`
 - `spec/agent-harness.json`
 
 ## 当前阶段
@@ -21,6 +22,8 @@
 - `spec/`: 活跃产品与合同真相源
 - `apps/mobile/`: React Native 移动端工程
 - `docs/`: 工程协作约定与流程文档
+- `.github/workflows/pr-gates.yml`: PR 质量门禁（harness 校验 + mobile lint + mobile test）
+- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）
 - `scripts/validate_harness.py`: harness 校验脚本（spec owner 一致性 + main 分支治理护栏）
 - `scripts/bootstrap_mobile_ios.sh`: iOS 依赖重装脚本
 
@@ -42,6 +45,7 @@
 分支策略文档见 [docs/branching-strategy.md](/Users/lenkin/programing/softbook_cet/docs/branching-strategy.md)。
 原则是按需求域推进，一次只打磨一个模块，不设长期 `develop` 分支。
 clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`，再执行 `python3 scripts/validate_harness.py` 确认本地 hooks 与 GitHub `main` 保护都仍然生效。
+任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR；未经明确要求不要直接合并到 `main`。
 
 ### 依赖前提
 
