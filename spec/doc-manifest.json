@@ -1,5 +1,5 @@
 {
-  "version": "vnext-2",
+  "version": "vnext-3",
   "active_documents": [
     {
       "path": "AGENTS.md",
@@ -25,6 +25,7 @@
     "spec/box-catalog.json",
     "spec/membership.json",
     "spec/runtime-boundaries.json",
+    "spec/repo-delivery-contract.json",
     "spec/agent-harness.json",
     "spec/evals.json",
     "spec/perturbation-audit.json",

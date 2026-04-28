@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = ROOT / "spec"
 errors = []
+SKIP_REMOTE_GUARD = "--skip-remote-guard" in sys.argv
 
 
 def load(name: str):
@@ -52,6 +53,7 @@ auth = load("account-sync-contract.json")
 platform = load("platform-contract.json")
 product = load("product-core.json")
 membership = load("membership.json")
+delivery = load("repo-delivery-contract.json")
 interactions = load("interactions.json")
 manifest = load("doc-manifest.json")
 authority = load("authority-map.json")
@@ -82,6 +84,9 @@ for rel in manifest["active_specs"]:
 for legacy in ["spec/legacy-map.json", "spec/legacy-triage.json"]:
     if legacy in manifest["active_specs"]:
         errors.append(f"legacy artifact still active: {legacy}")
+
+if "spec/repo-delivery-contract.json" not in manifest["active_specs"]:
+    errors.append("manifest missing active spec: spec/repo-delivery-contract.json")
 
 # Authority owners must exist.
 for domain, meta in authority["domains"].items():
@@ -334,6 +339,10 @@ check_equal(
 main_branch_policy = harness["governance"]["main_branch_policy"]
 local_guard = harness["governance"]["local_guard"]
 remote_guard = harness["governance"]["remote_guard"]
+repo_delivery_contract = harness["governance"]["repo_delivery_contract"]
+delivery_defaults = delivery["delivery_defaults"]["code_change_tasks"]
+pull_request_contract = delivery["pull_request_contract"]
+ci_contract = delivery["ci_contract"]
 
 check_equal("main_branch_policy.branch_name", "main", main_branch_policy["branch_name"])
 check_equal(
@@ -346,6 +355,116 @@ check_equal(
     ["infra/", "shell/", "module/", "cross/", "fix/"],
     main_branch_policy["allowed_topic_branch_prefixes"],
 )
+check_equal(
+    "repo_delivery_or_pull_request read path",
+    [
+        "spec/authority-map.json",
+        "spec/agent-harness.json",
+        "spec/repo-delivery-contract.json",
+        "spec/evals.json",
+    ],
+    harness["read_paths"]["repo_delivery_or_pull_request"],
+)
+check_equal(
+    "repo_delivery_contract owner",
+    "spec/repo-delivery-contract.json",
+    repo_delivery_contract["owner"],
+)
+check_equal(
+    "repo_delivery_contract default_behavior",
+    "code-changing tasks default to topic branch -> commit -> pull request -> agent review -> merge unless the user explicitly requests local-only delivery",
+    repo_delivery_contract["default_behavior"],
+)
+check_equal(
+    "repo_delivery_contract merge_policy",
+    "merge to main defaults to automatic merge after clean agent review and required gates are green",
+    repo_delivery_contract["merge_policy"],
+)
+check_equal(
+    "repo_delivery default_strategy",
+    "topic_branch_commit_pull_request_agent_review_auto_merge",
+    delivery_defaults["default_strategy"],
+)
+check_equal("repo_delivery topic_branch_required", True, delivery_defaults["topic_branch_required"])
+check_equal(
+    "repo_delivery allowed_topic_branch_prefixes",
+    main_branch_policy["allowed_topic_branch_prefixes"],
+    delivery_defaults["allowed_topic_branch_prefixes"],
+)
+check_equal(
+    "repo_delivery local_only_requires_explicit_user_instruction",
+    True,
+    delivery_defaults["local_only_requires_explicit_user_instruction"],
+)
+check_equal(
+    "repo_delivery pull_request_required_unless_local_only",
+    True,
+    delivery_defaults["pull_request_required_unless_local_only"],
+)
+check_equal(
+    "repo_delivery agent_review_required_before_merge",
+    True,
+    delivery_defaults["agent_review_required_before_merge"],
+)
+check_equal(
+    "repo_delivery auto_merge_after_agent_review_and_green_gates",
+    True,
+    delivery_defaults["auto_merge_after_agent_review_and_green_gates"],
+)
+check_equal(
+    "repo_delivery merge_blockers",
+    [
+        "blocking_review_findings",
+        "required_gates_not_green",
+        "pull_request_or_merge_permission_failure",
+    ],
+    delivery_defaults["merge_blockers"],
+)
+check_equal(
+    "repo_delivery if_pull_request_cannot_be_created",
+    "handoff_branch_commit_validation_and_blocker",
+    delivery_defaults["if_pull_request_cannot_be_created"],
+)
+check_equal("pull_request_contract target_branch", "main", pull_request_contract["target_branch"])
+check_equal(
+    "pull_request_contract default_action",
+    "open_or_update_pull_request_then_review_and_merge_when_green",
+    pull_request_contract["default_action"],
+)
+check_equal(
+    "pull_request_contract required_body_sections",
+    ["当前任务引用的 spec", "变更摘要", "验证", "design_review_checklist（如适用）"],
+    pull_request_contract["required_body_sections"],
+)
+check_equal(
+    "pull_request_contract visual_output_rule",
+    "if_visual_output_changes_exist_the_pull_request_must_answer_the_design_review_checklist",
+    pull_request_contract["visual_output_rule"],
+)
+check_equal("ci_contract workflow_path", ".github/workflows/pr-gates.yml", ci_contract["workflow_path"])
+check_equal(
+    "ci_contract pull_request_template_path",
+    ".github/pull_request_template.md",
+    ci_contract["pull_request_template_path"],
+)
+check_equal(
+    "ci_contract required_pull_request_gates",
+    [
+        {
+            "id": "validate_harness",
+            "command": "python3 scripts/validate_harness.py --skip-remote-guard",
+        },
+        {
+            "id": "mobile_lint",
+            "command": "cd apps/mobile && npm run lint -- --quiet",
+        },
+        {
+            "id": "mobile_test",
+            "command": "cd apps/mobile && npm test -- --runInBand --watchAll=false",
+        },
+    ],
+    ci_contract["required_pull_request_gates"],
+)
 
 ap20 = find_by_id(harness["anti_patterns"], "AP-20")
 if ap20:
@@ -354,6 +473,32 @@ if ap20:
         "AP-20 correction",
         "main_is_read_only_integration_branch_and_topic_branches_are_required",
         ap20["correction"],
+    )
+
+ap24 = find_by_id(harness["anti_patterns"], "AP-24")
+if ap24:
+    check_equal(
+        "AP-24 name",
+        "treat_local_dirty_worktree_as_default_delivery_for_code_changes",
+        ap24["name"],
+    )
+    check_equal(
+        "AP-24 correction",
+        "code_changes_default_to_topic_branch_commit_pull_request_unless_local_only_is_explicitly_requested",
+        ap24["correction"],
+    )
+
+ap25 = find_by_id(harness["anti_patterns"], "AP-25")
+if ap25:
+    check_equal(
+        "AP-25 name",
+        "leave_reviewed_green_pull_request_waiting_for_explicit_merge_instruction",
+        ap25["name"],
+    )
+    check_equal(
+        "AP-25 correction",
+        "open_or_update_pull_request_then_merge_after_clean_agent_review_and_green_required_gates",
+        ap25["correction"],
     )
 
 hr19 = find_by_id(evals["regressions"], "HR-19")
@@ -388,6 +533,40 @@ if gt14:
         gt14["must_include"],
     )
 
+hr23 = find_by_id(evals["regressions"], "HR-23")
+if hr23:
+    check_equal(
+        "HR-23 fail_signal",
+        "keeps_code_changes_local_by_default_or_leaves_reviewed_green_pr_waiting_for_explicit_merge_instruction",
+        hr23["fail_signal"],
+    )
+    check_equal(
+        "HR-23 must_hit",
+        [
+            "topic_branch_default",
+            "pull_request_default_unless_local_only",
+            "handoff_branch_commit_validation_when_pr_blocked",
+            "agent_review_before_merge",
+            "auto_merge_after_clean_review_and_green_gates",
+        ],
+        hr23["must_hit"],
+    )
+
+gt17 = find_by_id(evals["golden_tasks"], "GT-17")
+if gt17:
+    check_equal("GT-17 task", "定义代码交付与 PR 规则", gt17["task"])
+    check_equal(
+        "GT-17 must_include",
+        [
+            "topic_branch_commit_pull_request_agent_review_auto_merge_default",
+            "local_only_must_be_explicit",
+            "pull_request_body_contains_specs_summary_validation",
+            "agent_review_before_merge",
+            "merge_only_blocks_on_review_gate_or_permission_failure",
+        ],
+        gt17["must_include"],
+    )
+
 p23 = find_by_id(perturbation_audit["perturbations"], "P-23")
 if p23:
     check_equal(
@@ -401,22 +580,81 @@ if p23:
         p23["guarded_by"],
     )
 
+p29 = find_by_id(perturbation_audit["perturbations"], "P-29")
+if p29:
+    check_equal(
+        "P-29 change",
+        "Treat local dirty working tree as acceptable default delivery for code-changing tasks",
+        p29["change"],
+    )
+    check_equal(
+        "P-29 guarded_by",
+        ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+        p29["guarded_by"],
+    )
+
+p30 = find_by_id(perturbation_audit["perturbations"], "P-30")
+if p30:
+    check_equal(
+        "P-30 change",
+        "Leave a reviewed green pull request waiting for explicit user merge instruction",
+        p30["change"],
+    )
+    check_equal(
+        "P-30 guarded_by",
+        ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+        p30["guarded_by"],
+    )
+
+p31 = find_by_id(perturbation_audit["perturbations"], "P-31")
+if p31:
+    check_equal(
+        "P-31 change",
+        "Merge a pull request before agent review finishes or while required gates are red",
+        p31["change"],
+    )
+    check_equal(
+        "P-31 guarded_by",
+        ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+        p31["guarded_by"],
+    )
+
 agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
 for snippet in [
     "`main` 是只读集成分支，不要直接在 `main` 上开发、提交、合并或推送",
     "开发前先切到 `infra/*`、`shell/*`、`module/*`、`cross/*` 或 `fix/*`",
     "clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`",
     "若发现本地 hooks 或 GitHub `main` 保护漂移，先修治理再继续功能开发",
+    "任何会持久化仓库改动的任务，除非用户明确要求只做本地修改，否则默认在 topic branch 上完成提交、开/更新指向 `main` 的 PR，并在 agent review 通过且 required gates 全绿后自动合并",
+    "未完成 agent review、required gates 未全绿，或权限/环境阻止 merge 时，不要提前合并到 `main`",
+    "如果权限或环境阻止创建 PR，必须明确交付 branch、commit、验证结果与阻塞原因",
+    "若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若有视觉稿改动，再追加 design review checklist；默认在 review + gate 通过后自动收口合并",
 ]:
     check_contains("AGENTS governance mirror", agents_text, snippet)
 
 branching_text = (ROOT / "docs/branching-strategy.md").read_text(encoding="utf-8")
 check_contains("branching strategy references evals", branching_text, "- `spec/evals.json`")
 check_contains(
+    "branching strategy references repo-delivery-contract",
+    branching_text,
+    "- `spec/repo-delivery-contract.json`",
+)
+check_contains(
     "branching strategy validate_harness mention",
     branching_text,
     "`python3 scripts/validate_harness.py` 会同时检查 hooksPath、hook wrapper 分发、以及 GitHub 上 `main` 的 branch protection 是否仍然符合 harness 合同。",
 )
+for snippet in [
+    "会持久化 repo 改动的任务默认走 `topic branch -> commit -> PR(main)`。",
+    "若用户明确要求只做本地修改，才允许停在本地 handoff，不开 PR。",
+    "PR 创建后，默认在 agent review 通过且 required gates 全绿时自动合并到 `main`。",
+    "只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。",
+    "如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。",
+    "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`，若有视觉稿改动再补 `design_review_checklist（如适用）`。",
+    "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。",
+    "merge 的默认前置条件是：agent review 无 blocking finding，且 required gates 全绿。",
+]:
+    check_contains("branching strategy delivery mirror", branching_text, snippet)
 
 readme_text = (ROOT / "README.md").read_text(encoding="utf-8")
 check_contains(
@@ -429,6 +667,13 @@ check_contains(
     readme_text,
     "clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`，再执行 `python3 scripts/validate_harness.py` 确认本地 hooks 与 GitHub `main` 保护都仍然生效。",
 )
+for snippet in [
+    "- `spec/repo-delivery-contract.json`",
+    "- `.github/workflows/pr-gates.yml`: PR 质量门禁（harness 校验 + mobile lint + mobile test）",
+    "- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）",
+    "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",
+]:
+    check_contains("README delivery mirror", readme_text, snippet)
 
 
 # Auth / trial / purchase owner: account-sync-contract.
@@ -674,44 +919,83 @@ else:
         if worktree_status is not None and worktree_status.stdout.strip():
             errors.append("current checkout is dirty on main; move changes to a topic branch")
 
-gh_protection = run_command(
-    "gh",
-    "api",
-    f"repos/{remote_guard['repository']}/branches/{remote_guard['protected_branch']}/protection",
-)
-if gh_protection is None:
-    pass
-elif gh_protection.returncode != 0:
-    errors.append(
-        "unable to read GitHub branch protection for "
-        f"{remote_guard['repository']}:{remote_guard['protected_branch']}; "
-        "run gh auth login and confirm repo access"
+if not SKIP_REMOTE_GUARD:
+    gh_protection = run_command(
+        "gh",
+        "api",
+        f"repos/{remote_guard['repository']}/branches/{remote_guard['protected_branch']}/protection",
     )
-else:
-    protection = json.loads(gh_protection.stdout)
-    check_equal(
-        "remote allow_force_pushes",
-        remote_guard["allow_force_pushes"],
-        protection["allow_force_pushes"]["enabled"],
-    )
-    check_equal(
-        "remote allow_deletions",
-        remote_guard["allow_deletions"],
-        protection["allow_deletions"]["enabled"],
-    )
-
-    has_pr_requirement = protection["required_pull_request_reviews"] is not None
-    check_equal(
-        "remote require_pull_request",
-        remote_guard["require_pull_request"],
-        has_pr_requirement,
-    )
-    if has_pr_requirement:
-        check_equal(
-            "remote required_approving_review_count",
-            remote_guard["required_approving_review_count"],
-            protection["required_pull_request_reviews"]["required_approving_review_count"],
+    if gh_protection is None:
+        pass
+    elif gh_protection.returncode != 0:
+        errors.append(
+            "unable to read GitHub branch protection for "
+            f"{remote_guard['repository']}:{remote_guard['protected_branch']}; "
+            "run gh auth login and confirm repo access"
         )
+    else:
+        protection = json.loads(gh_protection.stdout)
+        check_equal(
+            "remote allow_force_pushes",
+            remote_guard["allow_force_pushes"],
+            protection["allow_force_pushes"]["enabled"],
+        )
+        check_equal(
+            "remote allow_deletions",
+            remote_guard["allow_deletions"],
+            protection["allow_deletions"]["enabled"],
+        )
+
+        required_status_checks = protection["required_status_checks"]
+        if required_status_checks is None:
+            errors.append("remote required_status_checks missing; configure branch protection for required CI gates")
+        else:
+            check_equal(
+                "remote require_strict_status_checks",
+                remote_guard["require_strict_status_checks"],
+                required_status_checks["strict"],
+            )
+            actual_contexts = sorted(required_status_checks.get("contexts", []))
+            expected_contexts = sorted(remote_guard["required_status_checks"])
+            check_equal("remote required_status_checks", expected_contexts, actual_contexts)
+
+        has_pr_requirement = protection["required_pull_request_reviews"] is not None
+        check_equal(
+            "remote require_pull_request",
+            remote_guard["require_pull_request"],
+            has_pr_requirement,
+        )
+        if has_pr_requirement:
+            check_equal(
+                "remote required_approving_review_count",
+                remote_guard["required_approving_review_count"],
+                protection["required_pull_request_reviews"]["required_approving_review_count"],
+            )
+
+workflow_path = ROOT / ci_contract["workflow_path"]
+if not workflow_path.exists():
+    errors.append(f"missing CI workflow: {ci_contract['workflow_path']}")
+else:
+    workflow_text = workflow_path.read_text(encoding="utf-8")
+    for snippet in [
+        "pull_request:",
+        "- main",
+        "./scripts/install_git_hooks.sh",
+        "python3 scripts/validate_harness.py --skip-remote-guard",
+        "npm ci",
+        "npm run lint -- --quiet",
+        "npm test -- --runInBand --watchAll=false",
+        'node-version: "22.11.0"',
+    ]:
+        check_contains("PR workflow gate", workflow_text, snippet)
+
+pr_template_path = ROOT / ci_contract["pull_request_template_path"]
+if not pr_template_path.exists():
+    errors.append(f"missing pull request template: {ci_contract['pull_request_template_path']}")
+else:
+    pr_template_text = pr_template_path.read_text(encoding="utf-8")
+    for heading in pull_request_contract["required_body_sections"]:
+        check_contains("PR template heading", pr_template_text, f"## {heading}")
 
 # ─────────────────────────────────────────────────────────────
 # Visual language / design harness gates.

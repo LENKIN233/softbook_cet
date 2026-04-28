@@ -1,5 +1,5 @@
 {
-  "version": "vnext-9",
+  "version": "vnext-11",
   "regressions": [
     {
       "id": "HR-01",
@@ -165,6 +165,18 @@
       "prompt": "评审一张产出稿：同屏同时用听力蓝和词汇玫瑰作为 CTA 强色",
       "fail_signal": "approves_multi_library_accent_on_one_screen_or_only_comments_on_aesthetics",
       "must_hit": ["Law_of_One_violation", "VL_AP_01", "require_demotion_to_chips"]
+    },
+    {
+      "id": "HR-23",
+      "prompt": "说明默认代码交付路径与 PR 规则",
+      "fail_signal": "keeps_code_changes_local_by_default_or_leaves_reviewed_green_pr_waiting_for_explicit_merge_instruction",
+      "must_hit": [
+        "topic_branch_default",
+        "pull_request_default_unless_local_only",
+        "handoff_branch_commit_validation_when_pr_blocked",
+        "agent_review_before_merge",
+        "auto_merge_after_clean_review_and_green_gates"
+      ]
     }
   ],
   "golden_tasks": [
@@ -291,6 +303,17 @@
         "layout_bugs_third",
         "each_failure_cites_VL_AP_or_AP_id",
         "never_approves_without_running_design_review_checklist"
+      ]
+    },
+    {
+      "id": "GT-17",
+      "task": "定义代码交付与 PR 规则",
+      "must_include": [
+        "topic_branch_commit_pull_request_agent_review_auto_merge_default",
+        "local_only_must_be_explicit",
+        "pull_request_body_contains_specs_summary_validation",
+        "agent_review_before_merge",
+        "merge_only_blocks_on_review_gate_or_permission_failure"
       ]
     }
   ]

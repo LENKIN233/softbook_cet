@@ -1,5 +1,5 @@
 {
-  "version": "vnext-8",
+  "version": "vnext-10",
   "purpose": "Counterfactual perturbation audit used to avoid local optima and catch silent drift away from the user's original requirements.",
   "perturbations": [
     {
@@ -202,6 +202,27 @@
       "change": "Promote hex values in visual-language.json#implementation_hypothesis into inflexible product_truth and enforce them as literal strings across all docs and code",
       "expected_failure": "collapses the implementation_hypothesis layer and makes micro-tuning a governance event; only the 7 library identities + 2 self-assess hexes belong in the locked mirror set",
       "guarded_by": ["spec/visual-language.json", "spec/authority-map.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-29",
+      "change": "Treat local dirty working tree as acceptable default delivery for code-changing tasks",
+      "expected_failure": "drops reviewable artifacts and makes branch / PR history optional instead of default",
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-30",
+      "change": "Leave a reviewed green pull request waiting for explicit user merge instruction",
+      "expected_failure": "reintroduces repetitive orchestration and contradicts the repo delivery default of review-then-merge",
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-31",
+      "change": "Merge a pull request before agent review finishes or while required gates are red",
+      "expected_failure": "bypasses the review-and-gate contract and can land unchecked changes on main",
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
       "status": "rejected"
     }
   ],

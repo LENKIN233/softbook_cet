@@ -1,5 +1,5 @@
 {
-  "version": "vnext-9",
+  "version": "vnext-11",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -64,6 +64,12 @@
       "related_product_specs",
       "related_contract_specs",
       "spec/runtime-boundaries.json"
+    ],
+    "repo_delivery_or_pull_request": [
+      "spec/authority-map.json",
+      "spec/agent-harness.json",
+      "spec/repo-delivery-contract.json",
+      "spec/evals.json"
     ],
     "review_or_acceptance": [
       "spec/requirement-memory.json",
@@ -208,8 +214,18 @@
       "protected_branch": "main",
       "require_pull_request": true,
       "required_approving_review_count": 0,
+      "required_status_checks": [
+        "validate-harness",
+        "mobile-quality"
+      ],
+      "require_strict_status_checks": true,
       "allow_force_pushes": false,
       "allow_deletions": false
+    },
+    "repo_delivery_contract": {
+      "owner": "spec/repo-delivery-contract.json",
+      "default_behavior": "code-changing tasks default to topic branch -> commit -> pull request -> agent review -> merge unless the user explicitly requests local-only delivery",
+      "merge_policy": "merge to main defaults to automatic merge after clean agent review and required gates are green"
     }
   },
   "anti_patterns": [
@@ -327,6 +343,16 @@
       "id": "AP-23",
       "name": "use_red_for_self_assess_review_level_implying_punishment",
       "correction": "self_assess_has_two_levels_confident_green_and_review_amber_red_is_reserved_for_rule_dont_and_trend_down_only"
+    },
+    {
+      "id": "AP-24",
+      "name": "treat_local_dirty_worktree_as_default_delivery_for_code_changes",
+      "correction": "code_changes_default_to_topic_branch_commit_pull_request_unless_local_only_is_explicitly_requested"
+    },
+    {
+      "id": "AP-25",
+      "name": "leave_reviewed_green_pull_request_waiting_for_explicit_merge_instruction",
+      "correction": "open_or_update_pull_request_then_merge_after_clean_agent_review_and_green_required_gates"
     }
   ],
   "compaction_keep": [
@@ -338,6 +364,7 @@
     "core_interactions",
     "physical_space_semantics",
     "detailed_box_catalog",
+    "repo_delivery_policy",
     "edited_files"
   ]
 }

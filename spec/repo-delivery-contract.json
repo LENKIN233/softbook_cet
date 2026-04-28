@@ -1,0 +1,56 @@
+{
+  "version": "vnext-2",
+  "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
+  "delivery_defaults": {
+    "code_change_tasks": {
+      "default_strategy": "topic_branch_commit_pull_request_agent_review_auto_merge",
+      "topic_branch_required": true,
+      "allowed_topic_branch_prefixes": [
+        "infra/",
+        "shell/",
+        "module/",
+        "cross/",
+        "fix/"
+      ],
+      "local_only_requires_explicit_user_instruction": true,
+      "pull_request_required_unless_local_only": true,
+      "agent_review_required_before_merge": true,
+      "auto_merge_after_agent_review_and_green_gates": true,
+      "merge_blockers": [
+        "blocking_review_findings",
+        "required_gates_not_green",
+        "pull_request_or_merge_permission_failure"
+      ],
+      "if_pull_request_cannot_be_created": "handoff_branch_commit_validation_and_blocker"
+    }
+  },
+  "pull_request_contract": {
+    "target_branch": "main",
+    "default_action": "open_or_update_pull_request_then_review_and_merge_when_green",
+    "required_body_sections": [
+      "当前任务引用的 spec",
+      "变更摘要",
+      "验证",
+      "design_review_checklist（如适用）"
+    ],
+    "visual_output_rule": "if_visual_output_changes_exist_the_pull_request_must_answer_the_design_review_checklist"
+  },
+  "ci_contract": {
+    "workflow_path": ".github/workflows/pr-gates.yml",
+    "pull_request_template_path": ".github/pull_request_template.md",
+    "required_pull_request_gates": [
+      {
+        "id": "validate_harness",
+        "command": "python3 scripts/validate_harness.py --skip-remote-guard"
+      },
+      {
+        "id": "mobile_lint",
+        "command": "cd apps/mobile && npm run lint -- --quiet"
+      },
+      {
+        "id": "mobile_test",
+        "command": "cd apps/mobile && npm test -- --runInBand --watchAll=false"
+      }
+    ]
+  }
+}
