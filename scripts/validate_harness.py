@@ -980,6 +980,7 @@ else:
     for snippet in [
         "pull_request:",
         "- main",
+        "./scripts/install_git_hooks.sh",
         "python3 scripts/validate_harness.py --skip-remote-guard",
         "npm ci",
         "npm run lint -- --quiet",

@@ -21,6 +21,9 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Install repository hooks
+        run: ./scripts/install_git_hooks.sh
+
       - name: Validate harness contract
         run: python3 scripts/validate_harness.py --skip-remote-guard
 
