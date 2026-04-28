@@ -62,6 +62,7 @@ test('remote learning session repository delegates to remote source loading', as
   const session = await repository.loadSession(authenticatedContext, 'cet4');
 
   expect(session.sourceId).toBe('remote-learning-cards');
+  expect(session.catalogCards).toHaveLength(localLearningCardRecords.length);
   expect(session.cards).toHaveLength(5);
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
