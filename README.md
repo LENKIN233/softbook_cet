@@ -78,7 +78,7 @@ npm run ios
 
 `apps/mobile` 现在会在启动时读取 `src/runtime/appRuntimeConfig.ts`，并把配置注入到全局 runtime。
 
-- 默认配置是本地登录 + 本地卡源 + 本地会员 entitlement + 本地日级同步：
+- 默认配置是本地登录 + 本地卡源 + 本地会员 entitlement + 本地日级同步 + 本地空间状态 + 本地 learning state：
 
 ```ts
 export const SOFTBOOK_APP_RUNTIME_CONFIG = {
@@ -92,12 +92,18 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
     mode: 'local',
   },
   progressSync: {
+    mode: 'local',
+  },
+  spaceState: {
+    mode: 'local',
+  },
+  learningState: {
     mode: 'local',
   },
 };
 ```
 
-- 如果你要切到远端认证 / 卡源 / entitlement / 日级同步，临时改成：
+- 如果你要切到远端认证 / 卡源 / entitlement / 日级同步 / 空间状态 / learning state，临时改成：
 
 ```ts
 export const SOFTBOOK_APP_RUNTIME_CONFIG = {
@@ -123,6 +129,20 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
     },
   },
   progressSync: {
+    mode: 'remote',
+    remote: {
+      baseUrl: 'https://your-api.example.com',
+      apiKey: 'your-dev-key',
+    },
+  },
+  spaceState: {
+    mode: 'remote',
+    remote: {
+      baseUrl: 'https://your-api.example.com',
+      apiKey: 'your-dev-key',
+    },
+  },
+  learningState: {
     mode: 'remote',
     remote: {
       baseUrl: 'https://your-api.example.com',
@@ -138,8 +158,10 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
 - `learningSource`：学习卡源仓储
 - `membership`：entitlement 读取、开始试用、开通会员、恢复购买提醒状态更新
 - `progressSync`：日级进展同步仓储
+- `spaceState`：收藏/休眠等空间状态同步仓储
+- `learningState`：逐卡学习作答状态同步仓储
 
-如果 `learningSource.mode === 'remote'`，则 `auth.mode` 也必须是 `remote`，否则 runtime config 解析会直接失败。
+如果 `learningSource.mode === 'remote'`、`membership.mode === 'remote'`、`progressSync.mode === 'remote'`、`spaceState.mode === 'remote'` 或 `learningState.mode === 'remote'`，则 `auth.mode` 也必须是 `remote`，否则 runtime config 解析会直接失败。
 
 如果远端学习卡源请求失败或 payload 不合法，`learningRepository` 会自动回退到本地结构化卡源，保持现有学习 UI 和交互不变。
 

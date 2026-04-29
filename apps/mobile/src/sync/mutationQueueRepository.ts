@@ -1,6 +1,7 @@
 import type {MembershipRepository} from '../membership/membershipRepository';
 import type {MembershipState} from '../membership/localMembership';
 import type {SpaceStateRepository} from '../space/spaceStateRepository';
+import type {LearningStateRepository} from './learningStateRepository';
 import {
   MutationQueueManager,
   MutationPayloadByType,
@@ -37,6 +38,7 @@ export interface MutationQueueRepository {
 }
 
 export function createMutationQueueRepository(options: {
+  learningStateRepository: LearningStateRepository;
   membershipRepository: MembershipRepository;
   progressSyncRepository: ProgressSyncRepository;
   queueManager?: MutationQueueManager;
@@ -58,6 +60,12 @@ export function createMutationQueueRepository(options: {
           return {entry};
         case 'sync_space_state':
           await options.spaceStateRepository.syncSpaceState(
+            entry.payload.context,
+            entry.payload.snapshot,
+          );
+          return {entry};
+        case 'sync_learning_state':
+          await options.learningStateRepository.syncLearningState(
             entry.payload.context,
             entry.payload.snapshot,
           );

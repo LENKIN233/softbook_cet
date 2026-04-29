@@ -141,6 +141,7 @@ export function evaluateLearningCard(
 ): LearningCardResult | null {
   const baseResult = {
     cardId: card.card_id,
+    completedAt: new Date().toISOString(),
     interactionId: card.interaction_id,
     usedHint: state.isHintVisible,
     usedPeek: state.isPeeked,

@@ -11,10 +11,15 @@ import type {
   DailyProgressSnapshot,
   ProgressSyncContext,
 } from './progressSyncRepository';
+import type {
+  LearningStateContext,
+  LearningStateSnapshot,
+} from './learningStateRepository';
 
 export type MutationType =
   | 'sync_daily_progress'
   | 'sync_space_state'
+  | 'sync_learning_state'
   | 'refresh_membership';
 
 export type MutationPayloadByType = {
@@ -28,6 +33,10 @@ export type MutationPayloadByType = {
   sync_space_state: {
     context: SpaceStateContext;
     snapshot: SpaceStateSnapshot;
+  };
+  sync_learning_state: {
+    context: LearningStateContext;
+    snapshot: LearningStateSnapshot;
   };
 };
 

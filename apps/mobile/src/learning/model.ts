@@ -144,6 +144,7 @@ export type LearningCardResult = {
   usedHint: boolean;
   usedPeek: boolean;
   isFavorited: boolean;
+  completedAt: string;
 };
 
 export type LearningSession = {
