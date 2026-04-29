@@ -122,6 +122,7 @@ test('review flow only pulls incorrect and review cards in original order', () =
       usedHint: false,
       usedPeek: false,
       isFavorited: false,
+      completedAt: '2026-04-27T00:00:00.000Z',
     },
     {
       cardId: flipCard.card_id,
@@ -130,6 +131,7 @@ test('review flow only pulls incorrect and review cards in original order', () =
       usedHint: false,
       usedPeek: false,
       isFavorited: false,
+      completedAt: '2026-04-27T00:00:01.000Z',
     },
     {
       cardId: multipleChoiceCard.card_id,
@@ -138,6 +140,7 @@ test('review flow only pulls incorrect and review cards in original order', () =
       usedHint: false,
       usedPeek: false,
       isFavorited: false,
+      completedAt: '2026-04-27T00:00:02.000Z',
     },
   ];
 

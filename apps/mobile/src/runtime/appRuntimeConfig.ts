@@ -15,4 +15,10 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
   progressSync: {
     mode: 'local',
   },
+  spaceState: {
+    mode: 'local',
+  },
+  learningState: {
+    mode: 'local',
+  },
 };

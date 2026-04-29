@@ -66,6 +66,11 @@ import { SpaceSurface } from './src/space/SpaceSurface';
 import { StatisticsSurface } from './src/statistics/StatisticsSurface';
 import { createMutationQueueRepository } from './src/sync/mutationQueueRepository';
 import {
+  createLearningStateRepository,
+  createLearningStateSnapshot,
+} from './src/sync/learningStateRepository';
+import { resolveLearningStateRepositoryConfig } from './src/sync/learningStateRuntimeConfig';
+import {
   createDailyProgressSnapshot,
   createProgressSyncRepository,
 } from './src/sync/progressSyncRepository';
@@ -113,12 +118,15 @@ type AuthState = {
   error: string | null;
 };
 
-type ProgressSyncState =
+type SyncStatusState =
   | {
       detail: string;
       label: string;
       state: 'idle' | 'syncing' | 'synced' | 'error';
     };
+
+type ProgressSyncState = SyncStatusState;
+type LearningStateSyncState = SyncStatusState;
 
 type LearningBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
 type LearningPhase = 'learning' | 'review';
@@ -250,6 +258,18 @@ const INITIAL_AUTH_STATE: AuthState = {
   error: null,
 };
 
+const INITIAL_PROGRESS_SYNC_STATE: ProgressSyncState = {
+  detail: '今天还没有需要同步的学习进展。',
+  label: '等待今日进展',
+  state: 'idle',
+};
+
+const INITIAL_LEARNING_STATE_SYNC_STATE: LearningStateSyncState = {
+  detail: '当前还没有需要同步的学习作答状态。',
+  label: '等待学习状态',
+  state: 'idle',
+};
+
 function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
@@ -301,6 +321,15 @@ function AppShell() {
     [progressSyncRepositoryConfig],
   );
   const runtimeProgressSyncMode = progressSyncRepositoryConfig.mode;
+  const learningStateRepositoryConfig = useMemo(
+    () => resolveLearningStateRepositoryConfig(runtimeConfig),
+    [runtimeConfig],
+  );
+  const learningStateRepository = useMemo(
+    () => createLearningStateRepository(learningStateRepositoryConfig),
+    [learningStateRepositoryConfig],
+  );
+  const runtimeLearningStateMode = learningStateRepositoryConfig.mode;
   const spaceStateRepositoryConfig = useMemo(
     () => resolveSpaceStateRepositoryConfig(runtimeConfig ?? {}),
     [runtimeConfig],
@@ -313,11 +342,17 @@ function AppShell() {
   const mutationQueueRepository = useMemo(
     () =>
       createMutationQueueRepository({
+        learningStateRepository,
         membershipRepository,
         progressSyncRepository,
         spaceStateRepository,
       }),
-    [membershipRepository, progressSyncRepository, spaceStateRepository],
+    [
+      learningStateRepository,
+      membershipRepository,
+      progressSyncRepository,
+      spaceStateRepository,
+    ],
   );
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
   const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
@@ -342,12 +377,15 @@ function AppShell() {
     LearningCardResult[]
   >([]);
   const [checkedInDayKey, setCheckedInDayKey] = useState<string | null>(null);
-  const [progressSyncState, setProgressSyncState] = useState<ProgressSyncState>({
-    detail: '今天还没有需要同步的学习进展。',
-    label: '等待今日进展',
-    state: 'idle',
-  });
+  const [progressSyncState, setProgressSyncState] = useState<ProgressSyncState>(
+    INITIAL_PROGRESS_SYNC_STATE,
+  );
+  const [learningStateSyncState, setLearningStateSyncState] =
+    useState<LearningStateSyncState>(INITIAL_LEARNING_STATE_SYNC_STATE);
   const [lastSyncedProgressKey, setLastSyncedProgressKey] = useState<
+    string | null
+  >(null);
+  const [lastSyncedLearningStateKey, setLastSyncedLearningStateKey] = useState<
     string | null
   >(null);
   const [lastSyncedSpaceStateKey, setLastSyncedSpaceStateKey] = useState<
@@ -492,6 +530,26 @@ function AppShell() {
     [spaceCardStateById, todayKey],
   );
   const spaceStateSyncKey = JSON.stringify(spaceStateSnapshot);
+  const learningStateSnapshot = useMemo(
+    () =>
+      learningSession
+        ? createLearningStateSnapshot({
+            dayKey: todayKey,
+            learningResults: learningCompletedResults,
+            learningSession,
+            reviewResults: reviewCompletedResults,
+          })
+        : null,
+    [
+      learningCompletedResults,
+      learningSession,
+      reviewCompletedResults,
+      todayKey,
+    ],
+  );
+  const learningStateSyncKey = learningStateSnapshot
+    ? JSON.stringify(learningStateSnapshot)
+    : null;
   const authenticatedRuntimeContext = useMemo(
     () =>
       authState.stage === 'authenticated'
@@ -543,6 +601,24 @@ function AppShell() {
         return;
       }
 
+      if (result.entry.type === 'sync_learning_state') {
+        const replayedLearningStateKey = JSON.stringify(
+          result.entry.payload.snapshot,
+        );
+
+        setLastSyncedLearningStateKey(replayedLearningStateKey);
+
+        if (replayedLearningStateKey === learningStateSyncKey) {
+          setLearningStateSyncState({
+            detail: '当前学习作答状态已从离线队列补推到远端学习状态端点。',
+            label: '远端已同步',
+            state: 'synced',
+          });
+        }
+
+        return;
+      }
+
       pendingMembershipRefreshKey.current = null;
       lastMembershipRefreshKey.current = result.entry.id.replace(
         /^membership:/,
@@ -560,6 +636,7 @@ function AppShell() {
     authenticatedRuntimeContext,
     dailyProgressKey,
     isAuthenticated,
+    learningStateSyncKey,
     mutationQueueRepository,
   ]);
 
@@ -667,12 +744,10 @@ function AppShell() {
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
       setLastSyncedProgressKey(null);
+      setLastSyncedLearningStateKey(null);
       setLastSyncedSpaceStateKey(null);
-      setProgressSyncState({
-        detail: '今天还没有需要同步的学习进展。',
-        label: '等待今日进展',
-        state: 'idle',
-      });
+      setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
+      setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
       return;
     }
 
@@ -901,6 +976,104 @@ function AppShell() {
     mutationQueueRepository,
     progressSyncRepository,
     runtimeProgressSyncMode,
+    startMutationReplay,
+  ]);
+
+  useEffect(() => {
+    if (
+      !isAuthenticated ||
+      learningBootstrapStatus !== 'ready' ||
+      learningStateSnapshot === null ||
+      learningStateSnapshot.events.length === 0 ||
+      learningStateSyncKey === null
+    ) {
+      return;
+    }
+
+    if (lastSyncedLearningStateKey === learningStateSyncKey) {
+      return;
+    }
+
+    if (runtimeLearningStateMode === 'local') {
+      setLastSyncedLearningStateKey(learningStateSyncKey);
+      setLearningStateSyncState({
+        detail: '当前学习作答状态仍停留在本地 runtime，不会发起远端同步。',
+        label: '本地承接',
+        state: 'idle',
+      });
+      return;
+    }
+
+    if (authenticatedRuntimeContext === null) {
+      setLearningStateSyncState({
+        detail: '当前缺少可用的登录上下文，学习状态无法同步。',
+        label: '同步受阻',
+        state: 'error',
+      });
+      return;
+    }
+
+    let isCancelled = false;
+
+    setLearningStateSyncState({
+      detail: '当前正在把学习作答状态推送到远端学习状态端点。',
+      label: '同步中',
+      state: 'syncing',
+    });
+    startMutationReplay().catch(() => undefined);
+
+    learningStateRepository
+      .syncLearningState(authenticatedRuntimeContext, learningStateSnapshot)
+      .then(() => {
+        if (isCancelled) {
+          return;
+        }
+
+        setLastSyncedLearningStateKey(learningStateSyncKey);
+        setLearningStateSyncState({
+          detail: '当前学习作答状态已推送到远端学习状态端点。',
+          label: '远端已同步',
+          state: 'synced',
+        });
+      })
+      .catch((error: unknown) => {
+        if (isCancelled) {
+          return;
+        }
+
+        mutationQueueRepository
+          .enqueueMutation(
+            'sync_learning_state',
+            {
+              context: authenticatedRuntimeContext,
+              snapshot: learningStateSnapshot,
+            },
+            `learning:${learningStateSyncKey}`,
+          )
+          .catch(() => undefined);
+        setLearningStateSyncState({
+          detail:
+            error instanceof Error
+              ? `${error.message} 已加入离线重试队列。`
+              : '学习状态同步失败，已加入离线重试队列。',
+          label: '已排队',
+          state: 'error',
+        });
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    authenticatedRuntimeContext,
+    isAuthenticated,
+    lastSyncedLearningStateKey,
+    learningBootstrapStatus,
+    learningStateRepository,
+    learningStateSnapshot,
+    learningStateSyncKey,
+    mutationQueueRepository,
+    runtimeLearningStateMode,
     startMutationReplay,
   ]);
 
@@ -1289,13 +1462,11 @@ function AppShell() {
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
       setLastSyncedProgressKey(null);
+      setLastSyncedLearningStateKey(null);
       setLastSyncedSpaceStateKey(null);
       mutationQueueRepository.clear().catch(() => undefined);
-      setProgressSyncState({
-        detail: '今天还没有需要同步的学习进展。',
-        label: '等待今日进展',
-        state: 'idle',
-      });
+      setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
+      setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
       startTransition(() => {
         setActiveRoute('mine');
       });
@@ -1598,6 +1769,7 @@ function AppShell() {
       membershipRepositoryMode={runtimeMembershipRepositoryMode}
       membershipState={membershipState}
       palette={palette}
+      learningStateSyncState={learningStateSyncState}
       progressSyncState={progressSyncState}
       reviewResults={reviewCompletedResults}
       route={route}
@@ -2287,6 +2459,7 @@ function MineSurface({
   favoriteCount,
   handlers,
   learningResults,
+  learningStateSyncState,
   membershipError,
   membershipGate,
   membershipHandlers,
@@ -2306,6 +2479,7 @@ function MineSurface({
   favoriteCount: number;
   handlers: AuthHandlers;
   learningResults: LearningCardResult[];
+  learningStateSyncState: LearningStateSyncState;
   membershipError: string | null;
   membershipGate: MembershipGate | null;
   membershipHandlers: MembershipHandlers;
@@ -2411,6 +2585,7 @@ function MineSurface({
                   `手机号：${maskPhoneNumber(authState.phoneNumber)}`,
                   `今日签到：${checkedInToday ? '已完成' : '尚未完成'}`,
                   `日级同步：${progressSyncState.label}`,
+                  `学习状态：${learningStateSyncState.label}`,
                   authRepositoryMode === 'remote'
                     ? '当前账号态已经通过远端认证合同建立；跨端 entitlement 仍按当前会员 runtime 模式加载。'
                     : '当前仍是本地账号态，不代表真实跨端 entitlement 已接通。',
@@ -2432,6 +2607,7 @@ function MineSurface({
                   `今日已完成 ${completedCount} 张卡，其中首轮 ${learningResults.length} 张、回看 ${reviewResults.length} 张。`,
                   `当前待回看 ${pendingReviewCount} 张。`,
                   `同步说明：${progressSyncState.detail}`,
+                  `学习状态说明：${learningStateSyncState.detail}`,
                   '这里先保留低成本摘要，不扩成重统计中心。',
                 ]
               : [

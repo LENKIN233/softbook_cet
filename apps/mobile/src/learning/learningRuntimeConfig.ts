@@ -48,6 +48,14 @@ export type SpaceStateRuntimeConfig = {
   };
 };
 
+export type LearningStateRuntimeConfig = {
+  mode?: 'local' | 'remote';
+  remote?: {
+    apiKey?: string;
+    baseUrl: string;
+  };
+};
+
 export type MutationQueueRuntimeConfig = {
   mode?: 'local' | 'remote';
 };
@@ -59,10 +67,16 @@ export type SoftbookAppRuntimeConfig = {
   membership?: MembershipRuntimeConfig;
   progressSync?: ProgressSyncRuntimeConfig;
   spaceState?: SpaceStateRuntimeConfig;
+  learningState?: LearningStateRuntimeConfig;
   mutationQueue?: MutationQueueRuntimeConfig;
 };
 
-type RemoteRuntimeFeature = 'learningSource' | 'membership' | 'progressSync' | 'spaceState';
+type RemoteRuntimeFeature =
+  | 'learningSource'
+  | 'membership'
+  | 'progressSync'
+  | 'spaceState'
+  | 'learningState';
 
 type SoftbookGlobalThis = typeof globalThis & {
   __SOFTBOOK_CET_RUNTIME_CONFIG__?: SoftbookAppRuntimeConfig;
@@ -87,6 +101,7 @@ export function assertRemoteRuntimeUsesRemoteAuth(
 
   const labelByFeature: Record<RemoteRuntimeFeature, string> = {
     learningSource: 'Remote learning source mode',
+    learningState: 'Remote learning state mode',
     membership: 'Remote membership mode',
     progressSync: 'Remote progress sync mode',
     spaceState: 'Remote space state mode',

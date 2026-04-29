@@ -451,6 +451,12 @@ test('wires remote auth, learning source config, membership, progress sync, and 
         baseUrl: 'https://api.softbook.example',
       },
     },
+    learningState: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
     spaceState: {
       mode: 'remote',
       remote: {
@@ -481,6 +487,10 @@ test('wires remote auth, learning source config, membership, progress sync, and 
       }
 
       if (input === 'https://api.softbook.example/v1/progress/daily-sync') {
+        return createJsonResponse({});
+      }
+
+      if (input === 'https://api.softbook.example/v1/learning/state-sync') {
         return createJsonResponse({});
       }
 
@@ -564,6 +574,17 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   });
   expect(progressSyncRequest?.init?.body).toContain('"day_key"');
   expect(progressSyncRequest?.init?.body).toContain('"learning_completed_count":1');
+
+  const learningStateRequest = fetchCalls.find(
+    call => call.input === 'https://api.softbook.example/v1/learning/state-sync',
+  );
+  expect(learningStateRequest?.init?.headers).toMatchObject({
+    Authorization: 'Bearer remote-auth-token',
+    'content-type': 'application/json',
+  });
+  expect(learningStateRequest?.init?.body).toContain('"events"');
+  expect(learningStateRequest?.init?.body).toContain('"phase":"learning"');
+  expect(learningStateRequest?.init?.body).toContain('"completed_at"');
 
   const spaceSyncRequest = fetchCalls.find(
     call => call.input === 'https://api.softbook.example/v1/space/state-sync',
@@ -682,6 +703,91 @@ test('queues failed remote daily progress sync for later replay', async () => {
   expect(output).toContain('已加入离线重试队列');
 });
 
+test('queues failed remote learning state sync for later replay', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    learningSource: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    learningState: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v1/auth/request-code') {
+      return createJsonResponse({});
+    }
+
+    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+      return createJsonResponse({
+        data: {
+          auth_token: 'remote-auth-token',
+          phone_number: '13800138000',
+        },
+      });
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      return createJsonResponse(createRemoteMembershipPayload('free'));
+    }
+
+    if (input === 'https://api.softbook.example/v1/learning/state-sync') {
+      return createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-confident-button'}).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-next-button'}).props.onPress();
+  });
+
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('学习状态：已排队');
+  expect(output).toContain('学习状态说明：Remote learning state sync failed with 503. 已加入离线重试队列。');
+});
+
 test('replays queued daily progress after network reconnect', async () => {
   const {emitNetInfoState} = jest.requireMock('@react-native-community/netinfo');
   let shouldFailProgressSync = true;
@@ -785,6 +891,113 @@ test('replays queued daily progress after network reconnect', async () => {
   expect(
     fetchCalls.filter(
       call => call.input === 'https://api.softbook.example/v1/progress/daily-sync',
+    ).length,
+  ).toBeGreaterThanOrEqual(2);
+});
+
+test('replays queued learning state after network reconnect', async () => {
+  const {emitNetInfoState} = jest.requireMock('@react-native-community/netinfo');
+  let shouldFailLearningStateSync = true;
+  const fetchCalls: MockFetchCall[] = [];
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    learningSource: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    learningState: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    fetchCalls.push({init, input});
+
+    if (input === 'https://api.softbook.example/v1/auth/request-code') {
+      return createJsonResponse({});
+    }
+
+    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+      return createJsonResponse({
+        data: {
+          auth_token: 'remote-auth-token',
+          phone_number: '13800138000',
+        },
+      });
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      return createJsonResponse(createRemoteMembershipPayload('free'));
+    }
+
+    if (input === 'https://api.softbook.example/v1/learning/state-sync') {
+      return shouldFailLearningStateSync
+        ? createJsonResponse({}, 503)
+        : createJsonResponse({});
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-confident-button'}).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-next-button'}).props.onPress();
+  });
+
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  expect(JSON.stringify(tree!.toJSON())).toContain('学习状态：已排队');
+
+  shouldFailLearningStateSync = false;
+
+  await ReactTestRenderer.act(async () => {
+    emitNetInfoState({isConnected: true, isInternetReachable: true});
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('学习状态：远端已同步');
+  expect(output).toContain('学习状态说明：当前学习作答状态已从离线队列补推到远端学习状态端点。');
+  expect(
+    fetchCalls.filter(
+      call => call.input === 'https://api.softbook.example/v1/learning/state-sync',
     ).length,
   ).toBeGreaterThanOrEqual(2);
 });
