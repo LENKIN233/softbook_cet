@@ -12,10 +12,16 @@ import type {ProgressSyncRepository} from './progressSyncRepository';
 
 export type MutationReplayResult =
   | {
-      entry: Exclude<MutationQueueEntry, {type: 'refresh_membership'}>;
+      entry: Exclude<
+        MutationQueueEntry,
+        {type: 'refresh_membership' | 'start_membership_trial'}
+      >;
     }
   | {
-      entry: Extract<MutationQueueEntry, {type: 'refresh_membership'}>;
+      entry: Extract<
+        MutationQueueEntry,
+        {type: 'refresh_membership' | 'start_membership_trial'}
+      >;
       membershipState: MembershipState;
     };
 
@@ -76,6 +82,16 @@ export function createMutationQueueRepository(options: {
             membershipState: await options.membershipRepository.loadState(
               entry.payload.context,
             ),
+          };
+        case 'start_membership_trial':
+          return {
+            entry,
+            membershipState: (
+              await options.membershipRepository.startTrial(
+                entry.payload.context,
+                entry.payload.currentState,
+              )
+            ).state,
           };
       }
     } catch (error) {

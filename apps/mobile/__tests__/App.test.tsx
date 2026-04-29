@@ -1251,6 +1251,102 @@ test('auto-starts remote trial when first entering space', async () => {
   });
 });
 
+test('falls back to local trial unlock and replays remote trial start later', async () => {
+  const fetchCalls: MockFetchCall[] = [];
+  let startTrialRequestCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(
+    async (input: string, init?: MockFetchInit) => {
+      fetchCalls.push({init, input});
+
+      if (input === 'https://api.softbook.example/v1/auth/request-code') {
+        return createJsonResponse({});
+      }
+
+      if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+        return createJsonResponse({
+          data: {
+            auth_token: 'remote-auth-token',
+            phone_number: '13800138000',
+          },
+        });
+      }
+
+      if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+        return createJsonResponse(
+          createRemoteMembershipPayload(
+            startTrialRequestCount >= 2 ? 'trial' : 'trial_available',
+          ),
+        );
+      }
+
+      if (input === 'https://api.softbook.example/v1/membership/start-trial') {
+        startTrialRequestCount += 1;
+
+        if (startTrialRequestCount === 1) {
+          return createJsonResponse({}, 503);
+        }
+
+        return createJsonResponse(createRemoteMembershipPayload('trial'));
+      }
+
+      throw new Error(`Unexpected remote fetch: ${input}`);
+    },
+  );
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'space');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('已接入卡片的物理空间');
+  expect(startTrialRequestCount).toBe(1);
+
+  await openRoute(root, 'statistics');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  expect(startTrialRequestCount).toBe(2);
+
+  await openRoute(root, 'mine');
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('完整试用进行中');
+  expect(output).not.toContain('试用待开始');
+
+  const startTrialRequests = fetchCalls.filter(
+    call => call.input === 'https://api.softbook.example/v1/membership/start-trial',
+  );
+  expect(startTrialRequests).toHaveLength(2);
+});
+
 test('space surface follows the loaded session catalog instead of local fixtures', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 

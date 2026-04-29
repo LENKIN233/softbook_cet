@@ -89,6 +89,7 @@ describe('MutationQueueRepository', () => {
   };
   const mockMembershipRepository = {
     loadState: jest.fn<Promise<unknown>, [unknown]>(),
+    startTrial: jest.fn<Promise<unknown>, [unknown, unknown]>(),
   };
 
   beforeEach(() => {
@@ -106,7 +107,23 @@ describe('MutationQueueRepository', () => {
       mode: 'remote',
     });
     mockMembershipRepository.loadState.mockResolvedValue({
+      countedEntryCount: 2,
+      lastExperienceEndedBy: null,
+      recoveryPromptVisible: false,
       stage: 'free',
+      trialDurationDays: 5,
+      trialStartedAtEntryCount: 1,
+    });
+    mockMembershipRepository.startTrial.mockResolvedValue({
+      mode: 'remote',
+      state: {
+        countedEntryCount: 1,
+        lastExperienceEndedBy: null,
+        recoveryPromptVisible: false,
+        stage: 'trial',
+        trialDurationDays: 5,
+        trialStartedAtEntryCount: 1,
+      },
     });
   });
 
@@ -241,6 +258,47 @@ describe('MutationQueueRepository', () => {
 
     expect(mockMembershipRepository.loadState).toHaveBeenCalledWith(
       payload.context,
+    );
+    await expect(repository.getQueueSize()).resolves.toBe(0);
+  });
+
+  it('replays queued membership trial starts through startTrial', async () => {
+    const repository = createMutationQueueRepository({
+      learningStateRepository: mockLearningStateRepository as never,
+      membershipRepository: mockMembershipRepository as never,
+      progressSyncRepository: mockProgressSyncRepository as never,
+      spaceStateRepository: mockSpaceStateRepository as never,
+    });
+    const payload = {
+      context: {
+        authToken: 'token-membership',
+        phoneNumber: '13800138002',
+      },
+      currentState: {
+        countedEntryCount: 0,
+        lastExperienceEndedBy: null,
+        recoveryPromptVisible: false,
+        stage: 'trial_available',
+        trialDurationDays: 5,
+        trialStartedAtEntryCount: null,
+      },
+    };
+
+    await repository.enqueueMutation('start_membership_trial', payload);
+    await expect(repository.startReplay()).resolves.toMatchObject([
+      {
+        entry: {
+          type: 'start_membership_trial',
+        },
+        membershipState: {
+          stage: 'trial',
+        },
+      },
+    ]);
+
+    expect(mockMembershipRepository.startTrial).toHaveBeenCalledWith(
+      payload.context,
+      payload.currentState,
     );
     await expect(repository.getQueueSize()).resolves.toBe(0);
   });

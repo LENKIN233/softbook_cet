@@ -619,18 +619,26 @@ function AppShell() {
         return;
       }
 
-      pendingMembershipRefreshKey.current = null;
-      lastMembershipRefreshKey.current = result.entry.id.replace(
-        /^membership:/,
-        '',
-      );
-      setMembershipError(null);
-      setMembershipState(result.membershipState);
-      setMembershipGate(currentGate =>
-        shouldClearMembershipGate(currentGate, result.membershipState)
-          ? null
-          : currentGate,
-      );
+      if (result.entry.type === 'refresh_membership') {
+        pendingMembershipRefreshKey.current = null;
+        lastMembershipRefreshKey.current = result.entry.id.replace(
+          /^membership:/,
+          '',
+        );
+      }
+
+      if (
+        result.entry.type === 'refresh_membership' ||
+        result.entry.type === 'start_membership_trial'
+      ) {
+        setMembershipError(null);
+        setMembershipState(result.membershipState);
+        setMembershipGate(currentGate =>
+          shouldClearMembershipGate(currentGate, result.membershipState)
+            ? null
+            : currentGate,
+        );
+      }
     });
   }, [
     authenticatedRuntimeContext,
@@ -1295,8 +1303,27 @@ function AppShell() {
         completeMembershipUnlock(result.state, nextGate);
       })
       .catch((error: unknown) => {
+        if (shouldQueueMembershipTrialStart(error)) {
+          mutationQueueRepository
+            .enqueueMutation(
+              'start_membership_trial',
+              {
+                context: authenticatedRuntimeContext,
+                currentState: membershipState,
+              },
+              `membership-trial:${authenticatedRuntimeContext.phoneNumber}`,
+            )
+            .catch(() => undefined);
+          setMembershipError(
+            `${getErrorMessage(error, '试用开通暂时失败。')} 已按本地试用放行，并加入离线重试队列。`,
+          );
+          setMembershipPendingAction(null);
+          completeMembershipUnlock(startMembershipTrial(membershipState), nextGate);
+          return;
+        }
+
         setMembershipError(
-          error instanceof Error ? error.message : '试用开通暂时失败。',
+          getErrorMessage(error, '试用开通暂时失败。'),
         );
         setMembershipPendingAction(null);
       });
@@ -3358,6 +3385,21 @@ function shouldClearMembershipGate(
     case 'library':
       return access.completeCardLibrary;
   }
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
+function shouldQueueMembershipTrialStart(error: unknown) {
+  const message = getErrorMessage(error, '');
+
+  return (
+    /Remote membership mutation failed with 5\d{2}\./.test(message) ||
+    /network error/i.test(message) ||
+    /network request failed/i.test(message) ||
+    /failed to fetch/i.test(message)
+  );
 }
 
 function getMembershipCardSummary(
