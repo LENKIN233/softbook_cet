@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import type {MembershipState} from '../membership/localMembership';
 import type {
   MembershipRepositoryContext,
 } from '../membership/membershipRepository';
@@ -20,11 +21,16 @@ export type MutationType =
   | 'sync_daily_progress'
   | 'sync_space_state'
   | 'sync_learning_state'
+  | 'start_membership_trial'
   | 'refresh_membership';
 
 export type MutationPayloadByType = {
   refresh_membership: {
     context: MembershipRepositoryContext;
+  };
+  start_membership_trial: {
+    context: MembershipRepositoryContext;
+    currentState: MembershipState;
   };
   sync_daily_progress: {
     context: ProgressSyncContext;
