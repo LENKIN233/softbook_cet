@@ -107,12 +107,22 @@ describe('MutationQueueRepository', () => {
       mode: 'remote',
     });
     mockMembershipRepository.loadState.mockResolvedValue({
+      countedEntryCount: 2,
+      lastExperienceEndedBy: null,
+      recoveryPromptVisible: false,
       stage: 'free',
+      trialDurationDays: 5,
+      trialStartedAtEntryCount: 1,
     });
     mockMembershipRepository.startTrial.mockResolvedValue({
       mode: 'remote',
       state: {
+        countedEntryCount: 1,
+        lastExperienceEndedBy: null,
+        recoveryPromptVisible: false,
         stage: 'trial',
+        trialDurationDays: 5,
+        trialStartedAtEntryCount: 1,
       },
     });
   });

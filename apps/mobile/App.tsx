@@ -627,13 +627,18 @@ function AppShell() {
         );
       }
 
-      setMembershipError(null);
-      setMembershipState(result.membershipState);
-      setMembershipGate(currentGate =>
-        shouldClearMembershipGate(currentGate, result.membershipState)
-          ? null
-          : currentGate,
-      );
+      if (
+        result.entry.type === 'refresh_membership' ||
+        result.entry.type === 'start_membership_trial'
+      ) {
+        setMembershipError(null);
+        setMembershipState(result.membershipState);
+        setMembershipGate(currentGate =>
+          shouldClearMembershipGate(currentGate, result.membershipState)
+            ? null
+            : currentGate,
+        );
+      }
     });
   }, [
     authenticatedRuntimeContext,
