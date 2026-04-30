@@ -1,0 +1,13 @@
+{
+  "name": "softbook-cloudbase-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal CloudBase HTTP function for Softbook CET mobile remote runtime.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

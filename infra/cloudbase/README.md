@@ -35,7 +35,7 @@ infra/cloudbase/check-dev.sh
 
 ## Intended First Backend Slice
 
-Deploy one HTTP cloud function that exposes the existing mobile remote contract:
+Deploy one CloudBase function through an HTTP access service that exposes the existing mobile remote contract:
 
 ```text
 POST /v1/auth/request-code
@@ -52,3 +52,40 @@ POST /v1/space/state-sync
 
 For the development environment, SMS should use a whitelist/fixed-code adapter first. Real SMS provider integration should remain an adapter and must not change the mobile REST contract.
 
+## Minimal HTTP Function
+
+The first function is implemented at `infra/cloudbase/functions/softbook-api`.
+
+It intentionally keeps the external mobile contract as `/v1/*` REST:
+
+- Auth uses a development fixed-code adapter. Default code: `2468`.
+- Verified auth returns a signed bearer token that all non-auth endpoints require.
+- Membership state, daily progress, learning state, and space state use an in-memory store for this first CloudBase slice.
+- Card source returns valid CET4/CET6 card records in the same envelope parsed by the mobile app.
+- The router uses classic event-style `exports.main` so it can be bound to CloudBase HTTP access service paths such as `/softbook-api`.
+
+Deploy from this folder:
+
+```bash
+cd infra/cloudbase
+./deploy-softbook-api.sh
+```
+
+The default HTTP access path is `/softbook-api`, so the mobile runtime `SOFTBOOK_CET_REMOTE_BASE_URL` should point to that access root. The handler normalizes either `/v1/*` or `/softbook-api/v1/*`.
+
+Expected CloudBase shape: function detail should show `Handler: index.main` and `Type: Event`. The public REST route is provided by the HTTP access service, not by CloudBase Web Function mode.
+
+Recommended development environment variables:
+
+```bash
+export SOFTBOOK_SMS_DEV_CODE=2468
+export SOFTBOOK_AUTH_TOKEN_SECRET="<dev-only-random-secret>"
+export SOFTBOOK_API_KEY="<optional-shared-dev-api-key>"
+```
+
+Local function tests:
+
+```bash
+cd infra/cloudbase/functions/softbook-api
+npm test
+```
