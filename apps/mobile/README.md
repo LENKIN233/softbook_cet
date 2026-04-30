@@ -46,6 +46,20 @@ npm run typecheck
 npm test -- --watch=false
 ```
 
+## iOS UI 自动化 smoke
+
+当前采用 Maestro 承接 iOS 端到端 UI 输入路径，覆盖手机号验证码登录、进入空间触发完整试用、回到学习完成一轮卡、进入统计并签到。
+
+前提：本机已安装 Maestro，且 iOS 模拟器上已安装 / 启动 `com.softbook.cet`。
+
+```bash
+cd apps/mobile
+npm run ios
+npm run e2e:ios:maestro
+```
+
+主流程文件：`apps/mobile/e2e/maestro/ios-smoke.yaml`。
+
 ## runtime config
 
 应用启动时会读取 `src/runtime/appRuntimeConfig.ts`。

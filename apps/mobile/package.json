@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
+    "e2e:ios:maestro": "maestro test e2e/maestro/ios-smoke.yaml",
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",

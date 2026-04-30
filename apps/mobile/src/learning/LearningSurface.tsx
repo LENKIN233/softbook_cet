@@ -102,6 +102,7 @@ export function LearningSurface({
               shadowColor: palette.accent,
             },
           ]}
+          testID="learning-complete-summary"
         >
           <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
             {isReviewPhase ? 'REVIEW FLOW' : 'SINGLE CARD FLOW'}
@@ -330,6 +331,7 @@ export function LearningSurface({
             shadowColor: tone.accent,
           },
         ]}
+        testID="learning-current-card"
       >
         <View style={styles.studyCardTop}>
           <View style={styles.studyTitleWrap}>
