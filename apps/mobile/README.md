@@ -99,6 +99,17 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = createSoftbookRemoteRuntimeConfig({
 
 提交前恢复为本地安全默认值，不要把真实密钥提交进仓库。
 
+本地 / CI 做远端 smoke 时不要改 tracked config，可以在启动前注入环境变量：
+
+```bash
+SOFTBOOK_CET_REMOTE_BASE_URL=https://your-api.example.com \
+SOFTBOOK_CET_REMOTE_API_KEY=your-dev-key \
+SOFTBOOK_CET_LEARNING_TRACK=cet4 \
+npm start
+```
+
+分段 smoke 时，用 `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES=learningSource,spaceState` 让指定 surface 暂时留在本地，其它远端能力仍由同一个 `baseUrl` 派生。
+
 - `auth`：手机号验证码请求 / 校验仓储
 - `learningSource`：学习卡源仓储；远端模式要求登录上下文，且 `auth.mode` 也必须是 `remote`
 - `membership`：entitlement 读取、开始试用、开通会员、恢复购买提醒状态更新；远端模式要求 `auth.mode` 也必须是 `remote`
