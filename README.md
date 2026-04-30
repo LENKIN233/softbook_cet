@@ -163,6 +163,8 @@ SOFTBOOK_CET_IOS_LAUNCH=1 \
 infra/cloudbase/smoke-ios-runtime.sh
 ```
 
+启动段会先用 React Native CLI 构建并安装 debug app，再通过 `xcrun simctl launch` 的 `SIMCTL_CHILD_*` 环境变量重新启动 `com.softbook.cet`，确保 AppDelegate 能读到同一组远端 runtime profile。默认设备选择 `booted`，默认模拟器名为 `iPhone 17`；如需覆盖可设置 `SOFTBOOK_CET_IOS_DEVICE`、`SOFTBOOK_CET_IOS_SIMULATOR` 或 `SOFTBOOK_CET_IOS_BUNDLE_ID`。
+
 手动验收点：
 
 - 登录页显示远端认证模式，并用测试手机号 / 验证码完成登录。

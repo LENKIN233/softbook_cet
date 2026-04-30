@@ -140,6 +140,13 @@ SOFTBOOK_CET_IOS_LAUNCH=1 \
 infra/cloudbase/smoke-ios-runtime.sh
 ```
 
+The launch step first lets the React Native CLI build and install the debug app,
+then relaunches `com.softbook.cet` with `xcrun simctl launch` and the required
+`SIMCTL_CHILD_*` environment variables. This matters because `AppDelegate.swift`
+reads the app process environment, not the shell environment around the helper
+script. Defaults can be overridden with `SOFTBOOK_CET_IOS_DEVICE`,
+`SOFTBOOK_CET_IOS_SIMULATOR`, and `SOFTBOOK_CET_IOS_BUNDLE_ID`.
+
 Manual acceptance after launch:
 
 - Auth screen says it is using remote SMS verification.
