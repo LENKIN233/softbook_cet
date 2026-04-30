@@ -331,6 +331,39 @@ test('reads installed runtime config when the app mounts', async () => {
   expect(output).not.toContain('当前是本地壳层验证，不会真的发短信。');
 });
 
+test('uses native initial remote runtime profile before the shell mounts', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <App
+        softbookRemoteRuntimeProfile={{
+          baseUrl: 'https://api.softbook.example',
+          learningTrack: 'cet6',
+        }}
+      />,
+    );
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(global.__SOFTBOOK_CET_RUNTIME_CONFIG__).toMatchObject({
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    learningTrack: 'cet6',
+    learningSource: {
+      mode: 'remote',
+      track: 'cet6',
+    },
+  });
+  expect(output).toContain('当前认证已切到远端短信合同');
+  expect(output).toContain('当前会走远端短信验证码合同。');
+  expect(output).not.toContain('当前是本地壳层验证，不会真的发短信。');
+});
+
 test('shows remote request-code failure inside the auth gate', async () => {
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
     auth: {
