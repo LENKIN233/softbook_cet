@@ -1150,6 +1150,46 @@ const CET4_CARD_RECORDS = [
     },
   },
   {
+    card_id: '013001',
+    track: 'cet4',
+    knowledge_ref: '0130',
+    interaction_id: 'elimination',
+    front: {
+      eyebrow: '仔细阅读 | 长难句关键修饰',
+      prompt: '点掉应删除的干扰成分，保留句干。',
+      support:
+        '目标句：The students who review in short bursts usually remember the pattern before the test.',
+      context: '先把修饰成分剥掉，再回到主谓宾。',
+    },
+    elimination_items: [
+      { id: 'relative_clause', text: 'who review in short bursts' },
+      { id: 'adverb', text: 'usually' },
+      { id: 'object', text: 'the pattern' },
+      { id: 'time_phrase', text: 'before the test' },
+    ],
+    answer_key: {
+      correct_items: ['relative_clause', 'adverb', 'time_phrase'],
+    },
+    auto_scoring: true,
+    analysis: {
+      title: '去干扰不是乱删，是先保骨架',
+      summary:
+        '这句的句干是 The students remember the pattern。定语从句、频率副词和时间状语都能先剥离，帮助你看清核心结构。',
+      exam_tip: '做阅读细节题时，先保住主干，才能更快判断选项是不是偷换信息。',
+    },
+    hint_layer: {
+      label: '提示层',
+      content: '先保留主语、谓语、核心宾语，状语和定语从句可以先暂存。',
+      reveal_gesture: '下滑',
+    },
+    space_metadata: {
+      box_ref: '0130',
+      library: '仔细阅读',
+      group: '长难句关键修饰',
+      box: '定语',
+    },
+  },
+  {
     card_id: '050301',
     track: 'cet4',
     knowledge_ref: '0503',
@@ -1294,6 +1334,46 @@ const CET6_CARD_RECORDS = [
       library: '词汇',
       group: '学术搭配',
       box: '限制表达',
+    },
+  },
+  {
+    card_id: '613001',
+    track: 'cet6',
+    knowledge_ref: '6130',
+    interaction_id: 'elimination',
+    front: {
+      eyebrow: '阅读 | 论证干扰删除',
+      prompt: '点掉削弱原句论证主线的干扰信息。',
+      support:
+        '目标句：Researchers who relied on a narrow sample cautiously framed the result as preliminary.',
+      context: 'CET6 阅读更常考限定语和结论强度，不要把修饰误当主结论。',
+    },
+    elimination_items: [
+      { id: 'relative_clause', text: 'who relied on a narrow sample' },
+      { id: 'adverb', text: 'cautiously' },
+      { id: 'verb', text: 'framed' },
+      { id: 'complement', text: 'the result as preliminary' },
+    ],
+    answer_key: {
+      correct_items: ['relative_clause', 'adverb'],
+    },
+    auto_scoring: true,
+    analysis: {
+      title: '先保住研究者做出的核心判断',
+      summary:
+        '这句主线是 Researchers framed the result as preliminary。样本限制和 cautiously 是重要限定，但先剥离它们能帮助你看清主干。',
+      exam_tip: 'CET6 长句里，限定语常影响态度强度；先拆主干，再把限定语补回判断。',
+    },
+    hint_layer: {
+      label: '提示层',
+      content: '先保留主语、谓语和补足语，再判断限定语如何改变语气。',
+      reveal_gesture: '下滑',
+    },
+    space_metadata: {
+      box_ref: '6130',
+      library: '阅读',
+      group: '论证干扰',
+      box: '限定语',
     },
   },
   {

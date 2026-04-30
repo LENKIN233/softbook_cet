@@ -9,6 +9,13 @@ const track = process.env.SOFTBOOK_CET_LEARNING_TRACK || 'cet4';
 const enableWrites = process.env.SOFTBOOK_CET_SMOKE_WRITE === '1';
 const enableMembershipMutations =
   process.env.SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS === '1';
+const REQUIRED_CORE_INTERACTIONS = [
+  'elimination',
+  'flip',
+  'lock',
+  'multiple_choice',
+  'swipe',
+];
 
 if (!baseUrl) {
   fail('SOFTBOOK_CET_REMOTE_BASE_URL is required.');
@@ -137,7 +144,11 @@ async function loadLearningCardSource() {
     validateCardRecord(card, `data.card_records[${index}]`);
   }
 
-  ok('learning card-source', `${data.card_records.length} cards from ${sourceId}`);
+  assertCoreInteractionCoverage(data.card_records, 'data.card_records');
+  ok(
+    'learning card-source',
+    `${data.card_records.length} cards from ${sourceId} covering ${REQUIRED_CORE_INTERACTIONS.join(',')}`,
+  );
   return {
     card_records: data.card_records,
     source: {id: sourceId, label: sourceLabel},
@@ -331,6 +342,19 @@ function validateCardRecord(card, label) {
       break;
     default:
       fail(`${label}.interaction_id is unsupported: ${record.interaction_id}`);
+  }
+}
+
+function assertCoreInteractionCoverage(records, label) {
+  const interactions = new Set(records.map(record => record.interaction_id));
+  const missingInteractions = REQUIRED_CORE_INTERACTIONS.filter(
+    interaction => !interactions.has(interaction),
+  );
+
+  if (missingInteractions.length > 0) {
+    fail(
+      `${label} must cover core interactions before full visual QA: ${missingInteractions.join(',')}.`,
+    );
   }
 }
 

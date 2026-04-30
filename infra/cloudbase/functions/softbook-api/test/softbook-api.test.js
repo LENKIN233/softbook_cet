@@ -4,6 +4,13 @@ const test = require('node:test');
 const { createCloudBaseStore, createSoftbookApi } = require('../index');
 
 const fixedNow = new Date('2026-04-30T12:00:00.000Z');
+const CORE_INTERACTIONS = [
+  'elimination',
+  'flip',
+  'lock',
+  'multiple_choice',
+  'swipe',
+];
 
 function createTestApi(options = {}) {
   return createSoftbookApi({
@@ -63,25 +70,41 @@ test('auth endpoints issue a bearer token for the development fixed SMS code', a
   assert.match(response.body.data.auth_token, /^softbook\./);
 });
 
-test('learning card source requires auth and returns the mobile parser envelope', async () => {
+test('learning card source requires auth and covers each core interaction', async () => {
   const api = createTestApi();
   const token = await authenticatedToken(api);
-  const response = await request(api, {
-    headers: {
-      authorization: `Bearer ${token}`,
-    },
-    method: 'GET',
-    path: '/softbook-api/v1/learning/card-source',
-    query: {
-      track: 'cet6',
-    },
-  });
+  const headers = {
+    authorization: `Bearer ${token}`,
+  };
 
-  assert.equal(response.statusCode, 200);
-  assert.equal(response.body.data.source.id, 'cloudbase-dev-card-source');
-  assert.equal(response.body.data.track, 'cet6');
-  assert.ok(response.body.data.card_records.length > 0);
-  assert.equal(response.body.data.card_records[0].track, 'cet6');
+  for (const track of ['cet4', 'cet6']) {
+    const response = await request(api, {
+      headers,
+      method: 'GET',
+      path: '/softbook-api/v1/learning/card-source',
+      query: {
+        track,
+      },
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.data.source.id, 'cloudbase-dev-card-source');
+    assert.equal(response.body.data.track, track);
+    assert.ok(
+      response.body.data.card_records.length >= CORE_INTERACTIONS.length,
+    );
+    assert.ok(
+      response.body.data.card_records.every(card => card.track === track),
+    );
+    assert.deepEqual(
+      [
+        ...new Set(
+          response.body.data.card_records.map(card => card.interaction_id),
+        ),
+      ].sort(),
+      CORE_INTERACTIONS,
+    );
+  }
 });
 
 test('protected endpoints reject missing bearer token', async () => {
