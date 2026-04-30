@@ -9,8 +9,11 @@ IOS_DEVICE="${SOFTBOOK_CET_IOS_DEVICE:-booted}"
 IOS_BUNDLE_ID="${SOFTBOOK_CET_IOS_BUNDLE_ID:-com.softbook.cet}"
 LAUNCH_IOS="${SOFTBOOK_CET_IOS_LAUNCH:-0}"
 ISOLATED_CONTRACT_PHONE="${SOFTBOOK_CET_SMOKE_ISOLATED_PHONE:-1}"
+METRO_PORT="${SOFTBOOK_CET_METRO_PORT:-8081}"
+STOP_METRO_ON_EXIT="${SOFTBOOK_CET_STOP_METRO_ON_EXIT:-0}"
 SMS_CODE="${SOFTBOOK_CET_TEST_CODE:-2468}"
 MANUAL_TEST_PHONE="${SOFTBOOK_CET_MANUAL_TEST_PHONE:-}"
+METRO_PID=""
 
 create_manual_test_phone() {
   local suffix
@@ -18,6 +21,60 @@ create_manual_test_phone() {
 
   printf '19%s\n' "${suffix}"
 }
+
+metro_is_running() {
+  curl --silent --fail "http://127.0.0.1:${METRO_PORT}/status" \
+    | grep -q "packager-status:running"
+}
+
+start_metro_if_needed() {
+  if metro_is_running; then
+    echo "==> Reusing Metro on port ${METRO_PORT}"
+    return
+  fi
+
+  echo "==> Starting Metro on port ${METRO_PORT}"
+  (
+    cd "${ROOT_DIR}/apps/mobile"
+    npm start -- --port "${METRO_PORT}" >/tmp/softbook-cet-metro.log 2>&1
+  ) &
+  METRO_PID="$!"
+
+  for _ in {1..60}; do
+    if metro_is_running; then
+      return
+    fi
+
+    sleep 1
+  done
+
+  echo "Metro did not become ready on port ${METRO_PORT}. See /tmp/softbook-cet-metro.log." >&2
+  exit 1
+}
+
+cleanup() {
+  local reason="${1:-exit}"
+
+  if [[ -n "${METRO_PID}" && ("${STOP_METRO_ON_EXIT}" == "1" || "${reason}" != "exit") ]]; then
+    kill_process_tree "${METRO_PID}"
+  fi
+}
+
+kill_process_tree() {
+  local pid="$1"
+  local child
+
+  while read -r child; do
+    if [[ -n "${child}" ]]; then
+      kill_process_tree "${child}"
+    fi
+  done < <(pgrep -P "${pid}" 2>/dev/null || true)
+
+  kill "${pid}" >/dev/null 2>&1 || true
+}
+
+trap 'cleanup interrupt; exit 130' INT TERM
+trap 'cleanup exit' EXIT
 
 if [[ -z "${BASE_URL// }" ]]; then
   echo "SOFTBOOK_CET_REMOTE_BASE_URL is required." >&2
@@ -90,13 +147,14 @@ Use SOFTBOOK_CET_MANUAL_TEST_PHONE=${MANUAL_TEST_PHONE} to reproduce this manual
 EOF
 
 echo "==> Launching iOS debug app against remote runtime"
+start_metro_if_needed
 (
   cd "${ROOT_DIR}/apps/mobile"
   SOFTBOOK_CET_REMOTE_BASE_URL="${SOFTBOOK_CET_REMOTE_BASE_URL}" \
   SOFTBOOK_CET_REMOTE_API_KEY="${SOFTBOOK_CET_REMOTE_API_KEY:-}" \
   SOFTBOOK_CET_LEARNING_TRACK="${TRACK}" \
   SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES="${SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES:-}" \
-  npm run ios -- --simulator "${IOS_SIMULATOR}"
+  npm run ios -- --simulator "${IOS_SIMULATOR}" --no-packager --port "${METRO_PORT}"
 )
 
 echo "==> Relaunching iOS app with simulator child environment"
@@ -105,6 +163,16 @@ SIMCTL_CHILD_SOFTBOOK_CET_REMOTE_API_KEY="${SOFTBOOK_CET_REMOTE_API_KEY:-}" \
 SIMCTL_CHILD_SOFTBOOK_CET_LEARNING_TRACK="${TRACK}" \
 SIMCTL_CHILD_SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES="${SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES:-}" \
 xcrun simctl launch --terminate-running-process "${IOS_DEVICE}" "${IOS_BUNDLE_ID}"
+
+if [[ -n "${METRO_PID}" && "${STOP_METRO_ON_EXIT}" != "1" ]]; then
+  cat <<EOF
+==> Metro is running for manual acceptance
+PID: ${METRO_PID}
+Log: /tmp/softbook-cet-metro.log
+Press Ctrl+C after manual acceptance to stop this Metro session.
+
+EOF
+fi
 
 cat <<EOF
 ==> Manual iOS smoke after launch
@@ -115,3 +183,7 @@ cat <<EOF
 - 完成一张卡后，统计页显示远端日级同步，学习状态同步不报错。
 
 EOF
+
+if [[ -n "${METRO_PID}" && "${STOP_METRO_ON_EXIT}" != "1" ]]; then
+  wait "${METRO_PID}"
+fi

@@ -161,7 +161,7 @@ SOFTBOOK_CET_IOS_LAUNCH=1 \
 infra/cloudbase/smoke-ios-runtime.sh
 ```
 
-启动段会先用 React Native CLI 构建并安装 debug app，再通过 `xcrun simctl launch` 的 `SIMCTL_CHILD_*` 环境变量重新启动 `com.softbook.cet`，确保 AppDelegate 能读到同一组远端 runtime profile。默认设备选择 `booted`，默认模拟器名为 `iPhone 17`；如需覆盖可设置 `SOFTBOOK_CET_IOS_DEVICE`、`SOFTBOOK_CET_IOS_SIMULATOR` 或 `SOFTBOOK_CET_IOS_BUNDLE_ID`。
+启动段会先复用或启动 Metro，再用 React Native CLI 构建并安装 debug app，最后通过 `xcrun simctl launch` 的 `SIMCTL_CHILD_*` 环境变量重新启动 `com.softbook.cet`，确保 AppDelegate 能读到同一组远端 runtime profile。默认设备选择 `booted`，默认模拟器名为 `iPhone 17`，默认 Metro 端口为 `8081`；如需覆盖可设置 `SOFTBOOK_CET_IOS_DEVICE`、`SOFTBOOK_CET_IOS_SIMULATOR`、`SOFTBOOK_CET_IOS_BUNDLE_ID` 或 `SOFTBOOK_CET_METRO_PORT`。如果脚本自己启动 Metro，会在打印手动验收清单后保持运行，验收完成后按 `Ctrl+C` 清理；如需脚本退出时立即清理，可设置 `SOFTBOOK_CET_STOP_METRO_ON_EXIT=1`。
 
 当 `SOFTBOOK_CET_IOS_LAUNCH=1` 时，脚本会打印一个 `19xxxxxxxxx` 形式的一次性手动验收手机号；验证码仍使用 dev fixed code `2468`。如需复现某次验收，可显式设置 `SOFTBOOK_CET_MANUAL_TEST_PHONE` 为脚本打印的手机号。`SOFTBOOK_CET_TEST_CODE` 仍可覆盖验证码，但不应接入真实短信。
 
