@@ -144,6 +144,8 @@ npm start
 
 `implementation_hypothesis`: 当前 CloudBase dev 环境是 staging runtime，不是最终生产后端；`infra/cloudbase/smoke-ios-runtime.sh` 只验证移动端 REST 合同和 iOS debug runtime profile 注入路径，不会修改 tracked 默认本地配置。
 
+脚本默认用 `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1` 为合同写入检查生成一次性测试手机号，避免 membership mutation 把共享手动验收手机号推进到 `premium`。如果要刻意复用 `SOFTBOOK_CET_TEST_PHONE` 做合同写入检查，可显式设置 `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=0`。
+
 先跑后端合同和 JS runtime profile 解析：
 
 ```bash

@@ -327,12 +327,15 @@ In another shell:
 
 ```bash
 SOFTBOOK_CET_REMOTE_BASE_URL="http://127.0.0.1:48731" \
-SOFTBOOK_CET_TEST_PHONE="13800138000" \
 SOFTBOOK_CET_TEST_CODE="123456" \
+SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1 \
 SOFTBOOK_CET_SMOKE_WRITE=1 \
 SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS=1 \
 node infra/cloudbase/smoke-softbook-api.mjs
 ```
+
+Use `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1` for write-enabled smoke runs so
+membership mutations do not change a shared manual-acceptance phone.
 
 Expected high-level output:
 

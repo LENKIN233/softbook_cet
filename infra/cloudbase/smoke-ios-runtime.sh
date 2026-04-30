@@ -8,6 +8,7 @@ IOS_SIMULATOR="${SOFTBOOK_CET_IOS_SIMULATOR:-iPhone 17}"
 IOS_DEVICE="${SOFTBOOK_CET_IOS_DEVICE:-booted}"
 IOS_BUNDLE_ID="${SOFTBOOK_CET_IOS_BUNDLE_ID:-com.softbook.cet}"
 LAUNCH_IOS="${SOFTBOOK_CET_IOS_LAUNCH:-0}"
+ISOLATED_CONTRACT_PHONE="${SOFTBOOK_CET_SMOKE_ISOLATED_PHONE:-1}"
 
 if [[ -z "${BASE_URL// }" ]]; then
   echo "SOFTBOOK_CET_REMOTE_BASE_URL is required." >&2
@@ -19,12 +20,14 @@ if [[ "${TRACK}" != "cet4" && "${TRACK}" != "cet6" ]]; then
   exit 1
 fi
 
-if [[ -z "${SOFTBOOK_CET_AUTH_TOKEN:-}" ]]; then
+if [[ -z "${SOFTBOOK_CET_AUTH_TOKEN:-}" && "${ISOLATED_CONTRACT_PHONE}" != "1" ]]; then
   if [[ -z "${SOFTBOOK_CET_TEST_PHONE:-}" ]]; then
-    echo "SOFTBOOK_CET_TEST_PHONE is required when SOFTBOOK_CET_AUTH_TOKEN is not set." >&2
+    echo "SOFTBOOK_CET_TEST_PHONE is required when SOFTBOOK_CET_AUTH_TOKEN is not set and isolated contract phone mode is disabled." >&2
     exit 1
   fi
+fi
 
+if [[ -z "${SOFTBOOK_CET_AUTH_TOKEN:-}" ]]; then
   if [[ -z "${SOFTBOOK_CET_TEST_CODE:-}" ]]; then
     echo "SOFTBOOK_CET_TEST_CODE is required when SOFTBOOK_CET_AUTH_TOKEN is not set." >&2
     exit 1
@@ -33,6 +36,7 @@ fi
 
 export SOFTBOOK_CET_SMOKE_WRITE="${SOFTBOOK_CET_SMOKE_WRITE:-1}"
 export SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS="${SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS:-1}"
+export SOFTBOOK_CET_SMOKE_ISOLATED_PHONE="${ISOLATED_CONTRACT_PHONE}"
 
 echo "==> Verifying CloudBase REST contract for mobile runtime"
 node "${ROOT_DIR}/infra/cloudbase/smoke-softbook-api.mjs"
