@@ -67,6 +67,32 @@ test('remote runtime profile switches every remote-capable surface to one base u
   });
 });
 
+test('remote runtime profile normalizes the shared base url', () => {
+  const config = createSoftbookRemoteRuntimeConfig({
+    apiKey: 'dev-key',
+    baseUrl: '  https://api.softbook.example///  ',
+  });
+
+  expect(config.auth?.remote?.baseUrl).toBe('https://api.softbook.example');
+  expect(config.learningSource?.remote?.baseUrl).toBe(
+    'https://api.softbook.example',
+  );
+  expect(config.membership?.remote?.baseUrl).toBe(
+    'https://api.softbook.example',
+  );
+  expect(resolveProgressSyncRepositoryConfig(config).remoteConfig).toMatchObject({
+    endpoint: 'https://api.softbook.example/v1/progress/daily-sync',
+  });
+});
+
+test('remote runtime profile rejects a blank base url', () => {
+  expect(() =>
+    createSoftbookRemoteRuntimeConfig({
+      baseUrl: '   ',
+    }),
+  ).toThrow('Remote runtime profile requires baseUrl.');
+});
+
 test('remote runtime profile can keep one surface local for staged smoke tests', () => {
   const config = createSoftbookRemoteRuntimeConfig({
     baseUrl: 'https://api.softbook.example',
