@@ -182,6 +182,8 @@ Manual acceptance after launch:
 - Completing a card updates statistics and leaves daily progress / learning
   state / space state without queued retry errors.
 
+Manual acceptance run notes live in `ios-runtime-acceptance-log.md`.
+
 Local mock flow:
 
 ```bash
