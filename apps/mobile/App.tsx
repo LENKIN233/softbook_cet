@@ -56,7 +56,13 @@ import {
   readSoftbookAppRuntimeConfig,
   resolveLearningSessionRepositoryConfig,
   resolveLearningTrack,
+  type SoftbookAppRuntimeConfig,
 } from './src/learning/learningRuntimeConfig';
+import {
+  createSoftbookRemoteRuntimeConfig,
+  type SoftbookRemoteRuntimeProfile,
+} from './src/runtime/appRuntimeConfig';
+import { installSoftbookAppRuntimeConfig } from './src/runtime/installRuntimeConfig';
 import {
   createSpaceStateRepository,
   createSpaceStateSnapshot,
@@ -81,6 +87,10 @@ type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
 type AuthStage = 'logged_out' | 'code_sent' | 'authenticated';
 type MembershipGate = 'space' | 'review' | 'library';
+
+type AppProps = {
+  softbookRemoteRuntimeProfile?: SoftbookRemoteRuntimeProfile;
+};
 
 type ShellRoute = {
   key: RouteKey;
@@ -277,18 +287,33 @@ function createEntitlementPendingMembershipState(): MembershipState {
   };
 }
 
-function App(): React.JSX.Element {
+function App({
+  softbookRemoteRuntimeProfile,
+}: AppProps = {}): React.JSX.Element {
+  const runtimeConfig = useMemo(() => {
+    if (softbookRemoteRuntimeProfile) {
+      return installSoftbookAppRuntimeConfig(
+        createSoftbookRemoteRuntimeConfig(softbookRemoteRuntimeProfile),
+      );
+    }
+
+    return readSoftbookAppRuntimeConfig();
+  }, [softbookRemoteRuntimeProfile]);
+
   return (
     <SafeAreaProvider>
-      <AppShell />
+      <AppShell runtimeConfig={runtimeConfig} />
     </SafeAreaProvider>
   );
 }
 
-function AppShell() {
+function AppShell({
+  runtimeConfig,
+}: {
+  runtimeConfig: SoftbookAppRuntimeConfig | undefined;
+}) {
   const scheme = useColorScheme();
   const palette = scheme === 'dark' ? DARK_PALETTE : LIGHT_PALETTE;
-  const runtimeConfig = useMemo(() => readSoftbookAppRuntimeConfig(), []);
   const learningTrack = useMemo(
     () => resolveLearningTrack(runtimeConfig),
     [runtimeConfig],
