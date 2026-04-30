@@ -1,4 +1,19 @@
+import type { LearningTrack } from '../learning/model';
 import type { SoftbookAppRuntimeConfig } from '../learning/learningRuntimeConfig';
+
+export type SoftbookRemoteRuntimeFeature =
+  | 'learningSource'
+  | 'membership'
+  | 'progressSync'
+  | 'spaceState'
+  | 'learningState';
+
+export type SoftbookRemoteRuntimeProfile = {
+  apiKey?: string;
+  baseUrl: string;
+  featureModes?: Partial<Record<SoftbookRemoteRuntimeFeature, 'local' | 'remote'>>;
+  learningTrack?: LearningTrack;
+};
 
 // This tracked default keeps local learning as the safe baseline for development.
 export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
@@ -22,3 +37,79 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
     mode: 'local',
   },
 };
+
+export function createSoftbookRemoteRuntimeConfig(
+  profile: SoftbookRemoteRuntimeProfile,
+): SoftbookAppRuntimeConfig {
+  const remote = {
+    baseUrl: trimTrailingSlash(profile.baseUrl),
+    ...(profile.apiKey ? {apiKey: profile.apiKey} : {}),
+  };
+  const learningTrack = profile.learningTrack ?? 'cet4';
+
+  return {
+    auth: {
+      mode: 'remote',
+      remote,
+    },
+    learningTrack,
+    learningSource:
+      resolveFeatureMode(profile, 'learningSource') === 'remote'
+        ? {
+            mode: 'remote',
+            remote,
+            track: learningTrack,
+          }
+        : {
+            mode: 'local',
+            track: learningTrack,
+          },
+    membership:
+      resolveFeatureMode(profile, 'membership') === 'remote'
+        ? {
+            mode: 'remote',
+            remote,
+          }
+        : {
+            mode: 'local',
+          },
+    progressSync:
+      resolveFeatureMode(profile, 'progressSync') === 'remote'
+        ? {
+            mode: 'remote',
+            remote,
+          }
+        : {
+            mode: 'local',
+          },
+    spaceState:
+      resolveFeatureMode(profile, 'spaceState') === 'remote'
+        ? {
+            mode: 'remote',
+            remote,
+          }
+        : {
+            mode: 'local',
+          },
+    learningState:
+      resolveFeatureMode(profile, 'learningState') === 'remote'
+        ? {
+            mode: 'remote',
+            remote,
+          }
+        : {
+            mode: 'local',
+          },
+  };
+}
+
+function resolveFeatureMode(
+  profile: SoftbookRemoteRuntimeProfile,
+  feature: SoftbookRemoteRuntimeFeature,
+) {
+  return profile.featureModes?.[feature] ?? 'remote';
+}
+
+function trimTrailingSlash(value: string) {
+  return value.endsWith('/') ? value.slice(0, -1) : value;
+}

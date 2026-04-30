@@ -75,53 +75,26 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
 };
 ```
 
-如果要临时切到远端认证 / 学习卡源 / entitlement / 日级同步 / 空间状态 / learning state：
+如果要临时切到远端认证 / 学习卡源 / entitlement / 日级同步 / 空间状态 / learning state，优先用 profile factory，避免手写六份重复 `baseUrl`：
 
 ```ts
-export const SOFTBOOK_APP_RUNTIME_CONFIG = {
-  auth: {
-    mode: 'remote',
-    remote: {
-      baseUrl: 'https://your-api.example.com',
-      apiKey: 'your-dev-key',
-    },
+export const SOFTBOOK_APP_RUNTIME_CONFIG = createSoftbookRemoteRuntimeConfig({
+  baseUrl: 'https://your-api.example.com',
+  apiKey: 'your-dev-key',
+  learningTrack: 'cet4',
+});
+```
+
+如果需要分段 smoke，可以只把某个 surface 暂时留在本地：
+
+```ts
+export const SOFTBOOK_APP_RUNTIME_CONFIG = createSoftbookRemoteRuntimeConfig({
+  baseUrl: 'https://your-api.example.com',
+  featureModes: {
+    learningSource: 'local',
+    spaceState: 'local',
   },
-  learningSource: {
-    mode: 'remote',
-    remote: {
-      baseUrl: 'https://your-api.example.com',
-      apiKey: 'your-dev-key',
-    },
-  },
-  membership: {
-    mode: 'remote',
-    remote: {
-      baseUrl: 'https://your-api.example.com',
-      apiKey: 'your-dev-key',
-    },
-  },
-  progressSync: {
-    mode: 'remote',
-    remote: {
-      baseUrl: 'https://your-api.example.com',
-      apiKey: 'your-dev-key',
-    },
-  },
-  spaceState: {
-    mode: 'remote',
-    remote: {
-      baseUrl: 'https://your-api.example.com',
-      apiKey: 'your-dev-key',
-    },
-  },
-  learningState: {
-    mode: 'remote',
-    remote: {
-      baseUrl: 'https://your-api.example.com',
-      apiKey: 'your-dev-key',
-    },
-  },
-};
+});
 ```
 
 提交前恢复为本地安全默认值，不要把真实密钥提交进仓库。

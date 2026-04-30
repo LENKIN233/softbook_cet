@@ -103,53 +103,14 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
 };
 ```
 
-- 如果你要切到远端认证 / 卡源 / entitlement / 日级同步 / 空间状态 / learning state，临时改成：
+- 如果你要切到远端认证 / 卡源 / entitlement / 日级同步 / 空间状态 / learning state，优先用 `createSoftbookRemoteRuntimeConfig`：
 
 ```ts
-export const SOFTBOOK_APP_RUNTIME_CONFIG = {
-  auth: {
-    mode: 'remote',
-    remote: {
-      baseUrl: 'https://your-api.example.com',
-      apiKey: 'your-dev-key',
-    },
-  },
-  learningSource: {
-    mode: 'remote',
-    remote: {
-      baseUrl: 'https://your-api.example.com',
-      apiKey: 'your-dev-key',
-    },
-  },
-  membership: {
-    mode: 'remote',
-    remote: {
-      baseUrl: 'https://your-api.example.com',
-      apiKey: 'your-dev-key',
-    },
-  },
-  progressSync: {
-    mode: 'remote',
-    remote: {
-      baseUrl: 'https://your-api.example.com',
-      apiKey: 'your-dev-key',
-    },
-  },
-  spaceState: {
-    mode: 'remote',
-    remote: {
-      baseUrl: 'https://your-api.example.com',
-      apiKey: 'your-dev-key',
-    },
-  },
-  learningState: {
-    mode: 'remote',
-    remote: {
-      baseUrl: 'https://your-api.example.com',
-      apiKey: 'your-dev-key',
-    },
-  },
-};
+export const SOFTBOOK_APP_RUNTIME_CONFIG = createSoftbookRemoteRuntimeConfig({
+  baseUrl: 'https://your-api.example.com',
+  apiKey: 'your-dev-key',
+  learningTrack: 'cet4',
+});
 ```
 
 不要把真实密钥提交进仓库；提交前请恢复成安全的默认本地配置。
