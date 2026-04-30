@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { createSoftbookApi } = require('../index');
+const { createCloudBaseStore, createSoftbookApi } = require('../index');
 
 const fixedNow = new Date('2026-04-30T12:00:00.000Z');
 
@@ -221,3 +221,104 @@ test('CloudBase event adapter returns stringified HTTP response bodies', async (
   assert.equal(JSON.parse(response.body).data.phone_number, '13800138000');
 }
 );
+
+test('CloudBase store keeps membership and sync state outside function memory', async () => {
+  const db = createFakeCloudBaseDb();
+  const firstApi = createTestApi({
+    store: createCloudBaseStore({db}),
+  });
+  const secondApi = createTestApi({
+    store: createCloudBaseStore({db}),
+  });
+  const token = await authenticatedToken(firstApi);
+  const headers = {
+    authorization: `Bearer ${token}`,
+  };
+  const body = {
+    phone_number: '13800138000',
+  };
+
+  await request(firstApi, {
+    body,
+    headers,
+    method: 'POST',
+    path: '/v1/membership/start-trial',
+  });
+  await request(firstApi, {
+    body,
+    headers,
+    method: 'POST',
+    path: '/v1/membership/purchase',
+  });
+  const entitlement = await request(secondApi, {
+    headers,
+    method: 'GET',
+    path: '/v1/membership/entitlement',
+  });
+  const daily = await request(secondApi, {
+    body: {
+      checked_in_today: true,
+      day_key: '2026-04-30',
+      favorite_count: 1,
+      learning_completed_count: 1,
+      pending_review_count: 0,
+      phone_number: '13800138000',
+      review_completed_count: 0,
+      sleeping_count: 0,
+      total_completed_count: 1,
+    },
+    headers,
+    method: 'POST',
+    path: '/v1/progress/daily-sync',
+  });
+
+  assert.equal(entitlement.body.data.entitlement.stage, 'premium');
+  assert.equal(daily.statusCode, 200);
+  assert.equal(
+    db.snapshot().get('softbook_memberships').get('13800138000').entitlement
+      .stage,
+    'premium',
+  );
+  assert.equal(db.snapshot().get('softbook_daily_progress').size, 1);
+});
+
+function createFakeCloudBaseDb() {
+  const collections = new Map();
+
+  return {
+    collection: name => {
+      if (!collections.has(name)) {
+        collections.set(name, new Map());
+      }
+
+      const documents = collections.get(name);
+
+      return {
+        doc: documentId => ({
+          get: async () => ({
+            data: documents.has(documentId)
+              ? [
+                  {
+                    _id: documentId,
+                    ...cloneJson(documents.get(documentId)),
+                  },
+                ]
+              : [],
+          }),
+          set: async data => {
+            documents.set(documentId, cloneJson(data));
+
+            return {
+              id: documentId,
+            };
+          },
+        }),
+      };
+    },
+    snapshot: () => collections,
+  };
+}
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}

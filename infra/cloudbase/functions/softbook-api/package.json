@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Minimal CloudBase HTTP function for Softbook CET mobile remote runtime.",
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.18.1"
+  },
   "main": "index.js",
   "scripts": {
     "test": "node --test test/*.test.js"

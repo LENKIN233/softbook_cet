@@ -9,7 +9,10 @@
       "runtime": "Nodejs20.19",
       "timeout": 10,
       "memorySize": 256,
-      "description": "Softbook CET minimal mobile REST backend for CloudBase dev"
+      "description": "Softbook CET minimal mobile REST backend for CloudBase dev",
+      "envVariables": {
+        "SOFTBOOK_STORE_MODE": "cloudbase"
+      }
     }
   ]
 }

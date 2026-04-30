@@ -3,6 +3,12 @@ const crypto = require('node:crypto');
 const DEFAULT_SMS_CODE = '2468';
 const DEFAULT_TRIAL_DURATION_DAYS = 5;
 const DEFAULT_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
+const CLOUDBASE_COLLECTIONS = {
+  dailyProgress: 'softbook_daily_progress',
+  learningStates: 'softbook_learning_states',
+  memberships: 'softbook_memberships',
+  spaceStates: 'softbook_space_states',
+};
 
 const defaultApi = createSoftbookApi();
 
@@ -16,7 +22,7 @@ function createSoftbookApi(options = {}) {
     now: options.now ?? (() => new Date()),
     smsCode:
       options.smsCode ?? process.env.SOFTBOOK_SMS_DEV_CODE ?? DEFAULT_SMS_CODE,
-    store: options.store ?? createMemoryStore(),
+    store: options.store ?? createDefaultStore(),
     tokenSecret:
       options.tokenSecret ??
       process.env.SOFTBOOK_AUTH_TOKEN_SECRET ??
@@ -93,7 +99,7 @@ async function handleHttpRequest(config, request) {
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
-            config.store.getMembership(session.phoneNumber),
+            await config.store.getMembership(session.phoneNumber),
           ),
         },
       });
@@ -104,7 +110,7 @@ async function handleHttpRequest(config, request) {
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
-            config.store.startTrial(session.phoneNumber),
+            await config.store.startTrial(session.phoneNumber),
           ),
         },
       });
@@ -115,7 +121,7 @@ async function handleHttpRequest(config, request) {
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
-            config.store.purchase(session.phoneNumber),
+            await config.store.purchase(session.phoneNumber),
           ),
         },
       });
@@ -126,7 +132,7 @@ async function handleHttpRequest(config, request) {
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
-            config.store.dismissRecovery(session.phoneNumber),
+            await config.store.dismissRecovery(session.phoneNumber),
           ),
         },
       });
@@ -136,7 +142,11 @@ async function handleHttpRequest(config, request) {
       assertBodyPhoneMatchesSession(request.body, session);
       const snapshot = parseDailyProgressSnapshot(request.body);
       const acknowledgedAt = config.now().toISOString();
-      config.store.saveDailyProgress(session.phoneNumber, snapshot, acknowledgedAt);
+      await config.store.saveDailyProgress(
+        session.phoneNumber,
+        snapshot,
+        acknowledgedAt,
+      );
       return acknowledgedResponse(acknowledgedAt);
     }
 
@@ -144,7 +154,11 @@ async function handleHttpRequest(config, request) {
       assertBodyPhoneMatchesSession(request.body, session);
       const snapshot = parseLearningStateSnapshot(request.body);
       const acknowledgedAt = config.now().toISOString();
-      config.store.saveLearningState(session.phoneNumber, snapshot, acknowledgedAt);
+      await config.store.saveLearningState(
+        session.phoneNumber,
+        snapshot,
+        acknowledgedAt,
+      );
       return acknowledgedResponse(acknowledgedAt);
     }
 
@@ -152,7 +166,11 @@ async function handleHttpRequest(config, request) {
       assertBodyPhoneMatchesSession(request.body, session);
       const snapshot = parseSpaceStateSnapshot(request.body);
       const acknowledgedAt = config.now().toISOString();
-      config.store.saveSpaceState(session.phoneNumber, snapshot, acknowledgedAt);
+      await config.store.saveSpaceState(
+        session.phoneNumber,
+        snapshot,
+        acknowledgedAt,
+      );
       return acknowledgedResponse(acknowledgedAt);
     }
 
@@ -335,6 +353,20 @@ function acknowledgedResponse(acknowledgedAt) {
   });
 }
 
+function createDefaultStore() {
+  const storeMode = process.env.SOFTBOOK_STORE_MODE ?? 'memory';
+
+  if (storeMode === 'memory') {
+    return createMemoryStore();
+  }
+
+  if (storeMode === 'cloudbase') {
+    return createCloudBaseStore();
+  }
+
+  throw new Error(`Unsupported SOFTBOOK_STORE_MODE: ${storeMode}`);
+}
+
 function createMemoryStore() {
   const memberships = new Map();
   const dailyProgress = new Map();
@@ -434,6 +466,191 @@ function createMemoryStore() {
       spaceStates,
     }),
   };
+}
+
+function createCloudBaseStore(options = {}) {
+  const db = options.db ?? createCloudBaseDatabase();
+  const memberships = db.collection(CLOUDBASE_COLLECTIONS.memberships);
+  const dailyProgress = db.collection(CLOUDBASE_COLLECTIONS.dailyProgress);
+  const learningStates = db.collection(CLOUDBASE_COLLECTIONS.learningStates);
+  const spaceStates = db.collection(CLOUDBASE_COLLECTIONS.spaceStates);
+
+  return {
+    getMembership: async phoneNumber => {
+      const existing = await getCloudBaseDocument(memberships, phoneNumber);
+
+      if (existing) {
+        return deserializeMembershipDocument(existing);
+      }
+
+      const membership = createInitialMembership();
+      await setCloudBaseDocument(memberships, phoneNumber, {
+        entitlement: membership,
+        phone_number: phoneNumber,
+        updated_at: new Date().toISOString(),
+      });
+
+      return membership;
+    },
+    startTrial: async phoneNumber => {
+      const current = cloneMembership(
+        await getCloudBaseMembership(memberships, phoneNumber),
+      );
+
+      if (current.stage === 'trial_available') {
+        current.counted_entry_count += 1;
+        current.last_experience_ended_by = null;
+        current.recovery_prompt_visible = false;
+        current.stage = 'trial';
+        current.trial_started_at_entry_count = current.counted_entry_count;
+      }
+
+      await saveCloudBaseMembership(memberships, phoneNumber, current);
+      return current;
+    },
+    purchase: async phoneNumber => {
+      const current = cloneMembership(
+        await getCloudBaseMembership(memberships, phoneNumber),
+      );
+      current.last_experience_ended_by = null;
+      current.recovery_prompt_visible = false;
+      current.stage = 'premium';
+      await saveCloudBaseMembership(memberships, phoneNumber, current);
+      return current;
+    },
+    dismissRecovery: async phoneNumber => {
+      const current = cloneMembership(
+        await getCloudBaseMembership(memberships, phoneNumber),
+      );
+      current.recovery_prompt_visible = false;
+      await saveCloudBaseMembership(memberships, phoneNumber, current);
+      return current;
+    },
+    saveDailyProgress: async (phoneNumber, snapshot, acknowledgedAt) => {
+      await setCloudBaseDocument(
+        dailyProgress,
+        createCloudBaseDocumentId(`${phoneNumber}:${snapshot.day_key}`),
+        {
+          acknowledged_at: acknowledgedAt,
+          phone_number: phoneNumber,
+          ...snapshot,
+        },
+      );
+    },
+    saveLearningState: async (phoneNumber, snapshot, acknowledgedAt) => {
+      const documentId = createCloudBaseDocumentId(
+        `${phoneNumber}:${snapshot.day_key}:${snapshot.track}`,
+      );
+      const existing = (await getCloudBaseDocument(learningStates, documentId)) ?? {
+        events_by_card_id: {},
+      };
+      const eventsByCardId = {
+        ...(existing.events_by_card_id ?? {}),
+      };
+
+      snapshot.events.forEach((event, index) => {
+        eventsByCardId[event.card_id] = {
+          ...event,
+          server_sequence: index,
+        };
+      });
+
+      await setCloudBaseDocument(learningStates, documentId, {
+        acknowledged_at: acknowledgedAt,
+        day_key: snapshot.day_key,
+        events_by_card_id: eventsByCardId,
+        phone_number: phoneNumber,
+        source_id: snapshot.source_id,
+        source_label: snapshot.source_label,
+        track: snapshot.track,
+      });
+    },
+    saveSpaceState: async (phoneNumber, snapshot, acknowledgedAt) => {
+      const documentId = createCloudBaseDocumentId(
+        `${phoneNumber}:${snapshot.day_key}`,
+      );
+      const existing = (await getCloudBaseDocument(spaceStates, documentId)) ?? {
+        states_by_card_id: {},
+      };
+      const statesByCardId = {
+        ...(existing.states_by_card_id ?? {}),
+      };
+
+      snapshot.states.forEach(state => {
+        statesByCardId[state.card_id] = state;
+      });
+
+      await setCloudBaseDocument(spaceStates, documentId, {
+        acknowledged_at: acknowledgedAt,
+        day_key: snapshot.day_key,
+        phone_number: phoneNumber,
+        states_by_card_id: statesByCardId,
+      });
+    },
+  };
+}
+
+function createCloudBaseDatabase() {
+  const cloudbase = require('@cloudbase/node-sdk');
+  const env =
+    process.env.CLOUDBASE_ENV_ID ??
+    process.env.TCB_ENV ??
+    process.env.SCF_NAMESPACE ??
+    cloudbase.SYMBOL_CURRENT_ENV;
+  const app = cloudbase.init({env});
+
+  return app.database();
+}
+
+async function getCloudBaseMembership(collection, phoneNumber) {
+  const existing = await getCloudBaseDocument(collection, phoneNumber);
+
+  return existing ? deserializeMembershipDocument(existing) : createInitialMembership();
+}
+
+async function saveCloudBaseMembership(collection, phoneNumber, membership) {
+  await setCloudBaseDocument(collection, phoneNumber, {
+    entitlement: membership,
+    phone_number: phoneNumber,
+    updated_at: new Date().toISOString(),
+  });
+}
+
+function deserializeMembershipDocument(document) {
+  return cloneMembership(document.entitlement ?? document);
+}
+
+async function getCloudBaseDocument(collection, documentId) {
+  try {
+    const result = await collection.doc(documentId).get();
+    const data = Array.isArray(result.data) ? result.data[0] : result.data;
+
+    return data ?? null;
+  } catch (error) {
+    if (isCloudBaseDocumentMissingError(error)) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+async function setCloudBaseDocument(collection, documentId, data) {
+  await collection.doc(documentId).set(data);
+}
+
+function isCloudBaseDocumentMissingError(error) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return (
+    message.includes('DOCUMENT_NOT_EXIST') ||
+    message.includes('document not exists') ||
+    message.includes('not found')
+  );
+}
+
+function createCloudBaseDocumentId(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
 }
 
 function createInitialMembership() {
@@ -1122,6 +1339,7 @@ const CET6_CARD_RECORDS = [
 ];
 
 module.exports = {
+  createCloudBaseStore,
   createMemoryStore,
   createSoftbookApi,
   defaultApi,

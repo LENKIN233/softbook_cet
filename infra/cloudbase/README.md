@@ -1,6 +1,6 @@
 # Tencent CloudBase Dev Environment
 
-Referenced specs: `spec/account-sync-contract.json`, `spec/platform-contract.json`, `spec/runtime-boundaries.json`.
+Referenced specs: `spec/account-sync-contract.json`, `spec/membership.json`, `spec/runtime-boundaries.json`, `spec/card-system.json`, `spec/space-operations.json`, `spec/product-core.json`.
 
 `product_truth`: remote learning must still enforce phone-code login before learning, shared membership entitlement, daily-level progress sync, and physical-space state sync.
 
@@ -60,7 +60,7 @@ It intentionally keeps the external mobile contract as `/v1/*` REST:
 
 - Auth uses a development fixed-code adapter. Default code: `2468`.
 - Verified auth returns a signed bearer token that all non-auth endpoints require.
-- Membership state, daily progress, learning state, and space state use an in-memory store for this first CloudBase slice.
+- Membership state, daily progress, learning state, and space state persist to CloudBase NoSQL when `SOFTBOOK_STORE_MODE=cloudbase`; local tests still default to the in-memory adapter.
 - Card source returns valid CET4/CET6 card records in the same envelope parsed by the mobile app.
 - The router uses classic event-style `exports.main` so it can be bound to CloudBase HTTP access service paths such as `/softbook-api`.
 
@@ -68,6 +68,7 @@ Deploy from this folder:
 
 ```bash
 cd infra/cloudbase
+node provision-softbook-nosql.mjs
 ./deploy-softbook-api.sh
 ```
 
@@ -78,6 +79,7 @@ Expected CloudBase shape: function detail should show `Handler: index.main` and 
 Recommended development environment variables:
 
 ```bash
+export SOFTBOOK_STORE_MODE=cloudbase
 export SOFTBOOK_SMS_DEV_CODE=2468
 export SOFTBOOK_AUTH_TOKEN_SECRET="<dev-only-random-secret>"
 export SOFTBOOK_API_KEY="<optional-shared-dev-api-key>"
@@ -88,4 +90,38 @@ Local function tests:
 ```bash
 cd infra/cloudbase/functions/softbook-api
 npm test
+```
+
+Known SDK risk: `npm audit --omit=dev` currently reports transitive vulnerabilities from `@cloudbase/node-sdk`. Version `3.0.0` reduced part of the audit surface locally but failed real CloudBase DB reads in this environment, so the deployed dev function stays on the latest verified working `3.18.1`. Reassess the SDK or replace the persistence adapter before treating this as a production backend.
+
+## Runtime Contract Smoke
+
+The mobile/backend REST contract is documented in `infra/cloudbase/mobile-runtime-contract.md`.
+
+Run the deployed CloudBase endpoint against the same payload shape used by the React Native repositories:
+
+```bash
+SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
+SOFTBOOK_CET_TEST_PHONE="13800138000" \
+SOFTBOOK_CET_TEST_CODE="2468" \
+SOFTBOOK_CET_SMOKE_WRITE=1 \
+SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS=1 \
+node infra/cloudbase/smoke-softbook-api.mjs
+```
+
+Local mock flow:
+
+```bash
+node infra/cloudbase/mock-softbook-api.mjs
+```
+
+In another shell:
+
+```bash
+SOFTBOOK_CET_REMOTE_BASE_URL="http://127.0.0.1:48731" \
+SOFTBOOK_CET_TEST_PHONE="13800138000" \
+SOFTBOOK_CET_TEST_CODE="123456" \
+SOFTBOOK_CET_SMOKE_WRITE=1 \
+SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS=1 \
+node infra/cloudbase/smoke-softbook-api.mjs
 ```
