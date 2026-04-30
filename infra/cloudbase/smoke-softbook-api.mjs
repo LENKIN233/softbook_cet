@@ -2,7 +2,10 @@
 
 const baseUrl = normalizeBaseUrl(process.env.SOFTBOOK_CET_REMOTE_BASE_URL);
 const apiKey = process.env.SOFTBOOK_CET_REMOTE_API_KEY;
-const phoneNumber = process.env.SOFTBOOK_CET_TEST_PHONE;
+const useIsolatedPhone = process.env.SOFTBOOK_CET_SMOKE_ISOLATED_PHONE === '1';
+const phoneNumber = useIsolatedPhone
+  ? createIsolatedPhoneNumber()
+  : process.env.SOFTBOOK_CET_TEST_PHONE;
 const smsCode = process.env.SOFTBOOK_CET_TEST_CODE;
 const authTokenFromEnv = process.env.SOFTBOOK_CET_AUTH_TOKEN;
 const track = process.env.SOFTBOOK_CET_LEARNING_TRACK || 'cet4';
@@ -26,7 +29,15 @@ if (track !== 'cet4' && track !== 'cet6') {
 }
 
 if (!phoneNumber) {
-  fail('SOFTBOOK_CET_TEST_PHONE is required.');
+  fail(
+    'SOFTBOOK_CET_TEST_PHONE is required unless SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1.',
+  );
+}
+
+if (useIsolatedPhone && authTokenFromEnv) {
+  fail(
+    'SOFTBOOK_CET_SMOKE_ISOLATED_PHONE cannot be combined with SOFTBOOK_CET_AUTH_TOKEN.',
+  );
 }
 
 const authHeaders = {
@@ -40,6 +51,10 @@ let authToken = authTokenFromEnv;
 if (authToken) {
   ok('auth', 'using SOFTBOOK_CET_AUTH_TOKEN');
 } else {
+  if (useIsolatedPhone) {
+    ok('auth', `using isolated generated phone ${phoneNumber}`);
+  }
+
   await requestSmsCode();
 
   if (!smsCode) {
@@ -481,6 +496,12 @@ function normalizeBaseUrl(value) {
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function createIsolatedPhoneNumber() {
+  const suffix = String(Date.now() % 1_000_000_000).padStart(9, '0');
+
+  return `19${suffix}`;
 }
 
 function ok(step, detail) {

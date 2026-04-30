@@ -102,12 +102,16 @@ Run the deployed CloudBase endpoint against the same payload shape used by the R
 
 ```bash
 SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
-SOFTBOOK_CET_TEST_PHONE="13800138000" \
 SOFTBOOK_CET_TEST_CODE="2468" \
+SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1 \
 SOFTBOOK_CET_SMOKE_WRITE=1 \
 SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS=1 \
 node infra/cloudbase/smoke-softbook-api.mjs
 ```
+
+`SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1` generates a one-off valid dev phone for
+the contract run. Omit it only when you intentionally want the smoke to operate
+on `SOFTBOOK_CET_TEST_PHONE`.
 
 ## iOS Runtime Smoke
 
@@ -119,6 +123,12 @@ working together when the remote runtime profile is enabled.
 wrapper for the CloudBase dev environment and the React Native iOS debug app. It
 does not change `SOFTBOOK_APP_RUNTIME_CONFIG`, does not store credentials, and
 does not prove the final production backend.
+
+By default the wrapper sets `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1`, so contract
+write checks use a generated one-off phone number. This keeps membership
+mutations from pushing the shared manual-acceptance phone into `premium`. Set
+`SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=0` only when you intentionally want contract
+checks to reuse `SOFTBOOK_CET_TEST_PHONE`.
 
 Run the combined backend contract and JS runtime-profile check:
 
@@ -166,8 +176,8 @@ In another shell:
 
 ```bash
 SOFTBOOK_CET_REMOTE_BASE_URL="http://127.0.0.1:48731" \
-SOFTBOOK_CET_TEST_PHONE="13800138000" \
 SOFTBOOK_CET_TEST_CODE="123456" \
+SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1 \
 SOFTBOOK_CET_SMOKE_WRITE=1 \
 SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS=1 \
 node infra/cloudbase/smoke-softbook-api.mjs
