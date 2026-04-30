@@ -8,6 +8,7 @@ import { Text } from 'react-native';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
 import { LearningCard, LearningSession } from '../src/learning/model';
 import { createLocalLearningSession } from '../src/learning/session';
+import { createSoftbookRemoteRuntimeConfig } from '../src/runtime/appRuntimeConfig';
 import App from '../App';
 
 const mockCreateLearningSessionRepository = jest.fn();
@@ -430,44 +431,10 @@ test('shows remote verify-code failure inside the auth gate', async () => {
 test('wires remote auth, learning source config, membership, progress sync, and space sync through App', async () => {
   const fetchCalls: MockFetchCall[] = [];
 
-  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
-    auth: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    learningSource: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    membership: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    progressSync: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    learningState: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    spaceState: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-  };
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    apiKey: 'profile-key',
+    baseUrl: 'https://api.softbook.example',
+  });
 
   mockFetch.mockImplementation(
     async (input: string, init?: MockFetchInit) => {
@@ -518,6 +485,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
     fallbackToLocalOnRemoteError: true,
     mode: 'remote',
     remoteConfig: {
+      apiKey: 'profile-key',
       endpoint: 'https://api.softbook.example/v1/learning/card-source',
       headers: {
         'x-softbook-client': 'mobile',
@@ -567,6 +535,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   );
   expect(membershipRequest?.init?.headers).toMatchObject({
     Authorization: 'Bearer remote-auth-token',
+    'x-api-key': 'profile-key',
   });
 
   const progressSyncRequest = fetchCalls.find(
@@ -575,6 +544,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   expect(progressSyncRequest?.init?.headers).toMatchObject({
     Authorization: 'Bearer remote-auth-token',
     'content-type': 'application/json',
+    'x-api-key': 'profile-key',
   });
   expect(progressSyncRequest?.init?.body).toContain('"day_key"');
   expect(progressSyncRequest?.init?.body).toContain('"learning_completed_count":1');
@@ -585,6 +555,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   expect(learningStateRequest?.init?.headers).toMatchObject({
     Authorization: 'Bearer remote-auth-token',
     'content-type': 'application/json',
+    'x-api-key': 'profile-key',
   });
   expect(learningStateRequest?.init?.body).toContain('"events"');
   expect(learningStateRequest?.init?.body).toContain('"phase":"learning"');
@@ -596,6 +567,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   expect(spaceSyncRequest?.init?.headers).toMatchObject({
     Authorization: 'Bearer remote-auth-token',
     'content-type': 'application/json',
+    'x-api-key': 'profile-key',
   });
   expect(spaceSyncRequest?.init?.body).toContain('"states"');
   expect(spaceSyncRequest?.init?.body).toContain('"is_favorited":true');
