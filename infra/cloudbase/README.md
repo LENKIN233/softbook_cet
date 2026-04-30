@@ -109,6 +109,46 @@ SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS=1 \
 node infra/cloudbase/smoke-softbook-api.mjs
 ```
 
+## iOS Runtime Smoke
+
+`product_truth`: the iOS app must keep authenticated learning, shared membership
+entitlement, daily progress sync, learning-state sync, and physical-space sync
+working together when the remote runtime profile is enabled.
+
+`implementation_hypothesis`: `smoke-ios-runtime.sh` is a staging verification
+wrapper for the CloudBase dev environment and the React Native iOS debug app. It
+does not change `SOFTBOOK_APP_RUNTIME_CONFIG`, does not store credentials, and
+does not prove the final production backend.
+
+Run the combined backend contract and JS runtime-profile check:
+
+```bash
+SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
+SOFTBOOK_CET_TEST_PHONE="13800138000" \
+SOFTBOOK_CET_TEST_CODE="2468" \
+infra/cloudbase/smoke-ios-runtime.sh
+```
+
+Add `SOFTBOOK_CET_IOS_LAUNCH=1` to start the iOS debug app against the same
+remote profile after the contract check passes:
+
+```bash
+SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
+SOFTBOOK_CET_TEST_PHONE="13800138000" \
+SOFTBOOK_CET_TEST_CODE="2468" \
+SOFTBOOK_CET_IOS_LAUNCH=1 \
+infra/cloudbase/smoke-ios-runtime.sh
+```
+
+Manual acceptance after launch:
+
+- Auth screen says it is using remote SMS verification.
+- Login with the test phone and code reaches the learning bootstrap.
+- Learning loads the remote track while preserving the single-card flow.
+- First protected space entry starts trial and unlocks the physical-space map.
+- Completing a card updates statistics and leaves daily progress / learning
+  state / space state without queued retry errors.
+
 Local mock flow:
 
 ```bash

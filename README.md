@@ -138,6 +138,39 @@ npm start
 
 如果远端学习卡源请求失败或 payload 不合法，`learningRepository` 会自动回退到本地结构化卡源，保持现有学习 UI 和交互不变。
 
+### iOS / CloudBase 远端 smoke
+
+`product_truth`: iOS 端远端运行时必须继续满足登录先于学习、完整试用入口、共享会员 entitlement、日级进展同步、学习状态同步和物理空间状态同步。
+
+`implementation_hypothesis`: 当前 CloudBase dev 环境是 staging runtime，不是最终生产后端；`infra/cloudbase/smoke-ios-runtime.sh` 只验证移动端 REST 合同和 iOS debug runtime profile 注入路径，不会修改 tracked 默认本地配置。
+
+先跑后端合同和 JS runtime profile 解析：
+
+```bash
+SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
+SOFTBOOK_CET_TEST_PHONE="13800138000" \
+SOFTBOOK_CET_TEST_CODE="2468" \
+infra/cloudbase/smoke-ios-runtime.sh
+```
+
+需要同时拉起 iOS debug app 时追加：
+
+```bash
+SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
+SOFTBOOK_CET_TEST_PHONE="13800138000" \
+SOFTBOOK_CET_TEST_CODE="2468" \
+SOFTBOOK_CET_IOS_LAUNCH=1 \
+infra/cloudbase/smoke-ios-runtime.sh
+```
+
+手动验收点：
+
+- 登录页显示远端认证模式，并用测试手机号 / 验证码完成登录。
+- 学习页加载远端 `cet4` 或 `cet6` 卡源，仍保持单卡流。
+- 首次进入空间启动试用，空间解锁后显示远端卡源的 library / group / box。
+- 完成一张卡后，统计页显示日级同步已推送到远端。
+- 学习状态、空间状态和会员 refresh 不出现离线队列错误；若远端暂时 5xx，UI 应保留登录态并进入重试队列。
+
 ### 本地会员/付费墙壳层
 
 `apps/mobile` 现在还会在本地壳层里表达会员矩阵：
@@ -151,7 +184,7 @@ npm start
 
 ### 接下来优先做什么
 
-- 继续沿 `cross/*` 的合同分支推进真实账号 / entitlement / daily sync 接线
+- 继续沿 `cross/*` 的合同分支推进 iOS 远端 runtime smoke 与真实账号 / entitlement / daily sync 接线
 - 保持一次只推进一个主线分支；新分支开始前先把 `main` 上的 README / 分支文档 / harness 校验同步到当前基线
 - 暂不提前开 Android / Web 业务工程，也不提前扩统计或其它外围页面
 
