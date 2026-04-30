@@ -41,8 +41,9 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
 export function createSoftbookRemoteRuntimeConfig(
   profile: SoftbookRemoteRuntimeProfile,
 ): SoftbookAppRuntimeConfig {
+  const baseUrl = normalizeRemoteBaseUrl(profile.baseUrl);
   const remote = {
-    baseUrl: trimTrailingSlash(profile.baseUrl),
+    baseUrl,
     ...(profile.apiKey ? {apiKey: profile.apiKey} : {}),
   };
   const learningTrack = profile.learningTrack ?? 'cet4';
@@ -110,6 +111,12 @@ function resolveFeatureMode(
   return profile.featureModes?.[feature] ?? 'remote';
 }
 
-function trimTrailingSlash(value: string) {
-  return value.endsWith('/') ? value.slice(0, -1) : value;
+function normalizeRemoteBaseUrl(value: string) {
+  const normalizedValue = value.trim().replace(/\/+$/, '');
+
+  if (normalizedValue.length === 0) {
+    throw new Error('Remote runtime profile requires baseUrl.');
+  }
+
+  return normalizedValue;
 }
