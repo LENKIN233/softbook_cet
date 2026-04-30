@@ -459,6 +459,10 @@ check_equal(
             "command": "cd apps/mobile && npm run lint -- --quiet",
         },
         {
+            "id": "mobile_typecheck",
+            "command": "cd apps/mobile && npm run typecheck",
+        },
+        {
             "id": "mobile_test",
             "command": "cd apps/mobile && npm test -- --runInBand --watchAll=false",
         },
@@ -651,7 +655,7 @@ for snippet in [
     "只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。",
     "如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。",
     "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`，若有视觉稿改动再补 `design_review_checklist（如适用）`。",
-    "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。",
+    "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。",
     "merge 的默认前置条件是：agent review 无 blocking finding，且 required gates 全绿。",
 ]:
     check_contains("branching strategy delivery mirror", branching_text, snippet)
@@ -669,7 +673,7 @@ check_contains(
 )
 for snippet in [
     "- `spec/repo-delivery-contract.json`",
-    "- `.github/workflows/pr-gates.yml`: PR 质量门禁（harness 校验 + mobile lint + mobile test）",
+    "- `.github/workflows/pr-gates.yml`: PR 质量门禁（harness 校验 + mobile lint + mobile typecheck + mobile test）",
     "- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）",
     "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",
 ]:
@@ -984,6 +988,7 @@ else:
         "python3 scripts/validate_harness.py --skip-remote-guard",
         "npm ci",
         "npm run lint -- --quiet",
+        "npm run typecheck",
         "npm test -- --runInBand --watchAll=false",
         'node-version: "22.11.0"',
     ]:

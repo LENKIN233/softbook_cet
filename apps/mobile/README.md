@@ -13,7 +13,7 @@
 
 - `apps/mobile` 是 React Native 0.85.x 的 iOS 优先工程。
 - 当前已覆盖手机号验证码登录门槛、学习主流、review flow、空间知识地图、统计签到、我的页、会员试用 / 付费墙。
-- 当前分支把 `auth / membership / learningSource / progressSync` 都统一到 runtime 配置下，默认仍走本地安全实现。
+- 当前分支把 `auth / membership / learningSource / progressSync / spaceState / learningState` 都统一到 runtime 配置下，默认仍走本地安全实现。
 
 ## 环境前提
 
@@ -42,6 +42,7 @@ npm run ios
 ```bash
 cd apps/mobile
 npm run lint
+npm run typecheck
 npm test -- --watch=false
 ```
 
@@ -65,10 +66,16 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
   progressSync: {
     mode: 'local',
   },
+  spaceState: {
+    mode: 'local',
+  },
+  learningState: {
+    mode: 'local',
+  },
 };
 ```
 
-如果要临时切到远端认证 / 学习卡源 / entitlement / 日级同步：
+如果要临时切到远端认证 / 学习卡源 / entitlement / 日级同步 / 空间状态 / learning state：
 
 ```ts
 export const SOFTBOOK_APP_RUNTIME_CONFIG = {
@@ -100,6 +107,20 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
       apiKey: 'your-dev-key',
     },
   },
+  spaceState: {
+    mode: 'remote',
+    remote: {
+      baseUrl: 'https://your-api.example.com',
+      apiKey: 'your-dev-key',
+    },
+  },
+  learningState: {
+    mode: 'remote',
+    remote: {
+      baseUrl: 'https://your-api.example.com',
+      apiKey: 'your-dev-key',
+    },
+  },
 };
 ```
 
@@ -109,6 +130,8 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
 - `learningSource`：学习卡源仓储；远端模式要求登录上下文，且 `auth.mode` 也必须是 `remote`
 - `membership`：entitlement 读取、开始试用、开通会员、恢复购买提醒状态更新；远端模式要求 `auth.mode` 也必须是 `remote`
 - `progressSync`：日级进展同步仓储；远端模式要求登录上下文，且 `auth.mode` 也必须是 `remote`
+- `spaceState`：收藏/休眠等空间状态同步仓储；远端模式要求登录上下文，且 `auth.mode` 也必须是 `remote`
+- `learningState`：逐卡学习作答状态同步仓储；远端模式要求登录上下文，且 `auth.mode` 也必须是 `remote`
 
 ## 默认本地会员宿主
 

@@ -87,7 +87,7 @@
 ## PR 合同与 CI 门槛
 
 - `.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`，若有视觉稿改动再补 `design_review_checklist（如适用）`。
-- `.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。
+- `.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。
 - merge 的默认前置条件是：agent review 无 blocking finding，且 required gates 全绿。
 - 本地开 PR 前仍然应该执行完整的 `python3 scripts/validate_harness.py`，不要只依赖 CI 的 `--skip-remote-guard` 版本。
 

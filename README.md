@@ -22,7 +22,7 @@
 - `spec/`: 活跃产品与合同真相源
 - `apps/mobile/`: React Native 移动端工程
 - `docs/`: 工程协作约定与流程文档
-- `.github/workflows/pr-gates.yml`: PR 质量门禁（harness 校验 + mobile lint + mobile test）
+- `.github/workflows/pr-gates.yml`: PR 质量门禁（harness 校验 + mobile lint + mobile typecheck + mobile test）
 - `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）
 - `scripts/validate_harness.py`: harness 校验脚本（spec owner 一致性 + main 分支治理护栏）
 - `scripts/bootstrap_mobile_ios.sh`: iOS 依赖重装脚本

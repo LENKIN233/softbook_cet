@@ -1,4 +1,5 @@
 import React from 'react';
+import type { DimensionValue } from 'react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -258,7 +259,7 @@ export function LearningSurface({
   const progressPercent = `${Math.max(
     Math.round(((currentIndex + 1) / Math.max(sessionCards.length, 1)) * 100),
     10,
-  )}%`;
+  )}%` as DimensionValue;
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
