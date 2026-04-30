@@ -48,6 +48,10 @@
         "command": "cd apps/mobile && npm run lint -- --quiet"
       },
       {
+        "id": "mobile_typecheck",
+        "command": "cd apps/mobile && npm run typecheck"
+      },
+      {
         "id": "mobile_test",
         "command": "cd apps/mobile && npm test -- --runInBand --watchAll=false"
       }

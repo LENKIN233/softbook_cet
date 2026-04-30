@@ -2,6 +2,7 @@ import {
   MAX_MUTATION_RETRIES,
   MutationQueueManager,
 } from '../src/sync/mutationQueue';
+import type {MembershipState} from '../src/membership/localMembership';
 import {createLearningStateSnapshot} from '../src/sync/learningStateRepository';
 import {createMutationQueueRepository} from '../src/sync/mutationQueueRepository';
 
@@ -269,19 +270,20 @@ describe('MutationQueueRepository', () => {
       progressSyncRepository: mockProgressSyncRepository as never,
       spaceStateRepository: mockSpaceStateRepository as never,
     });
+    const currentState: MembershipState = {
+      countedEntryCount: 0,
+      lastExperienceEndedBy: null,
+      recoveryPromptVisible: false,
+      stage: 'trial_available',
+      trialDurationDays: 5,
+      trialStartedAtEntryCount: null,
+    };
     const payload = {
       context: {
         authToken: 'token-membership',
         phoneNumber: '13800138002',
       },
-      currentState: {
-        countedEntryCount: 0,
-        lastExperienceEndedBy: null,
-        recoveryPromptVisible: false,
-        stage: 'trial_available',
-        trialDurationDays: 5,
-        trialStartedAtEntryCount: null,
-      },
+      currentState,
     };
 
     await repository.enqueueMutation('start_membership_trial', payload);
@@ -414,7 +416,7 @@ describe('MutationQueueRepository', () => {
     mockSpaceStateRepository.syncSpaceState.mockImplementation(
       () =>
         new Promise(resolve => {
-          resolveReplay = resolve;
+          resolveReplay = () => resolve(undefined);
           markReplayStarted?.();
         }),
     );

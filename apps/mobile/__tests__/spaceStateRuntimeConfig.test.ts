@@ -38,6 +38,6 @@ describe('spaceStateRuntimeConfig', () => {
     expect(config.remoteConfig?.endpoint).toBe(
       'https://api.example.com/v1/space/state-sync',
     );
-    expect(config.remoteConfig?.headers['x-api-key']).toBe('test-key');
+    expect(config.remoteConfig?.headers?.['x-api-key']).toBe('test-key');
   });
 });

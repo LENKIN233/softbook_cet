@@ -627,10 +627,7 @@ function AppShell() {
         );
       }
 
-      if (
-        result.entry.type === 'refresh_membership' ||
-        result.entry.type === 'start_membership_trial'
-      ) {
+      if ('membershipState' in result) {
         setMembershipError(null);
         setMembershipState(result.membershipState);
         setMembershipGate(currentGate =>
@@ -3430,7 +3427,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   auroraRoot: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: 'hidden',
   },
   auroraOrb: {

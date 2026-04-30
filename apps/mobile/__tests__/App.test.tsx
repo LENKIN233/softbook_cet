@@ -56,7 +56,7 @@ type Deferred<T> = {
 let pendingSession: Deferred<LearningSession>;
 let originalFetch: typeof global.fetch | undefined;
 
-const globalWithFetch = global as typeof global & {
+const globalWithFetch = global as Omit<typeof global, 'fetch'> & {
   fetch?: typeof global.fetch;
 };
 
@@ -78,7 +78,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  globalWithFetch.fetch = originalFetch;
+  if (originalFetch) {
+    globalWithFetch.fetch = originalFetch;
+  } else {
+    delete globalWithFetch.fetch;
+  }
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = undefined;
 });
 
@@ -169,7 +173,7 @@ async function waitForLearningSurface(
 async function flushAsyncEffects() {
   await Promise.resolve();
   await Promise.resolve();
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise(resolve => setTimeout(() => resolve(undefined), 0));
 }
 
 async function rejectLearningBootstrap(message: string) {

@@ -10,6 +10,7 @@
 
 - [ ] `python3 scripts/validate_harness.py`
 - [ ] `cd apps/mobile && npm run lint -- --quiet`
+- [ ] `cd apps/mobile && npm run typecheck`
 - [ ] `cd apps/mobile && npm test -- --runInBand --watchAll=false`
 
 ## design_review_checklist（如适用）
