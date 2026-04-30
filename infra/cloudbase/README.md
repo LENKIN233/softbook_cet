@@ -150,12 +150,19 @@ SOFTBOOK_CET_IOS_LAUNCH=1 \
 infra/cloudbase/smoke-ios-runtime.sh
 ```
 
-The launch step first lets the React Native CLI build and install the debug app,
-then relaunches `com.softbook.cet` with `xcrun simctl launch` and the required
-`SIMCTL_CHILD_*` environment variables. This matters because `AppDelegate.swift`
-reads the app process environment, not the shell environment around the helper
-script. Defaults can be overridden with `SOFTBOOK_CET_IOS_DEVICE`,
-`SOFTBOOK_CET_IOS_SIMULATOR`, and `SOFTBOOK_CET_IOS_BUNDLE_ID`.
+The launch step first reuses an existing Metro server or starts one, then lets
+the React Native CLI build and install the debug app. After that it relaunches
+`com.softbook.cet` with `xcrun simctl launch` and the required `SIMCTL_CHILD_*`
+environment variables. This matters because
+`AppDelegate.swift` reads the app process environment, not the shell environment
+around the helper script. Defaults can be overridden with
+`SOFTBOOK_CET_IOS_DEVICE`, `SOFTBOOK_CET_IOS_SIMULATOR`,
+`SOFTBOOK_CET_IOS_BUNDLE_ID`, and `SOFTBOOK_CET_METRO_PORT`. When the wrapper
+starts Metro itself, it keeps running after the manual acceptance checklist is
+printed; press `Ctrl+C` after acceptance to stop that Metro session. Set
+`SOFTBOOK_CET_STOP_METRO_ON_EXIT=1` when you want the wrapper to stop its own
+Metro process as soon as the launch sequence finishes. An already running Metro
+server is reused and left alone.
 
 When `SOFTBOOK_CET_IOS_LAUNCH=1`, the wrapper prints a one-off manual
 acceptance phone in the `19xxxxxxxxx` format. Use that printed phone in the app;
