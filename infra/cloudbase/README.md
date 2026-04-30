@@ -111,7 +111,11 @@ node infra/cloudbase/smoke-softbook-api.mjs
 
 `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1` generates a one-off valid dev phone for
 the contract run. Omit it only when you intentionally want the smoke to operate
-on `SOFTBOOK_CET_TEST_PHONE`.
+on `SOFTBOOK_CET_TEST_PHONE`. Isolated runs also assert that initial entitlement
+starts at `trial_available`, start-trial returns `trial`, and purchase returns
+`premium`. Override those checks only for a deliberate fixture with
+`SOFTBOOK_CET_EXPECT_INITIAL_STAGE`, `SOFTBOOK_CET_EXPECT_START_TRIAL_STAGE`,
+or `SOFTBOOK_CET_EXPECT_PURCHASE_STAGE`.
 
 ## iOS Runtime Smoke
 

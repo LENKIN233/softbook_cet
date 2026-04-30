@@ -12,6 +12,15 @@ const track = process.env.SOFTBOOK_CET_LEARNING_TRACK || 'cet4';
 const enableWrites = process.env.SOFTBOOK_CET_SMOKE_WRITE === '1';
 const enableMembershipMutations =
   process.env.SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS === '1';
+const expectedInitialStage =
+  process.env.SOFTBOOK_CET_EXPECT_INITIAL_STAGE ??
+  (useIsolatedPhone ? 'trial_available' : undefined);
+const expectedStartTrialStage =
+  process.env.SOFTBOOK_CET_EXPECT_START_TRIAL_STAGE ??
+  (useIsolatedPhone && enableMembershipMutations ? 'trial' : undefined);
+const expectedPurchaseStage =
+  process.env.SOFTBOOK_CET_EXPECT_PURCHASE_STAGE ??
+  (enableMembershipMutations ? 'premium' : undefined);
 const REQUIRED_CORE_INTERACTIONS = [
   'elimination',
   'flip',
@@ -72,6 +81,7 @@ const remoteHeaders = {
 };
 
 const entitlement = await loadMembershipEntitlement();
+assertExpectedStage(entitlement, expectedInitialStage, 'membership entitlement');
 const cardSource = await loadLearningCardSource();
 const firstCard = cardSource.card_records[0];
 
@@ -246,12 +256,18 @@ async function syncSpaceState(card) {
 async function startMembershipTrial() {
   const entitlement = await runMembershipMutation('/v1/membership/start-trial');
 
+  assertExpectedStage(
+    entitlement,
+    expectedStartTrialStage,
+    'membership start-trial',
+  );
   ok('membership start-trial', entitlement.stage);
 }
 
 async function purchaseMembership() {
   const entitlement = await runMembershipMutation('/v1/membership/purchase');
 
+  assertExpectedStage(entitlement, expectedPurchaseStage, 'membership purchase');
   ok('membership purchase', entitlement.stage);
 }
 
@@ -496,6 +512,16 @@ function normalizeBaseUrl(value) {
 
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function assertExpectedStage(entitlement, expectedStage, label) {
+  if (!expectedStage) {
+    return;
+  }
+
+  if (entitlement.stage !== expectedStage) {
+    fail(`${label} expected stage ${expectedStage}, got ${entitlement.stage}.`);
+  }
 }
 
 function createIsolatedPhoneNumber() {

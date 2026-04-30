@@ -335,7 +335,9 @@ node infra/cloudbase/smoke-softbook-api.mjs
 ```
 
 Use `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1` for write-enabled smoke runs so
-membership mutations do not change a shared manual-acceptance phone.
+membership mutations do not change a shared manual-acceptance phone. Isolated
+runs assert the expected membership stage sequence: `trial_available` before
+mutations, `trial` after start-trial, and `premium` after purchase.
 
 Expected high-level output:
 
