@@ -7,6 +7,8 @@ import {resolveMembershipRepositoryConfig} from '../src/membership/membershipRun
 import {
   SOFTBOOK_APP_RUNTIME_CONFIG,
   createSoftbookRemoteRuntimeConfig,
+  readRemoteRuntimeProfileFromEnv,
+  resolveSoftbookAppRuntimeConfig,
 } from '../src/runtime/appRuntimeConfig';
 import {resolveSpaceStateRepositoryConfig} from '../src/space/spaceStateRuntimeConfig';
 import {resolveLearningStateRepositoryConfig} from '../src/sync/learningStateRuntimeConfig';
@@ -21,6 +23,46 @@ test('tracked app runtime config stays on the local safe baseline', () => {
     progressSync: {mode: 'local'},
     spaceState: {mode: 'local'},
   });
+});
+
+test('runtime config resolver keeps the tracked local baseline without a remote profile', () => {
+  expect(resolveSoftbookAppRuntimeConfig({env: {}})).toEqual(
+    SOFTBOOK_APP_RUNTIME_CONFIG,
+  );
+});
+
+test('runtime config resolver can build a remote profile from environment values', () => {
+  const config = resolveSoftbookAppRuntimeConfig({
+    env: {
+      SOFTBOOK_CET_LEARNING_TRACK: 'cet6',
+      SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES: 'learningSource, spaceState',
+      SOFTBOOK_CET_REMOTE_API_KEY: 'env-key',
+      SOFTBOOK_CET_REMOTE_BASE_URL: ' https://api.softbook.example/ ',
+    },
+  });
+
+  expect(resolveLearningTrack(config)).toBe('cet6');
+  expect(resolveAuthRepositoryConfig(config).remoteConfig).toMatchObject({
+    requestCodeEndpoint: 'https://api.softbook.example/v1/auth/request-code',
+    headers: {
+      'x-api-key': 'env-key',
+    },
+  });
+  expect(resolveLearningSessionRepositoryConfig(config).mode).toBe('local');
+  expect(resolveMembershipRepositoryConfig(config).mode).toBe('remote');
+  expect(resolveSpaceStateRepositoryConfig(config).mode).toBe('local');
+  expect(resolveLearningStateRepositoryConfig(config).mode).toBe('remote');
+});
+
+test('remote runtime env profile rejects invalid staged feature names', () => {
+  expect(() =>
+    readRemoteRuntimeProfileFromEnv({
+      SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES: 'unknownSurface',
+      SOFTBOOK_CET_REMOTE_BASE_URL: 'https://api.softbook.example',
+    }),
+  ).toThrow(
+    'Unknown SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES value: unknownSurface.',
+  );
 });
 
 test('remote runtime profile switches every remote-capable surface to one base url', () => {

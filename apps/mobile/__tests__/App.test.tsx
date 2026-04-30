@@ -428,6 +428,75 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expect(output).toContain('当前认证已切到远端短信合同');
 });
 
+test('keeps verified remote auth when entitlement bootstrap is unavailable', async () => {
+  const fetchCalls: MockFetchCall[] = [];
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    fetchCalls.push({init, input});
+
+    if (input === 'https://api.softbook.example/v1/auth/request-code') {
+      return createJsonResponse({});
+    }
+
+    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+      return createJsonResponse({
+        data: {
+          auth_token: 'remote-auth-token',
+          phone_number: '13800138000',
+        },
+      });
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      return createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap();
+  await waitForLearningSurface(root);
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).not.toContain('学习前先登录');
+  expect(output).not.toContain('登录暂时失败。');
+  expect(output).toContain('当前是基础学习态');
+  expect(output).toContain('已加入离线重试队列。');
+  expect(
+    fetchCalls.filter(
+      call => call.input === 'https://api.softbook.example/v1/membership/entitlement',
+    ).length,
+  ).toBeGreaterThanOrEqual(1);
+});
+
 test('wires remote auth, learning source config, membership, progress sync, and space sync through App', async () => {
   const fetchCalls: MockFetchCall[] = [];
 

@@ -270,6 +270,13 @@ const INITIAL_LEARNING_STATE_SYNC_STATE: LearningStateSyncState = {
   state: 'idle',
 };
 
+function createEntitlementPendingMembershipState(): MembershipState {
+  return {
+    ...createInitialMembershipState(),
+    stage: 'free',
+  };
+}
+
 function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
@@ -1436,23 +1443,59 @@ function AppShell() {
           phoneNumber,
           smsCode,
         })
-        .then(session =>
-          membershipRepository
-            .loadState({
-              authToken: session.authToken,
-              phoneNumber: session.phoneNumber,
-            })
+        .then(session => {
+          const membershipContext = {
+            authToken: session.authToken,
+            phoneNumber: session.phoneNumber,
+          };
+
+          return membershipRepository
+            .loadState(membershipContext)
             .then(nextMembershipState => ({
+              membershipErrorMessage: null,
+              membershipRefreshSucceeded: true,
               membershipState: nextMembershipState,
               session,
-            })),
-        )
-        .then(({membershipState: nextMembershipState, session}) => {
+            }))
+            .catch((error: unknown) => {
+              if (runtimeMembershipRepositoryMode !== 'remote') {
+                throw error;
+              }
+
+              return mutationQueueRepository
+                .enqueueMutation(
+                  'refresh_membership',
+                  {
+                    context: membershipContext,
+                  },
+                  `membership:${session.authToken ?? session.phoneNumber}:login`,
+                )
+                .catch(() => undefined)
+                .then(() => ({
+                  membershipErrorMessage: `${getErrorMessage(
+                    error,
+                    '远端 entitlement 暂时无法读取。',
+                  )} 已保留登录态，并加入离线重试队列。`,
+                  membershipRefreshSucceeded: false,
+                  membershipState: createEntitlementPendingMembershipState(),
+                  session,
+                }));
+            });
+        })
+        .then(({
+          membershipErrorMessage,
+          membershipRefreshSucceeded,
+          membershipState: nextMembershipState,
+          session,
+        }) => {
           if (runtimeMembershipRepositoryMode === 'remote') {
-            lastMembershipRefreshKey.current = `${session.authToken ?? ''}:${activeRoute}`;
+            lastMembershipRefreshKey.current = membershipRefreshSucceeded
+              ? `${session.authToken ?? ''}:${activeRoute}`
+              : null;
             pendingMembershipRefreshKey.current = null;
           }
           setMembershipState(nextMembershipState);
+          setMembershipError(membershipErrorMessage);
           setMembershipGate(null);
           setAuthState(current => ({
             ...current,
