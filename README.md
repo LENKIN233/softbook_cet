@@ -150,8 +150,6 @@ npm start
 
 ```bash
 SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
-SOFTBOOK_CET_TEST_PHONE="13800138000" \
-SOFTBOOK_CET_TEST_CODE="2468" \
 infra/cloudbase/smoke-ios-runtime.sh
 ```
 
@@ -159,17 +157,17 @@ infra/cloudbase/smoke-ios-runtime.sh
 
 ```bash
 SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
-SOFTBOOK_CET_TEST_PHONE="13800138000" \
-SOFTBOOK_CET_TEST_CODE="2468" \
 SOFTBOOK_CET_IOS_LAUNCH=1 \
 infra/cloudbase/smoke-ios-runtime.sh
 ```
 
 启动段会先用 React Native CLI 构建并安装 debug app，再通过 `xcrun simctl launch` 的 `SIMCTL_CHILD_*` 环境变量重新启动 `com.softbook.cet`，确保 AppDelegate 能读到同一组远端 runtime profile。默认设备选择 `booted`，默认模拟器名为 `iPhone 17`；如需覆盖可设置 `SOFTBOOK_CET_IOS_DEVICE`、`SOFTBOOK_CET_IOS_SIMULATOR` 或 `SOFTBOOK_CET_IOS_BUNDLE_ID`。
 
+当 `SOFTBOOK_CET_IOS_LAUNCH=1` 时，脚本会打印一个 `19xxxxxxxxx` 形式的一次性手动验收手机号；验证码仍使用 dev fixed code `2468`。如需复现某次验收，可显式设置 `SOFTBOOK_CET_MANUAL_TEST_PHONE` 为脚本打印的手机号。`SOFTBOOK_CET_TEST_CODE` 仍可覆盖验证码，但不应接入真实短信。
+
 手动验收点：
 
-- 登录页显示远端认证模式，并用测试手机号 / 验证码完成登录。
+- 登录页显示远端认证模式，并用脚本打印的一次性手机号 / dev fixed code 完成登录。
 - 学习页加载远端 `cet4` 或 `cet6` 卡源，仍保持单卡流。
 - 首次进入空间启动试用，空间解锁后显示远端卡源的 library / group / box。
 - 完成一张卡后，统计页显示日级同步已推送到远端。

@@ -138,8 +138,6 @@ Run the combined backend contract and JS runtime-profile check:
 
 ```bash
 SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
-SOFTBOOK_CET_TEST_PHONE="13800138000" \
-SOFTBOOK_CET_TEST_CODE="2468" \
 infra/cloudbase/smoke-ios-runtime.sh
 ```
 
@@ -148,8 +146,6 @@ remote profile after the contract check passes:
 
 ```bash
 SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
-SOFTBOOK_CET_TEST_PHONE="13800138000" \
-SOFTBOOK_CET_TEST_CODE="2468" \
 SOFTBOOK_CET_IOS_LAUNCH=1 \
 infra/cloudbase/smoke-ios-runtime.sh
 ```
@@ -161,10 +157,19 @@ reads the app process environment, not the shell environment around the helper
 script. Defaults can be overridden with `SOFTBOOK_CET_IOS_DEVICE`,
 `SOFTBOOK_CET_IOS_SIMULATOR`, and `SOFTBOOK_CET_IOS_BUNDLE_ID`.
 
+When `SOFTBOOK_CET_IOS_LAUNCH=1`, the wrapper prints a one-off manual
+acceptance phone in the `19xxxxxxxxx` format. Use that printed phone in the app;
+the verification code remains the development fixed code `2468`. Set
+`SOFTBOOK_CET_MANUAL_TEST_PHONE` to the printed value when a previous manual
+acceptance run needs to be reproduced. `SOFTBOOK_CET_TEST_CODE` may still
+override the code for non-default dev environments, but this flow must not use
+real SMS.
+
 Manual acceptance after launch:
 
 - Auth screen says it is using remote SMS verification.
-- Login with the test phone and code reaches the learning bootstrap.
+- Login with the printed one-off phone and dev fixed code reaches the learning
+  bootstrap.
 - Learning loads the remote track while preserving the single-card flow.
 - First protected space entry starts trial and unlocks the physical-space map.
 - Completing a card updates statistics and leaves daily progress / learning
