@@ -182,7 +182,23 @@ Manual acceptance after launch:
 - Completing a card updates statistics and leaves daily progress / learning
   state / space state without queued retry errors.
 
-Manual acceptance run notes live in `ios-runtime-acceptance-log.md`.
+Manual and automated acceptance run notes live in
+`ios-runtime-acceptance-log.md`.
+
+Automated Maestro acceptance after remote launch:
+
+```bash
+SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
+infra/cloudbase/smoke-ios-maestro-runtime.sh
+```
+
+`smoke-ios-maestro-runtime.sh` starts or reuses Metro, uninstalls the iOS debug
+app to clear state, delegates the backend contract / runtime-profile / iOS
+remote launch sequence to `smoke-ios-runtime.sh`, and then runs
+`apps/mobile/e2e/maestro/ios-remote-smoke.yaml` against the already-launched app.
+The remote Maestro flow intentionally omits `clearState` and `launchApp`, because
+the app must keep the `SIMCTL_CHILD_*` runtime environment injected by
+`smoke-ios-runtime.sh`.
 
 Local mock flow:
 
