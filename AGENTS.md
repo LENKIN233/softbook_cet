@@ -47,7 +47,9 @@ status: active
 - 会员/试用：`requirement-memory -> product-core -> membership`
 - 交付 / PR / CI：`authority-map -> agent-harness -> repo-delivery-contract -> evals`
 - 视觉输出/设计反推：`requirement-memory -> 相关产品 spec -> visual-language -> docs/design/design-harness.md -> docs/design/visual-reference.html`
-- 用户可见 UI 实现：`requirement-memory -> 相关产品 spec -> visual-language -> 已接受设计稿 -> implementation mapping -> runtime-boundaries`
+- 交互 / 动效设计：`requirement-memory -> product-core -> interactions -> visual-language -> docs/design/design-harness.md -> docs/design/interaction-motion/README.md -> docs/design/storyboards/README.md`
+- 物理空间设计：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog -> visual-language -> docs/design/design-harness.md -> docs/design/physical-space/README.md`
+- 用户可见 UI 实现：`requirement-memory -> 相关产品 spec -> visual-language -> 已接受设计稿 -> interaction/motion 或 physical-space artifact（如适用） -> implementation mapping -> runtime-boundaries`
 - 实现：相关产品 spec -> 合同 spec -> `runtime-boundaries`（若需渲染用户可见 UI，追加 `visual-language`、已接受设计稿与 implementation mapping）
 - 审查/验收：相关 spec -> `agent-harness` -> `evals`
 
@@ -62,6 +64,9 @@ status: active
 - 不要为每个屏幕/每个 agent 各自重造视觉语言；视觉输出必须从 `spec/visual-language.json` 与 `docs/design/visual-reference.html` 继承 token 与剪影
 - 不要直接用 RN 代码、截图或 agent 个人审美定义用户可见设计；任何呈现给用户的 screen / component / state / chrome 都必须先有已接受设计稿或等价设计基准，再进入实现
 - 不要用同一 PR 内新增 / 修改的 design brief 或 decision 为同一 PR 的用户可见 UI 实现背书；同 PR 设计稿只适用于 design-only PR
+- 不要把 task-local design brief 当作 implementation PR 的正式设计权威；它只能作为探索草稿
+- 不要把核心交互 / 小动效当作 UI 完成后的装饰；Learning 或核心交互实现必须先有 interaction/motion artifact 或 storyboard
+- 不要把物理空间当作普通页面 UI；Space 实现必须先有 spatial model / state transition / Learning ↔ Space 连续性 artifact
 - 不要在产出任何视觉稿（mock / screen / reference HTML 改动）后跳过 `spec/visual-language.json#design_review_checklist`；答案必须出现在 PR 描述或 agent 输出里，4 通用 + 2 条件（AP-22 / VL-AP-07）
 - 不要把 self-assess 画成 4 档或用红色表达"再回看"；权威实现在 `apps/mobile/src/learning/LearningSurface.tsx`，2 档=有把握(mint)/再回看(amber)（AP-23）
 
@@ -83,7 +88,7 @@ status: active
 - 默认只读完成任务所需的最小 spec 子集；只有跨域耦合或明确冲突时才升级读取范围
 - 明确区分 `product_truth` 与 `implementation_hypothesis`
 - 如果新增交互、盒码或访问规则，先更新对应 spec，再给结论
-- 若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若涉及用户可见 UI，必须写明设计稿来源与实现映射；若有视觉稿改动，再追加 design review checklist；默认在 review + gate 通过后自动收口合并
+- 若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若涉及用户可见 UI，必须写明设计稿来源、interaction/motion 或 physical-space artifact（如适用）、实现映射与未实现 gap，并回答 design review checklist；默认在 review + gate 通过后自动收口合并
 
 ## 压缩保留
 

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-12",
+  "version": "vnext-13",
   "regressions": [
     {
       "id": "HR-01",
@@ -188,6 +188,18 @@
         "design_source_named_in_PR",
         "implementation_maps_to_accepted_design"
       ]
+    },
+    {
+      "id": "HR-25",
+      "prompt": "开始实现 Learning 或 Space 的核心 UI 改动",
+      "fail_signal": "treats_design_as_generic_UI_or_skips_interaction_motion_physical_space_evidence",
+      "must_hit": [
+        "surface_specific_accepted_artifact",
+        "interaction_motion_artifact_for_learning_or_core_interaction_change",
+        "physical_space_artifact_for_space_change",
+        "design_review_checklist_answers",
+        "implementation_mapping_and_unimplemented_gaps"
+      ]
     }
   ],
   "golden_tasks": [
@@ -336,6 +348,20 @@
         "visual_language_checklist_answered",
         "existing_RN_not_used_as_design_authority",
         "unimplemented_design_gaps_declared"
+      ]
+    },
+    {
+      "id": "GT-19",
+      "task": "定义软书设计体系",
+      "must_include": [
+        "product_capability_systems_not_generic_UI_taxonomy",
+        "learning_progression_system",
+        "card_content_expression_system",
+        "interaction_motion_system",
+        "physical_space_system",
+        "surface_experience_as_carrier",
+        "visual_language_as_style_governance_not_product_owner",
+        "artifact_lifecycle_to_rendered_mock_storyboard_mapping"
       ]
     }
   ]

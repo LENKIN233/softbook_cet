@@ -1,5 +1,5 @@
 {
-  "version": "vnext-12",
+  "version": "vnext-13",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -98,6 +98,28 @@
       "the_implementation_mapping",
       "spec/runtime-boundaries.json"
     ],
+    "interaction_or_motion_design": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/interactions.json",
+      "spec/visual-language.json",
+      "docs/design/design-harness.md",
+      "docs/design/interaction-motion/README.md",
+      "docs/design/storyboards/README.md"
+    ],
+    "physical_space_design": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/knowledge-map.json",
+      "spec/space-operations.json",
+      "spec/box-catalog.json",
+      "spec/visual-language.json",
+      "docs/design/design-harness.md",
+      "docs/design/physical-space/README.md",
+      "docs/design/storyboards/README.md"
+    ],
     "visual_review_or_design_critique": [
       "spec/requirement-memory.json",
       "spec/authority-map.json",
@@ -163,12 +185,56 @@
       ],
       "outputs": [
         "design_artifact_reference",
+        "interaction_motion_artifact_if_core_interaction_changes",
+        "physical_space_artifact_if_space_changes",
         "implementation_mapping",
         "unimplemented_design_gaps",
         "design_review_checklist_answers"
       ],
       "stop_when": "implementation_maps_only_the_accepted_design_artifact_and_does_not_create_new_user_facing_design",
       "blocked_when": "no_accepted_design_artifact_exists_for_the_user_facing_surface"
+    },
+    "interaction_motion_design": {
+      "inputs": [
+        "spec/product-core.json",
+        "spec/interactions.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md"
+      ],
+      "outputs": [
+        "target_interaction",
+        "operation_model",
+        "feedback_model",
+        "failure_and_recovery_states",
+        "motion_intent",
+        "interruptibility",
+        "reduce_motion_fallback",
+        "storyboard_reference"
+      ],
+      "stop_when": "interaction_and_motion_explain_product_state_change_without_becoming_decorative_animation",
+      "blocked_when": "new_or_changed_interaction_contract_has_not_been_updated_in_spec_interactions_json"
+    },
+    "physical_space_design": {
+      "inputs": [
+        "spec/product-core.json",
+        "spec/knowledge-map.json",
+        "spec/space-operations.json",
+        "spec/box-catalog.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md"
+      ],
+      "outputs": [
+        "spatial_model",
+        "current_object_and_parent_context",
+        "allowed_operations",
+        "disallowed_operations",
+        "favorite_tag_semantics",
+        "sleep_wake_state_transition",
+        "learning_space_continuity",
+        "visual_proof_against_flat_list_or_two_box_drift"
+      ],
+      "stop_when": "space_is_designed_as_library_group_box_card_system_not_a_surface_ui_shell",
+      "blocked_when": "space_operation_or_knowledge_ownership_change_has_not_been_updated_in_owner_specs"
     },
     "review": {
       "inputs": ["relevant_specs", "anti_patterns"],
@@ -262,7 +328,7 @@
       "owner": "spec/repo-delivery-contract.json",
       "default_behavior": "code-changing tasks default to topic branch -> commit -> pull request -> agent review -> merge unless the user explicitly requests local-only delivery",
       "merge_policy": "merge to main defaults to automatic merge after clean agent review and required gates are green",
-      "design_gate_policy": "user-facing UI changes require an accepted design artifact before implementation and the PR must state the design source and implementation mapping"
+      "design_gate_policy": "user-facing UI changes require accepted design artifacts, checklist answers, implementation mapping, and capability-specific interaction/motion or physical-space evidence when the change touches those systems"
     }
   },
   "anti_patterns": [
@@ -395,6 +461,21 @@
       "id": "AP-26",
       "name": "implement_user_facing_UI_directly_from_RN_or_agent_taste_without_design_artifact",
       "correction": "treat_existing_RN_as_behavior_prototype_and_require_accepted_design_artifact_before_user_facing_implementation"
+    },
+    {
+      "id": "AP-27",
+      "name": "treat_interaction_motion_as_component_animation_afterthought",
+      "correction": "design_core_interaction_operation_feedback_failure_and_motion_artifacts_before_implementation"
+    },
+    {
+      "id": "AP-28",
+      "name": "treat_physical_space_as_surface_UI_without_spatial_model",
+      "correction": "design_library_group_box_card_spatial_model_state_transitions_and_learning_space_continuity"
+    },
+    {
+      "id": "AP-29",
+      "name": "use_task_local_design_brief_as_implementation_authority",
+      "correction": "task_local_briefs_are_exploration_only_and_implementation_consumes_preexisting_accepted_artifacts"
     }
   ],
   "compaction_keep": [

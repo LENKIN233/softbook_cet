@@ -34,6 +34,38 @@
       "status": "active"
     },
     {
+      "path": "docs/design/interaction-motion/README.md",
+      "authority": "interaction_motion_artifact_index",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["core_interaction_design_task", "motion_design_task", "learning_ui_implementation"],
+      "depends_on": ["spec/interactions.json", "spec/visual-language.json", "docs/design/design-harness.md"],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/physical-space/README.md",
+      "authority": "physical_space_artifact_index",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["physical_space_design_task", "space_ui_implementation"],
+      "depends_on": ["spec/knowledge-map.json", "spec/space-operations.json", "docs/design/design-harness.md"],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/mocks/README.md",
+      "authority": "rendered_mock_artifact_index",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["core_surface_visual_artifact_task", "user_facing_ui_implementation"],
+      "depends_on": ["spec/visual-language.json", "docs/design/design-harness.md"],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/storyboards/README.md",
+      "authority": "storyboard_artifact_index",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["motion_design_task", "state_transition_design_task"],
+      "depends_on": ["spec/interactions.json", "spec/space-operations.json", "docs/design/design-harness.md"],
+      "status": "active"
+    },
+    {
       "path": "docs/design/briefs/learning-space-worldview.md",
       "authority": "accepted_design_brief",
       "audience": ["agent", "designer"],

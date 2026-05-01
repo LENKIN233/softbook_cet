@@ -86,10 +86,11 @@
 - 只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。
 - 如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。
 - 涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / decision，再做实现；同一 PR 内新增的 brief / decision 只能满足 design-only PR。
+- Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 或 storyboard；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。
 
 ## PR 合同与 CI 门槛
 
-- `.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`；若有视觉稿改动再补 `design_review_checklist（如适用）`。
+- `.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。
 - `.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。
 - merge 的默认前置条件是：agent review 无 blocking finding，且 required gates 全绿。
 - 本地开 PR 前仍然应该执行完整的 `python3 scripts/validate_harness.py`，不要只依赖 CI 的 `--skip-remote-guard` 版本。

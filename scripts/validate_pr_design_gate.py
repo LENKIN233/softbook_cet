@@ -22,12 +22,39 @@ USER_FACING_EXTENSIONS = {
 DESIGN_ARTIFACT_PREFIXES = (
     "docs/design/briefs/",
     "docs/design/decisions/",
+    "docs/design/interaction-motion/",
+    "docs/design/physical-space/",
+    "docs/design/mocks/",
+    "docs/design/storyboards/",
 )
 ACCEPTED_SOURCE_MARKERS = (
     "docs/design/visual-reference.html",
     "docs/design/canon.md",
     "docs/design/briefs/",
     "docs/design/decisions/",
+    "docs/design/interaction-motion/",
+    "docs/design/physical-space/",
+    "docs/design/mocks/",
+    "docs/design/storyboards/",
+    "http://",
+    "https://",
+)
+SURFACE_SPECIFIC_SOURCE_MARKERS = (
+    "docs/design/decisions/",
+    "docs/design/mocks/",
+    "docs/design/storyboards/",
+    "http://",
+    "https://",
+)
+INTERACTION_MOTION_SOURCE_MARKERS = (
+    "docs/design/interaction-motion/",
+    "docs/design/storyboards/",
+    "http://",
+    "https://",
+)
+PHYSICAL_SPACE_SOURCE_MARKERS = (
+    "docs/design/physical-space/",
+    "docs/design/storyboards/",
     "http://",
     "https://",
 )
@@ -105,6 +132,10 @@ def referenced_same_pr_design_artifact(value: str, changed_files: list[str]) -> 
     return referenced
 
 
+def has_any_marker(value: str, markers: tuple[str, ...]) -> bool:
+    return any(marker in value for marker in markers)
+
+
 def validate(body: str, changed_files: list[str]) -> list[str]:
     errors = []
     ui_files = [path for path in changed_files if is_user_facing_ui_file(path)]
@@ -114,6 +145,18 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
     design_artifact = line_value(body, "Design artifact")
     implementation_mapping = line_value(body, "Implementation mapping")
     unimplemented_gaps = line_value(body, "Unimplemented design gaps")
+    interaction_motion_artifact = line_value(body, "Interaction/motion artifact")
+    physical_space_artifact = line_value(body, "Physical space artifact")
+    universal_checklist = line_value(body, "Universal Q1-Q4")
+    conditional_checklist = line_value(body, "Conditional Q5-Q6")
+    learning_or_space_files = [
+        path
+        for path in ui_files
+        if path.startswith("apps/mobile/src/learning/")
+        or path.startswith("apps/mobile/src/space/")
+    ]
+    learning_files = [path for path in ui_files if path.startswith("apps/mobile/src/learning/")]
+    space_files = [path for path in ui_files if path.startswith("apps/mobile/src/space/")]
 
     if is_missing(design_artifact):
         errors.append(
@@ -132,8 +175,13 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
         same_pr_artifacts = referenced_same_pr_design_artifact(design_artifact, changed_files)
         if same_pr_artifacts:
             errors.append(
-                "same-PR design brief/decision cannot satisfy an implementation PR design gate: "
+                "same-PR design artifact cannot satisfy an implementation PR design gate: "
                 + ", ".join(same_pr_artifacts)
+            )
+        if learning_or_space_files and not has_any_marker(design_artifact, SURFACE_SPECIFIC_SOURCE_MARKERS):
+            errors.append(
+                "Learning/Space UI changes require a surface-specific accepted decision, mock, storyboard, "
+                "or linked external design file; global visual anchors alone are not enough"
             )
 
     if is_missing(implementation_mapping):
@@ -149,6 +197,52 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
         errors.append(
             "user-facing UI files changed, but PR body does not state non-N/A Unimplemented design gaps"
         )
+
+    if is_missing(universal_checklist):
+        errors.append(
+            "user-facing UI files changed, but PR body does not answer Universal Q1-Q4"
+        )
+
+    if is_missing(conditional_checklist):
+        errors.append(
+            "user-facing UI files changed, but PR body does not answer Conditional Q5-Q6"
+        )
+
+    if learning_files:
+        if is_missing(interaction_motion_artifact):
+            errors.append(
+                "Learning/core interaction UI changed, but PR body does not name a non-N/A Interaction/motion artifact"
+            )
+        elif not has_any_marker(interaction_motion_artifact, INTERACTION_MOTION_SOURCE_MARKERS):
+            errors.append(
+                "Interaction/motion artifact must name docs/design/interaction-motion, docs/design/storyboards, "
+                "or a linked external design file"
+            )
+        else:
+            same_pr_artifacts = referenced_same_pr_design_artifact(interaction_motion_artifact, changed_files)
+            if same_pr_artifacts:
+                errors.append(
+                    "same-PR interaction/motion artifact cannot satisfy an implementation PR design gate: "
+                    + ", ".join(same_pr_artifacts)
+                )
+
+    if space_files:
+        if is_missing(physical_space_artifact):
+            errors.append(
+                "Space UI changed, but PR body does not name a non-N/A Physical space artifact"
+            )
+        elif not has_any_marker(physical_space_artifact, PHYSICAL_SPACE_SOURCE_MARKERS):
+            errors.append(
+                "Physical space artifact must name docs/design/physical-space, docs/design/storyboards, "
+                "or a linked external design file"
+            )
+        else:
+            same_pr_artifacts = referenced_same_pr_design_artifact(physical_space_artifact, changed_files)
+            if same_pr_artifacts:
+                errors.append(
+                    "same-PR physical-space artifact cannot satisfy an implementation PR design gate: "
+                    + ", ".join(same_pr_artifacts)
+                )
 
     return errors
 

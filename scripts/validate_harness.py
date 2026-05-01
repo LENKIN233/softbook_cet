@@ -387,7 +387,7 @@ check_equal(
 )
 check_equal(
     "repo_delivery_contract design_gate_policy",
-    "user-facing UI changes require an accepted design artifact before implementation and the PR must state the design source and implementation mapping",
+    "user-facing UI changes require accepted design artifacts, checklist answers, implementation mapping, and capability-specific interaction/motion or physical-space evidence when the change touches those systems",
     repo_delivery_contract["design_gate_policy"],
 )
 check_equal(
@@ -472,6 +472,48 @@ check_equal(
     True,
     pull_request_contract["user_facing_ui_design_gate"]["existing_code_is_not_design_authority"],
 )
+check_equal(
+    "pull_request_contract user_facing_ui_design_gate accepted_sources",
+    [
+        "docs/design/visual-reference.html",
+        "docs/design/canon.md",
+        "docs/design/briefs/*.md",
+        "docs/design/decisions/*.md",
+        "docs/design/interaction-motion/*.md",
+        "docs/design/physical-space/*.md",
+        "docs/design/mocks/*.md",
+        "docs/design/storyboards/*.md",
+        "linked_external_design_file",
+    ],
+    pull_request_contract["user_facing_ui_design_gate"]["accepted_sources"],
+)
+check_equal(
+    "pull_request_contract task_local_design_brief_rule",
+    "task-local design briefs may guide exploration but are not accepted implementation authority",
+    pull_request_contract["user_facing_ui_design_gate"]["task_local_design_brief_rule"],
+)
+check_equal(
+    "pull_request_contract pull_request_must_state",
+    [
+        "design_artifact_source",
+        "interaction_motion_artifact_if_core_interaction_changes",
+        "physical_space_artifact_if_space_changes",
+        "implementation_mapping",
+        "unimplemented_design_gaps_if_any",
+        "design_review_checklist_answers",
+    ],
+    pull_request_contract["user_facing_ui_design_gate"]["pull_request_must_state"],
+)
+check_equal(
+    "pull_request_contract core_product_capability_design_gate",
+    {
+        "learning_or_space_ui_requires_surface_specific_artifact": True,
+        "core_interaction_ui_requires_interaction_motion_artifact": True,
+        "space_ui_requires_physical_space_artifact": True,
+        "core_surface_quality_requires_rendered_mock_or_storyboard_before_full_visual_completion": True,
+    },
+    pull_request_contract["user_facing_ui_design_gate"]["core_product_capability_design_gate"],
+)
 check_equal("ci_contract workflow_path", ".github/workflows/pr-gates.yml", ci_contract["workflow_path"])
 check_equal(
     "ci_contract pull_request_template_path",
@@ -551,6 +593,45 @@ if ap26:
         "AP-26 correction",
         "treat_existing_RN_as_behavior_prototype_and_require_accepted_design_artifact_before_user_facing_implementation",
         ap26["correction"],
+    )
+
+ap27 = find_by_id(harness["anti_patterns"], "AP-27")
+if ap27:
+    check_equal(
+        "AP-27 name",
+        "treat_interaction_motion_as_component_animation_afterthought",
+        ap27["name"],
+    )
+    check_equal(
+        "AP-27 correction",
+        "design_core_interaction_operation_feedback_failure_and_motion_artifacts_before_implementation",
+        ap27["correction"],
+    )
+
+ap28 = find_by_id(harness["anti_patterns"], "AP-28")
+if ap28:
+    check_equal(
+        "AP-28 name",
+        "treat_physical_space_as_surface_UI_without_spatial_model",
+        ap28["name"],
+    )
+    check_equal(
+        "AP-28 correction",
+        "design_library_group_box_card_spatial_model_state_transitions_and_learning_space_continuity",
+        ap28["correction"],
+    )
+
+ap29 = find_by_id(harness["anti_patterns"], "AP-29")
+if ap29:
+    check_equal(
+        "AP-29 name",
+        "use_task_local_design_brief_as_implementation_authority",
+        ap29["name"],
+    )
+    check_equal(
+        "AP-29 correction",
+        "task_local_briefs_are_exploration_only_and_implementation_consumes_preexisting_accepted_artifacts",
+        ap29["correction"],
     )
 
 hr19 = find_by_id(evals["regressions"], "HR-19")
@@ -637,6 +718,25 @@ if hr24:
         hr24["must_hit"],
     )
 
+hr25 = find_by_id(evals["regressions"], "HR-25")
+if hr25:
+    check_equal(
+        "HR-25 fail_signal",
+        "treats_design_as_generic_UI_or_skips_interaction_motion_physical_space_evidence",
+        hr25["fail_signal"],
+    )
+    check_equal(
+        "HR-25 must_hit",
+        [
+            "surface_specific_accepted_artifact",
+            "interaction_motion_artifact_for_learning_or_core_interaction_change",
+            "physical_space_artifact_for_space_change",
+            "design_review_checklist_answers",
+            "implementation_mapping_and_unimplemented_gaps",
+        ],
+        hr25["must_hit"],
+    )
+
 gt18 = find_by_id(evals["golden_tasks"], "GT-18")
 if gt18:
     check_equal("GT-18 task", "实现用户可见 UI", gt18["task"])
@@ -650,6 +750,24 @@ if gt18:
             "unimplemented_design_gaps_declared",
         ],
         gt18["must_include"],
+    )
+
+gt19 = find_by_id(evals["golden_tasks"], "GT-19")
+if gt19:
+    check_equal("GT-19 task", "定义软书设计体系", gt19["task"])
+    check_equal(
+        "GT-19 must_include",
+        [
+            "product_capability_systems_not_generic_UI_taxonomy",
+            "learning_progression_system",
+            "card_content_expression_system",
+            "interaction_motion_system",
+            "physical_space_system",
+            "surface_experience_as_carrier",
+            "visual_language_as_style_governance_not_product_owner",
+            "artifact_lifecycle_to_rendered_mock_storyboard_mapping",
+        ],
+        gt19["must_include"],
     )
 
 p23 = find_by_id(perturbation_audit["perturbations"], "P-23")
@@ -717,6 +835,45 @@ if p32:
         p32["guarded_by"],
     )
 
+p33 = find_by_id(perturbation_audit["perturbations"], "P-33")
+if p33:
+    check_equal(
+        "P-33 change",
+        "Use a task-local design brief as the authority for the same implementation PR",
+        p33["change"],
+    )
+    check_equal(
+        "P-33 guarded_by",
+        ["spec/repo-delivery-contract.json", "spec/visual-language.json", "scripts/validate_pr_design_gate.py"],
+        p33["guarded_by"],
+    )
+
+p34 = find_by_id(perturbation_audit["perturbations"], "P-34")
+if p34:
+    check_equal(
+        "P-34 change",
+        "Treat core interaction motion as decorative animation added after UI implementation",
+        p34["change"],
+    )
+    check_equal(
+        "P-34 guarded_by",
+        ["spec/interactions.json", "spec/agent-harness.json", "spec/evals.json"],
+        p34["guarded_by"],
+    )
+
+p35 = find_by_id(perturbation_audit["perturbations"], "P-35")
+if p35:
+    check_equal(
+        "P-35 change",
+        "Treat physical space as a normal page UI without a spatial model or state transitions",
+        p35["change"],
+    )
+    check_equal(
+        "P-35 guarded_by",
+        ["spec/knowledge-map.json", "spec/space-operations.json", "spec/agent-harness.json", "spec/evals.json"],
+        p35["guarded_by"],
+    )
+
 agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
 for snippet in [
     "`main` 是只读集成分支，不要直接在 `main` 上开发、提交、合并或推送",
@@ -727,7 +884,10 @@ for snippet in [
     "未完成 agent review、required gates 未全绿，或权限/环境阻止 merge 时，不要提前合并到 `main`",
     "如果权限或环境阻止创建 PR，必须明确交付 branch、commit、验证结果与阻塞原因",
     "不要直接用 RN 代码、截图或 agent 个人审美定义用户可见设计；任何呈现给用户的 screen / component / state / chrome 都必须先有已接受设计稿或等价设计基准，再进入实现",
-    "若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若涉及用户可见 UI，必须写明设计稿来源与实现映射；若有视觉稿改动，再追加 design review checklist；默认在 review + gate 通过后自动收口合并",
+    "不要把 task-local design brief 当作 implementation PR 的正式设计权威；它只能作为探索草稿",
+    "不要把核心交互 / 小动效当作 UI 完成后的装饰；Learning 或核心交互实现必须先有 interaction/motion artifact 或 storyboard",
+    "不要把物理空间当作普通页面 UI；Space 实现必须先有 spatial model / state transition / Learning ↔ Space 连续性 artifact",
+    "若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若涉及用户可见 UI，必须写明设计稿来源、interaction/motion 或 physical-space artifact（如适用）、实现映射与未实现 gap，并回答 design review checklist；默认在 review + gate 通过后自动收口合并",
 ]:
     check_contains("AGENTS governance mirror", agents_text, snippet)
 
@@ -750,7 +910,8 @@ for snippet in [
     "只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。",
     "如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。",
     "涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / decision，再做实现；同一 PR 内新增的 brief / decision 只能满足 design-only PR。",
-    "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`；若有视觉稿改动再补 `design_review_checklist（如适用）`。",
+    "Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 或 storyboard；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
+    "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。",
     "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。",
     "merge 的默认前置条件是：agent review 无 blocking finding，且 required gates 全绿。",
 ]:
@@ -772,8 +933,10 @@ for snippet in [
     "- `spec/visual-language.json`",
     "- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness 校验 + mobile lint + mobile typecheck + mobile test）",
     "- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）",
+    "- `docs/design/interaction-motion/` / `docs/design/physical-space/` / `docs/design/mocks/` / `docs/design/storyboards/`: 核心交互、动效、空间模型、视觉稿和 storyboard artifact 入口",
     "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",
     "任何用户可见 UI 改动都必须先引用已接受设计稿 / reference / design brief / decision，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口；同一 PR 内新增的 brief / decision 只能满足 design-only PR。",
+    "Learning / core interaction UI 改动还必须引用 interaction-motion artifact 或 storyboard；Space UI 改动还必须引用 physical-space artifact 或 storyboard；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
 ]:
     check_contains("README delivery mirror", readme_text, snippet)
 
@@ -1101,6 +1264,12 @@ else:
     pr_template_text = pr_template_path.read_text(encoding="utf-8")
     for heading in pull_request_contract["required_body_sections"]:
         check_contains("PR template heading", pr_template_text, f"## {heading}")
+    for snippet in [
+        "- Interaction/motion artifact: N/A",
+        "- Physical space artifact: N/A",
+        "用户可见 UI 改动必须回答下方 `Universal Q1-Q4` 与适用的 `Conditional Q5-Q6`，不能保留 `N/A`。",
+    ]:
+        check_contains("PR template design gate fields", pr_template_text, snippet)
 
 # ─────────────────────────────────────────────────────────────
 # Visual language / design harness gates.
@@ -1227,13 +1396,21 @@ else:
     for artifact in [
         "docs/design/visual-reference.html",
         "docs/design/canon.md",
+        "docs/design/interaction-motion/*.md",
+        "docs/design/physical-space/*.md",
+        "docs/design/mocks/*.md",
+        "docs/design/storyboards/*.md",
         "linked_external_design_file",
-        "task_local_design_brief_answering_design_review_checklist",
     ]:
         if artifact not in accepted_artifacts:
             errors.append(f"visual-language.json user_facing_ui_requires_design_artifact missing accepted artifact {artifact}")
+    if "task_local_design_brief_answering_design_review_checklist" in accepted_artifacts:
+        errors.append("visual-language.json must not accept task-local design briefs as implementation authority")
 
     ui_gate_impl = vl.get("implementation_hypothesis", {}).get("design_artifact_gate", {})
+    impl_accepted_artifacts = ui_gate_impl.get("accepted_artifacts", [])
+    if "task_local_design_brief_answering_design_review_checklist" in impl_accepted_artifacts:
+        errors.append("visual-language.json design_artifact_gate must not accept task-local design briefs as implementation authority")
     check_equal(
         "visual-language design_artifact_gate required_before",
         "implementation_that_changes_user_facing_UI",
@@ -1241,9 +1418,11 @@ else:
     )
     check_equal(
         "visual-language design_artifact_gate pull_request_must_state",
-        "design_artifact_source_and_implementation_mapping",
+        "design_artifact_source_implementation_mapping_and_design_review_checklist",
         ui_gate_impl.get("pull_request_must_state"),
     )
+    if "task_local_design_brief_for_implementation_pr" not in ui_gate_impl.get("not_accepted_as_design_authority", []):
+        errors.append("visual-language.json design_artifact_gate must reject task-local briefs as implementation authority")
 
     vl_ap09 = find_by_id(vl.get("anti_patterns", []), "VL-AP-09")
     if vl_ap09:

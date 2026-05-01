@@ -87,6 +87,36 @@ Delivery harness 负责保真，不负责创造。
 
 同一 PR 中同时提交 design brief 和 RN 实现时，design brief 不应自动视为 accepted artifact。设计-only PR 可以创建 artifact；implementation PR 只能消费已接受 artifact，除非用户明确批准例外。
 
+## 产品能力设计系统
+
+软书设计不能按通用 UI 分类平铺。每个 design artifact 必须说明它服务哪个产品能力系统：
+
+1. Learning 推进系统
+   用户如何被系统带着处理当前卡，而不是自己管理模块、计划或统计。
+
+2. Card / Content 表达系统
+   CET 题干、解析、易错点、hint、音频和背面内容如何成为考试知识卡。
+
+3. Interaction + Motion 系统
+   `flip` / `multiple_choice` / `lock` / `elimination` / `swipe` / `hint_layer` 的操作模型、反馈模型、失败态、小动画和 reduce-motion fallback。
+
+4. Physical Space 系统
+   library / group / box / card 的空间结构、当前卡地址、box inspect、favorite tag、sleep / wake，以及 Learning ↔ Space 连续关系。
+
+5. Surface Experience 系统
+   Learning、Space、Stats、Mine、Paywall、Auth 等页面如何承载上层产品能力。
+
+6. Visual Language 系统
+   Aurora Glass、Law of One、学科色、材料、排版和 forbidden patterns。它统一气质，但不能替代 surface / interaction / space 设计。
+
+7. Platform Adaptation 系统
+   phone / tablet / pc web 的布局、输入和信息架构差异。
+
+8. Implementation Mapping 系统
+   accepted artifact 如何映射到 RN / Web，哪些 gap 未实现。
+
+如果一个 artifact 只描述“好看的界面”，但不能说明它服务哪个产品能力系统，它不合格。
+
 ## Design Artifact Lifecycle
 
 1. `briefs/`
@@ -103,6 +133,20 @@ Delivery harness 负责保真，不负责创造。
 
 5. `mapping/`
    把 accepted design artifact 映射到 RN、Web 或其他实现。
+
+6. `interaction-motion/`
+   定义核心交互的操作、反馈、失败态、小动画、可中断性和 reduce-motion fallback。
+
+7. `physical-space/`
+   定义空间模型、层级、位置状态、favorite tag、sleep / wake 和 Learning ↔ Space 连续性。
+
+8. `mocks/`
+   保存核心 surface / state 的可渲染视觉稿或外部设计稿索引。核心 UI 实现不能只靠 prose direction 声称高审美完成。
+
+9. `storyboards/`
+   保存交互、动效、空间转场和状态变化的 storyboard。
+
+`task-local design brief` 只能作为探索草稿；它不能作为 implementation PR 的正式设计权威。核心 UI implementation PR 必须消费已存在的 accepted artifact，并声明 mapping 与 gap。
 
 ## 软书的审美命题
 
