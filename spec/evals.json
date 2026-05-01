@@ -1,5 +1,5 @@
 {
-  "version": "vnext-11",
+  "version": "vnext-12",
   "regressions": [
     {
       "id": "HR-01",
@@ -177,6 +177,17 @@
         "agent_review_before_merge",
         "auto_merge_after_clean_review_and_green_gates"
       ]
+    },
+    {
+      "id": "HR-24",
+      "prompt": "开始实现一个用户可见 UI 改动",
+      "fail_signal": "starts_RN_or_CSS_implementation_without_design_artifact_source",
+      "must_hit": [
+        "design_artifact_required_before_implementation",
+        "existing_RN_is_behavior_prototype_not_visual_authority",
+        "design_source_named_in_PR",
+        "implementation_maps_to_accepted_design"
+      ]
     }
   ],
   "golden_tasks": [
@@ -314,6 +325,17 @@
         "pull_request_body_contains_specs_summary_validation",
         "agent_review_before_merge",
         "merge_only_blocks_on_review_gate_or_permission_failure"
+      ]
+    },
+    {
+      "id": "GT-18",
+      "task": "实现用户可见 UI",
+      "must_include": [
+        "accepted_design_artifact_before_implementation",
+        "design_source_and_mapping_in_PR",
+        "visual_language_checklist_answered",
+        "existing_RN_not_used_as_design_authority",
+        "unimplemented_design_gaps_declared"
       ]
     }
   ]

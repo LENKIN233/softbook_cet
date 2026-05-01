@@ -1,5 +1,5 @@
 {
-  "version": "vnext-10",
+  "version": "vnext-11",
   "purpose": "Counterfactual perturbation audit used to avoid local optima and catch silent drift away from the user's original requirements.",
   "perturbations": [
     {
@@ -223,6 +223,13 @@
       "change": "Merge a pull request before agent review finishes or while required gates are red",
       "expected_failure": "bypasses the review-and-gate contract and can land unchecked changes on main",
       "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-32",
+      "change": "Implement user-facing UI directly from RN code or agent taste without an accepted design artifact",
+      "expected_failure": "solidifies an unreviewed visual layer into product implementation and bypasses the design-artifact gate",
+      "guarded_by": ["spec/visual-language.json", "spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
       "status": "rejected"
     }
   ],

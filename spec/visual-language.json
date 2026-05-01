@@ -1,5 +1,5 @@
 {
-  "version": "vnext-1",
+  "version": "vnext-2",
   "layer": "implementation_hypothesis_with_minimal_product_truth",
   "purpose": "Stabilize visual output across agents and human designers so that every new screen, mock, or component inherits the same atmosphere instead of reinventing one. This file is the structured entry; the canonical visual anchor is docs/design/visual-reference.html and the prose canon is docs/design/canon.md. All three move together.",
   "authority_note": "Nothing here can override spec/product-core.json, spec/interactions.json, spec/knowledge-map.json, spec/card-system.json, spec/action-surface.json, or spec/membership.json. When this file disagrees with an owner listed in spec/authority-map.json, the owner wins and this file is edited to match.",
@@ -10,7 +10,24 @@
   },
 
   "product_truth": {
-    "note": "Narrow by design. Only claims that, if violated, would corrupt product comprehension (library identity, self-assess semantics, Law of One) are product_truth. Everything visual that is merely a stylistic choice lives in implementation_hypothesis.",
+    "note": "Narrow by design. Only claims that, if violated, would corrupt product comprehension or delivery governance (library identity, self-assess semantics, Law of One, design-artifact gate) are product_truth. Everything visual that is merely a stylistic choice lives in implementation_hypothesis.",
+
+    "user_facing_ui_requires_design_artifact": {
+      "claim": "Every user-facing UI surface, component, state, and visual change must be specified first in an accepted design artifact before React Native or any other implementation layer treats it as shippable. Existing RN screens are behavior prototypes until mapped back to an accepted design artifact.",
+      "accepted_artifacts": [
+        "docs/design/visual-reference.html",
+        "docs/design/canon.md",
+        "linked_external_design_file",
+        "task_local_design_brief_answering_design_review_checklist"
+      ],
+      "binding": [
+        "spec/repo-delivery-contract.json",
+        "spec/agent-harness.json",
+        "docs/design/visual-reference.html",
+        "docs/design/canon.md"
+      ],
+      "violation_is": "delivery_blocker"
+    },
 
     "library_identity_is_visually_distinct": {
       "claim": "Each CET library in spec/knowledge-map.json must be visually identifiable by a stable, learnable identity color so that the user always knows which library they are currently in.",
@@ -208,8 +225,32 @@
       ]
     },
 
+    "design_artifact_gate": {
+      "_note": "This is the implementation-facing gate for the product_truth rule above. It keeps user-facing design decisions out of ad hoc component code.",
+      "applies_to": [
+        "new_user_facing_screen",
+        "user_facing_component_or_state_change",
+        "visual_style_change",
+        "empty_loading_error_or_paywall_state",
+        "navigation_or_chrome_change"
+      ],
+      "accepted_artifacts": [
+        "docs/design/visual-reference.html",
+        "docs/design/canon.md",
+        "linked_external_design_file",
+        "task_local_design_brief_answering_design_review_checklist"
+      ],
+      "not_accepted_as_design_authority": [
+        "existing_RN_component_without_design_reference",
+        "post_implementation_screenshot_after_coding",
+        "agent_or_developer_personal_taste_statement"
+      ],
+      "required_before": "implementation_that_changes_user_facing_UI",
+      "pull_request_must_state": "design_artifact_source_and_implementation_mapping"
+    },
+
     "design_review_checklist": {
-      "_note": "Any agent producing visual output (mock, component, screen, reference HTML) must answer these before declaring work complete. 4 universal + 2 conditional. Answers go into the PR body or agent output; missing answers = incomplete work.",
+      "_note": "Any agent producing visual output (mock, component, screen, reference HTML) or implementing user-facing UI must answer these before declaring work complete. 4 universal + 2 conditional. Answers go into the PR body or agent output; missing answers = incomplete work.",
       "universal": [
         {"id": "Q1", "question": "Which library is the current one on this screen, and is the single strong accent bound to it? (Law of One)"},
         {"id": "Q2", "question": "What is the focal object, and is the first-read path (focal → secondary → chrome) clear when squinted?"},
@@ -263,6 +304,11 @@
       "id": "VL-AP-08",
       "name": "promoting_implementation_hypothesis_hex_into_product_truth",
       "correction": "only_hue_family_and_semantic_binding_are_product_truth_hex_values_are_tunable_within_plus_minus_5_percent_but_the_7_library_identity_hex_and_2_self_assess_hex_are_locked_as_mirrored_source_of_truth"
+    },
+    {
+      "id": "VL-AP-09",
+      "name": "implementing_user_facing_UI_without_design_artifact",
+      "correction": "create_or_reference_accepted_design_artifact_before_RN_or_other_user_facing_implementation"
     }
   ],
 
@@ -270,9 +316,10 @@
     "when_to_read": [
       "any_task_that_produces_visual_output_mocks_screens_components_mockups",
       "any_implementation_task_that_renders_library_feedback_or_map_surfaces",
+      "any_task_that_changes_user_facing_UI",
       "any_review_task_that_checks_for_product_distortion_in_visual_layer"
     ],
-    "stop_when": "visual_output_inherits_tokens_and_silhouettes_from_this_file_without_reinventing_them",
+    "stop_when": "visual_output_or_user_facing_implementation_has_an_accepted_design_artifact_and_inherits_tokens_and_silhouettes_from_this_file_without_reinventing_them",
     "escalate_when": [
       "product_owner_spec_disagrees_with_a_claim_here",
       "a_new_library_or_new_interaction_appears_that_has_no_identity_mapping",
