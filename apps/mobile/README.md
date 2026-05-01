@@ -61,6 +61,9 @@ JAVA_HOME=/opt/homebrew/opt/openjdk PATH=/opt/homebrew/opt/openjdk/bin:$PATH npm
 
 主流程文件：`apps/mobile/e2e/maestro/ios-smoke.yaml`。
 
+最近一次本地 iOS UI 自动化验收记录：
+`apps/mobile/e2e/maestro/ios-smoke-acceptance-log.md`。
+
 ## runtime config
 
 应用启动时会读取 `src/runtime/appRuntimeConfig.ts`。
