@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { DimensionValue } from 'react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -83,6 +83,11 @@ export function LearningSurface({
   onStartReview,
 }: LearningSurfaceProps) {
   const isReviewPhase = phase === 'review';
+  const currentCardScrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    currentCardScrollRef.current?.scrollTo({ animated: false, y: 0 });
+  }, [currentCard?.card_id, currentIndex, phase]);
 
   if (currentCard === null || currentCardState === null) {
     const summary = summarizeLearningResults(
@@ -206,6 +211,7 @@ export function LearningSurface({
               borderColor: palette.border,
             },
           ]}
+          testID="learning-complete-details"
         >
           <Text style={[styles.sectionTitle, { color: palette.text }]}>
             完成明细
@@ -263,7 +269,7 @@ export function LearningSurface({
   )}%` as DimensionValue;
 
   return (
-    <ScrollView contentContainerStyle={styles.page}>
+    <ScrollView ref={currentCardScrollRef} contentContainerStyle={styles.page}>
       <View
         style={[
           styles.sessionRail,

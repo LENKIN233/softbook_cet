@@ -50,12 +50,13 @@ npm test -- --watch=false
 
 当前采用 Maestro 承接 iOS 端到端 UI 输入路径，覆盖手机号验证码登录、进入空间触发完整试用、回到学习完成一轮卡、进入统计并签到。
 
-前提：本机已安装 Maestro，且 iOS 模拟器上已安装 / 启动 `com.softbook.cet`。
+前提：本机已安装 Maestro，iOS 模拟器上已安装 `com.softbook.cet`，且 Metro 正在运行。
 
 ```bash
 cd apps/mobile
+npm start
 npm run ios
-npm run e2e:ios:maestro
+JAVA_HOME=/opt/homebrew/opt/openjdk PATH=/opt/homebrew/opt/openjdk/bin:$PATH npm run e2e:ios:maestro
 ```
 
 主流程文件：`apps/mobile/e2e/maestro/ios-smoke.yaml`。

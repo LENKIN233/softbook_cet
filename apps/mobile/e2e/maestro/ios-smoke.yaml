@@ -3,12 +3,19 @@ name: ios-auth-learning-space-statistics-smoke
 ---
 - clearState
 - launchApp
-- assertVisible:
-    id: "auth-phone-input"
+- extendedWaitUntil:
+    visible:
+      id: "auth-phone-input"
+    timeout: 30000
 - tapOn:
     id: "auth-phone-input"
 - inputText: "13800138000"
-- hideKeyboard
+- tapOn:
+    id: "auth-dismiss-keyboard-button"
+- scrollUntilVisible:
+    element:
+      id: "auth-request-code-button"
+    direction: DOWN
 - tapOn:
     id: "auth-request-code-button"
 - assertVisible:
@@ -16,18 +23,23 @@ name: ios-auth-learning-space-statistics-smoke
 - tapOn:
     id: "auth-code-input"
 - inputText: "2468"
-- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "auth-submit-button"
+    direction: DOWN
 - tapOn:
     id: "auth-submit-button"
+- tapOn:
+    point: "16%,91%"
 - assertVisible:
     id: "learning-current-card"
 
 - tapOn:
-    id: "route-tab-space"
+    point: "39%,91%"
 - assertVisible:
     id: "space-current-position"
 - tapOn:
-    id: "route-tab-learning"
+    point: "16%,91%"
 - assertVisible:
     id: "learning-current-card"
 
@@ -35,89 +47,124 @@ name: ios-auth-learning-space-statistics-smoke
     element:
       id: "learning-flip-button"
     direction: DOWN
+    centerElement: true
 - tapOn:
     id: "learning-flip-button"
 - scrollUntilVisible:
     element:
       id: "learning-flip-confident-button"
     direction: DOWN
+    centerElement: true
 - tapOn:
     id: "learning-flip-confident-button"
-- tapOn:
-    id: "learning-next-button"
 - scrollUntilVisible:
     element:
-      id: "learning-current-card"
-    direction: UP
+      id: "learning-next-button"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "learning-next-button"
 
 - scrollUntilVisible:
     element:
       id: "learning-option-unclear"
     direction: DOWN
+    centerElement: true
 - tapOn:
     id: "learning-option-unclear"
-- tapOn:
-    id: "learning-submit-button"
-- tapOn:
-    id: "learning-next-button"
 - scrollUntilVisible:
     element:
-      id: "learning-current-card"
-    direction: UP
+      id: "learning-submit-button"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "learning-submit-button"
+- scrollUntilVisible:
+    element:
+      id: "learning-next-button"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "learning-next-button"
 
 - scrollUntilVisible:
     element:
       id: "learning-lock-subject-the-policy"
     direction: DOWN
+    centerElement: true
 - tapOn:
     id: "learning-lock-subject-the-policy"
 - tapOn:
     id: "learning-lock-verb-reduces"
 - tapOn:
     id: "learning-lock-object-test-anxiety"
-- tapOn:
-    id: "learning-submit-button"
-- tapOn:
-    id: "learning-next-button"
 - scrollUntilVisible:
     element:
-      id: "learning-current-card"
-    direction: UP
+      id: "learning-submit-button"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "learning-submit-button"
+- scrollUntilVisible:
+    element:
+      id: "learning-next-button"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "learning-next-button"
 
 - scrollUntilVisible:
     element:
       id: "learning-elimination-relative_clause"
     direction: DOWN
+    centerElement: true
 - tapOn:
     id: "learning-elimination-relative_clause"
 - tapOn:
     id: "learning-elimination-adverb"
 - tapOn:
     id: "learning-elimination-time_phrase"
-- tapOn:
-    id: "learning-submit-button"
-- tapOn:
-    id: "learning-next-button"
 - scrollUntilVisible:
     element:
-      id: "learning-current-card"
-    direction: UP
+      id: "learning-submit-button"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "learning-submit-button"
+- scrollUntilVisible:
+    element:
+      id: "learning-next-button"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "learning-next-button"
 
 - scrollUntilVisible:
     element:
       id: "learning-swipe-safe"
     direction: DOWN
+    centerElement: true
 - tapOn:
     id: "learning-swipe-safe"
+- scrollUntilVisible:
+    element:
+      id: "learning-submit-button"
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: "learning-submit-button"
+- scrollUntilVisible:
+    element:
+      id: "learning-next-button"
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: "learning-next-button"
 - assertVisible:
-    id: "learning-complete-summary"
+    id: "learning-complete-details"
 
 - tapOn:
-    id: "route-tab-statistics"
+    point: "62%,91%"
 - assertVisible:
     id: "statistics-metric-completed"
 - assertVisible:

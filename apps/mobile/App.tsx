@@ -9,7 +9,10 @@ import React, {
 import NetInfo from '@react-native-community/netinfo';
 import {
   AppState,
+  InputAccessoryView,
+  Keyboard,
   Pressable,
+  Platform,
   ScrollView,
   StatusBar,
   StyleProp,
@@ -258,6 +261,7 @@ const DARK_PALETTE: Palette = {
 };
 
 const PROTECTED_ROUTES: RouteKey[] = ['learning', 'space', 'statistics'];
+const AUTH_KEYBOARD_ACCESSORY_ID = 'auth-keyboard-accessory';
 
 const INITIAL_AUTH_STATE: AuthState = {
   authToken: null,
@@ -2498,7 +2502,11 @@ function AuthGate({
   route: ShellRoute;
 }) {
   return (
-    <ScrollView contentContainerStyle={styles.canvasContent}>
+    <ScrollView
+      contentContainerStyle={[styles.canvasContent, styles.authCanvasContent]}
+      keyboardDismissMode="on-drag"
+      keyboardShouldPersistTaps="handled"
+    >
       <View
         style={[
           styles.hero,
@@ -3118,6 +3126,7 @@ function PhoneSmsPanel({
 }) {
   const isAuthenticated = authState.stage === 'authenticated';
   const isPending = authState.pendingAction !== null;
+  const hasRequestedCode = authState.stage !== 'logged_out';
 
   return (
     <View
@@ -3138,6 +3147,9 @@ function PhoneSmsPanel({
         <TextInput
           autoCapitalize="none"
           editable={!isPending && !isAuthenticated}
+          inputAccessoryViewID={
+            Platform.OS === 'ios' ? AUTH_KEYBOARD_ACCESSORY_ID : undefined
+          }
           keyboardType="number-pad"
           maxLength={11}
           onChangeText={handlers.onChangePhone}
@@ -3156,6 +3168,49 @@ function PhoneSmsPanel({
           value={authState.phoneNumber}
         />
       </View>
+
+      {hasRequestedCode ? (
+        <View style={styles.fieldGroup}>
+          <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
+            验证码
+          </Text>
+          <TextInput
+            editable={!isPending && !isAuthenticated}
+            inputAccessoryViewID={
+              Platform.OS === 'ios' ? AUTH_KEYBOARD_ACCESSORY_ID : undefined
+            }
+            keyboardType="number-pad"
+            maxLength={6}
+            onChangeText={handlers.onChangeCode}
+            placeholder="输入 4-6 位验证码"
+            placeholderTextColor={palette.tabIdle}
+            style={[
+              styles.input,
+              {
+                backgroundColor: palette.panelStrong,
+                borderColor: palette.border,
+                color: palette.text,
+              },
+            ]}
+            testID="auth-code-input"
+            textContentType="oneTimeCode"
+            value={authState.smsCode}
+          />
+        </View>
+      ) : null}
+
+      {!isAuthenticated && hasRequestedCode ? (
+        <Pressable
+          disabled={isPending}
+          onPress={handlers.onSubmitCode}
+          style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+          testID="auth-submit-button"
+        >
+          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            {authState.pendingAction === 'verify_code' ? '正在登录' : '完成登录'}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <View style={styles.authActions}>
         <Pressable
@@ -3187,37 +3242,39 @@ function PhoneSmsPanel({
         </Text>
       </View>
 
-      {authState.stage !== 'logged_out' ? (
-        <View style={styles.fieldGroup}>
-          <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
-            验证码
-          </Text>
-          <TextInput
-            editable={!isPending && !isAuthenticated}
-            keyboardType="number-pad"
-            maxLength={6}
-            onChangeText={handlers.onChangeCode}
-            placeholder="输入 4-6 位验证码"
-            placeholderTextColor={palette.tabIdle}
-            style={[
-              styles.input,
-              {
-                backgroundColor: palette.panelStrong,
-                borderColor: palette.border,
-                color: palette.text,
-              },
-            ]}
-            testID="auth-code-input"
-            textContentType="oneTimeCode"
-            value={authState.smsCode}
-          />
-        </View>
-      ) : null}
-
       {authState.error ? (
         <Text style={[styles.authError, { color: palette.danger }]}>
           {authState.error}
         </Text>
+      ) : null}
+
+      {Platform.OS === 'ios' ? (
+        <InputAccessoryView nativeID={AUTH_KEYBOARD_ACCESSORY_ID}>
+          <View
+            style={[
+              styles.keyboardAccessory,
+              {
+                backgroundColor: palette.panelStrong,
+                borderColor: palette.border,
+              },
+            ]}
+          >
+            <Pressable
+              onPress={Keyboard.dismiss}
+              style={[
+                styles.keyboardAccessoryButton,
+                { backgroundColor: palette.accent },
+              ]}
+              testID="auth-dismiss-keyboard-button"
+            >
+              <Text
+                style={[styles.keyboardAccessoryLabel, { color: palette.panel }]}
+              >
+                完成
+              </Text>
+            </Pressable>
+          </View>
+        </InputAccessoryView>
       ) : null}
 
       {isAuthenticated ? (
@@ -3246,18 +3303,7 @@ function PhoneSmsPanel({
             </Text>
           </Pressable>
         </View>
-      ) : (
-        <Pressable
-          disabled={isPending}
-          onPress={handlers.onSubmitCode}
-          style={[styles.primaryButton, { backgroundColor: palette.accent }]}
-          testID="auth-submit-button"
-        >
-          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-            {authState.pendingAction === 'verify_code' ? '正在登录' : '完成登录'}
-          </Text>
-        </Pressable>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -3674,6 +3720,9 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     gap: 16,
   },
+  authCanvasContent: {
+    paddingBottom: 180,
+  },
   canvasContentTablet: {
     paddingHorizontal: 0,
     paddingVertical: 4,
@@ -3738,6 +3787,21 @@ const styles = StyleSheet.create({
   },
   authActions: {
     gap: 10,
+  },
+  keyboardAccessory: {
+    alignItems: 'flex-end',
+    borderTopWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  keyboardAccessoryButton: {
+    borderRadius: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+  },
+  keyboardAccessoryLabel: {
+    fontSize: 15,
+    fontWeight: '800',
   },
   authHint: {
     fontSize: 13,
