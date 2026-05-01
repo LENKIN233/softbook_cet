@@ -36,6 +36,51 @@ name: ios-remote-auth-learning-space-statistics-smoke
     id: "route-tab-space"
 - assertVisible:
     id: "space-current-position"
+- scrollUntilVisible:
+    element:
+      id: "space-library-2"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "space-library-2"
+- scrollUntilVisible:
+    element:
+      id: "space-group-1"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "space-group-1"
+- scrollUntilVisible:
+    element:
+      id: "space-box-0521"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "space-box-0521"
+- scrollUntilVisible:
+    element:
+      id: "space-favorite-052101"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "space-favorite-052101"
+- assertVisible: "取消收藏"
+- scrollUntilVisible:
+    element:
+      id: "space-sleep-052101"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "space-sleep-052101"
+- scrollUntilVisible:
+    element:
+      id: "space-wake-052101"
+    direction: UP
+    centerElement: true
+- assertVisible:
+    id: "space-wake-052101"
+- tapOn:
+    id: "space-wake-052101"
 - tapOn:
     id: "route-tab-learning"
 - assertVisible:
