@@ -24,7 +24,7 @@
 - `spec/`: 活跃产品与合同真相源
 - `apps/mobile/`: React Native 移动端工程
 - `docs/`: 工程协作约定与流程文档
-- `.github/workflows/pr-gates.yml`: PR 质量门禁（harness 校验 + mobile lint + mobile typecheck + mobile test）
+- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness 校验 + mobile lint + mobile typecheck + mobile test）
 - `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）
 - `scripts/validate_harness.py`: harness 校验脚本（spec owner 一致性 + main 分支治理护栏）
 - `scripts/bootstrap_mobile_ios.sh`: iOS 依赖重装脚本
@@ -49,7 +49,7 @@
 原则是按需求域推进，一次只打磨一个模块，不设长期 `develop` 分支。
 clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`，再执行 `python3 scripts/validate_harness.py` 确认本地 hooks 与 GitHub `main` 保护都仍然生效。
 任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。
-任何用户可见 UI 改动都必须先引用或提交已接受设计稿 / reference / design brief，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口。
+任何用户可见 UI 改动都必须先引用已接受设计稿 / reference / design brief / decision，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口；同一 PR 内新增的 brief / decision 只能满足 design-only PR。
 
 ### 依赖前提
 

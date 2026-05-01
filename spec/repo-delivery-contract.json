@@ -1,5 +1,5 @@
 {
-  "version": "vnext-3",
+  "version": "vnext-4",
   "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -41,9 +41,12 @@
       "accepted_sources": [
         "docs/design/visual-reference.html",
         "docs/design/canon.md",
+        "docs/design/briefs/*.md",
+        "docs/design/decisions/*.md",
         "linked_external_design_file",
         "task_local_design_brief_answering_design_review_checklist"
       ],
+      "same_pull_request_design_artifact_rule": "design brief or decision added in the same PR may satisfy design-only work, but cannot satisfy an implementation PR that also changes user-facing UI",
       "existing_code_is_not_design_authority": true,
       "implementation_without_design_artifact": "delivery_blocker",
       "pull_request_must_state": [
@@ -57,6 +60,10 @@
     "workflow_path": ".github/workflows/pr-gates.yml",
     "pull_request_template_path": ".github/pull_request_template.md",
     "required_pull_request_gates": [
+      {
+        "id": "design_artifact_gate",
+        "command": "python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>"
+      },
       {
         "id": "validate_harness",
         "command": "python3 scripts/validate_harness.py --skip-remote-guard"

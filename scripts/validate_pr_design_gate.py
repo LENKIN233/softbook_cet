@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""Validate PR-body design evidence for user-facing UI changes."""
+
+import argparse
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+USER_FACING_EXTENSIONS = {
+    ".tsx",
+    ".jsx",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+    ".svg",
+}
+DESIGN_ARTIFACT_PREFIXES = (
+    "docs/design/briefs/",
+    "docs/design/decisions/",
+)
+ACCEPTED_SOURCE_MARKERS = (
+    "docs/design/visual-reference.html",
+    "docs/design/canon.md",
+    "docs/design/briefs/",
+    "docs/design/decisions/",
+    "http://",
+    "https://",
+)
+MISSING_VALUES = {"", "n/a", "na", "none", "null", "不适用", "无"}
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--base", help="base git ref or SHA for changed-file detection")
+    parser.add_argument("--head", help="head git ref or SHA for changed-file detection")
+    parser.add_argument("--body-file", help="file containing the pull request body")
+    parser.add_argument(
+        "--body-env",
+        default="PR_BODY",
+        help="environment variable containing the pull request body",
+    )
+    parser.add_argument(
+        "--changed-file",
+        action="append",
+        default=[],
+        help="changed file path; may be repeated for local tests",
+    )
+    return parser.parse_args()
+
+
+def run_git_changed_files(base: str, head: str) -> list[str]:
+    result = subprocess.run(
+        ["git", "diff", "--name-only", base, head],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print(result.stderr.strip(), file=sys.stderr)
+        raise SystemExit("unable to calculate changed files for design gate")
+
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def read_body(args) -> str:
+    if args.body_file:
+        return Path(args.body_file).read_text(encoding="utf-8")
+    return os.environ.get(args.body_env, "")
+
+
+def is_user_facing_ui_file(path: str) -> bool:
+    if not path.startswith("apps/mobile/"):
+        return False
+    return Path(path).suffix.lower() in USER_FACING_EXTENSIONS
+
+
+def line_value(body: str, label: str) -> str | None:
+    # Accept the repository template form: "- Design artifact: ...".
+    pattern = rf"(?im)^\s*-?\s*{re.escape(label)}\s*:\s*(.+?)\s*$"
+    match = re.search(pattern, body)
+    if not match:
+        return None
+    return match.group(1).strip()
+
+
+def is_missing(value: str | None) -> bool:
+    if value is None:
+        return True
+    return value.strip().lower() in MISSING_VALUES
+
+
+def referenced_same_pr_design_artifact(value: str, changed_files: list[str]) -> list[str]:
+    referenced = []
+    for path in changed_files:
+        if not path.startswith(DESIGN_ARTIFACT_PREFIXES):
+            continue
+        if path in value:
+            referenced.append(path)
+    return referenced
+
+
+def validate(body: str, changed_files: list[str]) -> list[str]:
+    errors = []
+    ui_files = [path for path in changed_files if is_user_facing_ui_file(path)]
+    if not ui_files:
+        return errors
+
+    design_artifact = line_value(body, "Design artifact")
+    implementation_mapping = line_value(body, "Implementation mapping")
+    unimplemented_gaps = line_value(body, "Unimplemented design gaps")
+
+    if is_missing(design_artifact):
+        errors.append(
+            "user-facing UI files changed, but PR body does not name a non-N/A Design artifact"
+        )
+    elif "*" in design_artifact or "task_local_design_brief" in design_artifact:
+        errors.append(
+            "Design artifact must name a concrete accepted artifact or external URL, not a wildcard or task-local placeholder"
+        )
+    elif not any(marker in design_artifact for marker in ACCEPTED_SOURCE_MARKERS):
+        errors.append(
+            "Design artifact must name docs/design/visual-reference.html, docs/design/canon.md, "
+            "a docs/design/briefs or docs/design/decisions artifact, or a linked external design file"
+        )
+    else:
+        same_pr_artifacts = referenced_same_pr_design_artifact(design_artifact, changed_files)
+        if same_pr_artifacts:
+            errors.append(
+                "same-PR design brief/decision cannot satisfy an implementation PR design gate: "
+                + ", ".join(same_pr_artifacts)
+            )
+
+    if is_missing(implementation_mapping):
+        errors.append(
+            "user-facing UI files changed, but PR body does not name a non-N/A Implementation mapping"
+        )
+    elif "docs/design/mapping/" not in implementation_mapping and "apps/mobile/" not in implementation_mapping:
+        errors.append(
+            "Implementation mapping must name a docs/design/mapping artifact or the mapped apps/mobile code surface"
+        )
+
+    if is_missing(unimplemented_gaps):
+        errors.append(
+            "user-facing UI files changed, but PR body does not state non-N/A Unimplemented design gaps"
+        )
+
+    return errors
+
+
+def main():
+    args = parse_args()
+    changed_files = list(args.changed_file)
+    if args.base and args.head:
+        changed_files.extend(run_git_changed_files(args.base, args.head))
+    changed_files = sorted(set(changed_files))
+    body = read_body(args)
+
+    errors = validate(body, changed_files)
+    if errors:
+        print("PR DESIGN GATE FAILED")
+        print("User-facing changed files:")
+        for path in changed_files:
+            if is_user_facing_ui_file(path):
+                print(f"- {path}")
+        for error in errors:
+            print(f"- {error}")
+        return 1
+
+    print("PR DESIGN GATE OK")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
