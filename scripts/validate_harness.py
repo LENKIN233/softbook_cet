@@ -1316,30 +1316,46 @@ else:
     if "not only a directory" not in directory_reference_output:
         errors.append("validate_pr_design_gate.py directory-only rejection must explain the concrete file requirement")
 
-visual_output_empty_case = run_design_gate_case("", ["docs/design/mocks/learning-surface-v1.md"])
-if visual_output_empty_case.returncode == 0:
-    errors.append("validate_pr_design_gate.py must require checklist answers for visual output artifacts")
-else:
-    visual_output_empty = visual_output_empty_case.stdout + visual_output_empty_case.stderr
-    for snippet in ["Universal Q1-Q4", "Conditional Q5-Q6"]:
-        if snippet not in visual_output_empty:
-            errors.append(f"validate_pr_design_gate.py visual-output rejection missing {snippet}")
+visual_output_artifact_paths = [
+    "docs/design/visual-reference.html",
+    "docs/design/interaction-motion/learning-motion-v1.md",
+    "docs/design/physical-space/space-model-v1.md",
+    "docs/design/mocks/learning-surface-v1.md",
+    "docs/design/storyboards/learning-flow-v1.md",
+]
+for visual_output_path in visual_output_artifact_paths:
+    visual_output_empty_case = run_design_gate_case("", [visual_output_path])
+    if visual_output_empty_case.returncode == 0:
+        errors.append(
+            f"validate_pr_design_gate.py must require checklist answers for visual output artifact: {visual_output_path}"
+        )
+    else:
+        visual_output_empty = visual_output_empty_case.stdout + visual_output_empty_case.stderr
+        for snippet in ["Universal Q1-Q4", "Conditional Q5-Q6"]:
+            if snippet not in visual_output_empty:
+                errors.append(
+                    f"validate_pr_design_gate.py visual-output rejection missing {snippet}: {visual_output_path}"
+                )
 
-visual_output_checklist_case = run_design_gate_case(
-    """
+visual_output_checklist_body = """
 ## design_review_checklist（如适用）
 
 - Universal Q1-Q4: answered
 - Conditional Q5-Q6: answered
-""",
-    ["docs/design/mocks/learning-surface-v1.md"],
-)
-if visual_output_checklist_case.returncode != 0:
-    errors.append(
-        "validate_pr_design_gate.py should allow design-only visual artifacts when checklist answers are present: "
-        + visual_output_checklist_case.stdout
-        + visual_output_checklist_case.stderr
+"""
+for visual_output_path in visual_output_artifact_paths:
+    visual_output_checklist_case = run_design_gate_case(
+        visual_output_checklist_body,
+        [visual_output_path],
     )
+    if visual_output_checklist_case.returncode != 0:
+        errors.append(
+            "validate_pr_design_gate.py should allow design-only visual artifacts when checklist answers are present: "
+            + visual_output_path
+            + "\n"
+            + visual_output_checklist_case.stdout
+            + visual_output_checklist_case.stderr
+        )
 
 ui_external_artifact_case = run_design_gate_case(
     """
