@@ -1,5 +1,5 @@
 {
-  "version": "vnext-4",
+  "version": "vnext-5",
   "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -43,17 +43,30 @@
         "docs/design/canon.md",
         "docs/design/briefs/*.md",
         "docs/design/decisions/*.md",
-        "linked_external_design_file",
-        "task_local_design_brief_answering_design_review_checklist"
+        "docs/design/interaction-motion/*.md",
+        "docs/design/physical-space/*.md",
+        "docs/design/mocks/*.md",
+        "docs/design/storyboards/*.md",
+        "linked_external_design_file"
       ],
       "same_pull_request_design_artifact_rule": "design brief or decision added in the same PR may satisfy design-only work, but cannot satisfy an implementation PR that also changes user-facing UI",
+      "task_local_design_brief_rule": "task-local design briefs may guide exploration but are not accepted implementation authority",
       "existing_code_is_not_design_authority": true,
       "implementation_without_design_artifact": "delivery_blocker",
       "pull_request_must_state": [
         "design_artifact_source",
+        "interaction_motion_artifact_if_core_interaction_changes",
+        "physical_space_artifact_if_space_changes",
         "implementation_mapping",
-        "unimplemented_design_gaps_if_any"
-      ]
+        "unimplemented_design_gaps_if_any",
+        "design_review_checklist_answers"
+      ],
+      "core_product_capability_design_gate": {
+        "learning_or_space_ui_requires_surface_specific_artifact": true,
+        "core_interaction_ui_requires_interaction_motion_artifact": true,
+        "space_ui_requires_physical_space_artifact": true,
+        "core_surface_quality_requires_rendered_mock_or_storyboard_before_full_visual_completion": true
+      }
     }
   },
   "ci_contract": {

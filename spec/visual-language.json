@@ -1,5 +1,5 @@
 {
-  "version": "vnext-2",
+  "version": "vnext-3",
   "layer": "implementation_hypothesis_with_minimal_product_truth",
   "purpose": "Stabilize visual output across agents and human designers so that every new screen, mock, or component inherits the same atmosphere instead of reinventing one. This file is the structured entry; the canonical visual anchor is docs/design/visual-reference.html and the prose canon is docs/design/canon.md. All three move together.",
   "authority_note": "Nothing here can override spec/product-core.json, spec/interactions.json, spec/knowledge-map.json, spec/card-system.json, spec/action-surface.json, or spec/membership.json. When this file disagrees with an owner listed in spec/authority-map.json, the owner wins and this file is edited to match.",
@@ -24,8 +24,11 @@
         "docs/design/canon.md",
         "docs/design/briefs/*.md",
         "docs/design/decisions/*.md",
-        "linked_external_design_file",
-        "task_local_design_brief_answering_design_review_checklist"
+        "docs/design/interaction-motion/*.md",
+        "docs/design/physical-space/*.md",
+        "docs/design/mocks/*.md",
+        "docs/design/storyboards/*.md",
+        "linked_external_design_file"
       ],
       "same_pull_request_rule": "A design brief or decision added in the same pull request may satisfy design-only work, but must not satisfy an implementation pull request that also changes user-facing UI.",
       "binding": [
@@ -247,8 +250,11 @@
         "docs/design/canon.md",
         "docs/design/briefs/*.md",
         "docs/design/decisions/*.md",
-        "linked_external_design_file",
-        "task_local_design_brief_answering_design_review_checklist"
+        "docs/design/interaction-motion/*.md",
+        "docs/design/physical-space/*.md",
+        "docs/design/mocks/*.md",
+        "docs/design/storyboards/*.md",
+        "linked_external_design_file"
       ],
       "implementation_mapping_artifacts": [
         "docs/design/mapping/*.md",
@@ -258,10 +264,11 @@
         "existing_RN_component_without_design_reference",
         "post_implementation_screenshot_after_coding",
         "agent_or_developer_personal_taste_statement",
+        "task_local_design_brief_for_implementation_pr",
         "same_pull_request_design_brief_when_the_same_pr_also_implements_user_facing_UI"
       ],
       "required_before": "implementation_that_changes_user_facing_UI",
-      "pull_request_must_state": "design_artifact_source_and_implementation_mapping"
+      "pull_request_must_state": "design_artifact_source_implementation_mapping_and_design_review_checklist"
     },
 
     "design_review_checklist": {

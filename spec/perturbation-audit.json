@@ -1,5 +1,5 @@
 {
-  "version": "vnext-11",
+  "version": "vnext-12",
   "purpose": "Counterfactual perturbation audit used to avoid local optima and catch silent drift away from the user's original requirements.",
   "perturbations": [
     {
@@ -230,6 +230,27 @@
       "change": "Implement user-facing UI directly from RN code or agent taste without an accepted design artifact",
       "expected_failure": "solidifies an unreviewed visual layer into product implementation and bypasses the design-artifact gate",
       "guarded_by": ["spec/visual-language.json", "spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-33",
+      "change": "Use a task-local design brief as the authority for the same implementation PR",
+      "expected_failure": "lets agents self-author design justification and implementation in one pass without accepted artifact review",
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/visual-language.json", "scripts/validate_pr_design_gate.py"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-34",
+      "change": "Treat core interaction motion as decorative animation added after UI implementation",
+      "expected_failure": "loses the product-specific operation, feedback, failure, and state-change semantics of core interactions",
+      "guarded_by": ["spec/interactions.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-35",
+      "change": "Treat physical space as a normal page UI without a spatial model or state transitions",
+      "expected_failure": "collapses library/group/box/card semantics into a flat surface and weakens the product's core differentiator",
+      "guarded_by": ["spec/knowledge-map.json", "spec/space-operations.json", "spec/agent-harness.json", "spec/evals.json"],
       "status": "rejected"
     }
   ],

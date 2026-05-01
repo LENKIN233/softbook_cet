@@ -82,6 +82,10 @@
       "first_worldview_brief": "docs/design/briefs/learning-space-worldview.md",
       "first_accepted_decision": "docs/design/decisions/learning-space-direction-decision-v1.md",
       "first_implementation_mapping": "docs/design/mapping/learning-space-implementation-map-v1.md",
+      "interaction_motion_artifact_index": "docs/design/interaction-motion/README.md",
+      "physical_space_artifact_index": "docs/design/physical-space/README.md",
+      "rendered_mock_artifact_index": "docs/design/mocks/README.md",
+      "storyboard_artifact_index": "docs/design/storyboards/README.md",
       "mirrors": [
         "spec/knowledge-map.json",
         "spec/interactions.json",
