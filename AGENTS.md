@@ -47,7 +47,8 @@ status: active
 - 会员/试用：`requirement-memory -> product-core -> membership`
 - 交付 / PR / CI：`authority-map -> agent-harness -> repo-delivery-contract -> evals`
 - 视觉输出/设计反推：`requirement-memory -> 相关产品 spec -> visual-language -> docs/design/visual-reference.html`
-- 实现：相关产品 spec -> 合同 spec -> `runtime-boundaries`（若需渲染视觉，追加 `visual-language`）
+- 用户可见 UI 实现：`requirement-memory -> 相关产品 spec -> visual-language -> 已接受设计稿 -> runtime-boundaries`
+- 实现：相关产品 spec -> 合同 spec -> `runtime-boundaries`（若需渲染用户可见 UI，追加 `visual-language` 与已接受设计稿）
 - 审查/验收：相关 spec -> `agent-harness` -> `evals`
 
 ## 硬约束
@@ -59,6 +60,7 @@ status: active
 - 不要把统计、计数器、复杂状态机写成产品核心
 - 不要默认读取 `archive/legacy-v3/` 或 `archive/transitional-vnext-prose/` 作为活跃真相源
 - 不要为每个屏幕/每个 agent 各自重造视觉语言；视觉输出必须从 `spec/visual-language.json` 与 `docs/design/visual-reference.html` 继承 token 与剪影
+- 不要直接用 RN 代码、截图或 agent 个人审美定义用户可见设计；任何呈现给用户的 screen / component / state / chrome 都必须先有已接受设计稿或等价设计基准，再进入实现
 - 不要在产出任何视觉稿（mock / screen / reference HTML 改动）后跳过 `spec/visual-language.json#design_review_checklist`；答案必须出现在 PR 描述或 agent 输出里，4 通用 + 2 条件（AP-22 / VL-AP-07）
 - 不要把 self-assess 画成 4 档或用红色表达"再回看"；权威实现在 `apps/mobile/src/learning/LearningSurface.tsx`，2 档=有把握(mint)/再回看(amber)（AP-23）
 
@@ -80,7 +82,7 @@ status: active
 - 默认只读完成任务所需的最小 spec 子集；只有跨域耦合或明确冲突时才升级读取范围
 - 明确区分 `product_truth` 与 `implementation_hypothesis`
 - 如果新增交互、盒码或访问规则，先更新对应 spec，再给结论
-- 若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若有视觉稿改动，再追加 design review checklist；默认在 review + gate 通过后自动收口合并
+- 若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若涉及用户可见 UI，必须写明设计稿来源与实现映射；若有视觉稿改动，再追加 design review checklist；默认在 review + gate 通过后自动收口合并
 
 ## 压缩保留
 

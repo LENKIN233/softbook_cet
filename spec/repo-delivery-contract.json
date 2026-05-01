@@ -1,5 +1,5 @@
 {
-  "version": "vnext-2",
+  "version": "vnext-3",
   "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -31,9 +31,27 @@
       "当前任务引用的 spec",
       "变更摘要",
       "验证",
+      "设计稿来源（用户可见 UI 如适用）",
       "design_review_checklist（如适用）"
     ],
-    "visual_output_rule": "if_visual_output_changes_exist_the_pull_request_must_answer_the_design_review_checklist"
+    "visual_output_rule": "if_visual_output_changes_exist_the_pull_request_must_answer_the_design_review_checklist",
+    "user_facing_ui_design_gate": {
+      "applies_when": "pull_request_changes_user_facing_UI_or_visual_state",
+      "required_before_implementation": true,
+      "accepted_sources": [
+        "docs/design/visual-reference.html",
+        "docs/design/canon.md",
+        "linked_external_design_file",
+        "task_local_design_brief_answering_design_review_checklist"
+      ],
+      "existing_code_is_not_design_authority": true,
+      "implementation_without_design_artifact": "delivery_blocker",
+      "pull_request_must_state": [
+        "design_artifact_source",
+        "implementation_mapping",
+        "unimplemented_design_gaps_if_any"
+      ]
+    }
   },
   "ci_contract": {
     "workflow_path": ".github/workflows/pr-gates.yml",

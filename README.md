@@ -11,11 +11,13 @@
 - `spec/runtime-boundaries.json`
 - `spec/repo-delivery-contract.json`
 - `spec/agent-harness.json`
+- `spec/visual-language.json`
 
 ## 当前阶段
 
 - `product_truth`: `v1` 仍然要闭合 `learning / space / statistics / mine` 四个顶层入口，并满足登录先于学习、试用/会员矩阵、日级进度同步和跨端统一 entitlement。
-- `implementation_hypothesis`: `main` 上的 `apps/mobile` 已经形成 iOS 优先的本地安全基线：手机号验证码登录门槛、学习/复习、知识地图空间、统计签到、我的页、会员试用/付费墙、日级进度同步都先在本地宿主闭环；下一步优先推进真实账号 / entitlement / sync 合同接线，而不是继续堆新页面。
+- `product_truth`: 所有呈现给用户的 screen / component / state / chrome 必须先有已接受设计稿或等价设计基准，再进入实现；现有 RN UI 只能作为行为原型，不能作为视觉权威。
+- `implementation_hypothesis`: `main` 上的 `apps/mobile` 已经形成 iOS 优先的本地安全基线：手机号验证码登录门槛、学习/复习、知识地图空间、统计签到、我的页、会员试用/付费墙、日级进度同步都先在本地宿主闭环；下一步优先推进设计稿基准与真实账号 / entitlement / sync 合同接线，而不是继续堆新页面。
 
 ## 目录
 
@@ -26,6 +28,7 @@
 - `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）
 - `scripts/validate_harness.py`: harness 校验脚本（spec owner 一致性 + main 分支治理护栏）
 - `scripts/bootstrap_mobile_ios.sh`: iOS 依赖重装脚本
+- `spec/visual-language.json` / `docs/design/visual-reference.html` / `docs/design/canon.md`: 用户可见 UI 的设计稿与视觉治理入口
 
 ## iOS 开发基线
 
@@ -46,6 +49,7 @@
 原则是按需求域推进，一次只打磨一个模块，不设长期 `develop` 分支。
 clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`，再执行 `python3 scripts/validate_harness.py` 确认本地 hooks 与 GitHub `main` 保护都仍然生效。
 任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。
+任何用户可见 UI 改动都必须先引用或提交已接受设计稿 / reference / design brief，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口。
 
 ### 依赖前提
 
@@ -187,6 +191,7 @@ infra/cloudbase/smoke-ios-runtime.sh
 ### 接下来优先做什么
 
 - 继续沿 `cross/*` 的合同分支推进 iOS 远端 runtime smoke 与真实账号 / entitlement / daily sync 接线
+- 任何继续呈现给用户的 UI 开发，都先进入设计稿 / visual reference / design brief，再映射到 RN；当前 RN 只作为行为验证壳
 - 保持一次只推进一个主线分支；新分支开始前先把 `main` 上的 README / 分支文档 / harness 校验同步到当前基线
 - 暂不提前开 Android / Web 业务工程，也不提前扩统计或其它外围页面
 

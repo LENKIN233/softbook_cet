@@ -381,6 +381,11 @@ check_equal(
     repo_delivery_contract["merge_policy"],
 )
 check_equal(
+    "repo_delivery_contract design_gate_policy",
+    "user-facing UI changes require an accepted design artifact before implementation and the PR must state the design source and implementation mapping",
+    repo_delivery_contract["design_gate_policy"],
+)
+check_equal(
     "repo_delivery default_strategy",
     "topic_branch_commit_pull_request_agent_review_auto_merge",
     delivery_defaults["default_strategy"],
@@ -433,13 +438,34 @@ check_equal(
 )
 check_equal(
     "pull_request_contract required_body_sections",
-    ["当前任务引用的 spec", "变更摘要", "验证", "design_review_checklist（如适用）"],
+    [
+        "当前任务引用的 spec",
+        "变更摘要",
+        "验证",
+        "设计稿来源（用户可见 UI 如适用）",
+        "design_review_checklist（如适用）",
+    ],
     pull_request_contract["required_body_sections"],
 )
 check_equal(
     "pull_request_contract visual_output_rule",
     "if_visual_output_changes_exist_the_pull_request_must_answer_the_design_review_checklist",
     pull_request_contract["visual_output_rule"],
+)
+check_equal(
+    "pull_request_contract user_facing_ui_design_gate applies_when",
+    "pull_request_changes_user_facing_UI_or_visual_state",
+    pull_request_contract["user_facing_ui_design_gate"]["applies_when"],
+)
+check_equal(
+    "pull_request_contract user_facing_ui_design_gate required_before_implementation",
+    True,
+    pull_request_contract["user_facing_ui_design_gate"]["required_before_implementation"],
+)
+check_equal(
+    "pull_request_contract user_facing_ui_design_gate existing_code_is_not_design_authority",
+    True,
+    pull_request_contract["user_facing_ui_design_gate"]["existing_code_is_not_design_authority"],
 )
 check_equal("ci_contract workflow_path", ".github/workflows/pr-gates.yml", ci_contract["workflow_path"])
 check_equal(
@@ -503,6 +529,19 @@ if ap25:
         "AP-25 correction",
         "open_or_update_pull_request_then_merge_after_clean_agent_review_and_green_required_gates",
         ap25["correction"],
+    )
+
+ap26 = find_by_id(harness["anti_patterns"], "AP-26")
+if ap26:
+    check_equal(
+        "AP-26 name",
+        "implement_user_facing_UI_directly_from_RN_or_agent_taste_without_design_artifact",
+        ap26["name"],
+    )
+    check_equal(
+        "AP-26 correction",
+        "treat_existing_RN_as_behavior_prototype_and_require_accepted_design_artifact_before_user_facing_implementation",
+        ap26["correction"],
     )
 
 hr19 = find_by_id(evals["regressions"], "HR-19")
@@ -571,6 +610,39 @@ if gt17:
         gt17["must_include"],
     )
 
+hr24 = find_by_id(evals["regressions"], "HR-24")
+if hr24:
+    check_equal(
+        "HR-24 fail_signal",
+        "starts_RN_or_CSS_implementation_without_design_artifact_source",
+        hr24["fail_signal"],
+    )
+    check_equal(
+        "HR-24 must_hit",
+        [
+            "design_artifact_required_before_implementation",
+            "existing_RN_is_behavior_prototype_not_visual_authority",
+            "design_source_named_in_PR",
+            "implementation_maps_to_accepted_design",
+        ],
+        hr24["must_hit"],
+    )
+
+gt18 = find_by_id(evals["golden_tasks"], "GT-18")
+if gt18:
+    check_equal("GT-18 task", "实现用户可见 UI", gt18["task"])
+    check_equal(
+        "GT-18 must_include",
+        [
+            "accepted_design_artifact_before_implementation",
+            "design_source_and_mapping_in_PR",
+            "visual_language_checklist_answered",
+            "existing_RN_not_used_as_design_authority",
+            "unimplemented_design_gaps_declared",
+        ],
+        gt18["must_include"],
+    )
+
 p23 = find_by_id(perturbation_audit["perturbations"], "P-23")
 if p23:
     check_equal(
@@ -623,6 +695,19 @@ if p31:
         p31["guarded_by"],
     )
 
+p32 = find_by_id(perturbation_audit["perturbations"], "P-32")
+if p32:
+    check_equal(
+        "P-32 change",
+        "Implement user-facing UI directly from RN code or agent taste without an accepted design artifact",
+        p32["change"],
+    )
+    check_equal(
+        "P-32 guarded_by",
+        ["spec/visual-language.json", "spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+        p32["guarded_by"],
+    )
+
 agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
 for snippet in [
     "`main` 是只读集成分支，不要直接在 `main` 上开发、提交、合并或推送",
@@ -632,7 +717,8 @@ for snippet in [
     "任何会持久化仓库改动的任务，除非用户明确要求只做本地修改，否则默认在 topic branch 上完成提交、开/更新指向 `main` 的 PR，并在 agent review 通过且 required gates 全绿后自动合并",
     "未完成 agent review、required gates 未全绿，或权限/环境阻止 merge 时，不要提前合并到 `main`",
     "如果权限或环境阻止创建 PR，必须明确交付 branch、commit、验证结果与阻塞原因",
-    "若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若有视觉稿改动，再追加 design review checklist；默认在 review + gate 通过后自动收口合并",
+    "不要直接用 RN 代码、截图或 agent 个人审美定义用户可见设计；任何呈现给用户的 screen / component / state / chrome 都必须先有已接受设计稿或等价设计基准，再进入实现",
+    "若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若涉及用户可见 UI，必须写明设计稿来源与实现映射；若有视觉稿改动，再追加 design review checklist；默认在 review + gate 通过后自动收口合并",
 ]:
     check_contains("AGENTS governance mirror", agents_text, snippet)
 
@@ -654,7 +740,8 @@ for snippet in [
     "PR 创建后，默认在 agent review 通过且 required gates 全绿时自动合并到 `main`。",
     "只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。",
     "如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。",
-    "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`，若有视觉稿改动再补 `design_review_checklist（如适用）`。",
+    "涉及用户可见 UI 的分支，必须先引用或提交已接受设计稿 / reference / design brief，再做实现。",
+    "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`；若有视觉稿改动再补 `design_review_checklist（如适用）`。",
     "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。",
     "merge 的默认前置条件是：agent review 无 blocking finding，且 required gates 全绿。",
 ]:
@@ -673,9 +760,11 @@ check_contains(
 )
 for snippet in [
     "- `spec/repo-delivery-contract.json`",
+    "- `spec/visual-language.json`",
     "- `.github/workflows/pr-gates.yml`: PR 质量门禁（harness 校验 + mobile lint + mobile typecheck + mobile test）",
     "- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）",
     "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",
+    "任何用户可见 UI 改动都必须先引用或提交已接受设计稿 / reference / design brief，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口。",
 ]:
     check_contains("README delivery mirror", readme_text, snippet)
 
@@ -1117,6 +1206,46 @@ else:
     chk = vl.get("implementation_hypothesis", {}).get("design_review_checklist", {})
     if not chk.get("universal") or not chk.get("conditional"):
         errors.append("visual-language.json design_review_checklist missing universal or conditional groups")
+
+    # 9. User-facing UI must not be implemented directly from current RN code
+    #    or taste; it needs a design artifact before implementation.
+    ui_gate_truth = vl.get("product_truth", {}).get("user_facing_ui_requires_design_artifact", {})
+    if ui_gate_truth.get("violation_is") != "delivery_blocker":
+        errors.append("visual-language.json user_facing_ui_requires_design_artifact must be a delivery_blocker")
+    accepted_artifacts = ui_gate_truth.get("accepted_artifacts", [])
+    for artifact in [
+        "docs/design/visual-reference.html",
+        "docs/design/canon.md",
+        "linked_external_design_file",
+        "task_local_design_brief_answering_design_review_checklist",
+    ]:
+        if artifact not in accepted_artifacts:
+            errors.append(f"visual-language.json user_facing_ui_requires_design_artifact missing accepted artifact {artifact}")
+
+    ui_gate_impl = vl.get("implementation_hypothesis", {}).get("design_artifact_gate", {})
+    check_equal(
+        "visual-language design_artifact_gate required_before",
+        "implementation_that_changes_user_facing_UI",
+        ui_gate_impl.get("required_before"),
+    )
+    check_equal(
+        "visual-language design_artifact_gate pull_request_must_state",
+        "design_artifact_source_and_implementation_mapping",
+        ui_gate_impl.get("pull_request_must_state"),
+    )
+
+    vl_ap09 = find_by_id(vl.get("anti_patterns", []), "VL-AP-09")
+    if vl_ap09:
+        check_equal(
+            "VL-AP-09 name",
+            "implementing_user_facing_UI_without_design_artifact",
+            vl_ap09["name"],
+        )
+        check_equal(
+            "VL-AP-09 correction",
+            "create_or_reference_accepted_design_artifact_before_RN_or_other_user_facing_implementation",
+            vl_ap09["correction"],
+        )
 
 
 if errors:

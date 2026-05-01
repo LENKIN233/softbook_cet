@@ -10,6 +10,7 @@
 - `spec/repo-delivery-contract.json`
 - `spec/agent-harness.json`
 - `spec/evals.json`
+- `spec/visual-language.json`
 
 ## product_truth
 
@@ -19,6 +20,7 @@
 - 登录先于学习，主登录方式是手机号验证码。
 - 会员、试用、购买、进度同步属于跨模块合同，不应被某个单一页面随意重写。
 - 技术上是 `React Native`，但产品 scope 仍然是 `iOS + Android + Web`；当前开发顺序是 `iOS 优先`。
+- 所有用户可见 UI 必须先经过已接受设计稿或等价设计基准，现有 RN 只能作为行为原型，不能直接成为视觉权威。
 
 ## implementation_hypothesis
 
@@ -83,10 +85,11 @@
 - PR 创建后，默认在 agent review 通过且 required gates 全绿时自动合并到 `main`。
 - 只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。
 - 如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。
+- 涉及用户可见 UI 的分支，必须先引用或提交已接受设计稿 / reference / design brief，再做实现。
 
 ## PR 合同与 CI 门槛
 
-- `.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`，若有视觉稿改动再补 `design_review_checklist（如适用）`。
+- `.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`；若有视觉稿改动再补 `design_review_checklist（如适用）`。
 - `.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。
 - merge 的默认前置条件是：agent review 无 blocking finding，且 required gates 全绿。
 - 本地开 PR 前仍然应该执行完整的 `python3 scripts/validate_harness.py`，不要只依赖 CI 的 `--skip-remote-guard` 版本。

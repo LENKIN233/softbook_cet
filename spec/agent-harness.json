@@ -1,5 +1,5 @@
 {
-  "version": "vnext-11",
+  "version": "vnext-12",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -85,6 +85,16 @@
       "spec/visual-language.json",
       "docs/design/visual-reference.html"
     ],
+    "user_facing_ui_implementation": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "relevant_product_specs",
+      "spec/visual-language.json",
+      "docs/design/visual-reference.html",
+      "docs/design/canon.md",
+      "the_accepted_design_artifact",
+      "spec/runtime-boundaries.json"
+    ],
     "visual_review_or_design_critique": [
       "spec/requirement-memory.json",
       "spec/authority-map.json",
@@ -101,7 +111,8 @@
       "task_crosses_multiple_truth_domains",
       "two_specs_conflict_or_leave_a_gap",
       "platform_specific_behavior_changes_product_shape",
-      "membership_or_space_rules_change_interaction_or_surface_design"
+      "membership_or_space_rules_change_interaction_or_surface_design",
+      "user_facing_ui_change_has_no_accepted_design_artifact"
     ],
     "forbidden_behavior": [
       "loading_the_entire_active_tree_by_default",
@@ -133,7 +144,26 @@
     "coding": {
       "inputs": ["product_specs", "contract_specs", "spec/runtime-boundaries.json"],
       "outputs": ["implementation", "explicit_hypotheses"],
-      "stop_when": "implementation_does_not_invent_product_requirements"
+      "stop_when": "implementation_does_not_invent_product_requirements",
+      "user_facing_ui_rule": "before_changing_user_facing_UI_load_the_accepted_design_artifact_and_map_implementation_to_it"
+    },
+    "user_facing_ui_implementation": {
+      "inputs": [
+        "spec/requirement-memory.json",
+        "spec/authority-map.json",
+        "relevant_product_specs",
+        "spec/visual-language.json",
+        "accepted_design_artifact",
+        "spec/runtime-boundaries.json"
+      ],
+      "outputs": [
+        "design_artifact_reference",
+        "implementation_mapping",
+        "unimplemented_design_gaps",
+        "design_review_checklist_answers"
+      ],
+      "stop_when": "implementation_maps_only_the_accepted_design_artifact_and_does_not_create_new_user_facing_design",
+      "blocked_when": "no_accepted_design_artifact_exists_for_the_user_facing_surface"
     },
     "review": {
       "inputs": ["relevant_specs", "anti_patterns"],
@@ -225,7 +255,8 @@
     "repo_delivery_contract": {
       "owner": "spec/repo-delivery-contract.json",
       "default_behavior": "code-changing tasks default to topic branch -> commit -> pull request -> agent review -> merge unless the user explicitly requests local-only delivery",
-      "merge_policy": "merge to main defaults to automatic merge after clean agent review and required gates are green"
+      "merge_policy": "merge to main defaults to automatic merge after clean agent review and required gates are green",
+      "design_gate_policy": "user-facing UI changes require an accepted design artifact before implementation and the PR must state the design source and implementation mapping"
     }
   },
   "anti_patterns": [
@@ -353,6 +384,11 @@
       "id": "AP-25",
       "name": "leave_reviewed_green_pull_request_waiting_for_explicit_merge_instruction",
       "correction": "open_or_update_pull_request_then_merge_after_clean_agent_review_and_green_required_gates"
+    },
+    {
+      "id": "AP-26",
+      "name": "implement_user_facing_UI_directly_from_RN_or_agent_taste_without_design_artifact",
+      "correction": "treat_existing_RN_as_behavior_prototype_and_require_accepted_design_artifact_before_user_facing_implementation"
     }
   ],
   "compaction_keep": [
