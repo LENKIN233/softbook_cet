@@ -31,7 +31,10 @@ VISUAL_OUTPUT_FILES = {
     "docs/design/visual-reference.html",
 }
 VISUAL_OUTPUT_PREFIXES = (
+    "docs/design/interaction-motion/",
+    "docs/design/physical-space/",
     "docs/design/mocks/",
+    "docs/design/storyboards/",
 )
 CONCRETE_DOC_ARTIFACT_RE = re.compile(
     r"(docs/design/(?:visual-reference\.html|canon\.md|"
