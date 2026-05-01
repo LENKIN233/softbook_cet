@@ -76,6 +76,11 @@ def anchor_texts(*keys):
 
 
 # Manifest targets exist.
+for doc in manifest["active_documents"]:
+    rel = doc["path"]
+    if not (ROOT / rel).exists():
+        errors.append(f"manifest missing active document target: {rel}")
+
 for rel in manifest["active_specs"]:
     if not (ROOT / rel).exists():
         errors.append(f"manifest missing target: {rel}")
@@ -477,6 +482,10 @@ check_equal(
     "ci_contract required_pull_request_gates",
     [
         {
+            "id": "design_artifact_gate",
+            "command": "python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>",
+        },
+        {
             "id": "validate_harness",
             "command": "python3 scripts/validate_harness.py --skip-remote-guard",
         },
@@ -740,9 +749,9 @@ for snippet in [
     "PR 创建后，默认在 agent review 通过且 required gates 全绿时自动合并到 `main`。",
     "只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。",
     "如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。",
-    "涉及用户可见 UI 的分支，必须先引用或提交已接受设计稿 / reference / design brief，再做实现。",
+    "涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / decision，再做实现；同一 PR 内新增的 brief / decision 只能满足 design-only PR。",
     "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`；若有视觉稿改动再补 `design_review_checklist（如适用）`。",
-    "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。",
+    "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。",
     "merge 的默认前置条件是：agent review 无 blocking finding，且 required gates 全绿。",
 ]:
     check_contains("branching strategy delivery mirror", branching_text, snippet)
@@ -761,10 +770,10 @@ check_contains(
 for snippet in [
     "- `spec/repo-delivery-contract.json`",
     "- `spec/visual-language.json`",
-    "- `.github/workflows/pr-gates.yml`: PR 质量门禁（harness 校验 + mobile lint + mobile typecheck + mobile test）",
+    "- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness 校验 + mobile lint + mobile typecheck + mobile test）",
     "- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）",
     "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",
-    "任何用户可见 UI 改动都必须先引用或提交已接受设计稿 / reference / design brief，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口。",
+    "任何用户可见 UI 改动都必须先引用已接受设计稿 / reference / design brief / decision，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口；同一 PR 内新增的 brief / decision 只能满足 design-only PR。",
 ]:
     check_contains("README delivery mirror", readme_text, snippet)
 
@@ -1073,6 +1082,8 @@ else:
     for snippet in [
         "pull_request:",
         "- main",
+        "design-artifact-gate:",
+        "python3 scripts/validate_pr_design_gate.py --base",
         "./scripts/install_git_hooks.sh",
         "python3 scripts/validate_harness.py --skip-remote-guard",
         "npm ci",

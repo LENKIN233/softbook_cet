@@ -78,12 +78,18 @@
       "owner": "spec/visual-language.json",
       "related_anchor": "docs/design/visual-reference.html",
       "prose_anchor": "docs/design/canon.md",
+      "design_harness": "docs/design/design-harness.md",
+      "first_worldview_brief": "docs/design/briefs/learning-space-worldview.md",
+      "first_accepted_decision": "docs/design/decisions/learning-space-direction-decision-v1.md",
+      "first_implementation_mapping": "docs/design/mapping/learning-space-implementation-map-v1.md",
       "mirrors": [
         "spec/knowledge-map.json",
         "spec/interactions.json",
-        "spec/product-core.json"
+        "spec/product-core.json",
+        "spec/repo-delivery-contract.json",
+        "spec/agent-harness.json"
       ],
-      "notes": "Stabilizes visual output across agents. Product_truth here is narrow (library identity, Law of One, self-assess scoping to flip, map hierarchy, interaction silhouettes); everything else is implementation hypothesis."
+      "notes": "Stabilizes visual output across agents. Product_truth here is narrow but includes library identity, Law of One, self-assess scoping to flip, map hierarchy, interaction silhouettes, and the user-facing UI design-artifact gate; everything else is implementation hypothesis."
     }
   }
 }

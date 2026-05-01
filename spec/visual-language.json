@@ -6,6 +6,11 @@
   "references": {
     "canonical_visual_anchor": "docs/design/visual-reference.html",
     "canon_prose": "docs/design/canon.md",
+    "design_harness": "docs/design/design-harness.md",
+    "first_worldview_brief": "docs/design/briefs/learning-space-worldview.md",
+    "first_direction_set": "docs/design/directions/learning-surface-3-directions.md",
+    "first_accepted_decision": "docs/design/decisions/learning-space-direction-decision-v1.md",
+    "first_implementation_mapping": "docs/design/mapping/learning-space-implementation-map-v1.md",
     "authority_map_domain": "visual_language_anchor"
   },
 
@@ -17,9 +22,12 @@
       "accepted_artifacts": [
         "docs/design/visual-reference.html",
         "docs/design/canon.md",
+        "docs/design/briefs/*.md",
+        "docs/design/decisions/*.md",
         "linked_external_design_file",
         "task_local_design_brief_answering_design_review_checklist"
       ],
+      "same_pull_request_rule": "A design brief or decision added in the same pull request may satisfy design-only work, but must not satisfy an implementation pull request that also changes user-facing UI.",
       "binding": [
         "spec/repo-delivery-contract.json",
         "spec/agent-harness.json",
@@ -237,13 +245,20 @@
       "accepted_artifacts": [
         "docs/design/visual-reference.html",
         "docs/design/canon.md",
+        "docs/design/briefs/*.md",
+        "docs/design/decisions/*.md",
         "linked_external_design_file",
         "task_local_design_brief_answering_design_review_checklist"
+      ],
+      "implementation_mapping_artifacts": [
+        "docs/design/mapping/*.md",
+        "PR_body_implementation_mapping"
       ],
       "not_accepted_as_design_authority": [
         "existing_RN_component_without_design_reference",
         "post_implementation_screenshot_after_coding",
-        "agent_or_developer_personal_taste_statement"
+        "agent_or_developer_personal_taste_statement",
+        "same_pull_request_design_brief_when_the_same_pr_also_implements_user_facing_UI"
       ],
       "required_before": "implementation_that_changes_user_facing_UI",
       "pull_request_must_state": "design_artifact_source_and_implementation_mapping"

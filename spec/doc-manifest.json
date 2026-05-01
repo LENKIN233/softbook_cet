@@ -1,5 +1,5 @@
 {
-  "version": "vnext-3",
+  "version": "vnext-5",
   "active_documents": [
     {
       "path": "AGENTS.md",
@@ -7,6 +7,92 @@
       "audience": ["agent"],
       "load_when": ["every active task"],
       "depends_on": ["spec/doc-manifest.json"],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/canon.md",
+      "authority": "design_canon",
+      "audience": ["agent", "designer"],
+      "load_when": ["visual_or_design_task", "design_review_task"],
+      "depends_on": ["spec/visual-language.json"],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/visual-reference.html",
+      "authority": "visual_reference",
+      "audience": ["agent", "designer"],
+      "load_when": ["visual_artifact_task", "design_review_task"],
+      "depends_on": ["spec/visual-language.json"],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/design-harness.md",
+      "authority": "design_harness",
+      "audience": ["agent", "designer"],
+      "load_when": ["design_direction_task", "user_facing_ui_implementation"],
+      "depends_on": ["spec/visual-language.json", "spec/agent-harness.json"],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/briefs/learning-space-worldview.md",
+      "authority": "accepted_design_brief",
+      "audience": ["agent", "designer"],
+      "load_when": ["learning_or_space_design_direction_task"],
+      "depends_on": [
+        "docs/design/design-harness.md",
+        "spec/product-core.json",
+        "spec/knowledge-map.json",
+        "spec/space-operations.json",
+        "spec/visual-language.json"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/directions/learning-surface-3-directions.md",
+      "authority": "design_direction_set",
+      "audience": ["agent", "designer"],
+      "load_when": ["learning_design_direction_task", "design_review_task"],
+      "depends_on": [
+        "docs/design/design-harness.md",
+        "docs/design/briefs/learning-space-worldview.md",
+        "spec/visual-language.json"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/decisions/learning-space-direction-decision-v1.md",
+      "authority": "accepted_design_decision",
+      "audience": ["agent", "designer"],
+      "load_when": ["learning_or_space_user_facing_ui_implementation"],
+      "depends_on": [
+        "docs/design/directions/learning-surface-3-directions.md",
+        "spec/product-core.json",
+        "spec/interactions.json",
+        "spec/knowledge-map.json",
+        "spec/visual-language.json"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/mapping/learning-space-implementation-map-v1.md",
+      "authority": "implementation_mapping",
+      "audience": ["agent", "engineer"],
+      "load_when": ["learning_or_space_user_facing_ui_implementation"],
+      "depends_on": [
+        "docs/design/decisions/learning-space-direction-decision-v1.md",
+        "spec/runtime-boundaries.json"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/rejected/learning-space-rejected-premises-v1.md",
+      "authority": "design_rejection_record",
+      "audience": ["agent", "designer"],
+      "load_when": ["learning_or_space_design_direction_task", "design_review_task"],
+      "depends_on": [
+        "docs/design/design-harness.md",
+        "docs/design/briefs/learning-space-worldview.md"
+      ],
       "status": "active"
     }
   ],

@@ -10,6 +10,20 @@ on:
   workflow_dispatch:
 
 jobs:
+  design-artifact-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate PR design gate
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: python3 scripts/validate_pr_design_gate.py --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.sha }}"
+
   validate-harness:
     runs-on: ubuntu-latest
     steps:

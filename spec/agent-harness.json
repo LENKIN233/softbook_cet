@@ -83,6 +83,7 @@
       "spec/authority-map.json",
       "relevant_product_specs",
       "spec/visual-language.json",
+      "docs/design/design-harness.md",
       "docs/design/visual-reference.html"
     ],
     "user_facing_ui_implementation": [
@@ -90,9 +91,11 @@
       "spec/authority-map.json",
       "relevant_product_specs",
       "spec/visual-language.json",
+      "docs/design/design-harness.md",
       "docs/design/visual-reference.html",
       "docs/design/canon.md",
       "the_accepted_design_artifact",
+      "the_implementation_mapping",
       "spec/runtime-boundaries.json"
     ],
     "visual_review_or_design_critique": [
@@ -127,6 +130,7 @@
         "spec/requirement-memory.json",
         "product_specs",
         "relevant_contract_specs",
+        "docs/design/design-harness.md_when_direction_or_worldview_is_needed",
         "spec/visual-language.json_when_output_is_visual"
       ],
       "outputs": ["experience_goal", "information_goal", "key_actions", "misunderstanding_risks"],
@@ -154,6 +158,7 @@
         "relevant_product_specs",
         "spec/visual-language.json",
         "accepted_design_artifact",
+        "implementation_mapping",
         "spec/runtime-boundaries.json"
       ],
       "outputs": [
@@ -245,6 +250,7 @@
       "require_pull_request": true,
       "required_approving_review_count": 0,
       "required_status_checks": [
+        "design-artifact-gate",
         "validate-harness",
         "mobile-quality"
       ],
