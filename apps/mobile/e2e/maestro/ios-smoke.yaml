@@ -30,16 +30,16 @@ name: ios-auth-learning-space-statistics-smoke
 - tapOn:
     id: "auth-submit-button"
 - tapOn:
-    point: "16%,91%"
+    id: "route-tab-learning"
 - assertVisible:
     id: "learning-current-card"
 
 - tapOn:
-    point: "39%,91%"
+    id: "route-tab-space"
 - assertVisible:
     id: "space-current-position"
 - tapOn:
-    point: "16%,91%"
+    id: "route-tab-learning"
 - assertVisible:
     id: "learning-current-card"
 
@@ -164,7 +164,7 @@ name: ios-auth-learning-space-statistics-smoke
     id: "learning-complete-details"
 
 - tapOn:
-    point: "62%,91%"
+    id: "route-tab-statistics"
 - assertVisible:
     id: "statistics-metric-completed"
 - assertVisible:
