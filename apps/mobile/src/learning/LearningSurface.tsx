@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { DimensionValue } from 'react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -83,6 +83,11 @@ export function LearningSurface({
   onStartReview,
 }: LearningSurfaceProps) {
   const isReviewPhase = phase === 'review';
+  const currentCardScrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    currentCardScrollRef.current?.scrollTo({ animated: false, y: 0 });
+  }, [currentCard?.card_id, currentIndex, phase]);
 
   if (currentCard === null || currentCardState === null) {
     const summary = summarizeLearningResults(
@@ -102,6 +107,7 @@ export function LearningSurface({
               shadowColor: palette.accent,
             },
           ]}
+          testID="learning-complete-summary"
         >
           <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
             {isReviewPhase ? 'REVIEW FLOW' : 'SINGLE CARD FLOW'}
@@ -205,6 +211,7 @@ export function LearningSurface({
               borderColor: palette.border,
             },
           ]}
+          testID="learning-complete-details"
         >
           <Text style={[styles.sectionTitle, { color: palette.text }]}>
             完成明细
@@ -262,7 +269,7 @@ export function LearningSurface({
   )}%` as DimensionValue;
 
   return (
-    <ScrollView contentContainerStyle={styles.page}>
+    <ScrollView ref={currentCardScrollRef} contentContainerStyle={styles.page}>
       <View
         style={[
           styles.sessionRail,
@@ -330,6 +337,7 @@ export function LearningSurface({
             shadowColor: tone.accent,
           },
         ]}
+        testID="learning-current-card"
       >
         <View style={styles.studyCardTop}>
           <View style={styles.studyTitleWrap}>
