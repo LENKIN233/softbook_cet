@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -46,6 +47,21 @@ def run_command(*args):
     except FileNotFoundError:
         errors.append(f"missing required command: {args[0]}")
         return None
+
+
+def run_design_gate_case(body: str, changed_files: list[str]):
+    args = [sys.executable, str(ROOT / "scripts" / "validate_pr_design_gate.py")]
+    for changed_file in changed_files:
+        args.extend(["--changed-file", changed_file])
+
+    return subprocess.run(
+        args,
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        env={**os.environ, "PR_BODY": body},
+    )
 
 
 req = load("requirement-memory.json")
@@ -1270,6 +1286,84 @@ else:
         "用户可见 UI 改动必须回答下方 `Universal Q1-Q4` 与适用的 `Conditional Q5-Q6`，不能保留 `N/A`。",
     ]:
         check_contains("PR template design gate fields", pr_template_text, snippet)
+
+directory_reference_body = """
+## 设计稿来源（用户可见 UI 如适用）
+
+- Design artifact: docs/design/decisions/
+- Interaction/motion artifact: docs/design/interaction-motion/
+- Physical space artifact: N/A
+- Implementation mapping: apps/mobile/src/learning/LearningSurface.tsx
+- Unimplemented design gaps: No known gaps.
+
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: answered
+- Conditional Q5-Q6: answered
+"""
+directory_reference_case = run_design_gate_case(
+    directory_reference_body,
+    [
+        "apps/mobile/src/learning/LearningSurface.tsx",
+        "docs/design/decisions/new-learning-direction.md",
+        "docs/design/interaction-motion/new-learning-motion.md",
+    ],
+)
+if directory_reference_case.returncode == 0:
+    errors.append("validate_pr_design_gate.py must reject directory-only design artifact references")
+else:
+    directory_reference_output = directory_reference_case.stdout + directory_reference_case.stderr
+    if "not only a directory" not in directory_reference_output:
+        errors.append("validate_pr_design_gate.py directory-only rejection must explain the concrete file requirement")
+
+visual_output_empty_case = run_design_gate_case("", ["docs/design/mocks/learning-surface-v1.md"])
+if visual_output_empty_case.returncode == 0:
+    errors.append("validate_pr_design_gate.py must require checklist answers for visual output artifacts")
+else:
+    visual_output_empty = visual_output_empty_case.stdout + visual_output_empty_case.stderr
+    for snippet in ["Universal Q1-Q4", "Conditional Q5-Q6"]:
+        if snippet not in visual_output_empty:
+            errors.append(f"validate_pr_design_gate.py visual-output rejection missing {snippet}")
+
+visual_output_checklist_case = run_design_gate_case(
+    """
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: answered
+- Conditional Q5-Q6: answered
+""",
+    ["docs/design/mocks/learning-surface-v1.md"],
+)
+if visual_output_checklist_case.returncode != 0:
+    errors.append(
+        "validate_pr_design_gate.py should allow design-only visual artifacts when checklist answers are present: "
+        + visual_output_checklist_case.stdout
+        + visual_output_checklist_case.stderr
+    )
+
+ui_external_artifact_case = run_design_gate_case(
+    """
+## 设计稿来源（用户可见 UI 如适用）
+
+- Design artifact: docs/design/decisions/learning-space-direction-decision-v1.md
+- Interaction/motion artifact: https://example.com/softbook/learning-motion
+- Physical space artifact: N/A
+- Implementation mapping: apps/mobile/src/learning/LearningSurface.tsx
+- Unimplemented design gaps: No known gaps.
+
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: answered
+- Conditional Q5-Q6: answered
+""",
+    ["apps/mobile/src/learning/LearningSurface.tsx"],
+)
+if ui_external_artifact_case.returncode != 0:
+    errors.append(
+        "validate_pr_design_gate.py should allow concrete preexisting artifacts or external URLs: "
+        + ui_external_artifact_case.stdout
+        + ui_external_artifact_case.stderr
+    )
 
 # ─────────────────────────────────────────────────────────────
 # Visual language / design harness gates.
