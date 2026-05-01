@@ -86,3 +86,47 @@ Maestro path against an installed iOS app launched with the CloudBase remote
 runtime profile, then recording whether the app-level path reaches remote auth,
 membership, learning card source, progress sync, learning-state sync, and
 space-state sync without falling back to manual service calls.
+
+## 2026-05-01 10:20 CST
+
+`product_truth`: the iOS app must keep the physical-space surface as a real
+library / group / box / card map with partial user control. Favorite remains a
+tag, and sleep remains a physical-zone operation that affects learning flow
+without rewriting box ownership.
+
+`implementation_hypothesis`: this log records the local default runtime Maestro
+flow after expanding the space leg. It does not prove the CloudBase remote
+runtime, production SMS delivery, payment behavior, or production release
+signing.
+
+### Command
+
+```bash
+cd apps/mobile
+JAVA_HOME=/opt/homebrew/opt/openjdk \
+PATH=/opt/homebrew/opt/openjdk/bin:$PATH \
+MAESTRO_CLI_NO_ANALYTICS=1 \
+MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true \
+npm run e2e:ios:maestro
+```
+
+Observed command result:
+
+- `npm run e2e:ios:maestro`: passed with exit code `0`.
+- Flow name: `ios-auth-learning-space-statistics-smoke`.
+
+### Added Space Coverage
+
+- Entered space from authenticated learning and asserted `space-current-position`.
+- Browsed to `space-library-2`, `space-group-1`, and `space-box-0521`.
+- Opened box card `052101`, applied favorite, and saw `取消收藏`.
+- Moved `052101` into sleep, asserted `space-wake-052101` in the sleep-zone
+  list, then woke it before returning to learning.
+- Returned to learning, completed the full card cycle, entered statistics, and
+  checked in successfully.
+
+### Conclusion
+
+The local iOS Maestro smoke now proves more than route entry: it exercises
+space hierarchy browsing, box inspection, favorite tagging, sleep, wake, and
+then confirms that learning can still complete afterward.

@@ -179,6 +179,9 @@ Manual acceptance after launch:
   bootstrap.
 - Learning loads the remote track while preserving the single-card flow.
 - First protected space entry starts trial and unlocks the physical-space map.
+- The automated space leg browses the library / group / box hierarchy, inspects
+  a box card, applies a favorite tag, moves that card into sleep, then wakes it
+  before returning to the learning flow.
 - Completing a card updates statistics and leaves daily progress / learning
   state / space state without queued retry errors.
 
