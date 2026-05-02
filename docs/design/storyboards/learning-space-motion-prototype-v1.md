@@ -14,18 +14,18 @@
 
 - `docs/design/storyboards/learning-space-motion-prototype-v1.html`
 
-The HTML asset renders three motion strips: flip, hint reveal, and swipe. It also includes `prefers-reduced-motion` handling.
+The HTML asset renders three motion strips: flip, hint reveal, and swipe. It also includes `prefers-reduced-motion` handling with explicit fallback states.
 
 ## Storyboard 1: Flip
 
 - Start state: current card front is visible.
 - User action: user triggers flip.
 - System feedback: same object rotates or crossfades to back content, preserving object identity.
-- End state: two self-assess pills appear: `有把握` and `再回看`.
+- End state: two self-assess pills appear: `有把握` in confident mint and `再回看` in review amber.
 - Semantic reason: user understands the back is the same card object, not a new page.
 - Duration range: 280-360ms.
 - Interruptibility: self-assess is not committed until user taps a pill.
-- Reduce-motion fallback: no rotation; front/back content crossfades.
+- Reduce-motion fallback: no rotation; the motion frame switches to a front/back crossfade cue.
 - Failure state: if back content is unavailable, keep front object and show retry affordance.
 
 ## Storyboard 2: Hint Reveal
@@ -37,7 +37,7 @@ The HTML asset renders three motion strips: flip, hint reveal, and swipe. It als
 - Semantic reason: hint is a layer, not a standalone card type.
 - Duration range: 120-200ms.
 - Interruptibility: hint can be closed without changing answer state.
-- Reduce-motion fallback: hint text appears inline.
+- Reduce-motion fallback: hint text appears inline below the card object.
 - Failure state: no hint means no placeholder panel.
 
 ## Storyboard 3: Swipe
@@ -64,4 +64,4 @@ Q4: No forbidden patterns are used; no reward bursts or gamification chrome appe
 
 Q5: No phone frame is included here; the prototype is a storyboard strip.
 
-Q6: Flip uses exactly two self-assess pills. Module selection is absent.
+Q6: Flip uses exactly two self-assess pills with AP-23 colors: `有把握` = mint and `再回看` = amber. Module selection is absent.

@@ -1468,6 +1468,8 @@ import re
 vl_path = SPEC / "visual-language.json"
 canon_path = ROOT / "docs" / "design" / "canon.md"
 vref_path = ROOT / "docs" / "design" / "visual-reference.html"
+storyboard_html_path = ROOT / "docs" / "design" / "storyboards" / "learning-space-motion-prototype-v1.html"
+storyboard_md_path = ROOT / "docs" / "design" / "storyboards" / "learning-space-motion-prototype-v1.md"
 
 if not vl_path.exists():
     errors.append("missing spec/visual-language.json")
@@ -1475,10 +1477,16 @@ elif not canon_path.exists():
     errors.append("missing docs/design/canon.md")
 elif not vref_path.exists():
     errors.append("missing docs/design/visual-reference.html")
+elif not storyboard_html_path.exists():
+    errors.append("missing docs/design/storyboards/learning-space-motion-prototype-v1.html")
+elif not storyboard_md_path.exists():
+    errors.append("missing docs/design/storyboards/learning-space-motion-prototype-v1.md")
 else:
     vl = json.loads(vl_path.read_text(encoding="utf-8"))
     canon_text = canon_path.read_text(encoding="utf-8")
     vref_text = vref_path.read_text(encoding="utf-8")
+    storyboard_html = storyboard_html_path.read_text(encoding="utf-8")
+    storyboard_md = storyboard_md_path.read_text(encoding="utf-8")
 
     # 1. Library identity must have exactly the 7 required libraries with
     #    matching keys between product_truth and implementation_hypothesis.
@@ -1499,6 +1507,34 @@ else:
             f"visual-language.json self_assess_hex_defaults must be exactly "
             f"{{'confident','review'}}, got {sorted(sa_keys)}"
         )
+
+    # 2b. Accepted motion storyboard must not render flip self-assess
+    #     as the current library accent. It should prove AP-23 directly.
+    storyboard_lower = storyboard_html.lower()
+    for snippet in [
+        f"--confident: {sa_hex['confident'].lower()}",
+        f"--review: {sa_hex['review'].lower()}",
+        'class="pill confident"',
+        'class="pill review"',
+        "@media (prefers-reduced-motion: reduce)",
+        "front / back crossfade",
+        'class="reduced-actions"',
+    ]:
+        if snippet not in storyboard_lower:
+            errors.append(
+                "learning-space-motion-prototype-v1.html missing storyboard proof snippet: "
+                + snippet
+            )
+    for snippet in [
+        "`有把握` = mint",
+        "`再回看` = amber",
+        "explicit fallback states",
+    ]:
+        if snippet not in storyboard_md:
+            errors.append(
+                "learning-space-motion-prototype-v1.md missing storyboard proof snippet: "
+                + snippet
+            )
 
     # 3. Mirror gate: the 7 library hexes + 2 self-assess hexes must appear
     #    verbatim in canon.md. This is the small product_truth subset —
