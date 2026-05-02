@@ -272,7 +272,7 @@ export function LearningSurface({
     <ScrollView ref={currentCardScrollRef} contentContainerStyle={styles.page}>
       <View
         style={[
-          styles.sessionRail,
+          styles.learningFrameHeader,
           styles.glassCard,
           {
             backgroundColor: palette.panel,
@@ -281,25 +281,23 @@ export function LearningSurface({
           },
         ]}
       >
-        <View style={styles.sessionRailTop}>
+        <View style={styles.learningFrameTop}>
           <View style={styles.heroChipRow}>
-            <TagChip label={currentCard.space_metadata.library} toneColor={tone.accent} />
             <TagChip
-              label={INTERACTION_LABELS[currentCard.interaction_id]}
-              toneColor={palette.textMuted}
+              label={`${currentCard.space_metadata.library} · ${currentCard.space_metadata.group}`}
+              toneColor={tone.accent}
             />
             {isReviewPhase ? (
               <TagChip label="回看队列" toneColor={palette.warning} />
             ) : null}
           </View>
-          <Text style={[styles.sessionKicker, { color: palette.textMuted }]}>
-            {sessionLabel}
+          <Text style={[styles.learningFrameMeta, { color: palette.textMuted }]}>
+            {currentCard.track.toUpperCase()} · {currentIndex + 1}/
+            {sessionCards.length}
           </Text>
         </View>
-        <Text style={[styles.sessionTitle, { color: palette.text }]}>
-          {currentCard.front.eyebrow}
-        </Text>
-        <Text style={[styles.sessionSummary, { color: palette.textMuted }]}>
+        <Text style={[styles.learningFrameSummary, { color: palette.textMuted }]}>
+          {sessionLabel} ·{' '}
           {isReviewPhase
             ? '把需要回看的卡单独再刷一轮'
             : '单卡推进，不把学习入口做成按钮堆'}
@@ -316,14 +314,6 @@ export function LearningSurface({
               { backgroundColor: tone.accent, width: progressPercent },
             ]}
           />
-        </View>
-        <View style={styles.progressFooter}>
-          <Text style={[styles.progressCaption, { color: palette.textMuted }]}>
-            {isReviewPhase ? 'review / one-card flow' : 'learning / one-card flow'}
-          </Text>
-          <Text style={[styles.progressFigure, { color: palette.text }]}>
-            {currentIndex + 1} / {sessionCards.length}
-          </Text>
         </View>
       </View>
 
@@ -342,13 +332,79 @@ export function LearningSurface({
         <View style={styles.studyCardTop}>
           <View style={styles.studyTitleWrap}>
             <Text style={[styles.cardEyebrow, { color: tone.accent }]}>
-              {currentCard.space_metadata.library} /{' '}
-              {currentCard.space_metadata.group}
+              当前卡 · {currentCard.card_id} ·{' '}
+              {INTERACTION_LABELS[currentCard.interaction_id]}
             </Text>
             <Text style={[styles.cardPrompt, { color: palette.text }]}>
               {currentCard.front.prompt}
             </Text>
           </View>
+        </View>
+
+        <View
+          style={[
+            styles.contextCard,
+            { backgroundColor: palette.panelStrong, borderColor: palette.border },
+          ]}
+        >
+          <Text style={[styles.cardSupport, { color: palette.text }]}>
+            {currentCard.front.support}
+          </Text>
+          <Text style={[styles.cardContext, { color: palette.textMuted }]}>
+            {currentCard.front.context}
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.interactionCard,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+            },
+          ]}
+        >
+          <View style={styles.interactionTitleRow}>
+            <Text style={[styles.sectionTitle, { color: palette.text }]}>
+              {INTERACTION_LABELS[currentCard.interaction_id]}
+            </Text>
+            <Text style={[styles.interactionMeta, { color: palette.textMuted }]}>
+              action plane
+            </Text>
+          </View>
+          <InteractionBody
+            card={currentCard}
+            cardState={currentCardState}
+            currentResult={currentResult}
+            palette={palette}
+            onFlip={onFlip}
+            onSetFlipConfidence={onSetFlipConfidence}
+            onSelectOption={onSelectOption}
+            onSetLockSelection={onSetLockSelection}
+            onToggleEliminationItem={onToggleEliminationItem}
+            onSelectSwipeState={onSelectSwipeState}
+          />
+        </View>
+
+        <View style={styles.actionRow}>
+          <LightActionButton
+            label={currentCardState.isPeeked ? '收起 Peek' : 'Peek 卡位'}
+            onPress={onTogglePeek}
+            palette={palette}
+            testID="learning-peek-button"
+          />
+          {currentCard.hint_layer ? (
+            <LightActionButton
+              label={
+                currentCardState.isHintVisible
+                  ? '收起提示层'
+                  : currentCard.hint_layer.label
+              }
+              onPress={onToggleHint}
+              palette={palette}
+              testID="learning-hint-button"
+            />
+          ) : null}
           <Pressable
             onPress={onToggleFavorite}
             style={[
@@ -374,44 +430,9 @@ export function LearningSurface({
                 },
               ]}
             >
-              {currentCardState.isFavorited ? '已收藏' : '收藏'}
+              {currentCardState.isFavorited ? '已收藏' : 'favorite'}
             </Text>
           </Pressable>
-        </View>
-
-        <View
-          style={[
-            styles.contextCard,
-            { backgroundColor: palette.panelStrong, borderColor: palette.border },
-          ]}
-        >
-          <Text style={[styles.cardSupport, { color: palette.text }]}>
-            {currentCard.front.support}
-          </Text>
-          <Text style={[styles.cardContext, { color: palette.textMuted }]}>
-            {currentCard.front.context}
-          </Text>
-        </View>
-
-        <View style={styles.actionRow}>
-          <LightActionButton
-            label={currentCardState.isPeeked ? '收起 Peek' : 'Peek 卡位'}
-            onPress={onTogglePeek}
-            palette={palette}
-            testID="learning-peek-button"
-          />
-          {currentCard.hint_layer ? (
-            <LightActionButton
-              label={
-                currentCardState.isHintVisible
-                  ? '收起提示层'
-                  : currentCard.hint_layer.label
-              }
-              onPress={onToggleHint}
-              palette={palette}
-              testID="learning-hint-button"
-            />
-          ) : null}
         </View>
 
         {currentCardState.isPeeked ? (
@@ -460,33 +481,20 @@ export function LearningSurface({
 
         <View
           style={[
-            styles.interactionCard,
+            styles.addressAperture,
             {
               backgroundColor: palette.panelStrong,
               borderColor: palette.border,
             },
           ]}
+          testID="learning-address-aperture"
         >
-          <View style={styles.interactionTitleRow}>
-            <Text style={[styles.sectionTitle, { color: palette.text }]}>
-              {INTERACTION_LABELS[currentCard.interaction_id]}
-            </Text>
-            <Text style={[styles.interactionMeta, { color: palette.textMuted }]}>
-              {currentCard.track.toUpperCase()}
-            </Text>
-          </View>
-          <InteractionBody
-            card={currentCard}
-            cardState={currentCardState}
-            currentResult={currentResult}
-            palette={palette}
-            onFlip={onFlip}
-            onSetFlipConfidence={onSetFlipConfidence}
-            onSelectOption={onSelectOption}
-            onSetLockSelection={onSetLockSelection}
-            onToggleEliminationItem={onToggleEliminationItem}
-            onSelectSwipeState={onSelectSwipeState}
-          />
+          <Text style={[styles.addressText, { color: palette.textMuted }]}>
+            {currentCard.track.toUpperCase()} /{' '}
+            {currentCard.space_metadata.library} /{' '}
+            {currentCard.space_metadata.group} /{' '}
+            {currentCard.space_metadata.box}
+          </Text>
         </View>
 
         {currentResult ? (
@@ -1162,29 +1170,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 23,
   },
-  sessionRail: {
+  learningFrameHeader: {
     borderWidth: 1,
     borderRadius: 28,
-    padding: 18,
-    gap: 12,
+    padding: 16,
+    gap: 10,
   },
-  sessionRailTop: {
+  learningFrameTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
   },
-  sessionKicker: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.6,
-  },
-  sessionTitle: {
-    fontSize: 14,
+  learningFrameMeta: {
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
-  sessionSummary: {
+  learningFrameSummary: {
     fontSize: 13,
     lineHeight: 20,
   },
@@ -1321,6 +1324,18 @@ const styles = StyleSheet.create({
   hintText: {
     fontSize: 14,
     lineHeight: 21,
+  },
+  addressAperture: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  addressText: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18,
   },
   interactionCard: {
     borderWidth: 1,
