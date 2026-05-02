@@ -1,5 +1,5 @@
 {
-  "version": "vnext-5",
+  "version": "vnext-6",
   "active_documents": [
     {
       "path": "AGENTS.md",
@@ -137,6 +137,24 @@
       "status": "active"
     },
     {
+      "path": "docs/design/decisions/learning-space-platform-layout-v1.md",
+      "authority": "accepted_platform_layout_decision",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["learning_or_space_user_facing_ui_implementation", "platform_adaptation_design_task"],
+      "depends_on": [
+        "spec/product-core.json",
+        "spec/platform-contract.json",
+        "spec/interactions.json",
+        "spec/knowledge-map.json",
+        "spec/space-operations.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md",
+        "docs/design/decisions/learning-space-direction-decision-v1.md",
+        "docs/design/mapping/learning-space-implementation-map-v1.md"
+      ],
+      "status": "active"
+    },
+    {
       "path": "docs/design/mapping/learning-space-implementation-map-v1.md",
       "authority": "implementation_mapping",
       "audience": ["agent", "engineer"],
@@ -145,6 +163,57 @@
         "docs/design/decisions/learning-space-direction-decision-v1.md",
         "spec/runtime-boundaries.json"
       ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/mocks/learning-space-phone-frames-v1.md",
+      "authority": "accepted_rendered_mock_artifact",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["learning_or_space_user_facing_ui_implementation", "core_surface_visual_artifact_task"],
+      "depends_on": [
+        "spec/product-core.json",
+        "spec/interactions.json",
+        "spec/knowledge-map.json",
+        "spec/space-operations.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md",
+        "docs/design/decisions/learning-space-direction-decision-v1.md",
+        "docs/design/interaction-motion/learning-core-interactions-v1.md",
+        "docs/design/physical-space/space-model-v1.md",
+        "docs/design/mapping/learning-space-implementation-map-v1.md"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/mocks/learning-space-phone-frames-v1.html",
+      "authority": "rendered_mock_html",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["learning_or_space_user_facing_ui_implementation", "core_surface_visual_artifact_task"],
+      "depends_on": ["docs/design/mocks/learning-space-phone-frames-v1.md"],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/storyboards/learning-space-motion-prototype-v1.md",
+      "authority": "accepted_storyboard_artifact",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["learning_ui_implementation", "motion_design_task", "state_transition_design_task"],
+      "depends_on": [
+        "spec/product-core.json",
+        "spec/interactions.json",
+        "spec/space-operations.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md",
+        "docs/design/interaction-motion/learning-core-interactions-v1.md",
+        "docs/design/physical-space/space-model-v1.md"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/storyboards/learning-space-motion-prototype-v1.html",
+      "authority": "rendered_storyboard_html",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["learning_ui_implementation", "motion_design_task", "state_transition_design_task"],
+      "depends_on": ["docs/design/storyboards/learning-space-motion-prototype-v1.md"],
       "status": "active"
     },
     {

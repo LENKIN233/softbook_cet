@@ -13,6 +13,11 @@ This folder holds accepted rendered screen mocks for core surfaces and states.
 
 For core Learning or Space implementation work, prose direction alone is not enough to claim high-confidence visual quality. A rendered mock or equivalent external design file should close proportion, layout, hierarchy, containment, and visible-state questions before implementation.
 
+## Accepted Artifacts
+
+- `learning-space-phone-frames-v1.md`: phone-frame mock specification, dark-mode proof, and contrast proof.
+- `learning-space-phone-frames-v1.html`: rendered `393 x 852` Learning and Space phone frames.
+
 ## Required Contents
 
 Each artifact must state:

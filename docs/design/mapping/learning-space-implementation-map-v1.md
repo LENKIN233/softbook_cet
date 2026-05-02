@@ -16,8 +16,11 @@
 - `docs/design/briefs/learning-space-worldview.md`
 - `docs/design/directions/learning-surface-3-directions.md`
 - `docs/design/decisions/learning-space-direction-decision-v1.md`
+- `docs/design/decisions/learning-space-platform-layout-v1.md`
 - `docs/design/interaction-motion/learning-core-interactions-v1.md`
 - `docs/design/physical-space/space-model-v1.md`
+- `docs/design/mocks/learning-space-phone-frames-v1.md`
+- `docs/design/storyboards/learning-space-motion-prototype-v1.md`
 
 ## Product Truth
 
@@ -106,17 +109,21 @@ It must not reduce Space to:
 - study statistics board;
 - arbitrary drag-and-drop organizer.
 
-## Unimplemented Design Gaps
+## Resolved Design Proof Questions
 
-These gaps must be closed before a full visual implementation can be called done:
+The previous design-proof questions are now closed by accepted artifacts:
 
-- exact phone-frame mock for accepted Learning direction;
-- exact phone-frame mock for accepted Space direction;
-- tablet layout decision;
-- pc web layout decision;
-- dark-mode rendering proof;
-- accessibility contrast proof for low-alpha library chips;
-- rendered motion prototype for flip / hint reveal / swipe; the operation and reduce-motion contract is now anchored in `docs/design/interaction-motion/learning-core-interactions-v1.md`.
+- exact phone-frame mock for accepted Learning direction: `docs/design/mocks/learning-space-phone-frames-v1.html`;
+- exact phone-frame mock for accepted Space direction: `docs/design/mocks/learning-space-phone-frames-v1.html`;
+- tablet layout decision: `docs/design/decisions/learning-space-platform-layout-v1.md`;
+- pc web layout decision: `docs/design/decisions/learning-space-platform-layout-v1.md`;
+- dark-mode rendering proof: `docs/design/mocks/learning-space-phone-frames-v1.md`;
+- accessibility contrast proof for low-alpha library chips: `docs/design/mocks/learning-space-phone-frames-v1.md`;
+- rendered motion prototype for flip / hint reveal / swipe: `docs/design/storyboards/learning-space-motion-prototype-v1.html`.
+
+## Remaining Implementation Boundary
+
+RN / Web implementation has not started in this mapping PR. Future implementation PRs still must name the accepted artifact being implemented, map component regions to this file, declare any implementation-only gaps, and pass the PR design gate.
 
 ## Design Review Checklist Answers
 
@@ -128,6 +135,6 @@ Q3: Mapping requires all five canonical Learning silhouettes and calls out that 
 
 Q4: Mapping rejects forbidden patterns and does not introduce visual CSS or RN styling.
 
-Q5: Not applicable here because no rendered phone frame is included.
+Q5: Phone-frame containment is resolved by `docs/design/mocks/learning-space-phone-frames-v1.html`.
 
 Q6: Learning and flip constraints are explicitly mapped.

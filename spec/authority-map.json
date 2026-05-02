@@ -1,5 +1,5 @@
 {
-  "version": "vnext-2",
+  "version": "vnext-3",
   "purpose": "Single-source ownership map for active harness facts. If the same concept appears in multiple files, the owner here wins and non-owner copies must stay consistent.",
   "domains": {
     "user_origin_memory": {
@@ -81,13 +81,16 @@
       "design_harness": "docs/design/design-harness.md",
       "first_worldview_brief": "docs/design/briefs/learning-space-worldview.md",
       "first_accepted_decision": "docs/design/decisions/learning-space-direction-decision-v1.md",
+      "first_platform_layout_decision": "docs/design/decisions/learning-space-platform-layout-v1.md",
       "first_implementation_mapping": "docs/design/mapping/learning-space-implementation-map-v1.md",
       "interaction_motion_artifact_index": "docs/design/interaction-motion/README.md",
       "first_interaction_motion_artifact": "docs/design/interaction-motion/learning-core-interactions-v1.md",
       "physical_space_artifact_index": "docs/design/physical-space/README.md",
       "first_physical_space_artifact": "docs/design/physical-space/space-model-v1.md",
       "rendered_mock_artifact_index": "docs/design/mocks/README.md",
+      "first_rendered_mock_artifact": "docs/design/mocks/learning-space-phone-frames-v1.md",
       "storyboard_artifact_index": "docs/design/storyboards/README.md",
+      "first_storyboard_artifact": "docs/design/storyboards/learning-space-motion-prototype-v1.md",
       "mirrors": [
         "spec/knowledge-map.json",
         "spec/interactions.json",
