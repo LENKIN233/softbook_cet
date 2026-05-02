@@ -1794,6 +1794,16 @@ test('can unlock the learning flow after fake sms verification', async () => {
   expect(output).toContain('单卡推进，不把学习入口做成按钮堆');
   expect(output).toContain('已登录 138****8000');
   expect(output).toContain('however');
+  const addressAperture = root.findByProps({
+    testID: 'learning-address-aperture',
+  });
+  const addressText = addressAperture.findByType(Text).props.children.join('');
+  expect(addressText).toBe('CET4 / 听力 / 逻辑关系 / 转折关系');
+  expect(output).toContain('听力 · 逻辑关系');
+  expect(output).toContain('当前卡 · ');
+  expect(output).toContain('002001');
+  expect(output).toContain('action plane');
+  expect(output).toContain('favorite');
 });
 
 test('can boot the app into cet6 through runtime config', async () => {
