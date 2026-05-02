@@ -24,7 +24,8 @@
 - `spec/`: 活跃产品与合同真相源
 - `apps/mobile/`: React Native 移动端工程
 - `docs/`: 工程协作约定与流程文档
-- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness 校验 + mobile lint + mobile typecheck + mobile test）
+- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness 校验 + agent review 记录 + mobile quality + backend contract）
+- `scripts/validate_agent_review.py`: PR body agent review 记录校验（merge 前必须记录 passed review 且无阻塞问题）
 - `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）
 - `scripts/validate_harness.py`: harness 校验脚本（spec owner 一致性 + main 分支治理护栏）
 - `scripts/bootstrap_mobile_ios.sh`: iOS 依赖重装脚本
@@ -49,7 +50,7 @@
 分支策略文档见 [docs/branching-strategy.md](/Users/lenkin/programing/softbook_cet/docs/branching-strategy.md)。
 原则是按需求域推进，一次只打磨一个模块，不设长期 `develop` 分支。
 clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`，再执行 `python3 scripts/validate_harness.py` 确认本地 hooks 与 GitHub `main` 保护都仍然生效。
-任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。
+任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review 记录 -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。
 任何用户可见 UI 改动都必须先引用已接受设计稿 / reference / design brief / decision，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口；同一 PR 内新增的 brief / decision 只能满足 design-only PR。
 Learning / core interaction UI 改动还必须引用 interaction-motion artifact 或 storyboard；Space UI 改动还必须引用 physical-space artifact 或 storyboard；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。
 
@@ -193,6 +194,7 @@ infra/cloudbase/smoke-ios-runtime.sh
 ### 接下来优先做什么
 
 - 继续沿 `cross/*` 的合同分支推进 iOS 远端 runtime smoke 与真实账号 / entitlement / daily sync 接线
+- 保持 CloudBase backend contract test 进入 PR gate；任何远端 runtime / `/v1/*` 合同改动都不能只跑 mobile gate
 - 任何继续呈现给用户的 UI 开发，都先进入设计稿 / visual reference / design brief，再映射到 RN；当前 RN 只作为行为验证壳
 - 保持一次只推进一个主线分支；新分支开始前先把 `main` 上的 README / 分支文档 / harness 校验同步到当前基线
 - 暂不提前开 Android / Web 业务工程，也不提前扩统计或其它外围页面

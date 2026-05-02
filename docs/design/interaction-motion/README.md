@@ -13,6 +13,10 @@ This folder holds accepted interaction and motion artifacts for core product int
 
 These artifacts are required before implementing Learning or other core interaction UI when the implementation changes operation shape, feedback, failure state, transition, or micro-animation.
 
+## Accepted Artifacts
+
+- `learning-core-interactions-v1.md`: Learning core interaction operation, feedback, failure, motion, interruptibility, and reduce-motion contract for `flip`, `multiple_choice`, `lock`, `elimination`, `swipe`, and `hint_layer`.
+
 ## Required Contents
 
 Each artifact must state:

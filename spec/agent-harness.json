@@ -1,5 +1,5 @@
 {
-  "version": "vnext-13",
+  "version": "vnext-14",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -316,6 +316,8 @@
       "require_pull_request": true,
       "required_approving_review_count": 0,
       "required_status_checks": [
+        "agent-review",
+        "backend-contract",
         "design-artifact-gate",
         "validate-harness",
         "mobile-quality"
@@ -326,8 +328,8 @@
     },
     "repo_delivery_contract": {
       "owner": "spec/repo-delivery-contract.json",
-      "default_behavior": "code-changing tasks default to topic branch -> commit -> pull request -> agent review -> merge unless the user explicitly requests local-only delivery",
-      "merge_policy": "merge to main defaults to automatic merge after clean agent review and required gates are green",
+      "default_behavior": "code-changing tasks default to topic branch -> commit -> pull request -> recorded agent review -> merge unless the user explicitly requests local-only delivery",
+      "merge_policy": "merge to main defaults to automatic merge after a recorded clean agent review and required gates are green",
       "design_gate_policy": "user-facing UI changes require accepted design artifacts, checklist answers, implementation mapping, and capability-specific interaction/motion or physical-space evidence when the change touches those systems"
     }
   },
@@ -476,6 +478,11 @@
       "id": "AP-29",
       "name": "use_task_local_design_brief_as_implementation_authority",
       "correction": "task_local_briefs_are_exploration_only_and_implementation_consumes_preexisting_accepted_artifacts"
+    },
+    {
+      "id": "AP-30",
+      "name": "treat_agent_review_as_unrecorded_convention",
+      "correction": "agent_review_must_be_recorded_in_the_pull_request_and_checked_by_required_agent_review_gate_before_merge"
     }
   ],
   "compaction_keep": [

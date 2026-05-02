@@ -12,6 +12,15 @@
 - [ ] `cd apps/mobile && npm run lint -- --quiet`
 - [ ] `cd apps/mobile && npm run typecheck`
 - [ ] `cd apps/mobile && npm test -- --runInBand --watchAll=false`
+- [ ] `cd infra/cloudbase/functions/softbook-api && npm test`
+
+## Agent review
+
+- Reviewer: N/A
+- Review status: N/A
+- Blocking findings: N/A
+- Review summary: N/A
+- merge 前必须由 agent 把本节更新为 `Review status: Passed`，且 `Blocking findings` 必须明确无阻塞问题；否则 `agent-review` gate 不应通过。
 
 ## 设计稿来源（用户可见 UI 如适用）
 

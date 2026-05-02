@@ -16,6 +16,8 @@
 - `docs/design/briefs/learning-space-worldview.md`
 - `docs/design/directions/learning-surface-3-directions.md`
 - `docs/design/decisions/learning-space-direction-decision-v1.md`
+- `docs/design/interaction-motion/learning-core-interactions-v1.md`
+- `docs/design/physical-space/space-model-v1.md`
 
 ## Product Truth
 
@@ -114,7 +116,7 @@ These gaps must be closed before a full visual implementation can be called done
 - pc web layout decision;
 - dark-mode rendering proof;
 - accessibility contrast proof for low-alpha library chips;
-- motion proof for flip / hint reveal / swipe with reduce-motion fallback.
+- rendered motion prototype for flip / hint reveal / swipe; the operation and reduce-motion contract is now anchored in `docs/design/interaction-motion/learning-core-interactions-v1.md`.
 
 ## Design Review Checklist Answers
 

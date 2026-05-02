@@ -42,11 +42,42 @@
       "status": "active"
     },
     {
+      "path": "docs/design/interaction-motion/learning-core-interactions-v1.md",
+      "authority": "accepted_interaction_motion_artifact",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["learning_ui_implementation", "core_interaction_design_task", "motion_design_task"],
+      "depends_on": [
+        "spec/product-core.json",
+        "spec/action-surface.json",
+        "spec/interactions.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md",
+        "docs/design/decisions/learning-space-direction-decision-v1.md"
+      ],
+      "status": "active"
+    },
+    {
       "path": "docs/design/physical-space/README.md",
       "authority": "physical_space_artifact_index",
       "audience": ["agent", "designer", "engineer"],
       "load_when": ["physical_space_design_task", "space_ui_implementation"],
       "depends_on": ["spec/knowledge-map.json", "spec/space-operations.json", "docs/design/design-harness.md"],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/physical-space/space-model-v1.md",
+      "authority": "accepted_physical_space_artifact",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["physical_space_design_task", "space_ui_implementation"],
+      "depends_on": [
+        "spec/product-core.json",
+        "spec/knowledge-map.json",
+        "spec/space-operations.json",
+        "spec/box-catalog.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md",
+        "docs/design/decisions/learning-space-direction-decision-v1.md"
+      ],
       "status": "active"
     },
     {
