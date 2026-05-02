@@ -1,5 +1,5 @@
 {
-  "version": "vnext-5",
+  "version": "vnext-6",
   "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -15,9 +15,11 @@
       "local_only_requires_explicit_user_instruction": true,
       "pull_request_required_unless_local_only": true,
       "agent_review_required_before_merge": true,
+      "agent_review_record_required_before_merge": true,
       "auto_merge_after_agent_review_and_green_gates": true,
       "merge_blockers": [
         "blocking_review_findings",
+        "agent_review_record_missing_or_blocking",
         "required_gates_not_green",
         "pull_request_or_merge_permission_failure"
       ],
@@ -31,6 +33,7 @@
       "当前任务引用的 spec",
       "变更摘要",
       "验证",
+      "Agent review",
       "设计稿来源（用户可见 UI 如适用）",
       "design_review_checklist（如适用）"
     ],
@@ -82,6 +85,10 @@
         "command": "python3 scripts/validate_harness.py --skip-remote-guard"
       },
       {
+        "id": "agent_review_record",
+        "command": "python3 scripts/validate_agent_review.py"
+      },
+      {
         "id": "mobile_lint",
         "command": "cd apps/mobile && npm run lint -- --quiet"
       },
@@ -92,6 +99,10 @@
       {
         "id": "mobile_test",
         "command": "cd apps/mobile && npm test -- --runInBand --watchAll=false"
+      },
+      {
+        "id": "backend_contract_test",
+        "command": "cd infra/cloudbase/functions/softbook-api && npm test"
       }
     ]
   }

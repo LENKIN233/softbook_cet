@@ -41,6 +41,18 @@ jobs:
       - name: Validate harness contract
         run: python3 scripts/validate_harness.py --skip-remote-guard
 
+  agent-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate agent review record
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: python3 scripts/validate_agent_review.py
+
   mobile-quality:
     runs-on: ubuntu-latest
     defaults:
@@ -68,3 +80,25 @@ jobs:
 
       - name: Run mobile tests
         run: npm test -- --runInBand --watchAll=false
+
+  backend-contract:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/cloudbase/functions/softbook-api
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.11.0"
+          cache: "npm"
+          cache-dependency-path: infra/cloudbase/functions/softbook-api/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Run backend contract tests
+        run: npm test

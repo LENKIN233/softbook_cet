@@ -1,5 +1,5 @@
 {
-  "version": "vnext-13",
+  "version": "vnext-14",
   "regressions": [
     {
       "id": "HR-01",
@@ -175,6 +175,7 @@
         "pull_request_default_unless_local_only",
         "handoff_branch_commit_validation_when_pr_blocked",
         "agent_review_before_merge",
+        "agent_review_record_gate_before_merge",
         "auto_merge_after_clean_review_and_green_gates"
       ]
     },
@@ -336,6 +337,7 @@
         "local_only_must_be_explicit",
         "pull_request_body_contains_specs_summary_validation",
         "agent_review_before_merge",
+        "agent_review_record_checked_by_required_gate",
         "merge_only_blocks_on_review_gate_or_permission_failure"
       ]
     },

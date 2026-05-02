@@ -1,5 +1,5 @@
 {
-  "version": "vnext-12",
+  "version": "vnext-13",
   "purpose": "Counterfactual perturbation audit used to avoid local optima and catch silent drift away from the user's original requirements.",
   "perturbations": [
     {
@@ -251,6 +251,13 @@
       "change": "Treat physical space as a normal page UI without a spatial model or state transitions",
       "expected_failure": "collapses library/group/box/card semantics into a flat surface and weakens the product's core differentiator",
       "guarded_by": ["spec/knowledge-map.json", "spec/space-operations.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-36",
+      "change": "Treat agent review as an unrecorded convention outside required PR gates",
+      "expected_failure": "lets a PR merge without a durable review artifact even though repo delivery policy requires clean agent review before merge",
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json", "scripts/validate_agent_review.py"],
       "status": "rejected"
     }
   ],

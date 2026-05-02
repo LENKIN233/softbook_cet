@@ -15,6 +15,10 @@ This folder holds accepted physical-space design artifacts.
 
 These artifacts are required before implementing Space UI or any UI that changes the user's understanding of library / group / box / card hierarchy, current-card address, box inspection, favorite tag, sleep zone, wake action, or Learning to Space continuity.
 
+## Accepted Artifacts
+
+- `space-model-v1.md`: Space hierarchy, allowed operations, favorite tag semantics, sleep/wake transition, and Learning <-> Space continuity model.
+
 ## Required Contents
 
 Each artifact must state:

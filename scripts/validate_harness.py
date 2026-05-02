@@ -393,12 +393,12 @@ check_equal(
 )
 check_equal(
     "repo_delivery_contract default_behavior",
-    "code-changing tasks default to topic branch -> commit -> pull request -> agent review -> merge unless the user explicitly requests local-only delivery",
+    "code-changing tasks default to topic branch -> commit -> pull request -> recorded agent review -> merge unless the user explicitly requests local-only delivery",
     repo_delivery_contract["default_behavior"],
 )
 check_equal(
     "repo_delivery_contract merge_policy",
-    "merge to main defaults to automatic merge after clean agent review and required gates are green",
+    "merge to main defaults to automatic merge after a recorded clean agent review and required gates are green",
     repo_delivery_contract["merge_policy"],
 )
 check_equal(
@@ -433,6 +433,11 @@ check_equal(
     delivery_defaults["agent_review_required_before_merge"],
 )
 check_equal(
+    "repo_delivery agent_review_record_required_before_merge",
+    True,
+    delivery_defaults["agent_review_record_required_before_merge"],
+)
+check_equal(
     "repo_delivery auto_merge_after_agent_review_and_green_gates",
     True,
     delivery_defaults["auto_merge_after_agent_review_and_green_gates"],
@@ -441,6 +446,7 @@ check_equal(
     "repo_delivery merge_blockers",
     [
         "blocking_review_findings",
+        "agent_review_record_missing_or_blocking",
         "required_gates_not_green",
         "pull_request_or_merge_permission_failure",
     ],
@@ -463,6 +469,7 @@ check_equal(
         "当前任务引用的 spec",
         "变更摘要",
         "验证",
+        "Agent review",
         "设计稿来源（用户可见 UI 如适用）",
         "design_review_checklist（如适用）",
     ],
@@ -548,6 +555,10 @@ check_equal(
             "command": "python3 scripts/validate_harness.py --skip-remote-guard",
         },
         {
+            "id": "agent_review_record",
+            "command": "python3 scripts/validate_agent_review.py",
+        },
+        {
             "id": "mobile_lint",
             "command": "cd apps/mobile && npm run lint -- --quiet",
         },
@@ -558,6 +569,10 @@ check_equal(
         {
             "id": "mobile_test",
             "command": "cd apps/mobile && npm test -- --runInBand --watchAll=false",
+        },
+        {
+            "id": "backend_contract_test",
+            "command": "cd infra/cloudbase/functions/softbook-api && npm test",
         },
     ],
     ci_contract["required_pull_request_gates"],
@@ -696,6 +711,7 @@ if hr23:
             "pull_request_default_unless_local_only",
             "handoff_branch_commit_validation_when_pr_blocked",
             "agent_review_before_merge",
+            "agent_review_record_gate_before_merge",
             "auto_merge_after_clean_review_and_green_gates",
         ],
         hr23["must_hit"],
@@ -711,6 +727,7 @@ if gt17:
             "local_only_must_be_explicit",
             "pull_request_body_contains_specs_summary_validation",
             "agent_review_before_merge",
+            "agent_review_record_checked_by_required_gate",
             "merge_only_blocks_on_review_gate_or_permission_failure",
         ],
         gt17["must_include"],
@@ -890,20 +907,33 @@ if p35:
         p35["guarded_by"],
     )
 
+p36 = find_by_id(perturbation_audit["perturbations"], "P-36")
+if p36:
+    check_equal(
+        "P-36 change",
+        "Treat agent review as an unrecorded convention outside required PR gates",
+        p36["change"],
+    )
+    check_equal(
+        "P-36 guarded_by",
+        ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json", "scripts/validate_agent_review.py"],
+        p36["guarded_by"],
+    )
+
 agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
 for snippet in [
     "`main` 是只读集成分支，不要直接在 `main` 上开发、提交、合并或推送",
     "开发前先切到 `infra/*`、`shell/*`、`module/*`、`cross/*` 或 `fix/*`",
     "clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`",
     "若发现本地 hooks 或 GitHub `main` 保护漂移，先修治理再继续功能开发",
-    "任何会持久化仓库改动的任务，除非用户明确要求只做本地修改，否则默认在 topic branch 上完成提交、开/更新指向 `main` 的 PR，并在 agent review 通过且 required gates 全绿后自动合并",
-    "未完成 agent review、required gates 未全绿，或权限/环境阻止 merge 时，不要提前合并到 `main`",
+    "任何会持久化仓库改动的任务，除非用户明确要求只做本地修改，否则默认在 topic branch 上完成提交、开/更新指向 `main` 的 PR，并在 agent review 通过、PR 描述记录 passed review 且 required gates 全绿后自动合并",
+    "未完成 agent review、PR 描述未记录 passed review、required gates 未全绿，或权限/环境阻止 merge 时，不要提前合并到 `main`",
     "如果权限或环境阻止创建 PR，必须明确交付 branch、commit、验证结果与阻塞原因",
     "不要直接用 RN 代码、截图或 agent 个人审美定义用户可见设计；任何呈现给用户的 screen / component / state / chrome 都必须先有已接受设计稿或等价设计基准，再进入实现",
     "不要把 task-local design brief 当作 implementation PR 的正式设计权威；它只能作为探索草稿",
     "不要把核心交互 / 小动效当作 UI 完成后的装饰；Learning 或核心交互实现必须先有 interaction/motion artifact 或 storyboard",
     "不要把物理空间当作普通页面 UI；Space 实现必须先有 spatial model / state transition / Learning ↔ Space 连续性 artifact",
-    "若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证；若涉及用户可见 UI，必须写明设计稿来源、interaction/motion 或 physical-space artifact（如适用）、实现映射与未实现 gap，并回答 design review checklist；默认在 review + gate 通过后自动收口合并",
+    "若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证、Agent review；若涉及用户可见 UI，必须写明设计稿来源、interaction/motion 或 physical-space artifact（如适用）、实现映射与未实现 gap，并回答 design review checklist；默认在 review + gate 通过后自动收口合并",
 ]:
     check_contains("AGENTS governance mirror", agents_text, snippet)
 
@@ -922,14 +952,14 @@ check_contains(
 for snippet in [
     "会持久化 repo 改动的任务默认走 `topic branch -> commit -> PR(main)`。",
     "若用户明确要求只做本地修改，才允许停在本地 handoff，不开 PR。",
-    "PR 创建后，默认在 agent review 通过且 required gates 全绿时自动合并到 `main`。",
+    "PR 创建后，默认在 agent review 通过、PR body 留下可校验 review 记录、且 required gates 全绿时自动合并到 `main`。",
     "只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。",
     "如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。",
     "涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / decision，再做实现；同一 PR 内新增的 brief / decision 只能满足 design-only PR。",
     "Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 或 storyboard；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
-    "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。",
-    "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/validate_harness.py --skip-remote-guard`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`。",
-    "merge 的默认前置条件是：agent review 无 blocking finding，且 required gates 全绿。",
+    "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`、`Agent review`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。",
+    "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。",
+    "merge 的默认前置条件是：agent review 无 blocking finding，PR body 中 `Agent review` 已记录为 passed，且 required gates 全绿。",
 ]:
     check_contains("branching strategy delivery mirror", branching_text, snippet)
 
@@ -947,10 +977,11 @@ check_contains(
 for snippet in [
     "- `spec/repo-delivery-contract.json`",
     "- `spec/visual-language.json`",
-    "- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness 校验 + mobile lint + mobile typecheck + mobile test）",
+    "- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness 校验 + agent review 记录 + mobile quality + backend contract）",
+    "- `scripts/validate_agent_review.py`: PR body agent review 记录校验（merge 前必须记录 passed review 且无阻塞问题）",
     "- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）",
     "- `docs/design/interaction-motion/` / `docs/design/physical-space/` / `docs/design/mocks/` / `docs/design/storyboards/`: 核心交互、动效、空间模型、视觉稿和 storyboard artifact 入口",
-    "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",
+    "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review 记录 -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",
     "任何用户可见 UI 改动都必须先引用已接受设计稿 / reference / design brief / decision，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口；同一 PR 内新增的 brief / decision 只能满足 design-only PR。",
     "Learning / core interaction UI 改动还必须引用 interaction-motion artifact 或 storyboard；Space UI 改动还必须引用 physical-space artifact 或 storyboard；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
 ]:
@@ -1262,7 +1293,12 @@ else:
         "pull_request:",
         "- main",
         "design-artifact-gate:",
+        "agent-review:",
+        "python3 scripts/validate_agent_review.py",
         "python3 scripts/validate_pr_design_gate.py --base",
+        "backend-contract:",
+        "cache-dependency-path: infra/cloudbase/functions/softbook-api/package-lock.json",
+        "working-directory: infra/cloudbase/functions/softbook-api",
         "./scripts/install_git_hooks.sh",
         "python3 scripts/validate_harness.py --skip-remote-guard",
         "npm ci",
@@ -1281,11 +1317,50 @@ else:
     for heading in pull_request_contract["required_body_sections"]:
         check_contains("PR template heading", pr_template_text, f"## {heading}")
     for snippet in [
+        "- [ ] `cd infra/cloudbase/functions/softbook-api && npm test`",
+        "## Agent review",
+        "- Review status: N/A",
+        "agent-review` gate",
         "- Interaction/motion artifact: N/A",
         "- Physical space artifact: N/A",
         "用户可见 UI 改动必须回答下方 `Universal Q1-Q4` 与适用的 `Conditional Q5-Q6`，不能保留 `N/A`。",
     ]:
         check_contains("PR template design gate fields", pr_template_text, snippet)
+
+agent_review_script = ROOT / "scripts" / "validate_agent_review.py"
+if not agent_review_script.exists():
+    errors.append("missing agent review validator: scripts/validate_agent_review.py")
+else:
+    invalid_agent_review = subprocess.run(
+        [sys.executable, str(agent_review_script)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        env={**os.environ, "PR_BODY": ""},
+    )
+    if invalid_agent_review.returncode == 0:
+        errors.append("validate_agent_review.py must reject missing agent review records")
+    valid_agent_review = subprocess.run(
+        [sys.executable, str(agent_review_script)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        env={
+            **os.environ,
+            "PR_BODY": """
+## Agent review
+
+- Reviewer: Codex
+- Review status: Passed
+- Blocking findings: None
+- Review summary: Reviewed changed files, specs, validation, and found no blocking issues.
+""",
+        },
+    )
+    if valid_agent_review.returncode != 0:
+        errors.append("validate_agent_review.py must accept a passed review with no blocking findings")
 
 directory_reference_body = """
 ## 设计稿来源（用户可见 UI 如适用）
