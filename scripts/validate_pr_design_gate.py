@@ -75,6 +75,7 @@ PHYSICAL_SPACE_SOURCE_MARKERS = (
 )
 SPACE_VISUAL_PROOF_SOURCE_MARKERS = (
     "docs/design/mocks/space-surface-visual-proof-v1",
+    "docs/design/mocks/space-surface-visual-refinement-v1",
     "docs/design/directions/space-surface-visual-directions-v1",
     "http://",
     "https://",
@@ -321,6 +322,7 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
             errors.append(
                 "Space UI changed, but PR body does not name the Space visual proof "
                 "docs/design/mocks/space-surface-visual-proof-v1.md/html, "
+                "docs/design/mocks/space-surface-visual-refinement-v1.md/html, "
                 "docs/design/directions/space-surface-visual-directions-v1.md, "
                 "or a linked external design file"
             )
