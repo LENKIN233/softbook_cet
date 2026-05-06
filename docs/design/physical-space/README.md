@@ -20,6 +20,7 @@ These artifacts are required before implementing Space UI or any UI that changes
 - `space-model-v1.md`: Space hierarchy, allowed operations, favorite tag semantics, sleep/wake transition, and Learning <-> Space continuity model.
 - `../directions/space-surface-visual-directions-v1.md`: Space visual direction set; accepts `Box Desk` as the primary Space visual direction.
 - `../mocks/space-surface-visual-proof-v1.md`: rendered Space visual proof for box focus, inspect, favorite tag, sleep zone, wake, and return-to-Learning states.
+- `../mocks/space-surface-visual-refinement-v1.md`: refined implementation-facing `Box Desk` Space visual baseline with region mapping and containment stress proof.
 
 ## Required Contents
 
