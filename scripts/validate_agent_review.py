@@ -10,6 +10,14 @@ from pathlib import Path
 
 MISSING_VALUES = {"", "n/a", "na", "none", "null", "不适用", "无"}
 BLOCKING_MISSING_VALUES = {"", "n/a", "na", "null", "不适用"}
+REQUIRED_SECTIONS = (
+    "当前任务引用的 spec",
+    "变更摘要",
+    "验证",
+    "Agent review",
+    "设计稿来源（用户可见 UI 如适用）",
+    "design_review_checklist（如适用）",
+)
 
 
 def parse_args():
@@ -37,6 +45,29 @@ def line_value(body: str, label: str) -> str | None:
     return match.group(1).strip()
 
 
+def has_section(body: str, title: str) -> bool:
+    return bool(re.search(rf"(?im)^##\s+{re.escape(title)}\s*$", body))
+
+
+def section_body(body: str, title: str) -> str:
+    pattern = rf"(?ims)^##\s+{re.escape(title)}\s*$(.*?)(?=^##\s+|\Z)"
+    match = re.search(pattern, body)
+    if not match:
+        return ""
+    return match.group(1).strip()
+
+
+def has_meaningful_content(value: str) -> bool:
+    stripped_lines = [
+        line.strip()
+        for line in value.splitlines()
+        if line.strip() and line.strip() not in {"- ...", "..."}
+    ]
+    if not stripped_lines:
+        return False
+    return any(line.lower() not in MISSING_VALUES for line in stripped_lines)
+
+
 def is_missing(value: str | None) -> bool:
     if value is None:
         return True
@@ -52,8 +83,23 @@ def is_blocking_missing(value: str | None) -> bool:
 def validate(body: str) -> list[str]:
     errors = []
 
-    if not re.search(r"(?im)^##\s+Agent review\s*$", body):
-        errors.append("PR body must include an '## Agent review' section")
+    for section in REQUIRED_SECTIONS:
+        if not has_section(body, section):
+            errors.append(f"PR body must include a '## {section}' section")
+
+    spec_section = section_body(body, "当前任务引用的 spec")
+    if not has_meaningful_content(spec_section) or "spec/" not in spec_section:
+        errors.append("PR body must list the task-relevant spec paths")
+
+    summary_section = section_body(body, "变更摘要")
+    if not has_meaningful_content(summary_section):
+        errors.append("PR body must include a non-empty change summary")
+
+    validation_section = section_body(body, "验证")
+    if not has_meaningful_content(validation_section):
+        errors.append("PR body must include validation records")
+    elif not re.search(r"(?im)(\[[xX]\]|`[^`]+`)", validation_section):
+        errors.append("PR body validation section must include checked results or command records")
 
     reviewer = line_value(body, "Reviewer")
     review_status = line_value(body, "Review status")

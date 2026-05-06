@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import importlib.util
 import os
 import subprocess
 import sys
@@ -62,6 +63,14 @@ def run_design_gate_case(body: str, changed_files: list[str]):
         check=False,
         env={**os.environ, "PR_BODY": body},
     )
+
+
+def load_design_gate_module():
+    path = ROOT / "scripts" / "validate_pr_design_gate.py"
+    spec = importlib.util.spec_from_file_location("validate_pr_design_gate", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 req = load("requirement-memory.json")
@@ -1342,7 +1351,8 @@ else:
     )
     if invalid_agent_review.returncode == 0:
         errors.append("validate_agent_review.py must reject missing agent review records")
-    valid_agent_review = subprocess.run(
+
+    agent_review_only = subprocess.run(
         [sys.executable, str(agent_review_script)],
         cwd=ROOT,
         capture_output=True,
@@ -1356,7 +1366,56 @@ else:
 - Reviewer: Codex
 - Review status: Passed
 - Blocking findings: None
+- Review summary: Reviewed changed files.
+""",
+        },
+    )
+    if agent_review_only.returncode == 0:
+        errors.append("validate_agent_review.py must reject PR bodies that only contain Agent review")
+    elif "当前任务引用的 spec" not in (agent_review_only.stdout + agent_review_only.stderr):
+        errors.append("validate_agent_review.py required-section rejection must mention missing spec section")
+
+    valid_agent_review = subprocess.run(
+        [sys.executable, str(agent_review_script)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        env={
+            **os.environ,
+            "PR_BODY": """
+## 当前任务引用的 spec
+
+- `spec/repo-delivery-contract.json`
+- `spec/agent-harness.json`
+
+## 变更摘要
+
+- Validate PR body review records.
+
+## 验证
+
+- [x] `python3 scripts/validate_agent_review.py`
+
+## Agent review
+
+- Reviewer: Codex
+- Review status: Passed
+- Blocking findings: None
 - Review summary: Reviewed changed files, specs, validation, and found no blocking issues.
+
+## 设计稿来源（用户可见 UI 如适用）
+
+- Design artifact: N/A
+- Interaction/motion artifact: N/A
+- Physical space artifact: N/A
+- Implementation mapping: N/A
+- Unimplemented design gaps: N/A
+
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: N/A
+- Conditional Q5-Q6: N/A
 """,
         },
     )
@@ -1391,6 +1450,38 @@ else:
     directory_reference_output = directory_reference_case.stdout + directory_reference_case.stderr
     if "not only a directory" not in directory_reference_output:
         errors.append("validate_pr_design_gate.py directory-only rejection must explain the concrete file requirement")
+
+visual_tokens_empty_case = run_design_gate_case("", ["apps/mobile/src/visual/tokens.ts"])
+if visual_tokens_empty_case.returncode == 0:
+    errors.append("validate_pr_design_gate.py must treat apps/mobile/src/visual/tokens.ts as design-gated")
+else:
+    visual_tokens_empty_output = visual_tokens_empty_case.stdout + visual_tokens_empty_case.stderr
+    if "Design artifact" not in visual_tokens_empty_output:
+        errors.append("validate_pr_design_gate.py visual token rejection must require design artifact evidence")
+
+visual_tokens_valid_case = run_design_gate_case(
+    """
+## 设计稿来源（用户可见 UI 如适用）
+
+- Design artifact: docs/design/visual-reference.html
+- Interaction/motion artifact: N/A
+- Physical space artifact: N/A
+- Implementation mapping: apps/mobile/src/visual/tokens.ts
+- Unimplemented design gaps: No known gaps.
+
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: answered
+- Conditional Q5-Q6: answered
+""",
+    ["apps/mobile/src/visual/tokens.ts"],
+)
+if visual_tokens_valid_case.returncode != 0:
+    errors.append(
+        "validate_pr_design_gate.py should allow visual token changes with design evidence: "
+        + visual_tokens_valid_case.stdout
+        + visual_tokens_valid_case.stderr
+    )
 
 visual_output_artifact_paths = [
     "docs/design/visual-reference.html",
@@ -1431,6 +1522,39 @@ for visual_output_path in visual_output_artifact_paths:
             + "\n"
             + visual_output_checklist_case.stdout
             + visual_output_checklist_case.stderr
+        )
+
+design_gate_module = load_design_gate_module()
+bad_visual_output_errors = design_gate_module.scan_visual_output_text(
+    "docs/design/mocks/bad-space-mock.html",
+    """
+<!doctype html>
+<html>
+<head>
+  <style>
+    .bad-title { background: linear-gradient(red, blue); color: transparent; }
+    .serif-copy { font-family: serif; }
+  </style>
+</head>
+<body>
+  <div class="phone">有把握 / 再回看</div>
+  <svg viewBox="0 0 12 12"><path d="M0 0h12v12H0z"/></svg>
+</body>
+</html>
+""",
+    load("visual-language.json"),
+)
+for expected_snippet in [
+    "forbidden design pattern",
+    "inline <svg> without explicit width and height",
+    "有把握=confident/mint",
+    "overflow-x containment evidence",
+    "narrow-viewport media query",
+]:
+    if not any(expected_snippet in error for error in bad_visual_output_errors):
+        errors.append(
+            "validate_pr_design_gate.py visual-output scanner missing expected rejection: "
+            + expected_snippet
         )
 
 ui_external_artifact_case = run_design_gate_case(
