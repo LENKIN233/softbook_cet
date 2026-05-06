@@ -16,6 +16,11 @@
 
 - `docs/design/mocks/space-surface-visual-proof-v1.html`
 
+Follow-up visual refinement:
+
+- `docs/design/mocks/space-surface-visual-refinement-v1.md`
+- `docs/design/mocks/space-surface-visual-refinement-v1.html`
+
 ## Product Truth
 
 Space remains a top-level physical hierarchy. Favorite is a tag, sleep is a spatial state, and cards retain original library / group / box ownership.

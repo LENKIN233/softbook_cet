@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Space Surface Visual Refinement v1</title>
+  <style>
+    :root {
+      --reading: #ff8a3d;
+      --reading-quiet: rgba(255, 138, 61, .14);
+      --reading-line: rgba(255, 138, 61, .42);
+      --confident: #22c58b;
+      --review: #f5b100;
+      --ink-1: #0b0b14;
+      --ink-2: #3a3a4e;
+      --ink-3: #6e6e80;
+      --ink-4: #acacbf;
+      --page: #f1f0f6;
+      --page-2: #eceaf4;
+      --glass-100: rgba(255, 255, 255, .66);
+      --glass-200: rgba(255, 255, 255, .82);
+      --glass-300: rgba(255, 255, 255, .94);
+      --glass-edge: rgba(255, 255, 255, .72);
+      --hair: rgba(11, 11, 20, .08);
+      --shadow: rgba(11, 11, 20, .12);
+      font-family: Inter, "Noto Sans SC", system-ui, Arial;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink-1);
+      background:
+        linear-gradient(135deg, rgba(255, 138, 61, .12), rgba(241, 240, 246, 0) 34%),
+        linear-gradient(225deg, rgba(34, 197, 139, .07), rgba(241, 240, 246, 0) 38%),
+        var(--page);
+      overflow-x: hidden;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .04;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+    }
+
+    header {
+      width: min(1160px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 34px 0 18px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      max-width: 860px;
+      font-size: 34px;
+      line-height: 1.12;
+      font-weight: 850;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin-top: 12px;
+      color: var(--ink-3);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .section-title {
+      width: min(1160px, calc(100% - 48px));
+      margin: 20px auto 14px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .section-title h2 {
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 820;
+    }
+
+    .note {
+      color: var(--ink-3);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    main {
+      width: min(1320px, 100%);
+      margin: 0 auto;
+      padding: 0 24px 54px;
+    }
+
+    .frame-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 24px;
+    }
+
+    .phone {
+      flex: 0 0 393px;
+      width: 393px;
+      height: 852px;
+      overflow: hidden;
+      position: relative;
+      border-radius: 46px;
+      border: 1px solid rgba(11, 11, 20, .14);
+      background: linear-gradient(180deg, #f8f7fb, var(--page-2));
+      box-shadow:
+        0 26px 70px rgba(11, 11, 20, .14),
+        inset 0 1px 0 rgba(255, 255, 255, .78);
+      padding: 26px 18px 18px;
+    }
+
+    .island {
+      width: 122px;
+      height: 37px;
+      margin: 0 auto 16px;
+      border-radius: 22px;
+      background: var(--ink-1);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .09);
+    }
+
+    .screen {
+      height: 755px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .topline,
+    .address-row,
+    .object-meta,
+    .return-strip,
+    .tabbar,
+    .tray-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .topline,
+    .object-meta,
+    .return-strip,
+    .tray-head {
+      justify-content: space-between;
+    }
+
+    .library-chip,
+    .status-chip,
+    .tag,
+    .address-node,
+    .button,
+    .tab {
+      border: 1px solid var(--hair);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .library-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 220px;
+      padding: 9px 12px;
+      color: #6b2d00;
+      background: var(--reading-quiet);
+      border-color: var(--reading-line);
+    }
+
+    .library-chip span:last-child,
+    .status-chip,
+    .address-node,
+    .tag,
+    .button,
+    .tab,
+    .return-copy,
+    .tile-title,
+    .tile-sub,
+    .field-label,
+    .field-value {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: var(--reading);
+    }
+
+    .status-chip {
+      padding: 8px 10px;
+      color: var(--ink-3);
+      background: rgba(255, 255, 255, .48);
+    }
+
+    .address-ladder {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid rgba(255, 255, 255, .64);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, .42);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .82);
+    }
+
+    .address-row {
+      justify-content: flex-start;
+    }
+
+    .address-node {
+      padding: 7px 9px;
+      color: var(--ink-3);
+      background: rgba(255, 255, 255, .62);
+    }
+
+    .address-node.current {
+      color: #6b2d00;
+      background: rgba(255, 138, 61, .16);
+      border-color: rgba(255, 138, 61, .34);
+    }
+
+    .object-plane,
+    .box-object,
+    .card-object,
+    .tray,
+    .tile,
+    .stress-row {
+      border: 1px solid var(--glass-edge);
+      background: var(--glass-200);
+      box-shadow:
+        0 18px 44px rgba(11, 11, 20, .08),
+        inset 0 1px 0 rgba(255, 255, 255, .86),
+        inset 0 -1px 0 rgba(11, 11, 20, .03);
+      backdrop-filter: blur(44px) saturate(1.18);
+    }
+
+    .object-plane {
+      border-radius: 28px;
+      padding: 14px;
+    }
+
+    .box-object {
+      position: relative;
+      overflow: hidden;
+      border-radius: 26px;
+      padding: 16px;
+      min-height: 148px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .64));
+    }
+
+    .box-object::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 5px;
+      background: var(--reading);
+      opacity: .86;
+    }
+
+    .eyebrow {
+      color: var(--reading);
+      font-size: 11px;
+      line-height: 1.2;
+      font-weight: 820;
+      text-transform: uppercase;
+    }
+
+    h3 {
+      margin-top: 8px;
+      font-size: 25px;
+      line-height: 1.12;
+      font-weight: 850;
+      overflow-wrap: anywhere;
+    }
+
+    .object-copy {
+      margin-top: 8px;
+      color: var(--ink-3);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .object-meta {
+      margin-top: 14px;
+    }
+
+    .field {
+      min-width: 0;
+    }
+
+    .field-label {
+      color: var(--ink-4);
+      font-size: 10px;
+      line-height: 1.2;
+      font-weight: 780;
+      text-transform: uppercase;
+    }
+
+    .field-value {
+      margin-top: 3px;
+      color: var(--ink-2);
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 820;
+    }
+
+    .card-rail {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .tile {
+      min-height: 92px;
+      border-radius: 20px;
+      padding: 11px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-width: 0;
+    }
+
+    .tile.current {
+      border-color: rgba(255, 138, 61, .54);
+      box-shadow:
+        0 16px 36px rgba(255, 138, 61, .12),
+        inset 0 0 0 1px rgba(255, 138, 61, .2),
+        inset 0 1px 0 rgba(255, 255, 255, .86);
+    }
+
+    .tile.sleeping {
+      background: rgba(172, 172, 191, .2);
+      border-color: rgba(110, 110, 128, .28);
+    }
+
+    .tile-title {
+      color: var(--ink-2);
+      font-size: 13px;
+      line-height: 1.25;
+      font-weight: 830;
+      overflow-wrap: anywhere;
+    }
+
+    .tile-sub {
+      margin-top: 4px;
+      color: var(--ink-3);
+      font-size: 11px;
+      line-height: 1.3;
+      font-weight: 650;
+      overflow-wrap: anywhere;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .tag {
+      padding: 6px 8px;
+      color: var(--ink-3);
+      background: rgba(255, 255, 255, .64);
+    }
+
+    .tag.favorite {
+      color: #715200;
+      border-color: rgba(245, 177, 0, .38);
+      background: rgba(245, 177, 0, .17);
+    }
+
+    .tag.sleep {
+      color: #45495a;
+      border-color: rgba(110, 110, 128, .32);
+      background: rgba(110, 110, 128, .13);
+    }
+
+    .tag.ready {
+      color: #12633f;
+      border-color: rgba(34, 197, 139, .35);
+      background: rgba(34, 197, 139, .13);
+    }
+
+    .tray {
+      border-radius: 24px;
+      padding: 11px;
+      background: rgba(255, 255, 255, .56);
+    }
+
+    .tray-title {
+      color: var(--ink-2);
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 830;
+      overflow-wrap: anywhere;
+    }
+
+    .tray-copy {
+      margin-top: 4px;
+      color: var(--ink-3);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 0 12px;
+      color: var(--ink-1);
+      background: var(--glass-300);
+    }
+
+    .button.primary {
+      color: #fff7f0;
+      background: var(--reading);
+      border-color: var(--reading);
+    }
+
+    .button.quiet {
+      color: var(--ink-3);
+      background: rgba(255, 255, 255, .5);
+    }
+
+    .return-strip {
+      min-height: 44px;
+      border-radius: 999px;
+      padding: 7px 7px 7px 13px;
+      border: 1px solid rgba(255, 255, 255, .68);
+      background: rgba(255, 255, 255, .55);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8);
+    }
+
+    .return-copy {
+      color: var(--ink-3);
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 760;
+    }
+
+    .tabbar {
+      margin-top: auto;
+      min-height: 52px;
+      padding: 6px;
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, .72);
+      background: rgba(255, 255, 255, .66);
+      box-shadow:
+        0 14px 34px rgba(11, 11, 20, .1),
+        inset 0 1px 0 rgba(255, 255, 255, .82);
+    }
+
+    .tab {
+      flex: 1;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+      color: var(--ink-3);
+      border-color: transparent;
+      background: transparent;
+    }
+
+    .tab.active {
+      color: #fff7f0;
+      background: var(--ink-1);
+    }
+
+    .inspect-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 86px;
+      gap: 10px;
+      min-height: 290px;
+    }
+
+    .card-object {
+      border-radius: 26px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-width: 0;
+    }
+
+    .quote-line {
+      margin-top: 12px;
+      color: var(--ink-2);
+      font-size: 15px;
+      line-height: 1.45;
+      font-weight: 720;
+      overflow-wrap: anywhere;
+    }
+
+    .sibling-stack {
+      display: grid;
+      gap: 8px;
+    }
+
+    .sibling {
+      border-radius: 18px;
+      padding: 10px;
+      color: var(--ink-3);
+      font-size: 11px;
+      font-weight: 780;
+      line-height: 1.25;
+      border: 1px solid var(--hair);
+      background: rgba(255, 255, 255, .5);
+      overflow-wrap: anywhere;
+    }
+
+    .sibling.current {
+      color: #6b2d00;
+      background: rgba(255, 138, 61, .14);
+      border-color: rgba(255, 138, 61, .34);
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .sleep-stack {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .sleep-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(110, 110, 128, .28);
+      background: rgba(172, 172, 191, .16);
+    }
+
+    .stress-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .stress-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 70px;
+      border-radius: 20px;
+      padding: 12px;
+    }
+
+    .stress-label {
+      color: var(--ink-2);
+      font-size: 13px;
+      line-height: 1.3;
+      font-weight: 820;
+      overflow-wrap: anywhere;
+      min-width: 0;
+    }
+
+    .stress-note {
+      margin-top: 4px;
+      color: var(--ink-3);
+      font-size: 11px;
+      line-height: 1.3;
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 1180px) {
+      main {
+        width: min(920px, 100%);
+      }
+    }
+
+    @media (max-width: 740px) {
+      header,
+      .section-title {
+        width: calc(100% - 32px);
+      }
+
+      header {
+        padding-top: 28px;
+      }
+
+      h1 {
+        max-width: 360px;
+        font-size: 22px;
+        line-height: 1.12;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+      }
+
+      .lead {
+        max-width: 360px;
+        font-size: 14px;
+        overflow-wrap: anywhere;
+      }
+
+      main {
+        padding-inline: 16px;
+      }
+
+      .section-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+
+      .phone {
+        flex-basis: min(393px, calc(100vw - 32px));
+        width: min(393px, calc(100vw - 32px));
+      }
+    }
+
+    @media (max-width: 420px) {
+      .phone {
+        padding-inline: 14px;
+      }
+
+      .screen {
+        gap: 10px;
+      }
+
+      .card-rail,
+      .action-row {
+        gap: 8px;
+      }
+
+      .library-chip {
+        max-width: 192px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Space Surface Visual Refinement v1</h1>
+    <p class="lead">Design-only refinement of the accepted Box Desk direction. The frames keep Space as a physical hierarchy, strengthen the visual稿, and give future RN work concrete regions to map without inventing UI from code.</p>
+  </header>
+
+  <div class="section-title">
+    <h2>Accepted Box Desk Refinement</h2>
+    <div class="note">393 x 852 phone frames · reading library · design-only</div>
+  </div>
+
+  <main>
+    <div class="frame-grid">
+      <section class="phone" aria-label="Primary Box Desk refined frame">
+        <div class="island"></div>
+        <div class="screen">
+          <div class="topline">
+            <div class="library-chip"><span class="dot"></span><span>阅读 · Space</span></div>
+            <div class="status-chip">CET4 0521</div>
+          </div>
+
+          <div class="address-ladder" aria-label="Current address">
+            <div class="address-row">
+              <span class="address-node">CET4</span>
+              <span class="address-node current">阅读</span>
+              <span class="address-node">细节题</span>
+            </div>
+            <div class="address-row">
+              <span class="address-node">定位词</span>
+              <span class="address-node current">0521 Detail Evidence</span>
+            </div>
+          </div>
+
+          <section class="object-plane" aria-label="Current box object">
+            <div class="box-object">
+              <div>
+                <div class="eyebrow">Current Box</div>
+                <h3>Detail Evidence</h3>
+                <p class="object-copy">support, trap, and return clues stay in one exam object.</p>
+              </div>
+              <div class="object-meta">
+                <div class="field">
+                  <div class="field-label">Current card</div>
+                  <div class="field-value">052101</div>
+                </div>
+                <div class="field">
+                  <div class="field-label">State</div>
+                  <div class="field-value">ready</div>
+                </div>
+                <button class="button primary" type="button">继续学习</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="card-rail" aria-label="Contained cards">
+            <article class="tile current">
+              <div>
+                <div class="tile-title">052101 argument support</div>
+                <div class="tile-sub">same original box</div>
+              </div>
+              <div class="tag-row"><span class="tag favorite">favorite tag</span></div>
+            </article>
+            <article class="tile">
+              <div>
+                <div class="tile-title">052102 detail trap</div>
+                <div class="tile-sub">sibling card</div>
+              </div>
+              <div class="tag-row"><span class="tag ready">ready</span></div>
+            </article>
+            <article class="tile sleeping">
+              <div>
+                <div class="tile-title">052103 contrast clue</div>
+                <div class="tile-sub">quiet, still owned</div>
+              </div>
+              <div class="tag-row"><span class="tag sleep">sleeping</span></div>
+            </article>
+            <article class="tile">
+              <div>
+                <div class="tile-title">052104 return line</div>
+                <div class="tile-sub">box sibling</div>
+              </div>
+              <div class="tag-row"><span class="tag">inspect</span></div>
+            </article>
+          </div>
+
+          <div class="tray">
+            <div class="tray-head">
+              <div>
+                <div class="tray-title">Sleep tray · 0521</div>
+                <div class="tray-copy">Temporarily quiet, not archived.</div>
+              </div>
+              <button class="button quiet" type="button">查看</button>
+            </div>
+          </div>
+
+          <div class="return-strip">
+            <div class="return-copy">Learning keeps CET4 / 阅读 / 细节题 / 0521</div>
+            <button class="button primary" type="button">返回</button>
+          </div>
+
+          <nav class="tabbar" aria-label="Top level navigation">
+            <span class="tab">学习</span>
+            <span class="tab active">空间</span>
+            <span class="tab">统计</span>
+            <span class="tab">我的</span>
+          </nav>
+        </div>
+      </section>
+
+      <section class="phone" aria-label="Card inspect refined frame">
+        <div class="island"></div>
+        <div class="screen">
+          <div class="topline">
+            <div class="library-chip"><span class="dot"></span><span>阅读 · Inspect</span></div>
+            <div class="status-chip">card 052101</div>
+          </div>
+
+          <div class="address-ladder" aria-label="Inspect address">
+            <div class="address-row">
+              <span class="address-node current">阅读</span>
+              <span class="address-node">细节题</span>
+              <span class="address-node current">0521</span>
+            </div>
+          </div>
+
+          <div class="inspect-layout">
+            <article class="card-object">
+              <div>
+                <div class="eyebrow">Selected Card</div>
+                <h3>052101</h3>
+                <p class="quote-line">The option repeats a noun from the passage, but the support sentence answers a different detail.</p>
+              </div>
+              <div class="tag-row">
+                <span class="tag favorite">favorite tag</span>
+                <span class="tag ready">ready</span>
+              </div>
+            </article>
+
+            <div class="sibling-stack" aria-label="Same box siblings">
+              <div class="sibling current">052101 selected</div>
+              <div class="sibling">052102 trap</div>
+              <div class="sibling">052103 sleeping</div>
+              <div class="sibling">052104 return</div>
+            </div>
+          </div>
+
+          <section class="object-plane" aria-label="Card ownership">
+            <div class="field-label">Original ownership</div>
+            <h3>Detail Evidence</h3>
+            <p class="object-copy">Inspect enlarges the card, but the card does not leave its parent box.</p>
+          </section>
+
+          <div class="action-row">
+            <button class="button" type="button">标记收藏</button>
+            <button class="button" type="button">放入休眠</button>
+          </div>
+
+          <div class="return-strip">
+            <div class="return-copy">返回 Learning 时仍指向 0521</div>
+            <button class="button primary" type="button">继续</button>
+          </div>
+
+          <nav class="tabbar" aria-label="Top level navigation">
+            <span class="tab">学习</span>
+            <span class="tab active">空间</span>
+            <span class="tab">统计</span>
+            <span class="tab">我的</span>
+          </nav>
+        </div>
+      </section>
+
+      <section class="phone" aria-label="Sleep wake refined frame">
+        <div class="island"></div>
+        <div class="screen">
+          <div class="topline">
+            <div class="library-chip"><span class="dot"></span><span>阅读 · Sleep</span></div>
+            <div class="status-chip">quiet tray</div>
+          </div>
+
+          <div class="address-ladder" aria-label="Sleep address">
+            <div class="address-row">
+              <span class="address-node">CET4</span>
+              <span class="address-node current">阅读</span>
+              <span class="address-node">细节题</span>
+            </div>
+            <div class="address-row">
+              <span class="address-node current">0521 Detail Evidence</span>
+            </div>
+          </div>
+
+          <section class="object-plane" aria-label="Box still owns sleeping card">
+            <div class="box-object">
+              <div>
+                <div class="eyebrow">Box Still Owns It</div>
+                <h3>052103 is quiet</h3>
+                <p class="object-copy">Sleep removes immediate pressure without changing the knowledge address.</p>
+              </div>
+              <div class="object-meta">
+                <div class="field">
+                  <div class="field-label">Original box</div>
+                  <div class="field-value">0521</div>
+                </div>
+                <div class="field">
+                  <div class="field-label">Flow</div>
+                  <div class="field-value">paused</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="sleep-stack">
+            <div class="sleep-card">
+              <div>
+                <div class="tile-title">052103 contrast clue</div>
+                <div class="tile-sub">CET4 / 阅读 / 细节题 / 0521</div>
+              </div>
+              <span class="tag sleep">sleeping</span>
+            </div>
+            <div class="sleep-card">
+              <div>
+                <div class="tile-title">052102 detail trap</div>
+                <div class="tile-sub">still learning-eligible</div>
+              </div>
+              <span class="tag ready">ready</span>
+            </div>
+          </div>
+
+          <div class="tray">
+            <div class="tray-head">
+              <div>
+                <div class="tray-title">Wake returns eligibility</div>
+                <div class="tray-copy">It does not reassign the card.</div>
+              </div>
+              <button class="button primary" type="button">唤醒</button>
+            </div>
+          </div>
+
+          <div class="return-strip">
+            <div class="return-copy">学习路径继续由系统推进</div>
+            <button class="button quiet" type="button">返回</button>
+          </div>
+
+          <nav class="tabbar" aria-label="Top level navigation">
+            <span class="tab">学习</span>
+            <span class="tab active">空间</span>
+            <span class="tab">统计</span>
+            <span class="tab">我的</span>
+          </nav>
+        </div>
+      </section>
+
+      <section class="phone" aria-label="Long content containment refined frame">
+        <div class="island"></div>
+        <div class="screen">
+          <div class="topline">
+            <div class="library-chip"><span class="dot"></span><span>阅读 · Long Content</span></div>
+            <div class="status-chip">wrap proof</div>
+          </div>
+
+          <div class="address-ladder" aria-label="Long address">
+            <div class="address-row">
+              <span class="address-node current">阅读</span>
+              <span class="address-node">定位词与长难句细节综合判断</span>
+            </div>
+            <div class="address-row">
+              <span class="address-node current">0521 Very Long Detail Evidence Box Name</span>
+            </div>
+          </div>
+
+          <section class="object-plane" aria-label="Long box object">
+            <div class="box-object">
+              <div>
+                <div class="eyebrow">Containment Stress</div>
+                <h3>Long Detail Evidence Box Name</h3>
+                <p class="object-copy">Names wrap inside the object plane. The screen does not create a horizontal scroll.</p>
+              </div>
+              <div class="object-meta">
+                <button class="button primary" type="button">继续学习</button>
+                <button class="button quiet" type="button">查看卡片</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="stress-list" aria-label="Long card labels">
+            <div class="stress-row">
+              <div>
+                <div class="stress-label">052101 argument support with very long clue label</div>
+                <div class="stress-note">favorite remains a tag, not a new container</div>
+              </div>
+              <span class="tag favorite">favorite</span>
+            </div>
+            <div class="stress-row">
+              <div>
+                <div class="stress-label">052102 detail trap that must stay in the same box</div>
+                <div class="stress-note">sibling relation remains visible</div>
+              </div>
+              <span class="tag ready">ready</span>
+            </div>
+            <div class="stress-row">
+              <div>
+                <div class="stress-label">052103 contrast clue temporarily quiet</div>
+                <div class="stress-note">sleep tray preserves address</div>
+              </div>
+              <span class="tag sleep">sleep</span>
+            </div>
+          </div>
+
+          <div class="return-strip">
+            <div class="return-copy">CET4 / 阅读 / 细节题 / 0521 remains readable</div>
+            <button class="button primary" type="button">返回</button>
+          </div>
+
+          <nav class="tabbar" aria-label="Top level navigation">
+            <span class="tab">学习</span>
+            <span class="tab active">空间</span>
+            <span class="tab">统计</span>
+            <span class="tab">我的</span>
+          </nav>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

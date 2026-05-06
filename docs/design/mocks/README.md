@@ -19,6 +19,8 @@ For core Learning or Space implementation work, prose direction alone is not eno
 - `learning-space-phone-frames-v1.html`: rendered `393 x 852` Learning and Space phone frames.
 - `space-surface-visual-proof-v1.md`: Space-specific visual proof with three directions and accepted multi-state requirements.
 - `space-surface-visual-proof-v1.html`: rendered Space visual direction set and accepted state frames for box focus, inspect, favorite tag, sleep, wake, and return to Learning.
+- `space-surface-visual-refinement-v1.md`: refined accepted `Box Desk` Space visual稿 with implementation-facing regions and containment stress.
+- `space-surface-visual-refinement-v1.html`: rendered refined Space phone frames for primary box desk, card inspect, sleep/wake, and long-content containment.
 
 ## Required Contents
 
