@@ -187,6 +187,7 @@
         "design_artifact_reference",
         "interaction_motion_artifact_if_core_interaction_changes",
         "physical_space_artifact_if_space_changes",
+        "space_visual_proof_artifact_if_space_ui_changes",
         "implementation_mapping",
         "unimplemented_design_gaps",
         "design_review_checklist_answers"

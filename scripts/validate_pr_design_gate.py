@@ -73,6 +73,12 @@ PHYSICAL_SPACE_SOURCE_MARKERS = (
     "http://",
     "https://",
 )
+SPACE_VISUAL_PROOF_SOURCE_MARKERS = (
+    "docs/design/mocks/space-surface-visual-proof-v1",
+    "docs/design/directions/space-surface-visual-directions-v1",
+    "http://",
+    "https://",
+)
 MISSING_VALUES = {"", "n/a", "na", "none", "null", "不适用", "无"}
 
 
@@ -302,6 +308,22 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
                     "same-PR physical-space artifact cannot satisfy an implementation PR design gate: "
                     + ", ".join(same_pr_artifacts)
                 )
+
+        space_design_sources = "\n".join(
+            value
+            for value in [design_artifact, physical_space_artifact]
+            if value is not None
+        )
+        if not has_concrete_source(
+            space_design_sources,
+            SPACE_VISUAL_PROOF_SOURCE_MARKERS,
+        ):
+            errors.append(
+                "Space UI changed, but PR body does not name the Space visual proof "
+                "docs/design/mocks/space-surface-visual-proof-v1.md/html, "
+                "docs/design/directions/space-surface-visual-directions-v1.md, "
+                "or a linked external design file"
+            )
 
     return errors
 

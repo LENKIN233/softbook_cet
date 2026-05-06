@@ -19,7 +19,9 @@
 - `docs/design/decisions/learning-space-platform-layout-v1.md`
 - `docs/design/interaction-motion/learning-core-interactions-v1.md`
 - `docs/design/physical-space/space-model-v1.md`
+- `docs/design/directions/space-surface-visual-directions-v1.md`
 - `docs/design/mocks/learning-space-phone-frames-v1.md`
+- `docs/design/mocks/space-surface-visual-proof-v1.md`
 - `docs/design/storyboards/learning-space-motion-prototype-v1.md`
 
 ## Product Truth
@@ -109,12 +111,23 @@ It must not reduce Space to:
 - study statistics board;
 - arbitrary drag-and-drop organizer.
 
+### Space Region Mapping
+
+Future `apps/mobile/src/space/SpaceSurface.tsx` implementation should map the accepted `Box Desk` direction:
+
+- parent context region -> library / group breadcrumb;
+- current object region -> current box focus;
+- contained object region -> card tiles and sibling cards;
+- state region -> favorite tag, sleep zone, and wake action;
+- continuity region -> return to Learning with current context.
+
 ## Resolved Design Proof Questions
 
 The previous design-proof questions are now closed by accepted artifacts:
 
 - exact phone-frame mock for accepted Learning direction: `docs/design/mocks/learning-space-phone-frames-v1.html`;
 - exact phone-frame mock for accepted Space direction: `docs/design/mocks/learning-space-phone-frames-v1.html`;
+- expanded Space visual direction and state proof: `docs/design/mocks/space-surface-visual-proof-v1.html`;
 - tablet layout decision: `docs/design/decisions/learning-space-platform-layout-v1.md`;
 - pc web layout decision: `docs/design/decisions/learning-space-platform-layout-v1.md`;
 - dark-mode rendering proof: `docs/design/mocks/learning-space-phone-frames-v1.md`;

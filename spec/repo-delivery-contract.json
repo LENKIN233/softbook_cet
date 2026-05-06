@@ -68,6 +68,7 @@
         "learning_or_space_ui_requires_surface_specific_artifact": true,
         "core_interaction_ui_requires_interaction_motion_artifact": true,
         "space_ui_requires_physical_space_artifact": true,
+        "space_ui_requires_space_visual_proof_artifact": true,
         "core_surface_quality_requires_rendered_mock_or_storyboard_before_full_visual_completion": true
       }
     }

@@ -123,6 +123,22 @@
       "status": "active"
     },
     {
+      "path": "docs/design/directions/space-surface-visual-directions-v1.md",
+      "authority": "design_direction_set",
+      "audience": ["agent", "designer"],
+      "load_when": ["space_design_direction_task", "physical_space_design_task", "design_review_task"],
+      "depends_on": [
+        "docs/design/design-harness.md",
+        "docs/design/briefs/learning-space-worldview.md",
+        "docs/design/physical-space/space-model-v1.md",
+        "spec/knowledge-map.json",
+        "spec/space-operations.json",
+        "spec/box-catalog.json",
+        "spec/visual-language.json"
+      ],
+      "status": "active"
+    },
+    {
       "path": "docs/design/decisions/learning-space-direction-decision-v1.md",
       "authority": "accepted_design_decision",
       "audience": ["agent", "designer"],
@@ -190,6 +206,32 @@
       "audience": ["agent", "designer", "engineer"],
       "load_when": ["learning_or_space_user_facing_ui_implementation", "core_surface_visual_artifact_task"],
       "depends_on": ["docs/design/mocks/learning-space-phone-frames-v1.md"],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/mocks/space-surface-visual-proof-v1.md",
+      "authority": "accepted_rendered_mock_artifact",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["space_ui_implementation", "core_surface_visual_artifact_task", "physical_space_design_task"],
+      "depends_on": [
+        "spec/product-core.json",
+        "spec/knowledge-map.json",
+        "spec/space-operations.json",
+        "spec/box-catalog.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md",
+        "docs/design/physical-space/space-model-v1.md",
+        "docs/design/directions/space-surface-visual-directions-v1.md",
+        "docs/design/mapping/learning-space-implementation-map-v1.md"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/mocks/space-surface-visual-proof-v1.html",
+      "authority": "rendered_mock_html",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["space_ui_implementation", "core_surface_visual_artifact_task", "physical_space_design_task"],
+      "depends_on": ["docs/design/mocks/space-surface-visual-proof-v1.md"],
       "status": "active"
     },
     {
