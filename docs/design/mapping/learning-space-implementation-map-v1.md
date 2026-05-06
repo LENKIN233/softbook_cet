@@ -22,6 +22,7 @@
 - `docs/design/directions/space-surface-visual-directions-v1.md`
 - `docs/design/mocks/learning-space-phone-frames-v1.md`
 - `docs/design/mocks/space-surface-visual-proof-v1.md`
+- `docs/design/mocks/space-surface-visual-refinement-v1.md`
 - `docs/design/storyboards/learning-space-motion-prototype-v1.md`
 
 ## Product Truth
@@ -121,6 +122,15 @@ Future `apps/mobile/src/space/SpaceSurface.tsx` implementation should map the ac
 - state region -> favorite tag, sleep zone, and wake action;
 - continuity region -> return to Learning with current context.
 
+For visual fidelity, consume `docs/design/mocks/space-surface-visual-refinement-v1.md` as the refined rendered baseline after it is merged:
+
+- address ladder -> compact `library / group / box` path, not a module picker;
+- box object plane -> first-read current box object with one reading-coral accent edge;
+- card rail -> contained card objects with favorite / sleep tags attached to cards;
+- quiet tray -> sleep / wake state under the same box;
+- continuity strip -> return to Learning with preserved context;
+- floating tab capsule -> top-level navigation chrome that does not replace Space hierarchy.
+
 ## Resolved Design Proof Questions
 
 The previous design-proof questions are now closed by accepted artifacts:
@@ -128,6 +138,7 @@ The previous design-proof questions are now closed by accepted artifacts:
 - exact phone-frame mock for accepted Learning direction: `docs/design/mocks/learning-space-phone-frames-v1.html`;
 - exact phone-frame mock for accepted Space direction: `docs/design/mocks/learning-space-phone-frames-v1.html`;
 - expanded Space visual direction and state proof: `docs/design/mocks/space-surface-visual-proof-v1.html`;
+- refined accepted Space visual baseline: `docs/design/mocks/space-surface-visual-refinement-v1.html`;
 - tablet layout decision: `docs/design/decisions/learning-space-platform-layout-v1.md`;
 - pc web layout decision: `docs/design/decisions/learning-space-platform-layout-v1.md`;
 - dark-mode rendering proof: `docs/design/mocks/learning-space-phone-frames-v1.md`;

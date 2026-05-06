@@ -52,6 +52,8 @@ Rendered visual proof for this requirement lives in:
 
 - `docs/design/mocks/space-surface-visual-proof-v1.html`
 - `docs/design/mocks/space-surface-visual-proof-v1.md`
+- `docs/design/mocks/space-surface-visual-refinement-v1.html`
+- `docs/design/mocks/space-surface-visual-refinement-v1.md`
 
 ## Allowed Operations
 

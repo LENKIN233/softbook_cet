@@ -29,6 +29,11 @@ Accepted proof companion:
 
 - `docs/design/mocks/space-surface-visual-proof-v1.md`
 
+Refined accepted visual baseline:
+
+- `docs/design/mocks/space-surface-visual-refinement-v1.md`
+- `docs/design/mocks/space-surface-visual-refinement-v1.html`
+
 ## Shared Invariants
 
 所有方向都必须保留：
