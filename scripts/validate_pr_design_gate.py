@@ -2,6 +2,7 @@
 """Validate PR-body design evidence for user-facing UI and visual output changes."""
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -19,6 +20,9 @@ USER_FACING_EXTENSIONS = {
     ".webp",
     ".svg",
 }
+USER_FACING_FILES = {
+    "apps/mobile/src/visual/tokens.ts",
+}
 DESIGN_ARTIFACT_PREFIXES = (
     "docs/design/briefs/",
     "docs/design/decisions/",
@@ -35,6 +39,25 @@ VISUAL_OUTPUT_PREFIXES = (
     "docs/design/physical-space/",
     "docs/design/mocks/",
     "docs/design/storyboards/",
+)
+TEXT_VISUAL_OUTPUT_EXTENSIONS = {
+    ".html",
+    ".md",
+    ".svg",
+}
+LEGACY_SELF_ASSESS_TOKENS = (
+    "--fb-know",
+    "--fb-unsure",
+    "--fb-prof",
+    "--fb-forgot",
+)
+SIZED_SVG_CLASS_RE = re.compile(
+    r'class\s*=\s*"[^"]*\b(sb|tab|ico|icon)\b',
+    re.IGNORECASE,
+)
+NEGATIVE_BLOCK_RE = re.compile(
+    r"<!--\s*NEGATIVE\s*-->.*?<!--\s*/NEGATIVE\s*-->",
+    re.IGNORECASE | re.DOTALL,
 )
 CONCRETE_DOC_ARTIFACT_RE = re.compile(
     r"(docs/design/(?:visual-reference\.html|canon\.md|"
@@ -124,6 +147,8 @@ def read_body(args) -> str:
 
 
 def is_user_facing_ui_file(path: str) -> bool:
+    if path in USER_FACING_FILES:
+        return True
     if not path.startswith("apps/mobile/"):
         return False
     return Path(path).suffix.lower() in USER_FACING_EXTENSIONS
@@ -135,6 +160,132 @@ def is_visual_output_file(path: str) -> bool:
     if path.endswith("/README.md"):
         return False
     return path.startswith(VISUAL_OUTPUT_PREFIXES)
+
+
+def strip_negative_blocks(text: str) -> str:
+    return NEGATIVE_BLOCK_RE.sub("", text)
+
+
+def load_visual_language() -> tuple[dict, list[str]]:
+    path = ROOT / "spec" / "visual-language.json"
+    try:
+        return json.loads(path.read_text(encoding="utf-8")), []
+    except (OSError, json.JSONDecodeError) as error:
+        return {}, [f"unable to load spec/visual-language.json for visual-output scanning: {error}"]
+
+
+def scan_visual_output_text(
+    path: str,
+    text: str,
+    visual_language: dict,
+) -> list[str]:
+    errors = []
+    positive_text = strip_negative_blocks(text)
+    positive_lower = positive_text.lower()
+
+    for token in LEGACY_SELF_ASSESS_TOKENS:
+        if token in positive_text:
+            errors.append(
+                f"{path} references removed self-assess token {token}; "
+                "visual artifacts must use confident/review only"
+            )
+
+    forbidden_rules = (
+        visual_language.get("implementation_hypothesis", {})
+        .get("forbidden_design_patterns", {})
+        .get("tokens", [])
+    )
+    for rule in forbidden_rules:
+        pattern = rule.get("pattern")
+        if not pattern:
+            continue
+        effective_pattern = (
+            r"font-family:[^;]*(?<!sans-)serif"
+            if rule.get("id") == "FDP-06"
+            else pattern
+        )
+        if re.search(effective_pattern, positive_text, flags=re.IGNORECASE):
+            errors.append(
+                f"{path} hits forbidden design pattern {rule.get('id', 'unknown')} "
+                f"({rule.get('reason', 'no reason recorded')}): /{pattern}/"
+            )
+
+    suffix = Path(path).suffix.lower()
+    if suffix in {".html", ".svg"}:
+        for tag in re.findall(r"<svg\b[^>]*>", positive_text, flags=re.IGNORECASE):
+            if re.search(r"\bwidth\s*=", tag) and re.search(r"\bheight\s*=", tag):
+                continue
+            if SIZED_SVG_CLASS_RE.search(tag):
+                continue
+            errors.append(
+                f"{path} has an inline <svg> without explicit width and height: {tag[:80]}..."
+            )
+
+    self_assess_labels_present = "有把握" in positive_text or "再回看" in positive_text
+    if self_assess_labels_present:
+        self_assess_hex = (
+            visual_language.get("implementation_hypothesis", {})
+            .get("palette", {})
+            .get("self_assess_hex_defaults", {})
+        )
+        confident_hex = str(self_assess_hex.get("confident", "#22C58B")).lower()
+        review_hex = str(self_assess_hex.get("review", "#F5B100")).lower()
+        confident_evidence = any(
+            snippet in positive_lower
+            for snippet in [confident_hex, "--confident", "mint", "有把握 = mint"]
+        )
+        review_evidence = any(
+            snippet in positive_lower
+            for snippet in [review_hex, "--review", "amber", "再回看 = amber"]
+        )
+        if not confident_evidence or not review_evidence:
+            errors.append(
+                f"{path} renders flip self-assess labels without proving "
+                "有把握=confident/mint and 再回看=review/amber"
+            )
+
+    constrained_phone_frame = suffix == ".html" and path.startswith(
+        ("docs/design/mocks/", "docs/design/storyboards/")
+    ) and any(snippet in positive_lower for snippet in ["phone", "393", "viewport"])
+    if constrained_phone_frame:
+        if "overflow-x: hidden" not in positive_lower:
+            errors.append(
+                f"{path} is a constrained phone/viewport visual output but lacks "
+                "overflow-x containment evidence"
+            )
+        if "@media" not in positive_lower:
+            errors.append(
+                f"{path} is a constrained phone/viewport visual output but lacks "
+                "a narrow-viewport media query"
+            )
+
+    return errors
+
+
+def scan_visual_output_files(paths: list[str]) -> list[str]:
+    text_paths = [
+        path
+        for path in paths
+        if Path(path).suffix.lower() in TEXT_VISUAL_OUTPUT_EXTENSIONS
+        and (ROOT / path).exists()
+    ]
+    if not text_paths:
+        return []
+
+    visual_language, errors = load_visual_language()
+    if errors:
+        return errors
+
+    for path in text_paths:
+        errors.extend(
+            scan_visual_output_text(
+                path,
+                (ROOT / path).read_text(encoding="utf-8"),
+                visual_language,
+            )
+        )
+
+    return errors
 
 
 def line_value(body: str, label: str) -> str | None:
@@ -265,6 +416,8 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
 
     if is_missing(conditional_checklist):
         errors.append(f"{checklist_subject} changed, but PR body does not answer Conditional Q5-Q6")
+
+    errors.extend(scan_visual_output_files(visual_output_files))
 
     if learning_files:
         if is_missing(interaction_motion_artifact):
