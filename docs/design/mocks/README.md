@@ -17,6 +17,8 @@ For core Learning or Space implementation work, prose direction alone is not eno
 
 - `learning-space-phone-frames-v1.md`: phone-frame mock specification, dark-mode proof, and contrast proof.
 - `learning-space-phone-frames-v1.html`: rendered `393 x 852` Learning and Space phone frames.
+- `space-surface-visual-proof-v1.md`: Space-specific visual proof with three directions and accepted multi-state requirements.
+- `space-surface-visual-proof-v1.html`: rendered Space visual direction set and accepted state frames for box focus, inspect, favorite tag, sleep, wake, and return to Learning.
 
 ## Required Contents
 

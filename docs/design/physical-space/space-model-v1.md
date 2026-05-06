@@ -48,6 +48,11 @@ library context
 
 只展示 card list、statistics board、favorite box + sleep box，均不合格。
 
+Rendered visual proof for this requirement lives in:
+
+- `docs/design/mocks/space-surface-visual-proof-v1.html`
+- `docs/design/mocks/space-surface-visual-proof-v1.md`
+
 ## Allowed Operations
 
 - browse library / group / box hierarchy;

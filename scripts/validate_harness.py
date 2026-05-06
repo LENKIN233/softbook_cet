@@ -533,6 +533,7 @@ check_equal(
         "learning_or_space_ui_requires_surface_specific_artifact": True,
         "core_interaction_ui_requires_interaction_motion_artifact": True,
         "space_ui_requires_physical_space_artifact": True,
+        "space_ui_requires_space_visual_proof_artifact": True,
         "core_surface_quality_requires_rendered_mock_or_storyboard_before_full_visual_completion": True,
     },
     pull_request_contract["user_facing_ui_design_gate"]["core_product_capability_design_gate"],
@@ -956,7 +957,7 @@ for snippet in [
     "只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。",
     "如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。",
     "涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / decision，再做实现；同一 PR 内新增的 brief / decision 只能满足 design-only PR。",
-    "Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 或 storyboard；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
+    "Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 和 Space visual proof；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
     "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`、`Agent review`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。",
     "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。",
     "merge 的默认前置条件是：agent review 无 blocking finding，PR body 中 `Agent review` 已记录为 passed，且 required gates 全绿。",
@@ -983,7 +984,7 @@ for snippet in [
     "- `docs/design/interaction-motion/` / `docs/design/physical-space/` / `docs/design/mocks/` / `docs/design/storyboards/`: 核心交互、动效、空间模型、视觉稿和 storyboard artifact 入口",
     "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review 记录 -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",
     "任何用户可见 UI 改动都必须先引用已接受设计稿 / reference / design brief / decision，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口；同一 PR 内新增的 brief / decision 只能满足 design-only PR。",
-    "Learning / core interaction UI 改动还必须引用 interaction-motion artifact 或 storyboard；Space UI 改动还必须引用 physical-space artifact 或 storyboard；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
+    "Learning / core interaction UI 改动还必须引用 interaction-motion artifact 或 storyboard；Space UI 改动还必须引用 physical-space artifact 和 Space visual proof；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
 ]:
     check_contains("README delivery mirror", readme_text, snippet)
 
@@ -1454,6 +1455,58 @@ if ui_external_artifact_case.returncode != 0:
         "validate_pr_design_gate.py should allow concrete preexisting artifacts or external URLs: "
         + ui_external_artifact_case.stdout
         + ui_external_artifact_case.stderr
+    )
+
+space_missing_visual_proof_case = run_design_gate_case(
+    """
+## 设计稿来源（用户可见 UI 如适用）
+
+- Design artifact: docs/design/decisions/learning-space-direction-decision-v1.md
+- Interaction/motion artifact: N/A
+- Physical space artifact: docs/design/physical-space/space-model-v1.md
+- Implementation mapping: docs/design/mapping/learning-space-implementation-map-v1.md
+- Unimplemented design gaps: No known gaps.
+
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: answered
+- Conditional Q5-Q6: answered
+""",
+    ["apps/mobile/src/space/SpaceSurface.tsx"],
+)
+if space_missing_visual_proof_case.returncode == 0:
+    errors.append(
+        "validate_pr_design_gate.py must reject Space UI implementation without the Space visual proof artifact"
+    )
+elif "Space visual proof" not in (
+    space_missing_visual_proof_case.stdout + space_missing_visual_proof_case.stderr
+):
+    errors.append(
+        "validate_pr_design_gate.py Space visual proof rejection must explain the required artifact"
+    )
+
+space_visual_proof_case = run_design_gate_case(
+    """
+## 设计稿来源（用户可见 UI 如适用）
+
+- Design artifact: docs/design/mocks/space-surface-visual-proof-v1.md
+- Interaction/motion artifact: N/A
+- Physical space artifact: docs/design/physical-space/space-model-v1.md
+- Implementation mapping: docs/design/mapping/learning-space-implementation-map-v1.md
+- Unimplemented design gaps: No known gaps.
+
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: answered
+- Conditional Q5-Q6: answered
+""",
+    ["apps/mobile/src/space/SpaceSurface.tsx"],
+)
+if space_visual_proof_case.returncode != 0:
+    errors.append(
+        "validate_pr_design_gate.py should allow Space UI implementation that names the Space visual proof artifact: "
+        + space_visual_proof_case.stdout
+        + space_visual_proof_case.stderr
     )
 
 # ─────────────────────────────────────────────────────────────
