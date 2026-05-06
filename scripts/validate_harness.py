@@ -1334,6 +1334,7 @@ else:
         "- Interaction/motion artifact: N/A",
         "- Physical space artifact: N/A",
         "用户可见 UI 改动必须回答下方 `Universal Q1-Q4` 与适用的 `Conditional Q5-Q6`，不能保留 `N/A`。",
+        "`Universal Q1-Q4` 不能只写 `answered`",
     ]:
         check_contains("PR template design gate fields", pr_template_text, snippet)
 
@@ -1433,8 +1434,8 @@ directory_reference_body = """
 
 ## design_review_checklist（如适用）
 
-- Universal Q1-Q4: answered
-- Conditional Q5-Q6: answered
+- Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
+- Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
 """
 directory_reference_case = run_design_gate_case(
     directory_reference_body,
@@ -1459,6 +1460,14 @@ else:
     if "Design artifact" not in visual_tokens_empty_output:
         errors.append("validate_pr_design_gate.py visual token rejection must require design artifact evidence")
 
+web_ui_empty_case = run_design_gate_case("", ["apps/web/src/App.tsx"])
+if web_ui_empty_case.returncode == 0:
+    errors.append("validate_pr_design_gate.py must treat apps/web UI files as design-gated")
+else:
+    web_ui_empty_output = web_ui_empty_case.stdout + web_ui_empty_case.stderr
+    if "Design artifact" not in web_ui_empty_output:
+        errors.append("validate_pr_design_gate.py web UI rejection must require design artifact evidence")
+
 visual_tokens_valid_case = run_design_gate_case(
     """
 ## 设计稿来源（用户可见 UI 如适用）
@@ -1471,8 +1480,8 @@ visual_tokens_valid_case = run_design_gate_case(
 
 ## design_review_checklist（如适用）
 
-- Universal Q1-Q4: answered
-- Conditional Q5-Q6: answered
+- Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
+- Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
 """,
     ["apps/mobile/src/visual/tokens.ts"],
 )
@@ -1481,6 +1490,30 @@ if visual_tokens_valid_case.returncode != 0:
         "validate_pr_design_gate.py should allow visual token changes with design evidence: "
         + visual_tokens_valid_case.stdout
         + visual_tokens_valid_case.stderr
+    )
+
+web_ui_valid_case = run_design_gate_case(
+    """
+## 设计稿来源（用户可见 UI 如适用）
+
+- Design artifact: docs/design/visual-reference.html
+- Interaction/motion artifact: N/A
+- Physical space artifact: N/A
+- Implementation mapping: apps/web/src/App.tsx
+- Unimplemented design gaps: No known gaps.
+
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
+- Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+""",
+    ["apps/web/src/App.tsx"],
+)
+if web_ui_valid_case.returncode != 0:
+    errors.append(
+        "validate_pr_design_gate.py should allow apps/web UI changes with design evidence: "
+        + web_ui_valid_case.stdout
+        + web_ui_valid_case.stderr
     )
 
 visual_output_artifact_paths = [
@@ -1504,11 +1537,25 @@ for visual_output_path in visual_output_artifact_paths:
                     f"validate_pr_design_gate.py visual-output rejection missing {snippet}: {visual_output_path}"
                 )
 
-visual_output_checklist_body = """
+placeholder_checklist_case = run_design_gate_case(
+    """
 ## design_review_checklist（如适用）
 
 - Universal Q1-Q4: answered
 - Conditional Q5-Q6: answered
+""",
+    ["docs/design/mocks/learning-surface-v1.md"],
+)
+if placeholder_checklist_case.returncode == 0:
+    errors.append("validate_pr_design_gate.py must reject placeholder-only checklist answers")
+elif "placeholder" not in (placeholder_checklist_case.stdout + placeholder_checklist_case.stderr):
+    errors.append("validate_pr_design_gate.py placeholder checklist rejection must explain the problem")
+
+visual_output_checklist_body = """
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
+- Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
 """
 for visual_output_path in visual_output_artifact_paths:
     visual_output_checklist_case = run_design_gate_case(
@@ -1569,8 +1616,8 @@ ui_external_artifact_case = run_design_gate_case(
 
 ## design_review_checklist（如适用）
 
-- Universal Q1-Q4: answered
-- Conditional Q5-Q6: answered
+- Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
+- Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
 """,
     ["apps/mobile/src/learning/LearningSurface.tsx"],
 )
@@ -1593,8 +1640,8 @@ space_missing_visual_proof_case = run_design_gate_case(
 
 ## design_review_checklist（如适用）
 
-- Universal Q1-Q4: answered
-- Conditional Q5-Q6: answered
+- Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
+- Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
 """,
     ["apps/mobile/src/space/SpaceSurface.tsx"],
 )
@@ -1621,8 +1668,8 @@ space_visual_proof_case = run_design_gate_case(
 
 ## design_review_checklist（如适用）
 
-- Universal Q1-Q4: answered
-- Conditional Q5-Q6: answered
+- Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
+- Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
 """,
     ["apps/mobile/src/space/SpaceSurface.tsx"],
 )
@@ -1645,8 +1692,8 @@ space_visual_refinement_case = run_design_gate_case(
 
 ## design_review_checklist（如适用）
 
-- Universal Q1-Q4: answered
-- Conditional Q5-Q6: answered
+- Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
+- Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
 """,
     ["apps/mobile/src/space/SpaceSurface.tsx"],
 )

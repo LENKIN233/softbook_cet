@@ -22,7 +22,24 @@ USER_FACING_EXTENSIONS = {
 }
 USER_FACING_FILES = {
     "apps/mobile/src/visual/tokens.ts",
+    "apps/web/src/visual/tokens.ts",
 }
+USER_FACING_PREFIXES = (
+    "apps/mobile/",
+    "apps/web/",
+)
+CODE_MAPPING_PREFIXES = (
+    "apps/mobile/",
+    "apps/web/",
+)
+LEARNING_SURFACE_PREFIXES = (
+    "apps/mobile/src/learning/",
+    "apps/web/src/learning/",
+)
+SPACE_SURFACE_PREFIXES = (
+    "apps/mobile/src/space/",
+    "apps/web/src/space/",
+)
 DESIGN_ARTIFACT_PREFIXES = (
     "docs/design/briefs/",
     "docs/design/decisions/",
@@ -104,6 +121,98 @@ SPACE_VISUAL_PROOF_SOURCE_MARKERS = (
     "https://",
 )
 MISSING_VALUES = {"", "n/a", "na", "none", "null", "不适用", "无"}
+PLACEHOLDER_CHECKLIST_VALUES = {
+    "answered",
+    "checked",
+    "complete",
+    "completed",
+    "done",
+    "ok",
+    "pass",
+    "passed",
+    "yes",
+    "已回答",
+    "已检查",
+    "完成",
+    "通过",
+}
+UNIVERSAL_CHECKLIST_EVIDENCE = (
+    (
+        "Q1 Law of One / current library",
+        (
+            "law of one",
+            "law_of_one",
+            "current library",
+            "current_library",
+            "当前 library",
+            "当前学科",
+            "当前库",
+            "单强色",
+        ),
+    ),
+    (
+        "Q2 focal object / first-read path",
+        ("focal", "focal_object", "first-read", "first_read", "first read", "焦点", "焦点物", "首读"),
+    ),
+    (
+        "Q3 interaction silhouette",
+        ("silhouette", "interaction_silhouette", "剪影"),
+    ),
+    (
+        "Q4 forbidden design patterns",
+        (
+            "forbidden",
+            "forbidden_design_patterns",
+            "forbidden_patterns",
+            "forbidden design",
+            "禁用",
+            "未命中",
+            "no forbidden",
+        ),
+    ),
+)
+CONDITIONAL_CHECKLIST_EVIDENCE = (
+    (
+        "Q5 containment or non-applicable reason",
+        (
+            "q5",
+            "phone",
+            "viewport",
+            "safe-area",
+            "safe_area",
+            "safe area",
+            "containment",
+            "overflow",
+            "not applicable",
+            "不适用",
+            "手机",
+            "视口",
+            "安全区",
+            "溢出",
+            "收敛",
+        ),
+    ),
+    (
+        "Q6 surface-specific rule or non-applicable reason",
+        (
+            "q6",
+            "flip",
+            "stats",
+            "learning",
+            "self-assess",
+            "self_assess",
+            "tabular",
+            "module",
+            "not applicable",
+            "不适用",
+            "翻面",
+            "自评",
+            "统计",
+            "学习",
+            "模块",
+        ),
+    ),
+)
 
 
 def parse_args():
@@ -149,7 +258,7 @@ def read_body(args) -> str:
 def is_user_facing_ui_file(path: str) -> bool:
     if path in USER_FACING_FILES:
         return True
-    if not path.startswith("apps/mobile/"):
+    if not path.startswith(USER_FACING_PREFIXES):
         return False
     return Path(path).suffix.lower() in USER_FACING_EXTENSIONS
 
@@ -303,6 +412,37 @@ def is_missing(value: str | None) -> bool:
     return value.strip().lower() in MISSING_VALUES
 
 
+def normalized_line_value(value: str) -> str:
+    return re.sub(r"\s+", " ", value.strip().lower())
+
+
+def is_placeholder_checklist_value(value: str) -> bool:
+    normalized = normalized_line_value(value)
+    collapsed = re.sub(r"[\s,.;:，。；：!！]+", "", normalized)
+    return normalized in PLACEHOLDER_CHECKLIST_VALUES or collapsed in PLACEHOLDER_CHECKLIST_VALUES
+
+
+def validate_checklist_evidence(
+    label: str,
+    value: str | None,
+    evidence_groups: tuple[tuple[str, tuple[str, ...]], ...],
+) -> list[str]:
+    if is_missing(value):
+        return [f"user-facing UI or visual output files changed, but PR body does not answer {label}"]
+
+    if is_placeholder_checklist_value(value):
+        return [
+            f"{label} must include concrete checklist evidence, not only a placeholder like {value!r}"
+        ]
+
+    normalized = normalized_line_value(value or "")
+    errors = []
+    for evidence_label, snippets in evidence_groups:
+        if not any(snippet in normalized for snippet in snippets):
+            errors.append(f"{label} must mention concrete evidence for {evidence_label}")
+    return errors
+
+
 def referenced_same_pr_design_artifact(value: str, changed_files: list[str]) -> list[str]:
     referenced_paths = set(extract_doc_artifact_paths(value))
     referenced = []
@@ -359,11 +499,11 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
     learning_or_space_files = [
         path
         for path in ui_files
-        if path.startswith("apps/mobile/src/learning/")
-        or path.startswith("apps/mobile/src/space/")
+        if path.startswith(LEARNING_SURFACE_PREFIXES)
+        or path.startswith(SPACE_SURFACE_PREFIXES)
     ]
-    learning_files = [path for path in ui_files if path.startswith("apps/mobile/src/learning/")]
-    space_files = [path for path in ui_files if path.startswith("apps/mobile/src/space/")]
+    learning_files = [path for path in ui_files if path.startswith(LEARNING_SURFACE_PREFIXES)]
+    space_files = [path for path in ui_files if path.startswith(SPACE_SURFACE_PREFIXES)]
 
     if ui_files:
         if is_missing(design_artifact):
@@ -400,9 +540,11 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
             errors.append(
                 "user-facing UI files changed, but PR body does not name a non-N/A Implementation mapping"
             )
-        elif "docs/design/mapping/" not in implementation_mapping and "apps/mobile/" not in implementation_mapping:
+        elif "docs/design/mapping/" not in implementation_mapping and not any(
+            prefix in implementation_mapping for prefix in CODE_MAPPING_PREFIXES
+        ):
             errors.append(
-                "Implementation mapping must name a docs/design/mapping artifact or the mapped apps/mobile code surface"
+                "Implementation mapping must name a docs/design/mapping artifact or the mapped apps/mobile or apps/web code surface"
             )
 
         if is_missing(unimplemented_gaps):
@@ -410,12 +552,20 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
                 "user-facing UI files changed, but PR body does not state non-N/A Unimplemented design gaps"
             )
 
-    checklist_subject = "user-facing UI or visual output files"
-    if is_missing(universal_checklist):
-        errors.append(f"{checklist_subject} changed, but PR body does not answer Universal Q1-Q4")
-
-    if is_missing(conditional_checklist):
-        errors.append(f"{checklist_subject} changed, but PR body does not answer Conditional Q5-Q6")
+    errors.extend(
+        validate_checklist_evidence(
+            "Universal Q1-Q4",
+            universal_checklist,
+            UNIVERSAL_CHECKLIST_EVIDENCE,
+        )
+    )
+    errors.extend(
+        validate_checklist_evidence(
+            "Conditional Q5-Q6",
+            conditional_checklist,
+            CONDITIONAL_CHECKLIST_EVIDENCE,
+        )
+    )
 
     errors.extend(scan_visual_output_files(visual_output_files))
 
