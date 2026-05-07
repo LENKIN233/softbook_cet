@@ -1,5 +1,5 @@
 {
-  "version": "vnext-14",
+  "version": "vnext-15",
   "purpose": "Counterfactual perturbation audit used to avoid local optima and catch silent drift away from the user's original requirements.",
   "perturbations": [
     {
@@ -265,6 +265,13 @@
       "change": "Promote the first AI-generated core-surface design as accepted without search, pairwise review, fragment harvest, targeted mutation, or promotion evidence",
       "expected_failure": "turns the harness back into one-shot generation and cannot prove that the design content was optimized against softbook product constraints",
       "guarded_by": ["docs/design/design-harness.md", "docs/design/search-runs/README.md", "spec/agent-harness.json", "spec/evals.json", "scripts/validate_design_search_run.py"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-38",
+      "change": "Let a design search run pass with copied templates, one pairwise review, or a promotion record that only names proof text without proof artifacts",
+      "expected_failure": "makes the Design Evolution Engine look complete while preserving no concrete generation, comparison, mutation, or rendered evidence",
+      "guarded_by": ["docs/design/search-runs/README.md", "scripts/validate_design_search_run.py", "scripts/validate_harness.py"],
       "status": "rejected"
     }
   ],

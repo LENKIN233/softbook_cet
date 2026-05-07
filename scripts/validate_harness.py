@@ -2,6 +2,7 @@
 import json
 import importlib.util
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -836,9 +837,12 @@ if hr26:
             "context_pack_shared_by_candidates",
             "candidate_population_with_provenance",
             "hard_filters_before_review",
+            "non_empty_run_records_not_templates",
             "pairwise_review_not_single_aesthetic_score",
+            "pairwise_coverage_for_candidate_population",
             "fragment_harvest_and_targeted_mutation",
             "promotion_record_before_accepted_artifact",
+            "rendered_or_external_prototype_proof_required",
         ],
         hr26["must_hit"],
     )
@@ -885,7 +889,9 @@ if gt20:
             "constraints_define_search_boundary",
             "candidate_population_not_single_output",
             "hard_filter_product_truth_and_layout_violations",
+            "reject_placeholder_only_search_run_records",
             "pairwise_rank_surviving_candidates",
+            "pairwise_coverage_scales_with_candidate_count",
             "fragment_harvest_before_synthesis",
             "targeted_mutation_from_named_failures",
             "promotion_record_with_rendered_proof",
@@ -1022,6 +1028,19 @@ if p37:
         "P-37 guarded_by",
         ["docs/design/design-harness.md", "docs/design/search-runs/README.md", "spec/agent-harness.json", "spec/evals.json", "scripts/validate_design_search_run.py"],
         p37["guarded_by"],
+    )
+
+p38 = find_by_id(perturbation_audit["perturbations"], "P-38")
+if p38:
+    check_equal(
+        "P-38 change",
+        "Let a design search run pass with copied templates, one pairwise review, or a promotion record that only names proof text without proof artifacts",
+        p38["change"],
+    )
+    check_equal(
+        "P-38 guarded_by",
+        ["docs/design/search-runs/README.md", "scripts/validate_design_search_run.py", "scripts/validate_harness.py"],
+        p38["guarded_by"],
     )
 
 agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
@@ -1457,6 +1476,8 @@ else:
         "Fragment Harvest",
         "Targeted Mutation",
         "Failure Sedimentation",
+        "rejects copied templates",
+        "enough pairwise reviews to cover the candidate set",
     ]:
         check_contains("design search README", design_search_text, snippet)
 
@@ -1476,6 +1497,52 @@ else:
             "validate_design_search_run.py must pass repository templates: "
             + (design_search_validation.stdout + design_search_validation.stderr).strip()
         )
+
+    tmp_run = ROOT / "docs/design/search-runs/tmp-empty-template-regression"
+    try:
+        if tmp_run.exists():
+            shutil.rmtree(tmp_run)
+        (tmp_run / "candidates").mkdir(parents=True)
+        (tmp_run / "pairwise-reviews").mkdir()
+        for filename in [
+            "context-pack.md",
+            "hard-filter-results.md",
+            "fragment-harvest.md",
+            "mutation-log.md",
+            "promotion-record.md",
+        ]:
+            shutil.copyfile(ROOT / "docs/design/search-runs/templates" / filename, tmp_run / filename)
+        (tmp_run / "candidate-index.md").write_text("# Candidate Index\n", encoding="utf-8")
+        for index in range(1, 9):
+            shutil.copyfile(
+                ROOT / "docs/design/search-runs/templates/candidate-record.md",
+                tmp_run / "candidates" / f"candidate-{index}.md",
+            )
+        shutil.copyfile(
+            ROOT / "docs/design/search-runs/templates/pairwise-review.md",
+            tmp_run / "pairwise-reviews/round-1-candidate-1-vs-candidate-2.md",
+        )
+        template_only_run = subprocess.run(
+            [sys.executable, str(design_search_script), "--run", str(tmp_run)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if template_only_run.returncode == 0:
+            errors.append("validate_design_search_run.py must reject copied-template search runs")
+        else:
+            template_regression_output = template_only_run.stdout + template_only_run.stderr
+            for snippet in [
+                "template placeholder",
+                "must contain at least 7 pairwise reviews for 8 candidates",
+                "must be backed by rendered-proof.html, external-prototype.md, screenshots/, or a concrete prototype URL",
+            ]:
+                if snippet not in template_regression_output:
+                    errors.append(f"validate_design_search_run.py template regression missing expected rejection: {snippet}")
+    finally:
+        if tmp_run.exists():
+            shutil.rmtree(tmp_run)
 
 agent_review_script = ROOT / "scripts" / "validate_agent_review.py"
 if not agent_review_script.exists():

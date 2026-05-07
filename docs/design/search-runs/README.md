@@ -82,6 +82,7 @@ Completed search runs live under:
 docs/design/search-runs/<yyyy-mm-dd>-<surface>/
   context-pack.md
   candidate-index.md
+  hard-filter-results.md
   candidates/
     <candidate-id>.md
   pairwise-reviews/
@@ -94,6 +95,8 @@ docs/design/search-runs/<yyyy-mm-dd>-<surface>/
 ```
 
 The templates in `docs/design/search-runs/templates/` define the required headings for each record.
+
+The validator rejects copied templates and placeholder-only records. A completed run must contain concrete provenance, concrete checklist answers, concrete hard-filter results, enough pairwise reviews to cover the candidate set, and proof evidence backed by a rendered file, screenshot set, external prototype record, or URL.
 
 ## Baseline Comparison
 
