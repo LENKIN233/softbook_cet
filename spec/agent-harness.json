@@ -1,5 +1,5 @@
 {
-  "version": "vnext-14",
+  "version": "vnext-15",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -128,6 +128,16 @@
       "docs/design/canon.md",
       "spec/agent-harness.json",
       "the_artifact_under_review"
+    ],
+    "design_search_or_core_surface_optimization": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "relevant_product_specs",
+      "spec/visual-language.json",
+      "docs/design/design-harness.md",
+      "docs/design/search-runs/README.md",
+      "accepted_baseline_artifact",
+      "relevant_interaction_motion_or_physical_space_artifacts"
     ]
   },
   "progressive_disclosure_policy": {
@@ -236,6 +246,29 @@
       ],
       "stop_when": "space_is_designed_as_library_group_box_card_system_not_a_surface_ui_shell",
       "blocked_when": "space_operation_or_knowledge_ownership_change_has_not_been_updated_in_owner_specs"
+    },
+    "design_search": {
+      "inputs": [
+        "spec/requirement-memory.json",
+        "spec/authority-map.json",
+        "relevant_product_specs",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md",
+        "docs/design/search-runs/README.md",
+        "accepted_baseline_artifact"
+      ],
+      "outputs": [
+        "context_pack",
+        "candidate_population_with_provenance",
+        "hard_filter_results",
+        "pairwise_reviews",
+        "fragment_harvest",
+        "targeted_mutation_log",
+        "promotion_record_or_no_promotion_reason",
+        "failure_sedimentation_targets"
+      ],
+      "stop_when": "one_candidate_beats_the_accepted_baseline_or_the_run_records_why_no_candidate_should_be_promoted",
+      "blocked_when": "the_task_tries_to_promote_first_generation_AI_output_without_hard_filters_pairwise_review_fragment_harvest_and_promotion_record"
     },
     "review": {
       "inputs": ["relevant_specs", "anti_patterns"],
@@ -484,6 +517,11 @@
       "id": "AP-30",
       "name": "treat_agent_review_as_unrecorded_convention",
       "correction": "agent_review_must_be_recorded_in_the_pull_request_and_checked_by_required_agent_review_gate_before_merge"
+    },
+    {
+      "id": "AP-31",
+      "name": "promote_first_generation_AI_design_without_search_or_pairwise_review",
+      "correction": "run_design_evolution_with_context_pack_candidate_population_hard_filters_pairwise_review_fragment_harvest_targeted_mutation_and_promotion_record_before_acceptance"
     }
   ],
   "compaction_keep": [
