@@ -1,5 +1,5 @@
 {
-  "version": "vnext-6",
+  "version": "vnext-7",
   "active_documents": [
     {
       "path": "AGENTS.md",
@@ -31,6 +31,14 @@
       "audience": ["agent", "designer"],
       "load_when": ["design_direction_task", "user_facing_ui_implementation"],
       "depends_on": ["spec/visual-language.json", "spec/agent-harness.json"],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/search-runs/README.md",
+      "authority": "design_search_run_harness",
+      "audience": ["agent", "designer"],
+      "load_when": ["core_surface_design_search_task", "major_redesign_task", "design_review_task"],
+      "depends_on": ["docs/design/design-harness.md", "spec/visual-language.json", "spec/agent-harness.json"],
       "status": "active"
     },
     {

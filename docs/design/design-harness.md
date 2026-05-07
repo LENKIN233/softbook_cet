@@ -73,6 +73,41 @@ Judgment harness 负责杀掉平庸方向。
 5. 视觉系统一致性
 6. 工程可映射性
 
+### Design Evolution Engine
+
+Design Evolution Engine 负责在核心 surface 进入 accepted artifact 之前，让 AI 通过受约束搜索逼近更符合需求的设计内容。它不替代 Creation / Judgment / Delivery，而是把 Creation 和 Judgment 连接成可迭代的优化循环。
+
+核心循环：
+
+```text
+constraints
+  -> generate candidate population
+  -> hard-filter product and layout violations
+  -> pairwise-rank surviving candidates
+  -> harvest strongest fragments
+  -> apply targeted mutations
+  -> repeat until a candidate beats the accepted baseline
+  -> promote one accepted artifact
+  -> sediment failures back into the harness
+```
+
+使用条件：
+
+- 新核心 Learning / Space / interaction / motion / platform surface；
+- 重大 redesign；
+- 现有 artifact 只有单稿或证明不足，不能支撑高信心实现；
+- 需要比较 Codex / Figma Make / Stitch / v0 / external design file 等 AI 设计产出质量。
+
+禁止：
+
+- 把第一轮生成稿直接当 accepted artifact；
+- 用单一 aesthetic score 代替 pairwise review；
+- 用 "make it better" 这类空泛 prompt 代替 targeted mutation；
+- 只选 winner 而不记录 borrowable fragments / rejected fragments；
+- 让 search-run 中间稿授权同 PR 用户可见 UI 实现。
+
+Design Evolution Engine 的记录格式在 `docs/design/search-runs/README.md`。完整 run 至少需要 context pack、8 个候选、pairwise reviews、fragment harvest、mutation log、promotion record 与 rendered proof / external prototype 证据。
+
 ### Delivery Harness
 
 Delivery harness 负责保真，不负责创造。
@@ -128,22 +163,25 @@ Delivery harness 负责保真，不负责创造。
 3. `decisions/`
    记录为什么选一个方向，为什么拒绝其他方向。
 
-4. `rejected/`
+4. `search-runs/`
+   保存 Design Evolution Engine 的 context pack、candidate population、pairwise review、fragment harvest、mutation log、promotion record 和 rendered proof。它是 accepted artifact 之前的优化证据，不直接授权 implementation PR。
+
+5. `rejected/`
    保存失败方向和失败理由。失败资产是 harness 的一部分。
 
-5. `mapping/`
+6. `mapping/`
    把 accepted design artifact 映射到 RN、Web 或其他实现。
 
-6. `interaction-motion/`
+7. `interaction-motion/`
    定义核心交互的操作、反馈、失败态、小动画、可中断性和 reduce-motion fallback。
 
-7. `physical-space/`
+8. `physical-space/`
    定义空间模型、层级、位置状态、favorite tag、sleep / wake 和 Learning ↔ Space 连续性。
 
-8. `mocks/`
+9. `mocks/`
    保存核心 surface / state 的可渲染视觉稿或外部设计稿索引。核心 UI 实现不能只靠 prose direction 声称高审美完成。
 
-9. `storyboards/`
+10. `storyboards/`
    保存交互、动效、空间转场和状态变化的 storyboard。
 
 `task-local design brief` 只能作为探索草稿；它不能作为 implementation PR 的正式设计权威。核心 UI implementation PR 必须消费已存在的 accepted artifact，并声明 mapping 与 gap。
@@ -178,6 +216,8 @@ Delivery harness 负责保真，不负责创造。
 - state language
 - what it rejects
 - why it can belong to 软书
+
+如果该 surface 进入 Design Evolution Engine，方向竞争升级为 candidate population：至少 8 个候选、同一 context pack、硬约束过滤、pairwise review、fragment harvest 与 targeted mutation。3 个方向仍是最低探索下限，不足以证明重大 redesign 已经逼近最佳方案。
 
 ## 创意突破规则
 

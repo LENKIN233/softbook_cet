@@ -1,5 +1,5 @@
 {
-  "version": "vnext-13",
+  "version": "vnext-14",
   "purpose": "Counterfactual perturbation audit used to avoid local optima and catch silent drift away from the user's original requirements.",
   "perturbations": [
     {
@@ -258,6 +258,13 @@
       "change": "Treat agent review as an unrecorded convention outside required PR gates",
       "expected_failure": "lets a PR merge without a durable review artifact even though repo delivery policy requires clean agent review before merge",
       "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json", "scripts/validate_agent_review.py"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-37",
+      "change": "Promote the first AI-generated core-surface design as accepted without search, pairwise review, fragment harvest, targeted mutation, or promotion evidence",
+      "expected_failure": "turns the harness back into one-shot generation and cannot prove that the design content was optimized against softbook product constraints",
+      "guarded_by": ["docs/design/design-harness.md", "docs/design/search-runs/README.md", "spec/agent-harness.json", "spec/evals.json", "scripts/validate_design_search_run.py"],
       "status": "rejected"
     }
   ],

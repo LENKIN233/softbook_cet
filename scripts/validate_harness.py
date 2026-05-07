@@ -675,6 +675,48 @@ if ap29:
         ap29["correction"],
     )
 
+ap31 = find_by_id(harness["anti_patterns"], "AP-31")
+if ap31:
+    check_equal(
+        "AP-31 name",
+        "promote_first_generation_AI_design_without_search_or_pairwise_review",
+        ap31["name"],
+    )
+    check_equal(
+        "AP-31 correction",
+        "run_design_evolution_with_context_pack_candidate_population_hard_filters_pairwise_review_fragment_harvest_targeted_mutation_and_promotion_record_before_acceptance",
+        ap31["correction"],
+    )
+
+design_search_read_path = harness["read_paths"].get("design_search_or_core_surface_optimization", [])
+for required in [
+    "spec/visual-language.json",
+    "docs/design/design-harness.md",
+    "docs/design/search-runs/README.md",
+    "accepted_baseline_artifact",
+]:
+    if required not in design_search_read_path:
+        errors.append(f"agent-harness design_search read path missing {required}")
+
+design_search_task = harness["task_briefs"].get("design_search")
+if not design_search_task:
+    errors.append("agent-harness missing design_search task brief")
+else:
+    check_equal(
+        "design_search outputs",
+        [
+            "context_pack",
+            "candidate_population_with_provenance",
+            "hard_filter_results",
+            "pairwise_reviews",
+            "fragment_harvest",
+            "targeted_mutation_log",
+            "promotion_record_or_no_promotion_reason",
+            "failure_sedimentation_targets",
+        ],
+        design_search_task["outputs"],
+    )
+
 hr19 = find_by_id(evals["regressions"], "HR-19")
 if hr19:
     check_equal(
@@ -780,6 +822,27 @@ if hr25:
         hr25["must_hit"],
     )
 
+hr26 = find_by_id(evals["regressions"], "HR-26")
+if hr26:
+    check_equal(
+        "HR-26 fail_signal",
+        "promotes_first_generation_AI_output_without_candidate_population_pairwise_review_fragment_harvest_or_mutation_log",
+        hr26["fail_signal"],
+    )
+    check_equal(
+        "HR-26 must_hit",
+        [
+            "design_evolution_engine_required_for_core_surface_optimization",
+            "context_pack_shared_by_candidates",
+            "candidate_population_with_provenance",
+            "hard_filters_before_review",
+            "pairwise_review_not_single_aesthetic_score",
+            "fragment_harvest_and_targeted_mutation",
+            "promotion_record_before_accepted_artifact",
+        ],
+        hr26["must_hit"],
+    )
+
 gt18 = find_by_id(evals["golden_tasks"], "GT-18")
 if gt18:
     check_equal("GT-18 task", "实现用户可见 UI", gt18["task"])
@@ -811,6 +874,24 @@ if gt19:
             "artifact_lifecycle_to_rendered_mock_storyboard_mapping",
         ],
         gt19["must_include"],
+    )
+
+gt20 = find_by_id(evals["golden_tasks"], "GT-20")
+if gt20:
+    check_equal("GT-20 task", "定义 AI 如何迭代出更符合需求的核心设计内容", gt20["task"])
+    check_equal(
+        "GT-20 must_include",
+        [
+            "constraints_define_search_boundary",
+            "candidate_population_not_single_output",
+            "hard_filter_product_truth_and_layout_violations",
+            "pairwise_rank_surviving_candidates",
+            "fragment_harvest_before_synthesis",
+            "targeted_mutation_from_named_failures",
+            "promotion_record_with_rendered_proof",
+            "failure_sedimentation_back_to_harness",
+        ],
+        gt20["must_include"],
     )
 
 p23 = find_by_id(perturbation_audit["perturbations"], "P-23")
@@ -928,6 +1009,19 @@ if p36:
         "P-36 guarded_by",
         ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json", "scripts/validate_agent_review.py"],
         p36["guarded_by"],
+    )
+
+p37 = find_by_id(perturbation_audit["perturbations"], "P-37")
+if p37:
+    check_equal(
+        "P-37 change",
+        "Promote the first AI-generated core-surface design as accepted without search, pairwise review, fragment harvest, targeted mutation, or promotion evidence",
+        p37["change"],
+    )
+    check_equal(
+        "P-37 guarded_by",
+        ["docs/design/design-harness.md", "docs/design/search-runs/README.md", "spec/agent-harness.json", "spec/evals.json", "scripts/validate_design_search_run.py"],
+        p37["guarded_by"],
     )
 
 agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
@@ -1337,6 +1431,51 @@ else:
         "`Universal Q1-Q4` 不能只写 `answered`",
     ]:
         check_contains("PR template design gate fields", pr_template_text, snippet)
+
+design_harness_text = (ROOT / "docs/design/design-harness.md").read_text(encoding="utf-8")
+for snippet in [
+    "### Design Evolution Engine",
+    "generate candidate population",
+    "pairwise-rank surviving candidates",
+    "harvest strongest fragments",
+    "targeted mutation",
+    "docs/design/search-runs/README.md",
+]:
+    check_contains("design harness evolution engine", design_harness_text, snippet)
+
+design_search_readme = ROOT / "docs/design/search-runs/README.md"
+if not design_search_readme.exists():
+    errors.append("missing Design Evolution Engine README: docs/design/search-runs/README.md")
+else:
+    design_search_text = design_search_readme.read_text(encoding="utf-8")
+    for snippet in [
+        "## Product Truth",
+        "## Implementation Hypothesis",
+        "## Required Loop",
+        "at least 8 materially different candidates",
+        "Pairwise Review",
+        "Fragment Harvest",
+        "Targeted Mutation",
+        "Failure Sedimentation",
+    ]:
+        check_contains("design search README", design_search_text, snippet)
+
+design_search_script = ROOT / "scripts" / "validate_design_search_run.py"
+if not design_search_script.exists():
+    errors.append("missing design search validator: scripts/validate_design_search_run.py")
+else:
+    design_search_validation = subprocess.run(
+        [sys.executable, str(design_search_script)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if design_search_validation.returncode != 0:
+        errors.append(
+            "validate_design_search_run.py must pass repository templates: "
+            + (design_search_validation.stdout + design_search_validation.stderr).strip()
+        )
 
 agent_review_script = ROOT / "scripts" / "validate_agent_review.py"
 if not agent_review_script.exists():
