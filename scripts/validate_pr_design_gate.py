@@ -55,6 +55,7 @@ VISUAL_OUTPUT_PREFIXES = (
     "docs/design/interaction-motion/",
     "docs/design/physical-space/",
     "docs/design/mocks/",
+    "docs/design/search-runs/",
     "docs/design/storyboards/",
 )
 TEXT_VISUAL_OUTPUT_EXTENSIONS = {
@@ -267,6 +268,8 @@ def is_visual_output_file(path: str) -> bool:
     if path in VISUAL_OUTPUT_FILES:
         return True
     if path.endswith("/README.md"):
+        return False
+    if path.startswith("docs/design/search-runs/templates/"):
         return False
     return path.startswith(VISUAL_OUTPUT_PREFIXES)
 
