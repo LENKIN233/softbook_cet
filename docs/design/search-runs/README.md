@@ -98,7 +98,7 @@ docs/design/search-runs/<yyyy-mm-dd>-<surface>/
 
 The templates in `docs/design/search-runs/templates/` define the required headings for each record.
 
-The validator rejects copied templates and placeholder-only records. A completed run must contain concrete provenance, concrete checklist answers, concrete hard-filter results, visual evidence for every surviving candidate, enough pairwise reviews to cover the candidate set, and promotion proof backed by a rendered file, screenshot set, external prototype record, or URL.
+The validator rejects copied templates and placeholder-only records. A completed run must contain concrete provenance, concrete checklist answers, concrete hard-filter results, candidate-bound visual evidence for every surviving candidate, enough pairwise reviews to cover the candidate set, candidate-bound pairwise visual evidence for both compared candidates, and promotion proof backed by a rendered file, screenshot set, external prototype record, or URL.
 
 ## Baseline Comparison
 
@@ -127,6 +127,6 @@ Q3: Learning candidates must bind to a canonical interaction silhouette. Space c
 
 Q4: Forbidden design patterns are hard-filtered before pairwise review.
 
-Q5: Rendered candidates must include containment evidence for the target viewport. Surviving candidates need concrete visual evidence; hard-filtered candidates may explain why the artifact is not rendered.
+Q5: Rendered candidates must include containment evidence for the target viewport. Surviving candidates need concrete candidate-bound visual evidence; shared proof files must use candidate-specific anchors or paths. Hard-filtered candidates may explain why the artifact is not rendered.
 
 Q6: Learning/flip/stats rules remain surface-specific hard constraints; search runs cannot mutate two-level self-assess, tabular stats, or system-sequenced Learning.
