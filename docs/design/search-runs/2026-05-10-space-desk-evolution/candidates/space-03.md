@@ -9,8 +9,8 @@
 - Tool or model: Codex design search, generation 1
 - Prompt: Make Space feel like a shelf spine without becoming module-first navigation.
 - Source context pack: docs/design/search-runs/2026-05-10-space-desk-evolution/context-pack.md
-- Artifact: Prose candidate record for Box Spine Map
-- Screenshots: Covered by run-level rendered proof if promoted.
+- Artifact: docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-03
+- Screenshots: Rendered survivor panel `space-03` in `candidate-proofs/survivor-comparison.html`.
 
 ## Product Truth Fit
 

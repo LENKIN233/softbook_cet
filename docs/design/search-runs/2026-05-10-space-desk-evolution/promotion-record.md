@@ -2,7 +2,7 @@
 
 ## Promoted Artifact
 
-Promote `space-04` as design-search evidence for a future accepted Space artifact, tentatively `docs/design/mocks/space-surface-shelf-desk-v1.md`. This record does not create implementation authority for RN or Web by itself.
+Promote `space-04` into the accepted Space artifact `docs/design/mocks/space-surface-shelf-desk-v1.md`. This record is the search-run evidence behind that design-only artifact. It does not create RN or Web implementation authority by itself.
 
 ## Winning Candidate
 
@@ -10,7 +10,7 @@ Promote `space-04` as design-search evidence for a future accepted Space artifac
 
 ## Baseline Comparison
 
-Compared with `docs/design/mocks/space-surface-visual-refinement-v1.md`, `space-04` keeps the same product model but strengthens the visual proof. The current box is more object-like, sibling/parent context is more legible through a quiet shelf, and sleep/wake state sits under the same box instead of reading like a separate management area. It does not yet beat the baseline on production readiness because it remains a search-run proof, not a merged accepted mock.
+Compared with `docs/design/mocks/space-surface-visual-refinement-v1.md`, `space-04` keeps the same product model but strengthens the visual proof. The current box is more object-like, sibling/parent context is more legible through a quiet shelf, and sleep/wake state sits under the same box instead of reading like a separate management area. Production implementation still requires a future RN/Web PR that consumes the accepted artifact and mapping record.
 
 ## Borrowed Fragments
 
@@ -43,8 +43,7 @@ The proof renders promoted `space-04` as a phone-constrained Space shelf desk wi
 
 ## Unimplemented Gaps
 
-- A future design-only PR must decide whether `space-04` replaces or extends `space-surface-visual-refinement-v1`.
-- RN implementation must not consume this search-run directly as accepted authority.
+- `docs/design/mocks/space-surface-shelf-desk-v1.md` extends `space-surface-visual-refinement-v1`; future RN implementation must consume the accepted mock, not this search-run directory alone.
 - Tablet and pc web adaptation need a separate rendered proof if this synthesis becomes accepted.
 - Loading, empty, remote-error, permission, and paywall Space states remain outside this run.
 - Card inspect transition needs storyboard evidence before implementation changes motion or operation shape.

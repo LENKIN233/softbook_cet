@@ -269,8 +269,8 @@
     },
     {
       "id": "P-38",
-      "change": "Let a design search run pass with copied templates, one pairwise review, or a promotion record that only names proof text without proof artifacts",
-      "expected_failure": "makes the Design Evolution Engine look complete while preserving no concrete generation, comparison, mutation, or rendered evidence",
+      "change": "Let a design search run pass with copied templates, one pairwise review, surviving candidates without visual evidence, pairwise reviews without visual evidence, or a promotion record that only names proof text without proof artifacts",
+      "expected_failure": "makes the Design Evolution Engine look complete while preserving no concrete generation, visual comparison, mutation, or rendered evidence",
       "guarded_by": ["docs/design/search-runs/README.md", "scripts/validate_design_search_run.py", "scripts/validate_harness.py"],
       "status": "rejected"
     }

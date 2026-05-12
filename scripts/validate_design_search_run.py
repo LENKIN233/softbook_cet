@@ -42,6 +42,7 @@ REQUIRED_TEMPLATES = {
         "## Pair",
         "## Reviewer Role",
         "## Winner",
+        "## Visual Evidence",
         "## Product Truth",
         "## Task Clarity",
         "## Space Or Interaction Fit",
@@ -123,6 +124,9 @@ PLACEHOLDER_SNIPPETS = (
     "List product, visual, layout, accessibility, and implementation risks.",
     "Product Truth / UX Task / Visual System",
     "Name A, B, or `no winner`.",
+    "Name the rendered proof, screenshot, external prototype, or candidate visual-evidence file used to compare Candidate A and Candidate B.",
+    "rendered HTML / screenshot / external prototype URL / visual evidence path, or prose-only artifact for hard-filtered candidates.",
+    "rendered evidence path for surviving candidates, or `No-render rationale: ...` for hard-filtered rejected candidates.",
     "Which candidate better preserves the product truth?",
     "Which candidate makes the next user action clearer",
     "Which candidate better preserves Space hierarchy",
@@ -159,6 +163,12 @@ PLACEHOLDER_SNIPPETS = (
 MISSING_VALUES = {"", "n/a", "na", "none", "null", "不适用", "无", "tbd", "todo"}
 REQUIRED_Q_IDS = ("Q1", "Q2", "Q3", "Q4", "Q5", "Q6")
 CANDIDATE_LIKE_RE = re.compile(r"\b[A-Za-z][A-Za-z0-9_.-]*-\d+\b")
+VISUAL_EVIDENCE_RE = re.compile(
+    r"(?P<ref>(?:docs/|[A-Za-z0-9_.-]+/|\.{1,2}/)?[A-Za-z0-9_./-]+\."
+    r"(?:html|svg|png|jpg|jpeg|webp|md)(?:#[A-Za-z0-9_.-]+)?)",
+    re.IGNORECASE,
+)
+NO_RENDER_RATIONALE_RE = re.compile(r"(?:No-render rationale|no-render rationale|不渲染理由)\s*[:：]\s*\S")
 
 
 def read_text(path: Path) -> str:
@@ -299,6 +309,46 @@ def normalized_source_context(value: str | None) -> str:
     return re.sub(r"\s+", " ", (value or "")).strip().strip("`'\"")
 
 
+def strip_ref_anchor(value: str) -> str:
+    return value.split("#", 1)[0].strip().strip("`'\".,;:)）")
+
+
+def resolve_evidence_path(run_dir: Path, ref: str) -> Path:
+    clean_ref = strip_ref_anchor(ref)
+    if clean_ref.startswith("docs/"):
+        return ROOT / clean_ref
+    return run_dir / clean_ref
+
+
+def evidence_refs(value: str | None) -> set[str]:
+    if not value:
+        return set()
+    return {match.group("ref").strip("`'\".,;:)）") for match in VISUAL_EVIDENCE_RE.finditer(value)}
+
+
+def evidence_path_refs(value: str | None, run_dir: Path) -> set[str]:
+    refs = set()
+    for ref in evidence_refs(value):
+        if re.match(r"https?://", ref):
+            continue
+        path = resolve_evidence_path(run_dir, ref)
+        if path.exists():
+            refs.add(rel(path))
+    return refs
+
+
+def has_visual_evidence(value: str | None, run_dir: Path) -> bool:
+    if not value:
+        return False
+    if re.search(r"https?://\S+", value):
+        return True
+    return bool(evidence_path_refs(value, run_dir))
+
+
+def has_no_render_rationale(value: str | None) -> bool:
+    return bool(value and NO_RENDER_RATIONALE_RE.search(value))
+
+
 def connected_components(nodes: set[str], edges: list[tuple[str, str]]) -> int:
     if not nodes:
         return 0
@@ -432,6 +482,8 @@ def validate_run(errors: list[str], run_dir: Path) -> None:
     pairwise_dir = run_dir / "pairwise-reviews"
     candidate_files: list[Path] = []
     candidate_source_contexts: dict[str, str] = {}
+    candidate_texts: dict[str, str] = {}
+    candidate_paths: dict[str, Path] = {}
     candidate_ids: set[str] = set()
     surviving_candidates: set[str] = set()
     rejected_candidates: set[str] = set()
@@ -483,6 +535,8 @@ def validate_run(errors: list[str], run_dir: Path) -> None:
             if candidate_id in candidate_ids:
                 errors.append(f"{rel_run} duplicate candidate id: {candidate_id}")
             candidate_ids.add(candidate_id)
+            candidate_texts[candidate_id] = candidate_text
+            candidate_paths[candidate_id] = candidate
             source_context = normalized_source_context(source_context_value(candidate_text))
             candidate_source_contexts[candidate_id] = source_context
             if candidate_id not in candidate_index_text:
@@ -534,6 +588,38 @@ def validate_run(errors: list[str], run_dir: Path) -> None:
                 f"{rel_run}/hard-filter-results.md must classify every candidate as rejected or surviving; missing "
                 + ", ".join(sorted(unfiltered_candidates))
             )
+        for candidate_id in sorted(surviving_candidates):
+            candidate_text = candidate_texts.get(candidate_id, "")
+            visual_evidence = "\n".join(
+                value
+                for value in [
+                    line_value(candidate_text, "Artifact"),
+                    line_value(candidate_text, "Screenshots"),
+                ]
+                if value
+            )
+            if not has_visual_evidence(visual_evidence, run_dir):
+                errors.append(
+                    f"{rel(candidate_paths[candidate_id])} surviving candidate must reference "
+                    "rendered HTML, screenshot, external prototype URL, or another existing visual evidence file"
+                )
+            evidence_paths = sorted(evidence_path_refs(visual_evidence, run_dir))
+            errors.extend(scan_visual_output_files(evidence_paths))
+        for candidate_id in sorted(rejected_candidates):
+            candidate_text = candidate_texts.get(candidate_id, "")
+            visual_evidence = "\n".join(
+                value
+                for value in [
+                    line_value(candidate_text, "Artifact"),
+                    line_value(candidate_text, "Screenshots"),
+                ]
+                if value
+            )
+            if not has_visual_evidence(visual_evidence, run_dir) and not has_no_render_rationale(visual_evidence):
+                errors.append(
+                    f"{rel(candidate_paths[candidate_id])} rejected candidate must reference visual evidence "
+                    "or state a concrete No-render rationale"
+                )
 
     if pairwise_dir.is_dir():
         pairwise_files = sorted(
@@ -556,6 +642,7 @@ def validate_run(errors: list[str], run_dir: Path) -> None:
                 (
                     "## Reviewer Role",
                     "## Winner",
+                    "## Visual Evidence",
                     "## Product Truth",
                     "## Task Clarity",
                     "## Space Or Interaction Fit",
@@ -593,6 +680,26 @@ def validate_run(errors: list[str], run_dir: Path) -> None:
                         f"{rel(pairwise)} compares candidate(s) that did not survive hard filtering: "
                         + ", ".join(sorted(non_survivors))
                     )
+                visual_evidence_body = section_body(pairwise_text, "## Visual Evidence")
+                if not visual_evidence_body:
+                    errors.append(f"{rel(pairwise)} must include visual evidence for the compared candidates")
+                else:
+                    missing_evidence_refs = [
+                        candidate_id
+                        for candidate_id in (candidate_a, candidate_b)
+                        if not re.search(rf"\b{re.escape(candidate_id)}\b", visual_evidence_body)
+                    ]
+                    if missing_evidence_refs:
+                        errors.append(
+                            f"{rel(pairwise)} visual evidence must reference compared candidate id(s): "
+                            + ", ".join(missing_evidence_refs)
+                        )
+                    if not has_visual_evidence(visual_evidence_body, run_dir):
+                        errors.append(
+                            f"{rel(pairwise)} visual evidence must reference rendered HTML, screenshot, "
+                            "external prototype URL, or another existing visual evidence file"
+                        )
+                    errors.extend(scan_visual_output_files(sorted(evidence_path_refs(visual_evidence_body, run_dir))))
             winner_body = section_body(pairwise_text, "## Winner")
             winner_refs = known_candidate_refs(winner_body, candidate_ids)
             winner_unknown_refs = unknown_candidate_refs(winner_body, candidate_ids)

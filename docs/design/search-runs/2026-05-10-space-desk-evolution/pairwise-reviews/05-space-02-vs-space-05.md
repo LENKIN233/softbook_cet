@@ -13,6 +13,10 @@ UX Task / Interaction Motion / Physical Space / Implementation / Accessibility L
 
 space-05
 
+## Visual Evidence
+
+Compared rendered survivor panels `space-02` and `space-05` in `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-02` and `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-05`.
+
 ## Product Truth
 
 Both candidates can preserve ownership if carefully rendered. `space-05` is safer because it keeps state under the current box, while `space-02` can hide box ownership behind card inspect.

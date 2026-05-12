@@ -9,8 +9,8 @@
 - Tool or model: Codex design search, generation 1
 - Prompt: Make sleep and wake understandable while preserving current box ownership.
 - Source context pack: docs/design/search-runs/2026-05-10-space-desk-evolution/context-pack.md
-- Artifact: Prose candidate record for Quiet Sleep Alcove
-- Screenshots: Covered by run-level rendered proof if promoted.
+- Artifact: docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-05
+- Screenshots: Rendered survivor panel `space-05` in `candidate-proofs/survivor-comparison.html`.
 
 ## Product Truth Fit
 

@@ -10,7 +10,7 @@
 - Prompt: Explore a simple favorite box and sleep box model as a negative control.
 - Source context pack: docs/design/search-runs/2026-05-10-space-desk-evolution/context-pack.md
 - Artifact: Prose candidate record for Favorite Sleep Twin Boxes
-- Screenshots: Not rendered because hard-filter rejected.
+- Screenshots: No-render rationale: hard-filter rejected before visual proof because favorite and sleep become invalid physical containers.
 
 ## Product Truth Fit
 

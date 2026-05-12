@@ -13,6 +13,10 @@ Space hierarchy reviewer, first-read reviewer, visual-language reviewer, and imp
 
 space-04
 
+## Visual Evidence
+
+Compared rendered survivor panels `space-03` and `space-04` in `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-03` and `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-04`.
+
 ## Product Truth
 
 Both candidates preserve hierarchy. `space-04` better balances parent context with current box focus, so it avoids `space-03`'s file-browser risk.

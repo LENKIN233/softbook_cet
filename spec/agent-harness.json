@@ -260,6 +260,7 @@
       "outputs": [
         "context_pack",
         "candidate_population_with_provenance",
+        "surviving_candidate_visual_evidence",
         "hard_filter_results",
         "pairwise_reviews",
         "fragment_harvest",

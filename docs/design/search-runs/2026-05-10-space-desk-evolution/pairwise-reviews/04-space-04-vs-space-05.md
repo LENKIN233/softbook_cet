@@ -13,6 +13,10 @@ Product Truth / UX Task / Interaction Motion / Physical Space / Accessibility La
 
 space-04
 
+## Visual Evidence
+
+Compared rendered survivor panels `space-04` and `space-05` in `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-04` and `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-05`.
+
 ## Product Truth
 
 `space-04` preserves full Space hierarchy better. `space-05` is excellent for sleep/wake semantics but risks making sleep the point of Space.

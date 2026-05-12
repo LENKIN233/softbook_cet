@@ -13,6 +13,10 @@ Product Truth / Visual System / Physical Space / Platform Adaptation / Implement
 
 space-03
 
+## Visual Evidence
+
+Compared rendered survivor panels `space-01` and `space-03` in `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-01` and `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-03`.
+
 ## Product Truth
 
 Both candidates preserve product truth. `space-03` makes parent hierarchy more visible by adding a shelf spine. The blocker risk is that the spine must not become module-first navigation.
