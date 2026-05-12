@@ -15,7 +15,7 @@ Name A, B, or `no winner`.
 
 ## Visual Evidence
 
-Name the rendered proof, screenshot, external prototype, or candidate visual-evidence file used to compare Candidate A and Candidate B.
+Name the candidate-bound rendered proof, screenshot, external prototype, or candidate visual-evidence file used to compare Candidate A and Candidate B. Shared proof files must use candidate-specific anchors or paths for both compared candidates.
 
 ## Product Truth
 

@@ -125,6 +125,7 @@ PLACEHOLDER_SNIPPETS = (
     "Product Truth / UX Task / Visual System",
     "Name A, B, or `no winner`.",
     "Name the rendered proof, screenshot, external prototype, or candidate visual-evidence file used to compare Candidate A and Candidate B.",
+    "Name the candidate-bound rendered proof, screenshot, external prototype, or candidate visual-evidence file used to compare Candidate A and Candidate B.",
     "rendered HTML / screenshot / external prototype URL / visual evidence path, or prose-only artifact for hard-filtered candidates.",
     "rendered evidence path for surviving candidates, or `No-render rationale: ...` for hard-filtered rejected candidates.",
     "Which candidate better preserves the product truth?",
@@ -168,6 +169,7 @@ VISUAL_EVIDENCE_RE = re.compile(
     r"(?:html|svg|png|jpg|jpeg|webp|md)(?:#[A-Za-z0-9_.-]+)?)",
     re.IGNORECASE,
 )
+EVIDENCE_URL_RE = re.compile(r"https?://[^\s`'\"),;<>]+", re.IGNORECASE)
 NO_RENDER_RATIONALE_RE = re.compile(r"(?:No-render rationale|no-render rationale|不渲染理由)\s*[:：]\s*\S")
 
 
@@ -310,7 +312,15 @@ def normalized_source_context(value: str | None) -> str:
 
 
 def strip_ref_anchor(value: str) -> str:
-    return value.split("#", 1)[0].strip().strip("`'\".,;:)）")
+    return value.split("#", 1)[0].strip().strip("<>`'\".,;:)）")
+
+
+def strip_ref_punctuation(value: str) -> str:
+    return value.strip().strip("<>`'\".,;:)）")
+
+
+def is_url_ref(ref: str) -> bool:
+    return bool(re.match(r"https?://", ref, re.IGNORECASE))
 
 
 def resolve_evidence_path(run_dir: Path, ref: str) -> Path:
@@ -323,13 +333,15 @@ def resolve_evidence_path(run_dir: Path, ref: str) -> Path:
 def evidence_refs(value: str | None) -> set[str]:
     if not value:
         return set()
-    return {match.group("ref").strip("`'\".,;:)）") for match in VISUAL_EVIDENCE_RE.finditer(value)}
+    refs = {strip_ref_punctuation(match.group("url")) for match in EVIDENCE_URL_RE.finditer(value)}
+    refs.update(strip_ref_punctuation(match.group("ref")) for match in VISUAL_EVIDENCE_RE.finditer(value))
+    return refs
 
 
 def evidence_path_refs(value: str | None, run_dir: Path) -> set[str]:
     refs = set()
     for ref in evidence_refs(value):
-        if re.match(r"https?://", ref):
+        if is_url_ref(ref):
             continue
         path = resolve_evidence_path(run_dir, ref)
         if path.exists():
@@ -340,9 +352,27 @@ def evidence_path_refs(value: str | None, run_dir: Path) -> set[str]:
 def has_visual_evidence(value: str | None, run_dir: Path) -> bool:
     if not value:
         return False
-    if re.search(r"https?://\S+", value):
+    if EVIDENCE_URL_RE.search(value):
         return True
     return bool(evidence_path_refs(value, run_dir))
+
+
+def ref_binds_candidate(ref: str, candidate_id: str) -> bool:
+    return bool(re.search(rf"(?<![A-Za-z0-9_.-]){re.escape(candidate_id)}(?![A-Za-z0-9_.-])", ref))
+
+
+def bound_visual_evidence_refs(value: str | None, run_dir: Path, candidate_id: str) -> set[str]:
+    refs = set()
+    for ref in evidence_refs(value):
+        if not ref_binds_candidate(ref, candidate_id):
+            continue
+        if is_url_ref(ref) or resolve_evidence_path(run_dir, ref).exists():
+            refs.add(ref)
+    return refs
+
+
+def has_bound_visual_evidence(value: str | None, run_dir: Path, candidate_id: str) -> bool:
+    return bool(bound_visual_evidence_refs(value, run_dir, candidate_id))
 
 
 def has_no_render_rationale(value: str | None) -> bool:
@@ -598,10 +628,10 @@ def validate_run(errors: list[str], run_dir: Path) -> None:
                 ]
                 if value
             )
-            if not has_visual_evidence(visual_evidence, run_dir):
+            if not has_bound_visual_evidence(visual_evidence, run_dir, candidate_id):
                 errors.append(
                     f"{rel(candidate_paths[candidate_id])} surviving candidate must reference "
-                    "rendered HTML, screenshot, external prototype URL, or another existing visual evidence file"
+                    "candidate-bound rendered HTML, screenshot, external prototype URL, or another existing visual evidence file"
                 )
             evidence_paths = sorted(evidence_path_refs(visual_evidence, run_dir))
             errors.extend(scan_visual_output_files(evidence_paths))
@@ -687,11 +717,11 @@ def validate_run(errors: list[str], run_dir: Path) -> None:
                     missing_evidence_refs = [
                         candidate_id
                         for candidate_id in (candidate_a, candidate_b)
-                        if not re.search(rf"\b{re.escape(candidate_id)}\b", visual_evidence_body)
+                        if not has_bound_visual_evidence(visual_evidence_body, run_dir, candidate_id)
                     ]
                     if missing_evidence_refs:
                         errors.append(
-                            f"{rel(pairwise)} visual evidence must reference compared candidate id(s): "
+                            f"{rel(pairwise)} visual evidence must include candidate-bound evidence for compared candidate id(s): "
                             + ", ".join(missing_evidence_refs)
                         )
                     if not has_visual_evidence(visual_evidence_body, run_dir):

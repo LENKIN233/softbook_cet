@@ -9,8 +9,8 @@
 - Tool or model:
 - Prompt:
 - Source context pack:
-- Artifact: rendered HTML / screenshot / external prototype URL / visual evidence path, or prose-only artifact for hard-filtered candidates.
-- Screenshots: rendered evidence path for surviving candidates, or `No-render rationale: ...` for hard-filtered rejected candidates.
+- Artifact: candidate-bound rendered HTML / screenshot / external prototype URL / visual evidence path, or prose-only artifact for hard-filtered candidates.
+- Screenshots: candidate-bound rendered evidence path for surviving candidates, or `No-render rationale: ...` for hard-filtered rejected candidates.
 
 ## Product Truth Fit
 

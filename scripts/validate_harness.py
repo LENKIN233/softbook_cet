@@ -1482,7 +1482,8 @@ else:
         "Targeted Mutation",
         "Failure Sedimentation",
         "rejects copied templates",
-        "visual evidence for every surviving candidate",
+        "candidate-bound visual evidence for every surviving candidate",
+        "candidate-bound pairwise visual evidence for both compared candidates",
         "enough pairwise reviews to cover the candidate set",
     ]:
         check_contains("design search README", design_search_text, snippet)
@@ -1827,6 +1828,7 @@ Weak dashboard density should be rejected.
     coverage_run = ROOT / "docs/design/search-runs/tmp-pairwise-coverage-regression"
     promotion_run = ROOT / "docs/design/search-runs/tmp-promotion-consistency-regression"
     visual_evidence_run = ROOT / "docs/design/search-runs/tmp-candidate-visual-evidence-regression"
+    borrowed_evidence_run = ROOT / "docs/design/search-runs/tmp-borrowed-visual-evidence-regression"
     try:
         write_design_search_fixture(
             coverage_run,
@@ -1913,14 +1915,51 @@ Weak dashboard density should be rejected.
         else:
             visual_evidence_output = visual_evidence_case.stdout + visual_evidence_case.stderr
             for snippet in [
-                "surviving candidate must reference rendered HTML",
-                "visual evidence must reference compared candidate id(s)",
+                "surviving candidate must reference candidate-bound rendered HTML",
+                "visual evidence must include candidate-bound evidence for compared candidate id(s)",
                 "visual evidence must reference rendered HTML",
             ]:
                 if snippet not in visual_evidence_output:
                     errors.append(f"validate_design_search_run.py visual evidence regression missing expected rejection: {snippet}")
+
+        write_design_search_fixture(
+            borrowed_evidence_run,
+            pairwise_pairs=[(index, index + 1) for index in range(1, 8)],
+            winning_candidate="candidate-1",
+        )
+        candidate_two = borrowed_evidence_run / "candidates/candidate-2.md"
+        candidate_two.write_text(
+            candidate_two.read_text(encoding="utf-8")
+            .replace("candidate-proofs/survivor-comparison.html#candidate-2", "candidate-proofs/survivor-comparison.html#candidate-1"),
+            encoding="utf-8",
+        )
+        pairwise_one = borrowed_evidence_run / "pairwise-reviews/round-1-candidate-1-vs-candidate-2.md"
+        pairwise_one.write_text(
+            pairwise_one.read_text(encoding="utf-8").replace(
+                "candidate-proofs/survivor-comparison.html#candidate-2",
+                "candidate-proofs/survivor-comparison.html#candidate-1",
+            ),
+            encoding="utf-8",
+        )
+        borrowed_evidence_case = subprocess.run(
+            [sys.executable, str(design_search_script), "--run", str(borrowed_evidence_run)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if borrowed_evidence_case.returncode == 0:
+            errors.append("validate_design_search_run.py must reject borrowed visual evidence that is not bound to the candidate under review")
+        else:
+            borrowed_evidence_output = borrowed_evidence_case.stdout + borrowed_evidence_case.stderr
+            for snippet in [
+                "surviving candidate must reference candidate-bound rendered HTML",
+                "visual evidence must include candidate-bound evidence for compared candidate id(s)",
+            ]:
+                if snippet not in borrowed_evidence_output:
+                    errors.append(f"validate_design_search_run.py borrowed evidence regression missing expected rejection: {snippet}")
     finally:
-        for tmp_search_run in [coverage_run, promotion_run, visual_evidence_run]:
+        for tmp_search_run in [coverage_run, promotion_run, visual_evidence_run, borrowed_evidence_run]:
             if tmp_search_run.exists():
                 shutil.rmtree(tmp_search_run)
 
