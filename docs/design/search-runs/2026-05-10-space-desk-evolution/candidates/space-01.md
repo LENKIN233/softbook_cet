@@ -9,8 +9,8 @@
 - Tool or model: Codex design search, generation 1
 - Prompt: Refine accepted Box Desk without changing product truth.
 - Source context pack: docs/design/search-runs/2026-05-10-space-desk-evolution/context-pack.md
-- Artifact: Prose candidate record for Shelf Address Desk
-- Screenshots: Covered by run-level rendered proof if promoted.
+- Artifact: docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-01
+- Screenshots: Rendered survivor panel `space-01` in `candidate-proofs/survivor-comparison.html`.
 
 ## Product Truth Fit
 

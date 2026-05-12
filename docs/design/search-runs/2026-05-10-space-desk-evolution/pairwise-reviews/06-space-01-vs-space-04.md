@@ -13,6 +13,10 @@ Space product-truth reviewer, first-read reviewer, material hierarchy reviewer, 
 
 space-04
 
+## Visual Evidence
+
+Compared rendered survivor panels `space-01` and `space-04` in `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-01` and `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-04`.
+
 ## Product Truth
 
 Both candidates preserve product truth. `space-04` better proves the same truth because it makes current box, parent context, contained cards, and state zones more distinct.

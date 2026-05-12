@@ -9,8 +9,8 @@
 - Tool or model: Codex design search, generation 1
 - Prompt: Synthesize open desk tray, quiet shelf context, and attached state zones for Space.
 - Source context pack: docs/design/search-runs/2026-05-10-space-desk-evolution/context-pack.md
-- Artifact: Prose candidate record for Shelf Desk Synthesis
-- Screenshots: Covered by `rendered-proof.html`.
+- Artifact: docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-04
+- Screenshots: Rendered survivor panel `space-04` in `candidate-proofs/survivor-comparison.html` and promoted proof `rendered-proof.html`.
 
 ## Product Truth Fit
 

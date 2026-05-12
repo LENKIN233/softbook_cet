@@ -13,6 +13,10 @@ Product Truth / UX Task / Physical Space / Implementation / Accessibility Layout
 
 space-01
 
+## Visual Evidence
+
+Compared rendered survivor panels `space-01` and `space-02` in `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-01` and `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-02`.
+
 ## Product Truth
 
 `space-01` better preserves Space as current box first. `space-02` is useful for inspect but risks making the selected card the only object and weakening parent ownership.

@@ -13,6 +13,10 @@ Product Truth / UX Task / Visual System / Interaction Motion / Physical Space / 
 
 Name A, B, or `no winner`.
 
+## Visual Evidence
+
+Name the rendered proof, screenshot, external prototype, or candidate visual-evidence file used to compare Candidate A and Candidate B.
+
 ## Product Truth
 
 Which candidate better preserves the product truth? Name any blocker.

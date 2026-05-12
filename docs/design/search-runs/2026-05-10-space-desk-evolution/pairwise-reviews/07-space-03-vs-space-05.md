@@ -13,6 +13,10 @@ Physical Space / Platform Adaptation / Interaction Motion / Implementation / Acc
 
 space-03
 
+## Visual Evidence
+
+Compared rendered survivor panels `space-03` and `space-05` in `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-03` and `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-05`.
+
 ## Product Truth
 
 `space-03` better preserves full physical hierarchy across device classes. `space-05` better preserves sleep semantics but needs parent context from another candidate.

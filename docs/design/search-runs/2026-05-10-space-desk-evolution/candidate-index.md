@@ -28,4 +28,4 @@ All candidate records consume `docs/design/search-runs/2026-05-10-space-desk-evo
 
 ## Search Outcome
 
-`space-04` is promoted as a design-only candidate for a future accepted artifact because it preserves the accepted `Box Desk` baseline while improving first-read hierarchy, state placement, and implementation region mapping. This run does not authorize RN or Web implementation by itself.
+`space-04` is promoted into the accepted design-only artifact `docs/design/mocks/space-surface-shelf-desk-v1.md` because it preserves the accepted `Box Desk` baseline while improving first-read hierarchy, state placement, and implementation region mapping. This run and the accepted mock do not authorize RN or Web implementation by themselves.

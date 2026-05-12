@@ -54,13 +54,13 @@ Do not require a full search run for:
    Define hard constraints and soft objectives. Hard constraints include product truth, Law of One, interaction silhouettes, Space physical hierarchy, forbidden patterns, and implementation authority boundaries.
 
 2. Population
-   Generate at least 8 materially different candidates for a completed core-surface search run. Candidates may come from Codex HTML, Figma Make, Stitch, v0, external design files, or different prompts/models, but they must consume the same context pack.
+   Generate at least 8 materially different candidates for a completed core-surface search run. Candidates may come from Codex HTML, Figma Make, Stitch, v0, external design files, or different prompts/models, but they must consume the same context pack. Every candidate that survives hard filtering must point to rendered visual evidence, a screenshot, an external prototype, or another concrete visual-evidence file; rejected candidates may instead state a concrete no-render rationale.
 
 3. Hard Filter
    Reject candidates that violate product truth, collapse Space into a list/dashboard/favorite box, collapse Learning into a generic flashcard, fail required visual-language checklist items, or cannot be rendered/proved at the target device class.
 
 4. Pairwise Review
-   Compare surviving candidates pairwise instead of assigning a single aesthetic score. Each comparison must name the winner and explain product-truth fit, first-read clarity, Space/interaction fit, implementation mapping, and known risk.
+   Compare surviving candidates pairwise instead of assigning a single aesthetic score. Each comparison must name the visual evidence used for Candidate A and Candidate B, name the winner, and explain product-truth fit, first-read clarity, Space/interaction fit, implementation mapping, and known risk.
 
 5. Fragment Harvest
    Extract the strongest reusable parts before synthesis: focal object, first-read path, state language, motion causality, platform adaptation, and any risky but useful breakthrough.
@@ -85,6 +85,8 @@ docs/design/search-runs/<yyyy-mm-dd>-<surface>/
   hard-filter-results.md
   candidates/
     <candidate-id>.md
+  candidate-proofs/
+    survivor-comparison.html or per-candidate rendered/screenshot proof
   pairwise-reviews/
     <round>-<candidate-a>-vs-<candidate-b>.md
   fragment-harvest.md
@@ -96,7 +98,7 @@ docs/design/search-runs/<yyyy-mm-dd>-<surface>/
 
 The templates in `docs/design/search-runs/templates/` define the required headings for each record.
 
-The validator rejects copied templates and placeholder-only records. A completed run must contain concrete provenance, concrete checklist answers, concrete hard-filter results, enough pairwise reviews to cover the candidate set, and proof evidence backed by a rendered file, screenshot set, external prototype record, or URL.
+The validator rejects copied templates and placeholder-only records. A completed run must contain concrete provenance, concrete checklist answers, concrete hard-filter results, visual evidence for every surviving candidate, enough pairwise reviews to cover the candidate set, and promotion proof backed by a rendered file, screenshot set, external prototype record, or URL.
 
 ## Baseline Comparison
 
@@ -125,6 +127,6 @@ Q3: Learning candidates must bind to a canonical interaction silhouette. Space c
 
 Q4: Forbidden design patterns are hard-filtered before pairwise review.
 
-Q5: Rendered candidates must include containment evidence for the target viewport or explain why the artifact is not rendered.
+Q5: Rendered candidates must include containment evidence for the target viewport. Surviving candidates need concrete visual evidence; hard-filtered candidates may explain why the artifact is not rendered.
 
 Q6: Learning/flip/stats rules remain surface-specific hard constraints; search runs cannot mutate two-level self-assess, tabular stats, or system-sequenced Learning.

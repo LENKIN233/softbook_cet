@@ -10,7 +10,7 @@
 - Prompt: Explore a decorative library globe as a negative control for spatial metaphor.
 - Source context pack: docs/design/search-runs/2026-05-10-space-desk-evolution/context-pack.md
 - Artifact: Prose candidate record for Library Globe
-- Screenshots: Not rendered because hard-filter rejected.
+- Screenshots: No-render rationale: hard-filter rejected before visual proof because decorative orbiting nodes hide stable box ownership and phone containment.
 
 ## Product Truth Fit
 

@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Space Desk Evolution Survivor Candidate Proofs</title>
+  <style>
+    :root {
+      --reading: #ff8a3d;
+      --reading-soft: rgba(255, 138, 61, .13);
+      --reading-line: rgba(255, 138, 61, .38);
+      --mint: #22c58b;
+      --ink-1: #11111a;
+      --ink-2: #343448;
+      --ink-3: #66667a;
+      --paper: #f3f1f7;
+      --panel: rgba(255, 255, 255, .86);
+      --hair: rgba(17, 17, 26, .1);
+      font-family: Inter, "Noto Sans SC", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink-1);
+      background:
+        radial-gradient(circle at 18% 12%, rgba(255, 138, 61, .12), transparent 32%),
+        radial-gradient(circle at 92% 18%, rgba(34, 197, 139, .08), transparent 34%),
+        var(--paper);
+      overflow-x: hidden;
+    }
+
+    header,
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    header {
+      padding: 34px 0 18px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      font-size: 30px;
+      line-height: 1.15;
+      font-weight: 850;
+    }
+
+    .lead {
+      max-width: 780px;
+      margin-top: 12px;
+      color: var(--ink-3);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 18px;
+      padding-bottom: 44px;
+    }
+
+    .candidate {
+      min-height: 430px;
+      border: 1px solid var(--hair);
+      border-radius: 30px;
+      background: var(--panel);
+      box-shadow: 0 18px 44px rgba(17, 17, 26, .1);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .candidate.promoted {
+      border-color: var(--reading-line);
+      box-shadow: 0 22px 54px rgba(255, 138, 61, .16);
+    }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .id {
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: var(--reading-soft);
+      color: #6b2d00;
+      border: 1px solid var(--reading-line);
+      font-size: 12px;
+      font-weight: 820;
+    }
+
+    .role {
+      color: var(--ink-3);
+      font-size: 11px;
+      font-weight: 760;
+      text-align: right;
+    }
+
+    .mini-phone {
+      height: 300px;
+      border: 1px solid rgba(17, 17, 26, .12);
+      border-radius: 28px;
+      background: linear-gradient(180deg, #fbfafd, #ece9f3);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+
+    .address,
+    .return,
+    .sleep,
+    .drawer,
+    .shelf {
+      border: 1px solid var(--hair);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .72);
+      padding: 10px;
+    }
+
+    .address {
+      color: #6b2d00;
+      background: var(--reading-soft);
+      border-color: var(--reading-line);
+      font-size: 11px;
+      font-weight: 780;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .box {
+      flex: 1 1 auto;
+      border-radius: 24px;
+      border: 1px solid var(--reading-line);
+      background: rgba(255, 255, 255, .86);
+      padding: 12px;
+      box-shadow: inset 4px 0 0 var(--reading);
+      min-height: 0;
+    }
+
+    .box h3 {
+      font-size: 15px;
+      line-height: 1.18;
+      font-weight: 850;
+    }
+
+    .box p {
+      margin-top: 6px;
+      color: var(--ink-3);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .cards {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .card {
+      flex: 1 1 0;
+      min-width: 0;
+      border-radius: 16px;
+      border: 1px solid var(--hair);
+      background: #fff;
+      padding: 9px;
+      font-size: 11px;
+      line-height: 1.28;
+      font-weight: 760;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-top: 7px;
+      padding: 5px 7px;
+      border-radius: 999px;
+      color: #126b4c;
+      background: rgba(34, 197, 139, .13);
+      border: 1px solid rgba(34, 197, 139, .32);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .return {
+      color: #6b2d00;
+      font-size: 11px;
+      font-weight: 780;
+      background: var(--reading-soft);
+      border-color: var(--reading-line);
+    }
+
+    .shelf {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 10px;
+      min-height: 0;
+      flex: 1 1 auto;
+    }
+
+    .spines {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .spine {
+      flex: 1 1 0;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .72);
+      border: 1px solid var(--hair);
+    }
+
+    .spine.active {
+      background: var(--reading-soft);
+      border-color: var(--reading-line);
+    }
+
+    .sleep {
+      margin-top: 8px;
+      border-style: dashed;
+      color: var(--ink-3);
+      font-size: 11px;
+      line-height: 1.32;
+    }
+
+    .drawer {
+      flex: 1 1 auto;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .drawer-card {
+      border-radius: 24px;
+      background: #fff;
+      border: 1px solid var(--reading-line);
+      padding: 14px;
+      box-shadow: inset 0 4px 0 var(--reading);
+    }
+
+    .caption {
+      color: var(--ink-3);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 680px) {
+      h1 {
+        font-size: 24px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Space Desk Evolution survivor visual evidence</h1>
+    <p class="lead">Each hard-filter survivor has a separate rendered panel for pairwise review. These panels compare hierarchy and first-read structure; only `space-04` is promoted as the accepted-artifact source.</p>
+  </header>
+  <main class="grid">
+    <section class="candidate" id="space-01">
+      <div class="meta"><span class="id">space-01</span><span class="role">Shelf Address Desk</span></div>
+      <div class="mini-phone">
+        <div class="address">CET6 / 仔细阅读 / 定位词抓取</div>
+        <div class="box">
+          <h3>细节定位盒</h3>
+          <p>Baseline-stable box focus with contained cards.</p>
+          <div class="cards"><div class="card">题干定位</div><div class="card">干扰排除</div></div>
+          <span class="tag">favorite tag</span>
+        </div>
+        <div class="sleep">Sleep tray stays under current box.</div>
+        <div class="return">Return to Learning</div>
+      </div>
+      <p class="caption">Safe baseline extension. Clear but less differentiated from the existing accepted mock.</p>
+    </section>
+
+    <section class="candidate" id="space-02">
+      <div class="meta"><span class="id">space-02</span><span class="role">Card Drawer Inspect</span></div>
+      <div class="mini-phone">
+        <div class="address">CET6 / 仔细阅读 / 细节定位盒</div>
+        <div class="drawer">
+          <div class="drawer-card">
+            <h3>题干定位词先圈出</h3>
+            <p>Selected card moves forward while parent box remains visible.</p>
+            <span class="tag">favorite tag</span>
+          </div>
+          <div class="box"><h3>Parent box rail</h3><p>Sibling cards remain behind the drawer.</p></div>
+        </div>
+        <div class="return">Return with inspected card context</div>
+      </div>
+      <p class="caption">Strong inspect state, weaker as default Space entry because the card can dominate parent ownership.</p>
+    </section>
+
+    <section class="candidate" id="space-03">
+      <div class="meta"><span class="id">space-03</span><span class="role">Box Spine Map</span></div>
+      <div class="mini-phone">
+        <div class="address">Reading shelf / locating group</div>
+        <div class="shelf">
+          <div class="spines"><div class="spine"></div><div class="spine active"></div><div class="spine"></div></div>
+          <div class="box">
+            <h3>Open box</h3>
+            <p>Shelf spine gives parent context and platform adaptation.</p>
+            <div class="cards"><div class="card">active</div><div class="card">sibling</div></div>
+          </div>
+        </div>
+        <div class="return">Return to Learning</div>
+      </div>
+      <p class="caption">Best parent hierarchy and wider-screen adaptation, with file-browser risk if shelf becomes primary.</p>
+    </section>
+
+    <section class="candidate promoted" id="space-04">
+      <div class="meta"><span class="id">space-04</span><span class="role">Shelf Desk Synthesis</span></div>
+      <div class="mini-phone">
+        <div class="address">CET6 / 仔细阅读 / 定位词抓取</div>
+        <div class="shelf">
+          <div class="spines"><div class="spine"></div><div class="spine active"></div><div class="spine"></div></div>
+          <div class="box">
+            <h3>细节定位盒</h3>
+            <p>Open tray keeps current box first while shelf stays secondary.</p>
+            <div class="cards"><div class="card">active <span class="tag">tag</span></div><div class="card">sibling</div></div>
+            <div class="sleep">Sleep alcove under original box.</div>
+          </div>
+        </div>
+        <div class="return">Return to current Learning flow</div>
+      </div>
+      <p class="caption">Promoted synthesis: strongest balance of hierarchy, state placement, continuity, and implementation regions.</p>
+    </section>
+
+    <section class="candidate" id="space-05">
+      <div class="meta"><span class="id">space-05</span><span class="role">Quiet Sleep Alcove</span></div>
+      <div class="mini-phone">
+        <div class="address">CET6 / 仔细阅读 / 细节定位盒</div>
+        <div class="box">
+          <h3>Current box</h3>
+          <p>Sleep and wake state are especially legible.</p>
+          <div class="cards"><div class="card">active card</div><div class="card">favorite</div></div>
+          <div class="sleep">Sleeping card sits in a quiet alcove and can wake back to this box.</div>
+        </div>
+        <div class="return">Return to Learning</div>
+      </div>
+      <p class="caption">Best sleep/wake state language, but risks making sleep too central for default Space entry.</p>
+    </section>
+  </main>
+</body>
+</html>

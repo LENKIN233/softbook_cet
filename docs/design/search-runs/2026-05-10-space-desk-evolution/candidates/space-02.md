@@ -9,8 +9,8 @@
 - Tool or model: Codex design search, generation 1
 - Prompt: Start Space from a selected card drawer but keep parent box ownership visible.
 - Source context pack: docs/design/search-runs/2026-05-10-space-desk-evolution/context-pack.md
-- Artifact: Prose candidate record for Card Drawer Inspect
-- Screenshots: Covered by run-level rendered proof if promoted.
+- Artifact: docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html#space-02
+- Screenshots: Rendered survivor panel `space-02` in `candidate-proofs/survivor-comparison.html`.
 
 ## Product Truth Fit
 

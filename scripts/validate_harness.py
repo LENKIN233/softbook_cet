@@ -708,6 +708,7 @@ else:
         [
             "context_pack",
             "candidate_population_with_provenance",
+            "surviving_candidate_visual_evidence",
             "hard_filter_results",
             "pairwise_reviews",
             "fragment_harvest",
@@ -836,9 +837,11 @@ if hr26:
             "design_evolution_engine_required_for_core_surface_optimization",
             "context_pack_shared_by_candidates",
             "candidate_population_with_provenance",
+            "surviving_candidate_visual_evidence",
             "hard_filters_before_review",
             "non_empty_run_records_not_templates",
             "pairwise_review_not_single_aesthetic_score",
+            "pairwise_visual_evidence_for_compared_candidates",
             "pairwise_coverage_for_candidate_population",
             "fragment_harvest_and_targeted_mutation",
             "promotion_record_before_accepted_artifact",
@@ -888,9 +891,11 @@ if gt20:
         [
             "constraints_define_search_boundary",
             "candidate_population_not_single_output",
+            "surviving_candidate_visual_evidence",
             "hard_filter_product_truth_and_layout_violations",
             "reject_placeholder_only_search_run_records",
             "pairwise_rank_surviving_candidates",
+            "pairwise_visual_evidence_for_compared_candidates",
             "pairwise_coverage_scales_with_candidate_count",
             "fragment_harvest_before_synthesis",
             "targeted_mutation_from_named_failures",
@@ -1034,7 +1039,7 @@ p38 = find_by_id(perturbation_audit["perturbations"], "P-38")
 if p38:
     check_equal(
         "P-38 change",
-        "Let a design search run pass with copied templates, one pairwise review, or a promotion record that only names proof text without proof artifacts",
+        "Let a design search run pass with copied templates, one pairwise review, surviving candidates without visual evidence, pairwise reviews without visual evidence, or a promotion record that only names proof text without proof artifacts",
         p38["change"],
     )
     check_equal(
@@ -1477,6 +1482,7 @@ else:
         "Targeted Mutation",
         "Failure Sedimentation",
         "rejects copied templates",
+        "visual evidence for every surviving candidate",
         "enough pairwise reviews to cover the candidate set",
     ]:
         check_contains("design search README", design_search_text, snippet)
@@ -1557,6 +1563,7 @@ else:
             shutil.rmtree(run_dir)
         (run_dir / "candidates").mkdir(parents=True)
         (run_dir / "pairwise-reviews").mkdir()
+        (run_dir / "candidate-proofs").mkdir()
         surviving = surviving or list(range(1, 9))
         rejected = rejected or []
         pairwise_pairs = pairwise_pairs or [(index, index + 1) for index in range(1, len(surviving))]
@@ -1710,6 +1717,10 @@ Q6: Learning rules are not changed in this Space probe.
             """,
         )
         write(run_dir / "rendered-proof.html", "<!doctype html><title>probe</title><main>Concrete proof</main>")
+        write(
+            run_dir / "candidate-proofs/survivor-comparison.html",
+            "<!doctype html><title>candidate proof</title><main>candidate-1 candidate-2 candidate-3 candidate-4 candidate-5 candidate-6 candidate-7 candidate-8</main>",
+        )
 
         for index in range(1, 9):
             source_context = source_contexts.get(index, "context-pack.md")
@@ -1725,8 +1736,8 @@ candidate-{index}
 - Tool or model: probe-model
 - Prompt: concrete prompt for candidate {index}
 - Source context pack: {source_context}
-- Artifact: rendered-proof.html
-- Screenshots: screenshots/probe-{index}.png
+- Artifact: candidate-proofs/survivor-comparison.html#candidate-{index}
+- Screenshots: candidate-proofs/survivor-comparison.html#candidate-{index}
 
 ## Product Truth Fit
 candidate-{index} preserves CET cards, interactions, and physical-space hierarchy.
@@ -1784,6 +1795,9 @@ Product Truth reviewer for probe {index}.
 ## Winner
 candidate-{candidate_a}
 
+## Visual Evidence
+Compared candidate-{candidate_a} and candidate-{candidate_b} in candidate-proofs/survivor-comparison.html#candidate-{candidate_a} and candidate-proofs/survivor-comparison.html#candidate-{candidate_b}.
+
 ## Product Truth
 candidate-{candidate_a} better preserves the product truth for current box focus.
 
@@ -1812,6 +1826,7 @@ Weak dashboard density should be rejected.
 
     coverage_run = ROOT / "docs/design/search-runs/tmp-pairwise-coverage-regression"
     promotion_run = ROOT / "docs/design/search-runs/tmp-promotion-consistency-regression"
+    visual_evidence_run = ROOT / "docs/design/search-runs/tmp-candidate-visual-evidence-regression"
     try:
         write_design_search_fixture(
             coverage_run,
@@ -1863,8 +1878,49 @@ Weak dashboard density should be rejected.
             ]:
                 if snippet not in promotion_output:
                     errors.append(f"validate_design_search_run.py promotion consistency regression missing expected rejection: {snippet}")
+
+        write_design_search_fixture(
+            visual_evidence_run,
+            surviving=list(range(1, 8)),
+            rejected=[8],
+            pairwise_pairs=[(index, index + 1) for index in range(1, 7)],
+            winning_candidate="candidate-1",
+        )
+        candidate_three = visual_evidence_run / "candidates/candidate-3.md"
+        candidate_three.write_text(
+            candidate_three.read_text(encoding="utf-8")
+            .replace("- Artifact: candidate-proofs/survivor-comparison.html#candidate-3", "- Artifact: prose-only candidate record")
+            .replace("- Screenshots: candidate-proofs/survivor-comparison.html#candidate-3", "- Screenshots: visual evidence omitted"),
+            encoding="utf-8",
+        )
+        pairwise_two = visual_evidence_run / "pairwise-reviews/round-2-candidate-2-vs-candidate-3.md"
+        pairwise_two.write_text(
+            pairwise_two.read_text(encoding="utf-8").replace(
+                "## Visual Evidence\nCompared candidate-2 and candidate-3 in candidate-proofs/survivor-comparison.html#candidate-2 and candidate-proofs/survivor-comparison.html#candidate-3.\n",
+                "## Visual Evidence\nPairwise review relied on prose only.\n",
+            ),
+            encoding="utf-8",
+        )
+        visual_evidence_case = subprocess.run(
+            [sys.executable, str(design_search_script), "--run", str(visual_evidence_run)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if visual_evidence_case.returncode == 0:
+            errors.append("validate_design_search_run.py must reject surviving candidates or pairwise reviews without visual evidence")
+        else:
+            visual_evidence_output = visual_evidence_case.stdout + visual_evidence_case.stderr
+            for snippet in [
+                "surviving candidate must reference rendered HTML",
+                "visual evidence must reference compared candidate id(s)",
+                "visual evidence must reference rendered HTML",
+            ]:
+                if snippet not in visual_evidence_output:
+                    errors.append(f"validate_design_search_run.py visual evidence regression missing expected rejection: {snippet}")
     finally:
-        for tmp_search_run in [coverage_run, promotion_run]:
+        for tmp_search_run in [coverage_run, promotion_run, visual_evidence_run]:
             if tmp_search_run.exists():
                 shutil.rmtree(tmp_search_run)
 

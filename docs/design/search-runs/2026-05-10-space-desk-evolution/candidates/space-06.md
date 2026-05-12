@@ -10,7 +10,7 @@
 - Prompt: Explore a progress-heavy Space command board as a negative control.
 - Source context pack: docs/design/search-runs/2026-05-10-space-desk-evolution/context-pack.md
 - Artifact: Prose candidate record for Progress Command Board
-- Screenshots: Not rendered because hard-filter rejected.
+- Screenshots: No-render rationale: hard-filter rejected before visual proof because the candidate makes progress metrics the focal object instead of Space hierarchy.
 
 ## Product Truth Fit
 
