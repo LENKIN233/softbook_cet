@@ -71,7 +71,7 @@ import {
   createSpaceStateSnapshot,
 } from './src/space/spaceStateRepository';
 import { resolveSpaceStateRepositoryConfig } from './src/space/spaceStateRuntimeConfig';
-import { SpaceSurface } from './src/space/SpaceSurface';
+import { SpaceSurface, type SpaceStatusRail } from './src/space/SpaceSurface';
 import { StatisticsSurface } from './src/statistics/StatisticsSurface';
 import { createMutationQueueRepository } from './src/sync/mutationQueueRepository';
 import {
@@ -1900,6 +1900,10 @@ function AppShell({
       setCheckedInDayKey(todayKey);
     },
   };
+  const retryLearningBootstrap = () => {
+    setLearningBootstrapStatus('idle');
+    setLearningBootstrapError(null);
+  };
 
   const accessibleSpaceCards = learningSession
     ? learningSession.catalogCards.slice(
@@ -1939,6 +1943,41 @@ function AppShell({
               ? '正在开通'
               : '完整空间受限',
           title: '完整物理空间需要试用或会员',
+        }
+      : null;
+  const spaceStatusRail: SpaceStatusRail | null =
+    route.key === 'space' && learningBootstrapStatus !== 'ready'
+      ? {
+          actionSlot:
+            learningBootstrapStatus === 'error' ? (
+              <Pressable
+                onPress={retryLearningBootstrap}
+                style={[
+                  styles.primaryButton,
+                  styles.compactButton,
+                  { backgroundColor: palette.accent },
+                ]}
+                testID="space-bootstrap-retry-button"
+              >
+                <Text
+                  style={[styles.primaryButtonLabel, { color: palette.panel }]}
+                >
+                  重试空间卡源
+                </Text>
+              </Pressable>
+            ) : null,
+          detail:
+            learningBootstrapStatus === 'error'
+              ? `${
+                  learningBootstrapError ?? '空间卡源暂时不可用。'
+                } 空间会保留当前物理轮廓，重试后再恢复盒内卡片。`
+              : '正在恢复本轮卡源；空间地址架和当前盒位会先保留在原位。',
+          label: learningBootstrapStatus === 'error' ? '可重试' : '加载中',
+          state: learningBootstrapStatus === 'error' ? 'error' : 'loading',
+          title:
+            learningBootstrapStatus === 'error'
+              ? '空间卡源暂时不可用'
+              : '正在恢复空间卡源',
         }
       : null;
   const spaceSyncRail =
@@ -1993,10 +2032,7 @@ function AppShell({
       error={
         learningBootstrapStatus === 'error' ? learningBootstrapError : null
       }
-      onRetry={() => {
-        setLearningBootstrapStatus('idle');
-        setLearningBootstrapError(null);
-      }}
+      onRetry={retryLearningBootstrap}
       palette={palette}
       status={learningBootstrapStatus}
     />
@@ -2065,6 +2101,7 @@ function AppShell({
       palette={palette}
       spaceCards={spaceSurfaceCards}
       spaceGateRail={spaceGateRail}
+      spaceStatusRail={spaceStatusRail}
       spaceSyncRail={spaceSyncRail}
     />
   ) : route.key === 'statistics' ? (

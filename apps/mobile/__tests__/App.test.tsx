@@ -1880,6 +1880,51 @@ test('keeps source bootstrap errors inside learning and can retry', async () => 
   expect(output).toContain('however');
 });
 
+test('keeps source bootstrap loading and errors attached to space', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await openRoute(root, 'space');
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('正在恢复空间卡源');
+  expect(output).toContain('空间地址架和当前盒位会先保留在原位');
+  expect(root.findAllByProps({ testID: 'space-status-rail' }).length)
+    .toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-current-box-tray' }).length)
+    .toBeGreaterThan(0);
+
+  await rejectLearningBootstrap('空间卡源暂时不可达。');
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('空间卡源暂时不可用');
+  expect(output).toContain('空间卡源暂时不可达。');
+  expect(output).toContain('重试空间卡源');
+  expect(root.findAllByProps({ testID: 'space-status-rail' }).length)
+    .toBeGreaterThan(0);
+
+  pendingSession = createDeferred<LearningSession>();
+
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'space-bootstrap-retry-button' }).props.onPress();
+    await flushAsyncEffects();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('正在恢复空间卡源');
+
+  await resolveLearningBootstrap();
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('OPEN BOX TRAY');
+  expect(root.findAllByProps({ testID: 'space-status-rail' })).toHaveLength(0);
+});
+
 test('can complete the local single-card deck and restart it', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
