@@ -23,6 +23,8 @@ For core Learning or Space implementation work, prose direction alone is not eno
 - `space-surface-visual-refinement-v1.html`: rendered refined Space phone frames for primary box desk, card inspect, sleep/wake, and long-content containment.
 - `space-surface-shelf-desk-v1.md`: accepted Space shelf-desk mock promoted from `space-04` search evidence, with parent shelf, open box tray, contained cards, and sleep alcove.
 - `space-surface-shelf-desk-v1.html`: rendered accepted Space shelf-desk phone proof.
+- `../physical-space/space-state-baseline-v1.md`: Space state baseline for loading, empty, remote-error, permission/paywall, and sync-merge states.
+- `space-state-baseline-v1.html`: rendered `393 x 852` phone proof for Space non-ideal states.
 
 ## Required Contents
 

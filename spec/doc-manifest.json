@@ -89,6 +89,26 @@
       "status": "active"
     },
     {
+      "path": "docs/design/physical-space/space-state-baseline-v1.md",
+      "authority": "accepted_physical_space_artifact",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["physical_space_design_task", "space_ui_implementation", "space_state_design_task"],
+      "depends_on": [
+        "spec/product-core.json",
+        "spec/knowledge-map.json",
+        "spec/space-operations.json",
+        "spec/box-catalog.json",
+        "spec/membership.json",
+        "spec/runtime-boundaries.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md",
+        "docs/design/physical-space/space-model-v1.md",
+        "docs/design/mocks/space-surface-shelf-desk-v1.md",
+        "docs/design/mapping/learning-space-implementation-map-v1.md"
+      ],
+      "status": "active"
+    },
+    {
       "path": "docs/design/mocks/README.md",
       "authority": "rendered_mock_artifact_index",
       "audience": ["agent", "designer", "engineer"],
@@ -294,6 +314,14 @@
       "audience": ["agent", "designer", "engineer"],
       "load_when": ["space_ui_implementation", "core_surface_visual_artifact_task", "physical_space_design_task"],
       "depends_on": ["docs/design/mocks/space-surface-shelf-desk-v1.md"],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/mocks/space-state-baseline-v1.html",
+      "authority": "rendered_mock_html",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["space_ui_implementation", "core_surface_visual_artifact_task", "physical_space_design_task", "space_state_design_task"],
+      "depends_on": ["docs/design/physical-space/space-state-baseline-v1.md"],
       "status": "active"
     },
     {
