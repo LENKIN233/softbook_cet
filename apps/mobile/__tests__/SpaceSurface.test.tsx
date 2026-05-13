@@ -22,6 +22,46 @@ const palette = {
   warning: '#B77900',
 };
 
+type TestRendererNode =
+  | ReactTestRenderer.ReactTestRendererJSON
+  | ReactTestRenderer.ReactTestRendererJSON[]
+  | string
+  | null;
+
+function collectTestIDs(node: TestRendererNode, testIDs: string[] = []) {
+  if (node === null || typeof node === 'string') {
+    return testIDs;
+  }
+
+  if (Array.isArray(node)) {
+    node.forEach(child => collectTestIDs(child, testIDs));
+    return testIDs;
+  }
+
+  if (typeof node.props.testID === 'string') {
+    testIDs.push(node.props.testID);
+  }
+
+  node.children?.forEach(child => collectTestIDs(child, testIDs));
+  return testIDs;
+}
+
+function expectSpaceFirstReadOrder(
+  tree: ReactTestRenderer.ReactTestRenderer,
+  railTestID: string,
+) {
+  const testIDs = collectTestIDs(tree.toJSON());
+  const addressIndex = testIDs.indexOf('space-address-shelf');
+  const railIndex = testIDs.indexOf(railTestID);
+  const boxIndex = testIDs.indexOf('space-current-box-tray');
+
+  expect(addressIndex).toBeGreaterThanOrEqual(0);
+  expect(railIndex).toBeGreaterThanOrEqual(0);
+  expect(boxIndex).toBeGreaterThanOrEqual(0);
+  expect(addressIndex).toBeLessThan(railIndex);
+  expect(railIndex).toBeLessThan(boxIndex);
+}
+
 test('keeps a physical Space outline when no cards are visible', () => {
   const session = createLocalLearningSession('cet4');
   const currentCard = session.catalogCards[0];
@@ -98,8 +138,49 @@ test('uses contained skeleton slots while Space cards are loading', () => {
   expect(output).toContain('加载完成后回到真实卡片');
   expect(root.findAllByProps({ testID: 'space-loading-card-skeleton' }).length)
     .toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-loading-address-skeleton' }).length,
+  ).toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-loading-box-skeleton' }).length)
+    .toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-empty-card-slot' }))
     .toHaveLength(0);
   expect(root.findAllByProps({ testID: 'space-status-rail' }).length)
     .toBeGreaterThan(0);
+  expectSpaceFirstReadOrder(tree!, 'space-status-rail');
+});
+
+test('places Space state rail between address context and current box', () => {
+  const session = createLocalLearningSession('cet4');
+  const currentCard = session.catalogCards[0];
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={currentCard}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        spaceCards={session.catalogCards}
+        spaceSyncRail={{
+          detail: '正在同步空间里的收藏标签和休眠状态。',
+          label: '同步中',
+          state: 'syncing',
+          title: '正在同步空间状态',
+        }}
+      />,
+    );
+  });
+
+  const root = tree!.root;
+
+  expect(root.findAllByProps({ testID: 'space-shelf-desk' }).length)
+    .toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-sync-rail' }).length)
+    .toBeGreaterThan(0);
+  expectSpaceFirstReadOrder(tree!, 'space-sync-rail');
 });

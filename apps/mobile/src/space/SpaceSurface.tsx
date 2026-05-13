@@ -161,6 +161,21 @@ export function SpaceSurface({
       ? `${selectedLibrary.libraryName} / ${selectedGroup.groupName} / ${selectedBox.boxName}`
       : '';
   const isGated = spaceGateRail !== null && spaceGateRail !== undefined;
+  const stateRailStack = (
+    <>
+      {spaceGateRail ? (
+        <SpaceGateRailCard palette={palette} rail={spaceGateRail} />
+      ) : null}
+
+      {spaceSyncRail ? (
+        <SpaceSyncRailCard palette={palette} rail={spaceSyncRail} />
+      ) : null}
+
+      {spaceStatusRail ? (
+        <SpaceStatusRailCard palette={palette} rail={spaceStatusRail} />
+      ) : null}
+    </>
+  );
 
   if (!selectedLibrary || !selectedGroup || !selectedBox) {
     const emptySpacePath = currentLearningCard
@@ -237,8 +252,30 @@ export function SpaceSurface({
               <Text style={[styles.addressPathText, { color: palette.text }]}>
                 {emptySelectedPath}
               </Text>
+              {isSpaceLoading ? (
+                <View
+                  style={styles.loadingSkeletonStack}
+                  testID="space-loading-address-skeleton"
+                >
+                  <View
+                    style={[
+                      styles.loadingSkeletonBar,
+                      { backgroundColor: emptyTone.accentSoft },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.loadingSkeletonBar,
+                      styles.loadingSkeletonBarShort,
+                      { backgroundColor: emptyTone.accentSoft },
+                    ]}
+                  />
+                </View>
+              ) : null}
             </View>
           </SurfaceCard>
+
+          {stateRailStack}
 
           <SurfaceCard palette={palette} testID="space-current-box-tray">
             <View style={styles.boxTrayHeader}>
@@ -262,6 +299,27 @@ export function SpaceSurface({
                 ]}
               />
             </View>
+
+            {isSpaceLoading ? (
+              <View
+                style={styles.boxTraySkeleton}
+                testID="space-loading-box-skeleton"
+              >
+                <View
+                  style={[
+                    styles.loadingSkeletonBar,
+                    { backgroundColor: emptyTone.accentSoft },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.loadingSkeletonBar,
+                    styles.loadingSkeletonBarShort,
+                    { backgroundColor: emptyTone.accentSoft },
+                  ]}
+                />
+              </View>
+            ) : null}
 
             <Text style={[styles.locationText, { color: emptyTone.accent }]}>
               {currentLearningCard
@@ -293,18 +351,6 @@ export function SpaceSurface({
               </View>
             </View>
           </SurfaceCard>
-
-          {spaceGateRail ? (
-            <SpaceGateRailCard palette={palette} rail={spaceGateRail} />
-          ) : null}
-
-          {spaceSyncRail ? (
-            <SpaceSyncRailCard palette={palette} rail={spaceSyncRail} />
-          ) : null}
-
-          {spaceStatusRail ? (
-            <SpaceStatusRailCard palette={palette} rail={spaceStatusRail} />
-          ) : null}
 
           <SurfaceCard palette={palette} testID="space-box-detail">
             <View style={styles.containedHeader}>
@@ -610,6 +656,8 @@ export function SpaceSurface({
           </SurfaceCard>
         </View>
 
+        {stateRailStack}
+
         <SurfaceCard palette={palette} testID="space-current-box-tray">
           <View style={styles.boxTrayHeader}>
             <View style={styles.boxTrayCopy}>
@@ -684,18 +732,6 @@ export function SpaceSurface({
             })}
           </View>
         </SurfaceCard>
-
-        {spaceGateRail ? (
-          <SpaceGateRailCard palette={palette} rail={spaceGateRail} />
-        ) : null}
-
-        {spaceSyncRail ? (
-          <SpaceSyncRailCard palette={palette} rail={spaceSyncRail} />
-        ) : null}
-
-        {spaceStatusRail ? (
-          <SpaceStatusRailCard palette={palette} rail={spaceStatusRail} />
-        ) : null}
 
         <SurfaceCard palette={palette} testID="space-box-detail">
           <View style={styles.containedHeader}>
@@ -1255,6 +1291,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 22,
   },
+  loadingSkeletonStack: {
+    gap: 7,
+    marginTop: 8,
+  },
+  loadingSkeletonBar: {
+    borderRadius: 999,
+    height: 8,
+    width: '72%',
+  },
+  loadingSkeletonBarShort: {
+    width: '42%',
+  },
   eyebrow: {
     fontSize: 12,
     fontWeight: '700',
@@ -1341,6 +1389,10 @@ const styles = StyleSheet.create({
   boxAccentRail: {
     borderRadius: 999,
     width: 6,
+  },
+  boxTraySkeleton: {
+    gap: 8,
+    paddingRight: 22,
   },
   ruleRow: {
     alignItems: 'flex-start',
