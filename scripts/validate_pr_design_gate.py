@@ -117,6 +117,7 @@ PHYSICAL_SPACE_SOURCE_MARKERS = (
 SPACE_VISUAL_PROOF_SOURCE_MARKERS = (
     "docs/design/mocks/space-surface-visual-proof-v1",
     "docs/design/mocks/space-surface-visual-refinement-v1",
+    "docs/design/mocks/space-surface-shelf-desk-v1",
     "docs/design/directions/space-surface-visual-directions-v1",
     "http://",
     "https://",
@@ -469,10 +470,20 @@ def has_concrete_source(value: str, markers: tuple[str, ...]) -> bool:
     if has_external_url(value):
         return True
     return any(
-        path.startswith(marker) or path == marker
+        marker_matches_path(marker, path)
         for path in extract_doc_artifact_paths(value)
         for marker in markers
     )
+
+
+def marker_matches_path(marker: str, path: str) -> bool:
+    if marker in {"http://", "https://"}:
+        return False
+    if marker.endswith("/"):
+        return path.startswith(marker)
+    if Path(marker).suffix:
+        return path == marker
+    return path == marker or Path(path).with_suffix("").as_posix() == marker
 
 
 def has_directory_reference_without_file(value: str, markers: tuple[str, ...]) -> bool:
@@ -480,7 +491,7 @@ def has_directory_reference_without_file(value: str, markers: tuple[str, ...]) -
     for marker in markers:
         if marker in {"http://", "https://"}:
             continue
-        if marker in value and not any(path.startswith(marker) or path == marker for path in concrete_paths):
+        if marker in value and not any(marker_matches_path(marker, path) for path in concrete_paths):
             return True
     return False
 
@@ -629,6 +640,7 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
                 "Space UI changed, but PR body does not name the Space visual proof "
                 "docs/design/mocks/space-surface-visual-proof-v1.md/html, "
                 "docs/design/mocks/space-surface-visual-refinement-v1.md/html, "
+                "docs/design/mocks/space-surface-shelf-desk-v1.md/html, "
                 "docs/design/directions/space-surface-visual-directions-v1.md, "
                 "or a linked external design file"
             )
