@@ -326,9 +326,9 @@ test('reads installed runtime config when the app mounts', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前认证已切到远端短信合同');
-  expect(output).toContain('当前会走远端短信验证码合同。');
-  expect(output).not.toContain('当前是本地壳层验证，不会真的发短信。');
+  expect(output).toContain('使用短信验证码确认身份');
+  expect(output).toContain('将通过短信验证码确认身份。');
+  expect(output).not.toContain('可用验证码完成登录体验。');
 });
 
 test('uses native initial remote runtime profile before the shell mounts', async () => {
@@ -359,9 +359,9 @@ test('uses native initial remote runtime profile before the shell mounts', async
       track: 'cet6',
     },
   });
-  expect(output).toContain('当前认证已切到远端短信合同');
-  expect(output).toContain('当前会走远端短信验证码合同。');
-  expect(output).not.toContain('当前是本地壳层验证，不会真的发短信。');
+  expect(output).toContain('使用短信验证码确认身份');
+  expect(output).toContain('将通过短信验证码确认身份。');
+  expect(output).not.toContain('可用验证码完成登录体验。');
 });
 
 test('shows remote request-code failure inside the auth gate', async () => {
@@ -402,8 +402,8 @@ test('shows remote request-code failure inside the auth gate', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('Remote auth request-code failed with 503.');
-  expect(output).toContain('当前会走远端短信验证码合同。');
+  expect(output).toContain('验证码发送暂时失败（503）。');
+  expect(output).toContain('将通过短信验证码确认身份。');
 });
 
 test('shows remote verify-code failure inside the auth gate', async () => {
@@ -457,8 +457,8 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('Remote auth verify-code failed with 401.');
-  expect(output).toContain('当前认证已切到远端短信合同');
+  expect(output).toContain('验证码校验暂时失败（401）。');
+  expect(output).toContain('使用短信验证码确认身份');
 });
 
 test('keeps verified remote auth when entitlement bootstrap is unavailable', async () => {
@@ -629,8 +629,8 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('远端已同步');
-  expect(output).toContain('今天的学习进展已推送到远端日级同步端点。');
+  expect(output).toContain('云端已同步');
+  expect(output).toContain('今天的学习进展已推送到云端。');
 
   const membershipRequest = fetchCalls.find(
     call => call.input === 'https://api.softbook.example/v1/membership/entitlement',
@@ -863,7 +863,7 @@ test('queues failed remote learning state sync for later replay', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('学习状态：已排队');
-  expect(output).toContain('学习状态说明：Remote learning state sync failed with 503. 已加入离线重试队列。');
+  expect(output).toContain('学习状态说明：学习状态同步暂时失败（503）。 已加入离线重试队列。');
 });
 
 test('replays queued daily progress after network reconnect', async () => {
@@ -964,8 +964,8 @@ test('replays queued daily progress after network reconnect', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('远端已同步');
-  expect(output).toContain('离线队列补推到远端日级同步端点');
+  expect(output).toContain('云端已同步');
+  expect(output).toContain('离线队列补推到云端');
   expect(
     fetchCalls.filter(
       call => call.input === 'https://api.softbook.example/v1/progress/daily-sync',
@@ -1071,8 +1071,8 @@ test('replays queued learning state after network reconnect', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('学习状态：远端已同步');
-  expect(output).toContain('学习状态说明：当前学习作答状态已从离线队列补推到远端学习状态端点。');
+  expect(output).toContain('学习状态：云端已同步');
+  expect(output).toContain('学习状态说明：当前学习作答状态已从离线队列补推到云端。');
   expect(
     fetchCalls.filter(
       call => call.input === 'https://api.softbook.example/v1/learning/state-sync',
@@ -1318,7 +1318,7 @@ test('auto-starts remote trial when first entering space', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已接入卡片的物理空间');
+  expect(output).toContain('卡片的物理空间');
   expect(output).toContain('知识地图浏览');
 
   const startTrialRequest = fetchCalls.find(
@@ -1402,7 +1402,7 @@ test('falls back to local trial unlock and replays remote trial start later', as
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已接入卡片的物理空间');
+  expect(output).toContain('卡片的物理空间');
   expect(startTrialRequestCount).toBe(1);
 
   await openRoute(root, 'statistics');
@@ -1511,7 +1511,7 @@ test('can unlock gated space after remote purchase', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已接入卡片的物理空间');
+  expect(output).toContain('卡片的物理空间');
   expect(output).toContain('知识地图浏览');
 
   const purchaseRequest = fetchCalls.find(
@@ -1692,7 +1692,7 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已接入卡片的物理空间');
+  expect(output).toContain('卡片的物理空间');
   expect(output).toContain('知识地图浏览');
   expect(
     fetchCalls.filter(
@@ -1843,7 +1843,7 @@ test('keeps source bootstrap errors inside learning and can retry', async () => 
   await rejectLearningBootstrap('学习卡源暂时不可达。');
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('学习卡源暂时不可用');
+  expect(output).toContain('本轮学习暂时不可用');
   expect(output).toContain('学习卡源暂时不可达。');
   expect(output).toContain('重新加载学习卡源');
 
@@ -1957,7 +1957,7 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本轮卡源已走完');
+  expect(output).toContain('本轮学习已走完');
   expect(output).toContain('完成明细');
   expect(output).toContain('再跑一轮当前卡源');
 
@@ -2120,7 +2120,7 @@ test('can check in from statistics after making learning progress', async () => 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('今日可签到');
   expect(output).toContain('今天已经产生有效学习进展，可以把连续性落成一次轻量签到。');
-  expect(output).toContain('本地已记录');
+  expect(output).toContain('已记录');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'statistics-checkin-button' }).props.onPress();
@@ -2132,7 +2132,7 @@ test('can check in from statistics after making learning progress', async () => 
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('今日已签到');
-  expect(output).toContain('今天的学习进展已在本地记录；远端同步将在配置接通后启用。');
+  expect(output).toContain('今天的学习进展已在本机记录。');
 });
 
 test('keeps completed progress when first gated space entry starts trial', async () => {
@@ -2215,12 +2215,12 @@ test('mine page shows profile, learning, and space summaries after login', async
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('个人主页已经接进当前模块');
+  expect(output).toContain('个人主页');
   expect(output).toContain('手机号：138****8000');
   expect(output).toContain('今日签到：已完成');
-  expect(output).toContain('日级同步：本地已记录');
+  expect(output).toContain('日级同步：已记录');
   expect(output).toContain('今日已完成 1 张卡，其中首轮 1 张、回看 0 张。');
-  expect(output).toContain('同步说明：今天的学习进展已在本地记录；远端同步将在配置接通后启用。');
+  expect(output).toContain('同步说明：今天的学习进展已在本机记录。');
   expect(output).toContain('收藏标签 1 张。');
 });
 
@@ -2236,7 +2236,7 @@ test('can browse the seeded knowledge map after login', async () => {
   await startTrialFromProtectedEntry(root, 'space');
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已接入卡片的物理空间');
+  expect(output).toContain('卡片的物理空间');
   expect(output).toContain('当前学习卡位于 ');
   expect(output).toContain('逻辑关系');
   expect(output).toContain('转折关系');
@@ -2366,7 +2366,7 @@ test('auto-starts local trial when first entering space', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已接入卡片的物理空间');
+  expect(output).toContain('卡片的物理空间');
   expect(output).toContain('知识地图浏览');
 });
 
@@ -2423,7 +2423,7 @@ test('auto-starts trial from the first gated review entry', async () => {
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('首轮抽出 3 张卡');
+  expect(output).toContain('完成了 3 张卡');
   expect(root.findByProps({ testID: 'learning-start-review-button' })).toBeTruthy();
 
   await ReactTestRenderer.act(() => {

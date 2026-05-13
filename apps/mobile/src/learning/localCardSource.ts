@@ -12,7 +12,7 @@ export type LearningCardSource = {
 };
 
 export const LOCAL_CARD_SOURCE_ID = 'local-structured-card-source';
-export const LOCAL_CARD_SOURCE_LABEL = '本地结构化卡源';
+export const LOCAL_CARD_SOURCE_LABEL = '系统顺序学习';
 
 const CET6_DERIVED_RECORD_START = 51;
 

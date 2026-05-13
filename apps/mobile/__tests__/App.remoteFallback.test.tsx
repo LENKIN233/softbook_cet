@@ -159,7 +159,7 @@ test('falls back to local learning cards when remote runtime source fails', asyn
   await waitForLearningSurface(root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本地结构化卡源');
+  expect(output).toContain('系统顺序学习');
   expect(output).toContain('however');
   expect(output).not.toContain('学习卡源暂时不可用');
   expect(fetchMock).toHaveBeenCalledWith(

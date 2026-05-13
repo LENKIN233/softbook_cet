@@ -66,7 +66,7 @@ export function StatisticsSurface({
     ? '今日可签到'
     : '先完成今日学习';
   const checkInSummary = hasCheckedInToday
-    ? `${dayLabel} 的连续性已经记录到本地统计状态。`
+    ? `${dayLabel} 的连续性已经记录到今日统计里。`
     : canCheckInToday
     ? '今天已经产生有效学习进展，可以把连续性落成一次轻量签到。'
     : '先至少完成 1 张学习或回看卡，再把今天记成一次有效签到。';
@@ -97,7 +97,7 @@ export function StatisticsSurface({
         </Text>
         <Text style={[styles.title, { color: palette.text }]}>轻量统计与签到</Text>
         <Text style={[styles.summary, { color: palette.textMuted }]}>
-          统计只用于增强信心和连续性。当前先把今日签到、学习摘要和回看状态收成低成本页面，不把它做成重运营大盘。
+          统计只用于增强信心和连续性，把今日签到、学习摘要和回看状态收成低成本页面。
         </Text>
         <View style={styles.metricRow}>
           <MetricCard
@@ -254,7 +254,7 @@ export function StatisticsSurface({
           />
           <InfoLine
             palette={palette}
-            text="会员、同步和重分析仍留给各自模块分支处理。"
+            text="会员、同步和重分析不会抢占这个轻量入口。"
           />
         </SurfaceCard>
       </View>
