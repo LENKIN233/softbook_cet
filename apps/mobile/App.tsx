@@ -1955,6 +1955,11 @@ function AppShell({
       cardStateById={spaceCardStateById}
       currentLearningCard={currentLearningCard}
       deviceClass={deviceClass}
+      onReturnToLearning={() => {
+        startTransition(() => {
+          setActiveRoute('learning');
+        });
+      }}
       onToggleFavoriteTag={spaceHandlers.onToggleFavoriteTag}
       onToggleSleepState={spaceHandlers.onToggleSleepState}
       palette={palette}

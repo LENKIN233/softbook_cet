@@ -9,7 +9,11 @@ import {
   ViewStyle,
 } from 'react-native';
 
-import { INTERACTION_LABELS, LearningCard, LearningTrack } from '../learning/model';
+import {
+  INTERACTION_LABELS,
+  LearningCard,
+  LearningTrack,
+} from '../learning/model';
 import { resolveLibraryTone } from '../visual/tokens';
 
 type SpacePalette = {
@@ -65,35 +69,43 @@ export function SpaceSurface({
   cardStateById,
   currentLearningCard,
   deviceClass,
+  onReturnToLearning,
   onToggleFavoriteTag,
   onToggleSleepState,
   palette,
   spaceCards,
 }: {
-  cardStateById: Record<string, {isFavorited: boolean; isSleeping: boolean}>;
+  cardStateById: Record<string, { isFavorited: boolean; isSleeping: boolean }>;
   currentLearningCard: LearningCard | null;
   deviceClass: DeviceClass;
+  onReturnToLearning: () => void;
   onToggleFavoriteTag: (cardId: string) => void;
   onToggleSleepState: (cardId: string) => void;
   palette: SpacePalette;
   spaceCards: LearningCard[];
 }) {
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
-  const favoriteCards = seed.allCards.filter(card => cardStateById[card.cardId]?.isFavorited);
-  const sleepingCards = seed.allCards.filter(card => cardStateById[card.cardId]?.isSleeping);
+  const favoriteCards = seed.allCards.filter(
+    card => cardStateById[card.cardId]?.isFavorited,
+  );
+  const sleepingCards = seed.allCards.filter(
+    card => cardStateById[card.cardId]?.isSleeping,
+  );
   const [selectedLibraryName, setSelectedLibraryName] = useState(
     seed.libraries[0]?.libraryName ?? '',
   );
   const selectedLibrary =
-    seed.libraries.find(library => library.libraryName === selectedLibraryName) ??
-    seed.libraries[0];
+    seed.libraries.find(
+      library => library.libraryName === selectedLibraryName,
+    ) ?? seed.libraries[0];
 
   const [selectedGroupName, setSelectedGroupName] = useState(
     selectedLibrary?.groups[0]?.groupName ?? '',
   );
   const selectedGroup =
-    selectedLibrary?.groups.find(group => group.groupName === selectedGroupName) ??
-    selectedLibrary?.groups[0];
+    selectedLibrary?.groups.find(
+      group => group.groupName === selectedGroupName,
+    ) ?? selectedLibrary?.groups[0];
 
   const [selectedBoxRef, setSelectedBoxRef] = useState(
     selectedGroup?.boxes[0]?.boxRef ?? '',
@@ -102,7 +114,24 @@ export function SpaceSurface({
     selectedGroup?.boxes.find(box => box.boxRef === selectedBoxRef) ??
     selectedGroup?.boxes[0];
   const selectedTone = resolveLibraryTone(selectedLibrary?.libraryName);
-  const currentTone = resolveLibraryTone(currentLearningCard?.space_metadata.library);
+  const currentTone = resolveLibraryTone(
+    currentLearningCard?.space_metadata.library,
+  );
+  const selectedBoxCards = selectedBox?.cards ?? [];
+  const selectedFavoriteCards = selectedBoxCards.filter(
+    card => cardStateById[card.cardId]?.isFavorited,
+  );
+  const selectedSleepingCards = selectedBoxCards.filter(
+    card => cardStateById[card.cardId]?.isSleeping,
+  );
+  const currentBoxCard = selectedBoxCards.find(
+    card => card.cardId === currentLearningCard?.card_id,
+  );
+  const siblingBoxCount = Math.max((selectedGroup?.boxes.length ?? 1) - 1, 0);
+  const selectedPath =
+    selectedLibrary && selectedGroup && selectedBox
+      ? `${selectedLibrary.libraryName} / ${selectedGroup.groupName} / ${selectedBox.boxName}`
+      : '';
 
   if (!selectedLibrary || !selectedGroup || !selectedBox) {
     return (
@@ -115,7 +144,8 @@ export function SpaceSurface({
             空间地图还没有可展示的数据
           </Text>
           <Text style={[styles.summary, { color: palette.textMuted }]}>
-            需要至少一批带有 library / group / box 的卡片，才能展示空间知识地图。
+            需要至少一批带有 library / group / box
+            的卡片，才能展示空间知识地图。
           </Text>
         </SurfaceCard>
       </ScrollView>
@@ -129,147 +159,109 @@ export function SpaceSurface({
         deviceClass === 'tablet' ? styles.contentTablet : null,
       ]}
     >
-      <SurfaceCard palette={palette}>
-        <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
-          KNOWLEDGE MAP / SPACE
-        </Text>
-        <Text style={[styles.title, { color: palette.text }]}>
-          卡片的物理空间
-        </Text>
-        <Text style={[styles.summary, { color: palette.textMuted }]}>
-          这里按 library / group / box / card 展示卡片位置，让你能浏览知识地图、查看盒内卡片，并看见当前学习卡在哪里。
-        </Text>
-        <View style={styles.summaryRow}>
-          <SummaryPill label="library" palette={palette} value={seed.libraryCount} />
-          <SummaryPill label="group" palette={palette} value={seed.groupCount} />
-          <SummaryPill label="box" palette={palette} value={seed.boxCount} />
-          <SummaryPill label="card" palette={palette} value={seed.cardCount} />
-          <SummaryPill label="favorite" palette={palette} value={favoriteCards.length} />
-          <SummaryPill label="sleep" palette={palette} value={sleepingCards.length} />
-        </View>
-      </SurfaceCard>
-
-      <View style={styles.sectionGrid}>
+      <View style={styles.shelfDeskFrame} testID="space-shelf-desk">
         <SurfaceCard
           palette={palette}
-          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
-          testID="space-current-position"
+          style={styles.addressShelf}
+          testID="space-address-shelf"
         >
-          <Text style={[styles.cardTitle, { color: palette.text }]}>当前位置</Text>
-          {currentLearningCard ? (
-            <>
-               <Text style={[styles.locationText, { color: currentTone.accent }]}>
-                 当前学习卡位于 {currentLearningCard.space_metadata.library} /{' '}
-                 {currentLearningCard.space_metadata.group} /{' '}
-                 {currentLearningCard.space_metadata.box}
-              </Text>
-              <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                {currentLearningCard.card_id} · {currentLearningCard.front.prompt}
-              </Text>
-            </>
-          ) : (
-            <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-              登录后开始学习，就能在这里看到当前学习卡的物理位置。
+          <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
+            KNOWLEDGE MAP / SPACE
+          </Text>
+          <Text style={[styles.title, { color: palette.text }]}>
+            卡片的物理空间
+          </Text>
+          <Text style={[styles.summary, { color: palette.textMuted }]}>
+            知识地图浏览从地址架进入：先看 library / group / box
+            的归属，再把当前盒、盒内卡片、收藏标签和休眠区放在同一个物理桌面里。
+          </Text>
+          <View style={styles.summaryRow}>
+            <SummaryPill
+              label="library"
+              palette={palette}
+              value={seed.libraryCount}
+            />
+            <SummaryPill
+              label="group"
+              palette={palette}
+              value={seed.groupCount}
+            />
+            <SummaryPill label="box" palette={palette} value={seed.boxCount} />
+            <SummaryPill
+              label="card"
+              palette={palette}
+              value={seed.cardCount}
+            />
+            <SummaryPill
+              label="favorite"
+              palette={palette}
+              value={favoriteCards.length}
+            />
+            <SummaryPill
+              label="sleep"
+              palette={palette}
+              value={sleepingCards.length}
+            />
+          </View>
+          <View
+            style={[styles.addressPath, { borderColor: selectedTone.accent }]}
+          >
+            <Text
+              style={[styles.addressPathLabel, { color: selectedTone.accent }]}
+            >
+              当前地址
             </Text>
-          )}
-        </SurfaceCard>
-
-        <SurfaceCard
-          palette={palette}
-          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
-        >
-          <Text style={[styles.cardTitle, { color: palette.text }]}>空间规则</Text>
-          <RuleItem
-            palette={palette}
-            text="收藏是标签，不是物理盒子；它不会改写知识归属。"
-          />
-          <RuleItem
-            palette={palette}
-            text="休眠区会影响学习流，但这里先把规则显性化，不开放任意拖拽改盒。"
-          />
-          <RuleItem
-            palette={palette}
-            text="空间只保留低成本浏览与盒内查看，不做复杂管理器。"
-          />
-        </SurfaceCard>
-
-        <SurfaceCard palette={palette} testID="space-sleep-zone">
-          <Text style={[styles.cardTitle, { color: palette.text }]}>休眠区</Text>
-          <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-            进入休眠区的卡会立刻移出当前学习流，直到你把它移出来。
-          </Text>
-          {sleepingCards.length > 0 ? (
-            <View style={styles.statusList}>
-              {sleepingCards.map(card => (
-                <View
-                  key={card.cardId}
-                  style={[
-                    styles.statusRow,
-                    { backgroundColor: palette.panelStrong, borderColor: palette.border },
-                  ]}
-                >
-                  <View style={styles.statusCopy}>
-                    <Text style={[styles.statusTitle, { color: palette.text }]}>
-                      {card.prompt}
-                    </Text>
-                    <Text style={[styles.statusMeta, { color: palette.textMuted }]}>
-                      {card.cardId} · box_ref {card.boxRef}
-                    </Text>
-                  </View>
-                  <ActionChip
-                    label="移出休眠"
-                    onPress={() => onToggleSleepState(card.cardId)}
-                    palette={palette}
-                    testID={`space-wake-${card.cardId}`}
-                  />
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-              当前还没有卡进入休眠区。
+            <Text style={[styles.addressPathText, { color: palette.text }]}>
+              {selectedPath}
             </Text>
-          )}
+          </View>
         </SurfaceCard>
-      </View>
 
-      <View
-        style={[
-          styles.sectionGrid,
-          deviceClass === 'tablet' ? styles.sectionGridTablet : null,
-        ]}
-      >
-        <SurfaceCard
-          palette={palette}
-          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+        <View
+          style={[
+            styles.sectionGrid,
+            deviceClass === 'tablet' ? styles.sectionGridTablet : null,
+          ]}
         >
-          <Text style={[styles.cardTitle, { color: palette.text }]}>知识地图浏览</Text>
-          <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-            先选 library，再缩到 group，最后查看 box 内卡片。
-          </Text>
+          <SurfaceCard
+            palette={palette}
+            style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+          >
+            <Text style={[styles.cardTitle, { color: palette.text }]}>
+              地址架
+            </Text>
+            <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+              选中的地址只改变浏览焦点，不改写知识归属。
+            </Text>
 
-          <Text style={[styles.selectorTitle, { color: palette.textMuted }]}>
-            Library
-          </Text>
-          <View style={styles.selectorWrap}>
-            {seed.libraries.map((library, index) => {
-              const isActive = library.libraryName === selectedLibrary.libraryName;
+            <Text style={[styles.selectorTitle, { color: palette.textMuted }]}>
+              Library
+            </Text>
+            <View style={styles.selectorWrap}>
+              {seed.libraries.map((library, index) => {
+                const libraryTone = resolveLibraryTone(library.libraryName);
+                const isActive =
+                  library.libraryName === selectedLibrary.libraryName;
 
-              return (
-                <Pressable
-                  key={library.libraryName}
-                  onPress={() => {
-                    setSelectedLibraryName(library.libraryName);
-                    setSelectedGroupName(library.groups[0]?.groupName ?? '');
-                    setSelectedBoxRef(library.groups[0]?.boxes[0]?.boxRef ?? '');
-                  }}
-                  style={[
+                return (
+                  <Pressable
+                    key={library.libraryName}
+                    onPress={() => {
+                      setSelectedLibraryName(library.libraryName);
+                      setSelectedGroupName(library.groups[0]?.groupName ?? '');
+                      setSelectedBoxRef(
+                        library.groups[0]?.boxes[0]?.boxRef ?? '',
+                      );
+                    }}
+                    style={[
                       styles.selectorChip,
                       {
                         backgroundColor: isActive
-                          ? selectedTone.accentSoft
+                          ? libraryTone.accentSoft
                           : palette.panelStrong,
-                        borderColor: isActive ? selectedTone.accent : palette.border,
+                        borderColor: isActive
+                          ? libraryTone.accent
+                          : palette.border,
                       },
                     ]}
                     testID={`space-library-${index}`}
@@ -278,9 +270,7 @@ export function SpaceSurface({
                       <View
                         style={[
                           styles.selectorDot,
-                          {
-                            backgroundColor: resolveLibraryTone(library.libraryName).accent,
-                          },
+                          { backgroundColor: libraryTone.accent },
                         ]}
                       />
                       <Text
@@ -294,173 +284,202 @@ export function SpaceSurface({
                         {library.libraryName}
                       </Text>
                     </View>
-                    <Text style={[styles.selectorMeta, { color: palette.textMuted }]}>
+                    <Text
+                      style={[
+                        styles.selectorMeta,
+                        { color: palette.textMuted },
+                      ]}
+                    >
                       {library.groups.length} 个 group
                     </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+                  </Pressable>
+                );
+              })}
+            </View>
 
-          <Text style={[styles.selectorTitle, { color: palette.textMuted }]}>Group</Text>
-          <View style={styles.selectorWrap}>
-            {selectedLibrary.groups.map((group, index) => {
-              const isActive = group.groupName === selectedGroup.groupName;
+            <Text style={[styles.selectorTitle, { color: palette.textMuted }]}>
+              Group
+            </Text>
+            <View style={styles.selectorWrap}>
+              {selectedLibrary.groups.map((group, index) => {
+                const isActive = group.groupName === selectedGroup.groupName;
 
-              return (
-                <Pressable
-                  key={`${selectedLibrary.libraryName}-${group.groupName}`}
-                  onPress={() => {
-                    setSelectedGroupName(group.groupName);
-                    setSelectedBoxRef(group.boxes[0]?.boxRef ?? '');
-                  }}
-                  style={[
+                return (
+                  <Pressable
+                    key={`${selectedLibrary.libraryName}-${group.groupName}`}
+                    onPress={() => {
+                      setSelectedGroupName(group.groupName);
+                      setSelectedBoxRef(group.boxes[0]?.boxRef ?? '');
+                    }}
+                    style={[
                       styles.selectorChip,
                       {
                         backgroundColor: isActive
                           ? selectedTone.accentSoft
                           : palette.panelStrong,
-                        borderColor: isActive ? selectedTone.accent : palette.border,
+                        borderColor: isActive
+                          ? selectedTone.accent
+                          : palette.border,
                       },
                     ]}
                     testID={`space-group-${index}`}
-                >
-                  <Text
-                    style={[
-                      styles.selectorLabel,
-                      { color: isActive ? palette.accentStrong : palette.textMuted },
-                    ]}
                   >
-                    {group.groupName}
-                  </Text>
-                  <Text style={[styles.selectorMeta, { color: palette.textMuted }]}>
-                    {group.boxes.length} 个 box
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </SurfaceCard>
-
-        <SurfaceCard
-          palette={palette}
-          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
-        >
-          <Text style={[styles.cardTitle, { color: palette.text }]}>收藏标签</Text>
-          <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-            收藏是轻标签，不会改变卡片的物理位置。
-          </Text>
-          {favoriteCards.length > 0 ? (
-            <View style={styles.statusList}>
-              {favoriteCards.map(card => (
-                <View
-                  key={card.cardId}
-                  style={[
-                    styles.statusRow,
-                    { backgroundColor: palette.panelStrong, borderColor: palette.border },
-                  ]}
-                >
-                  <View style={styles.statusCopy}>
-                    <Text style={[styles.statusTitle, { color: palette.text }]}>
-                      {card.prompt}
+                    <Text
+                      style={[
+                        styles.selectorLabel,
+                        {
+                          color: isActive
+                            ? palette.accentStrong
+                            : palette.textMuted,
+                        },
+                      ]}
+                    >
+                      {group.groupName}
                     </Text>
-                    <Text style={[styles.statusMeta, { color: palette.textMuted }]}>
-                      {card.cardId} · {card.boxRef}
+                    <Text
+                      style={[
+                        styles.selectorMeta,
+                        { color: palette.textMuted },
+                      ]}
+                    >
+                      {group.boxes.length} 个 box
                     </Text>
-                  </View>
-                  <ActionChip
-                    label="取消收藏"
-                    onPress={() => onToggleFavoriteTag(card.cardId)}
-                    palette={palette}
-                    testID={`space-unfavorite-${card.cardId}`}
-                  />
-                </View>
-              ))}
+                  </Pressable>
+                );
+              })}
             </View>
-          ) : (
-            <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-              当前还没有收藏标签；你可以在学习卡或空间里直接加上它。
-            </Text>
-          )}
-        </SurfaceCard>
-      </View>
+          </SurfaceCard>
 
-      <View
-        style={[
-          styles.sectionGrid,
-          deviceClass === 'tablet' ? styles.sectionGridTablet : null,
-        ]}
-      >
-        <SurfaceCard
-          palette={palette}
-          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
-        >
-          <Text style={[styles.cardTitle, { color: palette.text }]}>盒列表</Text>
-          <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-            盒是知识点容器，不允许直接改写归属。
+          <SurfaceCard
+            palette={palette}
+            style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+          >
+            <Text style={[styles.cardTitle, { color: palette.text }]}>
+              空间规则
+            </Text>
+            <RuleItem
+              palette={palette}
+              text="收藏是标签，不是物理盒子；它不会改写知识归属。"
+            />
+            <RuleItem
+              palette={palette}
+              text="休眠区会影响学习流，但它附着在原盒下，不变成第二个盒子。"
+            />
+            <RuleItem
+              palette={palette}
+              text="空间只保留低成本浏览与盒内查看，不做复杂管理器。"
+            />
+          </SurfaceCard>
+        </View>
+
+        <SurfaceCard palette={palette} testID="space-current-box-tray">
+          <View style={styles.boxTrayHeader}>
+            <View style={styles.boxTrayCopy}>
+              <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
+                OPEN BOX TRAY
+              </Text>
+              <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
+                {selectedBox.boxName}
+              </Text>
+              <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+                box_ref {selectedBox.boxRef} · {selectedBox.cards.length}{' '}
+                张已接入卡片 · {siblingBoxCount} 个同组相邻盒
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.boxAccentRail,
+                { backgroundColor: selectedTone.accent },
+              ]}
+            />
+          </View>
+
+          <Text style={[styles.locationText, { color: selectedTone.accent }]}>
+            {currentLearningCard
+              ? `当前学习卡位于 ${currentLearningCard.space_metadata.library} / ${currentLearningCard.space_metadata.group} / ${currentLearningCard.space_metadata.box}`
+              : '登录后开始学习，就能在这里看到当前学习卡的物理位置。'}
           </Text>
-          <View style={styles.boxList}>
+          {currentLearningCard ? (
+            <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+              {currentLearningCard.card_id} · {currentLearningCard.front.prompt}
+            </Text>
+          ) : null}
+
+          <View style={styles.boxShelf} testID="space-current-position">
             {selectedGroup.boxes.map(box => {
               const isActive = box.boxRef === selectedBox.boxRef;
-              const isCurrent = currentLearningCard?.space_metadata.box_ref === box.boxRef;
+              const isCurrent =
+                currentLearningCard?.space_metadata.box_ref === box.boxRef;
 
               return (
                 <Pressable
                   key={box.boxRef}
                   onPress={() => setSelectedBoxRef(box.boxRef)}
                   style={[
-                    styles.boxRow,
+                    styles.boxShelfTile,
                     {
                       backgroundColor: isActive
                         ? selectedTone.accentSoft
                         : palette.panelStrong,
-                      borderColor: isActive ? selectedTone.accent : palette.border,
+                      borderColor: isActive
+                        ? selectedTone.accent
+                        : palette.border,
                     },
                   ]}
                   testID={`space-box-${box.boxRef}`}
                 >
-                  <View style={styles.boxCopy}>
-                    <Text style={[styles.boxName, { color: palette.text }]}>
-                      {box.boxName}
+                  <Text style={[styles.boxName, { color: palette.text }]}>
+                    {box.boxName}
+                  </Text>
+                  <Text style={[styles.boxMeta, { color: palette.textMuted }]}>
+                    {box.cards.length} 张卡 · {box.boxRef}
+                  </Text>
+                  {isCurrent ? (
+                    <Text
+                      style={[styles.currentTag, { color: currentTone.accent }]}
+                    >
+                      当前卡在此
                     </Text>
-                    <Text style={[styles.boxMeta, { color: palette.textMuted }]}>
-                      box_ref {box.boxRef} · {box.cards.length} 张已接入卡片
-                    </Text>
-                  </View>
-                   {isCurrent ? (
-                     <Text style={[styles.currentTag, { color: currentTone.accent }]}>
-                       当前卡在此
-                     </Text>
-                   ) : null}
+                  ) : null}
                 </Pressable>
               );
             })}
           </View>
         </SurfaceCard>
 
-        <SurfaceCard
-          palette={palette}
-          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
-          testID="space-box-detail"
-        >
-          <Text style={[styles.cardTitle, { color: palette.text }]}>盒内卡片</Text>
-          <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-            {selectedLibrary.libraryName} / {selectedGroup.groupName} / {selectedBox.boxName}
-          </Text>
-          <View style={styles.cardList}>
-            {selectedBox.cards.map(card => {
+        <SurfaceCard palette={palette} testID="space-box-detail">
+          <View style={styles.containedHeader}>
+            <View style={styles.statusCopy}>
+              <Text style={[styles.cardTitle, { color: palette.text }]}>
+                盒内卡片
+              </Text>
+              <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+                {selectedPath}
+              </Text>
+            </View>
+            <Text style={[styles.stateTag, { color: palette.accentStrong }]}>
+              收藏标签 {selectedFavoriteCards.length} 张
+            </Text>
+          </View>
+
+          <View style={styles.cardStrip} testID="space-contained-card-strip">
+            {selectedBoxCards.map(card => {
               const isCurrent = currentLearningCard?.card_id === card.cardId;
-              const isFavorited = cardStateById[card.cardId]?.isFavorited ?? false;
-              const isSleeping = cardStateById[card.cardId]?.isSleeping ?? false;
+              const isFavorited =
+                cardStateById[card.cardId]?.isFavorited ?? false;
+              const isSleeping =
+                cardStateById[card.cardId]?.isSleeping ?? false;
 
               return (
                 <View
                   key={card.cardId}
                   style={[
-                    styles.cardRow,
+                    styles.cardTile,
                     {
                       backgroundColor: palette.panelStrong,
-                      borderColor: isCurrent ? palette.accent : palette.border,
+                      borderColor: isCurrent
+                        ? selectedTone.accent
+                        : palette.border,
                     },
                   ]}
                 >
@@ -472,20 +491,32 @@ export function SpaceSurface({
                   </Text>
                   <View style={styles.badgeRow}>
                     {isFavorited ? (
-                      <Text style={[styles.stateTag, { color: palette.accentStrong }]}>
+                      <Text
+                        style={[
+                          styles.stateTag,
+                          { color: palette.accentStrong },
+                        ]}
+                      >
                         已收藏
                       </Text>
                     ) : null}
                     {isSleeping ? (
-                       <Text style={[styles.stateTag, { color: palette.warning }]}>
-                         休眠中
-                       </Text>
-                     ) : null}
-                     {isCurrent ? (
-                       <Text style={[styles.currentTag, { color: currentTone.accent }]}>
-                         当前学习卡
-                       </Text>
-                     ) : null}
+                      <Text
+                        style={[styles.stateTag, { color: palette.warning }]}
+                      >
+                        休眠中
+                      </Text>
+                    ) : null}
+                    {isCurrent ? (
+                      <Text
+                        style={[
+                          styles.currentTag,
+                          { color: currentTone.accent },
+                        ]}
+                      >
+                        当前学习卡
+                      </Text>
+                    ) : null}
                   </View>
                   <View style={styles.actionWrap}>
                     <ActionChip
@@ -504,6 +535,95 @@ export function SpaceSurface({
                 </View>
               );
             })}
+          </View>
+        </SurfaceCard>
+
+        <SurfaceCard palette={palette} testID="space-sleep-zone">
+          <View style={styles.containedHeader}>
+            <View style={styles.statusCopy}>
+              <Text style={[styles.cardTitle, { color: palette.text }]}>
+                休眠区
+              </Text>
+              <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+                休眠凹槽属于当前盒；卡片进入后会立刻移出学习流，移出后回到原盒。
+              </Text>
+            </View>
+            <Text style={[styles.stateTag, { color: palette.warning }]}>
+              {selectedSleepingCards.length} 张
+            </Text>
+          </View>
+          {selectedSleepingCards.length > 0 ? (
+            <View style={styles.sleepAlcove} testID="space-sleep-alcove">
+              {selectedSleepingCards.map(card => (
+                <View
+                  key={card.cardId}
+                  style={[
+                    styles.sleepingCard,
+                    {
+                      backgroundColor: palette.panelStrong,
+                      borderColor: palette.border,
+                    },
+                  ]}
+                >
+                  <View style={styles.statusCopy}>
+                    <Text style={[styles.statusTitle, { color: palette.text }]}>
+                      {card.prompt}
+                    </Text>
+                    <Text
+                      style={[styles.statusMeta, { color: palette.textMuted }]}
+                    >
+                      {card.cardId} · box_ref {card.boxRef}
+                    </Text>
+                  </View>
+                  <ActionChip
+                    label="移出休眠"
+                    onPress={() => onToggleSleepState(card.cardId)}
+                    palette={palette}
+                    testID={`space-wake-${card.cardId}`}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.sleepEmptySlot,
+                {
+                  backgroundColor: palette.panelStrong,
+                  borderColor: palette.border,
+                },
+              ]}
+            >
+              <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+                当前盒还没有卡进入休眠区。
+              </Text>
+            </View>
+          )}
+        </SurfaceCard>
+
+        <SurfaceCard palette={palette} testID="space-continuity-strip">
+          <View style={styles.returnStrip}>
+            <View style={styles.statusCopy}>
+              <Text style={[styles.cardTitle, { color: palette.text }]}>
+                回到学习
+              </Text>
+              <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+                返回单卡流时保留当前学习卡和它所在的空间地址，不跳到模块选择。
+              </Text>
+              {currentBoxCard ? (
+                <Text
+                  style={[styles.locationText, { color: currentTone.accent }]}
+                >
+                  下一步继续：{currentBoxCard.prompt}
+                </Text>
+              ) : null}
+            </View>
+            <ActionChip
+              label="回到学习"
+              onPress={onReturnToLearning}
+              palette={palette}
+              testID="space-return-learning"
+            />
           </View>
         </SurfaceCard>
       </View>
@@ -554,8 +674,12 @@ function SummaryPill({
         { backgroundColor: palette.panelStrong, borderColor: palette.border },
       ]}
     >
-      <Text style={[styles.summaryValue, { color: palette.text }]}>{value}</Text>
-      <Text style={[styles.summaryLabel, { color: palette.textMuted }]}>{label}</Text>
+      <Text style={[styles.summaryValue, { color: palette.text }]}>
+        {value}
+      </Text>
+      <Text style={[styles.summaryLabel, { color: palette.textMuted }]}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -585,13 +709,7 @@ function SurfaceCard({
   );
 }
 
-function RuleItem({
-  palette,
-  text,
-}: {
-  palette: SpacePalette;
-  text: string;
-}) {
+function RuleItem({ palette, text }: { palette: SpacePalette; text: string }) {
   return (
     <View style={styles.ruleRow}>
       <View
@@ -600,7 +718,9 @@ function RuleItem({
           { backgroundColor: palette.accent, borderColor: palette.border },
         ]}
       />
-      <Text style={[styles.ruleText, { color: palette.textMuted }]}>{text}</Text>
+      <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+        {text}
+      </Text>
     </View>
   );
 }
@@ -698,12 +818,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 24,
   },
+  shelfDeskFrame: {
+    gap: 16,
+  },
   surfaceCard: {
     borderRadius: 24,
     borderWidth: 1,
     gap: 12,
     paddingHorizontal: 18,
     paddingVertical: 18,
+  },
+  addressShelf: {
+    overflow: 'hidden',
+  },
+  addressPath: {
+    borderLeftWidth: 4,
+    borderRadius: 16,
+    gap: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  addressPathLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  addressPathText: {
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 22,
   },
   eyebrow: {
     fontSize: 12,
@@ -752,18 +895,6 @@ const styles = StyleSheet.create({
   surfaceCardHalf: {
     width: '48%',
   },
-  statusList: {
-    gap: 10,
-  },
-  statusRow: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-  },
   statusCopy: {
     flex: 1,
     gap: 4,
@@ -785,6 +916,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     lineHeight: 21,
+  },
+  boxTrayHeader: {
+    alignItems: 'stretch',
+    flexDirection: 'row',
+    gap: 14,
+  },
+  boxTrayCopy: {
+    flex: 1,
+    gap: 6,
+  },
+  boxTrayTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    lineHeight: 32,
+  },
+  boxAccentRail: {
+    borderRadius: 999,
+    width: 6,
   },
   ruleRow: {
     alignItems: 'flex-start',
@@ -840,21 +989,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
-  boxList: {
+  boxShelf: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
-  boxRow: {
-    alignItems: 'center',
+  boxShelfTile: {
     borderRadius: 18,
     borderWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
+    gap: 5,
+    minWidth: 132,
     paddingHorizontal: 14,
     paddingVertical: 14,
-  },
-  boxCopy: {
-    flex: 1,
-    gap: 4,
   },
   boxName: {
     fontSize: 15,
@@ -892,15 +1038,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  cardList: {
+  containedHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  cardStrip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
-  cardRow: {
-    borderRadius: 18,
+  cardTile: {
+    borderRadius: 20,
     borderWidth: 1,
-    gap: 6,
+    gap: 8,
+    minWidth: 210,
     paddingHorizontal: 14,
     paddingVertical: 14,
+    width: '48%',
   },
   cardPrompt: {
     fontSize: 15,
@@ -910,5 +1066,29 @@ const styles = StyleSheet.create({
   cardMeta: {
     fontSize: 12,
     lineHeight: 18,
+  },
+  sleepAlcove: {
+    gap: 10,
+  },
+  sleepingCard: {
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  sleepEmptySlot: {
+    borderRadius: 18,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+  },
+  returnStrip: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 14,
   },
 });
