@@ -86,7 +86,7 @@
 - 只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。
 - 如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。
 - 涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / decision，再做实现；同一 PR 内新增的 brief / decision 只能满足 design-only PR。
-- Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 和 Space visual proof / refinement；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。
+- Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 和 Space visual proof / refinement / shelf-desk baseline；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。
 
 ## PR 合同与 CI 门槛
 

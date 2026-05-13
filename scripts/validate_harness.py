@@ -1084,7 +1084,7 @@ for snippet in [
     "只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。",
     "如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。",
     "涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / decision，再做实现；同一 PR 内新增的 brief / decision 只能满足 design-only PR。",
-    "Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 和 Space visual proof / refinement；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
+    "Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 和 Space visual proof / refinement / shelf-desk baseline；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
     "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`、`Agent review`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。",
     "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。",
     "merge 的默认前置条件是：agent review 无 blocking finding，PR body 中 `Agent review` 已记录为 passed，且 required gates 全绿。",
@@ -1111,7 +1111,7 @@ for snippet in [
     "- `docs/design/interaction-motion/` / `docs/design/physical-space/` / `docs/design/mocks/` / `docs/design/storyboards/`: 核心交互、动效、空间模型、视觉稿和 storyboard artifact 入口",
     "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review 记录 -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",
     "任何用户可见 UI 改动都必须先引用已接受设计稿 / reference / design brief / decision，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口；同一 PR 内新增的 brief / decision 只能满足 design-only PR。",
-    "Learning / core interaction UI 改动还必须引用 interaction-motion artifact 或 storyboard；Space UI 改动还必须引用 physical-space artifact 和 Space visual proof / refinement；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
+    "Learning / core interaction UI 改动还必须引用 interaction-motion artifact 或 storyboard；Space UI 改动还必须引用 physical-space artifact 和 Space visual proof / refinement / shelf-desk baseline；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
 ]:
     check_contains("README delivery mirror", readme_text, snippet)
 
@@ -1451,6 +1451,7 @@ else:
         "agent-review` gate",
         "- Interaction/motion artifact: N/A",
         "- Physical space artifact: N/A",
+        "docs/design/mocks/space-surface-shelf-desk-v1.md",
         "用户可见 UI 改动必须回答下方 `Universal Q1-Q4` 与适用的 `Conditional Q5-Q6`，不能保留 `N/A`。",
         "`Universal Q1-Q4` 不能只写 `answered`",
     ]:
@@ -2328,6 +2329,58 @@ if space_visual_refinement_case.returncode != 0:
         "validate_pr_design_gate.py should allow Space UI implementation that names the refined Space visual artifact: "
         + space_visual_refinement_case.stdout
         + space_visual_refinement_case.stderr
+    )
+
+space_shelf_desk_case = run_design_gate_case(
+    """
+## 设计稿来源（用户可见 UI 如适用）
+
+- Design artifact: docs/design/mocks/space-surface-shelf-desk-v1.md
+- Interaction/motion artifact: N/A
+- Physical space artifact: docs/design/physical-space/space-model-v1.md
+- Implementation mapping: docs/design/mapping/learning-space-implementation-map-v1.md
+- Unimplemented design gaps: Loading, empty, remote-error, permission, and paywall Space states remain out of scope.
+
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current box tray and first-read path address shelf -> tray -> cards; Q3 silhouette matches Space physical hierarchy; Q4 forbidden_design_patterns none.
+- Conditional Q5-Q6: Q5 phone viewport containment is covered by shelf-desk proof; Q6 learning flip stats module rules unchanged.
+""",
+    ["apps/mobile/src/space/SpaceSurface.tsx"],
+)
+if space_shelf_desk_case.returncode != 0:
+    errors.append(
+        "validate_pr_design_gate.py should allow Space UI implementation that names the shelf-desk Space visual artifact: "
+        + space_shelf_desk_case.stdout
+        + space_shelf_desk_case.stderr
+    )
+
+space_fake_shelf_desk_case = run_design_gate_case(
+    """
+## 设计稿来源（用户可见 UI 如适用）
+
+- Design artifact: docs/design/mocks/space-surface-shelf-desk-v1-fake.md
+- Interaction/motion artifact: N/A
+- Physical space artifact: docs/design/physical-space/space-model-v1.md
+- Implementation mapping: docs/design/mapping/learning-space-implementation-map-v1.md
+- Unimplemented design gaps: No known gaps.
+
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
+- Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+""",
+    ["apps/mobile/src/space/SpaceSurface.tsx"],
+)
+if space_fake_shelf_desk_case.returncode == 0:
+    errors.append(
+        "validate_pr_design_gate.py must reject prefix-spoofed Space visual proof artifact names"
+    )
+elif "Space visual proof" not in (
+    space_fake_shelf_desk_case.stdout + space_fake_shelf_desk_case.stderr
+):
+    errors.append(
+        "validate_pr_design_gate.py prefix-spoofed Space visual proof rejection must explain the required artifact"
     )
 
 # ─────────────────────────────────────────────────────────────
