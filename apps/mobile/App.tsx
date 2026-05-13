@@ -1847,6 +1847,47 @@ function AppShell({
     },
   };
 
+  const accessibleSpaceCards = learningSession
+    ? learningSession.catalogCards.slice(
+        0,
+        resolveAccessibleLearningCardCount(
+          learningSession.catalogCards.length,
+          membershipState,
+        ),
+      )
+    : [];
+  const spaceSurfaceCards = membershipAccess.completePhysicalSpace
+    ? learningSession?.catalogCards ?? []
+    : accessibleSpaceCards;
+  const spaceGateRail =
+    route.key === 'space' && !membershipAccess.completePhysicalSpace
+      ? {
+          actionSlot: (
+            <>
+              {membershipError ? (
+                <Text style={[styles.authError, { color: palette.danger }]}>
+                  {membershipError}
+                </Text>
+              ) : null}
+              <MembershipActionGroup
+                handlers={membershipHandlers}
+                membershipPendingAction={membershipPendingAction}
+                membershipRepositoryMode={runtimeMembershipRepositoryMode}
+                membershipState={membershipState}
+                palette={palette}
+              />
+            </>
+          ),
+          detail:
+            '当前保留已解锁卡片的空间预览和地址位置；完整盒内深度、收藏/休眠调整与完整空间操作需要试用或会员。',
+          label:
+            membershipPendingAction === 'start_trial'
+              ? '正在开通'
+              : '完整空间受限',
+          title: '完整物理空间需要试用或会员',
+        }
+      : null;
+
   const content = shouldShowAuthGate ? (
     <AuthGate
       authRepositoryMode={runtimeAuthRepositoryMode}
@@ -1876,17 +1917,6 @@ function AppShell({
       reviewResults={reviewCompletedResults}
       route={route}
       sleepingCount={sleepingCount}
-    />
-  ) : route.key === 'space' && !membershipAccess.completePhysicalSpace ? (
-    <MembershipPaywallSurface
-      deviceClass={deviceClass}
-      gate="space"
-      handlers={membershipHandlers}
-      membershipError={membershipError}
-      membershipPendingAction={membershipPendingAction}
-      membershipRepositoryMode={runtimeMembershipRepositoryMode}
-      membershipState={membershipState}
-      palette={palette}
     />
   ) : route.key === 'learning' && learningBootstrapStatus !== 'ready' ? (
     <LearningBootstrapSurface
@@ -1963,7 +1993,8 @@ function AppShell({
       onToggleFavoriteTag={spaceHandlers.onToggleFavoriteTag}
       onToggleSleepState={spaceHandlers.onToggleSleepState}
       palette={palette}
-      spaceCards={learningSession?.catalogCards ?? []}
+      spaceCards={spaceSurfaceCards}
+      spaceGateRail={spaceGateRail}
     />
   ) : route.key === 'statistics' ? (
     <StatisticsSurface
@@ -2917,90 +2948,6 @@ function MembershipHostCard({
         palette={palette}
       />
     </View>
-  );
-}
-
-function MembershipPaywallSurface({
-  deviceClass,
-  gate,
-  handlers,
-  membershipError,
-  membershipPendingAction,
-  membershipRepositoryMode,
-  membershipState,
-  palette,
-}: {
-  deviceClass: DeviceClass;
-  gate: MembershipGate;
-  handlers: MembershipHandlers;
-  membershipError: string | null;
-  membershipPendingAction: 'dismiss_recovery' | 'purchase' | 'start_trial' | null;
-  membershipRepositoryMode: 'local' | 'remote';
-  membershipState: MembershipState;
-  palette: Palette;
-}) {
-  return (
-    <ScrollView contentContainerStyle={styles.canvasContent}>
-      <View
-        style={[
-          styles.hero,
-          { backgroundColor: palette.panel, borderColor: palette.border },
-        ]}
-        testID={`membership-paywall-${gate}`}
-      >
-        <Text style={[styles.heroEyebrow, { color: palette.warning }]}>
-          MEMBERSHIP / PAYWALL
-        </Text>
-        <Text style={[styles.heroTitle, { color: palette.text }]}>
-          {gate === 'space'
-            ? '完整物理空间需要试用或会员'
-            : gate === 'review'
-            ? '完整回看算法需要试用或会员'
-            : '完整卡库需要试用或会员'}
-        </Text>
-        <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
-          {gate === 'space'
-            ? '免费态保留基础学习；完整物理空间属于试用或会员体验。'
-            : gate === 'review'
-            ? '免费态保留基础学习；完整回看和更聪明的引导属于试用或会员体验。'
-            : '免费态可以正常学习一部分卡片；完整卡库需要试用或会员。'}
-        </Text>
-      </View>
-      <View
-        style={[
-          styles.infoCard,
-          { backgroundColor: palette.panelStrong, borderColor: palette.border },
-        ]}
-      >
-        <Text style={[styles.infoTitle, { color: palette.text }]}>此刻会放开什么</Text>
-        <View
-          style={[
-            styles.membershipAccessGrid,
-            deviceClass === 'tablet' ? styles.membershipAccessGridTablet : null,
-          ]}
-        >
-          <SummaryMetricCard label="基础学习" value="保留" palette={palette} />
-          <SummaryMetricCard
-            label={gate === 'space' ? '完整空间' : gate === 'review' ? '完整算法' : '完整卡库'}
-            value="试用/会员"
-            palette={palette}
-            tone="warning"
-          />
-          <SummaryMetricCard label="购买权" value="web / app 同权" palette={palette} />
-          <SummaryMetricCard label="恢复购买" value="体验结束后提醒" palette={palette} />
-        </View>
-      </View>
-      <MembershipHostCard
-        deviceClass={deviceClass}
-        focusGate={gate}
-        handlers={handlers}
-        membershipError={membershipError}
-        membershipPendingAction={membershipPendingAction}
-        membershipRepositoryMode={membershipRepositoryMode}
-        membershipState={membershipState}
-        palette={palette}
-      />
-    </ScrollView>
   );
 }
 

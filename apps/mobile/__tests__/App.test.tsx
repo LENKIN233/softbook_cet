@@ -1504,6 +1504,11 @@ test('can unlock gated space after remote purchase', async () => {
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('完整物理空间需要试用或会员');
+  expect(output).toContain('卡片的物理空间');
+  expect(root.findAllByProps({ testID: 'space-gate-rail' }).length).toBeGreaterThan(
+    0,
+  );
+  expect(root.findAllByProps({ testID: 'membership-paywall-space' })).toHaveLength(0);
 
   await ReactTestRenderer.act(async () => {
     root.findByProps({testID: 'membership-purchase-button'}).props.onPress();
@@ -1513,6 +1518,7 @@ test('can unlock gated space after remote purchase', async () => {
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('卡片的物理空间');
   expect(output).toContain('知识地图浏览');
+  expect(root.findAllByProps({ testID: 'space-gate-rail' })).toHaveLength(0);
 
   const purchaseRequest = fetchCalls.find(
     call => call.input === 'https://api.softbook.example/v1/membership/purchase',
