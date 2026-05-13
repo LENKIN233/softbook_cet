@@ -180,6 +180,7 @@ export function SpaceSurface({
       ? currentTone
       : resolveLibraryTone(emptySpacePath.libraryName);
     const emptySelectedPath = `${emptySpacePath.libraryName} / ${emptySpacePath.groupName} / ${emptySpacePath.boxName}`;
+    const isSpaceLoading = spaceStatusRail?.state === 'loading';
 
     return (
       <ScrollView
@@ -201,7 +202,9 @@ export function SpaceSurface({
               卡片的物理空间
             </Text>
             <Text style={[styles.summary, { color: palette.textMuted }]}>
-              当前盒暂无可展示卡片；空间仍保留地址架、盒托盘和回到学习的上下文。
+              {isSpaceLoading
+                ? '正在恢复卡片源；空间先保留地址架、盒托盘和盒内卡片占位。'
+                : '当前盒暂无可展示卡片；空间仍保留地址架、盒托盘和回到学习的上下文。'}
             </Text>
             <View style={styles.summaryRow}>
               <SummaryPill
@@ -241,13 +244,15 @@ export function SpaceSurface({
             <View style={styles.boxTrayHeader}>
               <View style={styles.boxTrayCopy}>
                 <Text style={[styles.eyebrow, { color: emptyTone.accent }]}>
-                  EMPTY BOX TRAY
+                  {isSpaceLoading ? 'LOADING BOX TRAY' : 'EMPTY BOX TRAY'}
                 </Text>
                 <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
                   {emptySpacePath.boxName}
                 </Text>
                 <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                  box_ref {emptySpacePath.boxRef} · 0 张可展示卡片 · 保留空盒轮廓
+                  box_ref {emptySpacePath.boxRef} ·{' '}
+                  {isSpaceLoading ? '卡片占位恢复中' : '0 张可展示卡片'} ·
+                  保留盒托盘轮廓
                 </Text>
               </View>
               <View
@@ -279,10 +284,11 @@ export function SpaceSurface({
                   {emptySpacePath.boxName}
                 </Text>
                 <Text style={[styles.boxMeta, { color: palette.textMuted }]}>
-                  暂无可展示卡片 · {emptySpacePath.boxRef}
+                  {isSpaceLoading ? '正在恢复盒内卡片' : '暂无可展示卡片'} ·{' '}
+                  {emptySpacePath.boxRef}
                 </Text>
                 <Text style={[styles.currentTag, { color: emptyTone.accent }]}>
-                  空盒轮廓保留
+                  {isSpaceLoading ? '加载占位' : '空盒轮廓保留'}
                 </Text>
               </View>
             </View>
@@ -311,27 +317,53 @@ export function SpaceSurface({
                 </Text>
               </View>
               <Text style={[styles.stateTag, { color: palette.warning }]}>
-                0 张可展示
+                {isSpaceLoading ? '占位恢复中' : '0 张可展示'}
               </Text>
             </View>
             <View style={styles.cardStrip} testID="space-contained-card-strip">
-              <View
-                style={[
-                  styles.cardTile,
-                  {
-                    backgroundColor: palette.panelStrong,
-                    borderColor: palette.border,
-                  },
-                ]}
-                testID="space-empty-card-slot"
-              >
-                <Text style={[styles.cardPrompt, { color: palette.text }]}>
-                  当前盒暂无可展示卡片
-                </Text>
-                <Text style={[styles.cardMeta, { color: palette.textMuted }]}>
-                  等待卡片源、筛选条件或会员深度恢复；不跳转到模块选择。
-                </Text>
-              </View>
+              {isSpaceLoading ? (
+                [1, 2, 3].map(index => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.cardTile,
+                      styles.loadingCardSkeleton,
+                      {
+                        backgroundColor: palette.panelStrong,
+                        borderColor: palette.border,
+                      },
+                    ]}
+                    testID="space-loading-card-skeleton"
+                  >
+                    <Text style={[styles.cardPrompt, { color: palette.text }]}>
+                      卡片占位 {index}
+                    </Text>
+                    <Text
+                      style={[styles.cardMeta, { color: palette.textMuted }]}
+                    >
+                      正在恢复盒内对象；加载完成后回到真实卡片。
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <View
+                  style={[
+                    styles.cardTile,
+                    {
+                      backgroundColor: palette.panelStrong,
+                      borderColor: palette.border,
+                    },
+                  ]}
+                  testID="space-empty-card-slot"
+                >
+                  <Text style={[styles.cardPrompt, { color: palette.text }]}>
+                    当前盒暂无可展示卡片
+                  </Text>
+                  <Text style={[styles.cardMeta, { color: palette.textMuted }]}>
+                    等待卡片源、筛选条件或会员深度恢复；不跳转到模块选择。
+                  </Text>
+                </View>
+              )}
             </View>
           </SurfaceCard>
 
@@ -1441,6 +1473,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
     width: '48%',
+  },
+  loadingCardSkeleton: {
+    borderStyle: 'dashed',
   },
   cardPrompt: {
     fontSize: 15,
