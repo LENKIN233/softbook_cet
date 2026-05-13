@@ -65,6 +65,13 @@ type SpaceSeed = {
   libraryCount: number;
 };
 
+export type SpaceGateRail = {
+  actionSlot: React.ReactNode;
+  detail: string;
+  label: string;
+  title: string;
+};
+
 export function SpaceSurface({
   cardStateById,
   currentLearningCard,
@@ -73,6 +80,7 @@ export function SpaceSurface({
   onToggleFavoriteTag,
   onToggleSleepState,
   palette,
+  spaceGateRail,
   spaceCards,
 }: {
   cardStateById: Record<string, { isFavorited: boolean; isSleeping: boolean }>;
@@ -82,6 +90,7 @@ export function SpaceSurface({
   onToggleFavoriteTag: (cardId: string) => void;
   onToggleSleepState: (cardId: string) => void;
   palette: SpacePalette;
+  spaceGateRail?: SpaceGateRail | null;
   spaceCards: LearningCard[];
 }) {
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
@@ -132,6 +141,7 @@ export function SpaceSurface({
     selectedLibrary && selectedGroup && selectedBox
       ? `${selectedLibrary.libraryName} / ${selectedGroup.groupName} / ${selectedBox.boxName}`
       : '';
+  const isGated = spaceGateRail !== null && spaceGateRail !== undefined;
 
   if (!selectedLibrary || !selectedGroup || !selectedBox) {
     return (
@@ -447,6 +457,32 @@ export function SpaceSurface({
           </View>
         </SurfaceCard>
 
+        {spaceGateRail ? (
+          <SurfaceCard
+            palette={palette}
+            style={styles.stateRail}
+            testID="space-gate-rail"
+          >
+            <View style={styles.gateRailHeader}>
+              <View style={styles.statusCopy}>
+                <Text style={[styles.eyebrow, { color: palette.warning }]}>
+                  SPACE GATE
+                </Text>
+                <Text style={[styles.cardTitle, { color: palette.text }]}>
+                  {spaceGateRail.title}
+                </Text>
+                <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+                  {spaceGateRail.detail}
+                </Text>
+              </View>
+              <Text style={[styles.stateTag, { color: palette.warning }]}>
+                {spaceGateRail.label}
+              </Text>
+            </View>
+            {spaceGateRail.actionSlot}
+          </SurfaceCard>
+        ) : null}
+
         <SurfaceCard palette={palette} testID="space-box-detail">
           <View style={styles.containedHeader}>
             <View style={styles.statusCopy}>
@@ -458,7 +494,9 @@ export function SpaceSurface({
               </Text>
             </View>
             <Text style={[styles.stateTag, { color: palette.accentStrong }]}>
-              收藏标签 {selectedFavoriteCards.length} 张
+              {isGated
+                ? '完整空间受限'
+                : `收藏标签 ${selectedFavoriteCards.length} 张`}
             </Text>
           </View>
 
@@ -519,18 +557,31 @@ export function SpaceSurface({
                     ) : null}
                   </View>
                   <View style={styles.actionWrap}>
-                    <ActionChip
-                      label={isFavorited ? '取消收藏' : '收藏'}
-                      onPress={() => onToggleFavoriteTag(card.cardId)}
-                      palette={palette}
-                      testID={`space-favorite-${card.cardId}`}
-                    />
-                    <ActionChip
-                      label={isSleeping ? '移出休眠' : '放入休眠'}
-                      onPress={() => onToggleSleepState(card.cardId)}
-                      palette={palette}
-                      testID={`space-sleep-${card.cardId}`}
-                    />
+                    {isGated ? (
+                      <Text
+                        style={[
+                          styles.lockedActionText,
+                          { color: palette.textMuted },
+                        ]}
+                      >
+                        试用或会员后可调整收藏和休眠状态
+                      </Text>
+                    ) : (
+                      <>
+                        <ActionChip
+                          label={isFavorited ? '取消收藏' : '收藏'}
+                          onPress={() => onToggleFavoriteTag(card.cardId)}
+                          palette={palette}
+                          testID={`space-favorite-${card.cardId}`}
+                        />
+                        <ActionChip
+                          label={isSleeping ? '移出休眠' : '放入休眠'}
+                          onPress={() => onToggleSleepState(card.cardId)}
+                          palette={palette}
+                          testID={`space-sleep-${card.cardId}`}
+                        />
+                      </>
+                    )}
                   </View>
                 </View>
               );
@@ -575,12 +626,23 @@ export function SpaceSurface({
                       {card.cardId} · box_ref {card.boxRef}
                     </Text>
                   </View>
-                  <ActionChip
-                    label="移出休眠"
-                    onPress={() => onToggleSleepState(card.cardId)}
-                    palette={palette}
-                    testID={`space-wake-${card.cardId}`}
-                  />
+                  {isGated ? (
+                    <Text
+                      style={[
+                        styles.lockedActionText,
+                        { color: palette.textMuted },
+                      ]}
+                    >
+                      完整空间恢复后可移出休眠
+                    </Text>
+                  ) : (
+                    <ActionChip
+                      label="移出休眠"
+                      onPress={() => onToggleSleepState(card.cardId)}
+                      palette={palette}
+                      testID={`space-wake-${card.cardId}`}
+                    />
+                  )}
                 </View>
               ))}
             </View>
@@ -1038,6 +1100,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  stateRail: {
+    borderStyle: 'solid',
+  },
+  gateRailHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
   containedHeader: {
     alignItems: 'flex-start',
     flexDirection: 'row',
@@ -1065,6 +1136,12 @@ const styles = StyleSheet.create({
   },
   cardMeta: {
     fontSize: 12,
+    lineHeight: 18,
+  },
+  lockedActionText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
     lineHeight: 18,
   },
   sleepAlcove: {
