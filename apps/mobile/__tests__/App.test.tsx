@@ -2237,10 +2237,17 @@ test('can browse the seeded knowledge map after login', async () => {
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('卡片的物理空间');
+  expect(root.findAllByProps({ testID: 'space-shelf-desk' }).length).toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-address-shelf' }).length).toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-current-box-tray' }).length).toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-contained-card-strip' }).length).toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-continuity-strip' }).length).toBeGreaterThan(0);
   expect(output).toContain('当前学习卡位于 ');
   expect(output).toContain('逻辑关系');
   expect(output).toContain('转折关系');
   expect(output).toContain('词汇');
+  expect(output).toContain('OPEN BOX TRAY');
+  expect(output).toContain('回到学习');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'space-library-2' }).props.onPress();
@@ -2258,6 +2265,15 @@ test('can browse the seeded knowledge map after login', async () => {
   expect(output).toContain('阅读高频词');
   expect(output).toContain('The article offers a ____ explanation');
   expect(output).toContain('052102');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-return-learning' }).props.onPress();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(root.findAllByProps({ testID: 'learning-current-card' }).length).toBeGreaterThan(0);
+  expect(output).toContain('短对话里听到 however');
+  expect(output).not.toContain('卡片的物理空间');
 });
 
 test('can move a card into sleep zone and remove it from learning flow', async () => {
@@ -2277,6 +2293,7 @@ test('can move a card into sleep zone and remove it from learning flow', async (
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('休眠区');
+  expect(root.findAllByProps({ testID: 'space-sleep-alcove' }).length).toBeGreaterThan(0);
   expect(output).toContain('移出休眠');
   expect(output).toContain('002001');
 
