@@ -8,6 +8,8 @@ import re
 import sys
 from pathlib import Path
 
+sys.dont_write_bytecode = True
+
 from validate_pr_design_gate import scan_visual_output_files
 
 

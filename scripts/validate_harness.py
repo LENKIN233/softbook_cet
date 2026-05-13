@@ -5,8 +5,11 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
+sys.dont_write_bytecode = True
+os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = ROOT / "spec"
@@ -1122,6 +1125,10 @@ for snippet in [
 ]:
     check_contains("README delivery mirror", readme_text, snippet)
 
+gitignore_text = (ROOT / ".gitignore").read_text(encoding="utf-8")
+for snippet in ["__pycache__/", "*.py[cod]", ".tmp/"]:
+    check_contains("gitignore harness runtime artifacts", gitignore_text, snippet)
+
 
 # Auth / trial / purchase owner: account-sync-contract.
 check_equal(
@@ -1503,6 +1510,9 @@ design_search_script = ROOT / "scripts" / "validate_design_search_run.py"
 if not design_search_script.exists():
     errors.append("missing design search validator: scripts/validate_design_search_run.py")
 else:
+    fixture_parent = ROOT / ".tmp" / "harness-validator"
+    fixture_parent.mkdir(parents=True, exist_ok=True)
+
     design_search_validation = subprocess.run(
         [sys.executable, str(design_search_script)],
         cwd=ROOT,
@@ -1516,10 +1526,11 @@ else:
             + (design_search_validation.stdout + design_search_validation.stderr).strip()
         )
 
-    tmp_run = ROOT / "docs/design/search-runs/tmp-empty-template-regression"
-    try:
-        if tmp_run.exists():
-            shutil.rmtree(tmp_run)
+    with tempfile.TemporaryDirectory(
+        prefix="design-search-template-",
+        dir=fixture_parent,
+    ) as tmp_dir:
+        tmp_run = Path(tmp_dir) / "empty-template-regression"
         (tmp_run / "candidates").mkdir(parents=True)
         (tmp_run / "pairwise-reviews").mkdir()
         for filename in [
@@ -1558,9 +1569,6 @@ else:
             ]:
                 if snippet not in template_regression_output:
                     errors.append(f"validate_design_search_run.py template regression missing expected rejection: {snippet}")
-    finally:
-        if tmp_run.exists():
-            shutil.rmtree(tmp_run)
 
     def write_design_search_fixture(
         run_dir: Path,
@@ -1836,11 +1844,16 @@ Weak dashboard density should be rejected.
                 """,
             )
 
-    coverage_run = ROOT / "docs/design/search-runs/tmp-pairwise-coverage-regression"
-    promotion_run = ROOT / "docs/design/search-runs/tmp-promotion-consistency-regression"
-    visual_evidence_run = ROOT / "docs/design/search-runs/tmp-candidate-visual-evidence-regression"
-    borrowed_evidence_run = ROOT / "docs/design/search-runs/tmp-borrowed-visual-evidence-regression"
-    try:
+    with tempfile.TemporaryDirectory(
+        prefix="design-search-regressions-",
+        dir=fixture_parent,
+    ) as tmp_dir:
+        regression_root = Path(tmp_dir)
+        coverage_run = regression_root / "pairwise-coverage-regression"
+        promotion_run = regression_root / "promotion-consistency-regression"
+        visual_evidence_run = regression_root / "candidate-visual-evidence-regression"
+        borrowed_evidence_run = regression_root / "borrowed-visual-evidence-regression"
+
         write_design_search_fixture(
             coverage_run,
             pairwise_pairs=[(1, 2)] * 7,
@@ -1969,10 +1982,12 @@ Weak dashboard density should be rejected.
             ]:
                 if snippet not in borrowed_evidence_output:
                     errors.append(f"validate_design_search_run.py borrowed evidence regression missing expected rejection: {snippet}")
-    finally:
-        for tmp_search_run in [coverage_run, promotion_run, visual_evidence_run, borrowed_evidence_run]:
-            if tmp_search_run.exists():
-                shutil.rmtree(tmp_search_run)
+
+    for cleanup_dir in [fixture_parent, fixture_parent.parent]:
+        try:
+            cleanup_dir.rmdir()
+        except OSError:
+            pass
 
 agent_review_script = ROOT / "scripts" / "validate_agent_review.py"
 if not agent_review_script.exists():
