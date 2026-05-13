@@ -79,6 +79,14 @@ export type SpaceSyncRail = {
   title: string;
 };
 
+export type SpaceStatusRail = {
+  actionSlot?: React.ReactNode;
+  detail: string;
+  label: string;
+  state: 'loading' | 'error';
+  title: string;
+};
+
 export function SpaceSurface({
   cardStateById,
   currentLearningCard,
@@ -89,6 +97,7 @@ export function SpaceSurface({
   palette,
   spaceGateRail,
   spaceCards,
+  spaceStatusRail,
   spaceSyncRail,
 }: {
   cardStateById: Record<string, { isFavorited: boolean; isSleeping: boolean }>;
@@ -100,6 +109,7 @@ export function SpaceSurface({
   palette: SpacePalette;
   spaceGateRail?: SpaceGateRail | null;
   spaceCards: LearningCard[];
+  spaceStatusRail?: SpaceStatusRail | null;
   spaceSyncRail?: SpaceSyncRail | null;
 }) {
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
@@ -284,6 +294,10 @@ export function SpaceSurface({
 
           {spaceSyncRail ? (
             <SpaceSyncRailCard palette={palette} rail={spaceSyncRail} />
+          ) : null}
+
+          {spaceStatusRail ? (
+            <SpaceStatusRailCard palette={palette} rail={spaceStatusRail} />
           ) : null}
 
           <SurfaceCard palette={palette} testID="space-box-detail">
@@ -647,6 +661,10 @@ export function SpaceSurface({
           <SpaceSyncRailCard palette={palette} rail={spaceSyncRail} />
         ) : null}
 
+        {spaceStatusRail ? (
+          <SpaceStatusRailCard palette={palette} rail={spaceStatusRail} />
+        ) : null}
+
         <SurfaceCard palette={palette} testID="space-box-detail">
           <View style={styles.containedHeader}>
             <View style={styles.statusCopy}>
@@ -953,6 +971,42 @@ function SpaceSyncRailCard({
   );
 }
 
+function SpaceStatusRailCard({
+  palette,
+  rail,
+}: {
+  palette: SpacePalette;
+  rail: SpaceStatusRail;
+}) {
+  const railColor = resolveSpaceStatusRailColor(rail, palette);
+
+  return (
+    <SurfaceCard
+      palette={palette}
+      style={styles.stateRail}
+      testID="space-status-rail"
+    >
+      <View style={styles.gateRailHeader}>
+        <View style={styles.statusCopy}>
+          <Text style={[styles.eyebrow, { color: railColor }]}>
+            SPACE STATUS
+          </Text>
+          <Text style={[styles.cardTitle, { color: palette.text }]}>
+            {rail.title}
+          </Text>
+          <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+            {rail.detail}
+          </Text>
+        </View>
+        <Text style={[styles.stateTag, { color: railColor }]}>
+          {rail.label}
+        </Text>
+      </View>
+      {rail.actionSlot}
+    </SurfaceCard>
+  );
+}
+
 function SummaryPill({
   label,
   palette,
@@ -1030,6 +1084,17 @@ function resolveSpaceSyncRailColor(
 
   if (rail.state === 'synced') {
     return palette.success;
+  }
+
+  return palette.accent;
+}
+
+function resolveSpaceStatusRailColor(
+  rail: SpaceStatusRail,
+  palette: SpacePalette,
+) {
+  if (rail.state === 'error') {
+    return palette.warning;
   }
 
   return palette.accent;
