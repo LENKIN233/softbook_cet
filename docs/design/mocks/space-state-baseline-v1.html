@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Space State Baseline v1</title>
+  <style>
+    :root {
+      --reading: #ff8a3d;
+      --reading-soft: rgba(255, 138, 61, .13);
+      --reading-line: rgba(255, 138, 61, .44);
+      --mint: #22c58b;
+      --amber: #f5b100;
+      --cyan: #18c4e0;
+      --violet: #b568f5;
+      --ink-1: #12121a;
+      --ink-2: #2e2e3a;
+      --ink-3: #6e6e80;
+      --ink-4: #a6a6b5;
+      --paper: #f5f3ee;
+      --paper-2: #ebe8f2;
+      --glass: rgba(255, 255, 255, .68);
+      --glass-strong: rgba(255, 255, 255, .9);
+      --line: rgba(18, 18, 26, .1);
+      --shadow: rgba(18, 18, 26, .14);
+      font-family: Inter, "Noto Sans SC", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--paper);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--ink-1);
+      background: var(--paper);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    header {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 32px 0 12px;
+    }
+
+    h1 {
+      max-width: 760px;
+      font-size: 34px;
+      line-height: 1.12;
+      font-weight: 850;
+    }
+
+    .lead {
+      max-width: 790px;
+      margin-top: 12px;
+      color: var(--ink-3);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    main {
+      width: min(1280px, 100%);
+      margin: 0 auto;
+      padding: 12px 20px 44px;
+      display: flex;
+      justify-content: center;
+      gap: 22px;
+      flex-wrap: wrap;
+    }
+
+    .phone {
+      width: 393px;
+      height: 852px;
+      flex: 0 0 393px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 46px;
+      border: 1px solid rgba(18, 18, 26, .14);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .76), rgba(235, 232, 242, .88)),
+        var(--paper-2);
+      box-shadow:
+        0 28px 72px rgba(18, 18, 26, .16),
+        inset 0 1px 0 rgba(255, 255, 255, .82);
+      padding: 24px 18px 18px;
+    }
+
+    .island {
+      width: 122px;
+      height: 36px;
+      margin: 0 auto 18px;
+      border-radius: 22px;
+      background: rgba(18, 18, 26, .88);
+    }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .screen-title {
+      font-size: 22px;
+      line-height: 1.1;
+      font-weight: 850;
+    }
+
+    .state-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .62);
+      color: var(--ink-2);
+      font-size: 11px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .state-chip::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--reading);
+    }
+
+    .address-shelf {
+      margin-top: 18px;
+      padding: 13px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .54);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .74);
+    }
+
+    .address-path {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink-3);
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--reading);
+      box-shadow: 0 0 0 5px var(--reading-soft);
+    }
+
+    .sibling-row {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1.1fr 1fr;
+      gap: 8px;
+    }
+
+    .sibling {
+      min-height: 34px;
+      border-radius: 15px;
+      border: 1px solid rgba(18, 18, 26, .08);
+      background: rgba(255, 255, 255, .46);
+      color: var(--ink-4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 720;
+      text-align: center;
+    }
+
+    .sibling.current {
+      color: var(--ink-1);
+      border-color: var(--reading-line);
+      background: var(--reading-soft);
+    }
+
+    .state-rail {
+      margin-top: 14px;
+      min-height: 72px;
+      padding: 13px 14px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: var(--glass);
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .rail-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 14px;
+      background: rgba(255, 138, 61, .16);
+      border: 1px solid rgba(255, 138, 61, .24);
+      position: relative;
+    }
+
+    .rail-mark::after {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border-radius: 8px;
+      border: 2px solid var(--reading);
+    }
+
+    .rail-copy strong {
+      display: block;
+      font-size: 13px;
+      line-height: 1.25;
+      font-weight: 820;
+    }
+
+    .rail-copy span {
+      display: block;
+      margin-top: 4px;
+      color: var(--ink-3);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .box-tray {
+      margin-top: 14px;
+      min-height: 372px;
+      padding: 15px;
+      border-radius: 30px;
+      border: 1px solid rgba(18, 18, 26, .1);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .82), rgba(255, 255, 255, .48)),
+        var(--glass);
+      box-shadow:
+        0 18px 40px rgba(18, 18, 26, .09),
+        inset 0 1px 0 rgba(255, 255, 255, .82);
+    }
+
+    .box-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .box-name {
+      font-size: 18px;
+      line-height: 1.16;
+      font-weight: 850;
+    }
+
+    .box-meta {
+      margin-top: 4px;
+      color: var(--ink-3);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .edge-count {
+      min-width: 50px;
+      padding: 6px 8px;
+      border-radius: 14px;
+      background: var(--reading-soft);
+      color: #8c3d12;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 850;
+    }
+
+    .card-stack {
+      margin-top: 16px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .space-card {
+      min-height: 66px;
+      padding: 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(18, 18, 26, .09);
+      background: rgba(255, 255, 255, .7);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .space-card strong {
+      display: block;
+      font-size: 13px;
+      line-height: 1.25;
+      font-weight: 820;
+    }
+
+    .space-card span {
+      display: block;
+      margin-top: 4px;
+      color: var(--ink-3);
+      font-size: 10px;
+      line-height: 1.35;
+    }
+
+    .tag {
+      min-width: 48px;
+      padding: 7px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 138, 61, .22);
+      background: var(--reading-soft);
+      color: #8c3d12;
+      font-size: 10px;
+      font-weight: 820;
+      text-align: center;
+    }
+
+    .skeleton {
+      min-height: 68px;
+      border-radius: 20px;
+      border: 1px solid rgba(18, 18, 26, .07);
+      background: rgba(255, 255, 255, .54);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .skeleton::before,
+    .skeleton::after {
+      content: "";
+      position: absolute;
+      left: 13px;
+      height: 9px;
+      border-radius: 999px;
+      background: rgba(166, 166, 181, .36);
+    }
+
+    .skeleton::before {
+      top: 17px;
+      width: 58%;
+    }
+
+    .skeleton::after {
+      top: 39px;
+      width: 38%;
+    }
+
+    .empty-slot {
+      min-height: 142px;
+      border-radius: 24px;
+      border: 1px dashed rgba(18, 18, 26, .18);
+      background: rgba(255, 255, 255, .38);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 18px;
+    }
+
+    .empty-slot strong {
+      font-size: 15px;
+      font-weight: 850;
+    }
+
+    .empty-slot span {
+      margin-top: 8px;
+      color: var(--ink-3);
+      font-size: 11px;
+      line-height: 1.48;
+    }
+
+    .locked-depth {
+      min-height: 168px;
+      border-radius: 24px;
+      border: 1px solid rgba(181, 104, 245, .22);
+      background: rgba(181, 104, 245, .1);
+      padding: 15px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .lock-row {
+      min-height: 42px;
+      border-radius: 16px;
+      border: 1px solid rgba(181, 104, 245, .16);
+      background: rgba(255, 255, 255, .62);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      color: var(--ink-2);
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .merge-map {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .merge-source {
+      min-height: 118px;
+      border-radius: 22px;
+      border: 1px solid rgba(18, 18, 26, .09);
+      background: rgba(255, 255, 255, .58);
+      padding: 12px;
+    }
+
+    .merge-source strong {
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 820;
+    }
+
+    .merge-source span {
+      display: block;
+      margin-top: 8px;
+      color: var(--ink-3);
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .sleep-alcove {
+      margin-top: 12px;
+      min-height: 58px;
+      border-radius: 20px;
+      border: 1px solid rgba(245, 177, 0, .18);
+      background: rgba(245, 177, 0, .12);
+      padding: 12px;
+      color: #755100;
+      font-size: 11px;
+      line-height: 1.42;
+      font-weight: 720;
+    }
+
+    .actions {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 82px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .primary-action,
+    .secondary-action {
+      min-height: 46px;
+      border-radius: 999px;
+      border: 1px solid rgba(18, 18, 26, .1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .primary-action {
+      background: var(--reading);
+      color: #3b1b08;
+      box-shadow: 0 14px 26px rgba(255, 138, 61, .24);
+    }
+
+    .secondary-action {
+      background: rgba(255, 255, 255, .66);
+      color: var(--ink-2);
+      min-width: 88px;
+    }
+
+    .tab-capsule {
+      position: absolute;
+      left: 42px;
+      right: 42px;
+      bottom: 18px;
+      height: 48px;
+      border-radius: 28px;
+      border: 1px solid rgba(18, 18, 26, .1);
+      background: rgba(255, 255, 255, .76);
+      box-shadow: 0 16px 36px rgba(18, 18, 26, .12);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      align-items: center;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .tab {
+      min-width: 0;
+      height: 38px;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink-4);
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .tab.active {
+      color: #8c3d12;
+      background: var(--reading-soft);
+    }
+
+    .tone-error .rail-mark {
+      background: rgba(241, 91, 110, .12);
+      border-color: rgba(241, 91, 110, .24);
+    }
+
+    .tone-error .rail-mark::after {
+      border-color: #f15b6e;
+    }
+
+    .tone-gate .rail-mark {
+      background: rgba(181, 104, 245, .12);
+      border-color: rgba(181, 104, 245, .24);
+    }
+
+    .tone-gate .rail-mark::after {
+      border-color: var(--violet);
+    }
+
+    .tone-sync .rail-mark {
+      background: rgba(24, 196, 224, .12);
+      border-color: rgba(24, 196, 224, .24);
+    }
+
+    .tone-sync .rail-mark::after {
+      border-color: var(--cyan);
+    }
+
+    @media (max-width: 460px) {
+      header {
+        width: calc(100% - 28px);
+        padding-top: 22px;
+      }
+
+      h1 {
+        font-size: 27px;
+      }
+
+      main {
+        padding: 8px 14px 32px;
+      }
+
+      .phone {
+        width: calc(100vw - 28px);
+        height: auto;
+        min-height: 812px;
+        flex-basis: calc(100vw - 28px);
+        border-radius: 38px;
+      }
+
+      .screen-title {
+        font-size: 20px;
+      }
+
+      .sibling-row {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        bottom: 78px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Space State Baseline v1</h1>
+    <p class="lead">Rendered 393 x 852 phone proof for Space loading, empty, remote error, gated, and sync merge states. Every frame keeps the library / group / box / card hierarchy visible.</p>
+  </header>
+  <main>
+    <section class="phone" aria-label="Space loading state phone proof">
+      <div class="island"></div>
+      <div class="topline">
+        <h2 class="screen-title">空间</h2>
+        <div class="state-chip">加载中</div>
+      </div>
+
+      <div class="address-shelf">
+        <div class="address-path"><span class="dot"></span><span>CET4 / 阅读 / 定位词抓取 / 细节定位盒</span></div>
+        <div class="sibling-row">
+          <div class="sibling">长难句主干</div>
+          <div class="sibling current">细节定位盒</div>
+          <div class="sibling">干扰项排除</div>
+        </div>
+      </div>
+
+      <div class="state-rail">
+        <div class="rail-mark"></div>
+        <div class="rail-copy">
+          <strong>正在取回空间位置</strong>
+          <span>保持当前盒地址，卡片对象会回到原来的物理位置。</span>
+        </div>
+      </div>
+
+      <div class="box-tray">
+        <div class="box-head">
+          <div>
+            <div class="box-name">细节定位盒</div>
+            <div class="box-meta">正在恢复上次学习位置</div>
+          </div>
+          <div class="edge-count">--</div>
+        </div>
+        <div class="card-stack">
+          <div class="skeleton"></div>
+          <div class="skeleton"></div>
+          <div class="skeleton"></div>
+        </div>
+        <div class="sleep-alcove">Sleep alcove is reserved under this same box.</div>
+      </div>
+
+      <div class="actions">
+        <div class="primary-action">回到当前学习</div>
+        <div class="secondary-action">等待</div>
+      </div>
+      <nav class="tab-capsule" aria-label="top level navigation">
+        <div class="tab">学习</div>
+        <div class="tab active">空间</div>
+        <div class="tab">统计</div>
+        <div class="tab">我的</div>
+      </nav>
+    </section>
+
+    <section class="phone" aria-label="Space empty box state phone proof">
+      <div class="island"></div>
+      <div class="topline">
+        <h2 class="screen-title">空间</h2>
+        <div class="state-chip">盒内暂空</div>
+      </div>
+
+      <div class="address-shelf">
+        <div class="address-path"><span class="dot"></span><span>CET4 / 阅读 / 定位词抓取 / 细节定位盒</span></div>
+        <div class="sibling-row">
+          <div class="sibling">词义回指</div>
+          <div class="sibling current">细节定位盒</div>
+          <div class="sibling">推断依据</div>
+        </div>
+      </div>
+
+      <div class="state-rail">
+        <div class="rail-mark"></div>
+        <div class="rail-copy">
+          <strong>这个盒暂时没有可练卡</strong>
+          <span>盒仍属于阅读库，系统会继续按学习流补充当前位置。</span>
+        </div>
+      </div>
+
+      <div class="box-tray">
+        <div class="box-head">
+          <div>
+            <div class="box-name">细节定位盒</div>
+            <div class="box-meta">等待学习流补充新卡</div>
+          </div>
+          <div class="edge-count">0</div>
+        </div>
+        <div class="card-stack">
+          <div class="empty-slot">
+            <strong>盒内暂空</strong>
+            <span>父级书架和相邻盒仍可见，避免把空间误解为模块选择。</span>
+          </div>
+        </div>
+        <div class="sleep-alcove">没有休眠卡。休眠区仍保留在原盒下方。</div>
+      </div>
+
+      <div class="actions">
+        <div class="primary-action">继续学习流</div>
+        <div class="secondary-action">刷新</div>
+      </div>
+      <nav class="tab-capsule" aria-label="top level navigation">
+        <div class="tab">学习</div>
+        <div class="tab active">空间</div>
+        <div class="tab">统计</div>
+        <div class="tab">我的</div>
+      </nav>
+    </section>
+
+    <section class="phone tone-error" aria-label="Space remote error state phone proof">
+      <div class="island"></div>
+      <div class="topline">
+        <h2 class="screen-title">空间</h2>
+        <div class="state-chip">连接异常</div>
+      </div>
+
+      <div class="address-shelf">
+        <div class="address-path"><span class="dot"></span><span>CET4 / 阅读 / 定位词抓取 / 细节定位盒</span></div>
+        <div class="sibling-row">
+          <div class="sibling">长难句主干</div>
+          <div class="sibling current">细节定位盒</div>
+          <div class="sibling">干扰项排除</div>
+        </div>
+      </div>
+
+      <div class="state-rail">
+        <div class="rail-mark"></div>
+        <div class="rail-copy">
+          <strong>云端空间暂时没连上</strong>
+          <span>保留上次本地空间，稍后可重新取回云端位置。</span>
+        </div>
+      </div>
+
+      <div class="box-tray">
+        <div class="box-head">
+          <div>
+            <div class="box-name">细节定位盒</div>
+            <div class="box-meta">显示上次同步的空间</div>
+          </div>
+          <div class="edge-count">12</div>
+        </div>
+        <div class="card-stack">
+          <div class="space-card">
+            <div><strong>定位题干中的同义改写</strong><span>上次同步可查看，卡片仍在原盒。</span></div>
+            <div class="tag">收藏</div>
+          </div>
+          <div class="space-card">
+            <div><strong>从选项回看原文范围</strong><span>云端恢复后自动回到原位置。</span></div>
+            <div class="tag">本地</div>
+          </div>
+        </div>
+        <div class="sleep-alcove">2 张休眠卡保留在同一盒的下层。</div>
+      </div>
+
+      <div class="actions">
+        <div class="primary-action">重试云端</div>
+        <div class="secondary-action">用本地</div>
+      </div>
+      <nav class="tab-capsule" aria-label="top level navigation">
+        <div class="tab">学习</div>
+        <div class="tab active">空间</div>
+        <div class="tab">统计</div>
+        <div class="tab">我的</div>
+      </nav>
+    </section>
+
+    <section class="phone tone-gate" aria-label="Space gated state phone proof">
+      <div class="island"></div>
+      <div class="topline">
+        <h2 class="screen-title">空间</h2>
+        <div class="state-chip">空间权益</div>
+      </div>
+
+      <div class="address-shelf">
+        <div class="address-path"><span class="dot"></span><span>CET4 / 阅读 / 定位词抓取 / 细节定位盒</span></div>
+        <div class="sibling-row">
+          <div class="sibling">基础学习</div>
+          <div class="sibling current">完整空间</div>
+          <div class="sibling">算法复习</div>
+        </div>
+      </div>
+
+      <div class="state-rail">
+        <div class="rail-mark"></div>
+        <div class="rail-copy">
+          <strong>完整空间需要会员</strong>
+          <span>你仍能看到当前盒的位置，深层盒内容和完整算法由会员解锁。</span>
+        </div>
+      </div>
+
+      <div class="box-tray">
+        <div class="box-head">
+          <div>
+            <div class="box-name">细节定位盒</div>
+            <div class="box-meta">保留当前位置预览</div>
+          </div>
+          <div class="edge-count">预览</div>
+        </div>
+        <div class="locked-depth">
+          <div class="lock-row"><span>当前盒地址</span><span>可见</span></div>
+          <div class="lock-row"><span>盒内完整卡片</span><span>会员</span></div>
+          <div class="lock-row"><span>完整空间路径</span><span>会员</span></div>
+        </div>
+        <div class="sleep-alcove">基础学习保留，完整休眠/唤回路径由会员解锁。</div>
+      </div>
+
+      <div class="actions">
+        <div class="primary-action">开通完整空间</div>
+        <div class="secondary-action">恢复</div>
+      </div>
+      <nav class="tab-capsule" aria-label="top level navigation">
+        <div class="tab">学习</div>
+        <div class="tab active">空间</div>
+        <div class="tab">统计</div>
+        <div class="tab">我的</div>
+      </nav>
+    </section>
+
+    <section class="phone tone-sync" aria-label="Space sync merge state phone proof">
+      <div class="island"></div>
+      <div class="topline">
+        <h2 class="screen-title">空间</h2>
+        <div class="state-chip">正在同步</div>
+      </div>
+
+      <div class="address-shelf">
+        <div class="address-path"><span class="dot"></span><span>CET4 / 阅读 / 定位词抓取 / 细节定位盒</span></div>
+        <div class="sibling-row">
+          <div class="sibling">手机本地</div>
+          <div class="sibling current">正在合并</div>
+          <div class="sibling">云端位置</div>
+        </div>
+      </div>
+
+      <div class="state-rail">
+        <div class="rail-mark"></div>
+        <div class="rail-copy">
+          <strong>正在合并跨端空间</strong>
+          <span>当前位置先保持可见，云端位置完成合并后再更新盒内状态。</span>
+        </div>
+      </div>
+
+      <div class="box-tray">
+        <div class="box-head">
+          <div>
+            <div class="box-name">细节定位盒</div>
+            <div class="box-meta">保持当前位置，完成后自动更新</div>
+          </div>
+          <div class="edge-count">合并</div>
+        </div>
+        <div class="merge-map">
+          <div class="merge-source">
+            <strong>本地空间</strong>
+            <span>当前盒可继续查看，学习流上下文不丢失。</span>
+          </div>
+          <div class="merge-source">
+            <strong>云端位置</strong>
+            <span>系统合并后再同步卡片物理状态。</span>
+          </div>
+        </div>
+        <div class="sleep-alcove">休眠区等待合并结果，不允许任意改写盒归属。</div>
+      </div>
+
+      <div class="actions">
+        <div class="primary-action">继续当前空间</div>
+        <div class="secondary-action">刷新</div>
+      </div>
+      <nav class="tab-capsule" aria-label="top level navigation">
+        <div class="tab">学习</div>
+        <div class="tab active">空间</div>
+        <div class="tab">统计</div>
+        <div class="tab">我的</div>
+      </nav>
+    </section>
+  </main>
+</body>
+</html>

@@ -22,6 +22,7 @@ These artifacts are required before implementing Space UI or any UI that changes
 - `../mocks/space-surface-visual-proof-v1.md`: rendered Space visual proof for box focus, inspect, favorite tag, sleep zone, wake, and return-to-Learning states.
 - `../mocks/space-surface-visual-refinement-v1.md`: refined implementation-facing `Box Desk` Space visual baseline with region mapping and containment stress proof.
 - `../mocks/space-surface-shelf-desk-v1.md`: accepted shelf-desk Space visual baseline promoted from design search, with parent shelf, open box tray, contained cards, sleep alcove, and Learning continuity.
+- `space-state-baseline-v1.md`: accepted Space loading, empty, remote-error, permission/paywall, and sync-merge state baseline that keeps hierarchy visible in non-ideal states.
 
 ## Required Contents
 
