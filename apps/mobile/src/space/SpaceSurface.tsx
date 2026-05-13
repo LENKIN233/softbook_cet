@@ -72,6 +72,13 @@ export type SpaceGateRail = {
   title: string;
 };
 
+export type SpaceSyncRail = {
+  detail: string;
+  label: string;
+  state: 'syncing' | 'synced' | 'error';
+  title: string;
+};
+
 export function SpaceSurface({
   cardStateById,
   currentLearningCard,
@@ -82,6 +89,7 @@ export function SpaceSurface({
   palette,
   spaceGateRail,
   spaceCards,
+  spaceSyncRail,
 }: {
   cardStateById: Record<string, { isFavorited: boolean; isSleeping: boolean }>;
   currentLearningCard: LearningCard | null;
@@ -92,6 +100,7 @@ export function SpaceSurface({
   palette: SpacePalette;
   spaceGateRail?: SpaceGateRail | null;
   spaceCards: LearningCard[];
+  spaceSyncRail?: SpaceSyncRail | null;
 }) {
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
   const favoriteCards = seed.allCards.filter(
@@ -483,6 +492,41 @@ export function SpaceSurface({
           </SurfaceCard>
         ) : null}
 
+        {spaceSyncRail ? (
+          <SurfaceCard
+            palette={palette}
+            style={styles.stateRail}
+            testID="space-sync-rail"
+          >
+            <View style={styles.gateRailHeader}>
+              <View style={styles.statusCopy}>
+                <Text
+                  style={[
+                    styles.eyebrow,
+                    { color: resolveSpaceSyncRailColor(spaceSyncRail, palette) },
+                  ]}
+                >
+                  SPACE SYNC
+                </Text>
+                <Text style={[styles.cardTitle, { color: palette.text }]}>
+                  {spaceSyncRail.title}
+                </Text>
+                <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+                  {spaceSyncRail.detail}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.stateTag,
+                  { color: resolveSpaceSyncRailColor(spaceSyncRail, palette) },
+                ]}
+              >
+                {spaceSyncRail.label}
+              </Text>
+            </View>
+          </SurfaceCard>
+        ) : null}
+
         <SurfaceCard palette={palette} testID="space-box-detail">
           <View style={styles.containedHeader}>
             <View style={styles.statusCopy}>
@@ -785,6 +829,21 @@ function RuleItem({ palette, text }: { palette: SpacePalette; text: string }) {
       </Text>
     </View>
   );
+}
+
+function resolveSpaceSyncRailColor(
+  rail: SpaceSyncRail,
+  palette: SpacePalette,
+) {
+  if (rail.state === 'error') {
+    return palette.warning;
+  }
+
+  if (rail.state === 'synced') {
+    return palette.success;
+  }
+
+  return palette.accent;
 }
 
 function buildSpaceSeed(spaceCards: readonly LearningCard[]): SpaceSeed {

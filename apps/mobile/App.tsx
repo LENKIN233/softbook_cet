@@ -140,6 +140,7 @@ type SyncStatusState =
 
 type ProgressSyncState = SyncStatusState;
 type LearningStateSyncState = SyncStatusState;
+type SpaceStateSyncState = SyncStatusState;
 
 type LearningBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
 type LearningPhase = 'learning' | 'review';
@@ -284,6 +285,12 @@ const INITIAL_LEARNING_STATE_SYNC_STATE: LearningStateSyncState = {
   state: 'idle',
 };
 
+const INITIAL_SPACE_STATE_SYNC_STATE: SpaceStateSyncState = {
+  detail: '当前还没有需要同步的空间状态。',
+  label: '等待空间状态',
+  state: 'idle',
+};
+
 function createEntitlementPendingMembershipState(): MembershipState {
   return {
     ...createInitialMembershipState(),
@@ -418,6 +425,8 @@ function AppShell({
   );
   const [learningStateSyncState, setLearningStateSyncState] =
     useState<LearningStateSyncState>(INITIAL_LEARNING_STATE_SYNC_STATE);
+  const [spaceStateSyncState, setSpaceStateSyncState] =
+    useState<SpaceStateSyncState>(INITIAL_SPACE_STATE_SYNC_STATE);
   const [lastSyncedProgressKey, setLastSyncedProgressKey] = useState<
     string | null
   >(null);
@@ -633,7 +642,20 @@ function AppShell({
       }
 
       if (result.entry.type === 'sync_space_state') {
-        setLastSyncedSpaceStateKey(JSON.stringify(result.entry.payload.snapshot));
+        const replayedSpaceStateKey = JSON.stringify(
+          result.entry.payload.snapshot,
+        );
+
+        setLastSyncedSpaceStateKey(replayedSpaceStateKey);
+
+        if (replayedSpaceStateKey === spaceStateSyncKey) {
+          setSpaceStateSyncState({
+            detail: '空间收藏和休眠状态已从离线队列补推到云端。',
+            label: '云端已同步',
+            state: 'synced',
+          });
+        }
+
         return;
       }
 
@@ -679,6 +701,7 @@ function AppShell({
     isAuthenticated,
     learningStateSyncKey,
     mutationQueueRepository,
+    spaceStateSyncKey,
   ]);
 
   const countCompletedCards = useCallback(
@@ -789,6 +812,7 @@ function AppShell({
       setLastSyncedSpaceStateKey(null);
       setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
       setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
+      setSpaceStateSyncState(INITIAL_SPACE_STATE_SYNC_STATE);
       return;
     }
 
@@ -1132,15 +1156,30 @@ function AppShell({
 
     if (runtimeSpaceStateMode === 'local') {
       setLastSyncedSpaceStateKey(spaceStateSyncKey);
+      setSpaceStateSyncState({
+        detail: '空间收藏和休眠状态已在本机记录。',
+        label: '已记录',
+        state: 'synced',
+      });
       return;
     }
 
     if (authenticatedRuntimeContext === null) {
+      setSpaceStateSyncState({
+        detail: '当前缺少可用的登录上下文，空间状态无法同步。',
+        label: '同步受阻',
+        state: 'error',
+      });
       return;
     }
 
     let isCancelled = false;
 
+    setSpaceStateSyncState({
+      detail: '正在同步空间里的收藏标签和休眠状态；当前地址和盒内卡片仍可继续浏览。',
+      label: '同步中',
+      state: 'syncing',
+    });
     startMutationReplay().catch(() => undefined);
 
     spaceStateRepository
@@ -1151,8 +1190,13 @@ function AppShell({
         }
 
         setLastSyncedSpaceStateKey(spaceStateSyncKey);
+        setSpaceStateSyncState({
+          detail: '空间收藏和休眠状态已同步到云端。',
+          label: '云端已同步',
+          state: 'synced',
+        });
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (isCancelled) {
           return;
         }
@@ -1167,6 +1211,15 @@ function AppShell({
             `space:${spaceStateSyncKey}`,
           )
           .catch(() => undefined);
+        setSpaceStateSyncState({
+          detail:
+            `${getUserFacingErrorMessage(
+              error,
+              '空间状态同步失败。',
+            )} 已加入离线重试队列；当前空间继续使用本机缓存。`,
+          label: '已排队',
+          state: 'error',
+        });
       });
 
     return () => {
@@ -1569,6 +1622,7 @@ function AppShell({
       mutationQueueRepository.clear().catch(() => undefined);
       setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
       setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
+      setSpaceStateSyncState(INITIAL_SPACE_STATE_SYNC_STATE);
       startTransition(() => {
         setActiveRoute('mine');
       });
@@ -1887,6 +1941,22 @@ function AppShell({
           title: '完整物理空间需要试用或会员',
         }
       : null;
+  const spaceSyncRail =
+    route.key === 'space' &&
+    runtimeSpaceStateMode === 'remote' &&
+    spaceStateSyncState.state !== 'idle'
+      ? {
+          detail: spaceStateSyncState.detail,
+          label: spaceStateSyncState.label,
+          state: spaceStateSyncState.state,
+          title:
+            spaceStateSyncState.state === 'error'
+              ? '空间状态已进入离线重试'
+              : spaceStateSyncState.state === 'syncing'
+              ? '正在同步空间状态'
+              : '空间状态已同步',
+        }
+      : null;
 
   const content = shouldShowAuthGate ? (
     <AuthGate
@@ -1995,6 +2065,7 @@ function AppShell({
       palette={palette}
       spaceCards={spaceSurfaceCards}
       spaceGateRail={spaceGateRail}
+      spaceSyncRail={spaceSyncRail}
     />
   ) : route.key === 'statistics' ? (
     <StatisticsSurface
