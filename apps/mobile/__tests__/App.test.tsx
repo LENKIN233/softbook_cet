@@ -1158,12 +1158,25 @@ test('replays queued space state after network reconnect', async () => {
     await flushAsyncEffects();
   });
 
+  await openRoute(root, 'space');
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('空间状态已进入离线重试');
+  expect(output).toContain('当前空间继续使用本机缓存');
+  expect(root.findAllByProps({testID: 'space-sync-rail'}).length).toBeGreaterThan(
+    0,
+  );
+
   shouldFailSpaceSync = false;
 
   await ReactTestRenderer.act(async () => {
     emitNetInfoState({isConnected: true, isInternetReachable: true});
     await flushAsyncEffects();
   });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('空间状态已同步');
+  expect(output).toContain('空间收藏和休眠状态已从离线队列补推到云端。');
 
   expect(
     fetchCalls.filter(
