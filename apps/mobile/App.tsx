@@ -173,13 +173,13 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '最重要入口',
     title: '单卡学习流',
     summary:
-      '当前分支把学习主路径切到异步卡源 bootstrap，先收口学习入口的加载与失败边界。',
+      '登录后直接进入系统顺序里的当前卡；卡片加载、失败重试和单卡推进都留在学习入口内完成。',
     highlights: [
       '一次只推进一张卡，不把学习入口做成按钮堆。',
-      '学习卡源改成异步加载，先保住本地 source，再预留远端切换口。',
+      '卡片按备考顺序进入当前轮；网络波动时也保留清晰的重试入口。',
       'Peek、收藏和提示层保持轻量，不抢主交互。',
     ],
-    focus: ['async source bootstrap', 'single-card flow', 'source fallback'],
+    focus: ['当前卡加载', '单卡学习流', '失败重试'],
   },
   {
     key: 'space',
@@ -188,13 +188,13 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '顶层入口',
     title: '知识地图与物理空间',
     summary:
-      '当前已经把已接入卡片的 library / group / box / card 层级接进空间入口，先收口知识地图浏览、盒内卡片查看和当前位置可见性。',
+      '空间会展示已接入卡片的 library / group / box / card 层级，让用户能浏览知识地图、查看盒内卡片，并看见当前学习卡的位置。',
     highlights: [
       '能看见当前学习卡在空间中的位置。',
       '能按 library / group / box 层级浏览已接入卡片。',
       '先收口低成本浏览，不开放任意拖拽改盒。',
     ],
-    focus: ['sleep zone rules', 'supported position adjustments'],
+    focus: ['休眠区规则', '支持的位置操作'],
   },
   {
     key: 'statistics',
@@ -203,13 +203,13 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '服务核心价值',
     title: '轻量统计与签到',
     summary:
-      '当前已经把统计入口收成轻量签到与学习摘要，只承接最小必要的连续性反馈，不扩成复杂大盘。',
+      '统计只保留今日签到、学习摘要和回看状态，帮助用户确认自己有在推进。',
     highlights: [
       '签到只和真实学习进展挂钩，不做空转打卡。',
       '首轮与回看结果会以低成本摘要方式展示。',
       '页面会跟随设备形态变化，但入口顺序保持一致。',
     ],
-    focus: ['defer heavy stats', 'keep confidence and continuity light'],
+    focus: ['轻量签到', '低成本连续性'],
   },
   {
     key: 'mine',
@@ -218,13 +218,13 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '账户与会员',
     title: '个人页',
     summary:
-      '当前已经把“我的”收成个人主页，并接入本地 entitlement 宿主：账号、学习、空间摘要与试用/会员边界都在这里承接。',
+      '“我的”承接账号、学习、空间摘要与试用/会员边界，让个人状态集中在一个入口里。',
     highlights: [
       '已登录后能看到账号、学习、空间与会员摘要。',
       '试用在首个计入入口开始，不在注册时偷跑。',
       '基础学习保留，完整空间、完整卡库和完整算法挂到试用/会员后。',
     ],
-    focus: ['profile overview', 'trial/paywall', 'purchase recovery'],
+    focus: ['账号概览', '试用与会员', '恢复购买'],
   },
 ];
 
@@ -623,8 +623,8 @@ function AppShell({
 
         if (replayedProgressKey === dailyProgressKey) {
           setProgressSyncState({
-            detail: '今天的学习进展已从离线队列补推到远端日级同步端点。',
-            label: '远端已同步',
+            detail: '今天的学习进展已从离线队列补推到云端。',
+            label: '云端已同步',
             state: 'synced',
           });
         }
@@ -646,8 +646,8 @@ function AppShell({
 
         if (replayedLearningStateKey === learningStateSyncKey) {
           setLearningStateSyncState({
-            detail: '当前学习作答状态已从离线队列补推到远端学习状态端点。',
-            label: '远端已同步',
+            detail: '当前学习作答状态已从离线队列补推到云端。',
+            label: '云端已同步',
             state: 'synced',
           });
         }
@@ -862,9 +862,10 @@ function AppShell({
           )
           .catch(() => undefined);
         setMembershipError(
-          error instanceof Error
-            ? `${error.message} 已加入离线重试队列。`
-            : '远端 entitlement 刷新失败，已加入离线重试队列。',
+          `${getUserFacingErrorMessage(
+            error,
+            '会员状态刷新失败。',
+          )} 已加入离线重试队列。`,
         );
       });
 
@@ -937,8 +938,8 @@ function AppShell({
     if (runtimeProgressSyncMode === 'local') {
       setLastSyncedProgressKey(dailyProgressKey);
       setProgressSyncState({
-        detail: '今天的学习进展已在本地记录；远端同步将在配置接通后启用。',
-        label: '本地已记录',
+        detail: '今天的学习进展已在本机记录。',
+        label: '已记录',
         state: 'synced',
       });
       return;
@@ -974,9 +975,9 @@ function AppShell({
         setProgressSyncState({
           detail:
             result.mode === 'remote'
-              ? '今天的学习进展已推送到远端日级同步端点。'
-              : '今天的学习进展已在本地记录；远端同步将在配置接通后启用。',
-          label: result.mode === 'remote' ? '远端已同步' : '本地已记录',
+              ? '今天的学习进展已推送到云端。'
+              : '今天的学习进展已在本机记录。',
+          label: result.mode === 'remote' ? '云端已同步' : '已记录',
           state: 'synced',
         });
       })
@@ -997,9 +998,10 @@ function AppShell({
           .catch(() => undefined);
         setProgressSyncState({
           detail:
-            error instanceof Error
-              ? `${error.message} 已加入离线重试队列。`
-              : '日级进展同步失败，已加入离线重试队列。',
+            `${getUserFacingErrorMessage(
+              error,
+              '日级进展同步失败。',
+            )} 已加入离线重试队列。`,
           label: '已排队',
           state: 'error',
         });
@@ -1038,8 +1040,8 @@ function AppShell({
     if (runtimeLearningStateMode === 'local') {
       setLastSyncedLearningStateKey(learningStateSyncKey);
       setLearningStateSyncState({
-        detail: '当前学习作答状态仍停留在本地 runtime，不会发起远端同步。',
-        label: '本地承接',
+        detail: '当前学习作答状态已在本机记录。',
+        label: '已记录',
         state: 'idle',
       });
       return;
@@ -1057,7 +1059,7 @@ function AppShell({
     let isCancelled = false;
 
     setLearningStateSyncState({
-      detail: '当前正在把学习作答状态推送到远端学习状态端点。',
+      detail: '当前正在同步学习作答状态。',
       label: '同步中',
       state: 'syncing',
     });
@@ -1072,8 +1074,8 @@ function AppShell({
 
         setLastSyncedLearningStateKey(learningStateSyncKey);
         setLearningStateSyncState({
-          detail: '当前学习作答状态已推送到远端学习状态端点。',
-          label: '远端已同步',
+          detail: '当前学习作答状态已同步到云端。',
+          label: '云端已同步',
           state: 'synced',
         });
       })
@@ -1094,9 +1096,10 @@ function AppShell({
           .catch(() => undefined);
         setLearningStateSyncState({
           detail:
-            error instanceof Error
-              ? `${error.message} 已加入离线重试队列。`
-              : '学习状态同步失败，已加入离线重试队列。',
+            `${getUserFacingErrorMessage(
+              error,
+              '学习状态同步失败。',
+            )} 已加入离线重试队列。`,
           label: '已排队',
           state: 'error',
         });
@@ -1234,7 +1237,7 @@ function AppShell({
         setLearningCardState(null);
         setLearningBootstrapStatus('error');
         setLearningBootstrapError(
-          error instanceof Error ? error.message : '学习卡源加载失败。',
+          getUserFacingErrorMessage(error, '学习卡源加载失败。'),
         );
       });
 
@@ -1348,7 +1351,10 @@ function AppShell({
             )
             .catch(() => undefined);
           setMembershipError(
-            `${getErrorMessage(error, '试用开通暂时失败。')} 已按本地试用放行，并加入离线重试队列。`,
+            `${getUserFacingErrorMessage(
+              error,
+              '试用开通暂时失败。',
+            )} 已先放行本次完整试用，并加入离线重试队列。`,
           );
           setMembershipPendingAction(null);
           completeMembershipUnlock(startMembershipTrial(membershipState), nextGate);
@@ -1356,7 +1362,7 @@ function AppShell({
         }
 
         setMembershipError(
-          getErrorMessage(error, '试用开通暂时失败。'),
+          getUserFacingErrorMessage(error, '试用开通暂时失败。'),
         );
         setMembershipPendingAction(null);
       });
@@ -1431,7 +1437,7 @@ function AppShell({
           setAuthState(current => ({
             ...current,
             error:
-              error instanceof Error ? error.message : '验证码请求暂时失败。',
+              getUserFacingErrorMessage(error, '验证码请求暂时失败。'),
             pendingAction: null,
           }));
         });
@@ -1501,9 +1507,9 @@ function AppShell({
                 )
                 .catch(() => undefined)
                 .then(() => ({
-                  membershipErrorMessage: `${getErrorMessage(
+                  membershipErrorMessage: `${getUserFacingErrorMessage(
                     error,
-                    '远端 entitlement 暂时无法读取。',
+                    '会员状态暂时无法读取。',
                   )} 已保留登录态，并加入离线重试队列。`,
                   membershipRefreshSucceeded: false,
                   membershipState: createEntitlementPendingMembershipState(),
@@ -1539,7 +1545,7 @@ function AppShell({
         .catch((error: unknown) => {
           setAuthState(current => ({
             ...current,
-            error: error instanceof Error ? error.message : '登录暂时失败。',
+            error: getUserFacingErrorMessage(error, '登录暂时失败。'),
             pendingAction: null,
           }));
         });
@@ -2027,31 +2033,31 @@ function LearningBootstrapSurface({
         ]}
       >
         <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-          SOURCE BOOTSTRAP
+          LEARNING SETUP
         </Text>
         <Text style={[styles.heroTitle, { color: palette.text }]}>
-          {isLoading ? '正在接学习卡源' : '学习卡源暂时不可用'}
+          {isLoading ? '正在准备本轮学习' : '本轮学习暂时不可用'}
         </Text>
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
           {isLoading
-            ? '当前先完成异步卡源 bootstrap。学习入口仍是一张张推进，只是先把卡源加载边界收口。'
-            : '学习入口已经登录，但这次没能拿到可用卡源。先留在学习模块内重试，不把错误扩散到交互层。'}
+            ? '正在整理本轮要学的卡片，准备好后会直接进入单卡流。'
+            : '已登录，但这次没能拿到可用卡片。可以留在学习入口内重试。'}
         </Text>
       </View>
       <InfoCard
         palette={palette}
-        title={isLoading ? '当前在做什么' : '这一步拦住了什么'}
+        title={isLoading ? '准备中' : '暂时停在这里'}
         items={
           isLoading
             ? [
-                '先加载学习 session，再进入单卡流。',
-                '本地 source 仍可作为当前默认实现。',
-                '远端 source 后续只替换 repository，不重写学习页面。',
+                '正在加载本轮卡片。',
+                '学习仍然会按一张卡一张卡推进。',
+                '准备完成后会自动回到当前学习流。',
               ]
             : [
-                error ?? '学习卡源加载失败。',
-                '错误还停留在 source bootstrap，没有进入答题状态。',
-                '重试后会重新发起本轮学习 session 加载。',
+                error ?? '本轮卡片加载失败。',
+                '还没有进入答题状态，学习进度不会被错误推进。',
+                '重试后会重新准备本轮学习。',
               ]
         }
       />
@@ -2077,7 +2083,7 @@ function LearningBootstrapSurface({
             加载中
           </Text>
           <Text style={[styles.authSummary, { color: palette.textMuted }]}>
-            卡源加载完成后才会进入单卡流。
+            本轮卡片准备好后才会进入单卡流。
           </Text>
         </View>
       )}
@@ -2314,8 +2320,7 @@ function TabletShell({
           软书四六级
         </Text>
         <Text style={[styles.brandSummary, { color: palette.textMuted }]}>
-          当前分支把已登录后的单卡学习流接进 iOS
-          壳层，空间、统计和“我的”先保持边界清楚。
+          已登录后直接进入单卡学习流；空间、统计和“我的”各自承接清楚的备考任务。
         </Text>
         <AuthStatusBadge authState={authState} palette={palette} />
         <View style={styles.sidebarNav}>
@@ -2523,7 +2528,7 @@ function AuthGate({
             : `进入${route.label}前先确认身份`}
         </Text>
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
-          根据认证合同，游客不能开始学习；当前壳层同时把空间与统计一起挂在登录态之后，避免无身份状态下承接个人连续性数据。
+          学习、空间和统计都需要先确认身份，避免把个人进度记录到无身份状态里。
         </Text>
       </View>
       <PhoneSmsPanel
@@ -2534,13 +2539,13 @@ function AuthGate({
         title="手机号验证码登录"
         summary={
           authRepositoryMode === 'remote'
-            ? '先把主登录方式接进 runtime 仓储。当前认证已切到远端短信合同；会员和同步继续按各自 runtime 配置运行。'
-            : '先把主登录方式接进 runtime 仓储。当前仍走本地安全模式，但认证、entitlement 和同步都已经预留远端接线位。'
+            ? '使用短信验证码确认身份，登录后继续进入学习、空间和个人进度。'
+            : '当前可用验证码完成登录体验，登录后继续进入学习、空间和个人进度。'
         }
       />
       <InfoCard
         palette={palette}
-        title="当前门禁只落实什么"
+        title="为什么要先登录"
         items={[
           '学习开始前必须登录。',
           '手机号验证码是主登录方式。',
@@ -2617,12 +2622,12 @@ function MineSurface({
           PROFILE PAGE
         </Text>
         <Text style={[styles.heroTitle, { color: palette.text }]}>
-          {isAuthenticated ? '个人主页已经接进当前模块' : '从“我的”建立个人主页入口'}
+          {isAuthenticated ? '个人主页' : '从“我的”建立个人主页入口'}
         </Text>
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
           {isAuthenticated
-            ? '当前这里先承接账号概览、学习摘要、日级同步状态与空间摘要，同时把会员与购买边界落到同一宿主页。'
-            : '“我的”作为个人主页入口，当前先支持身份建立；会员、试用与购买恢复留在这个宿主页继续承接。'}
+            ? '这里集中显示账号概览、学习摘要、同步状态、空间摘要和会员边界。'
+            : '先完成身份建立，再查看学习摘要、会员状态和购买恢复提醒。'}
         </Text>
       </View>
       <PhoneSmsPanel
@@ -2634,8 +2639,8 @@ function MineSurface({
         summary={
           isAuthenticated
             ? authRepositoryMode === 'remote'
-              ? '当前登录态已经过远端短信验证；学习、会员与同步会继续按各自 runtime 合同接线。'
-              : '当前是本地 profile 登录态：你能看到基础账号信息、学习摘要、同步状态，以及本地 entitlement 宿主。'
+              ? '已通过短信验证码确认身份；学习、会员和同步状态会继续跟随账号更新。'
+              : '已完成登录体验；你可以查看基础账号信息、学习摘要、同步状态和会员状态。'
             : '先从这里完成身份建立，再让学习流和用户态页面具备真实入口。'
         }
       />
@@ -2687,8 +2692,8 @@ function MineSurface({
                   `日级同步：${progressSyncState.label}`,
                   `学习状态：${learningStateSyncState.label}`,
                   authRepositoryMode === 'remote'
-                    ? '当前账号态已经通过远端认证合同建立；跨端 entitlement 仍按当前会员 runtime 模式加载。'
-                    : '当前仍是本地账号态，不代表真实跨端 entitlement 已接通。',
+                    ? '账号已完成短信验证；会员状态会继续随账号刷新。'
+                    : '当前可查看学习与会员状态。',
                 ]
               : [
                   '还没有完成身份建立。',
@@ -2708,7 +2713,7 @@ function MineSurface({
                   `当前待回看 ${pendingReviewCount} 张。`,
                   `同步说明：${progressSyncState.detail}`,
                   `学习状态说明：${learningStateSyncState.detail}`,
-                  '这里先保留低成本摘要，不扩成重统计中心。',
+                  '这里保留低成本摘要，详细趋势仍交给统计页。',
                 ]
               : [
                   '未登录时不承接个人学习连续性。',
@@ -2726,22 +2731,22 @@ function MineSurface({
               ? [
                   `收藏标签 ${favoriteCount} 张。`,
                   `休眠区 ${sleepingCount} 张。`,
-                  'favorite 和 sleep 当前仍是本地状态承接，不是最终同步合同。',
+                  '收藏是标签，休眠是会影响学习流的空间状态。',
                 ]
               : [
                   '登录后才能承接个人空间摘要。',
                   '空间入口仍保持独立顶层导航。',
-                  '这里不会把 favorite 或 sleep 改写成账号合同。',
+                  '这里不会把收藏或休眠改写成新的盒子。',
                 ]
           }
         />
         <InfoCard
           palette={palette}
           style={detailCardStyle}
-          title="当前不做什么"
+          title="这里不承接什么"
           items={[
-            '不在这里接真实购买、恢复购买或跨端 entitlement。',
-            '不在这里把会员壳层伪装成已接服务端事实。',
+            '不把购买与恢复入口藏到学习或空间里。',
+            '不让账号页替代学习、空间或统计入口。',
             '不把“我的”扩成设置中心或复杂账户系统。',
           ]}
         />
@@ -2890,7 +2895,7 @@ function MembershipHostCard({
           {membershipPendingAction === 'start_trial'
             ? '正在同步完整试用状态。'
             : membershipPendingAction === 'purchase'
-            ? '正在同步会员 entitlement。'
+            ? '正在同步会员状态。'
             : '正在更新恢复购买提醒状态。'}
         </Text>
       ) : null}
@@ -2950,10 +2955,10 @@ function MembershipPaywallSurface({
         </Text>
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
           {gate === 'space'
-            ? '根据会员合同，免费态保留基础学习，但完整物理空间属于试用/会员完整体验的一部分。'
+            ? '免费态保留基础学习；完整物理空间属于试用或会员体验。'
             : gate === 'review'
-            ? '根据会员合同，完整算法属于试用/会员完整体验的一部分，免费态只保留基础学习。'
-            : '根据会员合同，免费态应只开放接近一半卡量，完整卡库需要试用/会员。'}
+            ? '免费态保留基础学习；完整回看和更聪明的引导属于试用或会员体验。'
+            : '免费态可以正常学习一部分卡片；完整卡库需要试用或会员。'}
         </Text>
       </View>
       <View
@@ -3063,7 +3068,7 @@ function MembershipActionGroup({
           testID="membership-expire-trial-button"
         >
           <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
-            结束本地试用体验
+            结束试用体验
           </Text>
         </Pressable>
       ) : null}
@@ -3072,8 +3077,8 @@ function MembershipActionGroup({
     <View style={styles.authActions}>
       <Text style={[styles.authSuccess, { color: palette.success }]}>
         {membershipRepositoryMode === 'remote'
-          ? '当前 entitlement 已由远端账号合同回填为会员态。'
-          : '当前本地 entitlement 已是会员态。'}
+          ? '会员状态已随账号更新。'
+          : '会员体验已开启。'}
       </Text>
       {showLocalDebugActions ? (
         <Pressable
@@ -3086,7 +3091,7 @@ function MembershipActionGroup({
           testID="membership-expire-premium-button"
         >
           <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
-            结束本地会员体验
+            结束会员体验
           </Text>
         </Pressable>
       ) : null}
@@ -3237,8 +3242,8 @@ function PhoneSmsPanel({
             : authState.stage === 'code_sent'
             ? `已向 ${maskPhoneNumber(authState.phoneNumber)} 发送验证码。`
             : authRepositoryMode === 'remote'
-            ? '当前会走远端短信验证码合同。'
-            : '当前是本地壳层验证，不会真的发短信。'}
+            ? '将通过短信验证码确认身份。'
+            : '可用验证码完成登录体验。'}
         </Text>
       </View>
 
@@ -3281,8 +3286,8 @@ function PhoneSmsPanel({
         <View style={styles.authActions}>
           <Text style={[styles.authSuccess, { color: palette.success }]}>
             {authRepositoryMode === 'remote'
-              ? '已完成远端短信验证码登录。'
-              : '已完成本地登录态验证。'}
+              ? '已完成短信验证码登录。'
+              : '已完成登录体验。'}
           </Text>
           <Pressable
             disabled={isPending}
@@ -3299,7 +3304,7 @@ function PhoneSmsPanel({
             <Text
               style={[styles.secondaryButtonLabel, { color: palette.text }]}
             >
-              退出当前登录态
+              退出登录
             </Text>
           </Pressable>
         </View>
@@ -3331,7 +3336,7 @@ function RouteCanvas({
         ]}
       >
         <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-          当前阶段
+          当前入口
         </Text>
         <Text style={[styles.heroTitle, { color: palette.text }]}>
           {route.title}
@@ -3344,7 +3349,7 @@ function RouteCanvas({
       <View style={styles.sectionGrid}>
         <InfoCard
           palette={palette}
-          title="本分支只做什么"
+          title="这个入口做什么"
           items={route.highlights}
         />
         <InfoCard palette={palette} title="下一步会接入" items={route.focus} />
@@ -3354,7 +3359,7 @@ function RouteCanvas({
           items={[
             '顶层顺序固定为 学习 / 空间 / 统计 / 我的。',
             '学习保持最重要入口，空间保持顶层入口。',
-            '认证、会员矩阵与日级同步都已接进 runtime；默认仍是本地安全实现。',
+            '登录、会员和日级同步都围绕个人备考连续性展开。',
           ]}
         />
         <InfoCard
@@ -3502,6 +3507,40 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+function getUserFacingErrorMessage(error: unknown, fallback: string) {
+  const message = getErrorMessage(error, fallback);
+  const remoteStatusMatch = message.match(
+    /^Remote (auth request-code|auth verify-code|learning card source request|membership entitlement request|membership mutation|progress sync|learning state sync|space state sync) failed(?: with status| with)? (\d+)\.$/,
+  );
+
+  if (!remoteStatusMatch) {
+    return message;
+  }
+
+  const [, type, statusCode] = remoteStatusMatch;
+
+  switch (type) {
+    case 'auth request-code':
+      return `验证码发送暂时失败（${statusCode}）。`;
+    case 'auth verify-code':
+      return `验证码校验暂时失败（${statusCode}）。`;
+    case 'membership entitlement request':
+      return `会员状态暂时无法读取（${statusCode}）。`;
+    case 'membership mutation':
+      return `会员状态更新暂时失败（${statusCode}）。`;
+    case 'learning card source request':
+      return `学习卡片加载暂时失败（${statusCode}）。`;
+    case 'progress sync':
+      return `学习进展同步暂时失败（${statusCode}）。`;
+    case 'learning state sync':
+      return `学习状态同步暂时失败（${statusCode}）。`;
+    case 'space state sync':
+      return `空间状态同步暂时失败（${statusCode}）。`;
+    default:
+      return message;
+  }
+}
+
 function shouldQueueMembershipTrialStart(error: unknown) {
   const message = getErrorMessage(error, '');
 
@@ -3522,14 +3561,14 @@ function getMembershipCardSummary(
       return '试用不会在注册时自动起算，而是在首个计入入口开始。开始后会放开完整卡库、完整空间和完整算法。';
     case 'trial':
       return mode === 'remote'
-        ? `当前 entitlement 已通过远端合同回填为 ${membershipState.trialDurationDays} 天完整试用态，继续验证完整卡库、空间和算法的放开边界。`
-        : `当前用本地壳层模拟 ${membershipState.trialDurationDays} 天完整试用，确保用户能完整感受到内容、算法和物理空间的价值。`;
+        ? `完整试用已开启 ${membershipState.trialDurationDays} 天，完整卡库、空间和更聪明的引导会一起放开。`
+        : `完整试用已开启 ${membershipState.trialDurationDays} 天，帮助你完整感受内容、引导和物理空间的价值。`;
     case 'free':
       return '当前只保留基础学习，并把完整卡库、完整空间和完整算法收回到试用/会员权限后。';
     case 'premium':
       return mode === 'remote'
-        ? '当前 entitlement 已通过远端合同统一为会员态，完整卡库、完整空间和完整算法都已放开。'
-        : '当前本地 entitlement 已统一为会员态，完整卡库、完整空间和完整算法都已放开。';
+        ? '会员状态已随账号生效，完整卡库、完整空间和完整算法都已放开。'
+        : '会员体验已开启，完整卡库、完整空间和完整算法都已放开。';
   }
 }
 

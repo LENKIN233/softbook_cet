@@ -87,7 +87,7 @@ test('remote learning session repository falls back to local cards when remote s
 
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(session.sourceId).toBe('local-structured-card-source');
-  expect(session.sourceLabel).toBe('本地结构化卡源');
+  expect(session.sourceLabel).toBe('系统顺序学习');
   expect(session.cards).toHaveLength(5);
 });
 

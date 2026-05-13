@@ -115,7 +115,7 @@ export function SpaceSurface({
             空间地图还没有可展示的数据
           </Text>
           <Text style={[styles.summary, { color: palette.textMuted }]}>
-            当前模块需要至少一批带有 library / group / box 的卡片数据才能接出空间知识地图。
+            需要至少一批带有 library / group / box 的卡片，才能展示空间知识地图。
           </Text>
         </SurfaceCard>
       </ScrollView>
@@ -134,10 +134,10 @@ export function SpaceSurface({
           KNOWLEDGE MAP / SPACE
         </Text>
         <Text style={[styles.title, { color: palette.text }]}>
-          已接入卡片的物理空间
+          卡片的物理空间
         </Text>
         <Text style={[styles.summary, { color: palette.textMuted }]}>
-          当前先把已接入卡片的 library / group / box / card 层级接进空间入口，让用户能浏览知识地图、查看盒内卡片，并看见当前学习卡的位置。
+          这里按 library / group / box / card 展示卡片位置，让你能浏览知识地图、查看盒内卡片，并看见当前学习卡在哪里。
         </Text>
         <View style={styles.summaryRow}>
           <SummaryPill label="library" palette={palette} value={seed.libraryCount} />
@@ -189,7 +189,7 @@ export function SpaceSurface({
           />
           <RuleItem
             palette={palette}
-            text="当前模块只做低成本浏览与盒内查看，不把空间做成复杂管理器。"
+            text="空间只保留低成本浏览与盒内查看，不做复杂管理器。"
           />
         </SurfaceCard>
 

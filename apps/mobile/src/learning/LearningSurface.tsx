@@ -113,12 +113,12 @@ export function LearningSurface({
             {isReviewPhase ? 'REVIEW FLOW' : 'SINGLE CARD FLOW'}
           </Text>
           <Text style={[styles.heroTitle, { color: palette.text }]}>
-            {isReviewPhase ? '本轮回看已走完' : '本轮卡源已走完'}
+            {isReviewPhase ? '本轮回看已走完' : '本轮学习已走完'}
           </Text>
           <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
             {isReviewPhase
               ? `这轮从${sessionLabel}里回看了 ${sessionCards.length} 张卡，把“需要回看”的部分收成一次低成本复习。`
-              : `当前分支从${sessionLabel}首轮抽出 ${sessionCards.length} 张卡，把学习主路径、核心交互和最小出卡规则串起来。`}
+              : `这轮从${sessionLabel}里完成了 ${sessionCards.length} 张卡，主路径保持一张卡一张卡推进。`}
           </Text>
           <View style={styles.metricWrap}>
             <MetricPill
@@ -179,7 +179,7 @@ export function LearningSurface({
                   ]
                 : [
                     '学习入口不再是说明页，而是已登录后即可进入的单卡流。',
-                    '本地测试卡覆盖 5 个核心交互，提示层附着在具体卡上出现。',
+                    '核心交互覆盖翻面、选择、锁定、排除和滑动，提示层附着在具体卡上出现。',
                     'Peek 和收藏保持轻量，不抢占答题动作。',
                   ]
             }
@@ -190,9 +190,9 @@ export function LearningSurface({
             lines={
               isReviewPhase
                 ? [
-                    '没有接真实调度算法，只用了本地 review 队列。',
+                    '没有把回看扩成新的学习模式。',
                     '没有把回看扩成独立顶层入口或复杂进度面板。',
-                    '没有把同步、会员或统计合同提前带进来。',
+                    '没有让同步、会员或统计打断本轮回看。',
                   ]
                 : [
                     '没有接学习算法、真实卡池和跨端同步。',
@@ -952,7 +952,7 @@ function ResultPanel({
         testID="learning-next-button"
       >
         <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-          {isLastCard ? '完成测试卡' : '下一张'}
+          {isLastCard ? '完成本轮学习' : '下一张'}
         </Text>
       </Pressable>
     </View>
