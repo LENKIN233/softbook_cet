@@ -511,6 +511,7 @@ check_equal(
         "docs/design/visual-reference.html",
         "docs/design/canon.md",
         "docs/design/briefs/*.md",
+        "docs/design/directions/*.md",
         "docs/design/decisions/*.md",
         "docs/design/interaction-motion/*.md",
         "docs/design/physical-space/*.md",
@@ -519,6 +520,11 @@ check_equal(
         "linked_external_design_file",
     ],
     pull_request_contract["user_facing_ui_design_gate"]["accepted_sources"],
+)
+check_equal(
+    "pull_request_contract same_pull_request_design_artifact_rule",
+    "design brief, direction, or decision added in the same PR may satisfy design-only work, but cannot satisfy an implementation PR that also changes user-facing UI",
+    pull_request_contract["user_facing_ui_design_gate"]["same_pull_request_design_artifact_rule"],
 )
 check_equal(
     "pull_request_contract task_local_design_brief_rule",
@@ -1058,6 +1064,7 @@ for snippet in [
     "未完成 agent review、PR 描述未记录 passed review、required gates 未全绿，或权限/环境阻止 merge 时，不要提前合并到 `main`",
     "如果权限或环境阻止创建 PR，必须明确交付 branch、commit、验证结果与阻塞原因",
     "不要直接用 RN 代码、截图或 agent 个人审美定义用户可见设计；任何呈现给用户的 screen / component / state / chrome 都必须先有已接受设计稿或等价设计基准，再进入实现",
+    "不要用同一 PR 内新增 / 修改的 design brief、direction 或 decision 为同一 PR 的用户可见 UI 实现背书；同 PR 设计稿只适用于 design-only PR",
     "不要把 task-local design brief 当作 implementation PR 的正式设计权威；它只能作为探索草稿",
     "不要把核心交互 / 小动效当作 UI 完成后的装饰；Learning 或核心交互实现必须先有 interaction/motion artifact 或 storyboard",
     "不要把物理空间当作普通页面 UI；Space 实现必须先有 spatial model / state transition / Learning ↔ Space 连续性 artifact",
@@ -1083,7 +1090,7 @@ for snippet in [
     "PR 创建后，默认在 agent review 通过、PR body 留下可校验 review 记录、且 required gates 全绿时自动合并到 `main`。",
     "只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。",
     "如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。",
-    "涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / decision，再做实现；同一 PR 内新增的 brief / decision 只能满足 design-only PR。",
+    "涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / direction / decision，再做实现；同一 PR 内新增的 brief / direction / decision 只能满足 design-only PR。",
     "Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 和 Space visual proof / refinement / shelf-desk baseline；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
     "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`、`Agent review`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。",
     "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。",
@@ -1108,9 +1115,9 @@ for snippet in [
     "- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness 校验 + agent review 记录 + mobile quality + backend contract）",
     "- `scripts/validate_agent_review.py`: PR body agent review 记录校验（merge 前必须记录 passed review 且无阻塞问题）",
     "- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）",
-    "- `docs/design/interaction-motion/` / `docs/design/physical-space/` / `docs/design/mocks/` / `docs/design/storyboards/`: 核心交互、动效、空间模型、视觉稿和 storyboard artifact 入口",
+    "- `docs/design/directions/` / `docs/design/interaction-motion/` / `docs/design/physical-space/` / `docs/design/mocks/` / `docs/design/storyboards/`: 核心方向、交互、动效、空间模型、视觉稿和 storyboard artifact 入口",
     "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review 记录 -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",
-    "任何用户可见 UI 改动都必须先引用已接受设计稿 / reference / design brief / decision，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口；同一 PR 内新增的 brief / decision 只能满足 design-only PR。",
+    "任何用户可见 UI 改动都必须先引用已接受设计稿 / reference / design brief / direction / decision，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口；同一 PR 内新增的 brief / direction / decision 只能满足 design-only PR。",
     "Learning / core interaction UI 改动还必须引用 interaction-motion artifact 或 storyboard；Space UI 改动还必须引用 physical-space artifact 和 Space visual proof / refinement / shelf-desk baseline；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
 ]:
     check_contains("README delivery mirror", readme_text, snippet)
@@ -1451,6 +1458,9 @@ else:
         "agent-review` gate",
         "- Interaction/motion artifact: N/A",
         "- Physical space artifact: N/A",
+        "design brief、direction 或 decision",
+        "docs/design/directions/*.md",
+        "docs/design/directions/space-surface-visual-directions-v1.md",
         "docs/design/mocks/space-surface-shelf-desk-v1.md",
         "用户可见 UI 改动必须回答下方 `Universal Q1-Q4` 与适用的 `Conditional Q5-Q6`，不能保留 `N/A`。",
         "`Universal Q1-Q4` 不能只写 `answered`",
@@ -2281,6 +2291,30 @@ elif "Space visual proof" not in (
 ):
     errors.append(
         "validate_pr_design_gate.py Space visual proof rejection must explain the required artifact"
+    )
+
+space_visual_directions_case = run_design_gate_case(
+    """
+## 设计稿来源（用户可见 UI 如适用）
+
+- Design artifact: docs/design/directions/space-surface-visual-directions-v1.md
+- Interaction/motion artifact: N/A
+- Physical space artifact: docs/design/physical-space/space-model-v1.md
+- Implementation mapping: docs/design/mapping/learning-space-implementation-map-v1.md
+- Unimplemented design gaps: No known gaps.
+
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
+- Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+""",
+    ["apps/mobile/src/space/SpaceSurface.tsx"],
+)
+if space_visual_directions_case.returncode != 0:
+    errors.append(
+        "validate_pr_design_gate.py should allow Space UI implementation that names the accepted Space visual directions artifact: "
+        + space_visual_directions_case.stdout
+        + space_visual_directions_case.stderr
     )
 
 space_visual_proof_case = run_design_gate_case(

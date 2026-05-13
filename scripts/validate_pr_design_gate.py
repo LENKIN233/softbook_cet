@@ -42,6 +42,7 @@ SPACE_SURFACE_PREFIXES = (
 )
 DESIGN_ARTIFACT_PREFIXES = (
     "docs/design/briefs/",
+    "docs/design/directions/",
     "docs/design/decisions/",
     "docs/design/interaction-motion/",
     "docs/design/physical-space/",
@@ -52,6 +53,7 @@ VISUAL_OUTPUT_FILES = {
     "docs/design/visual-reference.html",
 }
 VISUAL_OUTPUT_PREFIXES = (
+    "docs/design/directions/",
     "docs/design/interaction-motion/",
     "docs/design/physical-space/",
     "docs/design/mocks/",
@@ -79,7 +81,7 @@ NEGATIVE_BLOCK_RE = re.compile(
 )
 CONCRETE_DOC_ARTIFACT_RE = re.compile(
     r"(docs/design/(?:visual-reference\.html|canon\.md|"
-    r"(?:briefs|decisions|interaction-motion|physical-space|mocks|storyboards)/"
+    r"(?:briefs|directions|decisions|interaction-motion|physical-space|mocks|storyboards)/"
     r"[^\s`),#]+\.(?:md|html|png|jpg|jpeg|webp|svg)))",
     re.IGNORECASE,
 )
@@ -87,6 +89,7 @@ ACCEPTED_SOURCE_MARKERS = (
     "docs/design/visual-reference.html",
     "docs/design/canon.md",
     "docs/design/briefs/",
+    "docs/design/directions/",
     "docs/design/decisions/",
     "docs/design/interaction-motion/",
     "docs/design/physical-space/",
@@ -96,6 +99,7 @@ ACCEPTED_SOURCE_MARKERS = (
     "https://",
 )
 SURFACE_SPECIFIC_SOURCE_MARKERS = (
+    "docs/design/directions/",
     "docs/design/decisions/",
     "docs/design/mocks/",
     "docs/design/storyboards/",
