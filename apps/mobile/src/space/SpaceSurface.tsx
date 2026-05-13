@@ -153,20 +153,193 @@ export function SpaceSurface({
   const isGated = spaceGateRail !== null && spaceGateRail !== undefined;
 
   if (!selectedLibrary || !selectedGroup || !selectedBox) {
+    const emptySpacePath = currentLearningCard
+      ? {
+          boxName: currentLearningCard.space_metadata.box,
+          boxRef: currentLearningCard.space_metadata.box_ref,
+          groupName: currentLearningCard.space_metadata.group,
+          libraryName: currentLearningCard.space_metadata.library,
+        }
+      : {
+          boxName: '待恢复盒位',
+          boxRef: 'pending',
+          groupName: '待恢复 group',
+          libraryName: '待恢复 library',
+        };
+    const emptyTone = currentLearningCard
+      ? currentTone
+      : resolveLibraryTone(emptySpacePath.libraryName);
+    const emptySelectedPath = `${emptySpacePath.libraryName} / ${emptySpacePath.groupName} / ${emptySpacePath.boxName}`;
+
     return (
-      <ScrollView contentContainerStyle={styles.content}>
-        <SurfaceCard palette={palette}>
-          <Text style={[styles.eyebrow, { color: palette.accent }]}>
-            SPACE / EMPTY
-          </Text>
-          <Text style={[styles.title, { color: palette.text }]}>
-            空间地图还没有可展示的数据
-          </Text>
-          <Text style={[styles.summary, { color: palette.textMuted }]}>
-            需要至少一批带有 library / group / box
-            的卡片，才能展示空间知识地图。
-          </Text>
-        </SurfaceCard>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          deviceClass === 'tablet' ? styles.contentTablet : null,
+        ]}
+      >
+        <View style={styles.shelfDeskFrame} testID="space-empty-state">
+          <SurfaceCard
+            palette={palette}
+            style={styles.addressShelf}
+            testID="space-address-shelf"
+          >
+            <Text style={[styles.eyebrow, { color: emptyTone.accent }]}>
+              KNOWLEDGE MAP / SPACE
+            </Text>
+            <Text style={[styles.title, { color: palette.text }]}>
+              卡片的物理空间
+            </Text>
+            <Text style={[styles.summary, { color: palette.textMuted }]}>
+              当前盒暂无可展示卡片；空间仍保留地址架、盒托盘和回到学习的上下文。
+            </Text>
+            <View style={styles.summaryRow}>
+              <SummaryPill
+                label="library"
+                palette={palette}
+                value={currentLearningCard ? 1 : 0}
+              />
+              <SummaryPill
+                label="group"
+                palette={palette}
+                value={currentLearningCard ? 1 : 0}
+              />
+              <SummaryPill
+                label="box"
+                palette={palette}
+                value={currentLearningCard ? 1 : 0}
+              />
+              <SummaryPill label="card" palette={palette} value={0} />
+              <SummaryPill label="favorite" palette={palette} value={0} />
+              <SummaryPill label="sleep" palette={palette} value={0} />
+            </View>
+            <View
+              style={[styles.addressPath, { borderColor: emptyTone.accent }]}
+            >
+              <Text
+                style={[styles.addressPathLabel, { color: emptyTone.accent }]}
+              >
+                当前地址
+              </Text>
+              <Text style={[styles.addressPathText, { color: palette.text }]}>
+                {emptySelectedPath}
+              </Text>
+            </View>
+          </SurfaceCard>
+
+          <SurfaceCard palette={palette} testID="space-current-box-tray">
+            <View style={styles.boxTrayHeader}>
+              <View style={styles.boxTrayCopy}>
+                <Text style={[styles.eyebrow, { color: emptyTone.accent }]}>
+                  EMPTY BOX TRAY
+                </Text>
+                <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
+                  {emptySpacePath.boxName}
+                </Text>
+                <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+                  box_ref {emptySpacePath.boxRef} · 0 张可展示卡片 · 保留空盒轮廓
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.boxAccentRail,
+                  { backgroundColor: emptyTone.accent },
+                ]}
+              />
+            </View>
+
+            <Text style={[styles.locationText, { color: emptyTone.accent }]}>
+              {currentLearningCard
+                ? `当前学习卡位于 ${emptySelectedPath}`
+                : '空间地址正在等待卡片源恢复；当前仍保留物理盒位。'}
+            </Text>
+
+            <View style={styles.boxShelf} testID="space-current-position">
+              <View
+                style={[
+                  styles.boxShelfTile,
+                  {
+                    backgroundColor: emptyTone.accentSoft,
+                    borderColor: emptyTone.accent,
+                  },
+                ]}
+                testID="space-empty-box-slot"
+              >
+                <Text style={[styles.boxName, { color: palette.text }]}>
+                  {emptySpacePath.boxName}
+                </Text>
+                <Text style={[styles.boxMeta, { color: palette.textMuted }]}>
+                  暂无可展示卡片 · {emptySpacePath.boxRef}
+                </Text>
+                <Text style={[styles.currentTag, { color: emptyTone.accent }]}>
+                  空盒轮廓保留
+                </Text>
+              </View>
+            </View>
+          </SurfaceCard>
+
+          {spaceGateRail ? (
+            <SpaceGateRailCard palette={palette} rail={spaceGateRail} />
+          ) : null}
+
+          {spaceSyncRail ? (
+            <SpaceSyncRailCard palette={palette} rail={spaceSyncRail} />
+          ) : null}
+
+          <SurfaceCard palette={palette} testID="space-box-detail">
+            <View style={styles.containedHeader}>
+              <View style={styles.statusCopy}>
+                <Text style={[styles.cardTitle, { color: palette.text }]}>
+                  盒内卡片
+                </Text>
+                <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+                  {emptySelectedPath}
+                </Text>
+              </View>
+              <Text style={[styles.stateTag, { color: palette.warning }]}>
+                0 张可展示
+              </Text>
+            </View>
+            <View style={styles.cardStrip} testID="space-contained-card-strip">
+              <View
+                style={[
+                  styles.cardTile,
+                  {
+                    backgroundColor: palette.panelStrong,
+                    borderColor: palette.border,
+                  },
+                ]}
+                testID="space-empty-card-slot"
+              >
+                <Text style={[styles.cardPrompt, { color: palette.text }]}>
+                  当前盒暂无可展示卡片
+                </Text>
+                <Text style={[styles.cardMeta, { color: palette.textMuted }]}>
+                  等待卡片源、筛选条件或会员深度恢复；不跳转到模块选择。
+                </Text>
+              </View>
+            </View>
+          </SurfaceCard>
+
+          <SurfaceCard palette={palette} testID="space-continuity-strip">
+            <View style={styles.returnStrip}>
+              <View style={styles.statusCopy}>
+                <Text style={[styles.cardTitle, { color: palette.text }]}>
+                  回到学习
+                </Text>
+                <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+                  返回单卡流时保留当前学习上下文，不把空盒状态改写成模块选择。
+                </Text>
+              </View>
+              <ActionChip
+                label="回到学习"
+                onPress={onReturnToLearning}
+                palette={palette}
+                testID="space-return-learning"
+              />
+            </View>
+          </SurfaceCard>
+        </View>
       </ScrollView>
     );
   }
@@ -467,64 +640,11 @@ export function SpaceSurface({
         </SurfaceCard>
 
         {spaceGateRail ? (
-          <SurfaceCard
-            palette={palette}
-            style={styles.stateRail}
-            testID="space-gate-rail"
-          >
-            <View style={styles.gateRailHeader}>
-              <View style={styles.statusCopy}>
-                <Text style={[styles.eyebrow, { color: palette.warning }]}>
-                  SPACE GATE
-                </Text>
-                <Text style={[styles.cardTitle, { color: palette.text }]}>
-                  {spaceGateRail.title}
-                </Text>
-                <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                  {spaceGateRail.detail}
-                </Text>
-              </View>
-              <Text style={[styles.stateTag, { color: palette.warning }]}>
-                {spaceGateRail.label}
-              </Text>
-            </View>
-            {spaceGateRail.actionSlot}
-          </SurfaceCard>
+          <SpaceGateRailCard palette={palette} rail={spaceGateRail} />
         ) : null}
 
         {spaceSyncRail ? (
-          <SurfaceCard
-            palette={palette}
-            style={styles.stateRail}
-            testID="space-sync-rail"
-          >
-            <View style={styles.gateRailHeader}>
-              <View style={styles.statusCopy}>
-                <Text
-                  style={[
-                    styles.eyebrow,
-                    { color: resolveSpaceSyncRailColor(spaceSyncRail, palette) },
-                  ]}
-                >
-                  SPACE SYNC
-                </Text>
-                <Text style={[styles.cardTitle, { color: palette.text }]}>
-                  {spaceSyncRail.title}
-                </Text>
-                <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                  {spaceSyncRail.detail}
-                </Text>
-              </View>
-              <Text
-                style={[
-                  styles.stateTag,
-                  { color: resolveSpaceSyncRailColor(spaceSyncRail, palette) },
-                ]}
-              >
-                {spaceSyncRail.label}
-              </Text>
-            </View>
-          </SurfaceCard>
+          <SpaceSyncRailCard palette={palette} rail={spaceSyncRail} />
         ) : null}
 
         <SurfaceCard palette={palette} testID="space-box-detail">
@@ -761,6 +881,75 @@ function ActionChip({
         {label}
       </Text>
     </Pressable>
+  );
+}
+
+function SpaceGateRailCard({
+  palette,
+  rail,
+}: {
+  palette: SpacePalette;
+  rail: SpaceGateRail;
+}) {
+  return (
+    <SurfaceCard
+      palette={palette}
+      style={styles.stateRail}
+      testID="space-gate-rail"
+    >
+      <View style={styles.gateRailHeader}>
+        <View style={styles.statusCopy}>
+          <Text style={[styles.eyebrow, { color: palette.warning }]}>
+            SPACE GATE
+          </Text>
+          <Text style={[styles.cardTitle, { color: palette.text }]}>
+            {rail.title}
+          </Text>
+          <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+            {rail.detail}
+          </Text>
+        </View>
+        <Text style={[styles.stateTag, { color: palette.warning }]}>
+          {rail.label}
+        </Text>
+      </View>
+      {rail.actionSlot}
+    </SurfaceCard>
+  );
+}
+
+function SpaceSyncRailCard({
+  palette,
+  rail,
+}: {
+  palette: SpacePalette;
+  rail: SpaceSyncRail;
+}) {
+  const railColor = resolveSpaceSyncRailColor(rail, palette);
+
+  return (
+    <SurfaceCard
+      palette={palette}
+      style={styles.stateRail}
+      testID="space-sync-rail"
+    >
+      <View style={styles.gateRailHeader}>
+        <View style={styles.statusCopy}>
+          <Text style={[styles.eyebrow, { color: railColor }]}>
+            SPACE SYNC
+          </Text>
+          <Text style={[styles.cardTitle, { color: palette.text }]}>
+            {rail.title}
+          </Text>
+          <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+            {rail.detail}
+          </Text>
+        </View>
+        <Text style={[styles.stateTag, { color: railColor }]}>
+          {rail.label}
+        </Text>
+      </View>
+    </SurfaceCard>
   );
 }
 
