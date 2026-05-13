@@ -45,6 +45,7 @@
         "docs/design/visual-reference.html",
         "docs/design/canon.md",
         "docs/design/briefs/*.md",
+        "docs/design/directions/*.md",
         "docs/design/decisions/*.md",
         "docs/design/interaction-motion/*.md",
         "docs/design/physical-space/*.md",
@@ -52,7 +53,7 @@
         "docs/design/storyboards/*.md",
         "linked_external_design_file"
       ],
-      "same_pull_request_design_artifact_rule": "design brief or decision added in the same PR may satisfy design-only work, but cannot satisfy an implementation PR that also changes user-facing UI",
+      "same_pull_request_design_artifact_rule": "design brief, direction, or decision added in the same PR may satisfy design-only work, but cannot satisfy an implementation PR that also changes user-facing UI",
       "task_local_design_brief_rule": "task-local design briefs may guide exploration but are not accepted implementation authority",
       "existing_code_is_not_design_authority": true,
       "implementation_without_design_artifact": "delivery_blocker",
