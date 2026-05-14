@@ -35,7 +35,7 @@ name: ios-remote-auth-learning-space-statistics-smoke
 - tapOn:
     id: "route-tab-space"
 - assertVisible:
-    id: "space-current-position"
+    id: "space-address-shelf"
 - scrollUntilVisible:
     element:
       id: "space-library-2"
