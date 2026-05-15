@@ -21,7 +21,8 @@ name: ios-remote-auth-learning-space-statistics-smoke
 - tapOn:
     id: "auth-code-input"
 - inputText: "${SOFTBOOK_CET_MAESTRO_CODE}"
-- tapOn: "学习前先登录"
+- tapOn:
+    id: "auth-gate-keyboard-dismiss-target"
 - scrollUntilVisible:
     element:
       id: "auth-submit-button"

@@ -2666,7 +2666,10 @@ function AuthGate({
         <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
           AUTH GATE
         </Text>
-        <Text style={[styles.heroTitle, { color: palette.text }]}>
+        <Text
+          style={[styles.heroTitle, { color: palette.text }]}
+          testID="auth-gate-keyboard-dismiss-target"
+        >
           {route.key === 'learning'
             ? '学习前先登录'
             : `进入${route.label}前先确认身份`}
