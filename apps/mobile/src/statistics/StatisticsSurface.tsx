@@ -162,7 +162,14 @@ export function StatisticsSurface({
             ]}
             testID="statistics-checkin-button"
           >
-            <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            <Text
+              style={[styles.primaryButtonLabel, { color: palette.panel }]}
+              testID={
+                hasCheckedInToday
+                  ? 'statistics-checkin-complete-label'
+                  : 'statistics-checkin-ready-label'
+              }
+            >
               {hasCheckedInToday ? '今日已签到' : '完成今日签到'}
             </Text>
           </Pressable>

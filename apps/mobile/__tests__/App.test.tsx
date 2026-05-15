@@ -2195,6 +2195,10 @@ test('can check in from statistics after making learning progress', async () => 
   });
 
   output = JSON.stringify(tree!.toJSON());
+  expect(
+    root.findAllByProps({ testID: 'statistics-checkin-complete-label' })
+      .length,
+  ).toBeGreaterThan(0);
   expect(output).toContain('今日已签到');
   expect(output).toContain('今天的学习进展已在本机记录。');
 });
@@ -2420,6 +2424,9 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   });
 
   let output = JSON.stringify(tree!.toJSON());
+  expect(
+    root.findAllByProps({ testID: 'space-favorite-active-002001' }).length,
+  ).toBeGreaterThan(0);
   expect(output).toContain('收藏标签');
   expect(output).toContain('取消收藏');
 
