@@ -820,6 +820,11 @@ export function SpaceSurface({
                       <>
                         <ActionChip
                           label={isFavorited ? '取消收藏' : '收藏'}
+                          labelTestID={
+                            isFavorited
+                              ? `space-favorite-active-${card.cardId}`
+                              : `space-favorite-inactive-${card.cardId}`
+                          }
                           onPress={() => onToggleFavoriteTag(card.cardId)}
                           palette={palette}
                           testID={`space-favorite-${card.cardId}`}
@@ -945,11 +950,13 @@ export function SpaceSurface({
 
 function ActionChip({
   label,
+  labelTestID,
   onPress,
   palette,
   testID,
 }: {
   label: string;
+  labelTestID?: string;
   onPress: () => void;
   palette: SpacePalette;
   testID?: string;
@@ -963,7 +970,10 @@ function ActionChip({
       ]}
       testID={testID}
     >
-      <Text style={[styles.actionChipLabel, { color: palette.accentStrong }]}>
+      <Text
+        style={[styles.actionChipLabel, { color: palette.accentStrong }]}
+        testID={labelTestID}
+      >
         {label}
       </Text>
     </Pressable>
