@@ -164,6 +164,7 @@ else:
         "docs/design/directions/*.md",
         "docs/design/directions/space-surface-visual-directions-v1.md",
         "docs/design/mocks/space-surface-shelf-desk-v1.md",
+        "docs/design/mocks/space-state-baseline-v1.html",
         "用户可见 UI 改动必须回答下方 `Universal Q1-Q4` 与适用的 `Conditional Q5-Q6`，不能保留 `N/A`。",
         "`Universal Q1-Q4` 不能只写 `answered`",
     ]:
@@ -195,7 +196,8 @@ else:
     element:
       text: "继续"
 - assertVisible:
-    id: "missing-code-testid"
+    id: missing-code-testid
+- tapOn: { id: missing-inline-testid }
 """,
             encoding="utf-8",
         )
@@ -203,9 +205,8 @@ else:
             """appId: com.softbook.cet
 ---
 - tapOn:
-    id: "auth-submit-button"
-- assertVisible:
-    id: "statistics-checkin-complete-label"
+    id: auth-submit-button
+- assertVisible: { id: statistics-checkin-complete-label }
 - extendedWaitUntil:
     visible:
       id: "auth-phone-input"

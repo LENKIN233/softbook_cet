@@ -928,6 +928,30 @@ if space_shelf_desk_case.returncode != 0:
         + space_shelf_desk_case.stderr
     )
 
+space_state_baseline_case = run_design_gate_case(
+    """
+## 设计稿来源（用户可见 UI 如适用）
+
+- Design artifact: docs/design/mocks/space-state-baseline-v1.html
+- Interaction/motion artifact: N/A
+- Physical space artifact: docs/design/physical-space/space-state-baseline-v1.md
+- Implementation mapping: docs/design/mapping/learning-space-implementation-map-v1.md
+- Unimplemented design gaps: Motion for loading, error recovery, and sync merge remains out of scope.
+
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current box tray and first-read path address shelf -> state rail -> tray -> contained objects; Q3 silhouette matches Space physical hierarchy; Q4 forbidden_design_patterns none.
+- Conditional Q5-Q6: Q5 phone viewport containment is covered by rendered proof; Q6 learning flip stats module rules unchanged.
+""",
+    ["apps/mobile/src/space/SpaceSurface.tsx"],
+)
+if space_state_baseline_case.returncode != 0:
+    errors.append(
+        "validate_pr_design_gate.py should allow Space state UI implementation that names the accepted Space state baseline artifact: "
+        + space_state_baseline_case.stdout
+        + space_state_baseline_case.stderr
+    )
+
 space_fake_shelf_desk_case = run_design_gate_case(
     """
 ## 设计稿来源（用户可见 UI 如适用）

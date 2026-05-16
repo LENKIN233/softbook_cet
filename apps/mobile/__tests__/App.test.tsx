@@ -2318,11 +2318,11 @@ test('can browse the seeded knowledge map after login', async () => {
   expect(output).toContain('回到学习');
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-library-2' }).props.onPress();
+    root.findByProps({ testID: 'space-library-05' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-group-1' }).props.onPress();
+    root.findByProps({ testID: 'space-group-052' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -2575,11 +2575,11 @@ test('keeps basic learning recoverable when free cards all enter sleep zone', as
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-library-2' }).props.onPress();
+    root.findByProps({ testID: 'space-library-05' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-group-1' }).props.onPress();
+    root.findByProps({ testID: 'space-group-052' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -2591,7 +2591,7 @@ test('keeps basic learning recoverable when free cards all enter sleep zone', as
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-library-1' }).props.onPress();
+    root.findByProps({ testID: 'space-library-01' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {

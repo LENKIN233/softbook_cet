@@ -29,8 +29,12 @@ SCALAR_COMMAND_RE = re.compile(
 SCALAR_KEY_RE = re.compile(
     r"^\s*(?P<key>[A-Za-z][A-Za-z0-9_]*)\s*:\s*(?P<value>.+?)\s*$"
 )
-ID_KEY_RE = re.compile(r"^\s*id\s*:\s*['\"](?P<id>[^'\"]+)['\"]")
-INLINE_ID_RE = re.compile(r"\bid\s*:\s*['\"](?P<id>[^'\"]+)['\"]")
+ID_KEY_RE = re.compile(
+    r"^\s*id\s*:\s*(?P<quote>['\"]?)(?P<id>[^'\"\s,#}]+)(?P=quote)"
+)
+INLINE_ID_RE = re.compile(
+    r"\bid\s*:\s*(?P<quote>['\"]?)(?P<id>[^'\"\s,#}]+)(?P=quote)"
+)
 TEST_ID_LITERAL_RE = re.compile(r"testID\s*=\s*['\"](?P<id>[^'\"]+)['\"]")
 STRING_LITERAL_RE = re.compile(r"['\"](?P<id>[a-z][a-z0-9_-]+)['\"]")
 TEMPLATE_LITERAL_RE = re.compile(r"`(?P<template>[^`]*\$\{[^`]+)`", re.DOTALL)

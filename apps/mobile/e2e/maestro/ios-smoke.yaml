@@ -40,18 +40,18 @@ name: ios-auth-learning-space-statistics-smoke
     id: "space-current-position"
 - scrollUntilVisible:
     element:
-      id: "space-library-2"
+      id: "space-library-05"
     direction: DOWN
     centerElement: true
 - tapOn:
-    id: "space-library-2"
+    id: "space-library-05"
 - scrollUntilVisible:
     element:
-      id: "space-group-1"
+      id: "space-group-052"
     direction: DOWN
     centerElement: true
 - tapOn:
-    id: "space-group-1"
+    id: "space-group-052"
 - scrollUntilVisible:
     element:
       id: "space-box-0521"

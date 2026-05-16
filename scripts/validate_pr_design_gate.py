@@ -122,6 +122,8 @@ SPACE_VISUAL_PROOF_SOURCE_MARKERS = (
     "docs/design/mocks/space-surface-visual-proof-v1",
     "docs/design/mocks/space-surface-visual-refinement-v1",
     "docs/design/mocks/space-surface-shelf-desk-v1",
+    "docs/design/mocks/space-state-baseline-v1",
+    "docs/design/physical-space/space-state-baseline-v1",
     "docs/design/directions/space-surface-visual-directions-v1",
     "http://",
     "https://",
@@ -645,6 +647,8 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
                 "docs/design/mocks/space-surface-visual-proof-v1.md/html, "
                 "docs/design/mocks/space-surface-visual-refinement-v1.md/html, "
                 "docs/design/mocks/space-surface-shelf-desk-v1.md/html, "
+                "docs/design/mocks/space-state-baseline-v1.html, "
+                "docs/design/physical-space/space-state-baseline-v1.md, "
                 "docs/design/directions/space-surface-visual-directions-v1.md, "
                 "or a linked external design file"
             )
