@@ -9,6 +9,7 @@
 ## 验证
 
 - [ ] `python3 scripts/validate_harness.py`
+- [ ] `python3 scripts/validate_maestro_selectors.py`
 - [ ] `cd apps/mobile && npm run lint -- --quiet`
 - [ ] `cd apps/mobile && npm run typecheck`
 - [ ] `cd apps/mobile && npm test -- --runInBand --watchAll=false`

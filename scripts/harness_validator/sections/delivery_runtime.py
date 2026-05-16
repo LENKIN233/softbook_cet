@@ -136,6 +136,7 @@ else:
         "working-directory: infra/cloudbase/functions/softbook-api",
         "./scripts/install_git_hooks.sh",
         "python3 scripts/validate_harness.py --skip-remote-guard",
+        "python3 scripts/validate_maestro_selectors.py",
         "npm ci",
         "npm run lint -- --quiet",
         "npm run typecheck",
@@ -152,6 +153,7 @@ else:
     for heading in pull_request_contract["required_body_sections"]:
         check_contains("PR template heading", pr_template_text, f"## {heading}")
     for snippet in [
+        "- [ ] `python3 scripts/validate_maestro_selectors.py`",
         "- [ ] `cd infra/cloudbase/functions/softbook-api && npm test`",
         "## Agent review",
         "- Review status: N/A",
@@ -166,3 +168,64 @@ else:
         "`Universal Q1-Q4` 不能只写 `answered`",
     ]:
         check_contains("PR template design gate fields", pr_template_text, snippet)
+
+maestro_selector_script = ROOT / "scripts" / "validate_maestro_selectors.py"
+if not maestro_selector_script.exists():
+    errors.append("missing Maestro selector validator: scripts/validate_maestro_selectors.py")
+else:
+    current_result = run_command(sys.executable, str(maestro_selector_script))
+    if current_result is None or current_result.returncode != 0:
+        errors.append(
+            "validate_maestro_selectors.py must pass current Maestro flows: "
+            + (current_result.stderr or current_result.stdout if current_result else "")
+        )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        bad_flow = tmp / "bad.yaml"
+        good_flow = tmp / "good.yaml"
+        bad_flow.write_text(
+            """appId: com.softbook.cet
+---
+- tapOn: "学习前先登录"
+- assertVisible: "今日已签到"
+- extendedWaitUntil:
+    visible: "取消收藏"
+- scrollUntilVisible:
+    element:
+      text: "继续"
+""",
+            encoding="utf-8",
+        )
+        good_flow.write_text(
+            """appId: com.softbook.cet
+---
+- tapOn:
+    id: "auth-submit-button"
+- assertVisible:
+    id: "statistics-checkin-complete-label"
+- extendedWaitUntil:
+    visible:
+      id: "auth-phone-input"
+- inputText: "2468"
+""",
+            encoding="utf-8",
+        )
+
+        bad_result = run_command(sys.executable, str(maestro_selector_script), "--file", str(bad_flow))
+        if bad_result is None or bad_result.returncode == 0:
+            errors.append("validate_maestro_selectors.py must reject visible text selectors")
+        else:
+            for snippet in ["tapOn must use a stable id selector", "text selectors are forbidden"]:
+                if snippet not in bad_result.stdout:
+                    errors.append(
+                        "validate_maestro_selectors.py visible-text regression missing expected rejection: "
+                        + snippet
+                    )
+
+        good_result = run_command(sys.executable, str(maestro_selector_script), "--file", str(good_flow))
+        if good_result is None or good_result.returncode != 0:
+            errors.append(
+                "validate_maestro_selectors.py must allow id selectors and inputText values: "
+                + (good_result.stderr or good_result.stdout if good_result else "")
+            )
