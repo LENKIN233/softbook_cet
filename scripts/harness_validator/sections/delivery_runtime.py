@@ -194,6 +194,8 @@ else:
 - scrollUntilVisible:
     element:
       text: "继续"
+- assertVisible:
+    id: "missing-code-testid"
 """,
             encoding="utf-8",
         )
@@ -214,12 +216,16 @@ else:
 
         bad_result = run_command(sys.executable, str(maestro_selector_script), "--file", str(bad_flow))
         if bad_result is None or bad_result.returncode == 0:
-            errors.append("validate_maestro_selectors.py must reject visible text selectors")
+            errors.append("validate_maestro_selectors.py must reject visible text selectors and missing testIDs")
         else:
-            for snippet in ["tapOn must use a stable id selector", "text selectors are forbidden"]:
+            for snippet in [
+                "tapOn must use a stable id selector",
+                "text selectors are forbidden",
+                "is not backed by a React Native testID",
+            ]:
                 if snippet not in bad_result.stdout:
                     errors.append(
-                        "validate_maestro_selectors.py visible-text regression missing expected rejection: "
+                        "validate_maestro_selectors.py selector regression missing expected rejection: "
                         + snippet
                     )
 
