@@ -204,6 +204,10 @@ check_equal(
             "command": "python3 scripts/validate_harness.py --skip-remote-guard",
         },
         {
+            "id": "maestro_selector_guard",
+            "command": "python3 scripts/validate_maestro_selectors.py",
+        },
+        {
             "id": "agent_review_record",
             "command": "python3 scripts/validate_agent_review.py",
         },
@@ -725,7 +729,7 @@ for snippet in [
     "涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / direction / decision，再做实现；同一 PR 内新增的 brief / direction / decision 只能满足 design-only PR。",
     "Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 和 Space visual proof / refinement / shelf-desk baseline；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
     "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`、`Agent review`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。",
-    "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。",
+    "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_maestro_selectors.py`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。",
     "merge 的默认前置条件是：agent review 无 blocking finding，PR body 中 `Agent review` 已记录为 passed，且 required gates 全绿。",
 ]:
     check_contains("branching strategy delivery mirror", branching_text, snippet)
@@ -734,7 +738,7 @@ readme_text = (ROOT / "README.md").read_text(encoding="utf-8")
 check_contains(
     "README validate_harness scope",
     readme_text,
-    "- `scripts/validate_harness.py`: harness 校验脚本（spec owner 一致性 + main 分支治理护栏）",
+    "- `scripts/validate_harness.py`: harness 校验脚本（spec owner 一致性 + main 分支治理护栏 + Maestro selector 防回归）",
 )
 check_contains(
     "README hook install guidance",
@@ -744,8 +748,9 @@ check_contains(
 for snippet in [
     "- `spec/repo-delivery-contract.json`",
     "- `spec/visual-language.json`",
-    "- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness 校验 + agent review 记录 + mobile quality + backend contract）",
+    "- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness 校验 + Maestro selector guard + agent review 记录 + mobile quality + backend contract）",
     "- `scripts/validate_agent_review.py`: PR body agent review 记录校验（merge 前必须记录 passed review 且无阻塞问题）",
+    "- `scripts/validate_maestro_selectors.py`: Maestro smoke selector 校验（禁止用用户可见文案作为 `tapOn` / `assertVisible` 等 selector）",
     "- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）",
     "- `docs/design/directions/` / `docs/design/interaction-motion/` / `docs/design/physical-space/` / `docs/design/mocks/` / `docs/design/storyboards/`: 核心方向、交互、动效、空间模型、视觉稿和 storyboard artifact 入口",
     "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review 记录 -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",

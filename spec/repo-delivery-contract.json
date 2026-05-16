@@ -87,6 +87,10 @@
         "command": "python3 scripts/validate_harness.py --skip-remote-guard"
       },
       {
+        "id": "maestro_selector_guard",
+        "command": "python3 scripts/validate_maestro_selectors.py"
+      },
+      {
         "id": "agent_review_record",
         "command": "python3 scripts/validate_agent_review.py"
       },
