@@ -522,7 +522,7 @@ export function SpaceSurface({
               Library
             </Text>
             <View style={styles.selectorWrap}>
-              {seed.libraries.map((library, index) => {
+              {seed.libraries.map((library) => {
                 const libraryTone = resolveLibraryTone(library.libraryName);
                 const isActive =
                   library.libraryName === selectedLibrary.libraryName;
@@ -548,7 +548,9 @@ export function SpaceSurface({
                           : palette.border,
                       },
                     ]}
-                    testID={`space-library-${index}`}
+                    testID={`space-library-${resolveLibraryNodeTestIDSegment(
+                      library,
+                    )}`}
                   >
                     <View style={styles.selectorHeader}>
                       <View
@@ -585,7 +587,7 @@ export function SpaceSurface({
               Group
             </Text>
             <View style={styles.selectorWrap}>
-              {selectedLibrary.groups.map((group, index) => {
+              {selectedLibrary.groups.map((group) => {
                 const isActive = group.groupName === selectedGroup.groupName;
 
                 return (
@@ -606,7 +608,9 @@ export function SpaceSurface({
                           : palette.border,
                       },
                     ]}
-                    testID={`space-group-${index}`}
+                    testID={`space-group-${resolveGroupNodeTestIDSegment(
+                      group,
+                    )}`}
                   >
                     <Text
                       style={[
@@ -1259,6 +1263,37 @@ function buildSpaceSeed(spaceCards: readonly LearningCard[]): SpaceSeed {
     libraries,
     libraryCount: libraries.length,
   };
+}
+
+function resolveLibraryNodeTestIDSegment(library: SpaceLibraryNode) {
+  return normalizeSpaceTestIDSegment(
+    firstBoxRefForLibrary(library)?.slice(0, 2) ?? library.libraryName,
+  );
+}
+
+function resolveGroupNodeTestIDSegment(group: SpaceGroupNode) {
+  return normalizeSpaceTestIDSegment(
+    group.boxes[0]?.boxRef.slice(0, 3) ?? group.groupName,
+  );
+}
+
+function firstBoxRefForLibrary(library: SpaceLibraryNode) {
+  for (const group of library.groups) {
+    const boxRef = group.boxes[0]?.boxRef;
+    if (boxRef) {
+      return boxRef;
+    }
+  }
+
+  return null;
+}
+
+function normalizeSpaceTestIDSegment(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'unknown';
 }
 
 const styles = StyleSheet.create({
