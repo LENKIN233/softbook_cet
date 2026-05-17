@@ -184,3 +184,40 @@ test('places Space state rail between address context and current box', () => {
     .toBeGreaterThan(0);
   expectSpaceFirstReadOrder(tree!, 'space-sync-rail');
 });
+
+test('uses box-code selector IDs for Space library and group chips', () => {
+  const session = createLocalLearningSession('cet4');
+  const currentCard = session.catalogCards[0];
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={currentCard}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        spaceCards={session.catalogCards}
+      />,
+    );
+  });
+
+  const root = tree!.root;
+
+  expect(root.findAllByProps({ testID: 'space-library-00' }).length)
+    .toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-library-05' }).length)
+    .toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-library-2' })).toHaveLength(0);
+
+  ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-library-05' }).props.onPress();
+  });
+
+  expect(root.findAllByProps({ testID: 'space-group-052' }).length)
+    .toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-group-1' })).toHaveLength(0);
+});
