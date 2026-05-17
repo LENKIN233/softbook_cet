@@ -1,7 +1,11 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { createCloudBaseStore, createSoftbookApi } = require('../index');
+const {
+  createCloudBaseStore,
+  createSoftbookApi,
+  validateCardSourceForImport,
+} = require('../index');
 
 const fixedNow = new Date('2026-04-30T12:00:00.000Z');
 const CORE_INTERACTIONS = [
@@ -379,6 +383,20 @@ test('CloudBase store rejects invalid persisted card source documents', async ()
 
   assert.equal(response.statusCode, 500);
   assert.equal(response.body.error.code, 'invalid_card_source');
+});
+
+test('card source import validator shares runtime card-source contract', () => {
+  const cardSource = createPersistedCardSource('cet4');
+  const normalized = validateCardSourceForImport(cardSource, 'cet4');
+  const mismatched = createPersistedCardSource('cet6');
+
+  assert.equal(normalized.track, 'cet4');
+  assert.equal(normalized.source.id, 'persisted-cet4-source');
+  assert.equal(normalized.card_records[0].card_id, '052199');
+  assert.throws(
+    () => validateCardSourceForImport(mismatched, 'cet4'),
+    /card source.track must match requested track cet4/,
+  );
 });
 
 function createFakeCloudBaseDb() {

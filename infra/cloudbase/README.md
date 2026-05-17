@@ -92,6 +92,24 @@ cd infra/cloudbase/functions/softbook-api
 npm test
 ```
 
+## Card Source Import
+
+Use the importer when replacing the development CET4/CET6 card source in
+CloudBase NoSQL. The importer runs the same card-source validator used by the
+HTTP function before writing, so content changes cannot bypass the runtime
+contract accidentally.
+
+```bash
+node infra/cloudbase/import-card-source.mjs --file path/to/card-source.json --track cet4
+node infra/cloudbase/import-card-source.mjs --file path/to/card-source.json --track cet4 --apply
+```
+
+The first command is a dry-run and performs no CloudBase write. The `--apply`
+form upserts `softbook_card_sources.<track>` in the current
+`CLOUDBASE_ENV_ID`, defaulting to `test-d2gzcyxr9f7e80972` when the variable is
+not set. The JSON payload must use the deployed response shape:
+`source`, `track`, and `card_records`.
+
 Known SDK risk: `npm audit --omit=dev` currently reports transitive vulnerabilities from `@cloudbase/node-sdk`. Version `3.0.0` reduced part of the audit surface locally but failed real CloudBase DB reads in this environment, so the deployed dev function stays on the latest verified working `3.18.1`. Reassess the SDK or replace the persistence adapter before treating this as a production backend.
 
 ## Runtime Contract Smoke

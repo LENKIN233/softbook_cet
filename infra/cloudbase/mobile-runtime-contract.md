@@ -123,6 +123,9 @@ endpoint reads the `softbook_card_sources` collection by track (`cet4` or
 `cet6`). If a track document is missing, the function seeds the current
 development card records into that collection before returning the same response
 shape. This persistence detail must not change the mobile contract below.
+Use `node infra/cloudbase/import-card-source.mjs --file <json> --track <track>`
+for controlled development imports; dry-run is the default, and `--apply`
+upserts only after the same validator accepts the payload.
 
 Every card record must satisfy:
 

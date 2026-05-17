@@ -701,6 +701,10 @@ function serializeCardSourceResponse(cardSource, expectedTrack) {
   return cloneCardSource(normalizeCardSource(cardSource, expectedTrack));
 }
 
+function validateCardSourceForImport(cardSource, expectedTrack) {
+  return normalizeCardSource(cardSource, expectedTrack);
+}
+
 function normalizeCardSource(cardSource, expectedTrack) {
   const payload = requireCardSourceObject(cardSource, 'card source');
   const source = requireCardSourceObject(payload.source, 'card source.source');
@@ -1731,4 +1735,5 @@ module.exports = {
   createSoftbookApi,
   defaultApi,
   main,
+  validateCardSourceForImport,
 };
