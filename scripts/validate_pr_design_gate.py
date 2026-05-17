@@ -28,6 +28,17 @@ USER_FACING_PREFIXES = (
     "apps/mobile/",
     "apps/web/",
 )
+NON_USER_FACING_TEST_PATH_MARKERS = (
+    "/__mocks__/",
+    "/__tests__/",
+    "/e2e/",
+)
+NON_USER_FACING_TEST_SUFFIXES = (
+    ".spec.jsx",
+    ".spec.tsx",
+    ".test.jsx",
+    ".test.tsx",
+)
 CODE_MAPPING_PREFIXES = (
     "apps/mobile/",
     "apps/web/",
@@ -268,7 +279,17 @@ def is_user_facing_ui_file(path: str) -> bool:
         return True
     if not path.startswith(USER_FACING_PREFIXES):
         return False
+    if is_test_or_fixture_path(path):
+        return False
     return Path(path).suffix.lower() in USER_FACING_EXTENSIONS
+
+
+def is_test_or_fixture_path(path: str) -> bool:
+    lower_path = path.lower()
+    return (
+        any(marker in lower_path for marker in NON_USER_FACING_TEST_PATH_MARKERS)
+        or lower_path.endswith(NON_USER_FACING_TEST_SUFFIXES)
+    )
 
 
 def is_visual_output_file(path: str) -> bool:

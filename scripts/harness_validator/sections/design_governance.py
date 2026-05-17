@@ -643,6 +643,20 @@ else:
     if "Design artifact" not in web_ui_empty_output:
         errors.append("validate_pr_design_gate.py web UI rejection must require design artifact evidence")
 
+test_only_tsx_case = run_design_gate_case(
+    "",
+    [
+        "apps/mobile/__tests__/SpaceSurface.test.tsx",
+        "apps/mobile/src/space/SpaceSurface.test.tsx",
+    ],
+)
+if test_only_tsx_case.returncode != 0:
+    errors.append(
+        "validate_pr_design_gate.py should not require design evidence for test-only TSX changes: "
+        + test_only_tsx_case.stdout
+        + test_only_tsx_case.stderr
+    )
+
 visual_tokens_valid_case = run_design_gate_case(
     """
 ## 设计稿来源（用户可见 UI 如适用）
