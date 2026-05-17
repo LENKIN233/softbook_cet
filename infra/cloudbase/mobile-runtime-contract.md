@@ -126,6 +126,8 @@ shape. This persistence detail must not change the mobile contract below.
 Use `node infra/cloudbase/import-card-source.mjs --file <json> --track <track>`
 for controlled development imports; dry-run is the default, and `--apply`
 upserts only after the same validator accepts the payload.
+Use `node infra/cloudbase/audit-card-sources.mjs` for read-only validation of
+the deployed CET4/CET6 documents after imports or deploys.
 
 Every card record must satisfy:
 
