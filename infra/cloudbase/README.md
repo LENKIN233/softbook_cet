@@ -60,8 +60,8 @@ It intentionally keeps the external mobile contract as `/v1/*` REST:
 
 - Auth uses a development fixed-code adapter. Default code: `2468`.
 - Verified auth returns a signed bearer token that all non-auth endpoints require.
-- Membership state, daily progress, learning state, and space state persist to CloudBase NoSQL when `SOFTBOOK_STORE_MODE=cloudbase`; local tests still default to the in-memory adapter.
-- Card source returns valid CET4/CET6 card records in the same envelope parsed by the mobile app.
+- Card source, membership state, daily progress, learning state, and space state persist to CloudBase NoSQL when `SOFTBOOK_STORE_MODE=cloudbase`; local tests still default to the in-memory adapter.
+- Card source reads `softbook_card_sources` by track and seeds the development CET4/CET6 records into that collection when a track document is missing. The response envelope remains the same one parsed by the mobile app.
 - The router uses classic event-style `exports.main` so it can be bound to CloudBase HTTP access service paths such as `/softbook-api`.
 
 Deploy from this folder:

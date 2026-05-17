@@ -4,10 +4,15 @@ const DEFAULT_SMS_CODE = '2468';
 const DEFAULT_TRIAL_DURATION_DAYS = 5;
 const DEFAULT_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 const CLOUDBASE_COLLECTIONS = {
+  cardSources: 'softbook_card_sources',
   dailyProgress: 'softbook_daily_progress',
   learningStates: 'softbook_learning_states',
   memberships: 'softbook_memberships',
   spaceStates: 'softbook_space_states',
+};
+const DEFAULT_CARD_SOURCE = {
+  id: 'cloudbase-dev-card-source',
+  label: 'CloudBase 开发卡源',
 };
 
 const defaultApi = createSoftbookApi();
@@ -92,7 +97,7 @@ async function handleHttpRequest(config, request) {
     const session = requireAuthSession(config, request);
 
     if (method === 'GET' && path === '/v1/learning/card-source') {
-      return handleLearningCardSource(request, session);
+      return await handleLearningCardSource(config, request);
     }
 
     if (method === 'GET' && path === '/v1/membership/entitlement') {
@@ -216,22 +221,17 @@ function handleVerifyCode(config, request) {
   });
 }
 
-function handleLearningCardSource(request) {
+async function handleLearningCardSource(config, request) {
   const track = request.query.track ?? 'cet4';
 
   if (track !== 'cet4' && track !== 'cet6') {
     throw httpError(400, 'invalid_track', 'track must be cet4 or cet6.');
   }
 
+  const cardSource = await config.store.getCardSource(track);
+
   return jsonResponse(200, {
-    data: {
-      source: {
-        id: 'cloudbase-dev-card-source',
-        label: 'CloudBase 开发卡源',
-      },
-      track,
-      card_records: getCardRecordsForTrack(track),
-    },
+    data: serializeCardSourceResponse(cardSource, track),
   });
 }
 
@@ -368,12 +368,20 @@ function createDefaultStore() {
 }
 
 function createMemoryStore() {
+  const cardSources = new Map();
   const memberships = new Map();
   const dailyProgress = new Map();
   const learningStates = new Map();
   const spaceStates = new Map();
 
   return {
+    getCardSource: track => {
+      if (!cardSources.has(track)) {
+        cardSources.set(track, createDefaultCardSource(track));
+      }
+
+      return cloneCardSource(cardSources.get(track));
+    },
     getMembership: phoneNumber => {
       if (!memberships.has(phoneNumber)) {
         memberships.set(phoneNumber, createInitialMembership());
@@ -460,6 +468,7 @@ function createMemoryStore() {
       });
     },
     snapshot: () => ({
+      cardSources,
       dailyProgress,
       learningStates,
       memberships,
@@ -470,12 +479,28 @@ function createMemoryStore() {
 
 function createCloudBaseStore(options = {}) {
   const db = options.db ?? createCloudBaseDatabase();
+  const cardSources = db.collection(CLOUDBASE_COLLECTIONS.cardSources);
   const memberships = db.collection(CLOUDBASE_COLLECTIONS.memberships);
   const dailyProgress = db.collection(CLOUDBASE_COLLECTIONS.dailyProgress);
   const learningStates = db.collection(CLOUDBASE_COLLECTIONS.learningStates);
   const spaceStates = db.collection(CLOUDBASE_COLLECTIONS.spaceStates);
 
   return {
+    getCardSource: async track => {
+      const existing = await getCloudBaseDocument(cardSources, track);
+
+      if (existing) {
+        return normalizeCardSource(existing, track);
+      }
+
+      const defaultCardSource = createDefaultCardSource(track);
+      await setCloudBaseDocument(cardSources, track, {
+        ...defaultCardSource,
+        updated_at: new Date().toISOString(),
+      });
+
+      return defaultCardSource;
+    },
     getMembership: async phoneNumber => {
       const existing = await getCloudBaseDocument(memberships, phoneNumber);
 
@@ -651,6 +676,288 @@ function isCloudBaseDocumentMissingError(error) {
 
 function createCloudBaseDocumentId(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function createDefaultCardSource(track) {
+  return cloneCardSource({
+    card_records: getCardRecordsForTrack(track),
+    source: DEFAULT_CARD_SOURCE,
+    track,
+  });
+}
+
+function cloneCardSource(cardSource) {
+  return {
+    card_records: cloneJson(cardSource.card_records),
+    source: {
+      id: cardSource.source.id,
+      label: cardSource.source.label,
+    },
+    track: cardSource.track,
+  };
+}
+
+function serializeCardSourceResponse(cardSource, expectedTrack) {
+  return cloneCardSource(normalizeCardSource(cardSource, expectedTrack));
+}
+
+function normalizeCardSource(cardSource, expectedTrack) {
+  const payload = requireCardSourceObject(cardSource, 'card source');
+  const source = requireCardSourceObject(payload.source, 'card source.source');
+  const sourceId = requireCardSourceString(source.id, 'card source.source.id');
+  const sourceLabel = requireCardSourceString(
+    source.label,
+    'card source.source.label',
+  );
+  const track = requireCardSourceTrack(payload.track, 'card source.track');
+
+  if (track !== expectedTrack) {
+    throw cardSourceError(
+      `card source.track must match requested track ${expectedTrack}.`,
+    );
+  }
+
+  const cardRecords = requireCardSourceArray(
+    payload.card_records,
+    'card source.card_records',
+  ).map((record, index) =>
+    normalizeCardRecord(record, track, `card source.card_records[${index}]`),
+  );
+
+  return {
+    card_records: cardRecords,
+    source: {
+      id: sourceId,
+      label: sourceLabel,
+    },
+    track,
+  };
+}
+
+function normalizeCardRecord(record, expectedTrack, label) {
+  const card = requireCardSourceObject(record, label);
+  const cardId = requireCardSourcePattern(card.card_id, /^\d{6}$/, `${label}.card_id`);
+  const knowledgeRef = requireCardSourcePattern(
+    card.knowledge_ref,
+    /^\d{4}$/,
+    `${label}.knowledge_ref`,
+  );
+  const track = requireCardSourceTrack(card.track, `${label}.track`);
+
+  if (track !== expectedTrack) {
+    throw cardSourceError(`${label}.track must match card source track.`);
+  }
+
+  if (!cardId.startsWith(knowledgeRef)) {
+    throw cardSourceError(`${label}.card_id must inherit knowledge_ref.`);
+  }
+
+  const front = requireCardSourceObject(card.front, `${label}.front`);
+  requireCardSourceString(front.eyebrow, `${label}.front.eyebrow`);
+  requireCardSourceString(front.prompt, `${label}.front.prompt`);
+  requireCardSourceString(front.support, `${label}.front.support`);
+  requireCardSourceString(front.context, `${label}.front.context`);
+
+  const analysis = requireCardSourceObject(card.analysis, `${label}.analysis`);
+  requireCardSourceString(analysis.title, `${label}.analysis.title`);
+  requireCardSourceString(analysis.summary, `${label}.analysis.summary`);
+  requireCardSourceString(analysis.exam_tip, `${label}.analysis.exam_tip`);
+
+  const spaceMetadata = requireCardSourceObject(
+    card.space_metadata,
+    `${label}.space_metadata`,
+  );
+  const boxRef = requireCardSourcePattern(
+    spaceMetadata.box_ref,
+    /^\d{4}$/,
+    `${label}.space_metadata.box_ref`,
+  );
+  requireCardSourceString(
+    spaceMetadata.library,
+    `${label}.space_metadata.library`,
+  );
+  requireCardSourceString(spaceMetadata.group, `${label}.space_metadata.group`);
+  requireCardSourceString(spaceMetadata.box, `${label}.space_metadata.box`);
+
+  if (boxRef !== knowledgeRef) {
+    throw cardSourceError(`${label}.space_metadata.box_ref must match knowledge_ref.`);
+  }
+
+  if (card.hint_layer !== undefined) {
+    const hintLayer = requireCardSourceObject(card.hint_layer, `${label}.hint_layer`);
+    requireCardSourceString(hintLayer.content, `${label}.hint_layer.content`);
+
+    if (hintLayer.reveal_gesture !== '下滑') {
+      throw cardSourceError(`${label}.hint_layer.reveal_gesture must be 下滑.`);
+    }
+  }
+
+  switch (card.interaction_id) {
+    case 'flip':
+      requireCardSourceString(card.back_text, `${label}.back_text`);
+
+      if (card.auto_scoring === true) {
+        throw cardSourceError(`${label}.flip must not claim auto_scoring true.`);
+      }
+
+      return cloneJson(card);
+    case 'multiple_choice': {
+      const options = requireCardSourceArray(card.options, `${label}.options`);
+
+      if (options.length !== 4) {
+        throw cardSourceError(`${label}.options must contain exactly 4 items.`);
+      }
+
+      const correctOption = requireCardSourceString(
+        card.answer_key?.correct_option,
+        `${label}.answer_key.correct_option`,
+      );
+      const optionIds = new Set(
+        options.map((option, index) =>
+          requireCardSourceString(option?.id, `${label}.options[${index}].id`),
+        ),
+      );
+
+      if (!optionIds.has(correctOption)) {
+        throw cardSourceError(`${label}.answer_key.correct_option must exist in options.`);
+      }
+
+      return cloneJson(card);
+    }
+    case 'lock': {
+      const lockSlots = requireCardSourceArray(card.lock_slots, `${label}.lock_slots`);
+
+      if (lockSlots.length === 0) {
+        throw cardSourceError(`${label}.lock_slots must not be empty.`);
+      }
+
+      const lockPattern = requireCardSourceArray(
+        card.answer_key?.lock_pattern,
+        `${label}.answer_key.lock_pattern`,
+      );
+
+      if (lockPattern.length !== lockSlots.length) {
+        throw cardSourceError(`${label}.lock_pattern must align with lock_slots.`);
+      }
+
+      lockSlots.forEach((slot, index) => {
+        const options = requireCardSourceArray(
+          slot?.options,
+          `${label}.lock_slots[${index}].options`,
+        );
+
+        if (!options.includes(lockPattern[index])) {
+          throw cardSourceError(`${label}.lock_pattern must select values from each slot.`);
+        }
+      });
+
+      return cloneJson(card);
+    }
+    case 'elimination': {
+      const eliminationItems = requireCardSourceArray(
+        card.elimination_items,
+        `${label}.elimination_items`,
+      );
+      const correctItems = requireCardSourceArray(
+        card.answer_key?.correct_items,
+        `${label}.answer_key.correct_items`,
+      );
+
+      if (correctItems.length === 0) {
+        throw cardSourceError(`${label}.answer_key.correct_items must not be empty.`);
+      }
+
+      const itemIds = new Set(
+        eliminationItems.map((item, index) =>
+          requireCardSourceString(
+            item?.id,
+            `${label}.elimination_items[${index}].id`,
+          ),
+        ),
+      );
+
+      if (!correctItems.every(itemId => itemIds.has(itemId))) {
+        throw cardSourceError(`${label}.answer_key.correct_items must exist in elimination_items.`);
+      }
+
+      return cloneJson(card);
+    }
+    case 'swipe': {
+      const swipeStates = requireCardSourceArray(card.swipe_states, `${label}.swipe_states`);
+
+      if (swipeStates.length !== 2) {
+        throw cardSourceError(`${label}.swipe_states must contain exactly 2 items.`);
+      }
+
+      const correctState = requireCardSourceString(
+        card.answer_key?.correct_state,
+        `${label}.answer_key.correct_state`,
+      );
+
+      if (!swipeStates.some(state => state?.id === correctState)) {
+        throw cardSourceError(`${label}.answer_key.correct_state must exist in swipe_states.`);
+      }
+
+      return cloneJson(card);
+    }
+    default:
+      throw cardSourceError(`${label}.interaction_id is unsupported.`);
+  }
+}
+
+function requireCardSourceObject(value, fieldName) {
+  if (!isObject(value) || Array.isArray(value)) {
+    throw cardSourceError(`${fieldName} must be an object.`);
+  }
+
+  return value;
+}
+
+function requireCardSourceArray(value, fieldName) {
+  if (!Array.isArray(value)) {
+    throw cardSourceError(`${fieldName} must be an array.`);
+  }
+
+  return value;
+}
+
+function requireCardSourceString(value, fieldName) {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw cardSourceError(`${fieldName} must be a non-empty string.`);
+  }
+
+  return value.trim();
+}
+
+function requireCardSourcePattern(value, pattern, fieldName) {
+  const text = requireCardSourceString(value, fieldName);
+
+  if (!pattern.test(text)) {
+    throw cardSourceError(`${fieldName} must match ${pattern}.`);
+  }
+
+  return text;
+}
+
+function requireCardSourceTrack(value, fieldName) {
+  const track = requireCardSourceString(value, fieldName);
+
+  if (track !== 'cet4' && track !== 'cet6') {
+    throw cardSourceError(`${fieldName} must be cet4 or cet6.`);
+  }
+
+  return track;
+}
+
+function cardSourceError(message) {
+  const error = new Error(message);
+  error.code = 'invalid_card_source';
+  error.statusCode = 500;
+  return error;
+}
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
 function createInitialMembership() {

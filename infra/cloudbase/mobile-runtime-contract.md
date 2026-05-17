@@ -118,6 +118,12 @@ Response:
 
 `track` must be `cet4` or `cet6` and must match the query.
 
+CloudBase development backend note: when `SOFTBOOK_STORE_MODE=cloudbase`, this
+endpoint reads the `softbook_card_sources` collection by track (`cet4` or
+`cet6`). If a track document is missing, the function seeds the current
+development card records into that collection before returning the same response
+shape. This persistence detail must not change the mobile contract below.
+
 Every card record must satisfy:
 
 - `card_id`: 6 digits.
