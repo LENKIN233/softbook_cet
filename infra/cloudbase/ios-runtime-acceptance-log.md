@@ -483,3 +483,76 @@ Observed result:
 The iOS remote smoke now avoids user-facing Chinese copy for the auth keyboard
 dismissal, favorite-state assertion, and check-in-state assertion. The user
 visible labels remain unchanged; the new ids only harden automation selectors.
+
+## 2026-05-17 13:49 CST
+
+`product_truth`: remote learning still preserves authenticated entry, the
+existing `/v1/*` mobile REST contract, CET4/CET6 card source validity, shared
+membership entitlement, daily progress sync, learning-state sync, and
+space-state sync.
+
+`implementation_hypothesis`: this log records a CloudBase dev backend deploy
+after adding `softbook_card_sources` persistence. It does not prove production
+content operations, real SMS, payment behavior, App Store readiness, or the iOS
+debug UI path.
+
+### Environment
+
+- Branch at deploy time: `main`
+- Deployed merge commit: `cde019f279da65ac8828c6bdc441a55960e0d8ae`
+- CloudBase env: `test-d2gzcyxr9f7e80972`
+- Region: `ap-shanghai`
+- Function: `softbook-api`
+- Runtime: `Nodejs20.19`
+- Remote base URL:
+  `https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api`
+- Dev fixed code: `2468`
+
+### Commands
+
+```bash
+infra/cloudbase/check-dev.sh
+node infra/cloudbase/provision-softbook-nosql.mjs
+infra/cloudbase/deploy-softbook-api.sh
+SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
+SOFTBOOK_CET_TEST_CODE="2468" \
+SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1 \
+SOFTBOOK_CET_SMOKE_WRITE=1 \
+SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS=1 \
+node infra/cloudbase/smoke-softbook-api.mjs
+SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
+SOFTBOOK_CET_TEST_CODE="2468" \
+SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1 \
+SOFTBOOK_CET_LEARNING_TRACK=cet6 \
+node infra/cloudbase/smoke-softbook-api.mjs
+```
+
+### Observed Result
+
+- `check-dev.sh` confirmed env `test-d2gzcyxr9f7e80972` was `NORMAL`, with
+  billing cycle `2026-04-30 ~ 2026-05-31` and `15.19 / 3000` credits used before
+  deployment.
+- `provision-softbook-nosql.mjs` upserted the new `softbook_card_sources`
+  provision document and refreshed the existing membership / progress /
+  learning-state / space-state provision documents.
+- `deploy-softbook-api.sh` deployed `softbook-api` successfully and preserved
+  the HTTP access service link at `/softbook-api`.
+- CET4 live smoke used isolated phone `19996905041`, returned 5 cards from
+  `cloudbase-dev-card-source`, covered `elimination`, `flip`, `lock`,
+  `multiple_choice`, and `swipe`, and passed write sync plus membership
+  mutation checks.
+- CET6 live smoke used isolated phone `19996959033`, returned 5 cards from
+  `cloudbase-dev-card-source`, covered the same core interactions, and skipped
+  writes as intended.
+- A direct NoSQL query confirmed `softbook_card_sources.cet4` exists with the
+  seeded card records and `updated_at: 2026-05-17T05:48:26.454Z`.
+- A direct NoSQL query confirmed `softbook_card_sources.cet6` exists with
+  `source.id: cloudbase-dev-card-source` and
+  `updated_at: 2026-05-17T05:49:20.008Z`.
+
+### Conclusion
+
+The CloudBase dev backend now deploys the merged card-source persistence slice
+and proves both CET4 and CET6 remote card-source reads against real NoSQL
+documents, while preserving the mobile REST contract and the existing
+membership/progress/learning-state/space-state sync path.
