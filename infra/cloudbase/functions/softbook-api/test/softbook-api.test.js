@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 
 const {
@@ -397,6 +398,27 @@ test('card source import validator shares runtime card-source contract', () => {
     () => validateCardSourceForImport(mismatched, 'cet4'),
     /card source.track must match requested track cet4/,
   );
+});
+
+test('card source validator import does not initialize the default store', () => {
+  const result = spawnSync(
+    process.execPath,
+    [
+      '-e',
+      "const {validateCardSourceForImport}=require('./index'); console.log(typeof validateCardSourceForImport);",
+    ],
+    {
+      cwd: __dirname + '/..',
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        SOFTBOOK_STORE_MODE: 'invalid',
+      },
+    },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), 'function');
 });
 
 function createFakeCloudBaseDb() {

@@ -15,10 +15,18 @@ const DEFAULT_CARD_SOURCE = {
   label: 'CloudBase 开发卡源',
 };
 
-const defaultApi = createSoftbookApi();
+let defaultApi;
 
 async function main(event, context) {
-  return defaultApi.handleCloudBaseEvent(event, context);
+  return getDefaultApi().handleCloudBaseEvent(event, context);
+}
+
+function getDefaultApi() {
+  if (!defaultApi) {
+    defaultApi = createSoftbookApi();
+  }
+
+  return defaultApi;
 }
 
 function createSoftbookApi(options = {}) {
@@ -1733,7 +1741,9 @@ module.exports = {
   createCloudBaseStore,
   createMemoryStore,
   createSoftbookApi,
-  defaultApi,
+  get defaultApi() {
+    return getDefaultApi();
+  },
   main,
   validateCardSourceForImport,
 };
