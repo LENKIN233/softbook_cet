@@ -127,7 +127,8 @@ Use `node infra/cloudbase/import-card-source.mjs --file <json> --track <track>`
 for controlled development imports; dry-run is the default, and `--apply`
 upserts only after the same validator accepts the payload.
 Use `node infra/cloudbase/audit-card-sources.mjs` for read-only validation of
-the deployed CET4/CET6 documents after imports or deploys.
+the deployed CET4/CET6 documents after imports or deploys, including active
+`spec/box-catalog.json` prefix and path alignment.
 
 Every card record must satisfy:
 
@@ -135,6 +136,9 @@ Every card record must satisfy:
 - `knowledge_ref`: 4 digits.
 - `card_id` starts with `knowledge_ref`.
 - `space_metadata.box_ref === knowledge_ref`.
+- `knowledge_ref` maps to an active `spec/box-catalog.json` prefix for the
+  requested track, and `space_metadata.library/group/box` matches that catalog
+  path.
 - `front.eyebrow`, `front.prompt`, `front.support`, `front.context` are
   non-empty strings.
 - `analysis.title`, `analysis.summary`, `analysis.exam_tip` are non-empty

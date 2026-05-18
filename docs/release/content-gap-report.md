@@ -2,7 +2,7 @@
 
 Referenced specs: `spec/requirement-memory.json`, `spec/product-core.json`, `spec/box-catalog.json`, `spec/membership.json`, `spec/runtime-boundaries.json`, `spec/platform-contract.json`.
 
-Generated at: `2026-05-17T11:20:34.142Z`
+Generated at: `2026-05-18T04:32:34.035Z`
 
 `product_truth`: Public release content must satisfy the active CET4/CET6 box catalog, free users need near-half normal card access, and current card records must map to active box prefixes.
 
@@ -13,7 +13,7 @@ Generated at: `2026-05-17T11:20:34.142Z`
 | Track | Planned cards | Current cards | Mapped current | Unmapped current | Gap to full catalog | Mapped coverage | Near-half free target | Gap to free target | Missing boxes |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | CET4 | 1180 | 5 | 5 | 0 | 1175 | 0.4% | 590 | 585 | 103 |
-| CET6 | 1234 | 5 | 0 | 5 | 1234 | 0.0% | 617 | 617 | 110 |
+| CET6 | 1234 | 5 | 5 | 0 | 1229 | 0.4% | 617 | 612 | 105 |
 
 ## Current Unmapped Cards
 
@@ -22,11 +22,7 @@ These cards exist in the repository development card source but do not map to ac
 | Track | Card ID | Knowledge Ref | Box Ref | Interaction |
 | --- | --- | --- | --- | --- |
 | CET4 | - | - | - | - |
-| CET6 | 602001 | 6020 | 6020 | flip |
-| CET6 | 612101 | 6121 | 6121 | lock |
-| CET6 | 652101 | 6521 | 6521 | multiple_choice |
-| CET6 | 613001 | 6130 | 6130 | elimination |
-| CET6 | 650301 | 6503 | 6503 | swipe |
+| CET6 | - | - | - | - |
 
 ## Box Gap Table
 
@@ -38,7 +34,7 @@ These cards exist in the repository development card source but do not map to ac
 | 听力 | 语音现象 | 连读 | 0010 | 12 | 0 | 12 | 1010 | 12 | 0 | 12 |
 | 听力 | 语音现象 | 弱读 | 0011 | 12 | 0 | 12 | 1011 | 12 | 0 | 12 |
 | 听力 | 语音现象 | 失去爆破 | 0012 | 12 | 0 | 12 | 1012 | 12 | 0 | 12 |
-| 听力 | 逻辑关系 | 转折关系 | 0020 | 12 | 1 | 11 | 1020 | 12 | 0 | 12 |
+| 听力 | 逻辑关系 | 转折关系 | 0020 | 12 | 1 | 11 | 1020 | 12 | 1 | 11 |
 | 听力 | 逻辑关系 | 因果关系 | 0021 | 12 | 0 | 12 | 1021 | 12 | 0 | 12 |
 | 听力 | 逻辑关系 | 并列/递进关系 | 0022 | 12 | 0 | 12 | 1022 | 12 | 0 | 12 |
 | 听力 | 逻辑关系 | 对比/比较关系 | 0023 | 12 | 0 | 12 | 1023 | 12 | 0 | 12 |
@@ -65,11 +61,11 @@ These cards exist in the repository development card source but do not map to ac
 | 仔细阅读 | 干扰项排除 | 与原文相反 | 0112 | 12 | 0 | 12 | 1112 | 12 | 0 | 12 |
 | 仔细阅读 | 干扰项排除 | 偷换概念 | 0113 | 12 | 0 | 12 | 1113 | 12 | 0 | 12 |
 | 仔细阅读 | 长难句主干 | 主谓 | 0120 | 12 | 0 | 12 | 1120 | 12 | 0 | 12 |
-| 仔细阅读 | 长难句主干 | 主谓宾 | 0121 | 12 | 1 | 11 | 1121 | 12 | 0 | 12 |
+| 仔细阅读 | 长难句主干 | 主谓宾 | 0121 | 12 | 1 | 11 | 1121 | 12 | 1 | 11 |
 | 仔细阅读 | 长难句主干 | 主系表 | 0122 | 12 | 0 | 12 | 1122 | 12 | 0 | 12 |
 | 仔细阅读 | 长难句主干 | 主谓双宾 | 0123 | 12 | 0 | 12 | 1123 | 12 | 0 | 12 |
 | 仔细阅读 | 长难句主干 | 主谓宾补 | 0124 | 12 | 0 | 12 | 1124 | 12 | 0 | 12 |
-| 仔细阅读 | 长难句关键修饰 | 定语 | 0130 | 12 | 1 | 11 | 1130 | 12 | 0 | 12 |
+| 仔细阅读 | 长难句关键修饰 | 定语 | 0130 | 12 | 1 | 11 | 1130 | 12 | 1 | 11 |
 | 仔细阅读 | 长难句关键修饰 | 状语 | 0131 | 12 | 0 | 12 | 1131 | 12 | 0 | 12 |
 | 仔细阅读 | 长难句关键修饰 | 同位语 | 0132 | 12 | 0 | 12 | 1132 | 12 | 0 | 12 |
 | 仔细阅读 | 长难句关键修饰 | 插入语 | 0133 | 12 | 0 | 12 | 1133 | 12 | 0 | 12 |
@@ -114,7 +110,7 @@ These cards exist in the repository development card source but do not map to ac
 | 词汇 | 同义词替换 | 近义词替换 | 0500 | 12 | 0 | 12 | 1500 | 12 | 0 | 12 |
 | 词汇 | 同义词替换 | 词性转换 | 0501 | 12 | 0 | 12 | 1501 | 12 | 0 | 12 |
 | 词汇 | 同义词替换 | 短语类替换 | 0502 | 12 | 0 | 12 | 1502 | 12 | 0 | 12 |
-| 词汇 | 同义词替换 | 句式替换 | 0503 | 12 | 1 | 11 | 1503 | 12 | 0 | 12 |
+| 词汇 | 同义词替换 | 句式替换 | 0503 | 12 | 1 | 11 | 1503 | 12 | 1 | 11 |
 | 词汇 | 同义词替换 | 翻译否定 | 0504 | 12 | 0 | 12 | 1504 | 12 | 0 | 12 |
 | 词汇 | 同义词替换 | 解释性替换 | 0505 | 12 | 0 | 12 | 1505 | 12 | 0 | 12 |
 | 词汇 | 中国特色词汇 | 政治 | 0510 | 12 | 0 | 12 | 1510 | 12 | 0 | 12 |
@@ -125,7 +121,7 @@ These cards exist in the repository development card source but do not map to ac
 | 词汇 | 中国特色词汇 | 科技 | 0515 | 12 | 0 | 12 | 1515 | 12 | 0 | 12 |
 | 词汇 | 中国特色词汇 | 地理 | 0516 | 12 | 0 | 12 | 1516 | 12 | 0 | 12 |
 | 词汇 | 高频词 | 听力高频词 | 0520 | 12 | 0 | 12 | 1520 | 12 | 0 | 12 |
-| 词汇 | 高频词 | 阅读高频词 | 0521 | 12 | 1 | 11 | 1521 | 12 | 0 | 12 |
+| 词汇 | 高频词 | 阅读高频词 | 0521 | 12 | 1 | 11 | 1521 | 12 | 1 | 11 |
 | 词汇 | 高频词 | 写作高级词汇 | 0522 | 12 | 0 | 12 | 1522 | 12 | 0 | 12 |
 | 语法 | 时态 | 写作时态 | 0600 | 6 | 0 | 6 | 1600 | 8 | 0 | 8 |
 | 语法 | 时态 | 听力时态 | 0601 | 6 | 0 | 6 | 1601 | 8 | 0 | 8 |
