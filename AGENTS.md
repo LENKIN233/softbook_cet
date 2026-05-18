@@ -34,6 +34,7 @@ status: active
 - `spec/evals.json`
 - `spec/doc-manifest.json`
 - `spec/visual-language.json`（视觉实现假设锚，绑定 `docs/design/visual-reference.html`、`docs/design/canon.md` 与 `docs/design/design-harness.md`）
+- 同级外部内容工作区：`/Users/lenkin/programing/card make`（卡片候选内容生产与审批边界；本仓库只消费其导出的卡片 payload）
 
 ## 读取顺序
 
@@ -43,6 +44,7 @@ status: active
 - 认证/同步/购买：`requirement-memory -> account-sync-contract -> membership -> runtime-boundaries`
 - 多端/端形态：`requirement-memory -> product-core -> platform-contract -> runtime-boundaries`
 - 卡片/交互：`requirement-memory -> product-core -> action-surface -> card-system -> interactions`
+- 卡片内容交接：`requirement-memory -> product-core -> card-system -> box-catalog -> runtime-boundaries -> agent-harness -> infra/cloudbase/mobile-runtime-contract.md -> /Users/lenkin/programing/card make`
 - 物理空间/盒码：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog`
 - 会员/试用：`requirement-memory -> product-core -> membership`
 - 交付 / PR / CI：`authority-map -> agent-harness -> repo-delivery-contract -> evals`
@@ -60,6 +62,7 @@ status: active
 - 不要把提示层写成独立卡型
 - 不要把音频写成独立交互家族
 - 不要把统计、计数器、复杂状态机写成产品核心
+- 不要在 `softbook_cet` 内生产候选卡片内容、批准卡片批次或把 dev seed cards 当作正式内容量；候选内容生产和审批发生在同级 `/Users/lenkin/programing/card make`，本仓库只接收其导出的 payload、dry-run/import、audit、runtime smoke 和报告 coverage delta
 - 不要默认读取 `archive/legacy-v3/` 或 `archive/transitional-vnext-prose/` 作为活跃真相源
 - 不要为每个屏幕/每个 agent 各自重造视觉语言；视觉输出必须从 `spec/visual-language.json` 与 `docs/design/visual-reference.html` 继承 token 与剪影
 - 不要直接用 RN 代码、截图或 agent 个人审美定义用户可见设计；任何呈现给用户的 screen / component / state / chrome 都必须先有已接受设计稿或等价设计基准，再进入实现
@@ -97,4 +100,5 @@ status: active
 - 当前关键决定与未决点
 - 会员/试用结构
 - 核心交互和空间语义
+- `card make` 外部内容工作区边界
 - 已修改文件列表
