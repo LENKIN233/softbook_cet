@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 
+const boxCatalog = require('../../../../../spec/box-catalog.json');
 const {
   createCloudBaseStore,
   createSoftbookApi,
@@ -16,6 +17,30 @@ const CORE_INTERACTIONS = [
   'multiple_choice',
   'swipe',
 ];
+
+function catalogEntriesByRef(track) {
+  const entries = new Map();
+
+  for (const library of boxCatalog.libraries) {
+    for (const group of library.groups) {
+      for (const box of group.boxes) {
+        const ref = box.resolved_box_prefixes?.[track];
+
+        if (!ref) {
+          continue;
+        }
+
+        entries.set(ref, {
+          box: box.name,
+          group: group.name,
+          library: library.name,
+        });
+      }
+    }
+  }
+
+  return entries;
+}
 
 function createTestApi(options = {}) {
   return createSoftbookApi({
@@ -83,6 +108,7 @@ test('learning card source requires auth and covers each core interaction', asyn
   };
 
   for (const track of ['cet4', 'cet6']) {
+    const catalogEntries = catalogEntriesByRef(track);
     const response = await request(api, {
       headers,
       method: 'GET',
@@ -108,6 +134,31 @@ test('learning card source requires auth and covers each core interaction', asyn
         ),
       ].sort(),
       CORE_INTERACTIONS,
+    );
+    assert.deepEqual(
+      response.body.data.card_records.flatMap(card => {
+        const catalogEntry = catalogEntries.get(card.knowledge_ref);
+
+        if (!catalogEntry) {
+          return [`${card.card_id} uses unmapped ${card.knowledge_ref}`];
+        }
+
+        const expectedPath = [
+          catalogEntry.library,
+          catalogEntry.group,
+          catalogEntry.box,
+        ].join('/');
+        const actualPath = [
+          card.space_metadata.library,
+          card.space_metadata.group,
+          card.space_metadata.box,
+        ].join('/');
+
+        return actualPath === expectedPath
+          ? []
+          : [`${card.card_id} maps to ${actualPath}, expected ${expectedPath}`];
+      }),
+      [],
     );
   }
 });

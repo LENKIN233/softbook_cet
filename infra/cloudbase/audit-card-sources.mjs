@@ -2,6 +2,7 @@
 
 import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
+import {validateCardSourceCatalogMapping} from './card-source-catalog.mjs';
 
 const require = createRequire(import.meta.url);
 const {validateCardSourceForImport} = require('./functions/softbook-api');
@@ -140,7 +141,9 @@ function main() {
 
     for (const track of options.tracks) {
       const document = runFind(options, track);
-      const cardSource = validateCardSourceForImport(document, track);
+      const cardSource = validateCardSourceCatalogMapping(
+        validateCardSourceForImport(document, track),
+      );
       const interactions = interactionSummary(cardSource.card_records);
       const updatedAt = document.updated_at ?? 'unknown';
 

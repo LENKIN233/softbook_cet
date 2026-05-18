@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
+import {validateCardSourceCatalogMapping} from './card-source-catalog.mjs';
 
 const require = createRequire(import.meta.url);
 const {validateCardSourceForImport} = require('./functions/softbook-api');
@@ -158,7 +159,9 @@ function main() {
       throw new Error('track must be cet4 or cet6.');
     }
 
-    const cardSource = validateCardSourceForImport(payload, track);
+    const cardSource = validateCardSourceCatalogMapping(
+      validateCardSourceForImport(payload, track),
+    );
     const interactions = interactionSummary(cardSource.card_records);
 
     console.log(

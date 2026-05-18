@@ -117,8 +117,9 @@ node infra/cloudbase/audit-card-sources.mjs
 node infra/cloudbase/audit-card-sources.mjs --track cet4
 ```
 
-The audit command reads `softbook_card_sources` with `FIND` and reuses the same
-runtime validator, so it is safe to run after manual imports or deploys.
+The audit command reads `softbook_card_sources` with `FIND`, reuses the same
+runtime validator, and checks `spec/box-catalog.json` prefix/path alignment, so
+it is safe to run after manual imports or deploys.
 
 Known SDK risk: `npm audit --omit=dev` currently reports transitive vulnerabilities from `@cloudbase/node-sdk`. Version `3.0.0` reduced part of the audit surface locally but failed real CloudBase DB reads in this environment, so the deployed dev function stays on the latest verified working `3.18.1`. Reassess the SDK or replace the persistence adapter before treating this as a production backend.
 
