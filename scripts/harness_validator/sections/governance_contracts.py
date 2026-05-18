@@ -86,6 +86,11 @@ check_equal(
     external_content_workspace["absolute_path"],
 )
 check_equal(
+    "external_content_workspace.sibling_path_from_repo",
+    "../card make",
+    external_content_workspace["sibling_path_from_repo"],
+)
+check_equal(
     "external_content_workspace.role",
     "upstream_candidate_card_content_production_workspace",
     external_content_workspace["role"],
@@ -94,6 +99,21 @@ check_equal(
     "external_content_workspace.softbook_cet_role",
     "card_payload_consumer_importer_auditor_and_runtime_validator",
     external_content_workspace["softbook_cet_role"],
+)
+check_equal(
+    "external_content_workspace.handoff_contract",
+    "infra/cloudbase/mobile-runtime-contract.md",
+    external_content_workspace["handoff_contract"],
+)
+check_equal(
+    "external_content_workspace.catalog_authority",
+    "spec/box-catalog.json",
+    external_content_workspace["catalog_authority"],
+)
+check_equal(
+    "external_content_workspace.approval_boundary",
+    "candidate_or_approved_content_status_lives_in_card_make_not_softbook_cet",
+    external_content_workspace["approval_boundary"],
 )
 check_equal(
     "external_content_workspace.forbidden_in_softbook_cet",
