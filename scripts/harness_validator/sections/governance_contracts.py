@@ -3,6 +3,7 @@ main_branch_policy = harness["governance"]["main_branch_policy"]
 local_guard = harness["governance"]["local_guard"]
 remote_guard = harness["governance"]["remote_guard"]
 repo_delivery_contract = harness["governance"]["repo_delivery_contract"]
+external_content_workspace = harness["governance"]["external_content_workspace"]
 delivery_defaults = delivery["delivery_defaults"]["code_change_tasks"]
 pull_request_contract = delivery["pull_request_contract"]
 ci_contract = delivery["ci_contract"]
@@ -28,6 +29,104 @@ check_equal(
     ],
     harness["read_paths"]["repo_delivery_or_pull_request"],
 )
+check_equal(
+    "card_content_handoff read path",
+    [
+        "spec/requirement-memory.json",
+        "spec/authority-map.json",
+        "spec/product-core.json",
+        "spec/card-system.json",
+        "spec/box-catalog.json",
+        "spec/runtime-boundaries.json",
+        "spec/agent-harness.json",
+        "infra/cloudbase/mobile-runtime-contract.md",
+    ],
+    harness["read_paths"]["card_content_handoff"],
+)
+card_content_handoff = harness["task_briefs"]["card_content_handoff"]
+check_equal(
+    "card_content_handoff inputs",
+    [
+        "spec/requirement-memory.json",
+        "spec/product-core.json",
+        "spec/card-system.json",
+        "spec/box-catalog.json",
+        "spec/runtime-boundaries.json",
+        "infra/cloudbase/mobile-runtime-contract.md",
+        "external_workspace:/Users/lenkin/programing/card make",
+    ],
+    card_content_handoff["inputs"],
+)
+check_equal(
+    "card_content_handoff outputs",
+    [
+        "upstream_workspace_reference",
+        "export_contract_or_payload_path",
+        "dry_run_import_result",
+        "catalog_audit_result",
+        "runtime_smoke_result",
+        "release_content_gap_delta",
+    ],
+    card_content_handoff["outputs"],
+)
+check_equal(
+    "card_content_handoff stop_when",
+    "softbook_cet_has_only_received_validated_card_payloads_from_card_make_and_has_not_produced_or_approved_card_content_itself",
+    card_content_handoff["stop_when"],
+)
+check_equal(
+    "card_content_handoff blocked_when",
+    "the_task_requires_generating_candidate_card_content_or_marking_content_approved_inside_softbook_cet",
+    card_content_handoff["blocked_when"],
+)
+check_equal("external_content_workspace.name", "card make", external_content_workspace["name"])
+check_equal(
+    "external_content_workspace.absolute_path",
+    "/Users/lenkin/programing/card make",
+    external_content_workspace["absolute_path"],
+)
+check_equal(
+    "external_content_workspace.role",
+    "upstream_candidate_card_content_production_workspace",
+    external_content_workspace["role"],
+)
+check_equal(
+    "external_content_workspace.softbook_cet_role",
+    "card_payload_consumer_importer_auditor_and_runtime_validator",
+    external_content_workspace["softbook_cet_role"],
+)
+check_equal(
+    "external_content_workspace.forbidden_in_softbook_cet",
+    [
+        "generating_candidate_card_content",
+        "marking_card_batches_as_approved",
+        "using_softbook_cet_dev_seed_cards_as_release_content_quantity",
+    ],
+    external_content_workspace["forbidden_in_softbook_cet"],
+)
+check_equal(
+    "external_content_workspace.allowed_in_softbook_cet",
+    [
+        "dry_run_import_card_payloads",
+        "apply_imports_after_explicit_or_existing_validated_handoff",
+        "audit_cloudbase_card_sources",
+        "run_runtime_smoke_against_imported_payloads",
+        "report_release_content_gap_delta",
+    ],
+    external_content_workspace["allowed_in_softbook_cet"],
+)
+ap32 = find_by_id(harness["anti_patterns"], "AP-32")
+if ap32:
+    check_equal(
+        "AP-32 name",
+        "produce_or_approve_card_content_inside_softbook_cet",
+        ap32["name"],
+    )
+    check_equal(
+        "AP-32 correction",
+        "use_the_sibling_card_make_workspace_for_candidate_content_production_and_approval_then_import_validate_and_smoke_in_softbook_cet",
+        ap32["correction"],
+    )
 check_equal(
     "repo_delivery_contract owner",
     "spec/repo-delivery-contract.json",
@@ -704,6 +803,9 @@ for snippet in [
     "不要把 task-local design brief 当作 implementation PR 的正式设计权威；它只能作为探索草稿",
     "不要把核心交互 / 小动效当作 UI 完成后的装饰；Learning 或核心交互实现必须先有 interaction/motion artifact 或 storyboard",
     "不要把物理空间当作普通页面 UI；Space 实现必须先有 spatial model / state transition / Learning ↔ Space 连续性 artifact",
+    "同级外部内容工作区：`/Users/lenkin/programing/card make`（卡片候选内容生产与审批边界；本仓库只消费其导出的卡片 payload）",
+    "卡片内容交接：`requirement-memory -> product-core -> card-system -> box-catalog -> runtime-boundaries -> agent-harness -> infra/cloudbase/mobile-runtime-contract.md -> /Users/lenkin/programing/card make`",
+    "不要在 `softbook_cet` 内生产候选卡片内容、批准卡片批次或把 dev seed cards 当作正式内容量；候选内容生产和审批发生在同级 `/Users/lenkin/programing/card make`，本仓库只接收其导出的 payload、dry-run/import、audit、runtime smoke 和报告 coverage delta",
     "若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证、Agent review；若涉及用户可见 UI，必须写明设计稿来源、interaction/motion 或 physical-space artifact（如适用）、实现映射与未实现 gap，并回答 design review checklist；默认在 review + gate 通过后自动收口合并",
 ]:
     check_contains("AGENTS governance mirror", agents_text, snippet)

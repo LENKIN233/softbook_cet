@@ -1,5 +1,5 @@
 {
-  "version": "vnext-15",
+  "version": "vnext-16",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -34,6 +34,16 @@
       "spec/action-surface.json",
       "spec/card-system.json",
       "spec/interactions.json"
+    ],
+    "card_content_handoff": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/card-system.json",
+      "spec/box-catalog.json",
+      "spec/runtime-boundaries.json",
+      "spec/agent-harness.json",
+      "infra/cloudbase/mobile-runtime-contract.md"
     ],
     "physical_space_or_box_codes": [
       "spec/requirement-memory.json",
@@ -182,6 +192,27 @@
       "outputs": ["implementation", "explicit_hypotheses"],
       "stop_when": "implementation_does_not_invent_product_requirements",
       "user_facing_ui_rule": "before_changing_user_facing_UI_load_the_accepted_design_artifact_and_map_implementation_to_it"
+    },
+    "card_content_handoff": {
+      "inputs": [
+        "spec/requirement-memory.json",
+        "spec/product-core.json",
+        "spec/card-system.json",
+        "spec/box-catalog.json",
+        "spec/runtime-boundaries.json",
+        "infra/cloudbase/mobile-runtime-contract.md",
+        "external_workspace:/Users/lenkin/programing/card make"
+      ],
+      "outputs": [
+        "upstream_workspace_reference",
+        "export_contract_or_payload_path",
+        "dry_run_import_result",
+        "catalog_audit_result",
+        "runtime_smoke_result",
+        "release_content_gap_delta"
+      ],
+      "stop_when": "softbook_cet_has_only_received_validated_card_payloads_from_card_make_and_has_not_produced_or_approved_card_content_itself",
+      "blocked_when": "the_task_requires_generating_candidate_card_content_or_marking_content_approved_inside_softbook_cet"
     },
     "user_facing_ui_implementation": {
       "inputs": [
@@ -361,6 +392,28 @@
       "allow_force_pushes": false,
       "allow_deletions": false
     },
+    "external_content_workspace": {
+      "name": "card make",
+      "absolute_path": "/Users/lenkin/programing/card make",
+      "sibling_path_from_repo": "../card make",
+      "role": "upstream_candidate_card_content_production_workspace",
+      "softbook_cet_role": "card_payload_consumer_importer_auditor_and_runtime_validator",
+      "handoff_contract": "infra/cloudbase/mobile-runtime-contract.md",
+      "catalog_authority": "spec/box-catalog.json",
+      "approval_boundary": "candidate_or_approved_content_status_lives_in_card_make_not_softbook_cet",
+      "forbidden_in_softbook_cet": [
+        "generating_candidate_card_content",
+        "marking_card_batches_as_approved",
+        "using_softbook_cet_dev_seed_cards_as_release_content_quantity"
+      ],
+      "allowed_in_softbook_cet": [
+        "dry_run_import_card_payloads",
+        "apply_imports_after_explicit_or_existing_validated_handoff",
+        "audit_cloudbase_card_sources",
+        "run_runtime_smoke_against_imported_payloads",
+        "report_release_content_gap_delta"
+      ]
+    },
     "repo_delivery_contract": {
       "owner": "spec/repo-delivery-contract.json",
       "default_behavior": "code-changing tasks default to topic branch -> commit -> pull request -> recorded agent review -> merge unless the user explicitly requests local-only delivery",
@@ -523,6 +576,11 @@
       "id": "AP-31",
       "name": "promote_first_generation_AI_design_without_search_or_pairwise_review",
       "correction": "run_design_evolution_with_context_pack_candidate_population_hard_filters_pairwise_review_fragment_harvest_targeted_mutation_and_promotion_record_before_acceptance"
+    },
+    {
+      "id": "AP-32",
+      "name": "produce_or_approve_card_content_inside_softbook_cet",
+      "correction": "use_the_sibling_card_make_workspace_for_candidate_content_production_and_approval_then_import_validate_and_smoke_in_softbook_cet"
     }
   ],
   "compaction_keep": [
@@ -534,6 +592,7 @@
     "core_interactions",
     "physical_space_semantics",
     "detailed_box_catalog",
+    "card_make_external_workspace_boundary",
     "repo_delivery_policy",
     "edited_files"
   ]
