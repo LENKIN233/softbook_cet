@@ -33,7 +33,7 @@ type TestRendererNode =
   | null;
 
 const USER_VISIBLE_METADATA_PATTERN =
-  /knowledge_ref|card_id|box_ref|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|会员矩阵|卡源|离线队列|本机缓存|payload|metadata|占位/i;
+  /knowledge_ref|card_id|box_ref|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|会员矩阵|卡源|队列|缓存|本机缓存|payload|metadata|runtime|repository|占位|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页/i;
 
 function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   if (node === null) {
@@ -1844,7 +1844,7 @@ test('can unlock the learning flow after fake sms verification', async () => {
   await loginIntoLearningFlow(root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('单卡推进，不把学习入口做成按钮堆');
+  expect(output).toContain('系统递给你当前这一张，按顺序继续');
   expect(output).toContain('已登录 138****8000');
   expect(output).toContain('however');
   const addressAperture = root.findByProps({
@@ -1857,6 +1857,7 @@ test('can unlock the learning flow after fake sms verification', async () => {
   expect(output).not.toContain('当前卡 · 002001');
   expect(output).toContain('答题区');
   expect(output).toContain('收藏');
+  expectNoUserVisibleMetadataLeakage(tree!);
 });
 
 test('does not expose internal metadata copy on primary surfaces', async () => {
@@ -2016,6 +2017,11 @@ test('can complete the local single-card deck and restart it', async () => {
       .props.onPress();
   });
 
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('已记录本次结果');
+  expect(output).toContain('继续下一张');
+  expectNoUserVisibleMetadataLeakage(tree!);
+
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
@@ -2083,7 +2089,9 @@ test('can complete the local single-card deck and restart it', async () => {
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮学习已走完');
   expect(output).toContain('完成明细');
+  expect(output).toContain('下一步建议');
   expect(output).toContain('再练一轮当前卡组');
+  expectNoUserVisibleMetadataLeakage(tree!);
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-restart-button' }).props.onPress();
@@ -2183,9 +2191,10 @@ test('can start a review round from cards that need revisiting', async () => {
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('回看队列');
-  expect(output).toContain('把需要回看的卡单独再刷一轮');
+  expect(output).toContain('回看卡组');
+  expect(output).toContain('回看需要再看的卡，仍按一张卡推进');
   expect(output).toContain('however');
+  expectNoUserVisibleMetadataLeakage(tree!);
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
