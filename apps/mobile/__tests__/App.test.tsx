@@ -33,7 +33,7 @@ type TestRendererNode =
   | null;
 
 const USER_VISIBLE_METADATA_PATTERN =
-  /knowledge_ref|card_id|box_ref|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|会员矩阵|卡源|队列|缓存|本机缓存|payload|metadata|runtime|repository|占位|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页/i;
+  /knowledge_ref|card_id|box_ref|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|payload|metadata|runtime|repository|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页/i;
 
 function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   if (node === null) {
@@ -557,6 +557,7 @@ test('keeps verified remote auth when entitlement bootstrap is unavailable', asy
   expect(output).not.toContain('登录暂时失败。');
   expect(output).toContain('当前是基础学习态');
   expect(output).toContain('网络恢复后会自动再试。');
+  expectNoUserVisibleMetadataLeakage(tree!);
   expect(
     fetchCalls.filter(
       call => call.input === 'https://api.softbook.example/v1/membership/entitlement',
@@ -813,6 +814,7 @@ test('queues failed remote daily progress sync for later replay', async () => {
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('待重试');
   expect(output).toContain('网络恢复后会自动再试');
+  expectNoUserVisibleMetadataLeakage(tree!);
 });
 
 test('queues failed remote learning state sync for later replay', async () => {
@@ -898,6 +900,7 @@ test('queues failed remote learning state sync for later replay', async () => {
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('学习状态：待重试');
   expect(output).toContain('答题记录：学习状态同步暂时失败（503）。 网络恢复后会自动再试。');
+  expectNoUserVisibleMetadataLeakage(tree!);
 });
 
 test('replays queued daily progress after network reconnect', async () => {
@@ -1200,6 +1203,7 @@ test('replays queued space state after network reconnect', async () => {
   expect(root.findAllByProps({testID: 'space-sync-rail'}).length).toBeGreaterThan(
     0,
   );
+  expectNoUserVisibleMetadataLeakage(tree!);
 
   shouldFailSpaceSync = false;
 
@@ -2269,7 +2273,7 @@ test('can check in from statistics after making learning progress', async () => 
       .length,
   ).toBeGreaterThan(0);
   expect(output).toContain('今日已签到');
-  expect(output).toContain('今天的学习进展已记录在当前设备。');
+  expect(output).toContain('今天的学习进展已记录。');
 });
 
 test('keeps completed progress when first gated space entry starts trial', async () => {
@@ -2357,7 +2361,7 @@ test('mine page shows profile, learning, and space summaries after login', async
   expect(output).toContain('今日签到：已完成');
   expect(output).toContain('今日同步：已记录');
   expect(output).toContain('今日已完成 1 张卡，其中首轮 1 张、回看 0 张。');
-  expect(output).toContain('同步进展：今天的学习进展已记录在当前设备。');
+  expect(output).toContain('同步进展：今天的学习进展已记录。');
   expect(output).toContain('收藏标签 1 张。');
 });
 

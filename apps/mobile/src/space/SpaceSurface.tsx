@@ -394,7 +394,7 @@ export function SpaceSurface({
                     <Text
                       style={[styles.cardMeta, { color: palette.textMuted }]}
                     >
-                      正在整理盒内卡片；完成后回到真实内容。
+                      正在整理盒内卡片；完成后显示本轮内容。
                     </Text>
                   </View>
                 ))
