@@ -15,9 +15,12 @@
 - `docs/design/design-harness.md`
 - `docs/design/briefs/learning-space-worldview.md`
 - `docs/design/directions/learning-surface-3-directions.md`
+- `docs/design/directions/learning-card-rhythm-directions-v1.md`
 - `docs/design/decisions/learning-space-direction-decision-v1.md`
+- `docs/design/decisions/learning-card-rhythm-decision-v1.md`
 - `docs/design/decisions/learning-space-platform-layout-v1.md`
 - `docs/design/interaction-motion/learning-core-interactions-v1.md`
+- `docs/design/interaction-motion/learning-card-rhythm-v1.md`
 - `docs/design/physical-space/space-model-v1.md`
 - `docs/design/directions/space-surface-visual-directions-v1.md`
 - `docs/design/mocks/learning-space-phone-frames-v1.md`
@@ -42,6 +45,7 @@ Current RN files are behavior prototypes. They can provide interaction and state
 |---|---|---|
 | Learning current card | `apps/mobile/src/learning/LearningSurface.tsx` | Render the current card as an addressed exam object, not a generic card shell. |
 | Learning interaction area | `apps/mobile/src/learning/LearningSurface.tsx` | Preserve interaction-specific silhouettes for flip, multiple choice, lock, elimination, and swipe. |
+| Learning state rhythm | `apps/mobile/src/learning/LearningSurface.tsx` and app-level Learning states | Preserve the place -> focus -> support -> resolve -> settle -> continue sequence without exposing implementation metadata. |
 | Learning tools | `apps/mobile/src/learning/LearningSurface.tsx` | Keep `peek`, `hint`, and `favorite` visible but secondary. |
 | Learning address aperture | `apps/mobile/src/learning/LearningSurface.tsx` | Show light library/group/box context without turning module selection into the primary path. |
 | Space hierarchy | `apps/mobile/src/space/SpaceSurface.tsx` | Render library / group / box / card as spatial hierarchy, not flat list or two-box shortcut. |
@@ -86,6 +90,17 @@ Tools should be visually lighter than the primary interaction:
 - `hint` can reveal a layer attached to the object.
 - `favorite` can be a tag mark.
 - `sleep` should remain contextual and spatial.
+
+### State Rhythm
+
+Learning implementation should consume `docs/design/interaction-motion/learning-card-rhythm-v1.md`:
+
+- place: one current card object with current library accent and human address cue;
+- focus: interaction silhouette is the primary operation;
+- support: `hint`, `peek`, and `favorite` stay attached and secondary;
+- resolve: auto-scored interactions reveal answer state, while flip alone uses two self-assess pills;
+- settle: result and recovery copy stay study-facing and never expose source, payload, cache, queue, repository, runtime, mock, seed, card id, or box id language;
+- continue: next card or Space continuation appears without forcing module selection.
 
 ### Address Aperture
 

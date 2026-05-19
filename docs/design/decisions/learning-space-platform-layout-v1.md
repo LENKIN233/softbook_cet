@@ -10,6 +10,7 @@
 - `spec/visual-language.json`
 - `docs/design/design-harness.md`
 - `docs/design/decisions/learning-space-direction-decision-v1.md`
+- `docs/design/decisions/learning-card-rhythm-decision-v1.md`
 - `docs/design/mapping/learning-space-implementation-map-v1.md`
 
 ## Decision
@@ -31,7 +32,7 @@ Use a two-pane composition:
 
 ```text
 left 68%: current addressed card object and interaction plane
-right 32%: address aperture, light tools, queue context, Space return cue
+right 32%: address aperture, light tools, study continuity cue, Space return cue
 bottom: same top-level navigation order in a restrained rail or capsule
 ```
 
