@@ -135,7 +135,7 @@ test('uses contained skeleton slots while Space cards are loading', () => {
   expect(output).toContain('正在整理盒内卡片');
   expect(output).toContain('盒内卡片整理中');
   expect(output).toContain('正在整理卡片');
-  expect(output).toContain('完成后回到真实内容');
+  expect(output).toContain('完成后显示本轮内容');
   expect(root.findAllByProps({ testID: 'space-loading-card-skeleton' }).length)
     .toBeGreaterThan(0);
   expect(

@@ -176,9 +176,9 @@ const ROUTES: ShellRoute[] = [
     summary:
       '登录后直接进入系统顺序里的当前卡；卡片加载、失败重试和单卡推进都留在学习入口内完成。',
     highlights: [
-      '一次只推进一张卡，不把学习入口做成按钮堆。',
+      '一次只推进一张卡，不把学习入口做成多入口选择。',
       '卡片按备考顺序进入当前轮；网络波动时也保留清晰的重试入口。',
-      '线索、收藏和提示层保持轻量，不抢主交互。',
+      '线索、收藏和提示保持轻量，不抢主交互。',
     ],
     focus: ['当前卡加载', '单卡学习流', '失败重试'],
   },
@@ -962,7 +962,7 @@ function AppShell({
     if (runtimeProgressSyncMode === 'local') {
       setLastSyncedProgressKey(dailyProgressKey);
       setProgressSyncState({
-        detail: '今天的学习进展已记录在当前设备。',
+        detail: '今天的学习进展已记录。',
         label: '已记录',
         state: 'synced',
       });
@@ -972,7 +972,7 @@ function AppShell({
     let isCancelled = false;
 
     setProgressSyncState({
-      detail: `正在同步 ${dailyProgressSnapshot.dayKey} 的日级进展快照。`,
+      detail: `正在同步 ${dailyProgressSnapshot.dayKey} 的学习进展。`,
       label: '同步中',
       state: 'syncing',
     });
@@ -1000,7 +1000,7 @@ function AppShell({
           detail:
             result.mode === 'remote'
               ? '今天的学习进展已推送到云端。'
-              : '今天的学习进展已记录在当前设备。',
+              : '今天的学习进展已记录。',
           label: result.mode === 'remote' ? '已同步' : '已记录',
           state: 'synced',
         });
@@ -1064,7 +1064,7 @@ function AppShell({
     if (runtimeLearningStateMode === 'local') {
       setLastSyncedLearningStateKey(learningStateSyncKey);
       setLearningStateSyncState({
-        detail: '当前答题记录已记录在当前设备。',
+        detail: '当前答题记录已记录。',
         label: '已记录',
         state: 'idle',
       });
@@ -1157,7 +1157,7 @@ function AppShell({
     if (runtimeSpaceStateMode === 'local') {
       setLastSyncedSpaceStateKey(spaceStateSyncKey);
       setSpaceStateSyncState({
-        detail: '空间收藏和休眠状态已记录在当前设备。',
+        detail: '空间收藏和休眠状态已记录。',
         label: '已记录',
         state: 'synced',
       });
@@ -1407,7 +1407,7 @@ function AppShell({
             `${getUserFacingErrorMessage(
               error,
               '试用开通暂时失败。',
-            )} 已先放行本次完整试用，并加入离线重试队列。`,
+            )} 已先放行本次完整试用；网络恢复后会自动再试。`,
           );
           setMembershipPendingAction(null);
           completeMembershipUnlock(startMembershipTrial(membershipState), nextGate);
@@ -1563,7 +1563,7 @@ function AppShell({
                   membershipErrorMessage: `${getUserFacingErrorMessage(
                     error,
                     '会员状态暂时无法读取。',
-                  )} 已保留登录态，并加入离线重试队列。`,
+                  )} 已保留登录态；网络恢复后会自动再试。`,
                   membershipRefreshSucceeded: false,
                   membershipState: createEntitlementPendingMembershipState(),
                   session,
@@ -3572,7 +3572,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 const INTERNAL_ERROR_COPY_PATTERN =
-  /\b(Remote|payload|source_id|source_label|card_records|remoteConfig|authToken|endpoint|repository|card_id|knowledge_ref|box_ref|space_metadata|MutationQueue|runtime)\b|data\.|卡源|离线队列|本机缓存|会员矩阵|占位/i;
+  /\b(Remote|payload|source_id|source_label|card_records|remoteConfig|authToken|endpoint|repository|card_id|knowledge_ref|box_ref|space_metadata|MutationQueue|runtime)\b|data\.|卡源|离线队列|离线重试|本机缓存|当前设备|会员矩阵|占位|快照/i;
 
 function getUserFacingErrorMessage(error: unknown, fallback: string) {
   const message = getErrorMessage(error, fallback);
