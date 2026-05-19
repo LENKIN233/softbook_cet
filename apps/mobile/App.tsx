@@ -1656,7 +1656,7 @@ function AppShell({
         })
         .catch((error: unknown) => {
           setMembershipError(
-            error instanceof Error ? error.message : '会员开通暂时失败。',
+            getUserFacingErrorMessage(error, '会员开通暂时失败。'),
           );
           setMembershipPendingAction(null);
         });
@@ -1701,7 +1701,10 @@ function AppShell({
         })
         .catch((error: unknown) => {
           setMembershipError(
-            error instanceof Error ? error.message : '恢复购买提醒暂时无法更新。',
+            getUserFacingErrorMessage(
+              error,
+              '恢复购买提醒暂时无法更新。',
+            ),
           );
           setMembershipPendingAction(null);
         });
