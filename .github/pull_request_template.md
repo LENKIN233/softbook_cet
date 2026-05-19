@@ -41,3 +41,9 @@
 - Universal Q1-Q4: N/A
 - Conditional Q5-Q6: N/A
 - 如无视觉稿 / screen / mock / reference HTML 改动，请显式写 `N/A`。
+
+## 卡片内容交接（如适用）
+
+- Card content handoff: N/A
+- Card content validation: N/A
+- 如改动 `apps/mobile/src/learning/localCardRecords.ts`，不能在本仓库内直接生产候选卡片内容或把 dev seed cards 当作正式内容量；必须写明来自同级 `/Users/lenkin/programing/card make` / `external_workspace:/Users/lenkin/programing/card make` 的 handoff，并记录 dry-run import、catalog audit、runtime smoke 或 release content gap delta 等验证证据。

@@ -167,6 +167,11 @@ else:
         "docs/design/mocks/space-state-baseline-v1.html",
         "用户可见 UI 改动必须回答下方 `Universal Q1-Q4` 与适用的 `Conditional Q5-Q6`，不能保留 `N/A`。",
         "`Universal Q1-Q4` 不能只写 `answered`",
+        "## 卡片内容交接（如适用）",
+        "- Card content handoff: N/A",
+        "- Card content validation: N/A",
+        "external_workspace:/Users/lenkin/programing/card make",
+        "dry-run import、catalog audit、runtime smoke 或 release content gap delta",
     ]:
         check_contains("PR template design gate fields", pr_template_text, snippet)
 

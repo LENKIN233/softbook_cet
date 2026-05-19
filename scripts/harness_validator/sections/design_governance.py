@@ -551,6 +551,108 @@ else:
     elif "当前任务引用的 spec" not in (agent_review_only.stdout + agent_review_only.stderr):
         errors.append("validate_agent_review.py required-section rejection must mention missing spec section")
 
+    unchecked_validation_review = subprocess.run(
+        [sys.executable, str(agent_review_script)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        env={
+            **os.environ,
+            "PR_BODY": """
+## 当前任务引用的 spec
+
+- `spec/repo-delivery-contract.json`
+- `spec/agent-harness.json`
+
+## 变更摘要
+
+- Validate PR body review records.
+
+## 验证
+
+- [ ] `python3 scripts/validate_harness.py`
+
+## Agent review
+
+- Reviewer: Codex
+- Review status: Passed
+- Blocking findings: None
+- Review summary: Reviewed changed files.
+
+## 设计稿来源（用户可见 UI 如适用）
+
+- Design artifact: N/A
+- Interaction/motion artifact: N/A
+- Physical space artifact: N/A
+- Implementation mapping: N/A
+- Unimplemented design gaps: N/A
+
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: N/A
+- Conditional Q5-Q6: N/A
+""",
+        },
+    )
+    if unchecked_validation_review.returncode == 0:
+        errors.append("validate_agent_review.py must reject unchecked validation boxes")
+    elif "unchecked validation boxes" not in (
+        unchecked_validation_review.stdout + unchecked_validation_review.stderr
+    ):
+        errors.append("validate_agent_review.py unchecked validation rejection must explain the problem")
+
+    skip_remote_only_review = subprocess.run(
+        [sys.executable, str(agent_review_script)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        env={
+            **os.environ,
+            "PR_BODY": """
+## 当前任务引用的 spec
+
+- `spec/repo-delivery-contract.json`
+- `spec/agent-harness.json`
+
+## 变更摘要
+
+- Validate PR body review records.
+
+## 验证
+
+- [x] `python3 scripts/validate_harness.py --skip-remote-guard`
+
+## Agent review
+
+- Reviewer: Codex
+- Review status: Passed
+- Blocking findings: None
+- Review summary: Reviewed changed files.
+
+## 设计稿来源（用户可见 UI 如适用）
+
+- Design artifact: N/A
+- Interaction/motion artifact: N/A
+- Physical space artifact: N/A
+- Implementation mapping: N/A
+- Unimplemented design gaps: N/A
+
+## design_review_checklist（如适用）
+
+- Universal Q1-Q4: N/A
+- Conditional Q5-Q6: N/A
+""",
+        },
+    )
+    if skip_remote_only_review.returncode == 0:
+        errors.append("validate_agent_review.py must reject PR records that only ran --skip-remote-guard harness")
+    elif "full `python3 scripts/validate_harness.py`" not in (
+        skip_remote_only_review.stdout + skip_remote_only_review.stderr
+    ):
+        errors.append("validate_agent_review.py skip-remote rejection must require full harness")
+
     valid_agent_review = subprocess.run(
         [sys.executable, str(agent_review_script)],
         cwd=ROOT,
@@ -571,6 +673,7 @@ else:
 
 ## 验证
 
+- [x] `python3 scripts/validate_harness.py`
 - [x] `python3 scripts/validate_agent_review.py`
 
 ## Agent review
@@ -655,6 +758,51 @@ if test_only_tsx_case.returncode != 0:
         "validate_pr_design_gate.py should not require design evidence for test-only TSX changes: "
         + test_only_tsx_case.stdout
         + test_only_tsx_case.stderr
+    )
+
+card_content_empty_case = run_design_gate_case(
+    "",
+    ["apps/mobile/src/learning/localCardRecords.ts"],
+)
+if card_content_empty_case.returncode == 0:
+    errors.append("validate_pr_design_gate.py must treat repository dev card content as handoff-gated")
+else:
+    card_content_empty_output = card_content_empty_case.stdout + card_content_empty_case.stderr
+    if "Card content handoff" not in card_content_empty_output:
+        errors.append("validate_pr_design_gate.py card content rejection must require handoff evidence")
+
+card_content_invalid_handoff_case = run_design_gate_case(
+    """
+## 卡片内容交接（如适用）
+
+- Card content handoff: local softbook_cet edit
+- Card content validation: node infra/cloudbase/import-card-source.mjs --file handoff.json --track cet4
+""",
+    ["apps/mobile/src/learning/localCardRecords.ts"],
+)
+if card_content_invalid_handoff_case.returncode == 0:
+    errors.append("validate_pr_design_gate.py must reject repository dev card content without card make handoff")
+else:
+    card_content_invalid_output = (
+        card_content_invalid_handoff_case.stdout + card_content_invalid_handoff_case.stderr
+    )
+    if "card make" not in card_content_invalid_output:
+        errors.append("validate_pr_design_gate.py card content rejection must name the card make boundary")
+
+card_content_valid_case = run_design_gate_case(
+    """
+## 卡片内容交接（如适用）
+
+- Card content handoff: external_workspace:/Users/lenkin/programing/card make PR #12 handoff payload.
+- Card content validation: dry-run import with node infra/cloudbase/import-card-source.mjs --file handoff.json --track cet4; catalog_audit_result recorded with node infra/cloudbase/audit-card-sources.mjs.
+""",
+    ["apps/mobile/src/learning/localCardRecords.ts"],
+)
+if card_content_valid_case.returncode != 0:
+    errors.append(
+        "validate_pr_design_gate.py should allow repository dev card content only with card make handoff evidence: "
+        + card_content_valid_case.stdout
+        + card_content_valid_case.stderr
     )
 
 visual_tokens_valid_case = run_design_gate_case(

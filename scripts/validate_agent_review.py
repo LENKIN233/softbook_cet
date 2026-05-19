@@ -10,6 +10,13 @@ from pathlib import Path
 
 MISSING_VALUES = {"", "n/a", "na", "none", "null", "不适用", "无"}
 BLOCKING_MISSING_VALUES = {"", "n/a", "na", "null", "不适用"}
+UNCHECKED_CHECKBOX_RE = re.compile(r"(?im)^\s*-\s*\[\s\]\s+")
+CHECKED_OR_PASSED_RECORD_RE = re.compile(
+    r"(?im)(\[[xX]\]|`[^`]+`\s*(?:passed|pass|ok|通过)|(?:passed|pass|ok|通过)\s*`[^`]+`)"
+)
+FULL_HARNESS_VALIDATION_RE = re.compile(
+    r"`python3\s+scripts/validate_harness\.py(?![^`]*--skip-remote-guard)[^`]*`"
+)
 REQUIRED_SECTIONS = (
     "当前任务引用的 spec",
     "变更摘要",
@@ -98,8 +105,18 @@ def validate(body: str) -> list[str]:
     validation_section = section_body(body, "验证")
     if not has_meaningful_content(validation_section):
         errors.append("PR body must include validation records")
-    elif not re.search(r"(?im)(\[[xX]\]|`[^`]+`)", validation_section):
-        errors.append("PR body validation section must include checked results or command records")
+    elif UNCHECKED_CHECKBOX_RE.search(validation_section):
+        errors.append(
+            "PR body validation section must not contain unchecked validation boxes before merge"
+        )
+    elif not CHECKED_OR_PASSED_RECORD_RE.search(validation_section):
+        errors.append(
+            "PR body validation section must include checked or explicitly passed command records"
+        )
+    elif not FULL_HARNESS_VALIDATION_RE.search(validation_section):
+        errors.append(
+            "PR body validation section must record full `python3 scripts/validate_harness.py`, not only the CI --skip-remote-guard variant"
+        )
 
     reviewer = line_value(body, "Reviewer")
     review_status = line_value(body, "Review status")

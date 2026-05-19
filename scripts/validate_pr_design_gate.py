@@ -24,6 +24,26 @@ USER_FACING_FILES = {
     "apps/mobile/src/visual/tokens.ts",
     "apps/web/src/visual/tokens.ts",
 }
+CARD_CONTENT_HANDOFF_FILES = {
+    "apps/mobile/src/learning/localCardRecords.ts",
+}
+CARD_CONTENT_HANDOFF_MARKERS = (
+    "card make",
+    "/Users/lenkin/programing/card make",
+    "external_workspace:/Users/lenkin/programing/card make",
+    "../card make",
+)
+CARD_CONTENT_VALIDATION_MARKERS = (
+    "dry-run",
+    "dry_run_import_result",
+    "catalog_audit_result",
+    "runtime_smoke_result",
+    "release_content_gap_delta",
+    "import-card-source.mjs",
+    "audit-card-sources.mjs",
+    "smoke-softbook-api.mjs",
+    "report_release_content_gap.mjs",
+)
 USER_FACING_PREFIXES = (
     "apps/mobile/",
     "apps/web/",
@@ -284,6 +304,10 @@ def is_user_facing_ui_file(path: str) -> bool:
     return Path(path).suffix.lower() in USER_FACING_EXTENSIONS
 
 
+def is_card_content_handoff_file(path: str) -> bool:
+    return path in CARD_CONTENT_HANDOFF_FILES
+
+
 def is_test_or_fixture_path(path: str) -> bool:
     lower_path = path.lower()
     return (
@@ -503,6 +527,11 @@ def has_concrete_source(value: str, markers: tuple[str, ...]) -> bool:
     )
 
 
+def value_mentions_any(value: str | None, markers: tuple[str, ...]) -> bool:
+    normalized = (value or "").lower()
+    return any(marker.lower() in normalized for marker in markers)
+
+
 def marker_matches_path(marker: str, path: str) -> bool:
     if marker in {"http://", "https://"}:
         return False
@@ -527,7 +556,10 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
     errors = []
     ui_files = [path for path in changed_files if is_user_facing_ui_file(path)]
     visual_output_files = [path for path in changed_files if is_visual_output_file(path)]
-    if not ui_files and not visual_output_files:
+    card_content_files = [
+        path for path in changed_files if is_card_content_handoff_file(path)
+    ]
+    if not ui_files and not visual_output_files and not card_content_files:
         return errors
 
     design_artifact = line_value(body, "Design artifact")
@@ -535,6 +567,8 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
     unimplemented_gaps = line_value(body, "Unimplemented design gaps")
     interaction_motion_artifact = line_value(body, "Interaction/motion artifact")
     physical_space_artifact = line_value(body, "Physical space artifact")
+    card_content_handoff = line_value(body, "Card content handoff")
+    card_content_validation = line_value(body, "Card content validation")
     universal_checklist = line_value(body, "Universal Q1-Q4")
     conditional_checklist = line_value(body, "Conditional Q5-Q6")
     learning_or_space_files = [
@@ -545,6 +579,25 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
     ]
     learning_files = [path for path in ui_files if path.startswith(LEARNING_SURFACE_PREFIXES)]
     space_files = [path for path in ui_files if path.startswith(SPACE_SURFACE_PREFIXES)]
+
+    if card_content_files:
+        if is_missing(card_content_handoff):
+            errors.append(
+                "repository dev card content changed, but PR body does not name a non-N/A Card content handoff from card make"
+            )
+        elif not value_mentions_any(card_content_handoff, CARD_CONTENT_HANDOFF_MARKERS):
+            errors.append(
+                "Card content handoff must name the sibling card make workspace or external_workspace:/Users/lenkin/programing/card make"
+            )
+
+        if is_missing(card_content_validation):
+            errors.append(
+                "repository dev card content changed, but PR body does not state non-N/A Card content validation evidence"
+            )
+        elif not value_mentions_any(card_content_validation, CARD_CONTENT_VALIDATION_MARKERS):
+            errors.append(
+                "Card content validation must mention dry-run import, catalog audit, runtime smoke, release gap delta, or the card-source import/audit/smoke commands"
+            )
 
     if ui_files:
         if is_missing(design_artifact):
@@ -593,22 +646,23 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
                 "user-facing UI files changed, but PR body does not state non-N/A Unimplemented design gaps"
             )
 
-    errors.extend(
-        validate_checklist_evidence(
-            "Universal Q1-Q4",
-            universal_checklist,
-            UNIVERSAL_CHECKLIST_EVIDENCE,
+    if ui_files or visual_output_files:
+        errors.extend(
+            validate_checklist_evidence(
+                "Universal Q1-Q4",
+                universal_checklist,
+                UNIVERSAL_CHECKLIST_EVIDENCE,
+            )
         )
-    )
-    errors.extend(
-        validate_checklist_evidence(
-            "Conditional Q5-Q6",
-            conditional_checklist,
-            CONDITIONAL_CHECKLIST_EVIDENCE,
+        errors.extend(
+            validate_checklist_evidence(
+                "Conditional Q5-Q6",
+                conditional_checklist,
+                CONDITIONAL_CHECKLIST_EVIDENCE,
+            )
         )
-    )
 
-    errors.extend(scan_visual_output_files(visual_output_files))
+        errors.extend(scan_visual_output_files(visual_output_files))
 
     if learning_files:
         if is_missing(interaction_motion_artifact):
@@ -690,7 +744,11 @@ def main():
         print("PR DESIGN GATE FAILED")
         print("Design-gated changed files:")
         for path in changed_files:
-            if is_user_facing_ui_file(path) or is_visual_output_file(path):
+            if (
+                is_user_facing_ui_file(path)
+                or is_visual_output_file(path)
+                or is_card_content_handoff_file(path)
+            ):
                 print(f"- {path}")
         for error in errors:
             print(f"- {error}")
