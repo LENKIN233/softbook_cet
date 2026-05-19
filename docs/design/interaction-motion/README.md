@@ -16,6 +16,7 @@ These artifacts are required before implementing Learning or other core interact
 ## Accepted Artifacts
 
 - `learning-core-interactions-v1.md`: Learning core interaction operation, feedback, failure, motion, interruptibility, and reduce-motion contract for `flip`, `multiple_choice`, `lock`, `elimination`, `swipe`, and `hint_layer`.
+- `learning-card-rhythm-v1.md`: Learning single-card place -> focus -> support -> resolve -> settle -> continue rhythm, including user-facing state boundaries that prevent implementation metadata from entering the UI.
 
 ## Required Contents
 
