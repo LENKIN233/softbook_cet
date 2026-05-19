@@ -110,7 +110,7 @@ export function LearningSurface({
           testID="learning-complete-summary"
         >
           <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-            {isReviewPhase ? 'REVIEW FLOW' : 'SINGLE CARD FLOW'}
+            {isReviewPhase ? '回看练习' : '单卡学习'}
           </Text>
           <Text style={[styles.heroTitle, { color: palette.text }]}>
             {isReviewPhase ? '本轮回看已走完' : '本轮学习已走完'}
@@ -154,7 +154,7 @@ export function LearningSurface({
               palette={palette}
             />
             <MetricPill
-              label="Peek"
+              label="线索"
               value={`${summary.peekUseCount}`}
               palette={palette}
             />
@@ -180,7 +180,7 @@ export function LearningSurface({
                 : [
                     '学习入口不再是说明页，而是已登录后即可进入的单卡流。',
                     '核心交互覆盖翻面、选择、锁定、排除和滑动，提示层附着在具体卡上出现。',
-                    'Peek 和收藏保持轻量，不抢占答题动作。',
+                    '线索和收藏保持轻量，不抢占答题动作。',
                   ]
             }
           />
@@ -231,7 +231,7 @@ export function LearningSurface({
                   {INTERACTION_LABELS[result.interactionId]}
                 </Text>
                 <Text style={[styles.resultMeta, { color: palette.textMuted }]}>
-                  {result.cardId}
+                  已完成
                 </Text>
               </View>
             <ResultBadge outcome={result.outcome} palette={palette} />
@@ -254,7 +254,7 @@ export function LearningSurface({
             testID="learning-restart-button"
           >
             <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-              {isReviewPhase ? '回到首轮重新开始' : '再跑一轮当前卡源'}
+              {isReviewPhase ? '回到首轮重新开始' : '再练一轮当前卡组'}
             </Text>
           </Pressable>
         </View>
@@ -332,8 +332,7 @@ export function LearningSurface({
         <View style={styles.studyCardTop}>
           <View style={styles.studyTitleWrap}>
             <Text style={[styles.cardEyebrow, { color: tone.accent }]}>
-              当前卡 · {currentCard.card_id} ·{' '}
-              {INTERACTION_LABELS[currentCard.interaction_id]}
+              当前卡 · {INTERACTION_LABELS[currentCard.interaction_id]}
             </Text>
             <Text style={[styles.cardPrompt, { color: palette.text }]}>
               {currentCard.front.prompt}
@@ -369,7 +368,7 @@ export function LearningSurface({
               {INTERACTION_LABELS[currentCard.interaction_id]}
             </Text>
             <Text style={[styles.interactionMeta, { color: palette.textMuted }]}>
-              action plane
+              答题区
             </Text>
           </View>
           <InteractionBody
@@ -388,7 +387,7 @@ export function LearningSurface({
 
         <View style={styles.actionRow}>
           <LightActionButton
-            label={currentCardState.isPeeked ? '收起 Peek' : 'Peek 卡位'}
+            label={currentCardState.isPeeked ? '收起线索' : '查看线索'}
             onPress={onTogglePeek}
             palette={palette}
             testID="learning-peek-button"
@@ -430,7 +429,7 @@ export function LearningSurface({
                 },
               ]}
             >
-              {currentCardState.isFavorited ? '已收藏' : 'favorite'}
+              {currentCardState.isFavorited ? '已收藏' : '收藏'}
             </Text>
           </Pressable>
         </View>
@@ -449,10 +448,11 @@ export function LearningSurface({
               这张卡为什么出现
             </Text>
             <Text style={[styles.peekText, { color: palette.textMuted }]}>
-              knowledge_ref: {currentCard.knowledge_ref}
+              对应知识点：{currentCard.space_metadata.library} ·{' '}
+              {currentCard.space_metadata.group}
             </Text>
             <Text style={[styles.peekText, { color: palette.textMuted }]}>
-              位置: {currentCard.space_metadata.library} /{' '}
+              空间位置：{currentCard.space_metadata.library} /{' '}
               {currentCard.space_metadata.group} /{' '}
               {currentCard.space_metadata.box}
             </Text>
@@ -470,8 +470,7 @@ export function LearningSurface({
             ]}
           >
             <Text style={[styles.hintTitle, { color: tone.accent }]}>
-              {currentCard.hint_layer.reveal_gesture}
-              出提示层
+              提示
             </Text>
             <Text style={[styles.hintText, { color: palette.textMuted }]}>
               {currentCard.hint_layer.content}
@@ -490,7 +489,7 @@ export function LearningSurface({
           testID="learning-address-aperture"
         >
           <Text style={[styles.addressText, { color: palette.textMuted }]}>
-            {currentCard.track.toUpperCase()} /{' '}
+            当前位置：{currentCard.track.toUpperCase()} /{' '}
             {currentCard.space_metadata.library} /{' '}
             {currentCard.space_metadata.group} /{' '}
             {currentCard.space_metadata.box}
