@@ -149,7 +149,7 @@ export function LearningSurface({
               palette={palette}
             />
             <MetricPill
-              label="提示层"
+              label="提示"
               value={`${summary.hintUseCount}`}
               palette={palette}
             />
@@ -173,31 +173,31 @@ export function LearningSurface({
             lines={
               isReviewPhase
                 ? [
-                    '首轮里自动判错和翻面回看的卡，被收成一轮独立回看。',
-                    '复习仍然沿用单卡推进，不改成高成本列表管理。',
-                    '已有交互、提示层和轻量动作会完整保留到回看阶段。',
+                    '需要再看的卡已经重新过了一遍。',
+                    '仍不稳的点会留在后续回看里继续出现。',
+                    '回看仍按一张卡一张卡推进，不要求你管理列表。',
                   ]
                 : [
-                    '学习入口不再是说明页，而是已登录后即可进入的单卡流。',
-                    '核心交互覆盖翻面、选择、锁定、排除和滑动，提示层附着在具体卡上出现。',
-                    '线索和收藏保持轻量，不抢占答题动作。',
+                    '当前卡组已经按系统顺序走完。',
+                    '需要再看的卡会收进回看，不打断主学习流。',
+                    '线索、提示和标记只服务当前这张卡。',
                   ]
             }
           />
           <InfoGlassCard
             palette={palette}
-            title={isReviewPhase ? '这轮回看仍没做什么' : '还没有做什么'}
+            title={isReviewPhase ? '继续建议' : '下一步建议'}
             lines={
               isReviewPhase
                 ? [
-                    '没有把回看扩成新的学习模式。',
-                    '没有把回看扩成独立顶层入口或复杂进度面板。',
-                    '没有让同步、会员或统计打断本轮回看。',
+                    '可以回到首轮重新走一遍当前卡组。',
+                    '也可以进入空间，看这些卡所在的知识盒。',
+                    '先处理仍不稳的卡，再继续新一轮学习。',
                   ]
                 : [
-                    '没有接学习算法、真实卡池和跨端同步。',
-                    '没有把音频单独拉成一类交互。',
-                    '没有把统计或复杂状态机抬成产品中心。',
+                    '先回看需要再看的卡。',
+                    '想确认位置时，去空间查看对应知识盒。',
+                    '如果今天只想巩固，可以再练一轮当前卡组。',
                   ]
             }
           />
@@ -288,7 +288,7 @@ export function LearningSurface({
               toneColor={tone.accent}
             />
             {isReviewPhase ? (
-              <TagChip label="回看队列" toneColor={palette.warning} />
+              <TagChip label="回看卡组" toneColor={palette.warning} />
             ) : null}
           </View>
           <Text style={[styles.learningFrameMeta, { color: palette.textMuted }]}>
@@ -299,8 +299,8 @@ export function LearningSurface({
         <Text style={[styles.learningFrameSummary, { color: palette.textMuted }]}>
           {sessionLabel} ·{' '}
           {isReviewPhase
-            ? '把需要回看的卡单独再刷一轮'
-            : '单卡推进，不把学习入口做成按钮堆'}
+            ? '回看需要再看的卡，仍按一张卡推进'
+            : '系统递给你当前这一张，按顺序继续'}
         </Text>
         <View
           style={[
@@ -396,8 +396,8 @@ export function LearningSurface({
             <LightActionButton
               label={
                 currentCardState.isHintVisible
-                  ? '收起提示层'
-                  : currentCard.hint_layer.label
+                  ? '收起提示'
+                  : '查看提示'
               }
               onPress={onToggleHint}
               palette={palette}
@@ -945,6 +945,23 @@ function ResultPanel({
       <Text style={[styles.resultTip, { color: palette.textMuted }]}>
         过级提醒：{card.analysis.exam_tip}
       </Text>
+      <View
+        style={[
+          styles.settlePanel,
+          {
+            backgroundColor: palette.panel,
+            borderColor: palette.success,
+          },
+        ]}
+        testID="learning-settle-panel"
+      >
+        <Text style={[styles.settleTitle, { color: palette.success }]}>
+          已记录本次结果
+        </Text>
+        <Text style={[styles.settleText, { color: palette.textMuted }]}>
+          你可以继续下一张；学习位置会跟着本轮节奏安静更新。
+        </Text>
+      </View>
       <Pressable
         onPress={onAdvanceCard}
         style={[styles.primaryButton, { backgroundColor: palette.accent }]}
@@ -1599,6 +1616,20 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   resultTip: {
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  settlePanel: {
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 14,
+    gap: 5,
+  },
+  settleTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  settleText: {
     fontSize: 13,
     lineHeight: 20,
   },

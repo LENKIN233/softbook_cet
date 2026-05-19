@@ -2082,7 +2082,7 @@ function AppShell({
       sessionCards={activeSessionCards}
       sessionLabel={
         learningPhase === 'review'
-          ? '首轮回看队列'
+          ? '首轮回看卡组'
           : `${learningTrack.toUpperCase()} 本轮卡组`
       }
     />
