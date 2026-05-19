@@ -1579,6 +1579,67 @@ test('can unlock gated space after remote purchase', async () => {
   });
 });
 
+test('keeps remote purchase failure copy user-facing', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v1/auth/request-code') {
+      return createJsonResponse({});
+    }
+
+    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+      return createJsonResponse({
+        data: {
+          auth_token: 'remote-auth-token',
+          phone_number: '13800138000',
+        },
+      });
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      return createJsonResponse(createRemoteMembershipPayload('free'));
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/purchase') {
+      return createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'space');
+
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({testID: 'membership-purchase-button'}).props.onPress();
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('会员状态更新暂时失败（503）。');
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
 test('can dismiss remote recovery reminder from mine', async () => {
   const fetchCalls: MockFetchCall[] = [];
 
@@ -1674,6 +1735,76 @@ test('can dismiss remote recovery reminder from mine', async () => {
   expect(dismissRecoveryRequest?.init?.headers).toMatchObject({
     Authorization: 'Bearer remote-auth-token',
   });
+});
+
+test('keeps remote recovery-dismiss failure copy user-facing', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+    membership: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v1/auth/request-code') {
+      return createJsonResponse({});
+    }
+
+    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+      return createJsonResponse({
+        data: {
+          auth_token: 'remote-auth-token',
+          phone_number: '13800138000',
+        },
+      });
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      return createJsonResponse(
+        createRemoteMembershipPayload('free', {
+          last_experience_ended_by: 'trial',
+          recovery_prompt_visible: true,
+        }),
+      );
+    }
+
+    if (
+      input === 'https://api.softbook.example/v1/membership/dismiss-recovery'
+    ) {
+      return createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(async () => {
+    root
+      .findByProps({testID: 'membership-dismiss-recovery-button'})
+      .props.onPress();
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('会员状态更新暂时失败（503）。');
+  expectNoUserVisibleMetadataLeakage(tree!);
 });
 
 test('refreshes remote entitlement when opening mine and keeps later gates in sync', async () => {
