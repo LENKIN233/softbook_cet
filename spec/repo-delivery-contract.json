@@ -1,5 +1,5 @@
 {
-  "version": "vnext-6",
+  "version": "vnext-7",
   "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -37,6 +37,11 @@
       "设计稿来源（用户可见 UI 如适用）",
       "design_review_checklist（如适用）"
     ],
+    "validation_record_policy": {
+      "full_harness_required_command": "python3 scripts/validate_harness.py",
+      "skip_remote_guard_is_ci_only": true,
+      "skip_remote_guard_only_record_is_merge_blocker": true
+    },
     "visual_output_rule": "if_visual_output_changes_exist_the_pull_request_must_answer_the_design_review_checklist",
     "user_facing_ui_design_gate": {
       "applies_when": "pull_request_changes_user_facing_UI_or_visual_state",
@@ -72,6 +77,32 @@
         "space_ui_requires_space_visual_proof_artifact": true,
         "core_surface_quality_requires_rendered_mock_or_storyboard_before_full_visual_completion": true
       }
+    },
+    "card_content_handoff_gate": {
+      "applies_when": "pull_request_changes_repository_dev_card_content_or_card_payload_seed",
+      "direct_content_production_without_external_handoff": "delivery_blocker",
+      "watched_files": [
+        "apps/mobile/src/learning/localCardRecords.ts"
+      ],
+      "accepted_handoff_sources": [
+        "external_workspace:/Users/lenkin/programing/card make",
+        "/Users/lenkin/programing/card make",
+        "../card make"
+      ],
+      "pull_request_must_state": [
+        "card_make_handoff_source",
+        "dry_run_import_result_or_catalog_audit_result_or_runtime_smoke_result_or_release_content_gap_delta"
+      ],
+      "accepted_validation_evidence": [
+        "dry_run_import_result",
+        "catalog_audit_result",
+        "runtime_smoke_result",
+        "release_content_gap_delta",
+        "infra/cloudbase/import-card-source.mjs",
+        "infra/cloudbase/audit-card-sources.mjs",
+        "infra/cloudbase/smoke-softbook-api.mjs",
+        "scripts/report_release_content_gap.mjs"
+      ]
     }
   },
   "ci_contract": {

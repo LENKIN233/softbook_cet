@@ -6,6 +6,7 @@ repo_delivery_contract = harness["governance"]["repo_delivery_contract"]
 external_content_workspace = harness["governance"]["external_content_workspace"]
 delivery_defaults = delivery["delivery_defaults"]["code_change_tasks"]
 pull_request_contract = delivery["pull_request_contract"]
+card_content_handoff_gate = pull_request_contract["card_content_handoff_gate"]
 ci_contract = delivery["ci_contract"]
 
 check_equal("main_branch_policy.branch_name", "main", main_branch_policy["branch_name"])
@@ -237,6 +238,15 @@ check_equal(
     pull_request_contract["required_body_sections"],
 )
 check_equal(
+    "pull_request_contract validation_record_policy",
+    {
+        "full_harness_required_command": "python3 scripts/validate_harness.py",
+        "skip_remote_guard_is_ci_only": True,
+        "skip_remote_guard_only_record_is_merge_blocker": True,
+    },
+    pull_request_contract["validation_record_policy"],
+)
+check_equal(
     "pull_request_contract visual_output_rule",
     "if_visual_output_changes_exist_the_pull_request_must_answer_the_design_review_checklist",
     pull_request_contract["visual_output_rule"],
@@ -304,6 +314,52 @@ check_equal(
         "core_surface_quality_requires_rendered_mock_or_storyboard_before_full_visual_completion": True,
     },
     pull_request_contract["user_facing_ui_design_gate"]["core_product_capability_design_gate"],
+)
+check_equal(
+    "pull_request_contract card_content_handoff_gate applies_when",
+    "pull_request_changes_repository_dev_card_content_or_card_payload_seed",
+    card_content_handoff_gate["applies_when"],
+)
+check_equal(
+    "pull_request_contract card_content_handoff_gate direct_content_production_without_external_handoff",
+    "delivery_blocker",
+    card_content_handoff_gate["direct_content_production_without_external_handoff"],
+)
+check_equal(
+    "pull_request_contract card_content_handoff_gate watched_files",
+    ["apps/mobile/src/learning/localCardRecords.ts"],
+    card_content_handoff_gate["watched_files"],
+)
+check_equal(
+    "pull_request_contract card_content_handoff_gate accepted_handoff_sources",
+    [
+        "external_workspace:/Users/lenkin/programing/card make",
+        "/Users/lenkin/programing/card make",
+        "../card make",
+    ],
+    card_content_handoff_gate["accepted_handoff_sources"],
+)
+check_equal(
+    "pull_request_contract card_content_handoff_gate pull_request_must_state",
+    [
+        "card_make_handoff_source",
+        "dry_run_import_result_or_catalog_audit_result_or_runtime_smoke_result_or_release_content_gap_delta",
+    ],
+    card_content_handoff_gate["pull_request_must_state"],
+)
+check_equal(
+    "pull_request_contract card_content_handoff_gate accepted_validation_evidence",
+    [
+        "dry_run_import_result",
+        "catalog_audit_result",
+        "runtime_smoke_result",
+        "release_content_gap_delta",
+        "infra/cloudbase/import-card-source.mjs",
+        "infra/cloudbase/audit-card-sources.mjs",
+        "infra/cloudbase/smoke-softbook-api.mjs",
+        "scripts/report_release_content_gap.mjs",
+    ],
+    card_content_handoff_gate["accepted_validation_evidence"],
 )
 check_equal("ci_contract workflow_path", ".github/workflows/pr-gates.yml", ci_contract["workflow_path"])
 check_equal(
