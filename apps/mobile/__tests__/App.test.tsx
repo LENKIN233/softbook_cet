@@ -33,7 +33,7 @@ type TestRendererNode =
   | null;
 
 const USER_VISIBLE_METADATA_PATTERN =
-  /knowledge_ref|card_id|box_ref|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|payload|metadata|runtime|repository|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页/i;
+  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|remoteConfig|authToken|endpoint|MutationQueue|mutation|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|payload|metadata|runtime|repository|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\./i;
 
 function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   if (node === null) {
@@ -59,6 +59,17 @@ function expectNoUserVisibleMetadataLeakage(
     USER_VISIBLE_METADATA_PATTERN,
   );
 }
+
+test('metadata leakage guard catches internal remote error vocabulary', () => {
+  [
+    'Remote membership mutation failed with 503.',
+    'Remote learning source payload.data.source_id is required.',
+    'MutationQueue replay failed for authToken endpoint remoteConfig.',
+    'space_metadata.box_ref leaked through a status card.',
+  ].forEach(message => {
+    expect(message).toMatch(USER_VISIBLE_METADATA_PATTERN);
+  });
+});
 
 jest.mock('../src/learning/learningRepository', () => ({
   createLearningSessionRepository: (...args: unknown[]) => {
