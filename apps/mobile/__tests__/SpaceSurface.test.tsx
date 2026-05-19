@@ -95,7 +95,7 @@ test('keeps a physical Space outline when no cards are visible', () => {
     .toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-continuity-strip' }).length)
     .toBeGreaterThan(0);
-  expect(output).toContain('EMPTY BOX TRAY');
+  expect(output).toContain('当前盒为空');
   expect(output).toContain('当前盒暂无可展示卡片');
   expect(output).toContain(
     `${currentCard.space_metadata.library} / ${currentCard.space_metadata.group} / ${currentCard.space_metadata.box}`,
@@ -120,10 +120,10 @@ test('uses contained skeleton slots while Space cards are loading', () => {
         palette={palette}
         spaceCards={[]}
         spaceStatusRail={{
-          detail: '正在恢复本轮卡源；空间地址架和当前盒位会先保留在原位。',
+          detail: '正在整理本轮卡片；空间地址架和当前盒位会先保留在原位。',
           label: '加载中',
           state: 'loading',
-          title: '正在恢复空间卡源',
+          title: '正在整理空间内容',
         }}
       />,
     );
@@ -132,10 +132,10 @@ test('uses contained skeleton slots while Space cards are loading', () => {
   const root = tree!.root;
   const output = JSON.stringify(tree!.toJSON());
 
-  expect(output).toContain('LOADING BOX TRAY');
-  expect(output).toContain('卡片占位恢复中');
-  expect(output).toContain('卡片占位');
-  expect(output).toContain('加载完成后回到真实卡片');
+  expect(output).toContain('正在整理盒内卡片');
+  expect(output).toContain('盒内卡片整理中');
+  expect(output).toContain('正在整理卡片');
+  expect(output).toContain('完成后回到真实内容');
   expect(root.findAllByProps({ testID: 'space-loading-card-skeleton' }).length)
     .toBeGreaterThan(0);
   expect(

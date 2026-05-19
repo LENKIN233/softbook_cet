@@ -93,7 +93,7 @@ export function StatisticsSurface({
         ]}
       >
         <Text style={[styles.eyebrow, { color: palette.accent }]}>
-          LIGHT STATS / CHECK-IN
+          今日进展
         </Text>
         <Text style={[styles.title, { color: palette.text }]}>轻量统计与签到</Text>
         <Text style={[styles.summary, { color: palette.textMuted }]}>
@@ -192,7 +192,7 @@ export function StatisticsSurface({
       </View>
 
       <SurfaceCard palette={palette}>
-        <Text style={[styles.cardTitle, { color: palette.text }]}>日级同步</Text>
+        <Text style={[styles.cardTitle, { color: palette.text }]}>今日同步</Text>
         <Text
           style={[styles.cardSummary, { color: palette.textMuted }]}
           testID="statistics-sync-label"
@@ -218,7 +218,7 @@ export function StatisticsSurface({
           style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
         >
           <Text style={[styles.cardTitle, { color: palette.text }]}>
-            今日行为信号
+            今日练习信号
           </Text>
           <View style={styles.signalList}>
             <SignalRow
@@ -249,7 +249,7 @@ export function StatisticsSurface({
           style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
         >
           <Text style={[styles.cardTitle, { color: palette.text }]}>
-            当前只保留什么
+            进展如何使用
           </Text>
           <InfoLine
             palette={palette}

@@ -26,6 +26,40 @@ type MockFetchCall = {
   input: string;
 };
 
+type TestRendererNode =
+  | ReactTestRenderer.ReactTestRendererJSON
+  | ReactTestRenderer.ReactTestRendererJSON[]
+  | string
+  | null;
+
+const USER_VISIBLE_METADATA_PATTERN =
+  /knowledge_ref|card_id|box_ref|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|会员矩阵|卡源|离线队列|本机缓存|payload|metadata|占位/i;
+
+function collectRenderedText(node: TestRendererNode, inText = false): string[] {
+  if (node === null) {
+    return [];
+  }
+
+  if (typeof node === 'string') {
+    return inText ? [node] : [];
+  }
+
+  if (Array.isArray(node)) {
+    return node.flatMap(child => collectRenderedText(child, inText));
+  }
+
+  const nextInText = inText || node.type === 'Text';
+  return node.children?.flatMap(child => collectRenderedText(child, nextInText)) ?? [];
+}
+
+function expectNoUserVisibleMetadataLeakage(
+  tree: ReactTestRenderer.ReactTestRenderer,
+) {
+  expect(collectRenderedText(tree.toJSON()).join(' ')).not.toMatch(
+    USER_VISIBLE_METADATA_PATTERN,
+  );
+}
+
 jest.mock('../src/learning/learningRepository', () => ({
   createLearningSessionRepository: (...args: unknown[]) => {
     mockCreateLearningSessionRepository(...args);
@@ -328,7 +362,7 @@ test('reads installed runtime config when the app mounts', async () => {
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('使用短信验证码确认身份');
   expect(output).toContain('将通过短信验证码确认身份。');
-  expect(output).not.toContain('可用验证码完成登录体验。');
+  expect(output).not.toContain('输入验证码即可完成登录。');
 });
 
 test('uses native initial remote runtime profile before the shell mounts', async () => {
@@ -361,7 +395,7 @@ test('uses native initial remote runtime profile before the shell mounts', async
   });
   expect(output).toContain('使用短信验证码确认身份');
   expect(output).toContain('将通过短信验证码确认身份。');
-  expect(output).not.toContain('可用验证码完成登录体验。');
+  expect(output).not.toContain('输入验证码即可完成登录。');
 });
 
 test('shows remote request-code failure inside the auth gate', async () => {
@@ -522,7 +556,7 @@ test('keeps verified remote auth when entitlement bootstrap is unavailable', asy
   expect(output).not.toContain('学习前先登录');
   expect(output).not.toContain('登录暂时失败。');
   expect(output).toContain('当前是基础学习态');
-  expect(output).toContain('已加入离线重试队列。');
+  expect(output).toContain('网络恢复后会自动再试。');
   expect(
     fetchCalls.filter(
       call => call.input === 'https://api.softbook.example/v1/membership/entitlement',
@@ -629,7 +663,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('云端已同步');
+  expect(output).toContain('已同步');
   expect(output).toContain('今天的学习进展已推送到云端。');
 
   const membershipRequest = fetchCalls.find(
@@ -777,8 +811,8 @@ test('queues failed remote daily progress sync for later replay', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已排队');
-  expect(output).toContain('已加入离线重试队列');
+  expect(output).toContain('待重试');
+  expect(output).toContain('网络恢复后会自动再试');
 });
 
 test('queues failed remote learning state sync for later replay', async () => {
@@ -862,8 +896,8 @@ test('queues failed remote learning state sync for later replay', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('学习状态：已排队');
-  expect(output).toContain('学习状态说明：学习状态同步暂时失败（503）。 已加入离线重试队列。');
+  expect(output).toContain('学习状态：待重试');
+  expect(output).toContain('答题记录：学习状态同步暂时失败（503）。 网络恢复后会自动再试。');
 });
 
 test('replays queued daily progress after network reconnect', async () => {
@@ -954,7 +988,7 @@ test('replays queued daily progress after network reconnect', async () => {
     await flushAsyncEffects();
   });
 
-  expect(JSON.stringify(tree!.toJSON())).toContain('已排队');
+  expect(JSON.stringify(tree!.toJSON())).toContain('待重试');
 
   shouldFailProgressSync = false;
 
@@ -964,8 +998,8 @@ test('replays queued daily progress after network reconnect', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('云端已同步');
-  expect(output).toContain('离线队列补推到云端');
+  expect(output).toContain('已同步');
+  expect(output).toContain('网络恢复后，今天的学习进展已同步。');
   expect(
     fetchCalls.filter(
       call => call.input === 'https://api.softbook.example/v1/progress/daily-sync',
@@ -1061,7 +1095,7 @@ test('replays queued learning state after network reconnect', async () => {
     await flushAsyncEffects();
   });
 
-  expect(JSON.stringify(tree!.toJSON())).toContain('学习状态：已排队');
+  expect(JSON.stringify(tree!.toJSON())).toContain('学习状态：待重试');
 
   shouldFailLearningStateSync = false;
 
@@ -1071,8 +1105,8 @@ test('replays queued learning state after network reconnect', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('学习状态：云端已同步');
-  expect(output).toContain('学习状态说明：当前学习作答状态已从离线队列补推到云端。');
+  expect(output).toContain('学习状态：已同步');
+  expect(output).toContain('答题记录：网络恢复后，当前答题记录已同步。');
   expect(
     fetchCalls.filter(
       call => call.input === 'https://api.softbook.example/v1/learning/state-sync',
@@ -1161,8 +1195,8 @@ test('replays queued space state after network reconnect', async () => {
   await openRoute(root, 'space');
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('空间状态已进入离线重试');
-  expect(output).toContain('当前空间继续使用本机缓存');
+  expect(output).toContain('空间状态待重试');
+  expect(output).toContain('当前空间仍可继续使用');
   expect(root.findAllByProps({testID: 'space-sync-rail'}).length).toBeGreaterThan(
     0,
   );
@@ -1176,7 +1210,7 @@ test('replays queued space state after network reconnect', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('空间状态已同步');
-  expect(output).toContain('空间收藏和休眠状态已从离线队列补推到云端。');
+  expect(output).toContain('网络恢复后，空间收藏和休眠状态已同步。');
 
   expect(
     fetchCalls.filter(
@@ -1252,7 +1286,7 @@ test('replays queued membership refresh after network reconnect', async () => {
     await flushAsyncEffects();
   });
 
-  expect(JSON.stringify(tree!.toJSON())).toContain('已加入离线重试队列');
+  expect(JSON.stringify(tree!.toJSON())).toContain('网络恢复后会自动再试');
 
   await ReactTestRenderer.act(async () => {
     emitNetInfoState({isConnected: true, isInternetReachable: true});
@@ -1261,7 +1295,7 @@ test('replays queued membership refresh after network reconnect', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('当前是会员态');
-  expect(output).not.toContain('已加入离线重试队列');
+  expect(output).not.toContain('网络恢复后会自动再试');
   expect(
     fetchCalls.filter(
       call => call.input === 'https://api.softbook.example/v1/membership/entitlement',
@@ -1817,12 +1851,37 @@ test('can unlock the learning flow after fake sms verification', async () => {
     testID: 'learning-address-aperture',
   });
   const addressText = addressAperture.findByType(Text).props.children.join('');
-  expect(addressText).toBe('CET4 / 听力 / 逻辑关系 / 转折关系');
+  expect(addressText).toBe('当前位置：CET4 / 听力 / 逻辑关系 / 转折关系');
   expect(output).toContain('听力 · 逻辑关系');
   expect(output).toContain('当前卡 · ');
-  expect(output).toContain('002001');
-  expect(output).toContain('action plane');
-  expect(output).toContain('favorite');
+  expect(output).not.toContain('当前卡 · 002001');
+  expect(output).toContain('答题区');
+  expect(output).toContain('收藏');
+});
+
+test('does not expose internal metadata copy on primary surfaces', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-peek-button' }).props.onPress();
+  });
+  expectNoUserVisibleMetadataLeakage(tree!);
+
+  await openRoute(root, 'space');
+  expectNoUserVisibleMetadataLeakage(tree!);
+
+  await openRoute(root, 'statistics');
+  expectNoUserVisibleMetadataLeakage(tree!);
+
+  await openRoute(root, 'mine');
+  expectNoUserVisibleMetadataLeakage(tree!);
 });
 
 test('can boot the app into cet6 through runtime config', async () => {
@@ -1863,8 +1922,8 @@ test('keeps source bootstrap errors inside learning and can retry', async () => 
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮学习暂时不可用');
-  expect(output).toContain('学习卡源暂时不可达。');
-  expect(output).toContain('重新加载学习卡源');
+  expect(output).toContain('本轮卡片加载失败。');
+  expect(output).toContain('重新加载本轮卡片');
 
   pendingSession = createDeferred<LearningSession>();
 
@@ -1892,7 +1951,7 @@ test('keeps source bootstrap loading and errors attached to space', async () => 
   await openRoute(root, 'space');
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('正在恢复空间卡源');
+  expect(output).toContain('正在整理空间内容');
   expect(output).toContain('空间地址架和当前盒位会先保留在原位');
   expect(root.findAllByProps({ testID: 'space-status-rail' }).length)
     .toBeGreaterThan(0);
@@ -1902,9 +1961,9 @@ test('keeps source bootstrap loading and errors attached to space', async () => 
   await rejectLearningBootstrap('空间卡源暂时不可达。');
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('空间卡源暂时不可用');
-  expect(output).toContain('空间卡源暂时不可达。');
-  expect(output).toContain('重试空间卡源');
+  expect(output).toContain('空间内容暂时不可用');
+  expect(output).toContain('本轮卡片加载失败。');
+  expect(output).toContain('重新加载空间内容');
   expect(root.findAllByProps({ testID: 'space-status-rail' }).length)
     .toBeGreaterThan(0);
 
@@ -1916,12 +1975,12 @@ test('keeps source bootstrap loading and errors attached to space', async () => 
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('正在恢复空间卡源');
+  expect(output).toContain('正在整理空间内容');
 
   await resolveLearningBootstrap();
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('OPEN BOX TRAY');
+  expect(output).toContain('当前盒');
   expect(root.findAllByProps({ testID: 'space-status-rail' })).toHaveLength(0);
 });
 
@@ -1943,7 +2002,8 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('knowledge_ref');
+  expect(output).toContain('对应知识点');
+  expect(output).not.toContain('knowledge_ref');
   expect(output).toContain('给出真正立场');
 
   await ReactTestRenderer.act(() => {
@@ -2023,7 +2083,7 @@ test('can complete the local single-card deck and restart it', async () => {
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮学习已走完');
   expect(output).toContain('完成明细');
-  expect(output).toContain('再跑一轮当前卡源');
+  expect(output).toContain('再练一轮当前卡组');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-restart-button' }).props.onPress();
@@ -2200,7 +2260,7 @@ test('can check in from statistics after making learning progress', async () => 
       .length,
   ).toBeGreaterThan(0);
   expect(output).toContain('今日已签到');
-  expect(output).toContain('今天的学习进展已在本机记录。');
+  expect(output).toContain('今天的学习进展已记录在当前设备。');
 });
 
 test('keeps completed progress when first gated space entry starts trial', async () => {
@@ -2286,9 +2346,9 @@ test('mine page shows profile, learning, and space summaries after login', async
   expect(output).toContain('个人主页');
   expect(output).toContain('手机号：138****8000');
   expect(output).toContain('今日签到：已完成');
-  expect(output).toContain('日级同步：已记录');
+  expect(output).toContain('今日同步：已记录');
   expect(output).toContain('今日已完成 1 张卡，其中首轮 1 张、回看 0 张。');
-  expect(output).toContain('同步说明：今天的学习进展已在本机记录。');
+  expect(output).toContain('同步进展：今天的学习进展已记录在当前设备。');
   expect(output).toContain('收藏标签 1 张。');
 });
 
@@ -2314,7 +2374,7 @@ test('can browse the seeded knowledge map after login', async () => {
   expect(output).toContain('逻辑关系');
   expect(output).toContain('转折关系');
   expect(output).toContain('词汇');
-  expect(output).toContain('OPEN BOX TRAY');
+  expect(output).toContain('当前盒');
   expect(output).toContain('回到学习');
 
   await ReactTestRenderer.act(() => {
@@ -2363,7 +2423,7 @@ test('can move a card into sleep zone and remove it from learning flow', async (
   expect(output).toContain('休眠区');
   expect(root.findAllByProps({ testID: 'space-sleep-alcove' }).length).toBeGreaterThan(0);
   expect(output).toContain('移出休眠');
-  expect(output).toContain('002001');
+  expect(output).not.toContain('box_ref');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'route-tab-learning' }).props.onPress();

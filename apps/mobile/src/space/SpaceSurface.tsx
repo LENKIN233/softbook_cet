@@ -33,6 +33,7 @@ type SpacePalette = {
 type DeviceClass = 'phone' | 'tablet';
 
 type SpaceCardPreview = {
+  boxName: string;
   boxRef: string;
   cardId: string;
   interactionLabel: string;
@@ -158,7 +159,11 @@ export function SpaceSurface({
   const siblingBoxCount = Math.max((selectedGroup?.boxes.length ?? 1) - 1, 0);
   const selectedPath =
     selectedLibrary && selectedGroup && selectedBox
-      ? `${selectedLibrary.libraryName} / ${selectedGroup.groupName} / ${selectedBox.boxName}`
+      ? formatSpacePath(
+          selectedLibrary.libraryName,
+          selectedGroup.groupName,
+          selectedBox.boxName,
+        )
       : '';
   const isGated = spaceGateRail !== null && spaceGateRail !== undefined;
   const stateRailStack = (
@@ -179,22 +184,26 @@ export function SpaceSurface({
 
   if (!selectedLibrary || !selectedGroup || !selectedBox) {
     const emptySpacePath = currentLearningCard
-      ? {
-          boxName: currentLearningCard.space_metadata.box,
-          boxRef: currentLearningCard.space_metadata.box_ref,
-          groupName: currentLearningCard.space_metadata.group,
-          libraryName: currentLearningCard.space_metadata.library,
-        }
-      : {
-          boxName: '待恢复盒位',
-          boxRef: 'pending',
-          groupName: '待恢复 group',
-          libraryName: '待恢复 library',
-        };
+        ? {
+            boxName: currentLearningCard.space_metadata.box,
+            boxRef: currentLearningCard.space_metadata.box_ref,
+            groupName: currentLearningCard.space_metadata.group,
+            libraryName: currentLearningCard.space_metadata.library,
+          }
+        : {
+            boxName: '待恢复盒位',
+            boxRef: 'pending',
+            groupName: '待恢复知识组',
+            libraryName: '待恢复学习馆',
+          };
     const emptyTone = currentLearningCard
       ? currentTone
       : resolveLibraryTone(emptySpacePath.libraryName);
-    const emptySelectedPath = `${emptySpacePath.libraryName} / ${emptySpacePath.groupName} / ${emptySpacePath.boxName}`;
+    const emptySelectedPath = formatSpacePath(
+      emptySpacePath.libraryName,
+      emptySpacePath.groupName,
+      emptySpacePath.boxName,
+    );
     const isSpaceLoading = spaceStatusRail?.state === 'loading';
 
     return (
@@ -211,35 +220,35 @@ export function SpaceSurface({
             testID="space-address-shelf"
           >
             <Text style={[styles.eyebrow, { color: emptyTone.accent }]}>
-              KNOWLEDGE MAP / SPACE
+              知识空间
             </Text>
             <Text style={[styles.title, { color: palette.text }]}>
               卡片的物理空间
             </Text>
             <Text style={[styles.summary, { color: palette.textMuted }]}>
               {isSpaceLoading
-                ? '正在恢复卡片源；空间先保留地址架、盒托盘和盒内卡片占位。'
+                ? '正在整理本轮卡片；空间先保留当前位置和盒内轮廓。'
                 : '当前盒暂无可展示卡片；空间仍保留地址架、盒托盘和回到学习的上下文。'}
             </Text>
             <View style={styles.summaryRow}>
               <SummaryPill
-                label="library"
+                label="馆"
                 palette={palette}
                 value={currentLearningCard ? 1 : 0}
               />
               <SummaryPill
-                label="group"
+                label="组"
                 palette={palette}
                 value={currentLearningCard ? 1 : 0}
               />
               <SummaryPill
-                label="box"
+                label="盒"
                 palette={palette}
                 value={currentLearningCard ? 1 : 0}
               />
-              <SummaryPill label="card" palette={palette} value={0} />
-              <SummaryPill label="favorite" palette={palette} value={0} />
-              <SummaryPill label="sleep" palette={palette} value={0} />
+              <SummaryPill label="卡" palette={palette} value={0} />
+              <SummaryPill label="收藏" palette={palette} value={0} />
+              <SummaryPill label="休眠" palette={palette} value={0} />
             </View>
             <View
               style={[styles.addressPath, { borderColor: emptyTone.accent }]}
@@ -281,14 +290,13 @@ export function SpaceSurface({
             <View style={styles.boxTrayHeader}>
               <View style={styles.boxTrayCopy}>
                 <Text style={[styles.eyebrow, { color: emptyTone.accent }]}>
-                  {isSpaceLoading ? 'LOADING BOX TRAY' : 'EMPTY BOX TRAY'}
+                  {isSpaceLoading ? '正在整理盒内卡片' : '当前盒为空'}
                 </Text>
                 <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
                   {emptySpacePath.boxName}
                 </Text>
                 <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                  box_ref {emptySpacePath.boxRef} ·{' '}
-                  {isSpaceLoading ? '卡片占位恢复中' : '0 张可展示卡片'} ·
+                  {isSpaceLoading ? '盒内卡片整理中' : '0 张可展示卡片'} ·
                   保留盒托盘轮廓
                 </Text>
               </View>
@@ -324,7 +332,7 @@ export function SpaceSurface({
             <Text style={[styles.locationText, { color: emptyTone.accent }]}>
               {currentLearningCard
                 ? `当前学习卡位于 ${emptySelectedPath}`
-                : '空间地址正在等待卡片源恢复；当前仍保留物理盒位。'}
+                : '空间地址正在等待本轮卡片；当前仍保留物理盒位。'}
             </Text>
 
             <View style={styles.boxShelf} testID="space-current-position">
@@ -342,11 +350,10 @@ export function SpaceSurface({
                   {emptySpacePath.boxName}
                 </Text>
                 <Text style={[styles.boxMeta, { color: palette.textMuted }]}>
-                  {isSpaceLoading ? '正在恢复盒内卡片' : '暂无可展示卡片'} ·{' '}
-                  {emptySpacePath.boxRef}
+                  {isSpaceLoading ? '正在整理盒内卡片' : '暂无可展示卡片'}
                 </Text>
                 <Text style={[styles.currentTag, { color: emptyTone.accent }]}>
-                  {isSpaceLoading ? '加载占位' : '空盒轮廓保留'}
+                  {isSpaceLoading ? '整理中' : '空盒轮廓保留'}
                 </Text>
               </View>
             </View>
@@ -363,7 +370,7 @@ export function SpaceSurface({
                 </Text>
               </View>
               <Text style={[styles.stateTag, { color: palette.warning }]}>
-                {isSpaceLoading ? '占位恢复中' : '0 张可展示'}
+                {isSpaceLoading ? '整理中' : '0 张可展示'}
               </Text>
             </View>
             <View style={styles.cardStrip} testID="space-contained-card-strip">
@@ -382,12 +389,12 @@ export function SpaceSurface({
                     testID="space-loading-card-skeleton"
                   >
                     <Text style={[styles.cardPrompt, { color: palette.text }]}>
-                      卡片占位 {index}
+                      正在整理卡片 {index}
                     </Text>
                     <Text
                       style={[styles.cardMeta, { color: palette.textMuted }]}
                     >
-                      正在恢复盒内对象；加载完成后回到真实卡片。
+                      正在整理盒内卡片；完成后回到真实内容。
                     </Text>
                   </View>
                 ))
@@ -406,7 +413,7 @@ export function SpaceSurface({
                     当前盒暂无可展示卡片
                   </Text>
                   <Text style={[styles.cardMeta, { color: palette.textMuted }]}>
-                    等待卡片源、筛选条件或会员深度恢复；不跳转到模块选择。
+                    等待本轮卡片、筛选条件或会员权限恢复；不跳转到模块选择。
                   </Text>
                 </View>
               )}
@@ -450,39 +457,39 @@ export function SpaceSurface({
           testID="space-address-shelf"
         >
           <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
-            KNOWLEDGE MAP / SPACE
+            知识空间
           </Text>
           <Text style={[styles.title, { color: palette.text }]}>
             卡片的物理空间
           </Text>
           <Text style={[styles.summary, { color: palette.textMuted }]}>
-            知识地图浏览从地址架进入：先看 library / group / box
-            的归属，再把当前盒、盒内卡片、收藏标签和休眠区放在同一个物理桌面里。
+            知识地图浏览从地址架进入：先看学习馆、知识组和盒位归属，
+            再把当前盒、盒内卡片、收藏标签和休眠区放在同一个物理桌面里。
           </Text>
           <View style={styles.summaryRow}>
             <SummaryPill
-              label="library"
+              label="馆"
               palette={palette}
               value={seed.libraryCount}
             />
             <SummaryPill
-              label="group"
+              label="组"
               palette={palette}
               value={seed.groupCount}
             />
-            <SummaryPill label="box" palette={palette} value={seed.boxCount} />
+            <SummaryPill label="盒" palette={palette} value={seed.boxCount} />
             <SummaryPill
-              label="card"
+              label="卡"
               palette={palette}
               value={seed.cardCount}
             />
             <SummaryPill
-              label="favorite"
+              label="收藏"
               palette={palette}
               value={favoriteCards.length}
             />
             <SummaryPill
-              label="sleep"
+              label="休眠"
               palette={palette}
               value={sleepingCards.length}
             />
@@ -519,7 +526,7 @@ export function SpaceSurface({
             </Text>
 
             <Text style={[styles.selectorTitle, { color: palette.textMuted }]}>
-              Library
+              学习馆
             </Text>
             <View style={styles.selectorWrap}>
               {seed.libraries.map((library) => {
@@ -576,7 +583,7 @@ export function SpaceSurface({
                         { color: palette.textMuted },
                       ]}
                     >
-                      {library.groups.length} 个 group
+                      {library.groups.length} 个知识组
                     </Text>
                   </Pressable>
                 );
@@ -584,7 +591,7 @@ export function SpaceSurface({
             </View>
 
             <Text style={[styles.selectorTitle, { color: palette.textMuted }]}>
-              Group
+              知识组
             </Text>
             <View style={styles.selectorWrap}>
               {selectedLibrary.groups.map((group) => {
@@ -630,7 +637,7 @@ export function SpaceSurface({
                         { color: palette.textMuted },
                       ]}
                     >
-                      {group.boxes.length} 个 box
+                      {group.boxes.length} 个盒位
                     </Text>
                   </Pressable>
                 );
@@ -666,14 +673,13 @@ export function SpaceSurface({
           <View style={styles.boxTrayHeader}>
             <View style={styles.boxTrayCopy}>
               <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
-                OPEN BOX TRAY
+                当前盒
               </Text>
               <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
                 {selectedBox.boxName}
               </Text>
               <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                box_ref {selectedBox.boxRef} · {selectedBox.cards.length}{' '}
-                张已接入卡片 · {siblingBoxCount} 个同组相邻盒
+                {selectedBox.cards.length} 张卡 · {siblingBoxCount} 个同组相邻盒
               </Text>
             </View>
             <View
@@ -686,12 +692,16 @@ export function SpaceSurface({
 
           <Text style={[styles.locationText, { color: selectedTone.accent }]}>
             {currentLearningCard
-              ? `当前学习卡位于 ${currentLearningCard.space_metadata.library} / ${currentLearningCard.space_metadata.group} / ${currentLearningCard.space_metadata.box}`
+              ? `当前学习卡位于 ${formatSpacePath(
+                  currentLearningCard.space_metadata.library,
+                  currentLearningCard.space_metadata.group,
+                  currentLearningCard.space_metadata.box,
+                )}`
               : '登录后开始学习，就能在这里看到当前学习卡的物理位置。'}
           </Text>
           {currentLearningCard ? (
             <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-              {currentLearningCard.card_id} · {currentLearningCard.front.prompt}
+              {currentLearningCard.front.prompt}
             </Text>
           ) : null}
 
@@ -722,7 +732,7 @@ export function SpaceSurface({
                     {box.boxName}
                   </Text>
                   <Text style={[styles.boxMeta, { color: palette.textMuted }]}>
-                    {box.cards.length} 张卡 · {box.boxRef}
+                    {box.cards.length} 张卡
                   </Text>
                   {isCurrent ? (
                     <Text
@@ -779,7 +789,7 @@ export function SpaceSurface({
                     {card.prompt}
                   </Text>
                   <Text style={[styles.cardMeta, { color: palette.textMuted }]}>
-                    {card.cardId} · {card.interactionLabel} · {card.track}
+                    {card.interactionLabel} · {card.track.toUpperCase()}
                   </Text>
                   <View style={styles.badgeRow}>
                     {isFavorited ? (
@@ -882,7 +892,7 @@ export function SpaceSurface({
                     <Text
                       style={[styles.statusMeta, { color: palette.textMuted }]}
                     >
-                      {card.cardId} · box_ref {card.boxRef}
+                      原盒位：{card.boxName}
                     </Text>
                   </View>
                   {isGated ? (
@@ -1000,7 +1010,7 @@ function SpaceGateRailCard({
       <View style={styles.gateRailHeader}>
         <View style={styles.statusCopy}>
           <Text style={[styles.eyebrow, { color: palette.warning }]}>
-            SPACE GATE
+            空间权限
           </Text>
           <Text style={[styles.cardTitle, { color: palette.text }]}>
             {rail.title}
@@ -1036,7 +1046,7 @@ function SpaceSyncRailCard({
       <View style={styles.gateRailHeader}>
         <View style={styles.statusCopy}>
           <Text style={[styles.eyebrow, { color: railColor }]}>
-            SPACE SYNC
+            空间同步
           </Text>
           <Text style={[styles.cardTitle, { color: palette.text }]}>
             {rail.title}
@@ -1071,7 +1081,7 @@ function SpaceStatusRailCard({
       <View style={styles.gateRailHeader}>
         <View style={styles.statusCopy}>
           <Text style={[styles.eyebrow, { color: railColor }]}>
-            SPACE STATUS
+            空间状态
           </Text>
           <Text style={[styles.cardTitle, { color: palette.text }]}>
             {rail.title}
@@ -1209,7 +1219,8 @@ function buildSpaceSeed(spaceCards: readonly LearningCard[]): SpaceSeed {
         })
         .get(card.space_metadata.box_ref)!;
 
-    const preview = {
+    const preview: SpaceCardPreview = {
+      boxName: card.space_metadata.box,
       boxRef: card.space_metadata.box_ref,
       cardId: card.card_id,
       interactionLabel: INTERACTION_LABELS[card.interaction_id],
@@ -1263,6 +1274,10 @@ function buildSpaceSeed(spaceCards: readonly LearningCard[]): SpaceSeed {
     libraries,
     libraryCount: libraries.length,
   };
+}
+
+function formatSpacePath(libraryName: string, groupName: string, boxName: string) {
+  return `${libraryName} / ${groupName} / ${boxName}`;
 }
 
 function resolveLibraryNodeTestIDSegment(library: SpaceLibraryNode) {
