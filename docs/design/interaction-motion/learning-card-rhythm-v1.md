@@ -16,6 +16,11 @@
 
 This artifact defines the accepted Learning state rhythm around one current CET card. It complements `learning-core-interactions-v1.md`: that artifact defines each interaction model, while this artifact defines how those models sequence on the Learning surface without exposing implementation metadata.
 
+## Rendered Proof
+
+- `docs/design/mocks/learning-card-rhythm-v1.md`
+- `docs/design/mocks/learning-card-rhythm-v1.html`
+
 ## Product Truth
 
 Learning remains a guided single-card flow. The product should absorb system complexity so the user sees a useful CET card, a clear operation, a meaningful result, and a quiet continuation.

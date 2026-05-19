@@ -21,6 +21,7 @@
 - `docs/design/decisions/learning-space-platform-layout-v1.md`
 - `docs/design/interaction-motion/learning-core-interactions-v1.md`
 - `docs/design/interaction-motion/learning-card-rhythm-v1.md`
+- `docs/design/mocks/learning-card-rhythm-v1.md`
 - `docs/design/physical-space/space-model-v1.md`
 - `docs/design/directions/space-surface-visual-directions-v1.md`
 - `docs/design/mocks/learning-space-phone-frames-v1.md`
@@ -172,6 +173,7 @@ The previous design-proof questions are now closed by accepted artifacts:
 - dark-mode rendering proof: `docs/design/mocks/learning-space-phone-frames-v1.md`;
 - accessibility contrast proof for low-alpha library chips: `docs/design/mocks/learning-space-phone-frames-v1.md`;
 - rendered motion prototype for flip / hint reveal / swipe: `docs/design/storyboards/learning-space-motion-prototype-v1.html`.
+- rendered Learning card rhythm phone proof for place / focus / support / resolve / settle / continue: `docs/design/mocks/learning-card-rhythm-v1.html`.
 
 ## Remaining Implementation Boundary
 
