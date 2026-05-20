@@ -18,6 +18,7 @@ status: active
 
 - `spec/requirement-memory.json`
 - `spec/authority-map.json`
+- `spec/workspace-boundary.json`
 - `spec/product-core.json`
 - `spec/account-sync-contract.json`
 - `spec/platform-contract.json`
@@ -48,6 +49,7 @@ status: active
 - 物理空间/盒码：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog`
 - 会员/试用：`requirement-memory -> product-core -> membership`
 - 交付 / PR / CI：`authority-map -> agent-harness -> repo-delivery-contract -> evals`
+- 工作区边界 / agent 默认读取：`authority-map -> workspace-boundary -> agent-harness -> repo-delivery-contract -> evals`
 - 视觉输出/设计反推：`requirement-memory -> 相关产品 spec -> visual-language -> docs/design/design-harness.md -> docs/design/visual-reference.html`
 - 交互 / 动效设计：`requirement-memory -> product-core -> interactions -> visual-language -> docs/design/design-harness.md -> docs/design/interaction-motion/README.md -> docs/design/storyboards/README.md`
 - 物理空间设计：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog -> visual-language -> docs/design/design-harness.md -> docs/design/physical-space/README.md`
@@ -64,6 +66,7 @@ status: active
 - 不要把统计、计数器、复杂状态机写成产品核心
 - 不要在 `softbook_cet` 内生产候选卡片内容、批准卡片批次或把 dev seed cards 当作正式内容量；候选内容生产和审批发生在同级 `/Users/lenkin/programing/card make`，本仓库只接收其导出的 payload、dry-run/import、audit、runtime smoke 和报告 coverage delta
 - 不要默认读取 `archive/legacy-v3/` 或 `archive/transitional-vnext-prose/` 作为活跃真相源
+- 不要默认把 generated / dependency / cache / machine-local / archive / external workspace 当作 agent 语义上下文；先按 `spec/workspace-boundary.json` 分类，再决定是否读取
 - 不要为每个屏幕/每个 agent 各自重造视觉语言；视觉输出必须从 `spec/visual-language.json` 与 `docs/design/visual-reference.html` 继承 token 与剪影
 - 不要直接用 RN 代码、截图或 agent 个人审美定义用户可见设计；任何呈现给用户的 screen / component / state / chrome 都必须先有已接受设计稿或等价设计基准，再进入实现
 - 不要用同一 PR 内新增 / 修改的 design brief、direction 或 decision 为同一 PR 的用户可见 UI 实现背书；同 PR 设计稿只适用于 design-only PR
@@ -96,6 +99,7 @@ status: active
 ## 压缩保留
 
 - `spec/requirement-memory.json`
+- `spec/workspace-boundary.json`
 - 当前任务依赖的 spec 文件
 - 当前关键决定与未决点
 - 会员/试用结构

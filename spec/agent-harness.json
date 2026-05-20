@@ -148,6 +148,13 @@
       "docs/design/search-runs/README.md",
       "accepted_baseline_artifact",
       "relevant_interaction_motion_or_physical_space_artifacts"
+    ],
+    "workspace_boundary_or_repo_structure": [
+      "spec/authority-map.json",
+      "spec/workspace-boundary.json",
+      "spec/agent-harness.json",
+      "spec/repo-delivery-contract.json",
+      "spec/evals.json"
     ]
   },
   "progressive_disclosure_policy": {
@@ -175,7 +182,12 @@
         "docs/design/design-harness.md_when_direction_or_worldview_is_needed",
         "spec/visual-language.json_when_output_is_visual"
       ],
-      "outputs": ["experience_goal", "information_goal", "key_actions", "misunderstanding_risks"],
+      "outputs": [
+        "experience_goal",
+        "information_goal",
+        "key_actions",
+        "misunderstanding_risks"
+      ],
       "stop_when": "no_more_implementation_detail_is_needed_to_guide_design",
       "visual_output_rule": "if_the_design_task_produces_visual_artifacts_mocks_or_renderings_the_agent_must_inherit_tokens_and_silhouettes_from_spec_visual_language_json_and_docs_design_visual_reference_html_instead_of_inventing_new_ones"
     },
@@ -184,12 +196,24 @@
         "spec/requirement-memory.json",
         "spec/product-core.json"
       ],
-      "outputs": ["requirement_interpretation", "scope_judgment", "value_priority", "non_goals"],
+      "outputs": [
+        "requirement_interpretation",
+        "scope_judgment",
+        "value_priority",
+        "non_goals"
+      ],
       "stop_when": "product_truth_and_implementation_hypothesis_are_clearly_separated"
     },
     "coding": {
-      "inputs": ["product_specs", "contract_specs", "spec/runtime-boundaries.json"],
-      "outputs": ["implementation", "explicit_hypotheses"],
+      "inputs": [
+        "product_specs",
+        "contract_specs",
+        "spec/runtime-boundaries.json"
+      ],
+      "outputs": [
+        "implementation",
+        "explicit_hypotheses"
+      ],
       "stop_when": "implementation_does_not_invent_product_requirements",
       "user_facing_ui_rule": "before_changing_user_facing_UI_load_the_accepted_design_artifact_and_map_implementation_to_it"
     },
@@ -303,8 +327,14 @@
       "blocked_when": "the_task_tries_to_promote_first_generation_AI_output_without_hard_filters_pairwise_review_fragment_harvest_and_promotion_record"
     },
     "review": {
-      "inputs": ["relevant_specs", "anti_patterns"],
-      "outputs": ["product_distortion_risks_first", "then_implementation_findings"],
+      "inputs": [
+        "relevant_specs",
+        "anti_patterns"
+      ],
+      "outputs": [
+        "product_distortion_risks_first",
+        "then_implementation_findings"
+      ],
       "stop_when": "violated_truth_or_contract_is_named"
     },
     "design_review": {
@@ -325,9 +355,32 @@
       "ordering_rule": "product_truth_violations_rank_above_taste_findings_rank_above_token_drift_rank_above_micro_styling"
     },
     "acceptance": {
-      "inputs": ["relevant_specs", "spec/evals.json"],
-      "outputs": ["validation_result", "coverage_gap"],
+      "inputs": [
+        "relevant_specs",
+        "spec/evals.json"
+      ],
+      "outputs": [
+        "validation_result",
+        "coverage_gap"
+      ],
       "stop_when": "old_anti_patterns_are_ruled_out"
+    },
+    "workspace_boundary": {
+      "inputs": [
+        "spec/authority-map.json",
+        "spec/workspace-boundary.json",
+        "spec/agent-harness.json",
+        "spec/repo-delivery-contract.json",
+        "spec/evals.json"
+      ],
+      "outputs": [
+        "active_truth_source_and_contract_scope",
+        "excluded_generated_dependency_cache_archive_scope",
+        "external_workspace_boundary_if_any",
+        "agent_read_escalation_reason_if_boundary_is_crossed"
+      ],
+      "stop_when": "agent can name what is active context, what is excluded by default, and why any excluded path was read",
+      "blocked_when": "the task depends on bulk-reading generated dependency cache archive or sibling workspace material without an explicit debug or handoff reason"
     }
   },
   "governance": {
@@ -591,6 +644,16 @@
       "id": "AP-34",
       "name": "treat_single_card_flow_as_non_operable_one_screen_poster",
       "correction": "define_current_card_primary_task_primary_action_feedback_recovery_and_space_continuity_before_visual_implementation"
+    },
+    {
+      "id": "AP-35",
+      "name": "bulk_read_generated_dependency_cache_or_archive_as_active_context",
+      "correction": "classify_workspace_first_and_read_only_task_relevant_active_truth_source_contract_or_design_authority_files"
+    },
+    {
+      "id": "AP-36",
+      "name": "treat_external_card_make_workspace_as_internal_source_tree",
+      "correction": "cross_into_card_make_only_through_explicit_card_content_handoff_contracts_and_keep_softbook_cet_as_payload_consumer"
     }
   ],
   "compaction_keep": [
@@ -604,6 +667,7 @@
     "detailed_box_catalog",
     "card_make_external_workspace_boundary",
     "repo_delivery_policy",
-    "edited_files"
+    "edited_files",
+    "workspace_boundary_and_agent_read_scope"
   ]
 }

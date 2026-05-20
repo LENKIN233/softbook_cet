@@ -12,6 +12,7 @@ os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
 SECTION_ORDER = (
     "prelude",
     "truth_mirrors",
+    "workspace_boundary",
     "governance_contracts",
     "product_contract_mirrors",
     "delivery_runtime",

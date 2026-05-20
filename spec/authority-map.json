@@ -101,6 +101,16 @@
         "spec/agent-harness.json"
       ],
       "notes": "Stabilizes visual output across agents. Product_truth here is narrow but includes library identity, Law of One, self-assess scoping to flip, map hierarchy, interaction silhouettes, and the user-facing UI design-artifact gate; everything else is implementation hypothesis."
+    },
+    "workspace_boundary_and_agent_context": {
+      "owner": "spec/workspace-boundary.json",
+      "mirrors": [
+        "spec/agent-harness.json",
+        "spec/evals.json",
+        ".gitignore",
+        "apps/mobile/.gitignore"
+      ],
+      "notes": "Defines active workspace classification and default agent read boundaries. Product specs remain owners of product truth; this domain owns what counts as active repository context."
     }
   }
 }
