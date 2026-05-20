@@ -31,7 +31,7 @@ Both candidates preserve hierarchy. `space-04` better balances parent context wi
 
 ## Visual System Fit
 
-`space-04` gives one strong reading accent to the tray edge and return action. `space-03` risks too many accented shelf states if implemented literally.
+`space-04` gives one strong display accent to the tray edge and return action. `space-03` risks too many accented shelf states if implemented literally.
 
 ## Implementation Mapping
 

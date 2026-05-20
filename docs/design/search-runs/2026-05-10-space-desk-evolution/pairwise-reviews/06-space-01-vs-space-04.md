@@ -31,7 +31,7 @@ Both candidates preserve product truth. `space-04` better proves the same truth 
 
 ## Visual System Fit
 
-`space-04` keeps one strong reading accent but creates richer neutral material hierarchy. `space-01` is simpler but less memorable.
+`space-04` keeps one strong display accent but creates richer neutral material hierarchy. `space-01` is simpler but less memorable.
 
 ## Implementation Mapping
 

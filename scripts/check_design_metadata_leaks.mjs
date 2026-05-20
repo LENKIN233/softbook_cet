@@ -1,0 +1,158 @@
+#!/usr/bin/env node
+
+import fs from 'fs';
+import path from 'path';
+
+const repoRoot = path.resolve(new URL('.', import.meta.url).pathname, '..');
+
+const scanRoots = [
+  'docs/design/directions',
+  'docs/design/interaction-motion',
+  'docs/design/physical-space',
+  'docs/design/mocks',
+  'docs/design/storyboards',
+  'docs/design/search-runs',
+];
+
+const excludedPathPatterns = [
+  /\/README\.md$/,
+  /\/templates\//,
+];
+
+const textFilePattern = /\.(html|md)$/;
+
+const leakagePatterns = [
+  {
+    pattern: /#(?:5b6df5|ff8a3d|b568f5|18c4e0|f15b6e)\b/i,
+    reason: 'known library identity hex in visual design artifact',
+  },
+  {
+    pattern:
+      /(?:第一馆\s*1|馆\s*1(?:对象|节奏|主线|卡)|library-1\s*\/\s*current\s*\/\s*focus-area|current\s*\/\s*group-1\s*\/\s*盒\s*1|本轮\s*\/\s*馆\s*1\s*\/\s*盒\s*1\s*\/\s*盒\s*1)/i,
+    reason: 'broken replacement residue in design authority or visual artifact',
+  },
+  {
+    pattern:
+      /(?:group-1|\bbox\s+id\b|\bcard\s+id\b|Detail Evidence|argument support|Current drawer|Original box|same box sibling|Very Long Detail Evidence|Long Detail Evidence|词义辨析组|语义关系盒|逻辑关系|转折关系|长难句主干|长难句关键修饰|主谓宾|定语|同义词替换|句式替换|高频词|阅读高频词)/i,
+    reason: 'raw semantic group/box/card label in visual design artifact',
+  },
+  {
+    pattern: /\bCET[46]\b(?!\/6)/i,
+    reason: 'raw CET track value in visual design artifact',
+  },
+  {
+    pattern:
+      /(?:听力|阅读|写作|翻译|词汇|仔细阅读|快速阅读|定位词抓取|细节题|细节定位盒)/,
+    reason: 'raw Chinese library/group/box label in visual design artifact',
+  },
+  {
+    pattern:
+      /\b(?:listening|reading|writing|translation|vocabulary|locating-keywords)\b/i,
+    reason: 'raw English library/group label in visual design artifact',
+  },
+  {
+    pattern: /\b(?:space_metadata|box_ref|knowledge_ref|source_id|source_label|track)\b/i,
+    reason: 'raw metadata field name in visual design artifact',
+  },
+  {
+    pattern: /\b(?:0\d{3,5}|R-\d{1,3})\b/i,
+    reason: 'raw box/card reference in visual design artifact',
+  },
+  {
+    pattern: /--(?:listening|reading|writing|translation|vocabulary)\b/i,
+    reason: 'semantic library color token in rendered proof source',
+  },
+];
+
+function walk(dir, files = []) {
+  if (!fs.existsSync(dir)) {
+    return files;
+  }
+
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const entryPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      walk(entryPath, files);
+      continue;
+    }
+
+    if (textFilePattern.test(entry.name)) {
+      files.push(entryPath);
+    }
+  }
+
+  return files;
+}
+
+function visibleHtmlText(source) {
+  return source
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&middot;|&bull;/gi, ' · ')
+    .replace(/&rarr;|&rightarrow;/gi, ' -> ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function scanText(filePath, source) {
+  const suffix = path.extname(filePath).toLowerCase();
+  const scanTargets =
+    suffix === '.html'
+      ? [
+          { kind: 'visible text', text: visibleHtmlText(source) },
+          { kind: 'source token', text: source },
+        ]
+      : [{ kind: 'markdown text', text: source }];
+  const findings = [];
+
+  for (const target of scanTargets) {
+    const lines = target.text.split(/\r?\n/);
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+      const line = lines[lineIndex];
+      for (const rule of leakagePatterns) {
+        if (rule.pattern.test(line)) {
+          findings.push({
+            filePath,
+            kind: target.kind,
+            line: lineIndex + 1,
+            reason: rule.reason,
+            text: line.trim().slice(0, 220),
+          });
+          break;
+        }
+      }
+    }
+  }
+
+  return findings;
+}
+
+const files = scanRoots
+  .flatMap(root => walk(path.join(repoRoot, root)))
+  .filter(filePath => {
+    const relativePath = path.relative(repoRoot, filePath);
+    return !excludedPathPatterns.some(pattern => pattern.test(relativePath));
+  });
+
+const findings = files.flatMap(filePath =>
+  scanText(filePath, fs.readFileSync(filePath, 'utf8')),
+);
+
+if (findings.length > 0) {
+  console.error('FAIL: Design visual artifacts contain raw metadata leaks.');
+  for (const finding of findings.slice(0, 80)) {
+    console.error(
+      `${path.relative(repoRoot, finding.filePath)}:${finding.line} ` +
+        `[${finding.kind}] ${finding.reason}: ${finding.text}`,
+    );
+  }
+  if (findings.length > 80) {
+    console.error(`...and ${findings.length - 80} more finding(s).`);
+  }
+  process.exit(1);
+}
+
+console.log('PASS: No metadata leaks detected in design visual artifacts.');

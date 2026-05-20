@@ -159,8 +159,9 @@ test('falls back to local learning cards when remote runtime source fails', asyn
   await waitForLearningSurface(root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('CET4 本轮卡组');
+  expect(output).toContain('本轮学习卡组');
   expect(output).toContain('however');
+  expect(output).not.toContain('CET4');
   expect(output).not.toContain('学习卡源暂时不可用');
   expect(fetchMock).toHaveBeenCalledWith(
     'https://api.softbook.example/v1/learning/card-source?track=cet4',

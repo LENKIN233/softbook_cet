@@ -714,6 +714,8 @@ directory_reference_body = """
 
 - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
 - Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+- AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+- AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
 """
 directory_reference_case = run_design_gate_case(
     directory_reference_body,
@@ -819,6 +821,8 @@ visual_tokens_valid_case = run_design_gate_case(
 
 - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
 - Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+- AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+- AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
 """,
     ["apps/mobile/src/visual/tokens.ts"],
 )
@@ -843,6 +847,8 @@ web_ui_valid_case = run_design_gate_case(
 
 - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
 - Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+- AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+- AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
 """,
     ["apps/web/src/App.tsx"],
 )
@@ -894,6 +900,8 @@ visual_output_checklist_body = """
 
 - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
 - Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+- AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+- AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
 """
 for visual_output_path in visual_output_artifact_paths:
     visual_output_checklist_case = run_design_gate_case(
@@ -956,6 +964,8 @@ ui_external_artifact_case = run_design_gate_case(
 
 - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
 - Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+- AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+- AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
 """,
     ["apps/mobile/src/learning/LearningSurface.tsx"],
 )
@@ -980,6 +990,8 @@ space_missing_visual_proof_case = run_design_gate_case(
 
 - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
 - Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+- AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+- AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
 """,
     ["apps/mobile/src/space/SpaceSurface.tsx"],
 )
@@ -1008,6 +1020,8 @@ space_visual_directions_case = run_design_gate_case(
 
 - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
 - Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+- AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+- AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
 """,
     ["apps/mobile/src/space/SpaceSurface.tsx"],
 )
@@ -1032,6 +1046,8 @@ space_visual_proof_case = run_design_gate_case(
 
 - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
 - Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+- AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+- AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
 """,
     ["apps/mobile/src/space/SpaceSurface.tsx"],
 )
@@ -1056,6 +1072,8 @@ space_visual_refinement_case = run_design_gate_case(
 
 - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
 - Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+- AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+- AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
 """,
     ["apps/mobile/src/space/SpaceSurface.tsx"],
 )
@@ -1080,6 +1098,8 @@ space_shelf_desk_case = run_design_gate_case(
 
 - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current box tray and first-read path address shelf -> tray -> cards; Q3 silhouette matches Space physical hierarchy; Q4 forbidden_design_patterns none.
 - Conditional Q5-Q6: Q5 phone viewport containment is covered by shelf-desk proof; Q6 learning flip stats module rules unchanged.
+- AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+- AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
 """,
     ["apps/mobile/src/space/SpaceSurface.tsx"],
 )
@@ -1104,6 +1124,8 @@ space_state_baseline_case = run_design_gate_case(
 
 - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current box tray and first-read path address shelf -> state rail -> tray -> contained objects; Q3 silhouette matches Space physical hierarchy; Q4 forbidden_design_patterns none.
 - Conditional Q5-Q6: Q5 phone viewport containment is covered by rendered proof; Q6 learning flip stats module rules unchanged.
+- AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+- AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
 """,
     ["apps/mobile/src/space/SpaceSurface.tsx"],
 )
@@ -1128,6 +1150,8 @@ space_fake_shelf_desk_case = run_design_gate_case(
 
 - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
 - Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+- AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+- AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
 """,
     ["apps/mobile/src/space/SpaceSurface.tsx"],
 )

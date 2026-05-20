@@ -22,7 +22,7 @@ Open current box adjacent to a quiet box spine.
 
 ## First-Read Path
 
-Quiet reading shelf spine -> highlighted current box -> contained cards -> state badges -> Learning return.
+Quiet current shelf spine -> highlighted current box -> contained cards -> state badges -> Learning return.
 
 ## Interaction Silhouette
 
@@ -54,7 +54,7 @@ File-browser feeling, extra visual density, and possible confusion between suppo
 
 ## Design Review Checklist Answers
 
-Q1: Current library is reading; the shelf uses quiet neutrals while reading coral marks the open current box only.
+Q1: Current library is represented by the anonymous current-library slot; the shelf uses quiet neutrals while display accent marks the open current box only.
 
 Q2: Focal object is the opened current box; the shelf is secondary context.
 

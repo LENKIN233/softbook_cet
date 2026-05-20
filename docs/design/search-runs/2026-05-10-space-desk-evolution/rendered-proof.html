@@ -6,9 +6,9 @@
   <title>Space Desk Evolution Search Proof</title>
   <style>
     :root {
-      --reading: #ff8a3d;
-      --reading-soft: rgba(255, 138, 61, .13);
-      --reading-line: rgba(255, 138, 61, .42);
+      --surface-accent: #6A7C89;
+      --surface-accent-soft: rgba(106, 124, 137, .13);
+      --surface-accent-line: rgba(106, 124, 137, .42);
       --mint: #22c58b;
       --amber: #f5b100;
       --ink-1: #101018;
@@ -33,7 +33,7 @@
       min-height: 100vh;
       color: var(--ink-1);
       background:
-        radial-gradient(circle at 20% 8%, rgba(255, 138, 61, .13), transparent 34%),
+        radial-gradient(circle at 20% 8%, rgba(106, 124, 137, .13), transparent 34%),
         radial-gradient(circle at 86% 18%, rgba(34, 197, 139, .08), transparent 32%),
         var(--paper);
       overflow-x: hidden;
@@ -193,8 +193,8 @@
       max-width: 132px;
       padding: 9px 11px;
       color: #683000;
-      background: var(--reading-soft);
-      border-color: var(--reading-line);
+      background: var(--surface-accent-soft);
+      border-color: var(--surface-accent-line);
       font-size: 12px;
       font-weight: 780;
     }
@@ -204,7 +204,7 @@
       height: 8px;
       flex: 0 0 auto;
       border-radius: 99px;
-      background: var(--reading);
+      background: var(--surface-accent);
     }
 
     .address-shelf {
@@ -229,8 +229,8 @@
 
     .address-node.current {
       color: #6b2d00;
-      background: var(--reading-soft);
-      border-color: var(--reading-line);
+      background: var(--surface-accent-soft);
+      border-color: var(--surface-accent-line);
     }
 
     .desk {
@@ -239,13 +239,13 @@
       flex: 1 1 auto;
       padding: 16px;
       border-radius: 32px;
-      border: 1px solid rgba(255, 138, 61, .28);
+      border: 1px solid rgba(106, 124, 137, .28);
       background:
         linear-gradient(145deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .62)),
-        linear-gradient(180deg, rgba(255, 138, 61, .09), rgba(255, 255, 255, 0));
+        linear-gradient(180deg, rgba(106, 124, 137, .09), rgba(255, 255, 255, 0));
       box-shadow:
         0 18px 44px rgba(16, 16, 24, .1),
-        inset 5px 0 0 var(--reading);
+        inset 5px 0 0 var(--surface-accent);
     }
 
     .box-title {
@@ -271,8 +271,8 @@
       padding: 9px 10px;
       border-radius: 15px;
       color: #6b2d00;
-      background: var(--reading-soft);
-      border: 1px solid var(--reading-line);
+      background: var(--surface-accent-soft);
+      border: 1px solid var(--surface-accent-line);
       font-size: 12px;
       font-weight: 820;
     }
@@ -303,14 +303,14 @@
       justify-content: center;
       font-size: 11px;
       font-weight: 780;
-      writing-mode: vertical-rl;
+      library-4-mode: vertical-rl;
     }
 
     .spine.active {
       min-height: 78px;
       color: #6b2d00;
-      background: var(--reading-soft);
-      border-color: var(--reading-line);
+      background: var(--surface-accent-soft);
+      border-color: var(--surface-accent-line);
     }
 
     .tray {
@@ -337,9 +337,9 @@
     }
 
     .card.active {
-      border-color: var(--reading-line);
+      border-color: var(--surface-accent-line);
       background:
-        linear-gradient(180deg, rgba(255, 138, 61, .1), rgba(255, 255, 255, .92));
+        linear-gradient(180deg, rgba(106, 124, 137, .1), rgba(255, 255, 255, .92));
     }
 
     .card h3 {
@@ -423,8 +423,8 @@
       gap: 12px;
       padding: 13px;
       border-radius: 22px;
-      border: 1px solid var(--reading-line);
-      background: var(--reading-soft);
+      border: 1px solid var(--surface-accent-line);
+      background: var(--surface-accent-soft);
     }
 
     .return-strip p {
@@ -447,10 +447,10 @@
       padding: 11px 13px;
       border-radius: 999px;
       color: #fffaf4;
-      background: var(--reading);
+      background: var(--surface-accent);
       font-size: 12px;
       font-weight: 850;
-      box-shadow: 0 10px 22px rgba(255, 138, 61, .26);
+      box-shadow: 0 10px 22px rgba(106, 124, 137, .26);
     }
 
     .tabs {
@@ -475,8 +475,8 @@
 
     .tab.active {
       color: #6b2d00;
-      background: var(--reading-soft);
-      border-color: var(--reading-line);
+      background: var(--surface-accent-soft);
+      border-color: var(--surface-accent-line);
     }
 
     @media (max-width: 760px) {
@@ -508,7 +508,7 @@
 <body>
   <header>
     <h1>Space Desk Evolution: promoted search candidate space-04</h1>
-    <p class="lead">Design-only rendered proof for a Space search run. Product truth is physical hierarchy: reading library, locating-keywords group, current box, contained cards, attached favorite tag, sleep alcove, and return to Learning.</p>
+    <p class="lead">Design-only rendered proof for a Space search run. Product truth is physical hierarchy: current shelf, current group, current box, contained card objects, attached favorite tag, sleep alcove, and return to Learning.</p>
   </header>
 
   <main>
@@ -520,22 +520,22 @@
             <span>Space</span>
             <strong>盒桌</strong>
           </div>
-          <div class="library-chip"><i class="dot"></i><span>仔细阅读</span></div>
+          <div class="library-chip"><i class="dot"></i><span>组 1</span></div>
         </div>
 
         <section class="address-shelf" aria-label="parent address shelf">
           <div class="address-row">
-            <span class="address-node">CET6</span>
-            <span class="address-node current">仔细阅读</span>
-            <span class="address-node">定位词抓取</span>
+            <span class="address-node">本轮</span>
+            <span class="address-node current">组 1</span>
+            <span class="address-node">组 1</span>
           </div>
         </section>
 
         <section class="desk" aria-label="current box tray">
           <div class="box-title">
             <div>
-              <h2>细节定位盒</h2>
-              <p>当前卡仍属于 reading / locating-keywords / box R-01</p>
+              <h2>盒 1</h2>
+              <p>当前卡仍属于 当前馆 / 当前组 / 当前盒</p>
             </div>
             <div class="box-count">12 cards</div>
           </div>
@@ -550,7 +550,7 @@
             <div class="tray">
               <div class="card-row">
                 <article class="card active">
-                  <h3>题干定位词先圈出</h3>
+                  <h3>题干线索先圈出</h3>
                   <p>先找人名、年份、转折，再回原文定位。</p>
                   <span class="tag">favorite tag</span>
                 </article>
@@ -563,7 +563,7 @@
               <section class="sleep-zone" aria-label="sleep alcove under current box">
                 <div class="sleep-head">
                   <strong>Sleep alcove</strong>
-                  <span>仍在细节定位盒下</span>
+                  <span>仍在盒 1下</span>
                 </div>
                 <div class="sleep-card">
                   <p>长句修饰误判</p>
@@ -575,7 +575,7 @@
         </section>
 
         <section class="return-strip" aria-label="return to learning with context">
-          <p><strong>回到当前学习流</strong>继续处理这张定位词卡，不切到模块选择。</p>
+          <p><strong>回到当前学习流</strong>继续处理这张线索卡，不切到模块选择。</p>
           <div class="return-action">Return</div>
         </section>
 
@@ -590,7 +590,7 @@
 
     <aside class="proof-note">
       <h2>Checklist evidence</h2>
-      <p>Q1: reading is the only strong library accent. Q2: current box tray is the focal object. Q3: hierarchy is shelf, box, cards, state alcove. Q4: no forbidden visual pattern is used. Q5: the proof is constrained to a 393 x 852 phone frame. Q6: Space-only; Learning and stats rules are unchanged.</p>
+      <p>Q1: current is the only strong library accent. Q2: current box tray is the focal object. Q3: hierarchy is shelf, box, cards, state alcove. Q4: no forbidden visual pattern is used. Q5: the proof is constrained to a 393 x 852 phone frame. Q6: Space-only; Learning and stats rules are unchanged.</p>
       <p>Implementation boundary: this search proof informs the accepted design-only artifact `space-surface-shelf-desk-v1`; RN/Web implementation must consume that merged artifact and mapping record.</p>
     </aside>
   </main>

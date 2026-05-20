@@ -54,7 +54,7 @@ Hard product violation: statistics-first first-read, flattened hierarchy, and hi
 
 ## Design Review Checklist Answers
 
-Q1: Reading could be accented, but the current library is not the first product object.
+Q1: current could be accented, but the current library is not the first product object.
 
 Q2: Focal object is wrong because progress board precedes current box.
 

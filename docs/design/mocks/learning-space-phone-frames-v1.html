@@ -6,8 +6,8 @@
   <title>Learning + Space Phone Frames v1</title>
   <style>
     :root {
-      --reading: #ff8a3d;
-      --reading-soft: #fff1e6;
+      --surface-accent: #6A7C89;
+      --surface-accent-soft: #EEF3F4;
       --ink: #12121a;
       --muted: #4f5062;
       --page: #f5f3ee;
@@ -28,6 +28,7 @@
       margin: 0;
       background: var(--page);
       color: var(--ink);
+      overflow-x: hidden;
     }
 
     main {
@@ -85,9 +86,9 @@
       gap: 8px;
       padding: 8px 12px;
       border-radius: 999px;
-      background: var(--reading-soft);
+      background: var(--surface-accent-soft);
       color: #6b2d00;
-      border: 1px solid rgba(255,138,61,.28);
+      border: 1px solid rgba(106, 124, 137, .28);
       font-size: 12px;
       font-weight: 700;
     }
@@ -95,14 +96,14 @@
     .night .chip {
       background: #31251f;
       color: #ffd7ba;
-      border-color: rgba(255,138,61,.32);
+      border-color: rgba(106, 124, 137, .32);
     }
 
     .dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: var(--reading);
+      background: var(--surface-accent);
     }
 
     .meta {
@@ -128,7 +129,7 @@
     }
 
     .eyebrow {
-      color: var(--reading);
+      color: var(--surface-accent);
       font-size: 12px;
       font-weight: 800;
       margin-bottom: 12px;
@@ -171,8 +172,8 @@
     }
 
     .choice.current {
-      border-color: rgba(255,138,61,.68);
-      box-shadow: inset 0 0 0 1px rgba(255,138,61,.22);
+      border-color: rgba(106, 124, 137, .68);
+      box-shadow: inset 0 0 0 1px rgba(106, 124, 137, .22);
     }
 
     .night .choice {
@@ -234,7 +235,7 @@
 
     .state {
       margin-top: 10px;
-      color: var(--reading);
+      color: var(--surface-accent);
       font-size: 12px;
       font-weight: 800;
     }
@@ -274,7 +275,7 @@
 
     .tab.active {
       color: #6b2d00;
-      background: var(--reading-soft);
+      background: var(--surface-accent-soft);
     }
 
     .night .tab { color: var(--night-muted); }
@@ -282,6 +283,16 @@
     .night .tab.active {
       background: #31251f;
       color: #ffd7ba;
+    }
+
+    @media (max-width: 430px) {
+      main {
+        padding: 18px;
+      }
+
+      .phone {
+        width: min(393px, 100%);
+      }
     }
   </style>
 </head>
@@ -291,18 +302,18 @@
       <div class="island"></div>
       <div class="surface">
         <div class="topline">
-          <div class="chip"><span class="dot"></span> 阅读 · 细节定位</div>
-          <div class="meta">CET4 · 12/48</div>
+          <div class="chip"><span class="dot"></span> 馆 1 · 组 1</div>
+          <div class="meta">本轮 · 12/48</div>
         </div>
         <article class="object">
-          <div class="eyebrow">当前卡 · 052101</div>
+          <div class="eyebrow">当前卡 · 卡 1</div>
           <h1>Which detail best supports the author's argument?</h1>
-          <p>先抓定位词，再判断选项是否复述原文关系。不要把同义词替换误判成新信息。</p>
+          <p>先抓线索，再判断选项是否复述原文关系。不要把相近表达误判成新信息。</p>
           <div class="choices">
             <div class="choice">A. It adds a personal anecdote.</div>
             <div class="choice current">B. It compares two causes.</div>
             <div class="choice">C. It rejects all prior studies.</div>
-            <div class="choice">D. It shifts to vocabulary.</div>
+            <div class="choice">D. It shifts to focus-area.</div>
           </div>
         </article>
         <div class="tools">
@@ -310,7 +321,7 @@
           <span>hint layer</span>
           <span>favorite</span>
         </div>
-        <div class="address">CET4 / 阅读 / 细节题 / 0521</div>
+        <div class="address">本轮 / 当前馆 / 当前组 / 当前盒</div>
         <nav class="nav">
           <div class="tab active">学习</div>
           <div class="tab">空间</div>
@@ -324,34 +335,34 @@
       <div class="island"></div>
       <div class="surface">
         <div class="topline">
-          <div class="chip"><span class="dot"></span> 阅读 · 0521</div>
-          <div class="meta">box focus</div>
+          <div class="chip"><span class="dot"></span> 馆 1 · 盒 1</div>
+          <div class="meta">当前盒</div>
         </div>
         <article class="object">
-          <div class="eyebrow">当前盒 · 细节定位</div>
-          <h1>Reading / Detail Evidence</h1>
-          <p>这个盒子收纳需要定位、转述、排除干扰项的阅读卡。当前学习卡仍保留原始空间地址。</p>
+          <div class="eyebrow">当前盒 · 盒 1</div>
+          <h1>当前 / 盒 1</h1>
+          <p>这个盒子收纳需要定位、转述、排除干扰项的当前馆的卡。当前学习卡仍保留原始空间地址。</p>
         </article>
         <div class="box-focus">
           <div class="shelf">
             <div class="card-tile">
-              <h3>052101</h3>
-              <p>argument support</p>
+              <h3>卡 1</h3>
+              <p>卡 1</p>
               <div class="state">favorite tag</div>
             </div>
             <div class="card-tile">
-              <h3>052102</h3>
+              <h3>卡 2</h3>
               <p>detail trap</p>
               <div class="state">ready</div>
             </div>
             <div class="card-tile sleep">
-              <h3>052103</h3>
+              <h3>卡 3</h3>
               <p>temporarily sleeping</p>
               <div class="state">wake</div>
             </div>
             <div class="card-tile">
-              <h3>052104</h3>
-              <p>same box sibling</p>
+              <h3>卡 4</h3>
+              <p>同盒卡 2</p>
               <div class="state">inspect</div>
             </div>
           </div>

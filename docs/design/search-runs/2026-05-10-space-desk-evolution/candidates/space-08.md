@@ -54,7 +54,7 @@ Decorative metaphor, hidden ownership, phone label collision, high implementatio
 
 ## Design Review Checklist Answers
 
-Q1: Reading can be colored, but the accent would attach to a decorative cluster rather than the current object.
+Q1: current can be colored, but the accent would attach to a decorative cluster rather than the current object.
 
 Q2: Focal object is wrong because the current box is not first-read.
 

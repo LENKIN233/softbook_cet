@@ -18,11 +18,11 @@ This candidate fails product truth. It makes favorite and sleep into two physica
 
 ## Focal Object
 
-Two state boxes labelled favorite and sleep, which are invalid focal objects.
+Two state zones labelled favorite and sleep, which are invalid focal objects.
 
 ## First-Read Path
 
-Favorite box -> sleep box -> card thumbnails -> original box. This reverses the required ownership hierarchy.
+Favorite zone -> sleep zone -> card thumbnails -> owning container. This reverses the required ownership hierarchy.
 
 ## Interaction Silhouette
 
@@ -30,7 +30,7 @@ Invalid Space silhouette because state containers replace library/group/box/card
 
 ## Spatial Model
 
-Cards appear to move out of their original box into state boxes. This implies arbitrary reassignment and breaks ownership.
+Cards appear to move out of their owning container into state zones. This implies arbitrary reassignment and breaks ownership.
 
 ## State Language
 
@@ -54,9 +54,9 @@ Hard product violation, misleading mental model, and likely long-term drift into
 
 ## Design Review Checklist Answers
 
-Q1: Reading accent would be displaced by state boxes, so Law of One would not protect the hierarchy.
+Q1: Display accent would be displaced by state zones, so Law of One would not protect the hierarchy.
 
-Q2: Focal object is wrong because state boxes replace current box.
+Q2: Focal object is wrong because state zones replace current box.
 
 Q3: Space hierarchy silhouette fails because original library/group/box/card ownership is hidden.
 

@@ -31,7 +31,7 @@ Both candidates preserve product truth. `space-03` makes parent hierarchy more v
 
 ## Visual System Fit
 
-`space-03` can preserve Law of One if sibling boxes stay neutral and reading coral only marks the current box.
+`space-03` can preserve Law of One if sibling boxes stay neutral and display accent only marks the current box.
 
 ## Implementation Mapping
 

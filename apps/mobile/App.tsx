@@ -73,6 +73,7 @@ import {
 import { resolveSpaceStateRepositoryConfig } from './src/space/spaceStateRuntimeConfig';
 import { SpaceSurface, type SpaceStatusRail } from './src/space/SpaceSurface';
 import { StatisticsSurface } from './src/statistics/StatisticsSurface';
+import { formatLearningSessionDisplayLabel } from './src/shared/uiMetadata/displayMetadata';
 import { createMutationQueueRepository } from './src/sync/mutationQueueRepository';
 import {
   createLearningStateRepository,
@@ -84,7 +85,7 @@ import {
   createProgressSyncRepository,
 } from './src/sync/progressSyncRepository';
 import { resolveProgressSyncRepositoryConfig } from './src/sync/progressSyncRuntimeConfig';
-import { LIBRARY_IDENTITY, hexToRgba } from './src/visual/tokens';
+import { hexToRgba } from './src/visual/tokens';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
@@ -150,6 +151,9 @@ type SpaceCardState = {
   isSleeping: boolean;
 };
 
+const SHELL_ACCENT = '#5B6DF5';
+const SHELL_DEPTH = '#18A7B8';
+
 type AuthHandlers = {
   onChangePhone: (value: string) => void;
   onChangeCode: (value: string) => void;
@@ -189,10 +193,10 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '顶层入口',
     title: '知识地图与物理空间',
     summary:
-      '空间会展示已接入卡片的学习馆、知识组、盒位和卡片层级，让用户能浏览知识地图、查看盒内卡片，并看见当前学习卡的位置。',
+      '空间会以匿名位置展示已接入卡片的层级，让用户浏览知识地图、查看盒内卡片，并看见当前学习卡的位置。',
     highlights: [
-      '能看见当前学习卡在空间中的位置。',
-      '能按学习馆、知识组和盒位层级浏览已接入卡片。',
+      '能看见当前学习卡在匿名空间中的位置。',
+      '能按馆、组、盒的索引层级浏览已接入卡片。',
       '先收口低成本浏览，不开放任意拖拽改盒。',
     ],
     focus: ['休眠区规则', '支持的位置操作'],
@@ -236,8 +240,8 @@ const LIGHT_PALETTE: Palette = {
   border: 'rgba(11,11,20,0.08)',
   text: '#0B0B14',
   textMuted: '#7A7A90',
-  accent: LIBRARY_IDENTITY.listening,
-  accentSoft: hexToRgba(LIBRARY_IDENTITY.listening, 0.12),
+  accent: SHELL_ACCENT,
+  accentSoft: hexToRgba(SHELL_ACCENT, 0.12),
   accentStrong: '#4152E1',
   tabIdle: '#ACACBF',
   success: '#22C58B',
@@ -253,7 +257,7 @@ const DARK_PALETTE: Palette = {
   text: '#F2F1EB',
   textMuted: '#B8B8CE',
   accent: '#7C8BFF',
-  accentSoft: hexToRgba(LIBRARY_IDENTITY.listening, 0.2),
+  accentSoft: hexToRgba(SHELL_ACCENT, 0.2),
   accentStrong: '#D5DAFF',
   tabIdle: '#86869C',
   success: '#4FDE9C',
@@ -2083,11 +2087,7 @@ function AppShell({
       palette={palette}
       reviewCandidateCount={reviewCandidateCards.length}
       sessionCards={activeSessionCards}
-      sessionLabel={
-        learningPhase === 'review'
-          ? '首轮回看卡组'
-          : `${learningTrack.toUpperCase()} 本轮卡组`
-      }
+      sessionLabel={formatLearningSessionDisplayLabel(learningPhase)}
     />
   ) : route.key === 'space' ? (
     <SpaceSurface
@@ -2320,34 +2320,8 @@ function LearningSleepSurface({
 function AuroraBackdrop() {
   return (
     <View pointerEvents="none" style={styles.auroraRoot}>
-      <View
-        style={[
-          styles.auroraOrb,
-          styles.auroraOrbPrimary,
-          { backgroundColor: hexToRgba(LIBRARY_IDENTITY.listening, 0.18) },
-        ]}
-      />
-      <View
-        style={[
-          styles.auroraOrb,
-          styles.auroraOrbSecondary,
-          { backgroundColor: hexToRgba(LIBRARY_IDENTITY.writing, 0.14) },
-        ]}
-      />
-      <View
-        style={[
-          styles.auroraOrb,
-          styles.auroraOrbWarm,
-          { backgroundColor: hexToRgba(LIBRARY_IDENTITY.reading, 0.12) },
-        ]}
-      />
-      <View
-        style={[
-          styles.auroraOrb,
-          styles.auroraOrbCool,
-          { backgroundColor: hexToRgba(LIBRARY_IDENTITY.translation, 0.12) },
-        ]}
-      />
+      <View style={[styles.auroraField, styles.auroraFieldTop]} />
+      <View style={[styles.auroraField, styles.auroraFieldBase]} />
     </View>
   );
 }
@@ -3653,33 +3627,20 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     overflow: 'hidden',
   },
-  auroraOrb: {
+  auroraField: {
     position: 'absolute',
-    borderRadius: 999,
+    left: 0,
+    right: 0,
   },
-  auroraOrbPrimary: {
-    width: 320,
-    height: 320,
-    top: -64,
-    left: -88,
-  },
-  auroraOrbSecondary: {
-    width: 280,
+  auroraFieldTop: {
     height: 280,
-    top: 84,
-    right: -96,
+    top: -64,
+    backgroundColor: hexToRgba(SHELL_ACCENT, 0.14),
   },
-  auroraOrbWarm: {
-    width: 260,
-    height: 260,
-    bottom: 132,
-    right: -72,
-  },
-  auroraOrbCool: {
-    width: 220,
-    height: 220,
+  auroraFieldBase: {
+    height: 360,
     bottom: -24,
-    left: 32,
+    backgroundColor: hexToRgba(SHELL_DEPTH, 0.1),
   },
   shellRoot: {
     flex: 1,

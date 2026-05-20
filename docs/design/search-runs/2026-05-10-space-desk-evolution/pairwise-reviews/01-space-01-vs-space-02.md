@@ -31,7 +31,7 @@ Compared rendered survivor panels `space-01` and `space-02` in `docs/design/sear
 
 ## Visual System Fit
 
-`space-01` gives one strong reading accent to the current box. `space-02` may need extra emphasis on selected card and parent rail, increasing accent competition.
+`space-01` gives one strong display accent to the current box. `space-02` may need extra emphasis on selected card and parent rail, increasing accent competition.
 
 ## Implementation Mapping
 

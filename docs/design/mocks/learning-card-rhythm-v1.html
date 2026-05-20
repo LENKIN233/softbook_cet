@@ -6,8 +6,8 @@
   <title>Learning Card Rhythm Rendered Proof v1</title>
   <style>
     :root {
-      --reading: #ff8a3d;
-      --reading-soft: #fff1e6;
+      --surface-accent: #6A7C89;
+      --surface-accent-soft: #EEF3F4;
       --mint: #22c58b;
       --mint-soft: #e7f8f1;
       --amber: #f5b100;
@@ -118,9 +118,9 @@
 
     .chip {
       padding: 8px 12px;
-      background: var(--reading-soft);
+      background: var(--surface-accent-soft);
       color: #6b2d00;
-      border-color: rgba(255, 138, 61, .28);
+      border-color: rgba(106, 124, 137, .28);
       font-size: 12px;
       font-weight: 800;
     }
@@ -129,7 +129,7 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: var(--reading);
+      background: var(--surface-accent);
       flex: 0 0 auto;
     }
 
@@ -166,11 +166,11 @@
       left: 0;
       width: 5px;
       border-radius: 0 999px 999px 0;
-      background: var(--reading);
+      background: var(--surface-accent);
     }
 
     .stage-label {
-      color: var(--reading);
+      color: var(--surface-accent);
       font-size: 12px;
       line-height: 1.2;
       font-weight: 900;
@@ -209,14 +209,14 @@
     }
 
     .choice.focused {
-      border-color: rgba(255, 138, 61, .68);
-      box-shadow: inset 0 0 0 1px rgba(255, 138, 61, .22);
+      border-color: rgba(106, 124, 137, .68);
+      box-shadow: inset 0 0 0 1px rgba(106, 124, 137, .22);
     }
 
     .support-layer {
       margin-top: 14px;
       border-radius: 22px;
-      border: 1px solid rgba(255, 138, 61, .26);
+      border: 1px solid rgba(106, 124, 137, .26);
       background: #fff7ef;
       padding: 14px;
     }
@@ -247,8 +247,8 @@
 
     .tool.active {
       color: #6b2d00;
-      border-color: rgba(255, 138, 61, .28);
-      background: var(--reading-soft);
+      border-color: rgba(106, 124, 137, .28);
+      background: var(--surface-accent-soft);
     }
 
     .address {
@@ -338,10 +338,10 @@
       border-radius: 999px;
       min-height: 48px;
       color: #3b1f0a;
-      background: var(--reading);
+      background: var(--surface-accent);
       font-weight: 900;
       font-size: 14px;
-      box-shadow: 0 14px 28px rgba(255, 138, 61, .24);
+      box-shadow: 0 14px 28px rgba(106, 124, 137, .24);
     }
 
     .nav {
@@ -402,7 +402,7 @@
 <body>
   <header class="proof-header">
     <h1>Learning Card Rhythm Rendered Proof</h1>
-    <p>Phone viewport proof for `Guided Addressed Card Rhythm`: place -> focus -> support -> resolve -> settle -> continue. The current library is reading, with one coral accent.</p>
+    <p>Phone viewport proof for `Guided Addressed Card Rhythm`: place -> focus -> support -> resolve -> settle -> continue. The current library is represented by the anonymous current-library slot, with one coral accent.</p>
   </header>
 
   <main class="proof-board">
@@ -410,7 +410,7 @@
       <div class="island"></div>
       <div class="surface">
         <div class="topline">
-          <div class="chip"><span class="dot"></span>阅读 · CET6</div>
+          <div class="chip"><span class="dot"></span>馆 1 · 本轮</div>
           <div class="quiet-chip">本轮卡组</div>
         </div>
         <div class="phone-stage">
@@ -432,7 +432,7 @@
           </div>
           <div class="address">
             <b>位置线索</b>
-            <span>阅读馆 / 词义辨析组 / 语义关系盒</span>
+            <span>馆 1 / 组 1 / 盒 1</span>
           </div>
         </div>
         <nav class="nav" aria-label="Top level navigation">
@@ -448,7 +448,7 @@
       <div class="island"></div>
       <div class="surface">
         <div class="topline">
-          <div class="chip"><span class="dot"></span>阅读 · CET6</div>
+          <div class="chip"><span class="dot"></span>馆 1 · 本轮</div>
           <div class="quiet-chip">线索已打开</div>
         </div>
         <div class="phone-stage">
@@ -484,14 +484,14 @@
       <div class="island"></div>
       <div class="surface">
         <div class="topline">
-          <div class="chip"><span class="dot"></span>阅读 · CET6</div>
+          <div class="chip"><span class="dot"></span>馆 1 · 本轮</div>
           <div class="quiet-chip">解析面</div>
         </div>
         <div class="phone-stage">
           <article class="card-object">
             <div class="stage-label">RESOLVE + SETTLE</div>
             <h2 class="prompt">account for = 解释原因 / 占比说明</h2>
-            <p class="copy">在阅读题里，它经常用于解释现象背后的原因，不是简单的"负责"。</p>
+            <p class="copy">在题目里，它经常用于解释现象背后的原因，不是简单的"负责"。</p>
             <div class="analysis">
               <h3>易错点</h3>
               <p class="copy">遇到抽象名词或比例变化时，先判断它是不是在回答 why / how much。</p>

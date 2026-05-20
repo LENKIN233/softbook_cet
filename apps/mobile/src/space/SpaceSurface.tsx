@@ -14,7 +14,36 @@ import {
   LearningCard,
   LearningTrack,
 } from '../learning/model';
-import { resolveLibraryTone } from '../visual/tokens';
+import {
+  formatSpacePathByIndex,
+  formatSpaceBoxLabel,
+  formatSpaceGroupLabel,
+  formatSpaceLibraryLabel,
+  resolveSpacePosition,
+} from './spaceMetadataDisplay';
+
+type SpaceTone = {
+  accent: string;
+  accentSoft: string;
+};
+
+const ANONYMOUS_SPACE_TONES: SpaceTone[] = [
+  { accent: '#5B6DF5', accentSoft: 'rgba(91, 109, 245, 0.14)' },
+  { accent: '#18A7B8', accentSoft: 'rgba(24, 167, 184, 0.14)' },
+  { accent: '#B77900', accentSoft: 'rgba(183, 121, 0, 0.14)' },
+  { accent: '#7A6AF5', accentSoft: 'rgba(122, 106, 245, 0.14)' },
+  { accent: '#1E9B63', accentSoft: 'rgba(30, 155, 99, 0.14)' },
+];
+
+function resolveAnonymousSpaceTone(index: number): SpaceTone {
+  const normalizedIndex = Number.isFinite(index)
+    ? Math.max(1, Math.floor(index))
+    : 1;
+
+  return ANONYMOUS_SPACE_TONES[
+    (normalizedIndex - 1) % ANONYMOUS_SPACE_TONES.length
+  ];
+}
 
 type SpacePalette = {
   accent: string;
@@ -142,10 +171,6 @@ export function SpaceSurface({
   const selectedBox =
     selectedGroup?.boxes.find(box => box.boxRef === selectedBoxRef) ??
     selectedGroup?.boxes[0];
-  const selectedTone = resolveLibraryTone(selectedLibrary?.libraryName);
-  const currentTone = resolveLibraryTone(
-    currentLearningCard?.space_metadata.library,
-  );
   const selectedBoxCards = selectedBox?.cards ?? [];
   const selectedFavoriteCards = selectedBoxCards.filter(
     card => cardStateById[card.cardId]?.isFavorited,
@@ -157,14 +182,54 @@ export function SpaceSurface({
     card => card.cardId === currentLearningCard?.card_id,
   );
   const siblingBoxCount = Math.max((selectedGroup?.boxes.length ?? 1) - 1, 0);
+  const selectedLibraryIndex =
+    selectedLibrary == null
+      ? 1
+      : Math.max(
+          seed.libraries.findIndex(
+            library => library.libraryName === selectedLibrary.libraryName,
+          ) + 1,
+          1,
+        );
+  const selectedGroupIndex =
+    selectedLibrary == null || selectedGroup == null
+      ? 1
+      : Math.max(
+          selectedLibrary.groups.findIndex(
+            group => group.groupName === selectedGroup.groupName,
+          ) + 1,
+          1,
+        );
+  const selectedBoxIndex =
+    selectedGroup == null || selectedBox == null
+      ? 1
+      : Math.max(
+          selectedGroup.boxes.findIndex(box => box.boxRef === selectedBox.boxRef) +
+            1,
+          1,
+        );
   const selectedPath =
     selectedLibrary && selectedGroup && selectedBox
-      ? formatSpacePath(
-          selectedLibrary.libraryName,
-          selectedGroup.groupName,
-          selectedBox.boxName,
+      ? formatSpacePathByIndex(
+          selectedLibraryIndex,
+          selectedGroupIndex,
+          selectedBoxIndex,
         )
       : '';
+  const currentCardPosition = currentLearningCard
+    ? resolveSpacePosition(seed, currentLearningCard)
+    : null;
+  const selectedTone = resolveAnonymousSpaceTone(selectedLibraryIndex);
+  const currentTone = currentCardPosition
+    ? resolveAnonymousSpaceTone(currentCardPosition.libraryIndex)
+    : selectedTone;
+  const currentCardPath = currentCardPosition
+    ? formatSpacePathByIndex(
+        currentCardPosition.libraryIndex,
+        currentCardPosition.groupIndex,
+        currentCardPosition.boxIndex,
+      )
+    : null;
   const isGated = spaceGateRail !== null && spaceGateRail !== undefined;
   const stateRailStack = (
     <>
@@ -183,27 +248,11 @@ export function SpaceSurface({
   );
 
   if (!selectedLibrary || !selectedGroup || !selectedBox) {
-    const emptySpacePath = currentLearningCard
-        ? {
-            boxName: currentLearningCard.space_metadata.box,
-            boxRef: currentLearningCard.space_metadata.box_ref,
-            groupName: currentLearningCard.space_metadata.group,
-            libraryName: currentLearningCard.space_metadata.library,
-          }
-        : {
-            boxName: '待恢复盒位',
-            boxRef: 'pending',
-            groupName: '待恢复知识组',
-            libraryName: '待恢复学习馆',
-          };
     const emptyTone = currentLearningCard
       ? currentTone
-      : resolveLibraryTone(emptySpacePath.libraryName);
-    const emptySelectedPath = formatSpacePath(
-      emptySpacePath.libraryName,
-      emptySpacePath.groupName,
-      emptySpacePath.boxName,
-    );
+      : resolveAnonymousSpaceTone(1);
+    const emptySelectedPath =
+      currentCardPath ?? '当前空间路径待同步';
     const isSpaceLoading = spaceStatusRail?.state === 'loading';
 
     return (
@@ -293,7 +342,7 @@ export function SpaceSurface({
                   {isSpaceLoading ? '正在整理盒内卡片' : '当前盒为空'}
                 </Text>
                 <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
-                  {emptySpacePath.boxName}
+                  当前盒
                 </Text>
                 <Text style={[styles.ruleText, { color: palette.textMuted }]}>
                   {isSpaceLoading ? '盒内卡片整理中' : '0 张可展示卡片'} ·
@@ -330,10 +379,10 @@ export function SpaceSurface({
             ) : null}
 
             <Text style={[styles.locationText, { color: emptyTone.accent }]}>
-              {currentLearningCard
-                ? `当前学习卡位于 ${emptySelectedPath}`
-                : '空间地址正在等待本轮卡片；当前仍保留物理盒位。'}
-            </Text>
+                {currentCardPath
+                  ? `当前学习卡位于 ${currentCardPath}`
+                  : '空间地址正在等待本轮卡片；当前仍保留物理盒。'}
+              </Text>
 
             <View style={styles.boxShelf} testID="space-current-position">
               <View
@@ -347,7 +396,7 @@ export function SpaceSurface({
                 testID="space-empty-box-slot"
               >
                 <Text style={[styles.boxName, { color: palette.text }]}>
-                  {emptySpacePath.boxName}
+                  当前盒
                 </Text>
                 <Text style={[styles.boxMeta, { color: palette.textMuted }]}>
                   {isSpaceLoading ? '正在整理盒内卡片' : '暂无可展示卡片'}
@@ -463,7 +512,7 @@ export function SpaceSurface({
             卡片的物理空间
           </Text>
           <Text style={[styles.summary, { color: palette.textMuted }]}>
-            知识地图浏览从地址架进入：先看学习馆、知识组和盒位归属，
+            知识地图浏览从地址架进入：先看馆、组、盒的索引归属，
             再把当前盒、盒内卡片、收藏标签和休眠区放在同一个物理桌面里。
           </Text>
           <View style={styles.summaryRow}>
@@ -526,11 +575,11 @@ export function SpaceSurface({
             </Text>
 
             <Text style={[styles.selectorTitle, { color: palette.textMuted }]}>
-              学习馆
+              馆
             </Text>
             <View style={styles.selectorWrap}>
-              {seed.libraries.map((library) => {
-                const libraryTone = resolveLibraryTone(library.libraryName);
+              {seed.libraries.map((library, index) => {
+                const libraryTone = resolveAnonymousSpaceTone(index + 1);
                 const isActive =
                   library.libraryName === selectedLibrary.libraryName;
 
@@ -555,9 +604,7 @@ export function SpaceSurface({
                           : palette.border,
                       },
                     ]}
-                    testID={`space-library-${resolveLibraryNodeTestIDSegment(
-                      library,
-                    )}`}
+                    testID={`space-library-${index + 1}`}
                   >
                     <View style={styles.selectorHeader}>
                       <View
@@ -574,7 +621,7 @@ export function SpaceSurface({
                           },
                         ]}
                       >
-                        {library.libraryName}
+                        {formatSpaceLibraryLabel(index + 1)}
                       </Text>
                     </View>
                     <Text
@@ -583,7 +630,7 @@ export function SpaceSurface({
                         { color: palette.textMuted },
                       ]}
                     >
-                      {library.groups.length} 个知识组
+                      {library.groups.length} 个组
                     </Text>
                   </Pressable>
                 );
@@ -591,10 +638,10 @@ export function SpaceSurface({
             </View>
 
             <Text style={[styles.selectorTitle, { color: palette.textMuted }]}>
-              知识组
+              组
             </Text>
             <View style={styles.selectorWrap}>
-              {selectedLibrary.groups.map((group) => {
+              {selectedLibrary.groups.map((group, index) => {
                 const isActive = group.groupName === selectedGroup.groupName;
 
                 return (
@@ -615,9 +662,7 @@ export function SpaceSurface({
                           : palette.border,
                       },
                     ]}
-                    testID={`space-group-${resolveGroupNodeTestIDSegment(
-                      group,
-                    )}`}
+                    testID={`space-group-${index + 1}`}
                   >
                     <Text
                       style={[
@@ -629,7 +674,7 @@ export function SpaceSurface({
                         },
                       ]}
                     >
-                      {group.groupName}
+                      {formatSpaceGroupLabel(index + 1)}
                     </Text>
                     <Text
                       style={[
@@ -637,7 +682,7 @@ export function SpaceSurface({
                         { color: palette.textMuted },
                       ]}
                     >
-                      {group.boxes.length} 个盒位
+                      {group.boxes.length} 个盒
                     </Text>
                   </Pressable>
                 );
@@ -671,16 +716,16 @@ export function SpaceSurface({
 
         <SurfaceCard palette={palette} testID="space-current-box-tray">
           <View style={styles.boxTrayHeader}>
-            <View style={styles.boxTrayCopy}>
-              <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
-                当前盒
-              </Text>
-              <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
-                {selectedBox.boxName}
-              </Text>
-              <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                {selectedBox.cards.length} 张卡 · {siblingBoxCount} 个同组相邻盒
-              </Text>
+              <View style={styles.boxTrayCopy}>
+                <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
+                  当前盒
+                </Text>
+                <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
+                  {formatSpaceBoxLabel(selectedBoxIndex)}
+                </Text>
+                <Text style={[styles.ruleText, { color: palette.textMuted }]}>
+                  {selectedBox.cards.length} 张卡 · {siblingBoxCount} 个同组相邻盒
+                </Text>
             </View>
             <View
               style={[
@@ -691,13 +736,9 @@ export function SpaceSurface({
           </View>
 
           <Text style={[styles.locationText, { color: selectedTone.accent }]}>
-            {currentLearningCard
-              ? `当前学习卡位于 ${formatSpacePath(
-                  currentLearningCard.space_metadata.library,
-                  currentLearningCard.space_metadata.group,
-                  currentLearningCard.space_metadata.box,
-                )}`
-              : '登录后开始学习，就能在这里看到当前学习卡的物理位置。'}
+            {currentCardPath
+              ? `当前学习卡位于 ${currentCardPath}`
+              : '当前学习卡位置信息将随学习进度更新。'}
           </Text>
           {currentLearningCard ? (
             <Text style={[styles.ruleText, { color: palette.textMuted }]}>
@@ -706,7 +747,7 @@ export function SpaceSurface({
           ) : null}
 
           <View style={styles.boxShelf} testID="space-current-position">
-            {selectedGroup.boxes.map(box => {
+            {selectedGroup.boxes.map((box, boxIndex) => {
               const isActive = box.boxRef === selectedBox.boxRef;
               const isCurrent =
                 currentLearningCard?.space_metadata.box_ref === box.boxRef;
@@ -726,10 +767,10 @@ export function SpaceSurface({
                         : palette.border,
                     },
                   ]}
-                  testID={`space-box-${box.boxRef}`}
+                  testID={`space-box-${boxIndex + 1}`}
                 >
                   <Text style={[styles.boxName, { color: palette.text }]}>
-                    {box.boxName}
+                    {formatSpaceBoxLabel(boxIndex + 1)}
                   </Text>
                   <Text style={[styles.boxMeta, { color: palette.textMuted }]}>
                     {box.cards.length} 张卡
@@ -765,7 +806,8 @@ export function SpaceSurface({
           </View>
 
           <View style={styles.cardStrip} testID="space-contained-card-strip">
-            {selectedBoxCards.map(card => {
+            {selectedBoxCards.map((card, cardIndex) => {
+              const cardDisplayIndex = cardIndex + 1;
               const isCurrent = currentLearningCard?.card_id === card.cardId;
               const isFavorited =
                 cardStateById[card.cardId]?.isFavorited ?? false;
@@ -789,7 +831,7 @@ export function SpaceSurface({
                     {card.prompt}
                   </Text>
                   <Text style={[styles.cardMeta, { color: palette.textMuted }]}>
-                    {card.interactionLabel} · {card.track.toUpperCase()}
+                    {card.interactionLabel}
                   </Text>
                   <View style={styles.badgeRow}>
                     {isFavorited ? (
@@ -836,18 +878,18 @@ export function SpaceSurface({
                           label={isFavorited ? '取消收藏' : '收藏'}
                           labelTestID={
                             isFavorited
-                              ? `space-favorite-active-${card.cardId}`
-                              : `space-favorite-inactive-${card.cardId}`
+                              ? `space-favorite-active-${cardDisplayIndex}`
+                              : `space-favorite-inactive-${cardDisplayIndex}`
                           }
                           onPress={() => onToggleFavoriteTag(card.cardId)}
                           palette={palette}
-                          testID={`space-favorite-${card.cardId}`}
+                          testID={`space-favorite-${cardDisplayIndex}`}
                         />
                         <ActionChip
                           label={isSleeping ? '移出休眠' : '放入休眠'}
                           onPress={() => onToggleSleepState(card.cardId)}
                           palette={palette}
-                          testID={`space-sleep-${card.cardId}`}
+                          testID={`space-sleep-${cardDisplayIndex}`}
                         />
                       </>
                     )}
@@ -874,7 +916,7 @@ export function SpaceSurface({
           </View>
           {selectedSleepingCards.length > 0 ? (
             <View style={styles.sleepAlcove} testID="space-sleep-alcove">
-              {selectedSleepingCards.map(card => (
+              {selectedSleepingCards.map((card, cardIndex) => (
                 <View
                   key={card.cardId}
                   style={[
@@ -892,7 +934,7 @@ export function SpaceSurface({
                     <Text
                       style={[styles.statusMeta, { color: palette.textMuted }]}
                     >
-                      原盒位：{card.boxName}
+                      位置保持在当前盒
                     </Text>
                   </View>
                   {isGated ? (
@@ -909,7 +951,7 @@ export function SpaceSurface({
                       label="移出休眠"
                       onPress={() => onToggleSleepState(card.cardId)}
                       palette={palette}
-                      testID={`space-wake-${card.cardId}`}
+                      testID={`space-wake-${cardIndex + 1}`}
                     />
                   )}
                 </View>
@@ -1274,41 +1316,6 @@ function buildSpaceSeed(spaceCards: readonly LearningCard[]): SpaceSeed {
     libraries,
     libraryCount: libraries.length,
   };
-}
-
-function formatSpacePath(libraryName: string, groupName: string, boxName: string) {
-  return `${libraryName} / ${groupName} / ${boxName}`;
-}
-
-function resolveLibraryNodeTestIDSegment(library: SpaceLibraryNode) {
-  return normalizeSpaceTestIDSegment(
-    firstBoxRefForLibrary(library)?.slice(0, 2) ?? library.libraryName,
-  );
-}
-
-function resolveGroupNodeTestIDSegment(group: SpaceGroupNode) {
-  return normalizeSpaceTestIDSegment(
-    group.boxes[0]?.boxRef.slice(0, 3) ?? group.groupName,
-  );
-}
-
-function firstBoxRefForLibrary(library: SpaceLibraryNode) {
-  for (const group of library.groups) {
-    const boxRef = group.boxes[0]?.boxRef;
-    if (boxRef) {
-      return boxRef;
-    }
-  }
-
-  return null;
-}
-
-function normalizeSpaceTestIDSegment(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'unknown';
 }
 
 const styles = StyleSheet.create({

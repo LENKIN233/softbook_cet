@@ -19,13 +19,13 @@
 - Surface: Learning
 - Device class: phone
 - Frame: `393 x 852`
-- Current library: reading
-- Current accent: reading coral, used as the only dominant accent
+- Current library: current
+- Display accent: display accent, used as the only dominant accent
 - Rendered asset: `docs/design/mocks/learning-card-rhythm-v1.html`
 
 ## Product Truth
 
-Learning remains a system-sequenced single-card flow. This proof does not create a new interaction family, module picker, content source, card identifier, or runtime state. It renders the accepted `Guided Addressed Card Rhythm` as a visible phone-state sequence.
+Learning remains a system-sequenced single-card flow. This proof does not create a new interaction family, module picker, content source, internal identifier, or runtime state. It renders the accepted `Guided Addressed Card Rhythm` as a visible phone-state sequence.
 
 ## Implementation Hypothesis
 
@@ -58,7 +58,7 @@ current library chip -> current card object -> interaction silhouette -> support
 
 The proof intentionally avoids user-visible:
 
-- raw card or box identifiers;
+- raw internal identifiers;
 - source, payload, repository, cache, queue, runtime, mock, or seed wording;
 - module-first learning entry;
 - detached hint or peek management screens.
@@ -71,7 +71,7 @@ The proof intentionally avoids user-visible:
 
 ## Design Review Checklist Answers
 
-Q1: Current library is reading, and reading coral is the only strong accent. Mint and amber appear only as flip self-assess feedback colors.
+Q1: Current library is represented by the anonymous current-library slot, and the display accent is the only strong accent. Mint and amber appear only as flip self-assess feedback colors.
 
 Q2: Focal object is the current addressed CET card. First-read path is current library chip -> current card object -> interaction silhouette -> support/reveal -> settle -> continue.
 

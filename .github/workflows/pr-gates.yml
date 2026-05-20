@@ -78,6 +78,12 @@ jobs:
       - name: Lint mobile app
         run: npm run lint -- --quiet
 
+      - name: Scan for metadata leak in visible mobile UI text
+        run: npm run metadata-leak-scan
+
+      - name: Scan for metadata leak in design visual artifacts
+        run: npm run design-metadata-leak-scan
+
       - name: Type-check mobile app
         run: npm run typecheck
 

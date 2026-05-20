@@ -6,8 +6,8 @@
   <title>Space Surface Visual Proof v1</title>
   <style>
     :root {
-      --reading: #ff8a3d;
-      --reading-soft: #fff1e6;
+      --surface-accent: #6A7C89;
+      --surface-accent-soft: #EEF3F4;
       --ink: #12121a;
       --muted: #4f5062;
       --page: #f5f3ee;
@@ -158,16 +158,16 @@
       align-items: center;
       gap: 8px;
       padding: 8px 12px;
-      background: var(--reading-soft);
+      background: var(--surface-accent-soft);
       color: #6b2d00;
-      border-color: rgba(255,138,61,.28);
+      border-color: rgba(106, 124, 137, .28);
     }
 
     .dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: var(--reading);
+      background: var(--surface-accent);
     }
 
     .meta {
@@ -190,7 +190,7 @@
     }
 
     .eyebrow {
-      color: var(--reading);
+      color: var(--surface-accent);
       font-size: 12px;
       font-weight: 800;
       letter-spacing: .6px;
@@ -259,8 +259,8 @@
 
     .crumb.active {
       color: #6b2d00;
-      background: var(--reading-soft);
-      border-color: rgba(255,138,61,.38);
+      background: var(--surface-accent-soft);
+      border-color: rgba(106, 124, 137, .38);
     }
 
     .box-focus {
@@ -295,8 +295,8 @@
     }
 
     .card-tile.current {
-      border-color: rgba(255,138,61,.6);
-      box-shadow: inset 0 0 0 1px rgba(255,138,61,.22);
+      border-color: rgba(106, 124, 137, .6);
+      box-shadow: inset 0 0 0 1px rgba(106, 124, 137, .22);
     }
 
     .card-tile.sleeping {
@@ -408,8 +408,8 @@
 
     .mini-box.active {
       color: #6b2d00;
-      border-color: rgba(255,138,61,.5);
-      background: var(--reading-soft);
+      border-color: rgba(106, 124, 137, .5);
+      background: var(--surface-accent-soft);
     }
 
     .state-grid {
@@ -468,7 +468,7 @@
         <div class="island"></div>
         <div class="surface">
           <div class="topline">
-            <div class="chip"><span class="dot"></span> 阅读 · Space A</div>
+            <div class="chip"><span class="dot"></span> 馆 1 · Space A</div>
             <div class="meta">shelf map</div>
           </div>
           <article class="object">
@@ -480,26 +480,26 @@
             <div class="shelf-layer">
               <div class="layer-title">Library shelf</div>
               <div class="layer-row">
-                <span class="crumb">听力</span>
-                <span class="crumb active">阅读</span>
-                <span class="crumb">词汇</span>
+                <span class="crumb">馆 2</span>
+                <span class="crumb active">馆 1</span>
+                <span class="crumb">馆 3</span>
               </div>
             </div>
             <div class="shelf-layer">
               <div class="layer-title">Group rail</div>
               <div class="layer-row">
-                <span class="crumb">定位词</span>
-                <span class="crumb active">细节题</span>
+                <span class="crumb">线索</span>
+                <span class="crumb active">盒 1</span>
                 <span class="crumb">干扰项</span>
               </div>
             </div>
             <div class="box-drawer">
-              <div class="layer-title">Current drawer · 0521</div>
+              <div class="layer-title">当前抽屉 · 盒 1</div>
               <div class="card-grid">
-                <div class="card-tile current"><div class="tile-title">052101</div><div class="state favorite">favorite</div></div>
-                <div class="card-tile"><div class="tile-title">052102</div><div class="state ready">ready</div></div>
-                <div class="card-tile sleeping"><div class="tile-title">052103</div><div class="state sleep">sleep</div></div>
-                <div class="card-tile"><div class="tile-title">052104</div><div class="state">inspect</div></div>
+                <div class="card-tile current"><div class="tile-title">卡 1</div><div class="state favorite">favorite</div></div>
+                <div class="card-tile"><div class="tile-title">卡 2</div><div class="state ready">ready</div></div>
+                <div class="card-tile sleeping"><div class="tile-title">卡 3</div><div class="state sleep">sleep</div></div>
+                <div class="card-tile"><div class="tile-title">卡 4</div><div class="state">inspect</div></div>
               </div>
             </div>
           </div>
@@ -511,7 +511,7 @@
         <div class="island"></div>
         <div class="surface">
           <div class="topline">
-            <div class="chip"><span class="dot"></span> 阅读 · Space B</div>
+            <div class="chip"><span class="dot"></span> 馆 1 · Space B</div>
             <div class="meta">accepted</div>
           </div>
           <article class="object">
@@ -519,32 +519,32 @@
             <h3>Box Desk</h3>
             <p>当前 box 是桌面上的主对象。父层级清楚，卡片状态附着在对象上，不把 favorite 或 sleep 画成盒子。</p>
             <div class="mini-map">
-              <div class="mini-box">阅读</div>
-              <div class="mini-box active">细节题</div>
-              <div class="mini-box active">0521</div>
+              <div class="mini-box">馆 1</div>
+              <div class="mini-box active">盒 1</div>
+              <div class="mini-box active">盒 1</div>
             </div>
           </article>
           <div class="box-focus">
             <div class="box-drawer">
-              <div class="layer-title">Current box · Detail Evidence</div>
+              <div class="layer-title">当前盒 · 盒 1</div>
               <div class="card-grid">
                 <div class="card-tile current">
-                  <div class="tile-title">052101</div>
-                  <div class="tile-copy">argument support</div>
+                  <div class="tile-title">卡 1</div>
+                  <div class="tile-copy">卡 1</div>
                   <div class="state favorite">favorite tag</div>
                 </div>
                 <div class="card-tile">
-                  <div class="tile-title">052102</div>
+                  <div class="tile-title">卡 2</div>
                   <div class="tile-copy">detail trap</div>
                   <div class="state ready">ready</div>
                 </div>
                 <div class="card-tile sleeping">
-                  <div class="tile-title">052103</div>
-                  <div class="tile-copy">same original box</div>
+                  <div class="tile-title">卡 3</div>
+                  <div class="tile-copy">same owning container</div>
                   <div class="state sleep">sleeping</div>
                 </div>
                 <div class="card-tile">
-                  <div class="tile-title">052104</div>
+                  <div class="tile-title">卡 4</div>
                   <div class="tile-copy">sibling card</div>
                   <div class="state">inspect</div>
                 </div>
@@ -553,12 +553,12 @@
             <div class="sleep-zone">
               <div class="copy">
                 <div class="layer-title">Sleep zone</div>
-                <p>暂离学习流，但仍在 0521 盒内。</p>
+                <p>暂离学习流，但仍在 盒 1 盒内。</p>
               </div>
               <span class="state sleep">wake</span>
             </div>
           </div>
-          <div class="return-row"><span>返回学习</span><span>CET4 / 阅读 / 细节题 / 0521</span></div>
+          <div class="return-row"><span>返回学习</span><span>本轮 / 当前馆 / 当前组 / 当前盒</span></div>
         </div>
       </section>
 
@@ -566,7 +566,7 @@
         <div class="island"></div>
         <div class="surface">
           <div class="topline">
-            <div class="chip"><span class="dot"></span> 阅读 · Space C</div>
+            <div class="chip"><span class="dot"></span> 馆 1 · Space C</div>
             <div class="meta">operation dock</div>
           </div>
           <article class="object">
@@ -576,7 +576,7 @@
           </article>
           <div class="dock-panel">
             <div class="layer-title">Current card address</div>
-            <div class="return-row"><span>052101</span><span>阅读 / 细节题 / 0521</span></div>
+            <div class="return-row"><span>卡 1</span><span>馆 1 / 盒 1 / 盒 1</span></div>
             <div class="operation-list">
               <div class="operation"><span>Inspect box</span><span class="state">open</span></div>
               <div class="operation"><span>Favorite</span><span class="state favorite">tag</span></div>
@@ -587,8 +587,8 @@
           <div class="box-drawer">
             <div class="layer-title">Nearby cards</div>
             <div class="card-grid">
-              <div class="card-tile current"><div class="tile-title">052101</div><div class="state favorite">favorite</div></div>
-              <div class="card-tile"><div class="tile-title">052102</div><div class="state">nearby</div></div>
+              <div class="card-tile current"><div class="tile-title">卡 1</div><div class="state favorite">favorite</div></div>
+              <div class="card-tile"><div class="tile-title">卡 2</div><div class="state">nearby</div></div>
             </div>
           </div>
           <div class="return-row"><span>返回学习</span><span>operation-first risk</span></div>
@@ -605,16 +605,16 @@
       <section class="phone small" aria-label="Box focus state">
         <div class="island"></div>
         <div class="surface">
-          <div class="topline"><div class="chip"><span class="dot"></span> 阅读 · 0521</div><div class="meta">box focus</div></div>
+          <div class="topline"><div class="chip"><span class="dot"></span> 馆 1 · 盒 1</div><div class="meta">当前盒</div></div>
           <article class="object">
             <div class="eyebrow">当前盒</div>
-            <h3>Detail Evidence</h3>
+            <h3>盒 1</h3>
             <p>父级上下文可见，当前盒是第一视觉对象。</p>
           </article>
           <div class="box-drawer">
             <div class="card-grid">
-              <div class="card-tile current"><div class="tile-title">052101</div><div class="state favorite">favorite</div></div>
-              <div class="card-tile"><div class="tile-title">052102</div><div class="state ready">ready</div></div>
+              <div class="card-tile current"><div class="tile-title">卡 1</div><div class="state favorite">favorite</div></div>
+              <div class="card-tile"><div class="tile-title">卡 2</div><div class="state ready">ready</div></div>
             </div>
           </div>
           <div class="return-row"><span>Learning context</span><span>preserved</span></div>
@@ -624,27 +624,27 @@
       <section class="phone small" aria-label="Card inspect state">
         <div class="island"></div>
         <div class="surface">
-          <div class="topline"><div class="chip"><span class="dot"></span> 阅读 · 0521</div><div class="meta">inspect</div></div>
+          <div class="topline"><div class="chip"><span class="dot"></span> 馆 1 · 盒 1</div><div class="meta">inspect</div></div>
           <article class="object">
             <div class="eyebrow">卡片检查</div>
-            <h3>052101</h3>
+            <h3>卡 1</h3>
             <p>这张卡仍属于当前盒。inspect 只放大对象，不重写归属。</p>
           </article>
           <div class="box-drawer">
-            <div class="layer-title">Same box siblings</div>
+            <div class="layer-title">Sibling cards</div>
             <div class="card-grid">
-              <div class="card-tile current"><div class="tile-title">052101</div><div class="state">selected</div></div>
-              <div class="card-tile"><div class="tile-title">052102</div><div class="state">sibling</div></div>
+              <div class="card-tile current"><div class="tile-title">卡 1</div><div class="state">selected</div></div>
+              <div class="card-tile"><div class="tile-title">卡 2</div><div class="state">sibling</div></div>
             </div>
           </div>
-          <div class="return-row"><span>CET4 / 阅读 / 细节题 / 0521</span></div>
+          <div class="return-row"><span>本轮 / 当前馆 / 当前组 / 当前盒</span></div>
         </div>
       </section>
 
       <section class="phone small" aria-label="Favorite tag state">
         <div class="island"></div>
         <div class="surface">
-          <div class="topline"><div class="chip"><span class="dot"></span> 阅读 · 0521</div><div class="meta">favorite</div></div>
+          <div class="topline"><div class="chip"><span class="dot"></span> 馆 1 · 盒 1</div><div class="meta">favorite</div></div>
           <article class="object">
             <div class="eyebrow">Favorite Tag</div>
             <h3>Tag, not a box</h3>
@@ -652,18 +652,18 @@
           </article>
           <div class="box-drawer">
             <div class="card-grid">
-              <div class="card-tile current"><div class="tile-title">052101</div><div class="state favorite">favorite tag</div></div>
-              <div class="card-tile"><div class="tile-title">052102</div><div class="state">ready</div></div>
+              <div class="card-tile current"><div class="tile-title">卡 1</div><div class="state favorite">favorite tag</div></div>
+              <div class="card-tile"><div class="tile-title">卡 2</div><div class="state">ready</div></div>
             </div>
           </div>
-          <div class="return-row"><span>Original box</span><span>still 0521</span></div>
+          <div class="return-row"><span>返回位置</span><span>仍在盒 1</span></div>
         </div>
       </section>
 
       <section class="phone small" aria-label="Sleep zone state">
         <div class="island"></div>
         <div class="surface">
-          <div class="topline"><div class="chip"><span class="dot"></span> 阅读 · 0521</div><div class="meta">sleep</div></div>
+          <div class="topline"><div class="chip"><span class="dot"></span> 馆 1 · 盒 1</div><div class="meta">sleep</div></div>
           <article class="object">
             <div class="eyebrow">Sleep Zone</div>
             <h3>Temporarily quiet</h3>
@@ -671,8 +671,8 @@
           </article>
           <div class="sleep-zone">
             <div class="copy">
-              <div class="layer-title">052103 sleeping</div>
-              <p>CET4 / 阅读 / 细节题 / 0521</p>
+              <div class="layer-title">卡 3 sleeping</div>
+              <p>本轮 / 当前馆 / 当前组 / 当前盒</p>
             </div>
             <span class="state sleep">wake</span>
           </div>
@@ -683,7 +683,7 @@
       <section class="phone small" aria-label="Wake state">
         <div class="island"></div>
         <div class="surface">
-          <div class="topline"><div class="chip"><span class="dot"></span> 阅读 · 0521</div><div class="meta">wake</div></div>
+          <div class="topline"><div class="chip"><span class="dot"></span> 馆 1 · 盒 1</div><div class="meta">wake</div></div>
           <article class="object">
             <div class="eyebrow">Wake Action</div>
             <h3>Back to eligible flow</h3>
@@ -691,18 +691,18 @@
           </article>
           <div class="box-drawer">
             <div class="card-grid">
-              <div class="card-tile current"><div class="tile-title">052103</div><div class="state ready">eligible</div></div>
-              <div class="card-tile"><div class="tile-title">052104</div><div class="state">sibling</div></div>
+              <div class="card-tile current"><div class="tile-title">卡 3</div><div class="state ready">eligible</div></div>
+              <div class="card-tile"><div class="tile-title">卡 4</div><div class="state">sibling</div></div>
             </div>
           </div>
-          <div class="return-row"><span>same box</span><span>0521</span></div>
+          <div class="return-row"><span>同盒</span><span>盒 1</span></div>
         </div>
       </section>
 
       <section class="phone small" aria-label="Return to Learning state">
         <div class="island"></div>
         <div class="surface">
-          <div class="topline"><div class="chip"><span class="dot"></span> 阅读 · 0521</div><div class="meta">return</div></div>
+          <div class="topline"><div class="chip"><span class="dot"></span> 馆 1 · 盒 1</div><div class="meta">return</div></div>
           <article class="object">
             <div class="eyebrow">Return To Learning</div>
             <h3>Continue current path</h3>
@@ -714,7 +714,7 @@
               <div class="card-tile"><div class="tile-title">Address</div><div class="state">visible</div></div>
             </div>
           </div>
-          <div class="return-row"><span>学习</span><span>CET4 / 阅读 / 细节题 / 0521</span></div>
+          <div class="return-row"><span>学习</span><span>本轮 / 当前馆 / 当前组 / 当前盒</span></div>
         </div>
       </section>
     </div>

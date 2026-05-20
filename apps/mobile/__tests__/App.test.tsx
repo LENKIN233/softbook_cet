@@ -33,7 +33,7 @@ type TestRendererNode =
   | null;
 
 const USER_VISIBLE_METADATA_PATTERN =
-  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|remoteConfig|authToken|endpoint|MutationQueue|mutation|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|payload|metadata|runtime|repository|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\./i;
+  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|remoteConfig|authToken|endpoint|MutationQueue|mutation|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|payload|metadata|runtime|repository|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位/i;
 
 function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   if (node === null) {
@@ -736,10 +736,11 @@ test('space map uses the active learning session catalog', async () => {
     await flushAsyncEffects();
   });
 
-  const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('远端专属库');
-  expect(output).toContain('远端专属盒');
-  expect(output).toContain('远端专属题干用于空间地图验证');
+  const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain('远端专属题干用于空间地图验证');
+  expect(renderedText).not.toContain('远端专属库');
+  expect(renderedText).not.toContain('远端专属组');
+  expect(renderedText).not.toContain('远端专属盒');
 });
 
 test('queues failed remote daily progress sync for later replay', async () => {
@@ -1500,11 +1501,13 @@ test('space surface follows the loaded session catalog instead of local fixtures
   await waitForLearningSurface(root);
   await startTrialFromProtectedEntry(root, 'space');
 
-  const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('远端空间');
-  expect(output).toContain('远端逻辑组');
-  expect(output).toContain('远端盒 0020');
-  expect(output).not.toContain('听力');
+  const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain('远端卡片 1');
+  expect(renderedText).not.toContain('远端空间');
+  expect(renderedText).not.toContain('远端逻辑组');
+  expect(renderedText).not.toContain('远端词汇组');
+  expect(renderedText).not.toContain('远端盒 0020');
+  expect(renderedText).not.toContain('听力');
 });
 
 test('can unlock gated space after remote purchase', async () => {
@@ -1997,10 +2000,11 @@ test('can unlock the learning flow after fake sms verification', async () => {
     testID: 'learning-address-aperture',
   });
   const addressText = addressAperture.findByType(Text).props.children.join('');
-  expect(addressText).toBe('当前位置：CET4 / 听力 / 逻辑关系 / 转折关系');
-  expect(output).toContain('听力 · 逻辑关系');
+  expect(addressText).toBe('当前位置：学习会话 1/3');
   expect(output).toContain('当前卡 · ');
   expect(output).not.toContain('当前卡 · 002001');
+  expect(output).not.toContain('CET4');
+  expect(output).not.toContain('训练轨道');
   expect(output).toContain('答题区');
   expect(output).toContain('收藏');
   expectNoUserVisibleMetadataLeakage(tree!);
@@ -2053,7 +2057,10 @@ test('can boot the app into cet6 through runtime config', async () => {
     }),
     'cet6',
   );
-  expect(JSON.stringify(tree!.toJSON())).toContain('CET6');
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('本轮学习卡组');
+  expect(output).not.toContain('CET6');
+  expectNoUserVisibleMetadataLeakage(tree!);
 });
 
 test('keeps source bootstrap errors inside learning and can retry', async () => {
@@ -2149,7 +2156,7 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('对应知识点');
+  expect(output).toContain('这张卡为什么出现');
   expect(output).not.toContain('knowledge_ref');
   expect(output).toContain('给出真正立场');
 
@@ -2526,28 +2533,25 @@ test('can browse the seeded knowledge map after login', async () => {
   expect(root.findAllByProps({ testID: 'space-contained-card-strip' }).length).toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-continuity-strip' }).length).toBeGreaterThan(0);
   expect(output).toContain('当前学习卡位于 ');
-  expect(output).toContain('逻辑关系');
-  expect(output).toContain('转折关系');
-  expect(output).toContain('词汇');
   expect(output).toContain('当前盒');
   expect(output).toContain('回到学习');
+  expectNoUserVisibleMetadataLeakage(tree!);
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-library-05' }).props.onPress();
+    root.findByProps({ testID: 'space-library-3' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-group-052' }).props.onPress();
+    root.findByProps({ testID: 'space-group-2' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-box-0521' }).props.onPress();
+    root.findByProps({ testID: 'space-box-1' }).props.onPress();
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('阅读高频词');
   expect(output).toContain('The article offers a ____ explanation');
-  expect(output).toContain('052102');
+  expectNoUserVisibleMetadataLeakage(tree!);
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'space-return-learning' }).props.onPress();
@@ -2571,7 +2575,7 @@ test('can move a card into sleep zone and remove it from learning flow', async (
   await startTrialFromProtectedEntry(root, 'space');
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-sleep-002001' }).props.onPress();
+    root.findByProps({ testID: 'space-sleep-1' }).props.onPress();
   });
 
   let output = JSON.stringify(tree!.toJSON());
@@ -2579,6 +2583,7 @@ test('can move a card into sleep zone and remove it from learning flow', async (
   expect(root.findAllByProps({ testID: 'space-sleep-alcove' }).length).toBeGreaterThan(0);
   expect(output).toContain('移出休眠');
   expect(output).not.toContain('box_ref');
+  expect(output).not.toContain('002001');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'route-tab-learning' }).props.onPress();
@@ -2615,7 +2620,7 @@ test('keeps completed progress after changing sleep state', async () => {
   await openRoute(root, 'space');
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-sleep-002001' }).props.onPress();
+    root.findByProps({ testID: 'space-sleep-1' }).props.onPress();
   });
 
   await openRoute(root, 'statistics');
@@ -2635,12 +2640,12 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   await startTrialFromProtectedEntry(root, 'space');
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-favorite-002001' }).props.onPress();
+    root.findByProps({ testID: 'space-favorite-1' }).props.onPress();
   });
 
   let output = JSON.stringify(tree!.toJSON());
   expect(
-    root.findAllByProps({ testID: 'space-favorite-active-002001' }).length,
+    root.findAllByProps({ testID: 'space-favorite-active-1' }).length,
   ).toBeGreaterThan(0);
   expect(output).toContain('收藏标签');
   expect(output).toContain('取消收藏');
@@ -2786,35 +2791,35 @@ test('keeps basic learning recoverable when free cards all enter sleep zone', as
   await startTrialFromProtectedEntry(root, 'space');
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-sleep-002001' }).props.onPress();
+    root.findByProps({ testID: 'space-sleep-1' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-library-05' }).props.onPress();
+    root.findByProps({ testID: 'space-library-3' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-group-052' }).props.onPress();
+    root.findByProps({ testID: 'space-group-2' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-box-0521' }).props.onPress();
+    root.findByProps({ testID: 'space-box-1' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-sleep-052101' }).props.onPress();
+    root.findByProps({ testID: 'space-sleep-1' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-library-01' }).props.onPress();
+    root.findByProps({ testID: 'space-library-2' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-box-0121' }).props.onPress();
+    root.findByProps({ testID: 'space-box-1' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-sleep-012101' }).props.onPress();
+    root.findByProps({ testID: 'space-sleep-1' }).props.onPress();
   });
 
   await openRoute(root, 'mine');

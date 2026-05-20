@@ -7,16 +7,16 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0020',
     interaction_id: 'flip',
     front: {
-      eyebrow: '听力 | 逻辑关系',
+      eyebrow: '本轮卡组 | 逻辑关系',
       prompt: '短对话里听到 however，优先盯哪一半信息？',
       support: '先抓转折，不要被前半句带跑。',
-      context: 'CET 听力里真正态度和结果常压在 however 后半句。',
+      context: '考试语境里真正态度和结果常压在 however 后半句。',
     },
     back_text: '优先盯转折后的半句，再回头核对前面让步或铺垫的信息。',
     analysis: {
       title: '先抓态度转向，再判断答案',
       summary:
-        '听力里的 however 往往不是装饰词，而是把说话人真正结论往后推。先抓后半句，能减少被前半句表面信息误导。',
+        '题目里的 however 往往不是装饰词，而是把说话人真正结论往后推。先抓后半句，能减少被前半句表面信息误导。',
       exam_tip: '听到转折词时先记“后半句优先”，再看选项有没有只复述前半句。',
     },
     hint_layer: {
@@ -37,7 +37,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0020',
     interaction_id: 'flip',
     front: {
-      eyebrow: '听力 | 逻辑关系',
+      eyebrow: '本轮卡组 | 逻辑关系',
       prompt: '听到 but / however 之后，做题顺序应该先改哪里？',
       support: '先重算结论位，再补细节。',
       context: '同一句里前后态度相反时，答案通常落在后半句。',
@@ -46,7 +46,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     analysis: {
       title: '结论位优先级高于铺垫位',
       summary:
-        '听力和阅读里的转折都在重新分配信息权重。前半句可能只是铺垫，真正可用信息常被放在 but / however 之后。',
+        '题目里的转折都在重新分配信息权重。前半句可能只是铺垫，真正可用信息常被放在 but / however 之后。',
       exam_tip: '如果选项只复制转折前内容，通常要提高警惕。',
     },
     space_metadata: {
@@ -62,7 +62,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0121',
     interaction_id: 'lock',
     front: {
-      eyebrow: '仔细阅读 | 长难句主干',
+      eyebrow: '本轮卡组 | 长难句主干',
       prompt: '把句子主干锁出来，三个槽位都对才开锁。',
       support: '先抓主语，再找谓语和核心宾语。',
       context: '复杂修饰里先保住 S + V + O，读长句会轻很多。',
@@ -91,7 +91,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     analysis: {
       title: '开锁的关键是别让修饰词抢主干',
       summary:
-        '很多真题长句会把时间、方式和插入解释塞进句中。先锁主语、谓语、宾语，剩下修饰再慢慢挂回去，阅读压力会明显下降。',
+        '很多真题长句会把时间、方式和插入解释塞进句中。先锁主语、谓语、宾语，剩下修饰再慢慢挂回去，理解压力会明显下降。',
       exam_tip: '如果一句话太长，先问自己“是谁做了什么”，再补其他成分。',
     },
     hint_layer: {
@@ -112,7 +112,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0130',
     interaction_id: 'elimination',
     front: {
-      eyebrow: '仔细阅读 | 长难句关键修饰',
+      eyebrow: '本轮卡组 | 长难句关键修饰',
       prompt: '点掉应删除的干扰成分，保留句干。',
       support:
         '目标句：The students who review in short bursts usually remember the pattern before the test.',
@@ -132,7 +132,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
       title: '去干扰不是乱删，是先保骨架',
       summary:
         '这句的句干是 The students remember the pattern。定语从句、频率副词和时间状语都能先剥离，帮助你看清核心结构。',
-      exam_tip: '做阅读细节题时，先保住主干，才能更快判断选项是不是偷换信息。',
+      exam_tip: '做细节判断时，先保住主干，才能更快判断选项是不是偷换信息。',
     },
     hint_layer: {
       label: '提示层',
@@ -152,8 +152,8 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0503',
     interaction_id: 'swipe',
     front: {
-      eyebrow: '词汇 | 同义词替换',
-      prompt: 'be likely to do 在翻译里更接近哪一侧？',
+      eyebrow: '本轮卡组 | 同义词替换',
+      prompt: 'be likely to do 在表达转换里更接近哪一侧？',
       support: '用双态判断压低进入成本。',
       context: '别把 likely 误读成“喜欢”，它更常表达概率。',
     },
@@ -176,9 +176,9 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     analysis: {
       title: '先稳住高频句式替换的中文落点',
       summary:
-        'be likely to do 先落到“很可能……”最稳。如果把 likely 误解成 like，翻译会直接偏题。',
+        'be likely to do 先落到“很可能……”最稳。如果把 likely 误解成 like，表达会直接偏题。',
       exam_tip:
-        '翻译高频结构时，优先记“最稳的中文落点”，比背一串近义表达更有用。',
+        '表达转换高频结构时，优先记“最稳的中文落点”，比背一串近义表达更有用。',
     },
     space_metadata: {
       box_ref: '0503',
@@ -193,7 +193,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0521',
     interaction_id: 'multiple_choice',
     front: {
-      eyebrow: '词汇 | 阅读高频词',
+      eyebrow: '本轮卡组 | 高频词',
       prompt:
         'The committee postponed the vote because several details were still ____.',
       support: '选出最符合句意的词。',
@@ -233,7 +233,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0521',
     interaction_id: 'multiple_choice',
     front: {
-      eyebrow: '词汇 | 阅读高频词',
+      eyebrow: '本轮卡组 | 高频词',
       prompt:
         'The article offers a ____ explanation of why many students lose points on the first pass.',
       support: '优先选能和 explanation 形成高频搭配的词。',
