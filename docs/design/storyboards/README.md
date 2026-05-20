@@ -16,6 +16,7 @@ Storyboards are the bridge between product semantics and animation implementatio
 ## Accepted Artifacts
 
 - `learning-space-motion-prototype-v1.md`: flip, hint reveal, and swipe storyboard contract.
+- `learning-space-motion-prototype-v1.md`: includes lock and elimination storyboard contracts in text form.
 - `learning-space-motion-prototype-v1.html`: rendered motion strips with reduce-motion fallback.
 
 ## Required Contents

@@ -433,10 +433,12 @@ export function LearningSurface({
         {currentCardState.isPeeked ? (
           <View
             style={[
+              styles.attachedLayerPanel,
               styles.peekPanel,
               {
                 backgroundColor: tone.accentSoft,
                 borderColor: tone.accent,
+                borderLeftColor: tone.accent,
               },
             ]}
           >
@@ -452,10 +454,12 @@ export function LearningSurface({
         {currentCard.hint_layer && currentCardState.isHintVisible ? (
           <View
             style={[
+              styles.attachedLayerPanel,
               styles.hintPanel,
               {
-                backgroundColor: palette.panelStrong,
-                borderColor: palette.border,
+                backgroundColor: tone.accentSoft,
+                borderColor: tone.accent,
+                borderLeftColor: tone.accent,
               },
             ]}
           >
@@ -678,80 +682,98 @@ function InteractionBody({
             三个槽位都对，主干才算开锁。
           </Text>
           <View style={styles.lockList}>
-          {card.lock_slots.map(slot => (
-            <View
-              key={slot.id}
-              style={[
-                styles.lockRow,
-                { backgroundColor: palette.panel, borderColor: palette.border },
-              ]}
-            >
+          {card.lock_slots.map(slot => {
+            const selectedValue = cardState.lockSelections[slot.id];
+            const isUnlocked = Boolean(selectedValue);
+
+            return (
               <View
+                key={slot.id}
                 style={[
-                  styles.lockGlyph,
+                  styles.lockRow,
                   {
-                    backgroundColor: cardState.lockSelections[slot.id]
+                    backgroundColor: isUnlocked
                       ? tone.accentSoft
-                      : palette.panelStrong,
-                    borderColor: cardState.lockSelections[slot.id]
-                      ? tone.accent
-                      : palette.border,
+                      : palette.panel,
+                    borderColor: isUnlocked ? tone.accent : palette.border,
                   },
                 ]}
               >
-                <Text
+                <View
                   style={[
-                    styles.lockGlyphLabel,
+                    styles.lockGlyph,
                     {
-                      color: cardState.lockSelections[slot.id]
+                      backgroundColor: isUnlocked
                         ? tone.accent
-                        : palette.textMuted,
+                        : palette.panelStrong,
+                      borderColor: isUnlocked ? tone.accent : palette.border,
                     },
                   ]}
                 >
-                  锁
-                </Text>
-              </View>
-              <View style={styles.lockBody}>
-                <Text style={[styles.lockLabel, { color: palette.text }]}>
-                  {slot.label}
-                </Text>
-                <View style={styles.inlineWrap}>
-                  {slot.options.map(option => {
-                    const isSelected =
-                      cardState.lockSelections[slot.id] === option;
+                  <Text
+                    style={[
+                      styles.lockGlyphLabel,
+                      { color: isUnlocked ? palette.panel : palette.textMuted },
+                    ]}
+                  >
+                    {isUnlocked ? '开' : '锁'}
+                  </Text>
+                </View>
+                <View style={styles.lockBody}>
+                  <View style={styles.lockLabelRow}>
+                    <Text style={[styles.lockLabel, { color: palette.text }]}>
+                      {slot.label}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.lockStatus,
+                        { color: isUnlocked ? tone.accent : palette.textMuted },
+                      ]}
+                    >
+                      {isUnlocked ? '已开锁' : '待选择'}
+                    </Text>
+                  </View>
+                  <View style={styles.inlineWrap}>
+                    {slot.options.map(option => {
+                      const isSelected = selectedValue === option;
 
-                    return (
-                      <Pressable
-                        key={option}
-                        onPress={() => onSetLockSelection(slot.id, option)}
-                        style={[
-                          styles.choicePill,
-                          {
-                            backgroundColor: isSelected
-                              ? tone.accentSoft
-                              : palette.panel,
-                            borderColor: isSelected
-                              ? tone.accent
-                              : palette.border,
-                          },
-                        ]}
-                        testID={`learning-lock-${slot.id}-${toTestIdSegment(
-                          option,
-                        )}`}
-                      >
-                        <Text
-                          style={[styles.choiceLabel, { color: palette.text }]}
+                      return (
+                        <Pressable
+                          key={option}
+                          onPress={() => onSetLockSelection(slot.id, option)}
+                          style={[
+                            styles.choicePill,
+                            {
+                              backgroundColor: isSelected
+                                ? palette.panel
+                                : palette.panelStrong,
+                              borderColor: isSelected
+                                ? tone.accent
+                                : palette.border,
+                            },
+                          ]}
+                          testID={`learning-lock-${slot.id}-${toTestIdSegment(
+                            option,
+                          )}`}
                         >
-                          {option}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+                          <Text
+                            style={[
+                              styles.choiceLabel,
+                              {
+                                color: isSelected ? tone.accent : palette.text,
+                              },
+                            ]}
+                          >
+                            {option}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
           </View>
         </View>
       );
@@ -789,6 +811,14 @@ function InteractionBody({
                   ]}
                   testID={`learning-elimination-${item.id}`}
                 >
+                  {isSelected ? (
+                    <View
+                      style={[
+                        styles.eliminationStrikeRail,
+                        { backgroundColor: tone.accent },
+                      ]}
+                    />
+                  ) : null}
                   <Text
                     style={[
                       styles.eliminationText,
@@ -800,6 +830,16 @@ function InteractionBody({
                   >
                     {item.text}
                   </Text>
+                  {isSelected ? (
+                    <Text
+                      style={[
+                        styles.eliminationStateLabel,
+                        { color: tone.accent },
+                      ]}
+                    >
+                      已剥离
+                    </Text>
+                  ) : null}
                 </Pressable>
               );
             })}
@@ -1300,6 +1340,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  attachedLayerPanel: {
+    borderLeftWidth: 4,
+    marginTop: -8,
+  },
   peekPanel: {
     borderWidth: 1,
     borderRadius: 22,
@@ -1452,9 +1496,19 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 10,
   },
+  lockLabelRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'space-between',
+  },
   lockLabel: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  lockStatus: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   inlineWrap: {
     flexDirection: 'row',
@@ -1475,8 +1529,15 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     borderWidth: 1,
     borderRadius: 20,
+    gap: 8,
+    overflow: 'hidden',
     paddingHorizontal: 14,
     paddingVertical: 16,
+  },
+  eliminationStrikeRail: {
+    borderRadius: 999,
+    height: 3,
+    width: 42,
   },
   eliminationText: {
     fontSize: 15,
@@ -1485,6 +1546,10 @@ const styles = StyleSheet.create({
   },
   eliminationTextStruck: {
     textDecorationLine: 'line-through',
+  },
+  eliminationStateLabel: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   swipeColumn: {
     gap: 14,

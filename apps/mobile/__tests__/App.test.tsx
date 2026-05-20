@@ -1382,7 +1382,7 @@ test('auto-starts remote trial when first entering space', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('卡片的物理空间');
-  expect(output).toContain('知识地图浏览');
+  expect(output).toContain('当前盒是第一阅读对象');
 
   const startTrialRequest = fetchCalls.find(
     call => call.input === 'https://api.softbook.example/v1/membership/start-trial',
@@ -1582,7 +1582,7 @@ test('can unlock gated space after remote purchase', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('卡片的物理空间');
-  expect(output).toContain('知识地图浏览');
+  expect(output).toContain('当前盒是第一阅读对象');
   expect(root.findAllByProps({ testID: 'space-gate-rail' })).toHaveLength(0);
 
   const purchaseRequest = fetchCalls.find(
@@ -1895,7 +1895,7 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('卡片的物理空间');
-  expect(output).toContain('知识地图浏览');
+  expect(output).toContain('当前盒是第一阅读对象');
   expect(
     fetchCalls.filter(
       call => call.input === 'https://api.softbook.example/v1/membership/entitlement',
@@ -2675,7 +2675,7 @@ test('auto-starts local trial when first entering space', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('卡片的物理空间');
-  expect(output).toContain('知识地图浏览');
+  expect(output).toContain('当前盒是第一阅读对象');
 });
 
 test('auto-starts trial from the first gated review entry', async () => {
