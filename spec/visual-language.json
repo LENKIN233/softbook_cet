@@ -40,6 +40,28 @@
       "violation_is": "delivery_blocker"
     },
 
+    "user_visible_metadata_leakage_is_blocker": {
+      "claim": "Any design artifact or implementation mapping that exposes agent, harness, spec, validator, metadata, runtime, mock, prototype, seed, fixture, debug, dev, raw exception, API route, repo path, or TODO language in user-visible UI is blocked and must be quarantined before implementation.",
+      "binding": [
+        "docs/design/design-quarantine.md",
+        "docs/design/design-harness.md",
+        "spec/repo-delivery-contract.json",
+        "spec/agent-harness.json"
+      ],
+      "violation_is": "delivery_blocker"
+    },
+
+    "single_card_flow_is_operable_focused_flow": {
+      "claim": "Single-card flow means a focused current-card task with an identifiable primary action, bounded secondary actions, feedback, recovery, and Learning to Space continuity. It must not be implemented as a dense one-screen poster or dashboard that the learner cannot operate.",
+      "binding": [
+        "spec/product-core.json",
+        "spec/interactions.json",
+        "spec/space-operations.json",
+        "docs/design/single-card-ux-contract.md"
+      ],
+      "violation_is": "product_distortion_risk"
+    },
+
     "library_identity_is_visually_distinct": {
       "claim": "Each CET library in spec/knowledge-map.json must be visually identifiable by a stable, learnable identity color so that the user always knows which library they are currently in.",
       "binding": [
@@ -265,7 +287,10 @@
         "post_implementation_screenshot_after_coding",
         "agent_or_developer_personal_taste_statement",
         "task_local_design_brief_for_implementation_pr",
-        "same_pull_request_design_brief_when_the_same_pr_also_implements_user_facing_UI"
+        "same_pull_request_design_brief_when_the_same_pr_also_implements_user_facing_UI",
+        "quarantined_design_artifact",
+        "artifact_with_user_visible_metadata_leakage",
+        "non_operable_one_screen_flow"
       ],
       "required_before": "implementation_that_changes_user_facing_UI",
       "pull_request_must_state": "design_artifact_source_implementation_mapping_and_design_review_checklist"
@@ -331,6 +356,16 @@
       "id": "VL-AP-09",
       "name": "implementing_user_facing_UI_without_design_artifact",
       "correction": "create_or_reference_accepted_design_artifact_before_RN_or_other_user_facing_implementation"
+    },
+    {
+      "id": "VL-AP-10",
+      "name": "ship_or_consume_design_artifact_with_user_visible_metadata_leakage",
+      "correction": "quarantine_or_repair_the_artifact_before_it_can_be_used_as_design_authority"
+    },
+    {
+      "id": "VL-AP-11",
+      "name": "treat_single_card_flow_as_dense_one_screen_cram",
+      "correction": "design_an_operable_current_card_flow_with_primary_task_primary_action_feedback_recovery_and_space_continuity"
     }
   ],
 

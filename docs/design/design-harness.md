@@ -23,6 +23,27 @@
 
 ## 三层 Harness
 
+### Design Quarantine Harness
+
+Design Quarantine 负责阻断含元信息泄露或用户不可操作的设计内容。它先于审美判断和实现映射执行。
+
+隔离规则在 `docs/design/design-quarantine.md`。任何 artifact 如果把 agent、harness、spec、validator、metadata、runtime、mock、prototype、seed、fixture、debug、dev、raw exception、API route、repo path 或 TODO 之类内部语义放入用户可见层，就不能作为 implementation authority。
+
+隔离状态：
+
+- `accepted_authority`：可以被 implementation PR 消费。
+- `candidate_exploration`：可以参考，不能背书实现。
+- `quarantined`：必须先修复和复审。
+- `rejected`：保留为失败资产。
+
+### Single-Card UX Contract Gate
+
+单卡流不是“一屏塞满”。它必须是用户可操作的 focused flow。
+
+合同在 `docs/design/single-card-ux-contract.md`。Learning 或核心交互设计必须声明 current card、primary task、primary action、secondary actions、feedback state、escape or recovery、Learning ↔ Space continuity。
+
+如果一个设计只是一张漂亮但不可操作的一屏展示稿，不能作为用户可见 UI 实现依据。
+
 ### Creation Harness
 
 Creation harness 负责产生有差异的方向，不负责批准实现。
@@ -115,8 +136,10 @@ Delivery harness 负责保真，不负责创造。
 进入 RN 之前必须存在：
 
 - accepted design artifact
+- quarantine status showing the artifact is not blocked
 - implementation mapping
 - unimplemented design gaps
+- single-card UX contract answers for Learning or core interaction UI
 - design review checklist answers
 - token / canon delta if any
 
@@ -183,6 +206,12 @@ Delivery harness 负责保真，不负责创造。
 
 10. `storyboards/`
    保存交互、动效、空间转场和状态变化的 storyboard。
+
+11. `design-quarantine.md`
+    定义哪些 artifact 因元信息泄露、用户可见内部术语或不可操作 framing 被隔离。
+
+12. `single-card-ux-contract.md`
+    定义单卡流的可操作结构，防止把 single-card flow 误画成一屏信息海报。
 
 `task-local design brief` 只能作为探索草稿；它不能作为 implementation PR 的正式设计权威。核心 UI implementation PR 必须消费已存在的 accepted artifact，并声明 mapping 与 gap。
 

@@ -34,6 +34,22 @@
       "status": "active"
     },
     {
+      "path": "docs/design/design-quarantine.md",
+      "authority": "design_quarantine_contract",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["design_review_task", "user_facing_ui_implementation", "major_redesign_task"],
+      "depends_on": ["spec/visual-language.json", "spec/agent-harness.json", "docs/design/design-harness.md"],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/single-card-ux-contract.md",
+      "authority": "single_card_ux_contract",
+      "audience": ["agent", "designer", "engineer"],
+      "load_when": ["learning_ui_implementation", "core_interaction_design_task", "design_review_task"],
+      "depends_on": ["spec/product-core.json", "spec/interactions.json", "spec/visual-language.json", "docs/design/design-harness.md"],
+      "status": "active"
+    },
+    {
       "path": "docs/design/search-runs/README.md",
       "authority": "design_search_run_harness",
       "audience": ["agent", "designer"],
