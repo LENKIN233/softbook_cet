@@ -581,6 +581,16 @@
       "id": "AP-32",
       "name": "produce_or_approve_card_content_inside_softbook_cet",
       "correction": "use_the_sibling_card_make_workspace_for_candidate_content_production_and_approval_then_import_validate_and_smoke_in_softbook_cet"
+    },
+    {
+      "id": "AP-33",
+      "name": "consume_design_artifact_with_user_visible_metadata_leakage",
+      "correction": "quarantine_or_repair_any_design_artifact_before_UI_implementation"
+    },
+    {
+      "id": "AP-34",
+      "name": "treat_single_card_flow_as_non_operable_one_screen_poster",
+      "correction": "define_current_card_primary_task_primary_action_feedback_recovery_and_space_continuity_before_visual_implementation"
     }
   ],
   "compaction_keep": [

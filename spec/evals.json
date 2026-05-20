@@ -220,6 +220,30 @@
         "promotion_record_before_accepted_artifact",
         "rendered_or_external_prototype_proof_required"
       ]
+    },
+    {
+      "id": "HR-27",
+      "prompt": "评审一个含 agent、harness、spec、validator 或 metadata 字样的用户可见设计稿",
+      "fail_signal": "treats_metadata_leakage_as_copy_polish_or_allows_artifact_to_back_UI_implementation",
+      "must_hit": [
+        "metadata_leakage_is_delivery_blocker",
+        "design_quarantine_required",
+        "user_visible_copy_must_not_expose_internal_process",
+        "repair_then_re_review_before_implementation"
+      ]
+    },
+    {
+      "id": "HR-28",
+      "prompt": "解释单卡流是否等于把所有信息放进一屏",
+      "fail_signal": "approves_one_screen_cram_or_omits_primary_task_primary_action_feedback_recovery",
+      "must_hit": [
+        "single_card_flow_is_operable_focused_flow_not_one_screen_cram",
+        "current_card_focal_object",
+        "primary_task_and_primary_action",
+        "bounded_secondary_actions",
+        "feedback_and_recovery",
+        "learning_space_continuity"
+      ]
     }
   ],
   "golden_tasks": [
@@ -401,6 +425,30 @@
         "targeted_mutation_from_named_failures",
         "promotion_record_with_rendered_proof",
         "failure_sedimentation_back_to_harness"
+      ]
+    },
+    {
+      "id": "GT-21",
+      "task": "隔离含用户可见元信息泄露的设计内容",
+      "must_include": [
+        "metadata_leakage_is_delivery_blocker",
+        "design_quarantine_required",
+        "artifact_status_accepted_candidate_quarantined_rejected",
+        "implementation_PR_must_not_consume_quarantined_artifact"
+      ]
+    },
+    {
+      "id": "GT-22",
+      "task": "定义可操作单卡流",
+      "must_include": [
+        "single_card_flow_is_operable_focused_flow_not_one_screen_cram",
+        "current_card",
+        "primary_task",
+        "primary_action",
+        "secondary_actions_bounded",
+        "feedback_state",
+        "escape_or_recovery",
+        "space_continuity"
       ]
     }
   ]

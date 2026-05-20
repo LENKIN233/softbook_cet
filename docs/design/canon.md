@@ -9,6 +9,10 @@
 
 **你在产出任何视觉稿（mock / screen / component / reference HTML 改动）之前，必须先答完 6 问。产出里不带答案 = 未完成（AP-22）。**
 
+用户可见层零元信息泄露：screen copy、empty/loading/error/paywall/recovery 文案、mock 中的可见标签、HTML proof 中的用户可见文字，都不能出现 agent、harness、spec、validator、metadata、runtime、mock、prototype、seed、fixture、debug、dev、raw exception、API route、repo path 或 TODO 之类内部语义。命中即进入 `docs/design/design-quarantine.md`。
+
+单卡流必须可操作：single-card flow 不是“一屏塞满”，而是一个 current card、一个 primary task、一个主行动区和明确 feedback / recovery / Space continuity。Learning 或核心交互稿必须对齐 `docs/design/single-card-ux-contract.md`。
+
 ### 通用 4 问
 
 | # | 问 | 失败信号 |

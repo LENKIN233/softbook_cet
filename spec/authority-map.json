@@ -79,6 +79,8 @@
       "related_anchor": "docs/design/visual-reference.html",
       "prose_anchor": "docs/design/canon.md",
       "design_harness": "docs/design/design-harness.md",
+      "design_quarantine_contract": "docs/design/design-quarantine.md",
+      "single_card_ux_contract": "docs/design/single-card-ux-contract.md",
       "first_worldview_brief": "docs/design/briefs/learning-space-worldview.md",
       "first_accepted_decision": "docs/design/decisions/learning-space-direction-decision-v1.md",
       "first_platform_layout_decision": "docs/design/decisions/learning-space-platform-layout-v1.md",
