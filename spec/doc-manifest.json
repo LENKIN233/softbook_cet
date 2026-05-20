@@ -4,72 +4,159 @@
     {
       "path": "AGENTS.md",
       "authority": "agent_entrypoint",
-      "audience": ["agent"],
-      "load_when": ["every active task"],
-      "depends_on": ["spec/doc-manifest.json"],
+      "audience": [
+        "agent"
+      ],
+      "load_when": [
+        "every active task"
+      ],
+      "depends_on": [
+        "spec/doc-manifest.json"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/canon.md",
       "authority": "design_canon",
-      "audience": ["agent", "designer"],
-      "load_when": ["visual_or_design_task", "design_review_task"],
-      "depends_on": ["spec/visual-language.json"],
+      "audience": [
+        "agent",
+        "designer"
+      ],
+      "load_when": [
+        "visual_or_design_task",
+        "design_review_task"
+      ],
+      "depends_on": [
+        "spec/visual-language.json"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/visual-reference.html",
       "authority": "visual_reference",
-      "audience": ["agent", "designer"],
-      "load_when": ["visual_artifact_task", "design_review_task"],
-      "depends_on": ["spec/visual-language.json"],
+      "audience": [
+        "agent",
+        "designer"
+      ],
+      "load_when": [
+        "visual_artifact_task",
+        "design_review_task"
+      ],
+      "depends_on": [
+        "spec/visual-language.json"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/design-harness.md",
       "authority": "design_harness",
-      "audience": ["agent", "designer"],
-      "load_when": ["design_direction_task", "user_facing_ui_implementation"],
-      "depends_on": ["spec/visual-language.json", "spec/agent-harness.json"],
+      "audience": [
+        "agent",
+        "designer"
+      ],
+      "load_when": [
+        "design_direction_task",
+        "user_facing_ui_implementation"
+      ],
+      "depends_on": [
+        "spec/visual-language.json",
+        "spec/agent-harness.json"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/design-quarantine.md",
       "authority": "design_quarantine_contract",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["design_review_task", "user_facing_ui_implementation", "major_redesign_task"],
-      "depends_on": ["spec/visual-language.json", "spec/agent-harness.json", "docs/design/design-harness.md"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "design_review_task",
+        "user_facing_ui_implementation",
+        "major_redesign_task"
+      ],
+      "depends_on": [
+        "spec/visual-language.json",
+        "spec/agent-harness.json",
+        "docs/design/design-harness.md"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/single-card-ux-contract.md",
       "authority": "single_card_ux_contract",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["learning_ui_implementation", "core_interaction_design_task", "design_review_task"],
-      "depends_on": ["spec/product-core.json", "spec/interactions.json", "spec/visual-language.json", "docs/design/design-harness.md"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "learning_ui_implementation",
+        "core_interaction_design_task",
+        "design_review_task"
+      ],
+      "depends_on": [
+        "spec/product-core.json",
+        "spec/interactions.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/search-runs/README.md",
       "authority": "design_search_run_harness",
-      "audience": ["agent", "designer"],
-      "load_when": ["core_surface_design_search_task", "major_redesign_task", "design_review_task"],
-      "depends_on": ["docs/design/design-harness.md", "spec/visual-language.json", "spec/agent-harness.json"],
+      "audience": [
+        "agent",
+        "designer"
+      ],
+      "load_when": [
+        "core_surface_design_search_task",
+        "major_redesign_task",
+        "design_review_task"
+      ],
+      "depends_on": [
+        "docs/design/design-harness.md",
+        "spec/visual-language.json",
+        "spec/agent-harness.json"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/interaction-motion/README.md",
       "authority": "interaction_motion_artifact_index",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["core_interaction_design_task", "motion_design_task", "learning_ui_implementation"],
-      "depends_on": ["spec/interactions.json", "spec/visual-language.json", "docs/design/design-harness.md"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "core_interaction_design_task",
+        "motion_design_task",
+        "learning_ui_implementation"
+      ],
+      "depends_on": [
+        "spec/interactions.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/interaction-motion/learning-core-interactions-v1.md",
       "authority": "accepted_interaction_motion_artifact",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["learning_ui_implementation", "core_interaction_design_task", "motion_design_task"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "learning_ui_implementation",
+        "core_interaction_design_task",
+        "motion_design_task"
+      ],
       "depends_on": [
         "spec/product-core.json",
         "spec/action-surface.json",
@@ -83,16 +170,34 @@
     {
       "path": "docs/design/physical-space/README.md",
       "authority": "physical_space_artifact_index",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["physical_space_design_task", "space_ui_implementation"],
-      "depends_on": ["spec/knowledge-map.json", "spec/space-operations.json", "docs/design/design-harness.md"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "physical_space_design_task",
+        "space_ui_implementation"
+      ],
+      "depends_on": [
+        "spec/knowledge-map.json",
+        "spec/space-operations.json",
+        "docs/design/design-harness.md"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/physical-space/space-model-v1.md",
       "authority": "accepted_physical_space_artifact",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["physical_space_design_task", "space_ui_implementation"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "physical_space_design_task",
+        "space_ui_implementation"
+      ],
       "depends_on": [
         "spec/product-core.json",
         "spec/knowledge-map.json",
@@ -107,8 +212,16 @@
     {
       "path": "docs/design/physical-space/space-state-baseline-v1.md",
       "authority": "accepted_physical_space_artifact",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["physical_space_design_task", "space_ui_implementation", "space_state_design_task"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "physical_space_design_task",
+        "space_ui_implementation",
+        "space_state_design_task"
+      ],
       "depends_on": [
         "spec/product-core.json",
         "spec/knowledge-map.json",
@@ -127,24 +240,50 @@
     {
       "path": "docs/design/mocks/README.md",
       "authority": "rendered_mock_artifact_index",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["core_surface_visual_artifact_task", "user_facing_ui_implementation"],
-      "depends_on": ["spec/visual-language.json", "docs/design/design-harness.md"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "core_surface_visual_artifact_task",
+        "user_facing_ui_implementation"
+      ],
+      "depends_on": [
+        "spec/visual-language.json",
+        "docs/design/design-harness.md"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/storyboards/README.md",
       "authority": "storyboard_artifact_index",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["motion_design_task", "state_transition_design_task"],
-      "depends_on": ["spec/interactions.json", "spec/space-operations.json", "docs/design/design-harness.md"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "motion_design_task",
+        "state_transition_design_task"
+      ],
+      "depends_on": [
+        "spec/interactions.json",
+        "spec/space-operations.json",
+        "docs/design/design-harness.md"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/briefs/learning-space-worldview.md",
       "authority": "accepted_design_brief",
-      "audience": ["agent", "designer"],
-      "load_when": ["learning_or_space_design_direction_task"],
+      "audience": [
+        "agent",
+        "designer"
+      ],
+      "load_when": [
+        "learning_or_space_design_direction_task"
+      ],
       "depends_on": [
         "docs/design/design-harness.md",
         "spec/product-core.json",
@@ -157,8 +296,14 @@
     {
       "path": "docs/design/directions/learning-surface-3-directions.md",
       "authority": "design_direction_set",
-      "audience": ["agent", "designer"],
-      "load_when": ["learning_design_direction_task", "design_review_task"],
+      "audience": [
+        "agent",
+        "designer"
+      ],
+      "load_when": [
+        "learning_design_direction_task",
+        "design_review_task"
+      ],
       "depends_on": [
         "docs/design/design-harness.md",
         "docs/design/briefs/learning-space-worldview.md",
@@ -169,8 +314,15 @@
     {
       "path": "docs/design/directions/space-surface-visual-directions-v1.md",
       "authority": "design_direction_set",
-      "audience": ["agent", "designer"],
-      "load_when": ["space_design_direction_task", "physical_space_design_task", "design_review_task"],
+      "audience": [
+        "agent",
+        "designer"
+      ],
+      "load_when": [
+        "space_design_direction_task",
+        "physical_space_design_task",
+        "design_review_task"
+      ],
       "depends_on": [
         "docs/design/design-harness.md",
         "docs/design/briefs/learning-space-worldview.md",
@@ -185,8 +337,13 @@
     {
       "path": "docs/design/decisions/learning-space-direction-decision-v1.md",
       "authority": "accepted_design_decision",
-      "audience": ["agent", "designer"],
-      "load_when": ["learning_or_space_user_facing_ui_implementation"],
+      "audience": [
+        "agent",
+        "designer"
+      ],
+      "load_when": [
+        "learning_or_space_user_facing_ui_implementation"
+      ],
       "depends_on": [
         "docs/design/directions/learning-surface-3-directions.md",
         "spec/product-core.json",
@@ -199,8 +356,15 @@
     {
       "path": "docs/design/decisions/learning-space-platform-layout-v1.md",
       "authority": "accepted_platform_layout_decision",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["learning_or_space_user_facing_ui_implementation", "platform_adaptation_design_task"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "learning_or_space_user_facing_ui_implementation",
+        "platform_adaptation_design_task"
+      ],
       "depends_on": [
         "spec/product-core.json",
         "spec/platform-contract.json",
@@ -217,8 +381,13 @@
     {
       "path": "docs/design/mapping/learning-space-implementation-map-v1.md",
       "authority": "implementation_mapping",
-      "audience": ["agent", "engineer"],
-      "load_when": ["learning_or_space_user_facing_ui_implementation"],
+      "audience": [
+        "agent",
+        "engineer"
+      ],
+      "load_when": [
+        "learning_or_space_user_facing_ui_implementation"
+      ],
       "depends_on": [
         "docs/design/decisions/learning-space-direction-decision-v1.md",
         "spec/runtime-boundaries.json"
@@ -228,8 +397,15 @@
     {
       "path": "docs/design/mocks/learning-space-phone-frames-v1.md",
       "authority": "accepted_rendered_mock_artifact",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["learning_or_space_user_facing_ui_implementation", "core_surface_visual_artifact_task"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "learning_or_space_user_facing_ui_implementation",
+        "core_surface_visual_artifact_task"
+      ],
       "depends_on": [
         "spec/product-core.json",
         "spec/interactions.json",
@@ -247,16 +423,33 @@
     {
       "path": "docs/design/mocks/learning-space-phone-frames-v1.html",
       "authority": "rendered_mock_html",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["learning_or_space_user_facing_ui_implementation", "core_surface_visual_artifact_task"],
-      "depends_on": ["docs/design/mocks/learning-space-phone-frames-v1.md"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "learning_or_space_user_facing_ui_implementation",
+        "core_surface_visual_artifact_task"
+      ],
+      "depends_on": [
+        "docs/design/mocks/learning-space-phone-frames-v1.md"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/mocks/space-surface-visual-proof-v1.md",
       "authority": "accepted_rendered_mock_artifact",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["space_ui_implementation", "core_surface_visual_artifact_task", "physical_space_design_task"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "space_ui_implementation",
+        "core_surface_visual_artifact_task",
+        "physical_space_design_task"
+      ],
       "depends_on": [
         "spec/product-core.json",
         "spec/knowledge-map.json",
@@ -273,16 +466,34 @@
     {
       "path": "docs/design/mocks/space-surface-visual-proof-v1.html",
       "authority": "rendered_mock_html",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["space_ui_implementation", "core_surface_visual_artifact_task", "physical_space_design_task"],
-      "depends_on": ["docs/design/mocks/space-surface-visual-proof-v1.md"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "space_ui_implementation",
+        "core_surface_visual_artifact_task",
+        "physical_space_design_task"
+      ],
+      "depends_on": [
+        "docs/design/mocks/space-surface-visual-proof-v1.md"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/mocks/space-surface-visual-refinement-v1.md",
       "authority": "accepted_rendered_mock_artifact",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["space_ui_implementation", "core_surface_visual_artifact_task", "physical_space_design_task"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "space_ui_implementation",
+        "core_surface_visual_artifact_task",
+        "physical_space_design_task"
+      ],
       "depends_on": [
         "spec/product-core.json",
         "spec/knowledge-map.json",
@@ -300,16 +511,34 @@
     {
       "path": "docs/design/mocks/space-surface-visual-refinement-v1.html",
       "authority": "rendered_mock_html",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["space_ui_implementation", "core_surface_visual_artifact_task", "physical_space_design_task"],
-      "depends_on": ["docs/design/mocks/space-surface-visual-refinement-v1.md"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "space_ui_implementation",
+        "core_surface_visual_artifact_task",
+        "physical_space_design_task"
+      ],
+      "depends_on": [
+        "docs/design/mocks/space-surface-visual-refinement-v1.md"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/mocks/space-surface-shelf-desk-v1.md",
       "authority": "accepted_rendered_mock_artifact",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["space_ui_implementation", "core_surface_visual_artifact_task", "physical_space_design_task"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "space_ui_implementation",
+        "core_surface_visual_artifact_task",
+        "physical_space_design_task"
+      ],
       "depends_on": [
         "spec/product-core.json",
         "spec/knowledge-map.json",
@@ -327,24 +556,53 @@
     {
       "path": "docs/design/mocks/space-surface-shelf-desk-v1.html",
       "authority": "rendered_mock_html",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["space_ui_implementation", "core_surface_visual_artifact_task", "physical_space_design_task"],
-      "depends_on": ["docs/design/mocks/space-surface-shelf-desk-v1.md"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "space_ui_implementation",
+        "core_surface_visual_artifact_task",
+        "physical_space_design_task"
+      ],
+      "depends_on": [
+        "docs/design/mocks/space-surface-shelf-desk-v1.md"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/mocks/space-state-baseline-v1.html",
       "authority": "rendered_mock_html",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["space_ui_implementation", "core_surface_visual_artifact_task", "physical_space_design_task", "space_state_design_task"],
-      "depends_on": ["docs/design/physical-space/space-state-baseline-v1.md"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "space_ui_implementation",
+        "core_surface_visual_artifact_task",
+        "physical_space_design_task",
+        "space_state_design_task"
+      ],
+      "depends_on": [
+        "docs/design/physical-space/space-state-baseline-v1.md"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/storyboards/learning-space-motion-prototype-v1.md",
       "authority": "accepted_storyboard_artifact",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["learning_ui_implementation", "motion_design_task", "state_transition_design_task"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "learning_ui_implementation",
+        "motion_design_task",
+        "state_transition_design_task"
+      ],
       "depends_on": [
         "spec/product-core.json",
         "spec/interactions.json",
@@ -359,16 +617,32 @@
     {
       "path": "docs/design/storyboards/learning-space-motion-prototype-v1.html",
       "authority": "rendered_storyboard_html",
-      "audience": ["agent", "designer", "engineer"],
-      "load_when": ["learning_ui_implementation", "motion_design_task", "state_transition_design_task"],
-      "depends_on": ["docs/design/storyboards/learning-space-motion-prototype-v1.md"],
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "learning_ui_implementation",
+        "motion_design_task",
+        "state_transition_design_task"
+      ],
+      "depends_on": [
+        "docs/design/storyboards/learning-space-motion-prototype-v1.md"
+      ],
       "status": "active"
     },
     {
       "path": "docs/design/rejected/learning-space-rejected-premises-v1.md",
       "authority": "design_rejection_record",
-      "audience": ["agent", "designer"],
-      "load_when": ["learning_or_space_design_direction_task", "design_review_task"],
+      "audience": [
+        "agent",
+        "designer"
+      ],
+      "load_when": [
+        "learning_or_space_design_direction_task",
+        "design_review_task"
+      ],
       "depends_on": [
         "docs/design/design-harness.md",
         "docs/design/briefs/learning-space-worldview.md"
@@ -395,7 +669,8 @@
     "spec/agent-harness.json",
     "spec/evals.json",
     "spec/perturbation-audit.json",
-    "spec/visual-language.json"
+    "spec/visual-language.json",
+    "spec/workspace-boundary.json"
   ],
   "inactive_paths": [
     "archive/legacy-v3/",

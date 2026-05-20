@@ -5,101 +5,177 @@
       "id": "HR-01",
       "prompt": "解释软书四六级是什么产品",
       "fail_signal": "answered_as_general_english_teaching_or_vocab_tool",
-      "must_hit": ["exam_oriented", "low_burden", "cards", "interactions", "physical_space"]
+      "must_hit": [
+        "exam_oriented",
+        "low_burden",
+        "cards",
+        "interactions",
+        "physical_space"
+      ]
     },
     {
       "id": "HR-02",
       "prompt": "设计主学习流页面",
       "fail_signal": "starts_with_component_tree_or_timing_constants",
-      "must_hit": ["experience_goal", "information_goal", "key_actions"]
+      "must_hit": [
+        "experience_goal",
+        "information_goal",
+        "key_actions"
+      ]
     },
     {
       "id": "HR-03",
       "prompt": "解释物理空间",
       "fail_signal": "favorite_box_plus_sleep_box_only",
-      "must_hit": ["knowledge_map", "card_position_system", "library_group_box_card"]
+      "must_hit": [
+        "knowledge_map",
+        "card_position_system",
+        "library_group_box_card"
+      ]
     },
     {
       "id": "HR-04",
       "prompt": "定义提示",
       "fail_signal": "hint_as_standalone_card_type",
-      "must_hit": ["enhancement_layer"]
+      "must_hit": [
+        "enhancement_layer"
+      ]
     },
     {
       "id": "HR-05",
       "prompt": "定义音频交互",
       "fail_signal": "audio_as_interaction_family",
-      "must_hit": ["audio_as_medium"]
+      "must_hit": [
+        "audio_as_medium"
+      ]
     },
     {
       "id": "HR-06",
       "prompt": "说明产品重点指标",
       "fail_signal": "counters_before_user_value",
-      "must_hit": ["trust", "easier_exam_passing", "paid_value"]
+      "must_hit": [
+        "trust",
+        "easier_exam_passing",
+        "paid_value"
+      ]
     },
     {
       "id": "HR-07",
       "prompt": "说明免费与会员差异",
       "fail_signal": "trial_missing_or_free_equals_complete",
-      "must_hit": ["full_trial", "limited_free_after_trial", "premium_core_value", "near_half_free_access"]
+      "must_hit": [
+        "full_trial",
+        "limited_free_after_trial",
+        "premium_core_value",
+        "near_half_free_access"
+      ]
     },
     {
       "id": "HR-08",
       "prompt": "说明卡片页应该显性暴露哪些动作",
       "fail_signal": "drops_peek_or_requires_heavy_mastery_decision_every_card",
-      "must_hit": ["peek", "favorite", "interaction_primary_action", "low_operation_cost"]
+      "must_hit": [
+        "peek",
+        "favorite",
+        "interaction_primary_action",
+        "low_operation_cost"
+      ]
     },
     {
       "id": "HR-09",
       "prompt": "说明用户在物理空间里能做什么",
       "fail_signal": "arbitrary_free_drag_or_no_user_control_at_all",
-      "must_hit": ["partial_user_control", "algorithm_primary", "sleep_zone_rule", "favorite_not_box"]
+      "must_hit": [
+        "partial_user_control",
+        "algorithm_primary",
+        "sleep_zone_rule",
+        "favorite_not_box"
+      ]
     },
     {
       "id": "HR-10",
       "prompt": "说明多端发布与适配策略",
       "fail_signal": "omits_web_or_uses_one_ui_for_all_or_treats_pc_as_native_desktop",
-      "must_hit": ["ios_android_web", "phone_tablet_pc_web", "dedicated_ui_per_device_class", "ios_equals_android_before_web"]
+      "must_hit": [
+        "ios_android_web",
+        "phone_tablet_pc_web",
+        "dedicated_ui_per_device_class",
+        "ios_equals_android_before_web"
+      ]
     },
     {
       "id": "HR-11",
       "prompt": "说明三端连续性、会员与购买策略",
       "fail_signal": "requires_exact_cross_device_resume_or_drops_shared_membership_or_web_purchase",
-      "must_hit": ["daily_level_sync", "some_progress_inheritance", "shared_membership", "purchase_on_all_release_targets"]
+      "must_hit": [
+        "daily_level_sync",
+        "some_progress_inheritance",
+        "shared_membership",
+        "purchase_on_all_release_targets"
+      ]
     },
     {
       "id": "HR-12",
       "prompt": "说明音频在产品里的角色",
       "fail_signal": "audio_missing_on_some_release_targets_or_bound_to_interaction_family",
-      "must_hit": ["audio_on_all_release_targets", "audio_as_front_content", "audio_not_interaction_family"]
+      "must_hit": [
+        "audio_on_all_release_targets",
+        "audio_as_front_content",
+        "audio_not_interaction_family"
+      ]
     },
     {
       "id": "HR-13",
       "prompt": "说明登录与开始学习的关系",
       "fail_signal": "allows_guest_learning_before_login",
-      "must_hit": ["login_required_before_learning", "no_guest_learning"],
-      "must_preserve_source_anchors": ["必须登入"]
+      "must_hit": [
+        "login_required_before_learning",
+        "no_guest_learning"
+      ],
+      "must_preserve_source_anchors": [
+        "必须登入"
+      ]
     },
     {
       "id": "HR-14",
       "prompt": "说明认证、试用与购买规则",
       "fail_signal": "wrong_login_method_or_wrong_trial_start_or_web_purchase_weaker_than_app",
-      "must_hit": ["phone_sms_login", "trial_starts_on_first_counted_entry", "web_app_purchase_equal", "recovery_reminder_after_membership_experience"],
-      "must_preserve_source_anchors": ["手机号+验证码", "web与app购买同权"]
+      "must_hit": [
+        "phone_sms_login",
+        "trial_starts_on_first_counted_entry",
+        "web_app_purchase_equal",
+        "recovery_reminder_after_membership_experience"
+      ],
+      "must_preserve_source_anchors": [
+        "手机号+验证码",
+        "web与app购买同权"
+      ]
     },
     {
       "id": "HR-15",
       "prompt": "说明三端导航与非触摸输入",
       "fail_signal": "changes_top_level_nav_or_ignores_keyboard_mouse_strategy",
-      "must_hit": ["learning_space_statistics_mine", "device_specific_page_composition", "keyboard_plus_mouse_on_non_touch"],
-      "must_preserve_source_anchors": ["三端信息架构导航是一致的：学习 空间 统计 我的"]
+      "must_hit": [
+        "learning_space_statistics_mine",
+        "device_specific_page_composition",
+        "keyboard_plus_mouse_on_non_touch"
+      ],
+      "must_preserve_source_anchors": [
+        "三端信息架构导航是一致的：学习 空间 统计 我的"
+      ]
     },
     {
       "id": "HR-16",
       "prompt": "说明音频播放与字幕策略",
       "fail_signal": "autoplays_audio_or_requires_front_subtitles",
-      "must_hit": ["no_autoplay", "no_front_subtitles", "back_text_or_transcript_may_exist"],
-      "must_preserve_source_anchors": ["不自动播放，没有字幕（背面可以有）"]
+      "must_hit": [
+        "no_autoplay",
+        "no_front_subtitles",
+        "back_text_or_transcript_may_exist"
+      ],
+      "must_preserve_source_anchors": [
+        "不自动播放，没有字幕（背面可以有）"
+      ]
     },
     {
       "id": "HR-17",
@@ -135,7 +211,9 @@
         "module_browsing_secondary_for_targeted_review",
         "avoid_user_mode_switching"
       ],
-      "must_preserve_source_anchors": ["建议用户按照我们拟定的顺序学习，不建议用户按模块学习"]
+      "must_preserve_source_anchors": [
+        "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
+      ]
     },
     {
       "id": "HR-19",
@@ -152,19 +230,33 @@
       "id": "HR-20",
       "prompt": "flip 翻面后有几档自评？再回看是什么颜色？",
       "fail_signal": "answers_four_levels_or_paints_review_as_red_instead_of_amber",
-      "must_hit": ["two_levels_only", "confident_green", "review_amber_not_red", "scoped_to_flip"]
+      "must_hit": [
+        "two_levels_only",
+        "confident_green",
+        "review_amber_not_red",
+        "scoped_to_flip"
+      ]
     },
     {
       "id": "HR-21",
       "prompt": "为某个新 surface 设计视觉输出，直接给出组件树",
       "fail_signal": "produces_component_tree_without_first_answering_design_review_checklist",
-      "must_hit": ["design_review_checklist_answered", "Law_of_One_stated", "focal_object_stated", "interaction_silhouette_referenced"]
+      "must_hit": [
+        "design_review_checklist_answered",
+        "Law_of_One_stated",
+        "focal_object_stated",
+        "interaction_silhouette_referenced"
+      ]
     },
     {
       "id": "HR-22",
       "prompt": "评审一张产出稿：同屏同时用听力蓝和词汇玫瑰作为 CTA 强色",
       "fail_signal": "approves_multi_library_accent_on_one_screen_or_only_comments_on_aesthetics",
-      "must_hit": ["Law_of_One_violation", "VL_AP_01", "require_demotion_to_chips"]
+      "must_hit": [
+        "Law_of_One_violation",
+        "VL_AP_01",
+        "require_demotion_to_chips"
+      ]
     },
     {
       "id": "HR-23",
@@ -244,67 +336,152 @@
         "feedback_and_recovery",
         "learning_space_continuity"
       ]
+    },
+    {
+      "id": "HR-29",
+      "prompt": "说明 agent 阅读工作区时哪些内容不能默认作为上下文",
+      "fail_signal": "treats_node_modules_build_Pods_pycache_DS_Store_archive_or_card_make_as_active_context",
+      "must_hit": [
+        "workspace_boundary_spec_is_owner",
+        "generated_dependency_cache_archive_excluded_by_default",
+        "external_card_make_workspace_only_by_contract",
+        "read_escalation_requires_explicit_debug_or_handoff_reason"
+      ]
+    },
+    {
+      "id": "HR-30",
+      "prompt": "审查一个 agent 声称已经读完整个工作区并据此下结论",
+      "fail_signal": "approves_bulk_reading_without_classifying_generated_dependency_cache_archive_or_external_workspace_noise",
+      "must_hit": [
+        "context_pollution_risk",
+        "active_truth_and_source_separated_from_generated_artifacts",
+        "dependencies_and_build_outputs_not_product_truth",
+        "archive_not_active_truth"
+      ]
     }
   ],
   "golden_tasks": [
     {
       "id": "GT-01",
       "task": "解释产品定位",
-      "must_include": ["exam_oriented", "low_burden", "single_card_flow", "physical_space"]
+      "must_include": [
+        "exam_oriented",
+        "low_burden",
+        "single_card_flow",
+        "physical_space"
+      ]
     },
     {
       "id": "GT-02",
       "task": "设计主学习流",
-      "must_include": ["experience_goal", "user_actions", "auto_scoring_first", "not_overly_disruptive"]
+      "must_include": [
+        "experience_goal",
+        "user_actions",
+        "auto_scoring_first",
+        "not_overly_disruptive"
+      ]
     },
     {
       "id": "GT-03",
       "task": "设计物理空间",
-      "must_include": ["library_group_box_card", "card_position", "partial_move_power", "favorites_not_physical_box"]
+      "must_include": [
+        "library_group_box_card",
+        "card_position",
+        "partial_move_power",
+        "favorites_not_physical_box"
+      ]
     },
     {
       "id": "GT-04",
       "task": "定义一张卡",
-      "must_include": ["knowledge_ownership", "interaction", "front", "analysis", "optional_audio_and_hint"]
+      "must_include": [
+        "knowledge_ownership",
+        "interaction",
+        "front",
+        "analysis",
+        "optional_audio_and_hint"
+      ]
     },
     {
       "id": "GT-05",
       "task": "选择交互",
-      "must_include": ["why_this_interaction", "scoring_mode", "hint_need"]
+      "must_include": [
+        "why_this_interaction",
+        "scoring_mode",
+        "hint_need"
+      ]
     },
     {
       "id": "GT-06",
       "task": "解释付费结构",
-      "must_include": ["full_trial", "limited_free_after_trial", "premium_is_smarter_guidance", "near_half_free_access"]
+      "must_include": [
+        "full_trial",
+        "limited_free_after_trial",
+        "premium_is_smarter_guidance",
+        "near_half_free_access"
+      ]
     },
     {
       "id": "GT-07",
       "task": "定义卡片页动作显隐",
-      "must_include": ["peek", "favorite", "interaction_primary_action", "avoid_heavy_mastery_every_card"]
+      "must_include": [
+        "peek",
+        "favorite",
+        "interaction_primary_action",
+        "avoid_heavy_mastery_every_card"
+      ]
     },
     {
       "id": "GT-08",
       "task": "定义多端产品面",
-      "must_include": ["ios_android_web", "phone_tablet_pc_web", "different_information_architecture_allowed", "do_not_force_touch_literalism"],
-      "must_preserve_source_anchors": ["三端信息架构导航是一致的：学习 空间 统计 我的"]
+      "must_include": [
+        "ios_android_web",
+        "phone_tablet_pc_web",
+        "different_information_architecture_allowed",
+        "do_not_force_touch_literalism"
+      ],
+      "must_preserve_source_anchors": [
+        "三端信息架构导航是一致的：学习 空间 统计 我的"
+      ]
     },
     {
       "id": "GT-09",
       "task": "定义跨端连续性与会员购买",
-      "must_include": ["daily_level_sync", "exact_resume_not_required", "membership_shared", "purchase_on_all_release_targets"],
-      "must_preserve_source_anchors": ["web与app购买同权"]
+      "must_include": [
+        "daily_level_sync",
+        "exact_resume_not_required",
+        "membership_shared",
+        "purchase_on_all_release_targets"
+      ],
+      "must_preserve_source_anchors": [
+        "web与app购买同权"
+      ]
     },
     {
       "id": "GT-10",
       "task": "定义登录门槛",
-      "must_include": ["login_required_before_learning", "guest_learning_not_supported"],
-      "must_preserve_source_anchors": ["必须登入"]
+      "must_include": [
+        "login_required_before_learning",
+        "guest_learning_not_supported"
+      ],
+      "must_preserve_source_anchors": [
+        "必须登入"
+      ]
     },
     {
       "id": "GT-11",
       "task": "定义账号、试用与同步",
-      "must_include": ["phone_sms_login", "trial_start_on_first_counted_entry", "sync_learning_and_space_state", "server_authoritative_default_merge_as_hypothesis"],
-      "must_preserve_source_anchors": ["必须登入", "手机号+验证码", "web与app购买同权"]
+      "must_include": [
+        "phone_sms_login",
+        "trial_start_on_first_counted_entry",
+        "sync_learning_and_space_state",
+        "server_authoritative_default_merge_as_hypothesis"
+      ],
+      "must_preserve_source_anchors": [
+        "必须登入",
+        "手机号+验证码",
+        "web与app购买同权"
+      ]
     },
     {
       "id": "GT-12",
@@ -337,7 +514,9 @@
         "module_browsing_secondary_for_targeted_review",
         "not_primary_learning_mode"
       ],
-      "must_preserve_source_anchors": ["建议用户按照我们拟定的顺序学习，不建议用户按模块学习"]
+      "must_preserve_source_anchors": [
+        "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
+      ]
     },
     {
       "id": "GT-14",
@@ -449,6 +628,22 @@
         "feedback_state",
         "escape_or_recovery",
         "space_continuity"
+      ]
+    },
+    {
+      "id": "GT-23",
+      "task": "定义 workspace boundary 与 agent 默认读取边界",
+      "must_include": [
+        "active_truth",
+        "source",
+        "design_authority",
+        "runtime_contract",
+        "generated",
+        "dependency_vendor",
+        "cache_or_machine_local",
+        "archive",
+        "external_workspace",
+        "do_not_default_read_generated_dependency_cache_archive_external_workspace"
       ]
     }
   ]
