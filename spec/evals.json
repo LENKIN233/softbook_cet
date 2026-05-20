@@ -358,6 +358,31 @@
         "dependencies_and_build_outputs_not_product_truth",
         "archive_not_active_truth"
       ]
+    },
+    {
+      "id": "HR-31",
+      "prompt": "说明 validate_harness.py 的分层架构",
+      "fail_signal": "describes_harness_as_one_big_validator_or_cannot_name_truth_workspace_delivery_design_runtime_layers",
+      "must_hit": [
+        "harness_architecture_spec_is_owner",
+        "truth_spec_layer_is_pure",
+        "workspace_hygiene_layer_is_pure",
+        "delivery_governance_layer_may_read_git_and_github",
+        "design_governance_layer_uses_local_fixtures_no_remote",
+        "runtime_smoke_layer_delegated_to_backend_contract_and_mobile_quality"
+      ]
+    },
+    {
+      "id": "HR-32",
+      "prompt": "往 harness 新增一个检查时应该放在哪里",
+      "fail_signal": "adds_check_to_any_section_without_layer_owner_or_puts_side_effects_in_truth_workspace_layer",
+      "must_hit": [
+        "choose_layer_before_implementation",
+        "pure_layers_no_subprocess_or_remote_reads",
+        "delivery_governance_for_branch_pr_ci_wiring",
+        "design_governance_for_design_artifact_regressions",
+        "runtime_tests_stay_in_ci_jobs"
+      ]
     }
   ],
   "golden_tasks": [
@@ -644,6 +669,20 @@
         "archive",
         "external_workspace",
         "do_not_default_read_generated_dependency_cache_archive_external_workspace"
+      ]
+    },
+    {
+      "id": "GT-24",
+      "task": "定义 harness architecture split",
+      "must_include": [
+        "bootstrap_layer",
+        "truth_spec_layer",
+        "workspace_hygiene_layer",
+        "delivery_governance_layer",
+        "design_governance_layer",
+        "runtime_smoke_layer",
+        "pure_local_file_checks",
+        "runtime_smoke_delegated_to_backend_contract_and_mobile_quality"
       ]
     }
   ]

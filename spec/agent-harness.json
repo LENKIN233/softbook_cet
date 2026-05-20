@@ -155,6 +155,14 @@
       "spec/agent-harness.json",
       "spec/repo-delivery-contract.json",
       "spec/evals.json"
+    ],
+    "harness_architecture_or_validator_refactor": [
+      "spec/authority-map.json",
+      "spec/harness-architecture.json",
+      "spec/workspace-boundary.json",
+      "spec/agent-harness.json",
+      "spec/repo-delivery-contract.json",
+      "spec/evals.json"
     ]
   },
   "progressive_disclosure_policy": {
@@ -381,6 +389,25 @@
       ],
       "stop_when": "agent can name what is active context, what is excluded by default, and why any excluded path was read",
       "blocked_when": "the task depends on bulk-reading generated dependency cache archive or sibling workspace material without an explicit debug or handoff reason"
+    },
+    "harness_architecture": {
+      "inputs": [
+        "spec/authority-map.json",
+        "spec/harness-architecture.json",
+        "spec/workspace-boundary.json",
+        "spec/agent-harness.json",
+        "spec/repo-delivery-contract.json",
+        "spec/evals.json"
+      ],
+      "outputs": [
+        "layer_ownership_map",
+        "pure_layer_side_effect_boundary",
+        "delivery_governance_side_effect_boundary",
+        "design_governance_fixture_boundary",
+        "runtime_smoke_delegation"
+      ],
+      "stop_when": "each harness section has exactly one layer owner and side effects are confined to the allowed layer or CI job",
+      "blocked_when": "a validator change adds remote, runtime, generated, dependency, or temporary-fixture behavior to a pure truth or workspace layer"
     }
   },
   "governance": {
@@ -654,6 +681,16 @@
       "id": "AP-36",
       "name": "treat_external_card_make_workspace_as_internal_source_tree",
       "correction": "cross_into_card_make_only_through_explicit_card_content_handoff_contracts_and_keep_softbook_cet_as_payload_consumer"
+    },
+    {
+      "id": "AP-37",
+      "name": "add_harness_check_without_layer_owner",
+      "correction": "assign_every_validate_harness_section_to_one_harness_architecture_layer_and_record_allowed_side_effects"
+    },
+    {
+      "id": "AP-38",
+      "name": "mix_runtime_or_remote_side_effects_into_truth_workspace_or_design_pure_layers",
+      "correction": "keep_truth_and_workspace_layers_pure_move_remote_reads_to_delivery_governance_and_runtime_behavior_to_ci_smoke_jobs"
     }
   ],
   "compaction_keep": [
@@ -668,6 +705,7 @@
     "card_make_external_workspace_boundary",
     "repo_delivery_policy",
     "edited_files",
-    "workspace_boundary_and_agent_read_scope"
+    "workspace_boundary_and_agent_read_scope",
+    "harness_architecture_layer_boundaries"
   ]
 }

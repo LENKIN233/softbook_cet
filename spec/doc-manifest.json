@@ -670,7 +670,8 @@
     "spec/evals.json",
     "spec/perturbation-audit.json",
     "spec/visual-language.json",
-    "spec/workspace-boundary.json"
+    "spec/workspace-boundary.json",
+    "spec/harness-architecture.json"
   ],
   "inactive_paths": [
     "archive/legacy-v3/",
