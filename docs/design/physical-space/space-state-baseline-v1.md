@@ -27,7 +27,7 @@ Space remains a top-level product capability and physical hierarchy. Even when c
 library -> group -> box -> card
 ```
 
-Every state must preserve original knowledge ownership. Favorite remains a tag on a card object. Sleep remains a physical zone under the original box that affects the learning flow. Membership may limit complete Space value after trial, but it must not erase the user's understanding that Space is real product value rather than a generic promotion screen.
+Every state must preserve owning-container relationship. Favorite remains a tag on a card object. Sleep remains a physical zone under the owning container that affects the learning flow. Membership may limit complete Space value after trial, but it must not erase the user's understanding that Space is real product value rather than a generic promotion screen.
 
 ## Authority Boundary
 
@@ -45,7 +45,7 @@ It also does not define final backend state names, final paywall copy, animation
 - Cards remain contained objects. They are never converted into equal top-level list rows.
 - Favorite and sleep remain card states inside the box system.
 - Recovery actions stay narrow: retry, continue with cached Space, return to Learning with context, restore purchase, or open the purchase surface.
-- Reading coral is the single strong library accent in the rendered baseline. Other state hues may appear only as feedback or status support.
+- The display accent is the single strong library accent in the rendered baseline. Other state hues may appear only as feedback or status support.
 
 ## State Baselines
 
@@ -111,7 +111,7 @@ This artifact should be consumed alongside `docs/design/mocks/space-surface-shel
 
 ## Design Review Checklist Answers
 
-Q1: Current library is reading. Reading coral is the single strong accent for the address shelf, current box edge, and primary recovery action.
+Q1: Current library is represented by the anonymous current-library slot. The display accent is the single strong accent for the address shelf, current box edge, and primary recovery action.
 
 Q2: Focal object is always the current box tray. First-read path is address shelf -> state rail -> current box tray -> contained objects or state slots -> narrow recovery action.
 

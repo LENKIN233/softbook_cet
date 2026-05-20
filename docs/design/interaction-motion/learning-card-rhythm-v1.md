@@ -130,7 +130,7 @@ Forbidden user-facing meanings:
 - payload shape;
 - cache or queue implementation;
 - repository/runtime mode;
-- card or box identifiers as raw labels.
+- internal identifiers as raw labels.
 
 Motion:
 

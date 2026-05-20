@@ -57,7 +57,7 @@ These are rendered as three phone frames in the HTML. They are not interchangeab
 ### Accepted State Frames
 
 - `Box Focus`: current box is the focal object and parent context stays visible.
-- `Card Inspect`: a selected card remains inside its original box.
+- `Card Inspect`: a selected card remains inside its owning container.
 - `Favorite Tag`: favorite is a tag on a card tile.
 - `Sleep Zone`: sleeping card remains addressable under the same box.
 - `Return To Learning`: Learning continuity is explicit and not a generic back button.
@@ -74,7 +74,7 @@ Future RN mapping should use:
 
 ## Design Review Checklist Answers
 
-Q1: Current library is reading, and reading coral is the only dominant accent. Non-current context uses neutral chips and muted labels.
+Q1: Current library is represented by the anonymous current-library slot, and the display accent is the only dominant accent. Non-current context uses neutral chips and muted labels.
 
 Q2: The focal object is the current box. The first-read path is parent context -> current box -> contained card states -> Learning continuity.
 

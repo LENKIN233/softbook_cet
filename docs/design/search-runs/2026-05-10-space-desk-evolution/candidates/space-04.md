@@ -18,7 +18,7 @@ This candidate preserves Space as a physical hierarchy and improves the baseline
 
 ## Focal Object
 
-Open current box tray with contained reading cards.
+Open current box tray with contained current cards.
 
 ## First-Read Path
 
@@ -30,7 +30,7 @@ Space hierarchy silhouette: parent shelf context, current box desk, contained ca
 
 ## Spatial Model
 
-Library `仔细阅读` and group `定位词抓取` sit in a compact shelf. Current box `细节定位盒` opens as the main tray. Cards remain inside the tray. Sleeping cards remain under the same box as a quiet alcove.
+Parent shelf and current group sit in a compact shelf. Current box `盒 1` opens as the main tray. Cards remain inside the tray. Sleeping cards remain under the 同盒 as a quiet alcove.
 
 ## State Language
 
@@ -54,7 +54,7 @@ The shelf must stay quiet; if it becomes the first-read object, the screen drift
 
 ## Design Review Checklist Answers
 
-Q1: Current library is reading; one reading-coral accent binds address, current box edge, and primary return action.
+Q1: Current library is represented by the anonymous current-library slot; one current-coral accent binds address, current box edge, and primary return action.
 
 Q2: Focal object is the open box tray. The first-read path is shelf -> box tray -> cards -> state alcove -> return.
 

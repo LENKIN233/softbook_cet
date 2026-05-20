@@ -12,7 +12,6 @@ import { canSubmitLearningCard, summarizeLearningResults } from './session';
 import {
   SELF_ASSESS_COLORS,
   hexToRgba,
-  resolveLibraryTone,
 } from '../visual/tokens';
 
 export type LearningSurfacePalette = {
@@ -262,11 +261,12 @@ export function LearningSurface({
     );
   }
 
-  const tone = resolveLibraryTone(currentCard.space_metadata.library);
+  const tone = { accent: palette.accent, accentSoft: palette.accentSoft };
   const progressPercent = `${Math.max(
     Math.round(((currentIndex + 1) / Math.max(sessionCards.length, 1)) * 100),
     10,
   )}%` as DimensionValue;
+  const safeProgress = `${currentIndex + 1}/${sessionCards.length}`;
 
   return (
     <ScrollView ref={currentCardScrollRef} contentContainerStyle={styles.page}>
@@ -283,17 +283,13 @@ export function LearningSurface({
       >
         <View style={styles.learningFrameTop}>
           <View style={styles.heroChipRow}>
-            <TagChip
-              label={`${currentCard.space_metadata.library} · ${currentCard.space_metadata.group}`}
-              toneColor={tone.accent}
-            />
+            <TagChip label="当前学习会话" toneColor={tone.accent} />
             {isReviewPhase ? (
               <TagChip label="回看卡组" toneColor={palette.warning} />
             ) : null}
           </View>
-          <Text style={[styles.learningFrameMeta, { color: palette.textMuted }]}>
-            {currentCard.track.toUpperCase()} · {currentIndex + 1}/
-            {sessionCards.length}
+          <Text style={[styles.learningFrameMeta, { color: palette.textMuted }]}> 
+            学习进度 · {safeProgress}
           </Text>
         </View>
         <Text style={[styles.learningFrameSummary, { color: palette.textMuted }]}>
@@ -447,14 +443,8 @@ export function LearningSurface({
             <Text style={[styles.peekTitle, { color: palette.text }]}>
               这张卡为什么出现
             </Text>
-            <Text style={[styles.peekText, { color: palette.textMuted }]}>
-              对应知识点：{currentCard.space_metadata.library} ·{' '}
-              {currentCard.space_metadata.group}
-            </Text>
-            <Text style={[styles.peekText, { color: palette.textMuted }]}>
-              空间位置：{currentCard.space_metadata.library} /{' '}
-              {currentCard.space_metadata.group} /{' '}
-              {currentCard.space_metadata.box}
+            <Text style={[styles.peekText, { color: palette.textMuted }]}> 
+              该题来自当前练习安排，用于强化你的最近复习目标。
             </Text>
           </View>
         ) : null}
@@ -488,11 +478,8 @@ export function LearningSurface({
           ]}
           testID="learning-address-aperture"
         >
-          <Text style={[styles.addressText, { color: palette.textMuted }]}>
-            当前位置：{currentCard.track.toUpperCase()} /{' '}
-            {currentCard.space_metadata.library} /{' '}
-            {currentCard.space_metadata.group} /{' '}
-            {currentCard.space_metadata.box}
+          <Text style={[styles.addressText, { color: palette.textMuted }]}> 
+            当前位置：学习会话 {safeProgress}
           </Text>
         </View>
 
@@ -554,7 +541,7 @@ function InteractionBody({
   onToggleEliminationItem: (itemId: string) => void;
   onSelectSwipeState: (stateId: string) => void;
 }) {
-  const tone = resolveLibraryTone(card.space_metadata.library);
+  const tone = { accent: palette.accent, accentSoft: palette.accentSoft };
 
   switch (card.interaction_id) {
     case 'flip':

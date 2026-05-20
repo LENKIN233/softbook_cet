@@ -252,6 +252,36 @@ CONDITIONAL_CHECKLIST_EVIDENCE = (
         ),
     ),
 )
+AP22_CHECKLIST_EVIDENCE = (
+    (
+        "AP-22 pre-render proof",
+        (
+            "ap-22",
+            "ap22",
+            "6 问",
+            "6问",
+            "six questions",
+            "design review checklist",
+            "先回答",
+            "六问",
+        ),
+    ),
+)
+AP23_CHECKLIST_EVIDENCE = (
+    (
+        "AP-23 two-state self-assess/flip policy",
+        (
+            "ap-23",
+            "ap23",
+            "两档",
+            "2档",
+            "有把握",
+            "再回看",
+            "mint",
+            "amber",
+        ),
+    ),
+)
 
 
 def parse_args():
@@ -571,6 +601,8 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
     card_content_validation = line_value(body, "Card content validation")
     universal_checklist = line_value(body, "Universal Q1-Q4")
     conditional_checklist = line_value(body, "Conditional Q5-Q6")
+    ap22_checklist = line_value(body, "AP-22")
+    ap23_checklist = line_value(body, "AP-23")
     learning_or_space_files = [
         path
         for path in ui_files
@@ -661,6 +693,21 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
                 CONDITIONAL_CHECKLIST_EVIDENCE,
             )
         )
+        if ui_files:
+            errors.extend(
+                validate_checklist_evidence(
+                    "AP-22",
+                    ap22_checklist,
+                    AP22_CHECKLIST_EVIDENCE,
+                )
+            )
+            errors.extend(
+                validate_checklist_evidence(
+                    "AP-23",
+                    ap23_checklist,
+                    AP23_CHECKLIST_EVIDENCE,
+                )
+            )
 
         errors.extend(scan_visual_output_files(visual_output_files))
 

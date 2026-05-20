@@ -6,9 +6,9 @@
   <title>Space Surface Visual Refinement v1</title>
   <style>
     :root {
-      --reading: #ff8a3d;
-      --reading-quiet: rgba(255, 138, 61, .14);
-      --reading-line: rgba(255, 138, 61, .42);
+      --surface-accent: #6A7C89;
+      --surface-accent-quiet: rgba(106, 124, 137, .14);
+      --surface-accent-line: rgba(106, 124, 137, .42);
       --confident: #22c58b;
       --review: #f5b100;
       --ink-1: #0b0b14;
@@ -35,7 +35,7 @@
       min-height: 100vh;
       color: var(--ink-1);
       background:
-        linear-gradient(135deg, rgba(255, 138, 61, .12), rgba(241, 240, 246, 0) 34%),
+        linear-gradient(135deg, rgba(106, 124, 137, .12), rgba(241, 240, 246, 0) 34%),
         linear-gradient(225deg, rgba(34, 197, 139, .07), rgba(241, 240, 246, 0) 38%),
         var(--page);
       overflow-x: hidden;
@@ -186,8 +186,8 @@
       max-width: 220px;
       padding: 9px 12px;
       color: #6b2d00;
-      background: var(--reading-quiet);
-      border-color: var(--reading-line);
+      background: var(--surface-accent-quiet);
+      border-color: var(--surface-accent-line);
     }
 
     .library-chip span:last-child,
@@ -211,7 +211,7 @@
       height: 8px;
       flex: 0 0 auto;
       border-radius: 999px;
-      background: var(--reading);
+      background: var(--surface-accent);
     }
 
     .status-chip {
@@ -242,8 +242,8 @@
 
     .address-node.current {
       color: #6b2d00;
-      background: rgba(255, 138, 61, .16);
-      border-color: rgba(255, 138, 61, .34);
+      background: rgba(106, 124, 137, .16);
+      border-color: rgba(106, 124, 137, .34);
     }
 
     .object-plane,
@@ -284,12 +284,12 @@
       position: absolute;
       inset: 0 0 auto;
       height: 5px;
-      background: var(--reading);
+      background: var(--surface-accent);
       opacity: .86;
     }
 
     .eyebrow {
-      color: var(--reading);
+      color: var(--surface-accent);
       font-size: 11px;
       line-height: 1.2;
       font-weight: 820;
@@ -352,10 +352,10 @@
     }
 
     .tile.current {
-      border-color: rgba(255, 138, 61, .54);
+      border-color: rgba(106, 124, 137, .54);
       box-shadow:
-        0 16px 36px rgba(255, 138, 61, .12),
-        inset 0 0 0 1px rgba(255, 138, 61, .2),
+        0 16px 36px rgba(106, 124, 137, .12),
+        inset 0 0 0 1px rgba(106, 124, 137, .2),
         inset 0 1px 0 rgba(255, 255, 255, .86);
     }
 
@@ -445,8 +445,8 @@
 
     .button.primary {
       color: #fff7f0;
-      background: var(--reading);
-      border-color: var(--reading);
+      background: var(--surface-accent);
+      border-color: var(--surface-accent);
     }
 
     .button.quiet {
@@ -543,8 +543,8 @@
 
     .sibling.current {
       color: #6b2d00;
-      background: rgba(255, 138, 61, .14);
-      border-color: rgba(255, 138, 61, .34);
+      background: rgba(106, 124, 137, .14);
+      border-color: rgba(106, 124, 137, .34);
     }
 
     .action-row {
@@ -676,7 +676,7 @@
 
   <div class="section-title">
     <h2>Accepted Box Desk Refinement</h2>
-    <div class="note">393 x 852 phone frames · reading library · design-only</div>
+    <div class="note">393 x 852 phone frames · current library · design-only</div>
   </div>
 
   <main>
@@ -685,19 +685,19 @@
         <div class="island"></div>
         <div class="screen">
           <div class="topline">
-            <div class="library-chip"><span class="dot"></span><span>阅读 · Space</span></div>
-            <div class="status-chip">CET4 0521</div>
+            <div class="library-chip"><span class="dot"></span><span>馆 1 · Space</span></div>
+            <div class="status-chip">本轮 盒 1</div>
           </div>
 
           <div class="address-ladder" aria-label="Current address">
             <div class="address-row">
-              <span class="address-node">CET4</span>
-              <span class="address-node current">阅读</span>
-              <span class="address-node">细节题</span>
+              <span class="address-node">本轮</span>
+              <span class="address-node current">馆 1</span>
+              <span class="address-node">盒 1</span>
             </div>
             <div class="address-row">
-              <span class="address-node">定位词</span>
-              <span class="address-node current">0521 Detail Evidence</span>
+              <span class="address-node">线索</span>
+              <span class="address-node current">盒 1 盒 1</span>
             </div>
           </div>
 
@@ -705,13 +705,13 @@
             <div class="box-object">
               <div>
                 <div class="eyebrow">Current Box</div>
-                <h3>Detail Evidence</h3>
+                <h3>盒 1</h3>
                 <p class="object-copy">support, trap, and return clues stay in one exam object.</p>
               </div>
               <div class="object-meta">
                 <div class="field">
                   <div class="field-label">Current card</div>
-                  <div class="field-value">052101</div>
+                  <div class="field-value">卡 1</div>
                 </div>
                 <div class="field">
                   <div class="field-label">State</div>
@@ -725,28 +725,28 @@
           <div class="card-rail" aria-label="Contained cards">
             <article class="tile current">
               <div>
-                <div class="tile-title">052101 argument support</div>
-                <div class="tile-sub">same original box</div>
+                <div class="tile-title">卡 1 卡 1</div>
+                <div class="tile-sub">same owning container</div>
               </div>
               <div class="tag-row"><span class="tag favorite">favorite tag</span></div>
             </article>
             <article class="tile">
               <div>
-                <div class="tile-title">052102 detail trap</div>
+                <div class="tile-title">卡 2 detail trap</div>
                 <div class="tile-sub">sibling card</div>
               </div>
               <div class="tag-row"><span class="tag ready">ready</span></div>
             </article>
             <article class="tile sleeping">
               <div>
-                <div class="tile-title">052103 contrast clue</div>
+                <div class="tile-title">卡 3 contrast clue</div>
                 <div class="tile-sub">quiet, still owned</div>
               </div>
               <div class="tag-row"><span class="tag sleep">sleeping</span></div>
             </article>
             <article class="tile">
               <div>
-                <div class="tile-title">052104 return line</div>
+                <div class="tile-title">卡 4 return line</div>
                 <div class="tile-sub">box sibling</div>
               </div>
               <div class="tag-row"><span class="tag">inspect</span></div>
@@ -756,7 +756,7 @@
           <div class="tray">
             <div class="tray-head">
               <div>
-                <div class="tray-title">Sleep tray · 0521</div>
+                <div class="tray-title">Sleep tray · 盒 1</div>
                 <div class="tray-copy">Temporarily quiet, not archived.</div>
               </div>
               <button class="button quiet" type="button">查看</button>
@@ -764,7 +764,7 @@
           </div>
 
           <div class="return-strip">
-            <div class="return-copy">Learning keeps CET4 / 阅读 / 细节题 / 0521</div>
+            <div class="return-copy">Learning keeps 本轮 / 当前馆 / 当前组 / 当前盒</div>
             <button class="button primary" type="button">返回</button>
           </div>
 
@@ -781,15 +781,15 @@
         <div class="island"></div>
         <div class="screen">
           <div class="topline">
-            <div class="library-chip"><span class="dot"></span><span>阅读 · Inspect</span></div>
-            <div class="status-chip">card 052101</div>
+            <div class="library-chip"><span class="dot"></span><span>馆 1 · Inspect</span></div>
+            <div class="status-chip">card 卡 1</div>
           </div>
 
           <div class="address-ladder" aria-label="Inspect address">
             <div class="address-row">
-              <span class="address-node current">阅读</span>
-              <span class="address-node">细节题</span>
-              <span class="address-node current">0521</span>
+              <span class="address-node current">馆 1</span>
+              <span class="address-node">盒 1</span>
+              <span class="address-node current">盒 1</span>
             </div>
           </div>
 
@@ -797,7 +797,7 @@
             <article class="card-object">
               <div>
                 <div class="eyebrow">Selected Card</div>
-                <h3>052101</h3>
+                <h3>卡 1</h3>
                 <p class="quote-line">The option repeats a noun from the passage, but the support sentence answers a different detail.</p>
               </div>
               <div class="tag-row">
@@ -806,17 +806,17 @@
               </div>
             </article>
 
-            <div class="sibling-stack" aria-label="Same box siblings">
-              <div class="sibling current">052101 selected</div>
-              <div class="sibling">052102 trap</div>
-              <div class="sibling">052103 sleeping</div>
-              <div class="sibling">052104 return</div>
+            <div class="sibling-stack" aria-label="Sibling cards">
+              <div class="sibling current">卡 1 selected</div>
+              <div class="sibling">卡 2 trap</div>
+              <div class="sibling">卡 3 sleeping</div>
+              <div class="sibling">卡 4 return</div>
             </div>
           </div>
 
           <section class="object-plane" aria-label="Card ownership">
             <div class="field-label">Original ownership</div>
-            <h3>Detail Evidence</h3>
+            <h3>盒 1</h3>
             <p class="object-copy">Inspect enlarges the card, but the card does not leave its parent box.</p>
           </section>
 
@@ -826,7 +826,7 @@
           </div>
 
           <div class="return-strip">
-            <div class="return-copy">返回 Learning 时仍指向 0521</div>
+            <div class="return-copy">返回 Learning 时仍指向 盒 1</div>
             <button class="button primary" type="button">继续</button>
           </div>
 
@@ -843,18 +843,18 @@
         <div class="island"></div>
         <div class="screen">
           <div class="topline">
-            <div class="library-chip"><span class="dot"></span><span>阅读 · Sleep</span></div>
+            <div class="library-chip"><span class="dot"></span><span>馆 1 · Sleep</span></div>
             <div class="status-chip">quiet tray</div>
           </div>
 
           <div class="address-ladder" aria-label="Sleep address">
             <div class="address-row">
-              <span class="address-node">CET4</span>
-              <span class="address-node current">阅读</span>
-              <span class="address-node">细节题</span>
+              <span class="address-node">本轮</span>
+              <span class="address-node current">馆 1</span>
+              <span class="address-node">盒 1</span>
             </div>
             <div class="address-row">
-              <span class="address-node current">0521 Detail Evidence</span>
+              <span class="address-node current">盒 1 盒 1</span>
             </div>
           </div>
 
@@ -862,13 +862,13 @@
             <div class="box-object">
               <div>
                 <div class="eyebrow">Box Still Owns It</div>
-                <h3>052103 is quiet</h3>
+                <h3>卡 3 is quiet</h3>
                 <p class="object-copy">Sleep removes immediate pressure without changing the knowledge address.</p>
               </div>
               <div class="object-meta">
                 <div class="field">
-                  <div class="field-label">Original box</div>
-                  <div class="field-value">0521</div>
+                  <div class="field-label">返回位置</div>
+                  <div class="field-value">盒 1</div>
                 </div>
                 <div class="field">
                   <div class="field-label">Flow</div>
@@ -881,14 +881,14 @@
           <div class="sleep-stack">
             <div class="sleep-card">
               <div>
-                <div class="tile-title">052103 contrast clue</div>
-                <div class="tile-sub">CET4 / 阅读 / 细节题 / 0521</div>
+                <div class="tile-title">卡 3 contrast clue</div>
+                <div class="tile-sub">本轮 / 当前馆 / 当前组 / 当前盒</div>
               </div>
               <span class="tag sleep">sleeping</span>
             </div>
             <div class="sleep-card">
               <div>
-                <div class="tile-title">052102 detail trap</div>
+                <div class="tile-title">卡 2 detail trap</div>
                 <div class="tile-sub">still learning-eligible</div>
               </div>
               <span class="tag ready">ready</span>
@@ -923,17 +923,17 @@
         <div class="island"></div>
         <div class="screen">
           <div class="topline">
-            <div class="library-chip"><span class="dot"></span><span>阅读 · Long Content</span></div>
+            <div class="library-chip"><span class="dot"></span><span>馆 1 · Long Content</span></div>
             <div class="status-chip">wrap proof</div>
           </div>
 
           <div class="address-ladder" aria-label="Long address">
             <div class="address-row">
-              <span class="address-node current">阅读</span>
-              <span class="address-node">定位词与长难句细节综合判断</span>
+              <span class="address-node current">馆 1</span>
+              <span class="address-node">较长的用户可见学习句</span>
             </div>
             <div class="address-row">
-              <span class="address-node current">0521 Very Long Detail Evidence Box Name</span>
+              <span class="address-node current">盒 1 超长盒名示例</span>
             </div>
           </div>
 
@@ -941,7 +941,7 @@
             <div class="box-object">
               <div>
                 <div class="eyebrow">Containment Stress</div>
-                <h3>Long Detail Evidence Box Name</h3>
+                <h3>超长盒名示例</h3>
                 <p class="object-copy">Names wrap inside the object plane. The screen does not create a horizontal scroll.</p>
               </div>
               <div class="object-meta">
@@ -954,21 +954,21 @@
           <div class="stress-list" aria-label="Long card labels">
             <div class="stress-row">
               <div>
-                <div class="stress-label">052101 argument support with very long clue label</div>
+                <div class="stress-label">卡 1 较长的卡片提示示例</div>
                 <div class="stress-note">favorite remains a tag, not a new container</div>
               </div>
               <span class="tag favorite">favorite</span>
             </div>
             <div class="stress-row">
               <div>
-                <div class="stress-label">052102 detail trap that must stay in the same box</div>
+                <div class="stress-label">卡 2 同盒卡片提示示例</div>
                 <div class="stress-note">sibling relation remains visible</div>
               </div>
               <span class="tag ready">ready</span>
             </div>
             <div class="stress-row">
               <div>
-                <div class="stress-label">052103 contrast clue temporarily quiet</div>
+                <div class="stress-label">卡 3 contrast clue temporarily quiet</div>
                 <div class="stress-note">sleep tray preserves address</div>
               </div>
               <span class="tag sleep">sleep</span>
@@ -976,7 +976,7 @@
           </div>
 
           <div class="return-strip">
-            <div class="return-copy">CET4 / 阅读 / 细节题 / 0521 remains readable</div>
+            <div class="return-copy">本轮 / 当前馆 / 当前组 / 当前盒 remains readable</div>
             <button class="button primary" type="button">返回</button>
           </div>
 

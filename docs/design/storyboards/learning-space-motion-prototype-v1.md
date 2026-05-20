@@ -54,7 +54,7 @@ The HTML asset renders three motion strips: flip, hint reveal, and swipe. It als
 
 ## Design Review Checklist Answers
 
-Q1: The prototype uses one reading accent as the dominant color.
+Q1: The prototype uses one display accent as the dominant color.
 
 Q2: Focal object is the current card in all strips.
 

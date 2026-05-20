@@ -19,7 +19,7 @@
 
 ## Product Truth
 
-Space remains a top-level physical hierarchy. A card keeps its original `library -> group -> box -> card` ownership. Favorite is a tag state, sleep is a spatial state, and return to Learning preserves context.
+Space remains a top-level physical hierarchy. A card keeps its owning-container relationship. Favorite is a tag state, sleep is a spatial state, and return to Learning preserves context.
 
 This artifact does not authorize new Space operations and does not change `spec/knowledge-map.json`, `spec/space-operations.json`, or `spec/box-catalog.json`.
 
@@ -42,8 +42,8 @@ It is not a same-PR authority for RN. Future implementation PRs may consume this
 ## Visual Frames
 
 - `Primary Box Desk`: parent address, current box object, contained card rail, sleep tray, and Learning return.
-- `Card Inspect`: selected card expands without losing original box ownership.
-- `Sleep / Wake`: sleeping card remains under the same box and can return to learning-eligible flow.
+- `Card Inspect`: selected card expands without losing owning-container relationship.
+- `Sleep / Wake`: sleeping card remains under the 同盒 and can return to learning-eligible flow.
 - `Long Content Containment`: long group / box / card labels remain contained inside phone width.
 
 ## Refinement Claims
@@ -52,7 +52,7 @@ It is not a same-PR authority for RN. Future implementation PRs may consume this
 - Current box remains the first-read object; cards are contained objects, not equal top-level cards.
 - Favorite is rendered as a card tag, never as a physical favorite box.
 - Sleep is rendered as a lower quiet tray under the same current box, never as deletion, archive, or a second box.
-- Reading coral is the only strong library accent in these frames.
+- The display accent is the only strong library accent in these frames.
 - Mint and amber appear only as state feedback families, not as alternate library accents.
 - The long-content frame is a layout stress proof; future RN must preserve wrapping and safe-area containment.
 
@@ -61,7 +61,7 @@ It is not a same-PR authority for RN. Future implementation PRs may consume this
 Future `apps/mobile/src/space/SpaceSurface.tsx` should map the refined frames as:
 
 - top address ladder -> library / group / box breadcrumb;
-- box object plane -> current box focus and CET exam-content trust;
+- box object plane -> current box focus and exam-content trust;
 - card rail -> contained cards and sibling cards;
 - tag chip -> favorite state on a card object;
 - lower quiet tray -> sleep / wake state;
@@ -70,7 +70,7 @@ Future `apps/mobile/src/space/SpaceSurface.tsx` should map the refined frames as
 
 ## Design Review Checklist Answers
 
-Q1: Current library is reading. Reading coral is the single dominant accent across CTA, current object highlight, and selected Space chrome. Other library hues are not used as strong accents.
+Q1: Current library is represented by the anonymous current-library slot. The display accent is the single dominant accent across CTA, current object highlight, and selected Space chrome. Other library hues are not used as strong accents.
 
 Q2: Focal object is the current box. First-read path is address ladder -> current box object -> contained cards / state tray -> Learning continuity -> top-level chrome.
 

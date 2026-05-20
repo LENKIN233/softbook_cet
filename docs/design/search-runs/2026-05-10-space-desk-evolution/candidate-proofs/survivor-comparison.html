@@ -6,9 +6,9 @@
   <title>Space Desk Evolution Survivor Candidate Proofs</title>
   <style>
     :root {
-      --reading: #ff8a3d;
-      --reading-soft: rgba(255, 138, 61, .13);
-      --reading-line: rgba(255, 138, 61, .38);
+      --surface-accent: #6A7C89;
+      --surface-accent-soft: rgba(106, 124, 137, .13);
+      --surface-accent-line: rgba(106, 124, 137, .38);
       --mint: #22c58b;
       --ink-1: #11111a;
       --ink-2: #343448;
@@ -28,7 +28,7 @@
       min-height: 100vh;
       color: var(--ink-1);
       background:
-        radial-gradient(circle at 18% 12%, rgba(255, 138, 61, .12), transparent 32%),
+        radial-gradient(circle at 18% 12%, rgba(106, 124, 137, .12), transparent 32%),
         radial-gradient(circle at 92% 18%, rgba(34, 197, 139, .08), transparent 34%),
         var(--paper);
       overflow-x: hidden;
@@ -87,8 +87,8 @@
     }
 
     .candidate.promoted {
-      border-color: var(--reading-line);
-      box-shadow: 0 22px 54px rgba(255, 138, 61, .16);
+      border-color: var(--surface-accent-line);
+      box-shadow: 0 22px 54px rgba(106, 124, 137, .16);
     }
 
     .meta {
@@ -101,9 +101,9 @@
     .id {
       padding: 8px 10px;
       border-radius: 999px;
-      background: var(--reading-soft);
+      background: var(--surface-accent-soft);
       color: #6b2d00;
-      border: 1px solid var(--reading-line);
+      border: 1px solid var(--surface-accent-line);
       font-size: 12px;
       font-weight: 820;
     }
@@ -140,8 +140,8 @@
 
     .address {
       color: #6b2d00;
-      background: var(--reading-soft);
-      border-color: var(--reading-line);
+      background: var(--surface-accent-soft);
+      border-color: var(--surface-accent-line);
       font-size: 11px;
       font-weight: 780;
       white-space: nowrap;
@@ -152,10 +152,10 @@
     .box {
       flex: 1 1 auto;
       border-radius: 24px;
-      border: 1px solid var(--reading-line);
+      border: 1px solid var(--surface-accent-line);
       background: rgba(255, 255, 255, .86);
       padding: 12px;
-      box-shadow: inset 4px 0 0 var(--reading);
+      box-shadow: inset 4px 0 0 var(--surface-accent);
       min-height: 0;
     }
 
@@ -206,8 +206,8 @@
       color: #6b2d00;
       font-size: 11px;
       font-weight: 780;
-      background: var(--reading-soft);
-      border-color: var(--reading-line);
+      background: var(--surface-accent-soft);
+      border-color: var(--surface-accent-line);
     }
 
     .shelf {
@@ -232,8 +232,8 @@
     }
 
     .spine.active {
-      background: var(--reading-soft);
-      border-color: var(--reading-line);
+      background: var(--surface-accent-soft);
+      border-color: var(--surface-accent-line);
     }
 
     .sleep {
@@ -255,9 +255,9 @@
     .drawer-card {
       border-radius: 24px;
       background: #fff;
-      border: 1px solid var(--reading-line);
+      border: 1px solid var(--surface-accent-line);
       padding: 14px;
-      box-shadow: inset 0 4px 0 var(--reading);
+      box-shadow: inset 0 4px 0 var(--surface-accent);
     }
 
     .caption {
@@ -286,9 +286,9 @@
     <section class="candidate" id="space-01">
       <div class="meta"><span class="id">space-01</span><span class="role">Shelf Address Desk</span></div>
       <div class="mini-phone">
-        <div class="address">CET6 / 仔细阅读 / 定位词抓取</div>
+        <div class="address">本轮 / 当前馆 / 当前组</div>
         <div class="box">
-          <h3>细节定位盒</h3>
+          <h3>盒 1</h3>
           <p>Baseline-stable box focus with contained cards.</p>
           <div class="cards"><div class="card">题干定位</div><div class="card">干扰排除</div></div>
           <span class="tag">favorite tag</span>
@@ -302,10 +302,10 @@
     <section class="candidate" id="space-02">
       <div class="meta"><span class="id">space-02</span><span class="role">Card Drawer Inspect</span></div>
       <div class="mini-phone">
-        <div class="address">CET6 / 仔细阅读 / 细节定位盒</div>
+        <div class="address">本轮 / 当前组 / 当前盒</div>
         <div class="drawer">
           <div class="drawer-card">
-            <h3>题干定位词先圈出</h3>
+            <h3>题干线索先圈出</h3>
             <p>Selected card moves forward while parent box remains visible.</p>
             <span class="tag">favorite tag</span>
           </div>
@@ -319,7 +319,7 @@
     <section class="candidate" id="space-03">
       <div class="meta"><span class="id">space-03</span><span class="role">Box Spine Map</span></div>
       <div class="mini-phone">
-        <div class="address">Reading shelf / locating group</div>
+        <div class="address">Current shelf / locating group</div>
         <div class="shelf">
           <div class="spines"><div class="spine"></div><div class="spine active"></div><div class="spine"></div></div>
           <div class="box">
@@ -336,14 +336,14 @@
     <section class="candidate promoted" id="space-04">
       <div class="meta"><span class="id">space-04</span><span class="role">Shelf Desk Synthesis</span></div>
       <div class="mini-phone">
-        <div class="address">CET6 / 仔细阅读 / 定位词抓取</div>
+        <div class="address">本轮 / 当前馆 / 当前组</div>
         <div class="shelf">
           <div class="spines"><div class="spine"></div><div class="spine active"></div><div class="spine"></div></div>
           <div class="box">
-            <h3>细节定位盒</h3>
+            <h3>盒 1</h3>
             <p>Open tray keeps current box first while shelf stays secondary.</p>
             <div class="cards"><div class="card">active <span class="tag">tag</span></div><div class="card">sibling</div></div>
-            <div class="sleep">Sleep alcove under original box.</div>
+            <div class="sleep">Sleep alcove under owning container.</div>
           </div>
         </div>
         <div class="return">Return to current Learning flow</div>
@@ -354,7 +354,7 @@
     <section class="candidate" id="space-05">
       <div class="meta"><span class="id">space-05</span><span class="role">Quiet Sleep Alcove</span></div>
       <div class="mini-phone">
-        <div class="address">CET6 / 仔细阅读 / 细节定位盒</div>
+        <div class="address">本轮 / 当前组 / 当前盒</div>
         <div class="box">
           <h3>Current box</h3>
           <p>Sleep and wake state are especially legible.</p>

@@ -19,7 +19,7 @@
 
 ## Product Truth
 
-Space remains a top-level physical hierarchy. Every card keeps original `library -> group -> box -> card` ownership. Favorite is a tag on a card object, sleep is a physical state under the original box, and returning to Learning preserves the addressed object context.
+Space remains a top-level physical hierarchy. Every card keeps owning-container relationship. Favorite is a tag on a card object, sleep is a physical state under the owning container, and returning to Learning preserves the addressed object context.
 
 This artifact does not authorize new Space operations and does not change `spec/knowledge-map.json`, `spec/space-operations.json`, or `spec/box-catalog.json`.
 
@@ -52,7 +52,7 @@ This is design-only authority. Future RN or Web implementation must still name t
 - Cards are contained objects inside the current box, not equal top-level cards.
 - Favorite is rendered as a tag attached to a card object.
 - Sleep is rendered as an alcove under the current box, never as a second box, archive, or deletion.
-- Reading coral is the only strong library accent.
+- The display accent is the only strong library accent.
 - Mint and amber may appear only as state feedback families, not as alternate library identity.
 
 ## Implementation Mapping Delta
@@ -63,7 +63,7 @@ Future `apps/mobile/src/space/SpaceSurface.tsx` work should map this accepted ar
 - open box tray -> current object region and first-read focal object;
 - contained card strip -> active card and sibling card objects;
 - favorite tag -> card state badge, not a container;
-- sleep alcove -> sleep / wake state region under original box ownership;
+- sleep alcove -> sleep / wake state region under owning-container relationship;
 - return strip -> Learning continuity with preserved context;
 - floating top-level chrome -> navigation affordance that remains secondary to the Space object.
 
@@ -77,7 +77,7 @@ Future `apps/mobile/src/space/SpaceSurface.tsx` work should map this accepted ar
 
 ## Design Review Checklist Answers
 
-Q1: Current library is reading. Reading coral is the single strong accent for the address chip, current box edge, and primary return action.
+Q1: Current library is represented by the anonymous current-library slot. The display accent is the single strong accent for the address chip, current box edge, and primary return action.
 
 Q2: Focal object is the open current box tray. First-read path is address shelf -> box tray -> contained cards -> sleep alcove -> return to Learning.
 

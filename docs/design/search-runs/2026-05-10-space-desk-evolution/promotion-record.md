@@ -10,7 +10,7 @@ Promote `space-04` into the accepted Space artifact `docs/design/mocks/space-sur
 
 ## Baseline Comparison
 
-Compared with `docs/design/mocks/space-surface-visual-refinement-v1.md`, `space-04` keeps the same product model but strengthens the visual proof. The current box is more object-like, sibling/parent context is more legible through a quiet shelf, and sleep/wake state sits under the same box instead of reading like a separate management area. Production implementation still requires a future RN/Web PR that consumes the accepted artifact and mapping record.
+Compared with `docs/design/mocks/space-surface-visual-refinement-v1.md`, `space-04` keeps the same product model but strengthens the visual proof. The current box is more object-like, sibling/parent context is more legible through a quiet shelf, and sleep/wake state sits under the 同盒 instead of a separate management area. Production implementation still requires a future RN/Web PR that consumes the accepted artifact and mapping record.
 
 ## Borrowed Fragments
 
@@ -37,7 +37,7 @@ The proof renders promoted `space-04` as a phone-constrained Space shelf desk wi
 - Open box tray -> current object region and first-read focal object.
 - Contained card strip -> card objects and sibling card context.
 - Favorite tag -> card state badge, not a container.
-- Sleep alcove -> sleep/wake state region under original box ownership.
+- Sleep alcove -> sleep/wake state region under owning-container relationship.
 - Return strip -> Learning continuity region.
 - Floating top-level chrome -> navigation affordance that stays secondary to the Space object.
 
@@ -54,11 +54,11 @@ Record these recurring failures in future rejected or eval work when they appear
 
 ## Design Review Checklist Answers
 
-Q1: Current library is reading. The rendered proof uses reading coral as the single strong accent for the current box edge, active address chip, and primary return action.
+Q1: Current library is represented by the anonymous current-library slot. The rendered proof uses display accent as the single strong accent for the current box edge, active address chip, and primary return action.
 
 Q2: Focal object is the current box tray. First-read path is address shelf -> open box tray -> contained cards -> sleep alcove -> return to Learning.
 
-Q3: Space is not a Learning interaction silhouette. The required silhouette is physical hierarchy with parent context, current box focus, contained card objects, attached favorite tag, and sleep zone under the same box.
+Q3: Space is not a Learning interaction silhouette. The required silhouette is physical hierarchy with parent context, current box focus, contained card objects, attached favorite tag, and sleep zone under the 同盒.
 
 Q4: No forbidden design patterns are used in the proof: no gradient text, no gamification reward chrome, no full-width bottom tabbar, no removed self-assess tokens, and no serif dependency.
 

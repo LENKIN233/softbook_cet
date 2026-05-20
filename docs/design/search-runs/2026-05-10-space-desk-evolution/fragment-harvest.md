@@ -6,7 +6,7 @@
 
 ## Best Focal Object
 
-`space-04` has the strongest focal object: an open current box tray with one reading-coral edge and contained card objects. It is more concrete than the baseline because the box reads as a working surface instead of only a large card frame.
+`space-04` has the strongest focal object: an open current box tray with one current-coral edge and contained card objects. It is more concrete than the baseline because the box reads as a working surface instead of only a large card frame.
 
 ## Best First-Read Path
 

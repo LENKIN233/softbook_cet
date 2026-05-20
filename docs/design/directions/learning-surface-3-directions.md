@@ -20,7 +20,7 @@ Learning 是产品第一入口。它必须让用户感觉自己被一个懂 CET4
 
 所有方向默认继承 Aurora Glass token、Law of One、当前 library 单强色、5 个 interaction silhouettes、flip 两档自评，以及 `Learning + Space Worldview` 中的“有空间坐标的考试手册”命题。
 
-本文用 `reading / 仔细阅读 / coral` 作为示例 current library。真实实现必须按当前卡所属 library 替换身份色。
+本文用 `current / 组 1 / coral` 作为示例 current library。真实实现必须按当前卡所属 library 替换身份色。
 
 ## Shared Invariants
 
@@ -31,6 +31,7 @@ Learning 是产品第一入口。它必须让用户感觉自己被一个懂 CET4
 - `peek`、`favorite`、`hint_reveal` 是轻量次级入口。
 - 系统排序优先，用户只做低负担动作。
 - flip 只出现 `有把握 / 再回看` 两档自评。
+- AP-23 proof: `有把握` maps to confident/mint, `再回看` maps to review/amber; no red or four-state self-assess is introduced.
 - auto-scored interactions 不使用 self-assess feedback 色。
 - Space 是当前卡的背景坐标，不是单独的收藏夹或 dashboard。
 
@@ -54,7 +55,7 @@ library rail -> exam prompt -> primary answer area -> feedback / analysis -> add
 
 ```text
 ┌─────────────────────────────┐
-│ reading chip · CET6 · box id │
+│ current chip · 本轮 · 匿名盒 │
 │                             │
 │  Prompt / exam context       │
 │  Large editorial card body   │
@@ -68,7 +69,7 @@ library rail -> exam prompt -> primary answer area -> feedback / analysis -> add
 └─────────────────────────────┘
 ```
 
-### Interaction Silhouette Translation
+### Interaction Silhouette library-5
 
 - `flip`: editorial card front/back; bottom 2-pill self-assess remains outside the page body.
 - `multiple_choice`: prompt block reads as article excerpt; options remain 2x2 tiles, not a list.
@@ -125,7 +126,7 @@ current card object -> interaction affordance -> light tools -> address aperture
 └─────────────────────────────┘
 ```
 
-### Interaction Silhouette Translation
+### Interaction Silhouette library-5
 
 - `flip`: physical flip is literal but restrained; front/back are two material planes, not a magic animation.
 - `multiple_choice`: options are inset tiles attached to the object, preserving the 2x2 silhouette.
@@ -162,7 +163,7 @@ current action -> answer / gesture -> result -> next
 
 ### Focal Object
 
-当前交互任务。卡片内容退后一步，操作效率成为第一阅读对象。
+当前交互任务。卡片内容退后一步，操作效率成为第一读对象。
 
 ### Composition Skeleton
 
@@ -180,7 +181,7 @@ current action -> answer / gesture -> result -> next
 └─────────────────────────────┘
 ```
 
-### Interaction Silhouette Translation
+### Interaction Silhouette library-5
 
 - `flip`: efficient card + two-pill row.
 - `multiple_choice`: prompt + 2x2 grid dominates.
@@ -238,7 +239,7 @@ Addressed Exam Object
 
 ## Design Review Checklist Answers
 
-Q1: Example current library is `reading`; coral is the only strong accent. Other library colors are allowed only as low-weight map fragments.
+Q1: Example current library is `current`; coral is the only strong accent. Other library colors are allowed only as low-weight map fragments.
 
 Q2: Focal object differs by direction, but the accepted candidate keeps the current card object as first read, then interaction, then light tools/address.
 

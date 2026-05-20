@@ -14,15 +14,15 @@
 
 ## Product Truth Fit
 
-This candidate preserves the existing Box Desk model: current reading box first, cards inside it, favorite as tag, sleep as a quiet tray, and Learning return with context. Risk is limited originality; it may not beat the accepted baseline enough to justify a new artifact.
+This candidate preserves the existing Box Desk model: current current box first, cards inside it, favorite as tag, sleep as a quiet tray, and Learning return with context. Risk is limited originality; it may not beat the accepted baseline enough to justify a new artifact.
 
 ## Focal Object
 
-Current reading box `定位词抓取 / 细节定位盒`.
+Current box `组 1 / 盒 1`.
 
 ## First-Read Path
 
-Reading address chip -> large current box panel -> contained card row -> lower sleep tray -> compact return to Learning.
+current address chip -> large current box panel -> contained card row -> lower sleep tray -> compact return to Learning.
 
 ## Interaction Silhouette
 
@@ -30,7 +30,7 @@ Space hierarchy silhouette: address ladder above one large box object, with cont
 
 ## Spatial Model
 
-Library `仔细阅读`, group `定位词抓取`, box `细节定位盒`, and three visible cards remain nested. Sibling context is only hinted through small labels.
+Library `组 1`, group `组 1`, box `盒 1`, and three visible cards remain nested. Sibling context is only hinted through small labels.
 
 ## State Language
 
@@ -54,7 +54,7 @@ May be too close to the accepted baseline, so it gives low design-search value. 
 
 ## Design Review Checklist Answers
 
-Q1: Current library is reading; one reading-coral accent marks the current box and primary return action.
+Q1: Current library is represented by the anonymous current-library slot; one current-coral accent marks the current box and primary return action.
 
 Q2: Focal object is the current box; first-read path runs from address to box to contained cards.
 

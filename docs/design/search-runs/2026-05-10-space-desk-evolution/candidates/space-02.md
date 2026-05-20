@@ -54,7 +54,7 @@ The card can become the only object users see. The parent box may feel like deco
 
 ## Design Review Checklist Answers
 
-Q1: Current library is reading; the selected card uses reading accent only through its parent box edge and active tag.
+Q1: Current library is represented by the anonymous current-library slot; the selected card uses display accent only through its parent box edge and active tag.
 
 Q2: Focal object is selected card, with first-read path back to parent box. This is clear for inspect but weaker for first entry.
 

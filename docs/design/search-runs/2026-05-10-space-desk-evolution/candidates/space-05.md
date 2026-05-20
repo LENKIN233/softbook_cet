@@ -30,7 +30,7 @@ Space hierarchy with state alcove attached to the box. It is not a separate slee
 
 ## Spatial Model
 
-The card remains inside the reading library, locating-keywords group, and current box. Sleep changes availability in the Learning flow but not ownership.
+The card remains inside the current shelf, current group, and current box. Sleep changes availability in the Learning flow but not ownership.
 
 ## State Language
 
@@ -54,7 +54,7 @@ May over-index on sleep state, weakening the first-read current box and broader 
 
 ## Design Review Checklist Answers
 
-Q1: Current library is reading; state treatment stays quiet and does not add a second strong accent.
+Q1: Current library is represented by the anonymous current-library slot; state treatment stays quiet and does not add a second strong accent.
 
 Q2: Focal object is the current box plus sleep alcove; first-read is clear for state review but less balanced for general Space entry.
 

@@ -46,6 +46,23 @@ function collectTestIDs(node: TestRendererNode, testIDs: string[] = []) {
   return testIDs;
 }
 
+function collectRenderedText(node: TestRendererNode, inText = false): string[] {
+  if (node === null) {
+    return [];
+  }
+
+  if (typeof node === 'string') {
+    return inText ? [node] : [];
+  }
+
+  if (Array.isArray(node)) {
+    return node.flatMap(child => collectRenderedText(child, inText));
+  }
+
+  const nextInText = inText || node.type === 'Text';
+  return node.children?.flatMap(child => collectRenderedText(child, nextInText)) ?? [];
+}
+
 function expectSpaceFirstReadOrder(
   tree: ReactTestRenderer.ReactTestRenderer,
   railTestID: string,
@@ -84,12 +101,13 @@ test('keeps a physical Space outline when no cards are visible', () => {
 
   const root = tree!.root;
   const output = JSON.stringify(tree!.toJSON());
+  const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
 
   expect(root.findAllByProps({ testID: 'space-empty-state' }).length)
     .toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-address-shelf' }).length)
     .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-current-box-tray' }).length)
+    expect(root.findAllByProps({ testID: 'space-current-box-tray' }).length)
     .toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-contained-card-strip' }).length)
     .toBeGreaterThan(0);
@@ -97,9 +115,12 @@ test('keeps a physical Space outline when no cards are visible', () => {
     .toBeGreaterThan(0);
   expect(output).toContain('当前盒为空');
   expect(output).toContain('当前盒暂无可展示卡片');
-  expect(output).toContain(
-    `${currentCard.space_metadata.library} / ${currentCard.space_metadata.group} / ${currentCard.space_metadata.box}`,
-  );
+  expect(output).toContain('空间地址正在等待本轮卡片');
+  expect(output).toContain('当前空间路径待同步');
+  expect(renderedText).not.toContain(currentCard.space_metadata.library);
+  expect(renderedText).not.toContain(currentCard.space_metadata.group);
+  expect(renderedText).not.toContain(currentCard.space_metadata.box);
+  expect(renderedText).not.toContain(currentCard.space_metadata.box_ref);
   expect(output).not.toContain('空间地图还没有可展示的数据');
 });
 
@@ -185,7 +206,7 @@ test('places Space state rail between address context and current box', () => {
   expectSpaceFirstReadOrder(tree!, 'space-sync-rail');
 });
 
-test('uses box-code selector IDs for Space library and group chips', () => {
+test('uses anonymous ordered selector IDs for Space library and group chips', () => {
   const session = createLocalLearningSession('cet4');
   const currentCard = session.catalogCards[0];
   let tree: ReactTestRenderer.ReactTestRenderer;
@@ -206,18 +227,68 @@ test('uses box-code selector IDs for Space library and group chips', () => {
   });
 
   const root = tree!.root;
+  const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
 
-  expect(root.findAllByProps({ testID: 'space-library-00' }).length)
+  expect(root.findAllByProps({ testID: 'space-library-1' }).length)
     .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-library-05' }).length)
+  expect(root.findAllByProps({ testID: 'space-library-2' }).length)
     .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-library-2' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'space-library-00' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'space-library-05' })).toHaveLength(0);
+  expect(renderedText).not.toContain(currentCard.space_metadata.library);
+  expect(renderedText).not.toContain(currentCard.space_metadata.group);
+  expect(renderedText).not.toContain(currentCard.space_metadata.box);
+  expect(renderedText).not.toContain(currentCard.space_metadata.box_ref);
 
   ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-library-05' }).props.onPress();
+    root.findByProps({ testID: 'space-library-2' }).props.onPress();
   });
 
-  expect(root.findAllByProps({ testID: 'space-group-052' }).length)
+  expect(root.findAllByProps({ testID: 'space-group-1' }).length)
     .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-group-1' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'space-group-2' }).length)
+    .toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-group-052' })).toHaveLength(0);
+});
+
+test('does not render raw metadata values from loaded Space cards', () => {
+  const session = createLocalLearningSession('cet4');
+  const metadataValues = [
+    'raw-space-library-visible-guard',
+    'raw-space-group-visible-guard',
+    'raw-space-box-visible-guard',
+    'raw-space-box-ref-visible-guard',
+  ];
+  const guardedCards = session.catalogCards.slice(0, 2).map(card => ({
+    ...card,
+    space_metadata: {
+      box: metadataValues[2],
+      box_ref: metadataValues[3],
+      group: metadataValues[1],
+      library: metadataValues[0],
+    },
+  }));
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={guardedCards[0]}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        spaceCards={guardedCards}
+      />,
+    );
+  });
+
+  const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+
+  metadataValues.forEach(value => {
+    expect(renderedText).not.toContain(value);
+  });
+  expect(renderedText).toContain('馆 1 / 组 1 / 盒 1');
 });

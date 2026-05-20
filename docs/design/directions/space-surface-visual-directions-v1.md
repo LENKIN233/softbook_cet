@@ -140,7 +140,7 @@ Future Space RN implementation must map to Direction B:
 
 ## Design Review Checklist Answers
 
-Q1: Current library is reading in the rendered proof, and reading coral is the only dominant accent. Other library colors are not used as competing accents.
+Q1: Current library is represented by the anonymous current-library slot in the rendered proof, and the display accent is the only dominant accent. Other library colors are not used as competing accents.
 
 Q2: The focal object is the current box. First-read path is parent context -> current box -> card states -> return chrome.
 

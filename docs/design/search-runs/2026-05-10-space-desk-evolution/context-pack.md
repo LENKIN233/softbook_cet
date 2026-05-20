@@ -15,7 +15,7 @@
 
 ## Surface
 
-Space surface, phone first, target proof frame `393 x 852`. The run focuses on the first Space screen after returning from Learning while the current context is CET6 / reading / locating-keywords / box `R-01`.
+Space surface, phone first, target proof frame `393 x 852`. The run focuses on the first Space screen after returning from Learning while the current display context is 馆 1 / 组 1 / 盒 1.
 
 ## Accepted Baseline
 
@@ -25,19 +25,19 @@ The baseline already establishes `Box Desk`: address ladder -> current box objec
 
 ## Product Truth
 
-- Softbook CET is a CET4/6 preparation product, not a general English dashboard or vocabulary-only tool.
+- Softbook CET is a CET4/6 preparation product, not a general English dashboard or focus-area-only tool.
 - Space is a top-level physical hierarchy: `library -> group -> box -> card`.
 - Every card keeps original knowledge ownership; the user may inspect, tag favorite, sleep, wake, and return to Learning, but may not arbitrarily rewrite box ownership.
 - Favorite is a tag on a card object, not a physical favorite box.
 - Sleep is a physical zone under the same ownership context and affects Learning eligibility; it is not deletion, archive, or a second box.
 - Learning remains system-sequenced; Space should preserve continuity back to the same addressed object or the next eligible card.
-- Current library is reading; reading coral is the only strong accent in the proof.
+- Current library is represented by the anonymous current-library slot; the display accent is the only strong accent in the proof.
 - A search run is pre-acceptance evidence only. It does not authorize same-PR RN or Web implementation.
 
 ## Hard Constraints
 
 - Preserve a visible three-layer Space hierarchy before any card state: library/group context, current box focus, card objects or state zones.
-- Use one strong library accent bound to reading. Other colors may only be low-weight state or neutral material.
+- Use one strong library accent bound to current. Other colors may only be low-weight state or neutral material.
 - Reject any candidate that reduces Space to a flat card list, statistics board, module picker, favorite box plus sleep box, arbitrary organizer, or generic flashcard collection.
 - Reject any candidate that hides the current box behind chrome, counters, decorative maps, or unrelated progress widgets.
 - Preserve accepted implementation authority: candidates may reference `SpaceSurface.tsx` mapping regions but may not define production component APIs.

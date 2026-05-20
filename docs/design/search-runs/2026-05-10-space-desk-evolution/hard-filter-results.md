@@ -2,7 +2,7 @@
 
 ## Filter Scope
 
-Generation 1 for Space phone surface, accepted baseline `docs/design/mocks/space-surface-visual-refinement-v1.md`. Filters applied: CET product truth, visible physical hierarchy, reading Law of One, favorite tag semantics, sleep zone semantics, Learning continuity, implementation authority, and phone proof containment.
+Generation 1 for Space phone surface, accepted baseline `docs/design/mocks/space-surface-visual-refinement-v1.md`. Filters applied: CET product truth, visible physical hierarchy, current Law of One, favorite tag semantics, sleep zone semantics, Learning continuity, implementation authority, and phone proof containment.
 
 ## Rejected Candidates
 

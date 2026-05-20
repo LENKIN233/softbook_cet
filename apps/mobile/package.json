@@ -7,6 +7,9 @@
     "e2e:ios:maestro": "maestro test e2e/maestro/ios-smoke.yaml",
     "ios": "react-native run-ios",
     "lint": "eslint .",
+    "design-metadata-leak-scan": "node ../../scripts/check_design_metadata_leaks.mjs",
+    "metadata-leak-scan": "node scripts/check-metadata-leaks.mjs",
+    "pretest": "npm run metadata-leak-scan",
     "start": "react-native start",
     "test": "jest",
     "typecheck": "tsc --noEmit"

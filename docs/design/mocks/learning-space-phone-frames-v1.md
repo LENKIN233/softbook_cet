@@ -18,8 +18,8 @@
 - Surface: Learning and Space
 - Device class: phone
 - Frame: `393 x 852`
-- Current library: reading
-- Current accent: reading coral, used as the only dominant accent on both frames
+- Current library: current
+- Display accent: display accent, used as the only dominant accent on both frames
 - Rendered asset: `docs/design/mocks/learning-space-phone-frames-v1.html`
 
 ## Product Truth
@@ -52,7 +52,7 @@ library/group context -> current box focus -> card objects and states -> sleep z
 The rendered asset contains both day and night frames. The night frame keeps the same hierarchy instead of inventing a second layout:
 
 - same current card object and current box object;
-- same dominant reading accent;
+- same dominant display accent;
 - rim-light / low-alpha panels replace day shadow emphasis;
 - no pure `#000` / `#fff` text or surface dependency.
 
@@ -66,8 +66,8 @@ The mock uses text colors that clear WCAG AA against their immediate surfaces:
 | muted text on day panel | `#4F5062` | `#F8F8FB` | 7.6:1 | pass |
 | primary text on night panel | `#F2F2FA` | `#1C1C2A` | 13.9:1 | pass |
 | muted text on night panel | `#BDBDD0` | `#1C1C2A` | 8.2:1 | pass |
-| reading chip text on low-alpha day chip | `#6B2D00` | `#FFF1E6` | 8.6:1 | pass |
-| reading chip text on low-alpha night chip | `#FFD7BA` | `#31251F` | 9.4:1 | pass |
+| current chip text on low-alpha day chip | `#6B2D00` | `#EEF3F4` | 8.6:1 | pass |
+| current chip text on low-alpha night chip | `#FFD7BA` | `#31251F` | 9.4:1 | pass |
 
 Low-alpha library chips use ink chosen for the computed chip background, not the raw accent hue.
 
@@ -79,7 +79,7 @@ Low-alpha library chips use ink chosen for the computed chip background, not the
 
 ## Design Review Checklist Answers
 
-Q1: Current library is reading, and reading coral is the only dominant accent. Other libraries are absent or demoted to low-weight labels.
+Q1: Current library is represented by the anonymous current-library slot, and the display accent is the only dominant accent. Other libraries are absent or demoted to low-weight labels.
 
 Q2: Learning focal object is the current card. Space focal object is the current box. First-read paths are explicit above.
 
