@@ -111,6 +111,16 @@
         "apps/mobile/.gitignore"
       ],
       "notes": "Defines active workspace classification and default agent read boundaries. Product specs remain owners of product truth; this domain owns what counts as active repository context."
+    },
+    "harness_architecture": {
+      "owner": "spec/harness-architecture.json",
+      "mirrors": [
+        "spec/agent-harness.json",
+        "spec/evals.json",
+        "scripts/harness_validator/runner.py",
+        "scripts/harness_validator/sections/harness_architecture.py"
+      ],
+      "notes": "Defines validate_harness.py layer ownership, side-effect boundaries, and runtime-smoke delegation. Individual product and delivery facts remain owned by their existing specs."
     }
   }
 }

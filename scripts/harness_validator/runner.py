@@ -8,17 +8,47 @@ sys.dont_write_bytecode = True
 os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
 
 # Sections run in one shared environment to preserve the legacy top-level
-# validator semantics while making each responsibility easier to review.
-SECTION_ORDER = (
-    "prelude",
-    "truth_mirrors",
-    "workspace_boundary",
-    "governance_contracts",
-    "product_contract_mirrors",
-    "delivery_runtime",
-    "design_governance",
-    "visual_language",
+# validator semantics while making layer ownership explicit. Runtime smoke
+# remains delegated to CI jobs; validate_harness.py checks its wiring.
+HARNESS_LAYERS = (
+    {
+        "id": "bootstrap_layer",
+        "sections": ("prelude",),
+    },
+    {
+        "id": "truth_spec_layer",
+        "sections": (
+            "truth_mirrors",
+            "harness_architecture",
+            "product_contract_mirrors",
+            "visual_language",
+        ),
+    },
+    {
+        "id": "workspace_hygiene_layer",
+        "sections": ("workspace_boundary",),
+    },
+    {
+        "id": "delivery_governance_layer",
+        "sections": ("governance_contracts", "delivery_runtime"),
+    },
+    {
+        "id": "design_governance_layer",
+        "sections": ("design_governance",),
+    },
+    {
+        "id": "runtime_smoke_layer",
+        "sections": (),
+    },
 )
+
+
+def _iter_sections() -> tuple[str, ...]:
+    return tuple(
+        section
+        for layer in HARNESS_LAYERS
+        for section in layer["sections"]
+    )
 
 
 def _execute_section(section: str, env: dict[str, object]) -> None:
@@ -34,7 +64,7 @@ def main() -> int:
         "__name__": "__validate_harness_runtime__",
     }
 
-    for section in SECTION_ORDER:
+    for section in _iter_sections():
         _execute_section(section, env)
 
     errors = env.get("errors", [])
