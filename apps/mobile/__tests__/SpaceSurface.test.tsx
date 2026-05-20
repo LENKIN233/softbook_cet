@@ -7,6 +7,11 @@ import ReactTestRenderer from 'react-test-renderer';
 
 import { createLocalLearningSession } from '../src/learning/session';
 import { SpaceSurface } from '../src/space/SpaceSurface';
+import {
+  formatSpacePathByIndex,
+  resolveSpacePosition,
+} from '../src/space/spaceMetadataDisplay';
+import type { SpaceSeedLike } from '../src/space/spaceMetadataDisplay';
 
 const palette = {
   accent: '#7C8BFF',
@@ -77,6 +82,38 @@ function expectSpaceFirstReadOrder(
   expect(boxIndex).toBeGreaterThanOrEqual(0);
   expect(addressIndex).toBeLessThan(railIndex);
   expect(railIndex).toBeLessThan(boxIndex);
+}
+
+function buildSpaceSeedLike(
+  cards: ReturnType<typeof createLocalLearningSession>['catalogCards'],
+): SpaceSeedLike {
+  const libraries: SpaceSeedLike['libraries'] = [];
+
+  for (const card of cards) {
+    let library = libraries.find(
+      item => item.libraryName === card.space_metadata.library,
+    );
+    if (!library) {
+      library = { groups: [], libraryName: card.space_metadata.library };
+      libraries.push(library);
+    }
+
+    let group = library.groups.find(
+      item => item.groupName === card.space_metadata.group,
+    );
+    if (!group) {
+      group = { boxes: [], groupName: card.space_metadata.group };
+      library.groups.push(group);
+    }
+
+    if (
+      !group.boxes.some(box => box.boxRef === card.space_metadata.box_ref)
+    ) {
+      group.boxes.push({ boxRef: card.space_metadata.box_ref });
+    }
+  }
+
+  return { libraries };
 }
 
 test('keeps a physical Space outline when no cards are visible', () => {
@@ -249,6 +286,44 @@ test('uses anonymous ordered selector IDs for Space library and group chips', ()
   expect(root.findAllByProps({ testID: 'space-group-2' }).length)
     .toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-group-052' })).toHaveLength(0);
+});
+
+test('defaults Space first-read focus to the current learning card box', () => {
+  const session = createLocalLearningSession('cet4');
+  const firstLibrary = session.catalogCards[0].space_metadata.library;
+  const currentCard = session.catalogCards.find(
+    card => card.space_metadata.library !== firstLibrary,
+  )!;
+  const position = resolveSpacePosition(
+    buildSpaceSeedLike(session.catalogCards),
+    currentCard,
+  )!;
+  const expectedPath = formatSpacePathByIndex(
+    position.libraryIndex,
+    position.groupIndex,
+    position.boxIndex,
+  );
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={currentCard}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        spaceCards={session.catalogCards}
+      />,
+    );
+  });
+
+  const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+
+  expect(renderedText).toContain(`当前地址 ${expectedPath}`);
+  expect(renderedText).toContain(`当前学习卡位于 ${expectedPath}`);
 });
 
 test('does not render raw metadata values from loaded Space cards', () => {

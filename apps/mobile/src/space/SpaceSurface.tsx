@@ -121,8 +121,33 @@ export function SpaceSurface({
   spaceSyncRail?: SpaceSyncRail | null;
 }) {
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
+  const focusedSelection = useMemo(() => {
+    if (!currentLearningCard) {
+      return null;
+    }
+
+    const position = resolveSpacePosition(seed, currentLearningCard);
+    if (!position) {
+      return null;
+    }
+
+    const library = seed.libraries[position.libraryIndex - 1];
+    const group = library?.groups[position.groupIndex - 1];
+    const box = group?.boxes[position.boxIndex - 1];
+
+    if (!library || !group || !box) {
+      return null;
+    }
+
+    return {
+      boxRef: box.boxRef,
+      groupName: group.groupName,
+      libraryName: library.libraryName,
+      position,
+    };
+  }, [currentLearningCard, seed]);
   const [selectedLibraryName, setSelectedLibraryName] = useState(
-    seed.libraries[0]?.libraryName ?? '',
+    focusedSelection?.libraryName ?? seed.libraries[0]?.libraryName ?? '',
   );
   const selectedLibrary =
     seed.libraries.find(
@@ -130,7 +155,7 @@ export function SpaceSurface({
     ) ?? seed.libraries[0];
 
   const [selectedGroupName, setSelectedGroupName] = useState(
-    selectedLibrary?.groups[0]?.groupName ?? '',
+    focusedSelection?.groupName ?? selectedLibrary?.groups[0]?.groupName ?? '',
   );
   const selectedGroup =
     selectedLibrary?.groups.find(
@@ -138,7 +163,7 @@ export function SpaceSurface({
     ) ?? selectedLibrary?.groups[0];
 
   const [selectedBoxRef, setSelectedBoxRef] = useState(
-    selectedGroup?.boxes[0]?.boxRef ?? '',
+    focusedSelection?.boxRef ?? selectedGroup?.boxes[0]?.boxRef ?? '',
   );
   const selectedBox =
     selectedGroup?.boxes.find(box => box.boxRef === selectedBoxRef) ??
@@ -188,9 +213,7 @@ export function SpaceSurface({
           selectedBoxIndex,
         )
       : '';
-  const currentCardPosition = currentLearningCard
-    ? resolveSpacePosition(seed, currentLearningCard)
-    : null;
+  const currentCardPosition = focusedSelection?.position ?? null;
   const selectedTone = resolveLibraryTone(selectedLibrary?.libraryName);
   const currentLibraryName = currentCardPosition
     ? seed.libraries[currentCardPosition.libraryIndex - 1]?.libraryName
