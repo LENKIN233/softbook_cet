@@ -43,3 +43,14 @@ The RN Learning surface can improve operability without changing the interaction
 - PR design artifact gate with PR body;
 - agent review gate with PR body;
 - mobile quality through GitHub required checks.
+
+## Design Gate Evidence Fields
+
+- `Design artifact`: `docs/design/mocks/learning-card-rhythm-v1.md` and `docs/design/single-card-ux-contract.md`.
+- `Interaction/motion artifact`: `docs/design/interaction-motion/learning-card-rhythm-v1.md`.
+- `Implementation mapping`: `docs/design/mapping/learning-space-implementation-map-v1.md` maps `apps/mobile/src/learning/LearningSurface.tsx` current object plane, action plane, tool plane, and address aperture.
+- `Unimplemented design gaps`: no tablet or pc web layout redesign; no new motion timing or rendered screenshot; no Space hierarchy, sleep, favorite, membership, or remote runtime change.
+- `Universal Q1-Q4`: Law of One / current library, focal first-read path, interaction silhouette, and forbidden_design_patterns evidence are recorded in the PR body.
+- `Conditional Q5-Q6`: phone containment and Learning flip self-assess evidence are recorded in the PR body.
+- `AP-22`: design review checklist pre-render proof is paired with the metadata leak scan.
+- `AP-23`: two-state `有把握` / `再回看` self-assess policy remains unchanged.
