@@ -394,7 +394,10 @@
         "active_truth_source_and_contract_scope",
         "excluded_generated_dependency_cache_archive_scope",
         "external_workspace_boundary_if_any",
-        "agent_read_escalation_reason_if_boundary_is_crossed"
+        "agent_read_escalation_reason_if_boundary_is_crossed",
+        "local_main_worktree_sync_state",
+        "topic_worktree_base_and_inactive_after_merge_state",
+        "remote_merge_state_vs_local_worktree_error_boundary"
       ],
       "stop_when": "agent can name what is active context, what is excluded by default, and why any excluded path was read",
       "blocked_when": "the task depends on bulk-reading generated dependency cache archive or sibling workspace material without an explicit debug or handoff reason"
@@ -734,6 +737,11 @@
       "id": "AP-40",
       "name": "put_hidden_reasoning_or_private_material_in_agent_run_record",
       "correction": "record_public_task_facts_specs_files_commands_validation_and_risks_only_never_hidden_reasoning_secrets_raw_private_comments_or_unreviewed_card_content"
+    },
+    {
+      "id": "AP-41",
+      "name": "treat_stale_local_main_or_worktree_lock_as_remote_merge_failure",
+      "correction": "verify_github_pr_state_and_origin_main_then_fast_forward_clean_local_main_or_report_dirty_workspace_hygiene_blocker"
     }
   ],
   "compaction_keep": [
@@ -750,6 +758,7 @@
     "edited_files",
     "workspace_boundary_and_agent_read_scope",
     "harness_architecture_layer_boundaries",
-    "agent_run_record_path"
+    "agent_run_record_path",
+    "local_main_worktree_sync_state"
   ]
 }

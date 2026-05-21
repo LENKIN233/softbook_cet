@@ -118,6 +118,16 @@
       "pr_body_field": "Run record",
       "allowed_placeholder_before_review": "N/A",
       "merge_blocker": "PR body must reference a committed docs/agent-runs/*.md record before review/merge."
+    },
+    "post_merge_local_sync_policy": {
+      "remote_merge_state_is_authoritative": true,
+      "verify_remote_state_with": [
+        "gh pr view --json state,mergedAt,mergeCommit,statusCheckRollup",
+        "git ls-remote origin refs/heads/main"
+      ],
+      "if_local_main_worktree_exists_and_is_clean": "fast_forward_local_main_worktree_to_origin_main",
+      "if_local_main_worktree_is_dirty": "do_not_overwrite_report_dirty_main_worktree_as_workspace_hygiene_blocker",
+      "local_worktree_lock_error_after_merge": "not_remote_merge_failure_when_github_pr_state_is_MERGED"
     }
   },
   "ci_contract": {

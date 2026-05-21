@@ -78,6 +78,14 @@
 - 不允许在 `module/learning-*` 里顺手做 `space` 或 `membership` 的产品扩展。
 - 不允许为了“先跑起来”提前铺全量模块占位实现。
 
+
+## Worktree lifecycle
+
+- 远端 `origin/main` 与 GitHub PR `MERGED` 状态是集成真相；本地 `main` worktree 只是只读镜像。
+- 如果本地 `main` worktree 干净但落后远端，允许且应当只做 fast-forward 到 `origin/main`。
+- 如果 merge 命令因 `main` 被 worktree 占用或本地 stale 报错，先用 GitHub PR 状态和 `origin/main` merge commit 判断远端是否已合并，不要把本地 worktree 锁当成远端失败。
+- 已合并 PR 的 topic worktree 默认视为 inactive；下一轮 PR 必须从当前 `origin/main` 新建或刷新。
+
 ## 默认交付路径
 
 - 会持久化 repo 改动的任务默认走 `topic branch -> commit -> PR(main)`。

@@ -86,6 +86,7 @@ status: active
 
 - 不要把 PR 绑定的治理、harness、用户可见 UI、runtime、卡片交接或多文件重构工作只留在聊天历史里；必须按 `spec/agent-run-record.json` 在 `docs/agent-runs/` 提交最小运行记录并在 PR 中引用
 - `main` 是只读集成分支，不要直接在 `main` 上开发、提交、合并或推送
+- 若本地 `main` worktree 存在且干净，merge 后只允许 fast-forward 到 `origin/main`；不要把 stale local main 或 worktree lock 当成远端 merge 失败
 - 开发前先切到 `infra/*`、`shell/*`、`module/*`、`cross/*` 或 `fix/*`
 - clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`
 - 若发现本地 hooks 或 GitHub `main` 保护漂移，先修治理再继续功能开发

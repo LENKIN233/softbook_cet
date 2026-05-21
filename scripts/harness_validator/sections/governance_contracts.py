@@ -262,6 +262,24 @@ check_equal(
     "Run record",
     pull_request_contract["agent_run_record_policy"]["pr_body_field"],
 )
+
+post_merge_local_sync_policy = pull_request_contract["post_merge_local_sync_policy"]
+check_equal(
+    "post_merge_local_sync_policy remote authority",
+    True,
+    post_merge_local_sync_policy["remote_merge_state_is_authoritative"],
+)
+check_equal(
+    "post_merge_local_sync_policy clean local main",
+    "fast_forward_local_main_worktree_to_origin_main",
+    post_merge_local_sync_policy["if_local_main_worktree_exists_and_is_clean"],
+)
+check_equal(
+    "post_merge_local_sync_policy worktree lock",
+    "not_remote_merge_failure_when_github_pr_state_is_MERGED",
+    post_merge_local_sync_policy["local_worktree_lock_error_after_merge"],
+)
+
 check_equal(
     "pull_request_contract visual_output_rule",
     "if_visual_output_changes_exist_the_pull_request_must_answer_the_design_review_checklist",
