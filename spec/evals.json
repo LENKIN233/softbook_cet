@@ -397,6 +397,18 @@
       "protects_against": "Run-record section existing as a cosmetic template field while merge review lacks durable evidence.",
       "command": "PR_BODY=<body> python3 scripts/validate_agent_review.py",
       "expected": "AGENT REVIEW GATE OK only when Run record points to docs/agent-runs/*.md"
+    },
+    {
+      "id": "HR-35",
+      "prompt": "PR merge command reports a local main worktree lock after required gates passed",
+      "fail_signal": "assumes_remote_merge_failed_or_continues_from_stale_local_main",
+      "must_hit": [
+        "github_pr_state_is_remote_merge_authority",
+        "origin_main_checked_for_merge_commit",
+        "clean_local_main_fast_forwarded_to_origin_main",
+        "dirty_local_main_reported_as_workspace_hygiene_blocker",
+        "topic_worktree_not_reused_after_merge_without_refresh"
+      ]
     }
   ],
   "golden_tasks": [
@@ -708,6 +720,17 @@
         "PR body Agent run record section with Run record pointing to that committed file",
         "validate_harness.py covers the contract wiring",
         "validate_agent_review.py rejects missing or placeholder run records"
+      ]
+    },
+    {
+      "id": "GT-26",
+      "task": "处理本地 main worktree stale 或 merge 后 worktree lock",
+      "must_include": [
+        "verify_remote_pr_state_and_origin_main",
+        "classify_stale_local_main_as_workspace_hygiene_not_product_truth",
+        "fast_forward_clean_local_main_only",
+        "do_not_overwrite_dirty_worktree",
+        "start_next_pr_from_origin_main"
       ]
     }
   ]
