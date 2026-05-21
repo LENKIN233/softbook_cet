@@ -2066,7 +2066,7 @@ test('can boot the app into cet6 through runtime config', async () => {
     'cet6',
   );
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本轮学习卡组');
+  expect(output).toContain('这一组学习卡');
   expect(output).not.toContain('CET6');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
@@ -2254,6 +2254,7 @@ test('can complete the local single-card deck and restart it', async () => {
   expect(output).toContain('再练一轮这一组');
   expect(output).not.toContain('当前卡组');
   expect(output).not.toContain('系统顺序');
+  expect(output).not.toContain('系统顺序学习');
   expectNoUserVisibleMetadataLeakage(tree!);
 
   await ReactTestRenderer.act(() => {
@@ -2354,7 +2355,7 @@ test('can start a review round from cards that need revisiting', async () => {
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('回看卡组');
+  expect(output).toContain('回看这一组');
   expect(output).toContain('回看需要再看的卡，仍按一张卡推进');
   expect(output).toContain('however');
   expectNoUserVisibleMetadataLeakage(tree!);

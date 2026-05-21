@@ -95,6 +95,21 @@ function indexOrOne(values: string[], value: string) {
   const index = values.indexOf(value);
   return index >= 0 ? index + 1 : 1;
 }
+
+function formatLearningSessionLabelForDisplay(
+  sessionLabel: string,
+  phase: 'learning' | 'review',
+) {
+  const trimmedLabel = sessionLabel.trim();
+  const exposesSourceMetadata = /系统顺序|卡源|catalog|卡组/i.test(trimmedLabel);
+
+  if (!trimmedLabel || exposesSourceMetadata) {
+    return phase === 'review' ? '这组回看卡' : '这一组学习卡';
+  }
+
+  return trimmedLabel;
+}
+
 function formatLearningActionCue(
   card: LearningCard,
   currentResult: LearningCardResult | null,
@@ -136,6 +151,10 @@ export function LearningSurface({
   onStartReview,
 }: LearningSurfaceProps) {
   const isReviewPhase = phase === 'review';
+  const displaySessionLabel = formatLearningSessionLabelForDisplay(
+    sessionLabel,
+    phase,
+  );
   const currentCardScrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -170,8 +189,8 @@ export function LearningSurface({
           </Text>
           <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
             {isReviewPhase
-              ? `这轮从${sessionLabel}里回看了 ${sessionCards.length} 张卡，把“需要回看”的部分集中处理了一遍。`
-              : `这轮从${sessionLabel}里完成了 ${sessionCards.length} 张卡，下一次会继续从需要再看的地方开始。`}
+              ? `这轮从${displaySessionLabel}里回看了 ${sessionCards.length} 张卡，把“需要回看”的部分集中处理了一遍。`
+              : `这轮从${displaySessionLabel}里完成了 ${sessionCards.length} 张卡，下一次会继续从需要再看的地方开始。`}
           </Text>
           <View style={styles.metricWrap}>
             <MetricPill
@@ -281,7 +300,7 @@ export function LearningSurface({
           <View style={styles.heroChipRow}>
             <TagChip label="当前这一张" toneColor={tone.accent} />
             {isReviewPhase ? (
-              <TagChip label="回看卡组" toneColor={palette.warning} />
+              <TagChip label="回看这一组" toneColor={palette.warning} />
             ) : null}
           </View>
           <Text style={[styles.learningFrameMeta, { color: palette.textMuted }]}> 
@@ -289,7 +308,7 @@ export function LearningSurface({
           </Text>
         </View>
         <Text style={[styles.learningFrameSummary, { color: palette.textMuted }]}>
-          {sessionLabel} ·{' '}
+          {displaySessionLabel} ·{' '}
           {isReviewPhase
             ? '回看需要再看的卡，仍按一张卡推进'
             : '先完成这一张，再继续下一步'}
