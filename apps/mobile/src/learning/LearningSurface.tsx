@@ -180,41 +180,14 @@ export function LearningSurface({
               palette={palette}
             />
             <MetricPill
-              label="自动判对"
-              value={`${summary.autoCorrectCount}`}
+              label="下一步"
+              value={
+                !isReviewPhase && reviewCandidateCount > 0
+                  ? `回看 ${reviewCandidateCount}`
+                  : '已收好'
+              }
               palette={palette}
-              tone="success"
-            />
-            <MetricPill
-              label="自动判错"
-              value={`${summary.autoIncorrectCount}`}
-              palette={palette}
-              tone="danger"
-            />
-            <MetricPill
-              label="翻面有把握"
-              value={`${summary.confidentFlipCount}`}
-              palette={palette}
-            />
-            <MetricPill
-              label="翻面回看"
-              value={`${summary.reviewFlipCount}`}
-              palette={palette}
-            />
-            <MetricPill
-              label="提示"
-              value={`${summary.hintUseCount}`}
-              palette={palette}
-            />
-            <MetricPill
-              label="线索"
-              value={`${summary.peekUseCount}`}
-              palette={palette}
-            />
-            <MetricPill
-              label="收藏"
-              value={`${summary.favoriteCount}`}
-              palette={palette}
+              tone={!isReviewPhase && reviewCandidateCount > 0 ? 'warning' : 'success'}
             />
           </View>
         </View>
@@ -222,35 +195,18 @@ export function LearningSurface({
         <View style={styles.detailGrid}>
           <InfoGlassCard
             palette={palette}
-            title={isReviewPhase ? '这轮回看落实了什么' : '这一步落实了什么'}
+            title={isReviewPhase ? '回看已经收好' : '这一轮已经收好'}
             lines={
               isReviewPhase
                 ? [
                     '需要再看的卡已经重新过了一遍。',
-                    '仍不稳的点会留在后续回看里继续出现。',
-                    '回看仍按一张卡一张卡推进，不要求你管理列表。',
+                    '仍不稳的点会留在后续学习里自然出现。',
+                    '现在可以回到首轮，继续按系统顺序走。',
                   ]
                 : [
                     '当前卡组已经按系统顺序走完。',
-                    '需要再看的卡会收进回看，不打断当前学习。',
-                    '线索、提示和标记只服务当前这张卡。',
-                  ]
-            }
-          />
-          <InfoGlassCard
-            palette={palette}
-            title={isReviewPhase ? '继续建议' : '下一步建议'}
-            lines={
-              isReviewPhase
-                ? [
-                    '可以回到首轮重新走一遍当前卡组。',
-                    '也可以进入空间，看这些卡所在的知识盒。',
-                    '先处理仍不稳的卡，再继续新一轮学习。',
-                  ]
-                : [
-                    '先回看需要再看的卡。',
-                    '想确认位置时，去空间查看对应知识盒。',
-                    '如果今天只想巩固，可以再练一轮当前卡组。',
+                    '需要再看的卡已经被收进回看，不要求你管理列表。',
+                    '想确认位置时，再去空间查看对应知识盒。',
                   ]
             }
           />
@@ -266,30 +222,14 @@ export function LearningSurface({
           ]}
           testID="learning-complete-details"
         >
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>
-            完成明细
+          <Text style={[styles.sectionTitle, { color: palette.text }]}>下一步</Text>
+          <Text style={[styles.resultExplanationBody, { color: palette.textMuted }]}>
+            {isReviewPhase
+              ? '回看已经结束。可以回到首轮重新开始，也可以稍后从系统顺序继续。'
+              : reviewCandidateCount > 0
+                ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
+                : '这一轮已经完成，可以再练一轮当前卡组。'}
           </Text>
-          {completedResults.map(result => (
-            <View
-              key={result.cardId}
-              style={[
-                styles.resultRow,
-                {
-                  borderBottomColor: palette.border,
-                },
-              ]}
-            >
-              <View style={styles.resultCopy}>
-                <Text style={[styles.resultTitle, { color: palette.text }]}>
-                  {INTERACTION_LABELS[result.interactionId]}
-                </Text>
-                <Text style={[styles.resultMeta, { color: palette.textMuted }]}>
-                  已完成
-                </Text>
-              </View>
-            <ResultBadge outcome={result.outcome} palette={palette} />
-          </View>
-        ))}
           {!isReviewPhase && reviewCandidateCount > 0 && onStartReview ? (
             <Pressable
               onPress={onStartReview}

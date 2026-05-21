@@ -84,3 +84,58 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain(currentCard.space_metadata.box_ref);
   expect(output).not.toContain('训练轨道');
 });
+
+test('completion state keeps the next step primary instead of a metric dashboard', () => {
+  const session = createLocalLearningSession('cet4');
+  const completedCard = session.catalogCards[0];
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <LearningSurface
+        palette={palette}
+        sessionCards={session.cards}
+        sessionLabel={session.sourceLabel}
+        phase="learning"
+        currentCard={null}
+        currentCardState={null}
+        currentIndex={session.cards.length}
+        currentResult={null}
+        completedResults={[
+          {
+            cardId: completedCard.card_id,
+            completedAt: '2026-05-21T12:00:00.000Z',
+            interactionId: completedCard.interaction_id,
+            isFavorited: false,
+            outcome: 'review',
+            usedHint: false,
+            usedPeek: false,
+          },
+        ]}
+        reviewCandidateCount={1}
+        onTogglePeek={jest.fn()}
+        onToggleFavorite={jest.fn()}
+        onToggleHint={jest.fn()}
+        onFlip={jest.fn()}
+        onSetFlipConfidence={jest.fn()}
+        onSelectOption={jest.fn()}
+        onSetLockSelection={jest.fn()}
+        onToggleEliminationItem={jest.fn()}
+        onSelectSwipeState={jest.fn()}
+        onSubmitCurrentCard={jest.fn()}
+        onAdvanceCard={jest.fn()}
+        onRestartDeck={jest.fn()}
+        onStartReview={jest.fn()}
+      />,
+    );
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+
+  expect(output).toContain('下一步');
+  expect(output).toContain('开始回看这 1 张卡');
+  expect(output).not.toContain('完成明细');
+  expect(output).not.toContain('自动判对');
+  expect(output).not.toContain('自动判错');
+});
