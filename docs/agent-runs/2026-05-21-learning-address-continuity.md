@@ -54,11 +54,17 @@ Implement the smallest Learning UI structure fix after visible copy cleanup: the
 
 ## Validation results
 
-Pending until final local validation is run.
+- `node apps/mobile/scripts/check-metadata-leaks.mjs`: `PASS: No metadata leaks detected in visible text.`
+- `python3 scripts/validate_harness.py`: `HARNESS VALIDATION OK`.
+- `PR_BODY="$(cat /tmp/softbook_learning_address_pr_body.md)" python3 scripts/validate_pr_design_gate.py --base origin/main --head HEAD`: `PR DESIGN GATE OK`.
+- `PR_BODY="$(cat /tmp/softbook_learning_address_pr_body.md)" python3 scripts/validate_agent_review.py`: `AGENT REVIEW GATE OK`.
 
 ## Agent review status
 
-Pending until PR body validation and local review are complete.
+- Reviewer: Codex local learning-address-continuity review.
+- Review status: Passed.
+- Blocking findings: No blocking findings.
+- Review summary: Reviewed the Learning address aperture change against the single-card UX contract, Learning rhythm proof, implementation mapping, metadata leak boundary, and Space continuity requirement. The patch is limited to anonymous address display plus tests.
 
 ## User-visible UI impact
 
