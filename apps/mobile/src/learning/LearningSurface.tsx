@@ -298,7 +298,7 @@ export function LearningSurface({
       >
         <View style={styles.learningFrameTop}>
           <View style={styles.heroChipRow}>
-            <TagChip label="当前这一张" toneColor={tone.accent} />
+            <TagChip label="先做这一张" toneColor={tone.accent} />
             {isReviewPhase ? (
               <TagChip label="回看这一组" toneColor={palette.warning} />
             ) : null}
@@ -343,7 +343,7 @@ export function LearningSurface({
         <View style={styles.studyCardTop}>
           <View style={styles.studyTitleWrap}>
             <Text style={[styles.cardEyebrow, { color: tone.accent }]}>
-              当前卡 · {INTERACTION_LABELS[currentCard.interaction_id]}
+              这张练习 · {INTERACTION_LABELS[currentCard.interaction_id]}
             </Text>
             <Text style={[styles.cardPrompt, { color: palette.text }]}>
               {currentCard.front.prompt}
