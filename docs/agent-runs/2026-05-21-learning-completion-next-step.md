@@ -43,3 +43,7 @@ The RN completion state can reduce cognitive load by:
 - PR design artifact gate with PR body;
 - agent review gate with PR body;
 - mobile quality through GitHub required checks.
+
+## CI Follow-up
+
+- GitHub `mobile-quality` first run failed at TypeScript because `MetricPill` only accepts `success | danger`; the completion next-step pill was changed to the allowed `success` tone.

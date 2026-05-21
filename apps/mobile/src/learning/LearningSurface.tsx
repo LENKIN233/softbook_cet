@@ -187,7 +187,7 @@ export function LearningSurface({
                   : '已收好'
               }
               palette={palette}
-              tone={!isReviewPhase && reviewCandidateCount > 0 ? 'warning' : 'success'}
+              tone="success"
             />
           </View>
         </View>
