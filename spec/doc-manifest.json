@@ -648,6 +648,43 @@
         "docs/design/briefs/learning-space-worldview.md"
       ],
       "status": "active"
+    },
+    {
+      "path": "docs/agent-runs/README.md",
+      "authority": "agent_run_record_guidance",
+      "audience": [
+        "agent",
+        "engineer",
+        "reviewer"
+      ],
+      "load_when": [
+        "agent_run_record_task",
+        "pr_bound_governance_or_harness_task",
+        "context_handoff_task"
+      ],
+      "depends_on": [
+        "spec/agent-run-record.json",
+        "spec/repo-delivery-contract.json",
+        "spec/agent-harness.json"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/agent-runs/TEMPLATE.md",
+      "authority": "agent_run_record_template",
+      "audience": [
+        "agent",
+        "engineer",
+        "reviewer"
+      ],
+      "load_when": [
+        "agent_run_record_task",
+        "context_handoff_task"
+      ],
+      "depends_on": [
+        "spec/agent-run-record.json"
+      ],
+      "status": "active"
     }
   ],
   "active_specs": [
@@ -671,7 +708,8 @@
     "spec/perturbation-audit.json",
     "spec/visual-language.json",
     "spec/workspace-boundary.json",
-    "spec/harness-architecture.json"
+    "spec/harness-architecture.json",
+    "spec/agent-run-record.json"
   ],
   "inactive_paths": [
     "archive/legacy-v3/",

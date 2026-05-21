@@ -34,6 +34,7 @@
       "变更摘要",
       "验证",
       "Agent review",
+      "Agent run record",
       "设计稿来源（用户可见 UI 如适用）",
       "design_review_checklist（如适用）"
     ],
@@ -103,6 +104,20 @@
         "infra/cloudbase/smoke-softbook-api.mjs",
         "scripts/report_release_content_gap.mjs"
       ]
+    },
+    "agent_run_record_policy": {
+      "required_before_merge": true,
+      "required_for": [
+        "governance_or_harness_changes",
+        "user_visible_ui_changes",
+        "runtime_contract_changes",
+        "card_payload_handoff_changes",
+        "multi_file_refactor_changes"
+      ],
+      "storage": "docs/agent-runs/",
+      "pr_body_field": "Run record",
+      "allowed_placeholder_before_review": "N/A",
+      "merge_blocker": "PR body must reference a committed docs/agent-runs/*.md record before review/merge."
     }
   },
   "ci_contract": {

@@ -22,6 +22,7 @@ REQUIRED_SECTIONS = (
     "变更摘要",
     "验证",
     "Agent review",
+    "Agent run record",
     "设计稿来源（用户可见 UI 如适用）",
     "design_review_checklist（如适用）",
 )
@@ -146,11 +147,18 @@ def validate(body: str) -> list[str]:
     if is_missing(review_summary):
         errors.append("Agent review must include a non-N/A Review summary")
 
+    run_record = line_value(body, "Run record")
+    if is_missing(run_record):
+        errors.append("Agent run record must state Run record")
+    elif "docs/agent-runs/" not in run_record or ".md" not in run_record:
+        errors.append("PR body must reference a committed agent run record under docs/agent-runs/")
+
     return errors
 
 
 def main():
     errors = validate(read_body(parse_args()))
+
     if errors:
         print("AGENT REVIEW GATE FAILED")
         for error in errors:

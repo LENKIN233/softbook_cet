@@ -23,6 +23,11 @@
 - Review summary: N/A
 - merge 前必须由 agent 把本节更新为 `Review status: Passed`，且 `Blocking findings` 必须明确无阻塞问题；否则 `agent-review` gate 不应通过。
 
+## Agent run record
+
+- Run record: N/A
+- PR-bound governance / harness / UI / runtime / card handoff / multi-file refactor work must commit a record under `docs/agent-runs/` and reference it here before merge.
+
 ## 设计稿来源（用户可见 UI 如适用）
 
 - Design artifact: N/A

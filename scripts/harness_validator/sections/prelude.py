@@ -87,6 +87,7 @@ manifest = load("doc-manifest.json")
 authority = load("authority-map.json")
 harness = load("agent-harness.json")
 harness_architecture = load("harness-architecture.json")
+agent_run_record = load("agent-run-record.json")
 evals = load("evals.json")
 perturbation_audit = load("perturbation-audit.json")
 

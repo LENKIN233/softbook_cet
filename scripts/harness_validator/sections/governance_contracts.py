@@ -232,6 +232,7 @@ check_equal(
         "变更摘要",
         "验证",
         "Agent review",
+        "Agent run record",
         "设计稿来源（用户可见 UI 如适用）",
         "design_review_checklist（如适用）",
     ],
@@ -245,6 +246,21 @@ check_equal(
         "skip_remote_guard_only_record_is_merge_blocker": True,
     },
     pull_request_contract["validation_record_policy"],
+)
+check_equal(
+    "pull_request_contract agent_run_record_policy required_before_merge",
+    True,
+    pull_request_contract["agent_run_record_policy"]["required_before_merge"],
+)
+check_equal(
+    "pull_request_contract agent_run_record_policy storage",
+    "docs/agent-runs/",
+    pull_request_contract["agent_run_record_policy"]["storage"],
+)
+check_equal(
+    "pull_request_contract agent_run_record_policy pr_body_field",
+    "Run record",
+    pull_request_contract["agent_run_record_policy"]["pr_body_field"],
 )
 check_equal(
     "pull_request_contract visual_output_rule",
@@ -882,7 +898,7 @@ for snippet in [
     "同级外部内容工作区：`/Users/lenkin/programing/card make`（卡片候选内容生产与审批边界；本仓库只消费其导出的卡片 payload）",
     "卡片内容交接：`requirement-memory -> product-core -> card-system -> box-catalog -> runtime-boundaries -> agent-harness -> infra/cloudbase/mobile-runtime-contract.md -> /Users/lenkin/programing/card make`",
     "不要在 `softbook_cet` 内生产候选卡片内容、批准卡片批次或把 dev seed cards 当作正式内容量；候选内容生产和审批发生在同级 `/Users/lenkin/programing/card make`，本仓库只接收其导出的 payload、dry-run/import、audit、runtime smoke 和报告 coverage delta",
-    "若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证、Agent review；若涉及用户可见 UI，必须写明设计稿来源、interaction/motion 或 physical-space artifact（如适用）、实现映射与未实现 gap，并回答 design review checklist；默认在 review + gate 通过后自动收口合并",
+    "若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证、Agent review 与 Agent run record；若涉及用户可见 UI，必须写明设计稿来源、interaction/motion 或 physical-space artifact（如适用）、实现映射与未实现 gap，并回答 design review checklist；默认在 review + gate 通过后自动收口合并",
 ]:
     check_contains("AGENTS governance mirror", agents_text, snippet)
 
@@ -901,14 +917,14 @@ check_contains(
 for snippet in [
     "会持久化 repo 改动的任务默认走 `topic branch -> commit -> PR(main)`。",
     "若用户明确要求只做本地修改，才允许停在本地 handoff，不开 PR。",
-    "PR 创建后，默认在 agent review 通过、PR body 留下可校验 review 记录、且 required gates 全绿时自动合并到 `main`。",
+    "PR 创建后，默认在 agent review 通过、PR body 留下可校验 review 记录与 `docs/agent-runs/*.md` 运行记录引用、且 required gates 全绿时自动合并到 `main`。",
     "只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。",
     "如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。",
     "涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / direction / decision，再做实现；同一 PR 内新增的 brief / direction / decision 只能满足 design-only PR。",
     "Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 和 Space visual proof / refinement / shelf-desk baseline；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
-    "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`、`Agent review`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。",
+    "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`、`Agent review`、`Agent run record`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。",
     "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_maestro_selectors.py`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。",
-    "merge 的默认前置条件是：agent review 无 blocking finding，PR body 中 `Agent review` 已记录为 passed，且 required gates 全绿。",
+    "merge 的默认前置条件是：agent review 无 blocking finding，PR body 中 `Agent review` 已记录为 passed，`Agent run record` 已引用 `docs/agent-runs/*.md`，且 required gates 全绿。",
 ]:
     check_contains("branching strategy delivery mirror", branching_text, snippet)
 
@@ -926,12 +942,12 @@ check_contains(
 for snippet in [
     "- `spec/repo-delivery-contract.json`",
     "- `spec/visual-language.json`",
-    "- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness 校验 + Maestro selector guard + agent review 记录 + mobile quality + backend contract）",
-    "- `scripts/validate_agent_review.py`: PR body agent review 记录校验（merge 前必须记录 passed review 且无阻塞问题）",
+    "- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness 校验 + Maestro selector guard + agent review / agent run record 记录 + mobile quality + backend contract）",
+    "- `scripts/validate_agent_review.py`: PR body agent review 与 agent run record 记录校验（merge 前必须记录 passed review、无阻塞问题，并引用 `docs/agent-runs/*.md`）",
     "- `scripts/validate_maestro_selectors.py`: Maestro smoke selector 校验（禁止用用户可见文案作为 `tapOn` / `assertVisible` 等 selector，并要求 id 有 RN `testID` 背书）",
-    "- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / 视觉 checklist）",
+    "- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / agent run record / 视觉 checklist）",
     "- `docs/design/directions/` / `docs/design/interaction-motion/` / `docs/design/physical-space/` / `docs/design/mocks/` / `docs/design/storyboards/`: 核心方向、交互、动效、空间模型、视觉稿和 storyboard artifact 入口",
-    "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review 记录 -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",
+    "任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review 记录 + agent run record -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。",
     "任何用户可见 UI 改动都必须先引用已接受设计稿 / reference / design brief / direction / decision，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口；同一 PR 内新增的 brief / direction / decision 只能满足 design-only PR。",
     "Learning / core interaction UI 改动还必须引用 interaction-motion artifact 或 storyboard；Space UI 改动还必须引用 physical-space artifact 和 Space visual proof / refinement / shelf-desk baseline；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
 ]:
@@ -940,3 +956,5 @@ for snippet in [
 gitignore_text = (ROOT / ".gitignore").read_text(encoding="utf-8")
 for snippet in ["__pycache__/", "*.py[cod]", ".tmp/"]:
     check_contains("gitignore harness runtime artifacts", gitignore_text, snippet)
+
+# Agent run record PR template snippets: ## Agent run record | - Run record: N/A | docs/agent-runs/

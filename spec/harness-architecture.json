@@ -10,57 +10,128 @@
     {
       "id": "bootstrap_layer",
       "name": "Bootstrap shared runtime",
-      "sections": ["prelude"],
+      "sections": [
+        "prelude"
+      ],
       "responsibility": "Create the shared validation environment and load active specs.",
       "side_effect_policy": "local_read_and_environment_setup_only",
-      "allowed_operations": ["read_local_specs", "define_helpers", "set_python_no_bytecode"],
-      "forbidden_operations": ["git", "gh", "network", "temporary_fixture_generation"]
+      "allowed_operations": [
+        "read_local_specs",
+        "define_helpers",
+        "set_python_no_bytecode"
+      ],
+      "forbidden_operations": [
+        "git",
+        "gh",
+        "network",
+        "temporary_fixture_generation"
+      ]
     },
     {
       "id": "truth_spec_layer",
       "name": "Truth and spec consistency",
-      "sections": ["truth_mirrors", "harness_architecture", "product_contract_mirrors", "visual_language"],
+      "sections": [
+        "truth_mirrors",
+        "harness_architecture",
+        "product_contract_mirrors",
+        "visual_language"
+      ],
       "responsibility": "Check active truth, owner/mirror consistency, product contract mirrors, and visual-language mirrors using local files only.",
       "side_effect_policy": "pure_local_file_checks",
-      "allowed_operations": ["read_local_files", "compare_json_and_text_anchors"],
-      "forbidden_operations": ["git", "gh", "network", "subprocess", "temporary_fixture_generation"]
+      "allowed_operations": [
+        "read_local_files",
+        "compare_json_and_text_anchors"
+      ],
+      "forbidden_operations": [
+        "git",
+        "gh",
+        "network",
+        "subprocess",
+        "temporary_fixture_generation"
+      ]
     },
     {
       "id": "workspace_hygiene_layer",
       "name": "Workspace hygiene and context boundary",
-      "sections": ["workspace_boundary"],
+      "sections": [
+        "workspace_boundary"
+      ],
       "responsibility": "Check active workspace classification and default agent read boundaries without inspecting generated dependency trees.",
       "side_effect_policy": "pure_local_file_checks",
-      "allowed_operations": ["read_local_specs", "read_gitignore_files"],
-      "forbidden_operations": ["git", "gh", "network", "bulk_generated_or_dependency_reads", "temporary_fixture_generation"]
+      "allowed_operations": [
+        "read_local_specs",
+        "read_gitignore_files"
+      ],
+      "forbidden_operations": [
+        "git",
+        "gh",
+        "network",
+        "bulk_generated_or_dependency_reads",
+        "temporary_fixture_generation"
+      ]
     },
     {
       "id": "delivery_governance_layer",
       "name": "Delivery governance and PR gates",
-      "sections": ["governance_contracts", "delivery_runtime"],
+      "sections": [
+        "governance_contracts",
+        "agent_run_record",
+        "delivery_runtime"
+      ],
       "responsibility": "Check branch policy, hooks, branch protection, workflow wiring, PR body gates, and local delivery validators.",
       "side_effect_policy": "allowed_local_commands_and_remote_github_reads",
-      "allowed_operations": ["git_read_commands", "gh_branch_protection_read", "local_subprocess_validators", "temporary_selector_fixtures"],
-      "forbidden_operations": ["repository_mutation", "dependency_install", "build_outputs", "runtime_deployment"]
+      "allowed_operations": [
+        "git_read_commands",
+        "gh_branch_protection_read",
+        "local_subprocess_validators",
+        "temporary_selector_fixtures"
+      ],
+      "forbidden_operations": [
+        "repository_mutation",
+        "dependency_install",
+        "build_outputs",
+        "runtime_deployment"
+      ]
     },
     {
       "id": "design_governance_layer",
       "name": "Design governance and design-search regressions",
-      "sections": ["design_governance"],
+      "sections": [
+        "design_governance"
+      ],
       "responsibility": "Check design artifact lifecycle, quarantine, single-card UX contract, design-search fixtures, and visual-output PR gate regressions.",
       "side_effect_policy": "allowed_temporary_design_fixtures_no_remote",
-      "allowed_operations": ["read_design_artifacts", "temporary_fixture_generation", "local_design_validator_subprocess"],
-      "forbidden_operations": ["git", "gh", "network", "repository_mutation", "runtime_deployment"]
+      "allowed_operations": [
+        "read_design_artifacts",
+        "temporary_fixture_generation",
+        "local_design_validator_subprocess"
+      ],
+      "forbidden_operations": [
+        "git",
+        "gh",
+        "network",
+        "repository_mutation",
+        "runtime_deployment"
+      ]
     },
     {
       "id": "runtime_smoke_layer",
       "name": "Runtime smoke and app/backend behavior",
       "sections": [],
-      "ci_jobs": ["backend-contract", "mobile-quality"],
+      "ci_jobs": [
+        "backend-contract",
+        "mobile-quality"
+      ],
       "responsibility": "Runtime behavior is verified by dedicated CI jobs, not by the pure harness layers. validate_harness.py may check that those jobs are wired, but it must not become the runtime smoke runner.",
       "side_effect_policy": "delegated_to_ci_jobs",
-      "allowed_operations": ["workflow_wiring_checks"],
-      "forbidden_operations": ["run_mobile_tests_inside_validate_harness", "run_backend_tests_inside_validate_harness", "deploy_cloudbase_inside_validate_harness"]
+      "allowed_operations": [
+        "workflow_wiring_checks"
+      ],
+      "forbidden_operations": [
+        "run_mobile_tests_inside_validate_harness",
+        "run_backend_tests_inside_validate_harness",
+        "deploy_cloudbase_inside_validate_harness"
+      ]
     }
   ],
   "runner_section_order": [
@@ -71,6 +142,7 @@
     "visual_language",
     "workspace_boundary",
     "governance_contracts",
+    "agent_run_record",
     "delivery_runtime",
     "design_governance"
   ],

@@ -1,0 +1,84 @@
+{
+  "version": "vnext-1",
+  "layer": "repo_governance_truth",
+  "purpose": "Define how significant agent-authored repository work is recorded as durable, reviewable project context instead of being recoverable only from chat history.",
+  "authority_note": "This file owns the agent run record schema, storage location, and PR reference policy. It does not own product truth, design authority, workspace classification, or validator layer ownership.",
+  "product_truth": {
+    "none": "Agent run records are delivery governance truth. They preserve how product truth and implementation hypotheses were used, but they do not create product truth."
+  },
+  "storage": {
+    "directory": "docs/agent-runs/",
+    "filename_pattern": "YYYY-MM-DD-<short-slug>.md",
+    "template": "docs/agent-runs/TEMPLATE.md",
+    "index": "docs/agent-runs/README.md"
+  },
+  "required_fields": [
+    "task_summary",
+    "referenced_specs",
+    "product_truth_used",
+    "implementation_hypothesis_changed",
+    "workspace_boundary_and_read_scope",
+    "files_changed",
+    "commands_run",
+    "validation_results",
+    "agent_review_status",
+    "user_visible_ui_impact",
+    "card_make_external_workspace_impact",
+    "risks_and_open_questions",
+    "follow_up"
+  ],
+  "pr_policy": {
+    "required_body_section": "Agent run record",
+    "required_body_field": "Run record",
+    "required_path_prefix": "docs/agent-runs/",
+    "applies_to": [
+      "repository_governance_change",
+      "harness_or_ci_change",
+      "user_facing_ui_change",
+      "runtime_or_backend_change",
+      "card_content_handoff_change",
+      "multi_file_refactor"
+    ],
+    "local_only_exception": "Local-only work may omit a committed run record only when the user explicitly requests no PR and the final answer records the same fields."
+  },
+  "privacy_and_leakage_policy": {
+    "must_not_include": [
+      "hidden_chain_of_thought",
+      "secrets_or_tokens",
+      "private_user_data",
+      "unredacted_credentials",
+      "raw_debug_logs_with_credentials"
+    ],
+    "allowed": [
+      "file_paths",
+      "commands",
+      "validation_results",
+      "PR_and_commit_references",
+      "risk_summary",
+      "explicit_user_decisions"
+    ]
+  },
+  "harness_expectations": {
+    "validate_agent_review_requires_pr_reference": true,
+    "validate_harness_checks_template_and_contract": true,
+    "run_record_must_not_replace_tests_or_review": true,
+    "run_record_must_separate_product_truth_and_implementation_hypothesis": true
+  },
+  "anti_patterns": [
+    {
+      "id": "ARR-AP-01",
+      "name": "leave_agent_work_only_in_chat_history",
+      "correction": "write_a_committed_run_record_for_significant_PR_bound_work"
+    },
+    {
+      "id": "ARR-AP-02",
+      "name": "mix_hidden_reasoning_or_secrets_into_run_record",
+      "correction": "record_facts_commands_decisions_and_risks_only_no_chain_of_thought_or_credentials"
+    },
+    {
+      "id": "ARR-AP-03",
+      "name": "use_run_record_as_substitute_for_validation_or_review",
+      "correction": "record_validation_and_review_results_but_keep_required_gates_enforced_separately"
+    }
+  ]
+}

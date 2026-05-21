@@ -383,6 +383,20 @@
         "design_governance_for_design_artifact_regressions",
         "runtime_tests_stay_in_ci_jobs"
       ]
+    },
+    {
+      "id": "HR-33",
+      "title": "Agent run record is wired into manifest, authority, delivery contract, harness, PR template, and agent review gate.",
+      "protects_against": "PR-bound agent work disappearing into chat-only context or untraceable local decisions.",
+      "command": "python3 scripts/validate_harness.py",
+      "expected": "HARNESS VALIDATION OK"
+    },
+    {
+      "id": "HR-34",
+      "title": "Agent review rejects PR bodies without a committed docs/agent-runs/*.md reference.",
+      "protects_against": "Run-record section existing as a cosmetic template field while merge review lacks durable evidence.",
+      "command": "PR_BODY=<body> python3 scripts/validate_agent_review.py",
+      "expected": "AGENT REVIEW GATE OK only when Run record points to docs/agent-runs/*.md"
     }
   ],
   "golden_tasks": [
@@ -683,6 +697,17 @@
         "runtime_smoke_layer",
         "pure_local_file_checks",
         "runtime_smoke_delegated_to_backend_contract_and_mobile_quality"
+      ]
+    },
+    {
+      "id": "GT-25",
+      "title": "PR-bound governance change creates and references a durable agent run record.",
+      "prompt": "Add a governance or harness contract change and prepare the PR body.",
+      "expected_artifacts": [
+        "docs/agent-runs/*.md",
+        "PR body Agent run record section with Run record pointing to that committed file",
+        "validate_harness.py covers the contract wiring",
+        "validate_agent_review.py rejects missing or placeholder run records"
       ]
     }
   ]
