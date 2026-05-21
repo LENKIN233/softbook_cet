@@ -2413,7 +2413,7 @@ test('can check in from statistics after making learning progress', async () => 
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('今日可签到');
-  expect(output).toContain('今天已经产生有效学习进展，可以把连续性落成一次轻量签到。');
+  expect(output).toContain('今天已经产生有效学习进展，可以记录一次签到。');
   expect(output).toContain('已记录');
 
   await ReactTestRenderer.act(() => {

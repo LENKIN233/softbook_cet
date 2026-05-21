@@ -49,13 +49,17 @@ Close the currently dirty mobile visible-copy leakage patch by moving it onto a 
 - `git apply /tmp/softbook_visible_copy_leaks.patch`
 - `node apps/mobile/scripts/check-metadata-leaks.mjs`
 - `python3 scripts/validate_harness.py`
+- `PR_BODY="$(cat /tmp/softbook_visible_copy_leaks_pr_body.md)" python3 scripts/validate_pr_design_gate.py --base origin/main --head HEAD`
 - `PR_BODY="$(cat /tmp/softbook_visible_copy_leaks_pr_body.md)" python3 scripts/validate_agent_review.py`
+- `npm test -- --runInBand --watchAll=false __tests__/App.test.tsx`
 
 ## Validation results
 
 - `node apps/mobile/scripts/check-metadata-leaks.mjs`: `PASS: No metadata leaks detected in visible text.`
 - `python3 scripts/validate_harness.py`: `HARNESS VALIDATION OK`.
+- `PR_BODY="$(cat /tmp/softbook_visible_copy_leaks_pr_body.md)" python3 scripts/validate_pr_design_gate.py --base origin/main --head HEAD`: `PR DESIGN GATE OK`.
 - `PR_BODY="$(cat /tmp/softbook_visible_copy_leaks_pr_body.md)" python3 scripts/validate_agent_review.py`: `AGENT REVIEW GATE OK`.
+- `npm test -- --runInBand --watchAll=false __tests__/App.test.tsx`: local pretest metadata scan passed, then stopped because this clean worktree has no local `jest` binary installed; CI mobile-quality remains the full test authority for this PR.
 
 ## Agent review status
 
