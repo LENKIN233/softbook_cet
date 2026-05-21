@@ -645,6 +645,10 @@ else:
 - Blocking findings: None
 - Review summary: Reviewed changed files.
 
+## Agent run record
+
+- Run record: docs/agent-runs/2026-05-21-agent-run-record-contract.md
+
 ## 设计稿来源（用户可见 UI 如适用）
 
 - Design artifact: N/A
@@ -695,6 +699,10 @@ else:
 - Review status: Passed
 - Blocking findings: None
 - Review summary: Reviewed changed files.
+
+## Agent run record
+
+- Run record: docs/agent-runs/2026-05-21-agent-run-record-contract.md
 
 ## 设计稿来源（用户可见 UI 如适用）
 
@@ -747,6 +755,10 @@ else:
 - Review status: Passed
 - Blocking findings: None
 - Review summary: Reviewed changed files, specs, validation, and found no blocking issues.
+
+## Agent run record
+
+- Run record: docs/agent-runs/2026-05-21-agent-run-record-contract.md
 
 ## 设计稿来源（用户可见 UI 如适用）
 

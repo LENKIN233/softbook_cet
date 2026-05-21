@@ -34,6 +34,7 @@ status: active
 - `spec/runtime-boundaries.json`
 - `spec/repo-delivery-contract.json`
 - `spec/agent-harness.json`
+- `spec/agent-run-record.json`
 - `spec/evals.json`
 - `spec/doc-manifest.json`
 - `spec/visual-language.json`（视觉实现假设锚，绑定 `docs/design/visual-reference.html`、`docs/design/canon.md` 与 `docs/design/design-harness.md`）
@@ -51,6 +52,7 @@ status: active
 - 物理空间/盒码：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog`
 - 会员/试用：`requirement-memory -> product-core -> membership`
 - 交付 / PR / CI：`authority-map -> agent-harness -> repo-delivery-contract -> evals`
+- Agent run records / context handoff：`authority-map -> agent-run-record -> workspace-boundary -> harness-architecture -> agent-harness -> repo-delivery-contract -> evals`
 - 工作区边界 / agent 默认读取：`authority-map -> workspace-boundary -> agent-harness -> repo-delivery-contract -> evals`
 - Harness 架构 / validator 分层：`authority-map -> harness-architecture -> workspace-boundary -> agent-harness -> repo-delivery-contract -> evals`
 - 视觉输出/设计反推：`requirement-memory -> 相关产品 spec -> visual-language -> docs/design/design-harness.md -> docs/design/visual-reference.html`
@@ -82,6 +84,7 @@ status: active
 
 ## 工程治理约束
 
+- 不要把 PR 绑定的治理、harness、用户可见 UI、runtime、卡片交接或多文件重构工作只留在聊天历史里；必须按 `spec/agent-run-record.json` 在 `docs/agent-runs/` 提交最小运行记录并在 PR 中引用
 - `main` 是只读集成分支，不要直接在 `main` 上开发、提交、合并或推送
 - 开发前先切到 `infra/*`、`shell/*`、`module/*`、`cross/*` 或 `fix/*`
 - clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`
@@ -92,13 +95,14 @@ status: active
 
 ## 输出要求
 
+- 若任务属于 PR 绑定的治理、harness、用户可见 UI、runtime、卡片交接或多文件重构，输出/PR 必须引用已提交的 `docs/agent-runs/*.md` 运行记录
 - 先指出当前任务引用了哪些 spec
 - 若任务会影响产品定义，先用 `spec/requirement-memory.json` 对齐原始需求
 - 如果多个 spec 出现同一概念，严格以 `spec/authority-map.json` 指定的 owner 为准
 - 默认只读完成任务所需的最小 spec 子集；只有跨域耦合或明确冲突时才升级读取范围
 - 明确区分 `product_truth` 与 `implementation_hypothesis`
 - 如果新增交互、盒码或访问规则，先更新对应 spec，再给结论
-- 若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证、Agent review；若涉及用户可见 UI，必须写明设计稿来源、interaction/motion 或 physical-space artifact（如适用）、实现映射与未实现 gap，并回答 design review checklist；默认在 review + gate 通过后自动收口合并
+- 若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证、Agent review 与 Agent run record；若涉及用户可见 UI，必须写明设计稿来源、interaction/motion 或 physical-space artifact（如适用）、实现映射与未实现 gap，并回答 design review checklist；默认在 review + gate 通过后自动收口合并
 
 ## 压缩保留
 
@@ -110,3 +114,4 @@ status: active
 - 核心交互和空间语义
 - `card make` 外部内容工作区边界
 - 已修改文件列表
+- 当前 agent run record 路径

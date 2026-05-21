@@ -121,6 +121,18 @@
         "scripts/harness_validator/sections/harness_architecture.py"
       ],
       "notes": "Defines validate_harness.py layer ownership, side-effect boundaries, and runtime-smoke delegation. Individual product and delivery facts remain owned by their existing specs."
+    },
+    "agent_run_records": {
+      "owner": "spec/agent-run-record.json",
+      "status": "active",
+      "mirrors": [
+        "spec/agent-harness.json",
+        "spec/repo-delivery-contract.json",
+        "spec/evals.json",
+        "scripts/validate_agent_review.py",
+        ".github/pull_request_template.md"
+      ],
+      "conflict_policy": "spec/agent-run-record.json owns whether durable agent run records are required and how they are referenced from PRs."
     }
   }
 }

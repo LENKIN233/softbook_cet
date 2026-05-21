@@ -30,7 +30,7 @@ HARNESS_LAYERS = (
     },
     {
         "id": "delivery_governance_layer",
-        "sections": ("governance_contracts", "delivery_runtime"),
+        "sections": ("governance_contracts", "agent_run_record", "delivery_runtime"),
     },
     {
         "id": "design_governance_layer",

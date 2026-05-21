@@ -163,6 +163,15 @@
       "spec/agent-harness.json",
       "spec/repo-delivery-contract.json",
       "spec/evals.json"
+    ],
+    "agent_run_record_or_context_handoff": [
+      "spec/authority-map.json",
+      "spec/agent-run-record.json",
+      "spec/workspace-boundary.json",
+      "spec/harness-architecture.json",
+      "spec/agent-harness.json",
+      "spec/repo-delivery-contract.json",
+      "spec/evals.json"
     ]
   },
   "progressive_disclosure_policy": {
@@ -408,6 +417,30 @@
       ],
       "stop_when": "each harness section has exactly one layer owner and side effects are confined to the allowed layer or CI job",
       "blocked_when": "a validator change adds remote, runtime, generated, dependency, or temporary-fixture behavior to a pure truth or workspace layer"
+    },
+    "agent_run_record": {
+      "inputs": [
+        "spec/authority-map.json",
+        "spec/agent-run-record.json",
+        "spec/workspace-boundary.json",
+        "spec/harness-architecture.json",
+        "spec/agent-harness.json",
+        "spec/repo-delivery-contract.json",
+        "spec/evals.json"
+      ],
+      "outputs": [
+        "referenced_specs",
+        "product_truth_used",
+        "implementation_hypothesis_changed",
+        "workspace_boundary_and_read_scope",
+        "files_changed",
+        "commands_run",
+        "validation_results",
+        "agent_review_status",
+        "risks_and_follow_up"
+      ],
+      "stop_when": "a_committed_docs_agent_runs_record_exists_and_the_pull_request_body_references_it",
+      "blocked_when": "the_record_would_include_hidden_reasoning_secrets_raw_private_comments_or_unreviewed_candidate_card_content"
     }
   },
   "governance": {
@@ -691,6 +724,16 @@
       "id": "AP-38",
       "name": "mix_runtime_or_remote_side_effects_into_truth_workspace_or_design_pure_layers",
       "correction": "keep_truth_and_workspace_layers_pure_move_remote_reads_to_delivery_governance_and_runtime_behavior_to_ci_smoke_jobs"
+    },
+    {
+      "id": "AP-39",
+      "name": "leave_pr_bound_agent_work_only_in_chat_history",
+      "correction": "commit_a_minimal_docs_agent_runs_record_and_reference_it_from_the_pull_request_before_review_or_merge"
+    },
+    {
+      "id": "AP-40",
+      "name": "put_hidden_reasoning_or_private_material_in_agent_run_record",
+      "correction": "record_public_task_facts_specs_files_commands_validation_and_risks_only_never_hidden_reasoning_secrets_raw_private_comments_or_unreviewed_card_content"
     }
   ],
   "compaction_keep": [
@@ -706,6 +749,7 @@
     "repo_delivery_policy",
     "edited_files",
     "workspace_boundary_and_agent_read_scope",
-    "harness_architecture_layer_boundaries"
+    "harness_architecture_layer_boundaries",
+    "agent_run_record_path"
   ]
 }
