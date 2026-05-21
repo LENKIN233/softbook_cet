@@ -2008,7 +2008,7 @@ test('can unlock the learning flow after fake sms verification', async () => {
     testID: 'learning-address-aperture',
   });
   const addressText = addressAperture.findByType(Text).props.children.join('');
-  expect(addressText).toBe('当前位置：馆 1 / 组 1 / 盒 1');
+  expect(addressText).toBe('这张在：馆 1 / 组 1 / 盒 1');
   expect(output).toContain('这张练习 · ');
   expect(output).not.toContain('当前卡 · ');
   expect(output).not.toContain('当前卡 · 002001');

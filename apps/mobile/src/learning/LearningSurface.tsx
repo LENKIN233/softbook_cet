@@ -535,7 +535,7 @@ export function LearningSurface({
           testID="learning-address-aperture"
         >
           <Text style={[styles.addressText, { color: palette.textMuted }]}> 
-            当前位置：{spaceAddress}
+            这张在：{spaceAddress}
           </Text>
         </View>
 
