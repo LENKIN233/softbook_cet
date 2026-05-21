@@ -2250,8 +2250,10 @@ test('can complete the local single-card deck and restart it', async () => {
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮学习已走完');
   expect(output).toContain('下一步');
-  expect(output).toContain('这一轮已经完成，可以再练一轮当前卡组。');
-  expect(output).toContain('再练一轮当前卡组');
+  expect(output).toContain('这一轮已经完成，可以再练一轮这一组。');
+  expect(output).toContain('再练一轮这一组');
+  expect(output).not.toContain('当前卡组');
+  expect(output).not.toContain('系统顺序');
   expectNoUserVisibleMetadataLeakage(tree!);
 
   await ReactTestRenderer.act(() => {

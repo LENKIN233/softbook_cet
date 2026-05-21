@@ -201,10 +201,10 @@ export function LearningSurface({
                 ? [
                     '需要再看的卡已经重新过了一遍。',
                     '仍不稳的点会留在后续学习里自然出现。',
-                    '现在可以回到首轮，继续按系统顺序走。',
+                    '现在可以回到首轮，按学习节奏继续。',
                   ]
                 : [
-                    '当前卡组已经按系统顺序走完。',
+                    '这一组已经按学习节奏走完。',
                     '需要再看的卡已经被收进回看，不要求你管理列表。',
                     '想确认位置时，再去空间查看对应知识盒。',
                   ]
@@ -225,10 +225,10 @@ export function LearningSurface({
           <Text style={[styles.sectionTitle, { color: palette.text }]}>下一步</Text>
           <Text style={[styles.resultExplanationBody, { color: palette.textMuted }]}>
             {isReviewPhase
-              ? '回看已经结束。可以回到首轮重新开始，也可以稍后从系统顺序继续。'
+              ? '回看已经结束。可以回到首轮重新开始，也可以稍后按学习节奏继续。'
               : reviewCandidateCount > 0
                 ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
-                : '这一轮已经完成，可以再练一轮当前卡组。'}
+                : '这一轮已经完成，可以再练一轮这一组。'}
           </Text>
           {!isReviewPhase && reviewCandidateCount > 0 && onStartReview ? (
             <Pressable
@@ -247,7 +247,7 @@ export function LearningSurface({
             testID="learning-restart-button"
           >
             <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-              {isReviewPhase ? '回到首轮重新开始' : '再练一轮当前卡组'}
+              {isReviewPhase ? '回到首轮重新开始' : '再练一轮这一组'}
             </Text>
           </Pressable>
         </View>

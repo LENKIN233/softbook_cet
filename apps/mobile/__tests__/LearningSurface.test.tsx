@@ -81,6 +81,7 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).toContain('当前这一张');
   expect(output).toContain('先完成这一张，再继续下一步');
   expect(output).not.toContain('系统递给你当前这一张');
+  expect(output).not.toContain('系统顺序');
   expect(output).not.toContain('当前学习会话');
   expect(output).toContain('先翻面，看完解析后选有把握或再回看。');
   expect(output).toContain('先看这张卡的关键点');
