@@ -292,7 +292,7 @@ export function LearningSurface({
           {sessionLabel} ·{' '}
           {isReviewPhase
             ? '回看需要再看的卡，仍按一张卡推进'
-            : '系统递给你当前这一张，按顺序继续'}
+            : '先完成这一张，再继续下一步'}
         </Text>
         <View
           style={[
