@@ -279,7 +279,7 @@ export function LearningSurface({
       >
         <View style={styles.learningFrameTop}>
           <View style={styles.heroChipRow}>
-            <TagChip label="当前学习会话" toneColor={tone.accent} />
+            <TagChip label="当前这一张" toneColor={tone.accent} />
             {isReviewPhase ? (
               <TagChip label="回看卡组" toneColor={palette.warning} />
             ) : null}
