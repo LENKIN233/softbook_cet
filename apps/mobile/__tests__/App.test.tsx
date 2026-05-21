@@ -33,7 +33,7 @@ type TestRendererNode =
   | null;
 
 const USER_VISIBLE_METADATA_PATTERN =
-  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|remoteConfig|authToken|endpoint|MutationQueue|mutation|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|payload|metadata|runtime|repository|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位/i;
+  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|remoteConfig|authToken|endpoint|MutationQueue|mutation|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
 function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   if (node === null) {
@@ -66,6 +66,14 @@ test('metadata leakage guard catches internal remote error vocabulary', () => {
     'Remote learning source payload.data.source_id is required.',
     'MutationQueue replay failed for authToken endpoint remoteConfig.',
     'space_metadata.box_ref leaked through a status card.',
+    '顶层切换留在壳层，页面内部只承接该模块最小必要信息。',
+    '统计只用于增强信心和连续性，把今日签到、学习摘要和回看状态收成低成本页面。',
+    '学习保持最重要入口，空间保持顶层入口。',
+    '购买与恢复入口集中放在这里，学习和空间保持轻量。',
+    '首轮里还有 2 张卡待回看，先别把统计做成复杂大盘。',
+    '已登录后直接进入单卡学习流；空间、统计和“我的”各自承接清楚的备考任务。',
+    'LEARNING / SHELL',
+    '准备完成后会自动回到当前学习流。',
   ].forEach(message => {
     expect(message).toMatch(USER_VISIBLE_METADATA_PATTERN);
   });

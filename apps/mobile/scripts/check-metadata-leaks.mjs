@@ -24,6 +24,18 @@ const rawMetadataExpressionPattern =
 const visibleCardContentLeakPattern =
   /\bCET[46]\b|(?:听力|阅读|写作|翻译|词汇|仔细阅读|快速阅读|学习馆|知识组|训练轨道|原盒位)|\b0\d{3,6}\b/;
 
+const visibleDesignJargonLeakPattern =
+  /\b(?:SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC)\b|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
+
+const internalGuardLinePattern =
+  /INTERNAL_ERROR_COPY_PATTERN|visibleDesignJargonLeakPattern/;
+
+const visibleStringLinePattern =
+  /(?:<Text\b|>[^<]*(?:<\/Text>|$)|\b(?:label|title|detail|summary|text|accessibilityLabel|placeholder|items|eyebrow|value)\s*[:=]|^['\"\x60].*[,)'\"\x60]?$)/;
+
+const nonVisibleDesignJargonLinePattern =
+  /^(?:import\b|export\b|type\b|interface\b|const\b|let\b|var\b|function\b|case\b|switch\b|if\b|return\b|[A-Za-z0-9_]+[,:])|\b(?:testID|nativeID|status|gate)\s*=/;
+
 const directDisplayMetadataPatterns = [
   {
     pattern: /\b\w*Track\.toUpperCase\(\)/,
@@ -117,9 +129,18 @@ function checkDirectDisplayMetadata(filePath) {
   const source = fs.readFileSync(filePath, 'utf8');
   const lines = source.split('\n');
   const findings = [];
+  let inInternalGuardDeclaration = false;
 
   for (let index = 0; index < lines.length; index += 1) {
     const text = lines[index].trim();
+    const isInternalGuardLine =
+      inInternalGuardDeclaration || internalGuardLinePattern.test(text);
+
+    if (/const INTERNAL_ERROR_COPY_PATTERN\b/.test(text)) {
+      inInternalGuardDeclaration = true;
+      continue;
+    }
+
     if (visiblePropPattern.test(text) && rawMetadataExpressionPattern.test(text)) {
       findings.push({
         filePath,
@@ -140,6 +161,24 @@ function checkDirectDisplayMetadata(filePath) {
         text,
         reason: rule.reason,
       });
+    }
+
+    if (
+      visibleStringLinePattern.test(text) &&
+      visibleDesignJargonLeakPattern.test(text) &&
+      !isInternalGuardLine &&
+      !nonVisibleDesignJargonLinePattern.test(text)
+    ) {
+      findings.push({
+        filePath,
+        line: index + 1,
+        text,
+        reason: 'internal design or implementation jargon in visible copy',
+      });
+    }
+
+    if (inInternalGuardDeclaration && /\/[a-z]*;?$/.test(text)) {
+      inInternalGuardDeclaration = false;
     }
   }
 

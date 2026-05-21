@@ -174,60 +174,60 @@ const ROUTES: ShellRoute[] = [
   {
     key: 'learning',
     label: '学习',
-    badge: '01',
-    eyebrow: '最重要入口',
-    title: '单卡学习流',
+    badge: '练',
+    eyebrow: '继续学习',
+    title: '当前卡练习',
     summary:
-      '登录后直接进入系统顺序里的当前卡；卡片加载、失败重试和单卡推进都留在学习入口内完成。',
+      '登录后从当前卡开始练习；加载失败时可以重新加载，完成后继续下一张。',
     highlights: [
-      '一次只推进一张卡，不把学习入口做成多入口选择。',
-      '卡片按备考顺序进入当前轮；网络波动时也保留清晰的重试入口。',
-      '线索、收藏和提示保持轻量，不抢主交互。',
+      '一次只练一张卡，不让选择和计划打断当前练习。',
+      '卡片按备考顺序出现；网络波动时也能重新加载。',
+      '线索、收藏和提示只辅助当前这张卡，不抢答题动作。',
     ],
-    focus: ['当前卡加载', '单卡学习流', '失败重试'],
+    focus: ['当前卡', '答题区', '失败重试'],
   },
   {
     key: 'space',
     label: '空间',
-    badge: '02',
-    eyebrow: '顶层入口',
+    badge: '位',
+    eyebrow: '知识空间',
     title: '知识地图与物理空间',
     summary:
-      '空间会以匿名位置展示已接入卡片的层级，让用户浏览知识地图、查看盒内卡片，并看见当前学习卡的位置。',
+      '空间会用书架和盒子的方式展示已接入卡片，帮助你看见当前学习卡所在位置。',
     highlights: [
       '能看见当前学习卡在匿名空间中的位置。',
-      '能按馆、组、盒的索引层级浏览已接入卡片。',
-      '先收口低成本浏览，不开放任意拖拽改盒。',
+      '能按馆、组、盒查看已接入卡片。',
+      '先支持浏览、收藏和休眠，不开放随意搬动卡片。',
     ],
-    focus: ['休眠区规则', '支持的位置操作'],
+    focus: ['当前盒', '收藏与休眠', '回到学习'],
   },
   {
     key: 'statistics',
     label: '统计',
-    badge: '03',
-    eyebrow: '服务核心价值',
-    title: '轻量统计与签到',
+    badge: '记',
+    eyebrow: '今日进展',
+    title: '今日统计与签到',
     summary:
       '统计只保留今日签到、学习摘要和回看状态，帮助用户确认自己有在推进。',
     highlights: [
-      '签到只和真实学习进展挂钩，不做空转打卡。',
-      '首轮与回看结果会以低成本摘要方式展示。',
-      '页面会跟随设备形态变化，但入口顺序保持一致。',
+      '签到只记录真实学习后的进展。',
+      '首轮和回看结果会用今日摘要展示。',
+      '在手机和 iPad 上都保持同样的学习顺序。',
     ],
-    focus: ['轻量签到', '低成本连续性'],
+    focus: ['今日签到', '今日进展'],
   },
   {
     key: 'mine',
     label: '我的',
-    badge: '04',
-    eyebrow: '账户与会员',
+    badge: '我',
+    eyebrow: '账号与会员',
     title: '个人页',
     summary:
-      '“我的”承接账号、学习、空间摘要与试用/会员边界，让个人状态集中在一个入口里。',
+      '“我的”集中显示账号、学习、空间摘要与试用/会员状态。',
     highlights: [
       '已登录后能看到账号、学习、空间与会员摘要。',
-      '试用在首个计入入口开始，不在注册时偷跑。',
-      '基础学习保留，完整空间、完整卡库和完整算法挂到试用/会员后。',
+      '试用从第一次计入学习时开始，不在注册时自动开始。',
+      '基础学习可继续；完整空间、完整卡库和更完整的回看能力跟随试用或会员开放。',
     ],
     focus: ['账号概览', '试用与会员', '恢复购买'],
   },
@@ -2187,8 +2187,8 @@ function LearningBootstrapSurface({
         </Text>
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
           {isLoading
-            ? '正在整理本轮要学的卡片，准备好后会直接进入单卡流。'
-            : '已登录，但这次没能拿到可用卡片。可以留在学习入口内重试。'}
+            ? '正在整理本轮要学的卡片，准备好后会直接开始当前卡。'
+            : '已登录，但这次没能拿到可用卡片。可以在这里重试。'}
         </Text>
       </View>
       <InfoCard
@@ -2199,7 +2199,7 @@ function LearningBootstrapSurface({
             ? [
                 '正在加载本轮卡片。',
                 '学习仍然会按一张卡一张卡推进。',
-                '准备完成后会自动回到当前学习流。',
+                '准备完成后会自动回到当前练习。',
               ]
             : [
                 error ?? '本轮卡片加载失败。',
@@ -2230,7 +2230,7 @@ function LearningBootstrapSurface({
             加载中
           </Text>
           <Text style={[styles.authSummary, { color: palette.textMuted }]}>
-            本轮卡片准备好后才会进入单卡流。
+            本轮卡片准备好后才会开始当前卡。
           </Text>
         </View>
       )}
@@ -2270,12 +2270,12 @@ function LearningSleepSurface({
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
           {canRecoverInPlace
             ? '当前免费态还不能进入完整空间，但为了保留基础学习，可以先把一张可学习卡移出休眠区，再继续当前学习。'
-            : '根据空间规则，进入休眠区的卡不会继续出现在学习流里。先去空间里把需要恢复的卡移出休眠区，再继续当前学习。'}
+            : '按空间里的休眠设置，进入休眠区的卡不会继续出现在当前练习里。先去空间里把需要恢复的卡移出休眠区，再继续当前学习。'}
         </Text>
       </View>
       <InfoCard
         palette={palette}
-        title="这一步为什么拦住学习流"
+        title="为什么现在不能继续学习"
         items={
           canRecoverInPlace
             ? [
@@ -2288,7 +2288,7 @@ function LearningSleepSurface({
             : [
                 '休眠会让卡片暂时退出当前练习，不是普通标签。',
                 '进入休眠后，这张卡会先从当前练习里移出。',
-                '恢复后再回学习入口，就能重新进入学习流。',
+                '恢复后回到学习，就能继续当前练习。',
               ]
         }
       />
@@ -2435,13 +2435,13 @@ function TabletShell({
         ]}
       >
         <Text style={[styles.brandEyebrow, { color: palette.accent }]}>
-          LEARNING / SHELL
+          备考主页
         </Text>
         <Text style={[styles.brandTitle, { color: palette.text }]}>
           软书四六级
         </Text>
         <Text style={[styles.brandSummary, { color: palette.textMuted }]}>
-          已登录后直接进入单卡学习流；空间、统计和“我的”各自承接清楚的备考任务。
+          登录后从当前卡继续；空间、统计和“我的”分别查看位置、进展和个人状态。
         </Text>
         <AuthStatusBadge authState={authState} palette={palette} />
         <View style={styles.sidebarNav}>
@@ -2545,11 +2545,15 @@ function ShellHeader({
         <Text style={[styles.headerSummary, { color: palette.textMuted }]}>
           {route.key === 'learning'
             ? deviceClass === 'phone'
-              ? '系统顺序推进，只把当前这一张留在首读路径里。'
-              : '左侧只负责顶层切换，右侧把单卡学习留成主画布。'
+              ? '当前卡已经准备好，先完成这一张。'
+              : '左侧保留导航，右侧继续当前卡。'
+            : route.key === 'space'
+            ? '从当前盒看卡片位置、收藏和休眠状态。'
+            : route.key === 'statistics'
+            ? '看今天完成了什么、还有多少需要回看。'
             : deviceClass === 'phone'
-            ? '顶层切换留在壳层，页面内部只承接该模块最小必要信息。'
-            : '导航与内容拆层处理，减少同屏的等权抢焦。'}
+            ? '查看账号、试用、会员和个人学习状态。'
+            : '左侧保留导航，右侧查看个人学习状态。'}
         </Text>
       </View>
       <View style={styles.headerMeta}>
@@ -2673,7 +2677,7 @@ function AuthGate({
         items={[
           '学习开始前必须登录。',
           '手机号验证码是主登录方式。',
-          '试用不会在注册时偷跑，而是在首个计入入口开始。',
+          '试用不会在注册时自动开始，而是在第一次计入学习时开始。',
         ]}
       />
     </ScrollView>
@@ -2746,12 +2750,12 @@ function MineSurface({
           我的主页
         </Text>
         <Text style={[styles.heroTitle, { color: palette.text }]}>
-          {isAuthenticated ? '个人主页' : '从“我的”建立个人主页入口'}
+          {isAuthenticated ? '个人主页' : '登录后查看个人主页'}
         </Text>
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
           {isAuthenticated
-            ? '这里集中显示账号概览、学习摘要、同步状态、空间摘要和会员边界。'
-            : '先完成身份建立，再查看学习摘要、会员状态和购买恢复提醒。'}
+            ? '这里显示账号、学习摘要、同步状态、空间标签和会员状态。'
+            : '先完成登录，再查看学习摘要、会员状态和购买恢复提醒。'}
         </Text>
       </View>
       <PhoneSmsPanel
@@ -2817,10 +2821,10 @@ function MineSurface({
                   `学习状态：${learningStateSyncState.label}`,
                   authRepositoryMode === 'remote'
                     ? '账号已完成短信验证；会员状态会继续随账号刷新。'
-                    : '当前可查看学习与会员状态。',
+                    : '登录后可以查看学习记录和会员状态。',
                 ]
               : [
-                  '还没有完成身份建立。',
+                  '还没有完成登录。',
                   '手机号验证码仍是主登录方式。',
                   '登录后这里会显示你的账号、学习与会员摘要。',
                 ]
@@ -2837,12 +2841,12 @@ function MineSurface({
                   `当前待回看 ${pendingReviewCount} 张。`,
                   `同步进展：${progressSyncState.detail}`,
                   `答题记录：${learningStateSyncState.detail}`,
-                  '这里保留低成本摘要，详细趋势仍交给统计页。',
+                  '更详细的今日进展可以到统计页查看。',
                 ]
               : [
-                  '未登录时不承接个人学习连续性。',
-                  '完成登录后，学习摘要会回到这里。',
-                  '统计页仍负责更明确的签到与轻量进展反馈。',
+                  '未登录时不会保存个人学习连续记录。',
+                  '登录后，学习摘要会显示在这里。',
+                  '统计页会展示今日进展和签到状态。',
                 ]
           }
         />
@@ -2855,23 +2859,23 @@ function MineSurface({
               ? [
                   `收藏标签 ${favoriteCount} 张。`,
                   `休眠区 ${sleepingCount} 张。`,
-                  '收藏是标签，休眠是会影响学习流的空间状态。',
+                  '收藏是标签，休眠会影响当前练习。',
                 ]
               : [
-                  '登录后才能承接个人空间摘要。',
-                  '空间入口仍保持独立顶层导航。',
-                  '这里不会把收藏或休眠改写成新的盒子。',
+                  '登录后才能查看个人空间摘要。',
+                  '空间会继续保留在底部导航里。',
+                  '收藏和休眠会保持各自的作用。',
                 ]
           }
         />
         <InfoCard
           palette={palette}
           style={detailCardStyle}
-          title="入口安排"
+          title="会员服务"
           items={[
-            '购买与恢复入口集中放在这里，学习和空间保持轻量。',
-            '学习、空间和统计仍各自承担自己的主要任务。',
-            '这里先保留账号、会员和个人进展，不扩成复杂设置中心。',
+            '购买与恢复都在这里处理。',
+            '学习、空间和统计会继续保持各自记录。',
+            '这里保留账号、会员和个人进展。',
           ]}
         />
       </View>
@@ -2924,9 +2928,9 @@ function MembershipHostCard({
     focusGate === null
       ? null
       : focusGate === 'review'
-      ? '智能回看当前需要试用或会员。开始试用或升级后，会回到学习流继续这轮回看。'
+      ? '智能回看当前需要试用或会员。开始试用或升级后，会回到学习继续这轮回看。'
       : focusGate === 'space'
-      ? '完整物理空间当前需要试用或会员。开始试用或升级后，会直接放开空间入口。'
+      ? '完整知识空间当前需要试用或会员。开始试用或升级后，可以查看完整空间。'
       : '完整卡库当前需要试用或会员。开始试用或升级后，会放开完整卡片。';
 
   return (
@@ -3377,7 +3381,7 @@ function RouteCanvas({
         ]}
       >
         <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-          当前入口
+          当前页面
         </Text>
         <Text style={[styles.heroTitle, { color: palette.text }]}>
           {route.title}
@@ -3390,16 +3394,16 @@ function RouteCanvas({
       <View style={styles.sectionGrid}>
         <InfoCard
           palette={palette}
-          title="这个入口做什么"
+          title="这一页能做什么"
           items={route.highlights}
         />
-        <InfoCard palette={palette} title="入口重点" items={route.focus} />
+        <InfoCard palette={palette} title="你可以做什么" items={route.focus} />
         <InfoCard
           palette={palette}
-          title="导航与权限"
+          title="学习与会员"
           items={[
-            '顶层顺序固定为 学习 / 空间 / 统计 / 我的。',
-            '学习保持最重要入口，空间保持顶层入口。',
+            '底部顺序固定为 学习 / 空间 / 统计 / 我的。',
+            '学习用于继续当前卡，空间用于查看卡片位置。',
             '登录、会员和今日同步都围绕个人备考连续性展开。',
           ]}
         />
@@ -3410,8 +3414,8 @@ function RouteCanvas({
             deviceClass === 'phone'
               ? [
                   '当前布局面向 iPhone。',
-                  '底部导航保持低操作成本。',
-                  '学习、空间、统计和我的保持一致的入口节奏。',
+                  '底部导航保留常用操作。',
+                  '学习、空间、统计和我的保持清晰顺序。',
                 ]
               : [
                   '当前布局面向 iPad。',
@@ -3549,7 +3553,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 const INTERNAL_ERROR_COPY_PATTERN =
-  /\b(Remote|payload|source_id|source_label|card_records|remoteConfig|authToken|endpoint|repository|card_id|knowledge_ref|box_ref|space_metadata|MutationQueue|runtime)\b|data\.|卡源|离线队列|离线重试|本机缓存|当前设备|会员矩阵|占位|快照/i;
+  /\b(Remote|payload|source_id|source_label|card_records|remoteConfig|authToken|endpoint|repository|card_id|knowledge_ref|box_ref|space_metadata|MutationQueue|runtime|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC)\b|data\.|卡源|离线队列|离线重试|本机缓存|当前设备|会员矩阵|占位|快照|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
 function getUserFacingErrorMessage(error: unknown, fallback: string) {
   const message = getErrorMessage(error, fallback);
@@ -3602,7 +3606,7 @@ function getMembershipCardSummary(
 ) {
   switch (membershipState.stage) {
     case 'trial_available':
-      return '试用不会在注册时自动起算，而是在首个计入入口开始。开始后会放开完整卡库、完整空间和完整算法。';
+      return '试用不会在注册时自动起算，而是在第一次计入学习时开始。开始后可以查看完整卡库、完整空间和更完整的回看能力。';
     case 'trial':
       return mode === 'remote'
         ? `完整试用已开启 ${membershipState.trialDurationDays} 天，完整卡库、空间和智能回看会一起放开。`
