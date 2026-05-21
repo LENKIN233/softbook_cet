@@ -77,7 +77,8 @@ test('does not expose raw space metadata while learning', () => {
 
   const output = JSON.stringify(tree!.toJSON());
 
-  expect(output).toContain('学习进度');
+  expect(output).toContain('本组第 ');
+  expect(output).not.toContain('学习进度');
   expect(output).toContain('先做这一张');
   expect(output).not.toContain('当前这一张');
   expect(output).toContain('先完成这一张，再继续下一步');
