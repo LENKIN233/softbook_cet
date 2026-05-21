@@ -39,3 +39,7 @@ The RN peek layer can keep the existing secondary action and improve user trust 
 - PR design artifact gate with PR body;
 - agent review gate with PR body;
 - mobile quality through GitHub required checks.
+
+## CI Follow-up
+
+- GitHub `mobile-quality` first run failed because an App-level test still expected the old peek title. The assertion now expects the study-facing support title.
