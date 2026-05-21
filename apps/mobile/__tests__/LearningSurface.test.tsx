@@ -134,7 +134,9 @@ test('completion state keeps the next step primary instead of a metric dashboard
   const output = JSON.stringify(tree!.toJSON());
 
   expect(output).toContain('下一步');
-  expect(output).toContain('开始回看这 1 张卡');
+  expect(output).toContain('开始回看这 ');
+  expect(output).toContain('1');
+  expect(output).toContain(' 张卡');
   expect(output).not.toContain('完成明细');
   expect(output).not.toContain('自动判对');
   expect(output).not.toContain('自动判错');

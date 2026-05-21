@@ -47,3 +47,7 @@ The RN completion state can reduce cognitive load by:
 ## CI Follow-up
 
 - GitHub `mobile-quality` first run failed at TypeScript because `MetricPill` only accepts `success | danger`; the completion next-step pill was changed to the allowed `success` tone.
+
+## CI Test Follow-up
+
+- GitHub `mobile-quality` second run passed type-check and failed only on tests that still expected the old completion detail labels or assumed button text would serialize as one string. The assertions now match the new next-step completion state and RN split text serialization.
