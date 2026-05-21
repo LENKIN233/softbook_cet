@@ -78,6 +78,8 @@ test('does not expose raw space metadata while learning', () => {
   const output = JSON.stringify(tree!.toJSON());
 
   expect(output).toContain('学习进度');
+  expect(output).toContain('当前这一张');
+  expect(output).not.toContain('当前学习会话');
   expect(output).toContain('先翻面，看完解析后选有把握或再回看。');
   expect(output).toContain('先看这张卡的关键点');
   expect(output).toContain('先把题干里的信号抓出来，再回到选项或解析确认。');
