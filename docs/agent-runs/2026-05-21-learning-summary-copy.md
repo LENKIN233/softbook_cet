@@ -39,3 +39,8 @@ The RN summary line can say `先完成这一张，再继续下一步`, preservin
 - PR design artifact gate with PR body;
 - agent review gate with PR body;
 - mobile quality through GitHub required checks.
+
+## CI follow-up
+
+- `mobile-quality` initially failed because `apps/mobile/__tests__/App.test.tsx` still asserted the retired system-facing summary copy `系统递给你当前这一张，按顺序继续`.
+- Updated the App-level assertion to the accepted learner-facing summary copy `先完成这一张，再继续下一步` so the visible-copy contract and rendered App smoke stay aligned.

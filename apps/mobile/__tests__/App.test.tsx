@@ -2001,7 +2001,7 @@ test('can unlock the learning flow after fake sms verification', async () => {
   await loginIntoLearningFlow(root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('系统递给你当前这一张，按顺序继续');
+  expect(output).toContain('先完成这一张，再继续下一步');
   expect(output).toContain('已登录 138****8000');
   expect(output).toContain('however');
   const addressAperture = root.findByProps({
