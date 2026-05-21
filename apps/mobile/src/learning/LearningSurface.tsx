@@ -476,10 +476,10 @@ export function LearningSurface({
             ]}
           >
             <Text style={[styles.peekTitle, { color: palette.text }]}>
-              这张卡为什么出现
+              先看这张卡的关键点
             </Text>
             <Text style={[styles.peekText, { color: palette.textMuted }]}> 
-              该题来自当前练习安排，用于强化你的最近复习目标。
+              先把题干里的信号抓出来，再回到选项或解析确认。
             </Text>
           </View>
         ) : null}

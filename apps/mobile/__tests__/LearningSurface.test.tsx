@@ -39,7 +39,10 @@ test('does not expose raw space metadata while learning', () => {
     },
   };
   const sessionCards = [currentCard, ...session.catalogCards.slice(1)];
-  const currentCardState = createLearningCardState(currentCard);
+  const currentCardState = {
+    ...createLearningCardState(currentCard),
+    isPeeked: true,
+  };
 
   let tree: ReactTestRenderer.ReactTestRenderer;
 
@@ -76,6 +79,10 @@ test('does not expose raw space metadata while learning', () => {
 
   expect(output).toContain('学习进度');
   expect(output).toContain('先翻面，看完解析后选有把握或再回看。');
+  expect(output).toContain('先看这张卡的关键点');
+  expect(output).toContain('先把题干里的信号抓出来，再回到选项或解析确认。');
+  expect(output).not.toContain('这张卡为什么出现');
+  expect(output).not.toContain('该题来自当前练习安排');
   expect(output).toContain('当前位置：');
   expect(output).toContain('馆 1 / 组 1 / 盒 1');
   expect(output).not.toContain(currentCard.space_metadata.library);

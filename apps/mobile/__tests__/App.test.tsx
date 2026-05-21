@@ -2164,7 +2164,7 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('这张卡为什么出现');
+  expect(output).toContain('先看这张卡的关键点');
   expect(output).not.toContain('knowledge_ref');
   expect(output).toContain('给出真正立场');
 
