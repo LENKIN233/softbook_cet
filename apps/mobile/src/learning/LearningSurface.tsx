@@ -304,7 +304,7 @@ export function LearningSurface({
             ) : null}
           </View>
           <Text style={[styles.learningFrameMeta, { color: palette.textMuted }]}> 
-            学习进度 · {safeProgress}
+            本组第 {safeProgress} 张
           </Text>
         </View>
         <Text style={[styles.learningFrameSummary, { color: palette.textMuted }]}>
