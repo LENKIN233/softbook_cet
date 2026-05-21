@@ -116,8 +116,8 @@ export function LearningSurface({
           </Text>
           <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
             {isReviewPhase
-              ? `这轮从${sessionLabel}里回看了 ${sessionCards.length} 张卡，把“需要回看”的部分收成一次低成本复习。`
-              : `这轮从${sessionLabel}里完成了 ${sessionCards.length} 张卡，主路径保持一张卡一张卡推进。`}
+              ? `这轮从${sessionLabel}里回看了 ${sessionCards.length} 张卡，把“需要回看”的部分集中处理了一遍。`
+              : `这轮从${sessionLabel}里完成了 ${sessionCards.length} 张卡，下一次会继续从需要再看的地方开始。`}
           </Text>
           <View style={styles.metricWrap}>
             <MetricPill
@@ -178,7 +178,7 @@ export function LearningSurface({
                   ]
                 : [
                     '当前卡组已经按系统顺序走完。',
-                    '需要再看的卡会收进回看，不打断主学习流。',
+                    '需要再看的卡会收进回看，不打断当前学习。',
                     '线索、提示和标记只服务当前这张卡。',
                   ]
             }

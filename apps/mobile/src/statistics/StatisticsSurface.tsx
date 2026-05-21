@@ -68,13 +68,13 @@ export function StatisticsSurface({
   const checkInSummary = hasCheckedInToday
     ? `${dayLabel} 的连续性已经记录到今日统计里。`
     : canCheckInToday
-    ? '今天已经产生有效学习进展，可以把连续性落成一次轻量签到。'
+    ? '今天已经产生有效学习进展，可以记录一次签到。'
     : '先至少完成 1 张学习或回看卡，再把今天记成一次有效签到。';
   const reviewStatus =
     reviewResults.length > 0
       ? `已完成 ${reviewResults.length} 张回看卡，当前还剩 ${pendingReviewCount} 张待回看。`
       : pendingReviewCount > 0
-      ? `首轮里还有 ${pendingReviewCount} 张卡待回看，先别把统计做成复杂大盘。`
+      ? `首轮里还有 ${pendingReviewCount} 张卡待回看，先把需要再看的卡处理完。`
       : combinedResults.length > 0
       ? '当前首轮已收口，暂时没有额外待回看卡。'
       : '今天还没有形成可展示的学习摘要。';
@@ -95,9 +95,9 @@ export function StatisticsSurface({
         <Text style={[styles.eyebrow, { color: palette.accent }]}>
           今日进展
         </Text>
-        <Text style={[styles.title, { color: palette.text }]}>轻量统计与签到</Text>
+        <Text style={[styles.title, { color: palette.text }]}>今日统计与签到</Text>
         <Text style={[styles.summary, { color: palette.textMuted }]}>
-          统计只用于增强信心和连续性，把今日签到、学习摘要和回看状态收成低成本页面。
+          这里汇总今天完成的卡、待回看的卡和签到状态。
         </Text>
         <View style={styles.metricRow}>
           <MetricCard
@@ -249,19 +249,19 @@ export function StatisticsSurface({
           style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
         >
           <Text style={[styles.cardTitle, { color: palette.text }]}>
-            进展如何使用
+            这些进展代表什么
           </Text>
           <InfoLine
             palette={palette}
-            text="签到只和真实学习进展挂钩，不做空转打卡。"
+            text="完成学习后再签到，记录才有意义。"
           />
           <InfoLine
             palette={palette}
-            text="统计页先解释今天发生了什么，不抬复杂趋势系统。"
+            text="这里先看今天，不要求你分析长期趋势。"
           />
           <InfoLine
             palette={palette}
-            text="会员、同步和重分析不会抢占这个轻量入口。"
+            text="会员和同步状态不会打断今天的学习记录。"
           />
         </SurfaceCard>
       </View>

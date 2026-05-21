@@ -293,7 +293,7 @@ export function SpaceSurface({
               <AddressContextPill
                 label="连续性"
                 palette={palette}
-                value="回到单卡流"
+                value="回到学习"
               />
             </View>
             <View
@@ -459,7 +459,7 @@ export function SpaceSurface({
                     当前盒暂无可展示卡片
                   </Text>
                   <Text style={[styles.cardMeta, { color: palette.textMuted }]}>
-                    等待本轮卡片、筛选条件或会员权限恢复；不跳转到模块选择。
+                    本轮暂时没有符合条件的卡片；可以继续学习或稍后再看。
                   </Text>
                 </View>
               )}
@@ -473,7 +473,7 @@ export function SpaceSurface({
                   回到学习
                 </Text>
                 <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                  返回单卡流时保留当前学习上下文，不把空盒状态改写成模块选择。
+                  回到学习时继续当前进度，不让空盒打断练习。
                 </Text>
               </View>
               <ActionChip
@@ -775,11 +775,11 @@ export function SpaceSurface({
             />
             <RuleItem
               palette={palette}
-              text="休眠区会影响学习流，但它附着在原盒下，不变成第二个盒子。"
+              text="休眠区会影响当前练习，但它仍留在原来的盒子下面。"
             />
             <RuleItem
               palette={palette}
-              text="空间只保留低成本浏览与盒内查看，不做复杂管理器。"
+              text="空间只展示卡片位置、收藏和休眠，不要求你管理复杂列表。"
             />
           </SurfaceCard>
         </View>
@@ -903,7 +903,7 @@ export function SpaceSurface({
                 休眠区
               </Text>
               <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                休眠凹槽属于当前盒；卡片进入后会立刻移出学习流，移出后回到原盒。
+                休眠凹槽属于当前盒；卡片进入后会先退出当前练习，移出后回到原盒。
               </Text>
             </View>
             <Text style={[styles.stateTag, { color: palette.warning }]}>
@@ -977,7 +977,7 @@ export function SpaceSurface({
                 回到学习
               </Text>
               <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                返回单卡流时保留当前学习卡和它所在的空间地址，不跳到模块选择。
+                回到学习时继续当前卡，并保留它在空间里的位置。
               </Text>
               {currentBoxCard ? (
                 <Text
@@ -1048,7 +1048,7 @@ function SpaceGateRailCard({
       <View style={styles.gateRailHeader}>
         <View style={styles.statusCopy}>
           <Text style={[styles.eyebrow, { color: palette.warning }]}>
-            空间权限
+            完整空间
           </Text>
           <Text style={[styles.cardTitle, { color: palette.text }]}>
             {rail.title}
