@@ -91,7 +91,8 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).toContain('先把题干里的信号抓出来，再回到选项或解析确认。');
   expect(output).not.toContain('这张卡为什么出现');
   expect(output).not.toContain('该题来自当前练习安排');
-  expect(output).toContain('当前位置：');
+  expect(output).toContain('这张在：');
+  expect(output).not.toContain('当前位置：');
   expect(output).toContain('馆 1 / 组 1 / 盒 1');
   expect(output).not.toContain(currentCard.space_metadata.library);
   expect(output).not.toContain(currentCard.space_metadata.group);
