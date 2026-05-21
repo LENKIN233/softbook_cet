@@ -95,6 +95,20 @@ function indexOrOne(values: string[], value: string) {
   const index = values.indexOf(value);
   return index >= 0 ? index + 1 : 1;
 }
+function formatLearningActionCue(
+  card: LearningCard,
+  currentResult: LearningCardResult | null,
+) {
+  if (currentResult) {
+    return '结果已经收好，可以继续下一张。';
+  }
+
+  if (card.interaction_id === 'flip') {
+    return '先翻面，看完解析后选有把握或再回看。';
+  }
+
+  return `先完成${INTERACTION_LABELS[card.interaction_id]}，再提交看解析。`;
+}
 
 export function LearningSurface({
   palette,
@@ -308,6 +322,7 @@ export function LearningSurface({
   )}%` as DimensionValue;
   const safeProgress = `${currentIndex + 1}/${sessionCards.length}`;
   const spaceAddress = formatLearningSpaceAddress(currentCard, sessionCards);
+  const actionCue = formatLearningActionCue(currentCard, currentResult);
 
   return (
     <ScrollView ref={currentCardScrollRef} contentContainerStyle={styles.page}>
@@ -408,6 +423,12 @@ export function LearningSurface({
               答题区
             </Text>
           </View>
+          <Text
+            style={[styles.actionCue, { color: palette.textMuted }]}
+            testID="learning-action-cue"
+          >
+            {actionCue}
+          </Text>
           <InteractionBody
             card={currentCard}
             cardState={currentCardState}
@@ -421,6 +442,37 @@ export function LearningSurface({
             onSelectSwipeState={onSelectSwipeState}
           />
         </View>
+
+        {currentResult ? (
+          <ResultPanel
+            card={currentCard}
+            palette={palette}
+            result={currentResult}
+            onAdvanceCard={onAdvanceCard}
+            isLastCard={currentIndex === sessionCards.length - 1}
+          />
+        ) : currentCard.interaction_id !== 'flip' ? (
+          <Pressable
+            disabled={!canSubmitLearningCard(currentCard, currentCardState)}
+            onPress={onSubmitCurrentCard}
+            style={[
+              styles.primaryButton,
+              {
+                backgroundColor: canSubmitLearningCard(
+                  currentCard,
+                  currentCardState,
+                )
+                  ? tone.accent
+                  : palette.tabIdle,
+              },
+            ]}
+            testID="learning-submit-button"
+          >
+            <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+              提交这张卡
+            </Text>
+          </Pressable>
+        ) : null}
 
         <View style={styles.actionRow}>
           <LightActionButton
@@ -528,36 +580,6 @@ export function LearningSurface({
           </Text>
         </View>
 
-        {currentResult ? (
-          <ResultPanel
-            card={currentCard}
-            palette={palette}
-            result={currentResult}
-            onAdvanceCard={onAdvanceCard}
-            isLastCard={currentIndex === sessionCards.length - 1}
-          />
-        ) : currentCard.interaction_id !== 'flip' ? (
-          <Pressable
-            disabled={!canSubmitLearningCard(currentCard, currentCardState)}
-            onPress={onSubmitCurrentCard}
-            style={[
-              styles.primaryButton,
-              {
-                backgroundColor: canSubmitLearningCard(
-                  currentCard,
-                  currentCardState,
-                )
-                  ? tone.accent
-                  : palette.tabIdle,
-              },
-            ]}
-            testID="learning-submit-button"
-          >
-            <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-              提交这张卡
-            </Text>
-          </Pressable>
-        ) : null}
       </View>
     </ScrollView>
   );
@@ -1445,6 +1467,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.8,
+  },
+  actionCue: {
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 20,
   },
   interactionBody: {
     gap: 12,

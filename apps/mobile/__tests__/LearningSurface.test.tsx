@@ -75,6 +75,7 @@ test('does not expose raw space metadata while learning', () => {
   const output = JSON.stringify(tree!.toJSON());
 
   expect(output).toContain('学习进度');
+  expect(output).toContain('先翻面，看完解析后选有把握或再回看。');
   expect(output).toContain('当前位置：');
   expect(output).toContain('馆 1 / 组 1 / 盒 1');
   expect(output).not.toContain(currentCard.space_metadata.library);
