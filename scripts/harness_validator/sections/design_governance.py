@@ -54,6 +54,31 @@ for snippet in [
 ]:
     check_contains("visual language quarantine and single-card gate", visual_language_text, snippet)
 
+mobile_metadata_scanner_text = (ROOT / "apps/mobile/scripts/check-metadata-leaks.mjs").read_text(encoding="utf-8")
+app_visible_metadata_guard_text = (ROOT / "apps/mobile/__tests__/App.test.tsx").read_text(encoding="utf-8")
+for snippet in [
+    "卡组",
+    "本组第",
+    "这一组学习卡",
+    "这组回看卡",
+    "这一组已经按学习节奏走完",
+    "再练一轮这一组",
+    "回看这一组",
+]:
+    check_contains("mobile metadata scanner old Learning group copy guard", mobile_metadata_scanner_text, snippet)
+
+for snippet in [
+    "当前卡组",
+    "本组第",
+    "本轮卡组",
+    "这一组学习卡",
+    "这组回看卡",
+    "这一组已经按学习节奏走完",
+    "再练一轮这一组",
+    "回看这一组",
+]:
+    check_contains("App visible metadata guard old Learning group copy guard", app_visible_metadata_guard_text, snippet)
+
 agent_harness_text = (ROOT / "spec/agent-harness.json").read_text(encoding="utf-8")
 for snippet in [
     "AP-33",
