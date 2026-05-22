@@ -2014,7 +2014,8 @@ test('can unlock the learning flow after fake sms verification', async () => {
   expect(output).not.toContain('当前卡 · 002001');
   expect(output).not.toContain('CET4');
   expect(output).not.toContain('训练轨道');
-  expect(output).toContain('答题区');
+  expect(output).toContain('现在做');
+  expect(output).not.toContain('答题区');
   expect(output).toContain('收藏');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
