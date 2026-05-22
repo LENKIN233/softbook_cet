@@ -35,12 +35,14 @@
 - Physical space artifact: N/A
 - Implementation mapping: N/A
 - Unimplemented design gaps: N/A
+- Learning microcopy basis: N/A
 - 如改动任何用户可见 UI / screen / component / state / chrome，不允许写 `N/A`；必须引用已接受设计稿、`docs/design/visual-reference.html`、`docs/design/canon.md`、`docs/design/briefs/*.md`、`docs/design/directions/*.md`、`docs/design/decisions/*.md` 或外部设计文件，并写明实现映射。
 - 同一 PR 内新增 / 修改的 design brief、direction 或 decision，只能满足 design-only PR；如果本 PR 也改用户可见 UI，它不能作为已接受设计稿来源。
 - Learning / core interaction UI 还必须引用 `docs/design/interaction-motion/*.md`、`docs/design/storyboards/*.md` 或外部动效/交互 artifact；Space UI 还必须引用 `docs/design/physical-space/*.md`、`docs/design/physical-space/space-state-baseline-v1.md`、`docs/design/directions/space-surface-visual-directions-v1.md`、`docs/design/mocks/space-surface-visual-proof-v1.md`、`docs/design/mocks/space-surface-visual-refinement-v1.md`、`docs/design/mocks/space-surface-shelf-desk-v1.md`、`docs/design/mocks/space-state-baseline-v1.html` 或外部空间设计稿。
 - 用户可见 UI 改动必须回答下方 `Universal Q1-Q4` 与适用的 `Conditional Q5-Q6`，不能保留 `N/A`。
 - `Universal Q1-Q4` 不能只写 `answered`；必须写明 Law of One / current library、focal object / first-read path、interaction silhouette、forbidden pattern 结论。`Conditional Q5-Q6` 必须写明 containment / safe-area 与 flip / stats / learning 规则，或说明具体不适用原因。
 - 对于触达用户可见 Learning / Space 的 PR，还需显式补齐 AP-22 与 AP-23 证据，不允许 N/A。
+- 对于触达用户可见 Learning UI 的 PR，`Learning microcopy basis` 必须说明可见文案依据：`hard leak`、`spec-backed`、`design-backed`、`product correction`，或明确 `no visible-copy change`；不要把主观文案偏好写成 harness 要求。
 
 ## design_review_checklist（如适用）
 
