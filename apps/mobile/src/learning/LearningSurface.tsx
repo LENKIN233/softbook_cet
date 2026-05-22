@@ -279,7 +279,6 @@ export function LearningSurface({
     Math.round(((currentIndex + 1) / Math.max(sessionCards.length, 1)) * 100),
     10,
   )}%` as DimensionValue;
-  const safeProgress = `${currentIndex + 1}/${sessionCards.length}`;
   const spaceAddress = formatLearningSpaceAddress(currentCard, sessionCards);
   const actionCue = formatLearningActionCue(currentCard, currentResult);
 
@@ -303,8 +302,11 @@ export function LearningSurface({
               <TagChip label="回看这一组" toneColor={palette.warning} />
             ) : null}
           </View>
-          <Text style={[styles.learningFrameMeta, { color: palette.textMuted }]}> 
-            本组第 {safeProgress} 张
+          <Text
+            style={[styles.learningFrameMeta, { color: palette.textMuted }]}
+            testID="learning-progress-label"
+          >
+            第 {currentIndex + 1} 张 / 共 {sessionCards.length} 张
           </Text>
         </View>
         <Text style={[styles.learningFrameSummary, { color: palette.textMuted }]}>
