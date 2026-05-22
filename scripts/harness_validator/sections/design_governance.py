@@ -786,6 +786,7 @@ directory_reference_body = """
 - Physical space artifact: N/A
 - Implementation mapping: apps/mobile/src/learning/LearningSurface.tsx
 - Unimplemented design gaps: No known gaps.
+- Learning microcopy basis: product correction - fixture confirms concrete accepted artifacts remain sufficient.
 
 ## design_review_checklist（如适用）
 
@@ -1036,6 +1037,7 @@ ui_external_artifact_case = run_design_gate_case(
 - Physical space artifact: N/A
 - Implementation mapping: apps/mobile/src/learning/LearningSurface.tsx
 - Unimplemented design gaps: No known gaps.
+- Learning microcopy basis: product correction - fixture keeps directory-reference rejection focused on directory-only evidence.
 
 ## design_review_checklist（如适用）
 

@@ -282,6 +282,28 @@ AP23_CHECKLIST_EVIDENCE = (
         ),
     ),
 )
+LEARNING_MICROCOPY_BASIS_MARKERS = (
+    "hard leak",
+    "hard-leak",
+    "hard_leak",
+    "spec-backed",
+    "spec backed",
+    "spec_backed",
+    "design-backed",
+    "design backed",
+    "design_backed",
+    "product correction",
+    "product-correction",
+    "product_correction",
+    "no visible-copy change",
+    "no visible copy change",
+    "no_visible_copy_change",
+    "硬泄露",
+    "规格依据",
+    "设计依据",
+    "产品纠偏",
+    "未改可见文案",
+)
 
 
 def parse_args():
@@ -603,6 +625,7 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
     conditional_checklist = line_value(body, "Conditional Q5-Q6")
     ap22_checklist = line_value(body, "AP-22")
     ap23_checklist = line_value(body, "AP-23")
+    learning_microcopy_basis = line_value(body, "Learning microcopy basis")
     learning_or_space_files = [
         path
         for path in ui_files
@@ -712,6 +735,16 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
         errors.extend(scan_visual_output_files(visual_output_files))
 
     if learning_files:
+        if is_missing(learning_microcopy_basis):
+            errors.append(
+                "Learning UI changed, but PR body does not state non-N/A Learning microcopy basis"
+            )
+        elif not value_mentions_any(learning_microcopy_basis, LEARNING_MICROCOPY_BASIS_MARKERS):
+            errors.append(
+                "Learning microcopy basis must classify visible-copy impact as hard leak, spec-backed, "
+                "design-backed, product correction, or no visible-copy change"
+            )
+
         if is_missing(interaction_motion_artifact):
             errors.append(
                 "Learning/core interaction UI changed, but PR body does not name a non-N/A Interaction/motion artifact"
