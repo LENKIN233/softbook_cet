@@ -444,8 +444,8 @@ export function LearningSurface({
             <LightActionButton
               label={
                 currentCardState.isHintVisible
-                  ? '收起提示'
-                  : '查看提示'
+                  ? '收起这点线索'
+                  : '要一点线索'
               }
               onPress={onToggleHint}
               palette={palette}
