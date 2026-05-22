@@ -104,7 +104,7 @@ function formatLearningSessionLabelForDisplay(
   const exposesSourceMetadata = /系统顺序|卡源|catalog/i.test(trimmedLabel);
 
   if (!trimmedLabel || exposesSourceMetadata) {
-    return phase === 'review' ? '这组回看卡' : '这一组学习卡';
+    return phase === 'review' ? '本轮回看卡' : '本轮学习卡';
   }
 
   return trimmedLabel;
