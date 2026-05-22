@@ -57,6 +57,13 @@ for snippet in [
 mobile_metadata_scanner_text = (ROOT / "apps/mobile/scripts/check-metadata-leaks.mjs").read_text(encoding="utf-8")
 app_visible_metadata_guard_text = (ROOT / "apps/mobile/__tests__/App.test.tsx").read_text(encoding="utf-8")
 for snippet in [
+    "src/learning/localCardRecords.ts",
+    "src/learning/model.ts",
+    "src/shared/uiMetadata/displayMetadata.ts",
+]:
+    check_contains("mobile metadata scanner visible TS source coverage", mobile_metadata_scanner_text, snippet)
+
+for snippet in [
     "卡组",
     "本组第",
     "这一组学习卡",

@@ -8,8 +8,10 @@ const appRoot = fs.existsSync(path.join(rootDir, 'src'))
   ? rootDir
   : path.join(rootDir, 'apps/mobile');
 const scanRoots = [path.join(appRoot, 'App.tsx'), path.join(appRoot, 'src')];
-const visibleCardContentFiles = [
+const visibleCopySourceFiles = [
   path.join(appRoot, 'src/learning/localCardRecords.ts'),
+  path.join(appRoot, 'src/learning/model.ts'),
+  path.join(appRoot, 'src/shared/uiMetadata/displayMetadata.ts'),
 ];
 
 const textNodeMetadataPattern =
@@ -83,8 +85,8 @@ function collectSourceFiles() {
   });
 }
 
-function collectVisibleCardContentFiles() {
-  return visibleCardContentFiles.filter(filePath => fs.existsSync(filePath));
+function collectVisibleCopySourceFiles() {
+  return visibleCopySourceFiles.filter(filePath => fs.existsSync(filePath));
 }
 
 function checkTextNodeMetadata(filePath) {
@@ -185,7 +187,7 @@ function checkDirectDisplayMetadata(filePath) {
   return findings;
 }
 
-function checkVisibleCardContentMetadata(filePath) {
+function checkVisibleCopySourceMetadata(filePath) {
   const source = fs.readFileSync(filePath, 'utf8');
   const lines = source.split('\n');
   const findings = [];
@@ -220,7 +222,7 @@ function checkVisibleCardContentMetadata(filePath) {
         filePath,
         line: index + 1,
         text,
-        reason: 'raw metadata leaked through visible dev seed card content',
+        reason: 'raw metadata leaked through visible copy source',
       });
     }
   }
@@ -234,10 +236,10 @@ function collectFindings() {
     ...checkTextNodeMetadata(file),
     ...checkDirectDisplayMetadata(file),
   ]);
-  const cardContentFindings = collectVisibleCardContentFiles().flatMap(file =>
-    checkVisibleCardContentMetadata(file),
+  const visibleCopySourceFindings = collectVisibleCopySourceFiles().flatMap(file =>
+    checkVisibleCopySourceMetadata(file),
   );
-  return [...allFindings, ...cardContentFindings];
+  return [...allFindings, ...visibleCopySourceFindings];
 }
 
 function formatFindings(findings) {
