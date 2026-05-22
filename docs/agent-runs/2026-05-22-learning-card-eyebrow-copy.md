@@ -44,3 +44,8 @@ Local gates before PR:
 ## agent_review
 
 This change is intentionally narrow: it only removes deck/group wording from local fallback card eyebrow text and adds a scanner guardrail. It does not create or approve card candidates, alter card facts, change imported payloads, or modify learning/runtime behavior.
+
+## card_content_boundary
+
+- Card content handoff: /Users/lenkin/programing/card make remains the formal card-source workspace; no new card make handoff or formal exported payload is consumed in this PR because the change is limited to local fallback/dev seed display copy.
+- Card content validation: npm --prefix apps/mobile run metadata-leak-scan passed for visible card content; dry-run import / catalog audit / runtime smoke are not applicable because no card make payload import, remote card-source catalog, or runtime card-source response changed.
