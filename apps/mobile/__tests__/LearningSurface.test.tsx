@@ -77,7 +77,10 @@ test('does not expose raw space metadata while learning', () => {
 
   const output = JSON.stringify(tree!.toJSON());
 
-  expect(output).toContain('第 1 张 / 共 ');
+  const progressLabel = tree!.root.findByProps({
+    testID: 'learning-progress-label',
+  });
+  expect(progressLabel.props.children.join('')).toBe('第 1 张 / 共 7 张');
   expect(output).not.toContain('本组第');
   expect(output).not.toContain('学习进度');
   expect(output).toContain('先做这一张');

@@ -302,7 +302,10 @@ export function LearningSurface({
               <TagChip label="回看这一组" toneColor={palette.warning} />
             ) : null}
           </View>
-          <Text style={[styles.learningFrameMeta, { color: palette.textMuted }]}>
+          <Text
+            style={[styles.learningFrameMeta, { color: palette.textMuted }]}
+            testID="learning-progress-label"
+          >
             第 {currentIndex + 1} 张 / 共 {sessionCards.length} 张
           </Text>
         </View>

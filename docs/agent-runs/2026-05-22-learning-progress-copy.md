@@ -44,3 +44,7 @@ Planned local gates before PR:
 ## agent_review
 
 This change is intentionally narrow: it does not alter layout, progress math, session selection, card content, interaction state, or metadata formatting. It only changes one user-visible progress label and the assertion that protects it.
+
+## remote_follow_up
+
+The first PR run found two mechanical issues: the RN test assertion expected a contiguous JSON substring even though `Text` children are segmented, and the PR body AP-22 line did not name concrete evidence. The follow-up adds a non-visible test id for the progress label, asserts joined children exactly, and updates the PR body AP-22 evidence.
