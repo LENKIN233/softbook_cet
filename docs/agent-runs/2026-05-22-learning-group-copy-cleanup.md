@@ -44,3 +44,7 @@ Local gates before PR:
 ## agent_review
 
 This change is intentionally narrow: it updates remaining visible group/batch wording in LearningSurface, strengthens a regression assertion, and adds exact scanner guardrails. It does not alter learning state, source loading, card payloads, layout, or interaction behavior.
+
+## remote_follow_up
+
+The first remote mobile-quality run passed metadata scanning but found App integration assertions that still expected the old group/batch copy. The follow-up updates those assertions to `这一轮已经完成，可以重新练这轮卡。`, `重新练这轮卡`, and `本轮回看`.
