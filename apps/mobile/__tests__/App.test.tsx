@@ -33,7 +33,7 @@ type TestRendererNode =
   | null;
 
 const USER_VISIBLE_METADATA_PATTERN =
-  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|remoteConfig|authToken|endpoint|MutationQueue|mutation|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
+  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|remoteConfig|authToken|endpoint|MutationQueue|mutation|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|当前卡组|本组第|本轮卡组|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
 function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   if (node === null) {
