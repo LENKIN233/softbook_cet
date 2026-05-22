@@ -86,6 +86,48 @@ for snippet in [
 ]:
     check_contains("App visible metadata guard old Learning group copy guard", app_visible_metadata_guard_text, snippet)
 
+fixture_parent = ROOT / ".tmp" / "harness-validator"
+fixture_parent.mkdir(parents=True, exist_ok=True)
+with tempfile.TemporaryDirectory(
+    prefix="metadata-scanner-visible-ts-",
+    dir=fixture_parent,
+) as tmp_dir:
+    tmp_app_root = Path(tmp_dir)
+    (tmp_app_root / "src/learning").mkdir(parents=True)
+    (tmp_app_root / "src/shared/uiMetadata").mkdir(parents=True)
+    (tmp_app_root / "src/learning/model.ts").write_text(
+        "export const INTERACTION_LABELS = { flip: '本轮卡组' };\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/shared/uiMetadata/displayMetadata.ts").write_text(
+        "export const FALLBACK_LABEL = '本轮卡组';\n",
+        encoding="utf-8",
+    )
+    metadata_scanner_fixture = subprocess.run(
+        ["node", str(ROOT / "apps/mobile/scripts/check-metadata-leaks.mjs")],
+        cwd=tmp_app_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    metadata_scanner_output = (
+        metadata_scanner_fixture.stdout + metadata_scanner_fixture.stderr
+    )
+    if metadata_scanner_fixture.returncode == 0:
+        errors.append(
+            "mobile metadata scanner must reject old Learning deck copy in visible TS sources"
+        )
+    for expected_snippet in [
+        "src/learning/model.ts",
+        "src/shared/uiMetadata/displayMetadata.ts",
+        "raw metadata leaked through visible copy source",
+    ]:
+        if expected_snippet not in metadata_scanner_output:
+            errors.append(
+                "mobile metadata scanner visible TS fixture missing expected output: "
+                + expected_snippet
+            )
+
 agent_harness_text = (ROOT / "spec/agent-harness.json").read_text(encoding="utf-8")
 for snippet in [
     "AP-33",
