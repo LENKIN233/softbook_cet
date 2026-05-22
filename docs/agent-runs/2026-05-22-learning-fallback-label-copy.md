@@ -44,3 +44,7 @@ Local gates before PR:
 ## agent_review
 
 This change is intentionally narrow: it only changes the fallback label used when raw source metadata is suppressed, updates its assertion, and adds a narrow scanner guardrail. It does not change learning state, source selection, card payloads, layout, or interaction behavior.
+
+## remote_follow_up
+
+The first remote design-artifact-gate run passed implementation checks but required more concrete Q1 checklist wording. The PR body now names Law of One current library evidence from `docs/design/decisions/learning-space-direction-decision-v1.md`.
