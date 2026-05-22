@@ -223,7 +223,7 @@ export function LearningSurface({
                     '现在可以回到首轮，按学习节奏继续。',
                   ]
                 : [
-                    '这一组已经按学习节奏走完。',
+                    '本轮学习卡已经按学习节奏走完。',
                     '需要再看的卡已经被收进回看，不要求你管理列表。',
                     '想确认位置时，再去空间查看对应知识盒。',
                   ]
@@ -247,7 +247,7 @@ export function LearningSurface({
               ? '回看已经结束。可以回到首轮重新开始，也可以稍后按学习节奏继续。'
               : reviewCandidateCount > 0
                 ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
-                : '这一轮已经完成，可以再练一轮这一组。'}
+                : '这一轮已经完成，可以重新练这轮卡。'}
           </Text>
           {!isReviewPhase && reviewCandidateCount > 0 && onStartReview ? (
             <Pressable
@@ -266,7 +266,7 @@ export function LearningSurface({
             testID="learning-restart-button"
           >
             <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-              {isReviewPhase ? '回到首轮重新开始' : '再练一轮这一组'}
+              {isReviewPhase ? '回到首轮重新开始' : '重新练这轮卡'}
             </Text>
           </Pressable>
         </View>
@@ -299,7 +299,7 @@ export function LearningSurface({
           <View style={styles.heroChipRow}>
             <TagChip label="先做这一张" toneColor={tone.accent} />
             {isReviewPhase ? (
-              <TagChip label="回看这一组" toneColor={palette.warning} />
+              <TagChip label="本轮回看" toneColor={palette.warning} />
             ) : null}
           </View>
           <Text
