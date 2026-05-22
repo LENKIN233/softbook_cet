@@ -49,3 +49,7 @@ This change is intentionally narrow: it only removes deck/group wording from loc
 
 - Card content handoff: /Users/lenkin/programing/card make remains the formal card-source workspace; no new card make handoff or formal exported payload is consumed in this PR because the change is limited to local fallback/dev seed display copy.
 - Card content validation: npm --prefix apps/mobile run metadata-leak-scan passed for visible card content; dry-run import / catalog audit / runtime smoke are not applicable because no card make payload import, remote card-source catalog, or runtime card-source response changed.
+
+## remote_follow_up
+
+The first remote rerun was triggered by branch push before the PR body edit was visible to the workflow event, so design-artifact-gate evaluated the old `卡片内容交接` section. The PR body now records `Card content handoff` and `Card content validation` explicitly before this follow-up push.
