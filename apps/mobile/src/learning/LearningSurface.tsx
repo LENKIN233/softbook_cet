@@ -115,7 +115,7 @@ function formatLearningActionCue(
   currentResult: LearningCardResult | null,
 ) {
   if (currentResult) {
-    return '结果已经收好，可以继续下一张。';
+    return '这张已经完成，可以继续下一张。';
   }
 
   if (card.interaction_id === 'flip') {
