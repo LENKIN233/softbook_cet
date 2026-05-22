@@ -379,7 +379,7 @@ export function LearningSurface({
               {INTERACTION_LABELS[currentCard.interaction_id]}
             </Text>
             <Text style={[styles.interactionMeta, { color: palette.textMuted }]}>
-              答题区
+              现在做
             </Text>
           </View>
           <Text
