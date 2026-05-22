@@ -7,7 +7,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0020',
     interaction_id: 'flip',
     front: {
-      eyebrow: '本轮卡组 | 逻辑关系',
+      eyebrow: '这张练习 | 逻辑关系',
       prompt: '短对话里听到 however，优先盯哪一半信息？',
       support: '先抓转折，不要被前半句带跑。',
       context: '考试语境里真正态度和结果常压在 however 后半句。',
@@ -37,7 +37,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0020',
     interaction_id: 'flip',
     front: {
-      eyebrow: '本轮卡组 | 逻辑关系',
+      eyebrow: '这张练习 | 逻辑关系',
       prompt: '听到 but / however 之后，做题顺序应该先改哪里？',
       support: '先重算结论位，再补细节。',
       context: '同一句里前后态度相反时，答案通常落在后半句。',
@@ -62,7 +62,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0121',
     interaction_id: 'lock',
     front: {
-      eyebrow: '本轮卡组 | 长难句主干',
+      eyebrow: '这张练习 | 长难句主干',
       prompt: '把句子主干锁出来，三个槽位都对才开锁。',
       support: '先抓主语，再找谓语和核心宾语。',
       context: '复杂修饰里先保住 S + V + O，读长句会轻很多。',
@@ -112,7 +112,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0130',
     interaction_id: 'elimination',
     front: {
-      eyebrow: '本轮卡组 | 长难句关键修饰',
+      eyebrow: '这张练习 | 长难句关键修饰',
       prompt: '点掉应删除的干扰成分，保留句干。',
       support:
         '目标句：The students who review in short bursts usually remember the pattern before the test.',
@@ -152,7 +152,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0503',
     interaction_id: 'swipe',
     front: {
-      eyebrow: '本轮卡组 | 同义词替换',
+      eyebrow: '这张练习 | 同义词替换',
       prompt: 'be likely to do 在表达转换里更接近哪一侧？',
       support: '用双态判断压低进入成本。',
       context: '别把 likely 误读成“喜欢”，它更常表达概率。',
@@ -193,7 +193,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0521',
     interaction_id: 'multiple_choice',
     front: {
-      eyebrow: '本轮卡组 | 高频词',
+      eyebrow: '这张练习 | 高频词',
       prompt:
         'The committee postponed the vote because several details were still ____.',
       support: '选出最符合句意的词。',
@@ -233,7 +233,7 @@ export const localLearningCardRecords: LearningCardRecord[] = [
     knowledge_ref: '0521',
     interaction_id: 'multiple_choice',
     front: {
-      eyebrow: '本轮卡组 | 高频词',
+      eyebrow: '这张练习 | 高频词',
       prompt:
         'The article offers a ____ explanation of why many students lose points on the first pass.',
       support: '优先选能和 explanation 形成高频搭配的词。',
