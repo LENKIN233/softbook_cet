@@ -43,3 +43,8 @@ The UI boundary can sanitize clear internal source labels (`系统顺序`, `卡�
 - `python3 scripts/validate_harness.py` passed.
 - `PR_BODY=... python3 scripts/validate_pr_design_gate.py --base origin/main --head HEAD` passed.
 - `PR_BODY=... python3 scripts/validate_agent_review.py` passed.
+
+## CI follow-up
+
+- Remote mobile-quality caught two assertions that still expected the old broad sanitizer fallback `这一组学习卡`.
+- Updated those assertions to expect the legitimate learner-facing label `本轮学习卡组`, matching the narrowed sanitizer rule that no longer treats every `卡组` label as metadata.
