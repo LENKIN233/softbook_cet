@@ -2071,7 +2071,7 @@ test('can boot the app into cet6 through runtime config', async () => {
     'cet6',
   );
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本轮学习卡组');
+  expect(output).toContain('本轮学习卡');
   expect(output).not.toContain('CET6');
   expectNoUserVisibleMetadataLeakage(tree!);
 });

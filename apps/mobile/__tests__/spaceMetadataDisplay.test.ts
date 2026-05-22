@@ -53,8 +53,8 @@ test('formats path indexes into anonymous-space labels', () => {
 });
 
 test('formats learning session labels without exposing tracks', () => {
-  expect(formatLearningSessionDisplayLabel('learning')).toBe('本轮学习卡组');
-  expect(formatLearningSessionDisplayLabel('review')).toBe('首轮回看卡组');
+  expect(formatLearningSessionDisplayLabel('learning')).toBe('本轮学习卡');
+  expect(formatLearningSessionDisplayLabel('review')).toBe('本轮回看卡');
 });
 
 test('resolves a card to an anonymous index path when available', () => {
