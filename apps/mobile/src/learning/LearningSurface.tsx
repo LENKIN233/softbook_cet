@@ -101,7 +101,7 @@ function formatLearningSessionLabelForDisplay(
   phase: 'learning' | 'review',
 ) {
   const trimmedLabel = sessionLabel.trim();
-  const exposesSourceMetadata = /系统顺序|卡源|catalog|卡组/i.test(trimmedLabel);
+  const exposesSourceMetadata = /系统顺序|卡源|catalog/i.test(trimmedLabel);
 
   if (!trimmedLabel || exposesSourceMetadata) {
     return phase === 'review' ? '这组回看卡' : '这一组学习卡';
@@ -444,8 +444,8 @@ export function LearningSurface({
             <LightActionButton
               label={
                 currentCardState.isHintVisible
-                  ? '收起这点线索'
-                  : '要一点线索'
+                  ? '收起提示'
+                  : '查看提示'
               }
               onPress={onToggleHint}
               palette={palette}
