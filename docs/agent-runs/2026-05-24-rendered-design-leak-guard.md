@@ -59,11 +59,13 @@
 - `rg -n "Design-only|design-only|implementation|Implementation|RN|prototype|Prototype|visual evidence|pairwise review|Rendered Proof|rendered proof|proof|candidate|search run|mock|Mock" ...` -> located affected visible HTML strings.
 - `node scripts/check_design_metadata_leaks.mjs` -> `PASS: No metadata leaks detected in design visual artifacts.`
 - `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK` after expanded HTML cleanup and run record update.
+- `python3 scripts/validate_pr_design_gate.py --body-file /private/tmp/softbook-rendered-design-leak-guard-pr.md --changed-file ...` -> `PR DESIGN GATE OK` after updating the PR body checklist fields to `Universal Q1-Q4` and `Conditional Q5-Q6`.
 
 ## Validation results
 
 - `node scripts/check_design_metadata_leaks.mjs` passed locally: `PASS: No metadata leaks detected in design visual artifacts.`
 - `python3 scripts/validate_harness.py` passed locally after the expanded rendered HTML cleanup: `HARNESS VALIDATION OK`.
+- `python3 scripts/validate_pr_design_gate.py --body-file /private/tmp/softbook-rendered-design-leak-guard-pr.md --changed-file ...` passed locally: `PR DESIGN GATE OK`.
 
 ## Agent review status
 
