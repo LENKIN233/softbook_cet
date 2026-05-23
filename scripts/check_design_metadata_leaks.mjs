@@ -21,7 +21,7 @@ const excludedPathPatterns = [
   /\/templates\//,
 ];
 
-const textFilePattern = /\.(html|md)$/;
+const textFilePattern = /\.(html|md|svg)$/;
 
 const leakagePatterns = [
   {
@@ -114,7 +114,7 @@ function visibleHtmlText(source) {
 function scanText(filePath, source) {
   const suffix = path.extname(filePath).toLowerCase();
   const scanTargets =
-    suffix === '.html'
+    suffix === '.html' || suffix === '.svg'
       ? [
           {
             kind: 'visible text',
