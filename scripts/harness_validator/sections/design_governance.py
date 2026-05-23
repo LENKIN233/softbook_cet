@@ -135,6 +135,77 @@ with tempfile.TemporaryDirectory(
                 + expected_snippet
             )
 
+design_metadata_scanner_text = (ROOT / "scripts/check_design_metadata_leaks.mjs").read_text(encoding="utf-8")
+for snippet in [
+    "visualReferenceFiles",
+    "docs/design/visual-reference.html",
+    "visibleHtmlLeakagePatterns",
+    "scanVisibleHtmlProcessText",
+]:
+    check_contains("design metadata scanner visual-reference process coverage", design_metadata_scanner_text, snippet)
+
+with tempfile.TemporaryDirectory(
+    prefix="metadata-leak-fixture-",
+    dir=ROOT / "docs/design/mocks",
+) as tmp_dir:
+    fixture_html = Path(tmp_dir) / "visible-process-leak.html"
+    fixture_html.write_text(
+        "<!doctype html><html><body><p>Runtime debug payload visible to learner.</p></body></html>\n",
+        encoding="utf-8",
+    )
+    design_metadata_fixture = subprocess.run(
+        ["node", str(ROOT / "scripts/check_design_metadata_leaks.mjs")],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    design_metadata_output = design_metadata_fixture.stdout + design_metadata_fixture.stderr
+    if design_metadata_fixture.returncode == 0:
+        errors.append("design metadata scanner must reject internal process wording in rendered HTML")
+    for expected_snippet in [
+        "visible-process-leak.html",
+        "internal process or implementation term in rendered visual proof",
+    ]:
+        if expected_snippet not in design_metadata_output:
+            errors.append(
+                "design metadata scanner rendered HTML fixture missing expected output: "
+                + expected_snippet
+            )
+
+visual_reference_path = ROOT / "docs/design/visual-reference.html"
+visual_reference_original = visual_reference_path.read_text(encoding="utf-8")
+try:
+    visual_reference_path.write_text(
+        visual_reference_original.replace(
+            "</body>",
+            "<p>docs/internal/path visible to learner.</p></body>",
+        ),
+        encoding="utf-8",
+    )
+    visual_reference_fixture = subprocess.run(
+        ["node", str(ROOT / "scripts/check_design_metadata_leaks.mjs")],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+finally:
+    visual_reference_path.write_text(visual_reference_original, encoding="utf-8")
+
+visual_reference_output = visual_reference_fixture.stdout + visual_reference_fixture.stderr
+if visual_reference_fixture.returncode == 0:
+    errors.append("design metadata scanner must reject repo paths in visual-reference visible text")
+for expected_snippet in [
+    "docs/design/visual-reference.html",
+    "repo path in rendered visual proof",
+]:
+    if expected_snippet not in visual_reference_output:
+        errors.append(
+            "design metadata scanner visual-reference fixture missing expected output: "
+            + expected_snippet
+        )
+
 agent_harness_text = (ROOT / "spec/agent-harness.json").read_text(encoding="utf-8")
 for snippet in [
     "AP-33",
