@@ -14,6 +14,8 @@ const scanRoots = [
   'docs/design/search-runs',
 ];
 
+const visualReferenceFiles = ['docs/design/visual-reference.html'];
+
 const excludedPathPatterns = [
   /\/README\.md$/,
   /\/templates\//,
@@ -146,6 +148,29 @@ function scanText(filePath, source) {
   return findings;
 }
 
+function scanVisibleHtmlProcessText(filePath, source) {
+  const lines = visibleHtmlText(source).split(/\r?\n/);
+  const findings = [];
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const line = lines[lineIndex];
+    for (const rule of visibleHtmlLeakagePatterns) {
+      if (rule.pattern.test(line)) {
+        findings.push({
+          filePath,
+          kind: 'visible text',
+          line: lineIndex + 1,
+          reason: rule.reason,
+          text: line.trim().slice(0, 220),
+        });
+        break;
+      }
+    }
+  }
+
+  return findings;
+}
+
 const files = scanRoots
   .flatMap(root => walk(path.join(repoRoot, root)))
   .filter(filePath => {
@@ -153,9 +178,18 @@ const files = scanRoots
     return !excludedPathPatterns.some(pattern => pattern.test(relativePath));
   });
 
-const findings = files.flatMap(filePath =>
-  scanText(filePath, fs.readFileSync(filePath, 'utf8')),
-);
+const visualReferencePaths = visualReferenceFiles
+  .map(filePath => path.join(repoRoot, filePath))
+  .filter(filePath => fs.existsSync(filePath));
+
+const findings = [
+  ...files.flatMap(filePath =>
+    scanText(filePath, fs.readFileSync(filePath, 'utf8')),
+  ),
+  ...visualReferencePaths.flatMap(filePath =>
+    scanVisibleHtmlProcessText(filePath, fs.readFileSync(filePath, 'utf8')),
+  ),
+];
 
 if (findings.length > 0) {
   console.error('FAIL: Design visual artifacts contain raw metadata leaks.');

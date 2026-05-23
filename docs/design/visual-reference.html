@@ -536,10 +536,10 @@ svg.ico{width:16px;height:16px;flex-shrink:0;fill:none;stroke:currentColor;strok
 <!-- ═══════ MASTHEAD ═══════ -->
 <header class="mast">
   <div>
-    <div class="brand">Softbook CET · Visual Anchor v2 · implementation hypothesis</div>
+    <div class="brand">Softbook CET · Visual Anchor v2 · stable visual baseline</div>
     <h1>Aurora&nbsp;Glass<br/><span class="accent">for quiet study.</span></h1>
     <p class="sub">吸收彩色玻璃的词汇，推到 VisionOS 级的克制与编辑化。Aurora 氛围、单库单强色、40px 玻璃、grain 颗粒、Outfit 大字与 Noto Sans 正文——让"被懂四六级的系统带着走"这句话有了具体的空气。</p>
-    <p class="sub" style="margin-top:10px;font-size:13px;color:var(--ink-4);max-width:58ch">本页是 <strong style="color:var(--ink-2)">视觉实现假设</strong>（implementation hypothesis）的稳定锚点。结构真相在 <code style="font-family:var(--f-mono);font-size:12px;color:var(--ink-2)">spec/visual-language.json</code>——色号、字号、模糊半径可以 ±5% 微调，但承重柱与身份语义不可替换。</p>
+    <p class="sub" style="margin-top:10px;font-size:13px;color:var(--ink-4);max-width:58ch">本页是软书四六级视觉基准的稳定锚点。色号、字号、模糊半径可以 ±5% 微调，但承重柱与身份语义不可替换。</p>
   </div>
   <aside>derived · not · imported</aside>
 </header>
@@ -618,7 +618,7 @@ svg.ico{width:16px;height:16px;flex-shrink:0;fill:none;stroke:currentColor;strok
       <div class="sw"><div class="chip" style="background:var(--fb-confident)"></div><div class="meta"><div class="zh">有把握</div><div class="en">Confident</div><div class="hex">#22C58B</div></div></div>
       <div class="sw"><div class="chip" style="background:var(--fb-review)"></div><div class="meta"><div class="zh">再回看</div><div class="en">Review</div><div class="hex">#F5B100</div></div></div>
     </div>
-    <p style="margin-top:10px;font-size:12px;color:var(--ink-3);line-height:1.6">两档对齐 <code style="font-family:var(--f-mono);font-size:11px">apps/mobile/src/learning/LearningSurface.tsx</code> 的 flip 实现（有把握 / 再回看）。<code style="font-family:var(--f-mono);font-size:11px">product-core.json</code> 明确写了"避免反复做高成本掌握度判断"——2 档才叫 light。</p>
+    <p style="margin-top:10px;font-size:12px;color:var(--ink-3);line-height:1.6">两档轻自评只用于翻面：有把握 / 再回看。2 档是降低判断成本的边界，不扩展成复杂掌握度判断。</p>
   </div>
 
   <div class="pal-group">
@@ -665,7 +665,7 @@ svg.ico{width:16px;height:16px;flex-shrink:0;fill:none;stroke:currentColor;strok
     <div class="sec-meta"><span class="num">04</span><span class="dot"></span>Surfaces</div>
     <h2>三个核心端面，<em>远看即可辨。</em></h2>
   </div>
-  <p class="lede">不是 pixel mock；是轮廓锚点。如果把下面三张图糊到 10% 分辨率，你还应该一眼认出：学习是"中心单卡 + 底部胶囊 tab"，空间是"顶部统计 + 垂直七学科列"，付费墙是"上半解释下半大数字"。</p>
+  <p class="lede">不是像素稿；是轮廓锚点。如果把下面三张图糊到 10% 分辨率，你还应该一眼认出：学习是"中心单卡 + 底部胶囊 tab"，空间是"顶部统计 + 垂直七学科列"，付费墙是"上半解释下半大数字"。</p>
 
   <div class="surfaces">
 
@@ -913,7 +913,7 @@ svg.ico{width:16px;height:16px;flex-shrink:0;fill:none;stroke:currentColor;strok
     <div class="sec-meta"><span class="num">06</span><span class="dot"></span>Vocabulary</div>
     <h2>组件词汇，<em>不是组件库。</em></h2>
   </div>
-  <p class="lede">下面是会稳定出现的视觉单元。给任何 agent / 设计师看到这页，他就知道"软书四六级用 chip 不用 tag badge，用 pill tabbar 不用底部全宽 bar，用 grain 颗粒不用 noise-shader"。</p>
+  <p class="lede">下面是会稳定出现的视觉单元。给任何设计师或执行者看到这页，他就知道"软书四六级用 chip 不用 tag badge，用 pill tabbar 不用底部全宽 bar，用 grain 颗粒不用 noise-shader"。</p>
 
   <div class="vocab">
 
@@ -960,7 +960,7 @@ svg.ico{width:16px;height:16px;flex-shrink:0;fill:none;stroke:currentColor;strok
 <section class="sec">
   <div class="sec-head">
     <div class="sec-meta"><span class="num">07</span><span class="dot"></span>Canon</div>
-    <h2>做 与 不做。<em>两份清单，PR 时照查。</em></h2>
+    <h2>做 与 不做。<em>两份清单，交付前照查。</em></h2>
   </div>
 
   <div class="rules">
