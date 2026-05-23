@@ -141,6 +141,8 @@ for snippet in [
     "docs/design/visual-reference.html",
     "html|md|svg",
     "decodeHtmlEntities",
+    "visibleAttributeText",
+    "accessibility text",
     "visibleHtmlLeakagePatterns",
     "scanVisibleHtmlProcessText",
 ]:
@@ -160,6 +162,16 @@ with tempfile.TemporaryDirectory(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
         encoding="utf-8",
     )
+    fixture_accessible_html = Path(tmp_dir) / "accessible-process-leak.html"
+    fixture_accessible_html.write_text(
+        '<!doctype html><html><body><section aria-label="R&#117;ntime deb&#117;g payload visible to learner."><p>学习画面</p></section></body></html>\n',
+        encoding="utf-8",
+    )
+    fixture_accessible_svg = Path(tmp_dir) / "accessible-process-leak.svg"
+    fixture_accessible_svg.write_text(
+        '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><g aria-label="R&#117;ntime deb&#117;g payload visible to learner."><text>学习画面</text></g></svg>\n',
+        encoding="utf-8",
+    )
     design_metadata_fixture = subprocess.run(
         ["node", str(ROOT / "scripts/check_design_metadata_leaks.mjs")],
         cwd=ROOT,
@@ -173,6 +185,9 @@ with tempfile.TemporaryDirectory(
     for expected_snippet in [
         "visible-process-leak.html",
         "visible-process-leak.svg",
+        "accessible-process-leak.html",
+        "accessible-process-leak.svg",
+        "accessibility text",
         "internal process or implementation term in rendered visual proof",
     ]:
         if expected_snippet not in design_metadata_output:
