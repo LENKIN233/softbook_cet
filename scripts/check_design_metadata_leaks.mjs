@@ -145,6 +145,19 @@ function visibleHtmlText(source) {
     .trim();
 }
 
+function visibleAttributeText(source) {
+  const attributePattern =
+    /\b(?:aria-label|alt|title)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+  const values = [];
+  let match;
+
+  while ((match = attributePattern.exec(source)) !== null) {
+    values.push(match[1] ?? match[2] ?? '');
+  }
+
+  return decodeHtmlEntities(values.join(' ')).replace(/\s+/g, ' ').trim();
+}
+
 function scanText(filePath, source) {
   const suffix = path.extname(filePath).toLowerCase();
   const scanTargets =
@@ -153,6 +166,11 @@ function scanText(filePath, source) {
           {
             kind: 'visible text',
             text: visibleHtmlText(source),
+            rules: [...leakagePatterns, ...visibleHtmlLeakagePatterns],
+          },
+          {
+            kind: 'accessibility text',
+            text: visibleAttributeText(source),
             rules: [...leakagePatterns, ...visibleHtmlLeakagePatterns],
           },
           { kind: 'source token', text: source, rules: leakagePatterns },
@@ -183,7 +201,9 @@ function scanText(filePath, source) {
 }
 
 function scanVisibleHtmlProcessText(filePath, source) {
-  const lines = visibleHtmlText(source).split(/\r?\n/);
+  const lines = `${visibleHtmlText(source)} ${visibleAttributeText(source)}`.split(
+    /\r?\n/,
+  );
   const findings = [];
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
