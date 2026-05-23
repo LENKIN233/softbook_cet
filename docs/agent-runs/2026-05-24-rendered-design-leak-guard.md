@@ -5,7 +5,7 @@
 - Date: 2026-05-24
 - Branch: `infra/design-copy-leak-path-guard`
 - PR: N/A at record creation
-- Summary: Remove visible internal process wording from the Space shelf-desk rendered design proof and extend the design metadata scanner so rendered HTML visible text catches internal process terms and repo paths.
+- Summary: Remove visible internal process wording from rendered design proofs and extend the design metadata scanner so rendered HTML visible text catches internal process terms and repo paths.
 
 ## Referenced specs
 
@@ -21,11 +21,11 @@
 ## Implementation hypothesis changed
 
 - No product implementation hypothesis changed.
-- The rendered Space proof copy is now learner-facing instead of process-facing.
+- Rendered design proof copy is now learner-facing or design-semantic instead of process-facing.
 
 ## Workspace boundary and read scope
 
-- Active truth/source read: `scripts/check_design_metadata_leaks.mjs`, `scripts/validate_pr_design_gate.py`, `docs/design/mocks/space-surface-shelf-desk-v1.html`, `docs/design/mocks/space-surface-shelf-desk-v1.md`, `docs/agent-runs/TEMPLATE.md`.
+- Active truth/source read: `scripts/check_design_metadata_leaks.mjs`, `scripts/validate_pr_design_gate.py`, rendered design HTML files reported by `scripts/check_design_metadata_leaks.mjs`, `docs/design/mocks/space-surface-shelf-desk-v1.md`, `docs/agent-runs/TEMPLATE.md`.
 - Generated/dependency/cache/archive read: none.
 - External workspace read: none.
 
@@ -33,6 +33,12 @@
 
 - `scripts/check_design_metadata_leaks.mjs`: add rendered HTML visible-text leak rules for internal process wording and repo paths.
 - `docs/design/mocks/space-surface-shelf-desk-v1.html`: remove visible process/meta wording from the rendered Space design proof.
+- `docs/design/mocks/learning-card-rhythm-v1.html`: remove visible proof/implementation wording from the rendered Learning rhythm proof.
+- `docs/design/mocks/space-surface-visual-proof-v1.html`: remove visible design-only/RN/harness wording from the rendered Space visual proof.
+- `docs/design/mocks/space-surface-visual-refinement-v1.html`: remove visible design-only/RN wording from the rendered Space refinement proof.
+- `docs/design/storyboards/learning-space-motion-prototype-v1.html`: remove `Prototype` from the browser-visible title.
+- `docs/design/search-runs/2026-05-10-space-desk-evolution/rendered-proof.html`: remove visible design-only/implementation wording from the rendered Space search proof.
+- `docs/design/search-runs/2026-05-10-space-desk-evolution/candidate-proofs/survivor-comparison.html`: remove visible visual-evidence/pairwise-review/mock/implementation wording from the rendered survivor comparison.
 - `docs/agent-runs/2026-05-24-rendered-design-leak-guard.md`: record this PR-bound design/harness work.
 
 ## Commands run
@@ -48,21 +54,27 @@
 - `sed -n '480,610p' docs/design/mocks/space-surface-shelf-desk-v1.html` -> read affected rendered proof section.
 - `sed -n '1,120p' docs/design/mocks/space-surface-shelf-desk-v1.md` -> read source design artifact boundary.
 - `sed -n '1,200p' docs/agent-runs/TEMPLATE.md` -> read run record template.
+- `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK` before expanded HTML cleanup.
+- `node scripts/check_design_metadata_leaks.mjs` -> initially failed and identified additional rendered HTML visible process wording.
+- `rg -n "Design-only|design-only|implementation|Implementation|RN|prototype|Prototype|visual evidence|pairwise review|Rendered Proof|rendered proof|proof|candidate|search run|mock|Mock" ...` -> located affected visible HTML strings.
+- `node scripts/check_design_metadata_leaks.mjs` -> `PASS: No metadata leaks detected in design visual artifacts.`
+- `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK` after expanded HTML cleanup and run record update.
 
 ## Validation results
 
-- Pending. Full local harness and PR checks must run before merge.
+- `node scripts/check_design_metadata_leaks.mjs` passed locally: `PASS: No metadata leaks detected in design visual artifacts.`
+- `python3 scripts/validate_harness.py` passed locally after the expanded rendered HTML cleanup: `HARNESS VALIDATION OK`.
 
 ## Agent review status
 
-- Reviewer: pending.
-- Status: pending.
-- Blocking findings: pending.
+- Reviewer: Codex.
+- Status: Passed.
+- Blocking findings: none.
 
 ## User-visible UI impact
 
 - User-visible app UI: none.
-- User-visible rendered design proof: yes. The Space shelf-desk proof now shows learner-facing Chinese copy instead of internal process labels.
+- User-visible rendered design proofs: yes. Affected rendered design pages now show learner-facing or design-semantic copy instead of internal process labels.
 
 ## Card make external workspace impact
 
