@@ -158,6 +158,33 @@ function visibleAttributeText(source) {
   return decodeHtmlEntities(values.join(' ')).replace(/\s+/g, ' ').trim();
 }
 
+function decodeCssEscapes(text) {
+  return text
+    .replace(
+      /\\([0-9a-f]{1,6})(?:\r\n|[\t\n\r\f ])?/gi,
+      (escape, hex) => {
+        const codePoint = Number.parseInt(hex, 16);
+        return Number.isFinite(codePoint)
+          ? String.fromCodePoint(codePoint)
+          : escape;
+      },
+    )
+    .replace(/\\([\s\S])/g, '$1');
+}
+
+function cssGeneratedText(source) {
+  const contentPattern =
+    /\bcontent\s*:\s*(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)')/gi;
+  const values = [];
+  let match;
+
+  while ((match = contentPattern.exec(source)) !== null) {
+    values.push(decodeCssEscapes(match[1] ?? match[2] ?? ''));
+  }
+
+  return decodeHtmlEntities(values.join(' ')).replace(/\s+/g, ' ').trim();
+}
+
 function scanText(filePath, source) {
   const suffix = path.extname(filePath).toLowerCase();
   const scanTargets =
@@ -171,6 +198,11 @@ function scanText(filePath, source) {
           {
             kind: 'accessibility text',
             text: visibleAttributeText(source),
+            rules: [...leakagePatterns, ...visibleHtmlLeakagePatterns],
+          },
+          {
+            kind: 'generated content',
+            text: cssGeneratedText(source),
             rules: [...leakagePatterns, ...visibleHtmlLeakagePatterns],
           },
           { kind: 'source token', text: source, rules: leakagePatterns },
@@ -201,9 +233,10 @@ function scanText(filePath, source) {
 }
 
 function scanVisibleHtmlProcessText(filePath, source) {
-  const lines = `${visibleHtmlText(source)} ${visibleAttributeText(source)}`.split(
-    /\r?\n/,
-  );
+  const lines =
+    `${visibleHtmlText(source)} ${visibleAttributeText(source)} ${cssGeneratedText(
+      source,
+    )}`.split(/\r?\n/);
   const findings = [];
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {

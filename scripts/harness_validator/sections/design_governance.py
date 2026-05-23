@@ -142,7 +142,9 @@ for snippet in [
     "html|md|svg",
     "decodeHtmlEntities",
     "visibleAttributeText",
+    "cssGeneratedText",
     "accessibility text",
+    "generated content",
     "visibleHtmlLeakagePatterns",
     "scanVisibleHtmlProcessText",
 ]:
@@ -172,6 +174,11 @@ with tempfile.TemporaryDirectory(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><g aria-label="R&#117;ntime deb&#117;g payload visible to learner."><text>学习画面</text></g></svg>\n',
         encoding="utf-8",
     )
+    fixture_generated_html = Path(tmp_dir) / "generated-content-leak.html"
+    fixture_generated_html.write_text(
+        '<!doctype html><html><head><style>.leak::before { content: "R\\75 ntime deb\\75 g payload visible to learner."; }</style></head><body><p class="leak">学习画面</p></body></html>\n',
+        encoding="utf-8",
+    )
     design_metadata_fixture = subprocess.run(
         ["node", str(ROOT / "scripts/check_design_metadata_leaks.mjs")],
         cwd=ROOT,
@@ -188,6 +195,8 @@ with tempfile.TemporaryDirectory(
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
         "accessibility text",
+        "generated-content-leak.html",
+        "generated content",
         "internal process or implementation term in rendered visual proof",
     ]:
         if expected_snippet not in design_metadata_output:
