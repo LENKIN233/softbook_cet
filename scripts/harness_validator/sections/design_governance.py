@@ -140,6 +140,7 @@ for snippet in [
     "visualReferenceFiles",
     "docs/design/visual-reference.html",
     "html|md|svg",
+    "decodeHtmlEntities",
     "visibleHtmlLeakagePatterns",
     "scanVisibleHtmlProcessText",
 ]:
@@ -151,12 +152,12 @@ with tempfile.TemporaryDirectory(
 ) as tmp_dir:
     fixture_html = Path(tmp_dir) / "visible-process-leak.html"
     fixture_html.write_text(
-        "<!doctype html><html><body><p>Runtime debug payload visible to learner.</p></body></html>\n",
+        "<!doctype html><html><body><p>R&#117;ntime deb&#117;g payload visible to learner.</p></body></html>\n",
         encoding="utf-8",
     )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
-        '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>Runtime debug payload visible to learner.</text></svg>\n',
+        '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
         encoding="utf-8",
     )
     design_metadata_fixture = subprocess.run(

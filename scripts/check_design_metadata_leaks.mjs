@@ -78,6 +78,18 @@ const visibleHtmlLeakagePatterns = [
   },
 ];
 
+const namedHtmlEntities = {
+  amp: '&',
+  bull: ' · ',
+  gt: '>',
+  lt: '<',
+  middot: ' · ',
+  nbsp: ' ',
+  rarr: ' -> ',
+  rightarrow: ' -> ',
+  sol: '/',
+};
+
 function walk(dir, files = []) {
   if (!fs.existsSync(dir)) {
     return files;
@@ -99,14 +111,36 @@ function walk(dir, files = []) {
   return files;
 }
 
+function decodeHtmlEntities(text) {
+  return text.replace(
+    /&(#x[0-9a-f]+|#[0-9]+|[a-z][a-z0-9]+);/gi,
+    (entity, value) => {
+      const normalized = value.toLowerCase();
+
+      if (normalized.startsWith('#x')) {
+        const codePoint = Number.parseInt(normalized.slice(2), 16);
+        return Number.isFinite(codePoint)
+          ? String.fromCodePoint(codePoint)
+          : entity;
+      }
+
+      if (normalized.startsWith('#')) {
+        const codePoint = Number.parseInt(normalized.slice(1), 10);
+        return Number.isFinite(codePoint)
+          ? String.fromCodePoint(codePoint)
+          : entity;
+      }
+
+      return namedHtmlEntities[normalized] ?? entity;
+    },
+  );
+}
+
 function visibleHtmlText(source) {
-  return source
+  return decodeHtmlEntities(source)
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;|&#160;/gi, ' ')
-    .replace(/&middot;|&bull;/gi, ' · ')
-    .replace(/&rarr;|&rightarrow;/gi, ' -> ')
     .replace(/\s+/g, ' ')
     .trim();
 }
