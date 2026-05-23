@@ -46,11 +46,12 @@ No product or visual implementation hypothesis changed. This is a harness/source
 
 ## validation_results
 
-Not run in this step. The change adds harness coverage and should be validated by the repository harness and PR checks before merge.
+- `python3 scripts/validate_harness.py` passed locally with `HARNESS VALIDATION OK` after reinstalling repository hooks for this worktree.
+- PR #146 GitHub Actions had passed `design-artifact-gate`, `validate-harness`, `mobile-quality`, and `backend-contract` before this record update.
 
 ## agent_review_status
 
-Pending. The PR must not be merged until agent review and required gates pass.
+Passed. Reviewer: Codex. Blocking findings: none. Summary: scanner and harness coverage are aligned with the visible metadata leakage blocker, the change is guardrail-only, and user-visible UI is unchanged.
 
 ## user_visible_ui_impact
 
@@ -63,9 +64,8 @@ None. This does not produce, approve, import, or alter card content payloads fro
 ## risks_and_open_questions
 
 - The scanner now treats `src/space/spaceMetadataDisplay.ts` as a visible copy source because it re-exports UI label formatters and builds display path strings.
-- Local validation was not run in this step; PR gates should prove the harness path.
+- Merge remains conditional on refreshed PR checks staying green after this record update.
 
 ## follow_up
 
-- Run the harness and PR checks.
 - Merge only after agent review, PR description evidence, and required gates are green.
