@@ -139,6 +139,7 @@ design_metadata_scanner_text = (ROOT / "scripts/check_design_metadata_leaks.mjs"
 for snippet in [
     "visualReferenceFiles",
     "docs/design/visual-reference.html",
+    "html|md|svg",
     "visibleHtmlLeakagePatterns",
     "scanVisibleHtmlProcessText",
 ]:
@@ -153,6 +154,11 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>Runtime debug payload visible to learner.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
+    fixture_svg.write_text(
+        '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>Runtime debug payload visible to learner.</text></svg>\n',
+        encoding="utf-8",
+    )
     design_metadata_fixture = subprocess.run(
         ["node", str(ROOT / "scripts/check_design_metadata_leaks.mjs")],
         cwd=ROOT,
@@ -165,6 +171,7 @@ with tempfile.TemporaryDirectory(
         errors.append("design metadata scanner must reject internal process wording in rendered HTML")
     for expected_snippet in [
         "visible-process-leak.html",
+        "visible-process-leak.svg",
         "internal process or implementation term in rendered visual proof",
     ]:
         if expected_snippet not in design_metadata_output:
