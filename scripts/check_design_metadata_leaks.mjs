@@ -64,6 +64,18 @@ const leakagePatterns = [
   },
 ];
 
+const visibleHtmlLeakagePatterns = [
+  {
+    pattern:
+      /\b(?:agent|harness|validator|runtime|mock|prototype|seed|fixture|debug|dev|todo|implementation|repository|repo|pull request|pr|rn|endpoint|payload)\b/i,
+    reason: 'internal process or implementation term in rendered visual proof',
+  },
+  {
+    pattern: /\b(?:docs|apps|scripts|spec|infra)\/[A-Za-z0-9_./-]+/i,
+    reason: 'repo path in rendered visual proof',
+  },
+];
+
 function walk(dir, files = []) {
   if (!fs.existsSync(dir)) {
     return files;
@@ -102,17 +114,21 @@ function scanText(filePath, source) {
   const scanTargets =
     suffix === '.html'
       ? [
-          { kind: 'visible text', text: visibleHtmlText(source) },
-          { kind: 'source token', text: source },
+          {
+            kind: 'visible text',
+            text: visibleHtmlText(source),
+            rules: [...leakagePatterns, ...visibleHtmlLeakagePatterns],
+          },
+          { kind: 'source token', text: source, rules: leakagePatterns },
         ]
-      : [{ kind: 'markdown text', text: source }];
+      : [{ kind: 'markdown text', text: source, rules: leakagePatterns }];
   const findings = [];
 
   for (const target of scanTargets) {
     const lines = target.text.split(/\r?\n/);
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
       const line = lines[lineIndex];
-      for (const rule of leakagePatterns) {
+      for (const rule of target.rules) {
         if (rule.pattern.test(line)) {
           findings.push({
             filePath,
