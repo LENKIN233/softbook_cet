@@ -12,6 +12,7 @@ const visibleCopySourceFiles = [
   path.join(appRoot, 'src/learning/localCardRecords.ts'),
   path.join(appRoot, 'src/learning/model.ts'),
   path.join(appRoot, 'src/shared/uiMetadata/displayMetadata.ts'),
+  path.join(appRoot, 'src/space/spaceMetadataDisplay.ts'),
 ];
 
 const textNodeMetadataPattern =

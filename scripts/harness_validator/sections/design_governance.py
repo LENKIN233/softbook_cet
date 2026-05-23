@@ -60,6 +60,7 @@ for snippet in [
     "src/learning/localCardRecords.ts",
     "src/learning/model.ts",
     "src/shared/uiMetadata/displayMetadata.ts",
+    "src/space/spaceMetadataDisplay.ts",
 ]:
     check_contains("mobile metadata scanner visible TS source coverage", mobile_metadata_scanner_text, snippet)
 
@@ -95,12 +96,17 @@ with tempfile.TemporaryDirectory(
     tmp_app_root = Path(tmp_dir)
     (tmp_app_root / "src/learning").mkdir(parents=True)
     (tmp_app_root / "src/shared/uiMetadata").mkdir(parents=True)
+    (tmp_app_root / "src/space").mkdir(parents=True)
     (tmp_app_root / "src/learning/model.ts").write_text(
         "export const INTERACTION_LABELS = { flip: '本轮卡组' };\n",
         encoding="utf-8",
     )
     (tmp_app_root / "src/shared/uiMetadata/displayMetadata.ts").write_text(
         "export const FALLBACK_LABEL = '本轮卡组';\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/space/spaceMetadataDisplay.ts").write_text(
+        "export const SPACE_LABEL = '本轮卡组';\n",
         encoding="utf-8",
     )
     metadata_scanner_fixture = subprocess.run(
@@ -120,6 +126,7 @@ with tempfile.TemporaryDirectory(
     for expected_snippet in [
         "src/learning/model.ts",
         "src/shared/uiMetadata/displayMetadata.ts",
+        "src/space/spaceMetadataDisplay.ts",
         "raw metadata leaked through visible copy source",
     ]:
         if expected_snippet not in metadata_scanner_output:
