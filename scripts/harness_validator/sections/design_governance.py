@@ -176,6 +176,7 @@ for snippet in [
     "aria-valuetext",
     "placeholder",
     "cssGeneratedText",
+    "cssGeneratedAttrNames",
     "accessibility text",
     "generated content",
     "visibleHtmlLeakagePatterns",
@@ -222,6 +223,11 @@ with tempfile.TemporaryDirectory(
         '<!doctype html><html><head><style>.leak::before { content: "R\\75 ntime deb\\75 g payload visible to learner."; }</style></head><body><p class="leak">学习画面</p></body></html>\n',
         encoding="utf-8",
     )
+    fixture_attr_generated_html = Path(tmp_dir) / "generated-attr-content-leak.html"
+    fixture_attr_generated_html.write_text(
+        '<!doctype html><html><head><style>.leak::before { content: attr(data-caption); }</style></head><body><p class="leak" data-caption="R&#117;ntime deb&#117;g payload visible to learner.">学习画面</p></body></html>\n',
+        encoding="utf-8",
+    )
     design_metadata_fixture = subprocess.run(
         ["node", str(ROOT / "scripts/check_design_metadata_leaks.mjs")],
         cwd=ROOT,
@@ -241,6 +247,7 @@ with tempfile.TemporaryDirectory(
         "visible-attribute-leak.html",
         "aria-valuetext-leak.svg",
         "generated-content-leak.html",
+        "generated-attr-content-leak.html",
         "generated content",
         "internal process or implementation term in rendered visual proof",
     ]:
