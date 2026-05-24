@@ -81,9 +81,12 @@ for snippet in [
     "visibleCopyPropNames",
     "description",
     "message",
+    "visiblePropOpenPattern",
+    "pendingVisibleCopyProp",
     "endsWith('.d.ts')",
     "inInternalErrorExpression",
     "visible or accessibility copy prop",
+    "multiline visible or accessibility copy prop",
 ]:
     check_contains("mobile metadata scanner accessibility copy prop coverage", mobile_metadata_scanner_text, snippet)
 
@@ -139,6 +142,14 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/MultilineCopyLeak.tsx").write_text(
+        "export function MultilineCopyLeak({ card }) {\n"
+        "  return <Pressable accessibilityHint={\n"
+        "    card.space_metadata.box_ref\n"
+        "  } />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/InternalError.ts").write_text(
         "export function failRemoteSync(status) {\n"
         "  throw new Error(`Remote debug sync failed with ${status}.`);\n"
@@ -164,9 +175,11 @@ with tempfile.TemporaryDirectory(
         "src/learning/AccessibilityLeak.tsx",
         "src/learning/VisibleCopyLeak.ts",
         "src/learning/VisibleCopyKeyLeak.ts",
+        "src/learning/MultilineCopyLeak.tsx",
         "src/shared/uiMetadata/displayMetadata.ts",
         "src/space/spaceMetadataDisplay.ts",
         "raw metadata passed through visible or accessibility copy prop",
+        "raw metadata passed through multiline visible or accessibility copy prop",
         "raw metadata leaked through visible copy source",
     ]:
         if expected_snippet not in metadata_scanner_output:
