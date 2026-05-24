@@ -203,6 +203,23 @@ function cssGeneratedAttrNames(source) {
   return names;
 }
 
+function cssGeneratedVarNames(source) {
+  const contentDeclarationPattern = /\bcontent\s*:\s*([^;{}]+)/gi;
+  const names = new Set();
+  let declarationMatch;
+
+  while ((declarationMatch = contentDeclarationPattern.exec(source)) !== null) {
+    const varPattern = /\bvar\(\s*(--[-A-Za-z0-9_]+)/gi;
+    let varMatch;
+
+    while ((varMatch = varPattern.exec(declarationMatch[1])) !== null) {
+      names.add(varMatch[1].toLowerCase());
+    }
+  }
+
+  return names;
+}
+
 function attributeValues(source, names) {
   if (names.size === 0) {
     return [];
@@ -222,6 +239,25 @@ function attributeValues(source, names) {
   return values;
 }
 
+function cssVariableStringValues(source, names) {
+  if (names.size === 0) {
+    return [];
+  }
+
+  const values = [];
+  const variablePattern =
+    /(?:^|[;{\s])(--[-A-Za-z0-9_]+)\s*:\s*(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)')/gi;
+  let match;
+
+  while ((match = variablePattern.exec(source)) !== null) {
+    if (names.has(match[1].toLowerCase())) {
+      values.push(decodeCssEscapes(match[2] ?? match[3] ?? ''));
+    }
+  }
+
+  return values;
+}
+
 function cssGeneratedText(source) {
   const contentPattern =
     /\bcontent\s*:\s*(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)')/gi;
@@ -233,6 +269,7 @@ function cssGeneratedText(source) {
   }
 
   values.push(...attributeValues(source, cssGeneratedAttrNames(source)));
+  values.push(...cssVariableStringValues(source, cssGeneratedVarNames(source)));
 
   return decodeHtmlEntities(values.join(' ')).replace(/\s+/g, ' ').trim();
 }
