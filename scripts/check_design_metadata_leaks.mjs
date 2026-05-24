@@ -186,6 +186,23 @@ function decodeCssEscapes(text) {
     .replace(/\\([\s\S])/g, '$1');
 }
 
+function cssGeneratedStringValues(source) {
+  const contentDeclarationPattern = /\bcontent\s*:\s*([^;{}]+)/gi;
+  const values = [];
+  let declarationMatch;
+
+  while ((declarationMatch = contentDeclarationPattern.exec(source)) !== null) {
+    const stringPattern = /"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'/g;
+    let stringMatch;
+
+    while ((stringMatch = stringPattern.exec(declarationMatch[1])) !== null) {
+      values.push(decodeCssEscapes(stringMatch[1] ?? stringMatch[2] ?? ''));
+    }
+  }
+
+  return values;
+}
+
 function cssGeneratedAttrNames(source) {
   const contentDeclarationPattern = /\bcontent\s*:\s*([^;{}]+)/gi;
   const names = new Set();
@@ -259,14 +276,7 @@ function cssVariableStringValues(source, names) {
 }
 
 function cssGeneratedText(source) {
-  const contentPattern =
-    /\bcontent\s*:\s*(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)')/gi;
-  const values = [];
-  let match;
-
-  while ((match = contentPattern.exec(source)) !== null) {
-    values.push(decodeCssEscapes(match[1] ?? match[2] ?? ''));
-  }
+  const values = cssGeneratedStringValues(source);
 
   values.push(...attributeValues(source, cssGeneratedAttrNames(source)));
   values.push(...cssVariableStringValues(source, cssGeneratedVarNames(source)));
