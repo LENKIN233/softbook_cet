@@ -82,7 +82,9 @@ for snippet in [
     "description",
     "message",
     "visiblePropOpenPattern",
+    "visiblePropTemplateOpenPattern",
     "pendingVisibleCopyProp",
+    "hasUnclosedTemplateLiteral",
     "endsWith('.d.ts')",
     "inInternalErrorExpression",
     "visible or accessibility copy prop",
@@ -150,6 +152,14 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/TemplateCopyLeak.ts").write_text(
+        "export function templateCopy(card) {\n"
+        "  return { message: `学习位置 ${\n"
+        "    card.groupName\n"
+        "  }` };\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/InternalError.ts").write_text(
         "export function failRemoteSync(status) {\n"
         "  throw new Error(`Remote debug sync failed with ${status}.`);\n"
@@ -176,6 +186,7 @@ with tempfile.TemporaryDirectory(
         "src/learning/VisibleCopyLeak.ts",
         "src/learning/VisibleCopyKeyLeak.ts",
         "src/learning/MultilineCopyLeak.tsx",
+        "src/learning/TemplateCopyLeak.ts",
         "src/shared/uiMetadata/displayMetadata.ts",
         "src/space/spaceMetadataDisplay.ts",
         "raw metadata passed through visible or accessibility copy prop",

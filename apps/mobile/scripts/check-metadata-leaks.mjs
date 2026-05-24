@@ -48,6 +48,10 @@ const visiblePropOpenPattern = new RegExp(
   `\\b(?:${visibleCopyPropNames.join('|')})\\s*[:=]\\s*(?:\\{|\\(|$)`,
 );
 
+const visiblePropTemplateOpenPattern = new RegExp(
+  `\\b(?:${visibleCopyPropNames.join('|')})\\s*[:=]\\s*\\x60`,
+);
+
 const rawMetadataExpressionPattern =
   /\b(?:space_metadata\.(?:library|group|box|box_ref)|\w+\.track|\w+\.libraryName|\w+\.groupName|\w+\.boxName)\b|track\.toUpperCase\(/;
 
@@ -122,6 +126,11 @@ function collectSourceFiles() {
 
 function collectVisibleCopySourceFiles() {
   return visibleCopySourceFiles.filter(filePath => fs.existsSync(filePath));
+}
+
+function hasUnclosedTemplateLiteral(text) {
+  const templateLiteralTicks = text.match(/(?<!\\)`/g) ?? [];
+  return templateLiteralTicks.length % 2 === 1;
 }
 
 function checkTextNodeMetadata(filePath) {
@@ -206,7 +215,9 @@ function checkDirectDisplayMetadata(filePath) {
     }
 
     if (
-      visiblePropOpenPattern.test(text) &&
+      (visiblePropOpenPattern.test(text) ||
+        (visiblePropTemplateOpenPattern.test(text) &&
+          hasUnclosedTemplateLiteral(text))) &&
       !rawMetadataExpressionPattern.test(text)
     ) {
       pendingVisibleCopyProp = { remainingLines: 4 };
