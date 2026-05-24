@@ -76,6 +76,12 @@ for snippet in [
     check_contains("mobile metadata scanner old Learning group copy guard", mobile_metadata_scanner_text, snippet)
 
 for snippet in [
+    "accessibilityHint",
+    "accessibilityValue",
+]:
+    check_contains("mobile metadata scanner accessibility copy prop coverage", mobile_metadata_scanner_text, snippet)
+
+for snippet in [
     "当前卡组",
     "本组第",
     "本轮卡组",
@@ -109,6 +115,12 @@ with tempfile.TemporaryDirectory(
         "export const SPACE_LABEL = '本轮卡组';\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/AccessibilityLeak.tsx").write_text(
+        "export function AccessibilityLeak({ card }) {\n"
+        "  return <Pressable accessibilityHint={card.space_metadata.box_ref} accessibilityValue={{ text: card.groupName }} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     metadata_scanner_fixture = subprocess.run(
         ["node", str(ROOT / "apps/mobile/scripts/check-metadata-leaks.mjs")],
         cwd=tmp_app_root,
@@ -125,8 +137,10 @@ with tempfile.TemporaryDirectory(
         )
     for expected_snippet in [
         "src/learning/model.ts",
+        "src/learning/AccessibilityLeak.tsx",
         "src/shared/uiMetadata/displayMetadata.ts",
         "src/space/spaceMetadataDisplay.ts",
+        "raw metadata passed through visible or accessibility JSX prop",
         "raw metadata leaked through visible copy source",
     ]:
         if expected_snippet not in metadata_scanner_output:
