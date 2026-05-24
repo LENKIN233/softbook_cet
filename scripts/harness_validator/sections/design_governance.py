@@ -78,6 +78,9 @@ for snippet in [
 for snippet in [
     "accessibilityHint",
     "accessibilityValue",
+    "endsWith('.d.ts')",
+    "inInternalErrorExpression",
+    "visible or accessibility copy prop",
 ]:
     check_contains("mobile metadata scanner accessibility copy prop coverage", mobile_metadata_scanner_text, snippet)
 
@@ -121,6 +124,18 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/VisibleCopyLeak.ts").write_text(
+        "export function visibleRows(card) {\n"
+        "  return [{ label: card.groupName, text: card.space_metadata.box_ref }];\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/InternalError.ts").write_text(
+        "export function failRemoteSync(status) {\n"
+        "  throw new Error(`Remote debug sync failed with ${status}.`);\n"
+        "}\n",
+        encoding="utf-8",
+    )
     metadata_scanner_fixture = subprocess.run(
         ["node", str(ROOT / "apps/mobile/scripts/check-metadata-leaks.mjs")],
         cwd=tmp_app_root,
@@ -138,9 +153,10 @@ with tempfile.TemporaryDirectory(
     for expected_snippet in [
         "src/learning/model.ts",
         "src/learning/AccessibilityLeak.tsx",
+        "src/learning/VisibleCopyLeak.ts",
         "src/shared/uiMetadata/displayMetadata.ts",
         "src/space/spaceMetadataDisplay.ts",
-        "raw metadata passed through visible or accessibility JSX prop",
+        "raw metadata passed through visible or accessibility copy prop",
         "raw metadata leaked through visible copy source",
     ]:
         if expected_snippet not in metadata_scanner_output:
