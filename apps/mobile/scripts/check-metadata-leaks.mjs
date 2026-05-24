@@ -44,6 +44,10 @@ const visibleCopyPropNames = [
 const visiblePropPattern =
   new RegExp(`\\b(?:${visibleCopyPropNames.join('|')})\\s*[:=]`);
 
+const visiblePropOpenPattern = new RegExp(
+  `\\b(?:${visibleCopyPropNames.join('|')})\\s*[:=]\\s*(?:\\{|\\(|$)`,
+);
+
 const rawMetadataExpressionPattern =
   /\b(?:space_metadata\.(?:library|group|box|box_ref)|\w+\.track|\w+\.libraryName|\w+\.groupName|\w+\.boxName)\b|track\.toUpperCase\(/;
 
@@ -164,6 +168,7 @@ function checkDirectDisplayMetadata(filePath) {
   const findings = [];
   let inInternalGuardDeclaration = false;
   let inInternalErrorExpression = false;
+  let pendingVisibleCopyProp = null;
 
   for (let index = 0; index < lines.length; index += 1) {
     const text = lines[index].trim();
@@ -181,6 +186,16 @@ function checkDirectDisplayMetadata(filePath) {
       inInternalErrorExpression = true;
     }
 
+    if (pendingVisibleCopyProp && rawMetadataExpressionPattern.test(text)) {
+      findings.push({
+        filePath,
+        line: index + 1,
+        text,
+        reason: 'raw metadata passed through multiline visible or accessibility copy prop',
+      });
+      pendingVisibleCopyProp = null;
+    }
+
     if (visiblePropPattern.test(text) && rawMetadataExpressionPattern.test(text)) {
       findings.push({
         filePath,
@@ -188,6 +203,21 @@ function checkDirectDisplayMetadata(filePath) {
         text,
         reason: 'raw metadata passed through visible or accessibility copy prop',
       });
+    }
+
+    if (
+      visiblePropOpenPattern.test(text) &&
+      !rawMetadataExpressionPattern.test(text)
+    ) {
+      pendingVisibleCopyProp = { remainingLines: 4 };
+    } else if (pendingVisibleCopyProp) {
+      pendingVisibleCopyProp.remainingLines -= 1;
+      if (
+        pendingVisibleCopyProp.remainingLines <= 0 ||
+        /^[})\]],?$/.test(text)
+      ) {
+        pendingVisibleCopyProp = null;
+      }
     }
 
     const rule = directDisplayMetadataPatterns.find(({ pattern }) =>
