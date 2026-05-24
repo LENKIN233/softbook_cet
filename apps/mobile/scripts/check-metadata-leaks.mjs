@@ -82,8 +82,8 @@ const directDisplayMetadataPatterns = [
   },
   {
     pattern:
-      /testID=\{`[^`]*\$\{[^`]*(?:boxRef|space_metadata\.(?:library|group|box|box_ref)|libraryName|groupName|boxName)[^`]*\}[^`]*`\}/,
-    reason: 'raw space metadata embedded in rendered element props',
+      /testID=\{`[^`]*\$\{[^`]*(?:boxRef|space_metadata\.(?:library|group|box|box_ref)|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)[^`]*\}[^`]*`\}/,
+    reason: 'raw metadata embedded in rendered element props',
   },
   {
     pattern: /(?:\bCET[46]\b|学习馆|知识组|训练轨道|原盒位)/,
