@@ -78,6 +78,9 @@ for snippet in [
 for snippet in [
     "accessibilityHint",
     "accessibilityValue",
+    "visibleCopyPropNames",
+    "description",
+    "message",
     "endsWith('.d.ts')",
     "inInternalErrorExpression",
     "visible or accessibility copy prop",
@@ -130,6 +133,12 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/VisibleCopyKeyLeak.ts").write_text(
+        "export function visibleMessages(card) {\n"
+        "  return { description: card.groupName, message: card.space_metadata.box_ref };\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/InternalError.ts").write_text(
         "export function failRemoteSync(status) {\n"
         "  throw new Error(`Remote debug sync failed with ${status}.`);\n"
@@ -154,6 +163,7 @@ with tempfile.TemporaryDirectory(
         "src/learning/model.ts",
         "src/learning/AccessibilityLeak.tsx",
         "src/learning/VisibleCopyLeak.ts",
+        "src/learning/VisibleCopyKeyLeak.ts",
         "src/shared/uiMetadata/displayMetadata.ts",
         "src/space/spaceMetadataDisplay.ts",
         "raw metadata passed through visible or accessibility copy prop",
