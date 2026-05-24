@@ -19,7 +19,7 @@ const textNodeMetadataPattern =
   /\b(?:\w+\.space_metadata\.(?:library|group|box|box_ref)|\w+\.track|\w+\.libraryName|\w+\.groupName|\w+\.boxName)\b/;
 
 const visiblePropPattern =
-  /\b(?:label|title|detail|summary|text|accessibilityLabel|accessibilityHint|accessibilityValue|placeholder|items)\s*=/;
+  /\b(?:label|title|detail|summary|text|accessibilityLabel|accessibilityHint|accessibilityValue|placeholder|items)\s*[:=]/;
 
 const rawMetadataExpressionPattern =
   /\b(?:space_metadata\.(?:library|group|box|box_ref)|\w+\.track|\w+\.libraryName|\w+\.groupName|\w+\.boxName)\b|track\.toUpperCase\(/;
@@ -64,7 +64,7 @@ function walkSourceFiles(dir, files = []) {
       continue;
     }
 
-    if (entry.name.endsWith('.tsx')) {
+    if (/\.(?:ts|tsx)$/.test(entry.name) && !entry.name.endsWith('.d.ts')) {
       files.push(path.join(dir, entry.name));
     }
   }
@@ -79,7 +79,9 @@ function collectSourceFiles() {
     }
 
     if (fs.statSync(scanRoot).isFile()) {
-      return scanRoot.endsWith('.tsx') ? [scanRoot] : [];
+      return /\.(?:ts|tsx)$/.test(scanRoot) && !scanRoot.endsWith('.d.ts')
+        ? [scanRoot]
+        : [];
     }
 
     return walkSourceFiles(scanRoot);
@@ -133,15 +135,22 @@ function checkDirectDisplayMetadata(filePath) {
   const lines = source.split('\n');
   const findings = [];
   let inInternalGuardDeclaration = false;
+  let inInternalErrorExpression = false;
 
   for (let index = 0; index < lines.length; index += 1) {
     const text = lines[index].trim();
     const isInternalGuardLine =
-      inInternalGuardDeclaration || internalGuardLinePattern.test(text);
+      inInternalGuardDeclaration ||
+      inInternalErrorExpression ||
+      internalGuardLinePattern.test(text);
 
     if (/const INTERNAL_ERROR_COPY_PATTERN\b/.test(text)) {
       inInternalGuardDeclaration = true;
       continue;
+    }
+
+    if (/\bnew Error\(/.test(text)) {
+      inInternalErrorExpression = true;
     }
 
     if (visiblePropPattern.test(text) && rawMetadataExpressionPattern.test(text)) {
@@ -149,7 +158,7 @@ function checkDirectDisplayMetadata(filePath) {
         filePath,
         line: index + 1,
         text,
-        reason: 'raw metadata passed through visible or accessibility JSX prop',
+        reason: 'raw metadata passed through visible or accessibility copy prop',
       });
     }
 
@@ -182,6 +191,10 @@ function checkDirectDisplayMetadata(filePath) {
 
     if (inInternalGuardDeclaration && /\/[a-z]*;?$/.test(text)) {
       inInternalGuardDeclaration = false;
+    }
+
+    if (inInternalErrorExpression && /\);?$/.test(text)) {
+      inInternalErrorExpression = false;
     }
   }
 
