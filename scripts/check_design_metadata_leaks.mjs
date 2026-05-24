@@ -186,6 +186,42 @@ function decodeCssEscapes(text) {
     .replace(/\\([\s\S])/g, '$1');
 }
 
+function cssGeneratedAttrNames(source) {
+  const contentDeclarationPattern = /\bcontent\s*:\s*([^;{}]+)/gi;
+  const names = new Set();
+  let declarationMatch;
+
+  while ((declarationMatch = contentDeclarationPattern.exec(source)) !== null) {
+    const attrPattern = /\battr\(\s*([A-Za-z_:][-A-Za-z0-9_:.]*)/gi;
+    let attrMatch;
+
+    while ((attrMatch = attrPattern.exec(declarationMatch[1])) !== null) {
+      names.add(attrMatch[1].toLowerCase());
+    }
+  }
+
+  return names;
+}
+
+function attributeValues(source, names) {
+  if (names.size === 0) {
+    return [];
+  }
+
+  const values = [];
+  const attributePattern =
+    /\b([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+  let match;
+
+  while ((match = attributePattern.exec(source)) !== null) {
+    if (names.has(match[1].toLowerCase())) {
+      values.push(match[2] ?? match[3] ?? '');
+    }
+  }
+
+  return values;
+}
+
 function cssGeneratedText(source) {
   const contentPattern =
     /\bcontent\s*:\s*(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)')/gi;
@@ -195,6 +231,8 @@ function cssGeneratedText(source) {
   while ((match = contentPattern.exec(source)) !== null) {
     values.push(decodeCssEscapes(match[1] ?? match[2] ?? ''));
   }
+
+  values.push(...attributeValues(source, cssGeneratedAttrNames(source)));
 
   return decodeHtmlEntities(values.join(' ')).replace(/\s+/g, ' ').trim();
 }
