@@ -35,3 +35,4 @@ The existing design metadata scanner already covers rendered HTML/SVG text and a
 
 - `node scripts/check_design_metadata_leaks.mjs` -> PASS: No metadata leaks detected in design visual artifacts.
 - `python3 scripts/validate_harness.py` -> HARNESS VALIDATION OK
+- `python3 scripts/validate_agent_review.py --body-file /private/tmp/softbook_pr_153_body_fixed.md` -> AGENT REVIEW GATE OK
