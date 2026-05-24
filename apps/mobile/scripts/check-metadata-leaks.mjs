@@ -53,7 +53,7 @@ const visiblePropTemplateOpenPattern = new RegExp(
 );
 
 const rawMetadataExpressionPattern =
-  /\b(?:space_metadata\.(?:library|group|box|box_ref)|\w+\.track|\w+\.libraryName|\w+\.groupName|\w+\.boxName)\b|track\.toUpperCase\(/;
+  /\b(?:space_metadata\.(?:library|group|box|box_ref)|\w+\.(?:track|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)\b|track\.toUpperCase\(/;
 
 const visibleCardContentLeakPattern =
   /\bCET[46]\b|(?:听力|阅读|写作|翻译|词汇|仔细阅读|快速阅读|学习馆|知识组|训练轨道|原盒位|卡组)|\b0\d{3,6}\b/;
