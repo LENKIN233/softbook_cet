@@ -142,6 +142,9 @@ for snippet in [
     "html|md|svg",
     "decodeHtmlEntities",
     "visibleAttributeText",
+    "visibleAttributeNames",
+    "aria-valuetext",
+    "placeholder",
     "cssGeneratedText",
     "accessibility text",
     "generated content",
@@ -174,6 +177,16 @@ with tempfile.TemporaryDirectory(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><g aria-label="R&#117;ntime deb&#117;g payload visible to learner."><text>学习画面</text></g></svg>\n',
         encoding="utf-8",
     )
+    fixture_visible_attribute_html = Path(tmp_dir) / "visible-attribute-leak.html"
+    fixture_visible_attribute_html.write_text(
+        '<!doctype html><html><body><input placeholder="R&#117;ntime deb&#117;g payload visible to learner." value="学习画面"></body></html>\n',
+        encoding="utf-8",
+    )
+    fixture_aria_value_svg = Path(tmp_dir) / "aria-valuetext-leak.svg"
+    fixture_aria_value_svg.write_text(
+        '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><g aria-valuetext="R&#117;ntime deb&#117;g payload visible to learner."><text>学习画面</text></g></svg>\n',
+        encoding="utf-8",
+    )
     fixture_generated_html = Path(tmp_dir) / "generated-content-leak.html"
     fixture_generated_html.write_text(
         '<!doctype html><html><head><style>.leak::before { content: "R\\75 ntime deb\\75 g payload visible to learner."; }</style></head><body><p class="leak">学习画面</p></body></html>\n',
@@ -195,6 +208,8 @@ with tempfile.TemporaryDirectory(
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
         "accessibility text",
+        "visible-attribute-leak.html",
+        "aria-valuetext-leak.svg",
         "generated-content-leak.html",
         "generated content",
         "internal process or implementation term in rendered visual proof",

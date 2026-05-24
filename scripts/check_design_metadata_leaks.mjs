@@ -145,9 +145,23 @@ function visibleHtmlText(source) {
     .trim();
 }
 
+const visibleAttributeNames = [
+  'aria-label',
+  'aria-description',
+  'aria-placeholder',
+  'aria-roledescription',
+  'aria-valuetext',
+  'alt',
+  'placeholder',
+  'title',
+  'value',
+];
+
 function visibleAttributeText(source) {
-  const attributePattern =
-    /\b(?:aria-label|alt|title)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+  const attributePattern = new RegExp(
+    `\\b(?:${visibleAttributeNames.join('|')})\\s*=\\s*(?:"([^"]*)"|'([^']*)')`,
+    'gi',
+  );
   const values = [];
   let match;
 
