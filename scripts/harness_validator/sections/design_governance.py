@@ -81,6 +81,9 @@ for snippet in [
     "visibleCopyPropNames",
     "description",
     "message",
+    "sourceLabel",
+    "source_label",
+    "card_records",
     "visiblePropOpenPattern",
     "visiblePropTemplateOpenPattern",
     "pendingVisibleCopyProp",
@@ -160,6 +163,12 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/SourceMetadataCopyLeak.ts").write_text(
+        "export function sourceCopy(card) {\n"
+        "  return { message: card.source_label, description: card.sourceLabel, text: card.card_records };\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/InternalError.ts").write_text(
         "export function failRemoteSync(status) {\n"
         "  throw new Error(`Remote debug sync failed with ${status}.`);\n"
@@ -187,6 +196,7 @@ with tempfile.TemporaryDirectory(
         "src/learning/VisibleCopyKeyLeak.ts",
         "src/learning/MultilineCopyLeak.tsx",
         "src/learning/TemplateCopyLeak.ts",
+        "src/learning/SourceMetadataCopyLeak.ts",
         "src/shared/uiMetadata/displayMetadata.ts",
         "src/space/spaceMetadataDisplay.ts",
         "raw metadata passed through visible or accessibility copy prop",
