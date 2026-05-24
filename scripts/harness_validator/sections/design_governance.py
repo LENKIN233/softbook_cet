@@ -169,6 +169,12 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/SourceTextNodeLeak.tsx").write_text(
+        "export function SourceTextNodeLeak({ card }) {\n"
+        "  return <Text>{card.sourceLabel}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/InternalError.ts").write_text(
         "export function failRemoteSync(status) {\n"
         "  throw new Error(`Remote debug sync failed with ${status}.`);\n"
@@ -197,8 +203,10 @@ with tempfile.TemporaryDirectory(
         "src/learning/MultilineCopyLeak.tsx",
         "src/learning/TemplateCopyLeak.ts",
         "src/learning/SourceMetadataCopyLeak.ts",
+        "src/learning/SourceTextNodeLeak.tsx",
         "src/shared/uiMetadata/displayMetadata.ts",
         "src/space/spaceMetadataDisplay.ts",
+        "raw metadata leaked in Text display node",
         "raw metadata passed through visible or accessibility copy prop",
         "raw metadata passed through multiline visible or accessibility copy prop",
         "raw metadata leaked through visible copy source",
