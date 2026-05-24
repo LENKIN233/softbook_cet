@@ -19,7 +19,7 @@ const textNodeMetadataPattern =
   /\b(?:\w+\.space_metadata\.(?:library|group|box|box_ref)|\w+\.track|\w+\.libraryName|\w+\.groupName|\w+\.boxName)\b/;
 
 const visiblePropPattern =
-  /\b(?:label|title|detail|summary|text|accessibilityLabel|placeholder|items)\s*=/;
+  /\b(?:label|title|detail|summary|text|accessibilityLabel|accessibilityHint|accessibilityValue|placeholder|items)\s*=/;
 
 const rawMetadataExpressionPattern =
   /\b(?:space_metadata\.(?:library|group|box|box_ref)|\w+\.track|\w+\.libraryName|\w+\.groupName|\w+\.boxName)\b|track\.toUpperCase\(/;
@@ -34,7 +34,7 @@ const internalGuardLinePattern =
   /INTERNAL_ERROR_COPY_PATTERN|visibleDesignJargonLeakPattern/;
 
 const visibleStringLinePattern =
-  /(?:<Text\b|>[^<]*(?:<\/Text>|$)|\b(?:label|title|detail|summary|text|accessibilityLabel|placeholder|items|eyebrow|value)\s*[:=]|^['\"\x60].*[,)'\"\x60]?$)/;
+  /(?:<Text\b|>[^<]*(?:<\/Text>|$)|\b(?:label|title|detail|summary|text|accessibilityLabel|accessibilityHint|accessibilityValue|placeholder|items|eyebrow|value)\s*[:=]|^['\"\x60].*[,)'\"\x60]?$)/;
 
 const nonVisibleDesignJargonLinePattern =
   /^(?:import\b|export\b|type\b|interface\b|const\b|let\b|var\b|function\b|case\b|switch\b|if\b|return\b|[A-Za-z0-9_]+[,:])|\b(?:testID|nativeID|status|gate)\s*=/;
