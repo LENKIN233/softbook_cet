@@ -181,6 +181,12 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/SourceNativeIdLeak.tsx").write_text(
+        "export function SourceNativeIdLeak({ card }) {\n"
+        "  return <View nativeID={`source-${card.sourceLabel}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/InternalError.ts").write_text(
         "export function failRemoteSync(status) {\n"
         "  throw new Error(`Remote debug sync failed with ${status}.`);\n"
@@ -211,6 +217,7 @@ with tempfile.TemporaryDirectory(
         "src/learning/SourceMetadataCopyLeak.ts",
         "src/learning/SourceTextNodeLeak.tsx",
         "src/learning/SourceTestIdLeak.tsx",
+        "src/learning/SourceNativeIdLeak.tsx",
         "src/shared/uiMetadata/displayMetadata.ts",
         "src/space/spaceMetadataDisplay.ts",
         "raw metadata leaked in Text display node",
