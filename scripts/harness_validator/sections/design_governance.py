@@ -77,6 +77,7 @@ for snippet in [
 
 for snippet in [
     "accessibilityHint",
+    "accessibilityLabel",
     "accessibilityValue",
     "visibleCopyPropNames",
     "description",
@@ -132,6 +133,12 @@ with tempfile.TemporaryDirectory(
     (tmp_app_root / "src/learning/AccessibilityLeak.tsx").write_text(
         "export function AccessibilityLeak({ card }) {\n"
         "  return <Pressable accessibilityHint={card.space_metadata.box_ref} accessibilityValue={{ text: card.groupName }} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/AccessibilityLabelLeak.tsx").write_text(
+        "export function AccessibilityLabelLeak({ card }) {\n"
+        "  return <Pressable accessibilityLabel={card.sourceLabel} />;\n"
         "}\n",
         encoding="utf-8",
     )
@@ -210,6 +217,7 @@ with tempfile.TemporaryDirectory(
     for expected_snippet in [
         "src/learning/model.ts",
         "src/learning/AccessibilityLeak.tsx",
+        "src/learning/AccessibilityLabelLeak.tsx",
         "src/learning/VisibleCopyLeak.ts",
         "src/learning/VisibleCopyKeyLeak.ts",
         "src/learning/MultilineCopyLeak.tsx",
