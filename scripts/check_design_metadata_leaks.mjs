@@ -159,14 +159,14 @@ const visibleAttributeNames = [
 
 function visibleAttributeText(source) {
   const attributePattern = new RegExp(
-    `\\b(?:${visibleAttributeNames.join('|')})\\s*=\\s*(?:"([^"]*)"|'([^']*)')`,
+    `\\b(?:${visibleAttributeNames.join('|')})\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'<>]+))`,
     'gi',
   );
   const values = [];
   let match;
 
   while ((match = attributePattern.exec(source)) !== null) {
-    values.push(match[1] ?? match[2] ?? '');
+    values.push(match[1] ?? match[2] ?? match[3] ?? '');
   }
 
   return decodeHtmlEntities(values.join(' ')).replace(/\s+/g, ' ').trim();
@@ -244,12 +244,12 @@ function attributeValues(source, names) {
 
   const values = [];
   const attributePattern =
-    /\b([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+    /\b([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>]+))/gi;
   let match;
 
   while ((match = attributePattern.exec(source)) !== null) {
     if (names.has(match[1].toLowerCase())) {
-      values.push(match[2] ?? match[3] ?? '');
+      values.push(match[2] ?? match[3] ?? match[4] ?? '');
     }
   }
 

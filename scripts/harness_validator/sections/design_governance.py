@@ -322,6 +322,11 @@ with tempfile.TemporaryDirectory(
         '<!doctype html><html><body><input placeholder="R&#117;ntime deb&#117;g payload visible to learner." value="学习画面"></body></html>\n',
         encoding="utf-8",
     )
+    fixture_unquoted_visible_attribute_html = Path(tmp_dir) / "unquoted-visible-attribute-leak.html"
+    fixture_unquoted_visible_attribute_html.write_text(
+        '<!doctype html><html><body><input placeholder=R&#117;ntime-deb&#117;g-payload value=学习画面></body></html>\n',
+        encoding="utf-8",
+    )
     fixture_aria_value_svg = Path(tmp_dir) / "aria-valuetext-leak.svg"
     fixture_aria_value_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><g aria-valuetext="R&#117;ntime deb&#117;g payload visible to learner."><text>学习画面</text></g></svg>\n',
@@ -335,6 +340,11 @@ with tempfile.TemporaryDirectory(
     fixture_attr_generated_html = Path(tmp_dir) / "generated-attr-content-leak.html"
     fixture_attr_generated_html.write_text(
         '<!doctype html><html><head><style>.leak::before { content: attr(data-caption); }</style></head><body><p class="leak" data-caption="R&#117;ntime deb&#117;g payload visible to learner.">学习画面</p></body></html>\n',
+        encoding="utf-8",
+    )
+    fixture_unquoted_attr_generated_html = Path(tmp_dir) / "generated-unquoted-attr-content-leak.html"
+    fixture_unquoted_attr_generated_html.write_text(
+        '<!doctype html><html><head><style>.leak::before { content: attr(data-caption); }</style></head><body><p class=leak data-caption=R&#117;ntime-deb&#117;g-payload>学习画面</p></body></html>\n',
         encoding="utf-8",
     )
     fixture_var_generated_html = Path(tmp_dir) / "generated-var-content-leak.html"
@@ -367,6 +377,8 @@ with tempfile.TemporaryDirectory(
         "aria-valuetext-leak.svg",
         "generated-content-leak.html",
         "generated-attr-content-leak.html",
+        "generated-unquoted-attr-content-leak.html",
+        "unquoted-visible-attribute-leak.html",
         "generated-var-content-leak.html",
         "generated-composite-content-leak.html",
         "generated content",
