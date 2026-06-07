@@ -76,6 +76,9 @@ for snippet in [
     check_contains("mobile metadata scanner old Learning group copy guard", mobile_metadata_scanner_text, snippet)
 
 for snippet in [
+    "aria-label",
+    "aria-labelledby",
+    "aria-valuetext",
     "accessibilityLabelledBy",
     "accessibilityHint",
     "accessibilityLabel",
@@ -143,6 +146,12 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/AriaValueTextLeak.tsx").write_text(
+        "export function AriaValueTextLeak({ card }) {\n"
+        "  return <View aria-valuetext={card.sourceLabel} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/VisibleCopyLeak.ts").write_text(
         "export function visibleRows(card) {\n"
         "  return [{ label: card.groupName, text: card.space_metadata.box_ref }];\n"
@@ -207,6 +216,12 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/SourceAriaLabelledByLeak.tsx").write_text(
+        "export function SourceAriaLabelledByLeak({ card }) {\n"
+        "  return <View aria-labelledby={`source-${card.sourceLabel}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/InternalError.ts").write_text(
         "export function failRemoteSync(status) {\n"
         "  throw new Error(`Remote debug sync failed with ${status}.`);\n"
@@ -231,6 +246,7 @@ with tempfile.TemporaryDirectory(
         "src/learning/model.ts",
         "src/learning/AccessibilityLeak.tsx",
         "src/learning/AccessibilityLabelLeak.tsx",
+        "src/learning/AriaValueTextLeak.tsx",
         "src/learning/VisibleCopyLeak.ts",
         "src/learning/VisibleCopyKeyLeak.ts",
         "src/learning/MultilineCopyLeak.tsx",
@@ -241,6 +257,7 @@ with tempfile.TemporaryDirectory(
         "src/learning/SourceRenderedPropExpressionLeak.tsx",
         "src/learning/SourceNativeIdLeak.tsx",
         "src/learning/SourceAccessibilityLabelledByLeak.tsx",
+        "src/learning/SourceAriaLabelledByLeak.tsx",
         "src/shared/uiMetadata/displayMetadata.ts",
         "src/space/spaceMetadataDisplay.ts",
         "raw metadata leaked in Text display node",
