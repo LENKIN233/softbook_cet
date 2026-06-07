@@ -82,7 +82,7 @@ const directDisplayMetadataPatterns = [
   },
   {
     pattern:
-      /(?:testID|nativeID)=\{`[^`]*\$\{[^`]*(?:boxRef|space_metadata\.(?:library|group|box|box_ref)|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)[^`]*\}[^`]*`\}/,
+      /(?:testID|nativeID|accessibilityLabelledBy)\s*=\s*\{(?:`[^`]*\$\{[^`]*(?:boxRef|space_metadata\.(?:library|group|box|box_ref)|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)[^`]*\}[^`]*`|[^}`\n]*(?:boxRef|space_metadata\.(?:library|group|box|box_ref)|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)[^}`\n]*)\}/,
     reason: 'raw metadata embedded in rendered element props',
   },
   {

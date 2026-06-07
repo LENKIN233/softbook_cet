@@ -76,6 +76,7 @@ for snippet in [
     check_contains("mobile metadata scanner old Learning group copy guard", mobile_metadata_scanner_text, snippet)
 
 for snippet in [
+    "accessibilityLabelledBy",
     "accessibilityHint",
     "accessibilityLabel",
     "accessibilityValue",
@@ -188,9 +189,21 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/SourceRenderedPropExpressionLeak.tsx").write_text(
+        "export function SourceRenderedPropExpressionLeak({ card }) {\n"
+        "  return <View testID={card.sourceLabel} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/SourceNativeIdLeak.tsx").write_text(
         "export function SourceNativeIdLeak({ card }) {\n"
         "  return <View nativeID={`source-${card.sourceLabel}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SourceAccessibilityLabelledByLeak.tsx").write_text(
+        "export function SourceAccessibilityLabelledByLeak({ card }) {\n"
+        "  return <View accessibilityLabelledBy={`source-${card.sourceLabel}`} />;\n"
         "}\n",
         encoding="utf-8",
     )
@@ -225,7 +238,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/SourceMetadataCopyLeak.ts",
         "src/learning/SourceTextNodeLeak.tsx",
         "src/learning/SourceTestIdLeak.tsx",
+        "src/learning/SourceRenderedPropExpressionLeak.tsx",
         "src/learning/SourceNativeIdLeak.tsx",
+        "src/learning/SourceAccessibilityLabelledByLeak.tsx",
         "src/shared/uiMetadata/displayMetadata.ts",
         "src/space/spaceMetadataDisplay.ts",
         "raw metadata leaked in Text display node",
