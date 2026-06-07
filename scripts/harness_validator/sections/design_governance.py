@@ -302,6 +302,11 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>R&#117;ntime deb&#117;g payload visible to learner.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_snake_visible_html = Path(tmp_dir) / "snake-process-visible-leak.html"
+    fixture_snake_visible_html.write_text(
+        "<!doctype html><html><body><p>runtime_debug_payload</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -327,6 +332,11 @@ with tempfile.TemporaryDirectory(
         '<!doctype html><html><body><input placeholder=R&#117;ntime-deb&#117;g-payload value=学习画面></body></html>\n',
         encoding="utf-8",
     )
+    fixture_snake_attribute_html = Path(tmp_dir) / "snake-process-attribute-leak.html"
+    fixture_snake_attribute_html.write_text(
+        '<!doctype html><html><body><input placeholder=agent_review value=学习画面></body></html>\n',
+        encoding="utf-8",
+    )
     fixture_aria_value_svg = Path(tmp_dir) / "aria-valuetext-leak.svg"
     fixture_aria_value_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><g aria-valuetext="R&#117;ntime deb&#117;g payload visible to learner."><text>学习画面</text></g></svg>\n',
@@ -345,6 +355,11 @@ with tempfile.TemporaryDirectory(
     fixture_unquoted_attr_generated_html = Path(tmp_dir) / "generated-unquoted-attr-content-leak.html"
     fixture_unquoted_attr_generated_html.write_text(
         '<!doctype html><html><head><style>.leak::before { content: attr(data-caption); }</style></head><body><p class=leak data-caption=R&#117;ntime-deb&#117;g-payload>学习画面</p></body></html>\n',
+        encoding="utf-8",
+    )
+    fixture_snake_generated_html = Path(tmp_dir) / "snake-process-generated-leak.html"
+    fixture_snake_generated_html.write_text(
+        '<!doctype html><html><head><style>.leak::before { content: attr(data-caption); }</style></head><body><p class=leak data-caption=debug_payload>学习画面</p></body></html>\n',
         encoding="utf-8",
     )
     fixture_var_generated_html = Path(tmp_dir) / "generated-var-content-leak.html"
@@ -369,15 +384,18 @@ with tempfile.TemporaryDirectory(
         errors.append("design metadata scanner must reject internal process wording in rendered HTML")
     for expected_snippet in [
         "visible-process-leak.html",
+        "snake-process-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
         "accessibility text",
         "visible-attribute-leak.html",
+        "snake-process-attribute-leak.html",
         "aria-valuetext-leak.svg",
         "generated-content-leak.html",
         "generated-attr-content-leak.html",
         "generated-unquoted-attr-content-leak.html",
+        "snake-process-generated-leak.html",
         "unquoted-visible-attribute-leak.html",
         "generated-var-content-leak.html",
         "generated-composite-content-leak.html",

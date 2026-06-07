@@ -69,7 +69,7 @@ const leakagePatterns = [
 const visibleHtmlLeakagePatterns = [
   {
     pattern:
-      /\b(?:agent|harness|validator|runtime|mock|prototype|seed|fixture|debug|dev|todo|implementation|repository|repo|pull request|pr|rn|endpoint|payload)\b/i,
+      /(^|[^A-Za-z0-9])(?:agent|harness|validator|runtime|mock|prototype|seed|fixture|debug|dev|todo|implementation|repository|repo|pull request|pr|rn|endpoint|payload)(?=$|[^A-Za-z0-9])/i,
     reason: 'internal process or implementation term in rendered visual proof',
   },
   {
