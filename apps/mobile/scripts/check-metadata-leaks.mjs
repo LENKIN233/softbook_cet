@@ -19,6 +19,8 @@ const textNodeMetadataPattern =
   /\b(?:\w+\.space_metadata\.(?:library|group|box|box_ref)|\w+\.(?:track|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records))\b/;
 
 const visibleCopyPropNames = [
+  'aria-label',
+  'aria-valuetext',
   'accessibilityHint',
   'accessibilityLabel',
   'accessibilityValue',
@@ -82,7 +84,7 @@ const directDisplayMetadataPatterns = [
   },
   {
     pattern:
-      /(?:testID|nativeID|accessibilityLabelledBy)\s*=\s*\{(?:`[^`]*\$\{[^`]*(?:boxRef|space_metadata\.(?:library|group|box|box_ref)|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)[^`]*\}[^`]*`|[^}`\n]*(?:boxRef|space_metadata\.(?:library|group|box|box_ref)|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)[^}`\n]*)\}/,
+      /(?:testID|nativeID|accessibilityLabelledBy|aria-labelledby)\s*=\s*\{(?:`[^`]*\$\{[^`]*(?:boxRef|space_metadata\.(?:library|group|box|box_ref)|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)[^`]*\}[^`]*`|[^}`\n]*(?:boxRef|space_metadata\.(?:library|group|box|box_ref)|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)[^}`\n]*)\}/,
     reason: 'raw metadata embedded in rendered element props',
   },
   {
