@@ -15,8 +15,21 @@ const visibleCopySourceFiles = [
   path.join(appRoot, 'src/space/spaceMetadataDisplay.ts'),
 ];
 
-const textNodeMetadataPattern =
-  /\b(?:\w+\.space_metadata\.(?:library|group|box|box_ref)|\w+\.(?:track|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records))\b/;
+const rawMetadataFieldNames =
+  'track|libraryName|groupName|boxName|boxRef|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records';
+
+const rawSpaceMetadataFieldNames = 'library|group|box|box_ref|boxRef';
+const propertyAccessPattern = String.raw`(?:\.|\?\.)`;
+
+const rawMetadataReferencePattern = new RegExp(
+  [
+    `\\b\\w+${propertyAccessPattern}space_metadata${propertyAccessPattern}(?:${rawSpaceMetadataFieldNames})\\b`,
+    `\\b\\w+${propertyAccessPattern}(?:${rawMetadataFieldNames})\\b`,
+    `\\b(?:${rawMetadataFieldNames})\\b`,
+  ].join('|'),
+);
+
+const textNodeMetadataPattern = rawMetadataReferencePattern;
 
 const visibleCopyPropNames = [
   'aria-label',
@@ -55,7 +68,9 @@ const visiblePropTemplateOpenPattern = new RegExp(
 );
 
 const rawMetadataExpressionPattern =
-  /\b(?:space_metadata\.(?:library|group|box|box_ref)|\w+\.(?:track|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)\b|track\.toUpperCase\(/;
+  new RegExp(
+    `${rawMetadataReferencePattern.source}|\\bspace_metadata${propertyAccessPattern}(?:${rawSpaceMetadataFieldNames})\\b|track\\.toUpperCase\\(`,
+  );
 
 const visibleCardContentLeakPattern =
   /\bCET[46]\b|(?:听力|阅读|写作|翻译|词汇|仔细阅读|快速阅读|学习馆|知识组|训练轨道|原盒位|卡组)|\b0\d{3,6}\b/;
@@ -84,7 +99,9 @@ const directDisplayMetadataPatterns = [
   },
   {
     pattern:
-      /(?:testID|nativeID|accessibilityLabelledBy|aria-labelledby)\s*=\s*\{(?:`[^`]*\$\{[^`]*(?:boxRef|space_metadata\.(?:library|group|box|box_ref)|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)[^`]*\}[^`]*`|[^}`\n]*(?:boxRef|space_metadata\.(?:library|group|box|box_ref)|libraryName|groupName|boxName|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records)[^}`\n]*)\}/,
+      new RegExp(
+        `(?:testID|nativeID|accessibilityLabelledBy|aria-labelledby)\\s*=\\s*\\{(?:\`[^\`]*\\$\\{[^\`]*(?:${rawMetadataExpressionPattern.source})[^\`]*\\}[^\`]*\`|[^}\`\\n]*(?:${rawMetadataExpressionPattern.source})[^}\`\\n]*)\\}`,
+      ),
     reason: 'raw metadata embedded in rendered element props',
   },
   {
