@@ -278,6 +278,9 @@ for snippet in [
     "docs/design/visual-reference.html",
     "html|md|svg",
     "decodeHtmlEntities",
+    "metadataFieldPattern",
+    "sourceLabel",
+    "boxRef",
     "visibleAttributeText",
     "visibleAttributeNames",
     "aria-valuetext",
@@ -288,6 +291,9 @@ for snippet in [
     "cssGeneratedVarNames",
     "accessibility text",
     "generated content",
+    "processLeakTermPattern",
+    "normalizeCamelCaseText",
+    "rule.normalize",
     "visibleHtmlLeakagePatterns",
     "scanVisibleHtmlProcessText",
 ]:
@@ -305,6 +311,16 @@ with tempfile.TemporaryDirectory(
     fixture_snake_visible_html = Path(tmp_dir) / "snake-process-visible-leak.html"
     fixture_snake_visible_html.write_text(
         "<!doctype html><html><body><p>runtime_debug_payload</p></body></html>\n",
+        encoding="utf-8",
+    )
+    fixture_camel_visible_html = Path(tmp_dir) / "camel-process-visible-leak.html"
+    fixture_camel_visible_html.write_text(
+        "<!doctype html><html><body><p>runtimeDebugPayload visible to learner.</p></body></html>\n",
+        encoding="utf-8",
+    )
+    fixture_camel_metadata_html = Path(tmp_dir) / "camel-metadata-visible-leak.html"
+    fixture_camel_metadata_html.write_text(
+        "<!doctype html><html><body><p>sourceLabel and boxRef are visible.</p></body></html>\n",
         encoding="utf-8",
     )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
@@ -362,6 +378,11 @@ with tempfile.TemporaryDirectory(
         '<!doctype html><html><head><style>.leak::before { content: attr(data-caption); }</style></head><body><p class=leak data-caption=debug_payload>学习画面</p></body></html>\n',
         encoding="utf-8",
     )
+    fixture_camel_generated_html = Path(tmp_dir) / "camel-metadata-generated-leak.html"
+    fixture_camel_generated_html.write_text(
+        '<!doctype html><html><head><style>.leak::before { content: attr(data-caption); }</style></head><body><p class=leak data-caption=sourceLabel>学习画面</p></body></html>\n',
+        encoding="utf-8",
+    )
     fixture_var_generated_html = Path(tmp_dir) / "generated-var-content-leak.html"
     fixture_var_generated_html.write_text(
         '<!doctype html><html><head><style>:root { --leak-copy: "R\\75 ntime deb\\75 g payload visible to learner."; } .leak::before { content: var(--leak-copy); }</style></head><body><p class="leak">学习画面</p></body></html>\n',
@@ -385,6 +406,8 @@ with tempfile.TemporaryDirectory(
     for expected_snippet in [
         "visible-process-leak.html",
         "snake-process-visible-leak.html",
+        "camel-process-visible-leak.html",
+        "camel-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
@@ -396,6 +419,7 @@ with tempfile.TemporaryDirectory(
         "generated-attr-content-leak.html",
         "generated-unquoted-attr-content-leak.html",
         "snake-process-generated-leak.html",
+        "camel-metadata-generated-leak.html",
         "unquoted-visible-attribute-leak.html",
         "generated-var-content-leak.html",
         "generated-composite-content-leak.html",

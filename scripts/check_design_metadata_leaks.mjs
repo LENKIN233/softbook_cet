@@ -23,6 +23,18 @@ const excludedPathPatterns = [
 
 const textFilePattern = /\.(html|md|svg)$/;
 
+const metadataFieldPattern =
+  /\b(?:space_metadata|spaceMetadata|box_ref|boxRef|knowledge_ref|knowledgeRef|source_id|sourceId|source_label|sourceLabel|track)\b/i;
+
+const processLeakTermPattern =
+  /(^|[^A-Za-z0-9])(?:agent|harness|validator|runtime|mock|prototype|seed|fixture|debug|dev|todo|implementation|repository|repo|pull request|pr|rn|endpoint|payload)(?=$|[^A-Za-z0-9])/i;
+
+function normalizeCamelCaseText(text) {
+  return text
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+}
+
 const leakagePatterns = [
   {
     pattern: /#(?:5b6df5|ff8a3d|b568f5|18c4e0|f15b6e)\b/i,
@@ -53,7 +65,7 @@ const leakagePatterns = [
     reason: 'raw English library/group label in visual design artifact',
   },
   {
-    pattern: /\b(?:space_metadata|box_ref|knowledge_ref|source_id|source_label|track)\b/i,
+    pattern: metadataFieldPattern,
     reason: 'raw metadata field name in visual design artifact',
   },
   {
@@ -68,8 +80,8 @@ const leakagePatterns = [
 
 const visibleHtmlLeakagePatterns = [
   {
-    pattern:
-      /(^|[^A-Za-z0-9])(?:agent|harness|validator|runtime|mock|prototype|seed|fixture|debug|dev|todo|implementation|repository|repo|pull request|pr|rn|endpoint|payload)(?=$|[^A-Za-z0-9])/i,
+    pattern: processLeakTermPattern,
+    normalize: normalizeCamelCaseText,
     reason: 'internal process or implementation term in rendered visual proof',
   },
   {
@@ -314,7 +326,8 @@ function scanText(filePath, source) {
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
       const line = lines[lineIndex];
       for (const rule of target.rules) {
-        if (rule.pattern.test(line)) {
+        const ruleText = rule.normalize ? rule.normalize(line) : line;
+        if (rule.pattern.test(ruleText)) {
           findings.push({
             filePath,
             kind: target.kind,
@@ -341,7 +354,8 @@ function scanVisibleHtmlProcessText(filePath, source) {
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const line = lines[lineIndex];
     for (const rule of visibleHtmlLeakagePatterns) {
-      if (rule.pattern.test(line)) {
+      const ruleText = rule.normalize ? rule.normalize(line) : line;
+      if (rule.pattern.test(ruleText)) {
         findings.push({
           filePath,
           kind: 'visible text',
