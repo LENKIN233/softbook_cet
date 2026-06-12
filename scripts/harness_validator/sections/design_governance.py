@@ -100,6 +100,16 @@ for snippet in [
     "knowledgeRef",
     "interaction_id",
     "interactionId",
+    "answer_key",
+    "answerKey",
+    "correct_option",
+    "correctOption",
+    "lock_pattern",
+    "lockPattern",
+    "correct_items",
+    "correctItems",
+    "correct_state",
+    "correctState",
     "card_id",
     "cardId",
     "card_records",
@@ -243,6 +253,30 @@ with tempfile.TemporaryDirectory(
     (tmp_app_root / "src/learning/InteractionLabelPropNoLeak.tsx").write_text(
         "export function InteractionLabelPropNoLeak({ card }) {\n"
         "  return <Pressable accessibilityHint={INTERACTION_LABELS[card.interaction_id]} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/AnswerKeyTextLeak.tsx").write_text(
+        "export function AnswerKeyTextLeak({ card }) {\n"
+        "  return <Text>{card.answer_key.correct_option}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/CamelAnswerKeyPropLeak.tsx").write_text(
+        "export function CamelAnswerKeyPropLeak({ answerKey }) {\n"
+        "  return <Pressable accessibilityHint={answerKey.correctOption} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/DestructuredCorrectOptionTextLeak.tsx").write_text(
+        "export function DestructuredCorrectOptionTextLeak({ correct_option }) {\n"
+        "  return <Text>{correct_option}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/CorrectStateRenderedPropLeak.tsx").write_text(
+        "export function CorrectStateRenderedPropLeak({ correctState }) {\n"
+        "  return <View testID={correctState} />;\n"
         "}\n",
         encoding="utf-8",
     )
@@ -430,6 +464,10 @@ with tempfile.TemporaryDirectory(
         "src/learning/InteractionIdTextLeak.tsx",
         "src/learning/CamelInteractionIdPropLeak.tsx",
         "src/learning/InteractionIdRenderedPropLeak.tsx",
+        "src/learning/AnswerKeyTextLeak.tsx",
+        "src/learning/CamelAnswerKeyPropLeak.tsx",
+        "src/learning/DestructuredCorrectOptionTextLeak.tsx",
+        "src/learning/CorrectStateRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
