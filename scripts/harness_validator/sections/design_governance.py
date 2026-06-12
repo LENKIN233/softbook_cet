@@ -95,6 +95,7 @@ for snippet in [
     "message",
     "sourceLabel",
     "source_label",
+    "box_ref",
     "card_records",
     "visiblePropOpenPattern",
     "visiblePropTemplateOpenPattern",
@@ -173,6 +174,18 @@ with tempfile.TemporaryDirectory(
     (tmp_app_root / "src/learning/OptionalSpacePropLeak.tsx").write_text(
         "export function OptionalSpacePropLeak({ card }) {\n"
         "  return <Pressable accessibilityHint={card.space_metadata?.box_ref} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/DestructuredBoxRefTextLeak.tsx").write_text(
+        "export function DestructuredBoxRefTextLeak({ box_ref }) {\n"
+        "  return <Text>{box_ref}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/DestructuredBoxRefPropLeak.tsx").write_text(
+        "export function DestructuredBoxRefPropLeak({ box_ref }) {\n"
+        "  return <Pressable accessibilityHint={box_ref} />;\n"
         "}\n",
         encoding="utf-8",
     )
@@ -331,6 +344,8 @@ with tempfile.TemporaryDirectory(
         "src/learning/OptionalTextLeak.tsx",
         "src/learning/BareTextLeak.tsx",
         "src/learning/OptionalSpacePropLeak.tsx",
+        "src/learning/DestructuredBoxRefTextLeak.tsx",
+        "src/learning/DestructuredBoxRefPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
         "src/learning/NestedBracketSpaceTextLeak.tsx",
         "src/learning/BracketSpacePropLeak.tsx",
