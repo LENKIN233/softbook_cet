@@ -61,6 +61,10 @@ for snippet in [
     "src/learning/model.ts",
     "src/shared/uiMetadata/displayMetadata.ts",
     "src/space/spaceMetadataDisplay.ts",
+    "rawMetadataFieldNames",
+    "rawSpaceMetadataFieldNames",
+    "propertyAccessPattern",
+    "rawMetadataReferencePattern",
 ]:
     check_contains("mobile metadata scanner visible TS source coverage", mobile_metadata_scanner_text, snippet)
 
@@ -143,6 +147,24 @@ with tempfile.TemporaryDirectory(
     (tmp_app_root / "src/learning/AccessibilityLabelLeak.tsx").write_text(
         "export function AccessibilityLabelLeak({ card }) {\n"
         "  return <Pressable accessibilityLabel={card.sourceLabel} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/OptionalTextLeak.tsx").write_text(
+        "export function OptionalTextLeak({ card }) {\n"
+        "  return <Text>{card?.sourceLabel}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BareTextLeak.tsx").write_text(
+        "export function BareTextLeak({ sourceLabel }) {\n"
+        "  return <Text>{sourceLabel}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/OptionalSpacePropLeak.tsx").write_text(
+        "export function OptionalSpacePropLeak({ card }) {\n"
+        "  return <Pressable accessibilityHint={card.space_metadata?.box_ref} />;\n"
         "}\n",
         encoding="utf-8",
     )
@@ -246,6 +268,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/model.ts",
         "src/learning/AccessibilityLeak.tsx",
         "src/learning/AccessibilityLabelLeak.tsx",
+        "src/learning/OptionalTextLeak.tsx",
+        "src/learning/BareTextLeak.tsx",
+        "src/learning/OptionalSpacePropLeak.tsx",
         "src/learning/AriaValueTextLeak.tsx",
         "src/learning/VisibleCopyLeak.ts",
         "src/learning/VisibleCopyKeyLeak.ts",
