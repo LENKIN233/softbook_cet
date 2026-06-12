@@ -16,7 +16,7 @@ const visibleCopySourceFiles = [
 ];
 
 const rawMetadataFieldNames =
-  'track|libraryName|groupName|boxName|box_ref|boxRef|knowledge_ref|knowledgeRef|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records';
+  'track|libraryName|groupName|boxName|box_ref|boxRef|knowledge_ref|knowledgeRef|card_id|cardId|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records';
 
 const rawSpaceMetadataFieldNames = 'library|group|box|box_ref|boxRef';
 const propertyAccessPattern = String.raw`(?:\.|\?\.)`;
@@ -270,7 +270,8 @@ function checkDirectDisplayMetadata(filePath) {
     }
 
     if (
-      (visiblePropOpenPattern.test(text) ||
+      ((visiblePropOpenPattern.test(text) &&
+        hasUnclosedJsxPropExpression(text)) ||
         (visiblePropTemplateOpenPattern.test(text) &&
           hasUnclosedTemplateLiteral(text))) &&
       !rawMetadataExpressionPattern.test(text)
