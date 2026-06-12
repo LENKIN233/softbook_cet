@@ -97,10 +97,15 @@ for snippet in [
     "visiblePropTemplateOpenPattern",
     "pendingVisibleCopyProp",
     "hasUnclosedTemplateLiteral",
+    "hasUnclosedJsxPropExpression",
+    "renderedMetadataPropNames",
+    "renderedMetadataPropOpenPattern",
+    "pendingRenderedMetadataProp",
     "endsWith('.d.ts')",
     "inInternalErrorExpression",
     "visible or accessibility copy prop",
     "multiline visible or accessibility copy prop",
+    "multiline rendered element prop",
 ]:
     check_contains("mobile metadata scanner accessibility copy prop coverage", mobile_metadata_scanner_text, snippet)
 
@@ -226,6 +231,14 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/MultilineRenderedPropLeak.tsx").write_text(
+        "export function MultilineRenderedPropLeak({ card }) {\n"
+        "  return <View testID={\n"
+        "    card.sourceLabel\n"
+        "  } />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/SourceNativeIdLeak.tsx").write_text(
         "export function SourceNativeIdLeak({ card }) {\n"
         "  return <View nativeID={`source-${card.sourceLabel}`} />;\n"
@@ -241,6 +254,14 @@ with tempfile.TemporaryDirectory(
     (tmp_app_root / "src/learning/SourceAriaLabelledByLeak.tsx").write_text(
         "export function SourceAriaLabelledByLeak({ card }) {\n"
         "  return <View aria-labelledby={`source-${card.sourceLabel}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/MultilineAriaLabelledByLeak.tsx").write_text(
+        "export function MultilineAriaLabelledByLeak({ card }) {\n"
+        "  return <View aria-labelledby={\n"
+        "    card.sourceLabel\n"
+        "  } />;\n"
         "}\n",
         encoding="utf-8",
     )
@@ -280,15 +301,18 @@ with tempfile.TemporaryDirectory(
         "src/learning/SourceTextNodeLeak.tsx",
         "src/learning/SourceTestIdLeak.tsx",
         "src/learning/SourceRenderedPropExpressionLeak.tsx",
+        "src/learning/MultilineRenderedPropLeak.tsx",
         "src/learning/SourceNativeIdLeak.tsx",
         "src/learning/SourceAccessibilityLabelledByLeak.tsx",
         "src/learning/SourceAriaLabelledByLeak.tsx",
+        "src/learning/MultilineAriaLabelledByLeak.tsx",
         "src/shared/uiMetadata/displayMetadata.ts",
         "src/space/spaceMetadataDisplay.ts",
         "raw metadata leaked in Text display node",
         "raw metadata embedded in rendered element props",
         "raw metadata passed through visible or accessibility copy prop",
         "raw metadata passed through multiline visible or accessibility copy prop",
+        "raw metadata passed through multiline rendered element prop",
         "raw metadata leaked through visible copy source",
     ]:
         if expected_snippet not in metadata_scanner_output:
