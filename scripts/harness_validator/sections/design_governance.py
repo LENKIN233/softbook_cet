@@ -98,6 +98,8 @@ for snippet in [
     "box_ref",
     "knowledge_ref",
     "knowledgeRef",
+    "card_id",
+    "cardId",
     "card_records",
     "visiblePropOpenPattern",
     "visiblePropTemplateOpenPattern",
@@ -206,6 +208,27 @@ with tempfile.TemporaryDirectory(
     (tmp_app_root / "src/learning/CamelKnowledgeRefPropLeak.tsx").write_text(
         "export function CamelKnowledgeRefPropLeak({ knowledgeRef }) {\n"
         "  return <Pressable accessibilityHint={knowledgeRef} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
+        "export function CardIdTextLeak({ card }) {\n"
+        "  return <Text>{card.card_id}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/CamelCardIdPropLeak.tsx").write_text(
+        "export function CamelCardIdPropLeak({ cardId }) {\n"
+        "  return <Pressable accessibilityHint={cardId} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/CardIdHandlerNoLeak.tsx").write_text(
+        "export function CardIdHandlerNoLeak({ card, isSleeping, onToggleSleepState }) {\n"
+        "  return <ActionChip\n"
+        "    label={isSleeping ? '移出休眠' : '放入休眠'}\n"
+        "    onPress={() => onToggleSleepState(card.cardId)}\n"
+        "  />;\n"
         "}\n",
         encoding="utf-8",
     )
@@ -369,6 +392,8 @@ with tempfile.TemporaryDirectory(
         "src/learning/KnowledgeRefTextLeak.tsx",
         "src/learning/DestructuredKnowledgeRefTextLeak.tsx",
         "src/learning/CamelKnowledgeRefPropLeak.tsx",
+        "src/learning/CardIdTextLeak.tsx",
+        "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
         "src/learning/NestedBracketSpaceTextLeak.tsx",
         "src/learning/BracketSpacePropLeak.tsx",
@@ -403,6 +428,10 @@ with tempfile.TemporaryDirectory(
                 "mobile metadata scanner visible TS fixture missing expected output: "
                 + expected_snippet
             )
+    if "src/learning/CardIdHandlerNoLeak.tsx" in metadata_scanner_output:
+        errors.append(
+            "mobile metadata scanner must not treat cardId event handlers after closed label props as visible copy"
+        )
 
 design_metadata_scanner_text = (ROOT / "scripts/check_design_metadata_leaks.mjs").read_text(encoding="utf-8")
 for snippet in [
