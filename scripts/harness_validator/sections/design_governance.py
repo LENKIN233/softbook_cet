@@ -98,9 +98,14 @@ for snippet in [
     "box_ref",
     "knowledge_ref",
     "knowledgeRef",
+    "interaction_id",
+    "interactionId",
     "card_id",
     "cardId",
     "card_records",
+    "allowedDisplayMetadataLookupPattern",
+    "stripAllowedMetadataDisplayLookups",
+    "hasRawMetadataExpression",
     "visiblePropOpenPattern",
     "visiblePropTemplateOpenPattern",
     "pendingVisibleCopyProp",
@@ -208,6 +213,36 @@ with tempfile.TemporaryDirectory(
     (tmp_app_root / "src/learning/CamelKnowledgeRefPropLeak.tsx").write_text(
         "export function CamelKnowledgeRefPropLeak({ knowledgeRef }) {\n"
         "  return <Pressable accessibilityHint={knowledgeRef} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/InteractionIdTextLeak.tsx").write_text(
+        "export function InteractionIdTextLeak({ card }) {\n"
+        "  return <Text>{card.interaction_id}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/CamelInteractionIdPropLeak.tsx").write_text(
+        "export function CamelInteractionIdPropLeak({ interactionId }) {\n"
+        "  return <Pressable accessibilityHint={interactionId} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/InteractionIdRenderedPropLeak.tsx").write_text(
+        "export function InteractionIdRenderedPropLeak({ card }) {\n"
+        "  return <View testID={`interaction-${card.interaction_id}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/InteractionLabelLookupNoLeak.tsx").write_text(
+        "export function InteractionLabelLookupNoLeak({ card }) {\n"
+        "  return <Text>{INTERACTION_LABELS[card.interaction_id]}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/InteractionLabelPropNoLeak.tsx").write_text(
+        "export function InteractionLabelPropNoLeak({ card }) {\n"
+        "  return <Pressable accessibilityHint={INTERACTION_LABELS[card.interaction_id]} />;\n"
         "}\n",
         encoding="utf-8",
     )
@@ -392,6 +427,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/KnowledgeRefTextLeak.tsx",
         "src/learning/DestructuredKnowledgeRefTextLeak.tsx",
         "src/learning/CamelKnowledgeRefPropLeak.tsx",
+        "src/learning/InteractionIdTextLeak.tsx",
+        "src/learning/CamelInteractionIdPropLeak.tsx",
+        "src/learning/InteractionIdRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
@@ -432,6 +470,15 @@ with tempfile.TemporaryDirectory(
         errors.append(
             "mobile metadata scanner must not treat cardId event handlers after closed label props as visible copy"
         )
+    for unexpected_snippet in [
+        "src/learning/InteractionLabelLookupNoLeak.tsx",
+        "src/learning/InteractionLabelPropNoLeak.tsx",
+    ]:
+        if unexpected_snippet in metadata_scanner_output:
+            errors.append(
+                "mobile metadata scanner must allow interaction id display label lookup: "
+                + unexpected_snippet
+            )
 
 design_metadata_scanner_text = (ROOT / "scripts/check_design_metadata_leaks.mjs").read_text(encoding="utf-8")
 for snippet in [

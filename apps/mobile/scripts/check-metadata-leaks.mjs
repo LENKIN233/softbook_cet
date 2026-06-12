@@ -16,7 +16,7 @@ const visibleCopySourceFiles = [
 ];
 
 const rawMetadataFieldNames =
-  'track|libraryName|groupName|boxName|box_ref|boxRef|knowledge_ref|knowledgeRef|card_id|cardId|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records';
+  'track|libraryName|groupName|boxName|box_ref|boxRef|knowledge_ref|knowledgeRef|interaction_id|interactionId|card_id|cardId|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records';
 
 const rawSpaceMetadataFieldNames = 'library|group|box|box_ref|boxRef';
 const propertyAccessPattern = String.raw`(?:\.|\?\.)`;
@@ -33,8 +33,6 @@ const rawMetadataReferencePattern = new RegExp(
     `\\b(?:${rawMetadataFieldNames})\\b`,
   ].join('|'),
 );
-
-const textNodeMetadataPattern = rawMetadataReferencePattern;
 
 const visibleCopyPropNames = [
   'aria-label',
@@ -92,6 +90,9 @@ const renderedMetadataPropOpenPattern = new RegExp(
   `\\b(?:${renderedMetadataPropNames.join('|')})\\s*=\\s*(?:\\{|\\(|$)`,
 );
 
+const allowedDisplayMetadataLookupPattern =
+  /\bINTERACTION_LABELS\s*\[[^\]]*\b(?:interaction_id|interactionId)\b[^\]]*\]/g;
+
 const visibleCardContentLeakPattern =
   /\bCET[46]\b|(?:听力|阅读|写作|翻译|词汇|仔细阅读|快速阅读|学习馆|知识组|训练轨道|原盒位|卡组)|\b0\d{3,6}\b/;
 
@@ -119,6 +120,7 @@ const directDisplayMetadataPatterns = [
   },
   {
     pattern: renderedMetadataPropPattern,
+    transform: stripAllowedMetadataDisplayLookups,
     reason: 'raw metadata embedded in rendered element props',
   },
   {
@@ -177,6 +179,14 @@ function hasUnclosedJsxPropExpression(text) {
   );
 }
 
+function stripAllowedMetadataDisplayLookups(text) {
+  return text.replace(allowedDisplayMetadataLookupPattern, 'INTERACTION_LABEL');
+}
+
+function hasRawMetadataExpression(text) {
+  return rawMetadataExpressionPattern.test(stripAllowedMetadataDisplayLookups(text));
+}
+
 function checkTextNodeMetadata(filePath) {
   const source = fs.readFileSync(filePath, 'utf8');
   const lines = source.split('\n');
@@ -196,7 +206,7 @@ function checkTextNodeMetadata(filePath) {
 
     if (
       inTextNode &&
-      textNodeMetadataPattern.test(trimmed) &&
+      hasRawMetadataExpression(trimmed) &&
       !isStyleOnlyName
     ) {
       findings.push({
@@ -240,7 +250,7 @@ function checkDirectDisplayMetadata(filePath) {
       inInternalErrorExpression = true;
     }
 
-    if (pendingVisibleCopyProp && rawMetadataExpressionPattern.test(text)) {
+    if (pendingVisibleCopyProp && hasRawMetadataExpression(text)) {
       findings.push({
         filePath,
         line: index + 1,
@@ -250,7 +260,7 @@ function checkDirectDisplayMetadata(filePath) {
       pendingVisibleCopyProp = null;
     }
 
-    if (pendingRenderedMetadataProp && rawMetadataExpressionPattern.test(text)) {
+    if (pendingRenderedMetadataProp && hasRawMetadataExpression(text)) {
       findings.push({
         filePath,
         line: index + 1,
@@ -260,7 +270,7 @@ function checkDirectDisplayMetadata(filePath) {
       pendingRenderedMetadataProp = null;
     }
 
-    if (visiblePropPattern.test(text) && rawMetadataExpressionPattern.test(text)) {
+    if (visiblePropPattern.test(text) && hasRawMetadataExpression(text)) {
       findings.push({
         filePath,
         line: index + 1,
@@ -274,7 +284,7 @@ function checkDirectDisplayMetadata(filePath) {
         hasUnclosedJsxPropExpression(text)) ||
         (visiblePropTemplateOpenPattern.test(text) &&
           hasUnclosedTemplateLiteral(text))) &&
-      !rawMetadataExpressionPattern.test(text)
+      !hasRawMetadataExpression(text)
     ) {
       pendingVisibleCopyProp = { remainingLines: 4 };
     } else if (pendingVisibleCopyProp) {
@@ -290,7 +300,7 @@ function checkDirectDisplayMetadata(filePath) {
     if (
       renderedMetadataPropOpenPattern.test(text) &&
       hasUnclosedJsxPropExpression(text) &&
-      !rawMetadataExpressionPattern.test(text)
+      !hasRawMetadataExpression(text)
     ) {
       pendingRenderedMetadataProp = { remainingLines: 4 };
     } else if (pendingRenderedMetadataProp) {
@@ -303,8 +313,8 @@ function checkDirectDisplayMetadata(filePath) {
       }
     }
 
-    const rule = directDisplayMetadataPatterns.find(({ pattern }) =>
-      pattern.test(text),
+    const rule = directDisplayMetadataPatterns.find(({ pattern, transform }) =>
+      pattern.test(transform ? transform(text) : text),
     );
 
     if (rule) {
