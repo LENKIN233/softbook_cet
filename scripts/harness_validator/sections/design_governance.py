@@ -96,6 +96,8 @@ for snippet in [
     "sourceLabel",
     "source_label",
     "box_ref",
+    "knowledge_ref",
+    "knowledgeRef",
     "card_records",
     "visiblePropOpenPattern",
     "visiblePropTemplateOpenPattern",
@@ -186,6 +188,24 @@ with tempfile.TemporaryDirectory(
     (tmp_app_root / "src/learning/DestructuredBoxRefPropLeak.tsx").write_text(
         "export function DestructuredBoxRefPropLeak({ box_ref }) {\n"
         "  return <Pressable accessibilityHint={box_ref} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/KnowledgeRefTextLeak.tsx").write_text(
+        "export function KnowledgeRefTextLeak({ card }) {\n"
+        "  return <Text>{card.knowledge_ref}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/DestructuredKnowledgeRefTextLeak.tsx").write_text(
+        "export function DestructuredKnowledgeRefTextLeak({ knowledge_ref }) {\n"
+        "  return <Text>{knowledge_ref}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/CamelKnowledgeRefPropLeak.tsx").write_text(
+        "export function CamelKnowledgeRefPropLeak({ knowledgeRef }) {\n"
+        "  return <Pressable accessibilityHint={knowledgeRef} />;\n"
         "}\n",
         encoding="utf-8",
     )
@@ -346,6 +366,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/OptionalSpacePropLeak.tsx",
         "src/learning/DestructuredBoxRefTextLeak.tsx",
         "src/learning/DestructuredBoxRefPropLeak.tsx",
+        "src/learning/KnowledgeRefTextLeak.tsx",
+        "src/learning/DestructuredKnowledgeRefTextLeak.tsx",
+        "src/learning/CamelKnowledgeRefPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
         "src/learning/NestedBracketSpaceTextLeak.tsx",
         "src/learning/BracketSpacePropLeak.tsx",

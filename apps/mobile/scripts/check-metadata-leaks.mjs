@@ -16,7 +16,7 @@ const visibleCopySourceFiles = [
 ];
 
 const rawMetadataFieldNames =
-  'track|libraryName|groupName|boxName|box_ref|boxRef|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records';
+  'track|libraryName|groupName|boxName|box_ref|boxRef|knowledge_ref|knowledgeRef|sourceLabel|sourceId|source_label|source_id|cardRecords|card_records';
 
 const rawSpaceMetadataFieldNames = 'library|group|box|box_ref|boxRef';
 const propertyAccessPattern = String.raw`(?:\.|\?\.)`;
