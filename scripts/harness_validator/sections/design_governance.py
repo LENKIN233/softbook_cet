@@ -489,6 +489,8 @@ for snippet in [
     "metadataFieldPattern",
     "sourceLabel",
     "boxRef",
+    "interaction_id",
+    "interactionId",
     "card_id",
     "cardId",
     "visibleAttributeText",
@@ -536,6 +538,11 @@ with tempfile.TemporaryDirectory(
     fixture_card_id_html = Path(tmp_dir) / "card-id-metadata-visible-leak.html"
     fixture_card_id_html.write_text(
         "<!doctype html><html><body><p>card_id and cardId are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
+    fixture_interaction_id_html = Path(tmp_dir) / "interaction-id-metadata-visible-leak.html"
+    fixture_interaction_id_html.write_text(
+        "<!doctype html><html><body><p>interaction_id and interactionId are visible.</p></body></html>\n",
         encoding="utf-8",
     )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
@@ -624,6 +631,7 @@ with tempfile.TemporaryDirectory(
         "camel-process-visible-leak.html",
         "camel-metadata-visible-leak.html",
         "card-id-metadata-visible-leak.html",
+        "interaction-id-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
