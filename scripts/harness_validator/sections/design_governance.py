@@ -64,6 +64,7 @@ for snippet in [
     "rawMetadataFieldNames",
     "rawSpaceMetadataFieldNames",
     "propertyAccessPattern",
+    "bracketAccessPattern",
     "quotedSpaceMetadataReferencePattern",
     "quotedNestedSpaceMetadataReferencePattern",
     "rawMetadataReferencePattern",
@@ -193,6 +194,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/OptionalBracketSpaceTextLeak.tsx").write_text(
+        "export function OptionalBracketSpaceTextLeak({ card }) {\n"
+        "  return <Text>{card.space_metadata?.[\"box_ref\"]}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/OptionalNestedBracketSpaceTextLeak.tsx").write_text(
+        "export function OptionalNestedBracketSpaceTextLeak({ card }) {\n"
+        "  return <Text>{card[\"space_metadata\"]?.[\"box_ref\"]}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/OptionalBracketSpacePropLeak.tsx").write_text(
+        "export function OptionalBracketSpacePropLeak({ card }) {\n"
+        "  return <Pressable accessibilityHint={card.space_metadata?.[\"box_ref\"]} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/AriaValueTextLeak.tsx").write_text(
         "export function AriaValueTextLeak({ card }) {\n"
         "  return <View aria-valuetext={card.sourceLabel} />;\n"
@@ -315,6 +334,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BracketSpaceTextLeak.tsx",
         "src/learning/NestedBracketSpaceTextLeak.tsx",
         "src/learning/BracketSpacePropLeak.tsx",
+        "src/learning/OptionalBracketSpaceTextLeak.tsx",
+        "src/learning/OptionalNestedBracketSpaceTextLeak.tsx",
+        "src/learning/OptionalBracketSpacePropLeak.tsx",
         "src/learning/AriaValueTextLeak.tsx",
         "src/learning/VisibleCopyLeak.ts",
         "src/learning/VisibleCopyKeyLeak.ts",

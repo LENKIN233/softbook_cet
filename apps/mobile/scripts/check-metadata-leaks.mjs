@@ -20,8 +20,9 @@ const rawMetadataFieldNames =
 
 const rawSpaceMetadataFieldNames = 'library|group|box|box_ref|boxRef';
 const propertyAccessPattern = String.raw`(?:\.|\?\.)`;
-const quotedSpaceMetadataReferencePattern = String.raw`\b(?:\w+${propertyAccessPattern})?space_metadata\s*\[\s*["'](?:${rawSpaceMetadataFieldNames})["']\s*\]`;
-const quotedNestedSpaceMetadataReferencePattern = String.raw`\b\w+\s*\[\s*["']space_metadata["']\s*\]\s*\[\s*["'](?:${rawSpaceMetadataFieldNames})["']\s*\]`;
+const bracketAccessPattern = String.raw`(?:\?\.\s*)?\[\s*["']`;
+const quotedSpaceMetadataReferencePattern = String.raw`\b(?:\w+${propertyAccessPattern})?space_metadata${bracketAccessPattern}(?:${rawSpaceMetadataFieldNames})["']\s*\]`;
+const quotedNestedSpaceMetadataReferencePattern = String.raw`\b\w+${bracketAccessPattern}space_metadata["']\s*\]${bracketAccessPattern}(?:${rawSpaceMetadataFieldNames})["']\s*\]`;
 
 const rawMetadataReferencePattern = new RegExp(
   [
