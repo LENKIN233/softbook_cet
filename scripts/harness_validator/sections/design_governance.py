@@ -64,6 +64,8 @@ for snippet in [
     "rawMetadataFieldNames",
     "rawSpaceMetadataFieldNames",
     "propertyAccessPattern",
+    "quotedSpaceMetadataReferencePattern",
+    "quotedNestedSpaceMetadataReferencePattern",
     "rawMetadataReferencePattern",
 ]:
     check_contains("mobile metadata scanner visible TS source coverage", mobile_metadata_scanner_text, snippet)
@@ -170,6 +172,24 @@ with tempfile.TemporaryDirectory(
     (tmp_app_root / "src/learning/OptionalSpacePropLeak.tsx").write_text(
         "export function OptionalSpacePropLeak({ card }) {\n"
         "  return <Pressable accessibilityHint={card.space_metadata?.box_ref} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BracketSpaceTextLeak.tsx").write_text(
+        "export function BracketSpaceTextLeak({ card }) {\n"
+        "  return <Text>{card.space_metadata[\"box_ref\"]}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/NestedBracketSpaceTextLeak.tsx").write_text(
+        "export function NestedBracketSpaceTextLeak({ card }) {\n"
+        "  return <Text>{card[\"space_metadata\"][\"box_ref\"]}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BracketSpacePropLeak.tsx").write_text(
+        "export function BracketSpacePropLeak({ card }) {\n"
+        "  return <Pressable accessibilityHint={card.space_metadata[\"box_ref\"]} />;\n"
         "}\n",
         encoding="utf-8",
     )
@@ -292,6 +312,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/OptionalTextLeak.tsx",
         "src/learning/BareTextLeak.tsx",
         "src/learning/OptionalSpacePropLeak.tsx",
+        "src/learning/BracketSpaceTextLeak.tsx",
+        "src/learning/NestedBracketSpaceTextLeak.tsx",
+        "src/learning/BracketSpacePropLeak.tsx",
         "src/learning/AriaValueTextLeak.tsx",
         "src/learning/VisibleCopyLeak.ts",
         "src/learning/VisibleCopyKeyLeak.ts",
