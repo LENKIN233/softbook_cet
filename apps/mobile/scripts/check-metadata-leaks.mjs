@@ -72,6 +72,21 @@ const rawMetadataExpressionPattern =
     `${rawMetadataReferencePattern.source}|\\bspace_metadata${propertyAccessPattern}(?:${rawSpaceMetadataFieldNames})\\b|track\\.toUpperCase\\(`,
   );
 
+const renderedMetadataPropNames = [
+  'testID',
+  'nativeID',
+  'accessibilityLabelledBy',
+  'aria-labelledby',
+];
+
+const renderedMetadataPropPattern = new RegExp(
+  `(?:${renderedMetadataPropNames.join('|')})\\s*=\\s*\\{(?:\`[^\`]*\\$\\{[^\`]*(?:${rawMetadataExpressionPattern.source})[^\`]*\\}[^\`]*\`|[^}\`\\n]*(?:${rawMetadataExpressionPattern.source})[^}\`\\n]*)\\}`,
+);
+
+const renderedMetadataPropOpenPattern = new RegExp(
+  `\\b(?:${renderedMetadataPropNames.join('|')})\\s*=\\s*(?:\\{|\\(|$)`,
+);
+
 const visibleCardContentLeakPattern =
   /\bCET[46]\b|(?:听力|阅读|写作|翻译|词汇|仔细阅读|快速阅读|学习馆|知识组|训练轨道|原盒位|卡组)|\b0\d{3,6}\b/;
 
@@ -98,10 +113,7 @@ const directDisplayMetadataPatterns = [
     reason: 'raw learning track transformed for display',
   },
   {
-    pattern:
-      new RegExp(
-        `(?:testID|nativeID|accessibilityLabelledBy|aria-labelledby)\\s*=\\s*\\{(?:\`[^\`]*\\$\\{[^\`]*(?:${rawMetadataExpressionPattern.source})[^\`]*\\}[^\`]*\`|[^}\`\\n]*(?:${rawMetadataExpressionPattern.source})[^}\`\\n]*)\\}`,
-      ),
+    pattern: renderedMetadataPropPattern,
     reason: 'raw metadata embedded in rendered element props',
   },
   {
@@ -152,6 +164,14 @@ function hasUnclosedTemplateLiteral(text) {
   return templateLiteralTicks.length % 2 === 1;
 }
 
+function hasUnclosedJsxPropExpression(text) {
+  return (
+    /[{(]\s*$/.test(text) ||
+    (text.includes('{') && !text.includes('}')) ||
+    hasUnclosedTemplateLiteral(text)
+  );
+}
+
 function checkTextNodeMetadata(filePath) {
   const source = fs.readFileSync(filePath, 'utf8');
   const lines = source.split('\n');
@@ -197,6 +217,7 @@ function checkDirectDisplayMetadata(filePath) {
   let inInternalGuardDeclaration = false;
   let inInternalErrorExpression = false;
   let pendingVisibleCopyProp = null;
+  let pendingRenderedMetadataProp = null;
 
   for (let index = 0; index < lines.length; index += 1) {
     const text = lines[index].trim();
@@ -224,6 +245,16 @@ function checkDirectDisplayMetadata(filePath) {
       pendingVisibleCopyProp = null;
     }
 
+    if (pendingRenderedMetadataProp && rawMetadataExpressionPattern.test(text)) {
+      findings.push({
+        filePath,
+        line: index + 1,
+        text,
+        reason: 'raw metadata passed through multiline rendered element prop',
+      });
+      pendingRenderedMetadataProp = null;
+    }
+
     if (visiblePropPattern.test(text) && rawMetadataExpressionPattern.test(text)) {
       findings.push({
         filePath,
@@ -247,6 +278,22 @@ function checkDirectDisplayMetadata(filePath) {
         /^[})\]],?$/.test(text)
       ) {
         pendingVisibleCopyProp = null;
+      }
+    }
+
+    if (
+      renderedMetadataPropOpenPattern.test(text) &&
+      hasUnclosedJsxPropExpression(text) &&
+      !rawMetadataExpressionPattern.test(text)
+    ) {
+      pendingRenderedMetadataProp = { remainingLines: 4 };
+    } else if (pendingRenderedMetadataProp) {
+      pendingRenderedMetadataProp.remainingLines -= 1;
+      if (
+        pendingRenderedMetadataProp.remainingLines <= 0 ||
+        /^[})\]],?$/.test(text)
+      ) {
+        pendingRenderedMetadataProp = null;
       }
     }
 
