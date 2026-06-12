@@ -529,6 +529,16 @@ for snippet in [
     "boxRef",
     "interaction_id",
     "interactionId",
+    "answer_key",
+    "answerKey",
+    "correct_option",
+    "correctOption",
+    "lock_pattern",
+    "lockPattern",
+    "correct_items",
+    "correctItems",
+    "correct_state",
+    "correctState",
     "card_id",
     "cardId",
     "visibleAttributeText",
@@ -581,6 +591,11 @@ with tempfile.TemporaryDirectory(
     fixture_interaction_id_html = Path(tmp_dir) / "interaction-id-metadata-visible-leak.html"
     fixture_interaction_id_html.write_text(
         "<!doctype html><html><body><p>interaction_id and interactionId are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
+    fixture_answer_key_html = Path(tmp_dir) / "answer-key-metadata-visible-leak.html"
+    fixture_answer_key_html.write_text(
+        "<!doctype html><html><body><p>answer_key, answerKey, correct_option, and correctState are visible.</p></body></html>\n",
         encoding="utf-8",
     )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
@@ -670,6 +685,7 @@ with tempfile.TemporaryDirectory(
         "camel-metadata-visible-leak.html",
         "card-id-metadata-visible-leak.html",
         "interaction-id-metadata-visible-leak.html",
+        "answer-key-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
