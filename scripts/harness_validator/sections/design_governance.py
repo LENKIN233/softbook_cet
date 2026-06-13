@@ -100,6 +100,8 @@ for snippet in [
     "knowledgeRef",
     "interaction_id",
     "interactionId",
+    "auto_scoring",
+    "autoScoring",
     "answer_key",
     "answerKey",
     "correct_option",
@@ -277,6 +279,24 @@ with tempfile.TemporaryDirectory(
     (tmp_app_root / "src/learning/CorrectStateRenderedPropLeak.tsx").write_text(
         "export function CorrectStateRenderedPropLeak({ correctState }) {\n"
         "  return <View testID={correctState} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/AutoScoringTextLeak.tsx").write_text(
+        "export function AutoScoringTextLeak({ card }) {\n"
+        "  return <Text>{card.auto_scoring}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/CamelAutoScoringPropLeak.tsx").write_text(
+        "export function CamelAutoScoringPropLeak({ autoScoring }) {\n"
+        "  return <Pressable accessibilityHint={autoScoring ? '自动评分' : '自评'} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/AutoScoringRenderedPropLeak.tsx").write_text(
+        "export function AutoScoringRenderedPropLeak({ card }) {\n"
+        "  return <View testID={card.auto_scoring} />;\n"
         "}\n",
         encoding="utf-8",
     )
@@ -468,6 +488,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/CamelAnswerKeyPropLeak.tsx",
         "src/learning/DestructuredCorrectOptionTextLeak.tsx",
         "src/learning/CorrectStateRenderedPropLeak.tsx",
+        "src/learning/AutoScoringTextLeak.tsx",
+        "src/learning/CamelAutoScoringPropLeak.tsx",
+        "src/learning/AutoScoringRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
