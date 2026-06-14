@@ -796,6 +796,21 @@ for snippet in [
     "refresh_membership",
     "__softbook_mutation_queue",
     "retryCount",
+    "apiKey",
+    "apiKeyHeader",
+    "baseUrl",
+    "remoteConfig",
+    "requestCodeEndpoint",
+    "verifyCodeEndpoint",
+    "dismissRecoveryEndpoint",
+    "entitlementEndpoint",
+    "purchaseEndpoint",
+    "startTrialEndpoint",
+    "trackQueryParam",
+    "__SOFTBOOK_CET_REMOTE_RUNTIME_PROFILE__",
+    "SOFTBOOK_CET_REMOTE_BASE_URL",
+    "SOFTBOOK_CET_REMOTE_API_KEY",
+    "SOFTBOOK_CET_LEARNING_TRACK",
     "flipConfidence",
     "selectedOptionId",
     "lockSelections",
@@ -924,6 +939,11 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>sync_daily_progress, sync_space_state, sync_learning_state, start_membership_trial, refresh_membership, __softbook_mutation_queue, and retryCount are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_runtime_config_metadata_html = Path(tmp_dir) / "runtime-config-metadata-visible-leak.html"
+    fixture_runtime_config_metadata_html.write_text(
+        "<!doctype html><html><body><p>apiKey, apiKeyHeader, baseUrl, remoteConfig, requestCodeEndpoint, verifyCodeEndpoint, dismissRecoveryEndpoint, entitlementEndpoint, purchaseEndpoint, startTrialEndpoint, trackQueryParam, __SOFTBOOK_CET_REMOTE_RUNTIME_PROFILE__, SOFTBOOK_CET_REMOTE_BASE_URL, SOFTBOOK_CET_REMOTE_API_KEY, and SOFTBOOK_CET_LEARNING_TRACK are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -1019,6 +1039,7 @@ with tempfile.TemporaryDirectory(
         "sync-payload-metadata-visible-leak.html",
         "membership-payload-metadata-visible-leak.html",
         "mutation-queue-metadata-visible-leak.html",
+        "runtime-config-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
