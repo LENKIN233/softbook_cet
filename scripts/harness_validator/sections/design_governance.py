@@ -99,6 +99,11 @@ for snippet in [
     "completedAt",
     "usedHint",
     "usedPeek",
+    "flipConfidence",
+    "selectedOptionId",
+    "lockSelections",
+    "eliminatedItemIds",
+    "swipeSelection",
     "box_ref",
     "template_box_prefix",
     "templateBoxPrefix",
@@ -354,6 +359,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/InteractionStateMetadataTextLeak.tsx").write_text(
+        "export function InteractionStateMetadataTextLeak({ state }) {\n"
+        "  return <Text>{state.selectedOptionId}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/InteractionStateMetadataPropLeak.tsx").write_text(
+        "export function InteractionStateMetadataPropLeak({ state }) {\n"
+        "  return <Pressable accessibilityHint={state.flipConfidence} accessibilityLabel={state.eliminatedItemIds} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/InteractionStateMetadataRenderedPropLeak.tsx").write_text(
+        "export function InteractionStateMetadataRenderedPropLeak({ state }) {\n"
+        "  return <View testID={`${state.lockSelections}-${state.swipeSelection}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -551,6 +574,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/ResultSessionMetadataTextLeak.tsx",
         "src/learning/ResultSessionMetadataPropLeak.tsx",
         "src/learning/ResultSessionMetadataRenderedPropLeak.tsx",
+        "src/learning/InteractionStateMetadataTextLeak.tsx",
+        "src/learning/InteractionStateMetadataPropLeak.tsx",
+        "src/learning/InteractionStateMetadataRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
