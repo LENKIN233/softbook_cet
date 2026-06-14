@@ -753,6 +753,13 @@ for snippet in [
     "recovery_prompt_visible",
     "trial_duration_days",
     "trial_started_at_entry_count",
+    "sync_daily_progress",
+    "sync_space_state",
+    "sync_learning_state",
+    "start_membership_trial",
+    "refresh_membership",
+    "__softbook_mutation_queue",
+    "retryCount",
     "flipConfidence",
     "selectedOptionId",
     "lockSelections",
@@ -876,6 +883,11 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>counted_entry_count, last_experience_ended_by, recovery_prompt_visible, trial_duration_days, and trial_started_at_entry_count are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_mutation_queue_metadata_html = Path(tmp_dir) / "mutation-queue-metadata-visible-leak.html"
+    fixture_mutation_queue_metadata_html.write_text(
+        "<!doctype html><html><body><p>sync_daily_progress, sync_space_state, sync_learning_state, start_membership_trial, refresh_membership, __softbook_mutation_queue, and retryCount are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -970,6 +982,7 @@ with tempfile.TemporaryDirectory(
         "interaction-state-metadata-visible-leak.html",
         "sync-payload-metadata-visible-leak.html",
         "membership-payload-metadata-visible-leak.html",
+        "mutation-queue-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
