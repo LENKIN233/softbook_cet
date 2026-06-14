@@ -677,6 +677,23 @@ for snippet in [
     "completedAt",
     "usedHint",
     "usedPeek",
+    "auth_token",
+    "sms_code",
+    "phone_number",
+    "day_key",
+    "completed_at",
+    "used_hint",
+    "used_peek",
+    "is_favorited",
+    "is_sleeping",
+    "last_modified_at",
+    "checked_in_today",
+    "favorite_count",
+    "learning_completed_count",
+    "pending_review_count",
+    "review_completed_count",
+    "sleeping_count",
+    "total_completed_count",
     "flipConfidence",
     "selectedOptionId",
     "lockSelections",
@@ -790,6 +807,11 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>flipConfidence, selectedOptionId, lockSelections, eliminatedItemIds, and swipeSelection are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_sync_payload_metadata_html = Path(tmp_dir) / "sync-payload-metadata-visible-leak.html"
+    fixture_sync_payload_metadata_html.write_text(
+        "<!doctype html><html><body><p>auth_token, sms_code, phone_number, day_key, completed_at, used_hint, used_peek, is_favorited, is_sleeping, last_modified_at, checked_in_today, favorite_count, learning_completed_count, pending_review_count, review_completed_count, sleeping_count, and total_completed_count are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -882,6 +904,7 @@ with tempfile.TemporaryDirectory(
         "box-catalog-metadata-visible-leak.html",
         "result-session-metadata-visible-leak.html",
         "interaction-state-metadata-visible-leak.html",
+        "sync-payload-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
