@@ -95,6 +95,10 @@ for snippet in [
     "message",
     "sourceLabel",
     "source_label",
+    "catalogCards",
+    "completedAt",
+    "usedHint",
+    "usedPeek",
     "box_ref",
     "template_box_prefix",
     "templateBoxPrefix",
@@ -332,6 +336,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/ResultSessionMetadataTextLeak.tsx").write_text(
+        "export function ResultSessionMetadataTextLeak({ session }) {\n"
+        "  return <Text>{session.catalogCards}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/ResultSessionMetadataPropLeak.tsx").write_text(
+        "export function ResultSessionMetadataPropLeak({ result }) {\n"
+        "  return <Pressable accessibilityHint={result.usedHint} accessibilityLabel={result.usedPeek} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/ResultSessionMetadataRenderedPropLeak.tsx").write_text(
+        "export function ResultSessionMetadataRenderedPropLeak({ result }) {\n"
+        "  return <View testID={result.completedAt} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -526,6 +548,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BoxCatalogMetadataTextLeak.tsx",
         "src/learning/CamelBoxCatalogMetadataPropLeak.tsx",
         "src/learning/BoxCatalogMetadataRenderedPropLeak.tsx",
+        "src/learning/ResultSessionMetadataTextLeak.tsx",
+        "src/learning/ResultSessionMetadataPropLeak.tsx",
+        "src/learning/ResultSessionMetadataRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
