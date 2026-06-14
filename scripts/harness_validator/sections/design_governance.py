@@ -116,6 +116,11 @@ for snippet in [
     "review_completed_count",
     "sleeping_count",
     "total_completed_count",
+    "counted_entry_count",
+    "last_experience_ended_by",
+    "recovery_prompt_visible",
+    "trial_duration_days",
+    "trial_started_at_entry_count",
     "flipConfidence",
     "selectedOptionId",
     "lockSelections",
@@ -412,6 +417,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/MembershipPayloadMetadataTextLeak.tsx").write_text(
+        "export function MembershipPayloadMetadataTextLeak({ entitlement }) {\n"
+        "  return <Text>{entitlement.counted_entry_count}{entitlement.last_experience_ended_by}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/MembershipPayloadMetadataPropLeak.tsx").write_text(
+        "export function MembershipPayloadMetadataPropLeak({ entitlement }) {\n"
+        "  return <Pressable accessibilityHint={entitlement.recovery_prompt_visible} accessibilityLabel={entitlement.trial_duration_days} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/MembershipPayloadMetadataRenderedPropLeak.tsx").write_text(
+        "export function MembershipPayloadMetadataRenderedPropLeak({ entitlement }) {\n"
+        "  return <View testID={`${entitlement.trial_started_at_entry_count}-${entitlement.counted_entry_count}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -615,6 +638,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/SyncPayloadMetadataTextLeak.tsx",
         "src/learning/SyncPayloadMetadataPropLeak.tsx",
         "src/learning/SyncPayloadMetadataRenderedPropLeak.tsx",
+        "src/learning/MembershipPayloadMetadataTextLeak.tsx",
+        "src/learning/MembershipPayloadMetadataPropLeak.tsx",
+        "src/learning/MembershipPayloadMetadataRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
