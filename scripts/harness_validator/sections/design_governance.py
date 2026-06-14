@@ -128,6 +128,21 @@ for snippet in [
     "refresh_membership",
     "__softbook_mutation_queue",
     "retryCount",
+    "apiKey",
+    "apiKeyHeader",
+    "baseUrl",
+    "remoteConfig",
+    "requestCodeEndpoint",
+    "verifyCodeEndpoint",
+    "dismissRecoveryEndpoint",
+    "entitlementEndpoint",
+    "purchaseEndpoint",
+    "startTrialEndpoint",
+    "trackQueryParam",
+    "__SOFTBOOK_CET_REMOTE_RUNTIME_PROFILE__",
+    "SOFTBOOK_CET_REMOTE_BASE_URL",
+    "SOFTBOOK_CET_REMOTE_API_KEY",
+    "SOFTBOOK_CET_LEARNING_TRACK",
     "flipConfidence",
     "selectedOptionId",
     "lockSelections",
@@ -460,6 +475,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/RuntimeConfigMetadataTextLeak.tsx").write_text(
+        "export function RuntimeConfigMetadataTextLeak({ config }) {\n"
+        "  return <Text>{config.apiKey}{config.remoteConfig}{config.entitlementEndpoint}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/RuntimeConfigMetadataPropLeak.tsx").write_text(
+        "export function RuntimeConfigMetadataPropLeak({ config }) {\n"
+        "  return <Pressable accessibilityHint={config.requestCodeEndpoint} accessibilityLabel={`${config.verifyCodeEndpoint}-${config.dismissRecoveryEndpoint}-${config.purchaseEndpoint}-${config.startTrialEndpoint}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/RuntimeConfigMetadataRenderedPropLeak.tsx").write_text(
+        "export function RuntimeConfigMetadataRenderedPropLeak({ config }) {\n"
+        "  return <View testID={`${config.baseUrl}-${config.apiKeyHeader}-${config.trackQueryParam}-__SOFTBOOK_CET_REMOTE_RUNTIME_PROFILE__-SOFTBOOK_CET_REMOTE_BASE_URL-SOFTBOOK_CET_REMOTE_API_KEY-SOFTBOOK_CET_LEARNING_TRACK`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -669,6 +702,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/MutationQueueMetadataTextLeak.tsx",
         "src/learning/MutationQueueMetadataPropLeak.tsx",
         "src/learning/MutationQueueMetadataRenderedPropLeak.tsx",
+        "src/learning/RuntimeConfigMetadataTextLeak.tsx",
+        "src/learning/RuntimeConfigMetadataPropLeak.tsx",
+        "src/learning/RuntimeConfigMetadataRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
