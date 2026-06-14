@@ -96,6 +96,20 @@ for snippet in [
     "sourceLabel",
     "source_label",
     "box_ref",
+    "template_box_prefix",
+    "templateBoxPrefix",
+    "box_id",
+    "boxId",
+    "track_availability",
+    "trackAvailability",
+    "resolved_box_prefixes",
+    "resolvedBoxPrefixes",
+    "card_template",
+    "cardTemplate",
+    "card_counts",
+    "cardCounts",
+    "template_track_placeholder",
+    "templateTrackPlaceholder",
     "knowledge_ref",
     "knowledgeRef",
     "interaction_id",
@@ -300,6 +314,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BoxCatalogMetadataTextLeak.tsx").write_text(
+        "export function BoxCatalogMetadataTextLeak({ box }) {\n"
+        "  return <Text>{box.track_availability}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/CamelBoxCatalogMetadataPropLeak.tsx").write_text(
+        "export function CamelBoxCatalogMetadataPropLeak({ box }) {\n"
+        "  return <Pressable accessibilityHint={box.templateBoxPrefix} accessibilityLabel={box.cardCounts} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BoxCatalogMetadataRenderedPropLeak.tsx").write_text(
+        "export function BoxCatalogMetadataRenderedPropLeak({ box }) {\n"
+        "  return <View testID={`${box.resolvedBoxPrefixes}-${box.templateTrackPlaceholder}-${box.box_id}-${box.card_template}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -491,6 +523,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/AutoScoringTextLeak.tsx",
         "src/learning/CamelAutoScoringPropLeak.tsx",
         "src/learning/AutoScoringRenderedPropLeak.tsx",
+        "src/learning/BoxCatalogMetadataTextLeak.tsx",
+        "src/learning/CamelBoxCatalogMetadataPropLeak.tsx",
+        "src/learning/BoxCatalogMetadataRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
