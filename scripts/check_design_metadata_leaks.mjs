@@ -24,7 +24,7 @@ const excludedPathPatterns = [
 const textFilePattern = /\.(html|md|svg)$/;
 
 const metadataFieldPattern =
-  /\b(?:space_metadata|spaceMetadata|box_ref|boxRef|knowledge_ref|knowledgeRef|interaction_id|interactionId|answer_key|answerKey|correct_option|correctOption|lock_pattern|lockPattern|correct_items|correctItems|correct_state|correctState|card_id|cardId|source_id|sourceId|source_label|sourceLabel|track)\b/i;
+  /\b(?:space_metadata|spaceMetadata|box_ref|boxRef|knowledge_ref|knowledgeRef|interaction_id|interactionId|auto_scoring|autoScoring|answer_key|answerKey|correct_option|correctOption|lock_pattern|lockPattern|correct_items|correctItems|correct_state|correctState|card_id|cardId|source_id|sourceId|source_label|sourceLabel|track)\b/i;
 
 const processLeakTermPattern =
   /(^|[^A-Za-z0-9])(?:agent|harness|validator|runtime|mock|prototype|seed|fixture|debug|dev|todo|implementation|repository|repo|pull request|pr|rn|endpoint|payload)(?=$|[^A-Za-z0-9])/i;

@@ -552,6 +552,8 @@ for snippet in [
     "boxRef",
     "interaction_id",
     "interactionId",
+    "auto_scoring",
+    "autoScoring",
     "answer_key",
     "answerKey",
     "correct_option",
@@ -619,6 +621,11 @@ with tempfile.TemporaryDirectory(
     fixture_answer_key_html = Path(tmp_dir) / "answer-key-metadata-visible-leak.html"
     fixture_answer_key_html.write_text(
         "<!doctype html><html><body><p>answer_key, answerKey, correct_option, and correctState are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
+    fixture_auto_scoring_html = Path(tmp_dir) / "auto-scoring-metadata-visible-leak.html"
+    fixture_auto_scoring_html.write_text(
+        "<!doctype html><html><body><p>auto_scoring and autoScoring are visible.</p></body></html>\n",
         encoding="utf-8",
     )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
@@ -709,6 +716,7 @@ with tempfile.TemporaryDirectory(
         "card-id-metadata-visible-leak.html",
         "interaction-id-metadata-visible-leak.html",
         "answer-key-metadata-visible-leak.html",
+        "auto-scoring-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
