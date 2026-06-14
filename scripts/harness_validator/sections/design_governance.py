@@ -609,6 +609,10 @@ for snippet in [
     "decodeHtmlEntities",
     "metadataFieldPattern",
     "sourceLabel",
+    "catalogCards",
+    "completedAt",
+    "usedHint",
+    "usedPeek",
     "boxRef",
     "template_box_prefix",
     "templateBoxPrefix",
@@ -707,6 +711,11 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>template_box_prefix, boxId, track_availability, resolvedBoxPrefixes, card_template, cardCounts, and templateTrackPlaceholder are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_result_session_metadata_html = Path(tmp_dir) / "result-session-metadata-visible-leak.html"
+    fixture_result_session_metadata_html.write_text(
+        "<!doctype html><html><body><p>catalogCards, completedAt, usedHint, and usedPeek are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -797,6 +806,7 @@ with tempfile.TemporaryDirectory(
         "answer-key-metadata-visible-leak.html",
         "auto-scoring-metadata-visible-leak.html",
         "box-catalog-metadata-visible-leak.html",
+        "result-session-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
