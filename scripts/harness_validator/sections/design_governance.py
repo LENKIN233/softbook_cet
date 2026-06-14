@@ -550,6 +550,20 @@ for snippet in [
     "metadataFieldPattern",
     "sourceLabel",
     "boxRef",
+    "template_box_prefix",
+    "templateBoxPrefix",
+    "box_id",
+    "boxId",
+    "track_availability",
+    "trackAvailability",
+    "resolved_box_prefixes",
+    "resolvedBoxPrefixes",
+    "card_template",
+    "cardTemplate",
+    "card_counts",
+    "cardCounts",
+    "template_track_placeholder",
+    "templateTrackPlaceholder",
     "interaction_id",
     "interactionId",
     "auto_scoring",
@@ -626,6 +640,11 @@ with tempfile.TemporaryDirectory(
     fixture_auto_scoring_html = Path(tmp_dir) / "auto-scoring-metadata-visible-leak.html"
     fixture_auto_scoring_html.write_text(
         "<!doctype html><html><body><p>auto_scoring and autoScoring are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
+    fixture_box_catalog_metadata_html = Path(tmp_dir) / "box-catalog-metadata-visible-leak.html"
+    fixture_box_catalog_metadata_html.write_text(
+        "<!doctype html><html><body><p>template_box_prefix, boxId, track_availability, resolvedBoxPrefixes, card_template, cardCounts, and templateTrackPlaceholder are visible.</p></body></html>\n",
         encoding="utf-8",
     )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
@@ -717,6 +736,7 @@ with tempfile.TemporaryDirectory(
         "interaction-id-metadata-visible-leak.html",
         "answer-key-metadata-visible-leak.html",
         "auto-scoring-metadata-visible-leak.html",
+        "box-catalog-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
