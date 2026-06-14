@@ -99,6 +99,23 @@ for snippet in [
     "completedAt",
     "usedHint",
     "usedPeek",
+    "auth_token",
+    "sms_code",
+    "phone_number",
+    "day_key",
+    "completed_at",
+    "used_hint",
+    "used_peek",
+    "is_favorited",
+    "is_sleeping",
+    "last_modified_at",
+    "checked_in_today",
+    "favorite_count",
+    "learning_completed_count",
+    "pending_review_count",
+    "review_completed_count",
+    "sleeping_count",
+    "total_completed_count",
     "flipConfidence",
     "selectedOptionId",
     "lockSelections",
@@ -377,6 +394,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/SyncPayloadMetadataTextLeak.tsx").write_text(
+        "export function SyncPayloadMetadataTextLeak({ payload }) {\n"
+        "  return <Text>{payload.auth_token}{payload.phone_number}{payload.completed_at}{payload.used_hint}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SyncPayloadMetadataPropLeak.tsx").write_text(
+        "export function SyncPayloadMetadataPropLeak({ payload }) {\n"
+        "  return <Pressable accessibilityHint={payload.sms_code} accessibilityLabel={`${payload.used_peek}-${payload.checked_in_today}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SyncPayloadMetadataRenderedPropLeak.tsx").write_text(
+        "export function SyncPayloadMetadataRenderedPropLeak({ payload }) {\n"
+        "  return <View testID={`${payload.day_key}-${payload.is_favorited}-${payload.is_sleeping}-${payload.last_modified_at}-${payload.favorite_count}-${payload.learning_completed_count}-${payload.pending_review_count}-${payload.review_completed_count}-${payload.sleeping_count}-${payload.total_completed_count}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -577,6 +612,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/InteractionStateMetadataTextLeak.tsx",
         "src/learning/InteractionStateMetadataPropLeak.tsx",
         "src/learning/InteractionStateMetadataRenderedPropLeak.tsx",
+        "src/learning/SyncPayloadMetadataTextLeak.tsx",
+        "src/learning/SyncPayloadMetadataPropLeak.tsx",
+        "src/learning/SyncPayloadMetadataRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
