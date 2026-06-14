@@ -16,7 +16,7 @@ const visibleCopySourceFiles = [
 ];
 
 const rawMetadataFieldNames =
-  'track|libraryName|groupName|boxName|box_ref|boxRef|template_box_prefix|templateBoxPrefix|box_id|boxId|track_availability|trackAvailability|resolved_box_prefixes|resolvedBoxPrefixes|card_template|cardTemplate|card_counts|cardCounts|template_track_placeholder|templateTrackPlaceholder|knowledge_ref|knowledgeRef|interaction_id|interactionId|auto_scoring|autoScoring|answer_key|answerKey|correct_option|correctOption|lock_pattern|lockPattern|correct_items|correctItems|correct_state|correctState|card_id|cardId|sourceLabel|sourceId|source_label|source_id|catalogCards|completedAt|usedHint|usedPeek|cardRecords|card_records';
+  'track|libraryName|groupName|boxName|box_ref|boxRef|template_box_prefix|templateBoxPrefix|box_id|boxId|track_availability|trackAvailability|resolved_box_prefixes|resolvedBoxPrefixes|card_template|cardTemplate|card_counts|cardCounts|template_track_placeholder|templateTrackPlaceholder|knowledge_ref|knowledgeRef|interaction_id|interactionId|auto_scoring|autoScoring|answer_key|answerKey|correct_option|correctOption|lock_pattern|lockPattern|correct_items|correctItems|correct_state|correctState|card_id|cardId|sourceLabel|sourceId|source_label|source_id|catalogCards|completedAt|usedHint|usedPeek|flipConfidence|selectedOptionId|lockSelections|eliminatedItemIds|swipeSelection|cardRecords|card_records';
 
 const rawSpaceMetadataFieldNames = 'library|group|box|box_ref|boxRef';
 const propertyAccessPattern = String.raw`(?:\.|\?\.)`;
