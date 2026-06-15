@@ -153,6 +153,9 @@ for snippet in [
     "SOFTBOOK_CET_REMOTE_API_KEY",
     "SOFTBOOK_CET_LEARNING_TRACK",
     "SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES",
+    "SOFTBOOK_CET_AUTH_TOKEN",
+    "SOFTBOOK_CET_TEST_PHONE",
+    "SOFTBOOK_CET_TEST_CODE",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -587,6 +590,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/SmokeAuthEnvMetadataTextLeak.tsx").write_text(
+        "export function SmokeAuthEnvMetadataTextLeak() {\n"
+        "  return <Text>SOFTBOOK_CET_AUTH_TOKEN SOFTBOOK_CET_TEST_PHONE</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeAuthEnvMetadataPropLeak.tsx").write_text(
+        "export function SmokeAuthEnvMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"SOFTBOOK_CET_TEST_CODE\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeAuthEnvMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function SmokeAuthEnvMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"SOFTBOOK_CET_AUTH_TOKEN\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -811,6 +832,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/RuntimeConfigGlobalMetadataTextLeak.tsx",
         "src/learning/RuntimeConfigGlobalMetadataPropLeak.tsx",
         "src/learning/RuntimeConfigGlobalMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/SmokeAuthEnvMetadataTextLeak.tsx",
+        "src/learning/SmokeAuthEnvMetadataPropLeak.tsx",
+        "src/learning/SmokeAuthEnvMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
@@ -928,6 +952,9 @@ for snippet in [
     "SOFTBOOK_CET_REMOTE_BASE_URL",
     "SOFTBOOK_CET_REMOTE_API_KEY",
     "SOFTBOOK_CET_LEARNING_TRACK",
+    "SOFTBOOK_CET_AUTH_TOKEN",
+    "SOFTBOOK_CET_TEST_PHONE",
+    "SOFTBOOK_CET_TEST_CODE",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -1082,6 +1109,11 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>featureModes, learningTrack, learningSource, progressSync, spaceState, and learningState are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_smoke_auth_env_metadata_html = Path(tmp_dir) / "smoke-auth-env-metadata-visible-leak.html"
+    fixture_smoke_auth_env_metadata_html.write_text(
+        "<!doctype html><html><body><p>SOFTBOOK_CET_AUTH_TOKEN, SOFTBOOK_CET_TEST_PHONE, and SOFTBOOK_CET_TEST_CODE are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -1181,6 +1213,7 @@ with tempfile.TemporaryDirectory(
         "mutation-queue-metadata-visible-leak.html",
         "runtime-config-metadata-visible-leak.html",
         "runtime-profile-metadata-visible-leak.html",
+        "smoke-auth-env-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
