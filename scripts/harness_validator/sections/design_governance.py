@@ -147,6 +147,7 @@ for snippet in [
     "purchaseEndpoint",
     "startTrialEndpoint",
     "trackQueryParam",
+    "__SOFTBOOK_CET_RUNTIME_CONFIG__",
     "__SOFTBOOK_CET_REMOTE_RUNTIME_PROFILE__",
     "SOFTBOOK_CET_REMOTE_BASE_URL",
     "SOFTBOOK_CET_REMOTE_API_KEY",
@@ -568,6 +569,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/RuntimeConfigGlobalMetadataTextLeak.tsx").write_text(
+        "export function RuntimeConfigGlobalMetadataTextLeak() {\n"
+        "  return <Text>__SOFTBOOK_CET_RUNTIME_CONFIG__</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/RuntimeConfigGlobalMetadataPropLeak.tsx").write_text(
+        "export function RuntimeConfigGlobalMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"__SOFTBOOK_CET_RUNTIME_CONFIG__\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/RuntimeConfigGlobalMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function RuntimeConfigGlobalMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"__SOFTBOOK_CET_RUNTIME_CONFIG__\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -789,6 +808,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/LocalRuntimeFeaturesMetadataTextLeak.tsx",
         "src/learning/LocalRuntimeFeaturesMetadataPropLeak.tsx",
         "src/learning/LocalRuntimeFeaturesMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/RuntimeConfigGlobalMetadataTextLeak.tsx",
+        "src/learning/RuntimeConfigGlobalMetadataPropLeak.tsx",
+        "src/learning/RuntimeConfigGlobalMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
