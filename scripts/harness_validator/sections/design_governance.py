@@ -795,6 +795,7 @@ for snippet in [
     "usedHint",
     "usedPeek",
     "auth_token",
+    "authToken",
     "sms_code",
     "phone_number",
     "day_key",
@@ -804,6 +805,7 @@ for snippet in [
     "is_favorited",
     "is_sleeping",
     "last_modified_at",
+    "lastModifiedAt",
     "checked_in_today",
     "favorite_count",
     "learning_completed_count",
@@ -812,10 +814,14 @@ for snippet in [
     "sleeping_count",
     "total_completed_count",
     "counted_entry_count",
+    "countedEntryCount",
     "last_experience_ended_by",
     "recovery_prompt_visible",
+    "recoveryPromptVisible",
     "trial_duration_days",
     "trial_started_at_entry_count",
+    "trialStartedAtEntryCount",
+    "acknowledgedAt",
     "sync_daily_progress",
     "sync_space_state",
     "sync_learning_state",
@@ -961,6 +967,11 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>counted_entry_count, last_experience_ended_by, recovery_prompt_visible, trial_duration_days, and trial_started_at_entry_count are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_camel_runtime_bookkeeping_metadata_html = Path(tmp_dir) / "camel-runtime-bookkeeping-metadata-visible-leak.html"
+    fixture_camel_runtime_bookkeeping_metadata_html.write_text(
+        "<!doctype html><html><body><p>authToken, acknowledgedAt, lastModifiedAt, countedEntryCount, recoveryPromptVisible, and trialStartedAtEntryCount are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_mutation_queue_metadata_html = Path(tmp_dir) / "mutation-queue-metadata-visible-leak.html"
     fixture_mutation_queue_metadata_html.write_text(
         "<!doctype html><html><body><p>sync_daily_progress, sync_space_state, sync_learning_state, start_membership_trial, refresh_membership, __softbook_mutation_queue, and retryCount are visible.</p></body></html>\n",
@@ -1065,6 +1076,7 @@ with tempfile.TemporaryDirectory(
         "interaction-state-metadata-visible-leak.html",
         "sync-payload-metadata-visible-leak.html",
         "membership-payload-metadata-visible-leak.html",
+        "camel-runtime-bookkeeping-metadata-visible-leak.html",
         "mutation-queue-metadata-visible-leak.html",
         "runtime-config-metadata-visible-leak.html",
         "visible-process-leak.svg",
