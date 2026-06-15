@@ -191,6 +191,13 @@ for snippet in [
     "TCB_ENV",
     "SCF_NAMESPACE",
     "CLOUDBASE_COLLECTIONS",
+    "getDefaultApi",
+    "createSoftbookApi",
+    "handleCloudBaseEvent",
+    "handleHttpRequest",
+    "handleRequestCode",
+    "handleVerifyCode",
+    "handleLearningCardSource",
     "sendJson",
     "createAuthToken",
     "verifyAuthToken",
@@ -852,6 +859,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendRouteHelperMetadataTextLeak.tsx").write_text(
+        "export function BackendRouteHelperMetadataTextLeak() {\n"
+        "  return <Text>getDefaultApi createSoftbookApi handleCloudBaseEvent</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendRouteHelperMetadataPropLeak.tsx").write_text(
+        "export function BackendRouteHelperMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"handleHttpRequest handleRequestCode\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendRouteHelperMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendRouteHelperMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"handleVerifyCode handleLearningCardSource\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendHttpHelperMetadataTextLeak.tsx").write_text(
         "export function BackendHttpHelperMetadataTextLeak() {\n"
         "  return <Text>sendJson httpError</Text>;\n"
@@ -1400,6 +1425,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendRuntimeLocalMetadataTextLeak.tsx",
         "src/learning/BackendRuntimeLocalMetadataPropLeak.tsx",
         "src/learning/BackendRuntimeLocalMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendRouteHelperMetadataTextLeak.tsx",
+        "src/learning/BackendRouteHelperMetadataPropLeak.tsx",
+        "src/learning/BackendRouteHelperMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendHttpHelperMetadataTextLeak.tsx",
         "src/learning/BackendHttpHelperMetadataPropLeak.tsx",
         "src/learning/BackendHttpHelperMetadataStaticRenderedPropLeak.tsx",
@@ -1597,6 +1625,13 @@ for snippet in [
     "MAESTRO_FLOW",
     "MAESTRO_PHONE",
     "MAESTRO_CODE",
+    "getDefaultApi",
+    "createSoftbookApi",
+    "handleCloudBaseEvent",
+    "handleHttpRequest",
+    "handleRequestCode",
+    "handleVerifyCode",
+    "handleLearningCardSource",
     "sendJson",
     "createAuthToken",
     "verifyAuthToken",
@@ -1900,6 +1935,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>DEFAULT_ENV_ID, COLLECTION_NAME, DEFAULT_TRACKS, ENV_ID, FUNCTION_NAME, HTTP_PATH, DEFAULT_OUTPUT, and DEFAULT_FLOW_DIR are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_route_helper_metadata_html = (
+        Path(tmp_dir) / "backend-route-helper-metadata-visible-leak.html"
+    )
+    fixture_backend_route_helper_metadata_html.write_text(
+        "<!doctype html><html><body><p>getDefaultApi, createSoftbookApi, handleCloudBaseEvent, handleHttpRequest, handleRequestCode, handleVerifyCode, and handleLearningCardSource are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_http_helper_metadata_html = (
         Path(tmp_dir) / "backend-http-helper-metadata-visible-leak.html"
     )
@@ -2117,6 +2159,7 @@ with tempfile.TemporaryDirectory(
         "ios-maestro-env-metadata-visible-leak.html",
         "ios-smoke-local-env-metadata-visible-leak.html",
         "cloudbase-script-local-metadata-visible-leak.html",
+        "backend-route-helper-metadata-visible-leak.html",
         "backend-http-helper-metadata-visible-leak.html",
         "backend-validator-helper-metadata-visible-leak.html",
         "backend-request-validation-helper-metadata-visible-leak.html",
