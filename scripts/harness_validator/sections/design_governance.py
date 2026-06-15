@@ -873,6 +873,12 @@ for snippet in [
     "SOFTBOOK_CET_REMOTE_BASE_URL",
     "SOFTBOOK_CET_REMOTE_API_KEY",
     "SOFTBOOK_CET_LEARNING_TRACK",
+    "featureModes",
+    "learningTrack",
+    "learningSource",
+    "progressSync",
+    "spaceState",
+    "learningState",
     "flipConfidence",
     "selectedOptionId",
     "lockSelections",
@@ -1016,6 +1022,11 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>apiKey, apiKeyHeader, baseUrl, remoteConfig, requestCodeEndpoint, verifyCodeEndpoint, dismissRecoveryEndpoint, entitlementEndpoint, purchaseEndpoint, startTrialEndpoint, trackQueryParam, __SOFTBOOK_CET_REMOTE_RUNTIME_PROFILE__, SOFTBOOK_CET_REMOTE_BASE_URL, SOFTBOOK_CET_REMOTE_API_KEY, and SOFTBOOK_CET_LEARNING_TRACK are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_runtime_profile_metadata_html = Path(tmp_dir) / "runtime-profile-metadata-visible-leak.html"
+    fixture_runtime_profile_metadata_html.write_text(
+        "<!doctype html><html><body><p>featureModes, learningTrack, learningSource, progressSync, spaceState, and learningState are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -1114,6 +1125,7 @@ with tempfile.TemporaryDirectory(
         "camel-runtime-bookkeeping-metadata-visible-leak.html",
         "mutation-queue-metadata-visible-leak.html",
         "runtime-config-metadata-visible-leak.html",
+        "runtime-profile-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
