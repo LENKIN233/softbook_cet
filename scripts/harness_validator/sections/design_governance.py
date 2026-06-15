@@ -251,6 +251,9 @@ for snippet in [
     "setCloudBaseDocument",
     "isCloudBaseDocumentMissingError",
     "createCloudBaseDocumentId",
+    "getCardRecordsForTrack",
+    "CET4_CARD_RECORDS",
+    "CET6_CARD_RECORDS",
     "createDefaultCardSource",
     "cloneCardSource",
     "serializeCardSourceResponse",
@@ -1024,6 +1027,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendCardRecordSourceMetadataTextLeak.tsx").write_text(
+        "export function BackendCardRecordSourceMetadataTextLeak() {\n"
+        "  return <Text>getCardRecordsForTrack CET4_CARD_RECORDS</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendCardRecordSourceMetadataPropLeak.tsx").write_text(
+        "export function BackendCardRecordSourceMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"CET6_CARD_RECORDS\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendCardRecordSourceMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendCardRecordSourceMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"getCardRecordsForTrack CET4_CARD_RECORDS CET6_CARD_RECORDS\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendCardSourceHelperMetadataTextLeak.tsx").write_text(
         "export function BackendCardSourceHelperMetadataTextLeak() {\n"
         "  return <Text>createDefaultCardSource cloneCardSource serializeCardSourceResponse validateCardSourceForImport</Text>;\n"
@@ -1473,6 +1494,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendMembershipHelperMetadataTextLeak.tsx",
         "src/learning/BackendMembershipHelperMetadataPropLeak.tsx",
         "src/learning/BackendMembershipHelperMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendCardRecordSourceMetadataTextLeak.tsx",
+        "src/learning/BackendCardRecordSourceMetadataPropLeak.tsx",
+        "src/learning/BackendCardRecordSourceMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendCardSourceHelperMetadataTextLeak.tsx",
         "src/learning/BackendCardSourceHelperMetadataPropLeak.tsx",
         "src/learning/BackendCardSourceHelperMetadataStaticRenderedPropLeak.tsx",
@@ -1709,6 +1733,9 @@ for snippet in [
     "setCloudBaseDocument",
     "isCloudBaseDocumentMissingError",
     "createCloudBaseDocumentId",
+    "getCardRecordsForTrack",
+    "CET4_CARD_RECORDS",
+    "CET6_CARD_RECORDS",
     "createDefaultCardSource",
     "cloneCardSource",
     "serializeCardSourceResponse",
@@ -2025,6 +2052,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>createInitialMembership, cloneMembership, and serializeMembershipEntitlement are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_card_record_source_metadata_html = (
+        Path(tmp_dir) / "backend-card-record-source-metadata-visible-leak.html"
+    )
+    fixture_backend_card_record_source_metadata_html.write_text(
+        "<!doctype html><html><body><p>getCardRecordsForTrack, CET4_CARD_RECORDS, and CET6_CARD_RECORDS are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_card_source_helper_metadata_html = (
         Path(tmp_dir) / "backend-card-source-helper-metadata-visible-leak.html"
     )
@@ -2202,6 +2236,7 @@ with tempfile.TemporaryDirectory(
         "backend-event-adapter-metadata-visible-leak.html",
         "backend-store-helper-metadata-visible-leak.html",
         "backend-membership-helper-metadata-visible-leak.html",
+        "backend-card-record-source-metadata-visible-leak.html",
         "backend-card-source-helper-metadata-visible-leak.html",
         "smoke-runtime-local-metadata-visible-leak.html",
         "smoke-runtime-output-metadata-visible-leak.html",
