@@ -233,6 +233,19 @@ for snippet in [
     "setCloudBaseDocument",
     "isCloudBaseDocumentMissingError",
     "createCloudBaseDocumentId",
+    "createDefaultCardSource",
+    "cloneCardSource",
+    "serializeCardSourceResponse",
+    "validateCardSourceForImport",
+    "normalizeCardSource",
+    "normalizeCardRecord",
+    "requireCardSourceObject",
+    "requireCardSourceArray",
+    "requireCardSourceString",
+    "requireCardSourcePattern",
+    "requireCardSourceTrack",
+    "cardSourceError",
+    "cloneJson",
     "DEFAULT_SMS_CODE",
     "DEFAULT_TRIAL_DURATION_DAYS",
     "DEFAULT_TOKEN_TTL_SECONDS",
@@ -939,6 +952,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendCardSourceHelperMetadataTextLeak.tsx").write_text(
+        "export function BackendCardSourceHelperMetadataTextLeak() {\n"
+        "  return <Text>createDefaultCardSource cloneCardSource serializeCardSourceResponse validateCardSourceForImport</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendCardSourceHelperMetadataPropLeak.tsx").write_text(
+        "export function BackendCardSourceHelperMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"normalizeCardSource normalizeCardRecord requireCardSourceObject requireCardSourceArray requireCardSourceString\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendCardSourceHelperMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendCardSourceHelperMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"requireCardSourcePattern requireCardSourceTrack cardSourceError cloneJson\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CloudbaseScriptLocalMetadataTextLeak.tsx").write_text(
         "export function CloudbaseScriptLocalMetadataTextLeak() {\n"
         "  return <Text>DEFAULT_ENV_ID COLLECTION_NAME DEFAULT_TRACKS</Text>;\n"
@@ -1361,6 +1392,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendStoreHelperMetadataTextLeak.tsx",
         "src/learning/BackendStoreHelperMetadataPropLeak.tsx",
         "src/learning/BackendStoreHelperMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendCardSourceHelperMetadataTextLeak.tsx",
+        "src/learning/BackendCardSourceHelperMetadataPropLeak.tsx",
+        "src/learning/BackendCardSourceHelperMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CloudbaseScriptLocalMetadataTextLeak.tsx",
         "src/learning/CloudbaseScriptLocalMetadataPropLeak.tsx",
         "src/learning/CloudbaseScriptLocalMetadataStaticRenderedPropLeak.tsx",
@@ -1576,6 +1610,19 @@ for snippet in [
     "setCloudBaseDocument",
     "isCloudBaseDocumentMissingError",
     "createCloudBaseDocumentId",
+    "createDefaultCardSource",
+    "cloneCardSource",
+    "serializeCardSourceResponse",
+    "validateCardSourceForImport",
+    "normalizeCardSource",
+    "normalizeCardRecord",
+    "requireCardSourceObject",
+    "requireCardSourceArray",
+    "requireCardSourceString",
+    "requireCardSourcePattern",
+    "requireCardSourceTrack",
+    "cardSourceError",
+    "cloneJson",
     "DEFAULT_ENV_ID",
     "COLLECTION_NAME",
     "DEFAULT_TRACKS",
@@ -1858,6 +1905,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>createDefaultStore, createMemoryStore, createCloudBaseStore, createCloudBaseDatabase, getCloudBaseMembership, saveCloudBaseMembership, deserializeMembershipDocument, getCloudBaseDocument, setCloudBaseDocument, isCloudBaseDocumentMissingError, and createCloudBaseDocumentId are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_card_source_helper_metadata_html = (
+        Path(tmp_dir) / "backend-card-source-helper-metadata-visible-leak.html"
+    )
+    fixture_backend_card_source_helper_metadata_html.write_text(
+        "<!doctype html><html><body><p>createDefaultCardSource, cloneCardSource, serializeCardSourceResponse, validateCardSourceForImport, normalizeCardSource, normalizeCardRecord, requireCardSourceObject, requireCardSourceArray, requireCardSourceString, requireCardSourcePattern, requireCardSourceTrack, cardSourceError, and cloneJson are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_smoke_runtime_local_metadata_html = (
         Path(tmp_dir) / "smoke-runtime-local-metadata-visible-leak.html"
     )
@@ -2025,6 +2079,7 @@ with tempfile.TemporaryDirectory(
         "backend-sync-snapshot-metadata-visible-leak.html",
         "backend-event-adapter-metadata-visible-leak.html",
         "backend-store-helper-metadata-visible-leak.html",
+        "backend-card-source-helper-metadata-visible-leak.html",
         "smoke-runtime-local-metadata-visible-leak.html",
         "smoke-runtime-output-metadata-visible-leak.html",
         "smoke-card-shape-metadata-visible-leak.html",
