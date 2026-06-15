@@ -182,6 +182,19 @@ for snippet in [
     "MAESTRO_FLOW",
     "MAESTRO_PHONE",
     "MAESTRO_CODE",
+    "SOFTBOOK_API_KEY",
+    "SOFTBOOK_SMS_DEV_CODE",
+    "SOFTBOOK_AUTH_TOKEN_SECRET",
+    "SOFTBOOK_AUTH_TOKEN_TTL_SECONDS",
+    "SOFTBOOK_STORE_MODE",
+    "CLOUDBASE_ENV_ID",
+    "TCB_ENV",
+    "SCF_NAMESPACE",
+    "CLOUDBASE_COLLECTIONS",
+    "DEFAULT_SMS_CODE",
+    "DEFAULT_TRIAL_DURATION_DAYS",
+    "DEFAULT_TOKEN_TTL_SECONDS",
+    "DEFAULT_CARD_SOURCE",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -706,6 +719,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendRuntimeLocalMetadataTextLeak.tsx").write_text(
+        "export function BackendRuntimeLocalMetadataTextLeak() {\n"
+        "  return <Text>SOFTBOOK_API_KEY SOFTBOOK_SMS_DEV_CODE SOFTBOOK_AUTH_TOKEN_SECRET SOFTBOOK_STORE_MODE</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendRuntimeLocalMetadataPropLeak.tsx").write_text(
+        "export function BackendRuntimeLocalMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"CLOUDBASE_ENV_ID TCB_ENV SCF_NAMESPACE DEFAULT_SMS_CODE DEFAULT_TRIAL_DURATION_DAYS DEFAULT_CARD_SOURCE\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendRuntimeLocalMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendRuntimeLocalMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"SOFTBOOK_AUTH_TOKEN_TTL_SECONDS CLOUDBASE_COLLECTIONS DEFAULT_TOKEN_TTL_SECONDS\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -945,6 +976,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/IosSmokeLocalEnvMetadataTextLeak.tsx",
         "src/learning/IosSmokeLocalEnvMetadataPropLeak.tsx",
         "src/learning/IosSmokeLocalEnvMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendRuntimeLocalMetadataTextLeak.tsx",
+        "src/learning/BackendRuntimeLocalMetadataPropLeak.tsx",
+        "src/learning/BackendRuntimeLocalMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
