@@ -99,6 +99,8 @@ for snippet in [
     "completedAt",
     "usedHint",
     "usedPeek",
+    "card_records",
+    "cardRecords",
     "auth_token",
     "authToken",
     "sms_code",
@@ -952,6 +954,11 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>catalogCards, completedAt, usedHint, and usedPeek are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_card_source_records_metadata_html = Path(tmp_dir) / "card-source-records-metadata-visible-leak.html"
+    fixture_card_source_records_metadata_html.write_text(
+        "<!doctype html><html><body><p>card_records and cardRecords are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_interaction_state_metadata_html = Path(tmp_dir) / "interaction-state-metadata-visible-leak.html"
     fixture_interaction_state_metadata_html.write_text(
         "<!doctype html><html><body><p>flipConfidence, selectedOptionId, lockSelections, eliminatedItemIds, and swipeSelection are visible.</p></body></html>\n",
@@ -1073,6 +1080,7 @@ with tempfile.TemporaryDirectory(
         "auto-scoring-metadata-visible-leak.html",
         "box-catalog-metadata-visible-leak.html",
         "result-session-metadata-visible-leak.html",
+        "card-source-records-metadata-visible-leak.html",
         "interaction-state-metadata-visible-leak.html",
         "sync-payload-metadata-visible-leak.html",
         "membership-payload-metadata-visible-leak.html",
