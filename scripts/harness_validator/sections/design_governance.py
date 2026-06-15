@@ -233,6 +233,9 @@ for snippet in [
     "normalizeBaseUrl",
     "todayKey",
     "createIsolatedPhoneNumber",
+    "firstCard",
+    "returnedTrack",
+    "itemIds",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -883,6 +886,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/SmokeCardLocalMetadataTextLeak.tsx").write_text(
+        "export function SmokeCardLocalMetadataTextLeak() {\n"
+        "  return <Text>returnedTrack itemIds</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeCardLocalMetadataPropLeak.tsx").write_text(
+        "export function SmokeCardLocalMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"firstCard itemIds\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeCardLocalMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function SmokeCardLocalMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"firstCard returnedTrack\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -1143,6 +1164,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/SmokeAssertionHelperMetadataTextLeak.tsx",
         "src/learning/SmokeAssertionHelperMetadataPropLeak.tsx",
         "src/learning/SmokeAssertionHelperMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/SmokeCardLocalMetadataTextLeak.tsx",
+        "src/learning/SmokeCardLocalMetadataPropLeak.tsx",
+        "src/learning/SmokeCardLocalMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
@@ -1329,6 +1353,9 @@ for snippet in [
     "normalizeBaseUrl",
     "todayKey",
     "createIsolatedPhoneNumber",
+    "firstCard",
+    "returnedTrack",
+    "itemIds",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -1550,6 +1577,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>assertOk, assertObject, assertString, assertNonNegativeInteger, assertPositiveInteger, normalizeBaseUrl, todayKey, and createIsolatedPhoneNumber are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_smoke_card_local_metadata_html = (
+        Path(tmp_dir) / "smoke-card-local-metadata-visible-leak.html"
+    )
+    fixture_smoke_card_local_metadata_html.write_text(
+        "<!doctype html><html><body><p>firstCard, returnedTrack, and itemIds are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -1660,6 +1694,7 @@ with tempfile.TemporaryDirectory(
         "smoke-card-shape-metadata-visible-leak.html",
         "smoke-endpoint-helper-metadata-visible-leak.html",
         "smoke-assertion-helper-metadata-visible-leak.html",
+        "smoke-card-local-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
