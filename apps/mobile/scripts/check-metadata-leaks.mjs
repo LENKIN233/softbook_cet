@@ -16,7 +16,7 @@ const visibleCopySourceFiles = [
 ];
 
 const rawMetadataFieldNames =
-  'track|libraryName|groupName|boxName|box_ref|boxRef|template_box_prefix|templateBoxPrefix|box_id|boxId|track_availability|trackAvailability|resolved_box_prefixes|resolvedBoxPrefixes|card_template|cardTemplate|card_counts|cardCounts|template_track_placeholder|templateTrackPlaceholder|knowledge_ref|knowledgeRef|interaction_id|interactionId|auto_scoring|autoScoring|answer_key|answerKey|correct_option|correctOption|lock_pattern|lockPattern|correct_items|correctItems|correct_state|correctState|card_id|cardId|sourceLabel|sourceId|source_label|source_id|catalogCards|completedAt|usedHint|usedPeek|flipConfidence|selectedOptionId|lockSelections|eliminatedItemIds|swipeSelection|auth_token|authToken|sms_code|phone_number|day_key|completed_at|used_hint|used_peek|is_favorited|is_sleeping|last_modified_at|lastModifiedAt|checked_in_today|favorite_count|learning_completed_count|pending_review_count|review_completed_count|sleeping_count|total_completed_count|counted_entry_count|countedEntryCount|last_experience_ended_by|recovery_prompt_visible|recoveryPromptVisible|trial_duration_days|trial_started_at_entry_count|trialStartedAtEntryCount|acknowledgedAt|sync_daily_progress|sync_space_state|sync_learning_state|start_membership_trial|refresh_membership|__softbook_mutation_queue|retryCount|apiKey|apiKeyHeader|baseUrl|remoteConfig|requestCodeEndpoint|verifyCodeEndpoint|dismissRecoveryEndpoint|entitlementEndpoint|purchaseEndpoint|startTrialEndpoint|trackQueryParam|__SOFTBOOK_CET_REMOTE_RUNTIME_PROFILE__|SOFTBOOK_CET_REMOTE_BASE_URL|SOFTBOOK_CET_REMOTE_API_KEY|SOFTBOOK_CET_LEARNING_TRACK|featureModes|learningTrack|learningSource|progressSync|spaceState|learningState|cardRecords|card_records';
+  'track|libraryName|groupName|boxName|box_ref|boxRef|template_box_prefix|templateBoxPrefix|box_id|boxId|track_availability|trackAvailability|resolved_box_prefixes|resolvedBoxPrefixes|card_template|cardTemplate|card_counts|cardCounts|template_track_placeholder|templateTrackPlaceholder|knowledge_ref|knowledgeRef|interaction_id|interactionId|auto_scoring|autoScoring|answer_key|answerKey|correct_option|correctOption|lock_pattern|lockPattern|correct_items|correctItems|correct_state|correctState|card_id|cardId|sourceLabel|sourceId|source_label|source_id|catalogCards|completedAt|usedHint|usedPeek|flipConfidence|selectedOptionId|lockSelections|eliminatedItemIds|swipeSelection|auth_token|authToken|sms_code|phone_number|day_key|completed_at|used_hint|used_peek|is_favorited|is_sleeping|last_modified_at|lastModifiedAt|checked_in_today|favorite_count|learning_completed_count|pending_review_count|review_completed_count|sleeping_count|total_completed_count|counted_entry_count|countedEntryCount|last_experience_ended_by|recovery_prompt_visible|recoveryPromptVisible|trial_duration_days|trial_started_at_entry_count|trialStartedAtEntryCount|acknowledgedAt|sync_daily_progress|sync_space_state|sync_learning_state|start_membership_trial|refresh_membership|__softbook_mutation_queue|retryCount|apiKey|apiKeyHeader|baseUrl|remoteConfig|requestCodeEndpoint|verifyCodeEndpoint|dismissRecoveryEndpoint|entitlementEndpoint|purchaseEndpoint|startTrialEndpoint|trackQueryParam|__SOFTBOOK_CET_REMOTE_RUNTIME_PROFILE__|SOFTBOOK_CET_REMOTE_BASE_URL|SOFTBOOK_CET_REMOTE_API_KEY|SOFTBOOK_CET_LEARNING_TRACK|SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES|featureModes|learningTrack|learningSource|progressSync|spaceState|learningState|cardRecords|card_records';
 
 const rawSpaceMetadataFieldNames = 'library|group|box|box_ref|boxRef';
 const propertyAccessPattern = String.raw`(?:\.|\?\.)`;
@@ -86,6 +86,10 @@ const renderedMetadataPropPattern = new RegExp(
   `(?:${renderedMetadataPropNames.join('|')})\\s*=\\s*\\{(?:\`[^\`]*\\$\\{[^\`]*(?:${rawMetadataExpressionPattern.source})[^\`]*\\}[^\`]*\`|[^}\`\\n]*(?:${rawMetadataExpressionPattern.source})[^}\`\\n]*)\\}`,
 );
 
+const renderedMetadataStringPropPattern = new RegExp(
+  `(?:${renderedMetadataPropNames.join('|')})\\s*=\\s*["'][^"'\\n]*(?:${rawMetadataExpressionPattern.source})[^"'\\n]*["']`,
+);
+
 const renderedMetadataPropOpenPattern = new RegExp(
   `\\b(?:${renderedMetadataPropNames.join('|')})\\s*=\\s*(?:\\{|\\(|$)`,
 );
@@ -122,6 +126,11 @@ const directDisplayMetadataPatterns = [
     pattern: renderedMetadataPropPattern,
     transform: stripAllowedMetadataDisplayLookups,
     reason: 'raw metadata embedded in rendered element props',
+  },
+  {
+    pattern: renderedMetadataStringPropPattern,
+    transform: stripAllowedMetadataDisplayLookups,
+    reason: 'raw metadata embedded in static rendered element props',
   },
   {
     pattern: /(?:\bCET[46]\b|学习馆|知识组|训练轨道|原盒位)/,
@@ -236,9 +245,11 @@ function checkDirectDisplayMetadata(filePath) {
 
   for (let index = 0; index < lines.length; index += 1) {
     const text = lines[index].trim();
+    const opensInternalErrorExpression = /\bnew Error\(/.test(text);
     const isInternalGuardLine =
       inInternalGuardDeclaration ||
       inInternalErrorExpression ||
+      opensInternalErrorExpression ||
       internalGuardLinePattern.test(text);
 
     if (/const INTERNAL_ERROR_COPY_PATTERN\b/.test(text)) {
@@ -246,11 +257,15 @@ function checkDirectDisplayMetadata(filePath) {
       continue;
     }
 
-    if (/\bnew Error\(/.test(text)) {
+    if (opensInternalErrorExpression) {
       inInternalErrorExpression = true;
     }
 
-    if (pendingVisibleCopyProp && hasRawMetadataExpression(text)) {
+    if (
+      pendingVisibleCopyProp &&
+      !isInternalGuardLine &&
+      hasRawMetadataExpression(text)
+    ) {
       findings.push({
         filePath,
         line: index + 1,
@@ -260,7 +275,11 @@ function checkDirectDisplayMetadata(filePath) {
       pendingVisibleCopyProp = null;
     }
 
-    if (pendingRenderedMetadataProp && hasRawMetadataExpression(text)) {
+    if (
+      pendingRenderedMetadataProp &&
+      !isInternalGuardLine &&
+      hasRawMetadataExpression(text)
+    ) {
       findings.push({
         filePath,
         line: index + 1,
@@ -270,7 +289,11 @@ function checkDirectDisplayMetadata(filePath) {
       pendingRenderedMetadataProp = null;
     }
 
-    if (visiblePropPattern.test(text) && hasRawMetadataExpression(text)) {
+    if (
+      !isInternalGuardLine &&
+      visiblePropPattern.test(text) &&
+      hasRawMetadataExpression(text)
+    ) {
       findings.push({
         filePath,
         line: index + 1,
@@ -280,6 +303,7 @@ function checkDirectDisplayMetadata(filePath) {
     }
 
     if (
+      !isInternalGuardLine &&
       ((visiblePropOpenPattern.test(text) &&
         hasUnclosedJsxPropExpression(text)) ||
         (visiblePropTemplateOpenPattern.test(text) &&
@@ -298,6 +322,7 @@ function checkDirectDisplayMetadata(filePath) {
     }
 
     if (
+      !isInternalGuardLine &&
       renderedMetadataPropOpenPattern.test(text) &&
       hasUnclosedJsxPropExpression(text) &&
       !hasRawMetadataExpression(text)
@@ -317,7 +342,7 @@ function checkDirectDisplayMetadata(filePath) {
       pattern.test(transform ? transform(text) : text),
     );
 
-    if (rule) {
+    if (rule && !isInternalGuardLine) {
       findings.push({
         filePath,
         line: index + 1,

@@ -151,6 +151,7 @@ for snippet in [
     "SOFTBOOK_CET_REMOTE_BASE_URL",
     "SOFTBOOK_CET_REMOTE_API_KEY",
     "SOFTBOOK_CET_LEARNING_TRACK",
+    "SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -543,6 +544,30 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/LocalRuntimeFeaturesMetadataTextLeak.tsx").write_text(
+        "export function LocalRuntimeFeaturesMetadataTextLeak() {\n"
+        "  return <Text>SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/LocalRuntimeFeaturesMetadataPropLeak.tsx").write_text(
+        "export function LocalRuntimeFeaturesMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/LocalRuntimeFeaturesMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function LocalRuntimeFeaturesMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/LocalRuntimeFeaturesInternalErrorNoLeak.ts").write_text(
+        "export function parseLocalRuntimeFeature(feature) {\n"
+        "  throw new Error(`Unknown SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES value: ${feature}.`);\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -761,6 +786,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/RuntimeProfileMetadataTextLeak.tsx",
         "src/learning/RuntimeProfileMetadataPropLeak.tsx",
         "src/learning/RuntimeProfileMetadataRenderedPropLeak.tsx",
+        "src/learning/LocalRuntimeFeaturesMetadataTextLeak.tsx",
+        "src/learning/LocalRuntimeFeaturesMetadataPropLeak.tsx",
+        "src/learning/LocalRuntimeFeaturesMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
@@ -788,6 +816,7 @@ with tempfile.TemporaryDirectory(
         "raw metadata leaked in Text display node",
         "raw metadata embedded in rendered element props",
         "raw metadata passed through visible or accessibility copy prop",
+        "raw metadata embedded in static rendered element props",
         "raw metadata passed through multiline visible or accessibility copy prop",
         "raw metadata passed through multiline rendered element prop",
         "raw metadata leaked through visible copy source",
@@ -810,6 +839,10 @@ with tempfile.TemporaryDirectory(
                 "mobile metadata scanner must allow interaction id display label lookup: "
                 + unexpected_snippet
             )
+    if "src/learning/LocalRuntimeFeaturesInternalErrorNoLeak.ts" in metadata_scanner_output:
+        errors.append(
+            "mobile metadata scanner must not treat internal local runtime feature errors as visible copy"
+        )
 
 design_metadata_scanner_text = (ROOT / "scripts/check_design_metadata_leaks.mjs").read_text(encoding="utf-8")
 for snippet in [
