@@ -213,6 +213,15 @@ for snippet in [
     "parseLearningStateSnapshot",
     "parseSpaceStateSnapshot",
     "acknowledgedResponse",
+    "parseCloudBaseEvent",
+    "parseEventBody",
+    "normalizeApiPath",
+    "normalizeHeaders",
+    "normalizeQuery",
+    "parseQueryString",
+    "toCloudBaseResponse",
+    "jsonResponse",
+    "errorResponse",
     "DEFAULT_SMS_CODE",
     "DEFAULT_TRIAL_DURATION_DAYS",
     "DEFAULT_TOKEN_TTL_SECONDS",
@@ -883,6 +892,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendEventAdapterMetadataTextLeak.tsx").write_text(
+        "export function BackendEventAdapterMetadataTextLeak() {\n"
+        "  return <Text>parseCloudBaseEvent parseEventBody normalizeApiPath</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendEventAdapterMetadataPropLeak.tsx").write_text(
+        "export function BackendEventAdapterMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"normalizeHeaders normalizeQuery parseQueryString\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendEventAdapterMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendEventAdapterMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"toCloudBaseResponse jsonResponse errorResponse\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CloudbaseScriptLocalMetadataTextLeak.tsx").write_text(
         "export function CloudbaseScriptLocalMetadataTextLeak() {\n"
         "  return <Text>DEFAULT_ENV_ID COLLECTION_NAME DEFAULT_TRACKS</Text>;\n"
@@ -1299,6 +1326,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendSyncSnapshotMetadataTextLeak.tsx",
         "src/learning/BackendSyncSnapshotMetadataPropLeak.tsx",
         "src/learning/BackendSyncSnapshotMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendEventAdapterMetadataTextLeak.tsx",
+        "src/learning/BackendEventAdapterMetadataPropLeak.tsx",
+        "src/learning/BackendEventAdapterMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CloudbaseScriptLocalMetadataTextLeak.tsx",
         "src/learning/CloudbaseScriptLocalMetadataPropLeak.tsx",
         "src/learning/CloudbaseScriptLocalMetadataStaticRenderedPropLeak.tsx",
@@ -1494,6 +1524,15 @@ for snippet in [
     "parseLearningStateSnapshot",
     "parseSpaceStateSnapshot",
     "acknowledgedResponse",
+    "parseCloudBaseEvent",
+    "parseEventBody",
+    "normalizeApiPath",
+    "normalizeHeaders",
+    "normalizeQuery",
+    "parseQueryString",
+    "toCloudBaseResponse",
+    "jsonResponse",
+    "errorResponse",
     "DEFAULT_ENV_ID",
     "COLLECTION_NAME",
     "DEFAULT_TRACKS",
@@ -1762,6 +1801,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>parseDailyProgressSnapshot, parseLearningStateSnapshot, parseSpaceStateSnapshot, and acknowledgedResponse are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_event_adapter_metadata_html = (
+        Path(tmp_dir) / "backend-event-adapter-metadata-visible-leak.html"
+    )
+    fixture_backend_event_adapter_metadata_html.write_text(
+        "<!doctype html><html><body><p>parseCloudBaseEvent, parseEventBody, normalizeApiPath, normalizeHeaders, normalizeQuery, parseQueryString, toCloudBaseResponse, jsonResponse, and errorResponse are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_smoke_runtime_local_metadata_html = (
         Path(tmp_dir) / "smoke-runtime-local-metadata-visible-leak.html"
     )
@@ -1927,6 +1973,7 @@ with tempfile.TemporaryDirectory(
         "backend-validator-helper-metadata-visible-leak.html",
         "backend-token-helper-metadata-visible-leak.html",
         "backend-sync-snapshot-metadata-visible-leak.html",
+        "backend-event-adapter-metadata-visible-leak.html",
         "smoke-runtime-local-metadata-visible-leak.html",
         "smoke-runtime-output-metadata-visible-leak.html",
         "smoke-card-shape-metadata-visible-leak.html",
