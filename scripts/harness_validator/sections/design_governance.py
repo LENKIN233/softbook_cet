@@ -202,6 +202,13 @@ for snippet in [
     "requirePhoneNumber",
     "requireBoolean",
     "requireIsoTimestamp",
+    "resolveTokenTtlSeconds",
+    "isApiKeyAllowed",
+    "assertBodyPhoneMatchesSession",
+    "signTokenPayload",
+    "base64UrlEncode",
+    "base64UrlDecode",
+    "safeEqual",
     "DEFAULT_SMS_CODE",
     "DEFAULT_TRIAL_DURATION_DAYS",
     "DEFAULT_TOKEN_TTL_SECONDS",
@@ -836,6 +843,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendTokenHelperMetadataTextLeak.tsx").write_text(
+        "export function BackendTokenHelperMetadataTextLeak() {\n"
+        "  return <Text>resolveTokenTtlSeconds isApiKeyAllowed safeEqual</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendTokenHelperMetadataPropLeak.tsx").write_text(
+        "export function BackendTokenHelperMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"assertBodyPhoneMatchesSession base64UrlDecode\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendTokenHelperMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendTokenHelperMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"signTokenPayload base64UrlEncode\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CloudbaseScriptLocalMetadataTextLeak.tsx").write_text(
         "export function CloudbaseScriptLocalMetadataTextLeak() {\n"
         "  return <Text>DEFAULT_ENV_ID COLLECTION_NAME DEFAULT_TRACKS</Text>;\n"
@@ -1246,6 +1271,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendValidatorHelperMetadataTextLeak.tsx",
         "src/learning/BackendValidatorHelperMetadataPropLeak.tsx",
         "src/learning/BackendValidatorHelperMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendTokenHelperMetadataTextLeak.tsx",
+        "src/learning/BackendTokenHelperMetadataPropLeak.tsx",
+        "src/learning/BackendTokenHelperMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CloudbaseScriptLocalMetadataTextLeak.tsx",
         "src/learning/CloudbaseScriptLocalMetadataPropLeak.tsx",
         "src/learning/CloudbaseScriptLocalMetadataStaticRenderedPropLeak.tsx",
@@ -1430,6 +1458,13 @@ for snippet in [
     "requirePhoneNumber",
     "requireBoolean",
     "requireIsoTimestamp",
+    "resolveTokenTtlSeconds",
+    "isApiKeyAllowed",
+    "assertBodyPhoneMatchesSession",
+    "signTokenPayload",
+    "base64UrlEncode",
+    "base64UrlDecode",
+    "safeEqual",
     "DEFAULT_ENV_ID",
     "COLLECTION_NAME",
     "DEFAULT_TRACKS",
@@ -1684,6 +1719,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>requireObjectBody, requireObject, requireArray, requirePhoneNumber, requireBoolean, and requireIsoTimestamp are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_token_helper_metadata_html = (
+        Path(tmp_dir) / "backend-token-helper-metadata-visible-leak.html"
+    )
+    fixture_backend_token_helper_metadata_html.write_text(
+        "<!doctype html><html><body><p>resolveTokenTtlSeconds, isApiKeyAllowed, assertBodyPhoneMatchesSession, base64UrlEncode, base64UrlDecode, and safeEqual are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_smoke_runtime_local_metadata_html = (
         Path(tmp_dir) / "smoke-runtime-local-metadata-visible-leak.html"
     )
@@ -1847,6 +1889,7 @@ with tempfile.TemporaryDirectory(
         "cloudbase-script-local-metadata-visible-leak.html",
         "backend-http-helper-metadata-visible-leak.html",
         "backend-validator-helper-metadata-visible-leak.html",
+        "backend-token-helper-metadata-visible-leak.html",
         "smoke-runtime-local-metadata-visible-leak.html",
         "smoke-runtime-output-metadata-visible-leak.html",
         "smoke-card-shape-metadata-visible-leak.html",
