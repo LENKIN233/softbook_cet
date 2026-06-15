@@ -1749,6 +1749,11 @@ for snippet in [
     "requireCardSourceTrack",
     "cardSourceError",
     "cloneJson",
+    "CLOUDBASE_COLLECTIONS",
+    "DEFAULT_SMS_CODE",
+    "DEFAULT_TRIAL_DURATION_DAYS",
+    "DEFAULT_TOKEN_TTL_SECONDS",
+    "DEFAULT_CARD_SOURCE",
     "DEFAULT_ENV_ID",
     "COLLECTION_NAME",
     "DEFAULT_TRACKS",
@@ -1989,6 +1994,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>DEFAULT_ENV_ID, COLLECTION_NAME, DEFAULT_TRACKS, ENV_ID, FUNCTION_NAME, HTTP_PATH, DEFAULT_OUTPUT, and DEFAULT_FLOW_DIR are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_default_constant_metadata_html = (
+        Path(tmp_dir) / "backend-default-constant-metadata-visible-leak.html"
+    )
+    fixture_backend_default_constant_metadata_html.write_text(
+        "<!doctype html><html><body><p>DEFAULT_SMS_CODE, DEFAULT_TRIAL_DURATION_DAYS, DEFAULT_TOKEN_TTL_SECONDS, DEFAULT_CARD_SOURCE, and CLOUDBASE_COLLECTIONS are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_route_helper_metadata_html = (
         Path(tmp_dir) / "backend-route-helper-metadata-visible-leak.html"
     )
@@ -2227,6 +2239,7 @@ with tempfile.TemporaryDirectory(
         "ios-maestro-env-metadata-visible-leak.html",
         "ios-smoke-local-env-metadata-visible-leak.html",
         "cloudbase-script-local-metadata-visible-leak.html",
+        "backend-default-constant-metadata-visible-leak.html",
         "backend-route-helper-metadata-visible-leak.html",
         "backend-http-helper-metadata-visible-leak.html",
         "backend-validator-helper-metadata-visible-leak.html",
