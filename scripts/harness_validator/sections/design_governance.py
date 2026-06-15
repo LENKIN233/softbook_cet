@@ -202,6 +202,14 @@ for snippet in [
     "requirePhoneNumber",
     "requireBoolean",
     "requireIsoTimestamp",
+    "requireAuthSession",
+    "requireNonEmptyString",
+    "requireDayKey",
+    "requireNonNegativeInteger",
+    "requireInteractionId",
+    "requireLearningOutcome",
+    "requireEnum",
+    "parseJson",
     "resolveTokenTtlSeconds",
     "isApiKeyAllowed",
     "assertBodyPhoneMatchesSession",
@@ -880,6 +888,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendRequestValidationHelperMetadataTextLeak.tsx").write_text(
+        "export function BackendRequestValidationHelperMetadataTextLeak() {\n"
+        "  return <Text>requireAuthSession requireNonEmptyString requireDayKey</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendRequestValidationHelperMetadataPropLeak.tsx").write_text(
+        "export function BackendRequestValidationHelperMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"requireNonNegativeInteger requireInteractionId requireLearningOutcome\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendRequestValidationHelperMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendRequestValidationHelperMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"requireEnum parseJson\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendTokenHelperMetadataTextLeak.tsx").write_text(
         "export function BackendTokenHelperMetadataTextLeak() {\n"
         "  return <Text>resolveTokenTtlSeconds isApiKeyAllowed safeEqual</Text>;\n"
@@ -1380,6 +1406,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendValidatorHelperMetadataTextLeak.tsx",
         "src/learning/BackendValidatorHelperMetadataPropLeak.tsx",
         "src/learning/BackendValidatorHelperMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendRequestValidationHelperMetadataTextLeak.tsx",
+        "src/learning/BackendRequestValidationHelperMetadataPropLeak.tsx",
+        "src/learning/BackendRequestValidationHelperMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendTokenHelperMetadataTextLeak.tsx",
         "src/learning/BackendTokenHelperMetadataPropLeak.tsx",
         "src/learning/BackendTokenHelperMetadataStaticRenderedPropLeak.tsx",
@@ -1579,6 +1608,14 @@ for snippet in [
     "requirePhoneNumber",
     "requireBoolean",
     "requireIsoTimestamp",
+    "requireAuthSession",
+    "requireNonEmptyString",
+    "requireDayKey",
+    "requireNonNegativeInteger",
+    "requireInteractionId",
+    "requireLearningOutcome",
+    "requireEnum",
+    "parseJson",
     "resolveTokenTtlSeconds",
     "isApiKeyAllowed",
     "assertBodyPhoneMatchesSession",
@@ -1877,6 +1914,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>requireObjectBody, requireObject, requireArray, requirePhoneNumber, requireBoolean, and requireIsoTimestamp are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_request_validation_helper_metadata_html = (
+        Path(tmp_dir) / "backend-request-validation-helper-metadata-visible-leak.html"
+    )
+    fixture_backend_request_validation_helper_metadata_html.write_text(
+        "<!doctype html><html><body><p>requireAuthSession, requireNonEmptyString, requireDayKey, requireNonNegativeInteger, requireInteractionId, requireLearningOutcome, requireEnum, and parseJson are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_token_helper_metadata_html = (
         Path(tmp_dir) / "backend-token-helper-metadata-visible-leak.html"
     )
@@ -2075,6 +2119,7 @@ with tempfile.TemporaryDirectory(
         "cloudbase-script-local-metadata-visible-leak.html",
         "backend-http-helper-metadata-visible-leak.html",
         "backend-validator-helper-metadata-visible-leak.html",
+        "backend-request-validation-helper-metadata-visible-leak.html",
         "backend-token-helper-metadata-visible-leak.html",
         "backend-sync-snapshot-metadata-visible-leak.html",
         "backend-event-adapter-metadata-visible-leak.html",
