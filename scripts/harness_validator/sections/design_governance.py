@@ -215,6 +215,12 @@ for snippet in [
     "returnedPhoneNumber",
     "REQUIRED_CORE_INTERACTIONS",
     "missingInteractions",
+    "validateCardRecord",
+    "assertPattern",
+    "assertTrack",
+    "assertArrayLength",
+    "assertNonEmptyArray",
+    "assertCoreInteractionCoverage",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -811,6 +817,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/SmokeCardShapeMetadataTextLeak.tsx").write_text(
+        "export function SmokeCardShapeMetadataTextLeak() {\n"
+        "  return <Text>validateCardRecord assertPattern assertTrack</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeCardShapeMetadataPropLeak.tsx").write_text(
+        "export function SmokeCardShapeMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"assertCoreInteractionCoverage\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeCardShapeMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function SmokeCardShapeMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"assertArrayLength assertNonEmptyArray\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -1062,6 +1086,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/SmokeRuntimeOutputMetadataTextLeak.tsx",
         "src/learning/SmokeRuntimeOutputMetadataPropLeak.tsx",
         "src/learning/SmokeRuntimeOutputMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/SmokeCardShapeMetadataTextLeak.tsx",
+        "src/learning/SmokeCardShapeMetadataPropLeak.tsx",
+        "src/learning/SmokeCardShapeMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
@@ -1230,6 +1257,12 @@ for snippet in [
     "returnedPhoneNumber",
     "REQUIRED_CORE_INTERACTIONS",
     "missingInteractions",
+    "validateCardRecord",
+    "assertPattern",
+    "assertTrack",
+    "assertArrayLength",
+    "assertNonEmptyArray",
+    "assertCoreInteractionCoverage",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -1430,6 +1463,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>authHeaders, remoteHeaders, returnedPhoneNumber, REQUIRED_CORE_INTERACTIONS, and missingInteractions are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_smoke_card_shape_metadata_html = (
+        Path(tmp_dir) / "smoke-card-shape-metadata-visible-leak.html"
+    )
+    fixture_smoke_card_shape_metadata_html.write_text(
+        "<!doctype html><html><body><p>validateCardRecord, assertPattern, assertTrack, assertArrayLength, assertNonEmptyArray, and assertCoreInteractionCoverage are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -1537,6 +1577,7 @@ with tempfile.TemporaryDirectory(
         "cloudbase-script-local-metadata-visible-leak.html",
         "smoke-runtime-local-metadata-visible-leak.html",
         "smoke-runtime-output-metadata-visible-leak.html",
+        "smoke-card-shape-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
