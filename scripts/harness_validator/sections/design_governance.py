@@ -172,6 +172,16 @@ for snippet in [
     "SOFTBOOK_CET_IOS_MAESTRO_FLOW",
     "SOFTBOOK_CET_MAESTRO_PHONE",
     "SOFTBOOK_CET_MAESTRO_CODE",
+    "IOS_SIMULATOR",
+    "IOS_DEVICE",
+    "IOS_BUNDLE_ID",
+    "METRO_PORT",
+    "STOP_METRO_ON_EXIT",
+    "SMS_CODE",
+    "MANUAL_TEST_PHONE",
+    "MAESTRO_FLOW",
+    "MAESTRO_PHONE",
+    "MAESTRO_CODE",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -678,6 +688,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/IosSmokeLocalEnvMetadataTextLeak.tsx").write_text(
+        "export function IosSmokeLocalEnvMetadataTextLeak() {\n"
+        "  return <Text>IOS_SIMULATOR METRO_PORT SMS_CODE</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/IosSmokeLocalEnvMetadataPropLeak.tsx").write_text(
+        "export function IosSmokeLocalEnvMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"MANUAL_TEST_PHONE MAESTRO_FLOW IOS_DEVICE\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/IosSmokeLocalEnvMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function IosSmokeLocalEnvMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"IOS_BUNDLE_ID STOP_METRO_ON_EXIT MAESTRO_CODE MAESTRO_PHONE\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -914,6 +942,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/IosMaestroEnvMetadataTextLeak.tsx",
         "src/learning/IosMaestroEnvMetadataPropLeak.tsx",
         "src/learning/IosMaestroEnvMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/IosSmokeLocalEnvMetadataTextLeak.tsx",
+        "src/learning/IosSmokeLocalEnvMetadataPropLeak.tsx",
+        "src/learning/IosSmokeLocalEnvMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
@@ -1050,6 +1081,16 @@ for snippet in [
     "SOFTBOOK_CET_IOS_MAESTRO_FLOW",
     "SOFTBOOK_CET_MAESTRO_PHONE",
     "SOFTBOOK_CET_MAESTRO_CODE",
+    "IOS_SIMULATOR",
+    "IOS_DEVICE",
+    "IOS_BUNDLE_ID",
+    "METRO_PORT",
+    "STOP_METRO_ON_EXIT",
+    "SMS_CODE",
+    "MANUAL_TEST_PHONE",
+    "MAESTRO_FLOW",
+    "MAESTRO_PHONE",
+    "MAESTRO_CODE",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -1224,6 +1265,11 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>SOFTBOOK_CET_MANUAL_TEST_PHONE, SOFTBOOK_CET_IOS_MAESTRO_FLOW, SOFTBOOK_CET_MAESTRO_PHONE, and SOFTBOOK_CET_MAESTRO_CODE are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_ios_smoke_local_env_metadata_html = Path(tmp_dir) / "ios-smoke-local-env-metadata-visible-leak.html"
+    fixture_ios_smoke_local_env_metadata_html.write_text(
+        "<!doctype html><html><body><p>IOS_SIMULATOR, IOS_DEVICE, IOS_BUNDLE_ID, METRO_PORT, STOP_METRO_ON_EXIT, SMS_CODE, MANUAL_TEST_PHONE, MAESTRO_FLOW, MAESTRO_PHONE, and MAESTRO_CODE are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -1327,6 +1373,7 @@ with tempfile.TemporaryDirectory(
         "smoke-control-env-metadata-visible-leak.html",
         "ios-launch-env-metadata-visible-leak.html",
         "ios-maestro-env-metadata-visible-leak.html",
+        "ios-smoke-local-env-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
