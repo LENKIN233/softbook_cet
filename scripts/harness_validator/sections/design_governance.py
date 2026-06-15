@@ -225,6 +225,14 @@ for snippet in [
     "loadLearningCardSource",
     "runMembershipMutation",
     "parseEntitlement",
+    "assertOk",
+    "assertObject",
+    "assertString",
+    "assertNonNegativeInteger",
+    "assertPositiveInteger",
+    "normalizeBaseUrl",
+    "todayKey",
+    "createIsolatedPhoneNumber",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -857,6 +865,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/SmokeAssertionHelperMetadataTextLeak.tsx").write_text(
+        "export function SmokeAssertionHelperMetadataTextLeak() {\n"
+        "  return <Text>assertOk assertObject assertString</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeAssertionHelperMetadataPropLeak.tsx").write_text(
+        "export function SmokeAssertionHelperMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"assertNonNegativeInteger assertPositiveInteger\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeAssertionHelperMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function SmokeAssertionHelperMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"normalizeBaseUrl todayKey createIsolatedPhoneNumber\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -1114,6 +1140,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/SmokeEndpointHelperMetadataTextLeak.tsx",
         "src/learning/SmokeEndpointHelperMetadataPropLeak.tsx",
         "src/learning/SmokeEndpointHelperMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/SmokeAssertionHelperMetadataTextLeak.tsx",
+        "src/learning/SmokeAssertionHelperMetadataPropLeak.tsx",
+        "src/learning/SmokeAssertionHelperMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
@@ -1292,6 +1321,14 @@ for snippet in [
     "loadLearningCardSource",
     "runMembershipMutation",
     "parseEntitlement",
+    "assertOk",
+    "assertObject",
+    "assertString",
+    "assertNonNegativeInteger",
+    "assertPositiveInteger",
+    "normalizeBaseUrl",
+    "todayKey",
+    "createIsolatedPhoneNumber",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -1506,6 +1543,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>loadMembershipEntitlement, loadLearningCardSource, runMembershipMutation, and parseEntitlement are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_smoke_assertion_helper_metadata_html = (
+        Path(tmp_dir) / "smoke-assertion-helper-metadata-visible-leak.html"
+    )
+    fixture_smoke_assertion_helper_metadata_html.write_text(
+        "<!doctype html><html><body><p>assertOk, assertObject, assertString, assertNonNegativeInteger, assertPositiveInteger, normalizeBaseUrl, todayKey, and createIsolatedPhoneNumber are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -1615,6 +1659,7 @@ with tempfile.TemporaryDirectory(
         "smoke-runtime-output-metadata-visible-leak.html",
         "smoke-card-shape-metadata-visible-leak.html",
         "smoke-endpoint-helper-metadata-visible-leak.html",
+        "smoke-assertion-helper-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
