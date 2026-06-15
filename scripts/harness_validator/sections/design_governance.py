@@ -151,6 +151,12 @@ for snippet in [
     "SOFTBOOK_CET_REMOTE_BASE_URL",
     "SOFTBOOK_CET_REMOTE_API_KEY",
     "SOFTBOOK_CET_LEARNING_TRACK",
+    "featureModes",
+    "learningTrack",
+    "learningSource",
+    "progressSync",
+    "spaceState",
+    "learningState",
     "flipConfidence",
     "selectedOptionId",
     "lockSelections",
@@ -519,6 +525,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/RuntimeProfileMetadataTextLeak.tsx").write_text(
+        "export function RuntimeProfileMetadataTextLeak({ profile }) {\n"
+        "  return <Text>{profile.learningSource}{profile.progressSync}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/RuntimeProfileMetadataPropLeak.tsx").write_text(
+        "export function RuntimeProfileMetadataPropLeak({ profile }) {\n"
+        "  return <Pressable accessibilityHint={profile.spaceState} accessibilityLabel={`${profile.learningState}-${profile.learningTrack}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/RuntimeProfileMetadataRenderedPropLeak.tsx").write_text(
+        "export function RuntimeProfileMetadataRenderedPropLeak({ profile }) {\n"
+        "  return <View testID={`${profile.featureModes}-${profile.learningTrack}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -734,6 +758,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/RuntimeConfigMetadataTextLeak.tsx",
         "src/learning/RuntimeConfigMetadataPropLeak.tsx",
         "src/learning/RuntimeConfigMetadataRenderedPropLeak.tsx",
+        "src/learning/RuntimeProfileMetadataTextLeak.tsx",
+        "src/learning/RuntimeProfileMetadataPropLeak.tsx",
+        "src/learning/RuntimeProfileMetadataRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
