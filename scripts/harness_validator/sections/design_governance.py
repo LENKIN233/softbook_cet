@@ -100,6 +100,7 @@ for snippet in [
     "usedHint",
     "usedPeek",
     "auth_token",
+    "authToken",
     "sms_code",
     "phone_number",
     "day_key",
@@ -109,6 +110,7 @@ for snippet in [
     "is_favorited",
     "is_sleeping",
     "last_modified_at",
+    "lastModifiedAt",
     "checked_in_today",
     "favorite_count",
     "learning_completed_count",
@@ -117,10 +119,14 @@ for snippet in [
     "sleeping_count",
     "total_completed_count",
     "counted_entry_count",
+    "countedEntryCount",
     "last_experience_ended_by",
     "recovery_prompt_visible",
+    "recoveryPromptVisible",
     "trial_duration_days",
     "trial_started_at_entry_count",
+    "trialStartedAtEntryCount",
+    "acknowledgedAt",
     "sync_daily_progress",
     "sync_space_state",
     "sync_learning_state",
@@ -457,6 +463,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/CamelRuntimeBookkeepingMetadataTextLeak.tsx").write_text(
+        "export function CamelRuntimeBookkeepingMetadataTextLeak({ session, snapshot }) {\n"
+        "  return <Text>{session.authToken}{snapshot.acknowledgedAt}</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/CamelRuntimeBookkeepingMetadataPropLeak.tsx").write_text(
+        "export function CamelRuntimeBookkeepingMetadataPropLeak({ state, membership }) {\n"
+        "  return <Pressable accessibilityHint={state.lastModifiedAt} accessibilityLabel={`${membership.countedEntryCount}-${membership.recoveryPromptVisible}-${membership.trialStartedAtEntryCount}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/CamelRuntimeBookkeepingMetadataRenderedPropLeak.tsx").write_text(
+        "export function CamelRuntimeBookkeepingMetadataRenderedPropLeak({ session, state }) {\n"
+        "  return <View testID={`${session.authToken}-${state.lastModifiedAt}`} />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/MutationQueueMetadataTextLeak.tsx").write_text(
         "export function MutationQueueMetadataTextLeak() {\n"
         "  return <Text>sync_daily_progress sync_space_state sync_learning_state</Text>;\n"
@@ -699,6 +723,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/MembershipPayloadMetadataTextLeak.tsx",
         "src/learning/MembershipPayloadMetadataPropLeak.tsx",
         "src/learning/MembershipPayloadMetadataRenderedPropLeak.tsx",
+        "src/learning/CamelRuntimeBookkeepingMetadataTextLeak.tsx",
+        "src/learning/CamelRuntimeBookkeepingMetadataPropLeak.tsx",
+        "src/learning/CamelRuntimeBookkeepingMetadataRenderedPropLeak.tsx",
         "src/learning/MutationQueueMetadataTextLeak.tsx",
         "src/learning/MutationQueueMetadataPropLeak.tsx",
         "src/learning/MutationQueueMetadataRenderedPropLeak.tsx",
