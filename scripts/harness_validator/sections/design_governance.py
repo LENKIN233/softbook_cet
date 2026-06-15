@@ -244,6 +244,9 @@ for snippet in [
     "getCloudBaseMembership",
     "saveCloudBaseMembership",
     "deserializeMembershipDocument",
+    "createInitialMembership",
+    "cloneMembership",
+    "serializeMembershipEntitlement",
     "getCloudBaseDocument",
     "setCloudBaseDocument",
     "isCloudBaseDocumentMissingError",
@@ -1003,6 +1006,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendMembershipHelperMetadataTextLeak.tsx").write_text(
+        "export function BackendMembershipHelperMetadataTextLeak() {\n"
+        "  return <Text>createInitialMembership cloneMembership</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendMembershipHelperMetadataPropLeak.tsx").write_text(
+        "export function BackendMembershipHelperMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"serializeMembershipEntitlement\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendMembershipHelperMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendMembershipHelperMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"cloneMembership serializeMembershipEntitlement\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendCardSourceHelperMetadataTextLeak.tsx").write_text(
         "export function BackendCardSourceHelperMetadataTextLeak() {\n"
         "  return <Text>createDefaultCardSource cloneCardSource serializeCardSourceResponse validateCardSourceForImport</Text>;\n"
@@ -1449,6 +1470,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendStoreHelperMetadataTextLeak.tsx",
         "src/learning/BackendStoreHelperMetadataPropLeak.tsx",
         "src/learning/BackendStoreHelperMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendMembershipHelperMetadataTextLeak.tsx",
+        "src/learning/BackendMembershipHelperMetadataPropLeak.tsx",
+        "src/learning/BackendMembershipHelperMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendCardSourceHelperMetadataTextLeak.tsx",
         "src/learning/BackendCardSourceHelperMetadataPropLeak.tsx",
         "src/learning/BackendCardSourceHelperMetadataStaticRenderedPropLeak.tsx",
@@ -1678,6 +1702,9 @@ for snippet in [
     "getCloudBaseMembership",
     "saveCloudBaseMembership",
     "deserializeMembershipDocument",
+    "createInitialMembership",
+    "cloneMembership",
+    "serializeMembershipEntitlement",
     "getCloudBaseDocument",
     "setCloudBaseDocument",
     "isCloudBaseDocumentMissingError",
@@ -1991,6 +2018,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>createDefaultStore, createMemoryStore, createCloudBaseStore, createCloudBaseDatabase, getCloudBaseMembership, saveCloudBaseMembership, deserializeMembershipDocument, getCloudBaseDocument, setCloudBaseDocument, isCloudBaseDocumentMissingError, and createCloudBaseDocumentId are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_membership_helper_metadata_html = (
+        Path(tmp_dir) / "backend-membership-helper-metadata-visible-leak.html"
+    )
+    fixture_backend_membership_helper_metadata_html.write_text(
+        "<!doctype html><html><body><p>createInitialMembership, cloneMembership, and serializeMembershipEntitlement are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_card_source_helper_metadata_html = (
         Path(tmp_dir) / "backend-card-source-helper-metadata-visible-leak.html"
     )
@@ -2167,6 +2201,7 @@ with tempfile.TemporaryDirectory(
         "backend-sync-snapshot-metadata-visible-leak.html",
         "backend-event-adapter-metadata-visible-leak.html",
         "backend-store-helper-metadata-visible-leak.html",
+        "backend-membership-helper-metadata-visible-leak.html",
         "backend-card-source-helper-metadata-visible-leak.html",
         "smoke-runtime-local-metadata-visible-leak.html",
         "smoke-runtime-output-metadata-visible-leak.html",
