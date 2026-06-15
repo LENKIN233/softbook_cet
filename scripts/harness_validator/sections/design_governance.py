@@ -222,6 +222,17 @@ for snippet in [
     "toCloudBaseResponse",
     "jsonResponse",
     "errorResponse",
+    "createDefaultStore",
+    "createMemoryStore",
+    "createCloudBaseStore",
+    "createCloudBaseDatabase",
+    "getCloudBaseMembership",
+    "saveCloudBaseMembership",
+    "deserializeMembershipDocument",
+    "getCloudBaseDocument",
+    "setCloudBaseDocument",
+    "isCloudBaseDocumentMissingError",
+    "createCloudBaseDocumentId",
     "DEFAULT_SMS_CODE",
     "DEFAULT_TRIAL_DURATION_DAYS",
     "DEFAULT_TOKEN_TTL_SECONDS",
@@ -910,6 +921,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendStoreHelperMetadataTextLeak.tsx").write_text(
+        "export function BackendStoreHelperMetadataTextLeak() {\n"
+        "  return <Text>createDefaultStore createMemoryStore createCloudBaseStore createCloudBaseDatabase</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendStoreHelperMetadataPropLeak.tsx").write_text(
+        "export function BackendStoreHelperMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"getCloudBaseMembership saveCloudBaseMembership deserializeMembershipDocument getCloudBaseDocument\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendStoreHelperMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendStoreHelperMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"setCloudBaseDocument isCloudBaseDocumentMissingError createCloudBaseDocumentId\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CloudbaseScriptLocalMetadataTextLeak.tsx").write_text(
         "export function CloudbaseScriptLocalMetadataTextLeak() {\n"
         "  return <Text>DEFAULT_ENV_ID COLLECTION_NAME DEFAULT_TRACKS</Text>;\n"
@@ -1329,6 +1358,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendEventAdapterMetadataTextLeak.tsx",
         "src/learning/BackendEventAdapterMetadataPropLeak.tsx",
         "src/learning/BackendEventAdapterMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendStoreHelperMetadataTextLeak.tsx",
+        "src/learning/BackendStoreHelperMetadataPropLeak.tsx",
+        "src/learning/BackendStoreHelperMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CloudbaseScriptLocalMetadataTextLeak.tsx",
         "src/learning/CloudbaseScriptLocalMetadataPropLeak.tsx",
         "src/learning/CloudbaseScriptLocalMetadataStaticRenderedPropLeak.tsx",
@@ -1533,6 +1565,17 @@ for snippet in [
     "toCloudBaseResponse",
     "jsonResponse",
     "errorResponse",
+    "createDefaultStore",
+    "createMemoryStore",
+    "createCloudBaseStore",
+    "createCloudBaseDatabase",
+    "getCloudBaseMembership",
+    "saveCloudBaseMembership",
+    "deserializeMembershipDocument",
+    "getCloudBaseDocument",
+    "setCloudBaseDocument",
+    "isCloudBaseDocumentMissingError",
+    "createCloudBaseDocumentId",
     "DEFAULT_ENV_ID",
     "COLLECTION_NAME",
     "DEFAULT_TRACKS",
@@ -1808,6 +1851,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>parseCloudBaseEvent, parseEventBody, normalizeApiPath, normalizeHeaders, normalizeQuery, parseQueryString, toCloudBaseResponse, jsonResponse, and errorResponse are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_store_helper_metadata_html = (
+        Path(tmp_dir) / "backend-store-helper-metadata-visible-leak.html"
+    )
+    fixture_backend_store_helper_metadata_html.write_text(
+        "<!doctype html><html><body><p>createDefaultStore, createMemoryStore, createCloudBaseStore, createCloudBaseDatabase, getCloudBaseMembership, saveCloudBaseMembership, deserializeMembershipDocument, getCloudBaseDocument, setCloudBaseDocument, isCloudBaseDocumentMissingError, and createCloudBaseDocumentId are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_smoke_runtime_local_metadata_html = (
         Path(tmp_dir) / "smoke-runtime-local-metadata-visible-leak.html"
     )
@@ -1974,6 +2024,7 @@ with tempfile.TemporaryDirectory(
         "backend-token-helper-metadata-visible-leak.html",
         "backend-sync-snapshot-metadata-visible-leak.html",
         "backend-event-adapter-metadata-visible-leak.html",
+        "backend-store-helper-metadata-visible-leak.html",
         "smoke-runtime-local-metadata-visible-leak.html",
         "smoke-runtime-output-metadata-visible-leak.html",
         "smoke-card-shape-metadata-visible-leak.html",
