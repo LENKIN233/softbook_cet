@@ -224,6 +224,11 @@ for snippet in [
     "loadMembershipEntitlement",
     "loadLearningCardSource",
     "runMembershipMutation",
+    "assertExpectedStage",
+    "expectedStage",
+    "startMembershipTrial",
+    "purchaseMembership",
+    "dismissMembershipRecovery",
     "parseEntitlement",
     "assertOk",
     "assertObject",
@@ -904,6 +909,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/SmokeMembershipHelperMetadataTextLeak.tsx").write_text(
+        "export function SmokeMembershipHelperMetadataTextLeak() {\n"
+        "  return <Text>startMembershipTrial purchaseMembership</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeMembershipHelperMetadataPropLeak.tsx").write_text(
+        "export function SmokeMembershipHelperMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"dismissMembershipRecovery expectedStage\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeMembershipHelperMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function SmokeMembershipHelperMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"assertExpectedStage expectedStage\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -1167,6 +1190,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/SmokeCardLocalMetadataTextLeak.tsx",
         "src/learning/SmokeCardLocalMetadataPropLeak.tsx",
         "src/learning/SmokeCardLocalMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/SmokeMembershipHelperMetadataTextLeak.tsx",
+        "src/learning/SmokeMembershipHelperMetadataPropLeak.tsx",
+        "src/learning/SmokeMembershipHelperMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
@@ -1344,6 +1370,11 @@ for snippet in [
     "loadMembershipEntitlement",
     "loadLearningCardSource",
     "runMembershipMutation",
+    "assertExpectedStage",
+    "expectedStage",
+    "startMembershipTrial",
+    "purchaseMembership",
+    "dismissMembershipRecovery",
     "parseEntitlement",
     "assertOk",
     "assertObject",
@@ -1584,6 +1615,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>firstCard, returnedTrack, and itemIds are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_smoke_membership_helper_metadata_html = (
+        Path(tmp_dir) / "smoke-membership-helper-metadata-visible-leak.html"
+    )
+    fixture_smoke_membership_helper_metadata_html.write_text(
+        "<!doctype html><html><body><p>assertExpectedStage, expectedStage, startMembershipTrial, purchaseMembership, and dismissMembershipRecovery are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -1695,6 +1733,7 @@ with tempfile.TemporaryDirectory(
         "smoke-endpoint-helper-metadata-visible-leak.html",
         "smoke-assertion-helper-metadata-visible-leak.html",
         "smoke-card-local-metadata-visible-leak.html",
+        "smoke-membership-helper-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
