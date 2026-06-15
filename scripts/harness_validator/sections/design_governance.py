@@ -162,6 +162,12 @@ for snippet in [
     "SOFTBOOK_CET_EXPECT_INITIAL_STAGE",
     "SOFTBOOK_CET_EXPECT_START_TRIAL_STAGE",
     "SOFTBOOK_CET_EXPECT_PURCHASE_STAGE",
+    "SOFTBOOK_CET_IOS_LAUNCH",
+    "SOFTBOOK_CET_IOS_DEVICE",
+    "SOFTBOOK_CET_IOS_SIMULATOR",
+    "SOFTBOOK_CET_IOS_BUNDLE_ID",
+    "SOFTBOOK_CET_METRO_PORT",
+    "SOFTBOOK_CET_STOP_METRO_ON_EXIT",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -632,6 +638,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/IosLaunchEnvMetadataTextLeak.tsx").write_text(
+        "export function IosLaunchEnvMetadataTextLeak() {\n"
+        "  return <Text>SOFTBOOK_CET_IOS_LAUNCH SOFTBOOK_CET_IOS_DEVICE SOFTBOOK_CET_IOS_SIMULATOR</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/IosLaunchEnvMetadataPropLeak.tsx").write_text(
+        "export function IosLaunchEnvMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"SOFTBOOK_CET_IOS_BUNDLE_ID SOFTBOOK_CET_METRO_PORT SOFTBOOK_CET_STOP_METRO_ON_EXIT\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/IosLaunchEnvMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function IosLaunchEnvMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"SOFTBOOK_CET_IOS_LAUNCH\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -862,6 +886,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/SmokeControlEnvMetadataTextLeak.tsx",
         "src/learning/SmokeControlEnvMetadataPropLeak.tsx",
         "src/learning/SmokeControlEnvMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/IosLaunchEnvMetadataTextLeak.tsx",
+        "src/learning/IosLaunchEnvMetadataPropLeak.tsx",
+        "src/learning/IosLaunchEnvMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
@@ -988,6 +1015,12 @@ for snippet in [
     "SOFTBOOK_CET_EXPECT_INITIAL_STAGE",
     "SOFTBOOK_CET_EXPECT_START_TRIAL_STAGE",
     "SOFTBOOK_CET_EXPECT_PURCHASE_STAGE",
+    "SOFTBOOK_CET_IOS_LAUNCH",
+    "SOFTBOOK_CET_IOS_DEVICE",
+    "SOFTBOOK_CET_IOS_SIMULATOR",
+    "SOFTBOOK_CET_IOS_BUNDLE_ID",
+    "SOFTBOOK_CET_METRO_PORT",
+    "SOFTBOOK_CET_STOP_METRO_ON_EXIT",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -1152,6 +1185,11 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>SOFTBOOK_CET_SMOKE_ISOLATED_PHONE, SOFTBOOK_CET_SMOKE_WRITE, SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS, SOFTBOOK_CET_EXPECT_INITIAL_STAGE, SOFTBOOK_CET_EXPECT_START_TRIAL_STAGE, and SOFTBOOK_CET_EXPECT_PURCHASE_STAGE are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_ios_launch_env_metadata_html = Path(tmp_dir) / "ios-launch-env-metadata-visible-leak.html"
+    fixture_ios_launch_env_metadata_html.write_text(
+        "<!doctype html><html><body><p>SOFTBOOK_CET_IOS_LAUNCH, SOFTBOOK_CET_IOS_DEVICE, SOFTBOOK_CET_IOS_SIMULATOR, SOFTBOOK_CET_IOS_BUNDLE_ID, SOFTBOOK_CET_METRO_PORT, and SOFTBOOK_CET_STOP_METRO_ON_EXIT are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -1253,6 +1291,7 @@ with tempfile.TemporaryDirectory(
         "runtime-profile-metadata-visible-leak.html",
         "smoke-auth-env-metadata-visible-leak.html",
         "smoke-control-env-metadata-visible-leak.html",
+        "ios-launch-env-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
