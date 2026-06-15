@@ -210,6 +210,11 @@ for snippet in [
     "expectedInitialStage",
     "expectedStartTrialStage",
     "expectedPurchaseStage",
+    "authHeaders",
+    "remoteHeaders",
+    "returnedPhoneNumber",
+    "REQUIRED_CORE_INTERACTIONS",
+    "missingInteractions",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -788,6 +793,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/SmokeRuntimeOutputMetadataTextLeak.tsx").write_text(
+        "export function SmokeRuntimeOutputMetadataTextLeak() {\n"
+        "  return <Text>authHeaders remoteHeaders</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeRuntimeOutputMetadataPropLeak.tsx").write_text(
+        "export function SmokeRuntimeOutputMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"REQUIRED_CORE_INTERACTIONS\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeRuntimeOutputMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function SmokeRuntimeOutputMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"returnedPhoneNumber missingInteractions\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -1036,6 +1059,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/SmokeRuntimeLocalMetadataTextLeak.tsx",
         "src/learning/SmokeRuntimeLocalMetadataPropLeak.tsx",
         "src/learning/SmokeRuntimeLocalMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/SmokeRuntimeOutputMetadataTextLeak.tsx",
+        "src/learning/SmokeRuntimeOutputMetadataPropLeak.tsx",
+        "src/learning/SmokeRuntimeOutputMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
@@ -1199,6 +1225,11 @@ for snippet in [
     "expectedInitialStage",
     "expectedStartTrialStage",
     "expectedPurchaseStage",
+    "authHeaders",
+    "remoteHeaders",
+    "returnedPhoneNumber",
+    "REQUIRED_CORE_INTERACTIONS",
+    "missingInteractions",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -1392,6 +1423,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>useIsolatedPhone, phoneNumber, smsCode, authTokenFromEnv, enableWrites, enableMembershipMutations, expectedInitialStage, expectedStartTrialStage, and expectedPurchaseStage are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_smoke_runtime_output_metadata_html = (
+        Path(tmp_dir) / "smoke-runtime-output-metadata-visible-leak.html"
+    )
+    fixture_smoke_runtime_output_metadata_html.write_text(
+        "<!doctype html><html><body><p>authHeaders, remoteHeaders, returnedPhoneNumber, REQUIRED_CORE_INTERACTIONS, and missingInteractions are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -1498,6 +1536,7 @@ with tempfile.TemporaryDirectory(
         "ios-smoke-local-env-metadata-visible-leak.html",
         "cloudbase-script-local-metadata-visible-leak.html",
         "smoke-runtime-local-metadata-visible-leak.html",
+        "smoke-runtime-output-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
