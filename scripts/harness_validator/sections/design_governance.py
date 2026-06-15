@@ -195,6 +195,14 @@ for snippet in [
     "DEFAULT_TRIAL_DURATION_DAYS",
     "DEFAULT_TOKEN_TTL_SECONDS",
     "DEFAULT_CARD_SOURCE",
+    "DEFAULT_ENV_ID",
+    "COLLECTION_NAME",
+    "DEFAULT_TRACKS",
+    "ENV_ID",
+    "FUNCTION_NAME",
+    "HTTP_PATH",
+    "DEFAULT_OUTPUT",
+    "DEFAULT_FLOW_DIR",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -737,6 +745,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/CloudbaseScriptLocalMetadataTextLeak.tsx").write_text(
+        "export function CloudbaseScriptLocalMetadataTextLeak() {\n"
+        "  return <Text>DEFAULT_ENV_ID COLLECTION_NAME DEFAULT_TRACKS</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/CloudbaseScriptLocalMetadataPropLeak.tsx").write_text(
+        "export function CloudbaseScriptLocalMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"ENV_ID DEFAULT_OUTPUT DEFAULT_FLOW_DIR\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/CloudbaseScriptLocalMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function CloudbaseScriptLocalMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"FUNCTION_NAME HTTP_PATH\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -979,6 +1005,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendRuntimeLocalMetadataTextLeak.tsx",
         "src/learning/BackendRuntimeLocalMetadataPropLeak.tsx",
         "src/learning/BackendRuntimeLocalMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/CloudbaseScriptLocalMetadataTextLeak.tsx",
+        "src/learning/CloudbaseScriptLocalMetadataPropLeak.tsx",
+        "src/learning/CloudbaseScriptLocalMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
@@ -1125,6 +1154,14 @@ for snippet in [
     "MAESTRO_FLOW",
     "MAESTRO_PHONE",
     "MAESTRO_CODE",
+    "DEFAULT_ENV_ID",
+    "COLLECTION_NAME",
+    "DEFAULT_TRACKS",
+    "ENV_ID",
+    "FUNCTION_NAME",
+    "HTTP_PATH",
+    "DEFAULT_OUTPUT",
+    "DEFAULT_FLOW_DIR",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -1304,6 +1341,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>IOS_SIMULATOR, IOS_DEVICE, IOS_BUNDLE_ID, METRO_PORT, STOP_METRO_ON_EXIT, SMS_CODE, MANUAL_TEST_PHONE, MAESTRO_FLOW, MAESTRO_PHONE, and MAESTRO_CODE are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_cloudbase_script_local_metadata_html = (
+        Path(tmp_dir) / "cloudbase-script-local-metadata-visible-leak.html"
+    )
+    fixture_cloudbase_script_local_metadata_html.write_text(
+        "<!doctype html><html><body><p>DEFAULT_ENV_ID, COLLECTION_NAME, DEFAULT_TRACKS, ENV_ID, FUNCTION_NAME, HTTP_PATH, DEFAULT_OUTPUT, and DEFAULT_FLOW_DIR are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -1408,6 +1452,7 @@ with tempfile.TemporaryDirectory(
         "ios-launch-env-metadata-visible-leak.html",
         "ios-maestro-env-metadata-visible-leak.html",
         "ios-smoke-local-env-metadata-visible-leak.html",
+        "cloudbase-script-local-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
