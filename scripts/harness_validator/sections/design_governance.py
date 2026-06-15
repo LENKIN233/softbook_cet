@@ -221,6 +221,10 @@ for snippet in [
     "assertArrayLength",
     "assertNonEmptyArray",
     "assertCoreInteractionCoverage",
+    "loadMembershipEntitlement",
+    "loadLearningCardSource",
+    "runMembershipMutation",
+    "parseEntitlement",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -835,6 +839,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/SmokeEndpointHelperMetadataTextLeak.tsx").write_text(
+        "export function SmokeEndpointHelperMetadataTextLeak() {\n"
+        "  return <Text>loadMembershipEntitlement loadLearningCardSource</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeEndpointHelperMetadataPropLeak.tsx").write_text(
+        "export function SmokeEndpointHelperMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"loadLearningCardSource parseEntitlement\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/SmokeEndpointHelperMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function SmokeEndpointHelperMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"runMembershipMutation parseEntitlement\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/CardIdTextLeak.tsx").write_text(
         "export function CardIdTextLeak({ card }) {\n"
         "  return <Text>{card.card_id}</Text>;\n"
@@ -1089,6 +1111,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/SmokeCardShapeMetadataTextLeak.tsx",
         "src/learning/SmokeCardShapeMetadataPropLeak.tsx",
         "src/learning/SmokeCardShapeMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/SmokeEndpointHelperMetadataTextLeak.tsx",
+        "src/learning/SmokeEndpointHelperMetadataPropLeak.tsx",
+        "src/learning/SmokeEndpointHelperMetadataStaticRenderedPropLeak.tsx",
         "src/learning/CardIdTextLeak.tsx",
         "src/learning/CamelCardIdPropLeak.tsx",
         "src/learning/BracketSpaceTextLeak.tsx",
@@ -1263,6 +1288,10 @@ for snippet in [
     "assertArrayLength",
     "assertNonEmptyArray",
     "assertCoreInteractionCoverage",
+    "loadMembershipEntitlement",
+    "loadLearningCardSource",
+    "runMembershipMutation",
+    "parseEntitlement",
     "featureModes",
     "learningTrack",
     "learningSource",
@@ -1470,6 +1499,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>validateCardRecord, assertPattern, assertTrack, assertArrayLength, assertNonEmptyArray, and assertCoreInteractionCoverage are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_smoke_endpoint_helper_metadata_html = (
+        Path(tmp_dir) / "smoke-endpoint-helper-metadata-visible-leak.html"
+    )
+    fixture_smoke_endpoint_helper_metadata_html.write_text(
+        "<!doctype html><html><body><p>loadMembershipEntitlement, loadLearningCardSource, runMembershipMutation, and parseEntitlement are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_svg = Path(tmp_dir) / "visible-process-leak.svg"
     fixture_svg.write_text(
         '<svg width="120" height="40" xmlns="http://www.w3.org/2000/svg"><text>R&#117;ntime deb&#117;g payload visible to learner.</text></svg>\n',
@@ -1578,6 +1614,7 @@ with tempfile.TemporaryDirectory(
         "smoke-runtime-local-metadata-visible-leak.html",
         "smoke-runtime-output-metadata-visible-leak.html",
         "smoke-card-shape-metadata-visible-leak.html",
+        "smoke-endpoint-helper-metadata-visible-leak.html",
         "visible-process-leak.svg",
         "accessible-process-leak.html",
         "accessible-process-leak.svg",
