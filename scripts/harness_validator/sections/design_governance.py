@@ -249,6 +249,9 @@ for snippet in [
     "hintLayer",
     "headers",
     "pathname",
+    "fieldName",
+    "statusCode",
+    "requestContext",
     "getDefaultApi",
     "createSoftbookApi",
     "handleCloudBaseEvent",
@@ -1139,6 +1142,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendHttpLocalFieldMetadataTextLeak.tsx").write_text(
+        "export function BackendHttpLocalFieldMetadataTextLeak() {\n"
+        "  return <Text>fieldName statusCode</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendHttpLocalFieldMetadataPropLeak.tsx").write_text(
+        "export function BackendHttpLocalFieldMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"requestContext\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendHttpLocalFieldMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendHttpLocalFieldMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"fieldName-statusCode\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendRouteHelperMetadataTextLeak.tsx").write_text(
         "export function BackendRouteHelperMetadataTextLeak() {\n"
         "  return <Text>getDefaultApi createSoftbookApi handleCloudBaseEvent</Text>;\n"
@@ -1777,6 +1798,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendRequestFieldMetadataTextLeak.tsx",
         "src/learning/BackendRequestFieldMetadataPropLeak.tsx",
         "src/learning/BackendRequestFieldMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendHttpLocalFieldMetadataTextLeak.tsx",
+        "src/learning/BackendHttpLocalFieldMetadataPropLeak.tsx",
+        "src/learning/BackendHttpLocalFieldMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataTextLeak.tsx",
         "src/learning/BackendRouteHelperMetadataPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataStaticRenderedPropLeak.tsx",
@@ -2117,6 +2141,9 @@ for snippet in [
     "hintLayer",
     "headers",
     "pathname",
+    "fieldName",
+    "statusCode",
+    "requestContext",
     "DEFAULT_SMS_CODE",
     "DEFAULT_TRIAL_DURATION_DAYS",
     "DEFAULT_TOKEN_TTL_SECONDS",
@@ -2445,6 +2472,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>headers and pathname are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_http_local_field_metadata_html = (
+        Path(tmp_dir) / "backend-http-local-field-metadata-visible-leak.html"
+    )
+    fixture_backend_http_local_field_metadata_html.write_text(
+        "<!doctype html><html><body><p>fieldName, statusCode, and requestContext are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_route_helper_metadata_html = (
         Path(tmp_dir) / "backend-route-helper-metadata-visible-leak.html"
     )
@@ -2702,6 +2736,7 @@ with tempfile.TemporaryDirectory(
         "backend-interaction-local-field-metadata-visible-leak.html",
         "backend-card-shape-local-field-metadata-visible-leak.html",
         "backend-request-field-metadata-visible-leak.html",
+        "backend-http-local-field-metadata-visible-leak.html",
         "backend-route-helper-metadata-visible-leak.html",
         "backend-http-helper-metadata-visible-leak.html",
         "backend-validator-helper-metadata-visible-leak.html",
