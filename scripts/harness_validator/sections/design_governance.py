@@ -252,7 +252,13 @@ for snippet in [
     "expectedTrack",
     "hintLayer",
     "headers",
+    "httpMethod",
+    "rawPath",
+    "rawQueryString",
+    "queryStringParameters",
+    "queryString",
     "pathname",
+    "v1Index",
     "fieldName",
     "statusCode",
     "requestContext",
@@ -1168,6 +1174,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendEventAdapterLocalFieldMetadataTextLeak.tsx").write_text(
+        "export function BackendEventAdapterLocalFieldMetadataTextLeak() {\n"
+        "  return <Text>httpMethod rawPath rawQueryString</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendEventAdapterLocalFieldMetadataPropLeak.tsx").write_text(
+        "export function BackendEventAdapterLocalFieldMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"queryStringParameters\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendEventAdapterLocalFieldMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendEventAdapterLocalFieldMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"v1Index-queryString\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendHttpLocalFieldMetadataTextLeak.tsx").write_text(
         "export function BackendHttpLocalFieldMetadataTextLeak() {\n"
         "  return <Text>fieldName statusCode</Text>;\n"
@@ -1863,6 +1887,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendRequestFieldMetadataTextLeak.tsx",
         "src/learning/BackendRequestFieldMetadataPropLeak.tsx",
         "src/learning/BackendRequestFieldMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendEventAdapterLocalFieldMetadataTextLeak.tsx",
+        "src/learning/BackendEventAdapterLocalFieldMetadataPropLeak.tsx",
+        "src/learning/BackendEventAdapterLocalFieldMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendHttpLocalFieldMetadataTextLeak.tsx",
         "src/learning/BackendHttpLocalFieldMetadataPropLeak.tsx",
         "src/learning/BackendHttpLocalFieldMetadataStaticRenderedPropLeak.tsx",
@@ -2215,7 +2242,13 @@ for snippet in [
     "expectedTrack",
     "hintLayer",
     "headers",
+    "httpMethod",
+    "rawPath",
+    "rawQueryString",
+    "queryStringParameters",
+    "queryString",
     "pathname",
+    "v1Index",
     "fieldName",
     "statusCode",
     "requestContext",
@@ -2551,6 +2584,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>headers and pathname are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_event_adapter_local_field_metadata_html = (
+        Path(tmp_dir) / "backend-event-adapter-local-field-metadata-visible-leak.html"
+    )
+    fixture_backend_event_adapter_local_field_metadata_html.write_text(
+        "<!doctype html><html><body><p>httpMethod, rawPath, rawQueryString, queryStringParameters, v1Index, and queryString are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_http_local_field_metadata_html = (
         Path(tmp_dir) / "backend-http-local-field-metadata-visible-leak.html"
     )
@@ -2836,6 +2876,7 @@ with tempfile.TemporaryDirectory(
         "backend-interaction-local-field-metadata-visible-leak.html",
         "backend-card-shape-local-field-metadata-visible-leak.html",
         "backend-request-field-metadata-visible-leak.html",
+        "backend-event-adapter-local-field-metadata-visible-leak.html",
         "backend-http-local-field-metadata-visible-leak.html",
         "backend-config-local-field-metadata-visible-leak.html",
         "backend-route-helper-metadata-visible-leak.html",
