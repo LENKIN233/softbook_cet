@@ -213,6 +213,19 @@ for snippet in [
     "events_by_card_id",
     "states_by_card_id",
     "server_sequence",
+    "not_found",
+    "invalid_api_key",
+    "invalid_sms_code",
+    "invalid_track",
+    "DOCUMENT_NOT_EXIST",
+    "invalid_card_source",
+    "missing_auth_token",
+    "invalid_auth_token",
+    "expired_auth_token",
+    "phone_number_mismatch",
+    "internal_error",
+    "invalid_request",
+    "invalid_json",
     "getDefaultApi",
     "createSoftbookApi",
     "handleCloudBaseEvent",
@@ -941,6 +954,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendErrorCodeMetadataTextLeak.tsx").write_text(
+        "export function BackendErrorCodeMetadataTextLeak() {\n"
+        "  return <Text>not_found invalid_api_key invalid_sms_code invalid_track</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendErrorCodeMetadataPropLeak.tsx").write_text(
+        "export function BackendErrorCodeMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"DOCUMENT_NOT_EXIST invalid_card_source missing_auth_token invalid_auth_token expired_auth_token\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendErrorCodeMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendErrorCodeMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"phone_number_mismatch internal_error invalid_request invalid_json\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendRouteHelperMetadataTextLeak.tsx").write_text(
         "export function BackendRouteHelperMetadataTextLeak() {\n"
         "  return <Text>getDefaultApi createSoftbookApi handleCloudBaseEvent</Text>;\n"
@@ -1552,6 +1583,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendDocumentFieldMetadataTextLeak.tsx",
         "src/learning/BackendDocumentFieldMetadataPropLeak.tsx",
         "src/learning/BackendDocumentFieldMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendErrorCodeMetadataTextLeak.tsx",
+        "src/learning/BackendErrorCodeMetadataPropLeak.tsx",
+        "src/learning/BackendErrorCodeMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataTextLeak.tsx",
         "src/learning/BackendRouteHelperMetadataPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataStaticRenderedPropLeak.tsx",
@@ -1857,6 +1891,19 @@ for snippet in [
     "events_by_card_id",
     "states_by_card_id",
     "server_sequence",
+    "not_found",
+    "invalid_api_key",
+    "invalid_sms_code",
+    "invalid_track",
+    "DOCUMENT_NOT_EXIST",
+    "invalid_card_source",
+    "missing_auth_token",
+    "invalid_auth_token",
+    "expired_auth_token",
+    "phone_number_mismatch",
+    "internal_error",
+    "invalid_request",
+    "invalid_json",
     "DEFAULT_SMS_CODE",
     "DEFAULT_TRIAL_DURATION_DAYS",
     "DEFAULT_TOKEN_TTL_SECONDS",
@@ -2129,6 +2176,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>acknowledged_at, updated_at, events_by_card_id, states_by_card_id, and server_sequence are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_error_code_metadata_html = (
+        Path(tmp_dir) / "backend-error-code-metadata-visible-leak.html"
+    )
+    fixture_backend_error_code_metadata_html.write_text(
+        "<!doctype html><html><body><p>not_found, invalid_api_key, invalid_sms_code, invalid_track, DOCUMENT_NOT_EXIST, invalid_card_source, missing_auth_token, invalid_auth_token, expired_auth_token, phone_number_mismatch, internal_error, invalid_request, and invalid_json are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_route_helper_metadata_html = (
         Path(tmp_dir) / "backend-route-helper-metadata-visible-leak.html"
     )
@@ -2371,6 +2425,7 @@ with tempfile.TemporaryDirectory(
         "backend-collection-metadata-visible-leak.html",
         "backend-store-method-metadata-visible-leak.html",
         "backend-document-field-metadata-visible-leak.html",
+        "backend-error-code-metadata-visible-leak.html",
         "backend-route-helper-metadata-visible-leak.html",
         "backend-http-helper-metadata-visible-leak.html",
         "backend-validator-helper-metadata-visible-leak.html",
