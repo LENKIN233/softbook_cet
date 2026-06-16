@@ -226,6 +226,10 @@ for snippet in [
     "internal_error",
     "invalid_request",
     "invalid_json",
+    "dev_fixed_code",
+    "isBase64Encoded",
+    "tokenSecret",
+    "tokenTtlSeconds",
     "getDefaultApi",
     "createSoftbookApi",
     "handleCloudBaseEvent",
@@ -972,6 +976,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendResponseFieldMetadataTextLeak.tsx").write_text(
+        "export function BackendResponseFieldMetadataTextLeak() {\n"
+        "  return <Text>dev_fixed_code isBase64Encoded</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendResponseFieldMetadataPropLeak.tsx").write_text(
+        "export function BackendResponseFieldMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"tokenSecret tokenTtlSeconds\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendResponseFieldMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendResponseFieldMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"dev_fixed_code-tokenSecret\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendRouteHelperMetadataTextLeak.tsx").write_text(
         "export function BackendRouteHelperMetadataTextLeak() {\n"
         "  return <Text>getDefaultApi createSoftbookApi handleCloudBaseEvent</Text>;\n"
@@ -1586,6 +1608,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendErrorCodeMetadataTextLeak.tsx",
         "src/learning/BackendErrorCodeMetadataPropLeak.tsx",
         "src/learning/BackendErrorCodeMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendResponseFieldMetadataTextLeak.tsx",
+        "src/learning/BackendResponseFieldMetadataPropLeak.tsx",
+        "src/learning/BackendResponseFieldMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataTextLeak.tsx",
         "src/learning/BackendRouteHelperMetadataPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataStaticRenderedPropLeak.tsx",
@@ -1904,6 +1929,9 @@ for snippet in [
     "internal_error",
     "invalid_request",
     "invalid_json",
+    "isBase64Encoded",
+    "tokenSecret",
+    "tokenTtlSeconds",
     "DEFAULT_SMS_CODE",
     "DEFAULT_TRIAL_DURATION_DAYS",
     "DEFAULT_TOKEN_TTL_SECONDS",
@@ -2183,6 +2211,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>not_found, invalid_api_key, invalid_sms_code, invalid_track, DOCUMENT_NOT_EXIST, invalid_card_source, missing_auth_token, invalid_auth_token, expired_auth_token, phone_number_mismatch, internal_error, invalid_request, and invalid_json are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_response_field_metadata_html = (
+        Path(tmp_dir) / "backend-response-field-metadata-visible-leak.html"
+    )
+    fixture_backend_response_field_metadata_html.write_text(
+        "<!doctype html><html><body><p>isBase64Encoded, tokenSecret, and tokenTtlSeconds are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_route_helper_metadata_html = (
         Path(tmp_dir) / "backend-route-helper-metadata-visible-leak.html"
     )
@@ -2426,6 +2461,7 @@ with tempfile.TemporaryDirectory(
         "backend-store-method-metadata-visible-leak.html",
         "backend-document-field-metadata-visible-leak.html",
         "backend-error-code-metadata-visible-leak.html",
+        "backend-response-field-metadata-visible-leak.html",
         "backend-route-helper-metadata-visible-leak.html",
         "backend-http-helper-metadata-visible-leak.html",
         "backend-validator-helper-metadata-visible-leak.html",
