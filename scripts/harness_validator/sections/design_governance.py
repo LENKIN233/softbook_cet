@@ -212,6 +212,9 @@ for snippet in [
     "updated_at",
     "events_by_card_id",
     "states_by_card_id",
+    "documentId",
+    "eventsByCardId",
+    "statesByCardId",
     "server_sequence",
     "not_found",
     "invalid_api_key",
@@ -967,6 +970,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendDocumentLocalFieldMetadataTextLeak.tsx").write_text(
+        "export function BackendDocumentLocalFieldMetadataTextLeak() {\n"
+        "  return <Text>documentId eventsByCardId</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendDocumentLocalFieldMetadataPropLeak.tsx").write_text(
+        "export function BackendDocumentLocalFieldMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"statesByCardId\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendDocumentLocalFieldMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendDocumentLocalFieldMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"documentId-statesByCardId\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendErrorCodeMetadataTextLeak.tsx").write_text(
         "export function BackendErrorCodeMetadataTextLeak() {\n"
         "  return <Text>not_found invalid_api_key invalid_sms_code invalid_track</Text>;\n"
@@ -1686,6 +1707,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendDocumentFieldMetadataTextLeak.tsx",
         "src/learning/BackendDocumentFieldMetadataPropLeak.tsx",
         "src/learning/BackendDocumentFieldMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendDocumentLocalFieldMetadataTextLeak.tsx",
+        "src/learning/BackendDocumentLocalFieldMetadataPropLeak.tsx",
+        "src/learning/BackendDocumentLocalFieldMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendErrorCodeMetadataTextLeak.tsx",
         "src/learning/BackendErrorCodeMetadataPropLeak.tsx",
         "src/learning/BackendErrorCodeMetadataStaticRenderedPropLeak.tsx",
@@ -2008,6 +2032,9 @@ for snippet in [
     "updated_at",
     "events_by_card_id",
     "states_by_card_id",
+    "documentId",
+    "eventsByCardId",
+    "statesByCardId",
     "server_sequence",
     "not_found",
     "invalid_api_key",
@@ -2306,6 +2333,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>acknowledged_at, updated_at, events_by_card_id, states_by_card_id, and server_sequence are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_document_local_field_metadata_html = (
+        Path(tmp_dir) / "backend-document-local-field-metadata-visible-leak.html"
+    )
+    fixture_backend_document_local_field_metadata_html.write_text(
+        "<!doctype html><html><body><p>documentId, eventsByCardId, and statesByCardId are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_error_code_metadata_html = (
         Path(tmp_dir) / "backend-error-code-metadata-visible-leak.html"
     )
@@ -2590,6 +2624,7 @@ with tempfile.TemporaryDirectory(
         "backend-collection-metadata-visible-leak.html",
         "backend-store-method-metadata-visible-leak.html",
         "backend-document-field-metadata-visible-leak.html",
+        "backend-document-local-field-metadata-visible-leak.html",
         "backend-error-code-metadata-visible-leak.html",
         "backend-response-field-metadata-visible-leak.html",
         "backend-membership-enum-metadata-visible-leak.html",
