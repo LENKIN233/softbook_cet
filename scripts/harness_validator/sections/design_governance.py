@@ -240,6 +240,10 @@ for snippet in [
     "lock_slots",
     "elimination_items",
     "swipe_states",
+    "optionIds",
+    "lockSlots",
+    "eliminationItems",
+    "swipeStates",
     "headers",
     "pathname",
     "getDefaultApi",
@@ -1078,6 +1082,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendInteractionLocalFieldMetadataTextLeak.tsx").write_text(
+        "export function BackendInteractionLocalFieldMetadataTextLeak() {\n"
+        "  return <Text>optionIds lockSlots</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendInteractionLocalFieldMetadataPropLeak.tsx").write_text(
+        "export function BackendInteractionLocalFieldMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"eliminationItems swipeStates\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendInteractionLocalFieldMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendInteractionLocalFieldMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"optionIds-swipeStates\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendRequestFieldMetadataTextLeak.tsx").write_text(
         "export function BackendRequestFieldMetadataTextLeak() {\n"
         "  return <Text>headers pathname</Text>;\n"
@@ -1725,6 +1747,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendCardPayloadFieldMetadataTextLeak.tsx",
         "src/learning/BackendCardPayloadFieldMetadataPropLeak.tsx",
         "src/learning/BackendCardPayloadFieldMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendInteractionLocalFieldMetadataTextLeak.tsx",
+        "src/learning/BackendInteractionLocalFieldMetadataPropLeak.tsx",
+        "src/learning/BackendInteractionLocalFieldMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendRequestFieldMetadataTextLeak.tsx",
         "src/learning/BackendRequestFieldMetadataPropLeak.tsx",
         "src/learning/BackendRequestFieldMetadataStaticRenderedPropLeak.tsx",
@@ -2059,6 +2084,10 @@ for snippet in [
     "lock_slots",
     "elimination_items",
     "swipe_states",
+    "optionIds",
+    "lockSlots",
+    "eliminationItems",
+    "swipeStates",
     "headers",
     "pathname",
     "DEFAULT_SMS_CODE",
@@ -2368,6 +2397,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>lock_slots, elimination_items, and swipe_states are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_interaction_local_field_metadata_html = (
+        Path(tmp_dir) / "backend-interaction-local-field-metadata-visible-leak.html"
+    )
+    fixture_backend_interaction_local_field_metadata_html.write_text(
+        "<!doctype html><html><body><p>optionIds, lockSlots, eliminationItems, and swipeStates are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_request_field_metadata_html = (
         Path(tmp_dir) / "backend-request-field-metadata-visible-leak.html"
     )
@@ -2629,6 +2665,7 @@ with tempfile.TemporaryDirectory(
         "backend-response-field-metadata-visible-leak.html",
         "backend-membership-enum-metadata-visible-leak.html",
         "backend-card-payload-field-metadata-visible-leak.html",
+        "backend-interaction-local-field-metadata-visible-leak.html",
         "backend-request-field-metadata-visible-leak.html",
         "backend-route-helper-metadata-visible-leak.html",
         "backend-http-helper-metadata-visible-leak.html",
