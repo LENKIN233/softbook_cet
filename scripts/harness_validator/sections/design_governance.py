@@ -231,6 +231,9 @@ for snippet in [
     "tokenSecret",
     "tokenTtlSeconds",
     "trial_available",
+    "lock_slots",
+    "elimination_items",
+    "swipe_states",
     "getDefaultApi",
     "createSoftbookApi",
     "handleCloudBaseEvent",
@@ -1013,6 +1016,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendCardPayloadFieldMetadataTextLeak.tsx").write_text(
+        "export function BackendCardPayloadFieldMetadataTextLeak() {\n"
+        "  return <Text>lock_slots elimination_items</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendCardPayloadFieldMetadataPropLeak.tsx").write_text(
+        "export function BackendCardPayloadFieldMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"swipe_states\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendCardPayloadFieldMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendCardPayloadFieldMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"lock_slots-swipe_states\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendRouteHelperMetadataTextLeak.tsx").write_text(
         "export function BackendRouteHelperMetadataTextLeak() {\n"
         "  return <Text>getDefaultApi createSoftbookApi handleCloudBaseEvent</Text>;\n"
@@ -1633,6 +1654,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendMembershipEnumMetadataTextLeak.tsx",
         "src/learning/BackendMembershipEnumMetadataPropLeak.tsx",
         "src/learning/BackendMembershipEnumMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendCardPayloadFieldMetadataTextLeak.tsx",
+        "src/learning/BackendCardPayloadFieldMetadataPropLeak.tsx",
+        "src/learning/BackendCardPayloadFieldMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataTextLeak.tsx",
         "src/learning/BackendRouteHelperMetadataPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataStaticRenderedPropLeak.tsx",
@@ -1955,6 +1979,9 @@ for snippet in [
     "tokenSecret",
     "tokenTtlSeconds",
     "trial_available",
+    "lock_slots",
+    "elimination_items",
+    "swipe_states",
     "DEFAULT_SMS_CODE",
     "DEFAULT_TRIAL_DURATION_DAYS",
     "DEFAULT_TOKEN_TTL_SECONDS",
@@ -2248,6 +2275,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>trial_available is visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_card_payload_field_metadata_html = (
+        Path(tmp_dir) / "backend-card-payload-field-metadata-visible-leak.html"
+    )
+    fixture_backend_card_payload_field_metadata_html.write_text(
+        "<!doctype html><html><body><p>lock_slots, elimination_items, and swipe_states are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_route_helper_metadata_html = (
         Path(tmp_dir) / "backend-route-helper-metadata-visible-leak.html"
     )
@@ -2493,6 +2527,7 @@ with tempfile.TemporaryDirectory(
         "backend-error-code-metadata-visible-leak.html",
         "backend-response-field-metadata-visible-leak.html",
         "backend-membership-enum-metadata-visible-leak.html",
+        "backend-card-payload-field-metadata-visible-leak.html",
         "backend-route-helper-metadata-visible-leak.html",
         "backend-http-helper-metadata-visible-leak.html",
         "backend-validator-helper-metadata-visible-leak.html",
