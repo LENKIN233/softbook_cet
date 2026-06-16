@@ -254,6 +254,10 @@ for snippet in [
     "fieldName",
     "statusCode",
     "requestContext",
+    "defaultApi",
+    "overrideValue",
+    "envValue",
+    "storeMode",
     "getDefaultApi",
     "createSoftbookApi",
     "handleCloudBaseEvent",
@@ -1162,6 +1166,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendConfigLocalFieldMetadataTextLeak.tsx").write_text(
+        "export function BackendConfigLocalFieldMetadataTextLeak() {\n"
+        "  return <Text>defaultApi overrideValue</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendConfigLocalFieldMetadataPropLeak.tsx").write_text(
+        "export function BackendConfigLocalFieldMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"envValue storeMode\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendConfigLocalFieldMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendConfigLocalFieldMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"defaultApi-storeMode\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendRouteHelperMetadataTextLeak.tsx").write_text(
         "export function BackendRouteHelperMetadataTextLeak() {\n"
         "  return <Text>getDefaultApi createSoftbookApi handleCloudBaseEvent</Text>;\n"
@@ -1821,6 +1843,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendHttpLocalFieldMetadataTextLeak.tsx",
         "src/learning/BackendHttpLocalFieldMetadataPropLeak.tsx",
         "src/learning/BackendHttpLocalFieldMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendConfigLocalFieldMetadataTextLeak.tsx",
+        "src/learning/BackendConfigLocalFieldMetadataPropLeak.tsx",
+        "src/learning/BackendConfigLocalFieldMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataTextLeak.tsx",
         "src/learning/BackendRouteHelperMetadataPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataStaticRenderedPropLeak.tsx",
@@ -2169,6 +2194,10 @@ for snippet in [
     "fieldName",
     "statusCode",
     "requestContext",
+    "defaultApi",
+    "overrideValue",
+    "envValue",
+    "storeMode",
     "DEFAULT_SMS_CODE",
     "DEFAULT_TRIAL_DURATION_DAYS",
     "DEFAULT_TOKEN_TTL_SECONDS",
@@ -2504,6 +2533,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>fieldName, statusCode, and requestContext are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_config_local_field_metadata_html = (
+        Path(tmp_dir) / "backend-config-local-field-metadata-visible-leak.html"
+    )
+    fixture_backend_config_local_field_metadata_html.write_text(
+        "<!doctype html><html><body><p>defaultApi, overrideValue, envValue, and storeMode are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_route_helper_metadata_html = (
         Path(tmp_dir) / "backend-route-helper-metadata-visible-leak.html"
     )
@@ -2769,6 +2805,7 @@ with tempfile.TemporaryDirectory(
         "backend-card-shape-local-field-metadata-visible-leak.html",
         "backend-request-field-metadata-visible-leak.html",
         "backend-http-local-field-metadata-visible-leak.html",
+        "backend-config-local-field-metadata-visible-leak.html",
         "backend-route-helper-metadata-visible-leak.html",
         "backend-http-helper-metadata-visible-leak.html",
         "backend-validator-helper-metadata-visible-leak.html",
