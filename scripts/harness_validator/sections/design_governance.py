@@ -208,6 +208,11 @@ for snippet in [
     "saveDailyProgress",
     "saveLearningState",
     "saveSpaceState",
+    "acknowledged_at",
+    "updated_at",
+    "events_by_card_id",
+    "states_by_card_id",
+    "server_sequence",
     "getDefaultApi",
     "createSoftbookApi",
     "handleCloudBaseEvent",
@@ -918,6 +923,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendDocumentFieldMetadataTextLeak.tsx").write_text(
+        "export function BackendDocumentFieldMetadataTextLeak() {\n"
+        "  return <Text>acknowledged_at updated_at</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendDocumentFieldMetadataPropLeak.tsx").write_text(
+        "export function BackendDocumentFieldMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"events_by_card_id server_sequence\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendDocumentFieldMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendDocumentFieldMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"states_by_card_id\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendRouteHelperMetadataTextLeak.tsx").write_text(
         "export function BackendRouteHelperMetadataTextLeak() {\n"
         "  return <Text>getDefaultApi createSoftbookApi handleCloudBaseEvent</Text>;\n"
@@ -1526,6 +1549,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendStoreMethodMetadataTextLeak.tsx",
         "src/learning/BackendStoreMethodMetadataPropLeak.tsx",
         "src/learning/BackendStoreMethodMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendDocumentFieldMetadataTextLeak.tsx",
+        "src/learning/BackendDocumentFieldMetadataPropLeak.tsx",
+        "src/learning/BackendDocumentFieldMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataTextLeak.tsx",
         "src/learning/BackendRouteHelperMetadataPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataStaticRenderedPropLeak.tsx",
@@ -1826,6 +1852,11 @@ for snippet in [
     "saveDailyProgress",
     "saveLearningState",
     "saveSpaceState",
+    "acknowledged_at",
+    "updated_at",
+    "events_by_card_id",
+    "states_by_card_id",
+    "server_sequence",
     "DEFAULT_SMS_CODE",
     "DEFAULT_TRIAL_DURATION_DAYS",
     "DEFAULT_TOKEN_TTL_SECONDS",
@@ -2091,6 +2122,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>getCardSource, getMembership, startTrial, dismissRecovery, saveDailyProgress, saveLearningState, and saveSpaceState are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_document_field_metadata_html = (
+        Path(tmp_dir) / "backend-document-field-metadata-visible-leak.html"
+    )
+    fixture_backend_document_field_metadata_html.write_text(
+        "<!doctype html><html><body><p>acknowledged_at, updated_at, events_by_card_id, states_by_card_id, and server_sequence are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_route_helper_metadata_html = (
         Path(tmp_dir) / "backend-route-helper-metadata-visible-leak.html"
     )
@@ -2332,6 +2370,7 @@ with tempfile.TemporaryDirectory(
         "backend-default-constant-metadata-visible-leak.html",
         "backend-collection-metadata-visible-leak.html",
         "backend-store-method-metadata-visible-leak.html",
+        "backend-document-field-metadata-visible-leak.html",
         "backend-route-helper-metadata-visible-leak.html",
         "backend-http-helper-metadata-visible-leak.html",
         "backend-validator-helper-metadata-visible-leak.html",
