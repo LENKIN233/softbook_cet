@@ -216,6 +216,8 @@ for snippet in [
     "eventsByCardId",
     "statesByCardId",
     "server_sequence",
+    "eventObject",
+    "stateObject",
     "not_found",
     "invalid_api_key",
     "invalid_sms_code",
@@ -1268,6 +1270,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendSyncLocalFieldMetadataTextLeak.tsx").write_text(
+        "export function BackendSyncLocalFieldMetadataTextLeak() {\n"
+        "  return <Text>eventObject stateObject</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendSyncLocalFieldMetadataPropLeak.tsx").write_text(
+        "export function BackendSyncLocalFieldMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"stateObject\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendSyncLocalFieldMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendSyncLocalFieldMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"eventObject-stateObject\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendEventAdapterMetadataTextLeak.tsx").write_text(
         "export function BackendEventAdapterMetadataTextLeak() {\n"
         "  return <Text>parseCloudBaseEvent parseEventBody normalizeApiPath</Text>;\n"
@@ -1819,6 +1839,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendSyncSnapshotMetadataTextLeak.tsx",
         "src/learning/BackendSyncSnapshotMetadataPropLeak.tsx",
         "src/learning/BackendSyncSnapshotMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendSyncLocalFieldMetadataTextLeak.tsx",
+        "src/learning/BackendSyncLocalFieldMetadataPropLeak.tsx",
+        "src/learning/BackendSyncLocalFieldMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendEventAdapterMetadataTextLeak.tsx",
         "src/learning/BackendEventAdapterMetadataPropLeak.tsx",
         "src/learning/BackendEventAdapterMetadataStaticRenderedPropLeak.tsx",
@@ -2109,6 +2132,8 @@ for snippet in [
     "eventsByCardId",
     "statesByCardId",
     "server_sequence",
+    "eventObject",
+    "stateObject",
     "not_found",
     "invalid_api_key",
     "invalid_sms_code",
@@ -2528,6 +2553,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>parseDailyProgressSnapshot, parseLearningStateSnapshot, parseSpaceStateSnapshot, and acknowledgedResponse are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_sync_local_field_metadata_html = (
+        Path(tmp_dir) / "backend-sync-local-field-metadata-visible-leak.html"
+    )
+    fixture_backend_sync_local_field_metadata_html.write_text(
+        "<!doctype html><html><body><p>eventObject and stateObject are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_event_adapter_metadata_html = (
         Path(tmp_dir) / "backend-event-adapter-metadata-visible-leak.html"
     )
@@ -2744,6 +2776,7 @@ with tempfile.TemporaryDirectory(
         "backend-token-helper-metadata-visible-leak.html",
         "backend-token-local-field-metadata-visible-leak.html",
         "backend-sync-snapshot-metadata-visible-leak.html",
+        "backend-sync-local-field-metadata-visible-leak.html",
         "backend-event-adapter-metadata-visible-leak.html",
         "backend-store-helper-metadata-visible-leak.html",
         "backend-membership-helper-metadata-visible-leak.html",
