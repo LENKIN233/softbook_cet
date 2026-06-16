@@ -201,6 +201,13 @@ for snippet in [
     "softbook_learning_states",
     "softbook_memberships",
     "softbook_space_states",
+    "getCardSource",
+    "getMembership",
+    "startTrial",
+    "dismissRecovery",
+    "saveDailyProgress",
+    "saveLearningState",
+    "saveSpaceState",
     "getDefaultApi",
     "createSoftbookApi",
     "handleCloudBaseEvent",
@@ -893,6 +900,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendStoreMethodMetadataTextLeak.tsx").write_text(
+        "export function BackendStoreMethodMetadataTextLeak() {\n"
+        "  return <Text>getCardSource getMembership saveDailyProgress</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendStoreMethodMetadataPropLeak.tsx").write_text(
+        "export function BackendStoreMethodMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"startTrial dismissRecovery\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendStoreMethodMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendStoreMethodMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"saveLearningState saveSpaceState\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendRouteHelperMetadataTextLeak.tsx").write_text(
         "export function BackendRouteHelperMetadataTextLeak() {\n"
         "  return <Text>getDefaultApi createSoftbookApi handleCloudBaseEvent</Text>;\n"
@@ -1498,6 +1523,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendCollectionMetadataTextLeak.tsx",
         "src/learning/BackendCollectionMetadataPropLeak.tsx",
         "src/learning/BackendCollectionMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendStoreMethodMetadataTextLeak.tsx",
+        "src/learning/BackendStoreMethodMetadataPropLeak.tsx",
+        "src/learning/BackendStoreMethodMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataTextLeak.tsx",
         "src/learning/BackendRouteHelperMetadataPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataStaticRenderedPropLeak.tsx",
@@ -1791,6 +1819,13 @@ for snippet in [
     "softbook_learning_states",
     "softbook_memberships",
     "softbook_space_states",
+    "getCardSource",
+    "getMembership",
+    "startTrial",
+    "dismissRecovery",
+    "saveDailyProgress",
+    "saveLearningState",
+    "saveSpaceState",
     "DEFAULT_SMS_CODE",
     "DEFAULT_TRIAL_DURATION_DAYS",
     "DEFAULT_TOKEN_TTL_SECONDS",
@@ -2049,6 +2084,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>cardSources, dailyProgress, learningStates, memberships, spaceStates, softbook_card_sources, softbook_daily_progress, softbook_learning_states, softbook_memberships, and softbook_space_states are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_store_method_metadata_html = (
+        Path(tmp_dir) / "backend-store-method-metadata-visible-leak.html"
+    )
+    fixture_backend_store_method_metadata_html.write_text(
+        "<!doctype html><html><body><p>getCardSource, getMembership, startTrial, dismissRecovery, saveDailyProgress, saveLearningState, and saveSpaceState are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_route_helper_metadata_html = (
         Path(tmp_dir) / "backend-route-helper-metadata-visible-leak.html"
     )
@@ -2289,6 +2331,7 @@ with tempfile.TemporaryDirectory(
         "cloudbase-script-local-metadata-visible-leak.html",
         "backend-default-constant-metadata-visible-leak.html",
         "backend-collection-metadata-visible-leak.html",
+        "backend-store-method-metadata-visible-leak.html",
         "backend-route-helper-metadata-visible-leak.html",
         "backend-http-helper-metadata-visible-leak.html",
         "backend-validator-helper-metadata-visible-leak.html",
