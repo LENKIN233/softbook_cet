@@ -230,6 +230,7 @@ for snippet in [
     "isBase64Encoded",
     "tokenSecret",
     "tokenTtlSeconds",
+    "trial_available",
     "getDefaultApi",
     "createSoftbookApi",
     "handleCloudBaseEvent",
@@ -994,6 +995,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendMembershipEnumMetadataTextLeak.tsx").write_text(
+        "export function BackendMembershipEnumMetadataTextLeak() {\n"
+        "  return <Text>trial_available</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendMembershipEnumMetadataPropLeak.tsx").write_text(
+        "export function BackendMembershipEnumMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"trial_available\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendMembershipEnumMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendMembershipEnumMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"trial_available\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendRouteHelperMetadataTextLeak.tsx").write_text(
         "export function BackendRouteHelperMetadataTextLeak() {\n"
         "  return <Text>getDefaultApi createSoftbookApi handleCloudBaseEvent</Text>;\n"
@@ -1611,6 +1630,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendResponseFieldMetadataTextLeak.tsx",
         "src/learning/BackendResponseFieldMetadataPropLeak.tsx",
         "src/learning/BackendResponseFieldMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendMembershipEnumMetadataTextLeak.tsx",
+        "src/learning/BackendMembershipEnumMetadataPropLeak.tsx",
+        "src/learning/BackendMembershipEnumMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataTextLeak.tsx",
         "src/learning/BackendRouteHelperMetadataPropLeak.tsx",
         "src/learning/BackendRouteHelperMetadataStaticRenderedPropLeak.tsx",
@@ -1932,6 +1954,7 @@ for snippet in [
     "isBase64Encoded",
     "tokenSecret",
     "tokenTtlSeconds",
+    "trial_available",
     "DEFAULT_SMS_CODE",
     "DEFAULT_TRIAL_DURATION_DAYS",
     "DEFAULT_TOKEN_TTL_SECONDS",
@@ -2218,6 +2241,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>isBase64Encoded, tokenSecret, and tokenTtlSeconds are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_membership_enum_metadata_html = (
+        Path(tmp_dir) / "backend-membership-enum-metadata-visible-leak.html"
+    )
+    fixture_backend_membership_enum_metadata_html.write_text(
+        "<!doctype html><html><body><p>trial_available is visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_route_helper_metadata_html = (
         Path(tmp_dir) / "backend-route-helper-metadata-visible-leak.html"
     )
@@ -2462,6 +2492,7 @@ with tempfile.TemporaryDirectory(
         "backend-document-field-metadata-visible-leak.html",
         "backend-error-code-metadata-visible-leak.html",
         "backend-response-field-metadata-visible-leak.html",
+        "backend-membership-enum-metadata-visible-leak.html",
         "backend-route-helper-metadata-visible-leak.html",
         "backend-http-helper-metadata-visible-leak.html",
         "backend-validator-helper-metadata-visible-leak.html",
