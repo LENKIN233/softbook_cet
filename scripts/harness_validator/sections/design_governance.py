@@ -230,6 +230,9 @@ for snippet in [
     "isBase64Encoded",
     "tokenSecret",
     "tokenTtlSeconds",
+    "issuedAt",
+    "encodedPayload",
+    "expectedSignature",
     "trial_available",
     "lock_slots",
     "elimination_items",
@@ -1000,6 +1003,24 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/BackendTokenLocalFieldMetadataTextLeak.tsx").write_text(
+        "export function BackendTokenLocalFieldMetadataTextLeak() {\n"
+        "  return <Text>issuedAt encodedPayload</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendTokenLocalFieldMetadataPropLeak.tsx").write_text(
+        "export function BackendTokenLocalFieldMetadataPropLeak() {\n"
+        "  return <Pressable accessibilityLabel=\"expectedSignature\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/BackendTokenLocalFieldMetadataStaticRenderedPropLeak.tsx").write_text(
+        "export function BackendTokenLocalFieldMetadataStaticRenderedPropLeak() {\n"
+        "  return <View testID=\"encodedPayload-expectedSignature\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/BackendMembershipEnumMetadataTextLeak.tsx").write_text(
         "export function BackendMembershipEnumMetadataTextLeak() {\n"
         "  return <Text>trial_available</Text>;\n"
@@ -1671,6 +1692,9 @@ with tempfile.TemporaryDirectory(
         "src/learning/BackendResponseFieldMetadataTextLeak.tsx",
         "src/learning/BackendResponseFieldMetadataPropLeak.tsx",
         "src/learning/BackendResponseFieldMetadataStaticRenderedPropLeak.tsx",
+        "src/learning/BackendTokenLocalFieldMetadataTextLeak.tsx",
+        "src/learning/BackendTokenLocalFieldMetadataPropLeak.tsx",
+        "src/learning/BackendTokenLocalFieldMetadataStaticRenderedPropLeak.tsx",
         "src/learning/BackendMembershipEnumMetadataTextLeak.tsx",
         "src/learning/BackendMembershipEnumMetadataPropLeak.tsx",
         "src/learning/BackendMembershipEnumMetadataStaticRenderedPropLeak.tsx",
@@ -2001,6 +2025,9 @@ for snippet in [
     "isBase64Encoded",
     "tokenSecret",
     "tokenTtlSeconds",
+    "issuedAt",
+    "encodedPayload",
+    "expectedSignature",
     "trial_available",
     "lock_slots",
     "elimination_items",
@@ -2349,6 +2376,13 @@ with tempfile.TemporaryDirectory(
         "<!doctype html><html><body><p>resolveTokenTtlSeconds, isApiKeyAllowed, assertBodyPhoneMatchesSession, base64UrlEncode, base64UrlDecode, and safeEqual are visible.</p></body></html>\n",
         encoding="utf-8",
     )
+    fixture_backend_token_local_field_metadata_html = (
+        Path(tmp_dir) / "backend-token-local-field-metadata-visible-leak.html"
+    )
+    fixture_backend_token_local_field_metadata_html.write_text(
+        "<!doctype html><html><body><p>issuedAt and expectedSignature are visible.</p></body></html>\n",
+        encoding="utf-8",
+    )
     fixture_backend_sync_snapshot_metadata_html = (
         Path(tmp_dir) / "backend-sync-snapshot-metadata-visible-leak.html"
     )
@@ -2566,6 +2600,7 @@ with tempfile.TemporaryDirectory(
         "backend-validator-helper-metadata-visible-leak.html",
         "backend-request-validation-helper-metadata-visible-leak.html",
         "backend-token-helper-metadata-visible-leak.html",
+        "backend-token-local-field-metadata-visible-leak.html",
         "backend-sync-snapshot-metadata-visible-leak.html",
         "backend-event-adapter-metadata-visible-leak.html",
         "backend-store-helper-metadata-visible-leak.html",
