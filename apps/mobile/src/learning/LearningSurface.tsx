@@ -342,6 +342,16 @@ export function LearningSurface({
         ]}
         testID="learning-current-card"
       >
+        <View
+          pointerEvents="none"
+          style={[
+            styles.paperSpine,
+            { backgroundColor: hexToRgba(tone.accent, 0.18) },
+          ]}
+        />
+        <View pointerEvents="none" style={styles.paperLineOne} />
+        <View pointerEvents="none" style={styles.paperLineTwo} />
+        <View pointerEvents="none" style={styles.paperLineThree} />
         <View style={styles.studyCardTop}>
           <View style={styles.studyTitleWrap}>
             <Text style={[styles.cardEyebrow, { color: tone.accent }]}>
@@ -979,6 +989,15 @@ function ResultPanel({
         },
       ]}
     >
+      <View
+        pointerEvents="none"
+        style={[
+          styles.paperSpine,
+          { backgroundColor: hexToRgba(borderTone, 0.18) },
+        ]}
+      />
+      <View pointerEvents="none" style={styles.paperLineOne} />
+      <View pointerEvents="none" style={styles.paperLineTwo} />
       <View style={styles.resultHeader}>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>
           {isPositive ? '这张卡已稳住' : '这张卡需要回看'}
@@ -1190,16 +1209,16 @@ function toTestIdSegment(value: string) {
 
 const styles = StyleSheet.create({
   page: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 32,
-    gap: 16,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 34,
+    gap: 14,
   },
   glassCard: {
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.12,
-    shadowRadius: 32,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.14,
+    shadowRadius: 34,
+    elevation: 7,
   },
   heroCard: {
     borderWidth: 1,
@@ -1239,9 +1258,10 @@ const styles = StyleSheet.create({
   },
   learningFrameHeader: {
     borderWidth: 1,
-    borderRadius: 28,
-    padding: 16,
-    gap: 10,
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    gap: 8,
   },
   learningFrameTop: {
     flexDirection: 'row',
@@ -1259,7 +1279,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   progressTrack: {
-    height: 10,
+    height: 8,
     borderWidth: 1,
     borderRadius: 999,
     overflow: 'hidden',
@@ -1300,9 +1320,44 @@ const styles = StyleSheet.create({
   },
   studyCard: {
     borderWidth: 1,
-    borderRadius: 30,
-    padding: 20,
-    gap: 18,
+    borderRadius: 32,
+    overflow: 'hidden',
+    paddingHorizontal: 22,
+    paddingVertical: 22,
+    gap: 16,
+    position: 'relative',
+  },
+  paperSpine: {
+    bottom: 0,
+    left: 30,
+    opacity: 1,
+    position: 'absolute',
+    top: 0,
+    width: 1,
+  },
+  paperLineOne: {
+    backgroundColor: 'rgba(47,70,80,0.08)',
+    height: 1,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 96,
+  },
+  paperLineTwo: {
+    backgroundColor: 'rgba(47,70,80,0.08)',
+    height: 1,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 184,
+  },
+  paperLineThree: {
+    backgroundColor: 'rgba(47,70,80,0.08)',
+    height: 1,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 272,
   },
   studyCardTop: {
     flexDirection: 'row',
@@ -1320,14 +1375,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   cardPrompt: {
-    fontSize: 28,
-    lineHeight: 36,
+    fontSize: 27,
+    lineHeight: 35,
     fontWeight: '800',
   },
   contextCard: {
     borderWidth: 1,
-    borderRadius: 22,
-    padding: 14,
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
     gap: 8,
   },
   cardSupport: {
@@ -1411,7 +1467,8 @@ const styles = StyleSheet.create({
   interactionCard: {
     borderWidth: 1,
     borderRadius: 24,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
     gap: 12,
   },
   sectionTitle: {
@@ -1480,7 +1537,8 @@ const styles = StyleSheet.create({
   optionCard: {
     borderWidth: 1,
     borderRadius: 20,
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 15,
     gap: 10,
     minWidth: '47%',
     flexGrow: 1,
@@ -1666,7 +1724,7 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   primaryButton: {
-    borderRadius: 20,
+    borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 14,
     alignItems: 'center',
@@ -1678,9 +1736,12 @@ const styles = StyleSheet.create({
   },
   resultCard: {
     borderWidth: 1,
-    borderRadius: 24,
-    padding: 18,
+    borderRadius: 26,
+    overflow: 'hidden',
+    paddingHorizontal: 19,
+    paddingVertical: 18,
     gap: 12,
+    position: 'relative',
   },
   resultHeader: {
     flexDirection: 'row',

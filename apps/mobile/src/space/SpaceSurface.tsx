@@ -584,6 +584,79 @@ export function SpaceSurface({
             </Text>
           ) : null}
 
+          <View
+            style={[
+              styles.openBoxDeck,
+              {
+                backgroundColor: selectedTone.accentSoft,
+                borderColor: selectedTone.accent,
+              },
+            ]}
+            testID="space-open-box-deck"
+          >
+            {selectedBoxCards.slice(0, 3).map((card, cardIndex, deckCards) => {
+              const isCurrent = currentLearningCard?.card_id === card.cardId;
+              const cardState = cardStateById[card.cardId];
+              const deckStyle =
+                deckCards.length === 1
+                  ? styles.deckCardSolo
+                  : deckCards.length === 2
+                  ? cardIndex === 0
+                    ? styles.deckCardPairLeft
+                    : styles.deckCardPairRight
+                  : cardIndex === 0
+                  ? styles.deckCardLeft
+                  : cardIndex === 1
+                  ? styles.deckCardCenter
+                  : styles.deckCardRight;
+
+              return (
+                <View
+                  key={card.cardId}
+                  style={[
+                    styles.deckCard,
+                    deckStyle,
+                    {
+                      backgroundColor: palette.panelStrong,
+                      borderColor: isCurrent
+                        ? selectedTone.accent
+                        : palette.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.deckCardTag,
+                      {
+                        color: isCurrent
+                          ? selectedTone.accent
+                          : cardState?.isSleeping
+                          ? palette.warning
+                          : cardState?.isFavorited
+                          ? palette.accentStrong
+                          : palette.textMuted,
+                      },
+                    ]}
+                  >
+                    {isCurrent
+                      ? '当前'
+                      : cardState?.isSleeping
+                      ? '休眠'
+                      : cardState?.isFavorited
+                      ? '收藏'
+                      : '盒内'}
+                  </Text>
+                  <Text
+                    numberOfLines={3}
+                    style={[styles.deckCardPrompt, { color: palette.text }]}
+                  >
+                    {card.prompt}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+
           <View style={styles.boxShelf} testID="space-current-position">
             {selectedGroup.boxes.map((box, boxIndex) => {
               const isActive = box.boxRef === selectedBox.boxRef;
@@ -785,7 +858,7 @@ export function SpaceSurface({
         </View>
 
         <SurfaceCard palette={palette} testID="space-box-detail">
-          <View style={styles.containedHeader}>
+          <View style={styles.containedHeader} testID="space-card-list-header">
             <View style={styles.statusCopy}>
               <Text style={[styles.cardTitle, { color: palette.text }]}>
                 盒内卡片
@@ -1325,9 +1398,9 @@ function buildSpaceSeed(spaceCards: readonly LearningCard[]): SpaceSeed {
 
 const styles = StyleSheet.create({
   content: {
-    gap: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
   contentTablet: {
     paddingHorizontal: 28,
@@ -1337,11 +1410,11 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   surfaceCard: {
-    borderRadius: 24,
+    borderRadius: 25,
     borderWidth: 1,
-    gap: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
   },
   addressShelf: {
     overflow: 'hidden',
@@ -1381,12 +1454,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
   },
   summary: {
-    fontSize: 15,
-    lineHeight: 23,
+    fontSize: 14,
+    lineHeight: 21,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -1399,13 +1472,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   addressContextPill: {
-    borderRadius: 16,
+    borderRadius: 15,
     borderWidth: 1,
     flexGrow: 1,
     gap: 4,
-    minWidth: 118,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    minWidth: 112,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   addressContextLabel: {
     fontSize: 11,
@@ -1478,13 +1551,77 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   boxTrayTitle: {
-    fontSize: 26,
+    fontSize: 25,
     fontWeight: '800',
     lineHeight: 32,
   },
   boxAccentRail: {
     borderRadius: 999,
     width: 6,
+  },
+  openBoxDeck: {
+    borderRadius: 26,
+    borderWidth: 1,
+    height: 196,
+    marginTop: 2,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  deckCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 8,
+    height: 142,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    position: 'absolute',
+    top: 40,
+    width: 132,
+    shadowOffset: { width: 0, height: 13 },
+    shadowOpacity: 0.13,
+    shadowRadius: 22,
+    elevation: 5,
+  },
+  deckCardLeft: {
+    left: 12,
+    transform: [{ rotate: '-7deg' }],
+  },
+  deckCardSolo: {
+    left: '30%',
+    top: 26,
+    transform: [{ rotate: '0deg' }],
+    width: 150,
+  },
+  deckCardPairLeft: {
+    left: 24,
+    top: 34,
+    transform: [{ rotate: '-4deg' }],
+    width: 148,
+  },
+  deckCardPairRight: {
+    right: 24,
+    top: 34,
+    transform: [{ rotate: '4deg' }],
+    width: 148,
+  },
+  deckCardCenter: {
+    left: '31%',
+    top: 24,
+    transform: [{ rotate: '0deg' }],
+    zIndex: 2,
+  },
+  deckCardRight: {
+    right: 12,
+    transform: [{ rotate: '7deg' }],
+  },
+  deckCardTag: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  deckCardPrompt: {
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
   },
   boxTraySkeleton: {
     gap: 8,
@@ -1609,18 +1746,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardStrip: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
   },
   cardTile: {
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
     gap: 8,
-    minWidth: 210,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    width: '48%',
+    minWidth: 0,
+    paddingHorizontal: 15,
+    paddingVertical: 15,
+    width: '100%',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 3,
   },
   loadingCardSkeleton: {
     borderStyle: 'dashed',

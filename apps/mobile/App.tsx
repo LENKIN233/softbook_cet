@@ -151,8 +151,8 @@ type SpaceCardState = {
   isSleeping: boolean;
 };
 
-const SHELL_ACCENT = '#5B6DF5';
-const SHELL_DEPTH = '#18A7B8';
+const SHELL_ACCENT = '#637783';
+const SHELL_DEPTH = '#86A3A1';
 
 type AuthHandlers = {
   onChangePhone: (value: string) => void;
@@ -234,19 +234,19 @@ const ROUTES: ShellRoute[] = [
 ];
 
 const LIGHT_PALETTE: Palette = {
-  background: '#F1F0F6',
-  panel: 'rgba(255,255,255,0.82)',
-  panelStrong: 'rgba(255,255,255,0.94)',
-  border: 'rgba(11,11,20,0.08)',
-  text: '#0B0B14',
-  textMuted: '#7A7A90',
+  background: '#F0F0EA',
+  panel: 'rgba(255,255,250,0.84)',
+  panelStrong: 'rgba(255,255,252,0.96)',
+  border: 'rgba(18,19,26,0.11)',
+  text: '#12131A',
+  textMuted: '#626977',
   accent: SHELL_ACCENT,
   accentSoft: hexToRgba(SHELL_ACCENT, 0.12),
-  accentStrong: '#4152E1',
-  tabIdle: '#ACACBF',
-  success: '#22C58B',
-  warning: '#F5B100',
-  danger: '#F15B6E',
+  accentStrong: '#2F4650',
+  tabIdle: '#8D948D',
+  success: '#249B77',
+  warning: '#C98524',
+  danger: '#B6545B',
 };
 
 const DARK_PALETTE: Palette = {
@@ -3736,23 +3736,23 @@ const styles = StyleSheet.create({
   },
   header: {
     borderWidth: 1,
-    borderRadius: 28,
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 18,
+    borderRadius: 24,
+    paddingHorizontal: 17,
+    paddingTop: 14,
+    paddingBottom: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: 16,
-    marginHorizontal: 20,
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.1,
-    shadowRadius: 32,
+    gap: 12,
+    marginHorizontal: 18,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.09,
+    shadowRadius: 28,
     elevation: 5,
   },
   headerCopy: {
     flex: 1,
-    gap: 6,
+    gap: 4,
   },
   headerEyebrow: {
     fontSize: 12,
@@ -3760,23 +3760,23 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '800',
   },
   headerSummary: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 13,
+    lineHeight: 19,
   },
   headerMeta: {
     alignItems: 'flex-end',
-    gap: 8,
+    gap: 6,
   },
   headerPill: {
-    minWidth: 56,
+    minWidth: 50,
     borderWidth: 1,
     borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     alignItems: 'center',
   },
   headerPillText: {
@@ -4018,7 +4018,7 @@ const styles = StyleSheet.create({
   },
   phoneTabBarWrap: {
     paddingHorizontal: 18,
-    paddingBottom: 16,
+    paddingBottom: 14,
   },
   phoneTabBar: {
     borderWidth: 1,
