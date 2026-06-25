@@ -25,8 +25,10 @@ For core Learning or Space implementation work, prose direction alone is not eno
 - `space-surface-visual-refinement-v1.html`: rendered refined Space phone frames for primary box desk, card inspect, sleep/wake, and long-content containment.
 - `space-surface-shelf-desk-v1.md`: accepted Space shelf-desk mock promoted from `space-04` search evidence, with parent shelf, open box tray, contained cards, and sleep alcove.
 - `space-surface-shelf-desk-v1.html`: rendered accepted Space shelf-desk phone proof.
-- `leadership-screenshot-handoff-v1.md`: leadership-ready screenshot set derived from accepted Learning / Space visual artifacts.
-- `leadership-screenshot-handoff-v1.html`: rendered phone screenshot board for 首页, 卡片列表, 学习详情, and 知识空间.
+- `leadership-screenshot-handoff-v1.md`: earlier leadership screenshot set retained as superseded evidence.
+- `leadership-screenshot-handoff-v1.html`: rendered phone screenshot board retained as superseded evidence.
+- `leadership-screenshot-handoff-v2.md`: accepted leadership screenshot set derived from accepted Learning / Space visual artifacts, replacing v1 for outbound sharing.
+- `leadership-screenshot-handoff-v2.html`: rendered phone screenshot board for 首页, 卡片列表, 学习详情, and 知识空间.
 - `../physical-space/space-state-baseline-v1.md`: Space state baseline for loading, empty, remote-error, permission/paywall, and sync-merge states.
 - `space-state-baseline-v1.html`: rendered `393 x 852` phone proof for Space non-ideal states.
 
