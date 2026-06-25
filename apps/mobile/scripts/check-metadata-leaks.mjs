@@ -103,8 +103,11 @@ const visibleCardContentLeakPattern =
 const visibleDesignJargonLeakPattern =
   /\b(?:SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC)\b|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|本组第|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
+const visibleProductMetadataLeakPattern =
+  /(?:已登录\s+(?:\$\{[^}]*?(?:phone|Phone|手机号|maskPhoneNumber)[^}]*\}|\{?\s*maskPhoneNumber|1\d{2}|[0-9*]{4,})|第\s+\$?\{?.*?张\s*\/\s*共|馆\s+\$?\{?|\b馆\s*\d|组\s+\$?\{?|\b组\s*\d|盒\s+\$?\{?|\b盒\s*\d|当前地址|当前学习卡位于|空间地址架|当前盒位|当前空间路径|收藏标签\s+\$?\{?|休眠区\s+\$?\{?|0\s*张可展示|正在整理卡片\s+\$?\{?index)/;
+
 const internalGuardLinePattern =
-  /INTERNAL_ERROR_COPY_PATTERN|visibleDesignJargonLeakPattern/;
+  /INTERNAL_ERROR_COPY_PATTERN|visibleDesignJargonLeakPattern|visibleProductMetadataLeakPattern/;
 
 const visibleStringLinePattern =
   new RegExp(
@@ -362,6 +365,19 @@ function checkDirectDisplayMetadata(filePath) {
         line: index + 1,
         text,
         reason: 'internal design or implementation jargon in visible copy',
+      });
+    }
+
+    if (
+      visibleStringLinePattern.test(text) &&
+      visibleProductMetadataLeakPattern.test(text) &&
+      !isInternalGuardLine
+    ) {
+      findings.push({
+        filePath,
+        line: index + 1,
+        text,
+        reason: 'product-facing metadata or fixture state leaked in visible copy',
       });
     }
 

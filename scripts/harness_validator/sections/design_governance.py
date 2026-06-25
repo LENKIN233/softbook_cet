@@ -1755,6 +1755,30 @@ with tempfile.TemporaryDirectory(
         "}\n",
         encoding="utf-8",
     )
+    (tmp_app_root / "src/learning/ProductLoginFixtureLeak.tsx").write_text(
+        "export function ProductLoginFixtureLeak() {\n"
+        "  return <Text>已登录 138****8000</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/ProductProgressFixtureLeak.tsx").write_text(
+        "export function ProductProgressFixtureLeak() {\n"
+        "  return <Text>第 1 张 / 共 7 张</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/ProductSpacePathFixtureLeak.tsx").write_text(
+        "export function ProductSpacePathFixtureLeak() {\n"
+        "  return <Text>这张在：馆 1 / 组 1 / 盒 1</Text>;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    (tmp_app_root / "src/learning/ProductSpaceStateFixtureLeak.tsx").write_text(
+        "export function ProductSpaceStateFixtureLeak() {\n"
+        "  return <View accessibilityLabel=\"当前学习卡位于 当前地址\" />;\n"
+        "}\n",
+        encoding="utf-8",
+    )
     (tmp_app_root / "src/learning/InternalError.ts").write_text(
         "export function failRemoteSync(status) {\n"
         "  throw new Error(`Remote debug sync failed with ${status}.`);\n"
@@ -1981,6 +2005,10 @@ with tempfile.TemporaryDirectory(
         "src/learning/SourceAccessibilityLabelledByLeak.tsx",
         "src/learning/SourceAriaLabelledByLeak.tsx",
         "src/learning/MultilineAriaLabelledByLeak.tsx",
+        "src/learning/ProductLoginFixtureLeak.tsx",
+        "src/learning/ProductProgressFixtureLeak.tsx",
+        "src/learning/ProductSpacePathFixtureLeak.tsx",
+        "src/learning/ProductSpaceStateFixtureLeak.tsx",
         "src/shared/uiMetadata/displayMetadata.ts",
         "src/space/spaceMetadataDisplay.ts",
         "raw metadata leaked in Text display node",
@@ -1990,6 +2018,7 @@ with tempfile.TemporaryDirectory(
         "raw metadata passed through multiline visible or accessibility copy prop",
         "raw metadata passed through multiline rendered element prop",
         "raw metadata leaked through visible copy source",
+        "product-facing metadata or fixture state leaked in visible copy",
     ]:
         if expected_snippet not in metadata_scanner_output:
             errors.append(

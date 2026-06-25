@@ -33,7 +33,7 @@ type TestRendererNode =
   | null;
 
 const USER_VISIBLE_METADATA_PATTERN =
-  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|remoteConfig|authToken|endpoint|MutationQueue|mutation|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|当前卡组|本组第|本轮卡组|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
+  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|remoteConfig|authToken|endpoint|MutationQueue|mutation|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|当前卡组|本组第|本轮卡组|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|已登录\s+138|第\s+\d+\s+张\s+\/\s+共\s+\d+\s+张|馆\s+\d|组\s+\d|盒\s+\d|当前地址|当前学习卡位于|空间地址架|当前盒位|当前空间路径|收藏标签\s+\d|休眠区\s+\d|0\s+张可展示|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
 function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   if (node === null) {
@@ -72,6 +72,11 @@ test('metadata leakage guard catches internal remote error vocabulary', () => {
     '购买与恢复入口集中放在这里，学习和空间保持轻量。',
     '首轮里还有 2 张卡待回看，先别把统计做成复杂大盘。',
     '已登录后直接进入单卡学习流；空间、统计和“我的”各自承接清楚的备考任务。',
+    '已登录 138****8000',
+    '第 1 张 / 共 7 张',
+    '这张在：馆 1 / 组 1 / 盒 1',
+    '当前学习卡位于 主书架 / 当前分区 / 当前卡盒',
+    '收藏标签 1 张。',
     'LEARNING / SHELL',
     '准备完成后会自动回到当前学习流。',
   ].forEach(message => {
@@ -1390,7 +1395,7 @@ test('auto-starts remote trial when first entering space', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('卡片的物理空间');
-  expect(output).toContain('当前盒是第一阅读对象');
+  expect(output).toContain('当前卡盒是第一阅读对象');
 
   const startTrialRequest = fetchCalls.find(
     call => call.input === 'https://api.softbook.example/v1/membership/start-trial',
@@ -1590,7 +1595,7 @@ test('can unlock gated space after remote purchase', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('卡片的物理空间');
-  expect(output).toContain('当前盒是第一阅读对象');
+  expect(output).toContain('当前卡盒是第一阅读对象');
   expect(root.findAllByProps({ testID: 'space-gate-rail' })).toHaveLength(0);
 
   const purchaseRequest = fetchCalls.find(
@@ -1903,7 +1908,7 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('卡片的物理空间');
-  expect(output).toContain('当前盒是第一阅读对象');
+  expect(output).toContain('当前卡盒是第一阅读对象');
   expect(
     fetchCalls.filter(
       call => call.input === 'https://api.softbook.example/v1/membership/entitlement',
@@ -2002,13 +2007,15 @@ test('can unlock the learning flow after fake sms verification', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('先完成这一张，再继续下一步');
-  expect(output).toContain('已登录 138****8000');
+  expect(output).toContain('已登录');
+  expect(output).not.toContain('已登录 138****8000');
   expect(output).toContain('however');
   const addressAperture = root.findByProps({
     testID: 'learning-address-aperture',
   });
-  const addressText = addressAperture.findByType(Text).props.children.join('');
-  expect(addressText).toBe('这张在：馆 1 / 组 1 / 盒 1');
+  const addressText = addressAperture.findByType(Text).props.children;
+  expect(addressText).toBe('位置已收在知识空间');
+  expect(output).not.toContain('这张在：馆 1 / 组 1 / 盒 1');
   expect(output).toContain('这张练习 · ');
   expect(output).not.toContain('当前卡 · ');
   expect(output).not.toContain('当前卡 · 002001');
@@ -2119,7 +2126,7 @@ test('keeps source bootstrap loading and errors attached to space', async () => 
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('正在整理空间内容');
-  expect(output).toContain('空间地址架和当前盒位会先保留在原位');
+  expect(output).toContain('空间当前位置会先保留在原位');
   expect(root.findAllByProps({ testID: 'space-status-rail' }).length)
     .toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-current-box-tray' }).length)
@@ -2147,7 +2154,7 @@ test('keeps source bootstrap loading and errors attached to space', async () => 
   await resolveLearningBootstrap();
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前盒');
+  expect(output).toContain('当前卡盒');
   expect(root.findAllByProps({ testID: 'space-status-rail' })).toHaveLength(0);
 });
 
@@ -2527,7 +2534,8 @@ test('mine page shows profile, learning, and space summaries after login', async
   expect(output).toContain('今日同步：已记录');
   expect(output).toContain('今日已完成 1 张卡，其中首轮 1 张、回看 0 张。');
   expect(output).toContain('同步进展：今天的学习进展已记录。');
-  expect(output).toContain('收藏标签 1 张。');
+  expect(output).toContain('已有收藏卡片。');
+  expect(output).not.toContain('收藏标签 1 张。');
 });
 
 test('can browse the seeded knowledge map after login', async () => {
@@ -2548,8 +2556,9 @@ test('can browse the seeded knowledge map after login', async () => {
   expect(root.findAllByProps({ testID: 'space-current-box-tray' }).length).toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-contained-card-strip' }).length).toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-continuity-strip' }).length).toBeGreaterThan(0);
-  expect(output).toContain('当前学习卡位于 ');
-  expect(output).toContain('当前盒');
+  expect(output).toContain('当前学习卡在这里');
+  expect(output).toContain('当前卡盒');
+  expect(output).not.toContain('当前学习卡位于 ');
   expect(output).toContain('回到学习');
   expectNoUserVisibleMetadataLeakage(tree!);
 
@@ -2663,7 +2672,8 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   expect(
     root.findAllByProps({ testID: 'space-favorite-active-1' }).length,
   ).toBeGreaterThan(0);
-  expect(output).toContain('收藏标签');
+  expect(output).toContain('有收藏');
+  expect(output).not.toContain('收藏标签');
   expect(output).toContain('取消收藏');
 
   await ReactTestRenderer.act(() => {
@@ -2691,7 +2701,7 @@ test('auto-starts local trial when first entering space', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('卡片的物理空间');
-  expect(output).toContain('当前盒是第一阅读对象');
+  expect(output).toContain('当前卡盒是第一阅读对象');
 });
 
 test('auto-starts trial from the first gated review entry', async () => {

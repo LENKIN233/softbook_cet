@@ -80,7 +80,9 @@ test('does not expose raw space metadata while learning', () => {
   const progressLabel = tree!.root.findByProps({
     testID: 'learning-progress-label',
   });
-  expect(progressLabel.props.children.join('')).toBe('第 1 张 / 共 7 张');
+  expect(progressLabel.props.children).toBe('当前练习');
+  expect(output).not.toContain('第 1 张');
+  expect(output).not.toContain('共 7 张');
   expect(output).not.toContain('本组第');
   expect(output).not.toContain('学习进度');
   expect(output).toContain('先做这一张');
@@ -105,9 +107,10 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).toContain('先把题干里的信号抓出来，再回到选项或解析确认。');
   expect(output).not.toContain('这张卡为什么出现');
   expect(output).not.toContain('该题来自当前练习安排');
-  expect(output).toContain('这张在：');
+  expect(output).toContain('位置已收在知识空间');
+  expect(output).not.toContain('这张在：');
   expect(output).not.toContain('当前位置：');
-  expect(output).toContain('馆 1 / 组 1 / 盒 1');
+  expect(output).not.toContain('馆 1 / 组 1 / 盒 1');
   expect(output).not.toContain(currentCard.space_metadata.library);
   expect(output).not.toContain(currentCard.space_metadata.group);
   expect(output).not.toContain(currentCard.space_metadata.box);
