@@ -46,10 +46,12 @@ const cardFixture: CardFixture = {
 };
 
 test('formats path indexes into anonymous-space labels', () => {
-  expect(formatSpacePathByIndex(2, 1, 1)).toBe('馆 2 / 组 1 / 盒 1');
-  expect(formatSpaceLibraryLabel(2)).toBe('馆 2');
-  expect(formatSpaceGroupLabel(1)).toBe('组 1');
-  expect(formatSpaceBoxLabel(1)).toBe('盒 1');
+  expect(formatSpacePathByIndex(2, 1, 1)).toBe(
+    '相邻书架 / 当前分区 / 当前卡盒',
+  );
+  expect(formatSpaceLibraryLabel(2)).toBe('相邻书架');
+  expect(formatSpaceGroupLabel(1)).toBe('当前分区');
+  expect(formatSpaceBoxLabel(1)).toBe('当前卡盒');
 });
 
 test('formats learning session labels without exposing tracks', () => {

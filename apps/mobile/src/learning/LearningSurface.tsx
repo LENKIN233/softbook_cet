@@ -13,11 +13,6 @@ import {
   SELF_ASSESS_COLORS,
   hexToRgba,
 } from '../visual/tokens';
-import {
-  formatSpaceBoxLabel,
-  formatSpaceGroupLabel,
-  formatSpaceLibraryLabel,
-} from '../shared/uiMetadata/displayMetadata';
 
 export type LearningSurfacePalette = {
   background: string;
@@ -60,41 +55,6 @@ type LearningSurfaceProps = {
   onRestartDeck: () => void;
   onStartReview?: () => void;
 };
-
-function formatLearningSpaceAddress(card: LearningCard, sessionCards: LearningCard[]) {
-  const libraryNames = uniqueValues(
-    sessionCards.map(sessionCard => sessionCard.space_metadata.library),
-  );
-  const libraryIndex = indexOrOne(libraryNames, card.space_metadata.library);
-  const libraryCards = sessionCards.filter(
-    sessionCard =>
-      sessionCard.space_metadata.library === card.space_metadata.library,
-  );
-  const groupNames = uniqueValues(
-    libraryCards.map(sessionCard => sessionCard.space_metadata.group),
-  );
-  const groupIndex = indexOrOne(groupNames, card.space_metadata.group);
-  const groupCards = libraryCards.filter(
-    sessionCard => sessionCard.space_metadata.group === card.space_metadata.group,
-  );
-  const boxRefs = uniqueValues(
-    groupCards.map(sessionCard => sessionCard.space_metadata.box_ref),
-  );
-  const boxIndex = indexOrOne(boxRefs, card.space_metadata.box_ref);
-
-  return `${formatSpaceLibraryLabel(libraryIndex)} / ${formatSpaceGroupLabel(
-    groupIndex,
-  )} / ${formatSpaceBoxLabel(boxIndex)}`;
-}
-
-function uniqueValues(values: string[]) {
-  return values.filter((value, index) => values.indexOf(value) === index);
-}
-
-function indexOrOne(values: string[], value: string) {
-  const index = values.indexOf(value);
-  return index >= 0 ? index + 1 : 1;
-}
 
 function formatLearningSessionLabelForDisplay(
   sessionLabel: string,
@@ -279,7 +239,6 @@ export function LearningSurface({
     Math.round(((currentIndex + 1) / Math.max(sessionCards.length, 1)) * 100),
     10,
   )}%` as DimensionValue;
-  const spaceAddress = formatLearningSpaceAddress(currentCard, sessionCards);
   const actionCue = formatLearningActionCue(currentCard, currentResult);
 
   return (
@@ -306,7 +265,7 @@ export function LearningSurface({
             style={[styles.learningFrameMeta, { color: palette.textMuted }]}
             testID="learning-progress-label"
           >
-            第 {currentIndex + 1} 张 / 共 {sessionCards.length} 张
+            当前练习
           </Text>
         </View>
         <Text style={[styles.learningFrameSummary, { color: palette.textMuted }]}>
@@ -547,7 +506,7 @@ export function LearningSurface({
           testID="learning-address-aperture"
         >
           <Text style={[styles.addressText, { color: palette.textMuted }]}> 
-            这张在：{spaceAddress}
+            位置已收在知识空间
           </Text>
         </View>
 

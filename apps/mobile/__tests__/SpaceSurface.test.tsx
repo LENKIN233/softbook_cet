@@ -150,10 +150,10 @@ test('keeps a physical Space outline when no cards are visible', () => {
     .toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-continuity-strip' }).length)
     .toBeGreaterThan(0);
-  expect(output).toContain('当前盒为空');
-  expect(output).toContain('当前盒暂无可展示卡片');
-  expect(output).toContain('空间地址正在等待本轮卡片');
-  expect(output).toContain('当前空间路径待同步');
+  expect(output).toContain('当前卡盒待整理');
+  expect(output).toContain('当前卡盒暂无可展示卡片');
+  expect(output).toContain('空间正在等待本轮卡片');
+  expect(output).toContain('位置待同步');
   expect(renderedText).not.toContain(currentCard.space_metadata.library);
   expect(renderedText).not.toContain(currentCard.space_metadata.group);
   expect(renderedText).not.toContain(currentCard.space_metadata.box);
@@ -178,7 +178,7 @@ test('uses contained skeleton slots while Space cards are loading', () => {
         palette={palette}
         spaceCards={[]}
         spaceStatusRail={{
-          detail: '正在整理本轮卡片；空间地址架和当前盒位会先保留在原位。',
+          detail: '正在整理本轮卡片；空间当前位置会先保留在原位。',
           label: '加载中',
           state: 'loading',
           title: '正在整理空间内容',
@@ -190,8 +190,8 @@ test('uses contained skeleton slots while Space cards are loading', () => {
   const root = tree!.root;
   const output = JSON.stringify(tree!.toJSON());
 
-  expect(output).toContain('正在整理盒内卡片');
-  expect(output).toContain('盒内卡片整理中');
+  expect(output).toContain('正在整理卡片');
+  expect(output).toContain('卡片正在整理');
   expect(output).toContain('正在整理卡片');
   expect(output).toContain('完成后显示本轮内容');
   expect(root.findAllByProps({ testID: 'space-loading-card-skeleton' }).length)
@@ -322,8 +322,11 @@ test('defaults Space first-read focus to the current learning card box', () => {
 
   const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
 
-  expect(renderedText).toContain(`当前地址 ${expectedPath}`);
-  expect(renderedText).toContain(`当前学习卡位于 ${expectedPath}`);
+  expect(expectedPath).not.toMatch(/馆|组|盒\s+\d|\d/);
+  expect(renderedText).toContain('当前位置 当前卡盒已定位');
+  expect(renderedText).toContain('当前学习卡在这里');
+  expect(renderedText).not.toContain('当前地址');
+  expect(renderedText).not.toContain('当前学习卡位于');
 });
 
 test('does not render raw metadata values from loaded Space cards', () => {
@@ -365,5 +368,6 @@ test('does not render raw metadata values from loaded Space cards', () => {
   metadataValues.forEach(value => {
     expect(renderedText).not.toContain(value);
   });
-  expect(renderedText).toContain('馆 1 / 组 1 / 盒 1');
+  expect(renderedText).toContain('当前位置 当前卡盒已定位');
+  expect(renderedText).not.toContain('馆 1 / 组 1 / 盒 1');
 });

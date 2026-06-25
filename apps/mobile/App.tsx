@@ -199,7 +199,7 @@ const ROUTES: ShellRoute[] = [
       '能按馆、组、盒查看已接入卡片。',
       '先支持浏览、收藏和休眠，不开放随意搬动卡片。',
     ],
-    focus: ['当前盒', '收藏与休眠', '回到学习'],
+    focus: ['当前位置', '收藏与休眠', '回到学习'],
   },
   {
     key: 'statistics',
@@ -1180,7 +1180,7 @@ function AppShell({
     let isCancelled = false;
 
     setSpaceStateSyncState({
-      detail: '正在同步空间里的收藏标签和休眠状态；当前地址和盒内卡片仍可继续浏览。',
+      detail: '正在同步空间里的收藏和休眠状态；当前位置和卡片列表仍可继续浏览。',
       label: '同步中',
       state: 'syncing',
     });
@@ -1944,7 +1944,7 @@ function AppShell({
             </>
           ),
           detail:
-            '当前保留已解锁卡片的空间预览和地址位置；完整盒内浏览、收藏/休眠调整与更多空间操作需要试用或会员。',
+            '当前保留已解锁卡片的空间预览和位置提示；完整卡片浏览、收藏/休眠调整与更多空间操作需要试用或会员。',
           label:
             membershipPendingAction === 'start_trial'
               ? '正在开通'
@@ -1977,8 +1977,8 @@ function AppShell({
             learningBootstrapStatus === 'error'
               ? `${
                   learningBootstrapError ?? '空间内容暂时不可用。'
-                } 空间会保留当前物理轮廓，重试后再恢复盒内卡片。`
-              : '正在整理本轮卡片；空间地址架和当前盒位会先保留在原位。',
+                } 空间会保留当前位置，重试后再恢复卡片列表。`
+              : '正在整理本轮卡片；空间当前位置会先保留在原位。',
           label: learningBootstrapStatus === 'error' ? '可重试' : '加载中',
           state: learningBootstrapStatus === 'error' ? 'error' : 'loading',
           title:
@@ -2522,7 +2522,7 @@ function ShellHeader({
 }) {
   const authText =
     authState.stage === 'authenticated'
-      ? `已登录 ${maskPhoneNumber(authState.phoneNumber)}`
+      ? '已登录'
       : '未登录';
 
   return (
@@ -2548,7 +2548,7 @@ function ShellHeader({
               ? '当前卡已经准备好，先完成这一张。'
               : '左侧保留导航，右侧继续当前卡。'
             : route.key === 'space'
-            ? '从当前盒看卡片位置、收藏和休眠状态。'
+            ? '从当前位置看卡片、收藏和休眠状态。'
             : route.key === 'statistics'
             ? '看今天完成了什么、还有多少需要回看。'
             : deviceClass === 'phone'
@@ -2857,8 +2857,8 @@ function MineSurface({
           items={
             isAuthenticated
               ? [
-                  `收藏标签 ${favoriteCount} 张。`,
-                  `休眠区 ${sleepingCount} 张。`,
+                  favoriteCount > 0 ? '已有收藏卡片。' : '暂无收藏卡片。',
+                  sleepingCount > 0 ? '有卡片在休眠区。' : '暂无休眠卡片。',
                   '收藏是标签，休眠会影响当前练习。',
                 ]
               : [
