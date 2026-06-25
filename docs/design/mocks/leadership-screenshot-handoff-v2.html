@@ -1,0 +1,1446 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>软书四六级关键页面截图</title>
+  <style>
+    :root {
+      --page: #f0f0ea;
+      --desk: #e2e4e1;
+      --ink: #12131a;
+      --ink-2: #303542;
+      --muted: #626977;
+      --quiet: #8d948d;
+      --paper: #fbfaf6;
+      --paper-2: #f4f0e7;
+      --paper-line: rgba(40, 48, 58, .1);
+      --surface: rgba(255, 255, 255, .78);
+      --surface-solid: #f8f8f5;
+      --edge: rgba(18, 19, 26, .12);
+      --edge-soft: rgba(18, 19, 26, .08);
+      --accent: #637783;
+      --accent-deep: #2f4650;
+      --accent-soft: #e1eaeb;
+      --mint: #249b77;
+      --mint-soft: #e5f4ee;
+      --amber: #c98524;
+      --amber-soft: #f7ead2;
+      --shadow: rgba(26, 32, 36, .18);
+      --radius-lg: 30px;
+      --radius-md: 22px;
+      --radius-sm: 14px;
+      color-scheme: light;
+      font-family: Inter, "Noto Sans SC", system-ui, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    html {
+      background: var(--page);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(47, 70, 80, .05) 0 1px, transparent 1px 92px),
+        linear-gradient(0deg, rgba(47, 70, 80, .04) 0 1px, transparent 1px 92px),
+        linear-gradient(135deg, #f3f2ec 0%, #eaebe7 46%, #dde4e3 100%);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.62;
+    }
+
+    main {
+      display: grid;
+      gap: 28px;
+      min-height: 100vh;
+      padding: 34px;
+    }
+
+    .cover {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: end;
+      width: min(1660px, 100%);
+      margin: 0 auto;
+      padding: 4px 8px 0;
+    }
+
+    .cover-copy {
+      display: grid;
+      gap: 10px;
+      max-width: 780px;
+    }
+
+    .cover-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      width: max-content;
+      color: var(--accent-deep);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .cover-mark::before {
+      content: "";
+      width: 34px;
+      height: 10px;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg, var(--accent) 0 42%, rgba(99, 119, 131, .24) 42% 100%);
+      box-shadow: 0 6px 18px rgba(47, 70, 80, .18);
+    }
+
+    h1 {
+      color: var(--ink);
+      font-size: 46px;
+      font-weight: 900;
+      line-height: 1.08;
+    }
+
+    .cover-copy p {
+      max-width: 680px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.7;
+    }
+
+    .cover-strip {
+      display: grid;
+      grid-template-columns: repeat(4, auto);
+      gap: 10px;
+      align-items: center;
+      padding-bottom: 6px;
+    }
+
+    .cover-strip span {
+      border: 1px solid rgba(47, 70, 80, .14);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .58);
+      color: var(--accent-deep);
+      font-size: 13px;
+      font-weight: 900;
+      padding: 10px 13px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .65);
+    }
+
+    .board-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 393px);
+      gap: 28px;
+      justify-content: center;
+      align-items: start;
+      width: min(1660px, 100%);
+      margin: 0 auto;
+    }
+
+    .board-grid.single {
+      min-height: 100vh;
+      place-content: center;
+    }
+
+    .shot {
+      display: grid;
+      gap: 14px;
+      justify-items: center;
+    }
+
+    .shot-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 34px;
+      padding: 8px 14px;
+      border: 1px solid rgba(47, 70, 80, .14);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .66);
+      color: var(--accent-deep);
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: 0 8px 22px rgba(26, 32, 36, .06), inset 0 1px 0 rgba(255, 255, 255, .7);
+    }
+
+    .shot-label::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px rgba(99, 119, 131, .12);
+    }
+
+    .phone {
+      position: relative;
+      width: 393px;
+      height: 852px;
+      overflow: hidden;
+      padding: 21px 17px 16px;
+      border: 1px solid rgba(18, 19, 26, .22);
+      border-radius: 46px;
+      background:
+        linear-gradient(145deg, #f7f6f1 0%, #e4e8e7 100%);
+      box-shadow:
+        0 34px 80px rgba(18, 19, 26, .24),
+        inset 0 1px 0 rgba(255, 255, 255, .78),
+        inset 0 -1px 0 rgba(18, 19, 26, .12);
+    }
+
+    .phone::before {
+      position: absolute;
+      inset: 12px;
+      pointer-events: none;
+      content: "";
+      border: 1px solid rgba(255, 255, 255, .74);
+      border-radius: 36px;
+    }
+
+    .island {
+      position: relative;
+      z-index: 2;
+      width: 122px;
+      height: 37px;
+      margin: 0 auto 13px;
+      border-radius: 22px;
+      background: #0b0b12;
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .12);
+    }
+
+    .surface {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 765px;
+      overflow: hidden;
+      border-radius: 31px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .54) 0%, rgba(244, 244, 239, .62) 34%, rgba(219, 228, 226, .52) 100%),
+        var(--paper);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .76),
+        inset 0 -1px 0 rgba(18, 19, 26, .07);
+      padding: 15px;
+    }
+
+    .surface::before {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      opacity: .42;
+      background:
+        linear-gradient(90deg, transparent 0 19px, rgba(47, 70, 80, .035) 19px 20px, transparent 20px 40px),
+        linear-gradient(0deg, transparent 0 23px, rgba(47, 70, 80, .03) 23px 24px, transparent 24px 48px);
+    }
+
+    .screen-top {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 36px;
+    }
+
+    .brand-chip,
+    .quiet-chip,
+    .state-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 31px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .brand-chip {
+      padding: 7px 11px;
+      color: var(--accent-deep);
+      background: rgba(225, 234, 235, .78);
+      border: 1px solid rgba(99, 119, 131, .2);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
+    }
+
+    .brand-chip::before,
+    .quiet-chip::before,
+    .state-chip::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .quiet-chip {
+      padding: 7px 10px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, .58);
+      border: 1px solid rgba(18, 19, 26, .08);
+    }
+
+    .state-chip {
+      padding: 7px 10px;
+      color: var(--accent-deep);
+      background: rgba(255, 255, 255, .68);
+      border: 1px solid rgba(99, 119, 131, .14);
+    }
+
+    .state-chip.mint {
+      color: #136b52;
+      background: var(--mint-soft);
+      border-color: rgba(36, 155, 119, .18);
+    }
+
+    .state-chip.mint::before {
+      background: var(--mint);
+    }
+
+    .state-chip.amber {
+      color: #7b4d12;
+      background: var(--amber-soft);
+      border-color: rgba(201, 133, 36, .2);
+    }
+
+    .state-chip.amber::before {
+      background: var(--amber);
+    }
+
+    .number-mark {
+      color: var(--accent-deep);
+      font-size: 12px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .address-shelf {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 48px;
+      padding: 10px 12px;
+      border: 1px solid rgba(47, 70, 80, .14);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .64);
+      box-shadow:
+        0 11px 26px rgba(18, 19, 26, .06),
+        inset 0 1px 0 rgba(255, 255, 255, .76);
+    }
+
+    .address-main {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .address-main strong {
+      overflow: hidden;
+      color: var(--ink-2);
+      font-size: 14px;
+      font-weight: 900;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .address-main span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .address-shelf .rail {
+      width: 48px;
+      height: 8px;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg, var(--accent) 0 58%, rgba(99, 119, 131, .2) 58% 100%);
+    }
+
+    .paper-card {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 13px;
+      border: 1px solid rgba(18, 19, 26, .12);
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .72), rgba(255, 255, 255, .18)),
+        linear-gradient(90deg, transparent 0 31px, rgba(99, 119, 131, .13) 31px 32px, transparent 32px),
+        repeating-linear-gradient(180deg, var(--paper) 0 33px, rgba(47, 70, 80, .08) 34px 35px, var(--paper) 36px 68px);
+      box-shadow:
+        0 22px 48px rgba(26, 32, 36, .14),
+        inset 0 1px 0 rgba(255, 255, 255, .82);
+      padding: 20px 19px 18px 22px;
+    }
+
+    .paper-card::after {
+      position: absolute;
+      top: 18px;
+      right: 17px;
+      content: "";
+      width: 40px;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(99, 119, 131, .18);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .62);
+    }
+
+    .paper-kicker {
+      color: var(--accent-deep);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .paper-card h2 {
+      color: var(--ink);
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1.22;
+    }
+
+    .paper-card h3 {
+      color: var(--ink);
+      font-size: 19px;
+      font-weight: 900;
+      line-height: 1.3;
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .option {
+      display: grid;
+      gap: 4px;
+      min-height: 72px;
+      padding: 12px 11px;
+      border: 1px solid rgba(47, 70, 80, .12);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .72);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .74);
+    }
+
+    .option strong {
+      color: var(--accent-deep);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .option span {
+      color: var(--ink-2);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.34;
+    }
+
+    .option.picked {
+      border-color: rgba(99, 119, 131, .32);
+      background: var(--accent-soft);
+      box-shadow: 0 9px 18px rgba(99, 119, 131, .1), inset 0 1px 0 rgba(255, 255, 255, .78);
+    }
+
+    .tool-row,
+    .nav-capsule,
+    .mini-actions {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .tool-row button,
+    .mini-actions button,
+    .nav-capsule button {
+      min-height: 40px;
+      border: 1px solid rgba(47, 70, 80, .12);
+      border-radius: 999px;
+      color: var(--accent-deep);
+      background: rgba(255, 255, 255, .68);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .76);
+    }
+
+    .tool-row button.primary,
+    .mini-actions button.primary,
+    .nav-capsule button.primary {
+      color: #fff;
+      background: var(--accent-deep);
+      border-color: rgba(47, 70, 80, .6);
+      box-shadow: 0 10px 22px rgba(47, 70, 80, .18);
+    }
+
+    .nav-capsule {
+      margin-top: auto;
+      padding: 7px;
+      border: 1px solid rgba(47, 70, 80, .14);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .76);
+      box-shadow: 0 14px 34px rgba(18, 19, 26, .1), inset 0 1px 0 rgba(255, 255, 255, .8);
+    }
+
+    .nav-capsule button {
+      min-height: 34px;
+      border-color: transparent;
+      background: transparent;
+      box-shadow: none;
+      color: var(--muted);
+    }
+
+    .nav-capsule button.primary {
+      min-height: 34px;
+    }
+
+    .home .paper-card {
+      min-height: 412px;
+    }
+
+    .home .paper-card p {
+      padding-right: 10px;
+      color: var(--ink-2);
+      font-size: 14px;
+    }
+
+    .support-strip {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 62px;
+      padding: 12px 13px;
+      border: 1px solid rgba(47, 70, 80, .1);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .64);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .76);
+    }
+
+    .support-strip strong {
+      color: var(--ink-2);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .support-strip span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .support-strip .mini-progress {
+      width: 54px;
+      height: 54px;
+      border-radius: 17px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .68), rgba(255, 255, 255, .2)),
+        conic-gradient(var(--accent) 0 68%, rgba(99, 119, 131, .15) 68% 100%);
+      box-shadow: inset 0 0 0 7px rgba(255, 255, 255, .72);
+    }
+
+    .box-stage {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 12px;
+      min-height: 512px;
+      padding: 16px 15px 14px;
+      border: 1px solid rgba(47, 70, 80, .15);
+      border-radius: 31px;
+      background:
+        linear-gradient(180deg, rgba(250, 251, 248, .86) 0%, rgba(226, 232, 230, .84) 100%);
+      box-shadow:
+        0 20px 46px rgba(26, 32, 36, .13),
+        inset 0 1px 0 rgba(255, 255, 255, .82);
+    }
+
+    .box-lid {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 60px;
+      padding: 12px 13px;
+      border: 1px solid rgba(47, 70, 80, .16);
+      border-radius: 21px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .7), rgba(255, 255, 255, .18)),
+        var(--accent-soft);
+      box-shadow:
+        0 12px 24px rgba(99, 119, 131, .14),
+        inset 0 1px 0 rgba(255, 255, 255, .76);
+    }
+
+    .box-lid strong {
+      color: var(--accent-deep);
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .box-lid span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .box-lid .count {
+      display: grid;
+      place-items: center;
+      width: 47px;
+      height: 47px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .74);
+      color: var(--accent-deep);
+      font-size: 17px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .84);
+    }
+
+    .card-stack {
+      position: relative;
+      min-height: 278px;
+      padding-top: 5px;
+    }
+
+    .stack-card {
+      position: absolute;
+      left: 3px;
+      right: 3px;
+      display: grid;
+      gap: 8px;
+      min-height: 92px;
+      padding: 14px 15px;
+      border: 1px solid rgba(47, 70, 80, .14);
+      border-radius: 22px;
+      background:
+        linear-gradient(90deg, transparent 0 26px, rgba(99, 119, 131, .12) 26px 27px, transparent 27px),
+        repeating-linear-gradient(180deg, #fffdf8 0 28px, rgba(47, 70, 80, .08) 29px 30px, #fffdf8 31px 58px);
+      box-shadow:
+        0 18px 36px rgba(26, 32, 36, .12),
+        inset 0 1px 0 rgba(255, 255, 255, .78);
+      transform-origin: center;
+    }
+
+    .stack-card:nth-child(1) {
+      top: 0;
+      transform: rotate(-1.2deg);
+    }
+
+    .stack-card:nth-child(2) {
+      top: 72px;
+      transform: rotate(.8deg);
+      background-color: #fffaf0;
+    }
+
+    .stack-card:nth-child(3) {
+      top: 144px;
+      transform: rotate(-.5deg);
+      background-color: #fbfcf8;
+    }
+
+    .stack-card strong {
+      color: var(--ink);
+      font-size: 17px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .stack-card p {
+      max-width: 250px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .tag-row {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .paper-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 25px;
+      padding: 5px 8px;
+      border: 1px solid rgba(47, 70, 80, .12);
+      border-radius: 999px;
+      color: var(--accent-deep);
+      background: rgba(225, 234, 235, .68);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .paper-tag.mint {
+      color: #136b52;
+      background: var(--mint-soft);
+      border-color: rgba(36, 155, 119, .18);
+    }
+
+    .paper-tag.amber {
+      color: #7b4d12;
+      background: var(--amber-soft);
+      border-color: rgba(201, 133, 36, .2);
+    }
+
+    .sleep-alcove {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 74px;
+      padding: 11px 12px;
+      border: 1px dashed rgba(47, 70, 80, .22);
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(47, 70, 80, .06), rgba(255, 255, 255, .34));
+    }
+
+    .sleep-card {
+      width: 54px;
+      height: 40px;
+      border: 1px solid rgba(47, 70, 80, .16);
+      border-radius: 13px;
+      background:
+        linear-gradient(90deg, transparent 0 14px, rgba(99, 119, 131, .16) 14px 15px, transparent 15px),
+        #faf7ee;
+      transform: rotate(-4deg);
+      box-shadow: 0 8px 15px rgba(26, 32, 36, .09);
+    }
+
+    .sleep-alcove strong {
+      color: var(--ink-2);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .sleep-alcove span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .sleep-alcove button {
+      min-height: 36px;
+      border: 0;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--accent-deep);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 0 12px;
+    }
+
+    .detail-card {
+      min-height: 274px;
+    }
+
+    .answer-slip {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border: 1px solid rgba(47, 70, 80, .13);
+      border-radius: 25px;
+      background:
+        linear-gradient(90deg, transparent 0 28px, rgba(36, 155, 119, .16) 28px 29px, transparent 29px),
+        repeating-linear-gradient(180deg, #fffdf7 0 30px, rgba(47, 70, 80, .08) 31px 32px, #fffdf7 33px 62px);
+      box-shadow:
+        0 18px 38px rgba(26, 32, 36, .12),
+        inset 0 1px 0 rgba(255, 255, 255, .82);
+    }
+
+    .answer-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .answer-head strong {
+      color: var(--ink);
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .answer-lines {
+      display: grid;
+      gap: 8px;
+    }
+
+    .answer-line {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 9px;
+      align-items: start;
+    }
+
+    .answer-line b {
+      display: grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 9px;
+      color: #fff;
+      background: var(--accent-deep);
+      font-size: 12px;
+    }
+
+    .answer-line span {
+      color: var(--ink-2);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.48;
+    }
+
+    .mistake-note {
+      display: grid;
+      gap: 5px;
+      padding: 12px 13px;
+      border: 1px solid rgba(201, 133, 36, .2);
+      border-radius: 19px;
+      background: rgba(247, 234, 210, .7);
+      color: #7b4d12;
+    }
+
+    .mistake-note strong {
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .mistake-note span {
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .space-board {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 12px;
+      min-height: 568px;
+      padding: 15px;
+      border: 1px solid rgba(47, 70, 80, .15);
+      border-radius: 31px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .74), rgba(255, 255, 255, .22)),
+        linear-gradient(90deg, rgba(47, 70, 80, .08) 0 74px, transparent 74px 100%),
+        #eef0ec;
+      box-shadow:
+        0 21px 46px rgba(26, 32, 36, .13),
+        inset 0 1px 0 rgba(255, 255, 255, .82);
+    }
+
+    .shelf-row {
+      display: grid;
+      grid-template-columns: 70px 1fr;
+      gap: 10px;
+      min-height: 90px;
+    }
+
+    .shelf-spine {
+      display: grid;
+      align-content: center;
+      gap: 5px;
+      padding: 11px 10px;
+      border: 1px solid rgba(47, 70, 80, .14);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .62);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .76);
+    }
+
+    .shelf-spine strong {
+      color: var(--accent-deep);
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .shelf-spine span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+
+    .shelf-panels {
+      display: grid;
+      gap: 8px;
+    }
+
+    .shelf-panel {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      min-height: 39px;
+      padding: 8px 10px;
+      border: 1px solid rgba(47, 70, 80, .1);
+      border-radius: 15px;
+      background: rgba(255, 255, 255, .58);
+    }
+
+    .shelf-panel strong {
+      color: var(--ink-2);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .shelf-panel span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .desk-tray {
+      position: relative;
+      display: grid;
+      gap: 11px;
+      min-height: 315px;
+      padding: 14px;
+      border: 1px solid rgba(47, 70, 80, .16);
+      border-radius: 27px;
+      background:
+        linear-gradient(180deg, rgba(225, 234, 235, .96) 0%, rgba(246, 248, 244, .86) 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .84),
+        0 16px 34px rgba(26, 32, 36, .1);
+    }
+
+    .desk-tray::after {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 15px;
+      content: "";
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(47, 70, 80, .08);
+    }
+
+    .tray-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .tray-head strong {
+      color: var(--accent-deep);
+      font-size: 19px;
+      font-weight: 900;
+    }
+
+    .tray-head span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .tray-head button {
+      min-height: 36px;
+      border: 0;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--accent-deep);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 0 13px;
+    }
+
+    .tray-cards {
+      position: relative;
+      min-height: 190px;
+    }
+
+    .tray-card {
+      position: absolute;
+      display: grid;
+      gap: 7px;
+      width: 128px;
+      min-height: 142px;
+      padding: 12px;
+      border: 1px solid rgba(47, 70, 80, .14);
+      border-radius: 20px;
+      background:
+        linear-gradient(90deg, transparent 0 20px, rgba(99, 119, 131, .12) 20px 21px, transparent 21px),
+        repeating-linear-gradient(180deg, #fffdf8 0 27px, rgba(47, 70, 80, .08) 28px 29px, #fffdf8 30px 56px);
+      box-shadow: 0 15px 28px rgba(26, 32, 36, .13), inset 0 1px 0 rgba(255, 255, 255, .8);
+      transform-origin: bottom center;
+    }
+
+    .tray-card:nth-child(1) {
+      left: 1px;
+      top: 28px;
+      transform: rotate(-7deg);
+    }
+
+    .tray-card:nth-child(2) {
+      left: 99px;
+      top: 12px;
+      transform: rotate(0deg);
+      z-index: 2;
+    }
+
+    .tray-card:nth-child(3) {
+      right: 1px;
+      top: 31px;
+      transform: rotate(7deg);
+    }
+
+    .tray-card strong {
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .tray-card span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .return-strip {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 52px;
+      padding: 10px 12px;
+      border: 1px solid rgba(47, 70, 80, .12);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .62);
+    }
+
+    .return-strip strong {
+      color: var(--ink-2);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .return-strip span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .return-strip button {
+      min-height: 35px;
+      border: 0;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--accent-deep);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 0 12px;
+    }
+
+    .space .sleep-alcove {
+      min-height: 68px;
+    }
+
+    @media (max-width: 1740px) {
+      .cover,
+      .board-grid {
+        width: min(1240px, 100%);
+      }
+
+      .board-grid {
+        grid-template-columns: repeat(2, 393px);
+      }
+
+      .cover {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+
+      .cover-strip {
+        grid-template-columns: repeat(4, max-content);
+      }
+    }
+
+    @media (max-width: 880px) {
+      main {
+        padding: 18px;
+      }
+
+      .cover-strip {
+        grid-template-columns: repeat(2, max-content);
+      }
+
+      .board-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .phone {
+        width: min(393px, calc(100vw - 36px));
+        height: auto;
+        aspect-ratio: 393 / 852;
+      }
+
+      .surface {
+        height: calc((min(393px, calc(100vw - 36px)) - 34px) * 765 / 359);
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="cover">
+      <div class="cover-copy">
+        <div class="cover-mark">软书四六级</div>
+        <h1>关键页面截图</h1>
+        <p>首页、卡片列表、学习详情、知识空间共用一套备考书桌语言：材料可信、卡片可操作、空间有归属。</p>
+      </div>
+      <div class="cover-strip">
+        <span>首页</span>
+        <span>卡片列表</span>
+        <span>学习详情</span>
+        <span>知识空间</span>
+      </div>
+    </section>
+
+    <section class="board-grid">
+      <article class="shot" data-shot="home">
+        <div class="shot-label">首页</div>
+        <div class="phone">
+          <div class="island"></div>
+          <section class="surface home">
+            <div class="screen-top">
+              <div class="brand-chip">软书四六级</div>
+              <div class="number-mark">21 / 36</div>
+            </div>
+
+            <div class="address-shelf">
+              <div class="address-main">
+                <strong>当前馆 · 本轮盒</strong>
+                <span>系统顺序推进，不需要自己找入口</span>
+              </div>
+              <div class="rail"></div>
+            </div>
+
+            <div class="paper-card">
+              <div class="paper-kicker">当前卡</div>
+              <h2>The author’s attitude is best described as...</h2>
+              <p>先看转向后的结论，再判断作者立场；题干里最有用的线索已经落在后半句。</p>
+              <div class="option-grid">
+                <div class="option">
+                  <strong>A</strong>
+                  <span>保留态度</span>
+                </div>
+                <div class="option picked">
+                  <strong>B</strong>
+                  <span>谨慎认可</span>
+                </div>
+                <div class="option">
+                  <strong>C</strong>
+                  <span>强烈反对</span>
+                </div>
+                <div class="option">
+                  <strong>D</strong>
+                  <span>中性观察</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="support-strip">
+              <div>
+                <strong>本卡只需要一步判断</strong>
+                <span>需要时再展开提示和原句</span>
+              </div>
+              <div class="mini-progress"></div>
+            </div>
+
+            <div class="tool-row">
+              <button>提示</button>
+              <button>原句</button>
+              <button class="primary">确认</button>
+            </div>
+
+            <div class="nav-capsule">
+              <button class="primary">学习</button>
+              <button>空间</button>
+              <button>我的</button>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <article class="shot" data-shot="card-list">
+        <div class="shot-label">卡片列表</div>
+        <div class="phone">
+          <div class="island"></div>
+          <section class="surface card-list">
+            <div class="screen-top">
+              <div class="brand-chip">当前盒</div>
+              <div class="quiet-chip">同盒 12 张</div>
+            </div>
+
+            <div class="address-shelf">
+              <div class="address-main">
+                <strong>当前馆 · 本轮组 · 当前盒</strong>
+                <span>卡片都留在所属位置里</span>
+              </div>
+              <div class="rail"></div>
+            </div>
+
+            <div class="box-stage">
+              <div class="box-lid">
+                <div>
+                  <strong>盒内卡片</strong>
+                  <span>打开盒子查看、收藏、回看和休眠</span>
+                </div>
+                <div class="count">12</div>
+              </div>
+
+              <div class="card-stack">
+                <div class="stack-card">
+                  <div class="tag-row">
+                    <span class="paper-tag mint">已掌握</span>
+                    <span class="paper-tag">收藏</span>
+                  </div>
+                  <strong>转向后看结论</strong>
+                  <p>先找到立场变化，再回到选项。</p>
+                </div>
+                <div class="stack-card">
+                  <div class="tag-row">
+                    <span class="paper-tag amber">再回看</span>
+                  </div>
+                  <strong>范围收紧</strong>
+                  <p>选项过大时，回到限定条件。</p>
+                </div>
+                <div class="stack-card">
+                  <div class="tag-row">
+                    <span class="paper-tag">本轮待做</span>
+                  </div>
+                  <strong>态度词回收</strong>
+                  <p>不要被前半句背景带走。</p>
+                </div>
+              </div>
+
+              <div class="sleep-alcove">
+                <div class="sleep-card"></div>
+                <div>
+                  <strong>休眠卡仍在本盒</strong>
+                  <span>先让它沉下去，之后可唤回</span>
+                </div>
+                <button>唤回</button>
+              </div>
+            </div>
+
+            <div class="nav-capsule">
+              <button>学习</button>
+              <button class="primary">空间</button>
+              <button>我的</button>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <article class="shot" data-shot="detail">
+        <div class="shot-label">学习详情</div>
+        <div class="phone">
+          <div class="island"></div>
+          <section class="surface detail">
+            <div class="screen-top">
+              <div class="brand-chip">本卡解析</div>
+              <div class="state-chip mint">已完成</div>
+            </div>
+
+            <div class="paper-card detail-card">
+              <div class="paper-kicker">答题结果</div>
+              <h2>谨慎认可</h2>
+              <p>你抓住了转向后的核心立场。前半句只是铺垫，真正决定答案的是后半句的限定。</p>
+              <div class="option-grid">
+                <div class="option picked">
+                  <strong>B</strong>
+                  <span>你的选择</span>
+                </div>
+                <div class="option">
+                  <strong>A</strong>
+                  <span>容易误选</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="answer-slip">
+              <div class="answer-head">
+                <strong>解析页</strong>
+                <span class="state-chip mint">线索对上</span>
+              </div>
+              <div class="answer-lines">
+                <div class="answer-line">
+                  <b>1</b>
+                  <span>先读转向后的判断句，语气从否定风险转为有限支持。</span>
+                </div>
+                <div class="answer-line">
+                  <b>2</b>
+                  <span>选项里的强烈反对过度，保留态度又太弱。</span>
+                </div>
+              </div>
+              <div class="mistake-note">
+                <strong>下次提醒</strong>
+                <span>遇到态度题，先圈转向词，再看限定词。</span>
+              </div>
+            </div>
+
+            <div class="mini-actions">
+              <button>回本盒</button>
+              <button>再看一眼</button>
+              <button class="primary">下一卡</button>
+            </div>
+
+            <div class="nav-capsule">
+              <button class="primary">学习</button>
+              <button>空间</button>
+              <button>我的</button>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <article class="shot" data-shot="space">
+        <div class="shot-label">知识空间</div>
+        <div class="phone">
+          <div class="island"></div>
+          <section class="surface space">
+            <div class="screen-top">
+              <div class="brand-chip">知识空间</div>
+              <div class="quiet-chip">当前路径</div>
+            </div>
+
+            <div class="space-board">
+              <div class="shelf-row">
+                <div class="shelf-spine">
+                  <strong>当前馆</strong>
+                  <span>本轮正在处理</span>
+                </div>
+                <div class="shelf-panels">
+                  <div class="shelf-panel">
+                    <strong>本轮组</strong>
+                    <span>3 个盒</span>
+                  </div>
+                  <div class="shelf-panel">
+                    <strong>相邻盒</strong>
+                    <span>可横向查看</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="desk-tray">
+                <div class="tray-head">
+                  <div>
+                    <strong>打开的当前盒</strong>
+                    <span>学习会回到这张卡</span>
+                  </div>
+                  <button>继续</button>
+                </div>
+
+                <div class="tray-cards">
+                  <div class="tray-card">
+                    <span class="paper-tag mint">完成</span>
+                    <strong>线索对齐</strong>
+                    <span>已放回本盒</span>
+                  </div>
+                  <div class="tray-card">
+                    <span class="paper-tag">当前</span>
+                    <strong>转向判断</strong>
+                    <span>回到学习继续</span>
+                  </div>
+                  <div class="tray-card">
+                    <span class="paper-tag amber">回看</span>
+                    <strong>范围收紧</strong>
+                    <span>稍后再处理</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sleep-alcove">
+                <div class="sleep-card"></div>
+                <div>
+                  <strong>休眠区属于当前盒</strong>
+                  <span>卡片沉下去，但位置不丢</span>
+                </div>
+                <button>管理</button>
+              </div>
+
+              <div class="return-strip">
+                <div>
+                  <strong>回到同一张卡</strong>
+                  <span>空间与学习保持同一地址</span>
+                </div>
+                <button>学习</button>
+              </div>
+            </div>
+
+            <div class="nav-capsule">
+              <button>学习</button>
+              <button class="primary">空间</button>
+              <button>我的</button>
+            </div>
+          </section>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const view = new URLSearchParams(window.location.search).get('shot');
+
+    if (view) {
+      document.querySelector('.cover').hidden = true;
+      document.querySelector('.board-grid').classList.add('single');
+      document.querySelectorAll('[data-shot]').forEach((node) => {
+        node.hidden = node.dataset.shot !== view;
+      });
+      document.title = `软书四六级${view}`;
+    }
+  </script>
+</body>
+</html>
