@@ -245,7 +245,7 @@ test('places Space state rail between address context and current box', () => {
   expectSpaceFirstReadOrder(tree!, 'space-sync-rail');
 });
 
-test('uses anonymous ordered selector IDs for Space library and group chips', () => {
+test('uses anonymous ordered selector IDs for Space library and group chips in the card list layer', () => {
   const session = createLocalLearningSession('cet4');
   const currentCard = session.catalogCards[0];
   let tree: ReactTestRenderer.ReactTestRenderer;
@@ -260,6 +260,7 @@ test('uses anonymous ordered selector IDs for Space library and group chips', ()
         onToggleFavoriteTag={jest.fn()}
         onToggleSleepState={jest.fn()}
         palette={palette}
+        screen="card_list"
         spaceCards={session.catalogCards}
       />,
     );

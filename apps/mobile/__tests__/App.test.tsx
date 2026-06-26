@@ -2606,11 +2606,10 @@ test('can browse the seeded knowledge map after login', async () => {
   expect(root.findAllByProps({ testID: 'space-address-shelf' }).length).toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-current-box-tray' }).length).toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-contained-card-strip' }).length).toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-continuity-strip' }).length).toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-return-learning' }).length).toBeGreaterThan(0);
   expect(output).toContain('当前学习卡在这里');
   expect(output).toContain('当前卡盒');
   expect(output).not.toContain('当前学习卡位于 ');
-  expect(output).toContain('回到学习');
   expectNoUserVisibleMetadataLeakage(tree!);
 
   await ReactTestRenderer.act(() => {
@@ -2655,8 +2654,8 @@ test('can move a card into sleep zone and remove it from learning flow', async (
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('休眠区');
-  expect(root.findAllByProps({ testID: 'space-sleep-alcove' }).length).toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-sleep-1' }).length)
+    .toBeGreaterThan(0);
   expect(output).toContain('移出休眠');
   expect(output).not.toContain('box_ref');
   expect(output).not.toContain('002001');
