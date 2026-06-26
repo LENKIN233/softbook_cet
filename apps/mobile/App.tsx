@@ -28,7 +28,10 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { createAuthRepository } from './src/auth/authRepository';
 import { resolveAuthRepositoryConfig } from './src/auth/authRuntimeConfig';
-import { LearningSurface } from './src/learning/LearningSurface';
+import {
+  LearningResultDetailSurface,
+  LearningSurface,
+} from './src/learning/LearningSurface';
 import {
   LearningCard,
   LearningCardResult,
@@ -71,7 +74,11 @@ import {
   createSpaceStateSnapshot,
 } from './src/space/spaceStateRepository';
 import { resolveSpaceStateRepositoryConfig } from './src/space/spaceStateRuntimeConfig';
-import { SpaceSurface, type SpaceStatusRail } from './src/space/SpaceSurface';
+import {
+  SpaceSurface,
+  type SpaceStatusRail,
+  type SpaceSurfaceScreen,
+} from './src/space/SpaceSurface';
 import { StatisticsSurface } from './src/statistics/StatisticsSurface';
 import { formatLearningSessionDisplayLabel } from './src/shared/uiMetadata/displayMetadata';
 import { createMutationQueueRepository } from './src/sync/mutationQueueRepository';
@@ -91,6 +98,7 @@ type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
 type AuthStage = 'logged_out' | 'code_sent' | 'authenticated';
 type MembershipGate = 'space' | 'review' | 'library';
+type LearningSurfaceScreen = 'practice' | 'result_detail';
 
 type AppProps = {
   softbookRemoteRuntimeProfile?: SoftbookRemoteRuntimeProfile;
@@ -402,6 +410,10 @@ function AppShell({
     ],
   );
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
+  const [learningScreen, setLearningScreen] =
+    useState<LearningSurfaceScreen>('practice');
+  const [spaceScreen, setSpaceScreen] =
+    useState<SpaceSurfaceScreen>('overview');
   const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
   const [learningSession, setLearningSession] =
     useState<LearningSession | null>(null);
@@ -1368,6 +1380,7 @@ function AppShell({
     if (unlockedGate === 'review') {
       startTransition(() => {
         setActiveRoute('learning');
+        setLearningScreen('practice');
       });
     }
   };
@@ -1429,18 +1442,15 @@ function AppShell({
     if (
       nextRoute === 'space' &&
       isAuthenticated &&
-      membershipState.stage === 'trial_available' &&
       !membershipAccess.completePhysicalSpace
     ) {
-      startTransition(() => {
-        setActiveRoute('space');
-      });
-      beginMembershipTrial('space');
-      return;
+      setMembershipGate('space');
     }
 
     startTransition(() => {
       setActiveRoute(nextRoute);
+      setLearningScreen('practice');
+      setSpaceScreen('overview');
     });
   };
 
@@ -1629,6 +1639,8 @@ function AppShell({
       setSpaceStateSyncState(INITIAL_SPACE_STATE_SYNC_STATE);
       startTransition(() => {
         setActiveRoute('mine');
+        setLearningScreen('practice');
+        setSpaceScreen('overview');
       });
     },
   };
@@ -1768,6 +1780,7 @@ function AppShell({
       setLearningCurrentResult(
         evaluateLearningCard(currentLearningCard, nextState),
       );
+      setLearningScreen('practice');
     },
     onSelectOption: (optionId: string) => {
       patchLearningCardState(current => ({
@@ -1806,6 +1819,7 @@ function AppShell({
       setLearningCurrentResult(
         evaluateLearningCard(currentLearningCard, learningCardState),
       );
+      setLearningScreen('practice');
     },
     onAdvanceCard: () => {
       if (learningCurrentResult === null) {
@@ -1821,6 +1835,7 @@ function AppShell({
         setLearningCompletedResults(nextResults);
       }
       setLearningCurrentResult(null);
+      setLearningScreen('practice');
 
       if (nextIndex >= activeSessionCards.length) {
         setLearningIndex(nextIndex);
@@ -1838,17 +1853,11 @@ function AppShell({
       }
 
       if (!membershipAccess.completeAlgorithm) {
-        if (membershipState.stage === 'trial_available') {
-          startTransition(() => {
-            setActiveRoute('mine');
-          });
-          beginMembershipTrial('review');
-          return;
-        }
-
         setMembershipGate('review');
         startTransition(() => {
           setActiveRoute('mine');
+          setLearningScreen('practice');
+          setSpaceScreen('overview');
         });
         return;
       }
@@ -1858,6 +1867,7 @@ function AppShell({
       setReviewCompletedResults([]);
       setLearningIndex(0);
       setLearningCurrentResult(null);
+      setLearningScreen('practice');
       setLearningCardState(createTrackedLearningCardState(reviewCandidateCards[0]));
     },
     onRestartDeck: resetLearningDeck,
@@ -2051,6 +2061,8 @@ function AppShell({
       onGoToSpace={() => {
         startTransition(() => {
           setActiveRoute('space');
+          setLearningScreen('practice');
+          setSpaceScreen('overview');
         });
       }}
       onRecoverCard={
@@ -2063,6 +2075,20 @@ function AppShell({
       palette={palette}
       recoverableCard={recoverableSleepingCard}
     />
+  ) : route.key === 'learning' &&
+    learningScreen === 'result_detail' &&
+    currentLearningCard !== null &&
+    learningCurrentResult !== null ? (
+    <LearningResultDetailSurface
+      card={currentLearningCard}
+      isLastCard={learningIndex === activeSessionCards.length - 1}
+      onAdvanceCard={learningHandlers.onAdvanceCard}
+      onBackToPractice={() => setLearningScreen('practice')}
+      palette={palette}
+      phase={learningPhase}
+      result={learningCurrentResult}
+      sessionLabel={formatLearningSessionDisplayLabel(learningPhase)}
+    />
   ) : route.key === 'learning' ? (
     <LearningSurface
       completedResults={activeCompletedResults}
@@ -2073,6 +2099,7 @@ function AppShell({
       phase={learningPhase}
       onAdvanceCard={learningHandlers.onAdvanceCard}
       onFlip={learningHandlers.onFlip}
+      onOpenResultDetail={() => setLearningScreen('result_detail')}
       onRestartDeck={learningHandlers.onRestartDeck}
       onStartReview={learningHandlers.onStartReview}
       onSelectOption={learningHandlers.onSelectOption}
@@ -2094,14 +2121,19 @@ function AppShell({
       cardStateById={spaceCardStateById}
       currentLearningCard={currentLearningCard}
       deviceClass={deviceClass}
+      onBackToOverview={() => setSpaceScreen('overview')}
+      onOpenCardList={() => setSpaceScreen('card_list')}
       onReturnToLearning={() => {
         startTransition(() => {
           setActiveRoute('learning');
+          setLearningScreen('practice');
+          setSpaceScreen('overview');
         });
       }}
       onToggleFavoriteTag={spaceHandlers.onToggleFavoriteTag}
       onToggleSleepState={spaceHandlers.onToggleSleepState}
       palette={palette}
+      screen={spaceScreen}
       spaceCards={spaceSurfaceCards}
       spaceGateRail={spaceGateRail}
       spaceStatusRail={spaceStatusRail}

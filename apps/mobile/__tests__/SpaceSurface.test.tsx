@@ -131,6 +131,7 @@ test('keeps a physical Space outline when no cards are visible', () => {
         onToggleFavoriteTag={jest.fn()}
         onToggleSleepState={jest.fn()}
         palette={palette}
+        screen="card_list"
         spaceCards={[]}
       />,
     );
@@ -176,6 +177,7 @@ test('uses contained skeleton slots while Space cards are loading', () => {
         onToggleFavoriteTag={jest.fn()}
         onToggleSleepState={jest.fn()}
         palette={palette}
+        screen="card_list"
         spaceCards={[]}
         spaceStatusRail={{
           detail: '正在整理本轮卡片；空间当前位置会先保留在原位。',

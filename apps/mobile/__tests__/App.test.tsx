@@ -197,9 +197,39 @@ async function startTrialFromProtectedEntry(
     await flushAsyncEffects();
   });
 
+  const trialButtons = root.findAllByProps({
+    testID: 'membership-start-trial-button',
+  });
+
+  if (trialButtons.length > 0) {
+    await ReactTestRenderer.act(async () => {
+      trialButtons[0].props.onPress();
+      await flushAsyncEffects();
+    });
+  }
+
+  if (returnRoute === 'space') {
+    await openSpaceCardList(root);
+  }
+
   if (returnRoute !== 'space') {
     await openRoute(root, returnRoute);
   }
+}
+
+async function openSpaceCardList(root: ReactTestRenderer.ReactTestInstance) {
+  const openButtons = root.findAllByProps({
+    testID: 'space-open-card-list',
+  });
+
+  if (openButtons.length === 0) {
+    return;
+  }
+
+  await ReactTestRenderer.act(async () => {
+    openButtons[0].props.onPress();
+    await flushAsyncEffects();
+  });
 }
 
 async function resolveLearningBootstrap(
@@ -1332,7 +1362,7 @@ test('replays queued membership refresh after network reconnect', async () => {
   ).toBeGreaterThanOrEqual(2);
 });
 
-test('auto-starts remote trial when first entering space', async () => {
+test('requires explicit remote trial start from protected space', async () => {
   const fetchCalls: MockFetchCall[] = [];
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
@@ -1395,7 +1425,18 @@ test('auto-starts remote trial when first entering space', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('卡片的物理空间');
-  expect(output).toContain('当前卡盒是第一阅读对象');
+  expect(output).toContain('完整物理空间需要试用或会员');
+
+  expect(
+    fetchCalls.find(
+      call => call.input === 'https://api.softbook.example/v1/membership/start-trial',
+    ),
+  ).toBeUndefined();
+
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'membership-start-trial-button' }).props.onPress();
+    await flushAsyncEffects();
+  });
 
   const startTrialRequest = fetchCalls.find(
     call => call.input === 'https://api.softbook.example/v1/membership/start-trial',
@@ -1403,6 +1444,8 @@ test('auto-starts remote trial when first entering space', async () => {
   expect(startTrialRequest?.init?.headers).toMatchObject({
     Authorization: 'Bearer remote-auth-token',
   });
+
+  expect(JSON.stringify(tree!.toJSON())).toContain('当前卡盒是第一阅读对象');
 });
 
 test('falls back to local trial unlock and replays remote trial start later', async () => {
@@ -1479,6 +1522,14 @@ test('falls back to local trial unlock and replays remote trial start later', as
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('卡片的物理空间');
+  expect(output).toContain('完整物理空间需要试用或会员');
+  expect(startTrialRequestCount).toBe(0);
+
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'membership-start-trial-button' }).props.onPress();
+    await flushAsyncEffects();
+  });
+
   expect(startTrialRequestCount).toBe(1);
 
   await openRoute(root, 'statistics');
@@ -2643,6 +2694,7 @@ test('keeps completed progress after changing sleep state', async () => {
   });
 
   await openRoute(root, 'space');
+  await openSpaceCardList(root);
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'space-sleep-1' }).props.onPress();
@@ -2684,7 +2736,7 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   expect(output).toContain('已收藏');
 });
 
-test('auto-starts local trial when first entering space', async () => {
+test('requires explicit local trial start from protected space', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -2701,10 +2753,19 @@ test('auto-starts local trial when first entering space', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('卡片的物理空间');
-  expect(output).toContain('当前卡盒是第一阅读对象');
+  expect(output).toContain('完整物理空间需要试用或会员');
+
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'membership-start-trial-button' }).props.onPress();
+    await flushAsyncEffects();
+  });
+
+  const unlockedOutput = JSON.stringify(tree!.toJSON());
+  expect(unlockedOutput).toContain('卡片的物理空间');
+  expect(unlockedOutput).toContain('当前卡盒是第一阅读对象');
 });
 
-test('auto-starts trial from the first gated review entry', async () => {
+test('shows trial gate from the first gated review entry', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -2768,11 +2829,119 @@ test('auto-starts trial from the first gated review entry', async () => {
     await flushAsyncEffects();
   });
 
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('试用待开始');
+  expect(output).toContain('开始完整试用');
+
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'membership-start-trial-button' }).props.onPress();
+    await flushAsyncEffects();
+  });
+
   await openRoute(root, 'mine');
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('完整试用进行中');
-  expect(output).not.toContain('试用待开始');
+});
+
+test('starts review after membership is already unlocked', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await startTrialFromProtectedEntry(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-review-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'learning-lock-subject-the-policy' })
+      .props.onPress();
+    root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+    root
+      .findByProps({ testID: 'learning-lock-object-test-anxiety' })
+      .props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'learning-elimination-relative_clause' })
+      .props.onPress();
+    root.findByProps({ testID: 'learning-elimination-adverb' }).props.onPress();
+    root
+      .findByProps({ testID: 'learning-elimination-time_phrase' })
+      .props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-swipe-safe' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('完成了 5 张卡');
+  expect(root.findByProps({ testID: 'learning-start-review-button' })).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-start-review-button' }).props.onPress();
+  });
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('本轮回看');
+  expect(output).toContain('回看需要再看的卡，仍按一张卡推进');
 });
 
 test('shows recovery reminder after local trial ends and clears it after purchase', async () => {
