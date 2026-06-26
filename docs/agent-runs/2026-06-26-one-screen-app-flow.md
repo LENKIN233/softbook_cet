@@ -114,6 +114,19 @@ All five screenshots were captured by Maestro from the iOS simulator running `co
 - Status: Passed locally after visual review, real iOS smoke, full test validation, and metadata leak scans.
 - Blocking findings: none known.
 
+## PR gate evidence mirror
+
+- Design artifact: `docs/design/mocks/learning-card-rhythm-v1.md` and `docs/design/mocks/space-surface-shelf-desk-v1.md`.
+- Implementation mapping: `docs/design/mapping/learning-space-implementation-map-v1.md` mapped to `apps/mobile/src/learning/LearningSurface.tsx` and `apps/mobile/src/space/SpaceSurface.tsx`.
+- Interaction/motion artifact: `docs/design/interaction-motion/learning-card-rhythm-v1.md`.
+- Physical space artifact: `docs/design/physical-space/space-state-baseline-v1.md`.
+- Unimplemented design gaps: no new native navigation or animation framework was added in this scoped fix; existing shell state handles the one-screen flow.
+- Learning microcopy basis: design-backed product correction for one-screen operability; no hard leak introduced and metadata leak scans passed.
+- Universal Q1-Q4: Law of One/current library is preserved through one dominant current-card or current-box state; focal object/first-read path is current card -> action/result and Space address -> current box -> list; interaction silhouette is no longer a long stacked page; forbidden patterns/no forbidden metadata, mock, harness, route, fixture, or debug language introduced.
+- Conditional Q5-Q6: Q5 phone viewport/safe-area containment verified on 1206 x 2622 screenshots with no overflow into bottom tab; Q6 learning/flip self-assess remains two-state and Space stays a physical current-box surface.
+- AP-22: AP-22 pre-render proof is the committed real app screenshot set in `docs/design/app-screenshots/one-screen-app-flow/` plus the answered six questions in the design review checklist.
+- AP-23: AP-23 policy is preserved: flip self-assess remains two states, `有把握` uses mint/confident semantics and `再回看` uses amber/review semantics.
+
 ## User visible UI impact
 
 - Yes. This is a user-facing Learning and Space interaction/layout change.
