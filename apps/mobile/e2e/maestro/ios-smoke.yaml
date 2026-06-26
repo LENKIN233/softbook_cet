@@ -37,53 +37,64 @@ name: ios-auth-learning-space-statistics-smoke
 - tapOn:
     id: "route-tab-space"
 - assertVisible:
-    id: "space-current-position"
-- scrollUntilVisible:
-    element:
-      id: "space-library-05"
-    direction: DOWN
-    centerElement: true
-- tapOn:
-    id: "space-library-05"
-- scrollUntilVisible:
-    element:
-      id: "space-group-052"
-    direction: DOWN
-    centerElement: true
-- tapOn:
-    id: "space-group-052"
-- scrollUntilVisible:
-    element:
-      id: "space-box-0521"
-    direction: DOWN
-    centerElement: true
-- tapOn:
-    id: "space-box-0521"
-- scrollUntilVisible:
-    element:
-      id: "space-favorite-052101"
-    direction: DOWN
-    centerElement: true
-- tapOn:
-    id: "space-favorite-052101"
+    id: "space-address-shelf"
 - assertVisible:
-    id: "space-favorite-active-052101"
+    id: "membership-start-trial-button"
+- tapOn:
+    id: "membership-start-trial-button"
 - scrollUntilVisible:
     element:
-      id: "space-sleep-052101"
+      id: "space-library-3"
     direction: DOWN
     centerElement: true
 - tapOn:
-    id: "space-sleep-052101"
+    id: "space-library-3"
 - scrollUntilVisible:
     element:
-      id: "space-wake-052101"
+      id: "space-group-2"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "space-group-2"
+- scrollUntilVisible:
+    element:
+      id: "space-box-1"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "space-box-1"
+- scrollUntilVisible:
+    element:
+      id: "space-open-card-list"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "space-open-card-list"
+- scrollUntilVisible:
+    element:
+      id: "space-favorite-1"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "space-favorite-1"
+- assertVisible:
+    id: "space-favorite-active-1"
+- scrollUntilVisible:
+    element:
+      id: "space-sleep-1"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "space-sleep-1"
+- scrollUntilVisible:
+    element:
+      id: "space-wake-1"
     direction: UP
     centerElement: true
 - assertVisible:
-    id: "space-wake-052101"
+    id: "space-wake-1"
 - tapOn:
-    id: "space-wake-052101"
+    id: "space-wake-1"
 - tapOn:
     id: "route-tab-learning"
 - assertVisible:

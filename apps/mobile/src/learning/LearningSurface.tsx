@@ -51,6 +51,7 @@ type LearningSurfaceProps = {
   onToggleEliminationItem: (itemId: string) => void;
   onSelectSwipeState: (stateId: string) => void;
   onSubmitCurrentCard: () => void;
+  onOpenResultDetail?: () => void;
   onAdvanceCard: () => void;
   onRestartDeck: () => void;
   onStartReview?: () => void;
@@ -106,6 +107,7 @@ export function LearningSurface({
   onToggleEliminationItem,
   onSelectSwipeState,
   onSubmitCurrentCard,
+  onOpenResultDetail,
   onAdvanceCard,
   onRestartDeck,
   onStartReview,
@@ -374,13 +376,24 @@ export function LearningSurface({
         </View>
 
         {currentResult ? (
-          <ResultPanel
-            card={currentCard}
-            palette={palette}
-            result={currentResult}
-            onAdvanceCard={onAdvanceCard}
-            isLastCard={currentIndex === sessionCards.length - 1}
-          />
+          onOpenResultDetail ? (
+            <ResultSummaryPanel
+              card={currentCard}
+              palette={palette}
+              result={currentResult}
+              onAdvanceCard={onAdvanceCard}
+              onOpenResultDetail={onOpenResultDetail}
+              isLastCard={currentIndex === sessionCards.length - 1}
+            />
+          ) : (
+            <ResultPanel
+              card={currentCard}
+              palette={palette}
+              result={currentResult}
+              onAdvanceCard={onAdvanceCard}
+              isLastCard={currentIndex === sessionCards.length - 1}
+            />
+          )
         ) : currentCard.interaction_id !== 'flip' ? (
           <Pressable
             disabled={!canSubmitLearningCard(currentCard, currentCardState)}
@@ -914,6 +927,176 @@ function InteractionBody({
     default:
       return null;
   }
+}
+
+export function LearningResultDetailSurface({
+  card,
+  isLastCard,
+  onAdvanceCard,
+  onBackToPractice,
+  palette,
+  phase,
+  result,
+  sessionLabel,
+}: {
+  card: LearningCard;
+  isLastCard: boolean;
+  onAdvanceCard: () => void;
+  onBackToPractice: () => void;
+  palette: LearningSurfacePalette;
+  phase: 'learning' | 'review';
+  result: LearningCardResult;
+  sessionLabel: string;
+}) {
+  const displaySessionLabel = formatLearningSessionLabelForDisplay(
+    sessionLabel,
+    phase,
+  );
+
+  return (
+    <ScrollView
+      contentContainerStyle={styles.page}
+      testID="learning-result-detail-screen"
+    >
+      <View
+        style={[
+          styles.learningFrameHeader,
+          styles.glassCard,
+          {
+            backgroundColor: palette.panel,
+            borderColor: palette.border,
+            shadowColor: palette.accent,
+          },
+        ]}
+      >
+        <View style={styles.learningFrameTop}>
+          <View style={styles.heroChipRow}>
+            <TagChip label="解析详情" toneColor={palette.accent} />
+            <TagChip
+              label={phase === 'review' ? '本轮回看' : '本轮学习'}
+              toneColor={phase === 'review' ? palette.warning : palette.success}
+            />
+          </View>
+          <Pressable
+            onPress={onBackToPractice}
+            style={[
+              styles.secondaryButton,
+              {
+                backgroundColor: palette.panelStrong,
+                borderColor: palette.border,
+              },
+            ]}
+            testID="learning-result-back-button"
+          >
+            <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
+              返回练习
+            </Text>
+          </Pressable>
+        </View>
+        <Text style={[styles.learningFrameSummary, { color: palette.textMuted }]}>
+          {displaySessionLabel} · 解析是独立一步，读完后再进入下一张。
+        </Text>
+      </View>
+
+      <ResultPanel
+        card={card}
+        isLastCard={isLastCard}
+        onAdvanceCard={onAdvanceCard}
+        palette={palette}
+        result={result}
+      />
+    </ScrollView>
+  );
+}
+
+function ResultSummaryPanel({
+  card,
+  palette,
+  result,
+  onAdvanceCard,
+  onOpenResultDetail,
+  isLastCard,
+}: {
+  card: LearningCard;
+  palette: LearningSurfacePalette;
+  result: LearningCardResult;
+  onAdvanceCard: () => void;
+  onOpenResultDetail: () => void;
+  isLastCard: boolean;
+}) {
+  const borderTone =
+    result.outcome === 'review'
+      ? palette.warning
+      : result.outcome === 'incorrect'
+      ? palette.danger
+      : palette.success;
+  const isPositive =
+    result.outcome === 'correct' || result.outcome === 'confident';
+
+  return (
+    <View
+      style={[
+        styles.resultCard,
+        {
+          backgroundColor: palette.panelStrong,
+          borderColor: borderTone,
+        },
+      ]}
+      testID="learning-result-summary"
+    >
+      <View
+        pointerEvents="none"
+        style={[
+          styles.paperSpine,
+          { backgroundColor: hexToRgba(borderTone, 0.18) },
+        ]}
+      />
+      <View pointerEvents="none" style={styles.paperLineOne} />
+      <View pointerEvents="none" style={styles.paperLineTwo} />
+      <View style={styles.resultHeader}>
+        <Text style={[styles.sectionTitle, { color: palette.text }]}>
+          {isPositive ? '这张卡已稳住' : '这张卡需要回看'}
+        </Text>
+        <ResultBadge outcome={result.outcome} palette={palette} />
+      </View>
+      <Text style={[styles.resultExplanationTitle, { color: palette.text }]}>
+        已记录本次结果
+      </Text>
+      <Text style={[styles.resultExplanationBody, { color: palette.textMuted }]}>
+        解析已准备好：{card.analysis.title}
+      </Text>
+      <View style={styles.resultActionRow}>
+        <Pressable
+          onPress={onOpenResultDetail}
+          style={[
+            styles.secondaryButton,
+            {
+              backgroundColor: palette.panel,
+              borderColor: borderTone,
+            },
+          ]}
+          testID="learning-open-result-detail-button"
+        >
+          <Text style={[styles.secondaryButtonLabel, { color: borderTone }]}>
+            查看解析
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={onAdvanceCard}
+          style={[
+            styles.primaryButton,
+            styles.resultNextButton,
+            { backgroundColor: palette.accent },
+          ]}
+          testID="learning-next-button"
+        >
+          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            {isLastCard ? '完成本轮学习' : '继续下一张'}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
 }
 
 function ResultPanel({
@@ -1693,6 +1876,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+  secondaryButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  secondaryButtonLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
   resultCard: {
     borderWidth: 1,
     borderRadius: 26,
@@ -1707,6 +1902,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
+  },
+  resultActionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  resultNextButton: {
+    flex: 1,
+    minWidth: 138,
   },
   resultExplanationTitle: {
     fontSize: 15,
