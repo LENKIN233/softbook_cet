@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import type { DimensionValue } from 'react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -117,12 +117,6 @@ export function LearningSurface({
     sessionLabel,
     phase,
   );
-  const currentCardScrollRef = useRef<ScrollView>(null);
-
-  useEffect(() => {
-    currentCardScrollRef.current?.scrollTo({ animated: false, y: 0 });
-  }, [currentCard?.card_id, currentIndex, phase]);
-
   if (currentCard === null || currentCardState === null) {
     const summary = summarizeLearningResults(
       completedResults,
@@ -242,9 +236,52 @@ export function LearningSurface({
     10,
   )}%` as DimensionValue;
   const actionCue = formatLearningActionCue(currentCard, currentResult);
+  const isLockInteraction = currentCard.interaction_id === 'lock';
+  const isDenseInteraction =
+    isLockInteraction ||
+    currentCard.interaction_id === 'elimination' ||
+    currentCard.interaction_id === 'swipe';
+  const supportLayer = (() => {
+    const peekBody = '先把题干里的信号抓出来，再回到选项或解析确认。';
+
+    if (currentCardState.isPeeked && currentCard.hint_layer?.content && currentCardState.isHintVisible) {
+      return {
+        title: '先看这张卡的关键点',
+        body: `${peekBody} ${currentCard.hint_layer.content}`,
+        tone: palette.text,
+      };
+    }
+
+    if (currentCard.hint_layer && currentCardState.isHintVisible) {
+      return {
+        title: '提示',
+        body: currentCard.hint_layer.content,
+        tone: tone.accent,
+      };
+    }
+
+    if (currentCardState.isPeeked) {
+      return {
+        title: '先看这张卡的关键点',
+        body: peekBody,
+        tone: palette.text,
+      };
+    }
+
+    return null;
+  })();
+  const canSubmitCurrentCard = canSubmitLearningCard(
+    currentCard,
+    currentCardState,
+  );
+  const shouldShowContextCard =
+    currentResult === null &&
+    !isDenseInteraction &&
+    !(currentCard.interaction_id === 'flip' && currentCardState.isFlipped);
+  const shouldShowUtilityDock = !isDenseInteraction;
 
   return (
-    <ScrollView ref={currentCardScrollRef} contentContainerStyle={styles.page}>
+    <View style={styles.oneScreenPage} testID="learning-one-screen-flow">
       <View
         style={[
           styles.learningFrameHeader,
@@ -270,7 +307,10 @@ export function LearningSurface({
             当前练习
           </Text>
         </View>
-        <Text style={[styles.learningFrameSummary, { color: palette.textMuted }]}>
+        <Text
+          numberOfLines={1}
+          style={[styles.learningFrameSummary, { color: palette.textMuted }]}
+        >
           {displaySessionLabel} ·{' '}
           {isReviewPhase
             ? '回看需要再看的卡，仍按一张卡推进'
@@ -294,6 +334,7 @@ export function LearningSurface({
       <View
         style={[
           styles.studyCard,
+          styles.studyCardOneScreen,
           styles.glassCard,
           {
             backgroundColor: palette.panel,
@@ -318,62 +359,45 @@ export function LearningSurface({
             <Text style={[styles.cardEyebrow, { color: tone.accent }]}>
               这张练习 · {INTERACTION_LABELS[currentCard.interaction_id]}
             </Text>
-            <Text style={[styles.cardPrompt, { color: palette.text }]}>
+            <Text
+              numberOfLines={isDenseInteraction ? 2 : 4}
+              style={[styles.cardPrompt, styles.cardPromptOneScreen, { color: palette.text }]}
+            >
               {currentCard.front.prompt}
             </Text>
           </View>
         </View>
 
-        <View
-          style={[
-            styles.contextCard,
-            { backgroundColor: palette.panelStrong, borderColor: palette.border },
-          ]}
-        >
-          <Text style={[styles.cardSupport, { color: palette.text }]}>
-            {currentCard.front.support}
-          </Text>
-          <Text style={[styles.cardContext, { color: palette.textMuted }]}>
-            {currentCard.front.context}
-          </Text>
-        </View>
-
-        <View
-          style={[
-            styles.interactionCard,
-            {
-              backgroundColor: palette.panelStrong,
-              borderColor: palette.border,
-            },
-          ]}
-        >
-          <View style={styles.interactionTitleRow}>
-            <Text style={[styles.sectionTitle, { color: palette.text }]}>
-              {INTERACTION_LABELS[currentCard.interaction_id]}
+        {shouldShowContextCard ? (
+          <View
+            style={[
+              styles.contextCard,
+              supportLayer ? styles.contextCardSupportActive : null,
+              { backgroundColor: palette.panelStrong, borderColor: palette.border },
+            ]}
+            testID={
+              supportLayer
+                ? 'learning-support-layer'
+                : 'learning-current-card-context'
+            }
+          >
+            <Text
+              numberOfLines={supportLayer ? 1 : 2}
+              style={[
+                styles.cardSupport,
+                { color: supportLayer?.tone ?? palette.text },
+              ]}
+            >
+              {supportLayer?.title ?? currentCard.front.support}
             </Text>
-            <Text style={[styles.interactionMeta, { color: palette.textMuted }]}>
-              现在做
+            <Text
+              numberOfLines={supportLayer ? 3 : 2}
+              style={[styles.cardContext, { color: palette.textMuted }]}
+            >
+              {supportLayer?.body ?? currentCard.front.context}
             </Text>
           </View>
-          <Text
-            style={[styles.actionCue, { color: palette.textMuted }]}
-            testID="learning-action-cue"
-          >
-            {actionCue}
-          </Text>
-          <InteractionBody
-            card={currentCard}
-            cardState={currentCardState}
-            currentResult={currentResult}
-            palette={palette}
-            onFlip={onFlip}
-            onSetFlipConfidence={onSetFlipConfidence}
-            onSelectOption={onSelectOption}
-            onSetLockSelection={onSetLockSelection}
-            onToggleEliminationItem={onToggleEliminationItem}
-            onSelectSwipeState={onSelectSwipeState}
-          />
-        </View>
+        ) : null}
 
         {currentResult ? (
           onOpenResultDetail ? (
@@ -394,137 +418,147 @@ export function LearningSurface({
               isLastCard={currentIndex === sessionCards.length - 1}
             />
           )
-        ) : currentCard.interaction_id !== 'flip' ? (
-          <Pressable
-            disabled={!canSubmitLearningCard(currentCard, currentCardState)}
-            onPress={onSubmitCurrentCard}
+        ) : (
+          <View
             style={[
-              styles.primaryButton,
+              styles.interactionCard,
+              styles.interactionCardOneScreen,
               {
-                backgroundColor: canSubmitLearningCard(
-                  currentCard,
-                  currentCardState,
-                )
-                  ? tone.accent
-                  : palette.tabIdle,
+                backgroundColor: palette.panelStrong,
+                borderColor: palette.border,
               },
             ]}
-            testID="learning-submit-button"
           >
-            <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-              提交这张卡
-            </Text>
-          </Pressable>
-        ) : null}
-
-        <View style={styles.actionRow}>
-          <LightActionButton
-            label={currentCardState.isPeeked ? '收起线索' : '查看线索'}
-            onPress={onTogglePeek}
-            palette={palette}
-            testID="learning-peek-button"
-          />
-          {currentCard.hint_layer ? (
-            <LightActionButton
-              label={
-                currentCardState.isHintVisible
-                  ? '收起提示'
-                  : '查看提示'
-              }
-              onPress={onToggleHint}
+            <View style={styles.interactionTitleRow}>
+              <Text style={[styles.sectionTitle, { color: palette.text }]}>
+                {INTERACTION_LABELS[currentCard.interaction_id]}
+              </Text>
+              <Text style={[styles.interactionMeta, { color: palette.textMuted }]}>
+                现在做
+              </Text>
+            </View>
+            {!isDenseInteraction ? (
+              <Text
+                numberOfLines={2}
+                style={[styles.actionCue, { color: palette.textMuted }]}
+                testID="learning-action-cue"
+              >
+                {actionCue}
+              </Text>
+            ) : null}
+            <InteractionBody
+              card={currentCard}
+              cardState={currentCardState}
+              currentResult={currentResult}
               palette={palette}
-              testID="learning-hint-button"
+              onFlip={onFlip}
+              onSetFlipConfidence={onSetFlipConfidence}
+              onSelectOption={onSelectOption}
+              onSetLockSelection={onSetLockSelection}
+              onToggleEliminationItem={onToggleEliminationItem}
+              onSelectSwipeState={onSelectSwipeState}
             />
-          ) : null}
-          <Pressable
-            onPress={onToggleFavorite}
+          </View>
+        )}
+
+        {!currentResult ? (
+          <View
             style={[
-              styles.favoriteButton,
-              {
-                backgroundColor: currentCardState.isFavorited
-                  ? tone.accentSoft
-                  : palette.panelStrong,
-                borderColor: currentCardState.isFavorited
-                  ? tone.accent
-                  : palette.border,
-              },
+              styles.oneScreenDock,
+              isLockInteraction ? styles.oneScreenDockCompact : null,
             ]}
-            testID="learning-favorite-button"
           >
-            <Text
+          {currentCard.interaction_id !== 'flip' ? (
+            <Pressable
+              disabled={!canSubmitCurrentCard}
+              onPress={onSubmitCurrentCard}
               style={[
-                styles.favoriteLabel,
+                styles.primaryButton,
+                styles.oneScreenPrimaryButton,
                 {
-                  color: currentCardState.isFavorited
+                  backgroundColor: canSubmitCurrentCard
                     ? tone.accent
-                    : palette.textMuted,
+                    : palette.tabIdle,
                 },
               ]}
+              testID="learning-submit-button"
             >
-              {currentCardState.isFavorited ? '已收藏' : '收藏'}
-            </Text>
-          </Pressable>
+              <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+                提交这张卡
+              </Text>
+            </Pressable>
+          ) : null}
+          {shouldShowUtilityDock ? (
+            <>
+              <View style={styles.actionRow}>
+                <LightActionButton
+                  label={currentCardState.isPeeked ? '收起线索' : '查看线索'}
+                  onPress={onTogglePeek}
+                  palette={palette}
+                  testID="learning-peek-button"
+                />
+                {currentCard.hint_layer ? (
+                  <LightActionButton
+                    label={
+                      currentCardState.isHintVisible
+                        ? '收起提示'
+                        : '查看提示'
+                    }
+                    onPress={onToggleHint}
+                    palette={palette}
+                    testID="learning-hint-button"
+                  />
+                ) : null}
+                <Pressable
+                  onPress={onToggleFavorite}
+                  style={[
+                    styles.favoriteButton,
+                    {
+                      backgroundColor: currentCardState.isFavorited
+                        ? tone.accentSoft
+                        : palette.panelStrong,
+                      borderColor: currentCardState.isFavorited
+                        ? tone.accent
+                        : palette.border,
+                    },
+                  ]}
+                  testID="learning-favorite-button"
+                >
+                  <Text
+                    style={[
+                      styles.favoriteLabel,
+                      {
+                        color: currentCardState.isFavorited
+                          ? tone.accent
+                          : palette.textMuted,
+                      },
+                    ]}
+                  >
+                    {currentCardState.isFavorited ? '已收藏' : '收藏'}
+                  </Text>
+                </Pressable>
+              </View>
+              <View
+                style={[
+                  styles.addressAperture,
+                  {
+                    backgroundColor: palette.panelStrong,
+                    borderColor: palette.border,
+                  },
+                ]}
+                testID="learning-address-aperture"
+              >
+                <Text style={[styles.addressText, { color: palette.textMuted }]}>
+                  位置已收在知识空间
+                </Text>
+              </View>
+            </>
+          ) : null}
         </View>
-
-        {currentCardState.isPeeked ? (
-          <View
-            style={[
-              styles.attachedLayerPanel,
-              styles.peekPanel,
-              {
-                backgroundColor: tone.accentSoft,
-                borderColor: tone.accent,
-                borderLeftColor: tone.accent,
-              },
-            ]}
-          >
-            <Text style={[styles.peekTitle, { color: palette.text }]}>
-              先看这张卡的关键点
-            </Text>
-            <Text style={[styles.peekText, { color: palette.textMuted }]}> 
-              先把题干里的信号抓出来，再回到选项或解析确认。
-            </Text>
-          </View>
         ) : null}
-
-        {currentCard.hint_layer && currentCardState.isHintVisible ? (
-          <View
-            style={[
-              styles.attachedLayerPanel,
-              styles.hintPanel,
-              {
-                backgroundColor: tone.accentSoft,
-                borderColor: tone.accent,
-                borderLeftColor: tone.accent,
-              },
-            ]}
-          >
-            <Text style={[styles.hintTitle, { color: tone.accent }]}>
-              提示
-            </Text>
-            <Text style={[styles.hintText, { color: palette.textMuted }]}>
-              {currentCard.hint_layer.content}
-            </Text>
-          </View>
-        ) : null}
-
-        <View
-          style={[
-            styles.addressAperture,
-            {
-              backgroundColor: palette.panelStrong,
-              borderColor: palette.border,
-            },
-          ]}
-          testID="learning-address-aperture"
-        >
-          <Text style={[styles.addressText, { color: palette.textMuted }]}> 
-            位置已收在知识空间
-          </Text>
-        </View>
 
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -570,7 +604,10 @@ function InteractionBody({
               <Text style={[styles.revealTitle, { color: tone.accent }]}>
                 翻面结果
               </Text>
-              <Text style={[styles.revealText, { color: palette.text }]}>
+              <Text
+                numberOfLines={4}
+                style={[styles.revealText, { color: palette.text }]}
+              >
                 {card.back_text}
               </Text>
             </View>
@@ -684,9 +721,6 @@ function InteractionBody({
     case 'lock':
       return (
         <View style={styles.interactionBody}>
-          <Text style={[styles.inlineHelper, { color: palette.textMuted }]}>
-            三个槽位都对，主干才算开锁。
-          </Text>
           <View style={styles.lockList}>
           {card.lock_slots.map(slot => {
             const selectedValue = cardState.lockSelections[slot.id];
@@ -739,7 +773,7 @@ function InteractionBody({
                       {isUnlocked ? '已开锁' : '待选择'}
                     </Text>
                   </View>
-                  <View style={styles.inlineWrap}>
+                  <View style={[styles.inlineWrap, styles.lockChoiceWrap]}>
                     {slot.options.map(option => {
                       const isSelected = selectedValue === option;
 
@@ -749,6 +783,7 @@ function InteractionBody({
                           onPress={() => onSetLockSelection(slot.id, option)}
                           style={[
                             styles.choicePill,
+                            styles.lockChoicePill,
                             {
                               backgroundColor: isSelected
                                 ? palette.panel
@@ -763,8 +798,10 @@ function InteractionBody({
                           )}`}
                         >
                           <Text
+                            numberOfLines={1}
                             style={[
                               styles.choiceLabel,
+                              styles.lockChoiceLabel,
                               {
                                 color: isSelected ? tone.accent : palette.text,
                               },
@@ -786,9 +823,6 @@ function InteractionBody({
     case 'elimination':
       return (
         <View style={styles.interactionBody}>
-          <Text style={[styles.inlineHelper, { color: palette.textMuted }]}>
-            点亮你想剥离的成分。
-          </Text>
           <View style={styles.eliminationGrid}>
             {card.elimination_items.map(item => {
               const isSelected = cardState.eliminatedItemIds.includes(item.id);
@@ -954,8 +988,8 @@ export function LearningResultDetailSurface({
   );
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.page}
+    <View
+      style={styles.oneScreenPage}
       testID="learning-result-detail-screen"
     >
       <View
@@ -1005,7 +1039,7 @@ export function LearningResultDetailSurface({
         palette={palette}
         result={result}
       />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -1356,6 +1390,13 @@ const styles = StyleSheet.create({
     paddingBottom: 34,
     gap: 14,
   },
+  oneScreenPage: {
+    flex: 1,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
   glassCard: {
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.14,
@@ -1469,6 +1510,12 @@ const styles = StyleSheet.create({
     gap: 16,
     position: 'relative',
   },
+  studyCardOneScreen: {
+    flex: 1,
+    gap: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
   paperSpine: {
     bottom: 0,
     left: 30,
@@ -1521,12 +1568,19 @@ const styles = StyleSheet.create({
     lineHeight: 35,
     fontWeight: '800',
   },
+  cardPromptOneScreen: {
+    fontSize: 24,
+    lineHeight: 30,
+  },
   contextCard: {
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 14,
     gap: 8,
+  },
+  contextCardSupportActive: {
+    borderLeftWidth: 4,
   },
   cardSupport: {
     fontSize: 16,
@@ -1612,6 +1666,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 15,
     gap: 12,
+  },
+  interactionCardOneScreen: {
+    flexShrink: 1,
+    gap: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
   },
   sectionTitle: {
     fontSize: 16,
@@ -1699,45 +1759,57 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   lockList: {
-    gap: 12,
+    gap: 6,
   },
   lockRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
+    alignItems: 'center',
+    borderRadius: 16,
     borderWidth: 1,
-    borderRadius: 22,
-    padding: 14,
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
   },
   lockGlyph: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
     alignItems: 'center',
+    borderRadius: 13,
+    borderWidth: 1,
+    height: 26,
     justifyContent: 'center',
+    width: 26,
   },
   lockGlyphLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
   },
   lockBody: {
     flex: 1,
-    gap: 10,
+    gap: 5,
   },
   lockLabelRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
     justifyContent: 'space-between',
   },
   lockLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
   },
   lockStatus: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '800',
+  },
+  lockChoicePill: {
+    borderRadius: 14,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+  },
+  lockChoiceLabel: {
+    fontSize: 11,
+  },
+  lockChoiceWrap: {
+    flexWrap: 'nowrap',
+    gap: 5,
   },
   inlineWrap: {
     flexDirection: 'row',
@@ -1781,19 +1853,19 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   swipeColumn: {
-    gap: 14,
+    gap: 8,
   },
   swipeDeck: {
-    minHeight: 176,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 116,
   },
   swipeGhostCard: {
-    position: 'absolute',
-    width: '82%',
-    height: 132,
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 20,
+    height: 92,
+    position: 'absolute',
+    width: '78%',
   },
   swipeGhostBack: {
     transform: [{translateX: -22}, {translateY: 6}],
@@ -1802,14 +1874,14 @@ const styles = StyleSheet.create({
     transform: [{translateX: 22}, {translateY: -2}],
   },
   swipeTopCard: {
-    width: '88%',
-    minHeight: 144,
+    width: '82%',
+    minHeight: 98,
     borderWidth: 1,
-    borderRadius: 26,
-    paddingHorizontal: 18,
-    paddingVertical: 20,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
     justifyContent: 'center',
-    gap: 10,
+    gap: 6,
   },
   swipePromptLabel: {
     fontSize: 12,
@@ -1817,8 +1889,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   swipePromptText: {
-    fontSize: 18,
-    lineHeight: 26,
+    fontSize: 15,
+    lineHeight: 21,
     fontWeight: '700',
   },
   swipeTrailRow: {
@@ -1847,23 +1919,24 @@ const styles = StyleSheet.create({
   swipeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 8,
   },
   swipeStateCard: {
     flex: 1,
-    minWidth: 140,
+    minWidth: 128,
     borderWidth: 1,
-    borderRadius: 22,
-    padding: 16,
-    gap: 8,
+    borderRadius: 18,
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   swipeLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
   },
   swipeText: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 12,
+    lineHeight: 17,
   },
   primaryButton: {
     borderRadius: 999,
@@ -1871,6 +1944,16 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  oneScreenDock: {
+    gap: 9,
+    marginTop: 'auto',
+  },
+  oneScreenDockCompact: {
+    gap: 0,
+  },
+  oneScreenPrimaryButton: {
+    paddingVertical: 13,
   },
   primaryButtonLabel: {
     fontSize: 15,

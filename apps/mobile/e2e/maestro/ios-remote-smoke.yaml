@@ -42,59 +42,40 @@ name: ios-remote-auth-learning-space-statistics-smoke
     id: "membership-start-trial-button"
 - tapOn:
     id: "membership-start-trial-button"
-- scrollUntilVisible:
-    element:
-      id: "space-library-3"
-    direction: DOWN
-    centerElement: true
-- tapOn:
-    id: "space-library-3"
-- scrollUntilVisible:
-    element:
-      id: "space-group-2"
-    direction: DOWN
-    centerElement: true
-- tapOn:
-    id: "space-group-2"
-- scrollUntilVisible:
-    element:
-      id: "space-box-1"
-    direction: DOWN
-    centerElement: true
-- tapOn:
-    id: "space-box-1"
-- scrollUntilVisible:
-    element:
+- extendedWaitUntil:
+    visible:
       id: "space-open-card-list"
-    direction: DOWN
-    centerElement: true
+    timeout: 10000
 - tapOn:
     id: "space-open-card-list"
-- scrollUntilVisible:
-    element:
-      id: "space-favorite-1"
-    direction: DOWN
-    centerElement: true
+- assertVisible:
+    id: "space-contained-card-strip"
+- assertVisible:
+    id: "space-library-3"
+- tapOn:
+    id: "space-library-3"
+- assertVisible:
+    id: "space-group-2"
+- tapOn:
+    id: "space-group-2"
+- assertVisible:
+    id: "space-box-1"
+- tapOn:
+    id: "space-box-1"
+- assertVisible:
+    id: "space-favorite-1"
 - tapOn:
     id: "space-favorite-1"
 - assertVisible:
     id: "space-favorite-active-1"
-- scrollUntilVisible:
-    element:
-      id: "space-sleep-1"
-    direction: DOWN
-    centerElement: true
+- assertVisible:
+    id: "space-sleep-1"
 - tapOn:
     id: "space-sleep-1"
-- scrollUntilVisible:
-    element:
-      id: "space-wake-1"
-    direction: UP
-    centerElement: true
 - assertVisible:
-    id: "space-wake-1"
+    id: "space-sleep-active-1"
 - tapOn:
-    id: "space-wake-1"
+    id: "space-sleep-1"
 - tapOn:
     id: "route-tab-learning"
 - assertVisible:
