@@ -4,7 +4,7 @@
 
 - Date: 2026-06-28
 - Branch: `codex/fix-frontend-flow-review`
-- PR: N/A at record creation
+- PR: https://github.com/LENKIN233/softbook_cet/pull/259
 - Summary: Fixed the frontend review blockers found after the app-flow quality review: Space now keeps Learning-to-Space continuity without overwriting manual card-list operations, Maestro smoke no longer scrolls to primary controls, and current real-app screenshots have a single non-stale handoff directory.
 
 ## Referenced specs
