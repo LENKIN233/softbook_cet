@@ -4,7 +4,7 @@
 
 - Date: 2026-06-28
 - Branch: `codex/continue-frontend-quality`
-- PR: N/A at record creation
+- PR: https://github.com/LENKIN233/softbook_cet/pull/260
 - Summary: Continued the frontend quality rebuild by replacing the Mine surface's explanatory card stack with a compact one-screen personal center, adding real route actions, smoke coverage, and a real iOS simulator `mine.png` screenshot.
 
 ## Referenced specs
