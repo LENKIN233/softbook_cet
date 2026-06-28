@@ -279,6 +279,21 @@ function readMetricValue(
   return root.findByProps({testID}).findAllByType(Text)[0].props.children;
 }
 
+function findPressableByTestId(
+  root: ReactTestRenderer.ReactTestInstance,
+  testID: string,
+) {
+  const pressable = root
+    .findAllByProps({testID})
+    .find(node => typeof node.props.onPress === 'function');
+
+  if (!pressable) {
+    throw new Error(`No pressable node found for ${testID}.`);
+  }
+
+  return pressable;
+}
+
 function createRemoteSpaceSession(track: 'cet4' | 'cet6' = 'cet4'): LearningSession {
   const baseSession = createLocalLearningSession(track);
   const mapCard = (
@@ -953,8 +968,7 @@ test('queues failed remote learning state sync for later replay', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('学习状态：待重试');
-  expect(output).toContain('答题记录：学习状态同步暂时失败（503）。 网络恢复后会自动再试。');
+  expect(output).toContain('已记录 · 待重试');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
@@ -1153,7 +1167,7 @@ test('replays queued learning state after network reconnect', async () => {
     await flushAsyncEffects();
   });
 
-  expect(JSON.stringify(tree!.toJSON())).toContain('学习状态：待重试');
+  expect(JSON.stringify(tree!.toJSON())).toContain('已记录 · 待重试');
 
   shouldFailLearningStateSync = false;
 
@@ -1163,8 +1177,7 @@ test('replays queued learning state after network reconnect', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('学习状态：已同步');
-  expect(output).toContain('答题记录：网络恢复后，当前答题记录已同步。');
+  expect(output).toContain('已记录 · 已同步');
   expect(
     fetchCalls.filter(
       call => call.input === 'https://api.softbook.example/v1/learning/state-sync',
@@ -2559,7 +2572,7 @@ test('keeps completed progress when first gated space entry starts trial', async
   expect(readMetricValue(root, 'statistics-metric-completed')).toBe('1');
 });
 
-test('mine page shows profile, learning, and space summaries after login', async () => {
+test('mine page keeps profile status and route actions in one screen after login', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -2602,14 +2615,43 @@ test('mine page shows profile, learning, and space summaries after login', async
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('个人主页');
-  expect(output).toContain('手机号：138****8000');
-  expect(output).toContain('今日签到：已完成');
-  expect(output).toContain('今日同步：已记录');
-  expect(output).toContain('今日已完成 1 张卡，其中首轮 1 张、回看 0 张。');
-  expect(output).toContain('同步进展：今天的学习进展已记录。');
-  expect(output).toContain('已有收藏卡片。');
+  expect(output).toContain('138****8000');
+  expect(output).toContain('今日已签到 · 1 张已完成');
+  expect(output).toContain('已记录 · 已记录');
+  expect(readMetricValue(root, 'mine-metric-completed')).toBe('1');
+  expect(readMetricValue(root, 'mine-metric-review')).toBe('0');
+  expect(readMetricValue(root, 'mine-metric-favorites')).toBe('1');
+  expect(readMetricValue(root, 'mine-metric-sleeping')).toBe('0');
+  expect(findPressableByTestId(root, 'mine-go-learning')).toBeTruthy();
+  expect(findPressableByTestId(root, 'mine-go-space')).toBeTruthy();
+  expect(findPressableByTestId(root, 'mine-go-statistics')).toBeTruthy();
+  expect(output).not.toContain('账号概览');
+  expect(output).not.toContain('今日已完成 1 张卡，其中首轮 1 张、回看 0 张。');
   expect(output).not.toContain('收藏标签 1 张。');
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'mine-go-space').props.onPress();
+  });
+
+  expect(JSON.stringify(tree!.toJSON())).toContain('卡片的物理空间');
+
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'mine-go-statistics').props.onPress();
+  });
+
+  expect(root.findAllByProps({ testID: 'statistics-metric-completed' }).length).toBeGreaterThan(0);
+
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'mine-go-learning').props.onPress();
+  });
+
+  const learningOutput = JSON.stringify(tree!.toJSON());
+  expect(root.findAllByProps({ testID: 'mine-profile-card' })).toHaveLength(0);
+  expect(learningOutput).toContain('继续当前卡');
 });
 
 test('can browse the seeded knowledge map after login', async () => {

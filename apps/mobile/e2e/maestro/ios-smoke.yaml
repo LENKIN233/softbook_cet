@@ -162,3 +162,24 @@ name: ios-auth-learning-space-statistics-smoke
     id: "statistics-checkin-button"
 - assertVisible:
     id: "statistics-checkin-complete-label"
+
+- tapOn:
+    id: "route-tab-mine"
+- assertVisible:
+    id: "mine-profile-card"
+- assertVisible:
+    id: "mine-go-learning"
+- assertVisible:
+    id: "mine-go-space"
+- assertVisible:
+    id: "mine-go-statistics"
+- assertVisible:
+    id: "membership-host-card"
+- tapOn:
+    id: "mine-go-statistics"
+- assertVisible:
+    id: "statistics-metric-completed"
+- tapOn:
+    id: "route-tab-mine"
+- assertVisible:
+    id: "mine-profile-card"
