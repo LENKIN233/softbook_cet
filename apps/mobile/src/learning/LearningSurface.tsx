@@ -1,6 +1,6 @@
 import React from 'react';
 import type { DimensionValue } from 'react-native';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   INTERACTION_LABELS,
@@ -124,10 +124,11 @@ export function LearningSurface({
     );
 
     return (
-      <ScrollView contentContainerStyle={styles.page}>
+      <View style={[styles.oneScreenPage, styles.completeScreen]}>
         <View
           style={[
             styles.heroCard,
+            styles.completeHeroCard,
             styles.glassCard,
             {
               backgroundColor: palette.panel,
@@ -167,29 +168,10 @@ export function LearningSurface({
           </View>
         </View>
 
-        <View style={styles.detailGrid}>
-          <InfoGlassCard
-            palette={palette}
-            title={isReviewPhase ? '回看已经收好' : '这一轮已经收好'}
-            lines={
-              isReviewPhase
-                ? [
-                    '需要再看的卡已经重新过了一遍。',
-                    '仍不稳的点会留在后续学习里自然出现。',
-                    '现在可以回到首轮，按学习节奏继续。',
-                  ]
-                : [
-                    '本轮学习卡已经按学习节奏走完。',
-                    '需要再看的卡已经被收进回看，不要求你管理列表。',
-                    '想确认位置时，再去空间查看对应知识盒。',
-                  ]
-            }
-          />
-        </View>
-
         <View
           style={[
             styles.resultCard,
+            styles.completeActionCard,
             {
               backgroundColor: palette.panel,
               borderColor: palette.border,
@@ -197,6 +179,14 @@ export function LearningSurface({
           ]}
           testID="learning-complete-details"
         >
+          <Text style={[styles.resultExplanationTitle, { color: palette.text }]}>
+            {isReviewPhase ? '回看已经收好' : '这一轮已经收好'}
+          </Text>
+          <Text style={[styles.resultExplanationBody, { color: palette.textMuted }]}>
+            {isReviewPhase
+              ? '仍不稳的点会留在后续学习里自然出现。'
+              : '需要再看的卡已经收进回看，不要求你管理列表。'}
+          </Text>
           <Text style={[styles.sectionTitle, { color: palette.text }]}>下一步</Text>
           <Text style={[styles.resultExplanationBody, { color: palette.textMuted }]}>
             {isReviewPhase
@@ -226,7 +216,7 @@ export function LearningSurface({
             </Text>
           </Pressable>
         </View>
-      </ScrollView>
+      </View>
     );
   }
 
@@ -277,8 +267,10 @@ export function LearningSurface({
   const shouldShowContextCard =
     currentResult === null &&
     !isDenseInteraction &&
+    currentCard.interaction_id === 'flip' &&
     !(currentCard.interaction_id === 'flip' && currentCardState.isFlipped);
-  const shouldShowUtilityDock = !isDenseInteraction;
+  const shouldShowUtilityDock =
+    currentCard.interaction_id === 'flip' && !isDenseInteraction;
 
   return (
     <View style={styles.oneScreenPage} testID="learning-one-screen-flow">
@@ -709,7 +701,10 @@ function InteractionBody({
                   <Text style={[styles.optionLabel, { color: tone.accent }]}>
                     {option.label}
                   </Text>
-                  <Text style={[styles.optionText, { color: palette.text }]}>
+                  <Text
+                    numberOfLines={2}
+                    style={[styles.optionText, { color: palette.text }]}
+                  >
                     {option.text}
                   </Text>
                 </Pressable>
@@ -1221,40 +1216,6 @@ function ResultPanel({
   );
 }
 
-function InfoGlassCard({
-  palette,
-  title,
-  lines,
-}: {
-  palette: LearningSurfacePalette;
-  title: string;
-  lines: string[];
-}) {
-  return (
-    <View
-      style={[
-        styles.infoCard,
-        {
-          backgroundColor: palette.panel,
-          borderColor: palette.border,
-        },
-      ]}
-    >
-      <Text style={[styles.sectionTitle, { color: palette.text }]}>
-        {title}
-      </Text>
-      {lines.map(line => (
-        <View key={line} style={styles.infoLine}>
-          <View style={[styles.infoDot, { backgroundColor: palette.accent }]} />
-          <Text style={[styles.infoText, { color: palette.textMuted }]}>
-            {line}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 function MetricPill({
   label,
   value,
@@ -1384,18 +1345,15 @@ function toTestIdSegment(value: string) {
 }
 
 const styles = StyleSheet.create({
-  page: {
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 34,
-    gap: 14,
-  },
   oneScreenPage: {
     flex: 1,
     gap: 10,
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
+  },
+  completeScreen: {
+    justifyContent: 'center',
   },
   glassCard: {
     shadowOffset: { width: 0, height: 20 },
@@ -1408,6 +1366,9 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 20,
     gap: 14,
+  },
+  completeHeroCard: {
+    paddingVertical: 18,
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -1569,8 +1530,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   cardPromptOneScreen: {
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 22,
+    lineHeight: 28,
   },
   contextCard: {
     borderWidth: 1,
@@ -1669,9 +1630,9 @@ const styles = StyleSheet.create({
   },
   interactionCardOneScreen: {
     flexShrink: 1,
-    gap: 9,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
   },
   sectionTitle: {
     fontSize: 16,
@@ -1689,12 +1650,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   actionCue: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    lineHeight: 20,
+    lineHeight: 17,
   },
   interactionBody: {
-    gap: 12,
+    gap: 8,
   },
   revealPanel: {
     borderWidth: 1,
@@ -1734,26 +1695,28 @@ const styles = StyleSheet.create({
   optionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
   optionCard: {
     borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 15,
-    gap: 10,
-    minWidth: '47%',
+    borderRadius: 16,
+    flexBasis: '47%',
     flexGrow: 1,
+    gap: 5,
     alignItems: 'flex-start',
+    minHeight: 74,
+    minWidth: '47%',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
   },
   optionLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '800',
   },
   optionText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
-    lineHeight: 22,
+    lineHeight: 17,
   },
   lockGroup: {
     gap: 10,
@@ -1980,6 +1943,9 @@ const styles = StyleSheet.create({
     gap: 12,
     position: 'relative',
   },
+  completeActionCard: {
+    paddingVertical: 16,
+  },
   resultHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2057,31 +2023,6 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 18,
     fontWeight: '800',
-  },
-  detailGrid: {
-    gap: 12,
-  },
-  infoCard: {
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 16,
-    gap: 10,
-  },
-  infoLine: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  infoDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    marginTop: 6,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 21,
   },
   resultRow: {
     flexDirection: 'row',

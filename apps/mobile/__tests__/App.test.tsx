@@ -4,7 +4,7 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { Text } from 'react-native';
+import { ScrollView, Text } from 'react-native';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
 import { LearningCard, LearningSession } from '../src/learning/model';
 import { createLocalLearningSession } from '../src/learning/session';
@@ -2104,6 +2104,29 @@ test('does not expose internal metadata copy on primary surfaces', async () => {
 
   await openRoute(root, 'mine');
   expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('keeps phone primary surfaces inside one-screen app panels', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  expect(root.findAllByType(ScrollView)).toHaveLength(0);
+
+  await loginIntoLearningFlow(root);
+  expect(root.findAllByType(ScrollView)).toHaveLength(0);
+
+  await openRoute(root, 'space');
+  expect(root.findAllByType(ScrollView)).toHaveLength(0);
+
+  await openRoute(root, 'statistics');
+  expect(root.findAllByType(ScrollView)).toHaveLength(0);
+
+  await openRoute(root, 'mine');
+  expect(root.findAllByType(ScrollView)).toHaveLength(0);
 });
 
 test('can boot the app into cet6 through runtime config', async () => {

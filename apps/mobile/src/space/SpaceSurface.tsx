@@ -186,9 +186,6 @@ export function SpaceSurface({
   const selectedFavoriteCards = selectedBoxCards.filter(
     card => cardStateById[card.cardId]?.isFavorited,
   );
-  const currentBoxCard = selectedBoxCards.find(
-    card => card.cardId === currentLearningCard?.card_id,
-  );
   const selectedLibraryIndex =
     selectedLibrary == null
       ? 1
@@ -355,14 +352,22 @@ export function SpaceSurface({
                   {isSpaceLoading ? '卡片正在整理' : '暂时没有可展示卡片'}
                 </Text>
               </View>
-              {!isSpaceLoading ? (
+              <View style={styles.headerActionStack}>
+                {!isSpaceLoading ? (
+                  <ActionChip
+                    label="查看列表"
+                    onPress={onOpenCardList ?? noop}
+                    palette={palette}
+                    testID="space-open-card-list"
+                  />
+                ) : null}
                 <ActionChip
-                  label="查看列表"
-                  onPress={onOpenCardList ?? noop}
+                  label="回学习"
+                  onPress={onReturnToLearning}
                   palette={palette}
-                  testID="space-open-card-list"
+                  testID="space-return-learning"
                 />
-              ) : null}
+              </View>
               <View
                 style={[
                   styles.boxAccentRail,
@@ -493,28 +498,6 @@ export function SpaceSurface({
             </SurfaceCard>
           ) : null}
 
-          <SurfaceCard
-            palette={palette}
-            style={styles.spaceBottomDock}
-            testID="space-continuity-strip"
-          >
-            <View style={styles.returnStrip}>
-              <View style={styles.statusCopy}>
-                <Text style={[styles.cardTitle, { color: palette.text }]}>
-                  回到学习
-                </Text>
-                <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                  回到学习时继续当前进度，不让空盒打断练习。
-                </Text>
-              </View>
-              <ActionChip
-                label="回到学习"
-                onPress={onReturnToLearning}
-                palette={palette}
-                testID="space-return-learning"
-              />
-            </View>
-          </SurfaceCard>
         </View>
       </View>
     );
@@ -644,12 +627,20 @@ export function SpaceSurface({
                   可练卡片已归在这里
                 </Text>
             </View>
-            <ActionChip
-              label="查看列表"
-              onPress={onOpenCardList ?? noop}
-              palette={palette}
-              testID="space-open-card-list"
-            />
+            <View style={styles.headerActionStack}>
+              <ActionChip
+                label="查看列表"
+                onPress={onOpenCardList ?? noop}
+                palette={palette}
+                testID="space-open-card-list"
+              />
+              <ActionChip
+                label="回学习"
+                onPress={onReturnToLearning}
+                palette={palette}
+                testID="space-return-learning"
+              />
+            </View>
             <View
               style={[
                 styles.boxAccentRail,
@@ -1066,37 +1057,6 @@ export function SpaceSurface({
           </>
         ) : null}
 
-        {screen === 'overview' ? (
-          <SurfaceCard
-            palette={palette}
-            style={styles.spaceBottomDock}
-            testID="space-continuity-strip"
-          >
-            <View style={styles.returnStrip}>
-              <View style={styles.statusCopy}>
-                <Text style={[styles.cardTitle, { color: palette.text }]}>
-                  回到学习
-                </Text>
-                <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                  回到学习时继续当前卡，并保留它在空间里的位置。
-                </Text>
-                {currentBoxCard ? (
-                  <Text
-                    style={[styles.locationText, { color: currentTone.accent }]}
-                  >
-                    下一步继续：{currentBoxCard.prompt}
-                  </Text>
-                ) : null}
-              </View>
-              <ActionChip
-                label="回到学习"
-                onPress={onReturnToLearning}
-                palette={palette}
-                testID="space-return-learning"
-              />
-            </View>
-          </SurfaceCard>
-        ) : null}
       </View>
     </View>
   );
@@ -1867,15 +1827,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 16,
-  },
-  returnStrip: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 14,
-  },
-  spaceBottomDock: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
   },
   headerActionStack: {
     alignItems: 'flex-end',
