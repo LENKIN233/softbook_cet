@@ -13,7 +13,6 @@ import {
   Keyboard,
   Pressable,
   Platform,
-  ScrollView,
   StatusBar,
   StyleProp,
   StyleSheet,
@@ -216,7 +215,7 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '今日进展',
     title: '今日统计与签到',
     summary:
-      '统计只保留今日签到、学习摘要和回看状态，帮助用户确认自己有在推进。',
+      '统计只保留今日签到、今日进展和回看状态，帮助用户确认自己有在推进。',
     highlights: [
       '签到只记录真实学习后的进展。',
       '首轮和回看结果会用今日摘要展示。',
@@ -2041,7 +2040,6 @@ function AppShell({
       learningStateSyncState={learningStateSyncState}
       progressSyncState={progressSyncState}
       reviewResults={reviewCompletedResults}
-      route={route}
       sleepingCount={sleepingCount}
     />
   ) : route.key === 'learning' && learningBootstrapStatus !== 'ready' ? (
@@ -2204,7 +2202,7 @@ function LearningBootstrapSurface({
   const isLoading = status === 'idle' || status === 'loading';
 
   return (
-    <ScrollView contentContainerStyle={styles.canvasContent}>
+    <View style={styles.stateScreen}>
       <View
         style={[
           styles.hero,
@@ -2266,7 +2264,7 @@ function LearningBootstrapSurface({
           </Text>
         </View>
       )}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -2286,7 +2284,7 @@ function LearningSleepSurface({
   const canRecoverInPlace = !canOpenSpace && recoverableCard !== null;
 
   return (
-    <ScrollView contentContainerStyle={styles.canvasContent}>
+    <View style={styles.stateScreen}>
       <View
         style={[
           styles.hero,
@@ -2345,7 +2343,7 @@ function LearningSleepSurface({
           </Text>
         </Pressable>
       )}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -2375,12 +2373,7 @@ function PhoneShell({
 }) {
   return (
     <View style={styles.shellRoot}>
-      <ShellHeader
-        authState={authState}
-        palette={palette}
-        route={route}
-        deviceClass="phone"
-      />
+      <PhoneTopBar authState={authState} palette={palette} route={route} />
       <View style={styles.shellContent}>{content}</View>
       <View style={styles.phoneTabBarWrap}>
         <View
@@ -2438,6 +2431,56 @@ function PhoneShell({
             );
           })}
         </View>
+      </View>
+    </View>
+  );
+}
+
+function PhoneTopBar({
+  authState,
+  palette,
+  route,
+}: {
+  authState: AuthState;
+  palette: Palette;
+  route: ShellRoute;
+}) {
+  const routeCue =
+    route.key === 'learning'
+      ? '继续当前卡'
+      : route.key === 'space'
+      ? '查看卡片位置'
+      : route.key === 'statistics'
+      ? '今日进展'
+      : '账号与会员';
+
+  return (
+    <View
+      style={[
+        styles.phoneTopBar,
+        { backgroundColor: palette.panel, borderColor: palette.border },
+      ]}
+    >
+      <View style={styles.phoneTopCopy}>
+        <Text style={[styles.phoneTopTitle, { color: palette.text }]}>
+          {route.label}
+        </Text>
+        <Text style={[styles.phoneTopMeta, { color: palette.textMuted }]}>
+          {routeCue}
+        </Text>
+      </View>
+      <View
+        style={[
+          styles.phoneTopPill,
+          {
+            backgroundColor: palette.panelStrong,
+            borderColor: palette.border,
+          },
+        ]}
+      >
+        <Text style={[styles.phoneTopPillText, { color: palette.textMuted }]}>
+          {authState.stage === 'authenticated' ? '已登录' : '未登录'}
+        </Text>
       </View>
     </View>
   );
@@ -2664,15 +2707,10 @@ function AuthGate({
   route: ShellRoute;
 }) {
   return (
-    <ScrollView
-      contentContainerStyle={[styles.canvasContent, styles.authCanvasContent]}
-      keyboardDismissMode="on-drag"
-      keyboardShouldPersistTaps="handled"
-    >
+    <View style={styles.authGateScreen}>
       <View
         style={[
-          styles.hero,
-          styles.authHero,
+          styles.authGateLead,
           { backgroundColor: palette.panel, borderColor: palette.border },
         ]}
       >
@@ -2680,15 +2718,15 @@ function AuthGate({
           身份确认
         </Text>
         <Text
-          style={[styles.heroTitle, { color: palette.text }]}
+          style={[styles.authGateTitle, { color: palette.text }]}
           testID="auth-gate-keyboard-dismiss-target"
         >
           {route.key === 'learning'
             ? '学习前先登录'
             : `进入${route.label}前先确认身份`}
         </Text>
-        <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
-          学习、空间和统计都需要先确认身份，避免把个人进度记录到无身份状态里。
+        <Text style={[styles.authGateSummary, { color: palette.textMuted }]}>
+          手机号验证码确认后，直接回到当前卡和个人进度。
         </Text>
       </View>
       <PhoneSmsPanel
@@ -2703,16 +2741,29 @@ function AuthGate({
             : '输入验证码完成登录，登录后继续进入学习、空间和个人进度。'
         }
       />
-      <InfoCard
-        palette={palette}
-        title="为什么要先登录"
-        items={[
-          '学习开始前必须登录。',
-          '手机号验证码是主登录方式。',
-          '试用不会在注册时自动开始，而是在第一次计入学习时开始。',
-        ]}
-      />
-    </ScrollView>
+      <View style={styles.authGateTrustRow}>
+        <View
+          style={[
+            styles.authGateTrustPill,
+            { backgroundColor: palette.panelStrong, borderColor: palette.border },
+          ]}
+        >
+          <Text style={[styles.authGateTrustLabel, { color: palette.textMuted }]}>
+            学习前登录
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.authGateTrustPill,
+            { backgroundColor: palette.panelStrong, borderColor: palette.border },
+          ]}
+        >
+          <Text style={[styles.authGateTrustLabel, { color: palette.textMuted }]}>
+            试用随首次学习开始
+          </Text>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -2734,7 +2785,6 @@ function MineSurface({
   palette,
   progressSyncState,
   reviewResults,
-  route,
   sleepingCount,
 }: {
   authRepositoryMode: 'local' | 'remote';
@@ -2754,7 +2804,6 @@ function MineSurface({
   palette: Palette;
   progressSyncState: ProgressSyncState;
   reviewResults: LearningCardResult[];
-  route: ShellRoute;
   sleepingCount: number;
 }) {
   const isAuthenticated = authState.stage === 'authenticated';
@@ -2769,12 +2818,48 @@ function MineSurface({
   const checkedInToday = checkedInDayKey === todayKey;
   const detailCardStyle =
     deviceClass === 'tablet' ? styles.infoCardHalf : null;
+  const accountItems = isAuthenticated
+    ? [
+        `手机号：${maskPhoneNumber(authState.phoneNumber)}`,
+        `今日签到：${checkedInToday ? '已完成' : '尚未完成'}`,
+        `今日同步：${progressSyncState.label}`,
+        `学习状态：${learningStateSyncState.label}`,
+      ]
+    : [
+        '还没有完成登录。',
+        '手机号验证码仍是主登录方式。',
+        '登录后这里会显示你的账号、学习与会员摘要。',
+      ];
+  const learningItems = isAuthenticated
+    ? [
+        `今日已完成 ${completedCount} 张卡，其中首轮 ${learningResults.length} 张、回看 ${reviewResults.length} 张。`,
+        `当前待回看 ${pendingReviewCount} 张。`,
+        `同步进展：${progressSyncState.detail}`,
+        `答题记录：${learningStateSyncState.detail}`,
+      ]
+    : [
+        '未登录时不会保存个人学习连续记录。',
+        '登录后，今日进展会显示在这里。',
+        '统计页会展示今日进展和签到状态。',
+      ];
+  const spaceItems = isAuthenticated
+    ? [
+        favoriteCount > 0 ? '已有收藏卡片。' : '暂无收藏卡片。',
+        sleepingCount > 0 ? '有卡片在休眠区。' : '暂无休眠卡片。',
+        '收藏是标签，休眠会影响当前练习。',
+      ]
+    : [
+        '登录后才能查看个人空间摘要。',
+        '空间会继续保留在底部导航里。',
+        '收藏和休眠会保持各自的作用。',
+      ];
 
   return (
-    <ScrollView contentContainerStyle={styles.canvasContent}>
+    <View style={styles.mineScreen}>
       <View
         style={[
           styles.hero,
+          styles.mineHero,
           { backgroundColor: palette.panel, borderColor: palette.border },
         ]}
       >
@@ -2786,28 +2871,26 @@ function MineSurface({
         </Text>
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
           {isAuthenticated
-            ? '这里显示账号、学习摘要、同步状态、空间标签和会员状态。'
-            : '先完成登录，再查看学习摘要、会员状态和购买恢复提醒。'}
+            ? '账号、今日进展、空间标签和会员状态都收在这一屏。'
+            : '先完成登录，再查看今日进展、会员状态和购买恢复提醒。'}
         </Text>
       </View>
-      <PhoneSmsPanel
-        authRepositoryMode={authRepositoryMode}
-        authState={authState}
-        handlers={handlers}
-        palette={palette}
-        title={isAuthenticated ? '当前登录状态' : '手机号验证码登录'}
-        summary={
-          isAuthenticated
-            ? authRepositoryMode === 'remote'
-              ? '已通过短信验证码确认身份；学习、会员和同步状态会继续跟随账号更新。'
-              : '已完成登录；你可以查看基础账号信息、学习摘要、同步状态和会员状态。'
-            : '先从这里完成登录，再继续学习、空间和个人进度。'
-        }
-      />
+
+      {!isAuthenticated ? (
+        <PhoneSmsPanel
+          authRepositoryMode={authRepositoryMode}
+          authState={authState}
+          handlers={handlers}
+          palette={palette}
+          title="手机号验证码登录"
+          summary="先从这里完成登录，再继续学习、空间和个人进度。"
+        />
+      ) : null}
 
       <View
         style={[
           styles.profileMetricRow,
+          styles.mineMetricRow,
           deviceClass === 'tablet' ? styles.profileMetricRowTablet : null,
         ]}
       >
@@ -2836,79 +2919,27 @@ function MineSurface({
 
       <View
         style={[
-          styles.sectionGrid,
+          styles.minePanelGrid,
           deviceClass === 'tablet' ? styles.sectionGridTablet : null,
         ]}
       >
         <InfoCard
           palette={palette}
-          style={detailCardStyle}
+          style={[detailCardStyle, styles.minePanelCard]}
           title="账号概览"
-          items={
-            isAuthenticated
-              ? [
-                  `手机号：${maskPhoneNumber(authState.phoneNumber)}`,
-                  `今日签到：${checkedInToday ? '已完成' : '尚未完成'}`,
-                  `今日同步：${progressSyncState.label}`,
-                  `学习状态：${learningStateSyncState.label}`,
-                  authRepositoryMode === 'remote'
-                    ? '账号已完成短信验证；会员状态会继续随账号刷新。'
-                    : '登录后可以查看学习记录和会员状态。',
-                ]
-              : [
-                  '还没有完成登录。',
-                  '手机号验证码仍是主登录方式。',
-                  '登录后这里会显示你的账号、学习与会员摘要。',
-                ]
-          }
+          items={accountItems}
         />
         <InfoCard
           palette={palette}
-          style={detailCardStyle}
-          title="个人学习摘要"
-          items={
-            isAuthenticated
-              ? [
-                  `今日已完成 ${completedCount} 张卡，其中首轮 ${learningResults.length} 张、回看 ${reviewResults.length} 张。`,
-                  `当前待回看 ${pendingReviewCount} 张。`,
-                  `同步进展：${progressSyncState.detail}`,
-                  `答题记录：${learningStateSyncState.detail}`,
-                  '更详细的今日进展可以到统计页查看。',
-                ]
-              : [
-                  '未登录时不会保存个人学习连续记录。',
-                  '登录后，学习摘要会显示在这里。',
-                  '统计页会展示今日进展和签到状态。',
-                ]
-          }
+          style={[detailCardStyle, styles.minePanelCard]}
+          title="今日进展"
+          items={learningItems}
         />
         <InfoCard
           palette={palette}
-          style={detailCardStyle}
-          title="空间标签摘要"
-          items={
-            isAuthenticated
-              ? [
-                  favoriteCount > 0 ? '已有收藏卡片。' : '暂无收藏卡片。',
-                  sleepingCount > 0 ? '有卡片在休眠区。' : '暂无休眠卡片。',
-                  '收藏是标签，休眠会影响当前练习。',
-                ]
-              : [
-                  '登录后才能查看个人空间摘要。',
-                  '空间会继续保留在底部导航里。',
-                  '收藏和休眠会保持各自的作用。',
-                ]
-          }
-        />
-        <InfoCard
-          palette={palette}
-          style={detailCardStyle}
-          title="会员服务"
-          items={[
-            '购买与恢复都在这里处理。',
-            '学习、空间和统计会继续保持各自记录。',
-            '这里保留账号、会员和个人进展。',
-          ]}
+          style={[detailCardStyle, styles.minePanelCard]}
+          title="空间状态"
+          items={spaceItems}
         />
       </View>
 
@@ -2923,10 +2954,8 @@ function MineSurface({
           membershipState={membershipState}
           palette={palette}
         />
-      ) : (
-        <RouteCanvas palette={palette} route={route} deviceClass="phone" />
-      )}
-    </ScrollView>
+      ) : null}
+    </View>
   );
 }
 
@@ -3400,9 +3429,9 @@ function RouteCanvas({
   deviceClass: DeviceClass;
 }) {
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.canvasContent,
+    <View
+      style={[
+        styles.routeCanvasScreen,
         deviceClass === 'tablet' ? styles.canvasContentTablet : null,
       ]}
     >
@@ -3423,13 +3452,17 @@ function RouteCanvas({
         </Text>
       </View>
 
-      <View style={styles.sectionGrid}>
+      <View style={styles.routeCanvasGrid}>
         <InfoCard
           palette={palette}
           title="这一页能做什么"
-          items={route.highlights}
+          items={route.highlights.slice(0, 2)}
         />
-        <InfoCard palette={palette} title="你可以做什么" items={route.focus} />
+        <InfoCard
+          palette={palette}
+          title="你可以做什么"
+          items={route.focus.slice(0, 2)}
+        />
         <InfoCard
           palette={palette}
           title="学习与会员"
@@ -3457,7 +3490,7 @@ function RouteCanvas({
           }
         />
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -3680,10 +3713,48 @@ const styles = StyleSheet.create({
   },
   shellRoot: {
     flex: 1,
-    gap: 12,
+    gap: 8,
   },
   shellContent: {
     flex: 1,
+    minHeight: 0,
+  },
+  phoneTopBar: {
+    alignItems: 'center',
+    borderRadius: 22,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: 18,
+    marginTop: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 4,
+  },
+  phoneTopCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  phoneTopTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  phoneTopMeta: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  phoneTopPill: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  phoneTopPillText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   tabletRoot: {
     flex: 1,
@@ -3820,18 +3891,54 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  canvasContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    paddingBottom: 28,
-    gap: 16,
-  },
-  authCanvasContent: {
-    paddingBottom: 180,
-  },
   canvasContentTablet: {
     paddingHorizontal: 0,
     paddingVertical: 4,
+  },
+  stateScreen: {
+    flex: 1,
+    gap: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  authGateScreen: {
+    flex: 1,
+    gap: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  authGateLead: {
+    borderWidth: 1,
+    borderRadius: 24,
+    gap: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  authGateTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  authGateSummary: {
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  authGateTrustRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  authGateTrustPill: {
+    borderRadius: 999,
+    borderWidth: 1,
+    flex: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  authGateTrustLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   hero: {
     borderWidth: 1,
@@ -3843,9 +3950,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 36,
     elevation: 6,
-  },
-  authHero: {
-    marginTop: 2,
   },
   heroEyebrow: {
     fontSize: 12,
@@ -3862,10 +3966,10 @@ const styles = StyleSheet.create({
   },
   authPanel: {
     borderWidth: 1,
-    borderRadius: 28,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    gap: 14,
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 11,
     shadowOffset: { width: 0, height: 14 },
     shadowOpacity: 0.1,
     shadowRadius: 28,
@@ -3876,7 +3980,7 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   fieldGroup: {
-    gap: 8,
+    gap: 6,
   },
   fieldLabel: {
     fontSize: 12,
@@ -3886,8 +3990,8 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -3927,7 +4031,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 15,
+    paddingVertical: 13,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.14,
     shadowRadius: 24,
@@ -3972,16 +4076,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   summaryMetricCard: {
-    minWidth: 112,
+    minWidth: 74,
     flexGrow: 1,
     borderWidth: 1,
-    borderRadius: 22,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     gap: 6,
   },
   summaryMetricValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
@@ -3992,23 +4096,23 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     borderWidth: 1,
-    borderRadius: 28,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    gap: 12,
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    gap: 9,
     shadowOffset: { width: 0, height: 14 },
     shadowOpacity: 0.08,
     shadowRadius: 28,
     elevation: 3,
   },
   infoTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
+    gap: 8,
   },
   infoDot: {
     width: 8,
@@ -4019,8 +4123,37 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  mineScreen: {
+    flex: 1,
+    gap: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+  },
+  mineHero: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  mineMetricRow: {
+    gap: 8,
+  },
+  minePanelGrid: {
+    gap: 8,
+  },
+  minePanelCard: {
+    flexShrink: 1,
+  },
+  routeCanvasScreen: {
+    flex: 1,
+    gap: 10,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+  },
+  routeCanvasGrid: {
+    gap: 8,
   },
   membershipFocusCard: {
     borderWidth: 1,
@@ -4050,7 +4183,7 @@ const styles = StyleSheet.create({
   },
   phoneTabBarWrap: {
     paddingHorizontal: 18,
-    paddingBottom: 14,
+    paddingBottom: 10,
   },
   phoneTabBar: {
     borderWidth: 1,
@@ -4067,7 +4200,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     gap: 2,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 999,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.12,

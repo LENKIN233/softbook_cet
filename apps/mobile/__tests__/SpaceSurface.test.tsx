@@ -149,7 +149,7 @@ test('keeps a physical Space outline when no cards are visible', () => {
     .toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-contained-card-strip' }).length)
     .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-continuity-strip' }).length)
+  expect(root.findAllByProps({ testID: 'space-return-learning' }).length)
     .toBeGreaterThan(0);
   expect(output).toContain('当前卡盒待整理');
   expect(output).toContain('当前卡盒暂无可展示卡片');

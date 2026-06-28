@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Pressable,
-  ScrollView,
   StyleProp,
   StyleSheet,
   Text,
@@ -77,11 +76,11 @@ export function StatisticsSurface({
       ? `首轮里还有 ${pendingReviewCount} 张卡待回看，先把需要再看的卡处理完。`
       : combinedResults.length > 0
       ? '当前首轮已收口，暂时没有额外待回看卡。'
-      : '今天还没有形成可展示的学习摘要。';
+      : '今天还没有形成可展示的今日进展。';
 
   return (
-    <ScrollView
-      contentContainerStyle={[
+    <View
+      style={[
         styles.page,
         deviceClass === 'tablet' ? styles.pageTablet : null,
       ]}
@@ -136,7 +135,7 @@ export function StatisticsSurface({
       >
         <SurfaceCard
           palette={palette}
-          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+          style={styles.surfaceCardHalf}
           testID="statistics-checkin-card"
         >
           <Text style={[styles.cardTitle, { color: palette.text }]}>
@@ -177,7 +176,7 @@ export function StatisticsSurface({
 
         <SurfaceCard
           palette={palette}
-          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
+          style={styles.surfaceCardHalf}
         >
           <Text style={[styles.cardTitle, { color: palette.text }]}>
             回看状态
@@ -207,65 +206,34 @@ export function StatisticsSurface({
         </Text>
       </SurfaceCard>
 
-      <View
-        style={[
-          styles.sectionGrid,
-          deviceClass === 'tablet' ? styles.sectionGridTablet : null,
-        ]}
-      >
-        <SurfaceCard
-          palette={palette}
-          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
-        >
-          <Text style={[styles.cardTitle, { color: palette.text }]}>
-            今日练习信号
-          </Text>
-          <View style={styles.signalList}>
-            <SignalRow
-              label="自动判对"
-              palette={palette}
-              value={`${combinedSummary.autoCorrectCount}`}
-            />
-            <SignalRow
-              label="自动判错"
-              palette={palette}
-              value={`${combinedSummary.autoIncorrectCount}`}
-            />
-            <SignalRow
-              label="翻面回看"
-              palette={palette}
-              value={`${combinedSummary.reviewFlipCount}`}
-            />
-            <SignalRow
-              label="收藏"
-              palette={palette}
-              value={`${combinedSummary.favoriteCount}`}
-            />
-          </View>
-        </SurfaceCard>
-
-        <SurfaceCard
-          palette={palette}
-          style={deviceClass === 'tablet' ? styles.surfaceCardHalf : null}
-        >
-          <Text style={[styles.cardTitle, { color: palette.text }]}>
-            这些进展代表什么
-          </Text>
-          <InfoLine
+      <SurfaceCard palette={palette}>
+        <Text style={[styles.cardTitle, { color: palette.text }]}>
+          今日练习信号
+        </Text>
+        <View style={styles.signalList}>
+          <SignalRow
+            label="自动判对"
             palette={palette}
-            text="完成学习后再签到，记录才有意义。"
+            value={`${combinedSummary.autoCorrectCount}`}
           />
-          <InfoLine
+          <SignalRow
+            label="自动判错"
             palette={palette}
-            text="这里先看今天，不要求你分析长期趋势。"
+            value={`${combinedSummary.autoIncorrectCount}`}
           />
-          <InfoLine
+          <SignalRow
+            label="翻面回看"
             palette={palette}
-            text="会员和同步状态不会打断今天的学习记录。"
+            value={`${combinedSummary.reviewFlipCount}`}
           />
-        </SurfaceCard>
-      </View>
-    </ScrollView>
+          <SignalRow
+            label="收藏"
+            palette={palette}
+            value={`${combinedSummary.favoriteCount}`}
+          />
+        </View>
+      </SurfaceCard>
+    </View>
   );
 }
 
@@ -347,41 +315,23 @@ function SignalRow({
   );
 }
 
-function InfoLine({
-  palette,
-  text,
-}: {
-  palette: StatisticsPalette;
-  text: string;
-}) {
-  return (
-    <View style={styles.infoRow}>
-      <View
-        style={[
-          styles.infoDot,
-          { backgroundColor: palette.accent, borderColor: palette.border },
-        ]}
-      />
-      <Text style={[styles.infoText, { color: palette.textMuted }]}>{text}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   page: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 32,
-    gap: 16,
+    flex: 1,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
+    gap: 8,
   },
   pageTablet: {
     paddingHorizontal: 24,
   },
   hero: {
     borderWidth: 1,
-    borderRadius: 28,
-    padding: 20,
-    gap: 14,
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 9,
   },
   eyebrow: {
     fontSize: 12,
@@ -389,13 +339,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   title: {
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 22,
+    lineHeight: 28,
     fontWeight: '800',
   },
   summary: {
-    fontSize: 15,
-    lineHeight: 23,
+    fontSize: 13,
+    lineHeight: 19,
   },
   metricRow: {
     flexDirection: 'row',
@@ -403,11 +353,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   metricCard: {
-    minWidth: 92,
+    minWidth: 74,
+    flexGrow: 1,
     borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: 18,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     gap: 4,
   },
   metricValue: {
@@ -420,7 +371,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   sectionGrid: {
-    gap: 12,
+    flexDirection: 'row',
+    gap: 8,
   },
   sectionGridTablet: {
     flexDirection: 'row',
@@ -428,25 +380,27 @@ const styles = StyleSheet.create({
   },
   surfaceCard: {
     borderWidth: 1,
-    borderRadius: 24,
-    padding: 18,
-    gap: 12,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 8,
+    flexShrink: 1,
   },
   surfaceCardHalf: {
-    width: '48%',
+    flex: 1,
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '700',
   },
   cardSummary: {
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 12,
+    lineHeight: 18,
   },
   primaryButton: {
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -455,7 +409,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   signalList: {
-    gap: 10,
+    gap: 6,
   },
   signalRow: {
     flexDirection: 'row',
@@ -464,28 +418,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   signalLabel: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 12,
+    lineHeight: 18,
   },
   signalValue: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  infoDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    marginTop: 6,
-    borderWidth: 1,
-  },
-  infoText: {
-    flex: 1,
     fontSize: 14,
-    lineHeight: 21,
+    fontWeight: '700',
   },
 });
