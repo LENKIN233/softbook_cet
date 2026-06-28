@@ -68,6 +68,10 @@ function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   return node.children?.flatMap(child => collectRenderedText(child, nextInText)) ?? [];
 }
 
+function countOccurrences(text: string, needle: string) {
+  return text.split(needle).length - 1;
+}
+
 function expectSpaceFirstReadOrder(
   tree: ReactTestRenderer.ReactTestRenderer,
   railTestID: string,
@@ -330,6 +334,55 @@ test('defaults Space first-read focus to the current learning card box', () => {
   expect(renderedText).toContain('当前学习卡在这里');
   expect(renderedText).not.toContain('当前地址');
   expect(renderedText).not.toContain('当前学习卡位于');
+});
+
+test('resyncs Space focus when the current learning card changes after render', () => {
+  const session = createLocalLearningSession('cet4');
+  const initialCard = session.catalogCards[0];
+  const nextCard = session.catalogCards.find(
+    card => card.space_metadata.library !== initialCard.space_metadata.library,
+  )!;
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={initialCard}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        spaceCards={session.catalogCards}
+      />,
+    );
+  });
+
+  const initialText = collectRenderedText(tree!.toJSON()).join(' ');
+
+  expect(initialText).toContain(initialCard.front.prompt);
+  expect(countOccurrences(initialText, nextCard.front.prompt)).toBe(0);
+
+  ReactTestRenderer.act(() => {
+    tree!.update(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={nextCard}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        spaceCards={session.catalogCards}
+      />,
+    );
+  });
+
+  const updatedText = collectRenderedText(tree!.toJSON()).join(' ');
+
+  expect(updatedText).toContain('当前学习卡在这里');
+  expect(countOccurrences(updatedText, nextCard.front.prompt)).toBeGreaterThan(1);
 });
 
 test('does not render raw metadata values from loaded Space cards', () => {
