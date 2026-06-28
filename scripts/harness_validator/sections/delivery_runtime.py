@@ -226,6 +226,7 @@ else:
         else:
             for snippet in [
                 "tapOn must use a stable id selector",
+                "scrollUntilVisible is forbidden in one-screen smoke flows",
                 "text selectors are forbidden",
                 "is not backed by a React Native testID",
             ]:

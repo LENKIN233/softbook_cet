@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Maestro smoke selectors against stable React Native test ids."""
+"""Validate Maestro smoke selectors and one-screen flow guardrails."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ COMMAND_SELECTOR_KEYS = {
 NESTED_SELECTOR_KEYS = {"element", "visible"}
 TEXT_SELECTOR_KEYS = {"text"}
 SCALAR_COMMAND_RE = re.compile(
-    r"^\s*-\s*(?P<key>[A-Za-z][A-Za-z0-9_]*)\s*:\s*(?P<value>.+?)\s*$"
+    r"^\s*-\s*(?P<key>[A-Za-z][A-Za-z0-9_]*)\s*:\s*(?P<value>.*?)\s*$"
 )
 SCALAR_KEY_RE = re.compile(
     r"^\s*(?P<key>[A-Za-z][A-Za-z0-9_]*)\s*:\s*(?P<value>.+?)\s*$"
@@ -178,6 +178,11 @@ def validate_file(path: Path) -> list[str]:
         if command_match:
             key = command_match.group("key")
             value = command_match.group("value")
+            if key == "scrollUntilVisible":
+                errors.append(
+                    f"{path}:{lineno}: scrollUntilVisible is forbidden in "
+                    "one-screen smoke flows; assert visible controls directly"
+                )
             if key in COMMAND_SELECTOR_KEYS and not is_empty_mapping_start(value):
                 if not is_stable_inline_id_selector(value):
                     errors.append(

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   StyleProp,
@@ -38,6 +38,8 @@ type SpacePalette = {
 
 type DeviceClass = 'phone' | 'tablet';
 export type SpaceSurfaceScreen = 'overview' | 'card_list';
+
+type SpaceSelectionMode = 'follow_current' | 'manual';
 
 type SpaceCardPreview = {
   boxName: string;
@@ -149,11 +151,18 @@ export function SpaceSurface({
 
     return {
       boxRef: box.boxRef,
+      cardId: currentLearningCard.card_id,
+      cardIndex: Math.max(
+        box.cards.findIndex(card => card.cardId === currentLearningCard.card_id),
+        0,
+      ),
       groupName: group.groupName,
       libraryName: library.libraryName,
       position,
     };
   }, [currentLearningCard, seed]);
+  const [selectionMode, setSelectionMode] =
+    useState<SpaceSelectionMode>('follow_current');
   const [selectedLibraryName, setSelectedLibraryName] = useState(
     focusedSelection?.libraryName ?? seed.libraries[0]?.libraryName ?? '',
   );
@@ -174,6 +183,27 @@ export function SpaceSurface({
     focusedSelection?.boxRef ?? selectedGroup?.boxes[0]?.boxRef ?? '',
   );
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
+  const lastFocusedCardIdRef = useRef(focusedSelection?.cardId ?? null);
+  useEffect(() => {
+    const focusedCardId = focusedSelection?.cardId ?? null;
+    const didFocusedCardChange = lastFocusedCardIdRef.current !== focusedCardId;
+    lastFocusedCardIdRef.current = focusedCardId;
+
+    if (!focusedSelection) {
+      return;
+    }
+
+    if (
+      screen === 'overview' ||
+      (selectionMode === 'follow_current' && didFocusedCardChange)
+    ) {
+      setSelectionMode('follow_current');
+      setSelectedLibraryName(focusedSelection.libraryName);
+      setSelectedGroupName(focusedSelection.groupName);
+      setSelectedBoxRef(focusedSelection.boxRef);
+      setSelectedCardIndex(focusedSelection.cardIndex);
+    }
+  }, [focusedSelection, screen, selectionMode]);
   const selectedBox =
     selectedGroup?.boxes.find(box => box.boxRef === selectedBoxRef) ??
     selectedGroup?.boxes[0];
@@ -869,7 +899,10 @@ export function SpaceSurface({
                                   ? `space-favorite-active-${cardDisplayIndex}`
                                   : `space-favorite-inactive-${cardDisplayIndex}`
                               }
-                              onPress={() => onToggleFavoriteTag(card.cardId)}
+                              onPress={() => {
+                                setSelectionMode('manual');
+                                onToggleFavoriteTag(card.cardId);
+                              }}
                               palette={palette}
                               testID={`space-favorite-${cardDisplayIndex}`}
                             />
@@ -880,7 +913,10 @@ export function SpaceSurface({
                                   ? `space-sleep-active-${cardDisplayIndex}`
                                   : `space-sleep-inactive-${cardDisplayIndex}`
                               }
-                              onPress={() => onToggleSleepState(card.cardId)}
+                              onPress={() => {
+                                setSelectionMode('manual');
+                                onToggleSleepState(card.cardId);
+                              }}
                               palette={palette}
                               testID={`space-sleep-${cardDisplayIndex}`}
                             />
@@ -895,6 +931,7 @@ export function SpaceSurface({
                 <ActionChip
                   label="上一张"
                   onPress={() => {
+                    setSelectionMode('manual');
                     setSelectedCardIndex(Math.max(safeSelectedCardIndex - 1, 0));
                   }}
                   palette={palette}
@@ -908,6 +945,7 @@ export function SpaceSurface({
                 <ActionChip
                   label="下一张"
                   onPress={() => {
+                    setSelectionMode('manual');
                     setSelectedCardIndex(
                       Math.min(
                         safeSelectedCardIndex + 1,
@@ -938,6 +976,7 @@ export function SpaceSurface({
                       <Pressable
                         key={library.libraryName}
                         onPress={() => {
+                          setSelectionMode('manual');
                           setSelectedLibraryName(library.libraryName);
                           setSelectedGroupName(
                             library.groups[0]?.groupName ?? '',
@@ -985,6 +1024,7 @@ export function SpaceSurface({
                       <Pressable
                         key={`${selectedLibrary.libraryName}-${group.groupName}`}
                         onPress={() => {
+                          setSelectionMode('manual');
                           setSelectedGroupName(group.groupName);
                           setSelectedBoxRef(group.boxes[0]?.boxRef ?? '');
                           setSelectedCardIndex(0);
@@ -1027,6 +1067,7 @@ export function SpaceSurface({
                       <Pressable
                         key={box.boxRef}
                         onPress={() => {
+                          setSelectionMode('manual');
                           setSelectedBoxRef(box.boxRef);
                           setSelectedCardIndex(0);
                         }}
