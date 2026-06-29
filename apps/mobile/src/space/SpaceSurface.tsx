@@ -216,6 +216,13 @@ export function SpaceSurface({
   const selectedFavoriteCards = selectedBoxCards.filter(
     card => cardStateById[card.cardId]?.isFavorited,
   );
+  const selectedSleepingCards = selectedBoxCards.filter(
+    card => cardStateById[card.cardId]?.isSleeping,
+  );
+  const selectedOverviewDeckCards = buildOverviewDeckCards(
+    selectedBoxCards,
+    currentLearningCard?.card_id ?? null,
+  );
   const selectedLibraryIndex =
     selectedLibrary == null
       ? 1
@@ -592,7 +599,7 @@ export function SpaceSurface({
                 numberOfLines={1}
                 style={[styles.summary, { color: palette.textMuted }]}
               >
-                当前卡盒是第一阅读对象；收藏和休眠在列表页处理。
+                从当前位置退后一步：先看当前盒，再看盒内卡片和休眠区。
               </Text>
               <View style={styles.addressContextRow}>
                 <AddressContextPill
@@ -644,31 +651,29 @@ export function SpaceSurface({
 
         {screen === 'overview' ? (
           <>
-        <SurfaceCard palette={palette} testID="space-current-box-tray">
+        <SurfaceCard
+          palette={palette}
+          style={styles.openBoxTrayCard}
+          testID="space-current-box-tray"
+        >
           <View style={styles.boxTrayHeader}>
               <View style={styles.boxTrayCopy}>
                 <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
-                  当前卡盒
+                  打开的当前盒
                 </Text>
                 <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
                   {formatSpaceBoxLabel(selectedBoxIndex)}
                 </Text>
                 <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                  可练卡片已归在这里
+                  盒内卡片、收藏标签和休眠区都留在同一位置。
                 </Text>
             </View>
             <View style={styles.headerActionStack}>
               <ActionChip
-                label="查看列表"
+                label="查看盒内"
                 onPress={onOpenCardList ?? noop}
                 palette={palette}
                 testID="space-open-card-list"
-              />
-              <ActionChip
-                label="回学习"
-                onPress={onReturnToLearning}
-                palette={palette}
-                testID="space-return-learning"
               />
             </View>
             <View
@@ -703,7 +708,26 @@ export function SpaceSurface({
             ]}
             testID="space-open-box-deck"
           >
-            {selectedBoxCards.slice(0, 3).map((card, cardIndex, deckCards) => {
+            <View
+              style={[
+                styles.openBoxLid,
+                {
+                  backgroundColor: palette.panel,
+                  borderColor: selectedTone.accent,
+                },
+              ]}
+              testID="space-open-box-lid"
+            >
+              <Text style={[styles.openBoxLidTitle, { color: palette.text }]}>
+                盒内卡片
+              </Text>
+              <Text
+                style={[styles.openBoxLidCount, { color: selectedTone.accent }]}
+              >
+                {selectedBoxCards.length}
+              </Text>
+            </View>
+            {selectedOverviewDeckCards.map((card, cardIndex, deckCards) => {
               const isCurrent = currentLearningCard?.card_id === card.cardId;
               const cardState = cardStateById[card.cardId];
               const deckStyle =
@@ -765,6 +789,67 @@ export function SpaceSurface({
               );
             })}
           </View>
+
+          <View
+            style={[
+              styles.sleepAlcove,
+              {
+                backgroundColor: selectedTone.accentSoft,
+                borderColor: selectedTone.accent,
+              },
+            ]}
+            testID="space-sleep-alcove"
+          >
+            <View style={styles.sleepAlcoveCopy}>
+              <Text style={[styles.sleepAlcoveTitle, { color: palette.text }]}>
+                休眠区属于当前盒
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[styles.sleepAlcoveMeta, { color: palette.textMuted }]}
+              >
+                {selectedSleepingCards.length > 0
+                  ? `${selectedSleepingCards.length} 张卡暂时沉下去，位置不变。`
+                  : '暂时没有休眠卡；需要时可在盒内处理。'}
+              </Text>
+            </View>
+            <ActionChip
+              label={selectedSleepingCards.length > 0 ? '唤回' : '管理'}
+              onPress={onOpenCardList ?? noop}
+              palette={palette}
+              testID="space-sleep-alcove-action"
+            />
+          </View>
+
+          <Pressable
+            onPress={onReturnToLearning}
+            style={[
+              styles.returnContinuity,
+              {
+                backgroundColor: palette.panelStrong,
+                borderColor: palette.border,
+              },
+            ]}
+            testID="space-return-learning"
+          >
+            <Text style={[styles.returnContinuityTitle, { color: palette.text }]}>
+              回到同一张卡
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[styles.returnContinuityMeta, { color: palette.textMuted }]}
+            >
+              空间与学习保持同一地址
+            </Text>
+            <Text
+              style={[
+                styles.returnContinuityAction,
+                { backgroundColor: palette.accentStrong, color: palette.panel },
+              ]}
+            >
+              学习
+            </Text>
+          </Pressable>
         </SurfaceCard>
           </>
         ) : null}
@@ -1417,6 +1502,28 @@ function buildSpaceSeed(spaceCards: readonly LearningCard[]): SpaceSeed {
   };
 }
 
+function buildOverviewDeckCards(
+  cards: readonly SpaceCardPreview[],
+  currentCardId: string | null,
+) {
+  if (cards.length === 0) {
+    return [];
+  }
+
+  const currentCard = currentCardId
+    ? cards.find(card => card.cardId === currentCardId)
+    : undefined;
+
+  if (!currentCard) {
+    return cards.slice(0, 3);
+  }
+
+  return [
+    currentCard,
+    ...cards.filter(card => card.cardId !== currentCard.cardId),
+  ].slice(0, 3);
+}
+
 const styles = StyleSheet.create({
   content: {
     gap: 14,
@@ -1591,6 +1698,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 21,
   },
+  openBoxTrayCard: {
+    gap: 8,
+    paddingBottom: 12,
+  },
   boxTrayHeader: {
     alignItems: 'stretch',
     flexDirection: 'row',
@@ -1612,10 +1723,30 @@ const styles = StyleSheet.create({
   openBoxDeck: {
     borderRadius: 22,
     borderWidth: 1,
-    height: 116,
+    height: 148,
     marginTop: 2,
     overflow: 'hidden',
     position: 'relative',
+  },
+  openBoxLid: {
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderTopLeftRadius: 21,
+    borderTopRightRadius: 21,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  openBoxLidTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  openBoxLidCount: {
+    fontSize: 14,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
   deckCard: {
     borderRadius: 18,
@@ -1625,7 +1756,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 10,
     position: 'absolute',
-    top: 18,
+    top: 52,
     width: 118,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.13,
@@ -1638,25 +1769,25 @@ const styles = StyleSheet.create({
   },
   deckCardSolo: {
     left: '30%',
-    top: 14,
+    top: 50,
     transform: [{ rotate: '0deg' }],
     width: 136,
   },
   deckCardPairLeft: {
     left: 24,
-    top: 18,
+    top: 52,
     transform: [{ rotate: '-4deg' }],
     width: 126,
   },
   deckCardPairRight: {
     right: 24,
-    top: 18,
+    top: 52,
     transform: [{ rotate: '4deg' }],
     width: 126,
   },
   deckCardCenter: {
     left: '31%',
-    top: 14,
+    top: 50,
     transform: [{ rotate: '0deg' }],
     zIndex: 2,
   },
@@ -1851,7 +1982,28 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   sleepAlcove: {
-    gap: 8,
+    alignItems: 'center',
+    borderRadius: 18,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  sleepAlcoveCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  sleepAlcoveTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  sleepAlcoveMeta: {
+    fontSize: 12,
+    lineHeight: 17,
   },
   sleepingCard: {
     alignItems: 'center',
@@ -1868,6 +2020,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 16,
+  },
+  returnContinuity: {
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  returnContinuityTitle: {
+    flexShrink: 0,
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  returnContinuityMeta: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  returnContinuityAction: {
+    borderRadius: 999,
+    overflow: 'hidden',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    fontSize: 12,
+    fontWeight: '800',
   },
   headerActionStack: {
     alignItems: 'flex-end',

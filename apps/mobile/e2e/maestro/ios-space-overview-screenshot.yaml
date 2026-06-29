@@ -1,0 +1,39 @@
+appId: com.softbook.cet
+name: ios-space-overview-screenshot
+---
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "auth-phone-input"
+    timeout: 30000
+- tapOn:
+    id: "auth-phone-input"
+- inputText: "13800138000"
+- tapOn:
+    id: "auth-dismiss-keyboard-button"
+- tapOn:
+    id: "auth-request-code-button"
+- assertVisible:
+    id: "auth-code-input"
+- tapOn:
+    id: "auth-code-input"
+- inputText: "2468"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    id: "route-tab-space"
+- assertVisible:
+    id: "space-address-shelf"
+- assertVisible:
+    id: "membership-start-trial-button"
+- tapOn:
+    id: "membership-start-trial-button"
+- extendedWaitUntil:
+    visible:
+      id: "space-open-box-lid"
+    timeout: 10000
+- assertVisible:
+    id: "space-sleep-alcove"
+- assertVisible:
+    id: "space-return-learning"
