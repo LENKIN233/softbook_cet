@@ -4,7 +4,7 @@
 
 - Date: 2026-06-29
 - Branch: `codex/space-shelf-desk-fidelity`
-- PR: TBD
+- PR: https://github.com/LENKIN233/softbook_cet/pull/261
 - Summary: Continued frontend quality reshaping by bringing the Space overview closer to the accepted shelf-desk baseline: address shelf, opened current box, contained cards, sleep alcove, and return-to-Learning continuity are now visible in one real app screen.
 
 ## Referenced specs
