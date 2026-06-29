@@ -327,11 +327,22 @@ test('defaults Space first-read focus to the current learning card box', () => {
     );
   });
 
+  const root = tree!.root;
   const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
 
   expect(expectedPath).not.toMatch(/馆|组|盒\s+\d|\d/);
   expect(renderedText).toContain('当前位置 当前卡盒已定位');
   expect(renderedText).toContain('当前学习卡在这里');
+  expect(renderedText).toContain('从当前位置退后一步');
+  expect(renderedText).toContain('打开的当前盒');
+  expect(renderedText).toContain('休眠区属于当前盒');
+  expect(renderedText).toContain('回到同一张卡');
+  expect(root.findAllByProps({ testID: 'space-open-box-lid' }).length)
+    .toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-sleep-alcove' }).length)
+    .toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-return-learning' }).length)
+    .toBeGreaterThan(0);
   expect(renderedText).not.toContain('当前地址');
   expect(renderedText).not.toContain('当前学习卡位于');
 });
