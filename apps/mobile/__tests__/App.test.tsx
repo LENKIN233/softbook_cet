@@ -2085,9 +2085,11 @@ test('can unlock the learning flow after fake sms verification', async () => {
   });
   const addressText = addressAperture.findByType(Text).props.children;
   expect(addressText).toBe('位置已收在知识空间');
+  expect(root.findByProps({ testID: 'learning-card-address-shelf' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'learning-card-location-strip' })).toBeTruthy();
   expect(output).not.toContain('这张在：馆 1 / 组 1 / 盒 1');
-  expect(output).toContain('这张练习 · ');
-  expect(output).not.toContain('当前卡 · ');
+  expect(output).toContain('当前卡 · ');
+  expect(output).not.toContain('这张练习 · ');
   expect(output).not.toContain('当前卡 · 002001');
   expect(output).not.toContain('CET4');
   expect(output).not.toContain('训练轨道');
