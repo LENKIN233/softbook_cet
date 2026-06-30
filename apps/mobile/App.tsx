@@ -2439,14 +2439,27 @@ function PhoneTopBar({
     <View
       style={[
         styles.phoneTopBar,
+        route.key === 'learning' ? styles.phoneTopBarLearning : null,
         { backgroundColor: palette.panel, borderColor: palette.border },
       ]}
     >
       <View style={styles.phoneTopCopy}>
-        <Text style={[styles.phoneTopTitle, { color: palette.text }]}>
+        <Text
+          style={[
+            styles.phoneTopTitle,
+            route.key === 'learning' ? styles.phoneTopTitleLearning : null,
+            { color: palette.text },
+          ]}
+        >
           {route.label}
         </Text>
-        <Text style={[styles.phoneTopMeta, { color: palette.textMuted }]}>
+        <Text
+          style={[
+            styles.phoneTopMeta,
+            route.key === 'learning' ? styles.phoneTopMetaLearning : null,
+            { color: palette.textMuted },
+          ]}
+        >
           {routeCue}
         </Text>
       </View>
@@ -3740,6 +3753,14 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 4,
   },
+  phoneTopBarLearning: {
+    borderRadius: 20,
+    marginTop: 2,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+  },
   phoneTopCopy: {
     flex: 1,
     gap: 2,
@@ -3748,9 +3769,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
   },
+  phoneTopTitleLearning: {
+    fontSize: 17,
+  },
   phoneTopMeta: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  phoneTopMetaLearning: {
+    fontSize: 11,
   },
   phoneTopPill: {
     borderRadius: 999,

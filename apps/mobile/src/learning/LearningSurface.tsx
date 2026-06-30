@@ -285,8 +285,8 @@ export function LearningSurface({
           styles.glassCard,
           {
             backgroundColor: palette.panel,
-            borderColor: tone.accent,
-            shadowColor: tone.accent,
+            borderColor: hexToRgba(tone.accent, 0.42),
+            shadowColor: palette.text,
           },
         ]}
         testID="learning-current-card"
@@ -317,7 +317,7 @@ export function LearningSurface({
               styles.cardProgressCluster,
               {
                 backgroundColor: palette.panelStrong,
-                borderColor: palette.border,
+                borderColor: hexToRgba(tone.accent, 0.18),
               },
             ]}
           >
@@ -339,8 +339,8 @@ export function LearningSurface({
           style={[
             styles.cardLocationStrip,
             {
-              backgroundColor: palette.panelStrong,
-              borderColor: palette.border,
+              backgroundColor: hexToRgba(tone.accent, 0.055),
+              borderColor: hexToRgba(tone.accent, 0.16),
             },
           ]}
           testID="learning-card-location-strip"
@@ -498,7 +498,7 @@ export function LearningSurface({
                 styles.oneScreenPrimaryButton,
                 {
                   backgroundColor: canSubmitCurrentCard
-                    ? tone.accent
+                    ? palette.accentStrong
                     : palette.tabIdle,
                 },
               ]}
@@ -712,6 +712,7 @@ function InteractionBody({
                   onPress={() => onSelectOption(option.id)}
                   style={[
                     styles.optionCard,
+                    isSelected ? styles.optionCardSelected : null,
                     {
                       backgroundColor: isSelected
                         ? tone.accentSoft
@@ -1509,7 +1510,7 @@ const styles = StyleSheet.create({
   },
   studyCardOneScreen: {
     flex: 1,
-    gap: 12,
+    gap: 11,
     paddingHorizontal: 18,
     paddingVertical: 15,
   },
@@ -1607,8 +1608,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   cardPromptOneScreen: {
-    fontSize: 25,
-    lineHeight: 31,
+    fontSize: 23,
+    lineHeight: 30,
   },
   contextCard: {
     borderWidth: 1,
@@ -1789,6 +1790,12 @@ const styles = StyleSheet.create({
     minWidth: '47%',
     paddingHorizontal: 12,
     paddingVertical: 11,
+  },
+  optionCardSelected: {
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    elevation: 3,
   },
   optionLabel: {
     fontSize: 12,
