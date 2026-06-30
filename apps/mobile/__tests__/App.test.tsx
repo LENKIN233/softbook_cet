@@ -1491,9 +1491,9 @@ test('requires explicit remote trial start from protected space', async () => {
     Authorization: 'Bearer remote-auth-token',
   });
 
-  expect(JSON.stringify(tree!.toJSON())).toContain(
-    '卡片、收藏标签和休眠区都留在同一盒里。',
-  );
+  const unlockedSpaceText = JSON.stringify(tree!.toJSON());
+  expect(unlockedSpaceText).toContain('盒内卡片');
+  expect(unlockedSpaceText).toContain('回学习');
 });
 
 test('falls back to local trial unlock and replays remote trial start later', async () => {
@@ -1695,7 +1695,8 @@ test('can unlock gated space after remote purchase', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('当前卡盒');
-  expect(output).toContain('卡片、收藏标签和休眠区都留在同一盒里。');
+  expect(output).toContain('盒内卡片');
+  expect(output).toContain('回学习');
   expect(root.findAllByProps({ testID: 'space-gate-rail' })).toHaveLength(0);
   expect(
     root.findAllByProps({ testID: 'space-open-box-lid' }).length,
@@ -2014,7 +2015,8 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('当前卡盒');
-  expect(output).toContain('卡片、收藏标签和休眠区都留在同一盒里。');
+  expect(output).toContain('盒内卡片');
+  expect(output).toContain('回学习');
   expect(
     fetchCalls.filter(
       call =>
@@ -2942,7 +2944,8 @@ test('requires explicit local trial start from protected space', async () => {
 
   const unlockedOutput = JSON.stringify(tree!.toJSON());
   expect(unlockedOutput).toContain('当前卡盒');
-  expect(unlockedOutput).toContain('卡片、收藏标签和休眠区都留在同一盒里。');
+  expect(unlockedOutput).toContain('盒内卡片');
+  expect(unlockedOutput).toContain('回学习');
 });
 
 test('shows trial gate from the first gated review entry', async () => {
