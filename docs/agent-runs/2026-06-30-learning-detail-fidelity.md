@@ -4,7 +4,7 @@
 
 - Date: 2026-06-30
 - Branch: `codex/learning-detail-fidelity`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/264
 - Summary: Continued frontend quality reshaping by replacing the Learning result-detail surface with a dedicated one-screen resolved-card state and adding a real app detail screenshot. The new path shows the completed card, the user's selected answer, the correct answer, the attached explanation slip, and the next-card continuation without exposing internal metadata.
 
 ## Referenced specs
