@@ -4,7 +4,7 @@
 
 - Date: 2026-06-30
 - Branch: `codex/fix/auth-entry-app-quality`
-- PR: N/A
+- PR: https://github.com/LENKIN233/softbook_cet/pull/270
 - Summary: Continued the user-visible mobile app quality reset by replacing the gated login entry with an app-like current-object continuation surface. This pass refreshes the real iOS simulator auth screenshot and adds a dedicated auth screenshot flow.
 
 ## Referenced specs
