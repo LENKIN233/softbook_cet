@@ -65,7 +65,10 @@ function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   }
 
   const nextInText = inText || node.type === 'Text';
-  return node.children?.flatMap(child => collectRenderedText(child, nextInText)) ?? [];
+  return (
+    node.children?.flatMap(child => collectRenderedText(child, nextInText)) ??
+    []
+  );
 }
 
 function countOccurrences(text: string, needle: string) {
@@ -110,9 +113,7 @@ function buildSpaceSeedLike(
       library.groups.push(group);
     }
 
-    if (
-      !group.boxes.some(box => box.boxRef === card.space_metadata.box_ref)
-    ) {
+    if (!group.boxes.some(box => box.boxRef === card.space_metadata.box_ref)) {
       group.boxes.push({ boxRef: card.space_metadata.box_ref });
     }
   }
@@ -145,16 +146,21 @@ test('keeps a physical Space outline when no cards are visible', () => {
   const output = JSON.stringify(tree!.toJSON());
   const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
 
-  expect(root.findAllByProps({ testID: 'space-empty-state' }).length)
-    .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-address-shelf' }).length)
-    .toBeGreaterThan(0);
-    expect(root.findAllByProps({ testID: 'space-current-box-tray' }).length)
-    .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-contained-card-strip' }).length)
-    .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-return-learning' }).length)
-    .toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-empty-state' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-address-shelf' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-current-box-tray' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-contained-card-strip' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-return-learning' }).length,
+  ).toBeGreaterThan(0);
   expect(output).toContain('当前卡盒待整理');
   expect(output).toContain('当前卡盒暂无可展示卡片');
   expect(output).toContain('空间正在等待本轮卡片');
@@ -200,17 +206,21 @@ test('uses contained skeleton slots while Space cards are loading', () => {
   expect(output).toContain('卡片正在整理');
   expect(output).toContain('正在整理卡片');
   expect(output).toContain('完成后显示本轮内容');
-  expect(root.findAllByProps({ testID: 'space-loading-card-skeleton' }).length)
-    .toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-loading-card-skeleton' }).length,
+  ).toBeGreaterThan(0);
   expect(
     root.findAllByProps({ testID: 'space-loading-address-skeleton' }).length,
   ).toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-loading-box-skeleton' }).length)
-    .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-empty-card-slot' }))
-    .toHaveLength(0);
-  expect(root.findAllByProps({ testID: 'space-status-rail' }).length)
-    .toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-loading-box-skeleton' }).length,
+  ).toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'space-empty-card-slot' })).toHaveLength(
+    0,
+  );
+  expect(
+    root.findAllByProps({ testID: 'space-status-rail' }).length,
+  ).toBeGreaterThan(0);
   expectSpaceFirstReadOrder(tree!, 'space-status-rail');
 });
 
@@ -242,10 +252,12 @@ test('places Space state rail between address context and current box', () => {
 
   const root = tree!.root;
 
-  expect(root.findAllByProps({ testID: 'space-shelf-desk' }).length)
-    .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-sync-rail' }).length)
-    .toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-shelf-desk' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-sync-rail' }).length,
+  ).toBeGreaterThan(0);
   expectSpaceFirstReadOrder(tree!, 'space-sync-rail');
 });
 
@@ -273,10 +285,12 @@ test('uses anonymous ordered selector IDs for Space library and group chips in t
   const root = tree!.root;
   const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
 
-  expect(root.findAllByProps({ testID: 'space-library-1' }).length)
-    .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-library-2' }).length)
-    .toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-library-1' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-library-2' }).length,
+  ).toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-library-00' })).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'space-library-05' })).toHaveLength(0);
   expect(renderedText).not.toContain(currentCard.space_metadata.library);
@@ -288,10 +302,12 @@ test('uses anonymous ordered selector IDs for Space library and group chips in t
     root.findByProps({ testID: 'space-library-2' }).props.onPress();
   });
 
-  expect(root.findAllByProps({ testID: 'space-group-1' }).length)
-    .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-group-2' }).length)
-    .toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-group-1' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-group-2' }).length,
+  ).toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-group-052' })).toHaveLength(0);
 });
 
@@ -331,18 +347,21 @@ test('defaults Space first-read focus to the current learning card box', () => {
   const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
 
   expect(expectedPath).not.toMatch(/馆|组|盒\s+\d|\d/);
-  expect(renderedText).toContain('当前位置 当前卡盒已定位');
+  expect(renderedText).toContain('空间地址 当前卡盒 位置 已定位');
+  expect(renderedText).toContain('盒内当前卡');
+  expect(renderedText).toContain('卡片、收藏标签和休眠区都留在同一盒里。');
   expect(renderedText).toContain('当前学习卡在这里');
-  expect(renderedText).toContain('从当前位置退后一步');
-  expect(renderedText).toContain('打开的当前盒');
   expect(renderedText).toContain('休眠区属于当前盒');
   expect(renderedText).toContain('回到同一张卡');
-  expect(root.findAllByProps({ testID: 'space-open-box-lid' }).length)
-    .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-sleep-alcove' }).length)
-    .toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-return-learning' }).length)
-    .toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-open-box-lid' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-sleep-alcove' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-return-learning' }).length,
+  ).toBeGreaterThan(0);
   expect(renderedText).not.toContain('当前地址');
   expect(renderedText).not.toContain('当前学习卡位于');
 });
@@ -393,7 +412,9 @@ test('resyncs Space focus when the current learning card changes after render', 
   const updatedText = collectRenderedText(tree!.toJSON()).join(' ');
 
   expect(updatedText).toContain('当前学习卡在这里');
-  expect(countOccurrences(updatedText, nextCard.front.prompt)).toBeGreaterThan(1);
+  expect(countOccurrences(updatedText, nextCard.front.prompt)).toBeGreaterThan(
+    1,
+  );
 });
 
 test('does not render raw metadata values from loaded Space cards', () => {
@@ -435,6 +456,6 @@ test('does not render raw metadata values from loaded Space cards', () => {
   metadataValues.forEach(value => {
     expect(renderedText).not.toContain(value);
   });
-  expect(renderedText).toContain('当前位置 当前卡盒已定位');
+  expect(renderedText).toContain('空间地址 当前卡盒 位置 已定位');
   expect(renderedText).not.toContain('馆 1 / 组 1 / 盒 1');
 });
