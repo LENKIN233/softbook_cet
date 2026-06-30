@@ -12,6 +12,7 @@ import { canSubmitLearningCard, summarizeLearningResults } from './session';
 import {
   SELF_ASSESS_COLORS,
   hexToRgba,
+  resolveLibraryTone,
 } from '../visual/tokens';
 
 export type LearningSurfacePalette = {
@@ -179,29 +180,42 @@ export function LearningSurface({
           ]}
           testID="learning-complete-details"
         >
-          <Text style={[styles.resultExplanationTitle, { color: palette.text }]}>
+          <Text
+            style={[styles.resultExplanationTitle, { color: palette.text }]}
+          >
             {isReviewPhase ? '回看已经收好' : '这一轮已经收好'}
           </Text>
-          <Text style={[styles.resultExplanationBody, { color: palette.textMuted }]}>
+          <Text
+            style={[styles.resultExplanationBody, { color: palette.textMuted }]}
+          >
             {isReviewPhase
               ? '仍不稳的点会留在后续学习里自然出现。'
               : '需要再看的卡已经收进回看，不要求你管理列表。'}
           </Text>
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>下一步</Text>
-          <Text style={[styles.resultExplanationBody, { color: palette.textMuted }]}>
+          <Text style={[styles.sectionTitle, { color: palette.text }]}>
+            下一步
+          </Text>
+          <Text
+            style={[styles.resultExplanationBody, { color: palette.textMuted }]}
+          >
             {isReviewPhase
               ? '回看已经结束。可以回到首轮重新开始，也可以稍后按学习节奏继续。'
               : reviewCandidateCount > 0
-                ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
-                : '这一轮已经完成，可以重新练这轮卡。'}
+              ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
+              : '这一轮已经完成，可以重新练这轮卡。'}
           </Text>
           {!isReviewPhase && reviewCandidateCount > 0 && onStartReview ? (
             <Pressable
               onPress={onStartReview}
-              style={[styles.primaryButton, { backgroundColor: palette.accentStrong }]}
+              style={[
+                styles.primaryButton,
+                { backgroundColor: palette.accentStrong },
+              ]}
               testID="learning-start-review-button"
             >
-              <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+              <Text
+                style={[styles.primaryButtonLabel, { color: palette.panel }]}
+              >
                 开始回看这 {reviewCandidateCount} 张卡
               </Text>
             </Pressable>
@@ -220,7 +234,11 @@ export function LearningSurface({
     );
   }
 
-  const tone = { accent: palette.accent, accentSoft: palette.accentSoft };
+  const libraryTone = resolveLibraryTone(currentCard.space_metadata.library);
+  const tone = {
+    accent: libraryTone.accent,
+    accentSoft: libraryTone.accentSoft,
+  };
   const progressPercent = `${Math.max(
     Math.round(((currentIndex + 1) / Math.max(sessionCards.length, 1)) * 100),
     10,
@@ -238,7 +256,11 @@ export function LearningSurface({
   const supportLayer = (() => {
     const peekBody = '先把题干里的信号抓出来，再回到选项或解析确认。';
 
-    if (currentCardState.isPeeked && currentCard.hint_layer?.content && currentCardState.isHintVisible) {
+    if (
+      currentCardState.isPeeked &&
+      currentCard.hint_layer?.content &&
+      currentCardState.isHintVisible
+    ) {
       return {
         title: '先看这张卡的关键点',
         body: `${peekBody} ${currentCard.hint_layer.content}`,
@@ -268,13 +290,13 @@ export function LearningSurface({
     currentCard,
     currentCardState,
   );
+  const hasCommittedChoiceSelection =
+    currentCard.interaction_id === 'multiple_choice' &&
+    currentCardState.selectedOptionId !== null;
   const shouldShowContextCard =
-    currentResult === null &&
-    !isDenseInteraction &&
-    currentCard.interaction_id === 'flip' &&
-    !(currentCard.interaction_id === 'flip' && currentCardState.isFlipped);
+    currentResult === null && !isDenseInteraction && supportLayer !== null;
   const shouldShowUtilityDock =
-    currentCard.interaction_id === 'flip' && !isDenseInteraction;
+    currentResult === null && !hasCommittedChoiceSelection;
 
   return (
     <View style={styles.oneScreenPage} testID="learning-one-screen-flow">
@@ -285,22 +307,12 @@ export function LearningSurface({
           styles.glassCard,
           {
             backgroundColor: palette.panel,
-            borderColor: hexToRgba(tone.accent, 0.42),
+            borderColor: palette.border,
             shadowColor: palette.text,
           },
         ]}
         testID="learning-current-card"
       >
-        <View
-          pointerEvents="none"
-          style={[
-            styles.paperSpine,
-            { backgroundColor: hexToRgba(tone.accent, 0.18) },
-          ]}
-        />
-        <View pointerEvents="none" style={styles.paperLineOne} />
-        <View pointerEvents="none" style={styles.paperLineTwo} />
-        <View pointerEvents="none" style={styles.paperLineThree} />
         <View
           style={styles.cardAddressShelf}
           testID="learning-card-address-shelf"
@@ -339,8 +351,8 @@ export function LearningSurface({
           style={[
             styles.cardLocationStrip,
             {
-              backgroundColor: hexToRgba(tone.accent, 0.055),
-              borderColor: hexToRgba(tone.accent, 0.16),
+              backgroundColor: hexToRgba(tone.accent, 0.035),
+              borderColor: palette.border,
             },
           ]}
           testID="learning-card-location-strip"
@@ -382,7 +394,11 @@ export function LearningSurface({
             </Text>
             <Text
               numberOfLines={isDenseInteraction ? 2 : 4}
-              style={[styles.cardPrompt, styles.cardPromptOneScreen, { color: palette.text }]}
+              style={[
+                styles.cardPrompt,
+                styles.cardPromptOneScreen,
+                { color: palette.text },
+              ]}
             >
               {currentCard.front.prompt}
             </Text>
@@ -394,7 +410,10 @@ export function LearningSurface({
             style={[
               styles.contextCard,
               supportLayer ? styles.contextCardSupportActive : null,
-              { backgroundColor: palette.panelStrong, borderColor: palette.border },
+              {
+                backgroundColor: palette.panelStrong,
+                borderColor: palette.border,
+              },
             ]}
             testID={
               supportLayer
@@ -454,7 +473,9 @@ export function LearningSurface({
               <Text style={[styles.sectionTitle, { color: palette.text }]}>
                 {INTERACTION_LABELS[currentCard.interaction_id]}
               </Text>
-              <Text style={[styles.interactionMeta, { color: palette.textMuted }]}>
+              <Text
+                style={[styles.interactionMeta, { color: palette.textMuted }]}
+              >
                 现在做
               </Text>
             </View>
@@ -489,95 +510,96 @@ export function LearningSurface({
               isLockInteraction ? styles.oneScreenDockCompact : null,
             ]}
           >
-          {currentCard.interaction_id !== 'flip' ? (
-            <Pressable
-              disabled={!canSubmitCurrentCard}
-              onPress={onSubmitCurrentCard}
-              style={[
-                styles.primaryButton,
-                styles.oneScreenPrimaryButton,
-                {
-                  backgroundColor: canSubmitCurrentCard
-                    ? palette.accentStrong
-                    : palette.tabIdle,
-                },
-              ]}
-              testID="learning-submit-button"
-            >
-              <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-                提交这张卡
-              </Text>
-            </Pressable>
-          ) : null}
-          {shouldShowUtilityDock ? (
-            <>
-              <View style={styles.actionRow}>
-                <LightActionButton
-                  label={currentCardState.isPeeked ? '收起线索' : '查看线索'}
-                  onPress={onTogglePeek}
-                  palette={palette}
-                  testID="learning-peek-button"
-                />
-                {currentCard.hint_layer ? (
+            {shouldShowUtilityDock ? (
+              <>
+                <View style={styles.actionRow}>
                   <LightActionButton
-                    label={
-                      currentCardState.isHintVisible
-                        ? '收起提示'
-                        : '查看提示'
-                    }
-                    onPress={onToggleHint}
+                    label={currentCardState.isPeeked ? '收起线索' : '查看线索'}
+                    onPress={onTogglePeek}
                     palette={palette}
-                    testID="learning-hint-button"
+                    testID="learning-peek-button"
                   />
-                ) : null}
-                <Pressable
-                  onPress={onToggleFavorite}
-                  style={[
-                    styles.favoriteButton,
-                    {
-                      backgroundColor: currentCardState.isFavorited
-                        ? tone.accentSoft
-                        : palette.panelStrong,
-                      borderColor: currentCardState.isFavorited
-                        ? tone.accent
-                        : palette.border,
-                    },
-                  ]}
-                  testID="learning-favorite-button"
-                >
-                  <Text
+                  {currentCard.hint_layer ? (
+                    <LightActionButton
+                      label={
+                        currentCardState.isHintVisible ? '收起提示' : '查看提示'
+                      }
+                      onPress={onToggleHint}
+                      palette={palette}
+                      testID="learning-hint-button"
+                    />
+                  ) : null}
+                  <Pressable
+                    onPress={onToggleFavorite}
                     style={[
-                      styles.favoriteLabel,
+                      styles.favoriteButton,
                       {
-                        color: currentCardState.isFavorited
+                        backgroundColor: currentCardState.isFavorited
+                          ? tone.accentSoft
+                          : palette.panelStrong,
+                        borderColor: currentCardState.isFavorited
                           ? tone.accent
-                          : palette.textMuted,
+                          : palette.border,
                       },
                     ]}
+                    testID="learning-favorite-button"
                   >
-                    {currentCardState.isFavorited ? '已收藏' : '收藏'}
+                    <Text
+                      style={[
+                        styles.favoriteLabel,
+                        {
+                          color: currentCardState.isFavorited
+                            ? tone.accent
+                            : palette.textMuted,
+                        },
+                      ]}
+                    >
+                      {currentCardState.isFavorited ? '已收藏' : '收藏'}
+                    </Text>
+                  </Pressable>
+                </View>
+                <View
+                  style={[
+                    styles.addressAperture,
+                    {
+                      backgroundColor: palette.panelStrong,
+                      borderColor: palette.border,
+                    },
+                  ]}
+                  testID="learning-address-aperture"
+                >
+                  <Text
+                    style={[styles.addressText, { color: palette.textMuted }]}
+                  >
+                    同盒位置已保持
                   </Text>
-                </Pressable>
-              </View>
-              <View
+                </View>
+              </>
+            ) : null}
+            {currentCard.interaction_id !== 'flip' ? (
+              <Pressable
+                disabled={!canSubmitCurrentCard}
+                onPress={onSubmitCurrentCard}
                 style={[
-                  styles.addressAperture,
+                  styles.primaryButton,
+                  styles.oneScreenPrimaryButton,
                   {
-                    backgroundColor: palette.panelStrong,
-                    borderColor: palette.border,
+                    backgroundColor: canSubmitCurrentCard
+                      ? tone.accent
+                      : palette.tabIdle,
                   },
                 ]}
-                testID="learning-address-aperture"
+                testID="learning-submit-button"
               >
-                <Text style={[styles.addressText, { color: palette.textMuted }]}>
-                  位置已收在知识空间
+                <Text
+                  style={[styles.primaryButtonLabel, { color: palette.panel }]}
+                >
+                  提交这张卡
                 </Text>
-              </View>
-            </>
-          ) : null}
-        </View>
+              </Pressable>
+            ) : null}
+          </View>
         ) : null}
-
       </View>
     </View>
   );
@@ -606,7 +628,11 @@ function InteractionBody({
   onToggleEliminationItem: (itemId: string) => void;
   onSelectSwipeState: (stateId: string) => void;
 }) {
-  const tone = { accent: palette.accent, accentSoft: palette.accentSoft };
+  const libraryTone = resolveLibraryTone(card.space_metadata.library);
+  const tone = {
+    accent: libraryTone.accent,
+    accentSoft: libraryTone.accentSoft,
+  };
 
   switch (card.interaction_id) {
     case 'flip':
@@ -654,7 +680,10 @@ function InteractionBody({
                   styles.choicePill,
                   styles.choicePillWide,
                   {
-                    backgroundColor: hexToRgba(SELF_ASSESS_COLORS.confident, 0.12),
+                    backgroundColor: hexToRgba(
+                      SELF_ASSESS_COLORS.confident,
+                      0.12,
+                    ),
                     borderColor: SELF_ASSESS_COLORS.confident,
                   },
                 ]}
@@ -747,101 +776,107 @@ function InteractionBody({
       return (
         <View style={styles.interactionBody}>
           <View style={styles.lockList}>
-          {card.lock_slots.map(slot => {
-            const selectedValue = cardState.lockSelections[slot.id];
-            const isUnlocked = Boolean(selectedValue);
+            {card.lock_slots.map(slot => {
+              const selectedValue = cardState.lockSelections[slot.id];
+              const isUnlocked = Boolean(selectedValue);
 
-            return (
-              <View
-                key={slot.id}
-                style={[
-                  styles.lockRow,
-                  {
-                    backgroundColor: isUnlocked
-                      ? tone.accentSoft
-                      : palette.panel,
-                    borderColor: isUnlocked ? tone.accent : palette.border,
-                  },
-                ]}
-              >
+              return (
                 <View
+                  key={slot.id}
                   style={[
-                    styles.lockGlyph,
+                    styles.lockRow,
                     {
                       backgroundColor: isUnlocked
-                        ? tone.accent
-                        : palette.panelStrong,
+                        ? tone.accentSoft
+                        : palette.panel,
                       borderColor: isUnlocked ? tone.accent : palette.border,
                     },
                   ]}
                 >
-                  <Text
+                  <View
                     style={[
-                      styles.lockGlyphLabel,
-                      { color: isUnlocked ? palette.panel : palette.textMuted },
+                      styles.lockGlyph,
+                      {
+                        backgroundColor: isUnlocked
+                          ? tone.accent
+                          : palette.panelStrong,
+                        borderColor: isUnlocked ? tone.accent : palette.border,
+                      },
                     ]}
                   >
-                    {isUnlocked ? '开' : '锁'}
-                  </Text>
-                </View>
-                <View style={styles.lockBody}>
-                  <View style={styles.lockLabelRow}>
-                    <Text style={[styles.lockLabel, { color: palette.text }]}>
-                      {slot.label}
-                    </Text>
                     <Text
                       style={[
-                        styles.lockStatus,
-                        { color: isUnlocked ? tone.accent : palette.textMuted },
+                        styles.lockGlyphLabel,
+                        {
+                          color: isUnlocked ? palette.panel : palette.textMuted,
+                        },
                       ]}
                     >
-                      {isUnlocked ? '已开锁' : '待选择'}
+                      {isUnlocked ? '开' : '锁'}
                     </Text>
                   </View>
-                  <View style={[styles.inlineWrap, styles.lockChoiceWrap]}>
-                    {slot.options.map(option => {
-                      const isSelected = selectedValue === option;
+                  <View style={styles.lockBody}>
+                    <View style={styles.lockLabelRow}>
+                      <Text style={[styles.lockLabel, { color: palette.text }]}>
+                        {slot.label}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.lockStatus,
+                          {
+                            color: isUnlocked ? tone.accent : palette.textMuted,
+                          },
+                        ]}
+                      >
+                        {isUnlocked ? '已开锁' : '待选择'}
+                      </Text>
+                    </View>
+                    <View style={[styles.inlineWrap, styles.lockChoiceWrap]}>
+                      {slot.options.map(option => {
+                        const isSelected = selectedValue === option;
 
-                      return (
-                        <Pressable
-                          key={option}
-                          onPress={() => onSetLockSelection(slot.id, option)}
-                          style={[
-                            styles.choicePill,
-                            styles.lockChoicePill,
-                            {
-                              backgroundColor: isSelected
-                                ? palette.panel
-                                : palette.panelStrong,
-                              borderColor: isSelected
-                                ? tone.accent
-                                : palette.border,
-                            },
-                          ]}
-                          testID={`learning-lock-${slot.id}-${toTestIdSegment(
-                            option,
-                          )}`}
-                        >
-                          <Text
-                            numberOfLines={1}
+                        return (
+                          <Pressable
+                            key={option}
+                            onPress={() => onSetLockSelection(slot.id, option)}
                             style={[
-                              styles.choiceLabel,
-                              styles.lockChoiceLabel,
+                              styles.choicePill,
+                              styles.lockChoicePill,
                               {
-                                color: isSelected ? tone.accent : palette.text,
+                                backgroundColor: isSelected
+                                  ? palette.panel
+                                  : palette.panelStrong,
+                                borderColor: isSelected
+                                  ? tone.accent
+                                  : palette.border,
                               },
                             ]}
+                            testID={`learning-lock-${slot.id}-${toTestIdSegment(
+                              option,
+                            )}`}
                           >
-                            {option}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.choiceLabel,
+                                styles.lockChoiceLabel,
+                                {
+                                  color: isSelected
+                                    ? tone.accent
+                                    : palette.text,
+                                },
+                              ]}
+                            >
+                              {option}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
                   </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })}
           </View>
         </View>
       );
@@ -862,7 +897,9 @@ function InteractionBody({
                   style={[
                     styles.eliminationCard,
                     {
-                      backgroundColor: isSelected ? tone.accentSoft : palette.panel,
+                      backgroundColor: isSelected
+                        ? tone.accentSoft
+                        : palette.panel,
                       borderColor: currentResult
                         ? isCorrect
                           ? palette.success
@@ -926,7 +963,10 @@ function InteractionBody({
               style={[
                 styles.swipeGhostCard,
                 styles.swipeGhostMid,
-                { backgroundColor: palette.panelStrong, borderColor: palette.border },
+                {
+                  backgroundColor: palette.panelStrong,
+                  borderColor: palette.border,
+                },
               ]}
             />
             <View
@@ -956,9 +996,13 @@ function InteractionBody({
                   onPress={() => onSelectSwipeState(state.id)}
                   style={[
                     styles.swipeTrailCard,
-                    index === 0 ? styles.swipeTrailLeft : styles.swipeTrailRight,
+                    index === 0
+                      ? styles.swipeTrailLeft
+                      : styles.swipeTrailRight,
                     {
-                      backgroundColor: isSelected ? tone.accentSoft : palette.panel,
+                      backgroundColor: isSelected
+                        ? tone.accentSoft
+                        : palette.panel,
                       borderColor: isCorrect
                         ? palette.success
                         : isSelected
@@ -974,7 +1018,9 @@ function InteractionBody({
                   <Text style={[styles.swipeLabel, { color: palette.text }]}>
                     {state.label}
                   </Text>
-                  <Text style={[styles.swipeText, { color: palette.textMuted }]}>
+                  <Text
+                    style={[styles.swipeText, { color: palette.textMuted }]}
+                  >
                     {state.description}
                   </Text>
                 </Pressable>
@@ -1024,9 +1070,7 @@ function getResolvedAnswerRows(
         {
           label: '你的判断',
           displayText:
-            cardState.flipConfidence === 'review'
-              ? '再回看'
-              : '有把握',
+            cardState.flipConfidence === 'review' ? '再回看' : '有把握',
           testID: 'learning-detail-selected-answer',
           tone: cardState.flipConfidence === 'review' ? 'warning' : 'success',
         },
@@ -1065,14 +1109,20 @@ function getResolvedAnswerRows(
         {
           label: '你的锁位',
           displayText: card.lock_slots
-            .map(slot => `${slot.label} ${cardState.lockSelections[slot.id] ?? '未选'}`)
+            .map(
+              slot =>
+                `${slot.label} ${cardState.lockSelections[slot.id] ?? '未选'}`,
+            )
             .join(' · '),
           testID: 'learning-detail-selected-answer',
         },
         {
           label: '正确主干',
           displayText: card.lock_slots
-            .map((slot, index) => `${slot.label} ${card.answer_key.lock_pattern[index]}`)
+            .map(
+              (slot, index) =>
+                `${slot.label} ${card.answer_key.lock_pattern[index]}`,
+            )
             .join(' · '),
           testID: 'learning-detail-correct-answer',
           tone: 'success',
@@ -1117,8 +1167,7 @@ function getResolvedAnswerRows(
             ? `${selectedState.label} · ${selectedState.description}`
             : '未选择',
           testID: 'learning-detail-selected-answer',
-          tone:
-            selectedState?.id === correctState?.id ? 'success' : 'warning',
+          tone: selectedState?.id === correctState?.id ? 'success' : 'warning',
         },
         {
           label: '稳妥判断',
@@ -1161,6 +1210,7 @@ export function LearningResultDetailSurface({
     phase,
   );
   const borderTone = getResultTone(result, palette);
+  const detailLibraryTone = resolveLibraryTone(card.space_metadata.library);
   const resolvedRows = getResolvedAnswerRows(card, cardState);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
@@ -1177,7 +1227,7 @@ export function LearningResultDetailSurface({
     >
       <View style={styles.detailTopBar}>
         <View style={styles.heroChipRow}>
-          <TagChip label="本卡解析" toneColor={palette.accent} />
+          <TagChip label="本卡解析" toneColor={detailLibraryTone.accent} />
           <TagChip
             label={phase === 'review' ? '回看完成' : '已完成'}
             toneColor={phase === 'review' ? palette.warning : palette.success}
@@ -1324,7 +1374,7 @@ export function LearningResultDetailSurface({
           style={[
             styles.primaryButton,
             styles.detailPrimaryButton,
-            { backgroundColor: palette.accentStrong },
+            { backgroundColor: detailLibraryTone.accent },
           ]}
           testID="learning-next-button"
         >
@@ -1358,6 +1408,7 @@ function ResultSummaryPanel({
       : result.outcome === 'incorrect'
       ? palette.danger
       : palette.success;
+  const cardTone = resolveLibraryTone(card.space_metadata.library);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
 
@@ -1372,15 +1423,6 @@ function ResultSummaryPanel({
       ]}
       testID="learning-result-summary"
     >
-      <View
-        pointerEvents="none"
-        style={[
-          styles.paperSpine,
-          { backgroundColor: hexToRgba(borderTone, 0.18) },
-        ]}
-      />
-      <View pointerEvents="none" style={styles.paperLineOne} />
-      <View pointerEvents="none" style={styles.paperLineTwo} />
       <View style={styles.resultHeader}>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>
           {isPositive ? '这张卡已稳住' : '这张卡需要回看'}
@@ -1390,7 +1432,9 @@ function ResultSummaryPanel({
       <Text style={[styles.resultExplanationTitle, { color: palette.text }]}>
         已记录本次结果
       </Text>
-      <Text style={[styles.resultExplanationBody, { color: palette.textMuted }]}>
+      <Text
+        style={[styles.resultExplanationBody, { color: palette.textMuted }]}
+      >
         解析已准备好：{card.analysis.title}
       </Text>
       <View style={styles.resultActionRow}>
@@ -1414,7 +1458,7 @@ function ResultSummaryPanel({
           style={[
             styles.primaryButton,
             styles.resultNextButton,
-            { backgroundColor: palette.accent },
+            { backgroundColor: cardTone.accent },
           ]}
           testID="learning-next-button"
         >
@@ -1446,6 +1490,7 @@ function ResultPanel({
       : result.outcome === 'incorrect'
       ? palette.danger
       : palette.success;
+  const cardTone = resolveLibraryTone(card.space_metadata.library);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
 
@@ -1459,15 +1504,6 @@ function ResultPanel({
         },
       ]}
     >
-      <View
-        pointerEvents="none"
-        style={[
-          styles.paperSpine,
-          { backgroundColor: hexToRgba(borderTone, 0.18) },
-        ]}
-      />
-      <View pointerEvents="none" style={styles.paperLineOne} />
-      <View pointerEvents="none" style={styles.paperLineTwo} />
       <View style={styles.resultHeader}>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>
           {isPositive ? '这张卡已稳住' : '这张卡需要回看'}
@@ -1504,7 +1540,7 @@ function ResultPanel({
       </View>
       <Pressable
         onPress={onAdvanceCard}
-        style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+        style={[styles.primaryButton, { backgroundColor: cardTone.accent }]}
         testID="learning-next-button"
       >
         <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
@@ -1581,12 +1617,7 @@ function ResultBadge({
         },
       ]}
     >
-      <Text
-        style={[
-          styles.resultBadgeLabel,
-          { color: badgeTone },
-        ]}
-      >
+      <Text style={[styles.resultBadgeLabel, { color: badgeTone }]}>
         {label}
       </Text>
     </View>
@@ -1885,50 +1916,18 @@ const styles = StyleSheet.create({
   },
   studyCard: {
     borderWidth: 1,
-    borderRadius: 32,
+    borderRadius: 30,
     overflow: 'hidden',
-    paddingHorizontal: 22,
-    paddingVertical: 22,
-    gap: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    gap: 14,
     position: 'relative',
   },
   studyCardOneScreen: {
     flex: 1,
-    gap: 11,
-    paddingHorizontal: 18,
-    paddingVertical: 15,
-  },
-  paperSpine: {
-    bottom: 0,
-    left: 30,
-    opacity: 1,
-    position: 'absolute',
-    top: 0,
-    width: 1,
-  },
-  paperLineOne: {
-    backgroundColor: 'rgba(47,70,80,0.08)',
-    height: 1,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 118,
-  },
-  paperLineTwo: {
-    backgroundColor: 'rgba(47,70,80,0.08)',
-    height: 1,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 222,
-  },
-  paperLineThree: {
-    backgroundColor: 'rgba(47,70,80,0.08)',
-    height: 1,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 326,
+    gap: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 13,
   },
   cardAddressShelf: {
     alignItems: 'center',
@@ -1938,11 +1937,11 @@ const styles = StyleSheet.create({
   },
   cardProgressCluster: {
     alignItems: 'flex-end',
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
-    minWidth: 78,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    minWidth: 74,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   cardProgressCount: {
     fontSize: 17,
@@ -1951,13 +1950,13 @@ const styles = StyleSheet.create({
   },
   cardLocationStrip: {
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   cardLocationTextWrap: {
     flex: 1,
@@ -1992,8 +1991,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   cardPromptOneScreen: {
-    fontSize: 23,
-    lineHeight: 30,
+    fontSize: 21,
+    lineHeight: 27,
   },
   contextCard: {
     borderWidth: 1,
@@ -2017,6 +2016,9 @@ const styles = StyleSheet.create({
   favoriteButton: {
     borderWidth: 1,
     borderRadius: 999,
+    alignItems: 'center',
+    flexGrow: 1,
+    minWidth: 86,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
@@ -2027,11 +2029,14 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
   lightActionButton: {
+    alignItems: 'center',
     borderWidth: 1,
     borderRadius: 999,
+    flexGrow: 1,
+    minWidth: 86,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
@@ -2072,11 +2077,11 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   addressAperture: {
+    alignItems: 'center',
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 14,
-    paddingVertical: 11,
-    alignItems: 'center',
+    paddingVertical: 9,
   },
   addressText: {
     fontSize: 12,
@@ -2093,12 +2098,13 @@ const styles = StyleSheet.create({
   interactionCardOneScreen: {
     flexShrink: 1,
     gap: 9,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
   interactionCardEmbedded: {
     backgroundColor: 'transparent',
-    borderRadius: 20,
+    borderRadius: 18,
+    borderWidth: 0,
   },
   sectionTitle: {
     fontSize: 16,
@@ -2161,19 +2167,19 @@ const styles = StyleSheet.create({
   optionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 7,
   },
   optionCard: {
     borderWidth: 1,
     borderRadius: 18,
     flexBasis: '47%',
     flexGrow: 1,
-    gap: 7,
+    gap: 5,
     alignItems: 'flex-start',
-    minHeight: 84,
+    minHeight: 68,
     minWidth: '47%',
     paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingVertical: 9,
   },
   optionCardSelected: {
     shadowOffset: { width: 0, height: 10 },
@@ -2186,9 +2192,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   optionText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    lineHeight: 19,
+    lineHeight: 18,
   },
   lockGroup: {
     gap: 10,
@@ -2303,10 +2309,10 @@ const styles = StyleSheet.create({
     width: '78%',
   },
   swipeGhostBack: {
-    transform: [{translateX: -22}, {translateY: 6}],
+    transform: [{ translateX: -22 }, { translateY: 6 }],
   },
   swipeGhostMid: {
-    transform: [{translateX: 22}, {translateY: -2}],
+    transform: [{ translateX: 22 }, { translateY: -2 }],
   },
   swipeTopCard: {
     width: '82%',
@@ -2341,10 +2347,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   swipeTrailLeft: {
-    transform: [{translateX: -2}],
+    transform: [{ translateX: -2 }],
   },
   swipeTrailRight: {
-    transform: [{translateX: 2}],
+    transform: [{ translateX: 2 }],
   },
   swipeTrailHint: {
     fontSize: 11,
@@ -2381,14 +2387,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   oneScreenDock: {
-    gap: 9,
+    gap: 7,
     marginTop: 'auto',
   },
   oneScreenDockCompact: {
     gap: 0,
   },
   oneScreenPrimaryButton: {
-    paddingVertical: 13,
+    paddingVertical: 12,
   },
   primaryButtonLabel: {
     fontSize: 15,

@@ -80,10 +80,7 @@ export function StatisticsSurface({
 
   return (
     <View
-      style={[
-        styles.page,
-        deviceClass === 'tablet' ? styles.pageTablet : null,
-      ]}
+      style={[styles.page, deviceClass === 'tablet' ? styles.pageTablet : null]}
     >
       <View
         style={[
@@ -94,7 +91,9 @@ export function StatisticsSurface({
         <Text style={[styles.eyebrow, { color: palette.accent }]}>
           今日进展
         </Text>
-        <Text style={[styles.title, { color: palette.text }]}>今日统计与签到</Text>
+        <Text style={[styles.title, { color: palette.text }]}>
+          今日统计与签到
+        </Text>
         <Text style={[styles.summary, { color: palette.textMuted }]}>
           这里汇总今天完成的卡、待回看的卡和签到状态。
         </Text>
@@ -127,31 +126,35 @@ export function StatisticsSurface({
         </View>
       </View>
 
-      <View
-        style={[
-          styles.sectionGrid,
-          deviceClass === 'tablet' ? styles.sectionGridTablet : null,
-        ]}
+      <SurfaceCard
+        palette={palette}
+        style={styles.dailyObjectCard}
+        testID="statistics-day-object"
       >
-        <SurfaceCard
-          palette={palette}
-          style={styles.surfaceCardHalf}
+        <View
+          style={[
+            styles.dailyActionRow,
+            deviceClass === 'tablet' ? styles.dailyActionRowTablet : null,
+          ]}
           testID="statistics-checkin-card"
         >
-          <Text style={[styles.cardTitle, { color: palette.text }]}>
-            {checkInTitle}
-          </Text>
-          <Text
-            style={[styles.cardSummary, { color: palette.textMuted }]}
-            testID="statistics-checkin-summary"
-          >
-            {checkInSummary}
-          </Text>
+          <View style={styles.dailyActionCopy}>
+            <Text style={[styles.cardTitle, { color: palette.text }]}>
+              {checkInTitle}
+            </Text>
+            <Text
+              style={[styles.cardSummary, { color: palette.textMuted }]}
+              testID="statistics-checkin-summary"
+            >
+              {checkInSummary}
+            </Text>
+          </View>
           <Pressable
             disabled={!canCheckInToday || hasCheckedInToday}
             onPress={onCheckIn}
             style={[
               styles.primaryButton,
+              styles.dailyPrimaryButton,
               {
                 backgroundColor:
                   hasCheckedInToday || canCheckInToday
@@ -169,68 +172,58 @@ export function StatisticsSurface({
                   : 'statistics-checkin-ready-label'
               }
             >
-              {hasCheckedInToday ? '今日已签到' : '完成今日签到'}
+              {hasCheckedInToday ? '今日已签到' : '完成签到'}
             </Text>
           </Pressable>
-        </SurfaceCard>
+        </View>
 
-        <SurfaceCard
-          palette={palette}
-          style={styles.surfaceCardHalf}
-        >
-          <Text style={[styles.cardTitle, { color: palette.text }]}>
-            回看状态
-          </Text>
-          <Text
-            style={[styles.cardSummary, { color: palette.textMuted }]}
+        <View style={[styles.ledgerList, { borderTopColor: palette.border }]}>
+          <LedgerRow
+            label="回看状态"
+            palette={palette}
             testID="statistics-review-status"
-          >
-            {reviewStatus}
+            value={reviewStatus}
+          />
+          <LedgerRow
+            label="今日同步"
+            palette={palette}
+            testID="statistics-sync-label"
+            value={syncStatusLabel}
+          />
+          <LedgerRow
+            label="同步说明"
+            palette={palette}
+            testID="statistics-sync-detail"
+            value={syncStatusDetail}
+          />
+        </View>
+
+        <View style={styles.signalPanel}>
+          <Text style={[styles.cardTitle, { color: palette.text }]}>
+            今日练习信号
           </Text>
-        </SurfaceCard>
-      </View>
-
-      <SurfaceCard palette={palette}>
-        <Text style={[styles.cardTitle, { color: palette.text }]}>今日同步</Text>
-        <Text
-          style={[styles.cardSummary, { color: palette.textMuted }]}
-          testID="statistics-sync-label"
-        >
-          {syncStatusLabel}
-        </Text>
-        <Text
-          style={[styles.cardSummary, { color: palette.textMuted }]}
-          testID="statistics-sync-detail"
-        >
-          {syncStatusDetail}
-        </Text>
-      </SurfaceCard>
-
-      <SurfaceCard palette={palette}>
-        <Text style={[styles.cardTitle, { color: palette.text }]}>
-          今日练习信号
-        </Text>
-        <View style={styles.signalList}>
-          <SignalRow
-            label="自动判对"
-            palette={palette}
-            value={`${combinedSummary.autoCorrectCount}`}
-          />
-          <SignalRow
-            label="自动判错"
-            palette={palette}
-            value={`${combinedSummary.autoIncorrectCount}`}
-          />
-          <SignalRow
-            label="翻面回看"
-            palette={palette}
-            value={`${combinedSummary.reviewFlipCount}`}
-          />
-          <SignalRow
-            label="收藏"
-            palette={palette}
-            value={`${combinedSummary.favoriteCount}`}
-          />
+          <View style={styles.signalList}>
+            <SignalRow
+              label="自动判对"
+              palette={palette}
+              value={`${combinedSummary.autoCorrectCount}`}
+            />
+            <SignalRow
+              label="自动判错"
+              palette={palette}
+              value={`${combinedSummary.autoIncorrectCount}`}
+            />
+            <SignalRow
+              label="翻面回看"
+              palette={palette}
+              value={`${combinedSummary.reviewFlipCount}`}
+            />
+            <SignalRow
+              label="收藏"
+              palette={palette}
+              value={`${combinedSummary.favoriteCount}`}
+            />
+          </View>
         </View>
       </SurfaceCard>
     </View>
@@ -268,7 +261,9 @@ function MetricCard({
       testID={testID}
     >
       <Text style={[styles.metricValue, { color: valueColor }]}>{value}</Text>
-      <Text style={[styles.metricLabel, { color: palette.textMuted }]}>{label}</Text>
+      <Text style={[styles.metricLabel, { color: palette.textMuted }]}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -298,6 +293,33 @@ function SurfaceCard({
   );
 }
 
+function LedgerRow({
+  label,
+  palette,
+  testID,
+  value,
+}: {
+  label: string;
+  palette: StatisticsPalette;
+  testID?: string;
+  value: string;
+}) {
+  return (
+    <View style={[styles.ledgerRow, { borderBottomColor: palette.border }]}>
+      <Text style={[styles.ledgerLabel, { color: palette.textMuted }]}>
+        {label}
+      </Text>
+      <Text
+        numberOfLines={2}
+        style={[styles.ledgerValue, { color: palette.text }]}
+        testID={testID}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 function SignalRow({
   label,
   palette,
@@ -309,7 +331,9 @@ function SignalRow({
 }) {
   return (
     <View style={styles.signalRow}>
-      <Text style={[styles.signalLabel, { color: palette.textMuted }]}>{label}</Text>
+      <Text style={[styles.signalLabel, { color: palette.textMuted }]}>
+        {label}
+      </Text>
       <Text style={[styles.signalValue, { color: palette.text }]}>{value}</Text>
     </View>
   );
@@ -321,17 +345,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 8,
     paddingBottom: 8,
-    gap: 8,
+    gap: 9,
   },
   pageTablet: {
     paddingHorizontal: 24,
   },
   hero: {
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 22,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 9,
+    paddingVertical: 13,
+    gap: 8,
   },
   eyebrow: {
     fontSize: 12,
@@ -350,15 +374,15 @@ const styles = StyleSheet.create({
   metricRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
   metricCard: {
     minWidth: 74,
     flexGrow: 1,
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 16,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 7,
     gap: 4,
   },
   metricValue: {
@@ -380,7 +404,7 @@ const styles = StyleSheet.create({
   },
   surfaceCard: {
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 22,
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 8,
@@ -397,6 +421,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
   },
+  dailyObjectCard: {
+    flex: 1,
+    gap: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+  },
+  dailyActionRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dailyActionRowTablet: {
+    alignItems: 'flex-start',
+  },
+  dailyActionCopy: {
+    flex: 1,
+    gap: 5,
+  },
   primaryButton: {
     borderRadius: 18,
     paddingHorizontal: 14,
@@ -407,6 +449,37 @@ const styles = StyleSheet.create({
   primaryButtonLabel: {
     fontSize: 15,
     fontWeight: '700',
+  },
+  dailyPrimaryButton: {
+    borderRadius: 999,
+    minWidth: 104,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  ledgerList: {
+    borderTopWidth: 1,
+    gap: 0,
+  },
+  ledgerRow: {
+    borderBottomWidth: 1,
+    gap: 5,
+    paddingVertical: 9,
+  },
+  ledgerLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  ledgerValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  signalPanel: {
+    borderRadius: 18,
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   signalList: {
     gap: 6,

@@ -51,8 +51,8 @@ test('does not expose raw space metadata while learning', () => {
 
   ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(
-        <LearningSurface
-          palette={palette}
+      <LearningSurface
+        palette={palette}
         sessionCards={sessionCards}
         sessionLabel={session.sourceLabel}
         phase="learning"
@@ -116,7 +116,7 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).toContain('先把题干里的信号抓出来，再回到选项或解析确认。');
   expect(output).not.toContain('这张卡为什么出现');
   expect(output).not.toContain('该题来自当前练习安排');
-  expect(output).toContain('位置已收在知识空间');
+  expect(output).toContain('同盒位置已保持');
   expect(output).not.toContain('这张在：');
   expect(output).not.toContain('当前位置：');
   expect(output).not.toContain('馆 1 / 组 1 / 盒 1');
@@ -227,15 +227,21 @@ test('result detail reads as a resolved card without raw metadata', () => {
 
   const output = JSON.stringify(tree!.toJSON());
 
-  expect(tree!.root.findByProps({
-    testID: 'learning-result-detail-screen',
-  })).toBeTruthy();
-  expect(tree!.root.findByProps({
-    testID: 'learning-detail-selected-answer',
-  })).toBeTruthy();
-  expect(tree!.root.findByProps({
-    testID: 'learning-detail-correct-answer',
-  })).toBeTruthy();
+  expect(
+    tree!.root.findByProps({
+      testID: 'learning-result-detail-screen',
+    }),
+  ).toBeTruthy();
+  expect(
+    tree!.root.findByProps({
+      testID: 'learning-detail-selected-answer',
+    }),
+  ).toBeTruthy();
+  expect(
+    tree!.root.findByProps({
+      testID: 'learning-detail-correct-answer',
+    }),
+  ).toBeTruthy();
   expect(output).toContain('本卡解析');
   expect(output).toContain('你的选择');
   expect(output).toContain('正确答案');
