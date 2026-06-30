@@ -77,26 +77,64 @@ export function StatisticsSurface({
       : combinedResults.length > 0
       ? '当前首轮已收口，暂时没有额外待回看卡。'
       : '今天还没有形成可展示的今日进展。';
+  const dailyTitle = hasCheckedInToday
+    ? '今日学习已记住'
+    : combinedResults.length > 0
+    ? '学习手感保持中'
+    : '先完成一张卡';
+  const dailySummary =
+    pendingReviewCount > 0
+      ? `还有 ${pendingReviewCount} 张卡需要回看，统计只安静记录，不打断学习。`
+      : combinedResults.length > 0
+      ? '系统路线继续推进，今天的完成和回看保持在低负担范围。'
+      : '先回到学习完成一张卡，这里会记录今天的连续性。';
 
   return (
     <View
       style={[styles.page, deviceClass === 'tablet' ? styles.pageTablet : null]}
     >
-      <View
-        style={[
-          styles.hero,
-          { backgroundColor: palette.panel, borderColor: palette.border },
-        ]}
+      <SurfaceCard
+        palette={palette}
+        style={styles.dailyObjectCard}
+        testID="statistics-day-object"
       >
-        <Text style={[styles.eyebrow, { color: palette.accent }]}>
-          今日进展
-        </Text>
-        <Text style={[styles.title, { color: palette.text }]}>
-          今日统计与签到
-        </Text>
-        <Text style={[styles.summary, { color: palette.textMuted }]}>
-          这里汇总今天完成的卡、待回看的卡和签到状态。
-        </Text>
+        <View style={styles.dailyHeader}>
+          <View style={styles.dailyHeading}>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>
+              今日学习
+            </Text>
+            <Text style={[styles.title, { color: palette.text }]}>
+              {dailyTitle}
+            </Text>
+            <Text style={[styles.summary, { color: palette.textMuted }]}>
+              {dailySummary}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.checkInStatusPill,
+              {
+                backgroundColor: hasCheckedInToday
+                  ? palette.accentSoft
+                  : palette.panelStrong,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.checkInStatusText,
+                {
+                  color: hasCheckedInToday
+                    ? palette.accentStrong
+                    : palette.textMuted,
+                },
+              ]}
+            >
+              {checkInTitle}
+            </Text>
+          </View>
+        </View>
+
         <View style={styles.metricRow}>
           <MetricCard
             label="今日完成"
@@ -124,23 +162,18 @@ export function StatisticsSurface({
             value={`${pendingReviewCount}`}
           />
         </View>
-      </View>
 
-      <SurfaceCard
-        palette={palette}
-        style={styles.dailyObjectCard}
-        testID="statistics-day-object"
-      >
         <View
           style={[
             styles.dailyActionRow,
             deviceClass === 'tablet' ? styles.dailyActionRowTablet : null,
+            { backgroundColor: palette.panelStrong },
           ]}
           testID="statistics-checkin-card"
         >
           <View style={styles.dailyActionCopy}>
             <Text style={[styles.cardTitle, { color: palette.text }]}>
-              {checkInTitle}
+              连续性
             </Text>
             <Text
               style={[styles.cardSummary, { color: palette.textMuted }]}
@@ -172,37 +205,40 @@ export function StatisticsSurface({
                   : 'statistics-checkin-ready-label'
               }
             >
-              {hasCheckedInToday ? '今日已签到' : '完成签到'}
+              {hasCheckedInToday ? '已记录' : '完成签到'}
             </Text>
           </Pressable>
         </View>
 
-        <View style={[styles.ledgerList, { borderTopColor: palette.border }]}>
-          <LedgerRow
-            label="回看状态"
+        <View style={styles.ledgerGrid}>
+          <LedgerTile
+            layout="wide"
+            label="回看"
             palette={palette}
             testID="statistics-review-status"
             value={reviewStatus}
           />
-          <LedgerRow
-            label="今日同步"
+          <LedgerTile
+            label="同步"
             palette={palette}
             testID="statistics-sync-label"
             value={syncStatusLabel}
           />
-          <LedgerRow
-            label="同步说明"
+          <LedgerTile
+            label="记录"
             palette={palette}
             testID="statistics-sync-detail"
             value={syncStatusDetail}
           />
         </View>
 
-        <View style={styles.signalPanel}>
+        <View
+          style={[styles.signalPanel, { backgroundColor: palette.panelStrong }]}
+        >
           <Text style={[styles.cardTitle, { color: palette.text }]}>
-            今日练习信号
+            练习信号
           </Text>
-          <View style={styles.signalList}>
+          <View style={styles.signalGrid}>
             <SignalRow
               label="自动判对"
               palette={palette}
@@ -293,24 +329,32 @@ function SurfaceCard({
   );
 }
 
-function LedgerRow({
+function LedgerTile({
   label,
+  layout,
   palette,
   testID,
   value,
 }: {
   label: string;
+  layout?: 'wide';
   palette: StatisticsPalette;
   testID?: string;
   value: string;
 }) {
   return (
-    <View style={[styles.ledgerRow, { borderBottomColor: palette.border }]}>
+    <View
+      style={[
+        styles.ledgerTile,
+        layout === 'wide' ? styles.ledgerTileWide : styles.ledgerTileHalf,
+        { backgroundColor: palette.panelStrong },
+      ]}
+    >
       <Text style={[styles.ledgerLabel, { color: palette.textMuted }]}>
         {label}
       </Text>
       <Text
-        numberOfLines={2}
+        numberOfLines={3}
         style={[styles.ledgerValue, { color: palette.text }]}
         testID={testID}
       >
@@ -350,17 +394,10 @@ const styles = StyleSheet.create({
   pageTablet: {
     paddingHorizontal: 24,
   },
-  hero: {
-    borderWidth: 1,
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    gap: 8,
-  },
   eyebrow: {
     fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0,
   },
   title: {
     fontSize: 22,
@@ -379,7 +416,7 @@ const styles = StyleSheet.create({
   metricCard: {
     minWidth: 74,
     flexGrow: 1,
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 16,
     paddingHorizontal: 10,
     paddingVertical: 7,
@@ -423,14 +460,36 @@ const styles = StyleSheet.create({
   },
   dailyObjectCard: {
     flex: 1,
-    gap: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 14,
+    gap: 11,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+  },
+  dailyHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  dailyHeading: {
+    flex: 1,
+    gap: 6,
+  },
+  checkInStatusPill: {
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+  },
+  checkInStatusText: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   dailyActionRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
   },
   dailyActionRowTablet: {
     alignItems: 'flex-start',
@@ -456,32 +515,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  ledgerList: {
-    borderTopWidth: 1,
-    gap: 0,
-  },
-  ledgerRow: {
-    borderBottomWidth: 1,
-    gap: 5,
-    paddingVertical: 9,
+  ledgerGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   ledgerLabel: {
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0,
   },
   ledgerValue: {
     fontSize: 13,
     fontWeight: '600',
     lineHeight: 18,
   },
+  ledgerTile: {
+    borderRadius: 16,
+    flexGrow: 1,
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  ledgerTileWide: {
+    flexBasis: '100%',
+  },
+  ledgerTileHalf: {
+    flexBasis: '48%',
+  },
   signalPanel: {
     borderRadius: 18,
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
-  signalList: {
+  signalGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 6,
   },
   signalRow: {
@@ -489,6 +559,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
+    minWidth: '47%',
+    flexGrow: 1,
   },
   signalLabel: {
     fontSize: 12,
