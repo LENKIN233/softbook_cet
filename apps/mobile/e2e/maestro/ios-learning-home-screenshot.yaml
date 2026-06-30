@@ -50,6 +50,10 @@ name: ios-learning-home-screenshot
 - assertVisible:
     id: "learning-option-unclear"
 - tapOn:
+    id: "learning-option-unclear"
+- assertVisible:
+    id: "learning-submit-button"
+- tapOn:
     point: "88%,10%"
 - tapOn:
     point: "94%,91%"
@@ -59,3 +63,5 @@ name: ios-learning-home-screenshot
     id: "learning-current-card"
 - assertVisible:
     id: "learning-option-unclear"
+- assertVisible:
+    id: "learning-submit-button"
