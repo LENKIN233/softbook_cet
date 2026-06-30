@@ -1,0 +1,65 @@
+appId: com.softbook.cet
+name: ios-statistics-screenshot
+---
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "auth-phone-input"
+    timeout: 30000
+- tapOn:
+    id: "auth-phone-input"
+- inputText: "13800138000"
+- tapOn:
+    id: "auth-dismiss-keyboard-button"
+- assertVisible:
+    id: "auth-request-code-button"
+- tapOn:
+    id: "auth-request-code-button"
+- assertVisible:
+    id: "auth-code-input"
+- tapOn:
+    id: "auth-code-input"
+- inputText: "2468"
+- assertVisible:
+    id: "auth-submit-button"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    id: "route-tab-learning"
+- assertVisible:
+    id: "learning-current-card"
+- assertVisible:
+    id: "learning-flip-button"
+- tapOn:
+    id: "learning-flip-button"
+- assertVisible:
+    id: "learning-flip-confident-button"
+- tapOn:
+    id: "learning-flip-confident-button"
+- assertVisible:
+    id: "learning-next-button"
+- tapOn:
+    id: "learning-next-button"
+- assertVisible:
+    id: "learning-option-unclear"
+- tapOn:
+    id: "learning-option-unclear"
+- assertVisible:
+    id: "learning-submit-button"
+- tapOn:
+    id: "learning-submit-button"
+- assertVisible:
+    id: "learning-next-button"
+- tapOn:
+    id: "learning-next-button"
+- tapOn:
+    id: "route-tab-statistics"
+- assertVisible:
+    id: "statistics-metric-completed"
+- assertVisible:
+    id: "statistics-checkin-button"
+- tapOn:
+    id: "statistics-checkin-button"
+- assertVisible:
+    id: "statistics-checkin-complete-label"
