@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mobile Core Surface Directions</title>
+  <style>
+    :root {
+      --page: #f1f0f6;
+      --ink: #0b0b14;
+      --muted: #77788d;
+      --hair: rgba(11, 11, 20, .08);
+      --glass: rgba(255, 255, 255, .76);
+      --glass-strong: rgba(255, 255, 255, .92);
+      --reading: #ff8a3d;
+      --mint: #22c58b;
+      --amber: #f5b100;
+      --shadow: 0 24px 58px rgba(24, 20, 44, .13), 0 5px 16px rgba(24, 20, 44, .08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 20% 12%, rgba(255, 138, 61, .20), transparent 34%),
+        radial-gradient(circle at 82% 16%, rgba(34, 197, 139, .12), transparent 30%),
+        linear-gradient(180deg, #f8f7fb 0%, var(--page) 100%);
+      color: var(--ink);
+      font-family: Outfit, "Noto Sans SC", Arial, sans-serif;
+    }
+
+    .wrap {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 36px 24px 56px;
+    }
+
+    .intro {
+      margin: 0 0 24px;
+      font-size: 15px;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 22px;
+    }
+
+    .direction {
+      border: 1px solid rgba(255, 255, 255, .72);
+      border-radius: 28px;
+      padding: 16px;
+      background: rgba(255, 255, 255, .48);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(30px) saturate(1.18);
+    }
+
+    .label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin: 0 0 12px;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .label strong {
+      color: var(--ink);
+      font-size: 14px;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .phone {
+      width: 100%;
+      max-width: 260px;
+      min-height: 560px;
+      margin: 0 auto;
+      border-radius: 34px;
+      padding: 18px 16px;
+      background: rgba(250, 249, 253, .88);
+      border: 1px solid rgba(255, 255, 255, .82);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(11, 11, 20, .04);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .topline,
+    .nav,
+    .glass {
+      border: 1px solid rgba(255, 255, 255, .72);
+      background: var(--glass);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .82);
+      backdrop-filter: blur(24px) saturate(1.15);
+    }
+
+    .topline {
+      border-radius: 999px;
+      padding: 9px 12px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .card {
+      border-radius: 26px;
+      padding: 18px;
+      min-height: 190px;
+      background: var(--glass-strong);
+      border: 1px solid rgba(255, 255, 255, .82);
+      box-shadow: 0 18px 36px rgba(16, 14, 35, .10), inset 0 1px 0 rgba(255, 255, 255, .85);
+    }
+
+    .rail {
+      border-left: 5px solid var(--reading);
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      color: var(--reading);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .headline {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.18;
+      font-weight: 850;
+      letter-spacing: 0;
+    }
+
+    .copy {
+      margin: 10px 0 0;
+      color: #474759;
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    .slip,
+    .address,
+    .metric,
+    .choice {
+      border-radius: 20px;
+      border: 1px solid var(--hair);
+      background: rgba(255, 255, 255, .72);
+      padding: 12px;
+      font-size: 13px;
+    }
+
+    .slip {
+      border-top: 3px solid var(--reading);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .choice {
+      text-align: center;
+      font-weight: 800;
+    }
+
+    .primary {
+      background: #161622;
+      color: white;
+      border-radius: 18px;
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 850;
+      text-align: center;
+      box-shadow: 0 18px 30px rgba(11, 11, 20, .18);
+    }
+
+    .nav {
+      margin-top: auto;
+      align-self: center;
+      border-radius: 999px;
+      padding: 9px 14px;
+      display: flex;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .nav b {
+      color: var(--ink);
+    }
+
+    .shelf {
+      display: grid;
+      gap: 8px;
+    }
+
+    .shelf-row {
+      display: grid;
+      grid-template-columns: 1fr .72fr;
+      gap: 8px;
+    }
+
+    .box {
+      border-radius: 18px;
+      min-height: 58px;
+      background: rgba(255, 255, 255, .7);
+      border: 1px solid var(--hair);
+      padding: 10px;
+      font-size: 12px;
+      color: #525367;
+    }
+
+    .box.active {
+      border-color: rgba(255, 138, 61, .45);
+      box-shadow: inset 4px 0 0 var(--reading);
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 8px;
+    }
+
+    .step {
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .78);
+      border: 1px solid var(--hair);
+      padding: 10px;
+      font-size: 12px;
+    }
+
+    .step.on {
+      border-color: rgba(255, 138, 61, .5);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 24px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .wide-card {
+      min-height: 118px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    @media (max-width: 640px) {
+      .wrap {
+        padding: 24px 12px 42px;
+      }
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <p class="intro">Eight phone-surface directions generated from the same context pack. The screen text inside frames is learner-facing only.</p>
+
+    <section class="grid">
+      <article class="direction" id="msr-01">
+        <div class="label"><strong>Study Object Rail</strong><span>msr-01</span></div>
+        <div class="phone">
+          <div class="topline"><span>阅读 · 长难句</span><span>08/24</span></div>
+          <div class="card rail">
+            <div class="eyebrow">当前卡</div>
+            <h2 class="headline">because 引导的原因从句，主句先找谓语。</h2>
+            <p class="copy">先判断主句动作，再看原因补充，避免把从句当作答案核心。</p>
+          </div>
+          <div class="slip"><b>答对</b><br>关键是抓住主句谓语，because 后面只是解释为什么。</div>
+          <div class="address">阅读 / 句法识别 / 因果从句 / 第 3 盒</div>
+          <div class="primary">继续下一张</div>
+          <div class="nav"><b>学习</b><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+      </article>
+
+      <article class="direction" id="msr-02">
+        <div class="label"><strong>Book Desk Continuity</strong><span>msr-02</span></div>
+        <div class="phone">
+          <div class="topline"><span>阅读 · 今日</span><span>轻量推进</span></div>
+          <div class="card">
+            <div class="eyebrow">备考页</div>
+            <h2 class="headline">先看转折词，再判断作者真正态度。</h2>
+            <p class="copy">however 后通常不是补充，而是答案方向发生改变的位置。</p>
+          </div>
+          <div class="slip">页角解析：转折后的判断优先级更高。</div>
+          <div class="address">书签位置 · 阅读第 3 盒</div>
+          <div class="nav"><b>学习</b><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+      </article>
+
+      <article class="direction" id="msr-03">
+        <div class="label"><strong>Space First Shelf</strong><span>msr-03</span></div>
+        <div class="phone">
+          <div class="topline"><span>阅读空间</span><span>当前盒</span></div>
+          <div class="shelf">
+            <div class="shelf-row">
+              <div class="box">阅读<br>态度题</div>
+              <div class="box">推断题</div>
+            </div>
+            <div class="box active">第 3 盒 · 当前卡<br>转折后的态度判断</div>
+            <div class="shelf-row">
+              <div class="box">收藏标记</div>
+              <div class="box">稍后回看</div>
+            </div>
+          </div>
+          <div class="card wide-card rail">
+            <h2 class="headline">这张卡从第 3 盒抽出。</h2>
+            <p class="copy">先完成当前判断，再回到空间。</p>
+          </div>
+          <div class="primary">开始作答</div>
+          <div class="nav"><b>学习</b><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+      </article>
+
+      <article class="direction" id="msr-04">
+        <div class="label"><strong>Action Console Minimal</strong><span>msr-04</span></div>
+        <div class="phone">
+          <div class="topline"><span>阅读 · 单题</span><span>下一步清晰</span></div>
+          <div class="card rail">
+            <h2 class="headline">作者态度最接近哪一项？</h2>
+            <p class="copy">定位转折后的评价词。</p>
+          </div>
+          <div class="actions">
+            <div class="choice">支持</div>
+            <div class="choice">怀疑</div>
+            <div class="choice">中立</div>
+            <div class="choice">反对</div>
+          </div>
+          <div class="address">阅读 / 态度题 / 第 3 盒</div>
+          <div class="nav"><b>学习</b><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+      </article>
+
+      <article class="direction" id="msr-05">
+        <div class="label"><strong>Progress Timeline Tutor</strong><span>msr-05</span></div>
+        <div class="phone">
+          <div class="topline"><span>今日路径</span><span>6 步</span></div>
+          <div class="timeline">
+            <div class="step">1 · 词汇预热</div>
+            <div class="step on">2 · 阅读态度题</div>
+            <div class="step">3 · 长难句</div>
+            <div class="step">4 · 复盘</div>
+          </div>
+          <div class="card wide-card">
+            <h2 class="headline">当前步骤里的卡片</h2>
+            <p class="copy">路径抢走了首读焦点。</p>
+          </div>
+          <div class="primary">继续步骤</div>
+          <div class="nav"><b>学习</b><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+      </article>
+
+      <article class="direction" id="msr-06">
+        <div class="label"><strong>Glass Dashboard</strong><span>msr-06</span></div>
+        <div class="phone">
+          <div class="topline"><span>今日概览</span><span>阅读</span></div>
+          <div class="metrics">
+            <div class="metric"><strong>18</strong>已学</div>
+            <div class="metric"><strong>72%</strong>正确</div>
+            <div class="metric"><strong>3</strong>回看</div>
+            <div class="metric"><strong>5</strong>盒中</div>
+          </div>
+          <div class="card wide-card">
+            <h2 class="headline">下一张卡</h2>
+            <p class="copy">指标区域压过了学习对象。</p>
+          </div>
+          <div class="nav"><b>学习</b><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+      </article>
+
+      <article class="direction" id="msr-07">
+        <div class="label"><strong>Map Carousel</strong><span>msr-07</span></div>
+        <div class="phone">
+          <div class="topline"><span>学科地图</span><span>滑动浏览</span></div>
+          <div class="shelf-row">
+            <div class="box active">阅读</div>
+            <div class="box">听力</div>
+          </div>
+          <div class="shelf-row">
+            <div class="box">写作</div>
+            <div class="box">翻译</div>
+          </div>
+          <div class="card wide-card rail">
+            <h2 class="headline">地图很强，但作答变弱。</h2>
+            <p class="copy">用户先浏览，再学习。</p>
+          </div>
+          <div class="nav"><b>学习</b><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+      </article>
+
+      <article class="direction" id="msr-08">
+        <div class="label"><strong>Result Report First</strong><span>msr-08</span></div>
+        <div class="phone">
+          <div class="topline"><span>本题解析</span><span>答对</span></div>
+          <div class="slip"><b>结果</b><br>你的判断正确。</div>
+          <div class="card">
+            <h2 class="headline">详细解析占据首屏。</h2>
+            <p class="copy">解释很清楚，但卡片和空间连续性被挤到后面。</p>
+          </div>
+          <div class="address">下一张在下方</div>
+          <div class="nav"><b>学习</b><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
