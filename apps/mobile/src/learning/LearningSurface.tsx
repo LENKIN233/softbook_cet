@@ -225,6 +225,10 @@ export function LearningSurface({
     Math.round(((currentIndex + 1) / Math.max(sessionCards.length, 1)) * 100),
     10,
   )}%` as DimensionValue;
+  const progressCount = `${Math.min(
+    currentIndex + 1,
+    sessionCards.length,
+  )}/${Math.max(sessionCards.length, 1)}`;
   const actionCue = formatLearningActionCue(currentCard, currentResult);
   const isLockInteraction = currentCard.interaction_id === 'lock';
   const isDenseInteraction =
@@ -276,55 +280,6 @@ export function LearningSurface({
     <View style={styles.oneScreenPage} testID="learning-one-screen-flow">
       <View
         style={[
-          styles.learningFrameHeader,
-          styles.glassCard,
-          {
-            backgroundColor: palette.panel,
-            borderColor: palette.border,
-            shadowColor: tone.accent,
-          },
-        ]}
-      >
-        <View style={styles.learningFrameTop}>
-          <View style={styles.heroChipRow}>
-            <TagChip label="先做这一张" toneColor={tone.accent} />
-            {isReviewPhase ? (
-              <TagChip label="本轮回看" toneColor={palette.warning} />
-            ) : null}
-          </View>
-          <Text
-            style={[styles.learningFrameMeta, { color: palette.textMuted }]}
-            testID="learning-progress-label"
-          >
-            当前练习
-          </Text>
-        </View>
-        <Text
-          numberOfLines={1}
-          style={[styles.learningFrameSummary, { color: palette.textMuted }]}
-        >
-          {displaySessionLabel} ·{' '}
-          {isReviewPhase
-            ? '回看需要再看的卡，仍按一张卡推进'
-            : '先完成这一张，再继续下一步'}
-        </Text>
-        <View
-          style={[
-            styles.progressTrack,
-            { backgroundColor: palette.panelStrong, borderColor: palette.border },
-          ]}
-        >
-          <View
-            style={[
-              styles.progressFill,
-              { backgroundColor: tone.accent, width: progressPercent },
-            ]}
-          />
-        </View>
-      </View>
-
-      <View
-        style={[
           styles.studyCard,
           styles.studyCardOneScreen,
           styles.glassCard,
@@ -346,10 +301,84 @@ export function LearningSurface({
         <View pointerEvents="none" style={styles.paperLineOne} />
         <View pointerEvents="none" style={styles.paperLineTwo} />
         <View pointerEvents="none" style={styles.paperLineThree} />
+        <View
+          style={styles.cardAddressShelf}
+          testID="learning-card-address-shelf"
+        >
+          <View style={styles.heroChipRow}>
+            <TagChip label="先做这一张" toneColor={tone.accent} />
+            <TagChip
+              label={isReviewPhase ? '本轮回看' : displaySessionLabel}
+              toneColor={isReviewPhase ? palette.warning : palette.success}
+            />
+          </View>
+          <View
+            style={[
+              styles.cardProgressCluster,
+              {
+                backgroundColor: palette.panelStrong,
+                borderColor: palette.border,
+              },
+            ]}
+          >
+            <Text
+              style={[styles.learningFrameMeta, { color: palette.textMuted }]}
+              testID="learning-progress-label"
+            >
+              当前练习
+            </Text>
+            <Text
+              style={[styles.cardProgressCount, { color: palette.text }]}
+              testID="learning-progress-count"
+            >
+              {progressCount}
+            </Text>
+          </View>
+        </View>
+        <View
+          style={[
+            styles.cardLocationStrip,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+            },
+          ]}
+          testID="learning-card-location-strip"
+        >
+          <View style={styles.cardLocationTextWrap}>
+            <Text
+              numberOfLines={1}
+              style={[styles.cardLocationTitle, { color: palette.text }]}
+            >
+              当前馆 · 本轮盒
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[styles.cardLocationMeta, { color: palette.textMuted }]}
+            >
+              {isReviewPhase
+                ? '回看需要再看的卡，仍按一张卡推进'
+                : '先完成这一张，再继续下一步'}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.cardProgressTrack,
+              { backgroundColor: palette.panel, borderColor: palette.border },
+            ]}
+          >
+            <View
+              style={[
+                styles.progressFill,
+                { backgroundColor: tone.accent, width: progressPercent },
+              ]}
+            />
+          </View>
+        </View>
         <View style={styles.studyCardTop}>
           <View style={styles.studyTitleWrap}>
             <Text style={[styles.cardEyebrow, { color: tone.accent }]}>
-              这张练习 · {INTERACTION_LABELS[currentCard.interaction_id]}
+              当前卡 · {INTERACTION_LABELS[currentCard.interaction_id]}
             </Text>
             <Text
               numberOfLines={isDenseInteraction ? 2 : 4}
@@ -415,9 +444,9 @@ export function LearningSurface({
             style={[
               styles.interactionCard,
               styles.interactionCardOneScreen,
+              styles.interactionCardEmbedded,
               {
-                backgroundColor: palette.panelStrong,
-                borderColor: palette.border,
+                borderColor: hexToRgba(tone.accent, 0.18),
               },
             ]}
           >
@@ -1428,6 +1457,13 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: 'hidden',
   },
+  cardProgressTrack: {
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 10,
+    overflow: 'hidden',
+    width: 58,
+  },
   progressFill: {
     height: '100%',
     borderRadius: 999,
@@ -1473,9 +1509,9 @@ const styles = StyleSheet.create({
   },
   studyCardOneScreen: {
     flex: 1,
-    gap: 10,
+    gap: 12,
     paddingHorizontal: 18,
-    paddingVertical: 16,
+    paddingVertical: 15,
   },
   paperSpine: {
     bottom: 0,
@@ -1491,7 +1527,7 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     right: 0,
-    top: 96,
+    top: 118,
   },
   paperLineTwo: {
     backgroundColor: 'rgba(47,70,80,0.08)',
@@ -1499,7 +1535,7 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     right: 0,
-    top: 184,
+    top: 222,
   },
   paperLineThree: {
     backgroundColor: 'rgba(47,70,80,0.08)',
@@ -1507,7 +1543,48 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     right: 0,
-    top: 272,
+    top: 326,
+  },
+  cardAddressShelf: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  cardProgressCluster: {
+    alignItems: 'flex-end',
+    borderRadius: 18,
+    borderWidth: 1,
+    minWidth: 78,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  cardProgressCount: {
+    fontSize: 17,
+    fontWeight: '800',
+    lineHeight: 21,
+  },
+  cardLocationStrip: {
+    alignItems: 'center',
+    borderRadius: 20,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  cardLocationTextWrap: {
+    flex: 1,
+    gap: 3,
+  },
+  cardLocationTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  cardLocationMeta: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   studyCardTop: {
     flexDirection: 'row',
@@ -1530,8 +1607,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   cardPromptOneScreen: {
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 25,
+    lineHeight: 31,
   },
   contextCard: {
     borderWidth: 1,
@@ -1630,9 +1707,13 @@ const styles = StyleSheet.create({
   },
   interactionCardOneScreen: {
     flexShrink: 1,
-    gap: 7,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    gap: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  interactionCardEmbedded: {
+    backgroundColor: 'transparent',
+    borderRadius: 20,
   },
   sectionTitle: {
     fontSize: 16,
@@ -1699,24 +1780,24 @@ const styles = StyleSheet.create({
   },
   optionCard: {
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 18,
     flexBasis: '47%',
     flexGrow: 1,
-    gap: 5,
+    gap: 7,
     alignItems: 'flex-start',
-    minHeight: 74,
+    minHeight: 84,
     minWidth: '47%',
-    paddingHorizontal: 10,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
   },
   optionLabel: {
     fontSize: 12,
     fontWeight: '800',
   },
   optionText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
-    lineHeight: 17,
+    lineHeight: 19,
   },
   lockGroup: {
     gap: 10,

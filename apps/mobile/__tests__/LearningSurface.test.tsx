@@ -81,6 +81,12 @@ test('does not expose raw space metadata while learning', () => {
     testID: 'learning-progress-label',
   });
   expect(progressLabel.props.children).toBe('当前练习');
+  expect(
+    tree!.root.findByProps({ testID: 'learning-card-address-shelf' }),
+  ).toBeTruthy();
+  expect(
+    tree!.root.findByProps({ testID: 'learning-card-location-strip' }),
+  ).toBeTruthy();
   expect(output).not.toContain('第 1 张');
   expect(output).not.toContain('共 7 张');
   expect(output).not.toContain('本组第');

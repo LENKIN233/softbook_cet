@@ -1,0 +1,61 @@
+appId: com.softbook.cet
+name: ios-learning-home-screenshot
+---
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "auth-phone-input"
+    timeout: 30000
+- tapOn:
+    id: "auth-phone-input"
+- inputText: "13800138000"
+- tapOn:
+    id: "auth-dismiss-keyboard-button"
+- assertVisible:
+    id: "auth-request-code-button"
+- tapOn:
+    id: "auth-request-code-button"
+- assertVisible:
+    id: "auth-code-input"
+- tapOn:
+    id: "auth-code-input"
+- inputText: "2468"
+- assertVisible:
+    id: "auth-submit-button"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    id: "route-tab-learning"
+- assertVisible:
+    id: "learning-current-card"
+- assertVisible:
+    id: "learning-card-address-shelf"
+- assertVisible:
+    id: "learning-flip-button"
+- tapOn:
+    id: "learning-flip-button"
+- assertVisible:
+    id: "learning-flip-confident-button"
+- tapOn:
+    id: "learning-flip-confident-button"
+- assertVisible:
+    id: "learning-next-button"
+- tapOn:
+    id: "learning-next-button"
+- assertVisible:
+    id: "learning-current-card"
+- assertVisible:
+    id: "learning-card-address-shelf"
+- assertVisible:
+    id: "learning-option-unclear"
+- tapOn:
+    point: "88%,10%"
+- tapOn:
+    point: "94%,91%"
+- tapOn:
+    id: "route-tab-learning"
+- assertVisible:
+    id: "learning-current-card"
+- assertVisible:
+    id: "learning-option-unclear"
