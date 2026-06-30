@@ -4,7 +4,7 @@
 
 - Date: 2026-06-30
 - Branch: `codex/learning-main-fidelity`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/262
 - Summary: Continued frontend quality reshaping by moving the Learning surface away from a completed-session screenshot and toward the accepted one-screen current-card task. The current app screenshot now stops on a real Learning main-card state with an in-card address shelf, current box context, 2x2 option silhouette, and clean simulator capture.
 
 ## Referenced specs
