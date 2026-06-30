@@ -4,7 +4,7 @@
 
 - Date: 2026-06-30
 - Branch: `codex/learning-visual-polish`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/263
 - Summary: Responded to the design-quality regression feedback on the Learning real-app screenshot. This pass tightens the Learning phone chrome, reduces the hard engineering outline on the current card, makes the screenshot state selected/actionable instead of disabled, and refreshes the real simulator screenshot.
 
 ## Referenced specs
