@@ -1214,15 +1214,6 @@ export function LearningResultDetailSurface({
           },
         ]}
       >
-        <View
-          pointerEvents="none"
-          style={[
-            styles.paperSpine,
-            { backgroundColor: hexToRgba(borderTone, 0.2) },
-          ]}
-        />
-        <View pointerEvents="none" style={styles.paperLineOne} />
-        <View pointerEvents="none" style={styles.paperLineTwo} />
         <View style={styles.detailResolvedHeader}>
           <View style={styles.detailTitleWrap}>
             <Text style={[styles.cardEyebrow, { color: borderTone }]}>
@@ -1295,7 +1286,7 @@ export function LearningResultDetailSurface({
           pointerEvents="none"
           style={[
             styles.detailSlipAccent,
-            { backgroundColor: hexToRgba(borderTone, 0.18) },
+            { backgroundColor: hexToRgba(borderTone, 0.08) },
           ]}
         />
         <Text style={[styles.detailOutcomeTitle, { color: borderTone }]}>
