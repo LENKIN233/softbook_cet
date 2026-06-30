@@ -1164,21 +1164,18 @@ export function LearningResultDetailSurface({
   const resolvedRows = getResolvedAnswerRows(card, cardState);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
+  const detailStateLabel = isPositive
+    ? '答对'
+    : result.outcome === 'review'
+    ? '回看'
+    : '需订正';
 
   return (
     <View
       style={[styles.oneScreenPage, styles.detailScreen]}
       testID="learning-result-detail-screen"
     >
-      <View
-        style={[
-          styles.detailTopBar,
-          {
-            backgroundColor: hexToRgba(palette.accent, 0.055),
-            borderColor: hexToRgba(palette.accent, 0.16),
-          },
-        ]}
-      >
+      <View style={styles.detailTopBar}>
         <View style={styles.heroChipRow}>
           <TagChip label="本卡解析" toneColor={palette.accent} />
           <TagChip
@@ -1209,8 +1206,8 @@ export function LearningResultDetailSurface({
           styles.glassCard,
           {
             backgroundColor: palette.panel,
-            borderColor: borderTone,
-            shadowColor: palette.text,
+            borderColor: hexToRgba(borderTone, 0.22),
+            shadowColor: borderTone,
           },
         ]}
       >
@@ -1226,7 +1223,19 @@ export function LearningResultDetailSurface({
               {card.front.prompt}
             </Text>
           </View>
-          <ResultBadge outcome={result.outcome} palette={palette} />
+          <View
+            style={[
+              styles.detailStatusPill,
+              {
+                backgroundColor: hexToRgba(borderTone, 0.08),
+                borderColor: hexToRgba(borderTone, 0.24),
+              },
+            ]}
+          >
+            <Text style={[styles.detailStatusLabel, { color: borderTone }]}>
+              {detailStateLabel}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.detailAnswerGrid}>
@@ -1238,15 +1247,15 @@ export function LearningResultDetailSurface({
                 {
                   backgroundColor:
                     row.tone === 'success'
-                      ? hexToRgba(palette.success, 0.08)
+                      ? hexToRgba(palette.success, 0.055)
                       : row.tone === 'warning'
-                      ? hexToRgba(palette.warning, 0.1)
+                      ? hexToRgba(palette.warning, 0.07)
                       : palette.panelStrong,
                   borderColor:
                     row.tone === 'success'
-                      ? hexToRgba(palette.success, 0.34)
+                      ? hexToRgba(palette.success, 0.2)
                       : row.tone === 'warning'
-                      ? hexToRgba(palette.warning, 0.34)
+                      ? hexToRgba(palette.warning, 0.22)
                       : palette.border,
                 },
               ]}
@@ -1277,8 +1286,8 @@ export function LearningResultDetailSurface({
         style={[
           styles.detailExplanationSlip,
           {
-            backgroundColor: palette.panelStrong,
-            borderColor: hexToRgba(borderTone, 0.3),
+            backgroundColor: palette.panel,
+            borderColor: hexToRgba(borderTone, 0.16),
           },
         ]}
       >
@@ -1315,7 +1324,7 @@ export function LearningResultDetailSurface({
           style={[
             styles.primaryButton,
             styles.detailPrimaryButton,
-            { backgroundColor: palette.accent },
+            { backgroundColor: palette.accentStrong },
           ]}
           testID="learning-next-button"
         >
@@ -1713,16 +1722,18 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   detailScreen: {
-    gap: 9,
+    gap: 8,
   },
   detailTopBar: {
     alignItems: 'center',
-    borderRadius: 20,
-    borderWidth: 1,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    borderColor: 'transparent',
+    borderWidth: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
   },
   detailBackButton: {
     alignItems: 'center',
@@ -1737,12 +1748,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   detailResolvedCard: {
-    borderRadius: 28,
+    borderRadius: 24,
     borderWidth: 1,
-    gap: 13,
+    gap: 14,
     overflow: 'hidden',
-    paddingHorizontal: 18,
-    paddingVertical: 17,
+    paddingHorizontal: 20,
+    paddingVertical: 19,
     position: 'relative',
   },
   detailResolvedHeader: {
@@ -1756,9 +1767,19 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   detailPrompt: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '800',
-    lineHeight: 27,
+    lineHeight: 26,
+  },
+  detailStatusPill: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  detailStatusLabel: {
+    fontSize: 13,
+    fontWeight: '800',
   },
   detailAnswerGrid: {
     flexDirection: 'row',
@@ -1766,13 +1787,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   detailAnswerCell: {
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     flex: 1,
     gap: 6,
     minWidth: 138,
-    paddingHorizontal: 13,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
   },
   detailAnswerLabel: {
     fontSize: 11,
@@ -1785,12 +1806,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   detailExplanationSlip: {
-    borderRadius: 24,
+    borderRadius: 22,
     borderWidth: 1,
-    gap: 8,
+    gap: 9,
     overflow: 'hidden',
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
     position: 'relative',
   },
   detailSlipAccent: {
@@ -1813,7 +1834,7 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
   },
   detailPrimaryButton: {
-    paddingVertical: 13,
+    paddingVertical: 14,
   },
   progressTrack: {
     height: 8,
