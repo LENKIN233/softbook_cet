@@ -5,7 +5,10 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 
-import { LearningSurface } from '../src/learning/LearningSurface';
+import {
+  LearningResultDetailSurface,
+  LearningSurface,
+} from '../src/learning/LearningSurface';
 import {
   createLearningCardState,
   createLocalLearningSession,
@@ -179,4 +182,68 @@ test('completion state keeps the next step primary instead of a metric dashboard
   expect(output).not.toContain('完成明细');
   expect(output).not.toContain('自动判对');
   expect(output).not.toContain('自动判错');
+});
+
+test('result detail reads as a resolved card without raw metadata', () => {
+  const session = createLocalLearningSession('cet4');
+  const card = session.cards.find(
+    sessionCard => sessionCard.interaction_id === 'multiple_choice',
+  );
+
+  if (!card || card.interaction_id !== 'multiple_choice') {
+    throw new Error('Expected a multiple choice card in the local session.');
+  }
+
+  const cardState = {
+    ...createLearningCardState(card),
+    selectedOptionId: 'unclear',
+  };
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <LearningResultDetailSurface
+        card={card}
+        cardState={cardState}
+        isLastCard={false}
+        onAdvanceCard={jest.fn()}
+        onBackToPractice={jest.fn()}
+        palette={palette}
+        phase="learning"
+        result={{
+          cardId: card.card_id,
+          completedAt: '2026-05-21T12:00:00.000Z',
+          interactionId: card.interaction_id,
+          isFavorited: false,
+          outcome: 'correct',
+          usedHint: false,
+          usedPeek: false,
+        }}
+        sessionLabel={session.sourceLabel}
+      />,
+    );
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+
+  expect(tree!.root.findByProps({
+    testID: 'learning-result-detail-screen',
+  })).toBeTruthy();
+  expect(tree!.root.findByProps({
+    testID: 'learning-detail-selected-answer',
+  })).toBeTruthy();
+  expect(tree!.root.findByProps({
+    testID: 'learning-detail-correct-answer',
+  })).toBeTruthy();
+  expect(output).toContain('本卡解析');
+  expect(output).toContain('你的选择');
+  expect(output).toContain('正确答案');
+  expect(output).toContain('B · unclear');
+  expect(output).toContain('答对，继续保持节奏');
+  expect(output).toContain('继续下一张');
+  expect(output).not.toContain('knowledge_ref');
+  expect(output).not.toContain('box_ref');
+  expect(output).not.toContain(card.knowledge_ref);
+  expect(output).not.toContain(card.space_metadata.box_ref);
 });

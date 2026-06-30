@@ -988,8 +988,156 @@ function InteractionBody({
   }
 }
 
+type DetailAnswerRow = {
+  label: string;
+  displayText: string;
+  testID: string;
+  tone?: 'success' | 'warning';
+};
+
+function getResultTone(
+  result: LearningCardResult,
+  palette: LearningSurfacePalette,
+) {
+  if (result.outcome === 'review') {
+    return palette.warning;
+  }
+
+  if (result.outcome === 'incorrect') {
+    return palette.danger;
+  }
+
+  return palette.success;
+}
+
+function formatOptionText(option: { label: string; text: string } | undefined) {
+  return option ? `${option.label} · ${option.text}` : '未选择';
+}
+
+function getResolvedAnswerRows(
+  card: LearningCard,
+  cardState: LearningCardState,
+): DetailAnswerRow[] {
+  switch (card.interaction_id) {
+    case 'flip':
+      return [
+        {
+          label: '你的判断',
+          displayText:
+            cardState.flipConfidence === 'review'
+              ? '再回看'
+              : '有把握',
+          testID: 'learning-detail-selected-answer',
+          tone: cardState.flipConfidence === 'review' ? 'warning' : 'success',
+        },
+        {
+          label: '卡背要点',
+          displayText: card.back_text,
+          testID: 'learning-detail-correct-answer',
+        },
+      ];
+    case 'multiple_choice': {
+      const selectedOption = card.options.find(
+        option => option.id === cardState.selectedOptionId,
+      );
+      const correctOption = card.options.find(
+        option => option.id === card.answer_key.correct_option,
+      );
+
+      return [
+        {
+          label: '你的选择',
+          displayText: formatOptionText(selectedOption),
+          testID: 'learning-detail-selected-answer',
+          tone:
+            selectedOption?.id === correctOption?.id ? 'success' : 'warning',
+        },
+        {
+          label: '正确答案',
+          displayText: formatOptionText(correctOption),
+          testID: 'learning-detail-correct-answer',
+          tone: 'success',
+        },
+      ];
+    }
+    case 'lock':
+      return [
+        {
+          label: '你的锁位',
+          displayText: card.lock_slots
+            .map(slot => `${slot.label} ${cardState.lockSelections[slot.id] ?? '未选'}`)
+            .join(' · '),
+          testID: 'learning-detail-selected-answer',
+        },
+        {
+          label: '正确主干',
+          displayText: card.lock_slots
+            .map((slot, index) => `${slot.label} ${card.answer_key.lock_pattern[index]}`)
+            .join(' · '),
+          testID: 'learning-detail-correct-answer',
+          tone: 'success',
+        },
+      ];
+    case 'elimination': {
+      const selectedItems = card.elimination_items.filter(item =>
+        cardState.eliminatedItemIds.includes(item.id),
+      );
+      const correctItems = card.elimination_items.filter(item =>
+        card.answer_key.correct_items.includes(item.id),
+      );
+
+      return [
+        {
+          label: '你点掉的部分',
+          displayText: selectedItems.length
+            ? selectedItems.map(item => item.text).join(' · ')
+            : '未点掉干扰项',
+          testID: 'learning-detail-selected-answer',
+        },
+        {
+          label: '应先剥离',
+          displayText: correctItems.map(item => item.text).join(' · '),
+          testID: 'learning-detail-correct-answer',
+          tone: 'success',
+        },
+      ];
+    }
+    case 'swipe': {
+      const selectedState = card.swipe_states.find(
+        state => state.id === cardState.swipeSelection,
+      );
+      const correctState = card.swipe_states.find(
+        state => state.id === card.answer_key.correct_state,
+      );
+
+      return [
+        {
+          label: '你的方向',
+          displayText: selectedState
+            ? `${selectedState.label} · ${selectedState.description}`
+            : '未选择',
+          testID: 'learning-detail-selected-answer',
+          tone:
+            selectedState?.id === correctState?.id ? 'success' : 'warning',
+        },
+        {
+          label: '稳妥判断',
+          displayText: correctState
+            ? `${correctState.label} · ${correctState.description}`
+            : '待确认',
+          testID: 'learning-detail-correct-answer',
+          tone: 'success',
+        },
+      ];
+    }
+    default:
+      return [];
+  }
+}
+
 export function LearningResultDetailSurface({
   card,
+  cardState,
   isLastCard,
   onAdvanceCard,
   onBackToPractice,
@@ -999,6 +1147,7 @@ export function LearningResultDetailSurface({
   sessionLabel,
 }: {
   card: LearningCard;
+  cardState: LearningCardState;
   isLastCard: boolean;
   onAdvanceCard: () => void;
   onBackToPractice: () => void;
@@ -1011,59 +1160,179 @@ export function LearningResultDetailSurface({
     sessionLabel,
     phase,
   );
+  const borderTone = getResultTone(result, palette);
+  const resolvedRows = getResolvedAnswerRows(card, cardState);
+  const isPositive =
+    result.outcome === 'correct' || result.outcome === 'confident';
 
   return (
     <View
-      style={styles.oneScreenPage}
+      style={[styles.oneScreenPage, styles.detailScreen]}
       testID="learning-result-detail-screen"
     >
       <View
         style={[
-          styles.learningFrameHeader,
-          styles.glassCard,
+          styles.detailTopBar,
           {
-            backgroundColor: palette.panel,
-            borderColor: palette.border,
-            shadowColor: palette.accent,
+            backgroundColor: hexToRgba(palette.accent, 0.055),
+            borderColor: hexToRgba(palette.accent, 0.16),
           },
         ]}
       >
-        <View style={styles.learningFrameTop}>
-          <View style={styles.heroChipRow}>
-            <TagChip label="解析详情" toneColor={palette.accent} />
-            <TagChip
-              label={phase === 'review' ? '本轮回看' : '本轮学习'}
-              toneColor={phase === 'review' ? palette.warning : palette.success}
-            />
-          </View>
-          <Pressable
-            onPress={onBackToPractice}
-            style={[
-              styles.secondaryButton,
-              {
-                backgroundColor: palette.panelStrong,
-                borderColor: palette.border,
-              },
-            ]}
-            testID="learning-result-back-button"
-          >
-            <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
-              返回练习
-            </Text>
-          </Pressable>
+        <View style={styles.heroChipRow}>
+          <TagChip label="本卡解析" toneColor={palette.accent} />
+          <TagChip
+            label={phase === 'review' ? '回看完成' : '已完成'}
+            toneColor={phase === 'review' ? palette.warning : palette.success}
+          />
         </View>
-        <Text style={[styles.learningFrameSummary, { color: palette.textMuted }]}>
-          {displaySessionLabel} · 解析是独立一步，读完后再进入下一张。
+        <Pressable
+          onPress={onBackToPractice}
+          style={[
+            styles.detailBackButton,
+            {
+              backgroundColor: palette.panel,
+              borderColor: palette.border,
+            },
+          ]}
+          testID="learning-result-back-button"
+        >
+          <Text style={[styles.detailBackButtonLabel, { color: palette.text }]}>
+            返回
+          </Text>
+        </Pressable>
+      </View>
+
+      <View
+        style={[
+          styles.detailResolvedCard,
+          styles.glassCard,
+          {
+            backgroundColor: palette.panel,
+            borderColor: borderTone,
+            shadowColor: palette.text,
+          },
+        ]}
+      >
+        <View
+          pointerEvents="none"
+          style={[
+            styles.paperSpine,
+            { backgroundColor: hexToRgba(borderTone, 0.2) },
+          ]}
+        />
+        <View pointerEvents="none" style={styles.paperLineOne} />
+        <View pointerEvents="none" style={styles.paperLineTwo} />
+        <View style={styles.detailResolvedHeader}>
+          <View style={styles.detailTitleWrap}>
+            <Text style={[styles.cardEyebrow, { color: borderTone }]}>
+              {displaySessionLabel} · {INTERACTION_LABELS[card.interaction_id]}
+            </Text>
+            <Text
+              numberOfLines={4}
+              style={[styles.detailPrompt, { color: palette.text }]}
+            >
+              {card.front.prompt}
+            </Text>
+          </View>
+          <ResultBadge outcome={result.outcome} palette={palette} />
+        </View>
+
+        <View style={styles.detailAnswerGrid}>
+          {resolvedRows.map(row => (
+            <View
+              key={row.label}
+              style={[
+                styles.detailAnswerCell,
+                {
+                  backgroundColor:
+                    row.tone === 'success'
+                      ? hexToRgba(palette.success, 0.08)
+                      : row.tone === 'warning'
+                      ? hexToRgba(palette.warning, 0.1)
+                      : palette.panelStrong,
+                  borderColor:
+                    row.tone === 'success'
+                      ? hexToRgba(palette.success, 0.34)
+                      : row.tone === 'warning'
+                      ? hexToRgba(palette.warning, 0.34)
+                      : palette.border,
+                },
+              ]}
+              testID={
+                row.testID === 'learning-detail-selected-answer'
+                  ? 'learning-detail-selected-answer'
+                  : 'learning-detail-correct-answer'
+              }
+            >
+              <Text
+                numberOfLines={1}
+                style={[styles.detailAnswerLabel, { color: palette.textMuted }]}
+              >
+                {row.label}
+              </Text>
+              <Text
+                numberOfLines={2}
+                style={[styles.detailAnswerValue, { color: palette.text }]}
+              >
+                {row.displayText}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View
+        style={[
+          styles.detailExplanationSlip,
+          {
+            backgroundColor: palette.panelStrong,
+            borderColor: hexToRgba(borderTone, 0.3),
+          },
+        ]}
+      >
+        <View
+          pointerEvents="none"
+          style={[
+            styles.detailSlipAccent,
+            { backgroundColor: hexToRgba(borderTone, 0.18) },
+          ]}
+        />
+        <Text style={[styles.detailOutcomeTitle, { color: borderTone }]}>
+          {isPositive ? '答对，继续保持节奏' : '这张先收进回看'}
+        </Text>
+        <Text style={[styles.resultExplanationTitle, { color: palette.text }]}>
+          {card.analysis.title}
+        </Text>
+        <Text
+          numberOfLines={3}
+          style={[styles.resultExplanationBody, { color: palette.textMuted }]}
+        >
+          {card.analysis.summary}
+        </Text>
+        <Text
+          numberOfLines={2}
+          style={[styles.detailTip, { color: palette.textMuted }]}
+        >
+          过级提醒：{card.analysis.exam_tip}
         </Text>
       </View>
 
-      <ResultPanel
-        card={card}
-        isLastCard={isLastCard}
-        onAdvanceCard={onAdvanceCard}
-        palette={palette}
-        result={result}
-      />
+      <View style={styles.detailDock}>
+        <Pressable
+          onPress={onAdvanceCard}
+          style={[
+            styles.primaryButton,
+            styles.detailPrimaryButton,
+            { backgroundColor: palette.accent },
+          ]}
+          testID="learning-next-button"
+        >
+          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            {isLastCard ? '完成本轮学习' : '继续下一张'}
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -1451,6 +1720,109 @@ const styles = StyleSheet.create({
   learningFrameSummary: {
     fontSize: 13,
     lineHeight: 20,
+  },
+  detailScreen: {
+    gap: 9,
+  },
+  detailTopBar: {
+    alignItems: 'center',
+    borderRadius: 20,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  detailBackButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  detailBackButtonLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  detailResolvedCard: {
+    borderRadius: 28,
+    borderWidth: 1,
+    gap: 13,
+    overflow: 'hidden',
+    paddingHorizontal: 18,
+    paddingVertical: 17,
+    position: 'relative',
+  },
+  detailResolvedHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  detailTitleWrap: {
+    flex: 1,
+    gap: 7,
+  },
+  detailPrompt: {
+    fontSize: 20,
+    fontWeight: '800',
+    lineHeight: 27,
+  },
+  detailAnswerGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  detailAnswerCell: {
+    borderRadius: 18,
+    borderWidth: 1,
+    flex: 1,
+    gap: 6,
+    minWidth: 138,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+  },
+  detailAnswerLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  detailAnswerValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  detailExplanationSlip: {
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 8,
+    overflow: 'hidden',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    position: 'relative',
+  },
+  detailSlipAccent: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    top: 0,
+    width: 5,
+  },
+  detailOutcomeTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  detailTip: {
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  detailDock: {
+    marginTop: 'auto',
+  },
+  detailPrimaryButton: {
+    paddingVertical: 13,
   },
   progressTrack: {
     height: 8,
