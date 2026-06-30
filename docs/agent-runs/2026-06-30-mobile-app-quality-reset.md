@@ -4,7 +4,7 @@
 
 - Date: 2026-06-30
 - Branch: `codex/mobile-design-reset`
-- PR: N/A
+- PR: https://github.com/LENKIN233/softbook_cet/pull/267
 - Summary: Created a design-only mobile app quality reset using the Design Evolution Engine. The run audits the current real app screenshots, compares eight candidate directions, promotes a one-screen current-object app grammar, and records implementation mapping for future RN work.
 
 ## Referenced specs
@@ -91,4 +91,4 @@
 
 ## Follow-up
 
-- Update this record with final PR URL after publish.
+- Future implementation PR should consume this design-only artifact and produce real simulator screenshots.
