@@ -2113,7 +2113,8 @@ test('can unlock the learning flow after fake sms verification', async () => {
   await loginIntoLearningFlow(root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('先完成这一张，再继续下一步');
+  expect(output).toContain('位置已保持');
+  expect(output).toContain('先判断，再确认解析');
   expect(output).toContain('已登录');
   expect(output).not.toContain('已登录 138****8000');
   expect(output).toContain('however');
@@ -2134,7 +2135,7 @@ test('can unlock the learning flow after fake sms verification', async () => {
   expect(output).not.toContain('当前卡 · 002001');
   expect(output).not.toContain('CET4');
   expect(output).not.toContain('训练轨道');
-  expect(output).toContain('现在做');
+  expect(output).not.toContain('现在做');
   expect(output).not.toContain('答题区');
   expect(output).toContain('收藏');
   expect(output).toContain('查看提示');
@@ -2534,7 +2535,7 @@ test('can start a review round from cards that need revisiting', async () => {
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看');
-  expect(output).toContain('回看需要再看的卡，仍按一张卡推进');
+  expect(output).toContain('需要再看的卡已放到眼前');
   expect(output).toContain('however');
   expectNoUserVisibleMetadataLeakage(tree!);
 
@@ -3130,7 +3131,7 @@ test('starts review after membership is already unlocked', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看');
-  expect(output).toContain('回看需要再看的卡，仍按一张卡推进');
+  expect(output).toContain('需要再看的卡已放到眼前');
 });
 
 test('shows recovery reminder after local trial ends and clears it after purchase', async () => {
