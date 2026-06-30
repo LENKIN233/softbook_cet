@@ -26,6 +26,7 @@ type SpacePalette = {
   accent: string;
   accentSoft: string;
   accentStrong: string;
+  background?: string;
   border: string;
   danger: string;
   panel: string;
@@ -259,6 +260,10 @@ export function SpaceSurface({
   const currentTone = resolveLibraryTone(
     currentLibraryName ?? selectedLibrary?.libraryName,
   );
+  const isDarkSpacePalette =
+    palette.background === '#0B0B12' || palette.text === '#F2F1EB';
+  const solidPanel = isDarkSpacePalette ? '#1C1C2A' : '#FFFFFA';
+  const solidPanelStrong = isDarkSpacePalette ? '#222434' : '#FFFFFC';
   const currentCardPath = currentCardPosition
     ? formatSpacePathByIndex(
         currentCardPosition.libraryIndex,
@@ -565,7 +570,7 @@ export function SpaceSurface({
         style={[styles.shelfDeskFrame, styles.shelfDeskFrameOneScreen]}
         testID="space-shelf-desk"
       >
-        {screen === 'card_list' || hasStateRail ? (
+        {hasStateRail ? (
           <SurfaceCard
             palette={palette}
             style={[styles.addressShelf, styles.addressShelfOneScreen]}
@@ -946,34 +951,113 @@ export function SpaceSurface({
 
         {screen === 'card_list' ? (
           <>
-            <SurfaceCard
-              palette={palette}
-              style={styles.boxBrowseSurface}
-              testID="space-box-detail"
-            >
-              <View style={styles.browseHeader} testID="space-current-box-tray">
-                <View style={styles.statusCopy} testID="space-card-list-header">
-                  <Text
-                    style={[styles.eyebrow, { color: selectedTone.accent }]}
-                  >
-                    盒内查看
-                  </Text>
-                  <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
-                    {formatSpaceBoxLabel(selectedBoxIndex)}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
+            <View style={styles.boxBrowseSurface} testID="space-box-detail">
+              <View
+                style={[
+                  styles.browseObjectPlane,
+                  {
+                    backgroundColor: solidPanel,
+                    borderColor: hexToRgba(selectedTone.accent, 0.14),
+                  },
+                ]}
+                testID="space-current-box-tray"
+              >
+                <View
+                  style={styles.browseObjectPath}
+                  testID="space-address-shelf"
+                >
+                  <View
                     style={[
-                      styles.locationText,
-                      { color: selectedTone.accent },
+                      styles.browsePathStep,
+                      { backgroundColor: solidPanelStrong },
                     ]}
                   >
-                    {currentCardPath
-                      ? '当前学习卡在这里'
-                      : '当前学习卡位置会随学习更新'}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.browsePathLabel,
+                        { color: selectedTone.accent },
+                      ]}
+                    >
+                      书架
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.browsePathValue, { color: palette.text }]}
+                    >
+                      {formatSpaceLibraryLabel(selectedLibraryIndex)}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.browsePathStep,
+                      { backgroundColor: solidPanelStrong },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.browsePathLabel,
+                        { color: palette.textMuted },
+                      ]}
+                    >
+                      分区
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.browsePathValue, { color: palette.text }]}
+                    >
+                      {formatSpaceGroupLabel(selectedGroupIndex)}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.browsePathStep,
+                      { backgroundColor: solidPanelStrong },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.browsePathLabel,
+                        { color: palette.textMuted },
+                      ]}
+                    >
+                      卡盒
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.browsePathValue, { color: palette.text }]}
+                    >
+                      {formatSpaceBoxLabel(selectedBoxIndex)}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.headerActionStack}>
+
+                <View style={styles.browseHeader}>
+                  <View
+                    style={styles.statusCopy}
+                    testID="space-card-list-header"
+                  >
+                    <Text
+                      style={[styles.eyebrow, { color: selectedTone.accent }]}
+                    >
+                      盒内查看
+                    </Text>
+                    <Text
+                      style={[styles.boxTrayTitle, { color: palette.text }]}
+                    >
+                      当前卡盒
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.locationText,
+                        { color: selectedTone.accent },
+                      ]}
+                    >
+                      {currentCardPath
+                        ? '当前学习卡在这里'
+                        : '当前学习卡位置会随学习更新'}
+                    </Text>
+                  </View>
                   <Text
                     style={[styles.stateTag, { color: palette.accentStrong }]}
                   >
@@ -983,18 +1067,6 @@ export function SpaceSurface({
                       ? '有收藏'
                       : '可收藏'}
                   </Text>
-                  <ActionChip
-                    label="回学习"
-                    onPress={onReturnToLearning}
-                    palette={palette}
-                    testID="space-return-learning"
-                  />
-                  <ActionChip
-                    label="返回概览"
-                    onPress={onBackToOverview ?? noop}
-                    palette={palette}
-                    testID="space-card-list-back"
-                  />
                 </View>
               </View>
 
@@ -1024,14 +1096,18 @@ export function SpaceSurface({
                           {
                             backgroundColor: isActive
                               ? hexToRgba(selectedTone.accent, 0.1)
-                              : palette.panelStrong,
+                              : solidPanelStrong,
+                            borderColor: isActive
+                              ? hexToRgba(selectedTone.accent, 0.18)
+                              : hexToRgba(palette.textMuted, 0.08),
                           },
                         ]}
                         testID={`space-library-${index + 1}`}
                       >
                         <Text
+                          numberOfLines={1}
                           style={[
-                            styles.browseRailLabel,
+                            styles.browseRailValue,
                             {
                               color: isActive
                                 ? selectedTone.accent
@@ -1039,16 +1115,7 @@ export function SpaceSurface({
                             },
                           ]}
                         >
-                          书架
-                        </Text>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.browseRailValue,
-                            { color: palette.text },
-                          ]}
-                        >
-                          {formatSpaceLibraryLabel(index + 1)}
+                          {`书架 ${formatSpaceLibraryLabel(index + 1)}`}
                         </Text>
                       </Pressable>
                     );
@@ -1075,14 +1142,18 @@ export function SpaceSurface({
                           {
                             backgroundColor: isActive
                               ? hexToRgba(selectedTone.accent, 0.1)
-                              : palette.panelStrong,
+                              : solidPanelStrong,
+                            borderColor: isActive
+                              ? hexToRgba(selectedTone.accent, 0.18)
+                              : hexToRgba(palette.textMuted, 0.08),
                           },
                         ]}
                         testID={`space-group-${index + 1}`}
                       >
                         <Text
+                          numberOfLines={1}
                           style={[
-                            styles.browseRailLabel,
+                            styles.browseRailValue,
                             {
                               color: isActive
                                 ? selectedTone.accent
@@ -1090,16 +1161,7 @@ export function SpaceSurface({
                             },
                           ]}
                         >
-                          分区
-                        </Text>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.browseRailValue,
-                            { color: palette.text },
-                          ]}
-                        >
-                          {formatSpaceGroupLabel(index + 1)}
+                          {`分区 ${formatSpaceGroupLabel(index + 1)}`}
                         </Text>
                       </Pressable>
                     );
@@ -1122,14 +1184,18 @@ export function SpaceSurface({
                           {
                             backgroundColor: isActive
                               ? hexToRgba(selectedTone.accent, 0.1)
-                              : palette.panelStrong,
+                              : solidPanelStrong,
+                            borderColor: isActive
+                              ? hexToRgba(selectedTone.accent, 0.18)
+                              : hexToRgba(palette.textMuted, 0.08),
                           },
                         ]}
                         testID={`space-box-${boxIndex + 1}`}
                       >
                         <Text
+                          numberOfLines={1}
                           style={[
-                            styles.browseRailLabel,
+                            styles.browseRailValue,
                             {
                               color: isActive
                                 ? selectedTone.accent
@@ -1137,16 +1203,7 @@ export function SpaceSurface({
                             },
                           ]}
                         >
-                          卡盒
-                        </Text>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.browseRailValue,
-                            { color: palette.text },
-                          ]}
-                        >
-                          {formatSpaceBoxLabel(boxIndex + 1)}
+                          {`卡盒 ${formatSpaceBoxLabel(boxIndex + 1)}`}
                         </Text>
                       </Pressable>
                     );
@@ -1178,14 +1235,20 @@ export function SpaceSurface({
                           styles.inspectCardTile,
                           {
                             backgroundColor: isCurrent
-                              ? hexToRgba(selectedTone.accent, 0.035)
-                              : palette.panelStrong,
+                              ? solidPanel
+                              : solidPanelStrong,
                             borderColor: isCurrent
                               ? hexToRgba(selectedTone.accent, 0.22)
                               : palette.border,
                           },
                         ]}
                       >
+                        <View
+                          style={[
+                            styles.inspectCardEdge,
+                            { backgroundColor: selectedTone.accent },
+                          ]}
+                        />
                         <View style={styles.inspectCardHeader}>
                           <View style={styles.statusCopy}>
                             <Text
@@ -1342,7 +1405,68 @@ export function SpaceSurface({
                     );
                   })}
               </View>
-            </SurfaceCard>
+
+              <View style={styles.browseContinuityBar}>
+                <Pressable
+                  onPress={onReturnToLearning}
+                  style={[
+                    styles.browseContinuityPrimary,
+                    {
+                      backgroundColor: selectedTone.accent,
+                      borderColor: selectedTone.accent,
+                    },
+                  ]}
+                  testID="space-return-learning"
+                >
+                  <Text
+                    style={[
+                      styles.browseContinuityTitle,
+                      { color: palette.panel },
+                    ]}
+                  >
+                    回学习
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.browseContinuityMeta,
+                      { color: '#FFFFFF' },
+                    ]}
+                  >
+                    同一地址
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={onBackToOverview ?? noop}
+                  style={[
+                    styles.browseContinuitySecondary,
+                    {
+                      backgroundColor: solidPanelStrong,
+                      borderColor: palette.border,
+                    },
+                  ]}
+                  testID="space-card-list-back"
+                >
+                  <Text
+                    style={[
+                      styles.browseContinuityTitle,
+                      { color: palette.text },
+                    ]}
+                  >
+                    概览
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.browseContinuityMeta,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    当前盒
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
           </>
         ) : null}
       </View>
@@ -1873,8 +1997,8 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   boxBrowseSurface: {
-    gap: 9,
-    paddingBottom: 12,
+    gap: 10,
+    paddingBottom: 14,
   },
   boxTrayHeader: {
     alignItems: 'stretch',
@@ -1887,40 +2011,68 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: 'space-between',
   },
+  browseObjectPlane: {
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 13,
+  },
+  browseObjectPath: {
+    flexDirection: 'row',
+    gap: 7,
+  },
+  browsePathStep: {
+    borderRadius: 15,
+    flex: 1,
+    gap: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  browsePathLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.7,
+  },
+  browsePathValue: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+  },
   browseRail: {
+    backgroundColor: 'rgba(238,240,246,0.38)',
+    borderRadius: 22,
     gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   browseRailRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 7,
   },
   browseRailChip: {
-    borderRadius: 15,
+    borderRadius: 999,
+    borderWidth: 1,
     flexGrow: 1,
-    gap: 2,
-    minWidth: 98,
-    paddingHorizontal: 10,
+    minWidth: 86,
+    paddingHorizontal: 9,
     paddingVertical: 7,
   },
   browseRailChipSmall: {
-    minWidth: 82,
+    minWidth: 76,
   },
   browseRailChipActive: {
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  browseRailLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.6,
+    shadowOpacity: 0.05,
+    shadowRadius: 9,
+    elevation: 1,
   },
   browseRailValue: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '800',
-    lineHeight: 16,
+    lineHeight: 14,
+    textAlign: 'center',
   },
   boxTrayCopy: {
     flex: 1,
@@ -2180,9 +2332,19 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   inspectCardTile: {
-    gap: 10,
-    minHeight: 178,
+    gap: 11,
+    minHeight: 222,
+    overflow: 'hidden',
+    paddingTop: 18,
     paddingVertical: 14,
+  },
+  inspectCardEdge: {
+    height: 4,
+    left: 15,
+    opacity: 0.86,
+    position: 'absolute',
+    right: 15,
+    top: 0,
   },
   inspectCardHeader: {
     alignItems: 'flex-start',
@@ -2191,7 +2353,37 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   inspectCardFooter: {
-    gap: 8,
+    gap: 9,
+  },
+  browseContinuityBar: {
+    flexDirection: 'row',
+    gap: 9,
+  },
+  browseContinuityPrimary: {
+    borderRadius: 20,
+    borderWidth: 1,
+    flex: 1.25,
+    gap: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  browseContinuitySecondary: {
+    borderRadius: 20,
+    borderWidth: 1,
+    flex: 0.75,
+    gap: 2,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+  },
+  browseContinuityTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  browseContinuityMeta: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
   },
   loadingCardSkeleton: {
     borderStyle: 'dashed',
