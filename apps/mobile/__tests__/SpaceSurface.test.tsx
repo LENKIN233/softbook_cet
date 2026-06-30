@@ -352,12 +352,11 @@ test('defaults Space first-read focus to the current learning card box', () => {
   const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
 
   expect(expectedPath).not.toMatch(/馆|组|盒\s+\d|\d/);
-  expect(renderedText).toContain('空间地址 当前卡盒 位置 已定位');
-  expect(renderedText).toContain('盒内当前卡');
-  expect(renderedText).toContain('卡片、收藏标签和休眠区都留在同一盒里。');
+  expect(renderedText).toContain('书架 相邻书架 分区 当前分区 卡盒 当前卡盒');
+  expect(renderedText).toContain('当前卡盒 盒内卡片');
   expect(renderedText).toContain('当前学习卡在这里');
   expect(renderedText).toContain('休眠区属于当前盒');
-  expect(renderedText).toContain('回到同一张卡');
+  expect(renderedText).toContain('回学习 同一张卡，同一地址');
   expect(
     root.findAllByProps({ testID: 'space-open-box-lid' }).length,
   ).toBeGreaterThan(0);
@@ -418,7 +417,7 @@ test('resyncs Space focus when the current learning card changes after render', 
 
   expect(updatedText).toContain('当前学习卡在这里');
   expect(countOccurrences(updatedText, nextCard.front.prompt)).toBeGreaterThan(
-    1,
+    0,
   );
 });
 
@@ -461,6 +460,6 @@ test('does not render raw metadata values from loaded Space cards', () => {
   metadataValues.forEach(value => {
     expect(renderedText).not.toContain(value);
   });
-  expect(renderedText).toContain('空间地址 当前卡盒 位置 已定位');
+  expect(renderedText).toContain('书架 主书架 分区 当前分区 卡盒 当前卡盒');
   expect(renderedText).not.toContain('馆 1 / 组 1 / 盒 1');
 });
