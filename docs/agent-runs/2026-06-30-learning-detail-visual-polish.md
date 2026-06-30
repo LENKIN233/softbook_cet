@@ -4,7 +4,7 @@
 
 - Date: 2026-06-30
 - Branch: `codex/polish-learning-detail-visuals`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/266
 - Summary: Responded to the feedback that the Learning detail screen still looked ugly after guide-line cleanup. This pass reduces the heavy engineering feel by removing the gray detail bar, lowering success-green border weight, replacing the detail badge copy with a user-facing result pill, whitening the explanation slip, and using the stronger primary CTA color.
 
 ## Referenced specs
