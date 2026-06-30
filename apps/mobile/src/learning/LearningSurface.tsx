@@ -1219,37 +1219,13 @@ export function LearningResultDetailSurface({
     : result.outcome === 'review'
     ? '回看'
     : '需订正';
+  const detailActionTone = isPositive ? palette.success : borderTone;
 
   return (
     <View
       style={[styles.oneScreenPage, styles.detailScreen]}
       testID="learning-result-detail-screen"
     >
-      <View style={styles.detailTopBar}>
-        <View style={styles.heroChipRow}>
-          <TagChip label="本卡解析" toneColor={detailLibraryTone.accent} />
-          <TagChip
-            label={phase === 'review' ? '回看完成' : '已完成'}
-            toneColor={phase === 'review' ? palette.warning : palette.success}
-          />
-        </View>
-        <Pressable
-          onPress={onBackToPractice}
-          style={[
-            styles.detailBackButton,
-            {
-              backgroundColor: palette.panel,
-              borderColor: palette.border,
-            },
-          ]}
-          testID="learning-result-back-button"
-        >
-          <Text style={[styles.detailBackButtonLabel, { color: palette.text }]}>
-            返回
-          </Text>
-        </Pressable>
-      </View>
-
       <View
         style={[
           styles.detailResolvedCard,
@@ -1261,13 +1237,40 @@ export function LearningResultDetailSurface({
           },
         ]}
       >
+        <View style={styles.detailObjectHeader}>
+          <View style={styles.heroChipRow}>
+            <TagChip label="当前卡" toneColor={detailLibraryTone.accent} />
+            <TagChip
+              label={phase === 'review' ? '回看已收好' : '解析已附着'}
+              toneColor={phase === 'review' ? palette.warning : palette.success}
+            />
+          </View>
+          <Pressable
+            onPress={onBackToPractice}
+            style={[
+              styles.detailCollapseButton,
+              {
+                backgroundColor: palette.panelStrong,
+                borderColor: palette.border,
+              },
+            ]}
+            testID="learning-result-back-button"
+          >
+            <Text
+              style={[styles.detailCollapseLabel, { color: palette.textMuted }]}
+            >
+              收起解析
+            </Text>
+          </Pressable>
+        </View>
+
         <View style={styles.detailResolvedHeader}>
           <View style={styles.detailTitleWrap}>
             <Text style={[styles.cardEyebrow, { color: borderTone }]}>
-              {displaySessionLabel} · {INTERACTION_LABELS[card.interaction_id]}
+              当前卡 · {INTERACTION_LABELS[card.interaction_id]}
             </Text>
             <Text
-              numberOfLines={4}
+              numberOfLines={3}
               style={[styles.detailPrompt, { color: palette.text }]}
             >
               {card.front.prompt}
@@ -1330,58 +1333,65 @@ export function LearningResultDetailSurface({
             </View>
           ))}
         </View>
-      </View>
 
-      <View
-        style={[
-          styles.detailExplanationSlip,
-          {
-            backgroundColor: palette.panel,
-            borderColor: hexToRgba(borderTone, 0.16),
-          },
-        ]}
-      >
         <View
-          pointerEvents="none"
           style={[
-            styles.detailSlipAccent,
-            { backgroundColor: hexToRgba(borderTone, 0.08) },
+            styles.detailExplanationSlip,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: hexToRgba(borderTone, 0.16),
+            },
           ]}
-        />
-        <Text style={[styles.detailOutcomeTitle, { color: borderTone }]}>
-          {isPositive ? '答对，继续保持节奏' : '这张先收进回看'}
-        </Text>
-        <Text style={[styles.resultExplanationTitle, { color: palette.text }]}>
-          {card.analysis.title}
-        </Text>
-        <Text
-          numberOfLines={3}
-          style={[styles.resultExplanationBody, { color: palette.textMuted }]}
         >
-          {card.analysis.summary}
-        </Text>
-        <Text
-          numberOfLines={2}
-          style={[styles.detailTip, { color: palette.textMuted }]}
-        >
-          过级提醒：{card.analysis.exam_tip}
-        </Text>
-      </View>
-
-      <View style={styles.detailDock}>
-        <Pressable
-          onPress={onAdvanceCard}
-          style={[
-            styles.primaryButton,
-            styles.detailPrimaryButton,
-            { backgroundColor: detailLibraryTone.accent },
-          ]}
-          testID="learning-next-button"
-        >
-          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-            {isLastCard ? '完成本轮学习' : '继续下一张'}
+          <View
+            pointerEvents="none"
+            style={[
+              styles.detailSlipAccent,
+              { backgroundColor: hexToRgba(borderTone, 0.08) },
+            ]}
+          />
+          <Text style={[styles.detailOutcomeTitle, { color: borderTone }]}>
+            {isPositive ? '答对，继续保持节奏' : '这张先收进回看'}
           </Text>
-        </Pressable>
+          <Text
+            style={[styles.resultExplanationTitle, { color: palette.text }]}
+          >
+            {card.analysis.title}
+          </Text>
+          <Text
+            numberOfLines={3}
+            style={[styles.resultExplanationBody, { color: palette.textMuted }]}
+          >
+            {card.analysis.summary}
+          </Text>
+          <Text
+            numberOfLines={2}
+            style={[styles.detailTip, { color: palette.textMuted }]}
+          >
+            过级提醒：{card.analysis.exam_tip}
+          </Text>
+          <View style={styles.detailNextHintRow}>
+            <Text style={[styles.detailNextHint, { color: palette.textMuted }]}>
+              {displaySessionLabel}里的位置已更新
+            </Text>
+            <Text style={[styles.detailNextHint, { color: palette.textMuted }]}>
+              {isLastCard ? '本轮即将收束' : '下一张仍在本轮盒'}
+            </Text>
+          </View>
+          <Pressable
+            onPress={onAdvanceCard}
+            style={[
+              styles.primaryButton,
+              styles.detailPrimaryButton,
+              { backgroundColor: detailActionTone },
+            ]}
+            testID="learning-next-button"
+          >
+            <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+              {isLastCard ? '完成本轮学习' : '继续下一张'}
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -1754,37 +1764,33 @@ const styles = StyleSheet.create({
   },
   detailScreen: {
     gap: 8,
+    justifyContent: 'flex-start',
   },
-  detailTopBar: {
+  detailObjectHeader: {
     alignItems: 'center',
-    backgroundColor: 'transparent',
-    borderRadius: 0,
-    borderColor: 'transparent',
-    borderWidth: 0,
     flexDirection: 'row',
+    gap: 10,
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
-    paddingVertical: 2,
   },
-  detailBackButton: {
+  detailCollapseButton: {
     alignItems: 'center',
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
-  detailBackButtonLabel: {
-    fontSize: 12,
+  detailCollapseLabel: {
+    fontSize: 11,
     fontWeight: '700',
   },
   detailResolvedCard: {
-    borderRadius: 24,
+    borderRadius: 28,
     borderWidth: 1,
-    gap: 14,
+    gap: 12,
     overflow: 'hidden',
-    paddingHorizontal: 20,
-    paddingVertical: 19,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     position: 'relative',
   },
   detailResolvedHeader: {
@@ -1798,9 +1804,9 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   detailPrompt: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '800',
-    lineHeight: 26,
+    lineHeight: 25,
   },
   detailStatusPill: {
     borderRadius: 999,
@@ -1815,16 +1821,16 @@ const styles = StyleSheet.create({
   detailAnswerGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
   detailAnswerCell: {
     borderRadius: 16,
     borderWidth: 1,
     flex: 1,
-    gap: 6,
+    gap: 5,
     minWidth: 138,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
   },
   detailAnswerLabel: {
     fontSize: 11,
@@ -1837,12 +1843,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   detailExplanationSlip: {
-    borderRadius: 22,
-    borderWidth: 1,
-    gap: 9,
+    borderRadius: 20,
+    borderWidth: 0,
+    gap: 8,
     overflow: 'hidden',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     position: 'relative',
   },
   detailSlipAccent: {
@@ -1861,11 +1867,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
-  detailDock: {
-    marginTop: 'auto',
+  detailNextHintRow: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  detailNextHint: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 15,
   },
   detailPrimaryButton: {
-    paddingVertical: 14,
+    paddingVertical: 13,
   },
   progressTrack: {
     height: 8,
