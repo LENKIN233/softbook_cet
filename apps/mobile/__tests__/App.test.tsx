@@ -2704,6 +2704,8 @@ test('mine page keeps profile status and route actions in one screen after login
   });
 
   const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('账号与权益');
+  expect(output).toContain('完整路线备考');
   expect(output).toContain('138****8000');
   expect(output).toContain('今日已签到 · 1 张已完成');
   expect(output).toContain('已记录 · 已记录');
@@ -2717,6 +2719,9 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(output).not.toContain('账号概览');
   expect(output).not.toContain('今日已完成 1 张卡，其中首轮 1 张、回看 0 张。');
   expect(output).not.toContain('收藏标签 1 张。');
+  expect(output).not.toContain(
+    '试用不会在注册时自动起算，而是在第一次计入学习时开始。开始后可以查看完整卡库、完整空间和更完整的回看能力。',
+  );
 
   await ReactTestRenderer.act(() => {
     findPressableByTestId(root, 'mine-go-space').props.onPress();
