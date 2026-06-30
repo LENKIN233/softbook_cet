@@ -2891,12 +2891,16 @@ function MineSurface({
     ? maskPhoneNumber(authState.phoneNumber)
     : '手机号登录';
   const profileDetail = isAuthenticated
-    ? `${
-        checkedInToday ? '今日已签到' : '今日未签到'
-      } · ${completedCount} 张已完成`
-    : '登录后同步当前卡、空间和会员状态';
+    ? `${checkedInToday ? '已签到' : '未签到'} · ${completedCount} 张完成`
+    : '登录后保存当前卡、空间和会员状态';
   const syncDetail = isAuthenticated
-    ? `${progressSyncState.label} · ${learningStateSyncState.label}`
+    ? progressSyncState.state === 'error' ||
+      learningStateSyncState.state === 'error'
+      ? '记录待重试'
+      : progressSyncState.state === 'syncing' ||
+        learningStateSyncState.state === 'syncing'
+      ? '记录保存中'
+      : '记录已保存'
     : '验证码登录';
   const membershipTitle = isAuthenticated
     ? getMembershipCardTitle(membershipState.stage)
@@ -2917,7 +2921,7 @@ function MineSurface({
         ]}
         testID="mine-profile-card"
       >
-        <View style={styles.mineAccountHeader}>
+        <View style={styles.minePassportHeader}>
           <View
             style={[styles.mineAvatar, { backgroundColor: palette.accent }]}
           >
@@ -2932,14 +2936,14 @@ function MineSurface({
               账号与权益
             </Text>
             <Text style={[styles.mineAccountTitle, { color: palette.text }]}>
-              {isAuthenticated ? '完整路线备考' : '确认身份继续学'}
+              {isAuthenticated ? '今天继续这一轮' : '确认身份继续学'}
             </Text>
             <Text
               style={[styles.mineAccountSummary, { color: palette.textMuted }]}
             >
               {isAuthenticated
-                ? '会员、恢复购买和学习记录都在这里处理，不打断学习。'
-                : '验证码通过后回到当前学习对象。'}
+                ? '记录和会员都在这里。'
+                : '验证码通过后回到当前学习卡。'}
             </Text>
           </View>
           <View
@@ -2964,33 +2968,42 @@ function MineSurface({
         </View>
 
         <View
-          style={[
-            styles.mineAccountList,
-            { backgroundColor: palette.panelStrong },
-          ]}
+          style={[styles.mineIdentityBand, { borderColor: palette.border }]}
         >
-          <MineAccountRow
-            label={isAuthenticated ? '手机号' : '登录方式'}
-            palette={palette}
-            testID="mine-profile-phone"
-            value={profileName}
-          />
-          <MineAccountRow
-            label="今日状态"
-            palette={palette}
-            testID="mine-profile-today"
-            value={profileDetail}
-          />
-          <MineAccountRow
-            label="同步记录"
-            palette={palette}
-            value={syncDetail}
-          />
-          <MineAccountRow
-            label="学习路线"
-            palette={palette}
-            value={isAuthenticated ? '系统推荐' : '登录后同步'}
-          />
+          <View style={styles.mineIdentityCopy}>
+            <Text
+              style={[styles.mineIdentityLabel, { color: palette.textMuted }]}
+            >
+              {isAuthenticated ? '已确认' : '登录方式'}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[styles.mineIdentityValue, { color: palette.text }]}
+              testID="mine-profile-phone"
+            >
+              {profileName}
+            </Text>
+          </View>
+          <View style={styles.mineIdentityCopy}>
+            <Text
+              style={[styles.mineIdentityLabel, { color: palette.textMuted }]}
+            >
+              今日
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[styles.mineIdentityValue, { color: palette.text }]}
+              testID="mine-profile-today"
+            >
+              {profileDetail}
+            </Text>
+          </View>
+          <Text
+            numberOfLines={1}
+            style={[styles.mineIdentitySync, { color: palette.textMuted }]}
+          >
+            {syncDetail}
+          </Text>
         </View>
 
         {isAuthenticated ? (
@@ -3031,21 +3044,25 @@ function MineSurface({
 
             <View
               style={[
-                styles.mineActionGrid,
-                deviceClass === 'tablet' ? styles.mineActionGridTablet : null,
+                styles.mineActionRail,
+                {
+                  backgroundColor: palette.panelStrong,
+                  borderColor: palette.border,
+                },
+                deviceClass === 'tablet' ? styles.mineActionRailTablet : null,
               ]}
             >
               <MineActionCard
                 detail={
                   pendingReviewCount > 0
                     ? `${pendingReviewCount} 张卡等待回看`
-                    : '回到当前卡继续'
+                    : '下一张已经准备好'
                 }
                 label="继续学习"
                 onPress={onGoToLearning}
                 palette={palette}
                 testID="mine-go-learning"
-                value={`${completedCount}`}
+                value="练"
               />
               <MineActionCard
                 detail={`${favoriteCount} 收藏 · ${sleepingCount} 休眠`}
@@ -3053,7 +3070,7 @@ function MineSurface({
                 onPress={onGoToSpace}
                 palette={palette}
                 testID="mine-go-space"
-                value={`${favoriteCount + sleepingCount}`}
+                value="位"
               />
               <MineActionCard
                 detail={`${checkedInToday ? '今日已签到' : '今日未签到'} · ${
@@ -3063,7 +3080,7 @@ function MineSurface({
                 onPress={onGoToStatistics}
                 palette={palette}
                 testID="mine-go-statistics"
-                value={checkedInToday ? '已签' : '去签'}
+                value="记"
               />
             </View>
 
@@ -3095,33 +3112,6 @@ function MineSurface({
   );
 }
 
-function MineAccountRow({
-  label,
-  palette,
-  testID,
-  value,
-}: {
-  label: string;
-  palette: Palette;
-  testID?: string;
-  value: string;
-}) {
-  return (
-    <View style={styles.mineAccountRow}>
-      <Text style={[styles.mineAccountRowLabel, { color: palette.textMuted }]}>
-        {label}
-      </Text>
-      <Text
-        numberOfLines={1}
-        style={[styles.mineAccountRowValue, { color: palette.text }]}
-        testID={testID}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
 function MineActionCard({
   detail,
   label,
@@ -3141,12 +3131,19 @@ function MineActionCard({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={[
-        styles.mineActionCard,
-        { backgroundColor: palette.panelStrong, borderColor: palette.border },
-      ]}
+      style={[styles.mineActionCard, { borderColor: palette.border }]}
       testID={testID}
     >
+      <View
+        style={[
+          styles.mineActionGlyph,
+          { backgroundColor: palette.accentSoft, borderColor: palette.border },
+        ]}
+      >
+        <Text style={[styles.mineActionValue, { color: palette.accent }]}>
+          {value}
+        </Text>
+      </View>
       <View style={styles.mineActionCopy}>
         <Text
           numberOfLines={1}
@@ -3161,8 +3158,8 @@ function MineActionCard({
           {detail}
         </Text>
       </View>
-      <Text style={[styles.mineActionValue, { color: palette.text }]}>
-        {value}
+      <Text style={[styles.mineActionArrow, { color: palette.textMuted }]}>
+        →
       </Text>
     </Pressable>
   );
@@ -3210,10 +3207,7 @@ function MembershipHostCard({
 
   return (
     <View
-      style={[
-        styles.membershipHostCard,
-        { backgroundColor: palette.panelStrong, borderColor: palette.border },
-      ]}
+      style={[styles.membershipHostCard, { borderColor: palette.border }]}
       testID="membership-host-card"
     >
       <View style={styles.membershipHeaderRow}>
@@ -3234,12 +3228,14 @@ function MembershipHostCard({
           style={[
             styles.membershipCountPill,
             {
-              backgroundColor: palette.panelStrong,
+              backgroundColor: palette.accentSoft,
               borderColor: palette.border,
             },
           ]}
         >
-          <Text style={[styles.membershipCountValue, { color: palette.text }]}>
+          <Text
+            style={[styles.membershipCountValue, { color: palette.accent }]}
+          >
             {unlockedAccessCount}/4
           </Text>
           <Text
@@ -3272,8 +3268,8 @@ function MembershipHostCard({
       ) : null}
       <View
         style={[
-          styles.membershipAccessStrip,
-          deviceClass === 'tablet' ? styles.membershipAccessStripTablet : null,
+          styles.membershipAccessTrack,
+          deviceClass === 'tablet' ? styles.membershipAccessTrackTablet : null,
         ]}
         testID="membership-access-strip"
       >
@@ -3281,21 +3277,29 @@ function MembershipHostCard({
           <View
             key={item.label}
             style={[
-              styles.membershipAccessChip,
-              {
-                backgroundColor: item.open
-                  ? hexToRgba(palette.success, 0.12)
-                  : hexToRgba(palette.warning, 0.12),
-                borderColor: palette.border,
-              },
+              styles.membershipAccessStep,
+              { borderColor: palette.border },
             ]}
           >
+            <View
+              style={[
+                styles.membershipAccessDot,
+                {
+                  backgroundColor: item.open
+                    ? palette.success
+                    : hexToRgba(palette.warning, 0.2),
+                  borderColor: item.open ? palette.success : palette.warning,
+                },
+              ]}
+            />
             <Text
+              numberOfLines={1}
               style={[styles.membershipAccessLabel, { color: palette.text }]}
             >
               {item.label}
             </Text>
             <Text
+              numberOfLines={1}
               style={[
                 styles.membershipAccessValue,
                 { color: item.open ? palette.success : palette.warning },
@@ -3767,10 +3771,7 @@ function SummaryMetricCard({
 
   return (
     <View
-      style={[
-        styles.summaryMetricCard,
-        { backgroundColor: palette.panelStrong, borderColor: palette.border },
-      ]}
+      style={[styles.summaryMetricCard, { borderColor: palette.border }]}
       testID={testID}
     >
       <Text style={[styles.summaryMetricValue, { color: valueColor }]}>
@@ -4348,13 +4349,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   summaryMetricCard: {
-    minWidth: 74,
+    minWidth: 68,
     flexGrow: 1,
     borderWidth: 0,
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    gap: 4,
+    borderRadius: 0,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    gap: 3,
   },
   summaryMetricValue: {
     fontSize: 18,
@@ -4400,7 +4401,7 @@ const styles = StyleSheet.create({
   },
   mineScreen: {
     flex: 1,
-    gap: 9,
+    gap: 8,
     paddingHorizontal: 18,
     paddingVertical: 8,
   },
@@ -4410,17 +4411,17 @@ const styles = StyleSheet.create({
   },
   mineProfilePanel: {
     alignItems: 'stretch',
-    borderRadius: 24,
+    borderRadius: 28,
     borderWidth: 1,
-    gap: 12,
+    gap: 10,
     paddingHorizontal: 16,
-    paddingVertical: 15,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
+    paddingVertical: 14,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.09,
+    shadowRadius: 30,
     elevation: 4,
   },
-  mineAccountHeader: {
+  minePassportHeader: {
     alignItems: 'flex-start',
     flexDirection: 'row',
     gap: 12,
@@ -4434,9 +4435,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   mineAccountTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
-    lineHeight: 27,
+    lineHeight: 29,
   },
   mineAccountSummary: {
     fontSize: 13,
@@ -4445,93 +4446,89 @@ const styles = StyleSheet.create({
   mineAvatar: {
     alignItems: 'center',
     borderRadius: 24,
-    height: 48,
+    height: 52,
     justifyContent: 'center',
-    width: 48,
+    width: 52,
   },
   mineAvatarText: {
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  mineProfileCopy: {
-    flex: 1,
-    gap: 3,
-  },
-  mineProfileName: {
     fontSize: 19,
     fontWeight: '800',
-  },
-  mineProfileDetail: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  mineProfileSync: {
-    fontSize: 12,
-    fontWeight: '600',
   },
   mineMembershipPill: {
     borderRadius: 999,
     borderWidth: 1,
-    maxWidth: 104,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
+    maxWidth: 112,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   mineMembershipPillText: {
     fontSize: 12,
     fontWeight: '800',
     textAlign: 'center',
   },
-  mineAccountList: {
-    borderRadius: 18,
-    gap: 2,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  mineAccountRow: {
+  mineIdentityBand: {
     alignItems: 'center',
+    borderTopWidth: 1,
     flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
-    minHeight: 26,
+    gap: 10,
+    paddingTop: 10,
   },
-  mineAccountRowLabel: {
-    fontSize: 12,
-    fontWeight: '700',
+  mineIdentityCopy: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
   },
-  mineAccountRowValue: {
-    flexShrink: 1,
+  mineIdentityLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  mineIdentityValue: {
     fontSize: 13,
     fontWeight: '800',
-    maxWidth: '68%',
+  },
+  mineIdentitySync: {
+    fontSize: 11,
+    fontWeight: '700',
+    maxWidth: 88,
     textAlign: 'right',
   },
   mineMetricStrip: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
+    gap: 6,
   },
-  mineActionGrid: {
+  mineActionRail: {
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  mineActionRailTablet: {
     flexDirection: 'row',
-    gap: 7,
-  },
-  mineActionGridTablet: {
-    gap: 9,
   },
   mineActionCard: {
-    alignItems: 'flex-start',
-    borderRadius: 18,
-    borderWidth: 0,
-    flex: 1,
-    gap: 4,
-    minHeight: 82,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    minHeight: 58,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   mineActionCopy: {
+    flex: 1,
     gap: 3,
+    minWidth: 0,
+  },
+  mineActionGlyph: {
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    height: 32,
+    justifyContent: 'center',
+    width: 32,
   },
   mineActionValue: {
-    fontSize: 18,
+    fontSize: 13,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
@@ -4544,11 +4541,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 15,
   },
+  mineActionArrow: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
   membershipHostCard: {
-    borderWidth: 0,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    borderTopWidth: 1,
+    paddingTop: 10,
     gap: 8,
     shadowOpacity: 0,
     elevation: 0,
@@ -4568,11 +4567,11 @@ const styles = StyleSheet.create({
   },
   membershipCountPill: {
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     minWidth: 58,
-    paddingHorizontal: 8,
-    paddingVertical: 7,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
   },
   membershipCountValue: {
     fontSize: 15,
@@ -4616,12 +4615,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 6,
   },
+  membershipAccessTrack: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  membershipAccessTrackTablet: {
+    gap: 8,
+  },
+  membershipAccessStep: {
+    borderTopWidth: 1,
+    flex: 1,
+    gap: 3,
+    minWidth: 0,
+    paddingTop: 7,
+  },
+  membershipAccessDot: {
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 8,
+    width: 8,
+  },
   membershipAccessLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   membershipAccessValue: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
   },
   membershipActionRow: {

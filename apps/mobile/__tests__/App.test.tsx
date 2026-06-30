@@ -982,7 +982,7 @@ test('queues failed remote learning state sync for later replay', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已记录 · 待重试');
+  expect(output).toContain('记录待重试');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
@@ -1190,7 +1190,7 @@ test('replays queued learning state after network reconnect', async () => {
     await flushAsyncEffects();
   });
 
-  expect(JSON.stringify(tree!.toJSON())).toContain('已记录 · 待重试');
+  expect(JSON.stringify(tree!.toJSON())).toContain('记录待重试');
 
   shouldFailLearningStateSync = false;
 
@@ -1200,7 +1200,7 @@ test('replays queued learning state after network reconnect', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已记录 · 已同步');
+  expect(output).toContain('记录已保存');
   expect(
     fetchCalls.filter(
       call =>
@@ -2708,10 +2708,10 @@ test('mine page keeps profile status and route actions in one screen after login
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('账号与权益');
-  expect(output).toContain('完整路线备考');
+  expect(output).toContain('今天继续这一轮');
   expect(output).toContain('138****8000');
-  expect(output).toContain('今日已签到 · 1 张已完成');
-  expect(output).toContain('已记录 · 已记录');
+  expect(output).toContain('已签到 · 1 张完成');
+  expect(output).toContain('记录已保存');
   expect(readMetricValue(root, 'mine-metric-completed')).toBe('1');
   expect(readMetricValue(root, 'mine-metric-review')).toBe('0');
   expect(readMetricValue(root, 'mine-metric-favorites')).toBe('1');
