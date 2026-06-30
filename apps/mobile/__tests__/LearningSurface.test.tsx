@@ -242,7 +242,8 @@ test('result detail reads as a resolved card without raw metadata', () => {
       testID: 'learning-detail-correct-answer',
     }),
   ).toBeTruthy();
-  expect(output).toContain('本卡解析');
+  expect(output).toContain('当前卡');
+  expect(output).toContain('解析已附着');
   expect(output).toContain('你的选择');
   expect(output).toContain('正确答案');
   expect(output).toContain('B · unclear');
