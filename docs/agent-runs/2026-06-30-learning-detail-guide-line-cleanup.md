@@ -4,7 +4,7 @@
 
 - Date: 2026-06-30
 - Branch: `codex/remove-detail-guide-lines`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/265
 - Summary: Removed the visible paper-guide construction lines from the Learning result-detail real app screenshot. The previous detail card inherited `paperSpine`, `paperLineOne`, and `paperLineTwo`, which read as reference lines rather than finished app chrome.
 
 ## Referenced specs
