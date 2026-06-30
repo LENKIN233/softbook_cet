@@ -289,6 +289,9 @@ test('uses anonymous ordered selector IDs for Space library and group chips in t
     root.findAllByProps({ testID: 'space-library-1' }).length,
   ).toBeGreaterThan(0);
   expect(
+    root.findAllByProps({ testID: 'space-browse-rail' }).length,
+  ).toBeGreaterThan(0);
+  expect(
     root.findAllByProps({ testID: 'space-library-2' }).length,
   ).toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-library-00' })).toHaveLength(0);
@@ -297,6 +300,8 @@ test('uses anonymous ordered selector IDs for Space library and group chips in t
   expect(renderedText).not.toContain(currentCard.space_metadata.group);
   expect(renderedText).not.toContain(currentCard.space_metadata.box);
   expect(renderedText).not.toContain(currentCard.space_metadata.box_ref);
+  expect(renderedText).toContain('盒内查看');
+  expect(renderedText).not.toContain('卡片列表');
 
   ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'space-library-2' }).props.onPress();

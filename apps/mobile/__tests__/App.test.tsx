@@ -2788,7 +2788,9 @@ test('can browse the seeded knowledge map after login', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('The article offers a ____ explanation');
+  expect(output).toContain('The committee postponed the vote');
+  expect(output).toContain('盒内查看');
+  expect(output).not.toContain('卡片列表');
   expectNoUserVisibleMetadataLeakage(tree!);
 
   await ReactTestRenderer.act(() => {
