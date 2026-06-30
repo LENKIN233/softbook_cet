@@ -4,7 +4,7 @@
 
 - Date: 2026-06-30
 - Branch: `codex/fix/detail-answer-slip-quality`
-- PR: N/A
+- PR: https://github.com/LENKIN233/softbook_cet/pull/271
 - Summary: Continued the user-visible mobile app quality reset by changing the Learning result detail from a report-like page into a resolved current-card object with an attached answer slip. This pass refreshes the real iOS simulator Detail screenshot.
 
 ## Referenced specs
