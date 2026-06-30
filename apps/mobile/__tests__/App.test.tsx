@@ -2303,6 +2303,22 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'learning-open-result-detail-button' })
+      .props.onPress();
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(root.findByProps({
+    testID: 'learning-result-detail-screen',
+  })).toBeTruthy();
+  expect(output).toContain('本卡解析');
+  expect(output).toContain('你的选择');
+  expect(output).toContain('正确答案');
+  expect(output).toContain('答对，继续保持节奏');
+  expectNoUserVisibleMetadataLeakage(tree!);
+
+  await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
 

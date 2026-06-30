@@ -2057,9 +2057,11 @@ function AppShell({
   ) : route.key === 'learning' &&
     learningScreen === 'result_detail' &&
     currentLearningCard !== null &&
+    learningCardState !== null &&
     learningCurrentResult !== null ? (
     <LearningResultDetailSurface
       card={currentLearningCard}
+      cardState={learningCardState}
       isLastCard={learningIndex === activeSessionCards.length - 1}
       onAdvanceCard={learningHandlers.onAdvanceCard}
       onBackToPractice={() => setLearningScreen('practice')}
