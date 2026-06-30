@@ -4,7 +4,7 @@
 
 - Date: 2026-06-30
 - Branch: `codex/reference-screenshot-pack`
-- PR: N/A
+- PR: https://github.com/LENKIN233/softbook_cet/pull/268
 - Summary: Converted earlier leadership reference designs into real mobile screenshot dimensions and added a larger screenshot handoff package under `docs/design/app-screenshots/`.
 
 ## Referenced specs
