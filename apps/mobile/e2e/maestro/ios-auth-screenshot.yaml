@@ -1,0 +1,13 @@
+appId: com.softbook.cet
+name: ios-auth-screenshot
+---
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: 'auth-phone-input'
+    timeout: 30000
+- assertVisible:
+    id: 'auth-gate-keyboard-dismiss-target'
+- assertVisible:
+    id: 'auth-request-code-button'
