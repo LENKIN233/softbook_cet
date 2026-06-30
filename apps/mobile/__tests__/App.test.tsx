@@ -1466,7 +1466,7 @@ test('requires explicit remote trial start from protected space', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('卡片的物理空间');
+  expect(output).toContain('当前卡盒');
   expect(output).toContain('完整物理空间需要试用或会员');
 
   expect(
@@ -1492,7 +1492,7 @@ test('requires explicit remote trial start from protected space', async () => {
   });
 
   expect(JSON.stringify(tree!.toJSON())).toContain(
-    '从当前位置退后一步：先看当前盒，再看盒内卡片和休眠区。',
+    '卡片、收藏标签和休眠区都留在同一盒里。',
   );
 });
 
@@ -1567,7 +1567,7 @@ test('falls back to local trial unlock and replays remote trial start later', as
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('卡片的物理空间');
+  expect(output).toContain('当前卡盒');
   expect(output).toContain('完整物理空间需要试用或会员');
   expect(startTrialRequestCount).toBe(0);
 
@@ -1680,7 +1680,7 @@ test('can unlock gated space after remote purchase', async () => {
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('完整物理空间需要试用或会员');
-  expect(output).toContain('卡片的物理空间');
+  expect(output).toContain('当前卡盒');
   expect(
     root.findAllByProps({ testID: 'space-gate-rail' }).length,
   ).toBeGreaterThan(0);
@@ -1694,8 +1694,8 @@ test('can unlock gated space after remote purchase', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('卡片的物理空间');
-  expect(output).toContain('从当前位置退后一步');
+  expect(output).toContain('当前卡盒');
+  expect(output).toContain('卡片、收藏标签和休眠区都留在同一盒里。');
   expect(root.findAllByProps({ testID: 'space-gate-rail' })).toHaveLength(0);
   expect(
     root.findAllByProps({ testID: 'space-open-box-lid' }).length,
@@ -2013,8 +2013,8 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('卡片的物理空间');
-  expect(output).toContain('从当前位置退后一步');
+  expect(output).toContain('当前卡盒');
+  expect(output).toContain('卡片、收藏标签和休眠区都留在同一盒里。');
   expect(
     fetchCalls.filter(
       call =>
@@ -2719,7 +2719,7 @@ test('mine page keeps profile status and route actions in one screen after login
     findPressableByTestId(root, 'mine-go-space').props.onPress();
   });
 
-  expect(JSON.stringify(tree!.toJSON())).toContain('卡片的物理空间');
+  expect(JSON.stringify(tree!.toJSON())).toContain('当前卡盒');
 
   await openRoute(root, 'mine');
 
@@ -2754,7 +2754,7 @@ test('can browse the seeded knowledge map after login', async () => {
   await startTrialFromProtectedEntry(root, 'space');
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('卡片的物理空间');
+  expect(output).toContain('当前卡盒');
   expect(
     root.findAllByProps({ testID: 'space-shelf-desk' }).length,
   ).toBeGreaterThan(0);
@@ -2919,7 +2919,7 @@ test('requires explicit local trial start from protected space', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('卡片的物理空间');
+  expect(output).toContain('当前卡盒');
   expect(output).toContain('完整物理空间需要试用或会员');
 
   await ReactTestRenderer.act(async () => {
@@ -2930,8 +2930,8 @@ test('requires explicit local trial start from protected space', async () => {
   });
 
   const unlockedOutput = JSON.stringify(tree!.toJSON());
-  expect(unlockedOutput).toContain('卡片的物理空间');
-  expect(unlockedOutput).toContain('从当前位置退后一步');
+  expect(unlockedOutput).toContain('当前卡盒');
+  expect(unlockedOutput).toContain('卡片、收藏标签和休眠区都留在同一盒里。');
 });
 
 test('shows trial gate from the first gated review entry', async () => {

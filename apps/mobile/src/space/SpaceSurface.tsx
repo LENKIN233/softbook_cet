@@ -283,6 +283,9 @@ export function SpaceSurface({
       ) : null}
     </>
   );
+  const hasStateRail = Boolean(
+    spaceGateRail || spaceSyncRail || spaceStatusRail,
+  );
 
   if (!selectedLibrary || !selectedGroup || !selectedBox) {
     const emptyTone = currentLearningCard
@@ -309,10 +312,10 @@ export function SpaceSurface({
             testID="space-address-shelf"
           >
             <Text style={[styles.eyebrow, { color: emptyTone.accent }]}>
-              知识空间
+              空间地址
             </Text>
             <Text style={[styles.title, { color: palette.text }]}>
-              卡片的物理空间
+              当前卡盒
             </Text>
             <Text
               numberOfLines={1}
@@ -563,106 +566,91 @@ export function SpaceSurface({
         style={[styles.shelfDeskFrame, styles.shelfDeskFrameOneScreen]}
         testID="space-shelf-desk"
       >
-        <SurfaceCard
-          palette={palette}
-          style={[styles.addressShelf, styles.addressShelfOneScreen]}
-          testID="space-address-shelf"
-        >
-          {screen === 'card_list' ? (
-            <View style={styles.addressListBar}>
-              <View style={styles.statusCopy}>
+        {screen === 'card_list' || hasStateRail ? (
+          <SurfaceCard
+            palette={palette}
+            style={[styles.addressShelf, styles.addressShelfOneScreen]}
+            testID="space-address-shelf"
+          >
+            {screen === 'card_list' ? (
+              <View style={styles.addressListBar}>
+                <View style={styles.statusCopy}>
+                  <Text
+                    style={[styles.eyebrow, { color: selectedTone.accent }]}
+                  >
+                    空间地址
+                  </Text>
+                  <Text style={[styles.title, { color: palette.text }]}>
+                    盒内卡片
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.addressPath,
+                    styles.addressPathCompact,
+                    {
+                      backgroundColor: hexToRgba(selectedTone.accent, 0.05),
+                      borderColor: hexToRgba(selectedTone.accent, 0.24),
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.addressPathLabel,
+                      { color: selectedTone.accent },
+                    ]}
+                  >
+                    当前位置
+                  </Text>
+                  <Text
+                    style={[styles.addressPathText, { color: palette.text }]}
+                  >
+                    当前卡盒已定位
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <>
                 <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
-                  知识空间
+                  空间地址
                 </Text>
                 <Text style={[styles.title, { color: palette.text }]}>
-                  卡片的物理空间
+                  当前卡盒
                 </Text>
-              </View>
-              <View
-                style={[
-                  styles.addressPath,
-                  styles.addressPathCompact,
-                  {
-                    backgroundColor: hexToRgba(selectedTone.accent, 0.05),
-                    borderColor: hexToRgba(selectedTone.accent, 0.34),
-                  },
-                ]}
-              >
                 <Text
-                  style={[
-                    styles.addressPathLabel,
-                    { color: selectedTone.accent },
-                  ]}
+                  numberOfLines={1}
+                  style={[styles.summary, { color: palette.textMuted }]}
                 >
-                  当前位置
+                  先恢复地址，再回到盒内卡片和休眠区。
                 </Text>
-                <Text style={[styles.addressPathText, { color: palette.text }]}>
-                  当前卡盒已定位
-                </Text>
-              </View>
-            </View>
-          ) : (
-            <>
-              <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
-                知识空间
-              </Text>
-              <Text style={[styles.title, { color: palette.text }]}>
-                卡片的物理空间
-              </Text>
-              <Text
-                numberOfLines={1}
-                style={[styles.summary, { color: palette.textMuted }]}
-              >
-                从当前位置退后一步：先看当前盒，再看盒内卡片和休眠区。
-              </Text>
-              <View style={styles.addressContextRow}>
-                <AddressContextPill
-                  emphasized
-                  label="书架"
-                  palette={palette}
-                  toneColor={selectedTone.accent}
-                  value={formatSpaceLibraryLabel(selectedLibraryIndex)}
-                />
-                <AddressContextPill
-                  label="分区"
-                  palette={palette}
-                  value={formatSpaceGroupLabel(selectedGroupIndex)}
-                />
-                <AddressContextPill
-                  label="卡盒"
-                  palette={palette}
-                  value={formatSpaceBoxLabel(selectedBoxIndex)}
-                />
-                <AddressContextPill
-                  label="状态"
-                  palette={palette}
-                  value={selectedBox.cards.length > 0 ? '可查看' : '待整理'}
-                />
-              </View>
-              <View
-                style={[
-                  styles.addressPath,
-                  {
-                    backgroundColor: hexToRgba(selectedTone.accent, 0.05),
-                    borderColor: hexToRgba(selectedTone.accent, 0.34),
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.addressPathLabel,
-                    { color: selectedTone.accent },
-                  ]}
-                >
-                  当前位置
-                </Text>
-                <Text style={[styles.addressPathText, { color: palette.text }]}>
-                  当前卡盒已定位
-                </Text>
-              </View>
-            </>
-          )}
-        </SurfaceCard>
+                <View style={styles.addressContextRow}>
+                  <AddressContextPill
+                    emphasized
+                    label="书架"
+                    palette={palette}
+                    toneColor={selectedTone.accent}
+                    value={formatSpaceLibraryLabel(selectedLibraryIndex)}
+                  />
+                  <AddressContextPill
+                    label="分区"
+                    palette={palette}
+                    value={formatSpaceGroupLabel(selectedGroupIndex)}
+                  />
+                  <AddressContextPill
+                    label="卡盒"
+                    palette={palette}
+                    value={formatSpaceBoxLabel(selectedBoxIndex)}
+                  />
+                  <AddressContextPill
+                    label="状态"
+                    palette={palette}
+                    value={selectedBox.cards.length > 0 ? '可查看' : '待整理'}
+                  />
+                </View>
+              </>
+            )}
+          </SurfaceCard>
+        ) : null}
 
         {stateRailStack}
 
@@ -673,18 +661,84 @@ export function SpaceSurface({
               style={styles.openBoxTrayCard}
               testID="space-current-box-tray"
             >
+              {!hasStateRail ? (
+                <View
+                  style={styles.spaceObjectAddress}
+                  testID="space-address-shelf"
+                >
+                  <View style={styles.spaceObjectAddressHeader}>
+                    <View style={styles.statusCopy}>
+                      <Text
+                        style={[styles.eyebrow, { color: selectedTone.accent }]}
+                      >
+                        空间地址
+                      </Text>
+                      <Text style={[styles.title, { color: palette.text }]}>
+                        当前卡盒
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.addressPath,
+                        styles.addressPathCompact,
+                        {
+                          backgroundColor: hexToRgba(selectedTone.accent, 0.04),
+                          borderColor: hexToRgba(selectedTone.accent, 0.2),
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.addressPathLabel,
+                          { color: selectedTone.accent },
+                        ]}
+                      >
+                        位置
+                      </Text>
+                      <Text
+                        style={[
+                          styles.addressPathText,
+                          { color: palette.text },
+                        ]}
+                      >
+                        已定位
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.addressContextRow}>
+                    <AddressContextPill
+                      emphasized
+                      label="书架"
+                      palette={palette}
+                      toneColor={selectedTone.accent}
+                      value={formatSpaceLibraryLabel(selectedLibraryIndex)}
+                    />
+                    <AddressContextPill
+                      label="分区"
+                      palette={palette}
+                      value={formatSpaceGroupLabel(selectedGroupIndex)}
+                    />
+                    <AddressContextPill
+                      label="卡盒"
+                      palette={palette}
+                      value={formatSpaceBoxLabel(selectedBoxIndex)}
+                    />
+                  </View>
+                </View>
+              ) : null}
+
               <View style={styles.boxTrayHeader}>
                 <View style={styles.boxTrayCopy}>
                   <Text
                     style={[styles.eyebrow, { color: selectedTone.accent }]}
                   >
-                    打开的当前盒
+                    盒内当前卡
                   </Text>
                   <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
-                    {formatSpaceBoxLabel(selectedBoxIndex)}
+                    {selectedBox.cards.length} 张卡片
                   </Text>
                   <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                    盒内卡片、收藏标签和休眠区都留在同一位置。
+                    卡片、收藏标签和休眠区都留在同一盒里。
                   </Text>
                 </View>
                 <View style={styles.headerActionStack}>
@@ -695,12 +749,6 @@ export function SpaceSurface({
                     testID="space-open-card-list"
                   />
                 </View>
-                <View
-                  style={[
-                    styles.boxAccentRail,
-                    { backgroundColor: selectedTone.accent },
-                  ]}
-                />
               </View>
 
               <Text
@@ -723,8 +771,8 @@ export function SpaceSurface({
                 style={[
                   styles.openBoxDeck,
                   {
-                    backgroundColor: hexToRgba(selectedTone.accent, 0.08),
-                    borderColor: palette.border,
+                    backgroundColor: hexToRgba(selectedTone.accent, 0.045),
+                    borderColor: hexToRgba(selectedTone.accent, 0.12),
                   },
                 ]}
                 testID="space-open-box-deck"
@@ -1403,10 +1451,13 @@ function AddressContextPill({
       style={[
         styles.addressContextPill,
         {
-          backgroundColor: palette.panelStrong,
+          backgroundColor:
+            emphasized && toneColor
+              ? hexToRgba(toneColor, 0.08)
+              : palette.panelStrong,
           borderColor:
             emphasized && toneColor
-              ? hexToRgba(toneColor, 0.34)
+              ? hexToRgba(toneColor, 0.18)
               : palette.border,
         },
       ]}
@@ -1623,9 +1674,18 @@ const styles = StyleSheet.create({
     gap: 10,
     justifyContent: 'space-between',
   },
+  spaceObjectAddress: {
+    gap: 8,
+  },
+  spaceObjectAddressHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
   addressPath: {
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 16,
     flexDirection: 'row',
     gap: 8,
@@ -1687,7 +1747,7 @@ const styles = StyleSheet.create({
   },
   addressContextPill: {
     borderRadius: 13,
-    borderWidth: 1,
+    borderWidth: 0,
     flexGrow: 1,
     gap: 2,
     minWidth: 76,
