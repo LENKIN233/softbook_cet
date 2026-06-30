@@ -1280,12 +1280,7 @@ export function LearningResultDetailSurface({
   const resolvedRows = getResolvedAnswerRows(card, cardState);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
-  const detailStateLabel = isPositive
-    ? '答对'
-    : result.outcome === 'review'
-      ? '回看'
-      : '需订正';
-  const detailActionTone = isPositive ? palette.success : borderTone;
+  const detailActionTone = detailLibraryTone.accent;
 
   return (
     <View
@@ -1298,18 +1293,30 @@ export function LearningResultDetailSurface({
           styles.glassCard,
           {
             backgroundColor: palette.panel,
-            borderColor: hexToRgba(borderTone, 0.22),
-            shadowColor: borderTone,
+            borderColor: hexToRgba(detailLibraryTone.accent, 0.2),
+            shadowColor: detailLibraryTone.accent,
           },
         ]}
       >
         <View style={styles.detailObjectHeader}>
           <View style={styles.heroChipRow}>
-            <TagChip label="当前卡" toneColor={detailLibraryTone.accent} />
-            <TagChip
-              label={phase === 'review' ? '回看已收好' : '解析已附着'}
-              toneColor={phase === 'review' ? palette.warning : palette.success}
+            <View
+              pointerEvents="none"
+              style={[
+                styles.cardObjectAccent,
+                { backgroundColor: detailLibraryTone.accent },
+              ]}
             />
+            <View style={styles.cardObjectHeaderText}>
+              <Text
+                style={[styles.learningFrameMeta, { color: palette.textMuted }]}
+              >
+                {phase === 'review' ? '回看已收好' : '解析已附着'}
+              </Text>
+              <Text style={[styles.cardObjectLead, { color: palette.text }]}>
+                当前卡 · {INTERACTION_LABELS[card.interaction_id]}
+              </Text>
+            </View>
           </View>
           <Pressable
             onPress={onBackToPractice}
@@ -1333,26 +1340,13 @@ export function LearningResultDetailSurface({
         <View style={styles.detailResolvedHeader}>
           <View style={styles.detailTitleWrap}>
             <Text style={[styles.cardEyebrow, { color: borderTone }]}>
-              当前卡 · {INTERACTION_LABELS[card.interaction_id]}
+              {isPositive ? '答对，继续保持节奏' : '这张先收进回看'}
             </Text>
             <Text
               numberOfLines={3}
               style={[styles.detailPrompt, { color: palette.text }]}
             >
               {card.front.prompt}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.detailStatusPill,
-              {
-                backgroundColor: hexToRgba(borderTone, 0.08),
-                borderColor: hexToRgba(borderTone, 0.24),
-              },
-            ]}
-          >
-            <Text style={[styles.detailStatusLabel, { color: borderTone }]}>
-              {detailStateLabel}
             </Text>
           </View>
         </View>
@@ -1366,16 +1360,16 @@ export function LearningResultDetailSurface({
                 {
                   backgroundColor:
                     row.tone === 'success'
-                      ? hexToRgba(palette.success, 0.055)
+                      ? hexToRgba(palette.success, 0.035)
                       : row.tone === 'warning'
-                        ? hexToRgba(palette.warning, 0.07)
-                        : palette.panelStrong,
+                      ? hexToRgba(palette.warning, 0.05)
+                      : palette.panelStrong,
                   borderColor:
                     row.tone === 'success'
-                      ? hexToRgba(palette.success, 0.2)
+                      ? hexToRgba(palette.success, 0.14)
                       : row.tone === 'warning'
-                        ? hexToRgba(palette.warning, 0.22)
-                        : palette.border,
+                      ? hexToRgba(palette.warning, 0.16)
+                      : palette.border,
                 },
               ]}
               testID={
@@ -1405,7 +1399,7 @@ export function LearningResultDetailSurface({
             styles.detailExplanationSlip,
             {
               backgroundColor: palette.panelStrong,
-              borderColor: hexToRgba(borderTone, 0.16),
+              borderColor: hexToRgba(detailLibraryTone.accent, 0.1),
             },
           ]}
         >
@@ -1413,7 +1407,7 @@ export function LearningResultDetailSurface({
             pointerEvents="none"
             style={[
               styles.detailSlipAccent,
-              { backgroundColor: hexToRgba(borderTone, 0.08) },
+              { backgroundColor: hexToRgba(borderTone, 0.68) },
             ]}
           />
           <Text style={[styles.detailOutcomeTitle, { color: borderTone }]}>
@@ -1700,22 +1694,6 @@ function ResultBadge({
   );
 }
 
-function TagChip({ label, toneColor }: { label: string; toneColor: string }) {
-  return (
-    <View
-      style={[
-        styles.tagChip,
-        styles.tagChipBase,
-        {
-          borderColor: toneColor,
-        },
-      ]}
-    >
-      <Text style={[styles.tagChipLabel, { color: toneColor }]}>{label}</Text>
-    </View>
-  );
-}
-
 function LightActionButton({
   label,
   onPress,
@@ -1855,7 +1833,7 @@ const styles = StyleSheet.create({
   detailResolvedCard: {
     borderRadius: 28,
     borderWidth: 1,
-    gap: 12,
+    gap: 11,
     overflow: 'hidden',
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -1875,16 +1853,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     lineHeight: 25,
-  },
-  detailStatusPill: {
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  detailStatusLabel: {
-    fontSize: 13,
-    fontWeight: '800',
   },
   detailAnswerGrid: {
     flexDirection: 'row',
@@ -1912,7 +1880,7 @@ const styles = StyleSheet.create({
   },
   detailExplanationSlip: {
     borderRadius: 20,
-    borderWidth: 0,
+    borderWidth: 1,
     gap: 8,
     overflow: 'hidden',
     paddingHorizontal: 16,
@@ -2648,19 +2616,5 @@ const styles = StyleSheet.create({
   },
   resultMeta: {
     fontSize: 12,
-  },
-  tagChip: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  tagChipBase: {
-    backgroundColor: 'rgba(255, 255, 255, 0.72)',
-  },
-  tagChipLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
   },
 });
