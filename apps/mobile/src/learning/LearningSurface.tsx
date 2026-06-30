@@ -201,8 +201,8 @@ export function LearningSurface({
             {isReviewPhase
               ? '回看已经结束。可以回到首轮重新开始，也可以稍后按学习节奏继续。'
               : reviewCandidateCount > 0
-              ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
-              : '这一轮已经完成，可以重新练这轮卡。'}
+                ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
+                : '这一轮已经完成，可以重新练这轮卡。'}
           </Text>
           {!isReviewPhase && reviewCandidateCount > 0 && onStartReview ? (
             <Pressable
@@ -318,41 +318,61 @@ export function LearningSurface({
           testID="learning-card-address-shelf"
         >
           <View style={styles.heroChipRow}>
-            <TagChip label="先做这一张" toneColor={tone.accent} />
-            <TagChip
-              label={isReviewPhase ? '本轮回看' : displaySessionLabel}
-              toneColor={isReviewPhase ? palette.warning : palette.success}
+            <View
+              pointerEvents="none"
+              style={[
+                styles.cardObjectAccent,
+                { backgroundColor: tone.accent },
+              ]}
             />
+            <View style={styles.cardObjectHeaderText}>
+              <Text
+                style={[styles.learningFrameMeta, { color: palette.textMuted }]}
+                testID="learning-progress-label"
+              >
+                {isReviewPhase ? '本轮回看' : displaySessionLabel}
+              </Text>
+              <Text style={[styles.cardObjectLead, { color: palette.text }]}>
+                当前卡 · {INTERACTION_LABELS[currentCard.interaction_id]}
+              </Text>
+            </View>
           </View>
           <View
             style={[
               styles.cardProgressCluster,
               {
                 backgroundColor: palette.panelStrong,
-                borderColor: hexToRgba(tone.accent, 0.18),
+                borderColor: hexToRgba(tone.accent, 0.14),
               },
             ]}
           >
-            <Text
-              style={[styles.learningFrameMeta, { color: palette.textMuted }]}
-              testID="learning-progress-label"
-            >
-              当前练习
-            </Text>
             <Text
               style={[styles.cardProgressCount, { color: palette.text }]}
               testID="learning-progress-count"
             >
               {progressCount}
             </Text>
+            <View
+              style={[
+                styles.cardProgressTrack,
+                { backgroundColor: palette.panel, borderColor: palette.border },
+              ]}
+            >
+              <View
+                style={[
+                  styles.progressFill,
+                  { backgroundColor: tone.accent, width: progressPercent },
+                ]}
+              />
+            </View>
           </View>
         </View>
         <View
           style={[
             styles.cardLocationStrip,
             {
-              backgroundColor: hexToRgba(tone.accent, 0.035),
-              borderColor: palette.border,
+              backgroundColor: hexToRgba(tone.accent, 0.028),
+              borderColor: hexToRgba(tone.accent, 0.1),
             },
           ]}
           testID="learning-card-location-strip"
@@ -360,7 +380,7 @@ export function LearningSurface({
           <View style={styles.cardLocationTextWrap}>
             <Text
               numberOfLines={1}
-              style={[styles.cardLocationTitle, { color: palette.text }]}
+              style={[styles.cardLocationTitle, { color: palette.textMuted }]}
             >
               当前馆 · 本轮盒
             </Text>
@@ -368,29 +388,14 @@ export function LearningSurface({
               numberOfLines={1}
               style={[styles.cardLocationMeta, { color: palette.textMuted }]}
             >
-              {isReviewPhase
-                ? '回看需要再看的卡，仍按一张卡推进'
-                : '先完成这一张，再继续下一步'}
+              {isReviewPhase ? '需要再看的卡已放到眼前' : '位置已保持'}
             </Text>
-          </View>
-          <View
-            style={[
-              styles.cardProgressTrack,
-              { backgroundColor: palette.panel, borderColor: palette.border },
-            ]}
-          >
-            <View
-              style={[
-                styles.progressFill,
-                { backgroundColor: tone.accent, width: progressPercent },
-              ]}
-            />
           </View>
         </View>
         <View style={styles.studyCardTop}>
           <View style={styles.studyTitleWrap}>
-            <Text style={[styles.cardEyebrow, { color: tone.accent }]}>
-              当前卡 · {INTERACTION_LABELS[currentCard.interaction_id]}
+            <Text style={[styles.cardEyebrow, { color: palette.textMuted }]}>
+              先判断，再确认解析
             </Text>
             <Text
               numberOfLines={isDenseInteraction ? 2 : 4}
@@ -469,16 +474,18 @@ export function LearningSurface({
               },
             ]}
           >
-            <View style={styles.interactionTitleRow}>
-              <Text style={[styles.sectionTitle, { color: palette.text }]}>
-                {INTERACTION_LABELS[currentCard.interaction_id]}
-              </Text>
-              <Text
-                style={[styles.interactionMeta, { color: palette.textMuted }]}
-              >
-                现在做
-              </Text>
-            </View>
+            {isDenseInteraction ? (
+              <View style={styles.interactionTitleRow}>
+                <Text style={[styles.sectionTitle, { color: palette.text }]}>
+                  {INTERACTION_LABELS[currentCard.interaction_id]}
+                </Text>
+                <Text
+                  style={[styles.interactionMeta, { color: palette.textMuted }]}
+                >
+                  现在做
+                </Text>
+              </View>
+            ) : null}
             {!isDenseInteraction ? (
               <Text
                 numberOfLines={2}
@@ -734,6 +741,26 @@ function InteractionBody({
                 option.id === card.answer_key.correct_option;
               const isIncorrectSelection =
                 currentResult?.outcome === 'incorrect' && isSelected;
+              const isResolved = currentResult !== null;
+              const optionStateTint = isCorrect
+                ? hexToRgba(palette.success, 0.08)
+                : isIncorrectSelection
+                  ? hexToRgba(palette.danger, 0.075)
+                  : isSelected
+                    ? hexToRgba(tone.accent, 0.055)
+                    : palette.panel;
+              const optionStateBorder = isCorrect
+                ? hexToRgba(palette.success, 0.42)
+                : isIncorrectSelection
+                  ? hexToRgba(palette.danger, 0.38)
+                  : isSelected
+                    ? hexToRgba(tone.accent, 0.42)
+                    : palette.border;
+              const optionStateColor = isCorrect
+                ? palette.success
+                : isIncorrectSelection
+                  ? palette.danger
+                  : tone.accent;
 
               return (
                 <Pressable
@@ -743,23 +770,62 @@ function InteractionBody({
                     styles.optionCard,
                     isSelected ? styles.optionCardSelected : null,
                     {
-                      backgroundColor: isSelected
-                        ? tone.accentSoft
-                        : palette.panel,
-                      borderColor: isCorrect
-                        ? palette.success
-                        : isIncorrectSelection
-                        ? palette.danger
-                        : isSelected
-                        ? tone.accent
-                        : palette.border,
+                      backgroundColor: optionStateTint,
+                      borderColor: optionStateBorder,
                     },
                   ]}
                   testID={`learning-option-${option.id}`}
                 >
-                  <Text style={[styles.optionLabel, { color: tone.accent }]}>
-                    {option.label}
-                  </Text>
+                  {isSelected ? (
+                    <View
+                      pointerEvents="none"
+                      style={[
+                        styles.optionSelectedRail,
+                        { backgroundColor: optionStateColor },
+                      ]}
+                    />
+                  ) : null}
+                  <View style={styles.optionHeaderRow}>
+                    <View
+                      style={[
+                        styles.optionLetterBadge,
+                        {
+                          backgroundColor:
+                            isSelected || isResolved
+                              ? optionStateColor
+                              : hexToRgba(tone.accent, 0.09),
+                          borderColor:
+                            isSelected || isResolved
+                              ? optionStateColor
+                              : hexToRgba(tone.accent, 0.18),
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.optionLabel,
+                          {
+                            color:
+                              isSelected || isResolved
+                                ? palette.panel
+                                : tone.accent,
+                          },
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </View>
+                    {isSelected && !isResolved ? (
+                      <Text
+                        style={[
+                          styles.optionStateLabel,
+                          { color: palette.textMuted },
+                        ]}
+                      >
+                        已选择
+                      </Text>
+                    ) : null}
+                  </View>
                   <Text
                     numberOfLines={2}
                     style={[styles.optionText, { color: palette.text }]}
@@ -904,11 +970,11 @@ function InteractionBody({
                         ? isCorrect
                           ? palette.success
                           : isSelected
-                          ? palette.danger
-                          : palette.border
+                            ? palette.danger
+                            : palette.border
                         : isSelected
-                        ? tone.accent
-                        : palette.border,
+                          ? tone.accent
+                          : palette.border,
                     },
                   ]}
                   testID={`learning-elimination-${item.id}`}
@@ -1006,8 +1072,8 @@ function InteractionBody({
                       borderColor: isCorrect
                         ? palette.success
                         : isSelected
-                        ? tone.accent
-                        : palette.border,
+                          ? tone.accent
+                          : palette.border,
                     },
                   ]}
                   testID={`learning-swipe-${state.id}`}
@@ -1217,8 +1283,8 @@ export function LearningResultDetailSurface({
   const detailStateLabel = isPositive
     ? '答对'
     : result.outcome === 'review'
-    ? '回看'
-    : '需订正';
+      ? '回看'
+      : '需订正';
   const detailActionTone = isPositive ? palette.success : borderTone;
 
   return (
@@ -1302,14 +1368,14 @@ export function LearningResultDetailSurface({
                     row.tone === 'success'
                       ? hexToRgba(palette.success, 0.055)
                       : row.tone === 'warning'
-                      ? hexToRgba(palette.warning, 0.07)
-                      : palette.panelStrong,
+                        ? hexToRgba(palette.warning, 0.07)
+                        : palette.panelStrong,
                   borderColor:
                     row.tone === 'success'
                       ? hexToRgba(palette.success, 0.2)
                       : row.tone === 'warning'
-                      ? hexToRgba(palette.warning, 0.22)
-                      : palette.border,
+                        ? hexToRgba(palette.warning, 0.22)
+                        : palette.border,
                 },
               ]}
               testID={
@@ -1416,8 +1482,8 @@ function ResultSummaryPanel({
     result.outcome === 'review'
       ? palette.warning
       : result.outcome === 'incorrect'
-      ? palette.danger
-      : palette.success;
+        ? palette.danger
+        : palette.success;
   const cardTone = resolveLibraryTone(card.space_metadata.library);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
@@ -1498,8 +1564,8 @@ function ResultPanel({
     result.outcome === 'review'
       ? palette.warning
       : result.outcome === 'incorrect'
-      ? palette.danger
-      : palette.success;
+        ? palette.danger
+        : palette.success;
   const cardTone = resolveLibraryTone(card.space_metadata.library);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
@@ -1576,8 +1642,8 @@ function MetricPill({
     tone === 'success'
       ? palette.success
       : tone === 'danger'
-      ? palette.danger
-      : palette.accent;
+        ? palette.danger
+        : palette.accent;
 
   return (
     <View
@@ -1606,16 +1672,16 @@ function ResultBadge({
     outcome === 'review'
       ? palette.warning
       : outcome === 'incorrect'
-      ? palette.danger
-      : palette.success;
+        ? palette.danger
+        : palette.success;
   const label =
     outcome === 'correct'
       ? '自动判对'
       : outcome === 'incorrect'
-      ? '自动判错'
-      : outcome === 'confident'
-      ? '翻面有把握'
-      : '翻面回看';
+        ? '自动判错'
+        : outcome === 'confident'
+          ? '翻面有把握'
+          : '翻面回看';
 
   return (
     <View
@@ -1717,6 +1783,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   heroChipRow: {
+    alignItems: 'center',
+    flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
@@ -1890,9 +1958,9 @@ const styles = StyleSheet.create({
   cardProgressTrack: {
     borderRadius: 999,
     borderWidth: 1,
-    height: 10,
+    height: 7,
     overflow: 'hidden',
-    width: 58,
+    width: 54,
   },
   progressFill: {
     height: '100%',
@@ -1939,50 +2007,67 @@ const styles = StyleSheet.create({
   },
   studyCardOneScreen: {
     flex: 1,
-    gap: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 13,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
   },
   cardAddressShelf: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
     justifyContent: 'space-between',
   },
+  cardObjectAccent: {
+    borderRadius: 999,
+    height: 34,
+    width: 5,
+  },
+  cardObjectHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+  cardObjectLead: {
+    fontSize: 16,
+    fontWeight: '800',
+    lineHeight: 20,
+  },
   cardProgressCluster: {
-    alignItems: 'flex-end',
-    borderRadius: 16,
+    alignItems: 'center',
+    borderRadius: 18,
     borderWidth: 1,
-    minWidth: 74,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    gap: 4,
+    minWidth: 66,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
   },
   cardProgressCount: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
-    lineHeight: 21,
+    lineHeight: 19,
   },
   cardLocationStrip: {
     alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 18,
+    borderWidth: 0,
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
   },
   cardLocationTextWrap: {
     flex: 1,
-    gap: 3,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
   },
   cardLocationTitle: {
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '800',
   },
   cardLocationMeta: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   studyCardTop: {
     flexDirection: 'row',
@@ -1997,7 +2082,7 @@ const styles = StyleSheet.create({
   cardEyebrow: {
     fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 0.4,
   },
   cardPrompt: {
     fontSize: 27,
@@ -2111,9 +2196,9 @@ const styles = StyleSheet.create({
   },
   interactionCardOneScreen: {
     flexShrink: 1,
-    gap: 9,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+    gap: 10,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   interactionCardEmbedded: {
     backgroundColor: 'transparent',
@@ -2181,33 +2266,62 @@ const styles = StyleSheet.create({
   optionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
+    gap: 9,
   },
   optionCard: {
     borderWidth: 1,
     borderRadius: 18,
     flexBasis: '47%',
     flexGrow: 1,
-    gap: 5,
+    gap: 8,
     alignItems: 'flex-start',
-    minHeight: 68,
+    minHeight: 76,
     minWidth: '47%',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    overflow: 'hidden',
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    position: 'relative',
   },
   optionCardSelected: {
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 2,
+  },
+  optionSelectedRail: {
+    bottom: 10,
+    borderRadius: 999,
+    left: 7,
+    position: 'absolute',
+    top: 10,
+    width: 3,
+  },
+  optionHeaderRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  optionLetterBadge: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 25,
+    justifyContent: 'center',
+    width: 25,
   },
   optionLabel: {
     fontSize: 12,
     fontWeight: '800',
   },
+  optionStateLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
   optionText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     lineHeight: 18,
   },
   lockGroup: {
