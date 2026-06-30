@@ -4,7 +4,7 @@
 
 - Date: 2026-06-30
 - Branch: `codex/fix/mobile-market-ui-reset`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/269
 - Summary: Continued the user-visible mobile app quality reset toward mainstream app-store product quality. This pass makes Learning, Space, Statistics, and Mine share one app-like shell, tighter one-screen task structure, softer material hierarchy, real interaction states, and refreshed real iOS simulator screenshots.
 
 ## Referenced specs
