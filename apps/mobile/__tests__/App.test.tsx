@@ -2597,9 +2597,12 @@ test('can check in from statistics after making learning progress', async () => 
   });
 
   let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('学习手感保持中');
   expect(output).toContain('今日可签到');
   expect(output).toContain('今天已经产生有效学习进展，可以记录一次签到。');
   expect(output).toContain('已记录');
+  expect(output).not.toContain('今日统计与签到');
+  expect(output).not.toContain('今日练习信号');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'statistics-checkin-button' }).props.onPress();
