@@ -55,7 +55,7 @@ These are recorded in `docs/design/rejected/mobile-core-surface-reset-failures-v
 
 ## Single-Card UX Contract Answers
 
-- Current card: the Reading card is always the primary object in Learning and Detail.
+- Current card: the current-library card is always the primary object in Learning and Detail.
 - Primary task: answer or continue the current card.
 - Primary action: selected interaction control or continue-next-card CTA.
 - Secondary actions: hint, peek, favorite, and Space address remain attached and lower weight.
@@ -65,7 +65,7 @@ These are recorded in `docs/design/rejected/mobile-core-surface-reset-failures-v
 
 ## Design Review Checklist Answers
 
-Q1: Current library is Reading in the proof. Coral is the only strong accent driving CTA, active option, answer slip edge, and current Space object.
+Q1: Current library is the active library in the proof. Coral is the only strong accent driving CTA, active option, answer slip edge, and current Space object.
 
 Q2: Focal object is the current card in Learning and Detail, the current box in Space, the daily ledger object in Statistics, and the account card in Mine. First-read path stays object -> attached state -> chrome.
 

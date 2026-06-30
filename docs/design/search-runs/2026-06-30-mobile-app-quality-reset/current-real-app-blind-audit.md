@@ -29,7 +29,7 @@ The current app is not failing mainly because of color, line, or spacing details
 
 ## Design Review Checklist Answers
 
-Q1: Current-library evidence is inconsistent across the screenshot set. The reset must make Reading or the active library the single strong accent for Learning / Detail / Space, while Statistics and Mine stay neutral.
+Q1: Current-library evidence is inconsistent across the screenshot set. The reset must make the active library the single strong accent for Learning / Detail / Space, while Statistics and Mine stay neutral.
 
 Q2: Current focal objects are inconsistent. Learning has a card, Detail has a report, Space has a page, Statistics has metrics, and Mine has account controls. The reset needs one reusable hierarchy: current object, attached action layer, quiet chrome.
 

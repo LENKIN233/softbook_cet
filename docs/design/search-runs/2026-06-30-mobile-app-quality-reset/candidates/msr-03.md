@@ -54,7 +54,7 @@ Can become a browsing surface. It may visually over-explain Space and reduce the
 
 ## Design Review Checklist Answers
 
-Q1: Current library is Reading, with one coral active edge and muted hierarchy context.
+Q1: Current library is the active library, with one coral active edge and muted hierarchy context.
 
 Q2: Focal object is the active card pulled from the current box.
 

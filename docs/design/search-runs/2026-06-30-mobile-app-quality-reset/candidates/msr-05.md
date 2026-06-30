@@ -54,7 +54,7 @@ It undermines low-burden learning, promotes module-like progress thinking, and w
 
 ## Design Review Checklist Answers
 
-Q1: Current library could be Reading, but timeline states would compete with the single accent.
+Q1: Current library could be the active library, but timeline states would compete with the single accent.
 
 Q2: Focal object is the timeline, which is the wrong focal object for Learning.
 

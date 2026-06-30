@@ -49,7 +49,7 @@ Failure patterns are recorded in `docs/design/rejected/mobile-core-surface-reset
 
 ## Design Review Checklist Answers
 
-Q1: Current library is Reading for the promoted phone proof. Law of One is preserved: reading coral drives CTA, active edge, and detail emphasis; other subject colors are absent or quiet context only.
+Q1: Current library is the active library for the promoted phone proof. Law of One is preserved: the coral accent drives CTA, active edge, and detail emphasis; other subject colors are absent or quiet context only.
 
 Q2: Focal object is the current study card. The first-read path is card object -> primary operation or answer slip -> Space address -> floating app chrome.
 

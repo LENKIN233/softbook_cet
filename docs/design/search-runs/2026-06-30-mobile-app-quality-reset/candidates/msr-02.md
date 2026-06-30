@@ -50,11 +50,11 @@ Maps to Learning object plane and answer slip. Future implementation should borr
 
 ## Known Risks
 
-It may look like a reading app rather than a CET operation app. If the desk metaphor becomes dominant, Space continuity weakens.
+It may look like a document reader rather than a CET operation app. If the desk metaphor becomes dominant, Space continuity weakens.
 
 ## Design Review Checklist Answers
 
-Q1: Current library is Reading, with coral as the only strong accent.
+Q1: Current library is the active library, with coral as the only strong accent.
 
 Q2: Focal object is the study page card; first-read path is page, corner slip, quiet chrome.
 

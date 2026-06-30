@@ -42,7 +42,7 @@ Motion would likely be a page transition to a report, which breaks state continu
 
 ## Platform Strategy
 
-Phone would require vertical reading and likely scrolling. Larger surfaces would become report dashboards.
+Phone would require vertical long-form consumption and likely scrolling. Larger surfaces would become report dashboards.
 
 ## Implementation Mapping
 

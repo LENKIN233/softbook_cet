@@ -18,7 +18,7 @@ Preserves system-sequenced single-card flow by making the current card the persi
 
 ## Focal Object
 
-The current Reading card object with one coral accent rail.
+The current-library card object with one coral accent rail.
 
 ## First-Read Path
 
@@ -54,7 +54,7 @@ The rail could become too abstract if real card text is long. The attached slip 
 
 ## Design Review Checklist Answers
 
-Q1: Current library is Reading, and coral is the only strong accent in the candidate proof.
+Q1: Current library is the active library, and coral is the only strong accent in the candidate proof.
 
 Q2: Focal object is the current card; the first-read path is card, slip, address, chrome.
 

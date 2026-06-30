@@ -54,7 +54,7 @@ It looks distinct but can become hard to operate and not mainstream enough for t
 
 ## Design Review Checklist Answers
 
-Q1: Current library may be Reading, but neighboring library colors could easily violate Law of One.
+Q1: Current library may be the active library, but neighboring library colors could easily violate Law of One.
 
 Q2: Focal object is the map strip, not the active card.
 

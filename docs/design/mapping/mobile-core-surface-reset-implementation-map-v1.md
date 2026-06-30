@@ -90,7 +90,7 @@ Detail must not be implemented as a separate report page or a vertical article. 
 
 ## Design Review Checklist Answers
 
-Q1: Future implementation must name the current library per screen and keep one strong accent. The reset proof uses Reading/coral.
+Q1: Future implementation must name the current library per screen and keep one strong accent. The reset proof uses the active library with coral.
 
 Q2: Future implementation must identify the focal object for each surface and preserve object -> attached state -> chrome.
 

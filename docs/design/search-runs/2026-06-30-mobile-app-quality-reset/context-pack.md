@@ -33,7 +33,7 @@ The baseline word is used deliberately: accepted Learning and Space artifacts re
 
 ## Product Truth
 
-- 软书四六级 helps Chinese college students pass CET4/CET6 with lower burden and higher trust, not a general English learning dashboard.
+- 软书四六级 helps Chinese college students pass 四六级 with lower burden and higher trust, not a general English learning dashboard.
 - Learning is a system-sequenced single-card flow. The user should operate one current card, one primary task, bounded secondary tools, feedback, recovery, and Learning to Space continuity.
 - The top-level app structure remains Learning / Space / Statistics / Mine, but Learning is the strongest entry.
 - Physical Space is a core differentiator: library / group / box / card must be visible as spatial hierarchy, and favorite is a tag rather than a physical box.

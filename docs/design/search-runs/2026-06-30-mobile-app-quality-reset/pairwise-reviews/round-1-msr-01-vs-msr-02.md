@@ -49,4 +49,4 @@ Choose `msr-01` as the base and harvest `msr-02`'s answer-slip material. The pro
 
 ## Rejected Fragments
 
-- From `msr-02`: dense desk/page surfaces and any metaphor that makes Learning feel like a reading app.
+- From `msr-02`: dense desk/page surfaces and any metaphor that makes Learning feel like a document reader.

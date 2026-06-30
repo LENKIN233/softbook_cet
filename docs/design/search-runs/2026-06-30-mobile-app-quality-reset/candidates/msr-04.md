@@ -54,7 +54,7 @@ It can look like a generic quiz app. It may underplay CET trust and physical Spa
 
 ## Design Review Checklist Answers
 
-Q1: Current library is Reading and the action accent uses only coral.
+Q1: Current library is the active library and the action accent uses only coral.
 
 Q2: Focal object is the answer action area attached to the current card.
 

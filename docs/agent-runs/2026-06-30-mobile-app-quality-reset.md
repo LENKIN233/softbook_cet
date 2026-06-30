@@ -27,7 +27,7 @@
 
 ## Product truth used
 
-- 软书四六级 is a CET4/6 preparation product centered on system-sequenced single-card flow, not a generic English learning dashboard.
+- 软书四六级 is an exam-prep product centered on system-sequenced single-card flow, not a generic English learning dashboard.
 - Physical Space is a core differentiator and must preserve library / group / box / card hierarchy.
 - User-facing UI requires an accepted design artifact before implementation treats it as shippable.
 - Existing RN screens are behavior prototypes and screenshot evidence, not visual authority.
@@ -59,6 +59,10 @@
 - Bundled Node plus Playwright with `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` -> rendered `screenshots/promoted-proof.png` and `screenshots/candidate-proof.png`.
 - Bundled Python Pillow pixel check -> confirmed nonblank PNG output with nonzero variance.
 - `python3 scripts/validate_pr_design_gate.py --changed-file ...` -> initially failed because checklist PR body was not supplied and one self-assess reference lacked mint/amber evidence; self-assess evidence was corrected.
+- `npm --prefix apps/mobile run design-metadata-leak-scan` -> initially failed in CI because the visual proof used raw library labels and semantic accent token names; fixed by replacing raw labels with current-library language and generic accent tokens, then passed locally.
+- `npm --prefix apps/mobile run lint -- --quiet` -> passed.
+- `npm --prefix apps/mobile run typecheck` -> passed.
+- `npm --prefix apps/mobile test -- --runInBand --watchAll=false` -> passed.
 
 ## Validation results
 
@@ -68,6 +72,11 @@
   - `docs/design/search-runs/2026-06-30-mobile-app-quality-reset/screenshots/candidate-proof.png`
 - `python3 scripts/validate_pr_design_gate.py --body-file /tmp/mobile-reset-pr-body.md --changed-file ...` -> passed.
 - `python3 scripts/validate_harness.py` -> passed.
+- `npm --prefix apps/mobile run design-metadata-leak-scan` -> passed.
+- `npm --prefix apps/mobile run metadata-leak-scan` -> passed.
+- `npm --prefix apps/mobile run lint -- --quiet` -> passed.
+- `npm --prefix apps/mobile run typecheck` -> passed.
+- `npm --prefix apps/mobile test -- --runInBand --watchAll=false` -> passed.
 
 ## Agent review status
 
