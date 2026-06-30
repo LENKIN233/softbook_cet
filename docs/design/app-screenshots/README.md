@@ -12,7 +12,8 @@ Use `current-real-app/` for any current product review or leadership handoff.
 
 These PNGs are copied from the real iOS simulator captures recorded in
 `docs/agent-runs/artifacts/2026-06-28-one-screen-app-flow-simulator-*.png`
-and `docs/agent-runs/artifacts/2026-06-28-mine-one-screen-app-flow-simulator.png`.
+`docs/agent-runs/artifacts/2026-06-28-mine-one-screen-app-flow-simulator.png`,
+and later per-screen simulator captures referenced by their agent run records.
 They are not mockups or generated design images.
 
 ## Archive

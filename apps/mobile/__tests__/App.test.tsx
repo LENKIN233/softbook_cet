@@ -411,7 +411,9 @@ test('renders correctly', async () => {
   expect(output).toContain('空间');
   expect(output).toContain('统计');
   expect(output).toContain('我的');
-  expect(output).toContain('学习前先登录');
+  expect(output).toContain('确认身份，继续当前卡');
+  expect(output).toContain('当前学习卡');
+  expect(output).toContain('已保留');
 });
 
 test('reads installed runtime config when the app mounts', async () => {

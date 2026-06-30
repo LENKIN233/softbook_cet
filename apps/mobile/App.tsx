@@ -2721,72 +2721,108 @@ function AuthGate({
   palette: Palette;
   route: ShellRoute;
 }) {
+  const routeObject =
+    route.key === 'space'
+      ? '当前空间位置'
+      : route.key === 'statistics'
+      ? '今日进展'
+      : route.key === 'mine'
+      ? '账号与进度'
+      : '当前学习卡';
+  const continuityItems = [
+    { label: '这一张', value: '已保留' },
+    { label: '同盒位置', value: '已保留' },
+    { label: '今日进度', value: '会同步' },
+  ];
+
   return (
     <View style={styles.authGateScreen}>
       <View
         style={[
-          styles.authGateLead,
+          styles.authEntryCard,
           { backgroundColor: palette.panel, borderColor: palette.border },
         ]}
       >
-        <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-          身份确认
-        </Text>
-        <Text
-          style={[styles.authGateTitle, { color: palette.text }]}
-          testID="auth-gate-keyboard-dismiss-target"
-        >
-          {route.key === 'learning'
-            ? '学习前先登录'
-            : `进入${route.label}前先确认身份`}
-        </Text>
-        <Text style={[styles.authGateSummary, { color: palette.textMuted }]}>
-          手机号验证码确认后，直接回到当前卡和个人进度。
-        </Text>
-      </View>
-      <PhoneSmsPanel
-        authRepositoryMode={authRepositoryMode}
-        authState={authState}
-        handlers={handlers}
-        palette={palette}
-        title="手机号验证码登录"
-        summary={
-          authRepositoryMode === 'remote'
-            ? '使用短信验证码确认身份，登录后继续进入学习、空间和个人进度。'
-            : '输入验证码完成登录，登录后继续进入学习、空间和个人进度。'
-        }
-      />
-      <View style={styles.authGateTrustRow}>
-        <View
-          style={[
-            styles.authGateTrustPill,
-            {
-              backgroundColor: palette.panelStrong,
-              borderColor: palette.border,
-            },
-          ]}
-        >
+        <View style={styles.authObjectHeader}>
+          <View style={styles.authHeaderMeta}>
+            <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
+              {routeObject}已保留
+            </Text>
+            <View
+              style={[
+                styles.authObjectBadge,
+                {
+                  backgroundColor: palette.panelStrong,
+                  borderColor: palette.border,
+                },
+              ]}
+            >
+              <Text
+                style={[styles.authObjectBadgeValue, { color: palette.text }]}
+              >
+                未登录
+              </Text>
+              <Text
+                style={[
+                  styles.authObjectBadgeLabel,
+                  { color: palette.textMuted },
+                ]}
+              >
+                手机号验证码
+              </Text>
+            </View>
+          </View>
           <Text
-            style={[styles.authGateTrustLabel, { color: palette.textMuted }]}
+            style={[styles.authGateTitle, { color: palette.text }]}
+            testID="auth-gate-keyboard-dismiss-target"
           >
-            学习前登录
+            确认身份，继续当前卡
+          </Text>
+          <Text style={[styles.authGateSummary, { color: palette.textMuted }]}>
+            验证码通过后回到当前学习对象，空间位置和会员状态保持一致。
           </Text>
         </View>
-        <View
-          style={[
-            styles.authGateTrustPill,
-            {
-              backgroundColor: palette.panelStrong,
-              borderColor: palette.border,
-            },
-          ]}
-        >
-          <Text
-            style={[styles.authGateTrustLabel, { color: palette.textMuted }]}
-          >
-            试用随首次学习开始
-          </Text>
+        <View style={styles.authContinuityGrid}>
+          {continuityItems.map(item => (
+            <View
+              key={item.label}
+              style={[
+                styles.authContinuityItem,
+                {
+                  backgroundColor: palette.panelStrong,
+                  borderColor: palette.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.authContinuityLabel,
+                  { color: palette.textMuted },
+                ]}
+              >
+                {item.label}
+              </Text>
+              <Text
+                style={[styles.authContinuityValue, { color: palette.text }]}
+              >
+                {item.value}
+              </Text>
+            </View>
+          ))}
         </View>
+        <PhoneSmsPanel
+          authRepositoryMode={authRepositoryMode}
+          authState={authState}
+          embedded
+          handlers={handlers}
+          palette={palette}
+          title="手机号验证码"
+          summary={
+            authRepositoryMode === 'remote'
+              ? '使用短信验证码确认身份。'
+              : '输入验证码确认身份。'
+          }
+        />
       </View>
     </View>
   );
@@ -3392,6 +3428,7 @@ function MembershipActionGroup({
 function PhoneSmsPanel({
   authRepositoryMode,
   authState,
+  embedded = false,
   handlers,
   palette,
   title,
@@ -3399,6 +3436,7 @@ function PhoneSmsPanel({
 }: {
   authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
+  embedded?: boolean;
   handlers: AuthHandlers;
   palette: Palette;
   title: string;
@@ -3412,6 +3450,7 @@ function PhoneSmsPanel({
     <View
       style={[
         styles.authPanel,
+        embedded ? styles.authPanelEmbedded : null,
         { backgroundColor: palette.panel, borderColor: palette.border },
       ]}
     >
@@ -3500,7 +3539,7 @@ function PhoneSmsPanel({
           onPress={handlers.onRequestCode}
           style={[
             styles.primaryButton,
-            styles.compactButton,
+            embedded ? null : styles.compactButton,
             { backgroundColor: palette.accent },
           ]}
           testID="auth-request-code-button"
@@ -3520,7 +3559,7 @@ function PhoneSmsPanel({
             ? `已向 ${maskPhoneNumber(authState.phoneNumber)} 发送验证码。`
             : authRepositoryMode === 'remote'
             ? '将通过短信验证码确认身份。'
-            : '输入验证码即可完成登录。'}
+            : '验证码通过后会回到当前学习。'}
         </Text>
       </View>
 
@@ -4016,41 +4055,83 @@ const styles = StyleSheet.create({
   },
   authGateScreen: {
     flex: 1,
-    gap: 12,
-    justifyContent: 'center',
+    gap: 10,
+    justifyContent: 'flex-start',
     paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingTop: 12,
+    paddingBottom: 10,
   },
-  authGateLead: {
+  authEntryCard: {
     borderWidth: 1,
-    borderRadius: 24,
-    gap: 6,
-    paddingHorizontal: 18,
+    borderRadius: 28,
+    gap: 12,
+    paddingHorizontal: 16,
     paddingVertical: 16,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.1,
+    shadowRadius: 30,
+    elevation: 5,
+  },
+  authObjectHeader: {
+    gap: 8,
+  },
+  authHeaderMeta: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+    width: '100%',
   },
   authGateTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '800',
+    lineHeight: 32,
   },
   authGateSummary: {
     fontSize: 14,
     lineHeight: 21,
   },
-  authGateTrustRow: {
+  authObjectBadge: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  authObjectBadgeValue: {
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  authObjectBadgeLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 14,
+    textAlign: 'center',
+  },
+  authContinuityGrid: {
     flexDirection: 'row',
     gap: 8,
   },
-  authGateTrustPill: {
-    borderRadius: 999,
+  authContinuityItem: {
+    borderRadius: 18,
     borderWidth: 1,
     flex: 1,
+    gap: 3,
     paddingHorizontal: 10,
-    paddingVertical: 9,
+    paddingVertical: 10,
   },
-  authGateTrustLabel: {
-    fontSize: 12,
+  authContinuityLabel: {
+    fontSize: 11,
     fontWeight: '700',
-    textAlign: 'center',
+    lineHeight: 15,
+  },
+  authContinuityValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 18,
   },
   hero: {
     borderWidth: 1,
@@ -4086,6 +4167,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 28,
     elevation: 4,
+  },
+  authPanelEmbedded: {
+    borderWidth: 0,
+    borderRadius: 0,
+    elevation: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    shadowOpacity: 0,
   },
   authSummary: {
     fontSize: 14,
