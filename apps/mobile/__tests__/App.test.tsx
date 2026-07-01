@@ -560,12 +560,19 @@ test('shows remote verify-code failure inside the auth gate', async () => {
     root.findByProps({ testID: 'auth-code-input' }).props.onChangeText('2468');
   });
 
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('验证码已发送');
+  expect(output).toContain('已发送到');
+  expect(output).toContain('138****8000');
+  expect(output).toContain('完成后回到当前卡。');
+  expect(output).toContain('重新发送');
+
   await ReactTestRenderer.act(async () => {
     root.findByProps({ testID: 'auth-submit-button' }).props.onPress();
     await flushAsyncEffects();
   });
 
-  const output = JSON.stringify(tree!.toJSON());
+  output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('验证码校验暂时失败（401）。');
   expect(output).toContain('用短信验证码确认身份');
 });
