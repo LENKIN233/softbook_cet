@@ -2723,16 +2723,16 @@ function AuthGate({
 }) {
   const routeObject =
     route.key === 'space'
-      ? '当前空间位置'
+      ? '空间位置'
       : route.key === 'statistics'
       ? '今日进展'
       : route.key === 'mine'
       ? '账号与进度'
-      : '当前学习卡';
+      : '这张卡';
   const continuityItems = [
-    { label: '这一张', value: '已保留' },
-    { label: '同盒位置', value: '已保留' },
-    { label: '今日进度', value: '会同步' },
+    { label: '卡片', value: '已保留' },
+    { label: '位置', value: '已保留' },
+    { label: '进度', value: '登录后保存' },
   ];
 
   return (
@@ -2768,7 +2768,7 @@ function AuthGate({
                   { color: palette.textMuted },
                 ]}
               >
-                手机号验证码
+                手机验证
               </Text>
             </View>
           </View>
@@ -2776,24 +2776,23 @@ function AuthGate({
             style={[styles.authGateTitle, { color: palette.text }]}
             testID="auth-gate-keyboard-dismiss-target"
           >
-            确认身份，继续当前卡
+            登录后继续学习
           </Text>
           <Text style={[styles.authGateSummary, { color: palette.textMuted }]}>
-            验证码通过后回到当前学习对象，空间位置和会员状态保持一致。
+            验证码通过后回到这张卡，空间和会员状态保持一致。
           </Text>
         </View>
-        <View style={styles.authContinuityGrid}>
+        <View
+          style={[styles.authContinuityRail, { borderColor: palette.border }]}
+        >
           {continuityItems.map(item => (
-            <View
-              key={item.label}
-              style={[
-                styles.authContinuityItem,
-                {
-                  backgroundColor: palette.panelStrong,
-                  borderColor: palette.border,
-                },
-              ]}
-            >
+            <View key={item.label} style={styles.authContinuityItem}>
+              <View
+                style={[
+                  styles.authContinuityDot,
+                  { backgroundColor: palette.accent },
+                ]}
+              />
               <Text
                 style={[
                   styles.authContinuityLabel,
@@ -2816,10 +2815,10 @@ function AuthGate({
           embedded
           handlers={handlers}
           palette={palette}
-          title="手机号验证码"
+          title="手机号登录"
           summary={
             authRepositoryMode === 'remote'
-              ? '使用短信验证码确认身份。'
+              ? '用短信验证码确认身份。'
               : '输入验证码确认身份。'
           }
         />
@@ -3531,7 +3530,10 @@ function PhoneSmsPanel({
       style={[
         styles.authPanel,
         embedded ? styles.authPanelEmbedded : null,
-        { backgroundColor: palette.panel, borderColor: palette.border },
+        {
+          backgroundColor: embedded ? 'transparent' : palette.panel,
+          borderColor: palette.border,
+        },
       ]}
     >
       <Text style={[styles.infoTitle, { color: palette.text }]}>{title}</Text>
@@ -4141,9 +4143,9 @@ const styles = StyleSheet.create({
   authEntryCard: {
     borderWidth: 1,
     borderRadius: 28,
-    gap: 12,
+    gap: 13,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 15,
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.1,
     shadowRadius: 30,
@@ -4160,9 +4162,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   authGateTitle: {
-    fontSize: 26,
+    fontSize: 27,
     fontWeight: '800',
-    lineHeight: 32,
+    lineHeight: 33,
   },
   authGateSummary: {
     fontSize: 14,
@@ -4188,27 +4190,32 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     textAlign: 'center',
   },
-  authContinuityGrid: {
+  authContinuityRail: {
+    borderTopWidth: 1,
     flexDirection: 'row',
     gap: 8,
+    paddingTop: 10,
   },
   authContinuityItem: {
-    borderRadius: 18,
-    borderWidth: 1,
+    alignItems: 'flex-start',
     flex: 1,
-    gap: 3,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    gap: 4,
+    minWidth: 0,
+  },
+  authContinuityDot: {
+    borderRadius: 999,
+    height: 7,
+    width: 7,
   },
   authContinuityLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
-    lineHeight: 15,
+    lineHeight: 14,
   },
   authContinuityValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 18,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
   },
   hero: {
     borderWidth: 1,
