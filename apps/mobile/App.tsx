@@ -2941,7 +2941,7 @@ function MineSurface({
               style={[styles.mineAccountSummary, { color: palette.textMuted }]}
             >
               {isAuthenticated
-                ? '记录和会员都在这里。'
+                ? '账号、会员和购买恢复在这里，不打断学习任务。'
                 : '验证码通过后回到当前学习卡。'}
             </Text>
           </View>
@@ -2949,16 +2949,13 @@ function MineSurface({
             style={[
               styles.mineMembershipPill,
               {
-                backgroundColor: palette.panelStrong,
-                borderColor: palette.border,
+                backgroundColor: palette.accentSoft,
+                borderColor: hexToRgba(palette.accent, 0.14),
               },
             ]}
           >
             <Text
-              style={[
-                styles.mineMembershipPillText,
-                { color: palette.textMuted },
-              ]}
+              style={[styles.mineMembershipPillText, { color: palette.accent }]}
               testID="mine-membership-stage"
             >
               {membershipTitle}
@@ -2967,7 +2964,13 @@ function MineSurface({
         </View>
 
         <View
-          style={[styles.mineIdentityBand, { borderColor: palette.border }]}
+          style={[
+            styles.mineIdentityBand,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+            },
+          ]}
         >
           <View style={styles.mineIdentityCopy}>
             <Text
@@ -3010,6 +3013,10 @@ function MineSurface({
             <View
               style={[
                 styles.mineMetricStrip,
+                {
+                  backgroundColor: palette.panelStrong,
+                  borderColor: palette.border,
+                },
                 deviceClass === 'tablet' ? styles.mineMetricStripTablet : null,
               ]}
               testID="mine-status-strip"
@@ -3072,9 +3079,7 @@ function MineSurface({
                 value="位"
               />
               <MineActionCard
-                detail={`${checkedInToday ? '今日已签到' : '今日未签到'} · ${
-                  progressSyncState.label
-                }`}
+                detail={checkedInToday ? '今日已签到' : '今日未签到'}
                 label="今日进展"
                 onPress={onGoToStatistics}
                 palette={palette}
@@ -3133,14 +3138,22 @@ function MineActionCard({
       style={[styles.mineActionCard, { borderColor: palette.border }]}
       testID={testID}
     >
-      <View
-        style={[
-          styles.mineActionGlyph,
-          { backgroundColor: palette.accentSoft, borderColor: palette.border },
-        ]}
-      >
-        <Text style={[styles.mineActionValue, { color: palette.accent }]}>
-          {value}
+      <View style={styles.mineActionTopRow}>
+        <View
+          style={[
+            styles.mineActionGlyph,
+            {
+              backgroundColor: palette.accentSoft,
+              borderColor: palette.border,
+            },
+          ]}
+        >
+          <Text style={[styles.mineActionValue, { color: palette.accent }]}>
+            {value}
+          </Text>
+        </View>
+        <Text style={[styles.mineActionArrow, { color: palette.textMuted }]}>
+          →
         </Text>
       </View>
       <View style={styles.mineActionCopy}>
@@ -3157,9 +3170,6 @@ function MineActionCard({
           {detail}
         </Text>
       </View>
-      <Text style={[styles.mineActionArrow, { color: palette.textMuted }]}>
-        →
-      </Text>
     </Pressable>
   );
 }
@@ -3206,7 +3216,10 @@ function MembershipHostCard({
 
   return (
     <View
-      style={[styles.membershipHostCard, { borderColor: palette.border }]}
+      style={[
+        styles.membershipHostCard,
+        { backgroundColor: palette.panelStrong, borderColor: palette.border },
+      ]}
       testID="membership-host-card"
     >
       <View style={styles.membershipHeaderRow}>
@@ -4410,7 +4423,7 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 8,
     paddingHorizontal: 18,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   mineScreenTablet: {
     paddingHorizontal: 0,
@@ -4418,11 +4431,11 @@ const styles = StyleSheet.create({
   },
   mineProfilePanel: {
     alignItems: 'stretch',
-    borderRadius: 28,
+    borderRadius: 26,
     borderWidth: 1,
-    gap: 10,
+    gap: 9,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 13,
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.09,
     shadowRadius: 30,
@@ -4431,7 +4444,7 @@ const styles = StyleSheet.create({
   minePassportHeader: {
     alignItems: 'flex-start',
     flexDirection: 'row',
-    gap: 12,
+    gap: 11,
   },
   mineAccountHeaderCopy: {
     flex: 1,
@@ -4442,9 +4455,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   mineAccountTitle: {
-    fontSize: 24,
+    fontSize: 23,
     fontWeight: '800',
-    lineHeight: 29,
+    lineHeight: 28,
   },
   mineAccountSummary: {
     fontSize: 13,
@@ -4453,9 +4466,9 @@ const styles = StyleSheet.create({
   mineAvatar: {
     alignItems: 'center',
     borderRadius: 24,
-    height: 52,
+    height: 50,
     justifyContent: 'center',
-    width: 52,
+    width: 50,
   },
   mineAvatarText: {
     fontSize: 19,
@@ -4464,9 +4477,9 @@ const styles = StyleSheet.create({
   mineMembershipPill: {
     borderRadius: 999,
     borderWidth: 1,
-    maxWidth: 112,
+    maxWidth: 118,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
   mineMembershipPillText: {
     fontSize: 12,
@@ -4475,10 +4488,12 @@ const styles = StyleSheet.create({
   },
   mineIdentityBand: {
     alignItems: 'center',
-    borderTopWidth: 1,
+    borderRadius: 19,
+    borderWidth: 1,
     flexDirection: 'row',
     gap: 10,
-    paddingTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   mineIdentityCopy: {
     flex: 1,
@@ -4502,27 +4517,36 @@ const styles = StyleSheet.create({
   mineMetricStrip: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-  },
-  mineActionRail: {
+    gap: 0,
     borderRadius: 20,
     borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  mineActionRail: {
+    borderRadius: 22,
+    borderWidth: 1,
+    flexDirection: 'row',
     overflow: 'hidden',
   },
   mineActionRailTablet: {
     flexDirection: 'row',
   },
   mineActionCard: {
+    alignItems: 'stretch',
+    borderRightWidth: 1,
+    flex: 1,
+    gap: 8,
+    minHeight: 86,
+    paddingHorizontal: 11,
+    paddingVertical: 10,
+  },
+  mineActionTopRow: {
     alignItems: 'center',
-    borderBottomWidth: 1,
     flexDirection: 'row',
-    gap: 10,
-    minHeight: 58,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    justifyContent: 'space-between',
   },
   mineActionCopy: {
-    flex: 1,
     gap: 3,
     minWidth: 0,
   },
@@ -4540,22 +4564,24 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   mineActionLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
   },
   mineActionDetail: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
-    lineHeight: 15,
+    lineHeight: 14,
   },
   mineActionArrow: {
     fontSize: 14,
     fontWeight: '800',
   },
   membershipHostCard: {
-    borderTopWidth: 1,
-    paddingTop: 10,
+    borderRadius: 22,
+    borderWidth: 1,
     gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     shadowOpacity: 0,
     elevation: 0,
   },
