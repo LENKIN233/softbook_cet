@@ -1311,7 +1311,7 @@ export function LearningResultDetailSurface({
               <Text
                 style={[styles.learningFrameMeta, { color: palette.textMuted }]}
               >
-                {phase === 'review' ? '回看已收好' : '解析已附着'}
+                {phase === 'review' ? '回看答案' : '本卡答案'}
               </Text>
               <Text style={[styles.cardObjectLead, { color: palette.text }]}>
                 当前卡 · {INTERACTION_LABELS[card.interaction_id]}
@@ -1332,7 +1332,7 @@ export function LearningResultDetailSurface({
             <Text
               style={[styles.detailCollapseLabel, { color: palette.textMuted }]}
             >
-              收起解析
+              回到卡面
             </Text>
           </Pressable>
         </View>
@@ -1343,7 +1343,7 @@ export function LearningResultDetailSurface({
               {isPositive ? '答对，继续保持节奏' : '这张先收进回看'}
             </Text>
             <Text
-              numberOfLines={3}
+              numberOfLines={4}
               style={[styles.detailPrompt, { color: palette.text }]}
             >
               {card.front.prompt}
@@ -1398,20 +1398,13 @@ export function LearningResultDetailSurface({
           style={[
             styles.detailExplanationSlip,
             {
-              backgroundColor: palette.panelStrong,
-              borderColor: hexToRgba(detailLibraryTone.accent, 0.1),
+              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.035),
+              borderColor: hexToRgba(borderTone, 0.42),
             },
           ]}
         >
-          <View
-            pointerEvents="none"
-            style={[
-              styles.detailSlipAccent,
-              { backgroundColor: hexToRgba(borderTone, 0.68) },
-            ]}
-          />
           <Text style={[styles.detailOutcomeTitle, { color: borderTone }]}>
-            {isPositive ? '答对，继续保持节奏' : '这张先收进回看'}
+            {isPositive ? '为什么成立' : '回看这一步'}
           </Text>
           <Text
             style={[styles.resultExplanationTitle, { color: palette.text }]}
@@ -1419,13 +1412,13 @@ export function LearningResultDetailSurface({
             {card.analysis.title}
           </Text>
           <Text
-            numberOfLines={3}
+            numberOfLines={2}
             style={[styles.resultExplanationBody, { color: palette.textMuted }]}
           >
             {card.analysis.summary}
           </Text>
           <Text
-            numberOfLines={2}
+            numberOfLines={1}
             style={[styles.detailTip, { color: palette.textMuted }]}
           >
             过级提醒：{card.analysis.exam_tip}
@@ -1438,20 +1431,21 @@ export function LearningResultDetailSurface({
               {isLastCard ? '本轮即将收束' : '下一张仍在本轮盒'}
             </Text>
           </View>
-          <Pressable
-            onPress={onAdvanceCard}
-            style={[
-              styles.primaryButton,
-              styles.detailPrimaryButton,
-              { backgroundColor: detailActionTone },
-            ]}
-            testID="learning-next-button"
-          >
-            <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-              {isLastCard ? '完成本轮学习' : '继续下一张'}
-            </Text>
-          </Pressable>
         </View>
+
+        <Pressable
+          onPress={onAdvanceCard}
+          style={[
+            styles.primaryButton,
+            styles.detailPrimaryButton,
+            { backgroundColor: detailActionTone },
+          ]}
+          testID="learning-next-button"
+        >
+          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            {isLastCard ? '完成本轮学习' : '继续下一张'}
+          </Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -1809,8 +1803,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   detailScreen: {
-    gap: 8,
     justifyContent: 'flex-start',
+    paddingHorizontal: 18,
   },
   detailObjectHeader: {
     alignItems: 'center',
@@ -1823,20 +1817,20 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
   },
   detailCollapseLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
   },
   detailResolvedCard: {
     borderRadius: 28,
     borderWidth: 1,
-    gap: 11,
+    gap: 10,
     overflow: 'hidden',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 17,
+    paddingVertical: 17,
     position: 'relative',
   },
   detailResolvedHeader: {
@@ -1847,26 +1841,26 @@ const styles = StyleSheet.create({
   },
   detailTitleWrap: {
     flex: 1,
-    gap: 7,
+    gap: 6,
   },
   detailPrompt: {
-    fontSize: 18,
+    fontSize: 21,
     fontWeight: '800',
-    lineHeight: 25,
+    lineHeight: 28,
   },
   detailAnswerGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 7,
   },
   detailAnswerCell: {
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     flex: 1,
-    gap: 5,
+    gap: 4,
     minWidth: 138,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   detailAnswerLabel: {
     fontSize: 11,
@@ -1874,30 +1868,26 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   detailAnswerValue: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
-    lineHeight: 20,
+    lineHeight: 21,
   },
   detailExplanationSlip: {
+    borderBottomWidth: 0,
+    borderLeftWidth: 5,
     borderRadius: 20,
-    borderWidth: 1,
-    gap: 8,
+    borderRightWidth: 0,
+    borderTopWidth: 0,
+    gap: 7,
     overflow: 'hidden',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
     position: 'relative',
   },
-  detailSlipAccent: {
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    top: 0,
-    width: 5,
-  },
   detailOutcomeTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0,
   },
   detailTip: {
     fontSize: 13,
@@ -1905,7 +1895,7 @@ const styles = StyleSheet.create({
   },
   detailNextHintRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     justifyContent: 'space-between',
   },
   detailNextHint: {
@@ -1915,7 +1905,8 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   detailPrimaryButton: {
-    paddingVertical: 13,
+    marginTop: 2,
+    paddingVertical: 14,
   },
   progressTrack: {
     height: 8,
