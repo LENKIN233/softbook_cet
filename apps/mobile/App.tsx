@@ -2966,6 +2966,7 @@ function MineSurface({
   sleepingCount: number;
 }) {
   const isAuthenticated = authState.stage === 'authenticated';
+  const hasSentCode = authState.stage === 'code_sent';
   const completedCount = learningResults.length + reviewResults.length;
   const pendingReviewCount = Math.max(
     learningResults.filter(
@@ -2991,9 +2992,13 @@ function MineSurface({
         learningStateSyncState.state === 'syncing'
       ? '记录保存中'
       : '记录已保存'
+    : hasSentCode
+    ? '输入验证码'
     : '手机验证码';
   const membershipTitle = isAuthenticated
     ? getMembershipCardTitle(membershipState.stage)
+    : hasSentCode
+    ? '验证码已发'
     : '待登录';
 
   return (
