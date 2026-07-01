@@ -1281,6 +1281,9 @@ export function LearningResultDetailSurface({
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
   const detailActionTone = detailLibraryTone.accent;
+  const selectedAnswerRow = resolvedRows.find(
+    row => row.testID === 'learning-detail-selected-answer',
+  );
 
   return (
     <View
@@ -1293,7 +1296,7 @@ export function LearningResultDetailSurface({
           styles.glassCard,
           {
             backgroundColor: palette.panel,
-            borderColor: hexToRgba(detailLibraryTone.accent, 0.2),
+            borderColor: hexToRgba(detailLibraryTone.accent, 0.14),
             shadowColor: detailLibraryTone.accent,
           },
         ]}
@@ -1332,96 +1335,170 @@ export function LearningResultDetailSurface({
             <Text
               style={[styles.detailCollapseLabel, { color: palette.textMuted }]}
             >
-              回到卡面
+              卡面
             </Text>
           </Pressable>
         </View>
 
-        <View style={styles.detailResolvedHeader}>
+        <View
+          style={[
+            styles.detailResolvedHero,
+            {
+              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.035),
+              borderColor: hexToRgba(detailLibraryTone.accent, 0.1),
+            },
+          ]}
+        >
           <View style={styles.detailTitleWrap}>
-            <Text style={[styles.cardEyebrow, { color: borderTone }]}>
-              {isPositive ? '答对，继续保持节奏' : '这张先收进回看'}
-            </Text>
+            <View
+              style={[
+                styles.detailStatePill,
+                { backgroundColor: hexToRgba(borderTone, 0.11) },
+              ]}
+            >
+              <Text style={[styles.detailStateText, { color: borderTone }]}>
+                {isPositive ? '答对，继续保持节奏' : '这张先收进回看'}
+              </Text>
+            </View>
             <Text
-              numberOfLines={4}
+              numberOfLines={3}
               style={[styles.detailPrompt, { color: palette.text }]}
             >
               {card.front.prompt}
             </Text>
-          </View>
-        </View>
-
-        <View style={styles.detailAnswerGrid}>
-          {resolvedRows.map(row => (
-            <View
-              key={row.label}
-              style={[
-                styles.detailAnswerCell,
-                {
-                  backgroundColor:
-                    row.tone === 'success'
-                      ? hexToRgba(palette.success, 0.035)
-                      : row.tone === 'warning'
-                      ? hexToRgba(palette.warning, 0.05)
-                      : palette.panelStrong,
-                  borderColor:
-                    row.tone === 'success'
-                      ? hexToRgba(palette.success, 0.14)
-                      : row.tone === 'warning'
-                      ? hexToRgba(palette.warning, 0.16)
-                      : palette.border,
-                },
-              ]}
-              testID={
-                row.testID === 'learning-detail-selected-answer'
-                  ? 'learning-detail-selected-answer'
-                  : 'learning-detail-correct-answer'
-              }
-            >
+            {selectedAnswerRow ? (
               <Text
                 numberOfLines={1}
-                style={[styles.detailAnswerLabel, { color: palette.textMuted }]}
+                style={[
+                  styles.detailSelectedLine,
+                  { color: palette.textMuted },
+                ]}
               >
-                {row.label}
+                {selectedAnswerRow.label}：{selectedAnswerRow.displayText}
               </Text>
-              <Text
-                numberOfLines={2}
-                style={[styles.detailAnswerValue, { color: palette.text }]}
-              >
-                {row.displayText}
-              </Text>
-            </View>
-          ))}
+            ) : null}
+          </View>
         </View>
 
         <View
           style={[
-            styles.detailExplanationSlip,
+            styles.detailAnswerSlip,
             {
-              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.035),
-              borderColor: hexToRgba(borderTone, 0.42),
+              backgroundColor: palette.panelStrong,
+              borderColor: hexToRgba(detailLibraryTone.accent, 0.18),
+              borderTopColor: borderTone,
             },
           ]}
         >
-          <Text style={[styles.detailOutcomeTitle, { color: borderTone }]}>
-            {isPositive ? '为什么成立' : '回看这一步'}
-          </Text>
-          <Text
-            style={[styles.resultExplanationTitle, { color: palette.text }]}
+          <View style={styles.detailSlipHeader}>
+            <View
+              style={[styles.detailSlipDot, { backgroundColor: borderTone }]}
+            />
+            <View style={styles.detailSlipTitleWrap}>
+              <Text style={[styles.detailOutcomeTitle, { color: borderTone }]}>
+                {isPositive ? '答对' : '回看'}
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[styles.detailSlipCaption, { color: palette.textMuted }]}
+              >
+                解析贴在刚完成的卡后面
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.detailAnswerGrid}>
+            {resolvedRows.map(row => (
+              <View
+                key={row.label}
+                style={[
+                  styles.detailAnswerCell,
+                  {
+                    backgroundColor:
+                      row.tone === 'success'
+                        ? hexToRgba(palette.success, 0.045)
+                        : row.tone === 'warning'
+                        ? hexToRgba(palette.warning, 0.065)
+                        : palette.panel,
+                    borderColor:
+                      row.tone === 'success'
+                        ? hexToRgba(palette.success, 0.15)
+                        : row.tone === 'warning'
+                        ? hexToRgba(palette.warning, 0.18)
+                        : palette.border,
+                  },
+                ]}
+                testID={
+                  row.testID === 'learning-detail-selected-answer'
+                    ? 'learning-detail-selected-answer'
+                    : 'learning-detail-correct-answer'
+                }
+              >
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.detailAnswerLabel,
+                    { color: palette.textMuted },
+                  ]}
+                >
+                  {row.label}
+                </Text>
+                <Text
+                  numberOfLines={2}
+                  style={[styles.detailAnswerValue, { color: palette.text }]}
+                >
+                  {row.displayText}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View
+            style={[
+              styles.detailExplanationSlip,
+              {
+                backgroundColor: palette.panel,
+                borderColor: palette.border,
+              },
+            ]}
           >
-            {card.analysis.title}
-          </Text>
-          <Text
-            numberOfLines={2}
-            style={[styles.resultExplanationBody, { color: palette.textMuted }]}
-          >
-            {card.analysis.summary}
-          </Text>
+            <Text
+              style={[styles.resultExplanationTitle, { color: palette.text }]}
+            >
+              {card.analysis.title}
+            </Text>
+            <Text
+              numberOfLines={2}
+              style={[
+                styles.resultExplanationBody,
+                { color: palette.textMuted },
+              ]}
+            >
+              {card.analysis.summary}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[styles.detailTip, { color: palette.textMuted }]}
+            >
+              过级提醒：{card.analysis.exam_tip}
+            </Text>
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.detailLocationShelf,
+            {
+              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.03),
+              borderColor: hexToRgba(detailLibraryTone.accent, 0.1),
+            },
+          ]}
+        >
           <Text
             numberOfLines={1}
-            style={[styles.detailTip, { color: palette.textMuted }]}
+            style={[styles.detailLocationTitle, { color: palette.text }]}
           >
-            过级提醒：{card.analysis.exam_tip}
+            已回到当前学习位置
           </Text>
           <View style={styles.detailNextHintRow}>
             <Text style={[styles.detailNextHint, { color: palette.textMuted }]}>
@@ -1827,26 +1904,68 @@ const styles = StyleSheet.create({
   detailResolvedCard: {
     borderRadius: 28,
     borderWidth: 1,
-    gap: 10,
+    gap: 9,
     overflow: 'hidden',
-    paddingHorizontal: 17,
-    paddingVertical: 17,
+    paddingHorizontal: 15,
+    paddingVertical: 15,
     position: 'relative',
   },
-  detailResolvedHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
+  detailResolvedHero: {
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   detailTitleWrap: {
-    flex: 1,
+    alignSelf: 'stretch',
     gap: 6,
   },
-  detailPrompt: {
-    fontSize: 21,
+  detailStatePill: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  detailStateText: {
+    fontSize: 12,
     fontWeight: '800',
-    lineHeight: 28,
+    lineHeight: 17,
+  },
+  detailPrompt: {
+    fontSize: 20,
+    fontWeight: '800',
+    lineHeight: 27,
+  },
+  detailSelectedLine: {
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  detailAnswerSlip: {
+    borderRadius: 24,
+    borderTopWidth: 3,
+    borderWidth: 1,
+    gap: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 13,
+  },
+  detailSlipHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 9,
+  },
+  detailSlipDot: {
+    borderRadius: 999,
+    height: 12,
+    width: 12,
+  },
+  detailSlipTitleWrap: {
+    flex: 1,
+    gap: 1,
+  },
+  detailSlipCaption: {
+    fontSize: 12,
+    lineHeight: 17,
   },
   detailAnswerGrid: {
     flexDirection: 'row',
@@ -1859,8 +1978,8 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
     minWidth: 138,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
   },
   detailAnswerLabel: {
     fontSize: 11,
@@ -1873,15 +1992,12 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   detailExplanationSlip: {
-    borderBottomWidth: 0,
-    borderLeftWidth: 5,
-    borderRadius: 20,
-    borderRightWidth: 0,
-    borderTopWidth: 0,
-    gap: 7,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 5,
     overflow: 'hidden',
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
     position: 'relative',
   },
   detailOutcomeTitle: {
@@ -1890,8 +2006,20 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   detailTip: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  detailLocationShelf: {
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 5,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+  },
+  detailLocationTitle: {
     fontSize: 13,
-    lineHeight: 19,
+    fontWeight: '800',
+    lineHeight: 18,
   },
   detailNextHintRow: {
     flexDirection: 'row',
