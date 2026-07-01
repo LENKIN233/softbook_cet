@@ -661,18 +661,18 @@ export function SpaceSurface({
         {screen === 'overview' ? (
           <>
             <View
-              style={styles.overviewObjectStack}
+              style={[
+                styles.overviewWorkbench,
+                {
+                  backgroundColor: solidPanel,
+                  borderColor: hexToRgba(selectedTone.accent, 0.14),
+                },
+              ]}
               testID="space-current-box-tray"
             >
               {!hasStateRail ? (
                 <View
-                  style={[
-                    styles.overviewObjectPlane,
-                    {
-                      backgroundColor: solidPanel,
-                      borderColor: hexToRgba(selectedTone.accent, 0.14),
-                    },
-                  ]}
+                  style={styles.overviewWorkbenchAddress}
                   testID="space-address-shelf"
                 >
                   <View style={styles.browseObjectPath}>
@@ -749,67 +749,66 @@ export function SpaceSurface({
                       </Text>
                     </View>
                   </View>
-
-                  <View style={styles.overviewHeroRow}>
-                    <View style={styles.statusCopy}>
-                      <Text
-                        style={[styles.eyebrow, { color: selectedTone.accent }]}
-                      >
-                        当前卡盒
-                      </Text>
-                      <Text
-                        style={[styles.boxTrayTitle, { color: palette.text }]}
-                      >
-                        盒内卡片
-                      </Text>
-                      <Text
-                        style={[
-                          styles.locationText,
-                          { color: selectedTone.accent },
-                        ]}
-                      >
-                        {currentCardPath
-                          ? '当前学习卡在这里'
-                          : '学习卡位置会随进度更新'}
-                      </Text>
-                    </View>
-                    <Pressable
-                      onPress={onOpenCardList ?? noop}
-                      style={[
-                        styles.overviewInspectButton,
-                        {
-                          backgroundColor: solidPanelStrong,
-                          borderColor: palette.border,
-                        },
-                      ]}
-                      testID="space-open-card-list"
-                    >
-                      <Text
-                        style={[
-                          styles.overviewInspectButtonTitle,
-                          { color: palette.text },
-                        ]}
-                      >
-                        查看盒内
-                      </Text>
-                      <Text
-                        style={[
-                          styles.overviewInspectButtonMeta,
-                          { color: palette.textMuted },
-                        ]}
-                      >
-                        {`${selectedBoxCards.length} 张`}
-                      </Text>
-                    </Pressable>
-                  </View>
                 </View>
               ) : null}
+
+              <View style={styles.overviewHeroRow}>
+                <View style={styles.statusCopy}>
+                  <Text
+                    style={[styles.eyebrow, { color: selectedTone.accent }]}
+                  >
+                    当前卡盒
+                  </Text>
+                  <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
+                    盒内卡片
+                  </Text>
+                  <Text
+                    style={[
+                      styles.locationText,
+                      { color: selectedTone.accent },
+                    ]}
+                  >
+                    {currentCardPath
+                      ? '当前学习卡在这里'
+                      : '学习卡位置会随进度更新'}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={onOpenCardList ?? noop}
+                  style={[
+                    styles.overviewInspectButton,
+                    {
+                      backgroundColor: solidPanelStrong,
+                      borderColor: palette.border,
+                    },
+                  ]}
+                  testID="space-open-card-list"
+                >
+                  <Text
+                    style={[
+                      styles.overviewInspectButtonTitle,
+                      { color: palette.text },
+                    ]}
+                  >
+                    查看盒内
+                  </Text>
+                  <Text
+                    style={[
+                      styles.overviewInspectButtonMeta,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    {`${selectedBoxCards.length} 张`}
+                  </Text>
+                </Pressable>
+              </View>
 
               <View
                 style={[
                   styles.openBoxDeck,
+                  styles.openBoxDeckUnified,
                   {
-                    backgroundColor: solidPanel,
+                    backgroundColor: solidPanelStrong,
                     borderColor: hexToRgba(selectedTone.accent, 0.12),
                   },
                 ]}
@@ -903,76 +902,86 @@ export function SpaceSurface({
                 })}
               </View>
 
-              <View
-                style={[
-                  styles.sleepAlcove,
-                  {
-                    backgroundColor: solidPanel,
-                    borderColor: palette.border,
-                  },
-                ]}
-                testID="space-sleep-alcove"
-              >
-                <View style={styles.sleepAlcoveCopy}>
-                  <Text
-                    style={[styles.sleepAlcoveTitle, { color: palette.text }]}
+              <View style={styles.overviewBottomRow}>
+                <Pressable
+                  onPress={onOpenCardList ?? noop}
+                  style={[
+                    styles.sleepAlcove,
+                    styles.sleepAlcoveCompact,
+                    {
+                      backgroundColor: solidPanelStrong,
+                      borderColor: palette.border,
+                    },
+                  ]}
+                  testID="space-sleep-alcove"
+                >
+                  <View
+                    style={[
+                      styles.sleepAlcoveCopy,
+                      styles.sleepAlcoveCopyCompact,
+                    ]}
                   >
-                    休眠区属于当前盒
+                    <View style={styles.sleepAlcoveHeader}>
+                      <Text
+                        style={[
+                          styles.sleepAlcoveTitle,
+                          { color: palette.text },
+                        ]}
+                      >
+                        休眠区
+                      </Text>
+                      <Text
+                        style={[
+                          styles.sleepAlcoveActionText,
+                          {
+                            backgroundColor: palette.accentSoft,
+                            color: palette.accentStrong,
+                          },
+                        ]}
+                        testID="space-sleep-alcove-action"
+                      >
+                        查看
+                      </Text>
+                    </View>
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.sleepAlcoveMeta,
+                        { color: palette.textMuted },
+                      ]}
+                    >
+                      {selectedSleepingCards.length > 0
+                        ? `${selectedSleepingCards.length} 张暂休`
+                        : '暂无休眠'}
+                    </Text>
+                  </View>
+                </Pressable>
+
+                <Pressable
+                  onPress={onReturnToLearning}
+                  style={[
+                    styles.returnContinuity,
+                    styles.returnContinuityCompact,
+                    {
+                      backgroundColor: selectedTone.accent,
+                      borderColor: selectedTone.accent,
+                    },
+                  ]}
+                  testID="space-return-learning"
+                >
+                  <Text
+                    style={[styles.returnContinuityTitle, { color: '#FFFFFF' }]}
+                  >
+                    回学习
                   </Text>
                   <Text
                     numberOfLines={1}
-                    style={[
-                      styles.sleepAlcoveMeta,
-                      { color: palette.textMuted },
-                    ]}
+                    style={[styles.returnContinuityMeta, { color: '#FFFFFF' }]}
                   >
-                    {selectedSleepingCards.length > 0
-                      ? `${selectedSleepingCards.length} 张卡暂时沉下去，位置不变。`
-                      : '暂时没有休眠卡；需要时可在盒内处理。'}
+                    同一张卡，同一地址
                   </Text>
-                </View>
-                <ActionChip
-                  label={selectedSleepingCards.length > 0 ? '唤回' : '查看盒内'}
-                  onPress={onOpenCardList ?? noop}
-                  palette={palette}
-                  testID="space-sleep-alcove-action"
-                />
+                </Pressable>
               </View>
-
-              <Pressable
-                onPress={onReturnToLearning}
-                style={[
-                  styles.returnContinuity,
-                  {
-                    backgroundColor: selectedTone.accent,
-                    borderColor: selectedTone.accent,
-                  },
-                ]}
-                testID="space-return-learning"
-              >
-                <Text
-                  style={[styles.returnContinuityTitle, { color: '#FFFFFF' }]}
-                >
-                  回学习
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.returnContinuityMeta, { color: '#FFFFFF' }]}
-                >
-                  同一张卡，同一地址
-                </Text>
-                <Text
-                  style={[
-                    styles.returnContinuityAction,
-                    {
-                      backgroundColor: hexToRgba('#FFFFFF', 0.18),
-                      color: '#FFFFFF',
-                    },
-                  ]}
-                >
-                  继续
-                </Text>
-              </Pressable>
             </View>
           </>
         ) : null}
@@ -2057,6 +2066,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 21,
   },
+  overviewWorkbench: {
+    borderRadius: 28,
+    borderWidth: 1,
+    gap: 12,
+    overflow: 'hidden',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 3,
+  },
+  overviewWorkbenchAddress: {
+    gap: 10,
+  },
   overviewObjectStack: {
     gap: 8,
   },
@@ -2070,16 +2094,16 @@ const styles = StyleSheet.create({
   overviewHeroRow: {
     alignItems: 'flex-start',
     flexDirection: 'row',
-    gap: 12,
+    gap: 14,
     justifyContent: 'space-between',
   },
   overviewInspectButton: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     borderRadius: 20,
     borderWidth: 1,
     gap: 3,
-    minWidth: 116,
-    paddingHorizontal: 14,
+    minWidth: 104,
+    paddingHorizontal: 12,
     paddingVertical: 12,
   },
   overviewInspectButtonTitle: {
@@ -2199,10 +2223,12 @@ const styles = StyleSheet.create({
   openBoxDeck: {
     borderRadius: 22,
     borderWidth: 1,
-    height: 154,
-    marginTop: 2,
+    height: 142,
     overflow: 'hidden',
     position: 'relative',
+  },
+  openBoxDeckUnified: {
+    marginTop: 0,
   },
   openBoxLid: {
     alignItems: 'center',
@@ -2228,57 +2254,57 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     gap: 5,
-    height: 88,
+    height: 78,
     paddingHorizontal: 11,
-    paddingVertical: 10,
+    paddingVertical: 9,
     position: 'absolute',
-    top: 52,
+    top: 54,
     width: 118,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.13,
-    shadowRadius: 18,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 3,
   },
   deckCardLeft: {
     left: 12,
-    transform: [{ rotate: '-7deg' }],
+    transform: [{ rotate: '-2deg' }],
   },
   deckCardSolo: {
     left: '30%',
-    top: 50,
+    top: 54,
     transform: [{ rotate: '0deg' }],
     width: 136,
   },
   deckCardPairLeft: {
     left: 24,
-    top: 52,
-    transform: [{ rotate: '-4deg' }],
+    top: 54,
+    transform: [{ rotate: '-1deg' }],
     width: 126,
   },
   deckCardPairRight: {
     right: 24,
-    top: 52,
-    transform: [{ rotate: '4deg' }],
+    top: 54,
+    transform: [{ rotate: '1deg' }],
     width: 126,
   },
   deckCardCenter: {
     left: '31%',
-    top: 50,
+    top: 54,
     transform: [{ rotate: '0deg' }],
     zIndex: 2,
   },
   deckCardRight: {
     right: 12,
-    transform: [{ rotate: '7deg' }],
+    transform: [{ rotate: '2deg' }],
   },
   deckCardTag: {
     fontSize: 11,
     fontWeight: '800',
   },
   deckCardPrompt: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
-    lineHeight: 16,
+    lineHeight: 15,
   },
   boxTraySkeleton: {
     gap: 8,
@@ -2515,6 +2541,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 18,
   },
+  overviewBottomRow: {
+    flexDirection: 'row',
+    gap: 9,
+  },
   sleepAlcove: {
     alignItems: 'center',
     borderRadius: 18,
@@ -2525,18 +2555,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 11,
   },
+  sleepAlcoveCompact: {
+    alignItems: 'stretch',
+    flex: 1.2,
+    flexDirection: 'column',
+    gap: 9,
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
   sleepAlcoveCopy: {
     flex: 1,
-    gap: 2,
+    gap: 6,
+  },
+  sleepAlcoveCopyCompact: {
+    flex: 0,
+  },
+  sleepAlcoveHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
   },
   sleepAlcoveTitle: {
     fontSize: 14,
     fontWeight: '800',
     lineHeight: 18,
   },
+  sleepAlcoveActionText: {
+    borderRadius: 999,
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 14,
+  },
   sleepAlcoveMeta: {
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 11,
+    lineHeight: 14,
   },
   sleepingCard: {
     alignItems: 'center',
@@ -2562,6 +2618,15 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
+  },
+  returnContinuityCompact: {
+    alignItems: 'flex-start',
+    flex: 0.8,
+    flexDirection: 'column',
+    gap: 3,
+    justifyContent: 'center',
+    minWidth: 104,
+    paddingVertical: 12,
   },
   returnContinuityTitle: {
     flexShrink: 0,
