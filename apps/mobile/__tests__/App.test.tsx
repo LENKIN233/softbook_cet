@@ -473,6 +473,36 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   expect(output).not.toContain('当前学习卡');
 });
 
+test('keeps mine code-sent state attached to the account object', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'auth-phone-input' })
+      .props.onChangeText('13800138000');
+  });
+
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'auth-request-code-button' }).props.onPress();
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('验证码已发');
+  expect(output).toContain('输入验证码');
+  expect(output).toContain('验证码已发送');
+  expect(output).toContain('完成后回到');
+  expect(output).toContain('我的');
+  expect(output).not.toContain('待登录');
+});
+
 test('reads installed runtime config when the app mounts', async () => {
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
     auth: {
