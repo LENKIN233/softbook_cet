@@ -990,6 +990,44 @@ export function SpaceSurface({
                 ]}
                 testID="space-current-box-tray"
               >
+                <View style={styles.browseHeader}>
+                  <View
+                    style={styles.statusCopy}
+                    testID="space-card-list-header"
+                  >
+                    <Text
+                      style={[styles.eyebrow, { color: selectedTone.accent }]}
+                    >
+                      盒内查看
+                    </Text>
+                    <Text
+                      style={[styles.boxTrayTitle, { color: palette.text }]}
+                    >
+                      当前卡盒
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.locationText,
+                        { color: selectedTone.accent },
+                      ]}
+                    >
+                      {currentCardPath
+                        ? '当前学习卡在这里'
+                        : '当前学习卡位置会随学习更新'}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[styles.stateTag, { color: palette.accentStrong }]}
+                  >
+                    {isGated
+                      ? '完整空间待开放'
+                      : selectedFavoriteCards.length > 0
+                      ? '有收藏'
+                      : '可收藏'}
+                  </Text>
+                </View>
+
                 <View
                   style={styles.browseObjectPath}
                   testID="space-address-shelf"
@@ -1058,184 +1096,178 @@ export function SpaceSurface({
                     </Text>
                   </View>
                 </View>
-
-                <View style={styles.browseHeader}>
-                  <View
-                    style={styles.statusCopy}
-                    testID="space-card-list-header"
-                  >
-                    <Text
-                      style={[styles.eyebrow, { color: selectedTone.accent }]}
-                    >
-                      盒内查看
-                    </Text>
-                    <Text
-                      style={[styles.boxTrayTitle, { color: palette.text }]}
-                    >
-                      当前卡盒
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.locationText,
-                        { color: selectedTone.accent },
-                      ]}
-                    >
-                      {currentCardPath
-                        ? '当前学习卡在这里'
-                        : '当前学习卡位置会随学习更新'}
-                    </Text>
-                  </View>
-                  <Text
-                    style={[styles.stateTag, { color: palette.accentStrong }]}
-                  >
-                    {isGated
-                      ? '完整空间待开放'
-                      : selectedFavoriteCards.length > 0
-                      ? '有收藏'
-                      : '可收藏'}
-                  </Text>
-                </View>
               </View>
 
               <View style={styles.browseRail} testID="space-browse-rail">
-                <View style={styles.browseRailRow}>
-                  {seed.libraries.map((library, index) => {
-                    const isActive =
-                      library.libraryName === selectedLibrary.libraryName;
+                <View style={styles.browseRailLevel}>
+                  <Text
+                    style={[
+                      styles.browseRailLevelLabel,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    书架
+                  </Text>
+                  <View style={styles.browseRailRow}>
+                    {seed.libraries.map((library, index) => {
+                      const isActive =
+                        library.libraryName === selectedLibrary.libraryName;
 
-                    return (
-                      <Pressable
-                        key={library.libraryName}
-                        onPress={() => {
-                          setSelectionMode('manual');
-                          setSelectedLibraryName(library.libraryName);
-                          setSelectedGroupName(
-                            library.groups[0]?.groupName ?? '',
-                          );
-                          setSelectedBoxRef(
-                            library.groups[0]?.boxes[0]?.boxRef ?? '',
-                          );
-                          setSelectedCardIndex(0);
-                        }}
-                        style={[
-                          styles.browseRailChip,
-                          isActive ? styles.browseRailChipActive : null,
-                          {
-                            backgroundColor: isActive
-                              ? hexToRgba(selectedTone.accent, 0.1)
-                              : solidPanelStrong,
-                            borderColor: isActive
-                              ? hexToRgba(selectedTone.accent, 0.18)
-                              : hexToRgba(palette.textMuted, 0.08),
-                          },
-                        ]}
-                        testID={`space-library-${index + 1}`}
-                      >
-                        <Text
-                          numberOfLines={1}
+                      return (
+                        <Pressable
+                          key={library.libraryName}
+                          onPress={() => {
+                            setSelectionMode('manual');
+                            setSelectedLibraryName(library.libraryName);
+                            setSelectedGroupName(
+                              library.groups[0]?.groupName ?? '',
+                            );
+                            setSelectedBoxRef(
+                              library.groups[0]?.boxes[0]?.boxRef ?? '',
+                            );
+                            setSelectedCardIndex(0);
+                          }}
                           style={[
-                            styles.browseRailValue,
+                            styles.browseRailChip,
+                            isActive ? styles.browseRailChipActive : null,
                             {
-                              color: isActive
-                                ? selectedTone.accent
-                                : palette.textMuted,
+                              backgroundColor: isActive
+                                ? hexToRgba(selectedTone.accent, 0.1)
+                                : solidPanelStrong,
+                              borderColor: isActive
+                                ? hexToRgba(selectedTone.accent, 0.18)
+                                : hexToRgba(palette.textMuted, 0.08),
                             },
                           ]}
+                          testID={`space-library-${index + 1}`}
                         >
-                          {`书架 ${formatSpaceLibraryLabel(index + 1)}`}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+                          <Text
+                            numberOfLines={1}
+                            style={[
+                              styles.browseRailValue,
+                              {
+                                color: isActive
+                                  ? selectedTone.accent
+                                  : palette.textMuted,
+                              },
+                            ]}
+                          >
+                            {formatSpaceLibraryLabel(index + 1)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 </View>
-                <View style={styles.browseRailRow}>
-                  {selectedLibrary.groups.map((group, index) => {
-                    const isActive =
-                      group.groupName === selectedGroup.groupName;
+                <View style={styles.browseRailLevel}>
+                  <Text
+                    style={[
+                      styles.browseRailLevelLabel,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    分区
+                  </Text>
+                  <View style={styles.browseRailRow}>
+                    {selectedLibrary.groups.map((group, index) => {
+                      const isActive =
+                        group.groupName === selectedGroup.groupName;
 
-                    return (
-                      <Pressable
-                        key={`${selectedLibrary.libraryName}-${group.groupName}`}
-                        onPress={() => {
-                          setSelectionMode('manual');
-                          setSelectedGroupName(group.groupName);
-                          setSelectedBoxRef(group.boxes[0]?.boxRef ?? '');
-                          setSelectedCardIndex(0);
-                        }}
-                        style={[
-                          styles.browseRailChip,
-                          styles.browseRailChipSmall,
-                          isActive ? styles.browseRailChipActive : null,
-                          {
-                            backgroundColor: isActive
-                              ? hexToRgba(selectedTone.accent, 0.1)
-                              : solidPanelStrong,
-                            borderColor: isActive
-                              ? hexToRgba(selectedTone.accent, 0.18)
-                              : hexToRgba(palette.textMuted, 0.08),
-                          },
-                        ]}
-                        testID={`space-group-${index + 1}`}
-                      >
-                        <Text
-                          numberOfLines={1}
+                      return (
+                        <Pressable
+                          key={`${selectedLibrary.libraryName}-${group.groupName}`}
+                          onPress={() => {
+                            setSelectionMode('manual');
+                            setSelectedGroupName(group.groupName);
+                            setSelectedBoxRef(group.boxes[0]?.boxRef ?? '');
+                            setSelectedCardIndex(0);
+                          }}
                           style={[
-                            styles.browseRailValue,
+                            styles.browseRailChip,
+                            styles.browseRailChipSmall,
+                            isActive ? styles.browseRailChipActive : null,
                             {
-                              color: isActive
-                                ? selectedTone.accent
-                                : palette.textMuted,
+                              backgroundColor: isActive
+                                ? hexToRgba(selectedTone.accent, 0.1)
+                                : solidPanelStrong,
+                              borderColor: isActive
+                                ? hexToRgba(selectedTone.accent, 0.18)
+                                : hexToRgba(palette.textMuted, 0.08),
                             },
                           ]}
+                          testID={`space-group-${index + 1}`}
                         >
-                          {`分区 ${formatSpaceGroupLabel(index + 1)}`}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                  {selectedGroup.boxes.map((box, boxIndex) => {
-                    const isActive = box.boxRef === selectedBox.boxRef;
+                          <Text
+                            numberOfLines={1}
+                            style={[
+                              styles.browseRailValue,
+                              {
+                                color: isActive
+                                  ? selectedTone.accent
+                                  : palette.textMuted,
+                              },
+                            ]}
+                          >
+                            {formatSpaceGroupLabel(index + 1)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+                <View style={styles.browseRailLevel}>
+                  <Text
+                    style={[
+                      styles.browseRailLevelLabel,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    卡盒
+                  </Text>
+                  <View style={styles.browseRailRow}>
+                    {selectedGroup.boxes.map((box, boxIndex) => {
+                      const isActive = box.boxRef === selectedBox.boxRef;
 
-                    return (
-                      <Pressable
-                        key={box.boxRef}
-                        onPress={() => {
-                          setSelectionMode('manual');
-                          setSelectedBoxRef(box.boxRef);
-                          setSelectedCardIndex(0);
-                        }}
-                        style={[
-                          styles.browseRailChip,
-                          styles.browseRailChipSmall,
-                          isActive ? styles.browseRailChipActive : null,
-                          {
-                            backgroundColor: isActive
-                              ? hexToRgba(selectedTone.accent, 0.1)
-                              : solidPanelStrong,
-                            borderColor: isActive
-                              ? hexToRgba(selectedTone.accent, 0.18)
-                              : hexToRgba(palette.textMuted, 0.08),
-                          },
-                        ]}
-                        testID={`space-box-${boxIndex + 1}`}
-                      >
-                        <Text
-                          numberOfLines={1}
+                      return (
+                        <Pressable
+                          key={box.boxRef}
+                          onPress={() => {
+                            setSelectionMode('manual');
+                            setSelectedBoxRef(box.boxRef);
+                            setSelectedCardIndex(0);
+                          }}
                           style={[
-                            styles.browseRailValue,
+                            styles.browseRailChip,
+                            styles.browseRailChipSmall,
+                            isActive ? styles.browseRailChipActive : null,
                             {
-                              color: isActive
-                                ? selectedTone.accent
-                                : palette.textMuted,
+                              backgroundColor: isActive
+                                ? hexToRgba(selectedTone.accent, 0.1)
+                                : solidPanelStrong,
+                              borderColor: isActive
+                                ? hexToRgba(selectedTone.accent, 0.18)
+                                : hexToRgba(palette.textMuted, 0.08),
                             },
                           ]}
+                          testID={`space-box-${boxIndex + 1}`}
                         >
-                          {`卡盒 ${formatSpaceBoxLabel(boxIndex + 1)}`}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+                          <Text
+                            numberOfLines={1}
+                            style={[
+                              styles.browseRailValue,
+                              {
+                                color: isActive
+                                  ? selectedTone.accent
+                                  : palette.textMuted,
+                              },
+                            ]}
+                          >
+                            {formatSpaceBoxLabel(boxIndex + 1)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 </View>
               </View>
 
@@ -1345,7 +1377,15 @@ export function SpaceSurface({
                             </Text>
                           ) : null}
                         </View>
-                        <View style={styles.inspectCardFooter}>
+                        <View
+                          style={[
+                            styles.inspectCardFooter,
+                            {
+                              backgroundColor: solidPanelStrong,
+                              borderColor: palette.border,
+                            },
+                          ]}
+                        >
                           <View style={styles.actionWrap}>
                             {isGated ? (
                               <Text
@@ -2057,7 +2097,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   boxBrowseSurface: {
-    gap: 10,
+    gap: 9,
     paddingBottom: 14,
   },
   boxTrayHeader: {
@@ -2066,7 +2106,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   browseHeader: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'space-between',
@@ -2074,19 +2114,19 @@ const styles = StyleSheet.create({
   browseObjectPlane: {
     borderRadius: 24,
     borderWidth: 1,
-    gap: 12,
-    paddingHorizontal: 13,
-    paddingVertical: 13,
+    gap: 11,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
   },
   browseObjectPath: {
     flexDirection: 'row',
-    gap: 7,
+    gap: 6,
   },
   browsePathStep: {
-    borderRadius: 15,
+    borderRadius: 16,
     flex: 1,
     gap: 2,
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 8,
   },
   browsePathLabel: {
@@ -2100,16 +2140,24 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   browseRail: {
-    backgroundColor: 'rgba(238,240,246,0.38)',
-    borderRadius: 22,
-    gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    gap: 7,
+  },
+  browseRailLevel: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  browseRailLevelLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.7,
+    width: 32,
   },
   browseRailRow: {
+    flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
+    gap: 6,
   },
   browseRailChip: {
     borderRadius: 999,
@@ -2117,7 +2165,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     minWidth: 86,
     paddingHorizontal: 9,
-    paddingVertical: 7,
+    paddingVertical: 8,
   },
   browseRailChipSmall: {
     minWidth: 76,
@@ -2129,9 +2177,9 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   browseRailValue: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
-    lineHeight: 14,
+    lineHeight: 15,
     textAlign: 'center',
   },
   boxTrayCopy: {
@@ -2413,7 +2461,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   inspectCardFooter: {
+    borderRadius: 18,
+    borderWidth: 1,
     gap: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
   },
   browseContinuityBar: {
     flexDirection: 'row',
