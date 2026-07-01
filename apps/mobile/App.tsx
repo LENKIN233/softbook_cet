@@ -126,6 +126,36 @@ type Palette = {
   danger: string;
 };
 
+type AuthStatusCopy = {
+  label: string;
+  value: string;
+};
+
+function getShellAuthStatusText(authState: AuthState): string {
+  return authState.stage === 'authenticated'
+    ? '已登录'
+    : authState.stage === 'code_sent'
+    ? '验证中'
+    : '未登录';
+}
+
+function getAuthStatusCopy(authState: AuthState): AuthStatusCopy {
+  return authState.stage === 'authenticated'
+    ? {
+        label: '身份已确认',
+        value: maskPhoneNumber(authState.phoneNumber),
+      }
+    : authState.stage === 'code_sent'
+    ? {
+        label: '验证码已发',
+        value: '输入验证码',
+      }
+    : {
+        label: '等待登录',
+        value: '手机号验证码',
+      };
+}
+
 type AuthState = {
   authToken: string | null;
   stage: AuthStage;
@@ -2497,7 +2527,7 @@ function PhoneTopBar({
         ]}
       >
         <Text style={[styles.phoneTopPillText, { color: palette.textMuted }]}>
-          {authState.stage === 'authenticated' ? '已登录' : '未登录'}
+          {getShellAuthStatusText(authState)}
         </Text>
       </View>
     </View>
@@ -2613,7 +2643,7 @@ function ShellHeader({
   route: ShellRoute;
   deviceClass: DeviceClass;
 }) {
-  const authText = authState.stage === 'authenticated' ? '已登录' : '未登录';
+  const authText = getShellAuthStatusText(authState);
 
   return (
     <View
@@ -2678,6 +2708,7 @@ function AuthStatusBadge({
   palette: Palette;
 }) {
   const isAuthenticated = authState.stage === 'authenticated';
+  const statusCopy = getAuthStatusCopy(authState);
 
   return (
     <View
@@ -2697,12 +2728,10 @@ function AuthStatusBadge({
           { color: isAuthenticated ? palette.success : palette.textMuted },
         ]}
       >
-        {isAuthenticated ? '身份已确认' : '等待登录'}
+        {statusCopy.label}
       </Text>
       <Text style={[styles.statusBadgeValue, { color: palette.text }]}>
-        {isAuthenticated
-          ? maskPhoneNumber(authState.phoneNumber)
-          : '手机号验证码'}
+        {statusCopy.value}
       </Text>
     </View>
   );

@@ -497,9 +497,12 @@ test('keeps mine code-sent state attached to the account object', async () => {
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('验证码已发');
   expect(output).toContain('输入验证码');
+  expect(output).toContain('验证中');
   expect(output).toContain('验证码已发送');
   expect(output).toContain('完成后回到');
   expect(output).toContain('我的');
+  expect(output).not.toContain('未登录');
+  expect(output).not.toContain('等待登录');
   expect(output).not.toContain('待登录');
 });
 
@@ -649,8 +652,10 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expect(output).toContain('验证码已发送');
   expect(output).toContain('已发送到');
   expect(output).toContain('138****8000');
+  expect(output).toContain('验证中');
   expect(output).toContain('完成后回到当前卡。');
   expect(output).toContain('重新发送');
+  expect(output).not.toContain('等待登录');
 
   await ReactTestRenderer.act(async () => {
     root.findByProps({ testID: 'auth-submit-button' }).props.onPress();
