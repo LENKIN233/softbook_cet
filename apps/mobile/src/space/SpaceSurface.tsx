@@ -1310,6 +1310,9 @@ export function SpaceSurface({
                       cardStateById[card.cardId]?.isFavorited ?? false;
                     const isSleeping =
                       cardStateById[card.cardId]?.isSleeping ?? false;
+                    const canShowPreviousCard = safeSelectedCardIndex > 0;
+                    const canShowNextCard =
+                      safeSelectedCardIndex < selectedBoxCards.length - 1;
 
                     return (
                       <View
@@ -1455,8 +1458,13 @@ export function SpaceSurface({
                           </View>
                           <View style={styles.cardPagerRow}>
                             <ActionChip
+                              disabled={!canShowPreviousCard}
                               label="上一张"
                               onPress={() => {
+                                if (!canShowPreviousCard) {
+                                  return;
+                                }
+
                                 setSelectionMode('manual');
                                 setSelectedCardIndex(
                                   Math.max(safeSelectedCardIndex - 1, 0),
@@ -1478,8 +1486,13 @@ export function SpaceSurface({
                                 : '0/0'}
                             </Text>
                             <ActionChip
+                              disabled={!canShowNextCard}
                               label="下一张"
                               onPress={() => {
+                                if (!canShowNextCard) {
+                                  return;
+                                }
+
                                 setSelectionMode('manual');
                                 setSelectedCardIndex(
                                   Math.min(
@@ -1564,12 +1577,14 @@ export function SpaceSurface({
 }
 
 function ActionChip({
+  disabled = false,
   label,
   labelTestID,
   onPress,
   palette,
   testID,
 }: {
+  disabled?: boolean;
   label: string;
   labelTestID?: string;
   onPress: () => void;
@@ -1578,16 +1593,24 @@ function ActionChip({
 }) {
   return (
     <Pressable
+      accessibilityState={disabled ? { disabled: true } : undefined}
+      disabled={disabled}
       onPress={onPress}
       style={[
         styles.actionChip,
-        { backgroundColor: palette.accentSoft, borderColor: palette.border },
+        {
+          backgroundColor: disabled ? palette.panel : palette.accentSoft,
+          borderColor: palette.border,
+        },
       ]}
       testID={testID}
     >
       <Text
         numberOfLines={1}
-        style={[styles.actionChipLabel, { color: palette.accentStrong }]}
+        style={[
+          styles.actionChipLabel,
+          { color: disabled ? palette.textMuted : palette.accentStrong },
+        ]}
         testID={labelTestID}
       >
         {label}

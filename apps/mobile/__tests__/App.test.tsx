@@ -2898,6 +2898,27 @@ test('can browse the seeded knowledge map after login', async () => {
   expect(output).toContain('当前卡盒');
   expect(output).not.toContain('当前学习卡位于 ');
   expectNoUserVisibleMetadataLeakage(tree!);
+  expect(findPressableByTestId(root, 'space-card-prev').props.disabled).toBe(
+    true,
+  );
+  expect(findPressableByTestId(root, 'space-card-next').props.disabled).toBe(
+    false,
+  );
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-card-next' }).props.onPress();
+  });
+
+  expect(findPressableByTestId(root, 'space-card-prev').props.disabled).toBe(
+    false,
+  );
+  expect(findPressableByTestId(root, 'space-card-next').props.disabled).toBe(
+    true,
+  );
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-card-prev' }).props.onPress();
+  });
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'space-library-3' }).props.onPress();
