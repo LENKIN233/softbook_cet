@@ -1275,12 +1275,12 @@ export function LearningResultDetailSurface({
     sessionLabel,
     phase,
   );
-  const borderTone = getResultTone(result, palette);
+  const resultTone = getResultTone(result, palette);
   const detailLibraryTone = resolveLibraryTone(card.space_metadata.library);
   const resolvedRows = getResolvedAnswerRows(card, cardState);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
-  const detailActionTone = detailLibraryTone.accent;
+  const detailActionTone = resultTone;
   const selectedAnswerRow = resolvedRows.find(
     row => row.testID === 'learning-detail-selected-answer',
   );
@@ -1296,8 +1296,8 @@ export function LearningResultDetailSurface({
           styles.glassCard,
           {
             backgroundColor: palette.panel,
-            borderColor: hexToRgba(detailLibraryTone.accent, 0.14),
-            shadowColor: detailLibraryTone.accent,
+            borderColor: hexToRgba(resultTone, 0.18),
+            shadowColor: resultTone,
           },
         ]}
       >
@@ -1344,8 +1344,8 @@ export function LearningResultDetailSurface({
           style={[
             styles.detailResolvedHero,
             {
-              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.035),
-              borderColor: hexToRgba(detailLibraryTone.accent, 0.1),
+              backgroundColor: hexToRgba(resultTone, 0.035),
+              borderColor: hexToRgba(resultTone, 0.12),
             },
           ]}
         >
@@ -1353,10 +1353,10 @@ export function LearningResultDetailSurface({
             <View
               style={[
                 styles.detailStatePill,
-                { backgroundColor: hexToRgba(borderTone, 0.11) },
+                { backgroundColor: hexToRgba(resultTone, 0.11) },
               ]}
             >
-              <Text style={[styles.detailStateText, { color: borderTone }]}>
+              <Text style={[styles.detailStateText, { color: resultTone }]}>
                 {isPositive ? '答对，继续保持节奏' : '这张先收进回看'}
               </Text>
             </View>
@@ -1385,17 +1385,17 @@ export function LearningResultDetailSurface({
             styles.detailAnswerSlip,
             {
               backgroundColor: palette.panelStrong,
-              borderColor: hexToRgba(detailLibraryTone.accent, 0.18),
-              borderTopColor: borderTone,
+              borderColor: hexToRgba(resultTone, 0.18),
+              borderTopColor: resultTone,
             },
           ]}
         >
           <View style={styles.detailSlipHeader}>
             <View
-              style={[styles.detailSlipDot, { backgroundColor: borderTone }]}
+              style={[styles.detailSlipDot, { backgroundColor: resultTone }]}
             />
             <View style={styles.detailSlipTitleWrap}>
-              <Text style={[styles.detailOutcomeTitle, { color: borderTone }]}>
+              <Text style={[styles.detailOutcomeTitle, { color: resultTone }]}>
                 {isPositive ? '答对' : '回看'}
               </Text>
               <Text
