@@ -1107,7 +1107,16 @@ export function SpaceSurface({
                 </View>
               </View>
 
-              <View style={styles.browseRail} testID="space-browse-rail">
+              <View
+                style={[
+                  styles.browseRail,
+                  {
+                    backgroundColor: solidPanel,
+                    borderColor: hexToRgba(selectedTone.accent, 0.1),
+                  },
+                ]}
+                testID="space-browse-rail"
+              >
                 <View style={styles.browseRailLevel}>
                   <Text
                     style={[
@@ -1168,114 +1177,120 @@ export function SpaceSurface({
                     })}
                   </View>
                 </View>
-                <View style={styles.browseRailLevel}>
-                  <Text
-                    style={[
-                      styles.browseRailLevelLabel,
-                      { color: palette.textMuted },
-                    ]}
+                <View style={styles.browseRailPairRow}>
+                  <View
+                    style={[styles.browseRailLevel, styles.browseRailLevelHalf]}
                   >
-                    分区
-                  </Text>
-                  <View style={styles.browseRailRow}>
-                    {selectedLibrary.groups.map((group, index) => {
-                      const isActive =
-                        group.groupName === selectedGroup.groupName;
+                    <Text
+                      style={[
+                        styles.browseRailLevelLabel,
+                        { color: palette.textMuted },
+                      ]}
+                    >
+                      分区
+                    </Text>
+                    <View style={styles.browseRailRow}>
+                      {selectedLibrary.groups.map((group, index) => {
+                        const isActive =
+                          group.groupName === selectedGroup.groupName;
 
-                      return (
-                        <Pressable
-                          key={`${selectedLibrary.libraryName}-${group.groupName}`}
-                          onPress={() => {
-                            setSelectionMode('manual');
-                            setSelectedGroupName(group.groupName);
-                            setSelectedBoxRef(group.boxes[0]?.boxRef ?? '');
-                            setSelectedCardIndex(0);
-                          }}
-                          style={[
-                            styles.browseRailChip,
-                            styles.browseRailChipSmall,
-                            isActive ? styles.browseRailChipActive : null,
-                            {
-                              backgroundColor: isActive
-                                ? hexToRgba(selectedTone.accent, 0.1)
-                                : solidPanelStrong,
-                              borderColor: isActive
-                                ? hexToRgba(selectedTone.accent, 0.18)
-                                : hexToRgba(palette.textMuted, 0.08),
-                            },
-                          ]}
-                          testID={`space-group-${index + 1}`}
-                        >
-                          <Text
-                            numberOfLines={1}
+                        return (
+                          <Pressable
+                            key={`${selectedLibrary.libraryName}-${group.groupName}`}
+                            onPress={() => {
+                              setSelectionMode('manual');
+                              setSelectedGroupName(group.groupName);
+                              setSelectedBoxRef(group.boxes[0]?.boxRef ?? '');
+                              setSelectedCardIndex(0);
+                            }}
                             style={[
-                              styles.browseRailValue,
+                              styles.browseRailChip,
+                              styles.browseRailChipSmall,
+                              isActive ? styles.browseRailChipActive : null,
                               {
-                                color: isActive
-                                  ? selectedTone.accent
-                                  : palette.textMuted,
+                                backgroundColor: isActive
+                                  ? hexToRgba(selectedTone.accent, 0.1)
+                                  : solidPanelStrong,
+                                borderColor: isActive
+                                  ? hexToRgba(selectedTone.accent, 0.18)
+                                  : hexToRgba(palette.textMuted, 0.08),
                               },
                             ]}
+                            testID={`space-group-${index + 1}`}
                           >
-                            {formatSpaceGroupLabel(index + 1)}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.browseRailValue,
+                                {
+                                  color: isActive
+                                    ? selectedTone.accent
+                                    : palette.textMuted,
+                                },
+                              ]}
+                            >
+                              {formatSpaceGroupLabel(index + 1)}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
                   </View>
-                </View>
-                <View style={styles.browseRailLevel}>
-                  <Text
-                    style={[
-                      styles.browseRailLevelLabel,
-                      { color: palette.textMuted },
-                    ]}
+                  <View
+                    style={[styles.browseRailLevel, styles.browseRailLevelHalf]}
                   >
-                    卡盒
-                  </Text>
-                  <View style={styles.browseRailRow}>
-                    {selectedGroup.boxes.map((box, boxIndex) => {
-                      const isActive = box.boxRef === selectedBox.boxRef;
+                    <Text
+                      style={[
+                        styles.browseRailLevelLabel,
+                        { color: palette.textMuted },
+                      ]}
+                    >
+                      卡盒
+                    </Text>
+                    <View style={styles.browseRailRow}>
+                      {selectedGroup.boxes.map((box, boxIndex) => {
+                        const isActive = box.boxRef === selectedBox.boxRef;
 
-                      return (
-                        <Pressable
-                          key={box.boxRef}
-                          onPress={() => {
-                            setSelectionMode('manual');
-                            setSelectedBoxRef(box.boxRef);
-                            setSelectedCardIndex(0);
-                          }}
-                          style={[
-                            styles.browseRailChip,
-                            styles.browseRailChipSmall,
-                            isActive ? styles.browseRailChipActive : null,
-                            {
-                              backgroundColor: isActive
-                                ? hexToRgba(selectedTone.accent, 0.1)
-                                : solidPanelStrong,
-                              borderColor: isActive
-                                ? hexToRgba(selectedTone.accent, 0.18)
-                                : hexToRgba(palette.textMuted, 0.08),
-                            },
-                          ]}
-                          testID={`space-box-${boxIndex + 1}`}
-                        >
-                          <Text
-                            numberOfLines={1}
+                        return (
+                          <Pressable
+                            key={box.boxRef}
+                            onPress={() => {
+                              setSelectionMode('manual');
+                              setSelectedBoxRef(box.boxRef);
+                              setSelectedCardIndex(0);
+                            }}
                             style={[
-                              styles.browseRailValue,
+                              styles.browseRailChip,
+                              styles.browseRailChipSmall,
+                              isActive ? styles.browseRailChipActive : null,
                               {
-                                color: isActive
-                                  ? selectedTone.accent
-                                  : palette.textMuted,
+                                backgroundColor: isActive
+                                  ? hexToRgba(selectedTone.accent, 0.1)
+                                  : solidPanelStrong,
+                                borderColor: isActive
+                                  ? hexToRgba(selectedTone.accent, 0.18)
+                                  : hexToRgba(palette.textMuted, 0.08),
                               },
                             ]}
+                            testID={`space-box-${boxIndex + 1}`}
                           >
-                            {formatSpaceBoxLabel(boxIndex + 1)}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.browseRailValue,
+                                {
+                                  color: isActive
+                                    ? selectedTone.accent
+                                    : palette.textMuted,
+                                },
+                              ]}
+                            >
+                              {formatSpaceBoxLabel(boxIndex + 1)}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
                   </View>
                 </View>
               </View>
@@ -2121,8 +2136,8 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   boxBrowseSurface: {
-    gap: 9,
-    paddingBottom: 14,
+    gap: 7,
+    paddingBottom: 0,
   },
   boxTrayHeader: {
     alignItems: 'stretch',
@@ -2138,9 +2153,9 @@ const styles = StyleSheet.create({
   browseObjectPlane: {
     borderRadius: 24,
     borderWidth: 1,
-    gap: 11,
+    gap: 9,
     paddingHorizontal: 15,
-    paddingVertical: 14,
+    paddingVertical: 12,
   },
   browseObjectPath: {
     flexDirection: 'row',
@@ -2164,12 +2179,23 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   browseRail: {
-    gap: 7,
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   browseRailLevel: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flexDirection: 'row',
     gap: 8,
+  },
+  browseRailPairRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  browseRailLevelHalf: {
+    flex: 1,
   },
   browseRailLevelLabel: {
     fontSize: 10,
@@ -2181,18 +2207,18 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 7,
   },
   browseRailChip: {
+    alignItems: 'center',
     borderRadius: 999,
     borderWidth: 1,
-    flexGrow: 1,
-    minWidth: 86,
-    paddingHorizontal: 9,
-    paddingVertical: 8,
+    minWidth: 88,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   browseRailChipSmall: {
-    minWidth: 76,
+    minWidth: 92,
   },
   browseRailChipActive: {
     shadowOffset: { width: 0, height: 6 },
@@ -2418,8 +2444,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     minWidth: 58,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
   },
   actionChipLabel: {
     fontSize: 12,
@@ -2466,11 +2492,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   inspectCardTile: {
-    gap: 11,
-    minHeight: 222,
+    gap: 8,
+    minHeight: 196,
     overflow: 'hidden',
-    paddingTop: 18,
-    paddingVertical: 14,
+    paddingTop: 15,
+    paddingVertical: 11,
   },
   inspectCardEdge: {
     height: 4,
@@ -2489,13 +2515,13 @@ const styles = StyleSheet.create({
   inspectCardFooter: {
     borderRadius: 18,
     borderWidth: 1,
-    gap: 9,
+    gap: 7,
     paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   browseContinuityBar: {
     flexDirection: 'row',
-    gap: 9,
+    gap: 8,
   },
   browseContinuityPrimary: {
     borderRadius: 20,
@@ -2503,7 +2529,7 @@ const styles = StyleSheet.create({
     flex: 1.25,
     gap: 2,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   browseContinuitySecondary: {
     borderRadius: 20,
@@ -2511,7 +2537,7 @@ const styles = StyleSheet.create({
     flex: 0.75,
     gap: 2,
     paddingHorizontal: 13,
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   browseContinuityTitle: {
     fontSize: 14,
@@ -2529,11 +2555,11 @@ const styles = StyleSheet.create({
   cardPrompt: {
     fontSize: 15,
     fontWeight: '700',
-    lineHeight: 22,
+    lineHeight: 21,
   },
   cardMeta: {
     fontSize: 12,
-    lineHeight: 18,
+    lineHeight: 17,
   },
   lockedActionText: {
     flex: 1,
