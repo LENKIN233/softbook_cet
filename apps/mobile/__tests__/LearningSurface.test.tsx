@@ -252,6 +252,11 @@ test('result detail reads as a resolved card without raw metadata', () => {
   expect(output).toContain('B · unclear');
   expect(output).toContain('答对，继续保持节奏');
   expect(output).toContain('继续下一张');
+  expect(
+    JSON.stringify(
+      tree!.root.findByProps({ testID: 'learning-next-button' }).props.style,
+    ),
+  ).toContain(palette.success);
   expect(output).not.toContain('knowledge_ref');
   expect(output).not.toContain('box_ref');
   expect(output).not.toContain(card.knowledge_ref);
