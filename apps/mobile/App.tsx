@@ -2721,18 +2721,34 @@ function AuthGate({
   palette: Palette;
   route: ShellRoute;
 }) {
-  const routeObject =
+  const retainedObject =
     route.key === 'space'
-      ? '空间位置'
+      ? {
+          eyebrow: '空间位置已保留',
+          title: '空间 · 查看位置',
+          summary: '登录后继续查看卡片位置、收藏和休眠。',
+        }
       : route.key === 'statistics'
-      ? '今日进展'
+      ? {
+          eyebrow: '今日记录已保留',
+          title: '今日进展 · 待确认',
+          summary: '登录后继续保存完成、回看和签到记录。',
+        }
       : route.key === 'mine'
-      ? '账号与进度'
-      : '这张卡';
+      ? {
+          eyebrow: '账号权益待确认',
+          title: '会员与记录 · 待确认',
+          summary: '登录后查看会员、购买恢复和学习记录。',
+        }
+      : {
+          eyebrow: '当前卡已保留',
+          title: '当前卡 · 四选一',
+          summary: '题面和位置已收好，验证后继续判断。',
+        };
   const continuityItems = [
     { label: '卡片', value: '已保留' },
-    { label: '位置', value: '已保留' },
-    { label: '进度', value: '登录后保存' },
+    { label: '位置', value: '原位保留' },
+    { label: '记录', value: '登录后保存' },
   ];
 
   return (
@@ -2746,7 +2762,7 @@ function AuthGate({
         <View style={styles.authObjectHeader}>
           <View style={styles.authHeaderMeta}>
             <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-              {routeObject}已保留
+              {retainedObject.eyebrow}
             </Text>
             <View
               style={[
@@ -2783,31 +2799,70 @@ function AuthGate({
           </Text>
         </View>
         <View
-          style={[styles.authContinuityRail, { borderColor: palette.border }]}
+          style={[
+            styles.authRetainedObject,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+            },
+          ]}
         >
-          {continuityItems.map(item => (
-            <View key={item.label} style={styles.authContinuityItem}>
-              <View
-                style={[
-                  styles.authContinuityDot,
-                  { backgroundColor: palette.accent },
-                ]}
-              />
+          <View style={styles.authRetainedHead}>
+            <View
+              pointerEvents="none"
+              style={[
+                styles.authRetainedAccent,
+                { backgroundColor: palette.accent },
+              ]}
+            />
+            <View style={styles.authRetainedCopy}>
               <Text
+                numberOfLines={1}
+                style={[styles.authRetainedTitle, { color: palette.text }]}
+              >
+                {retainedObject.title}
+              </Text>
+              <Text
+                numberOfLines={2}
                 style={[
-                  styles.authContinuityLabel,
+                  styles.authRetainedSummary,
                   { color: palette.textMuted },
                 ]}
               >
-                {item.label}
-              </Text>
-              <Text
-                style={[styles.authContinuityValue, { color: palette.text }]}
-              >
-                {item.value}
+                {retainedObject.summary}
               </Text>
             </View>
-          ))}
+          </View>
+          <View style={styles.authRetainedPillRow}>
+            {continuityItems.map(item => (
+              <View
+                key={item.label}
+                style={[
+                  styles.authRetainedPill,
+                  {
+                    backgroundColor: palette.panel,
+                    borderColor: palette.border,
+                  },
+                ]}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.authContinuityLabel,
+                    { color: palette.textMuted },
+                  ]}
+                >
+                  {item.label}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.authContinuityValue, { color: palette.text }]}
+                >
+                  {item.value}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
         <PhoneSmsPanel
           authRepositoryMode={authRepositoryMode}
@@ -2815,11 +2870,11 @@ function AuthGate({
           embedded
           handlers={handlers}
           palette={palette}
-          title="手机号登录"
+          title="手机号验证"
           summary={
             authRepositoryMode === 'remote'
-              ? '用短信验证码确认身份。'
-              : '输入验证码确认身份。'
+              ? '用短信验证码确认身份，完成后回到当前卡。'
+              : '输入验证码确认身份，完成后回到当前卡。'
           }
         />
       </View>
@@ -4182,6 +4237,49 @@ const styles = StyleSheet.create({
   authGateSummary: {
     fontSize: 14,
     lineHeight: 21,
+  },
+  authRetainedObject: {
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  authRetainedHead: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  authRetainedAccent: {
+    borderRadius: 999,
+    height: 44,
+    width: 5,
+  },
+  authRetainedCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  authRetainedTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 23,
+  },
+  authRetainedSummary: {
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  authRetainedPillRow: {
+    flexDirection: 'row',
+    gap: 7,
+  },
+  authRetainedPill: {
+    borderRadius: 16,
+    borderWidth: 1,
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
   },
   authObjectBadge: {
     alignItems: 'center',
