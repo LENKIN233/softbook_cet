@@ -412,8 +412,10 @@ test('renders correctly', async () => {
   expect(output).toContain('统计');
   expect(output).toContain('我的');
   expect(output).toContain('登录后继续学习');
-  expect(output).toContain('这张卡');
+  expect(output).toContain('当前卡 · 四选一');
   expect(output).toContain('已保留');
+  expect(output).toContain('原位保留');
+  expect(output).toContain('手机号验证');
 });
 
 test('reads installed runtime config when the app mounts', async () => {
