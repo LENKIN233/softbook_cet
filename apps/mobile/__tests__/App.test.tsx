@@ -156,6 +156,9 @@ async function authenticateIntoLearningBootstrap(
       .findByProps({ testID: 'auth-phone-input' })
       .props.onChangeText('13800138000');
   });
+  expect(
+    findPressableByTestId(root, 'auth-request-code-button').props.disabled,
+  ).toBe(false);
 
   await ReactTestRenderer.act(async () => {
     root.findByProps({ testID: 'auth-request-code-button' }).props.onPress();
@@ -416,6 +419,10 @@ test('renders correctly', async () => {
   expect(output).toContain('已保留');
   expect(output).toContain('原位保留');
   expect(output).toContain('手机号验证');
+  expect(
+    findPressableByTestId(tree!.root, 'auth-request-code-button').props
+      .disabled,
+  ).toBe(true);
 });
 
 test('keeps protected route auth gates attached to the selected object', async () => {
@@ -501,6 +508,9 @@ test('keeps mine code-sent state attached to the account object', async () => {
   expect(output).toContain('验证码已发送');
   expect(output).toContain('完成后回到');
   expect(output).toContain('我的');
+  expect(findPressableByTestId(root, 'auth-submit-button').props.disabled).toBe(
+    true,
+  );
   expect(output).not.toContain('未登录');
   expect(output).not.toContain('等待登录');
   expect(output).not.toContain('待登录');

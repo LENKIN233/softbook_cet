@@ -1482,7 +1482,7 @@ function AppShell({
         return;
       }
 
-      if (authState.phoneNumber.length !== 11) {
+      if (!isPhoneNumberReady(authState.phoneNumber)) {
         setAuthState(current => ({
           ...current,
           error: '请输入 11 位手机号后再请求验证码。',
@@ -1529,7 +1529,7 @@ function AppShell({
         return;
       }
 
-      if (authState.smsCode.length < 4) {
+      if (!isSmsCodeReady(authState.smsCode)) {
         setAuthState(current => ({
           ...current,
           error: '请输入 4-6 位验证码。',
@@ -3723,6 +3723,41 @@ function PhoneSmsPanel({
   const isAuthenticated = authState.stage === 'authenticated';
   const isPending = authState.pendingAction !== null;
   const hasRequestedCode = authState.stage !== 'logged_out';
+  const canRequestCode =
+    isPhoneNumberReady(authState.phoneNumber) && !isPending && !isAuthenticated;
+  const canSubmitCode =
+    isSmsCodeReady(authState.smsCode) && !isPending && !isAuthenticated;
+  const requestCodeButtonStyle = [
+    styles.primaryButton,
+    embedded || fullWidthRequestButton ? null : styles.compactButton,
+    canRequestCode
+      ? {
+          backgroundColor: palette.accent,
+          borderColor: palette.accent,
+        }
+      : {
+          backgroundColor: palette.panelStrong,
+          borderColor: palette.border,
+        },
+  ];
+  const submitCodeButtonStyle = [
+    styles.primaryButton,
+    canSubmitCode
+      ? {
+          backgroundColor: palette.accent,
+          borderColor: palette.accent,
+        }
+      : {
+          backgroundColor: palette.panelStrong,
+          borderColor: palette.border,
+        },
+  ];
+  const requestCodeLabelColor = canRequestCode
+    ? palette.panel
+    : palette.textMuted;
+  const submitCodeLabelColor = canSubmitCode
+    ? palette.panel
+    : palette.textMuted;
 
   return (
     <View
@@ -3802,7 +3837,7 @@ function PhoneSmsPanel({
               </Text>
             </View>
             <Pressable
-              disabled={isPending || isAuthenticated}
+              disabled={!canRequestCode}
               onPress={handlers.onRequestCode}
               style={[
                 styles.authCodeResendButton,
@@ -3861,12 +3896,14 @@ function PhoneSmsPanel({
 
       {!isAuthenticated && hasRequestedCode ? (
         <Pressable
-          disabled={isPending}
+          disabled={!canSubmitCode}
           onPress={handlers.onSubmitCode}
-          style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+          style={submitCodeButtonStyle}
           testID="auth-submit-button"
         >
-          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+          <Text
+            style={[styles.primaryButtonLabel, { color: submitCodeLabelColor }]}
+          >
             {authState.pendingAction === 'verify_code'
               ? '正在登录'
               : '完成登录'}
@@ -3877,19 +3914,17 @@ function PhoneSmsPanel({
       {!hasRequestedCode ? (
         <View style={styles.authActions}>
           <Pressable
-            disabled={isPending || isAuthenticated}
+            disabled={!canRequestCode}
             onPress={handlers.onRequestCode}
-            style={[
-              styles.primaryButton,
-              embedded || fullWidthRequestButton ? null : styles.compactButton,
-              {
-                backgroundColor: palette.accent,
-                borderColor: palette.accent,
-              },
-            ]}
+            style={requestCodeButtonStyle}
             testID="auth-request-code-button"
           >
-            <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            <Text
+              style={[
+                styles.primaryButtonLabel,
+                { color: requestCodeLabelColor },
+              ]}
+            >
               {authState.pendingAction === 'request_code'
                 ? '正在请求验证码'
                 : '请求验证码'}
@@ -4060,6 +4095,14 @@ function maskPhoneNumber(phoneNumber: string) {
   }
 
   return `${phoneNumber.slice(0, 3)}****${phoneNumber.slice(-4)}`;
+}
+
+function isPhoneNumberReady(phoneNumber: string) {
+  return /^\d{11}$/.test(phoneNumber.trim());
+}
+
+function isSmsCodeReady(smsCode: string) {
+  return /^\d{4,6}$/.test(smsCode.trim());
 }
 
 function getMembershipCardTitle(stage: MembershipStage) {
