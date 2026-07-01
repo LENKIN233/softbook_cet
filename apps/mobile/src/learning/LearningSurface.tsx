@@ -201,8 +201,8 @@ export function LearningSurface({
             {isReviewPhase
               ? '回看已经结束。可以回到首轮重新开始，也可以稍后按学习节奏继续。'
               : reviewCandidateCount > 0
-                ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
-                : '这一轮已经完成，可以重新练这轮卡。'}
+              ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
+              : '这一轮已经完成，可以重新练这轮卡。'}
           </Text>
           {!isReviewPhase && reviewCandidateCount > 0 && onStartReview ? (
             <Pressable
@@ -745,22 +745,22 @@ function InteractionBody({
               const optionStateTint = isCorrect
                 ? hexToRgba(palette.success, 0.08)
                 : isIncorrectSelection
-                  ? hexToRgba(palette.danger, 0.075)
-                  : isSelected
-                    ? hexToRgba(tone.accent, 0.055)
-                    : palette.panel;
+                ? hexToRgba(palette.danger, 0.075)
+                : isSelected
+                ? hexToRgba(tone.accent, 0.055)
+                : palette.panel;
               const optionStateBorder = isCorrect
                 ? hexToRgba(palette.success, 0.42)
                 : isIncorrectSelection
-                  ? hexToRgba(palette.danger, 0.38)
-                  : isSelected
-                    ? hexToRgba(tone.accent, 0.42)
-                    : palette.border;
+                ? hexToRgba(palette.danger, 0.38)
+                : isSelected
+                ? hexToRgba(tone.accent, 0.42)
+                : palette.border;
               const optionStateColor = isCorrect
                 ? palette.success
                 : isIncorrectSelection
-                  ? palette.danger
-                  : tone.accent;
+                ? palette.danger
+                : tone.accent;
 
               return (
                 <Pressable
@@ -970,11 +970,11 @@ function InteractionBody({
                         ? isCorrect
                           ? palette.success
                           : isSelected
-                            ? palette.danger
-                            : palette.border
+                          ? palette.danger
+                          : palette.border
                         : isSelected
-                          ? tone.accent
-                          : palette.border,
+                        ? tone.accent
+                        : palette.border,
                     },
                   ]}
                   testID={`learning-elimination-${item.id}`}
@@ -1072,8 +1072,8 @@ function InteractionBody({
                       borderColor: isCorrect
                         ? palette.success
                         : isSelected
-                          ? tone.accent
-                          : palette.border,
+                        ? tone.accent
+                        : palette.border,
                     },
                   ]}
                   testID={`learning-swipe-${state.id}`}
@@ -1470,8 +1470,8 @@ function ResultSummaryPanel({
     result.outcome === 'review'
       ? palette.warning
       : result.outcome === 'incorrect'
-        ? palette.danger
-        : palette.success;
+      ? palette.danger
+      : palette.success;
   const cardTone = resolveLibraryTone(card.space_metadata.library);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
@@ -1552,8 +1552,8 @@ function ResultPanel({
     result.outcome === 'review'
       ? palette.warning
       : result.outcome === 'incorrect'
-        ? palette.danger
-        : palette.success;
+      ? palette.danger
+      : palette.success;
   const cardTone = resolveLibraryTone(card.space_metadata.library);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
@@ -1630,8 +1630,8 @@ function MetricPill({
     tone === 'success'
       ? palette.success
       : tone === 'danger'
-        ? palette.danger
-        : palette.accent;
+      ? palette.danger
+      : palette.accent;
 
   return (
     <View
@@ -1660,16 +1660,16 @@ function ResultBadge({
     outcome === 'review'
       ? palette.warning
       : outcome === 'incorrect'
-        ? palette.danger
-        : palette.success;
+      ? palette.danger
+      : palette.success;
   const label =
     outcome === 'correct'
       ? '自动判对'
       : outcome === 'incorrect'
-        ? '自动判错'
-        : outcome === 'confident'
-          ? '翻面有把握'
-          : '翻面回看';
+      ? '自动判错'
+      : outcome === 'confident'
+      ? '翻面有把握'
+      : '翻面回看';
 
   return (
     <View
@@ -1965,10 +1965,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   studyCardOneScreen: {
-    flex: 1,
-    gap: 10,
+    flexGrow: 0,
+    flexShrink: 1,
+    gap: 9,
     paddingHorizontal: 16,
-    paddingVertical: 15,
+    paddingVertical: 14,
   },
   cardAddressShelf: {
     alignItems: 'center',
@@ -2049,8 +2050,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   cardPromptOneScreen: {
-    fontSize: 21,
-    lineHeight: 27,
+    fontSize: 20,
+    lineHeight: 26,
   },
   contextCard: {
     borderWidth: 1,
@@ -2474,14 +2475,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   oneScreenDock: {
-    gap: 7,
-    marginTop: 'auto',
+    gap: 8,
+    marginTop: 1,
   },
   oneScreenDockCompact: {
     gap: 0,
   },
   oneScreenPrimaryButton: {
-    paddingVertical: 12,
+    paddingVertical: 13,
   },
   primaryButtonLabel: {
     fontSize: 15,
