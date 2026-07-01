@@ -90,6 +90,19 @@ export function StatisticsSurface({
     : combinedResults.length > 0
     ? '今天的完成和回看都保持在轻负担范围。'
     : '先回到学习完成一张卡，这里会记录今天的连续性。';
+  const checkInButtonBackground = hasCheckedInToday
+    ? palette.panelStrong
+    : canCheckInToday
+    ? palette.accent
+    : palette.tabIdle;
+  const checkInButtonBorder = hasCheckedInToday
+    ? hexToRgba(palette.accent, 0.18)
+    : canCheckInToday
+    ? palette.accent
+    : palette.border;
+  const checkInButtonLabelColor = hasCheckedInToday
+    ? palette.accentStrong
+    : palette.panel;
 
   return (
     <View
@@ -215,16 +228,17 @@ export function StatisticsSurface({
               styles.primaryButton,
               styles.dailyPrimaryButton,
               {
-                backgroundColor:
-                  hasCheckedInToday || canCheckInToday
-                    ? palette.accent
-                    : palette.tabIdle,
+                backgroundColor: checkInButtonBackground,
+                borderColor: checkInButtonBorder,
               },
             ]}
             testID="statistics-checkin-button"
           >
             <Text
-              style={[styles.primaryButtonLabel, { color: palette.panel }]}
+              style={[
+                styles.primaryButtonLabel,
+                { color: checkInButtonLabelColor },
+              ]}
               testID={
                 hasCheckedInToday
                   ? 'statistics-checkin-complete-label'
@@ -324,7 +338,23 @@ function MetricCard({
 
   return (
     <View
-      style={[styles.metricCard, { borderColor: palette.border }]}
+      style={[
+        styles.metricCard,
+        {
+          backgroundColor:
+            tone === 'success'
+              ? hexToRgba(palette.success, 0.06)
+              : tone === 'warning'
+              ? hexToRgba(palette.warning, 0.07)
+              : palette.panel,
+          borderColor:
+            tone === 'success'
+              ? hexToRgba(palette.success, 0.14)
+              : tone === 'warning'
+              ? hexToRgba(palette.warning, 0.16)
+              : palette.border,
+        },
+      ]}
       testID={testID}
     >
       <Text style={[styles.metricValue, { color: valueColor }]}>{value}</Text>
@@ -445,29 +475,34 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   metricRow: {
+    flexDirection: 'row',
     borderWidth: 1,
     borderRadius: 22,
-    gap: 0,
-    paddingHorizontal: 13,
-    paddingVertical: 5,
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   metricCard: {
-    alignItems: 'center',
-    borderWidth: 0,
-    borderRadius: 0,
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    minHeight: 30,
-    paddingVertical: 2,
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 16,
+    flex: 1,
+    gap: 3,
+    justifyContent: 'center',
+    minHeight: 58,
+    minWidth: 0,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
   },
   metricValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
   metricLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
+    lineHeight: 14,
   },
   sectionGrid: {
     flexDirection: 'row',
@@ -554,6 +589,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   primaryButton: {
+    borderWidth: 1,
     borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 11,
