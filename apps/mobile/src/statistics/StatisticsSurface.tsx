@@ -79,16 +79,17 @@ export function StatisticsSurface({
       ? '首轮已收口，暂时没有额外待回看卡。'
       : '今天还没有形成可展示的今日进展。';
   const dailyTitle = hasCheckedInToday
-    ? '今日学习已记住'
+    ? '今日已记录'
     : combinedResults.length > 0
     ? '学习手感保持中'
     : '先完成一张卡';
-  const dailySummary =
-    pendingReviewCount > 0
-      ? `还有 ${pendingReviewCount} 张卡需要回看，统计只安静记录，不打断学习。`
-      : combinedResults.length > 0
-      ? '今天的完成和回看都保持在轻负担范围。'
-      : '先回到学习完成一张卡，这里会记录今天的连续性。';
+  const dailySummary = hasCheckedInToday
+    ? '完成、回看和签到已收成一条安静进度。'
+    : pendingReviewCount > 0
+    ? `还有 ${pendingReviewCount} 张卡需要回看，统计只安静记录，不打断学习。`
+    : combinedResults.length > 0
+    ? '今天的完成和回看都保持在轻负担范围。'
+    : '先回到学习完成一张卡，这里会记录今天的连续性。';
 
   return (
     <View
@@ -129,7 +130,7 @@ export function StatisticsSurface({
               {
                 backgroundColor: hasCheckedInToday
                   ? palette.accentSoft
-                  : palette.panelStrong,
+                  : hexToRgba(palette.accent, 0.07),
               },
             ]}
           >
@@ -139,7 +140,7 @@ export function StatisticsSurface({
                 {
                   color: hasCheckedInToday
                     ? palette.accentStrong
-                    : palette.textMuted,
+                    : palette.accentStrong,
                 },
               ]}
             >
@@ -152,8 +153,8 @@ export function StatisticsSurface({
           style={[
             styles.metricRow,
             {
-              backgroundColor: hexToRgba(palette.accent, 0.055),
-              borderColor: hexToRgba(palette.accent, 0.12),
+              backgroundColor: palette.panelStrong,
+              borderColor: hexToRgba(palette.accent, 0.1),
             },
           ]}
           testID="statistics-metric-strip"
@@ -190,8 +191,8 @@ export function StatisticsSurface({
             styles.dailyActionRow,
             deviceClass === 'tablet' ? styles.dailyActionRowTablet : null,
             {
-              backgroundColor: palette.panelStrong,
-              borderColor: hexToRgba(palette.accent, 0.1),
+              backgroundColor: hexToRgba(palette.accent, 0.06),
+              borderColor: hexToRgba(palette.accent, 0.14),
             },
           ]}
           testID="statistics-checkin-card"
@@ -261,7 +262,12 @@ export function StatisticsSurface({
             />
           </View>
 
-          <View style={styles.signalPanel}>
+          <View
+            style={[
+              styles.signalPanel,
+              { borderTopColor: hexToRgba(palette.accent, 0.08) },
+            ]}
+          >
             <Text style={[styles.cardTitle, { color: palette.text }]}>
               练习信号
             </Text>
@@ -417,7 +423,7 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     paddingHorizontal: 18,
-    paddingTop: 8,
+    paddingTop: 6,
     paddingBottom: 8,
     gap: 9,
   },
@@ -440,21 +446,19 @@ const styles = StyleSheet.create({
   },
   metricRow: {
     borderWidth: 1,
-    borderRadius: 20,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
+    borderRadius: 22,
+    gap: 0,
+    paddingHorizontal: 13,
+    paddingVertical: 5,
   },
   metricCard: {
-    minWidth: 68,
-    flexGrow: 1,
+    alignItems: 'center',
     borderWidth: 0,
     borderRadius: 0,
-    paddingHorizontal: 4,
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    minHeight: 30,
     paddingVertical: 2,
-    gap: 4,
   },
   metricValue: {
     fontSize: 18,
@@ -462,8 +466,8 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   metricLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
   },
   sectionGrid: {
     flexDirection: 'row',
@@ -475,7 +479,7 @@ const styles = StyleSheet.create({
   },
   surfaceCard: {
     borderWidth: 1,
-    borderRadius: 28,
+    borderRadius: 26,
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 8,
@@ -493,9 +497,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   dailyObjectCard: {
-    gap: 12,
+    gap: 9,
     paddingHorizontal: 18,
-    paddingVertical: 17,
+    paddingVertical: 14,
   },
   dailyHeader: {
     alignItems: 'flex-start',
@@ -516,12 +520,12 @@ const styles = StyleSheet.create({
   routeBadge: {
     alignItems: 'center',
     borderRadius: 999,
-    height: 58,
+    height: 50,
     justifyContent: 'center',
-    width: 58,
+    width: 50,
   },
   routeBadgeLabel: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '900',
   },
   checkInStatusPill: {
@@ -537,10 +541,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 12,
-    borderRadius: 22,
+    gap: 11,
+    borderRadius: 24,
     paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingVertical: 10,
   },
   dailyActionRowTablet: {
     alignItems: 'flex-start',
@@ -562,12 +566,12 @@ const styles = StyleSheet.create({
   },
   dailyPrimaryButton: {
     borderRadius: 999,
-    minWidth: 104,
-    paddingHorizontal: 14,
+    minWidth: 112,
+    paddingHorizontal: 15,
     paddingVertical: 10,
   },
   ledgerRail: {
-    gap: 9,
+    gap: 8,
   },
   ledgerLabel: {
     fontSize: 11,
@@ -587,35 +591,40 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   ledgerRow: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
-    minHeight: 34,
+    minHeight: 29,
   },
   statusDock: {
-    borderRadius: 22,
+    borderRadius: 24,
     borderWidth: 1,
-    gap: 12,
+    gap: 8,
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   signalPanel: {
-    gap: 7,
+    borderTopWidth: 1,
+    gap: 6,
+    paddingTop: 8,
   },
   signalGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    columnGap: 14,
-    rowGap: 4,
+    columnGap: 10,
+    rowGap: 6,
   },
   signalRow: {
+    borderRadius: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 10,
     minWidth: '45%',
     flexGrow: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   signalLabel: {
     fontSize: 12,
