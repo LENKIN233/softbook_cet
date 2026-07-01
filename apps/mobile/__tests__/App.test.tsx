@@ -2818,6 +2818,10 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(findPressableByTestId(root, 'mine-go-learning')).toBeTruthy();
   expect(findPressableByTestId(root, 'mine-go-space')).toBeTruthy();
   expect(findPressableByTestId(root, 'mine-go-statistics')).toBeTruthy();
+  expect(root.findByProps({ testID: 'mine-action-rail' })).toBeTruthy();
+  expect(
+    root.findByProps({ testID: 'mine-secondary-action-row' }),
+  ).toBeTruthy();
   expect(output).not.toContain('账号概览');
   expect(output).not.toContain('今日已完成 1 张卡，其中首轮 1 张、回看 0 张。');
   expect(output).not.toContain('收藏标签 1 张。');
