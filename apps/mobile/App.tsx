@@ -3177,11 +3177,11 @@ function MineSurface({
               style={[
                 styles.mineActionRail,
                 {
-                  backgroundColor: palette.panelStrong,
-                  borderColor: palette.border,
+                  borderColor: hexToRgba(palette.accent, 0.12),
                 },
                 deviceClass === 'tablet' ? styles.mineActionRailTablet : null,
               ]}
+              testID="mine-action-rail"
             >
               <MineActionCard
                 detail={
@@ -3194,23 +3194,29 @@ function MineSurface({
                 palette={palette}
                 testID="mine-go-learning"
                 value="练"
+                variant="primary"
               />
-              <MineActionCard
-                detail={`${favoriteCount} 收藏 · ${sleepingCount} 休眠`}
-                label="查看空间"
-                onPress={onGoToSpace}
-                palette={palette}
-                testID="mine-go-space"
-                value="位"
-              />
-              <MineActionCard
-                detail={checkedInToday ? '今日已签到' : '今日未签到'}
-                label="今日进展"
-                onPress={onGoToStatistics}
-                palette={palette}
-                testID="mine-go-statistics"
-                value="记"
-              />
+              <View
+                style={styles.mineSecondaryActionRow}
+                testID="mine-secondary-action-row"
+              >
+                <MineActionCard
+                  detail={`${favoriteCount} 收藏 · ${sleepingCount} 休眠`}
+                  label="查看空间"
+                  onPress={onGoToSpace}
+                  palette={palette}
+                  testID="mine-go-space"
+                  value="位"
+                />
+                <MineActionCard
+                  detail={checkedInToday ? '今日已签到' : '今日未签到'}
+                  label="今日进展"
+                  onPress={onGoToStatistics}
+                  palette={palette}
+                  testID="mine-go-statistics"
+                  value="记"
+                />
+              </View>
             </View>
 
             <MembershipHostCard
@@ -3250,6 +3256,7 @@ function MineActionCard({
   palette,
   testID,
   value,
+  variant = 'secondary',
 }: {
   detail: string;
   label: string;
@@ -3257,46 +3264,94 @@ function MineActionCard({
   palette: Palette;
   testID: string;
   value: string;
+  variant?: 'primary' | 'secondary';
 }) {
+  const isPrimary = variant === 'primary';
+  const foregroundColor = isPrimary ? palette.panel : palette.text;
+  const mutedColor = isPrimary ? hexToRgba('#FFFFFF', 0.74) : palette.textMuted;
+  const glyph = (
+    <View
+      style={[
+        styles.mineActionGlyph,
+        {
+          backgroundColor: isPrimary
+            ? hexToRgba('#FFFFFF', 0.14)
+            : palette.accentSoft,
+          borderColor: isPrimary ? hexToRgba('#FFFFFF', 0.18) : palette.border,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.mineActionValue,
+          { color: isPrimary ? palette.panel : palette.accent },
+        ]}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+  const copy = (
+    <View style={styles.mineActionCopy}>
+      <Text
+        numberOfLines={1}
+        style={[
+          styles.mineActionLabel,
+          isPrimary ? styles.mineActionLabelPrimary : null,
+          { color: foregroundColor },
+        ]}
+      >
+        {label}
+      </Text>
+      <Text
+        numberOfLines={isPrimary ? 1 : 2}
+        style={[
+          styles.mineActionDetail,
+          isPrimary ? styles.mineActionDetailPrimary : null,
+          { color: mutedColor },
+        ]}
+      >
+        {detail}
+      </Text>
+    </View>
+  );
+  const arrow = (
+    <Text style={[styles.mineActionArrow, { color: mutedColor }]}>→</Text>
+  );
+
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={[styles.mineActionCard, { borderColor: palette.border }]}
+      style={[
+        styles.mineActionCard,
+        isPrimary
+          ? styles.mineActionCardPrimary
+          : styles.mineActionCardSecondary,
+        {
+          backgroundColor: isPrimary ? palette.accent : palette.panelStrong,
+          borderColor: isPrimary
+            ? hexToRgba(palette.accentStrong, 0.18)
+            : palette.border,
+        },
+      ]}
       testID={testID}
     >
-      <View style={styles.mineActionTopRow}>
-        <View
-          style={[
-            styles.mineActionGlyph,
-            {
-              backgroundColor: palette.accentSoft,
-              borderColor: palette.border,
-            },
-          ]}
-        >
-          <Text style={[styles.mineActionValue, { color: palette.accent }]}>
-            {value}
-          </Text>
-        </View>
-        <Text style={[styles.mineActionArrow, { color: palette.textMuted }]}>
-          →
-        </Text>
-      </View>
-      <View style={styles.mineActionCopy}>
-        <Text
-          numberOfLines={1}
-          style={[styles.mineActionLabel, { color: palette.text }]}
-        >
-          {label}
-        </Text>
-        <Text
-          numberOfLines={2}
-          style={[styles.mineActionDetail, { color: palette.textMuted }]}
-        >
-          {detail}
-        </Text>
-      </View>
+      {isPrimary ? (
+        <>
+          {glyph}
+          {copy}
+          {arrow}
+        </>
+      ) : (
+        <>
+          <View style={styles.mineActionTopRow}>
+            {glyph}
+            {arrow}
+          </View>
+          {copy}
+        </>
+      )}
     </Pressable>
   );
 }
@@ -4804,17 +4859,33 @@ const styles = StyleSheet.create({
   mineActionRail: {
     borderRadius: 22,
     borderWidth: 1,
-    flexDirection: 'row',
-    overflow: 'hidden',
+    gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   mineActionRailTablet: {
+    maxWidth: 560,
+  },
+  mineSecondaryActionRow: {
     flexDirection: 'row',
+    gap: 8,
   },
   mineActionCard: {
     alignItems: 'stretch',
-    borderRightWidth: 1,
-    flex: 1,
+    borderWidth: 1,
     gap: 8,
+  },
+  mineActionCardPrimary: {
+    alignItems: 'center',
+    borderRadius: 19,
+    flexDirection: 'row',
+    minHeight: 62,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+  },
+  mineActionCardSecondary: {
+    borderRadius: 18,
+    flex: 1,
     minHeight: 86,
     paddingHorizontal: 11,
     paddingVertical: 10,
@@ -4825,6 +4896,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   mineActionCopy: {
+    flex: 1,
     gap: 3,
     minWidth: 0,
   },
@@ -4845,10 +4917,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
   },
+  mineActionLabelPrimary: {
+    fontSize: 16,
+  },
   mineActionDetail: {
     fontSize: 10,
     fontWeight: '600',
     lineHeight: 14,
+  },
+  mineActionDetailPrimary: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
   },
   mineActionArrow: {
     fontSize: 14,
@@ -4959,7 +5039,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   membershipPrimaryAction: {
-    flex: 1,
+    flex: 1.18,
     paddingHorizontal: 12,
     paddingVertical: 11,
   },
