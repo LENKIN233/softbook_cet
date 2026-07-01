@@ -2977,10 +2977,12 @@ function MineSurface({
   const checkedInToday = checkedInDayKey === todayKey;
   const profileName = isAuthenticated
     ? maskPhoneNumber(authState.phoneNumber)
-    : '手机号登录';
+    : '待验证';
   const profileDetail = isAuthenticated
     ? `${checkedInToday ? '已签到' : '未签到'} · ${completedCount} 张完成`
-    : '登录后保存当前卡、空间和会员状态';
+    : '学习/空间/会员';
+  const profileIdentityLabel = isAuthenticated ? '已确认' : '身份';
+  const profileProgressLabel = isAuthenticated ? '今日' : '同步';
   const syncDetail = isAuthenticated
     ? progressSyncState.state === 'error' ||
       learningStateSyncState.state === 'error'
@@ -2989,10 +2991,10 @@ function MineSurface({
         learningStateSyncState.state === 'syncing'
       ? '记录保存中'
       : '记录已保存'
-    : '验证码登录';
+    : '手机验证码';
   const membershipTitle = isAuthenticated
     ? getMembershipCardTitle(membershipState.stage)
-    : '登录后查看';
+    : '待登录';
 
   return (
     <View
@@ -3024,14 +3026,14 @@ function MineSurface({
               账号与权益
             </Text>
             <Text style={[styles.mineAccountTitle, { color: palette.text }]}>
-              {isAuthenticated ? '今天继续这一轮' : '确认身份继续学'}
+              {isAuthenticated ? '今天继续这一轮' : '登录后管理我的'}
             </Text>
             <Text
               style={[styles.mineAccountSummary, { color: palette.textMuted }]}
             >
               {isAuthenticated
                 ? '账号、会员和购买恢复在这里，不打断学习任务。'
-                : '验证码通过后回到当前学习卡。'}
+                : '学习记录、空间位置和会员权益会归到同一账号。'}
             </Text>
           </View>
           <View
@@ -3065,7 +3067,7 @@ function MineSurface({
             <Text
               style={[styles.mineIdentityLabel, { color: palette.textMuted }]}
             >
-              {isAuthenticated ? '已确认' : '登录方式'}
+              {profileIdentityLabel}
             </Text>
             <Text
               numberOfLines={1}
@@ -3079,7 +3081,7 @@ function MineSurface({
             <Text
               style={[styles.mineIdentityLabel, { color: palette.textMuted }]}
             >
-              今日
+              {profileProgressLabel}
             </Text>
             <Text
               numberOfLines={1}
@@ -3197,9 +3199,10 @@ function MineSurface({
           authState={authState}
           handlers={handlers}
           palette={palette}
+          fullWidthRequestButton
           returnTarget="我的"
-          title="手机号验证码登录"
-          summary="先从这里完成登录，再继续学习、空间和个人进度。"
+          title="手机号验证"
+          summary="验证后回到我的，查看记录、空间和会员。"
         />
       ) : null}
     </View>
@@ -3611,6 +3614,7 @@ function PhoneSmsPanel({
   authRepositoryMode,
   authState,
   embedded = false,
+  fullWidthRequestButton = false,
   handlers,
   palette,
   returnTarget,
@@ -3620,6 +3624,7 @@ function PhoneSmsPanel({
   authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   embedded?: boolean;
+  fullWidthRequestButton?: boolean;
   handlers: AuthHandlers;
   palette: Palette;
   returnTarget: string;
@@ -3787,7 +3792,7 @@ function PhoneSmsPanel({
             onPress={handlers.onRequestCode}
             style={[
               styles.primaryButton,
-              embedded ? null : styles.compactButton,
+              embedded || fullWidthRequestButton ? null : styles.compactButton,
               {
                 backgroundColor: palette.accent,
                 borderColor: palette.accent,
