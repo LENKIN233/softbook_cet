@@ -418,6 +418,39 @@ test('renders correctly', async () => {
   expect(output).toContain('手机号验证');
 });
 
+test('keeps protected route auth gates attached to the selected object', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+
+  expect(JSON.stringify(tree!.toJSON())).toContain('登录后继续学习');
+  expect(JSON.stringify(tree!.toJSON())).toContain('当前卡 · 四选一');
+
+  await openRoute(root, 'space');
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('登录后查看空间');
+  expect(output).toContain('空间 · 当前位置');
+  expect(output).toContain('库组盒');
+  expect(output).toContain('登录后同步');
+  expect(output).toContain('完成后回到当前位置');
+  expect(output).not.toContain('登录后继续学习');
+  expect(output).not.toContain('当前学习');
+
+  await openRoute(root, 'statistics');
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('登录后查看今日进展');
+  expect(output).toContain('今日进展 · 待同步');
+  expect(output).toContain('完成后回到今日进展');
+  expect(output).toContain('回看');
+  expect(output).toContain('签到');
+  expect(output).not.toContain('登录后查看空间');
+  expect(output).not.toContain('当前学习');
+});
+
 test('reads installed runtime config when the app mounts', async () => {
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
     auth: {

@@ -2722,35 +2722,62 @@ function AuthGate({
   route: ShellRoute;
 }) {
   const hasSentCode = authState.stage === 'code_sent';
-  const retainedObject =
+  const authGateContent =
     route.key === 'space'
       ? {
+          continuityItems: [
+            { label: '层级', value: '库组盒' },
+            { label: '卡片', value: '原位保留' },
+            { label: '操作', value: '登录后同步' },
+          ],
           eyebrow: '空间位置已保留',
-          title: '空间 · 查看位置',
-          summary: '登录后继续查看卡片位置、收藏和休眠。',
+          gateSummary: '验证后回到当前位置，收藏、休眠和会员状态保持一致。',
+          gateTitle: '登录后查看空间',
+          retainedSummary: '库、组、盒和卡片位置已收好，验证后继续查看。',
+          retainedTitle: '空间 · 当前位置',
+          returnTarget: '当前位置',
         }
       : route.key === 'statistics'
       ? {
+          continuityItems: [
+            { label: '完成', value: '已暂存' },
+            { label: '回看', value: '待同步' },
+            { label: '签到', value: '登录后保存' },
+          ],
           eyebrow: '今日记录已保留',
-          title: '今日进展 · 待确认',
-          summary: '登录后继续保存完成、回看和签到记录。',
+          gateSummary: '验证后查看今日完成、回看和签到状态。',
+          gateTitle: '登录后查看今日进展',
+          retainedSummary: '完成记录和回看队列已保留，登录后继续同步。',
+          retainedTitle: '今日进展 · 待同步',
+          returnTarget: '今日进展',
         }
       : route.key === 'mine'
       ? {
+          continuityItems: [
+            { label: '身份', value: '手机验证' },
+            { label: '会员', value: '登录后确认' },
+            { label: '记录', value: '跨端同步' },
+          ],
           eyebrow: '账号权益待确认',
-          title: '会员与记录 · 待确认',
-          summary: '登录后查看会员、购买恢复和学习记录。',
+          gateSummary: '验证后查看会员、购买恢复和同步记录。',
+          gateTitle: '登录后查看我的',
+          retainedSummary: '会员和学习记录会在登录后恢复到当前账号。',
+          retainedTitle: '会员与记录 · 待确认',
+          returnTarget: '我的',
         }
       : {
+          continuityItems: [
+            { label: '卡片', value: '已保留' },
+            { label: '位置', value: '原位保留' },
+            { label: '记录', value: '登录后保存' },
+          ],
           eyebrow: '当前卡已保留',
-          title: '当前卡 · 四选一',
-          summary: '题面和位置已收好，验证后继续判断。',
+          gateSummary: '验证码通过后回到这张卡，空间和会员状态保持一致。',
+          gateTitle: '登录后继续学习',
+          retainedSummary: '题面和位置已收好，验证后继续判断。',
+          retainedTitle: '当前卡 · 四选一',
+          returnTarget: '当前卡',
         };
-  const continuityItems = [
-    { label: '卡片', value: '已保留' },
-    { label: '位置', value: '原位保留' },
-    { label: '记录', value: '登录后保存' },
-  ];
 
   return (
     <View style={styles.authGateScreen}>
@@ -2763,7 +2790,7 @@ function AuthGate({
         <View style={styles.authObjectHeader}>
           <View style={styles.authHeaderMeta}>
             <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-              {retainedObject.eyebrow}
+              {authGateContent.eyebrow}
             </Text>
             <View
               style={[
@@ -2791,12 +2818,15 @@ function AuthGate({
           </View>
           <Text
             style={[styles.authGateTitle, { color: palette.text }]}
+            testID="auth-gate-title"
+          >
+            {authGateContent.gateTitle}
+          </Text>
+          <Text
+            style={[styles.authGateSummary, { color: palette.textMuted }]}
             testID="auth-gate-keyboard-dismiss-target"
           >
-            登录后继续学习
-          </Text>
-          <Text style={[styles.authGateSummary, { color: palette.textMuted }]}>
-            验证码通过后回到这张卡，空间和会员状态保持一致。
+            {authGateContent.gateSummary}
           </Text>
         </View>
         <View
@@ -2820,8 +2850,9 @@ function AuthGate({
               <Text
                 numberOfLines={1}
                 style={[styles.authRetainedTitle, { color: palette.text }]}
+                testID="auth-retained-object-title"
               >
-                {retainedObject.title}
+                {authGateContent.retainedTitle}
               </Text>
               <Text
                 numberOfLines={2}
@@ -2829,13 +2860,14 @@ function AuthGate({
                   styles.authRetainedSummary,
                   { color: palette.textMuted },
                 ]}
+                testID="auth-retained-object-summary"
               >
-                {retainedObject.summary}
+                {authGateContent.retainedSummary}
               </Text>
             </View>
           </View>
           <View style={styles.authRetainedPillRow}>
-            {continuityItems.map(item => (
+            {authGateContent.continuityItems.map(item => (
               <View
                 key={item.label}
                 style={[
@@ -2871,11 +2903,12 @@ function AuthGate({
           embedded
           handlers={handlers}
           palette={palette}
+          returnTarget={authGateContent.returnTarget}
           title="手机号验证"
           summary={
             authRepositoryMode === 'remote'
-              ? '用短信验证码确认身份，完成后回到当前卡。'
-              : '输入验证码确认身份，完成后回到当前卡。'
+              ? `用短信验证码确认身份，完成后回到${authGateContent.returnTarget}。`
+              : `输入验证码确认身份，完成后回到${authGateContent.returnTarget}。`
           }
         />
       </View>
@@ -3164,6 +3197,7 @@ function MineSurface({
           authState={authState}
           handlers={handlers}
           palette={palette}
+          returnTarget="我的"
           title="手机号验证码登录"
           summary="先从这里完成登录，再继续学习、空间和个人进度。"
         />
@@ -3579,6 +3613,7 @@ function PhoneSmsPanel({
   embedded = false,
   handlers,
   palette,
+  returnTarget,
   title,
   summary,
 }: {
@@ -3587,6 +3622,7 @@ function PhoneSmsPanel({
   embedded?: boolean;
   handlers: AuthHandlers;
   palette: Palette;
+  returnTarget: string;
   title: string;
   summary: string;
 }) {
@@ -3724,7 +3760,7 @@ function PhoneSmsPanel({
             numberOfLines={1}
             style={[styles.authCodeSentMeta, { color: palette.textMuted }]}
           >
-            完成后回到当前卡。
+            完成后回到{returnTarget}。
           </Text>
         </View>
       ) : null}
@@ -3770,7 +3806,7 @@ function PhoneSmsPanel({
               ? '正在向当前手机号请求验证码。'
               : authRepositoryMode === 'remote'
               ? '将通过短信验证码确认身份。'
-              : '验证码通过后会回到当前学习。'}
+              : `验证码通过后会回到${returnTarget}。`}
           </Text>
         </View>
       ) : null}
