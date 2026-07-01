@@ -411,8 +411,8 @@ test('renders correctly', async () => {
   expect(output).toContain('空间');
   expect(output).toContain('统计');
   expect(output).toContain('我的');
-  expect(output).toContain('确认身份，继续当前卡');
-  expect(output).toContain('当前学习卡');
+  expect(output).toContain('登录后继续学习');
+  expect(output).toContain('这张卡');
   expect(output).toContain('已保留');
 });
 
@@ -433,7 +433,7 @@ test('reads installed runtime config when the app mounts', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('使用短信验证码确认身份');
+  expect(output).toContain('用短信验证码确认身份');
   expect(output).toContain('将通过短信验证码确认身份。');
   expect(output).not.toContain('输入验证码即可完成登录。');
 });
@@ -466,7 +466,7 @@ test('uses native initial remote runtime profile before the shell mounts', async
       track: 'cet6',
     },
   });
-  expect(output).toContain('使用短信验证码确认身份');
+  expect(output).toContain('用短信验证码确认身份');
   expect(output).toContain('将通过短信验证码确认身份。');
   expect(output).not.toContain('输入验证码即可完成登录。');
 });
@@ -565,7 +565,7 @@ test('shows remote verify-code failure inside the auth gate', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('验证码校验暂时失败（401）。');
-  expect(output).toContain('使用短信验证码确认身份');
+  expect(output).toContain('用短信验证码确认身份');
 });
 
 test('keeps verified remote auth when entitlement bootstrap is unavailable', async () => {
