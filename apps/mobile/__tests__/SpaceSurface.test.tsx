@@ -355,7 +355,8 @@ test('defaults Space first-read focus to the current learning card box', () => {
   expect(renderedText).toContain('书架 相邻书架 分区 当前分区 卡盒 当前卡盒');
   expect(renderedText).toContain('当前卡盒 盒内卡片');
   expect(renderedText).toContain('当前学习卡在这里');
-  expect(renderedText).toContain('休眠区属于当前盒');
+  expect(renderedText).toContain('休眠区');
+  expect(renderedText).toContain('暂无休眠');
   expect(renderedText).toContain('回学习 同一张卡，同一地址');
   expect(
     root.findAllByProps({ testID: 'space-open-box-lid' }).length,
