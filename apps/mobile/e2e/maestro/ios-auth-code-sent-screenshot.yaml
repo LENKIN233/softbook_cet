@@ -1,0 +1,24 @@
+appId: com.softbook.cet
+name: ios-auth-code-sent-screenshot
+---
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: 'auth-phone-input'
+    timeout: 30000
+- tapOn:
+    id: 'auth-phone-input'
+- inputText: '13800138000'
+- tapOn:
+    id: 'auth-dismiss-keyboard-button'
+- assertVisible:
+    id: 'auth-request-code-button'
+- tapOn:
+    id: 'auth-request-code-button'
+- assertVisible:
+    id: 'auth-code-input'
+- assertVisible:
+    id: 'auth-code-sent-title'
+- assertVisible:
+    id: 'auth-submit-button'

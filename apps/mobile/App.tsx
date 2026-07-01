@@ -2721,6 +2721,7 @@ function AuthGate({
   palette: Palette;
   route: ShellRoute;
 }) {
+  const hasSentCode = authState.stage === 'code_sent';
   const retainedObject =
     route.key === 'space'
       ? {
@@ -2776,7 +2777,7 @@ function AuthGate({
               <Text
                 style={[styles.authObjectBadgeValue, { color: palette.text }]}
               >
-                未登录
+                {hasSentCode ? '验证码已发' : '未登录'}
               </Text>
               <Text
                 style={[
@@ -3639,32 +3640,92 @@ function PhoneSmsPanel({
       </View>
 
       {hasRequestedCode ? (
-        <View style={styles.fieldGroup}>
-          <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
-            验证码
+        <View
+          style={[
+            styles.authCodeSentSlip,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+            },
+          ]}
+        >
+          <View style={styles.authCodeSentHeader}>
+            <View
+              pointerEvents="none"
+              style={[
+                styles.authCodeSentDot,
+                { backgroundColor: palette.accent },
+              ]}
+            />
+            <View style={styles.authCodeSentCopy}>
+              <Text
+                style={[styles.authCodeSentTitle, { color: palette.text }]}
+                testID="auth-code-sent-title"
+              >
+                验证码已发送
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[styles.authCodeSentMeta, { color: palette.textMuted }]}
+              >
+                已发送到 {maskPhoneNumber(authState.phoneNumber)}
+              </Text>
+            </View>
+            <Pressable
+              disabled={isPending || isAuthenticated}
+              onPress={handlers.onRequestCode}
+              style={[
+                styles.authCodeResendButton,
+                {
+                  backgroundColor: palette.panel,
+                  borderColor: palette.border,
+                },
+              ]}
+              testID="auth-request-code-button"
+            >
+              <Text
+                numberOfLines={1}
+                style={[styles.authCodeResendLabel, { color: palette.text }]}
+              >
+                {authState.pendingAction === 'request_code'
+                  ? '请求中'
+                  : '重新发送'}
+              </Text>
+            </Pressable>
+          </View>
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
+              验证码
+            </Text>
+            <TextInput
+              editable={!isPending && !isAuthenticated}
+              inputAccessoryViewID={
+                Platform.OS === 'ios' ? AUTH_KEYBOARD_ACCESSORY_ID : undefined
+              }
+              keyboardType="number-pad"
+              maxLength={6}
+              onChangeText={handlers.onChangeCode}
+              placeholder="输入 4-6 位验证码"
+              placeholderTextColor={palette.tabIdle}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: palette.panel,
+                  borderColor: palette.border,
+                  color: palette.text,
+                },
+              ]}
+              testID="auth-code-input"
+              textContentType="oneTimeCode"
+              value={authState.smsCode}
+            />
+          </View>
+          <Text
+            numberOfLines={1}
+            style={[styles.authCodeSentMeta, { color: palette.textMuted }]}
+          >
+            完成后回到当前卡。
           </Text>
-          <TextInput
-            editable={!isPending && !isAuthenticated}
-            inputAccessoryViewID={
-              Platform.OS === 'ios' ? AUTH_KEYBOARD_ACCESSORY_ID : undefined
-            }
-            keyboardType="number-pad"
-            maxLength={6}
-            onChangeText={handlers.onChangeCode}
-            placeholder="输入 4-6 位验证码"
-            placeholderTextColor={palette.tabIdle}
-            style={[
-              styles.input,
-              {
-                backgroundColor: palette.panelStrong,
-                borderColor: palette.border,
-                color: palette.text,
-              },
-            ]}
-            testID="auth-code-input"
-            textContentType="oneTimeCode"
-            value={authState.smsCode}
-          />
         </View>
       ) : null}
 
@@ -3683,35 +3744,36 @@ function PhoneSmsPanel({
         </Pressable>
       ) : null}
 
-      <View style={styles.authActions}>
-        <Pressable
-          disabled={isPending || isAuthenticated}
-          onPress={handlers.onRequestCode}
-          style={[
-            styles.primaryButton,
-            embedded ? null : styles.compactButton,
-            { backgroundColor: palette.accent },
-          ]}
-          testID="auth-request-code-button"
-        >
-          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+      {!hasRequestedCode ? (
+        <View style={styles.authActions}>
+          <Pressable
+            disabled={isPending || isAuthenticated}
+            onPress={handlers.onRequestCode}
+            style={[
+              styles.primaryButton,
+              embedded ? null : styles.compactButton,
+              {
+                backgroundColor: palette.accent,
+                borderColor: palette.accent,
+              },
+            ]}
+            testID="auth-request-code-button"
+          >
+            <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+              {authState.pendingAction === 'request_code'
+                ? '正在请求验证码'
+                : '请求验证码'}
+            </Text>
+          </Pressable>
+          <Text style={[styles.authHint, { color: palette.textMuted }]}>
             {authState.pendingAction === 'request_code'
-              ? '正在请求验证码'
-              : authState.stage === 'code_sent'
-              ? '重新发送验证码'
-              : '请求验证码'}
+              ? '正在向当前手机号请求验证码。'
+              : authRepositoryMode === 'remote'
+              ? '将通过短信验证码确认身份。'
+              : '验证码通过后会回到当前学习。'}
           </Text>
-        </Pressable>
-        <Text style={[styles.authHint, { color: palette.textMuted }]}>
-          {authState.pendingAction === 'request_code'
-            ? '正在向当前手机号请求验证码。'
-            : authState.stage === 'code_sent'
-            ? `已向 ${maskPhoneNumber(authState.phoneNumber)} 发送验证码。`
-            : authRepositoryMode === 'remote'
-            ? '将通过短信验证码确认身份。'
-            : '验证码通过后会回到当前学习。'}
-        </Text>
-      </View>
+        </View>
+      ) : null}
 
       {authState.error ? (
         <Text style={[styles.authError, { color: palette.danger }]}>
@@ -4374,6 +4436,49 @@ const styles = StyleSheet.create({
   authSummary: {
     fontSize: 14,
     lineHeight: 21,
+  },
+  authCodeSentSlip: {
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
+  authCodeSentHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 9,
+  },
+  authCodeSentDot: {
+    borderRadius: 999,
+    height: 10,
+    width: 10,
+  },
+  authCodeSentCopy: {
+    flex: 1,
+    gap: 1,
+  },
+  authCodeSentTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 19,
+  },
+  authCodeSentMeta: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  authCodeResendButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  authCodeResendLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
   },
   fieldGroup: {
     gap: 6,
