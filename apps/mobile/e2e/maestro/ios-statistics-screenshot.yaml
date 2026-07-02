@@ -21,6 +21,8 @@ name: ios-statistics-screenshot
 - tapOn:
     id: "auth-code-input"
 - inputText: "2468"
+- tapOn:
+    id: "auth-gate-keyboard-dismiss-target"
 - assertVisible:
     id: "auth-submit-button"
 - tapOn:

@@ -2634,17 +2634,25 @@ test('can start a review round from cards that need revisiting', async () => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
 
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'route-tab-statistics' }).props.onPress();
+  });
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('先处理回看');
+  expect(output).toContain('开始回看');
+  expect(output).toContain('统计只提醒，不让你停在这里。');
   expect(
-    root.findByProps({ testID: 'learning-start-review-button' }),
+    findPressableByTestId(root, 'statistics-start-review-button'),
   ).toBeTruthy();
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-start-review-button' })
+      .findByProps({ testID: 'statistics-start-review-button' })
       .props.onPress();
   });
 
-  let output = JSON.stringify(tree!.toJSON());
+  output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看');
   expect(output).toContain('需要再看的卡已放到眼前');
   expect(output).toContain('however');
@@ -2710,11 +2718,14 @@ test('can check in from statistics after making learning progress', async () => 
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('学习手感保持中');
+  expect(output).toContain('下一步');
+  expect(output).toContain('继续下一张');
+  expect(output).toContain('回学习');
   expect(output).toContain('今日可签到');
   expect(output).toContain('今天已经产生有效学习进展，可以记录一次签到。');
   expect(output).toContain('已记录');
   expect(output).not.toContain('今日统计与签到');
-  expect(output).not.toContain('今日练习信号');
+  expect(output).not.toContain('练习信号');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'statistics-checkin-button' }).props.onPress();
@@ -2730,6 +2741,16 @@ test('can check in from statistics after making learning progress', async () => 
   ).toBeGreaterThan(0);
   expect(output).toContain('今日已签到');
   expect(output).toContain('今天的学习进展已记录。');
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'statistics-go-learning-button' })
+      .props.onPress();
+  });
+
+  expect(
+    root.findAllByProps({ testID: 'learning-current-card' }).length,
+  ).toBeGreaterThan(0);
 });
 
 test('keeps completed progress when first gated space entry starts trial', async () => {

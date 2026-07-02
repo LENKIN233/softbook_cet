@@ -1930,6 +1930,25 @@ function AppShell({
       setCheckedInDayKey(todayKey);
     },
   };
+  const openLearningRoute = () => {
+    startTransition(() => {
+      setActiveRoute('learning');
+      setLearningScreen('practice');
+      setSpaceScreen('overview');
+    });
+  };
+  const startReviewFromStatistics = () => {
+    if (reviewCandidateCards.length === 0) {
+      openLearningRoute();
+      return;
+    }
+
+    const canStartReviewHere = membershipAccess.completeAlgorithm;
+    learningHandlers.onStartReview();
+    if (canStartReviewHere) {
+      openLearningRoute();
+    }
+  };
   const retryLearningBootstrap = () => {
     setLearningBootstrapStatus('idle');
     setLearningBootstrapError(null);
@@ -2182,6 +2201,8 @@ function AppShell({
       hasCheckedInToday={hasCheckedInToday}
       learningResults={learningCompletedResults}
       onCheckIn={statisticsHandlers.onCheckIn}
+      onGoToLearning={openLearningRoute}
+      onStartReview={startReviewFromStatistics}
       palette={palette}
       pendingReviewCount={pendingReviewCount}
       reviewResults={reviewCompletedResults}
