@@ -1281,9 +1281,6 @@ export function LearningResultDetailSurface({
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
   const detailActionTone = resultTone;
-  const selectedAnswerRow = resolvedRows.find(
-    row => row.testID === 'learning-detail-selected-answer',
-  );
 
   return (
     <View
@@ -1366,17 +1363,6 @@ export function LearningResultDetailSurface({
             >
               {card.front.prompt}
             </Text>
-            {selectedAnswerRow ? (
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.detailSelectedLine,
-                  { color: palette.textMuted },
-                ]}
-              >
-                {selectedAnswerRow.label}：{selectedAnswerRow.displayText}
-              </Text>
-            ) : null}
           </View>
         </View>
 
@@ -1402,9 +1388,40 @@ export function LearningResultDetailSurface({
                 numberOfLines={1}
                 style={[styles.detailSlipCaption, { color: palette.textMuted }]}
               >
-                解析贴在刚完成的卡后面
+                先收住关键解释，再继续下一张
               </Text>
             </View>
+          </View>
+
+          <View
+            style={[
+              styles.detailExplanationSlip,
+              {
+                backgroundColor: palette.panel,
+                borderColor: palette.border,
+              },
+            ]}
+          >
+            <Text
+              style={[styles.resultExplanationTitle, { color: palette.text }]}
+            >
+              {card.analysis.title}
+            </Text>
+            <Text
+              numberOfLines={3}
+              style={[
+                styles.resultExplanationBody,
+                { color: palette.textMuted },
+              ]}
+            >
+              {card.analysis.summary}
+            </Text>
+            <Text
+              numberOfLines={2}
+              style={[styles.detailTip, { color: palette.textMuted }]}
+            >
+              过级提醒：{card.analysis.exam_tip}
+            </Text>
           </View>
 
           <View style={styles.detailAnswerGrid}>
@@ -1451,37 +1468,6 @@ export function LearningResultDetailSurface({
                 </Text>
               </View>
             ))}
-          </View>
-
-          <View
-            style={[
-              styles.detailExplanationSlip,
-              {
-                backgroundColor: palette.panel,
-                borderColor: palette.border,
-              },
-            ]}
-          >
-            <Text
-              style={[styles.resultExplanationTitle, { color: palette.text }]}
-            >
-              {card.analysis.title}
-            </Text>
-            <Text
-              numberOfLines={2}
-              style={[
-                styles.resultExplanationBody,
-                { color: palette.textMuted },
-              ]}
-            >
-              {card.analysis.summary}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[styles.detailTip, { color: palette.textMuted }]}
-            >
-              过级提醒：{card.analysis.exam_tip}
-            </Text>
           </View>
         </View>
 
@@ -1904,17 +1890,17 @@ const styles = StyleSheet.create({
   detailResolvedCard: {
     borderRadius: 28,
     borderWidth: 1,
-    gap: 9,
+    gap: 8,
     overflow: 'hidden',
     paddingHorizontal: 15,
-    paddingVertical: 15,
+    paddingVertical: 14,
     position: 'relative',
   },
   detailResolvedHero: {
     borderRadius: 24,
     borderWidth: 1,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
   },
   detailTitleWrap: {
     alignSelf: 'stretch',
@@ -1932,22 +1918,17 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   detailPrompt: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '800',
-    lineHeight: 27,
-  },
-  detailSelectedLine: {
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 18,
+    lineHeight: 25,
   },
   detailAnswerSlip: {
     borderRadius: 24,
     borderTopWidth: 3,
     borderWidth: 1,
-    gap: 10,
+    gap: 8,
     paddingHorizontal: 13,
-    paddingVertical: 13,
+    paddingVertical: 11,
   },
   detailSlipHeader: {
     alignItems: 'center',
@@ -1970,16 +1951,16 @@ const styles = StyleSheet.create({
   detailAnswerGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
+    gap: 6,
   },
   detailAnswerCell: {
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     flex: 1,
-    gap: 4,
+    gap: 2,
     minWidth: 138,
-    paddingHorizontal: 11,
-    paddingVertical: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   detailAnswerLabel: {
     fontSize: 11,
@@ -1987,17 +1968,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   detailAnswerValue: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    lineHeight: 21,
+    lineHeight: 19,
   },
   detailExplanationSlip: {
     borderRadius: 18,
     borderWidth: 1,
-    gap: 5,
+    gap: 6,
     overflow: 'hidden',
     paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingVertical: 10,
     position: 'relative',
   },
   detailOutcomeTitle: {
