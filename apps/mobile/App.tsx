@@ -3252,19 +3252,18 @@ function MineSurface({
               palette={palette}
             />
           </>
-        ) : null}
+        ) : (
+          <PhoneSmsPanel
+            authState={authState}
+            embedded
+            handlers={handlers}
+            palette={palette}
+            returnTarget="我的"
+            title="手机号验证"
+            summary="验证后回到我的，查看记录、空间和会员。"
+          />
+        )}
       </View>
-
-      {!isAuthenticated ? (
-        <PhoneSmsPanel
-          authState={authState}
-          handlers={handlers}
-          palette={palette}
-          returnTarget="我的"
-          title="手机号验证"
-          summary="验证后回到我的，查看记录、空间和会员。"
-        />
-      ) : null}
     </View>
   );
 }

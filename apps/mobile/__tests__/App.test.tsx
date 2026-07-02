@@ -478,6 +478,7 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   await openRoute(root, 'mine');
 
   const output = JSON.stringify(tree!.toJSON());
+  const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
   expect(output).toContain('登录后管理我的');
   expect(output).toContain('学习记录、空间位置和会员权益会归到同一账号。');
   expect(output).toContain('待验证');
@@ -487,6 +488,12 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   expect(output).toContain('验证后回到我的，查看记录、空间和会员。');
   expect(output).not.toContain('确认身份继续学');
   expect(output).not.toContain('当前学习卡');
+  expect(
+    mineProfileCard.findByProps({ testID: 'auth-phone-input' }),
+  ).toBeTruthy();
+  expect(
+    mineProfileCard.findByProps({ testID: 'auth-request-inline-dock' }),
+  ).toBeTruthy();
 
   await ReactTestRenderer.act(() => {
     root
@@ -524,12 +531,19 @@ test('keeps mine code-sent state attached to the account object', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
+  const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
   expect(output).toContain('验证码已发');
   expect(output).toContain('输入验证码');
   expect(output).toContain('验证中');
   expect(output).toContain('验证码已发送');
   expect(output).toContain('完成后回到');
   expect(output).toContain('我的');
+  expect(
+    mineProfileCard.findByProps({ testID: 'auth-code-inline-dock' }),
+  ).toBeTruthy();
+  expect(
+    mineProfileCard.findByProps({ testID: 'auth-code-input' }),
+  ).toBeTruthy();
   const inlineDockStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'auth-code-inline-dock' }).props.style,
   );
