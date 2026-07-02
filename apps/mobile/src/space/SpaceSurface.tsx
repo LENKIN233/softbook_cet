@@ -1382,129 +1382,188 @@ export function SpaceSurface({
                         >
                           {card.interactionLabel}
                         </Text>
-                        <View style={styles.badgeRow}>
-                          {isFavorited ? (
-                            <Text
-                              style={[
-                                styles.stateTag,
-                                { color: palette.accentStrong },
-                              ]}
-                            >
-                              已收藏
-                            </Text>
-                          ) : null}
-                          {isSleeping ? (
-                            <Text
-                              style={[
-                                styles.stateTag,
-                                { color: palette.warning },
-                              ]}
-                            >
-                              休眠中
-                            </Text>
-                          ) : null}
-                        </View>
                         <View
                           style={[
-                            styles.inspectCardFooter,
+                            styles.cardStateDeck,
                             {
                               backgroundColor: solidPanelStrong,
                               borderColor: palette.border,
                             },
                           ]}
                         >
-                          <View style={styles.actionWrap}>
-                            {isGated ? (
-                              <Text
+                          {isGated ? (
+                            <Text
+                              style={[
+                                styles.lockedActionText,
+                                { color: palette.textMuted },
+                              ]}
+                            >
+                              试用或会员后可调整收藏和休眠状态
+                            </Text>
+                          ) : (
+                            <>
+                              <Pressable
+                                onPress={() => {
+                                  setSelectionMode('manual');
+                                  onToggleFavoriteTag(card.cardId);
+                                }}
                                 style={[
-                                  styles.lockedActionText,
-                                  { color: palette.textMuted },
+                                  styles.favoriteTagButton,
+                                  {
+                                    backgroundColor: isFavorited
+                                      ? hexToRgba(selectedTone.accent, 0.1)
+                                      : solidPanel,
+                                    borderColor: isFavorited
+                                      ? hexToRgba(selectedTone.accent, 0.28)
+                                      : palette.border,
+                                  },
                                 ]}
+                                testID={`space-favorite-${cardDisplayIndex}`}
                               >
-                                试用或会员后可调整收藏和休眠状态
-                              </Text>
-                            ) : (
-                              <>
-                                <ActionChip
-                                  label={isFavorited ? '取消收藏' : '收藏'}
-                                  labelTestID={
+                                <Text
+                                  style={[
+                                    styles.favoriteTagLabel,
+                                    {
+                                      color: isFavorited
+                                        ? selectedTone.accent
+                                        : palette.text,
+                                    },
+                                  ]}
+                                  testID={
                                     isFavorited
                                       ? `space-favorite-active-${cardDisplayIndex}`
                                       : `space-favorite-inactive-${cardDisplayIndex}`
                                   }
-                                  onPress={() => {
-                                    setSelectionMode('manual');
-                                    onToggleFavoriteTag(card.cardId);
-                                  }}
-                                  palette={palette}
-                                  testID={`space-favorite-${cardDisplayIndex}`}
-                                />
-                                <ActionChip
-                                  label={isSleeping ? '移出休眠' : '放入休眠'}
-                                  labelTestID={
-                                    isSleeping
-                                      ? `space-sleep-active-${cardDisplayIndex}`
-                                      : `space-sleep-inactive-${cardDisplayIndex}`
-                                  }
-                                  onPress={() => {
-                                    setSelectionMode('manual');
-                                    onToggleSleepState(card.cardId);
-                                  }}
-                                  palette={palette}
-                                  testID={`space-sleep-${cardDisplayIndex}`}
-                                />
-                              </>
-                            )}
-                          </View>
-                          <View style={styles.cardPagerRow}>
-                            <ActionChip
-                              disabled={!canShowPreviousCard}
-                              label="上一张"
-                              onPress={() => {
-                                if (!canShowPreviousCard) {
-                                  return;
-                                }
+                                >
+                                  {isFavorited ? '取消收藏' : '收藏'}
+                                </Text>
+                                <Text
+                                  numberOfLines={1}
+                                  style={[
+                                    styles.favoriteTagMeta,
+                                    { color: palette.textMuted },
+                                  ]}
+                                >
+                                  贴在这张卡上
+                                </Text>
+                              </Pressable>
 
-                                setSelectionMode('manual');
-                                setSelectedCardIndex(
-                                  Math.max(safeSelectedCardIndex - 1, 0),
-                                );
-                              }}
-                              palette={palette}
-                              testID="space-card-prev"
-                            />
-                            <Text
-                              style={[
-                                styles.stateTag,
-                                { color: palette.textMuted },
-                              ]}
-                            >
-                              {selectedBoxCards.length > 0
-                                ? `${safeSelectedCardIndex + 1}/${
-                                    selectedBoxCards.length
-                                  }`
-                                : '0/0'}
-                            </Text>
-                            <ActionChip
-                              disabled={!canShowNextCard}
-                              label="下一张"
-                              onPress={() => {
-                                if (!canShowNextCard) {
-                                  return;
-                                }
+                              <Pressable
+                                onPress={() => {
+                                  setSelectionMode('manual');
+                                  onToggleSleepState(card.cardId);
+                                }}
+                                style={[
+                                  styles.sleepPocketButton,
+                                  {
+                                    backgroundColor: isSleeping
+                                      ? hexToRgba(palette.warning, 0.1)
+                                      : solidPanel,
+                                    borderColor: isSleeping
+                                      ? hexToRgba(palette.warning, 0.28)
+                                      : palette.border,
+                                  },
+                                ]}
+                                testID={`space-sleep-${cardDisplayIndex}`}
+                              >
+                                <View style={styles.sleepPocketHeader}>
+                                  <Text
+                                    style={[
+                                      styles.sleepPocketLabel,
+                                      { color: palette.text },
+                                    ]}
+                                  >
+                                    同盒休眠区
+                                  </Text>
+                                  <Text
+                                    style={[
+                                      styles.sleepPocketAction,
+                                      {
+                                        color: isSleeping
+                                          ? palette.warning
+                                          : selectedTone.accent,
+                                      },
+                                    ]}
+                                    testID={
+                                      isSleeping
+                                        ? `space-sleep-active-${cardDisplayIndex}`
+                                        : `space-sleep-inactive-${cardDisplayIndex}`
+                                    }
+                                  >
+                                    {isSleeping ? '移出休眠' : '放入休眠'}
+                                  </Text>
+                                </View>
+                                <Text
+                                  numberOfLines={1}
+                                  style={[
+                                    styles.sleepPocketMeta,
+                                    { color: palette.textMuted },
+                                  ]}
+                                >
+                                  {isSleeping
+                                    ? '暂离练习，仍在当前盒'
+                                    : '暂时不进入练习'}
+                                </Text>
+                              </Pressable>
+                            </>
+                          )}
+                        </View>
+                        <View
+                          style={[
+                            styles.boxBrowsePager,
+                            {
+                              backgroundColor: solidPanelStrong,
+                              borderColor: palette.border,
+                            },
+                          ]}
+                        >
+                          <ActionChip
+                            disabled={!canShowPreviousCard}
+                            label="上一张"
+                            onPress={() => {
+                              if (!canShowPreviousCard) {
+                                return;
+                              }
 
-                                setSelectionMode('manual');
-                                setSelectedCardIndex(
-                                  Math.min(
-                                    safeSelectedCardIndex + 1,
-                                    Math.max(selectedBoxCards.length - 1, 0),
-                                  ),
-                                );
-                              }}
-                              palette={palette}
-                              testID="space-card-next"
-                            />
-                          </View>
+                              setSelectionMode('manual');
+                              setSelectedCardIndex(
+                                Math.max(safeSelectedCardIndex - 1, 0),
+                              );
+                            }}
+                            palette={palette}
+                            testID="space-card-prev"
+                          />
+                          <Text
+                            style={[
+                              styles.boxBrowsePagerMeta,
+                              { color: palette.textMuted },
+                            ]}
+                          >
+                            {selectedBoxCards.length > 0
+                              ? `${safeSelectedCardIndex + 1}/${
+                                  selectedBoxCards.length
+                                }`
+                              : '0/0'}
+                          </Text>
+                          <ActionChip
+                            disabled={!canShowNextCard}
+                            label="下一张"
+                            onPress={() => {
+                              if (!canShowNextCard) {
+                                return;
+                              }
+
+                              setSelectionMode('manual');
+                              setSelectedCardIndex(
+                                Math.min(
+                                  safeSelectedCardIndex + 1,
+                                  Math.max(selectedBoxCards.length - 1, 0),
+                                ),
+                              );
+                            }}
+                            palette={palette}
+                            testID="space-card-next"
+                          />
                         </View>
                       </View>
                     );
@@ -2448,19 +2507,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  badgeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
   stateTag: {
     fontSize: 12,
     fontWeight: '700',
-  },
-  actionWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
   },
   actionChip: {
     alignItems: 'center',
@@ -2491,12 +2540,6 @@ const styles = StyleSheet.create({
   },
   cardStrip: {
     gap: 8,
-  },
-  cardPagerRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
   },
   compactSelectorDeck: {
     gap: 8,
@@ -2535,12 +2578,72 @@ const styles = StyleSheet.create({
     gap: 10,
     justifyContent: 'space-between',
   },
-  inspectCardFooter: {
+  cardStateDeck: {
     borderRadius: 18,
     borderWidth: 1,
     gap: 7,
     paddingHorizontal: 10,
     paddingVertical: 8,
+  },
+  favoriteTagButton: {
+    borderRadius: 15,
+    borderWidth: 1,
+    gap: 2,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+  },
+  favoriteTagLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 17,
+  },
+  favoriteTagMeta: {
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 14,
+  },
+  sleepPocketButton: {
+    borderRadius: 15,
+    borderWidth: 1,
+    gap: 4,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+  },
+  sleepPocketHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
+  },
+  sleepPocketLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 17,
+  },
+  sleepPocketAction: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+  },
+  sleepPocketMeta: {
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 14,
+  },
+  boxBrowsePager: {
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  boxBrowsePagerMeta: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
   },
   browseContinuityBar: {
     flexDirection: 'row',
