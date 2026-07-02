@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 
 import { LearningCardResult } from '../learning/model';
-import { summarizeLearningResults } from '../learning/session';
 import { hexToRgba } from '../visual/tokens';
 
 type StatisticsPalette = {
@@ -37,6 +36,8 @@ export function StatisticsSurface({
   hasCheckedInToday,
   learningResults,
   onCheckIn,
+  onGoToLearning,
+  onStartReview,
   palette,
   pendingReviewCount,
   reviewResults,
@@ -49,6 +50,8 @@ export function StatisticsSurface({
   hasCheckedInToday: boolean;
   learningResults: LearningCardResult[];
   onCheckIn: () => void;
+  onGoToLearning: () => void;
+  onStartReview: () => void;
   palette: StatisticsPalette;
   pendingReviewCount: number;
   reviewResults: LearningCardResult[];
@@ -56,10 +59,7 @@ export function StatisticsSurface({
   syncStatusLabel: string;
 }) {
   const combinedResults = [...learningResults, ...reviewResults];
-  const combinedSummary = summarizeLearningResults(
-    combinedResults,
-    combinedResults.length,
-  );
+  const hasLearningProgress = combinedResults.length > 0;
   const checkInTitle = hasCheckedInToday
     ? '今日已签到'
     : canCheckInToday
@@ -80,16 +80,32 @@ export function StatisticsSurface({
       : '今天还没有形成可展示的今日进展。';
   const dailyTitle = hasCheckedInToday
     ? '今日已记录'
-    : combinedResults.length > 0
+    : hasLearningProgress
     ? '学习手感保持中'
     : '先完成一张卡';
   const dailySummary = hasCheckedInToday
     ? '完成、回看和签到已收成一条安静进度。'
     : pendingReviewCount > 0
     ? `还有 ${pendingReviewCount} 张卡需要回看，统计只安静记录，不打断学习。`
-    : combinedResults.length > 0
+    : hasLearningProgress
     ? '今天的完成和回看都保持在轻负担范围。'
     : '先回到学习完成一张卡，这里会记录今天的连续性。';
+  const nextStepIsReview = pendingReviewCount > 0;
+  const nextStepTitle = nextStepIsReview
+    ? '先处理回看'
+    : hasLearningProgress
+    ? '继续下一张'
+    : '回到第一张';
+  const nextStepSummary = nextStepIsReview
+    ? `${pendingReviewCount} 张卡需要再看一次，统计只提醒，不让你停在这里。`
+    : hasLearningProgress
+    ? '今天已经有记录，回到学习把路线继续往前推。'
+    : '回到学习完成第一张，统计会自动收起当天进度。';
+  const nextStepButtonLabel = nextStepIsReview ? '开始回看' : '回学习';
+  const nextStepButtonTestID = nextStepIsReview
+    ? 'statistics-start-review-button'
+    : 'statistics-go-learning-button';
+  const onPressNextStep = nextStepIsReview ? onStartReview : onGoToLearning;
   const checkInButtonBackground = hasCheckedInToday
     ? palette.panelStrong
     : canCheckInToday
@@ -201,6 +217,58 @@ export function StatisticsSurface({
 
         <View
           style={[
+            styles.nextStepCard,
+            {
+              backgroundColor: nextStepIsReview
+                ? hexToRgba(palette.warning, 0.08)
+                : hexToRgba(palette.accent, 0.07),
+              borderColor: nextStepIsReview
+                ? hexToRgba(palette.warning, 0.18)
+                : hexToRgba(palette.accent, 0.15),
+            },
+          ]}
+          testID="statistics-next-step-card"
+        >
+          <View style={styles.nextStepCopy}>
+            <Text
+              style={[
+                styles.nextStepEyebrow,
+                { color: nextStepIsReview ? palette.warning : palette.accent },
+              ]}
+            >
+              下一步
+            </Text>
+            <Text style={[styles.nextStepTitle, { color: palette.text }]}>
+              {nextStepTitle}
+            </Text>
+            <Text style={[styles.cardSummary, { color: palette.textMuted }]}>
+              {nextStepSummary}
+            </Text>
+          </View>
+          <Pressable
+            onPress={onPressNextStep}
+            style={[
+              styles.primaryButton,
+              styles.nextStepButton,
+              {
+                backgroundColor: nextStepIsReview
+                  ? palette.warning
+                  : palette.accent,
+                borderColor: nextStepIsReview
+                  ? palette.warning
+                  : palette.accent,
+              },
+            ]}
+            testID={nextStepButtonTestID}
+          >
+            <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+              {nextStepButtonLabel}
+            </Text>
+          </Pressable>
+        </View>
+
+        <View
+          style={[
             styles.dailyActionRow,
             deviceClass === 'tablet' ? styles.dailyActionRowTablet : null,
             {
@@ -274,39 +342,6 @@ export function StatisticsSurface({
               testID="statistics-sync-label"
               value={syncStatusLabel}
             />
-          </View>
-
-          <View
-            style={[
-              styles.signalPanel,
-              { borderTopColor: hexToRgba(palette.accent, 0.08) },
-            ]}
-          >
-            <Text style={[styles.cardTitle, { color: palette.text }]}>
-              练习信号
-            </Text>
-            <View style={styles.signalGrid}>
-              <SignalRow
-                label="自动判对"
-                palette={palette}
-                value={`${combinedSummary.autoCorrectCount}`}
-              />
-              <SignalRow
-                label="自动判错"
-                palette={palette}
-                value={`${combinedSummary.autoIncorrectCount}`}
-              />
-              <SignalRow
-                label="翻面回看"
-                palette={palette}
-                value={`${combinedSummary.reviewFlipCount}`}
-              />
-              <SignalRow
-                label="收藏"
-                palette={palette}
-                value={`${combinedSummary.favoriteCount}`}
-              />
-            </View>
           </View>
         </View>
       </SurfaceCard>
@@ -426,25 +461,6 @@ function LedgerRow({
           {detail}
         </Text>
       ) : null}
-    </View>
-  );
-}
-
-function SignalRow({
-  label,
-  palette,
-  value,
-}: {
-  label: string;
-  palette: StatisticsPalette;
-  value: string;
-}) {
-  return (
-    <View style={styles.signalRow}>
-      <Text style={[styles.signalLabel, { color: palette.textMuted }]}>
-        {label}
-      </Text>
-      <Text style={[styles.signalValue, { color: palette.text }]}>{value}</Text>
     </View>
   );
 }
@@ -584,6 +600,29 @@ const styles = StyleSheet.create({
   dailyActionRowTablet: {
     alignItems: 'flex-start',
   },
+  nextStepCard: {
+    alignItems: 'center',
+    borderRadius: 24,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+  },
+  nextStepCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  nextStepEyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0,
+  },
+  nextStepTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 23,
+  },
   dailyActionCopy: {
     flex: 1,
     gap: 5,
@@ -605,6 +644,12 @@ const styles = StyleSheet.create({
     minWidth: 112,
     paddingHorizontal: 15,
     paddingVertical: 10,
+  },
+  nextStepButton: {
+    borderRadius: 999,
+    minWidth: 104,
+    paddingHorizontal: 15,
+    paddingVertical: 11,
   },
   ledgerRail: {
     gap: 8,
@@ -636,38 +681,7 @@ const styles = StyleSheet.create({
   statusDock: {
     borderRadius: 24,
     borderWidth: 1,
-    gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-  },
-  signalPanel: {
-    borderTopWidth: 1,
-    gap: 6,
-    paddingTop: 8,
-  },
-  signalGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    columnGap: 10,
-    rowGap: 6,
-  },
-  signalRow: {
-    borderRadius: 14,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 10,
-    minWidth: '45%',
-    flexGrow: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  signalLabel: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  signalValue: {
-    fontSize: 14,
-    fontWeight: '700',
   },
 });
