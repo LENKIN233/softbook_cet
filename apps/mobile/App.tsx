@@ -3816,13 +3816,8 @@ function PhoneSmsPanel({
 
       {hasRequestedCode ? (
         <View
-          style={[
-            styles.authCodeSentSlip,
-            {
-              backgroundColor: palette.panelStrong,
-              borderColor: palette.border,
-            },
-          ]}
+          style={[styles.authCodeInlineDock, { borderColor: palette.border }]}
+          testID="auth-code-inline-dock"
         >
           <View style={styles.authCodeSentHeader}>
             <View
@@ -3868,10 +3863,7 @@ function PhoneSmsPanel({
               </Text>
             </Pressable>
           </View>
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
-              验证码
-            </Text>
+          <View style={styles.authCodeEntryRow}>
             <TextInput
               editable={!isPending && !isAuthenticated}
               inputAccessoryViewID={
@@ -3884,6 +3876,7 @@ function PhoneSmsPanel({
               placeholderTextColor={palette.tabIdle}
               style={[
                 styles.input,
+                styles.authCodeInlineInput,
                 {
                   backgroundColor: palette.panel,
                   borderColor: palette.border,
@@ -3894,18 +3887,6 @@ function PhoneSmsPanel({
               textContentType="oneTimeCode"
               value={authState.smsCode}
             />
-          </View>
-          <View style={styles.authCodeSubmitRow}>
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.authCodeSentMeta,
-                styles.authCodeReturnText,
-                { color: palette.textMuted },
-              ]}
-            >
-              完成后回到{returnTarget}。
-            </Text>
             {!isAuthenticated ? (
               <Pressable
                 disabled={!canSubmitCode}
@@ -3935,6 +3916,16 @@ function PhoneSmsPanel({
               </Pressable>
             ) : null}
           </View>
+          <Text
+            numberOfLines={1}
+            style={[
+              styles.authCodeSentMeta,
+              styles.authCodeReturnText,
+              { color: palette.textMuted },
+            ]}
+          >
+            完成后回到{returnTarget}。
+          </Text>
         </View>
       ) : null}
 
@@ -4663,12 +4654,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
   },
-  authCodeSentSlip: {
-    borderRadius: 18,
-    borderWidth: 1,
+  authCodeInlineDock: {
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
     gap: 9,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingVertical: 10,
   },
   authCodeSentHeader: {
     alignItems: 'center',
@@ -4694,12 +4684,16 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   authCodeReturnText: {
-    flex: 1,
+    paddingLeft: 19,
   },
-  authCodeSubmitRow: {
+  authCodeEntryRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
+  },
+  authCodeInlineInput: {
+    flex: 1,
+    minWidth: 0,
   },
   authCodeSubmitButton: {
     alignItems: 'center',
@@ -4707,8 +4701,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     minWidth: 88,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   authCodeSubmitLabel: {
     fontSize: 12,

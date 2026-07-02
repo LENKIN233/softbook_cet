@@ -4,7 +4,7 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { ScrollView, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
 import { LearningCard, LearningSession } from '../src/learning/model';
 import { createLocalLearningSession } from '../src/learning/session';
@@ -508,6 +508,13 @@ test('keeps mine code-sent state attached to the account object', async () => {
   expect(output).toContain('验证码已发送');
   expect(output).toContain('完成后回到');
   expect(output).toContain('我的');
+  const inlineDockStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'auth-code-inline-dock' }).props.style,
+  );
+  expect(inlineDockStyle.borderTopWidth).toBe(1);
+  expect(inlineDockStyle.borderBottomWidth).toBe(1);
+  expect(inlineDockStyle.borderWidth).toBeUndefined();
+  expect(inlineDockStyle.borderRadius).toBeUndefined();
   expect(findPressableByTestId(root, 'auth-submit-button').props.disabled).toBe(
     true,
   );
