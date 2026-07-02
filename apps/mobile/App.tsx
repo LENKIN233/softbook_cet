@@ -3756,21 +3756,15 @@ function PhoneSmsPanel({
           borderColor: palette.border,
         },
   ];
-  const submitCodeButtonStyle = [
-    styles.primaryButton,
-    canSubmitCode
-      ? {
-          backgroundColor: palette.accent,
-          borderColor: palette.accent,
-        }
-      : {
-          backgroundColor: palette.panelStrong,
-          borderColor: palette.border,
-        },
-  ];
   const requestCodeLabelColor = canRequestCode
     ? palette.panel
     : palette.textMuted;
+  const submitCodeButtonBackground = canSubmitCode
+    ? palette.accent
+    : palette.panel;
+  const submitCodeButtonBorder = canSubmitCode
+    ? palette.accent
+    : palette.border;
   const submitCodeLabelColor = canSubmitCode
     ? palette.panel
     : palette.textMuted;
@@ -3901,30 +3895,47 @@ function PhoneSmsPanel({
               value={authState.smsCode}
             />
           </View>
-          <Text
-            numberOfLines={1}
-            style={[styles.authCodeSentMeta, { color: palette.textMuted }]}
-          >
-            完成后回到{returnTarget}。
-          </Text>
+          <View style={styles.authCodeSubmitRow}>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.authCodeSentMeta,
+                styles.authCodeReturnText,
+                { color: palette.textMuted },
+              ]}
+            >
+              完成后回到{returnTarget}。
+            </Text>
+            {!isAuthenticated ? (
+              <Pressable
+                disabled={!canSubmitCode}
+                onPress={handlers.onSubmitCode}
+                style={[
+                  styles.authCodeSubmitButton,
+                  {
+                    backgroundColor: submitCodeButtonBackground,
+                    borderColor: submitCodeButtonBorder,
+                  },
+                ]}
+                testID="auth-submit-button"
+              >
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.authCodeSubmitLabel,
+                    { color: submitCodeLabelColor },
+                  ]}
+                >
+                  {authState.pendingAction === 'verify_code'
+                    ? '正在登录'
+                    : canSubmitCode
+                    ? '完成登录'
+                    : '输入验证码'}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
-      ) : null}
-
-      {!isAuthenticated && hasRequestedCode ? (
-        <Pressable
-          disabled={!canSubmitCode}
-          onPress={handlers.onSubmitCode}
-          style={submitCodeButtonStyle}
-          testID="auth-submit-button"
-        >
-          <Text
-            style={[styles.primaryButtonLabel, { color: submitCodeLabelColor }]}
-          >
-            {authState.pendingAction === 'verify_code'
-              ? '正在登录'
-              : '完成登录'}
-          </Text>
-        </Pressable>
       ) : null}
 
       {!hasRequestedCode ? (
@@ -4681,6 +4692,28 @@ const styles = StyleSheet.create({
   authCodeSentMeta: {
     fontSize: 12,
     lineHeight: 17,
+  },
+  authCodeReturnText: {
+    flex: 1,
+  },
+  authCodeSubmitRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  authCodeSubmitButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minWidth: 88,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  authCodeSubmitLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
   },
   authCodeResendButton: {
     alignItems: 'center',
