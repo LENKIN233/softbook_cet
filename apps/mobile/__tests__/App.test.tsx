@@ -2476,6 +2476,7 @@ test('can complete the local single-card deck and restart it', async () => {
   ).toBeTruthy();
   expect(output).toContain('当前卡');
   expect(output).toContain('本卡答案');
+  expect(output).toContain('先收住关键解释，再继续下一张');
   expect(output).toContain('你的选择');
   expect(output).toContain('正确答案');
   expect(output).toContain('答对，继续保持节奏');
