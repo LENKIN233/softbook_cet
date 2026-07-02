@@ -2056,7 +2056,6 @@ function AppShell({
     />
   ) : route.key === 'mine' ? (
     <MineSurface
-      authRepositoryMode={runtimeAuthRepositoryMode}
       authState={authState}
       checkedInDayKey={checkedInDayKey}
       deviceClass={deviceClass}
@@ -2948,7 +2947,6 @@ function AuthGate({
           </View>
         </View>
         <PhoneSmsPanel
-          authRepositoryMode={authRepositoryMode}
           authState={authState}
           embedded
           handlers={handlers}
@@ -2960,6 +2958,11 @@ function AuthGate({
               ? `用短信验证码确认身份，完成后回到${authGateContent.returnTarget}。`
               : `输入验证码确认身份，完成后回到${authGateContent.returnTarget}。`
           }
+          successMessage={
+            authRepositoryMode === 'remote'
+              ? '已完成短信验证码登录。'
+              : '已完成登录。'
+          }
         />
       </View>
     </View>
@@ -2967,7 +2970,6 @@ function AuthGate({
 }
 
 function MineSurface({
-  authRepositoryMode,
   authState,
   checkedInDayKey,
   deviceClass,
@@ -2989,7 +2991,6 @@ function MineSurface({
   reviewResults,
   sleepingCount,
 }: {
-  authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   checkedInDayKey: string | null;
   deviceClass: DeviceClass;
@@ -3256,11 +3257,9 @@ function MineSurface({
 
       {!isAuthenticated ? (
         <PhoneSmsPanel
-          authRepositoryMode={authRepositoryMode}
           authState={authState}
           handlers={handlers}
           palette={palette}
-          fullWidthRequestButton
           returnTarget="我的"
           title="手机号验证"
           summary="验证后回到我的，查看记录、空间和会员。"
@@ -3716,25 +3715,23 @@ function MembershipActionGroup({
 }
 
 function PhoneSmsPanel({
-  authRepositoryMode,
   authState,
   embedded = false,
-  fullWidthRequestButton = false,
   handlers,
   palette,
   returnTarget,
   title,
   summary,
+  successMessage = '已完成登录。',
 }: {
-  authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   embedded?: boolean;
-  fullWidthRequestButton?: boolean;
   handlers: AuthHandlers;
   palette: Palette;
   returnTarget: string;
   title: string;
   summary: string;
+  successMessage?: string;
 }) {
   const isAuthenticated = authState.stage === 'authenticated';
   const isPending = authState.pendingAction !== null;
@@ -3743,22 +3740,21 @@ function PhoneSmsPanel({
     isPhoneNumberReady(authState.phoneNumber) && !isPending && !isAuthenticated;
   const canSubmitCode =
     isSmsCodeReady(authState.smsCode) && !isPending && !isAuthenticated;
-  const requestCodeButtonStyle = [
-    styles.primaryButton,
-    embedded || fullWidthRequestButton ? null : styles.compactButton,
-    canRequestCode
-      ? {
-          backgroundColor: palette.accent,
-          borderColor: palette.accent,
-        }
-      : {
-          backgroundColor: palette.panelStrong,
-          borderColor: palette.border,
-        },
-  ];
   const requestCodeLabelColor = canRequestCode
     ? palette.panel
     : palette.textMuted;
+  const requestDockTitle =
+    authState.pendingAction === 'request_code'
+      ? '正在请求验证码'
+      : canRequestCode
+      ? '手机号已准备好'
+      : '先输入手机号';
+  const requestDockDetail =
+    authState.pendingAction === 'request_code'
+      ? '正在向当前手机号请求验证码。'
+      : canRequestCode
+      ? `验证码通过后回到${returnTarget}。`
+      : '输入 11 位手机号后请求验证码。';
   const submitCodeButtonBackground = canSubmitCode
     ? palette.accent
     : palette.panel;
@@ -3930,16 +3926,45 @@ function PhoneSmsPanel({
       ) : null}
 
       {!hasRequestedCode ? (
-        <View style={styles.authActions}>
+        <View
+          style={[
+            styles.authRequestInlineDock,
+            { borderColor: palette.border },
+          ]}
+          testID="auth-request-inline-dock"
+        >
+          <View style={styles.authRequestCopy}>
+            <Text
+              numberOfLines={1}
+              style={[styles.authRequestTitle, { color: palette.text }]}
+            >
+              {requestDockTitle}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[styles.authRequestDetail, { color: palette.textMuted }]}
+            >
+              {requestDockDetail}
+            </Text>
+          </View>
           <Pressable
             disabled={!canRequestCode}
             onPress={handlers.onRequestCode}
-            style={requestCodeButtonStyle}
+            style={[
+              styles.authRequestButton,
+              {
+                backgroundColor: canRequestCode
+                  ? palette.accent
+                  : palette.panel,
+                borderColor: canRequestCode ? palette.accent : palette.border,
+              },
+            ]}
             testID="auth-request-code-button"
           >
             <Text
+              numberOfLines={1}
               style={[
-                styles.primaryButtonLabel,
+                styles.authRequestButtonLabel,
                 { color: requestCodeLabelColor },
               ]}
             >
@@ -3948,13 +3973,6 @@ function PhoneSmsPanel({
                 : '请求验证码'}
             </Text>
           </Pressable>
-          <Text style={[styles.authHint, { color: palette.textMuted }]}>
-            {authState.pendingAction === 'request_code'
-              ? '正在向当前手机号请求验证码。'
-              : authRepositoryMode === 'remote'
-              ? '将通过短信验证码确认身份。'
-              : `验证码通过后会回到${returnTarget}。`}
-          </Text>
         </View>
       ) : null}
 
@@ -3999,9 +4017,7 @@ function PhoneSmsPanel({
       {isAuthenticated ? (
         <View style={styles.authActions}>
           <Text style={[styles.authSuccess, { color: palette.success }]}>
-            {authRepositoryMode === 'remote'
-              ? '已完成短信验证码登录。'
-              : '已完成登录。'}
+            {successMessage}
           </Text>
           <Pressable
             disabled={isPending}
@@ -4653,6 +4669,43 @@ const styles = StyleSheet.create({
   authSummary: {
     fontSize: 14,
     lineHeight: 21,
+  },
+  authRequestInlineDock: {
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+  },
+  authRequestCopy: {
+    flex: 1,
+    gap: 3,
+    minWidth: 0,
+  },
+  authRequestTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 19,
+  },
+  authRequestDetail: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  authRequestButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 44,
+    minWidth: 104,
+    paddingHorizontal: 14,
+  },
+  authRequestButtonLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 17,
   },
   authCodeInlineDock: {
     borderTopWidth: 1,
