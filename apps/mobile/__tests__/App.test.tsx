@@ -419,6 +419,15 @@ test('renders correctly', async () => {
   expect(output).toContain('已保留');
   expect(output).toContain('原位保留');
   expect(output).toContain('手机号验证');
+  expect(output).toContain('先输入手机号');
+  expect(output).toContain('输入 11 位手机号后请求验证码。');
+  const requestDockStyle = StyleSheet.flatten(
+    tree!.root.findByProps({ testID: 'auth-request-inline-dock' }).props.style,
+  );
+  expect(requestDockStyle.borderTopWidth).toBe(1);
+  expect(requestDockStyle.borderBottomWidth).toBe(1);
+  expect(requestDockStyle.borderWidth).toBeUndefined();
+  expect(requestDockStyle.borderRadius).toBeUndefined();
   expect(
     findPressableByTestId(tree!.root, 'auth-request-code-button').props
       .disabled,
@@ -478,6 +487,19 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   expect(output).toContain('验证后回到我的，查看记录、空间和会员。');
   expect(output).not.toContain('确认身份继续学');
   expect(output).not.toContain('当前学习卡');
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'auth-phone-input' })
+      .props.onChangeText('13800138000');
+  });
+
+  const readyOutput = JSON.stringify(tree!.toJSON());
+  expect(readyOutput).toContain('手机号已准备好');
+  expect(readyOutput).toContain('验证码通过后回到我的。');
+  expect(
+    findPressableByTestId(root, 'auth-request-code-button').props.disabled,
+  ).toBe(false);
 });
 
 test('keeps mine code-sent state attached to the account object', async () => {
@@ -541,7 +563,7 @@ test('reads installed runtime config when the app mounts', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('用短信验证码确认身份');
-  expect(output).toContain('将通过短信验证码确认身份。');
+  expect(output).toContain('完成后回到当前卡。');
   expect(output).not.toContain('输入验证码即可完成登录。');
 });
 
@@ -574,7 +596,7 @@ test('uses native initial remote runtime profile before the shell mounts', async
     },
   });
   expect(output).toContain('用短信验证码确认身份');
-  expect(output).toContain('将通过短信验证码确认身份。');
+  expect(output).toContain('完成后回到当前卡。');
   expect(output).not.toContain('输入验证码即可完成登录。');
 });
 
@@ -617,7 +639,7 @@ test('shows remote request-code failure inside the auth gate', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('验证码发送暂时失败（503）。');
-  expect(output).toContain('将通过短信验证码确认身份。');
+  expect(output).toContain('用短信验证码确认身份，完成后回到当前卡。');
 });
 
 test('shows remote verify-code failure inside the auth gate', async () => {
