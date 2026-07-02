@@ -87,6 +87,79 @@ function formatLearningActionCue(
   return `先完成${INTERACTION_LABELS[card.interaction_id]}，再提交看解析。`;
 }
 
+function formatLearningSubmitDockCopy(
+  card: LearningCard,
+  cardState: LearningCardState,
+) {
+  switch (card.interaction_id) {
+    case 'multiple_choice': {
+      const selectedOption = card.options.find(
+        option => option.id === cardState.selectedOptionId,
+      );
+
+      return selectedOption
+        ? {
+            title: `已选 ${selectedOption.label}`,
+            detail: '提交后立即看解析',
+          }
+        : {
+            title: '先选一个答案',
+            detail: '完成选择后再看解析',
+          };
+    }
+    case 'lock': {
+      const selectedCount = card.lock_slots.filter(
+        slot => cardState.lockSelections[slot.id] !== null,
+      ).length;
+      const totalCount = card.lock_slots.length;
+
+      return selectedCount === totalCount
+        ? {
+            title: '锁位已完成',
+            detail: '提交后检查句子结构',
+          }
+        : {
+            title: `已完成 ${selectedCount}/${totalCount}`,
+            detail: '补齐所有锁位后提交',
+          };
+    }
+    case 'elimination': {
+      const eliminatedCount = cardState.eliminatedItemIds.length;
+
+      return eliminatedCount > 0
+        ? {
+            title: `已排除 ${eliminatedCount} 项`,
+            detail: '提交后确认排除依据',
+          }
+        : {
+            title: '先划掉可排除项',
+            detail: '至少排除一项再提交',
+          };
+    }
+    case 'swipe': {
+      const selectedState = card.swipe_states.find(
+        state => state.id === cardState.swipeSelection,
+      );
+
+      return selectedState
+        ? {
+            title: `已选 ${selectedState.label}`,
+            detail: '提交后确认判断',
+          }
+        : {
+            title: '先选择判断方向',
+            detail: '选定后提交确认',
+          };
+    }
+    case 'flip':
+    default:
+      return {
+        title: '先翻面看答案',
+        detail: '看完解析后自评',
+      };
+  }
+}
+
 export function LearningSurface({
   palette,
   sessionCards,
@@ -287,6 +360,10 @@ export function LearningSurface({
     return null;
   })();
   const canSubmitCurrentCard = canSubmitLearningCard(
+    currentCard,
+    currentCardState,
+  );
+  const submitDockCopy = formatLearningSubmitDockCopy(
     currentCard,
     currentCardState,
   );
@@ -584,26 +661,66 @@ export function LearningSurface({
               </>
             ) : null}
             {currentCard.interaction_id !== 'flip' ? (
-              <Pressable
-                disabled={!canSubmitCurrentCard}
-                onPress={onSubmitCurrentCard}
+              <View
                 style={[
-                  styles.primaryButton,
-                  styles.oneScreenPrimaryButton,
+                  styles.submitActionDock,
                   {
-                    backgroundColor: canSubmitCurrentCard
-                      ? tone.accent
-                      : palette.tabIdle,
+                    backgroundColor: palette.panelStrong,
+                    borderColor: canSubmitCurrentCard
+                      ? hexToRgba(tone.accent, 0.34)
+                      : palette.border,
                   },
                 ]}
-                testID="learning-submit-button"
+                testID="learning-submit-action-dock"
               >
-                <Text
-                  style={[styles.primaryButtonLabel, { color: palette.panel }]}
+                <View style={styles.submitActionTextStack}>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.submitActionTitle,
+                      {
+                        color: canSubmitCurrentCard
+                          ? tone.accent
+                          : palette.textMuted,
+                      },
+                    ]}
+                  >
+                    {submitDockCopy.title}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.submitActionDetail,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    {submitDockCopy.detail}
+                  </Text>
+                </View>
+                <Pressable
+                  disabled={!canSubmitCurrentCard}
+                  onPress={onSubmitCurrentCard}
+                  style={[
+                    styles.submitActionButton,
+                    {
+                      backgroundColor: canSubmitCurrentCard
+                        ? tone.accent
+                        : palette.tabIdle,
+                      opacity: canSubmitCurrentCard ? 1 : 0.68,
+                    },
+                  ]}
+                  testID="learning-submit-button"
                 >
-                  提交这张卡
-                </Text>
-              </Pressable>
+                  <Text
+                    style={[
+                      styles.submitActionButtonLabel,
+                      { color: palette.panel },
+                    ]}
+                  >
+                    提交
+                  </Text>
+                </Pressable>
+              </View>
             ) : null}
           </View>
         ) : null}
@@ -2590,8 +2707,43 @@ const styles = StyleSheet.create({
   oneScreenDockCompact: {
     gap: 0,
   },
-  oneScreenPrimaryButton: {
-    paddingVertical: 13,
+  submitActionDock: {
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    minHeight: 58,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  submitActionTextStack: {
+    flex: 1,
+    gap: 3,
+    minWidth: 0,
+  },
+  submitActionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 19,
+  },
+  submitActionDetail: {
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 17,
+  },
+  submitActionButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    justifyContent: 'center',
+    minHeight: 42,
+    minWidth: 72,
+    paddingHorizontal: 16,
+  },
+  submitActionButtonLabel: {
+    fontSize: 14,
+    fontWeight: '800',
   },
   primaryButtonLabel: {
     fontSize: 15,

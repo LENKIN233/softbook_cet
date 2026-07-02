@@ -130,6 +130,102 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('训练轨道');
 });
 
+test('multiple choice submit is a compact action dock tied to selection state', () => {
+  const session = createLocalLearningSession('cet4');
+  const currentCard = session.cards.find(
+    sessionCard => sessionCard.interaction_id === 'multiple_choice',
+  );
+
+  if (!currentCard || currentCard.interaction_id !== 'multiple_choice') {
+    throw new Error('Expected a multiple choice card in the local session.');
+  }
+
+  const onSubmitCurrentCard = jest.fn();
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <LearningSurface
+        palette={palette}
+        sessionCards={session.cards}
+        sessionLabel={session.sourceLabel}
+        phase="learning"
+        currentCard={currentCard}
+        currentCardState={createLearningCardState(currentCard)}
+        currentIndex={1}
+        currentResult={null}
+        completedResults={[]}
+        reviewCandidateCount={0}
+        onTogglePeek={jest.fn()}
+        onToggleFavorite={jest.fn()}
+        onToggleHint={jest.fn()}
+        onFlip={jest.fn()}
+        onSetFlipConfidence={jest.fn()}
+        onSelectOption={jest.fn()}
+        onSetLockSelection={jest.fn()}
+        onToggleEliminationItem={jest.fn()}
+        onSelectSwipeState={jest.fn()}
+        onSubmitCurrentCard={onSubmitCurrentCard}
+        onAdvanceCard={jest.fn()}
+        onRestartDeck={jest.fn()}
+      />,
+    );
+  });
+
+  let output = JSON.stringify(tree!.toJSON());
+  expect(
+    tree!.root.findByProps({ testID: 'learning-submit-action-dock' }),
+  ).toBeTruthy();
+  expect(
+    tree!.root.findByProps({ testID: 'learning-submit-button' }).props.disabled,
+  ).toBe(true);
+  expect(output).toContain('先选一个答案');
+  expect(output).toContain('完成选择后再看解析');
+  expect(output).not.toContain('queue');
+  expect(output).not.toContain('payload');
+
+  ReactTestRenderer.act(() => {
+    tree!.update(
+      <LearningSurface
+        palette={palette}
+        sessionCards={session.cards}
+        sessionLabel={session.sourceLabel}
+        phase="learning"
+        currentCard={currentCard}
+        currentCardState={{
+          ...createLearningCardState(currentCard),
+          selectedOptionId: currentCard.options[0].id,
+        }}
+        currentIndex={1}
+        currentResult={null}
+        completedResults={[]}
+        reviewCandidateCount={0}
+        onTogglePeek={jest.fn()}
+        onToggleFavorite={jest.fn()}
+        onToggleHint={jest.fn()}
+        onFlip={jest.fn()}
+        onSetFlipConfidence={jest.fn()}
+        onSelectOption={jest.fn()}
+        onSetLockSelection={jest.fn()}
+        onToggleEliminationItem={jest.fn()}
+        onSelectSwipeState={jest.fn()}
+        onSubmitCurrentCard={onSubmitCurrentCard}
+        onAdvanceCard={jest.fn()}
+        onRestartDeck={jest.fn()}
+      />,
+    );
+  });
+
+  output = JSON.stringify(tree!.toJSON());
+  expect(
+    tree!.root.findByProps({ testID: 'learning-submit-button' }).props.disabled,
+  ).toBe(false);
+  expect(output).toContain(`已选 ${currentCard.options[0].label}`);
+  expect(output).toContain('提交后立即看解析');
+  expect(output).not.toContain(currentCard.space_metadata.box_ref);
+});
+
 test('completion state keeps the next step primary instead of a metric dashboard', () => {
   const session = createLocalLearningSession('cet4');
   const completedCard = session.catalogCards[0];
