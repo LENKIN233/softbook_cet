@@ -3380,13 +3380,11 @@ function MembershipHostCard({
   palette: Palette;
 }) {
   const access = resolveMembershipAccess(membershipState);
-  const accessSummary = [
-    { label: '基础学习', open: access.basicLearning },
+  const benefitSummary = [
     { label: '完整卡库', open: access.completeCardLibrary },
     { label: '完整空间', open: access.completePhysicalSpace },
     { label: '智能回看', open: access.completeAlgorithm },
   ];
-  const unlockedAccessCount = accessSummary.filter(item => item.open).length;
   const focusCopy =
     focusGate === null
       ? null
@@ -3407,7 +3405,7 @@ function MembershipHostCard({
       <View style={styles.membershipHeaderRow}>
         <View style={styles.membershipHeaderCopy}>
           <Text style={[styles.infoTitle, { color: palette.text }]}>
-            {getMembershipCardTitle(membershipState.stage)}
+            {getMembershipHostTitle(membershipState.stage)}
           </Text>
           <Text
             style={[styles.membershipSummary, { color: palette.textMuted }]}
@@ -3420,7 +3418,7 @@ function MembershipHostCard({
         </View>
         <View
           style={[
-            styles.membershipCountPill,
+            styles.membershipStatePill,
             {
               backgroundColor: palette.accentSoft,
               borderColor: palette.border,
@@ -3428,14 +3426,10 @@ function MembershipHostCard({
           ]}
         >
           <Text
-            style={[styles.membershipCountValue, { color: palette.accent }]}
+            numberOfLines={1}
+            style={[styles.membershipStatePillText, { color: palette.accent }]}
           >
-            {unlockedAccessCount}/4
-          </Text>
-          <Text
-            style={[styles.membershipCountLabel, { color: palette.textMuted }]}
-          >
-            已开放
+            {getMembershipStatusChipLabel(membershipState.stage)}
           </Text>
         </View>
       </View>
@@ -3467,7 +3461,7 @@ function MembershipHostCard({
         ]}
         testID="membership-access-strip"
       >
-        {accessSummary.map(item => (
+        {benefitSummary.map(item => (
           <View
             key={item.label}
             style={[
@@ -3590,7 +3584,7 @@ function MembershipActionGroup({
     membershipRepositoryMode === 'local' && process.env.NODE_ENV === 'test';
 
   return membershipState.stage === 'trial_available' ? (
-    <View style={styles.membershipActionRow}>
+    <View style={styles.membershipTrialActionRow}>
       <Pressable
         disabled={isPending}
         onPress={handlers.onStartTrial}
@@ -3611,14 +3605,15 @@ function MembershipActionGroup({
         disabled={isPending}
         onPress={handlers.onPurchase}
         style={[
-          styles.secondaryButton,
-          styles.membershipSecondaryAction,
-          { borderColor: palette.border, backgroundColor: palette.panelStrong },
+          styles.membershipSecondaryLink,
+          { backgroundColor: palette.panel },
         ]}
         testID="membership-purchase-button"
       >
-        <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
-          直接开通会员
+        <Text
+          style={[styles.membershipSecondaryLinkLabel, { color: palette.text }]}
+        >
+          {membershipPendingAction === 'purchase' ? '同步中' : '直接开通'}
         </Text>
       </Pressable>
     </View>
@@ -4118,6 +4113,32 @@ function getMembershipCardTitle(stage: MembershipStage) {
   }
 }
 
+function getMembershipHostTitle(stage: MembershipStage) {
+  switch (stage) {
+    case 'trial_available':
+      return '完整体验';
+    case 'trial':
+      return '完整试用进行中';
+    case 'free':
+      return '基础学习保留';
+    case 'premium':
+      return '会员已开通';
+  }
+}
+
+function getMembershipStatusChipLabel(stage: MembershipStage) {
+  switch (stage) {
+    case 'trial_available':
+      return '基础可用';
+    case 'trial':
+      return '试用中';
+    case 'free':
+      return '基础态';
+    case 'premium':
+      return '会员态';
+  }
+}
+
 function shouldClearMembershipGate(
   gate: MembershipGate | null,
   membershipState: MembershipState,
@@ -4196,7 +4217,7 @@ function getMembershipCardSummary(
 ) {
   switch (membershipState.stage) {
     case 'trial_available':
-      return '试用从第一次计入学习开始；完整卡库、空间和回看会一起放开。';
+      return '首次计入学习时开启试用；完整卡库、空间和回看会一起放开。';
     case 'trial':
       return mode === 'remote'
         ? `完整试用 ${membershipState.trialDurationDays} 天已开启，空间和回看同步放开。`
@@ -4980,9 +5001,9 @@ const styles = StyleSheet.create({
   membershipHostCard: {
     borderRadius: 22,
     borderWidth: 1,
-    gap: 8,
+    gap: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -4999,21 +5020,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
-  membershipCountPill: {
+  membershipStatePill: {
     alignItems: 'center',
     borderRadius: 18,
     borderWidth: 1,
-    minWidth: 58,
-    paddingHorizontal: 9,
+    minWidth: 74,
+    paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  membershipCountValue: {
-    fontSize: 15,
+  membershipStatePillText: {
+    fontSize: 12,
     fontWeight: '800',
-  },
-  membershipCountLabel: {
-    fontSize: 10,
-    fontWeight: '700',
   },
   membershipFocusCard: {
     borderWidth: 1,
@@ -5051,17 +5068,19 @@ const styles = StyleSheet.create({
   },
   membershipAccessTrack: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 6,
   },
   membershipAccessTrackTablet: {
     gap: 8,
   },
   membershipAccessStep: {
-    borderTopWidth: 1,
+    borderRadius: 16,
+    borderWidth: 1,
     flex: 1,
-    gap: 3,
+    gap: 5,
     minWidth: 0,
-    paddingTop: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   membershipAccessDot: {
     borderRadius: 999,
@@ -5077,19 +5096,27 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
   },
-  membershipActionRow: {
+  membershipTrialActionRow: {
+    alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
   },
   membershipPrimaryAction: {
-    flex: 1.18,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-  },
-  membershipSecondaryAction: {
     flex: 1,
     paddingHorizontal: 12,
     paddingVertical: 11,
+  },
+  membershipSecondaryLink: {
+    alignItems: 'center',
+    borderRadius: 18,
+    justifyContent: 'center',
+    minWidth: 76,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+  },
+  membershipSecondaryLinkLabel: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   phoneTabBarWrap: {
     paddingHorizontal: 20,

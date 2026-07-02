@@ -2832,6 +2832,21 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(
     root.findByProps({ testID: 'mine-secondary-action-row' }),
   ).toBeTruthy();
+  expect(root.findByProps({ testID: 'membership-host-card' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'membership-access-strip' })).toBeTruthy();
+  expect(output).toContain('完整体验');
+  expect(output).toContain('基础可用');
+  expect(output).toContain('首次计入学习时开启试用');
+  expect(output).toContain('完整卡库');
+  expect(output).toContain('完整空间');
+  expect(output).toContain('智能回看');
+  expect(
+    findPressableByTestId(root, 'membership-start-trial-button'),
+  ).toBeTruthy();
+  expect(
+    findPressableByTestId(root, 'membership-purchase-button'),
+  ).toBeTruthy();
+  expect(output).not.toContain('1/4');
   expect(output).not.toContain('账号概览');
   expect(output).not.toContain('今日已完成 1 张卡，其中首轮 1 张、回看 0 张。');
   expect(output).not.toContain('收藏标签 1 张。');
