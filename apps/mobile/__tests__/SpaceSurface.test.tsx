@@ -292,6 +292,12 @@ test('uses anonymous ordered selector IDs for Space library and group chips in t
     root.findAllByProps({ testID: 'space-browse-rail' }).length,
   ).toBeGreaterThan(0);
   expect(
+    root.findAllByProps({ testID: 'space-browse-card-continuity' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-card-list-back' }).length,
+  ).toBeGreaterThan(0);
+  expect(
     root.findAllByProps({ testID: 'space-library-2' }).length,
   ).toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-library-00' })).toHaveLength(0);
