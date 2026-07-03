@@ -189,7 +189,6 @@ type SpaceCardState = {
 };
 
 const SHELL_ACCENT = '#637783';
-const SHELL_DEPTH = '#86A3A1';
 
 type AuthHandlers = {
   onChangePhone: (value: string) => void;
@@ -2234,7 +2233,7 @@ function AppShell({
       <StatusBar
         barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'}
       />
-      <AuroraBackdrop />
+      <AppCanvasBackdrop palette={palette} />
       <View style={styles.safeAreaBody}>
         {deviceClass === 'tablet' ? (
           <TabletShell
@@ -2419,12 +2418,15 @@ function LearningSleepSurface({
   );
 }
 
-function AuroraBackdrop() {
+function AppCanvasBackdrop({ palette }: { palette: Palette }) {
   return (
-    <View pointerEvents="none" style={styles.auroraRoot}>
-      <View style={[styles.auroraField, styles.auroraFieldTop]} />
-      <View style={[styles.auroraField, styles.auroraFieldBase]} />
-    </View>
+    <View
+      pointerEvents="none"
+      style={[
+        styles.appCanvasBackdrop,
+        { backgroundColor: palette.background },
+      ]}
+    />
   );
 }
 
@@ -4550,24 +4552,8 @@ const styles = StyleSheet.create({
   safeAreaBody: {
     flex: 1,
   },
-  auroraRoot: {
+  appCanvasBackdrop: {
     ...StyleSheet.absoluteFill,
-    overflow: 'hidden',
-  },
-  auroraField: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-  },
-  auroraFieldTop: {
-    height: 280,
-    top: -64,
-    backgroundColor: hexToRgba(SHELL_ACCENT, 0.14),
-  },
-  auroraFieldBase: {
-    height: 360,
-    bottom: -24,
-    backgroundColor: hexToRgba(SHELL_DEPTH, 0.1),
   },
   shellRoot: {
     flex: 1,
