@@ -15,11 +15,16 @@ type StatisticsPalette = {
   accent: string;
   accentSoft: string;
   accentStrong: string;
+  activeSurface: string;
+  activeText: string;
   background: string;
   border: string;
   danger: string;
   panel: string;
   panelStrong: string;
+  primaryActionSurface: string;
+  primaryActionText: string;
+  primaryActionMuted: string;
   success: string;
   tabIdle: string;
   text: string;
@@ -258,16 +263,23 @@ export function StatisticsSurface({
                 {
                   backgroundColor: nextStepIsReview
                     ? palette.warning
-                    : palette.text,
+                    : palette.primaryActionSurface,
                   borderColor: nextStepIsReview
                     ? palette.warning
-                    : palette.text,
+                    : palette.primaryActionSurface,
                 },
               ]}
               testID={nextStepButtonTestID}
             >
               <Text
-                style={[styles.primaryButtonLabel, { color: palette.panel }]}
+                style={[
+                  styles.primaryButtonLabel,
+                  {
+                    color: nextStepIsReview
+                      ? palette.panel
+                      : palette.primaryActionText,
+                  },
+                ]}
               >
                 {nextStepButtonLabel}
               </Text>

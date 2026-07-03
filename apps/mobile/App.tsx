@@ -120,6 +120,11 @@ type Palette = {
   accent: string;
   accentSoft: string;
   accentStrong: string;
+  activeSurface: string;
+  activeText: string;
+  primaryActionSurface: string;
+  primaryActionText: string;
+  primaryActionMuted: string;
   tabIdle: string;
   success: string;
   warning: string;
@@ -240,6 +245,11 @@ const LIGHT_PALETTE: Palette = {
   accent: SHELL_ACCENT,
   accentSoft: hexToRgba(SHELL_ACCENT, 0.12),
   accentStrong: '#2F4650',
+  activeSurface: '#12131A',
+  activeText: '#FFFFFC',
+  primaryActionSurface: '#12131A',
+  primaryActionText: '#FFFFFC',
+  primaryActionMuted: hexToRgba('#FFFFFF', 0.74),
   tabIdle: '#8D948D',
   success: '#249B77',
   warning: '#C98524',
@@ -254,8 +264,13 @@ const DARK_PALETTE: Palette = {
   text: '#F2F1EB',
   textMuted: '#B8B8CE',
   accent: '#7C8BFF',
-  accentSoft: hexToRgba(SHELL_ACCENT, 0.2),
+  accentSoft: hexToRgba('#7C8BFF', 0.2),
   accentStrong: '#D5DAFF',
+  activeSurface: '#7C8BFF',
+  activeText: '#FFFFFF',
+  primaryActionSurface: '#7C8BFF',
+  primaryActionText: '#FFFFFF',
+  primaryActionMuted: hexToRgba('#FFFFFF', 0.78),
   tabIdle: '#86869C',
   success: '#4FDE9C',
   warning: '#F5B100',
@@ -2457,8 +2472,8 @@ function PhoneShell({
                   styles.phoneTabButton,
                   isActive
                     ? {
-                        backgroundColor: palette.text,
-                        shadowColor: palette.text,
+                        backgroundColor: palette.activeSurface,
+                        shadowColor: palette.activeSurface,
                       }
                     : null,
                 ]}
@@ -2468,7 +2483,7 @@ function PhoneShell({
                   style={[
                     styles.phoneTabBadge,
                     {
-                      color: isActive ? palette.panelStrong : palette.tabIdle,
+                      color: isActive ? palette.activeText : palette.tabIdle,
                     },
                   ]}
                 >
@@ -2478,7 +2493,7 @@ function PhoneShell({
                   style={[
                     styles.phoneTabLabel,
                     {
-                      color: isActive ? palette.panelStrong : palette.textMuted,
+                      color: isActive ? palette.activeText : palette.textMuted,
                     },
                   ]}
                 >
@@ -3427,8 +3442,8 @@ function MineActionCard({
   variant?: 'primary' | 'secondary';
 }) {
   const isPrimary = variant === 'primary';
-  const foregroundColor = isPrimary ? palette.panel : palette.text;
-  const mutedColor = isPrimary ? hexToRgba('#FFFFFF', 0.74) : palette.textMuted;
+  const foregroundColor = isPrimary ? palette.primaryActionText : palette.text;
+  const mutedColor = isPrimary ? palette.primaryActionMuted : palette.textMuted;
   const glyph = (
     <View
       style={[
@@ -3444,7 +3459,7 @@ function MineActionCard({
       <Text
         style={[
           styles.mineActionValue,
-          { color: isPrimary ? palette.panel : palette.accent },
+          { color: isPrimary ? palette.primaryActionText : palette.accent },
         ]}
       >
         {value}
@@ -3489,9 +3504,11 @@ function MineActionCard({
           ? styles.mineActionCardPrimary
           : styles.mineActionCardSecondary,
         {
-          backgroundColor: isPrimary ? palette.text : palette.panelStrong,
+          backgroundColor: isPrimary
+            ? palette.primaryActionSurface
+            : palette.panelStrong,
           borderColor: isPrimary
-            ? hexToRgba(palette.text, 0.18)
+            ? hexToRgba(palette.primaryActionSurface, 0.24)
             : palette.border,
         },
       ]}
