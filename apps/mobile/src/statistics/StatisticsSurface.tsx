@@ -173,7 +173,7 @@ export function StatisticsSurface({
           style={[
             styles.metricLedger,
             {
-              backgroundColor: palette.panelStrong,
+              backgroundColor: hexToRgba(palette.accent, 0.055),
               borderColor: hexToRgba(palette.accent, 0.1),
             },
           ]}
@@ -220,7 +220,18 @@ export function StatisticsSurface({
           ]}
           testID="statistics-action-dock"
         >
-          <View style={styles.nextStepRow} testID="statistics-next-step-card">
+          <View
+            style={[
+              styles.nextStepRow,
+              {
+                backgroundColor: palette.panel,
+                borderColor: nextStepIsReview
+                  ? hexToRgba(palette.warning, 0.16)
+                  : hexToRgba(palette.accent, 0.12),
+              },
+            ]}
+            testID="statistics-next-step-card"
+          >
             <View style={styles.nextStepCopy}>
               <Text
                 style={[
@@ -247,10 +258,10 @@ export function StatisticsSurface({
                 {
                   backgroundColor: nextStepIsReview
                     ? palette.warning
-                    : palette.accent,
+                    : palette.text,
                   borderColor: nextStepIsReview
                     ? palette.warning
-                    : palette.accent,
+                    : palette.text,
                 },
               ]}
               testID={nextStepButtonTestID}
@@ -319,6 +330,7 @@ export function StatisticsSurface({
           style={[
             styles.statusLedger,
             {
+              backgroundColor: palette.panelStrong,
               borderColor: hexToRgba(palette.accent, 0.12),
             },
           ]}
@@ -369,14 +381,14 @@ function MetricLedgerRow({
 
   return (
     <View style={styles.metricLedgerRow} testID={testID}>
-      <Text style={[styles.metricLabel, { color: palette.textMuted }]}>
-        {label}
-      </Text>
       <Text
         style={[styles.metricValue, { color: valueColor }]}
         testID={testID ? `${testID}-value` : undefined}
       >
         {value}
+      </Text>
+      <Text style={[styles.metricLabel, { color: palette.textMuted }]}>
+        {label}
       </Text>
     </View>
   );
@@ -453,7 +465,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 6,
     paddingBottom: 8,
-    gap: 9,
+    gap: 8,
   },
   pageTablet: {
     paddingHorizontal: 24,
@@ -474,28 +486,33 @@ const styles = StyleSheet.create({
   },
   metricLedger: {
     borderWidth: 1,
-    borderRadius: 22,
-    gap: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    borderRadius: 24,
+    flexDirection: 'row',
+    gap: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   metricLedgerRow: {
-    alignItems: 'baseline',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    minHeight: 34,
-    paddingVertical: 5,
+    alignItems: 'center',
+    borderRadius: 18,
+    flex: 1,
+    gap: 3,
+    justifyContent: 'center',
+    minHeight: 64,
+    paddingHorizontal: 4,
+    paddingVertical: 8,
   },
   metricValue: {
-    fontSize: 21,
+    fontSize: 25,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
-    lineHeight: 25,
+    lineHeight: 29,
   },
   metricLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
-    lineHeight: 16,
+    lineHeight: 15,
+    textAlign: 'center',
   },
   surfaceCard: {
     borderWidth: 1,
@@ -510,7 +527,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   dailyObjectCard: {
-    gap: 8,
+    gap: 9,
     paddingHorizontal: 18,
     paddingVertical: 14,
   },
@@ -522,12 +539,13 @@ const styles = StyleSheet.create({
   },
   dailyHeading: {
     flex: 1,
-    gap: 6,
+    gap: 5,
   },
   dailyAccent: {
     borderRadius: 999,
-    height: 76,
-    width: 6,
+    height: 48,
+    marginTop: 3,
+    width: 5,
   },
   checkInStatusPill: {
     borderRadius: 999,
@@ -541,16 +559,18 @@ const styles = StyleSheet.create({
   actionDock: {
     borderRadius: 24,
     borderWidth: 1,
-    gap: 7,
+    gap: 8,
     paddingHorizontal: 8,
     paddingVertical: 8,
   },
   nextStepRow: {
     alignItems: 'center',
+    borderRadius: 21,
+    borderWidth: 1,
     flexDirection: 'row',
     gap: 11,
-    paddingHorizontal: 5,
-    paddingVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
   },
   nextStepCopy: {
     flex: 1,
@@ -611,7 +631,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   ledgerRail: {
-    gap: 8,
+    gap: 6,
   },
   ledgerLabel: {
     fontSize: 11,
@@ -632,15 +652,19 @@ const styles = StyleSheet.create({
   },
   ledgerRow: {
     alignItems: 'flex-start',
+    borderRadius: 16,
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
     minHeight: 29,
+    paddingHorizontal: 3,
+    paddingVertical: 2,
   },
   statusLedger: {
-    borderTopWidth: 1,
-    marginTop: 2,
-    paddingHorizontal: 2,
-    paddingTop: 9,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginTop: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
   },
 });
