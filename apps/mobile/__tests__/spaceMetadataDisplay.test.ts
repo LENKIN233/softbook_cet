@@ -47,11 +47,14 @@ const cardFixture: CardFixture = {
 
 test('formats path indexes into anonymous-space labels', () => {
   expect(formatSpacePathByIndex(2, 1, 1)).toBe(
-    '相邻书架 / 当前分区 / 当前卡盒',
+    '相邻书架一 / 当前分区 / 当前卡盒',
   );
-  expect(formatSpaceLibraryLabel(2)).toBe('相邻书架');
+  expect(formatSpaceLibraryLabel(2)).toBe('相邻书架一');
+  expect(formatSpaceLibraryLabel(3)).toBe('相邻书架二');
   expect(formatSpaceGroupLabel(1)).toBe('当前分区');
+  expect(formatSpaceGroupLabel(2)).toBe('相邻分区一');
   expect(formatSpaceBoxLabel(1)).toBe('当前卡盒');
+  expect(formatSpaceBoxLabel(2)).toBe('相邻卡盒一');
 });
 
 test('formats learning session labels without exposing tracks', () => {
@@ -71,6 +74,6 @@ test('returns null for unknown metadata lookup', () => {
   expect(
     resolveSpacePosition(seedFixture, {
       space_metadata: { library: 'missing', group: 'x', box_ref: 'y' },
-    },
-  )).toBeNull();
+    }),
+  ).toBeNull();
 });
