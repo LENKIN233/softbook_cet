@@ -282,6 +282,12 @@ function readMetricValue(
   root: ReactTestRenderer.ReactTestInstance,
   testID: string,
 ) {
+  const explicitValue = root.findAllByProps({ testID: `${testID}-value` })[0];
+
+  if (explicitValue) {
+    return explicitValue.props.children;
+  }
+
   return root.findByProps({ testID }).findAllByType(Text)[0].props.children;
 }
 
@@ -2770,6 +2776,20 @@ test('can check in from statistics after making learning progress', async () => 
   expect(output).toContain('已记录');
   expect(output).not.toContain('今日统计与签到');
   expect(output).not.toContain('练习信号');
+  const actionDock = root.findByProps({ testID: 'statistics-action-dock' });
+  expect(
+    actionDock.findAllByProps({ testID: 'statistics-next-step-card' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    actionDock.findAllByProps({ testID: 'statistics-go-learning-button' })
+      .length,
+  ).toBeGreaterThan(0);
+  expect(
+    actionDock.findAllByProps({ testID: 'statistics-checkin-card' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    actionDock.findAllByProps({ testID: 'statistics-checkin-button' }).length,
+  ).toBeGreaterThan(0);
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'statistics-checkin-button' }).props.onPress();
