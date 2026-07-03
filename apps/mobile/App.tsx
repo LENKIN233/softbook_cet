@@ -3404,6 +3404,7 @@ function MembershipHostCard({
     { label: '完整空间', open: access.completePhysicalSpace },
     { label: '智能回看', open: access.completeAlgorithm },
   ];
+  const isTrialAvailable = membershipState.stage === 'trial_available';
   const focusCopy =
     focusGate === null
       ? null
@@ -3473,50 +3474,132 @@ function MembershipHostCard({
           </Text>
         </View>
       ) : null}
-      <View
-        style={[
-          styles.membershipAccessTrack,
-          deviceClass === 'tablet' ? styles.membershipAccessTrackTablet : null,
-        ]}
-        testID="membership-access-strip"
-      >
-        {benefitSummary.map(item => (
-          <View
-            key={item.label}
-            style={[
-              styles.membershipAccessStep,
-              { borderColor: palette.border },
-            ]}
-          >
-            <View
-              style={[
-                styles.membershipAccessDot,
-                {
-                  backgroundColor: item.open
-                    ? palette.success
-                    : hexToRgba(palette.warning, 0.2),
-                  borderColor: item.open ? palette.success : palette.warning,
-                },
-              ]}
-            />
+      {isTrialAvailable ? (
+        <View
+          style={[
+            styles.membershipAccessCompactDock,
+            {
+              backgroundColor: palette.panel,
+              borderColor: palette.border,
+            },
+          ]}
+          testID="membership-access-strip"
+        >
+          <View style={styles.membershipAccessCompactCopy}>
             <Text
               numberOfLines={1}
-              style={[styles.membershipAccessLabel, { color: palette.text }]}
+              style={[
+                styles.membershipAccessCompactTitle,
+                { color: palette.text },
+              ]}
             >
-              {item.label}
+              卡库 / 空间 / 回看
             </Text>
             <Text
               numberOfLines={1}
               style={[
-                styles.membershipAccessValue,
-                { color: item.open ? palette.success : palette.warning },
+                styles.membershipAccessCompactMeta,
+                { color: palette.textMuted },
               ]}
             >
-              {item.open ? '已开放' : '待开放'}
+              本轮学习不断线
             </Text>
           </View>
-        ))}
-      </View>
+          <View style={styles.membershipAccessCompactActions}>
+            <Pressable
+              disabled={membershipPendingAction !== null}
+              onPress={handlers.onStartTrial}
+              style={[
+                styles.membershipCompactTrialButton,
+                { backgroundColor: palette.accent },
+              ]}
+              testID="membership-start-trial-button"
+            >
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.membershipCompactTrialLabel,
+                  { color: palette.panel },
+                ]}
+              >
+                {membershipPendingAction === 'start_trial'
+                  ? '开通中'
+                  : '开始完整试用'}
+              </Text>
+            </Pressable>
+            <Pressable
+              disabled={membershipPendingAction !== null}
+              onPress={handlers.onPurchase}
+              style={[
+                styles.membershipCompactPurchaseButton,
+                {
+                  backgroundColor: palette.panelStrong,
+                  borderColor: palette.border,
+                },
+              ]}
+              testID="membership-purchase-button"
+            >
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.membershipCompactPurchaseLabel,
+                  { color: palette.text },
+                ]}
+              >
+                {membershipPendingAction === 'purchase' ? '同步中' : '直接开通'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.membershipAccessTrack,
+            deviceClass === 'tablet'
+              ? styles.membershipAccessTrackTablet
+              : null,
+          ]}
+          testID="membership-access-strip"
+        >
+          {benefitSummary.map(item => (
+            <View
+              key={item.label}
+              style={[
+                styles.membershipAccessStep,
+                { borderColor: palette.border },
+              ]}
+              testID="membership-access-step"
+            >
+              <View
+                style={[
+                  styles.membershipAccessDot,
+                  {
+                    backgroundColor: item.open
+                      ? palette.success
+                      : hexToRgba(palette.warning, 0.2),
+                    borderColor: item.open ? palette.success : palette.warning,
+                  },
+                ]}
+              />
+              <Text
+                numberOfLines={1}
+                style={[styles.membershipAccessLabel, { color: palette.text }]}
+              >
+                {item.label}
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.membershipAccessValue,
+                  { color: item.open ? palette.success : palette.warning },
+                ]}
+              >
+                {item.open ? '已开放' : '待开放'}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
       {membershipState.recoveryPromptVisible ? (
         <View
           style={[
@@ -3570,13 +3653,15 @@ function MembershipHostCard({
           {membershipError}
         </Text>
       ) : null}
-      <MembershipActionGroup
-        handlers={handlers}
-        membershipPendingAction={membershipPendingAction}
-        membershipRepositoryMode={membershipRepositoryMode}
-        membershipState={membershipState}
-        palette={palette}
-      />
+      {isTrialAvailable ? null : (
+        <MembershipActionGroup
+          handlers={handlers}
+          membershipPendingAction={membershipPendingAction}
+          membershipRepositoryMode={membershipRepositoryMode}
+          membershipState={membershipState}
+          palette={palette}
+        />
+      )}
     </View>
   );
 }
@@ -4255,7 +4340,7 @@ function getMembershipCardSummary(
 ) {
   switch (membershipState.stage) {
     case 'trial_available':
-      return '首次计入学习时开启试用；完整卡库、空间和回看会一起放开。';
+      return '首次计入学习时开启试用；完整卡库、完整空间和智能回看会一起放开。';
     case 'trial':
       return mode === 'remote'
         ? `完整试用 ${membershipState.trialDurationDays} 天已开启，空间和回看同步放开。`
@@ -5172,6 +5257,62 @@ const styles = StyleSheet.create({
   },
   membershipAccessTrackTablet: {
     gap: 8,
+  },
+  membershipAccessCompactDock: {
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  membershipAccessCompactCopy: {
+    flex: 1,
+    gap: 3,
+    minWidth: 0,
+  },
+  membershipAccessCompactTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+  },
+  membershipAccessCompactMeta: {
+    fontSize: 11,
+    fontWeight: '600',
+    lineHeight: 15,
+  },
+  membershipAccessCompactActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 7,
+  },
+  membershipCompactTrialButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    justifyContent: 'center',
+    minHeight: 38,
+    minWidth: 86,
+    paddingHorizontal: 12,
+  },
+  membershipCompactTrialLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+  },
+  membershipCompactPurchaseButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 38,
+    minWidth: 72,
+    paddingHorizontal: 10,
+  },
+  membershipCompactPurchaseLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
   },
   membershipAccessStep: {
     borderRadius: 16,
