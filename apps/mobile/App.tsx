@@ -2777,6 +2777,7 @@ function AuthGate({
   route: ShellRoute;
 }) {
   const hasSentCode = authState.stage === 'code_sent';
+  const isMineAccountGate = embedded && route.key === 'mine';
   const authGateContent =
     route.key === 'space'
       ? {
@@ -2815,7 +2816,7 @@ function AuthGate({
           ],
           eyebrow: '账号权益待确认',
           gateSummary: '学习记录、空间位置和会员权益会归到同一账号。',
-          gateTitle: '登录后管理我的',
+          gateTitle: '登录后管理账号',
           retainedSummary: '会员和学习记录会在登录后恢复到当前账号。',
           retainedTitle: '账号与权益 · 待确认',
           returnTarget: '我的',
@@ -2845,67 +2846,160 @@ function AuthGate({
         style={[
           styles.authEntryCard,
           embedded ? styles.authEntryCardEmbedded : null,
+          isMineAccountGate ? styles.authEntryCardMine : null,
           { backgroundColor: palette.panel, borderColor: palette.border },
         ]}
         testID={cardTestID}
       >
-        <View style={styles.authObjectHeader}>
-          <View style={styles.authHeaderMeta}>
-            <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-              {authGateContent.eyebrow}
-            </Text>
+        <View
+          style={[
+            styles.authObjectHeader,
+            isMineAccountGate ? styles.authObjectHeaderMine : null,
+          ]}
+        >
+          {isMineAccountGate ? (
             <View
-              style={[
-                styles.authObjectBadge,
-                {
-                  backgroundColor: palette.panelStrong,
-                  borderColor: palette.border,
-                },
-              ]}
+              style={styles.authMinePassportHeader}
+              testID="auth-mine-account-header"
             >
-              <Text
-                style={[styles.authObjectBadgeValue, { color: palette.text }]}
-              >
-                {hasSentCode ? '验证码已发' : '未登录'}
-              </Text>
-              <Text
+              <View
                 style={[
-                  styles.authObjectBadgeLabel,
-                  { color: palette.textMuted },
+                  styles.authMineAvatar,
+                  { backgroundColor: palette.accent },
                 ]}
               >
-                手机验证
-              </Text>
+                <Text
+                  style={[styles.authMineAvatarText, { color: palette.panel }]}
+                >
+                  我
+                </Text>
+              </View>
+              <View style={styles.authMineHeaderCopy}>
+                <View style={styles.authMineHeaderTopRow}>
+                  <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
+                    {authGateContent.eyebrow}
+                  </Text>
+                  <View
+                    style={[
+                      styles.authObjectBadge,
+                      styles.authObjectBadgeMine,
+                      {
+                        backgroundColor: palette.panelStrong,
+                        borderColor: palette.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.authObjectBadgeValue,
+                        { color: palette.text },
+                      ]}
+                    >
+                      {hasSentCode ? '验证码已发' : '未登录'}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.authObjectBadgeLabel,
+                        { color: palette.textMuted },
+                      ]}
+                    >
+                      手机验证
+                    </Text>
+                  </View>
+                </View>
+                <Text
+                  style={[
+                    styles.authGateTitle,
+                    styles.authGateTitleMine,
+                    { color: palette.text },
+                  ]}
+                  testID="auth-gate-title"
+                >
+                  {authGateContent.gateTitle}
+                </Text>
+                <Text
+                  onPress={Keyboard.dismiss}
+                  style={[styles.authGateSummary, { color: palette.textMuted }]}
+                  testID="auth-gate-keyboard-dismiss-target"
+                >
+                  {authGateContent.gateSummary}
+                </Text>
+              </View>
             </View>
-          </View>
-          <Text
-            style={[styles.authGateTitle, { color: palette.text }]}
-            testID="auth-gate-title"
-          >
-            {authGateContent.gateTitle}
-          </Text>
-          <Text
-            onPress={Keyboard.dismiss}
-            style={[styles.authGateSummary, { color: palette.textMuted }]}
-            testID="auth-gate-keyboard-dismiss-target"
-          >
-            {authGateContent.gateSummary}
-          </Text>
+          ) : (
+            <>
+              <View style={styles.authHeaderMeta}>
+                <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
+                  {authGateContent.eyebrow}
+                </Text>
+                <View
+                  style={[
+                    styles.authObjectBadge,
+                    {
+                      backgroundColor: palette.panelStrong,
+                      borderColor: palette.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.authObjectBadgeValue,
+                      { color: palette.text },
+                    ]}
+                  >
+                    {hasSentCode ? '验证码已发' : '未登录'}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.authObjectBadgeLabel,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    手机验证
+                  </Text>
+                </View>
+              </View>
+              <Text
+                style={[styles.authGateTitle, { color: palette.text }]}
+                testID="auth-gate-title"
+              >
+                {authGateContent.gateTitle}
+              </Text>
+              <Text
+                onPress={Keyboard.dismiss}
+                style={[styles.authGateSummary, { color: palette.textMuted }]}
+                testID="auth-gate-keyboard-dismiss-target"
+              >
+                {authGateContent.gateSummary}
+              </Text>
+            </>
+          )}
         </View>
         <View
           style={[
             styles.authRetainedObject,
+            isMineAccountGate ? styles.authRetainedObjectMine : null,
             {
-              backgroundColor: palette.panelStrong,
-              borderColor: palette.border,
+              backgroundColor: isMineAccountGate
+                ? hexToRgba(palette.accent, 0.045)
+                : palette.panelStrong,
+              borderColor: isMineAccountGate
+                ? hexToRgba(palette.accent, 0.1)
+                : palette.border,
             },
           ]}
         >
-          <View style={styles.authRetainedHead}>
+          <View
+            style={[
+              styles.authRetainedHead,
+              isMineAccountGate ? styles.authRetainedHeadMine : null,
+            ]}
+          >
             <View
               pointerEvents="none"
               style={[
                 styles.authRetainedAccent,
+                isMineAccountGate ? styles.authRetainedAccentMine : null,
                 { backgroundColor: palette.accent },
               ]}
             />
@@ -2932,6 +3026,7 @@ function AuthGate({
           <View
             style={[
               styles.authRetainedLedger,
+              isMineAccountGate ? styles.authRetainedLedgerMine : null,
               { borderColor: hexToRgba(palette.accent, 0.1) },
             ]}
             testID="auth-retained-ledger"
@@ -2939,13 +3034,17 @@ function AuthGate({
             {authGateContent.continuityItems.map(item => (
               <View
                 key={item.label}
-                style={styles.authRetainedLedgerRow}
+                style={[
+                  styles.authRetainedLedgerRow,
+                  isMineAccountGate ? styles.authRetainedLedgerRowMine : null,
+                ]}
                 testID="auth-retained-ledger-row"
               >
                 <Text
                   numberOfLines={1}
                   style={[
                     styles.authContinuityLabel,
+                    isMineAccountGate ? styles.authContinuityTextMine : null,
                     { color: palette.textMuted },
                   ]}
                 >
@@ -2953,7 +3052,11 @@ function AuthGate({
                 </Text>
                 <Text
                   numberOfLines={1}
-                  style={[styles.authContinuityValue, { color: palette.text }]}
+                  style={[
+                    styles.authContinuityValue,
+                    isMineAccountGate ? styles.authContinuityTextMine : null,
+                    { color: palette.text },
+                  ]}
                 >
                   {item.value}
                 </Text>
@@ -2962,6 +3065,7 @@ function AuthGate({
           </View>
         </View>
         <PhoneSmsPanel
+          accountDock={isMineAccountGate}
           authState={authState}
           embedded
           handlers={handlers}
@@ -3826,6 +3930,7 @@ function MembershipActionGroup({
 }
 
 function PhoneSmsPanel({
+  accountDock = false,
   authState,
   embedded = false,
   handlers,
@@ -3835,6 +3940,7 @@ function PhoneSmsPanel({
   summary,
   successMessage = '已完成登录。',
 }: {
+  accountDock?: boolean;
   authState: AuthState;
   embedded?: boolean;
   handlers: AuthHandlers;
@@ -3881,18 +3987,34 @@ function PhoneSmsPanel({
       style={[
         styles.authPanel,
         embedded ? styles.authPanelEmbedded : null,
+        accountDock ? styles.authPanelAccountDock : null,
         {
           backgroundColor: embedded ? 'transparent' : palette.panel,
           borderColor: palette.border,
         },
       ]}
     >
-      <Text style={[styles.infoTitle, { color: palette.text }]}>{title}</Text>
-      <Text style={[styles.authSummary, { color: palette.textMuted }]}>
-        {summary}
-      </Text>
+      <View
+        style={[
+          styles.authPanelHeader,
+          accountDock ? styles.authPanelHeaderAccountDock : null,
+        ]}
+      >
+        <Text style={[styles.infoTitle, { color: palette.text }]}>{title}</Text>
+        <Text
+          numberOfLines={accountDock ? 2 : undefined}
+          style={[styles.authSummary, { color: palette.textMuted }]}
+        >
+          {summary}
+        </Text>
+      </View>
 
-      <View style={styles.fieldGroup}>
+      <View
+        style={[
+          styles.fieldGroup,
+          accountDock ? styles.authPhoneFieldDock : null,
+        ]}
+      >
         <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
           手机号
         </Text>
@@ -3909,6 +4031,7 @@ function PhoneSmsPanel({
           placeholderTextColor={palette.tabIdle}
           style={[
             styles.input,
+            accountDock ? styles.authPhoneInputDock : null,
             {
               backgroundColor: palette.panelStrong,
               borderColor: palette.border,
@@ -3923,7 +4046,11 @@ function PhoneSmsPanel({
 
       {hasRequestedCode ? (
         <View
-          style={[styles.authCodeInlineDock, { borderColor: palette.border }]}
+          style={[
+            styles.authCodeInlineDock,
+            accountDock ? styles.authCodeInlineDockAccount : null,
+            { borderColor: palette.border },
+          ]}
           testID="auth-code-inline-dock"
         >
           <View style={styles.authCodeSentHeader}>
@@ -3984,6 +4111,7 @@ function PhoneSmsPanel({
               style={[
                 styles.input,
                 styles.authCodeInlineInput,
+                accountDock ? styles.authPhoneInputDock : null,
                 {
                   backgroundColor: palette.panel,
                   borderColor: palette.border,
@@ -4040,6 +4168,7 @@ function PhoneSmsPanel({
         <View
           style={[
             styles.authRequestInlineDock,
+            accountDock ? styles.authRequestInlineDockAccount : null,
             { borderColor: palette.border },
           ]}
           testID="auth-request-inline-dock"
@@ -4633,8 +4762,16 @@ const styles = StyleSheet.create({
   authEntryCardEmbedded: {
     flexShrink: 1,
   },
+  authEntryCardMine: {
+    gap: 9,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+  },
   authObjectHeader: {
     gap: 8,
+  },
+  authObjectHeaderMine: {
+    gap: 0,
   },
   authHeaderMeta: {
     alignItems: 'center',
@@ -4648,9 +4785,40 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 33,
   },
+  authGateTitleMine: {
+    fontSize: 25,
+    lineHeight: 30,
+  },
   authGateSummary: {
     fontSize: 14,
     lineHeight: 21,
+  },
+  authMinePassportHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 11,
+  },
+  authMineAvatar: {
+    alignItems: 'center',
+    borderRadius: 22,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  authMineAvatarText: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  authMineHeaderCopy: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0,
+  },
+  authMineHeaderTopRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
   },
   authRetainedObject: {
     borderRadius: 22,
@@ -4659,15 +4827,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
   },
+  authRetainedObjectMine: {
+    borderRadius: 21,
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
   authRetainedHead: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
   },
+  authRetainedHeadMine: {
+    gap: 8,
+  },
   authRetainedAccent: {
     borderRadius: 999,
     height: 44,
     width: 5,
+  },
+  authRetainedAccentMine: {
+    height: 34,
+    width: 4,
   },
   authRetainedCopy: {
     flex: 1,
@@ -4687,12 +4868,28 @@ const styles = StyleSheet.create({
     gap: 0,
     paddingTop: 7,
   },
+  authRetainedLedgerMine: {
+    borderTopWidth: 0,
+    flexDirection: 'row',
+    gap: 7,
+    paddingTop: 0,
+  },
   authRetainedLedgerRow: {
     alignItems: 'baseline',
     flexDirection: 'row',
     justifyContent: 'space-between',
     minHeight: 29,
     paddingVertical: 4,
+  },
+  authRetainedLedgerRowMine: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'column',
+    gap: 2,
+    justifyContent: 'center',
+    minHeight: 50,
+    paddingHorizontal: 3,
+    paddingVertical: 6,
   },
   authObjectBadge: {
     alignItems: 'center',
@@ -4702,6 +4899,10 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 7,
+  },
+  authObjectBadgeMine: {
+    maxWidth: 122,
+    paddingHorizontal: 10,
   },
   authObjectBadgeValue: {
     fontSize: 12,
@@ -4740,6 +4941,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     lineHeight: 16,
+  },
+  authContinuityTextMine: {
+    textAlign: 'center',
   },
   hero: {
     borderWidth: 1,
@@ -4784,6 +4988,18 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     shadowOpacity: 0,
   },
+  authPanelAccountDock: {
+    borderTopWidth: 1,
+    gap: 8,
+    marginTop: 1,
+    paddingTop: 10,
+  },
+  authPanelHeader: {
+    gap: 5,
+  },
+  authPanelHeaderAccountDock: {
+    paddingHorizontal: 2,
+  },
   authSummary: {
     fontSize: 14,
     lineHeight: 21,
@@ -4796,6 +5012,11 @@ const styles = StyleSheet.create({
     gap: 10,
     justifyContent: 'space-between',
     paddingVertical: 10,
+  },
+  authRequestInlineDockAccount: {
+    borderTopWidth: 0,
+    paddingBottom: 2,
+    paddingTop: 7,
   },
   authRequestCopy: {
     flex: 1,
@@ -4830,6 +5051,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     gap: 9,
     paddingVertical: 10,
+  },
+  authCodeInlineDockAccount: {
+    paddingBottom: 2,
+    paddingTop: 9,
   },
   authCodeSentHeader: {
     alignItems: 'center',
@@ -4896,6 +5121,9 @@ const styles = StyleSheet.create({
   fieldGroup: {
     gap: 6,
   },
+  authPhoneFieldDock: {
+    gap: 5,
+  },
   fieldLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -4908,6 +5136,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     fontWeight: '600',
+  },
+  authPhoneInputDock: {
+    minHeight: 48,
   },
   authActions: {
     gap: 10,
