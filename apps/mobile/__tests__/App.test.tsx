@@ -2899,12 +2899,17 @@ test('mine page keeps profile status and route actions in one screen after login
   ).toBeTruthy();
   expect(root.findByProps({ testID: 'membership-host-card' })).toBeTruthy();
   expect(root.findByProps({ testID: 'membership-access-strip' })).toBeTruthy();
+  expect(
+    root.findAllByProps({ testID: 'membership-access-step' }),
+  ).toHaveLength(0);
   expect(output).toContain('完整体验');
   expect(output).toContain('基础可用');
   expect(output).toContain('首次计入学习时开启试用');
   expect(output).toContain('完整卡库');
   expect(output).toContain('完整空间');
   expect(output).toContain('智能回看');
+  expect(output).toContain('本轮学习不断线');
+  expect(output).toContain('开始完整试用');
   expect(
     findPressableByTestId(root, 'membership-start-trial-button'),
   ).toBeTruthy();
