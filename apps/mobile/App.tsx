@@ -228,6 +228,7 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '账号与会员',
   },
 ];
+const MINE_ROUTE = ROUTES.find(route => route.key === 'mine')!;
 
 const LIGHT_PALETTE: Palette = {
   background: '#F0F0EA',
@@ -2056,6 +2057,7 @@ function AppShell({
     />
   ) : route.key === 'mine' ? (
     <MineSurface
+      authRepositoryMode={runtimeAuthRepositoryMode}
       authState={authState}
       checkedInDayKey={checkedInDayKey}
       deviceClass={deviceClass}
@@ -2760,12 +2762,16 @@ function AuthStatusBadge({
 function AuthGate({
   authRepositoryMode,
   authState,
+  cardTestID,
+  embedded = false,
   handlers,
   palette,
   route,
 }: {
   authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
+  cardTestID?: string;
+  embedded?: boolean;
   handlers: AuthHandlers;
   palette: Palette;
   route: ShellRoute;
@@ -2803,15 +2809,15 @@ function AuthGate({
       : route.key === 'mine'
       ? {
           continuityItems: [
-            { label: '身份', value: '手机验证' },
+            { label: '身份', value: '待验证' },
+            { label: '同步', value: '学习/空间/会员' },
             { label: '会员', value: '登录后确认' },
-            { label: '记录', value: '跨端同步' },
           ],
           eyebrow: '账号权益待确认',
-          gateSummary: '验证后查看会员、购买恢复和同步记录。',
-          gateTitle: '登录后查看我的',
+          gateSummary: '学习记录、空间位置和会员权益会归到同一账号。',
+          gateTitle: '登录后管理我的',
           retainedSummary: '会员和学习记录会在登录后恢复到当前账号。',
-          retainedTitle: '会员与记录 · 待确认',
+          retainedTitle: '账号与权益 · 待确认',
           returnTarget: '我的',
         }
       : {
@@ -2829,12 +2835,19 @@ function AuthGate({
         };
 
   return (
-    <View style={styles.authGateScreen}>
+    <View
+      style={[
+        styles.authGateScreen,
+        embedded ? styles.authGateScreenEmbedded : null,
+      ]}
+    >
       <View
         style={[
           styles.authEntryCard,
+          embedded ? styles.authEntryCardEmbedded : null,
           { backgroundColor: palette.panel, borderColor: palette.border },
         ]}
+        testID={cardTestID}
       >
         <View style={styles.authObjectHeader}>
           <View style={styles.authHeaderMeta}>
@@ -2872,6 +2885,7 @@ function AuthGate({
             {authGateContent.gateTitle}
           </Text>
           <Text
+            onPress={Keyboard.dismiss}
             style={[styles.authGateSummary, { color: palette.textMuted }]}
             testID="auth-gate-keyboard-dismiss-target"
           >
@@ -2915,17 +2929,18 @@ function AuthGate({
               </Text>
             </View>
           </View>
-          <View style={styles.authRetainedPillRow}>
+          <View
+            style={[
+              styles.authRetainedLedger,
+              { borderColor: hexToRgba(palette.accent, 0.1) },
+            ]}
+            testID="auth-retained-ledger"
+          >
             {authGateContent.continuityItems.map(item => (
               <View
                 key={item.label}
-                style={[
-                  styles.authRetainedPill,
-                  {
-                    backgroundColor: palette.panel,
-                    borderColor: palette.border,
-                  },
-                ]}
+                style={styles.authRetainedLedgerRow}
+                testID="auth-retained-ledger-row"
               >
                 <Text
                   numberOfLines={1}
@@ -2970,6 +2985,7 @@ function AuthGate({
 }
 
 function MineSurface({
+  authRepositoryMode,
   authState,
   checkedInDayKey,
   deviceClass,
@@ -2991,6 +3007,7 @@ function MineSurface({
   reviewResults,
   sleepingCount,
 }: {
+  authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   checkedInDayKey: string | null;
   deviceClass: DeviceClass;
@@ -3051,6 +3068,28 @@ function MineSurface({
     : hasSentCode
     ? '验证码已发'
     : '待登录';
+
+  if (!isAuthenticated) {
+    return (
+      <View
+        style={[
+          styles.mineScreen,
+          deviceClass === 'tablet' ? styles.mineScreenTablet : null,
+        ]}
+        testID="mine-surface"
+      >
+        <AuthGate
+          authRepositoryMode={authRepositoryMode}
+          authState={authState}
+          cardTestID="mine-profile-card"
+          embedded
+          handlers={handlers}
+          palette={palette}
+          route={MINE_ROUTE}
+        />
+      </View>
+    );
+  }
 
   return (
     <View
@@ -3155,114 +3194,100 @@ function MineSurface({
           </Text>
         </View>
 
-        {isAuthenticated ? (
-          <>
-            <View
-              style={[
-                styles.mineMetricStrip,
-                {
-                  backgroundColor: palette.panelStrong,
-                  borderColor: palette.border,
-                },
-                deviceClass === 'tablet' ? styles.mineMetricStripTablet : null,
-              ]}
-              testID="mine-status-strip"
-            >
-              <SummaryMetricCard
-                label="已完成"
-                value={`${completedCount}`}
-                palette={palette}
-                testID="mine-metric-completed"
-              />
-              <SummaryMetricCard
-                label="待回看"
-                value={`${pendingReviewCount}`}
-                palette={palette}
-                testID="mine-metric-review"
-                tone={pendingReviewCount > 0 ? 'warning' : 'neutral'}
-              />
-              <SummaryMetricCard
-                label="收藏"
-                value={`${favoriteCount}`}
-                palette={palette}
-                testID="mine-metric-favorites"
-              />
-              <SummaryMetricCard
-                label="休眠"
-                value={`${sleepingCount}`}
-                palette={palette}
-                testID="mine-metric-sleeping"
-              />
-            </View>
-
-            <View
-              style={[
-                styles.mineActionRail,
-                {
-                  borderColor: hexToRgba(palette.accent, 0.12),
-                },
-                deviceClass === 'tablet' ? styles.mineActionRailTablet : null,
-              ]}
-              testID="mine-action-rail"
-            >
-              <MineActionCard
-                detail={
-                  pendingReviewCount > 0
-                    ? `${pendingReviewCount} 张卡等待回看`
-                    : '下一张已经准备好'
-                }
-                label="继续学习"
-                onPress={onGoToLearning}
-                palette={palette}
-                testID="mine-go-learning"
-                value="练"
-                variant="primary"
-              />
-              <View
-                style={styles.mineSecondaryActionRow}
-                testID="mine-secondary-action-row"
-              >
-                <MineActionCard
-                  detail={`${favoriteCount} 收藏 · ${sleepingCount} 休眠`}
-                  label="查看空间"
-                  onPress={onGoToSpace}
-                  palette={palette}
-                  testID="mine-go-space"
-                  value="位"
-                />
-                <MineActionCard
-                  detail={checkedInToday ? '今日已签到' : '今日未签到'}
-                  label="今日进展"
-                  onPress={onGoToStatistics}
-                  palette={palette}
-                  testID="mine-go-statistics"
-                  value="记"
-                />
-              </View>
-            </View>
-
-            <MembershipHostCard
-              deviceClass={deviceClass}
-              focusGate={membershipGate}
-              handlers={membershipHandlers}
-              membershipError={membershipError}
-              membershipPendingAction={membershipPendingAction}
-              membershipRepositoryMode={membershipRepositoryMode}
-              membershipState={membershipState}
-              palette={palette}
-            />
-          </>
-        ) : (
-          <PhoneSmsPanel
-            authState={authState}
-            embedded
-            handlers={handlers}
+        <View
+          style={[
+            styles.mineMetricStrip,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+            },
+            deviceClass === 'tablet' ? styles.mineMetricStripTablet : null,
+          ]}
+          testID="mine-status-strip"
+        >
+          <SummaryMetricCard
+            label="已完成"
+            value={`${completedCount}`}
             palette={palette}
-            returnTarget="我的"
-            title="手机号验证"
-            summary="验证后回到我的，查看记录、空间和会员。"
+            testID="mine-metric-completed"
           />
-        )}
+          <SummaryMetricCard
+            label="待回看"
+            value={`${pendingReviewCount}`}
+            palette={palette}
+            testID="mine-metric-review"
+            tone={pendingReviewCount > 0 ? 'warning' : 'neutral'}
+          />
+          <SummaryMetricCard
+            label="收藏"
+            value={`${favoriteCount}`}
+            palette={palette}
+            testID="mine-metric-favorites"
+          />
+          <SummaryMetricCard
+            label="休眠"
+            value={`${sleepingCount}`}
+            palette={palette}
+            testID="mine-metric-sleeping"
+          />
+        </View>
+
+        <View
+          style={[
+            styles.mineActionRail,
+            {
+              borderColor: hexToRgba(palette.accent, 0.12),
+            },
+            deviceClass === 'tablet' ? styles.mineActionRailTablet : null,
+          ]}
+          testID="mine-action-rail"
+        >
+          <MineActionCard
+            detail={
+              pendingReviewCount > 0
+                ? `${pendingReviewCount} 张卡等待回看`
+                : '下一张已经准备好'
+            }
+            label="继续学习"
+            onPress={onGoToLearning}
+            palette={palette}
+            testID="mine-go-learning"
+            value="练"
+            variant="primary"
+          />
+          <View
+            style={styles.mineSecondaryActionRow}
+            testID="mine-secondary-action-row"
+          >
+            <MineActionCard
+              detail={`${favoriteCount} 收藏 · ${sleepingCount} 休眠`}
+              label="查看空间"
+              onPress={onGoToSpace}
+              palette={palette}
+              testID="mine-go-space"
+              value="位"
+            />
+            <MineActionCard
+              detail={checkedInToday ? '今日已签到' : '今日未签到'}
+              label="今日进展"
+              onPress={onGoToStatistics}
+              palette={palette}
+              testID="mine-go-statistics"
+              value="记"
+            />
+          </View>
+        </View>
+
+        <MembershipHostCard
+          deviceClass={deviceClass}
+          focusGate={membershipGate}
+          handlers={membershipHandlers}
+          membershipError={membershipError}
+          membershipPendingAction={membershipPendingAction}
+          membershipRepositoryMode={membershipRepositoryMode}
+          membershipState={membershipState}
+          palette={palette}
+        />
       </View>
     </View>
   );
@@ -4587,6 +4612,11 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 10,
   },
+  authGateScreenEmbedded: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
   authEntryCard: {
     borderWidth: 1,
     borderRadius: 28,
@@ -4597,6 +4627,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 30,
     elevation: 5,
+  },
+  authEntryCardEmbedded: {
+    flexShrink: 1,
   },
   authObjectHeader: {
     gap: 8,
@@ -4647,18 +4680,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
-  authRetainedPillRow: {
-    flexDirection: 'row',
-    gap: 7,
+  authRetainedLedger: {
+    borderTopWidth: 1,
+    gap: 0,
+    paddingTop: 7,
   },
-  authRetainedPill: {
-    borderRadius: 16,
-    borderWidth: 1,
-    flex: 1,
-    gap: 2,
-    minWidth: 0,
-    paddingHorizontal: 9,
-    paddingVertical: 8,
+  authRetainedLedgerRow: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 29,
+    paddingVertical: 4,
   },
   authObjectBadge: {
     alignItems: 'center',
