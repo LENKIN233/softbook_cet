@@ -485,7 +485,7 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
 
   const output = JSON.stringify(tree!.toJSON());
   const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
-  expect(output).toContain('登录后管理我的');
+  expect(output).toContain('登录后管理账号');
   expect(output).toContain('学习记录、空间位置和会员权益会归到同一账号。');
   expect(output).toContain('待验证');
   expect(output).toContain('学习/空间/会员');
