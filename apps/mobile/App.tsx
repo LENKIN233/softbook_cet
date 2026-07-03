@@ -2778,6 +2778,8 @@ function AuthGate({
 }) {
   const hasSentCode = authState.stage === 'code_sent';
   const isMineAccountGate = embedded && route.key === 'mine';
+  const isRouteObjectGate = embedded && route.key !== 'mine';
+  const isCompactAuthGate = isMineAccountGate || isRouteObjectGate;
   const authGateContent =
     route.key === 'space'
       ? {
@@ -2846,6 +2848,7 @@ function AuthGate({
         style={[
           styles.authEntryCard,
           embedded ? styles.authEntryCardEmbedded : null,
+          isRouteObjectGate ? styles.authEntryCardRouteObject : null,
           isMineAccountGate ? styles.authEntryCardMine : null,
           { backgroundColor: palette.panel, borderColor: palette.border },
         ]}
@@ -2854,6 +2857,7 @@ function AuthGate({
         <View
           style={[
             styles.authObjectHeader,
+            isRouteObjectGate ? styles.authObjectHeaderRouteObject : null,
             isMineAccountGate ? styles.authObjectHeaderMine : null,
           ]}
         >
@@ -2960,7 +2964,11 @@ function AuthGate({
                 </View>
               </View>
               <Text
-                style={[styles.authGateTitle, { color: palette.text }]}
+                style={[
+                  styles.authGateTitle,
+                  isRouteObjectGate ? styles.authGateTitleRouteObject : null,
+                  { color: palette.text },
+                ]}
                 testID="auth-gate-title"
               >
                 {authGateContent.gateTitle}
@@ -2978,12 +2986,12 @@ function AuthGate({
         <View
           style={[
             styles.authRetainedObject,
-            isMineAccountGate ? styles.authRetainedObjectMine : null,
+            isCompactAuthGate ? styles.authRetainedObjectCompact : null,
             {
-              backgroundColor: isMineAccountGate
+              backgroundColor: isCompactAuthGate
                 ? hexToRgba(palette.accent, 0.045)
                 : palette.panelStrong,
-              borderColor: isMineAccountGate
+              borderColor: isCompactAuthGate
                 ? hexToRgba(palette.accent, 0.1)
                 : palette.border,
             },
@@ -2992,14 +3000,14 @@ function AuthGate({
           <View
             style={[
               styles.authRetainedHead,
-              isMineAccountGate ? styles.authRetainedHeadMine : null,
+              isCompactAuthGate ? styles.authRetainedHeadCompact : null,
             ]}
           >
             <View
               pointerEvents="none"
               style={[
                 styles.authRetainedAccent,
-                isMineAccountGate ? styles.authRetainedAccentMine : null,
+                isCompactAuthGate ? styles.authRetainedAccentCompact : null,
                 { backgroundColor: palette.accent },
               ]}
             />
@@ -3026,7 +3034,7 @@ function AuthGate({
           <View
             style={[
               styles.authRetainedLedger,
-              isMineAccountGate ? styles.authRetainedLedgerMine : null,
+              isCompactAuthGate ? styles.authRetainedLedgerCompact : null,
               { borderColor: hexToRgba(palette.accent, 0.1) },
             ]}
             testID="auth-retained-ledger"
@@ -3036,7 +3044,9 @@ function AuthGate({
                 key={item.label}
                 style={[
                   styles.authRetainedLedgerRow,
-                  isMineAccountGate ? styles.authRetainedLedgerRowMine : null,
+                  isCompactAuthGate
+                    ? styles.authRetainedLedgerRowCompact
+                    : null,
                 ]}
                 testID="auth-retained-ledger-row"
               >
@@ -3044,7 +3054,7 @@ function AuthGate({
                   numberOfLines={1}
                   style={[
                     styles.authContinuityLabel,
-                    isMineAccountGate ? styles.authContinuityTextMine : null,
+                    isCompactAuthGate ? styles.authContinuityTextCompact : null,
                     { color: palette.textMuted },
                   ]}
                 >
@@ -3054,7 +3064,7 @@ function AuthGate({
                   numberOfLines={1}
                   style={[
                     styles.authContinuityValue,
-                    isMineAccountGate ? styles.authContinuityTextMine : null,
+                    isCompactAuthGate ? styles.authContinuityTextCompact : null,
                     { color: palette.text },
                   ]}
                 >
@@ -3070,6 +3080,7 @@ function AuthGate({
           embedded
           handlers={handlers}
           palette={palette}
+          routeDock={isRouteObjectGate}
           returnTarget={authGateContent.returnTarget}
           title="手机号验证"
           summary={
@@ -3936,6 +3947,7 @@ function PhoneSmsPanel({
   handlers,
   palette,
   returnTarget,
+  routeDock = false,
   title,
   summary,
   successMessage = '已完成登录。',
@@ -3946,10 +3958,12 @@ function PhoneSmsPanel({
   handlers: AuthHandlers;
   palette: Palette;
   returnTarget: string;
+  routeDock?: boolean;
   title: string;
   summary: string;
   successMessage?: string;
 }) {
+  const isDockedPanel = accountDock || routeDock;
   const isAuthenticated = authState.stage === 'authenticated';
   const isPending = authState.pendingAction !== null;
   const hasRequestedCode = authState.stage !== 'logged_out';
@@ -3987,7 +4001,7 @@ function PhoneSmsPanel({
       style={[
         styles.authPanel,
         embedded ? styles.authPanelEmbedded : null,
-        accountDock ? styles.authPanelAccountDock : null,
+        isDockedPanel ? styles.authPanelDock : null,
         {
           backgroundColor: embedded ? 'transparent' : palette.panel,
           borderColor: palette.border,
@@ -3997,12 +4011,12 @@ function PhoneSmsPanel({
       <View
         style={[
           styles.authPanelHeader,
-          accountDock ? styles.authPanelHeaderAccountDock : null,
+          isDockedPanel ? styles.authPanelHeaderDock : null,
         ]}
       >
         <Text style={[styles.infoTitle, { color: palette.text }]}>{title}</Text>
         <Text
-          numberOfLines={accountDock ? 2 : undefined}
+          numberOfLines={isDockedPanel ? 2 : undefined}
           style={[styles.authSummary, { color: palette.textMuted }]}
         >
           {summary}
@@ -4012,7 +4026,7 @@ function PhoneSmsPanel({
       <View
         style={[
           styles.fieldGroup,
-          accountDock ? styles.authPhoneFieldDock : null,
+          isDockedPanel ? styles.authPhoneFieldDock : null,
         ]}
       >
         <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
@@ -4031,7 +4045,7 @@ function PhoneSmsPanel({
           placeholderTextColor={palette.tabIdle}
           style={[
             styles.input,
-            accountDock ? styles.authPhoneInputDock : null,
+            isDockedPanel ? styles.authPhoneInputDock : null,
             {
               backgroundColor: palette.panelStrong,
               borderColor: palette.border,
@@ -4049,6 +4063,7 @@ function PhoneSmsPanel({
           style={[
             styles.authCodeInlineDock,
             accountDock ? styles.authCodeInlineDockAccount : null,
+            routeDock ? styles.authCodeInlineDockRoute : null,
             { borderColor: palette.border },
           ]}
           testID="auth-code-inline-dock"
@@ -4111,7 +4126,7 @@ function PhoneSmsPanel({
               style={[
                 styles.input,
                 styles.authCodeInlineInput,
-                accountDock ? styles.authPhoneInputDock : null,
+                isDockedPanel ? styles.authPhoneInputDock : null,
                 {
                   backgroundColor: palette.panel,
                   borderColor: palette.border,
@@ -4169,6 +4184,7 @@ function PhoneSmsPanel({
           style={[
             styles.authRequestInlineDock,
             accountDock ? styles.authRequestInlineDockAccount : null,
+            routeDock ? styles.authRequestInlineDockRoute : null,
             { borderColor: palette.border },
           ]}
           testID="auth-request-inline-dock"
@@ -4762,6 +4778,11 @@ const styles = StyleSheet.create({
   authEntryCardEmbedded: {
     flexShrink: 1,
   },
+  authEntryCardRouteObject: {
+    gap: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+  },
   authEntryCardMine: {
     gap: 9,
     paddingHorizontal: 15,
@@ -4769,6 +4790,9 @@ const styles = StyleSheet.create({
   },
   authObjectHeader: {
     gap: 8,
+  },
+  authObjectHeaderRouteObject: {
+    gap: 7,
   },
   authObjectHeaderMine: {
     gap: 0,
@@ -4784,6 +4808,10 @@ const styles = StyleSheet.create({
     fontSize: 27,
     fontWeight: '800',
     lineHeight: 33,
+  },
+  authGateTitleRouteObject: {
+    fontSize: 25,
+    lineHeight: 31,
   },
   authGateTitleMine: {
     fontSize: 25,
@@ -4827,7 +4855,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
   },
-  authRetainedObjectMine: {
+  authRetainedObjectCompact: {
     borderRadius: 21,
     gap: 8,
     paddingHorizontal: 10,
@@ -4838,7 +4866,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
-  authRetainedHeadMine: {
+  authRetainedHeadCompact: {
     gap: 8,
   },
   authRetainedAccent: {
@@ -4846,7 +4874,7 @@ const styles = StyleSheet.create({
     height: 44,
     width: 5,
   },
-  authRetainedAccentMine: {
+  authRetainedAccentCompact: {
     height: 34,
     width: 4,
   },
@@ -4868,7 +4896,7 @@ const styles = StyleSheet.create({
     gap: 0,
     paddingTop: 7,
   },
-  authRetainedLedgerMine: {
+  authRetainedLedgerCompact: {
     borderTopWidth: 0,
     flexDirection: 'row',
     gap: 7,
@@ -4881,7 +4909,7 @@ const styles = StyleSheet.create({
     minHeight: 29,
     paddingVertical: 4,
   },
-  authRetainedLedgerRowMine: {
+  authRetainedLedgerRowCompact: {
     alignItems: 'center',
     flex: 1,
     flexDirection: 'column',
@@ -4942,7 +4970,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 16,
   },
-  authContinuityTextMine: {
+  authContinuityTextCompact: {
     textAlign: 'center',
   },
   hero: {
@@ -4988,7 +5016,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     shadowOpacity: 0,
   },
-  authPanelAccountDock: {
+  authPanelDock: {
     borderTopWidth: 1,
     gap: 8,
     marginTop: 1,
@@ -4997,7 +5025,7 @@ const styles = StyleSheet.create({
   authPanelHeader: {
     gap: 5,
   },
-  authPanelHeaderAccountDock: {
+  authPanelHeaderDock: {
     paddingHorizontal: 2,
   },
   authSummary: {
@@ -5017,6 +5045,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 0,
     paddingBottom: 2,
     paddingTop: 7,
+  },
+  authRequestInlineDockRoute: {
+    paddingBottom: 4,
+    paddingTop: 8,
   },
   authRequestCopy: {
     flex: 1,
@@ -5054,6 +5086,10 @@ const styles = StyleSheet.create({
   },
   authCodeInlineDockAccount: {
     paddingBottom: 2,
+    paddingTop: 9,
+  },
+  authCodeInlineDockRoute: {
+    paddingBottom: 4,
     paddingTop: 9,
   },
   authCodeSentHeader: {
