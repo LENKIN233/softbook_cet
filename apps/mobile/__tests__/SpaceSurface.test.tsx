@@ -367,6 +367,13 @@ test('defaults Space first-read focus to the current learning card box', () => {
   expect(
     root.findAllByProps({ testID: 'space-open-box-lid' }).length,
   ).toBeGreaterThan(0);
+  const openBoxDeck = root.findByProps({ testID: 'space-open-box-deck' });
+  expect(
+    openBoxDeck.findAllByProps({ testID: 'space-sleep-alcove' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    openBoxDeck.findAllByProps({ testID: 'space-return-learning' }).length,
+  ).toBeGreaterThan(0);
   expect(
     root.findAllByProps({ testID: 'space-sleep-alcove' }).length,
   ).toBeGreaterThan(0);
