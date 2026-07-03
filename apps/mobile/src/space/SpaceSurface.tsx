@@ -1148,7 +1148,7 @@ export function SpaceSurface({
                     <Text
                       style={[styles.browseRailTitle, { color: palette.text }]}
                     >
-                      地址层级
+                      切换位置
                     </Text>
                     <Text
                       style={[
@@ -1156,7 +1156,7 @@ export function SpaceSurface({
                         { color: palette.textMuted },
                       ]}
                     >
-                      相邻对象
+                      {`盒内 ${selectedBoxCards.length} 张`}
                     </Text>
                   </View>
                   <View style={styles.browseRailShelfRow}>
