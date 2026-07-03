@@ -3198,8 +3198,8 @@ function MineSurface({
           style={[
             styles.mineMetricStrip,
             {
-              backgroundColor: palette.panelStrong,
-              borderColor: palette.border,
+              backgroundColor: hexToRgba(palette.accent, 0.045),
+              borderColor: hexToRgba(palette.accent, 0.1),
             },
             deviceClass === 'tablet' ? styles.mineMetricStripTablet : null,
           ]}
@@ -3236,7 +3236,8 @@ function MineSurface({
           style={[
             styles.mineActionRail,
             {
-              borderColor: hexToRgba(palette.accent, 0.12),
+              backgroundColor: hexToRgba(palette.accent, 0.025),
+              borderColor: hexToRgba(palette.accent, 0.1),
             },
             deviceClass === 'tablet' ? styles.mineActionRailTablet : null,
           ]}
@@ -3373,9 +3374,9 @@ function MineActionCard({
           ? styles.mineActionCardPrimary
           : styles.mineActionCardSecondary,
         {
-          backgroundColor: isPrimary ? palette.accent : palette.panelStrong,
+          backgroundColor: isPrimary ? palette.text : palette.panelStrong,
           borderColor: isPrimary
-            ? hexToRgba(palette.accentStrong, 0.18)
+            ? hexToRgba(palette.text, 0.18)
             : palette.border,
         },
       ]}
@@ -3389,11 +3390,9 @@ function MineActionCard({
         </>
       ) : (
         <>
-          <View style={styles.mineActionTopRow}>
-            {glyph}
-            {arrow}
-          </View>
+          {glyph}
           {copy}
+          {arrow}
         </>
       )}
     </Pressable>
@@ -3443,7 +3442,10 @@ function MembershipHostCard({
     <View
       style={[
         styles.membershipHostCard,
-        { backgroundColor: palette.panelStrong, borderColor: palette.border },
+        {
+          backgroundColor: 'transparent',
+          borderColor: hexToRgba(palette.accent, 0.1),
+        },
       ]}
       testID="membership-host-card"
     >
@@ -3504,8 +3506,8 @@ function MembershipHostCard({
           style={[
             styles.membershipAccessCompactDock,
             {
-              backgroundColor: palette.panel,
-              borderColor: palette.border,
+              backgroundColor: hexToRgba(palette.accent, 0.045),
+              borderColor: hexToRgba(palette.accent, 0.1),
             },
           ]}
           testID="membership-access-strip"
@@ -5045,11 +5047,11 @@ const styles = StyleSheet.create({
   },
   mineProfilePanel: {
     alignItems: 'stretch',
-    borderRadius: 26,
+    borderRadius: 28,
     borderWidth: 1,
-    gap: 9,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
+    gap: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.09,
     shadowRadius: 30,
@@ -5079,13 +5081,13 @@ const styles = StyleSheet.create({
   },
   mineAvatar: {
     alignItems: 'center',
-    borderRadius: 24,
-    height: 50,
+    borderRadius: 22,
+    height: 44,
     justifyContent: 'center',
-    width: 50,
+    width: 44,
   },
   mineAvatarText: {
-    fontSize: 19,
+    fontSize: 17,
     fontWeight: '800',
   },
   mineMembershipPill: {
@@ -5132,15 +5134,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 0,
-    borderRadius: 20,
+    borderRadius: 21,
     borderWidth: 1,
     paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingVertical: 8,
   },
   mineActionRail: {
-    borderRadius: 22,
+    borderRadius: 23,
     borderWidth: 1,
-    gap: 8,
+    gap: 7,
     paddingHorizontal: 8,
     paddingVertical: 8,
   },
@@ -5165,11 +5167,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   mineActionCardSecondary: {
+    alignItems: 'center',
     borderRadius: 18,
     flex: 1,
-    minHeight: 86,
-    paddingHorizontal: 11,
-    paddingVertical: 10,
+    flexDirection: 'row',
+    minHeight: 58,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
   },
   mineActionTopRow: {
     alignItems: 'center',
@@ -5216,16 +5220,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   membershipHostCard: {
-    borderRadius: 22,
-    borderWidth: 1,
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderTopWidth: 1,
+    gap: 9,
+    marginTop: 1,
+    paddingHorizontal: 2,
+    paddingBottom: 1,
+    paddingTop: 10,
     shadowOpacity: 0,
     elevation: 0,
   },
   membershipHeaderRow: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
   },
@@ -5292,12 +5297,12 @@ const styles = StyleSheet.create({
   },
   membershipAccessCompactDock: {
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    gap: 9,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
   },
   membershipAccessCompactCopy: {
     flex: 1,
@@ -5305,7 +5310,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   membershipAccessCompactTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
     lineHeight: 16,
   },
