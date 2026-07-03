@@ -15,7 +15,7 @@ name: ios-mine-code-sent-screenshot
     id: 'auth-phone-input'
 - inputText: '13800138000'
 - tapOn:
-    id: 'mine-profile-card'
+    id: 'auth-gate-keyboard-dismiss-target'
 - assertVisible:
     id: 'auth-request-code-button'
 - tapOn:
