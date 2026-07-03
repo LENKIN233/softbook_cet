@@ -130,28 +130,19 @@ export function StatisticsSurface({
         testID="statistics-day-object"
       >
         <View style={styles.dailyHeader}>
-          <View style={styles.dailyTitleLockup}>
-            <View
-              style={[
-                styles.routeBadge,
-                { backgroundColor: hexToRgba(palette.accent, 0.16) },
-              ]}
-            >
-              <Text style={[styles.routeBadgeLabel, { color: palette.accent }]}>
-                记
-              </Text>
-            </View>
-            <View style={styles.dailyHeading}>
-              <Text style={[styles.eyebrow, { color: palette.accent }]}>
-                今日学习
-              </Text>
-              <Text style={[styles.title, { color: palette.text }]}>
-                {dailyTitle}
-              </Text>
-              <Text style={[styles.summary, { color: palette.textMuted }]}>
-                {dailySummary}
-              </Text>
-            </View>
+          <View
+            style={[styles.dailyAccent, { backgroundColor: palette.accent }]}
+          />
+          <View style={styles.dailyHeading}>
+            <Text style={[styles.eyebrow, { color: palette.accent }]}>
+              今日学习
+            </Text>
+            <Text style={[styles.title, { color: palette.text }]}>
+              {dailyTitle}
+            </Text>
+            <Text style={[styles.summary, { color: palette.textMuted }]}>
+              {dailySummary}
+            </Text>
           </View>
           <View
             style={[
@@ -180,7 +171,7 @@ export function StatisticsSurface({
 
         <View
           style={[
-            styles.metricRow,
+            styles.metricLedger,
             {
               backgroundColor: palette.panelStrong,
               borderColor: hexToRgba(palette.accent, 0.1),
@@ -188,25 +179,25 @@ export function StatisticsSurface({
           ]}
           testID="statistics-metric-strip"
         >
-          <MetricCard
+          <MetricLedgerRow
             label="今日完成"
             palette={palette}
             testID="statistics-metric-completed"
             value={`${combinedResults.length}`}
           />
-          <MetricCard
+          <MetricLedgerRow
             label="首轮完成"
             palette={palette}
             testID="statistics-metric-learning"
             value={`${learningResults.length}`}
           />
-          <MetricCard
+          <MetricLedgerRow
             label="回看完成"
             palette={palette}
             testID="statistics-metric-review"
             value={`${reviewResults.length}`}
           />
-          <MetricCard
+          <MetricLedgerRow
             label="待回看"
             palette={palette}
             testID="statistics-metric-pending-review"
@@ -217,7 +208,7 @@ export function StatisticsSurface({
 
         <View
           style={[
-            styles.nextStepCard,
+            styles.actionDock,
             {
               backgroundColor: nextStepIsReview
                 ? hexToRgba(palette.warning, 0.08)
@@ -227,103 +218,108 @@ export function StatisticsSurface({
                 : hexToRgba(palette.accent, 0.15),
             },
           ]}
-          testID="statistics-next-step-card"
+          testID="statistics-action-dock"
         >
-          <View style={styles.nextStepCopy}>
-            <Text
+          <View style={styles.nextStepRow} testID="statistics-next-step-card">
+            <View style={styles.nextStepCopy}>
+              <Text
+                style={[
+                  styles.nextStepEyebrow,
+                  {
+                    color: nextStepIsReview ? palette.warning : palette.accent,
+                  },
+                ]}
+              >
+                下一步
+              </Text>
+              <Text style={[styles.nextStepTitle, { color: palette.text }]}>
+                {nextStepTitle}
+              </Text>
+              <Text style={[styles.cardSummary, { color: palette.textMuted }]}>
+                {nextStepSummary}
+              </Text>
+            </View>
+            <Pressable
+              onPress={onPressNextStep}
               style={[
-                styles.nextStepEyebrow,
-                { color: nextStepIsReview ? palette.warning : palette.accent },
+                styles.primaryButton,
+                styles.nextStepButton,
+                {
+                  backgroundColor: nextStepIsReview
+                    ? palette.warning
+                    : palette.accent,
+                  borderColor: nextStepIsReview
+                    ? palette.warning
+                    : palette.accent,
+                },
               ]}
+              testID={nextStepButtonTestID}
             >
-              下一步
-            </Text>
-            <Text style={[styles.nextStepTitle, { color: palette.text }]}>
-              {nextStepTitle}
-            </Text>
-            <Text style={[styles.cardSummary, { color: palette.textMuted }]}>
-              {nextStepSummary}
-            </Text>
+              <Text
+                style={[styles.primaryButtonLabel, { color: palette.panel }]}
+              >
+                {nextStepButtonLabel}
+              </Text>
+            </Pressable>
           </View>
-          <Pressable
-            onPress={onPressNextStep}
+
+          <View
             style={[
-              styles.primaryButton,
-              styles.nextStepButton,
               {
-                backgroundColor: nextStepIsReview
-                  ? palette.warning
-                  : palette.accent,
-                borderColor: nextStepIsReview
-                  ? palette.warning
-                  : palette.accent,
+                backgroundColor: palette.panel,
+                borderColor: hexToRgba(palette.accent, 0.12),
               },
+              styles.checkInDockRow,
+              deviceClass === 'tablet' ? styles.checkInDockRowTablet : null,
             ]}
-            testID={nextStepButtonTestID}
+            testID="statistics-checkin-card"
           >
-            <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-              {nextStepButtonLabel}
-            </Text>
-          </Pressable>
+            <View style={styles.checkInCopy}>
+              <Text style={[styles.checkInTitle, { color: palette.text }]}>
+                连续性
+              </Text>
+              <Text
+                style={[styles.cardSummary, { color: palette.textMuted }]}
+                testID="statistics-checkin-summary"
+              >
+                {checkInSummary}
+              </Text>
+            </View>
+            <Pressable
+              disabled={!canCheckInToday || hasCheckedInToday}
+              onPress={onCheckIn}
+              style={[
+                styles.primaryButton,
+                styles.dailyPrimaryButton,
+                {
+                  backgroundColor: checkInButtonBackground,
+                  borderColor: checkInButtonBorder,
+                },
+              ]}
+              testID="statistics-checkin-button"
+            >
+              <Text
+                style={[
+                  styles.primaryButtonLabel,
+                  { color: checkInButtonLabelColor },
+                ]}
+                testID={
+                  hasCheckedInToday
+                    ? 'statistics-checkin-complete-label'
+                    : 'statistics-checkin-ready-label'
+                }
+              >
+                {hasCheckedInToday ? '已记录' : '完成签到'}
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
         <View
           style={[
-            styles.dailyActionRow,
-            deviceClass === 'tablet' ? styles.dailyActionRowTablet : null,
+            styles.statusLedger,
             {
-              backgroundColor: hexToRgba(palette.accent, 0.06),
-              borderColor: hexToRgba(palette.accent, 0.14),
-            },
-          ]}
-          testID="statistics-checkin-card"
-        >
-          <View style={styles.dailyActionCopy}>
-            <Text style={[styles.cardTitle, { color: palette.text }]}>
-              连续性
-            </Text>
-            <Text
-              style={[styles.cardSummary, { color: palette.textMuted }]}
-              testID="statistics-checkin-summary"
-            >
-              {checkInSummary}
-            </Text>
-          </View>
-          <Pressable
-            disabled={!canCheckInToday || hasCheckedInToday}
-            onPress={onCheckIn}
-            style={[
-              styles.primaryButton,
-              styles.dailyPrimaryButton,
-              {
-                backgroundColor: checkInButtonBackground,
-                borderColor: checkInButtonBorder,
-              },
-            ]}
-            testID="statistics-checkin-button"
-          >
-            <Text
-              style={[
-                styles.primaryButtonLabel,
-                { color: checkInButtonLabelColor },
-              ]}
-              testID={
-                hasCheckedInToday
-                  ? 'statistics-checkin-complete-label'
-                  : 'statistics-checkin-ready-label'
-              }
-            >
-              {hasCheckedInToday ? '已记录' : '完成签到'}
-            </Text>
-          </Pressable>
-        </View>
-
-        <View
-          style={[
-            styles.statusDock,
-            {
-              backgroundColor: palette.panelStrong,
-              borderColor: hexToRgba(palette.accent, 0.1),
+              borderColor: hexToRgba(palette.accent, 0.12),
             },
           ]}
         >
@@ -349,7 +345,7 @@ export function StatisticsSurface({
   );
 }
 
-function MetricCard({
+function MetricLedgerRow({
   label,
   palette,
   testID,
@@ -372,29 +368,15 @@ function MetricCard({
       : palette.accentStrong;
 
   return (
-    <View
-      style={[
-        styles.metricCard,
-        {
-          backgroundColor:
-            tone === 'success'
-              ? hexToRgba(palette.success, 0.06)
-              : tone === 'warning'
-              ? hexToRgba(palette.warning, 0.07)
-              : palette.panel,
-          borderColor:
-            tone === 'success'
-              ? hexToRgba(palette.success, 0.14)
-              : tone === 'warning'
-              ? hexToRgba(palette.warning, 0.16)
-              : palette.border,
-        },
-      ]}
-      testID={testID}
-    >
-      <Text style={[styles.metricValue, { color: valueColor }]}>{value}</Text>
+    <View style={styles.metricLedgerRow} testID={testID}>
       <Text style={[styles.metricLabel, { color: palette.textMuted }]}>
         {label}
+      </Text>
+      <Text
+        style={[styles.metricValue, { color: valueColor }]}
+        testID={testID ? `${testID}-value` : undefined}
+      >
+        {value}
       </Text>
     </View>
   );
@@ -490,43 +472,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
-  metricRow: {
-    flexDirection: 'row',
+  metricLedger: {
     borderWidth: 1,
     borderRadius: 22,
-    gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    gap: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
-  metricCard: {
-    alignItems: 'flex-start',
-    borderWidth: 1,
-    borderRadius: 16,
-    flex: 1,
-    gap: 3,
-    justifyContent: 'center',
-    minHeight: 58,
-    minWidth: 0,
-    paddingHorizontal: 9,
-    paddingVertical: 8,
+  metricLedgerRow: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 34,
+    paddingVertical: 5,
   },
   metricValue: {
-    fontSize: 20,
+    fontSize: 21,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
+    lineHeight: 25,
   },
   metricLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    lineHeight: 14,
-  },
-  sectionGrid: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  sectionGridTablet: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
   },
   surfaceCard: {
     borderWidth: 1,
@@ -536,48 +505,29 @@ const styles = StyleSheet.create({
     gap: 8,
     flexShrink: 1,
   },
-  surfaceCardHalf: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
   cardSummary: {
     fontSize: 12,
     lineHeight: 18,
   },
   dailyObjectCard: {
-    gap: 9,
+    gap: 8,
     paddingHorizontal: 18,
     paddingVertical: 14,
   },
   dailyHeader: {
     alignItems: 'flex-start',
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     justifyContent: 'space-between',
-  },
-  dailyTitleLockup: {
-    alignItems: 'center',
-    flex: 1,
-    flexDirection: 'row',
-    gap: 12,
   },
   dailyHeading: {
     flex: 1,
     gap: 6,
   },
-  routeBadge: {
-    alignItems: 'center',
+  dailyAccent: {
     borderRadius: 999,
-    height: 50,
-    justifyContent: 'center',
-    width: 50,
-  },
-  routeBadgeLabel: {
-    fontSize: 24,
-    fontWeight: '900',
+    height: 76,
+    width: 6,
   },
   checkInStatusPill: {
     borderRadius: 999,
@@ -588,26 +538,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
-  dailyActionRow: {
-    alignItems: 'center',
+  actionDock: {
+    borderRadius: 24,
     borderWidth: 1,
+    gap: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  nextStepRow: {
+    alignItems: 'center',
     flexDirection: 'row',
     gap: 11,
-    borderRadius: 24,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  dailyActionRowTablet: {
-    alignItems: 'flex-start',
-  },
-  nextStepCard: {
-    alignItems: 'center',
-    borderRadius: 24,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 13,
-    paddingVertical: 12,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
   },
   nextStepCopy: {
     flex: 1,
@@ -623,9 +566,25 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 23,
   },
-  dailyActionCopy: {
+  checkInDockRow: {
+    alignItems: 'center',
+    borderRadius: 20,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+  },
+  checkInDockRowTablet: {
+    alignItems: 'flex-start',
+  },
+  checkInCopy: {
     flex: 1,
     gap: 5,
+  },
+  checkInTitle: {
+    fontSize: 14,
+    fontWeight: '800',
   },
   primaryButton: {
     borderWidth: 1,
@@ -678,10 +637,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     minHeight: 29,
   },
-  statusDock: {
-    borderRadius: 24,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  statusLedger: {
+    borderTopWidth: 1,
+    marginTop: 2,
+    paddingHorizontal: 2,
+    paddingTop: 9,
   },
 });
