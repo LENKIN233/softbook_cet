@@ -1514,8 +1514,7 @@ export function LearningResultDetailSurface({
             style={[
               styles.detailExplanationSlip,
               {
-                backgroundColor: palette.panel,
-                borderColor: palette.border,
+                borderBottomColor: hexToRgba(resultTone, 0.1),
               },
             ]}
           >
@@ -1541,74 +1540,75 @@ export function LearningResultDetailSurface({
             </Text>
           </View>
 
-          <View style={styles.detailAnswerGrid}>
-            {resolvedRows.map(row => (
-              <View
-                key={row.label}
-                style={[
-                  styles.detailAnswerCell,
-                  {
-                    backgroundColor:
-                      row.tone === 'success'
-                        ? hexToRgba(palette.success, 0.045)
-                        : row.tone === 'warning'
-                        ? hexToRgba(palette.warning, 0.065)
-                        : palette.panel,
-                    borderColor:
-                      row.tone === 'success'
-                        ? hexToRgba(palette.success, 0.15)
-                        : row.tone === 'warning'
-                        ? hexToRgba(palette.warning, 0.18)
-                        : palette.border,
-                  },
-                ]}
-                testID={
-                  row.testID === 'learning-detail-selected-answer'
-                    ? 'learning-detail-selected-answer'
-                    : 'learning-detail-correct-answer'
-                }
-              >
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.detailAnswerLabel,
-                    { color: palette.textMuted },
-                  ]}
+          <View
+            style={[
+              styles.detailAnswerRail,
+              {
+                backgroundColor: hexToRgba(resultTone, 0.035),
+                borderColor: hexToRgba(resultTone, 0.12),
+              },
+            ]}
+          >
+            {resolvedRows.map((row, index) => (
+              <React.Fragment key={row.label}>
+                {index > 0 ? (
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.detailAnswerDivider,
+                      { backgroundColor: hexToRgba(resultTone, 0.12) },
+                    ]}
+                  />
+                ) : null}
+                <View
+                  style={styles.detailAnswerCell}
+                  testID={
+                    row.testID === 'learning-detail-selected-answer'
+                      ? 'learning-detail-selected-answer'
+                      : 'learning-detail-correct-answer'
+                  }
                 >
-                  {row.label}
-                </Text>
-                <Text
-                  numberOfLines={2}
-                  style={[styles.detailAnswerValue, { color: palette.text }]}
-                >
-                  {row.displayText}
-                </Text>
-              </View>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.detailAnswerLabel,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    {row.label}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.detailAnswerValue, { color: palette.text }]}
+                  >
+                    {row.displayText}
+                  </Text>
+                </View>
+              </React.Fragment>
             ))}
           </View>
-        </View>
 
-        <View
-          style={[
-            styles.detailLocationShelf,
-            {
-              backgroundColor: hexToRgba(resultTone, 0.028),
-              borderColor: hexToRgba(resultTone, 0.1),
-            },
-          ]}
-        >
-          <Text
-            numberOfLines={1}
-            style={[styles.detailLocationTitle, { color: palette.text }]}
+          <View
+            style={[
+              styles.detailContinuityRail,
+              {
+                borderTopColor: hexToRgba(resultTone, 0.12),
+              },
+            ]}
           >
-            已回到当前学习位置
-          </Text>
-          <View style={styles.detailNextHintRow}>
-            <Text style={[styles.detailNextHint, { color: palette.textMuted }]}>
-              {displaySessionLabel}里的位置已更新
+            <Text
+              numberOfLines={1}
+              style={[styles.detailLocationTitle, { color: palette.text }]}
+            >
+              已回到当前学习位置
             </Text>
-            <Text style={[styles.detailNextHint, { color: palette.textMuted }]}>
-              {isLastCard ? '本轮即将收束' : '下一张仍在本轮盒'}
+            <Text
+              numberOfLines={1}
+              style={[styles.detailNextHint, { color: palette.textMuted }]}
+            >
+              {isLastCard
+                ? `${displaySessionLabel}里的本轮即将收束`
+                : `${displaySessionLabel}里的下一张仍在本轮盒`}
             </Text>
           </View>
         </View>
@@ -2007,7 +2007,7 @@ const styles = StyleSheet.create({
   detailResolvedCard: {
     borderRadius: 28,
     borderWidth: 1,
-    gap: 8,
+    gap: 9,
     overflow: 'hidden',
     paddingHorizontal: 15,
     paddingVertical: 14,
@@ -2043,9 +2043,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderTopWidth: 3,
     borderWidth: 1,
-    gap: 8,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   detailSlipHeader: {
     alignItems: 'center',
@@ -2065,38 +2065,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
-  detailAnswerGrid: {
+  detailAnswerRail: {
+    alignItems: 'stretch',
+    borderRadius: 18,
+    borderWidth: 1,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+    overflow: 'hidden',
+  },
+  detailAnswerDivider: {
+    alignSelf: 'stretch',
+    width: 1,
   },
   detailAnswerCell: {
-    borderRadius: 16,
-    borderWidth: 1,
     flex: 1,
     gap: 2,
-    minWidth: 138,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    minWidth: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
   },
   detailAnswerLabel: {
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.4,
+    letterSpacing: 0,
   },
   detailAnswerValue: {
     fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 19,
+    fontWeight: '800',
+    lineHeight: 18,
   },
   detailExplanationSlip: {
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 6,
-    overflow: 'hidden',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    position: 'relative',
+    borderBottomWidth: 1,
+    gap: 5,
+    paddingBottom: 10,
   },
   detailOutcomeTitle: {
     fontSize: 13,
@@ -2107,28 +2107,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
   },
-  detailLocationShelf: {
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 5,
-    paddingHorizontal: 13,
-    paddingVertical: 10,
+  detailContinuityRail: {
+    alignItems: 'center',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+    paddingTop: 8,
   },
   detailLocationTitle: {
-    fontSize: 13,
+    flexShrink: 0,
+    fontSize: 12,
     fontWeight: '800',
-    lineHeight: 18,
-  },
-  detailNextHintRow: {
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'space-between',
+    lineHeight: 16,
   },
   detailNextHint: {
     flex: 1,
     fontSize: 11,
     fontWeight: '700',
     lineHeight: 15,
+    textAlign: 'right',
   },
   detailPrimaryButton: {
     marginTop: 2,
