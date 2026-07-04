@@ -20,6 +20,8 @@ name: ios-space-browse-screenshot
     id: "auth-code-input"
 - inputText: "2468"
 - tapOn:
+    id: "auth-gate-keyboard-dismiss-target"
+- tapOn:
     id: "auth-submit-button"
 - tapOn:
     id: "route-tab-space"

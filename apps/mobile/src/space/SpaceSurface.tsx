@@ -1130,222 +1130,227 @@ export function SpaceSurface({
                     </Text>
                   </View>
                 </View>
-              </View>
 
-              <View testID="space-address-shelf">
-                <View
-                  style={[
-                    styles.browseRail,
-                    styles.browseRailDesk,
-                    {
-                      backgroundColor: solidPanel,
-                      borderColor: hexToRgba(selectedTone.accent, 0.1),
-                    },
-                  ]}
-                  testID="space-browse-rail"
-                >
-                  <View style={styles.browseRailTitleRow}>
-                    <Text
-                      style={[styles.browseRailTitle, { color: palette.text }]}
-                    >
-                      切换位置
-                    </Text>
-                    <Text
-                      style={[
-                        styles.browseRailHint,
-                        { color: palette.textMuted },
-                      ]}
-                    >
-                      {`盒内 ${selectedBoxCards.length} 张`}
-                    </Text>
-                  </View>
-                  <View style={styles.browseRailShelfRow}>
-                    <View
-                      style={[
-                        styles.browseRailLevel,
-                        styles.browseRailShelfLevel,
-                      ]}
-                    >
+                <View testID="space-address-shelf">
+                  <View
+                    style={[
+                      styles.browseRail,
+                      styles.browseRailDesk,
+                      {
+                        borderTopColor: hexToRgba(selectedTone.accent, 0.12),
+                      },
+                    ]}
+                    testID="space-browse-rail"
+                  >
+                    <View style={styles.browseRailTitleRow}>
                       <Text
                         style={[
-                          styles.browseRailLevelLabel,
-                          { color: selectedTone.accent },
+                          styles.browseRailTitle,
+                          { color: palette.text },
                         ]}
                       >
-                        书架
+                        位置轨
                       </Text>
-                      <View style={styles.browseRailRow}>
-                        {seed.libraries.map((library, index) => {
-                          const isActive =
-                            library.libraryName === selectedLibrary.libraryName;
-
-                          return (
-                            <Pressable
-                              key={library.libraryName}
-                              onPress={() => {
-                                setSelectionMode('manual');
-                                setSelectedLibraryName(library.libraryName);
-                                setSelectedGroupName(
-                                  library.groups[0]?.groupName ?? '',
-                                );
-                                setSelectedBoxRef(
-                                  library.groups[0]?.boxes[0]?.boxRef ?? '',
-                                );
-                                setSelectedCardIndex(0);
-                              }}
-                              style={[
-                                styles.browseRailChip,
-                                styles.browseRailShelfChip,
-                                isActive ? styles.browseRailChipActive : null,
-                                {
-                                  backgroundColor: isActive
-                                    ? hexToRgba(selectedTone.accent, 0.1)
-                                    : solidPanelStrong,
-                                  borderColor: isActive
-                                    ? hexToRgba(selectedTone.accent, 0.18)
-                                    : hexToRgba(palette.textMuted, 0.08),
-                                },
-                              ]}
-                              testID={`space-library-${index + 1}`}
-                            >
-                              <Text
-                                numberOfLines={1}
-                                style={[
-                                  styles.browseRailValue,
-                                  {
-                                    color: isActive
-                                      ? selectedTone.accent
-                                      : palette.textMuted,
-                                  },
-                                ]}
-                              >
-                                {formatSpaceLibraryLabel(index + 1)}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
-                      </View>
-                    </View>
-                  </View>
-                  <View style={styles.browseRailPairRow}>
-                    <View
-                      style={[
-                        styles.browseRailLevel,
-                        styles.browseRailLevelHalf,
-                      ]}
-                    >
                       <Text
                         style={[
-                          styles.browseRailLevelLabel,
+                          styles.browseRailHint,
                           { color: palette.textMuted },
                         ]}
                       >
-                        分区
+                        {`盒内 ${selectedBoxCards.length} 张`}
                       </Text>
-                      <View style={styles.browseRailRow}>
-                        {selectedLibrary.groups.map((group, index) => {
-                          const isActive =
-                            group.groupName === selectedGroup.groupName;
-
-                          return (
-                            <Pressable
-                              key={`${selectedLibrary.libraryName}-${group.groupName}`}
-                              onPress={() => {
-                                setSelectionMode('manual');
-                                setSelectedGroupName(group.groupName);
-                                setSelectedBoxRef(group.boxes[0]?.boxRef ?? '');
-                                setSelectedCardIndex(0);
-                              }}
-                              style={[
-                                styles.browseRailChip,
-                                styles.browseRailChipSmall,
-                                isActive ? styles.browseRailChipActive : null,
-                                {
-                                  backgroundColor: isActive
-                                    ? hexToRgba(selectedTone.accent, 0.1)
-                                    : solidPanelStrong,
-                                  borderColor: isActive
-                                    ? hexToRgba(selectedTone.accent, 0.18)
-                                    : hexToRgba(palette.textMuted, 0.08),
-                                },
-                              ]}
-                              testID={`space-group-${index + 1}`}
-                            >
-                              <Text
-                                numberOfLines={1}
-                                style={[
-                                  styles.browseRailValue,
-                                  {
-                                    color: isActive
-                                      ? selectedTone.accent
-                                      : palette.textMuted,
-                                  },
-                                ]}
-                              >
-                                {formatSpaceGroupLabel(index + 1)}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
-                      </View>
                     </View>
-                    <View
-                      style={[
-                        styles.browseRailLevel,
-                        styles.browseRailLevelHalf,
-                      ]}
-                    >
-                      <Text
+                    <View style={styles.browseRailShelfRow}>
+                      <View
                         style={[
-                          styles.browseRailLevelLabel,
-                          { color: palette.textMuted },
+                          styles.browseRailLevel,
+                          styles.browseRailShelfLevel,
                         ]}
                       >
-                        卡盒
-                      </Text>
-                      <View style={styles.browseRailRow}>
-                        {selectedGroup.boxes.map((box, boxIndex) => {
-                          const isActive = box.boxRef === selectedBox.boxRef;
+                        <Text
+                          style={[
+                            styles.browseRailLevelLabel,
+                            { color: selectedTone.accent },
+                          ]}
+                        >
+                          书架
+                        </Text>
+                        <View style={styles.browseRailRow}>
+                          {seed.libraries.map((library, index) => {
+                            const isActive =
+                              library.libraryName ===
+                              selectedLibrary.libraryName;
 
-                          return (
-                            <Pressable
-                              key={box.boxRef}
-                              onPress={() => {
-                                setSelectionMode('manual');
-                                setSelectedBoxRef(box.boxRef);
-                                setSelectedCardIndex(0);
-                              }}
-                              style={[
-                                styles.browseRailChip,
-                                styles.browseRailChipSmall,
-                                isActive ? styles.browseRailChipActive : null,
-                                {
-                                  backgroundColor: isActive
-                                    ? hexToRgba(selectedTone.accent, 0.1)
-                                    : solidPanelStrong,
-                                  borderColor: isActive
-                                    ? hexToRgba(selectedTone.accent, 0.18)
-                                    : hexToRgba(palette.textMuted, 0.08),
-                                },
-                              ]}
-                              testID={`space-box-${boxIndex + 1}`}
-                            >
-                              <Text
-                                numberOfLines={1}
+                            return (
+                              <Pressable
+                                key={library.libraryName}
+                                onPress={() => {
+                                  setSelectionMode('manual');
+                                  setSelectedLibraryName(library.libraryName);
+                                  setSelectedGroupName(
+                                    library.groups[0]?.groupName ?? '',
+                                  );
+                                  setSelectedBoxRef(
+                                    library.groups[0]?.boxes[0]?.boxRef ?? '',
+                                  );
+                                  setSelectedCardIndex(0);
+                                }}
                                 style={[
-                                  styles.browseRailValue,
+                                  styles.browseRailChip,
+                                  styles.browseRailShelfChip,
+                                  isActive ? styles.browseRailChipActive : null,
                                   {
-                                    color: isActive
-                                      ? selectedTone.accent
-                                      : palette.textMuted,
+                                    backgroundColor: isActive
+                                      ? hexToRgba(selectedTone.accent, 0.1)
+                                      : solidPanelStrong,
+                                    borderColor: isActive
+                                      ? hexToRgba(selectedTone.accent, 0.18)
+                                      : hexToRgba(palette.textMuted, 0.08),
                                   },
                                 ]}
+                                testID={`space-library-${index + 1}`}
                               >
-                                {formatSpaceBoxLabel(boxIndex + 1)}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
+                                <Text
+                                  numberOfLines={1}
+                                  style={[
+                                    styles.browseRailValue,
+                                    {
+                                      color: isActive
+                                        ? selectedTone.accent
+                                        : palette.textMuted,
+                                    },
+                                  ]}
+                                >
+                                  {formatSpaceLibraryLabel(index + 1)}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    </View>
+                    <View style={styles.browseRailPairRow}>
+                      <View
+                        style={[
+                          styles.browseRailLevel,
+                          styles.browseRailLevelHalf,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.browseRailLevelLabel,
+                            { color: palette.textMuted },
+                          ]}
+                        >
+                          分区
+                        </Text>
+                        <View style={styles.browseRailRow}>
+                          {selectedLibrary.groups.map((group, index) => {
+                            const isActive =
+                              group.groupName === selectedGroup.groupName;
+
+                            return (
+                              <Pressable
+                                key={`${selectedLibrary.libraryName}-${group.groupName}`}
+                                onPress={() => {
+                                  setSelectionMode('manual');
+                                  setSelectedGroupName(group.groupName);
+                                  setSelectedBoxRef(
+                                    group.boxes[0]?.boxRef ?? '',
+                                  );
+                                  setSelectedCardIndex(0);
+                                }}
+                                style={[
+                                  styles.browseRailChip,
+                                  styles.browseRailChipSmall,
+                                  isActive ? styles.browseRailChipActive : null,
+                                  {
+                                    backgroundColor: isActive
+                                      ? hexToRgba(selectedTone.accent, 0.1)
+                                      : solidPanelStrong,
+                                    borderColor: isActive
+                                      ? hexToRgba(selectedTone.accent, 0.18)
+                                      : hexToRgba(palette.textMuted, 0.08),
+                                  },
+                                ]}
+                                testID={`space-group-${index + 1}`}
+                              >
+                                <Text
+                                  numberOfLines={1}
+                                  style={[
+                                    styles.browseRailValue,
+                                    {
+                                      color: isActive
+                                        ? selectedTone.accent
+                                        : palette.textMuted,
+                                    },
+                                  ]}
+                                >
+                                  {formatSpaceGroupLabel(index + 1)}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      </View>
+                      <View
+                        style={[
+                          styles.browseRailLevel,
+                          styles.browseRailLevelHalf,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.browseRailLevelLabel,
+                            { color: palette.textMuted },
+                          ]}
+                        >
+                          卡盒
+                        </Text>
+                        <View style={styles.browseRailRow}>
+                          {selectedGroup.boxes.map((box, boxIndex) => {
+                            const isActive = box.boxRef === selectedBox.boxRef;
+
+                            return (
+                              <Pressable
+                                key={box.boxRef}
+                                onPress={() => {
+                                  setSelectionMode('manual');
+                                  setSelectedBoxRef(box.boxRef);
+                                  setSelectedCardIndex(0);
+                                }}
+                                style={[
+                                  styles.browseRailChip,
+                                  styles.browseRailChipSmall,
+                                  isActive ? styles.browseRailChipActive : null,
+                                  {
+                                    backgroundColor: isActive
+                                      ? hexToRgba(selectedTone.accent, 0.1)
+                                      : solidPanelStrong,
+                                    borderColor: isActive
+                                      ? hexToRgba(selectedTone.accent, 0.18)
+                                      : hexToRgba(palette.textMuted, 0.08),
+                                  },
+                                ]}
+                                testID={`space-box-${boxIndex + 1}`}
+                              >
+                                <Text
+                                  numberOfLines={1}
+                                  style={[
+                                    styles.browseRailValue,
+                                    {
+                                      color: isActive
+                                        ? selectedTone.accent
+                                        : palette.textMuted,
+                                    },
+                                  ]}
+                                >
+                                  {formatSpaceBoxLabel(boxIndex + 1)}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
                       </View>
                     </View>
                   </View>
@@ -1443,11 +1448,10 @@ export function SpaceSurface({
                           style={[
                             styles.cardStateDeck,
                             {
-                              backgroundColor: hexToRgba(
+                              borderTopColor: hexToRgba(
                                 selectedTone.accent,
-                                0.026,
+                                0.12,
                               ),
-                              borderColor: 'transparent',
                             },
                           ]}
                         >
@@ -1472,7 +1476,7 @@ export function SpaceSurface({
                                   {
                                     backgroundColor: isFavorited
                                       ? hexToRgba(selectedTone.accent, 0.1)
-                                      : solidPanelStrong,
+                                      : 'transparent',
                                     borderColor: isFavorited
                                       ? hexToRgba(selectedTone.accent, 0.28)
                                       : 'transparent',
@@ -1519,7 +1523,7 @@ export function SpaceSurface({
                                   {
                                     backgroundColor: isSleeping
                                       ? hexToRgba(palette.warning, 0.1)
-                                      : solidPanelStrong,
+                                      : 'transparent',
                                     borderColor: isSleeping
                                       ? hexToRgba(palette.warning, 0.28)
                                       : 'transparent',
@@ -2289,7 +2293,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   boxBrowseSurface: {
-    gap: 7,
+    gap: 8,
     paddingBottom: 0,
   },
   boxTrayHeader: {
@@ -2311,7 +2315,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   browseObjectPlaneDesk: {
-    gap: 10,
+    gap: 9,
     overflow: 'hidden',
     paddingHorizontal: 15,
     paddingVertical: 12,
@@ -2355,16 +2359,14 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   browseRail: {
-    borderRadius: 20,
-    borderWidth: 1,
+    borderTopWidth: 1,
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 0,
+    paddingTop: 8,
   },
   browseRailDesk: {
     gap: 7,
-    paddingHorizontal: 11,
-    paddingVertical: 9,
+    paddingVertical: 0,
   },
   browseRailTitleRow: {
     alignItems: 'center',
@@ -2713,21 +2715,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardStateDeck: {
-    borderRadius: 18,
-    borderWidth: 1,
+    borderTopWidth: 1,
     flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    gap: 6,
+    paddingHorizontal: 0,
+    paddingTop: 8,
   },
   favoriteTagButton: {
-    borderRadius: 15,
+    borderRadius: 14,
     borderWidth: 1,
     flex: 1,
     gap: 2,
     minWidth: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
   },
   favoriteTagLabel: {
     fontSize: 13,
@@ -2740,13 +2741,13 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   sleepPocketButton: {
-    borderRadius: 15,
+    borderRadius: 14,
     borderWidth: 1,
     flex: 1,
     gap: 4,
     minWidth: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
   },
   sleepPocketHeader: {
     alignItems: 'center',
