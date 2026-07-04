@@ -1443,8 +1443,11 @@ export function SpaceSurface({
                           style={[
                             styles.cardStateDeck,
                             {
-                              backgroundColor: solidPanelStrong,
-                              borderColor: palette.border,
+                              backgroundColor: hexToRgba(
+                                selectedTone.accent,
+                                0.026,
+                              ),
+                              borderColor: 'transparent',
                             },
                           ]}
                         >
@@ -1469,10 +1472,10 @@ export function SpaceSurface({
                                   {
                                     backgroundColor: isFavorited
                                       ? hexToRgba(selectedTone.accent, 0.1)
-                                      : solidPanel,
+                                      : solidPanelStrong,
                                     borderColor: isFavorited
                                       ? hexToRgba(selectedTone.accent, 0.28)
-                                      : palette.border,
+                                      : 'transparent',
                                   },
                                 ]}
                                 testID={`space-favorite-${cardDisplayIndex}`}
@@ -1516,10 +1519,10 @@ export function SpaceSurface({
                                   {
                                     backgroundColor: isSleeping
                                       ? hexToRgba(palette.warning, 0.1)
-                                      : solidPanel,
+                                      : solidPanelStrong,
                                     borderColor: isSleeping
                                       ? hexToRgba(palette.warning, 0.28)
-                                      : palette.border,
+                                      : 'transparent',
                                   },
                                 ]}
                                 testID={`space-sleep-${cardDisplayIndex}`}
@@ -1572,8 +1575,8 @@ export function SpaceSurface({
                           style={[
                             styles.boxBrowsePager,
                             {
-                              backgroundColor: solidPanelStrong,
-                              borderColor: palette.border,
+                              backgroundColor: 'transparent',
+                              borderColor: 'transparent',
                             },
                           ]}
                         >
@@ -1663,8 +1666,11 @@ export function SpaceSurface({
                             style={[
                               styles.browseContinuitySecondary,
                               {
-                                backgroundColor: solidPanelStrong,
-                                borderColor: palette.border,
+                                backgroundColor: hexToRgba(
+                                  selectedTone.accent,
+                                  0.036,
+                                ),
+                                borderColor: 'transparent',
                               },
                             ]}
                             testID="space-card-list-back"
