@@ -2928,7 +2928,7 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(
     root.findAllByProps({ testID: 'membership-access-step' }),
   ).toHaveLength(0);
-  expect(output).toContain('完整体验');
+  expect(output).toContain('权益状态');
   expect(output).toContain('基础可用');
   expect(output).toContain('首次计入学习时开启试用');
   expect(output).toContain('完整卡库');

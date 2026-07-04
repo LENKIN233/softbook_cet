@@ -3563,6 +3563,11 @@ function MembershipHostCard({
     { label: '完整空间', open: access.completePhysicalSpace },
     { label: '智能回看', open: access.completeAlgorithm },
   ];
+  const compactBenefitSummary = [
+    { label: '卡库', open: access.completeCardLibrary },
+    { label: '空间', open: access.completePhysicalSpace },
+    { label: '回看', open: access.completeAlgorithm },
+  ];
   const isTrialAvailable = membershipState.stage === 'trial_available';
   const focusCopy =
     focusGate === null
@@ -3586,9 +3591,30 @@ function MembershipHostCard({
     >
       <View style={styles.membershipHeaderRow}>
         <View style={styles.membershipHeaderCopy}>
-          <Text style={[styles.infoTitle, { color: palette.text }]}>
-            {getMembershipHostTitle(membershipState.stage)}
-          </Text>
+          <View style={styles.membershipTitleRow}>
+            <Text style={[styles.membershipHostTitle, { color: palette.text }]}>
+              {getMembershipHostTitle(membershipState.stage)}
+            </Text>
+            <View
+              style={[
+                styles.membershipInlineStatus,
+                {
+                  backgroundColor: palette.accentSoft,
+                  borderColor: hexToRgba(palette.accent, 0.1),
+                },
+              ]}
+            >
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.membershipInlineStatusText,
+                  { color: palette.accent },
+                ]}
+              >
+                {getMembershipStatusChipLabel(membershipState.stage)}
+              </Text>
+            </View>
+          </View>
           <Text
             style={[styles.membershipSummary, { color: palette.textMuted }]}
           >
@@ -3596,22 +3622,6 @@ function MembershipHostCard({
               membershipState,
               membershipRepositoryMode,
             )}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.membershipStatePill,
-            {
-              backgroundColor: palette.accentSoft,
-              borderColor: palette.border,
-            },
-          ]}
-        >
-          <Text
-            numberOfLines={1}
-            style={[styles.membershipStatePillText, { color: palette.accent }]}
-          >
-            {getMembershipStatusChipLabel(membershipState.stage)}
           </Text>
         </View>
       </View>
@@ -3641,22 +3651,33 @@ function MembershipHostCard({
           style={[
             styles.membershipAccessCompactDock,
             {
-              backgroundColor: hexToRgba(palette.accent, 0.045),
-              borderColor: hexToRgba(palette.accent, 0.1),
+              backgroundColor: palette.panelStrong,
+              borderColor: hexToRgba(palette.accent, 0.09),
             },
           ]}
           testID="membership-access-strip"
         >
           <View style={styles.membershipAccessCompactCopy}>
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.membershipAccessCompactTitle,
-                { color: palette.text },
-              ]}
-            >
-              卡库 / 空间 / 回看
-            </Text>
+            <View style={styles.membershipAccessCompactTitleRow}>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.membershipAccessCompactTitle,
+                  { color: palette.text },
+                ]}
+              >
+                完整能力
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.membershipAccessCompactMeta,
+                  { color: palette.textMuted },
+                ]}
+              >
+                随试用开放
+              </Text>
+            </View>
             <Text
               numberOfLines={1}
               style={[
@@ -3666,6 +3687,37 @@ function MembershipHostCard({
             >
               本轮学习不断线
             </Text>
+            <View style={styles.membershipCompactBenefitRow}>
+              {compactBenefitSummary.map(item => (
+                <View
+                  key={item.label}
+                  style={[
+                    styles.membershipCompactBenefitChip,
+                    { borderColor: hexToRgba(palette.accent, 0.09) },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.membershipCompactBenefitDot,
+                      {
+                        backgroundColor: item.open
+                          ? palette.success
+                          : hexToRgba(palette.warning, 0.28),
+                      },
+                    ]}
+                  />
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.membershipCompactBenefitLabel,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
           <View style={styles.membershipAccessCompactActions}>
             <Pressable
@@ -3695,8 +3747,8 @@ function MembershipHostCard({
               style={[
                 styles.membershipCompactPurchaseButton,
                 {
-                  backgroundColor: palette.panelStrong,
-                  borderColor: palette.border,
+                  backgroundColor: 'transparent',
+                  borderColor: 'transparent',
                 },
               ]}
               testID="membership-purchase-button"
@@ -3705,7 +3757,7 @@ function MembershipHostCard({
                 numberOfLines={1}
                 style={[
                   styles.membershipCompactPurchaseLabel,
-                  { color: palette.text },
+                  { color: palette.textMuted },
                 ]}
               >
                 {membershipPendingAction === 'purchase' ? '同步中' : '直接开通'}
@@ -4475,7 +4527,7 @@ function getMembershipCardTitle(stage: MembershipStage) {
 function getMembershipHostTitle(stage: MembershipStage) {
   switch (stage) {
     case 'trial_available':
-      return '完整体验';
+      return '权益状态';
     case 'trial':
       return '完整试用进行中';
     case 'free':
@@ -5585,7 +5637,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   membershipHeaderRow: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flexDirection: 'row',
     gap: 10,
   },
@@ -5593,21 +5645,32 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
+  membershipTitleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  membershipHostTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
   membershipSummary: {
     fontSize: 12,
     lineHeight: 17,
   },
-  membershipStatePill: {
+  membershipInlineStatus: {
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: 999,
     borderWidth: 1,
-    minWidth: 74,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  membershipStatePillText: {
-    fontSize: 12,
+  membershipInlineStatusText: {
+    fontSize: 10,
     fontWeight: '800',
+    lineHeight: 12,
   },
   membershipFocusCard: {
     borderWidth: 1,
@@ -5652,17 +5715,22 @@ const styles = StyleSheet.create({
   },
   membershipAccessCompactDock: {
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 9,
-    paddingHorizontal: 11,
-    paddingVertical: 9,
+    gap: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
   },
   membershipAccessCompactCopy: {
     flex: 1,
-    gap: 3,
+    gap: 5,
     minWidth: 0,
+  },
+  membershipAccessCompactTitleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
   },
   membershipAccessCompactTitle: {
     fontSize: 13,
@@ -5677,15 +5745,38 @@ const styles = StyleSheet.create({
   membershipAccessCompactActions: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 7,
+    gap: 6,
+  },
+  membershipCompactBenefitRow: {
+    flexDirection: 'row',
+    gap: 5,
+  },
+  membershipCompactBenefitChip: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  membershipCompactBenefitDot: {
+    borderRadius: 999,
+    height: 6,
+    width: 6,
+  },
+  membershipCompactBenefitLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 12,
   },
   membershipCompactTrialButton: {
     alignItems: 'center',
     borderRadius: 999,
     justifyContent: 'center',
-    minHeight: 38,
-    minWidth: 86,
-    paddingHorizontal: 12,
+    minHeight: 36,
+    minWidth: 84,
+    paddingHorizontal: 11,
   },
   membershipCompactTrialLabel: {
     fontSize: 12,
@@ -5697,9 +5788,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 38,
-    minWidth: 72,
-    paddingHorizontal: 10,
+    minHeight: 36,
+    minWidth: 66,
+    paddingHorizontal: 6,
   },
   membershipCompactPurchaseLabel: {
     fontSize: 12,
