@@ -278,6 +278,7 @@ const DARK_PALETTE: Palette = {
 
 const PROTECTED_ROUTES: RouteKey[] = ['learning', 'space', 'statistics'];
 const AUTH_KEYBOARD_ACCESSORY_ID = 'auth-keyboard-accessory';
+const SMS_CODE_CELL_COUNT = 6;
 
 const INITIAL_AUTH_STATE: AuthState = {
   authToken: null,
@@ -4014,6 +4015,13 @@ function PhoneSmsPanel({
   const submitCodeLabelColor = canSubmitCode
     ? palette.panel
     : palette.textMuted;
+  const smsCodeDigits = authState.smsCode
+    .split('')
+    .slice(0, SMS_CODE_CELL_COUNT);
+  const activeCodeCellIndex = Math.min(
+    smsCodeDigits.length,
+    SMS_CODE_CELL_COUNT - 1,
+  );
 
   return (
     <View
@@ -4132,30 +4140,67 @@ function PhoneSmsPanel({
             </Pressable>
           </View>
           <View style={styles.authCodeEntryRow}>
-            <TextInput
-              editable={!isPending && !isAuthenticated}
-              inputAccessoryViewID={
-                Platform.OS === 'ios' ? AUTH_KEYBOARD_ACCESSORY_ID : undefined
-              }
-              keyboardType="number-pad"
-              maxLength={6}
-              onChangeText={handlers.onChangeCode}
-              placeholder="输入 4-6 位验证码"
-              placeholderTextColor={palette.tabIdle}
+            <View
               style={[
-                styles.input,
-                styles.authCodeInlineInput,
+                styles.authCodeCellsFrame,
                 isDockedPanel ? styles.authPhoneInputDock : null,
                 {
                   backgroundColor: palette.panel,
-                  borderColor: palette.border,
-                  color: palette.text,
+                  borderColor: canSubmitCode ? palette.accent : palette.border,
                 },
               ]}
-              testID="auth-code-input"
-              textContentType="oneTimeCode"
-              value={authState.smsCode}
-            />
+            >
+              <View pointerEvents="none" style={styles.authCodeCells}>
+                {Array.from({ length: SMS_CODE_CELL_COUNT }).map((_, index) => {
+                  const digit = smsCodeDigits[index] ?? '';
+                  const isFilled = digit.length > 0;
+                  const isActive =
+                    !isPending &&
+                    !isAuthenticated &&
+                    index === activeCodeCellIndex;
+
+                  return (
+                    <View
+                      key={`auth-code-cell-${index}`}
+                      style={[
+                        styles.authCodeCell,
+                        {
+                          backgroundColor: isFilled
+                            ? palette.panelStrong
+                            : palette.panel,
+                          borderColor: isActive
+                            ? palette.accent
+                            : palette.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.authCodeCellText,
+                          { color: isFilled ? palette.text : palette.tabIdle },
+                        ]}
+                      >
+                        {digit}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+              <TextInput
+                caretHidden
+                editable={!isPending && !isAuthenticated}
+                inputAccessoryViewID={
+                  Platform.OS === 'ios' ? AUTH_KEYBOARD_ACCESSORY_ID : undefined
+                }
+                keyboardType="number-pad"
+                maxLength={6}
+                onChangeText={handlers.onChangeCode}
+                style={styles.authCodeHiddenInput}
+                testID="auth-code-input"
+                textContentType="oneTimeCode"
+                value={authState.smsCode}
+              />
+            </View>
             {!isAuthenticated ? (
               <Pressable
                 disabled={!canSubmitCode}
@@ -4193,7 +4238,7 @@ function PhoneSmsPanel({
               { color: palette.textMuted },
             ]}
           >
-            完成后回到{returnTarget}。
+            4-6 位短码，完成后回到{returnTarget}。
           </Text>
         </View>
       ) : null}
@@ -5126,9 +5171,49 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  authCodeInlineInput: {
+  authCodeCellsFrame: {
     flex: 1,
     minWidth: 0,
+    minHeight: 48,
+    borderRadius: 18,
+    borderWidth: 1,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  authCodeCells: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 5,
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+  },
+  authCodeCell: {
+    alignItems: 'center',
+    aspectRatio: 0.82,
+    borderRadius: 11,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 32,
+  },
+  authCodeCellText: {
+    fontSize: 17,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
+    lineHeight: 22,
+  },
+  authCodeHiddenInput: {
+    borderWidth: 0,
+    bottom: 0,
+    color: 'transparent',
+    fontSize: 1,
+    left: 0,
+    opacity: 0.02,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   authCodeSubmitButton: {
     alignItems: 'center',
