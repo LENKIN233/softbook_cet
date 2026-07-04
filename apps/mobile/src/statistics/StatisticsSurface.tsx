@@ -178,8 +178,7 @@ export function StatisticsSurface({
           style={[
             styles.metricLedger,
             {
-              backgroundColor: hexToRgba(palette.accent, 0.055),
-              borderColor: hexToRgba(palette.accent, 0.1),
+              backgroundColor: hexToRgba(palette.accent, 0.045),
             },
           ]}
           testID="statistics-metric-strip"
@@ -216,11 +215,8 @@ export function StatisticsSurface({
             styles.actionDock,
             {
               backgroundColor: nextStepIsReview
-                ? hexToRgba(palette.warning, 0.08)
-                : hexToRgba(palette.accent, 0.07),
-              borderColor: nextStepIsReview
-                ? hexToRgba(palette.warning, 0.18)
-                : hexToRgba(palette.accent, 0.15),
+                ? hexToRgba(palette.warning, 0.065)
+                : hexToRgba(palette.accent, 0.055),
             },
           ]}
           testID="statistics-action-dock"
@@ -229,10 +225,7 @@ export function StatisticsSurface({
             style={[
               styles.nextStepRow,
               {
-                backgroundColor: palette.panel,
-                borderColor: nextStepIsReview
-                  ? hexToRgba(palette.warning, 0.16)
-                  : hexToRgba(palette.accent, 0.12),
+                backgroundColor: 'transparent',
               },
             ]}
             testID="statistics-next-step-card"
@@ -287,10 +280,21 @@ export function StatisticsSurface({
           </View>
 
           <View
+            pointerEvents="none"
+            style={[
+              styles.actionDockDivider,
+              {
+                backgroundColor: nextStepIsReview
+                  ? hexToRgba(palette.warning, 0.14)
+                  : hexToRgba(palette.accent, 0.12),
+              },
+            ]}
+          />
+
+          <View
             style={[
               {
-                backgroundColor: palette.panel,
-                borderColor: hexToRgba(palette.accent, 0.12),
+                backgroundColor: 'transparent',
               },
               styles.checkInDockRow,
               deviceClass === 'tablet' ? styles.checkInDockRowTablet : null,
@@ -342,8 +346,7 @@ export function StatisticsSurface({
           style={[
             styles.statusLedger,
             {
-              backgroundColor: palette.panelStrong,
-              borderColor: hexToRgba(palette.accent, 0.12),
+              borderTopColor: hexToRgba(palette.accent, 0.12),
             },
           ]}
         >
@@ -497,28 +500,26 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   metricLedger: {
-    borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 22,
     flexDirection: 'row',
-    gap: 7,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
   },
   metricLedgerRow: {
     alignItems: 'center',
-    borderRadius: 18,
     flex: 1,
-    gap: 3,
+    gap: 2,
     justifyContent: 'center',
-    minHeight: 64,
+    minHeight: 55,
     paddingHorizontal: 4,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   metricValue: {
-    fontSize: 25,
+    fontSize: 24,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
-    lineHeight: 29,
+    lineHeight: 28,
   },
   metricLabel: {
     fontSize: 11,
@@ -539,7 +540,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   dailyObjectCard: {
-    gap: 9,
+    gap: 10,
     paddingHorizontal: 18,
     paddingVertical: 14,
   },
@@ -569,20 +570,21 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   actionDock: {
-    borderRadius: 24,
-    borderWidth: 1,
-    gap: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    borderRadius: 23,
+    gap: 0,
+    overflow: 'hidden',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
   nextStepRow: {
     alignItems: 'center',
-    borderRadius: 21,
-    borderWidth: 1,
     flexDirection: 'row',
     gap: 11,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
+    paddingHorizontal: 0,
+    paddingVertical: 10,
+  },
+  actionDockDivider: {
+    height: 1,
   },
   nextStepCopy: {
     flex: 1,
@@ -600,11 +602,10 @@ const styles = StyleSheet.create({
   },
   checkInDockRow: {
     alignItems: 'center',
-    borderRadius: 20,
-    borderWidth: 1,
     flexDirection: 'row',
     gap: 10,
-    paddingHorizontal: 11,
+    minHeight: 58,
+    paddingHorizontal: 0,
     paddingVertical: 9,
   },
   checkInDockRowTablet: {
@@ -632,9 +633,9 @@ const styles = StyleSheet.create({
   },
   dailyPrimaryButton: {
     borderRadius: 999,
-    minWidth: 112,
+    minWidth: 104,
     paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingVertical: 9,
   },
   nextStepButton: {
     borderRadius: 999,
@@ -673,10 +674,10 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   statusLedger: {
-    borderRadius: 20,
-    borderWidth: 1,
-    marginTop: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
+    borderTopWidth: 1,
+    marginTop: 1,
+    paddingHorizontal: 0,
+    paddingTop: 8,
+    paddingBottom: 1,
   },
 });
