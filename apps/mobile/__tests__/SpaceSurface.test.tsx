@@ -307,7 +307,7 @@ test('uses anonymous ordered selector IDs for Space library and group chips in t
   expect(renderedText).not.toContain(currentCard.space_metadata.box);
   expect(renderedText).not.toContain(currentCard.space_metadata.box_ref);
   expect(renderedText).toContain('盒内查看');
-  expect(renderedText).toContain('切换位置');
+  expect(renderedText).toContain('位置轨');
   expect(renderedText).toContain('盒内 2 张');
   expect(renderedText).not.toContain('卡片列表');
   expect(renderedText).not.toContain('相邻对象');
