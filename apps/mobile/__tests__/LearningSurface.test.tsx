@@ -13,6 +13,7 @@ import {
   createLearningCardState,
   createLocalLearningSession,
 } from '../src/learning/session';
+import { resolveLibraryTone } from '../src/visual/tokens';
 
 const palette = {
   accent: '#7C8BFF',
@@ -353,7 +354,7 @@ test('result detail reads as a resolved card without raw metadata', () => {
     JSON.stringify(
       tree!.root.findByProps({ testID: 'learning-next-button' }).props.style,
     ),
-  ).toContain(palette.success);
+  ).toContain(resolveLibraryTone(card.space_metadata.library).accent);
   expect(output).not.toContain('knowledge_ref');
   expect(output).not.toContain('box_ref');
   expect(output).not.toContain(card.knowledge_ref);
