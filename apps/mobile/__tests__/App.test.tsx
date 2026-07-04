@@ -425,15 +425,13 @@ test('renders correctly', async () => {
   expect(output).toContain('已保留');
   expect(output).toContain('原位保留');
   expect(output).toContain('手机号验证');
-  expect(output).toContain('先输入手机号');
-  expect(output).toContain('输入 11 位手机号后请求验证码。');
+  expect(output).toContain('输入手机号');
+  expect(output).toContain('11 位手机号用于接收验证码。');
   const requestDockStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'auth-request-inline-dock' }).props.style,
   );
-  expect(requestDockStyle.borderTopWidth).toBe(1);
-  expect(requestDockStyle.borderBottomWidth).toBe(1);
-  expect(requestDockStyle.borderWidth).toBeUndefined();
-  expect(requestDockStyle.borderRadius).toBeUndefined();
+  expect(requestDockStyle.borderWidth).toBe(1);
+  expect(requestDockStyle.borderRadius).toBe(18);
   expect(
     findPressableByTestId(tree!.root, 'auth-request-code-button').props
       .disabled,
@@ -559,10 +557,8 @@ test('keeps mine code-sent state attached to the account object', async () => {
   const inlineDockStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'auth-code-inline-dock' }).props.style,
   );
-  expect(inlineDockStyle.borderTopWidth).toBe(1);
-  expect(inlineDockStyle.borderBottomWidth).toBe(1);
-  expect(inlineDockStyle.borderWidth).toBeUndefined();
-  expect(inlineDockStyle.borderRadius).toBeUndefined();
+  expect(inlineDockStyle.borderWidth).toBe(1);
+  expect(inlineDockStyle.borderRadius).toBe(20);
   expect(findPressableByTestId(root, 'auth-submit-button').props.disabled).toBe(
     true,
   );
