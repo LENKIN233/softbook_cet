@@ -4048,16 +4048,16 @@ function PhoneSmsPanel({
     : palette.textMuted;
   const requestDockTitle =
     authState.pendingAction === 'request_code'
-      ? '正在请求验证码'
+      ? '正在发送验证码'
       : canRequestCode
       ? '手机号已准备好'
-      : '先输入手机号';
+      : '输入手机号';
   const requestDockDetail =
     authState.pendingAction === 'request_code'
-      ? '正在向当前手机号请求验证码。'
+      ? '正在向当前手机号发送短码。'
       : canRequestCode
       ? `验证码通过后回到${returnTarget}。`
-      : '输入 11 位手机号后请求验证码。';
+      : '11 位手机号用于接收验证码。';
   const submitCodeButtonBackground = canSubmitCode
     ? palette.accent
     : palette.panel;
@@ -4102,48 +4102,16 @@ function PhoneSmsPanel({
         </Text>
       </View>
 
-      <View
-        style={[
-          styles.fieldGroup,
-          isDockedPanel ? styles.authPhoneFieldDock : null,
-        ]}
-      >
-        <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
-          手机号
-        </Text>
-        <TextInput
-          autoCapitalize="none"
-          editable={!isPending && !isAuthenticated}
-          inputAccessoryViewID={
-            Platform.OS === 'ios' ? AUTH_KEYBOARD_ACCESSORY_ID : undefined
-          }
-          keyboardType="number-pad"
-          maxLength={11}
-          onChangeText={handlers.onChangePhone}
-          placeholder="输入 11 位手机号"
-          placeholderTextColor={palette.tabIdle}
-          style={[
-            styles.input,
-            isDockedPanel ? styles.authPhoneInputDock : null,
-            {
-              backgroundColor: palette.panelStrong,
-              borderColor: palette.border,
-              color: palette.text,
-            },
-          ]}
-          testID="auth-phone-input"
-          textContentType="telephoneNumber"
-          value={authState.phoneNumber}
-        />
-      </View>
-
       {hasRequestedCode ? (
         <View
           style={[
             styles.authCodeInlineDock,
             accountDock ? styles.authCodeInlineDockAccount : null,
             routeDock ? styles.authCodeInlineDockRoute : null,
-            { borderColor: palette.border },
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+            },
           ]}
           testID="auth-code-inline-dock"
         >
@@ -4301,50 +4269,99 @@ function PhoneSmsPanel({
             styles.authRequestInlineDock,
             accountDock ? styles.authRequestInlineDockAccount : null,
             routeDock ? styles.authRequestInlineDockRoute : null,
-            { borderColor: palette.border },
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+            },
           ]}
           testID="auth-request-inline-dock"
         >
-          <View style={styles.authRequestCopy}>
-            <Text
-              numberOfLines={1}
-              style={[styles.authRequestTitle, { color: palette.text }]}
-            >
-              {requestDockTitle}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[styles.authRequestDetail, { color: palette.textMuted }]}
-            >
-              {requestDockDetail}
-            </Text>
-          </View>
-          <Pressable
-            disabled={!canRequestCode}
-            onPress={handlers.onRequestCode}
+          <View
             style={[
-              styles.authRequestButton,
+              styles.authPhoneFieldDock,
               {
-                backgroundColor: canRequestCode
-                  ? palette.accent
-                  : palette.panel,
-                borderColor: canRequestCode ? palette.accent : palette.border,
+                backgroundColor: palette.panel,
+                borderColor: palette.border,
               },
             ]}
-            testID="auth-request-code-button"
+            testID="auth-phone-field-dock"
           >
             <Text
-              numberOfLines={1}
               style={[
-                styles.authRequestButtonLabel,
-                { color: requestCodeLabelColor },
+                styles.fieldLabel,
+                styles.authPhoneFieldDockLabel,
+                { color: palette.textMuted },
               ]}
             >
-              {authState.pendingAction === 'request_code'
-                ? '正在请求验证码'
-                : '请求验证码'}
+              手机号
             </Text>
-          </Pressable>
+            <TextInput
+              autoCapitalize="none"
+              editable={!isPending && !isAuthenticated}
+              inputAccessoryViewID={
+                Platform.OS === 'ios' ? AUTH_KEYBOARD_ACCESSORY_ID : undefined
+              }
+              keyboardType="number-pad"
+              maxLength={11}
+              onChangeText={handlers.onChangePhone}
+              placeholder="输入 11 位手机号"
+              placeholderTextColor={palette.tabIdle}
+              style={[
+                styles.input,
+                styles.authPhoneInputDock,
+                {
+                  backgroundColor: 'transparent',
+                  borderColor: 'transparent',
+                  color: palette.text,
+                },
+              ]}
+              testID="auth-phone-input"
+              textContentType="telephoneNumber"
+              value={authState.phoneNumber}
+            />
+          </View>
+          <View style={styles.authRequestActionRow}>
+            <View style={styles.authRequestCopy}>
+              <Text
+                numberOfLines={1}
+                style={[styles.authRequestTitle, { color: palette.text }]}
+              >
+                {requestDockTitle}
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[styles.authRequestDetail, { color: palette.textMuted }]}
+              >
+                {requestDockDetail}
+              </Text>
+            </View>
+            <Pressable
+              disabled={!canRequestCode}
+              onPress={handlers.onRequestCode}
+              style={[
+                styles.authRequestButton,
+                {
+                  backgroundColor: canRequestCode
+                    ? palette.accent
+                    : palette.panel,
+                  borderColor: canRequestCode ? palette.accent : palette.border,
+                },
+              ]}
+              testID="auth-request-code-button"
+            >
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.authRequestButtonLabel,
+                  { color: requestCodeLabelColor },
+                ]}
+              >
+                {authState.pendingAction === 'request_code'
+                  ? '正在请求验证码'
+                  : '请求验证码'}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       ) : null}
 
@@ -5133,22 +5150,25 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   authRequestInlineDock: {
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 8,
+    paddingHorizontal: 10,
     paddingVertical: 10,
   },
+  authRequestActionRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 9,
+    justifyContent: 'space-between',
+  },
   authRequestInlineDockAccount: {
-    borderTopWidth: 0,
-    paddingBottom: 2,
-    paddingTop: 7,
+    paddingBottom: 9,
+    paddingTop: 9,
   },
   authRequestInlineDockRoute: {
-    paddingBottom: 4,
-    paddingTop: 8,
+    paddingBottom: 9,
+    paddingTop: 9,
   },
   authRequestCopy: {
     flex: 1,
@@ -5169,9 +5189,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 44,
-    minWidth: 104,
-    paddingHorizontal: 14,
+    minHeight: 40,
+    minWidth: 98,
+    paddingHorizontal: 12,
   },
   authRequestButtonLabel: {
     fontSize: 13,
@@ -5179,17 +5199,18 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   authCodeInlineDock: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+    borderRadius: 20,
+    borderWidth: 1,
     gap: 9,
+    paddingHorizontal: 10,
     paddingVertical: 10,
   },
   authCodeInlineDockAccount: {
-    paddingBottom: 2,
+    paddingBottom: 10,
     paddingTop: 9,
   },
   authCodeInlineDockRoute: {
-    paddingBottom: 4,
+    paddingBottom: 10,
     paddingTop: 9,
   },
   authCodeSentHeader: {
@@ -5226,7 +5247,7 @@ const styles = StyleSheet.create({
   authCodeCellsFrame: {
     flex: 1,
     minWidth: 0,
-    minHeight: 48,
+    minHeight: 46,
     borderRadius: 18,
     borderWidth: 1,
     justifyContent: 'center',
@@ -5272,9 +5293,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    minWidth: 88,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    minWidth: 82,
+    paddingHorizontal: 10,
+    paddingVertical: 11,
   },
   authCodeSubmitLabel: {
     fontSize: 12,
@@ -5298,7 +5319,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   authPhoneFieldDock: {
-    gap: 5,
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  authPhoneFieldDockLabel: {
+    fontSize: 11,
+    letterSpacing: 0,
+    minWidth: 42,
   },
   fieldLabel: {
     fontSize: 12,
@@ -5314,7 +5346,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   authPhoneInputDock: {
-    minHeight: 48,
+    borderWidth: 0,
+    flex: 1,
+    minHeight: 38,
+    minWidth: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 7,
   },
   authActions: {
     gap: 10,
