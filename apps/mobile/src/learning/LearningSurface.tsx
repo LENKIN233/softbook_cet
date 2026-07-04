@@ -1592,8 +1592,8 @@ export function LearningResultDetailSurface({
           style={[
             styles.detailLocationShelf,
             {
-              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.03),
-              borderColor: hexToRgba(detailLibraryTone.accent, 0.1),
+              backgroundColor: hexToRgba(resultTone, 0.028),
+              borderColor: hexToRgba(resultTone, 0.1),
             },
           ]}
         >
