@@ -2981,11 +2981,17 @@ test('mine page keeps profile status and route actions in one screen after login
   });
 
   const output = JSON.stringify(tree!.toJSON());
+  const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
+  const mineProfileStyle = StyleSheet.flatten(mineProfileCard.props.style);
   expect(output).toContain('学习账户');
   expect(output).toContain('今天继续这一轮');
   expect(output).toContain('138****8000');
   expect(output).toContain('已签到 · 1 张完成');
   expect(output).toContain('记录已保存');
+  expect(output).not.toContain('继续用完整路线备考');
+  expect(mineProfileStyle.minHeight).toBeGreaterThanOrEqual(430);
+  expect(root.findByProps({ testID: 'mine-passport-stack' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'mine-route-dock' })).toBeTruthy();
   expect(readMetricValue(root, 'mine-metric-completed')).toBe('1');
   expect(readMetricValue(root, 'mine-metric-review')).toBe('0');
   expect(readMetricValue(root, 'mine-metric-favorites')).toBe('1');
@@ -3009,6 +3015,7 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(output).toContain('完整空间');
   expect(output).toContain('智能回看');
   expect(output).toContain('开始试用');
+  expect(output).toContain('开会员');
   expect(
     findPressableByTestId(root, 'membership-start-trial-button'),
   ).toBeTruthy();
