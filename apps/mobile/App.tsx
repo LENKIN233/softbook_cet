@@ -2796,7 +2796,7 @@ function AuthGate({
 }) {
   const hasSentCode = authState.stage === 'code_sent';
   const isMineAccountGate = embedded && route.key === 'mine';
-  const isRouteObjectGate = embedded && route.key !== 'mine';
+  const isRouteObjectGate = route.key !== 'mine';
   const isCompactAuthGate = isMineAccountGate || isRouteObjectGate;
   const authGateContent =
     route.key === 'space'
@@ -2830,15 +2830,17 @@ function AuthGate({
       : route.key === 'mine'
       ? {
           continuityItems: [
-            { label: '身份', value: '待验证' },
-            { label: '同步', value: '学习/空间/会员' },
-            { label: '会员', value: '登录后确认' },
+            { label: '身份', value: hasSentCode ? '验证中' : '待验证' },
+            { label: '同步', value: '学习空间' },
+            { label: '权益', value: '登录确认' },
           ],
-          eyebrow: '账号权益待确认',
+          eyebrow: '账号与权益',
           gateSummary: '学习记录、空间位置和会员权益会归到同一账号。',
-          gateTitle: '登录后管理账号',
-          retainedSummary: '会员和学习记录会在登录后恢复到当前账号。',
-          retainedTitle: '账号与权益 · 待确认',
+          gateTitle: '确认账号后继续',
+          retainedSummary: hasSentCode
+            ? '短码已发到手机，完成后回到我的。'
+            : '输入手机号，验证后回到我的。',
+          retainedTitle: '账号状态 · 待确认',
           returnTarget: '我的',
         }
       : {
@@ -2925,7 +2927,7 @@ function AuthGate({
                         { color: palette.textMuted },
                       ]}
                     >
-                      手机验证
+                      手机号验证
                     </Text>
                   </View>
                 </View>
@@ -2977,7 +2979,7 @@ function AuthGate({
                       { color: palette.textMuted },
                     ]}
                   >
-                    手机验证
+                    手机号验证
                   </Text>
                 </View>
               </View>
@@ -3111,6 +3113,7 @@ function AuthGate({
               ? '已完成短信验证码登录。'
               : '已完成登录。'
           }
+          stateLabel={hasSentCode ? '验证中' : undefined}
         />
       </View>
     </View>
@@ -4020,6 +4023,7 @@ function PhoneSmsPanel({
   palette,
   returnTarget,
   routeDock = false,
+  stateLabel,
   title,
   summary,
   successMessage = '已完成登录。',
@@ -4031,6 +4035,7 @@ function PhoneSmsPanel({
   palette: Palette;
   returnTarget: string;
   routeDock?: boolean;
+  stateLabel?: string;
   title: string;
   summary: string;
   successMessage?: string;
@@ -4057,7 +4062,10 @@ function PhoneSmsPanel({
       ? '正在向当前手机号发送短码。'
       : canRequestCode
       ? `验证码通过后回到${returnTarget}。`
-      : '11 位手机号用于接收验证码。';
+      : `输入手机号，完成后回到${returnTarget}。`;
+  const dockSummary = hasRequestedCode
+    ? `短码已发送，完成后回到${returnTarget}。`
+    : requestDockDetail;
   const submitCodeButtonBackground = canSubmitCode
     ? palette.accent
     : palette.panel;
@@ -4087,20 +4095,18 @@ function PhoneSmsPanel({
         },
       ]}
     >
-      <View
-        style={[
-          styles.authPanelHeader,
-          isDockedPanel ? styles.authPanelHeaderDock : null,
-        ]}
-      >
-        <Text style={[styles.infoTitle, { color: palette.text }]}>{title}</Text>
-        <Text
-          numberOfLines={isDockedPanel ? 2 : undefined}
-          style={[styles.authSummary, { color: palette.textMuted }]}
-        >
-          {summary}
-        </Text>
-      </View>
+      {!isDockedPanel ? (
+        <View style={styles.authPanelHeader}>
+          <View style={styles.authPanelTitleRow}>
+            <Text style={[styles.infoTitle, { color: palette.text }]}>
+              {title}
+            </Text>
+          </View>
+          <Text style={[styles.authSummary, { color: palette.textMuted }]}>
+            {summary}
+          </Text>
+        </View>
+      ) : null}
 
       {hasRequestedCode ? (
         <View
@@ -4258,7 +4264,7 @@ function PhoneSmsPanel({
               { color: palette.textMuted },
             ]}
           >
-            4-6 位短码，完成后回到{returnTarget}。
+            {`4-6 位短码，完成后回到${returnTarget}。`}
           </Text>
         </View>
       ) : null}
@@ -4276,64 +4282,50 @@ function PhoneSmsPanel({
           ]}
           testID="auth-request-inline-dock"
         >
-          <View
-            style={[
-              styles.authPhoneFieldDock,
-              {
-                backgroundColor: palette.panel,
-                borderColor: palette.border,
-              },
-            ]}
-            testID="auth-phone-field-dock"
-          >
-            <Text
+          <View style={styles.authRequestActionRow}>
+            <View
               style={[
-                styles.fieldLabel,
-                styles.authPhoneFieldDockLabel,
-                { color: palette.textMuted },
-              ]}
-            >
-              手机号
-            </Text>
-            <TextInput
-              autoCapitalize="none"
-              editable={!isPending && !isAuthenticated}
-              inputAccessoryViewID={
-                Platform.OS === 'ios' ? AUTH_KEYBOARD_ACCESSORY_ID : undefined
-              }
-              keyboardType="number-pad"
-              maxLength={11}
-              onChangeText={handlers.onChangePhone}
-              placeholder="输入 11 位手机号"
-              placeholderTextColor={palette.tabIdle}
-              style={[
-                styles.input,
-                styles.authPhoneInputDock,
+                styles.authPhoneFieldDock,
                 {
-                  backgroundColor: 'transparent',
-                  borderColor: 'transparent',
-                  color: palette.text,
+                  backgroundColor: palette.panel,
+                  borderColor: palette.border,
                 },
               ]}
-              testID="auth-phone-input"
-              textContentType="telephoneNumber"
-              value={authState.phoneNumber}
-            />
-          </View>
-          <View style={styles.authRequestActionRow}>
-            <View style={styles.authRequestCopy}>
+              testID="auth-phone-field-dock"
+            >
               <Text
-                numberOfLines={1}
-                style={[styles.authRequestTitle, { color: palette.text }]}
+                style={[
+                  styles.fieldLabel,
+                  styles.authPhoneFieldDockLabel,
+                  { color: palette.textMuted },
+                ]}
               >
-                {requestDockTitle}
+                手机号
               </Text>
-              <Text
-                numberOfLines={1}
-                style={[styles.authRequestDetail, { color: palette.textMuted }]}
-              >
-                {requestDockDetail}
-              </Text>
+              <TextInput
+                autoCapitalize="none"
+                editable={!isPending && !isAuthenticated}
+                inputAccessoryViewID={
+                  Platform.OS === 'ios' ? AUTH_KEYBOARD_ACCESSORY_ID : undefined
+                }
+                keyboardType="number-pad"
+                maxLength={11}
+                onChangeText={handlers.onChangePhone}
+                placeholder="输入 11 位手机号"
+                placeholderTextColor={palette.tabIdle}
+                style={[
+                  styles.input,
+                  styles.authPhoneInputDock,
+                  {
+                    backgroundColor: 'transparent',
+                    borderColor: 'transparent',
+                    color: palette.text,
+                  },
+                ]}
+                testID="auth-phone-input"
+                textContentType="telephoneNumber"
+                value={authState.phoneNumber}
+              />
             </View>
             <Pressable
               disabled={!canRequestCode}
@@ -4357,10 +4349,33 @@ function PhoneSmsPanel({
                 ]}
               >
                 {authState.pendingAction === 'request_code'
-                  ? '正在请求验证码'
-                  : '请求验证码'}
+                  ? '发送中'
+                  : '获取短码'}
               </Text>
             </Pressable>
+          </View>
+          <View style={styles.authRequestStatusLine}>
+            <View
+              pointerEvents="none"
+              style={[
+                styles.authCodeSentDot,
+                { backgroundColor: palette.accent },
+              ]}
+            />
+            <View style={styles.authRequestCopy}>
+              <Text
+                numberOfLines={1}
+                style={[styles.authRequestTitle, { color: palette.text }]}
+              >
+                {stateLabel ?? requestDockTitle}
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[styles.authRequestDetail, { color: palette.textMuted }]}
+              >
+                {dockSummary}
+              </Text>
+            </View>
           </View>
         </View>
       ) : null}
@@ -4901,7 +4916,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   authEntryCardMine: {
-    gap: 9,
+    gap: 8,
     paddingHorizontal: 15,
     paddingVertical: 14,
   },
@@ -4931,12 +4946,12 @@ const styles = StyleSheet.create({
     lineHeight: 31,
   },
   authGateTitleMine: {
-    fontSize: 25,
-    lineHeight: 30,
+    fontSize: 23,
+    lineHeight: 28,
   },
   authGateSummary: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 13,
+    lineHeight: 19,
   },
   authMinePassportHeader: {
     alignItems: 'flex-start',
@@ -4946,9 +4961,9 @@ const styles = StyleSheet.create({
   authMineAvatar: {
     alignItems: 'center',
     borderRadius: 22,
-    height: 44,
+    height: 42,
     justifyContent: 'center',
-    width: 44,
+    width: 42,
   },
   authMineAvatarText: {
     fontSize: 17,
@@ -4968,32 +4983,32 @@ const styles = StyleSheet.create({
   authRetainedObject: {
     borderRadius: 22,
     borderWidth: 1,
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    gap: 9,
+    paddingHorizontal: 11,
+    paddingVertical: 10,
   },
   authRetainedObjectCompact: {
     borderRadius: 21,
-    gap: 8,
+    gap: 7,
     paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingVertical: 9,
   },
   authRetainedHead: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 10,
+    gap: 9,
   },
   authRetainedHeadCompact: {
-    gap: 8,
+    gap: 7,
   },
   authRetainedAccent: {
     borderRadius: 999,
-    height: 44,
-    width: 5,
+    height: 10,
+    width: 10,
   },
   authRetainedAccentCompact: {
-    height: 34,
-    width: 4,
+    height: 9,
+    width: 9,
   },
   authRetainedCopy: {
     flex: 1,
@@ -5016,7 +5031,7 @@ const styles = StyleSheet.create({
   authRetainedLedgerCompact: {
     borderTopWidth: 0,
     flexDirection: 'row',
-    gap: 7,
+    gap: 6,
     paddingTop: 0,
   },
   authRetainedLedgerRow: {
@@ -5032,9 +5047,9 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     gap: 2,
     justifyContent: 'center',
-    minHeight: 50,
+    minHeight: 42,
     paddingHorizontal: 3,
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
   authObjectBadge: {
     alignItems: 'center',
@@ -5134,10 +5149,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
   },
   authPanelDock: {
-    borderTopWidth: 1,
-    gap: 8,
-    marginTop: 1,
-    paddingTop: 10,
+    borderTopWidth: 0,
+    gap: 7,
+    marginTop: 0,
+    paddingTop: 0,
   },
   authPanelHeader: {
     gap: 5,
@@ -5145,21 +5160,40 @@ const styles = StyleSheet.create({
   authPanelHeaderDock: {
     paddingHorizontal: 2,
   },
+  authPanelTitleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
+  },
+  authPanelStatePill: {
+    borderRadius: 999,
+    borderWidth: 1,
+    maxWidth: 96,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  authPanelStatePillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 14,
+    textAlign: 'center',
+  },
   authSummary: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 13,
+    lineHeight: 19,
   },
   authRequestInlineDock: {
     borderRadius: 18,
     borderWidth: 1,
-    gap: 8,
+    gap: 7,
     paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingVertical: 9,
   },
   authRequestActionRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 9,
+    gap: 8,
     justifyContent: 'space-between',
   },
   authRequestInlineDockAccount: {
@@ -5172,29 +5206,35 @@ const styles = StyleSheet.create({
   },
   authRequestCopy: {
     flex: 1,
-    gap: 3,
+    gap: 1,
     minWidth: 0,
   },
+  authRequestStatusLine: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
   authRequestTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
-    lineHeight: 19,
+    lineHeight: 18,
   },
   authRequestDetail: {
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 11,
+    lineHeight: 15,
   },
   authRequestButton: {
     alignItems: 'center',
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 40,
-    minWidth: 98,
-    paddingHorizontal: 12,
+    minHeight: 42,
+    minWidth: 86,
+    paddingHorizontal: 11,
   },
   authRequestButtonLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     lineHeight: 17,
   },
@@ -5322,8 +5362,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 18,
     borderWidth: 1,
+    flex: 1,
     flexDirection: 'row',
     gap: 8,
+    minWidth: 0,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
