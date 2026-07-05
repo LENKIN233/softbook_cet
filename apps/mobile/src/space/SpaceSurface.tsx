@@ -1484,8 +1484,8 @@ export function SpaceSurface({
                           styles.inspectCardTile,
                           styles.browseCardTile,
                           {
-                            backgroundColor: 'transparent',
-                            borderColor: 'transparent',
+                            backgroundColor: solidPanelStrong,
+                            borderColor: neutralObjectBorder,
                           },
                         ]}
                       >
@@ -1546,7 +1546,8 @@ export function SpaceSurface({
                             styles.cardStateDeck,
                             styles.browseCardStateDeck,
                             {
-                              borderTopColor: neutralObjectBorder,
+                              backgroundColor: neutralObjectSurface,
+                              borderColor: neutralObjectBorder,
                             },
                           ]}
                         >
@@ -1572,10 +1573,10 @@ export function SpaceSurface({
                                   {
                                     backgroundColor: isFavorited
                                       ? hexToRgba(selectedTone.accent, 0.1)
-                                      : 'transparent',
+                                      : solidPanelStrong,
                                     borderColor: isFavorited
                                       ? hexToRgba(selectedTone.accent, 0.28)
-                                      : 'transparent',
+                                      : neutralObjectBorder,
                                   },
                                 ]}
                                 testID={`space-favorite-${cardDisplayIndex}`}
@@ -1620,10 +1621,10 @@ export function SpaceSurface({
                                   {
                                     backgroundColor: isSleeping
                                       ? hexToRgba(palette.warning, 0.1)
-                                      : 'transparent',
+                                      : solidPanelStrong,
                                     borderColor: isSleeping
                                       ? hexToRgba(palette.warning, 0.28)
-                                      : 'transparent',
+                                      : neutralObjectBorder,
                                   },
                                 ]}
                                 testID={`space-sleep-${cardDisplayIndex}`}
@@ -1636,7 +1637,7 @@ export function SpaceSurface({
                                       { color: palette.text },
                                     ]}
                                   >
-                                    同盒休眠区
+                                    休眠区
                                   </Text>
                                   <Text
                                     numberOfLines={1}
@@ -1666,7 +1667,7 @@ export function SpaceSurface({
                                 >
                                   {isSleeping
                                     ? '暂离练习，仍在当前盒'
-                                    : '暂时不进入练习'}
+                                    : '同盒暂休'}
                                 </Text>
                               </Pressable>
                             </>
@@ -2428,12 +2429,14 @@ const styles = StyleSheet.create({
   boxBrowseSurface: {
     borderRadius: 28,
     borderWidth: 1,
-    flexDirection: 'column-reverse',
-    gap: 2,
+    flex: 1,
+    flexDirection: 'column',
+    gap: 8,
+    minHeight: 0,
     overflow: 'hidden',
-    paddingBottom: 10,
+    paddingBottom: 12,
     paddingHorizontal: 12,
-    paddingTop: 2,
+    paddingTop: 12,
   },
   boxTrayHeader: {
     alignItems: 'stretch',
@@ -2449,12 +2452,12 @@ const styles = StyleSheet.create({
   browseObjectPlane: {
     borderRadius: 24,
     borderWidth: 1,
-    gap: 6,
+    gap: 8,
     paddingHorizontal: 13,
     paddingVertical: 9,
   },
   browseObjectPlaneDesk: {
-    gap: 5,
+    gap: 8,
     overflow: 'hidden',
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -2505,18 +2508,17 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   browseRail: {
-    borderTopWidth: 0,
-    gap: 3,
+    borderTopWidth: 1,
+    gap: 6,
     paddingHorizontal: 0,
-    paddingTop: 0,
+    paddingTop: 8,
   },
   browseRailDesk: {
-    gap: 4,
+    gap: 6,
     paddingVertical: 0,
   },
   browseRailTitleRow: {
     alignItems: 'center',
-    display: 'none',
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
@@ -2893,7 +2895,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardStrip: {
+    flex: 1,
     gap: 0,
+    minHeight: 0,
   },
   compactSelectorDeck: {
     gap: 8,
@@ -2912,25 +2916,27 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   inspectCardTile: {
-    gap: 9,
-    minHeight: 248,
+    gap: 10,
+    minHeight: 0,
     overflow: 'hidden',
     paddingLeft: 28,
     paddingTop: 15,
     paddingVertical: 13,
   },
   browseCardTile: {
-    borderRadius: 0,
-    borderWidth: 0,
-    elevation: 0,
-    gap: 8,
+    borderRadius: 24,
+    borderWidth: 1,
+    elevation: 1,
+    flex: 1,
+    gap: 10,
     minHeight: 0,
-    paddingBottom: 8,
-    paddingHorizontal: 4,
-    paddingLeft: 18,
-    paddingRight: 4,
+    paddingBottom: 12,
+    paddingHorizontal: 14,
+    paddingLeft: 26,
+    paddingRight: 14,
     paddingTop: 14,
-    shadowOpacity: 0,
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
   },
   inspectCardEdge: {
     borderRadius: 999,
@@ -2955,8 +2961,11 @@ const styles = StyleSheet.create({
     paddingTop: 9,
   },
   browseCardStateDeck: {
+    borderRadius: 18,
+    borderWidth: 1,
     gap: 6,
-    paddingTop: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 7,
   },
   favoriteTagButton: {
     borderRadius: 14,
@@ -3026,8 +3035,8 @@ const styles = StyleSheet.create({
   },
   browseCompactPager: {
     gap: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   boxBrowsePagerMeta: {
     fontSize: 12,
@@ -3040,7 +3049,7 @@ const styles = StyleSheet.create({
   },
   browseCompactContinuityBar: {
     gap: 8,
-    marginTop: 0,
+    marginTop: 'auto',
   },
   browseContinuityPrimary: {
     borderRadius: 20,
