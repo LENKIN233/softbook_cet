@@ -3019,11 +3019,7 @@ function AuthGate({
                   { backgroundColor: palette.accent },
                 ]}
               >
-                <Text
-                  style={[styles.authMineAvatarText, { color: palette.panel }]}
-                >
-                  我
-                </Text>
+                <RouteIcon active color={palette.panel} routeKey="mine" />
               </View>
               <View style={styles.authMineHeaderCopy}>
                 <View style={styles.authMineHeaderTopRow}>
@@ -5389,10 +5385,6 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     width: 44,
-  },
-  authMineAvatarText: {
-    fontSize: 17,
-    fontWeight: '800',
   },
   authMineHeaderCopy: {
     flex: 1,
