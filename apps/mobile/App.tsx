@@ -3897,8 +3897,8 @@ function MembershipHostCard({
               style={[
                 styles.membershipCompactPurchaseButton,
                 {
-                  backgroundColor: 'transparent',
-                  borderColor: 'transparent',
+                  backgroundColor: hexToRgba(palette.accent, 0.075),
+                  borderColor: hexToRgba(palette.accent, 0.24),
                 },
               ]}
               testID="membership-purchase-button"
@@ -3907,7 +3907,7 @@ function MembershipHostCard({
                 numberOfLines={1}
                 style={[
                   styles.membershipCompactPurchaseLabel,
-                  { color: palette.textMuted },
+                  { color: palette.accentStrong },
                 ]}
               >
                 {membershipPendingAction === 'purchase' ? '同步中' : '开会员'}
@@ -6385,9 +6385,9 @@ const styles = StyleSheet.create({
   },
   membershipAccessCompactActions: {
     alignItems: 'stretch',
-    gap: 5,
+    gap: 6,
     justifyContent: 'center',
-    minWidth: 76,
+    minWidth: 82,
   },
   membershipCompactBenefitRow: {
     flexDirection: 'row',
@@ -6417,9 +6417,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 999,
     justifyContent: 'center',
-    minHeight: 30,
-    minWidth: 76,
-    paddingHorizontal: 9,
+    minHeight: 32,
+    minWidth: 82,
+    paddingHorizontal: 10,
   },
   membershipCompactTrialLabel: {
     fontSize: 11,
@@ -6431,9 +6431,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 28,
-    minWidth: 76,
-    paddingHorizontal: 6,
+    minHeight: 32,
+    minWidth: 82,
+    paddingHorizontal: 10,
   },
   membershipCompactPurchaseLabel: {
     fontSize: 11,

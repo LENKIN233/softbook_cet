@@ -3051,6 +3051,12 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(output).toContain('智能回看');
   expect(output).toContain('开始试用');
   expect(output).toContain('开会员');
+  const purchaseButtonStyle = StyleSheet.flatten(
+    findPressableByTestId(root, 'membership-purchase-button').props.style,
+  );
+  expect(purchaseButtonStyle.minHeight).toBeGreaterThanOrEqual(32);
+  expect(purchaseButtonStyle.backgroundColor).not.toBe('transparent');
+  expect(purchaseButtonStyle.borderColor).not.toBe('transparent');
   expect(
     findPressableByTestId(root, 'membership-start-trial-button'),
   ).toBeTruthy();
