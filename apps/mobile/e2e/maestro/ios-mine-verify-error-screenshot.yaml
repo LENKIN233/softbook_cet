@@ -1,0 +1,43 @@
+appId: com.softbook.cet
+name: ios-mine-verify-error-screenshot
+---
+- extendedWaitUntil:
+    visible:
+      id: 'auth-phone-input'
+    timeout: 30000
+- tapOn:
+    id: 'route-tab-mine'
+- assertVisible:
+    id: 'auth-phone-input'
+- tapOn:
+    id: 'auth-phone-input'
+- inputText: '13800138000'
+- tapOn:
+    id: 'auth-gate-keyboard-dismiss-target'
+- tapOn:
+    id: 'auth-request-code-button'
+- extendedWaitUntil:
+    visible:
+      id: 'auth-code-input'
+    timeout: 10000
+- tapOn:
+    id: 'auth-code-input'
+- inputText: '2468'
+- tapOn:
+    id: 'auth-gate-keyboard-dismiss-target'
+- tapOn:
+    id: 'auth-submit-button'
+- extendedWaitUntil:
+    visible:
+      id: 'auth-error-dock'
+    timeout: 10000
+- assertVisible:
+    id: 'mine-profile-card'
+- assertVisible:
+    id: 'auth-code-cells-frame'
+- assertVisible:
+    id: 'auth-error-title'
+- assertVisible:
+    id: 'auth-error-detail'
+- assertVisible:
+    id: 'auth-error-retry-pill'

@@ -759,13 +759,25 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('验证码校验暂时失败（401）。');
   expect(output).toContain('验证码暂时没通过');
+  expect(output).toContain('验证码待确认');
   expect(output).toContain('检查短码后再试，当前位置仍保留。');
+  expect(output).toContain('重新验证');
   expect(output).toContain('可重试');
   expect(output).toContain('4-6 位短码，完成后回到当前卡。');
   expect(root.findByProps({ testID: 'auth-error-dock' })).toBeTruthy();
   expect(root.findByProps({ testID: 'auth-error-title' })).toBeTruthy();
   expect(root.findByProps({ testID: 'auth-error-detail' })).toBeTruthy();
   expect(root.findByProps({ testID: 'auth-error-retry-pill' })).toBeTruthy();
+  const codeCellsFrameStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'auth-code-cells-frame' }).props.style,
+  );
+  expect(codeCellsFrameStyle.borderColor).toBe('rgba(201, 133, 36, 0.42)');
+  expect(codeCellsFrameStyle.backgroundColor).toBe('rgba(201, 133, 36, 0.08)');
+  const submitButtonStyle = StyleSheet.flatten(
+    findPressableByTestId(root, 'auth-submit-button').props.style,
+  );
+  expect(submitButtonStyle.backgroundColor).toBe('#C98524');
+  expect(submitButtonStyle.borderColor).toBe('#C98524');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
