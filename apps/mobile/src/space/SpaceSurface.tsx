@@ -1160,8 +1160,8 @@ export function SpaceSurface({
                       {isGated
                         ? '待开放'
                         : selectedFavoriteCards.length > 0
-                        ? '有收藏'
-                        : '可收藏'}
+                        ? `${selectedFavoriteCards.length} 张收藏`
+                        : `${selectedBoxCards.length} 张卡`}
                     </Text>
                   </View>
                 </View>
@@ -1488,6 +1488,7 @@ export function SpaceSurface({
                             borderColor: neutralObjectBorder,
                           },
                         ]}
+                        testID="space-browse-card-object"
                       >
                         <View
                           style={[
@@ -2429,12 +2430,12 @@ const styles = StyleSheet.create({
   boxBrowseSurface: {
     borderRadius: 28,
     borderWidth: 1,
-    flex: 1,
+    flex: 0,
     flexDirection: 'column',
-    gap: 8,
+    gap: 7,
     minHeight: 0,
     overflow: 'hidden',
-    paddingBottom: 12,
+    paddingBottom: 10,
     paddingHorizontal: 12,
     paddingTop: 12,
   },
@@ -2457,10 +2458,10 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   browseObjectPlaneDesk: {
-    gap: 8,
+    gap: 7,
     overflow: 'hidden',
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 9,
   },
   browseAddressTray: {
     borderRadius: 20,
@@ -2509,12 +2510,12 @@ const styles = StyleSheet.create({
   },
   browseRail: {
     borderTopWidth: 1,
-    gap: 6,
+    gap: 5,
     paddingHorizontal: 0,
-    paddingTop: 8,
+    paddingTop: 7,
   },
   browseRailDesk: {
-    gap: 6,
+    gap: 5,
     paddingVertical: 0,
   },
   browseRailTitleRow: {
@@ -2895,7 +2896,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardStrip: {
-    flex: 1,
+    flex: 0,
     gap: 0,
     minHeight: 0,
   },
@@ -2927,14 +2928,14 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     elevation: 1,
-    flex: 1,
-    gap: 10,
-    minHeight: 0,
-    paddingBottom: 12,
+    flex: 0,
+    gap: 8,
+    minHeight: 328,
+    paddingBottom: 11,
     paddingHorizontal: 14,
     paddingLeft: 26,
     paddingRight: 14,
-    paddingTop: 14,
+    paddingTop: 13,
     shadowOpacity: 0.04,
     shadowRadius: 12,
   },
@@ -2965,7 +2966,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 6,
     paddingHorizontal: 7,
-    paddingVertical: 7,
+    paddingVertical: 6,
   },
   favoriteTagButton: {
     borderRadius: 14,
@@ -2978,9 +2979,9 @@ const styles = StyleSheet.create({
   },
   browseCompactStateButton: {
     borderRadius: 16,
-    minHeight: 50,
+    minHeight: 47,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
   favoriteTagLabel: {
     fontSize: 13,
@@ -3031,7 +3032,7 @@ const styles = StyleSheet.create({
     gap: 10,
     justifyContent: 'space-between',
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
   browseCompactPager: {
     gap: 8,
@@ -3049,7 +3050,7 @@ const styles = StyleSheet.create({
   },
   browseCompactContinuityBar: {
     gap: 8,
-    marginTop: 'auto',
+    marginTop: 2,
   },
   browseContinuityPrimary: {
     borderRadius: 20,

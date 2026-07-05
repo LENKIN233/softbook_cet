@@ -3226,7 +3226,8 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   expect(
     root.findAllByProps({ testID: 'space-favorite-active-1' }).length,
   ).toBeGreaterThan(0);
-  expect(output).toContain('有收藏');
+  expect(output).toContain('1 张收藏');
+  expect(output).not.toContain('可收藏');
   expect(output).not.toContain('收藏标签');
   expect(output).toContain('取消收藏');
 
