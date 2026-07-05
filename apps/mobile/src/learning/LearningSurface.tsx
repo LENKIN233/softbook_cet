@@ -25,6 +25,9 @@ export type LearningSurfacePalette = {
   accent: string;
   accentSoft: string;
   accentStrong: string;
+  primaryActionMuted?: string;
+  primaryActionSurface?: string;
+  primaryActionText?: string;
   tabIdle: string;
   success: string;
   warning: string;
@@ -160,6 +163,21 @@ function formatLearningSubmitDockCopy(
   }
 }
 
+function getPrimaryActionColors(palette: LearningSurfacePalette) {
+  return {
+    surface: palette.primaryActionSurface ?? palette.text,
+    text: palette.primaryActionText ?? palette.panelStrong,
+    muted: palette.primaryActionMuted ?? palette.textMuted,
+  };
+}
+
+function getNeutralActionSurface(palette: LearningSurfacePalette) {
+  return {
+    border: hexToRgba(palette.text, 0.12),
+    surface: hexToRgba(palette.text, 0.035),
+  };
+}
+
 export function LearningSurface({
   palette,
   sessionCards,
@@ -196,6 +214,7 @@ export function LearningSurface({
       completedResults,
       sessionCards.length,
     );
+    const primaryAction = getPrimaryActionColors(palette);
 
     return (
       <View style={[styles.oneScreenPage, styles.completeScreen]}>
@@ -282,7 +301,7 @@ export function LearningSurface({
               onPress={onStartReview}
               style={[
                 styles.primaryButton,
-                { backgroundColor: palette.accentStrong },
+                { backgroundColor: palette.warning },
               ]}
               testID="learning-start-review-button"
             >
@@ -295,10 +314,15 @@ export function LearningSurface({
           ) : null}
           <Pressable
             onPress={onRestartDeck}
-            style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+            style={[
+              styles.primaryButton,
+              { backgroundColor: primaryAction.surface },
+            ]}
             testID="learning-restart-button"
           >
-            <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            <Text
+              style={[styles.primaryButtonLabel, { color: primaryAction.text }]}
+            >
               {isReviewPhase ? '回到首轮重新开始' : '重新练这轮卡'}
             </Text>
           </Pressable>
@@ -367,6 +391,8 @@ export function LearningSurface({
     currentCard,
     currentCardState,
   );
+  const primaryAction = getPrimaryActionColors(palette);
+  const neutralAction = getNeutralActionSurface(palette);
   const hasCommittedChoiceSelection =
     currentCard.interaction_id === 'multiple_choice' &&
     currentCardState.selectedOptionId !== null;
@@ -683,10 +709,10 @@ export function LearningSurface({
                   styles.submitActionDock,
                   {
                     backgroundColor: canSubmitCurrentCard
-                      ? hexToRgba(tone.accent, 0.054)
+                      ? neutralAction.surface
                       : palette.panelStrong,
                     borderColor: canSubmitCurrentCard
-                      ? hexToRgba(tone.accent, 0.28)
+                      ? neutralAction.border
                       : palette.border,
                   },
                 ]}
@@ -699,7 +725,7 @@ export function LearningSurface({
                       styles.submitActionTitle,
                       {
                         color: canSubmitCurrentCard
-                          ? tone.accent
+                          ? palette.text
                           : palette.textMuted,
                       },
                     ]}
@@ -723,7 +749,7 @@ export function LearningSurface({
                     styles.submitActionButton,
                     {
                       backgroundColor: canSubmitCurrentCard
-                        ? tone.accent
+                        ? primaryAction.surface
                         : palette.tabIdle,
                       opacity: canSubmitCurrentCard ? 1 : 0.68,
                     },
@@ -733,7 +759,11 @@ export function LearningSurface({
                   <Text
                     style={[
                       styles.submitActionButtonLabel,
-                      { color: palette.panel },
+                      {
+                        color: canSubmitCurrentCard
+                          ? primaryAction.text
+                          : palette.panel,
+                      },
                     ]}
                   >
                     提交
@@ -776,6 +806,8 @@ function InteractionBody({
     accent: libraryTone.accent,
     accentSoft: libraryTone.accentSoft,
   };
+  const primaryAction = getPrimaryActionColors(palette);
+  const neutralAction = getNeutralActionSurface(palette);
 
   switch (card.interaction_id) {
     case 'flip':
@@ -804,11 +836,17 @@ function InteractionBody({
           ) : (
             <Pressable
               onPress={onFlip}
-              style={[styles.primaryButton, { backgroundColor: tone.accent }]}
+              style={[
+                styles.primaryButton,
+                { backgroundColor: primaryAction.surface },
+              ]}
               testID="learning-flip-button"
             >
               <Text
-                style={[styles.primaryButtonLabel, { color: palette.panel }]}
+                style={[
+                  styles.primaryButtonLabel,
+                  { color: primaryAction.text },
+                ]}
               >
                 先翻面看答案
               </Text>
@@ -883,20 +921,20 @@ function InteractionBody({
                 : isIncorrectSelection
                 ? hexToRgba(palette.danger, 0.075)
                 : isSelected
-                ? hexToRgba(tone.accent, 0.055)
+                ? neutralAction.surface
                 : palette.panel;
               const optionStateBorder = isCorrect
                 ? hexToRgba(palette.success, 0.42)
                 : isIncorrectSelection
                 ? hexToRgba(palette.danger, 0.38)
                 : isSelected
-                ? hexToRgba(tone.accent, 0.42)
+                ? neutralAction.border
                 : palette.border;
               const optionStateColor = isCorrect
                 ? palette.success
                 : isIncorrectSelection
                 ? palette.danger
-                : tone.accent;
+                : primaryAction.surface;
 
               return (
                 <Pressable
@@ -920,11 +958,11 @@ function InteractionBody({
                           backgroundColor:
                             isSelected || isResolved
                               ? optionStateColor
-                              : hexToRgba(tone.accent, 0.09),
+                              : neutralAction.surface,
                           borderColor:
                             isSelected || isResolved
                               ? optionStateColor
-                              : hexToRgba(tone.accent, 0.18),
+                              : palette.border,
                         },
                       ]}
                     >
@@ -934,8 +972,8 @@ function InteractionBody({
                           {
                             color:
                               isSelected || isResolved
-                                ? palette.panel
-                                : tone.accent,
+                                ? primaryAction.text
+                                : palette.textMuted,
                           },
                         ]}
                       >
@@ -980,9 +1018,11 @@ function InteractionBody({
                     styles.lockRow,
                     {
                       backgroundColor: isUnlocked
-                        ? tone.accentSoft
+                        ? neutralAction.surface
                         : palette.panel,
-                      borderColor: isUnlocked ? tone.accent : palette.border,
+                      borderColor: isUnlocked
+                        ? neutralAction.border
+                        : palette.border,
                     },
                   ]}
                 >
@@ -991,9 +1031,11 @@ function InteractionBody({
                       styles.lockGlyph,
                       {
                         backgroundColor: isUnlocked
-                          ? tone.accent
+                          ? primaryAction.surface
                           : palette.panelStrong,
-                        borderColor: isUnlocked ? tone.accent : palette.border,
+                        borderColor: isUnlocked
+                          ? primaryAction.surface
+                          : palette.border,
                       },
                     ]}
                   >
@@ -1001,7 +1043,9 @@ function InteractionBody({
                       style={[
                         styles.lockGlyphLabel,
                         {
-                          color: isUnlocked ? palette.panel : palette.textMuted,
+                          color: isUnlocked
+                            ? primaryAction.text
+                            : palette.textMuted,
                         },
                       ]}
                     >
@@ -1017,7 +1061,9 @@ function InteractionBody({
                         style={[
                           styles.lockStatus,
                           {
-                            color: isUnlocked ? tone.accent : palette.textMuted,
+                            color: isUnlocked
+                              ? palette.text
+                              : palette.textMuted,
                           },
                         ]}
                       >
@@ -1040,7 +1086,7 @@ function InteractionBody({
                                   ? palette.panel
                                   : palette.panelStrong,
                                 borderColor: isSelected
-                                  ? tone.accent
+                                  ? neutralAction.border
                                   : palette.border,
                               },
                             ]}
@@ -1055,7 +1101,7 @@ function InteractionBody({
                                 styles.lockChoiceLabel,
                                 {
                                   color: isSelected
-                                    ? tone.accent
+                                    ? palette.text
                                     : palette.text,
                                 },
                               ]}
@@ -1091,7 +1137,7 @@ function InteractionBody({
                     styles.eliminationCard,
                     {
                       backgroundColor: isSelected
-                        ? tone.accentSoft
+                        ? neutralAction.surface
                         : palette.panel,
                       borderColor: currentResult
                         ? isCorrect
@@ -1100,7 +1146,7 @@ function InteractionBody({
                           ? palette.danger
                           : palette.border
                         : isSelected
-                        ? tone.accent
+                        ? neutralAction.border
                         : palette.border,
                     },
                   ]}
@@ -1110,7 +1156,7 @@ function InteractionBody({
                     <View
                       style={[
                         styles.eliminationStrikeRail,
-                        { backgroundColor: tone.accent },
+                        { backgroundColor: primaryAction.surface },
                       ]}
                     />
                   ) : null}
@@ -1129,7 +1175,7 @@ function InteractionBody({
                     <Text
                       style={[
                         styles.eliminationStateLabel,
-                        { color: tone.accent },
+                        { color: palette.text },
                       ]}
                     >
                       已剥离
@@ -1194,12 +1240,12 @@ function InteractionBody({
                       : styles.swipeTrailRight,
                     {
                       backgroundColor: isSelected
-                        ? tone.accentSoft
+                        ? neutralAction.surface
                         : palette.panel,
                       borderColor: isCorrect
                         ? palette.success
                         : isSelected
-                        ? tone.accent
+                        ? neutralAction.border
                         : palette.border,
                     },
                   ]}
@@ -1411,7 +1457,8 @@ export function LearningResultDetailSurface({
   const resolvedRows = getResolvedAnswerRows(card, cardState);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
-  const detailActionTone = detailLibraryTone.accent;
+  const primaryAction = getPrimaryActionColors(palette);
+  const neutralAction = getNeutralActionSurface(palette);
   const boundedSessionCardCount = Math.max(sessionCardCount, 1);
   const progressOrdinal = Math.min(currentIndex + 1, boundedSessionCardCount);
   const progressPercent = `${Math.max(
@@ -1569,8 +1616,8 @@ export function LearningResultDetailSurface({
           style={[
             styles.detailAnswerSlip,
             {
-              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.028),
-              borderColor: hexToRgba(detailLibraryTone.accent, 0.1),
+              backgroundColor: neutralAction.surface,
+              borderColor: neutralAction.border,
             },
           ]}
         >
@@ -1703,11 +1750,13 @@ export function LearningResultDetailSurface({
           style={[
             styles.primaryButton,
             styles.detailPrimaryButton,
-            { backgroundColor: detailActionTone },
+            { backgroundColor: primaryAction.surface },
           ]}
           testID="learning-next-button"
         >
-          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+          <Text
+            style={[styles.primaryButtonLabel, { color: primaryAction.text }]}
+          >
             {isLastCard ? '完成本轮学习' : '继续下一张'}
           </Text>
         </Pressable>
@@ -1737,9 +1786,9 @@ function ResultSummaryPanel({
       : result.outcome === 'incorrect'
       ? palette.danger
       : palette.success;
-  const cardTone = resolveLibraryTone(card.space_metadata.library);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
+  const primaryAction = getPrimaryActionColors(palette);
 
   return (
     <View
@@ -1787,11 +1836,13 @@ function ResultSummaryPanel({
           style={[
             styles.primaryButton,
             styles.resultNextButton,
-            { backgroundColor: cardTone.accent },
+            { backgroundColor: primaryAction.surface },
           ]}
           testID="learning-next-button"
         >
-          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+          <Text
+            style={[styles.primaryButtonLabel, { color: primaryAction.text }]}
+          >
             {isLastCard ? '完成本轮学习' : '继续下一张'}
           </Text>
         </Pressable>
@@ -1819,9 +1870,9 @@ function ResultPanel({
       : result.outcome === 'incorrect'
       ? palette.danger
       : palette.success;
-  const cardTone = resolveLibraryTone(card.space_metadata.library);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
+  const primaryAction = getPrimaryActionColors(palette);
 
   return (
     <View
@@ -1869,10 +1920,15 @@ function ResultPanel({
       </View>
       <Pressable
         onPress={onAdvanceCard}
-        style={[styles.primaryButton, { backgroundColor: cardTone.accent }]}
+        style={[
+          styles.primaryButton,
+          { backgroundColor: primaryAction.surface },
+        ]}
         testID="learning-next-button"
       >
-        <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+        <Text
+          style={[styles.primaryButtonLabel, { color: primaryAction.text }]}
+        >
           {isLastCard ? '完成本轮学习' : '下一张'}
         </Text>
       </Pressable>
