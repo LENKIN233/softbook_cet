@@ -4813,25 +4813,25 @@ function getUserFacingErrorMessage(error: unknown, fallback: string) {
     return INTERNAL_ERROR_COPY_PATTERN.test(message) ? fallback : message;
   }
 
-  const [, type, statusCode] = remoteStatusMatch;
+  const [, type] = remoteStatusMatch;
 
   switch (type) {
     case 'auth request-code':
-      return `验证码发送暂时失败（${statusCode}）。`;
+      return '验证码暂时没发出。';
     case 'auth verify-code':
-      return `验证码校验暂时失败（${statusCode}）。`;
+      return '验证码暂时没通过。';
     case 'membership entitlement request':
-      return `会员状态暂时无法读取（${statusCode}）。`;
+      return '会员状态暂时无法读取。';
     case 'membership mutation':
-      return `会员状态更新暂时失败（${statusCode}）。`;
+      return '会员状态更新暂时失败。';
     case 'learning card source request':
-      return `学习卡片加载暂时失败（${statusCode}）。`;
+      return '学习卡片加载暂时失败。';
     case 'progress sync':
-      return `学习进展同步暂时失败（${statusCode}）。`;
+      return '学习进展同步暂时失败。';
     case 'learning state sync':
-      return `学习状态同步暂时失败（${statusCode}）。`;
+      return '学习状态同步暂时失败。';
     case 'space state sync':
-      return `空间状态同步暂时失败（${statusCode}）。`;
+      return '空间状态同步暂时失败。';
     default:
       return message;
   }

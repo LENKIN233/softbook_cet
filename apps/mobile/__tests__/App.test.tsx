@@ -33,7 +33,7 @@ type TestRendererNode =
   | null;
 
 const USER_VISIBLE_METADATA_PATTERN =
-  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|remoteConfig|authToken|endpoint|MutationQueue|mutation|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|当前卡组|本组第|本轮卡组|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|已登录\s+138|第\s+\d+\s+张\s+\/\s+共\s+\d+\s+张|馆\s+\d|组\s+\d|盒\s+\d|当前地址|当前学习卡位于|空间地址架|当前盒位|当前空间路径|收藏标签\s+\d|休眠区\s+\d|0\s+张可展示|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
+  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|remoteConfig|authToken|endpoint|MutationQueue|mutation|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|当前卡组|本组第|本轮卡组|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|已登录\s+138|第\s+\d+\s+张\s+\/\s+共\s+\d+\s+张|馆\s+\d|组\s+\d|盒\s+\d|当前地址|当前学习卡位于|空间地址架|当前盒位|当前空间路径|收藏标签\s+\d|休眠区\s+\d|0\s+张可展示|（[1-5]\d{2}）|\([1-5]\d{2}\)|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
 function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   if (node === null) {
@@ -695,7 +695,9 @@ test('shows remote request-code failure inside the auth gate', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证码发送暂时失败（503）。');
+  expect(output).toContain('验证码暂时没发出。');
+  expect(output).not.toContain('验证码发送暂时失败（503）。');
+  expect(output).not.toContain('（503）');
   expect(output).toContain('短码暂时没发出');
   expect(output).toContain('检查手机号后再试，当前位置仍保留。');
   expect(output).toContain('可重试');
@@ -767,7 +769,9 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证码校验暂时失败（401）。');
+  expect(output).toContain('验证码暂时没通过。');
+  expect(output).not.toContain('验证码校验暂时失败（401）。');
+  expect(output).not.toContain('（401）');
   expect(output).toContain('验证码暂时没通过');
   expect(output).toContain('验证码待确认');
   expect(output).toContain('检查短码后再试，当前位置仍保留。');
@@ -1996,7 +2000,9 @@ test('keeps remote purchase failure copy user-facing', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('会员状态更新暂时失败（503）。');
+  expect(output).toContain('会员状态更新暂时失败。');
+  expect(output).not.toContain('会员状态更新暂时失败（503）。');
+  expect(output).not.toContain('（503）');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
@@ -2164,7 +2170,9 @@ test('keeps remote recovery-dismiss failure copy user-facing', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('会员状态更新暂时失败（503）。');
+  expect(output).toContain('会员状态更新暂时失败。');
+  expect(output).not.toContain('会员状态更新暂时失败（503）。');
+  expect(output).not.toContain('（503）');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
