@@ -4190,11 +4190,22 @@ function PhoneSmsPanel({
               </Text>
             </Pressable>
           </View>
+          <Text
+            numberOfLines={1}
+            style={[
+              styles.authCodeSentMeta,
+              styles.authCodeReturnText,
+              { color: palette.textMuted },
+            ]}
+          >
+            {`4-6 位短码，完成后回到${returnTarget}。`}
+          </Text>
           <View
             style={[
               styles.authCodeEntryRow,
               accountDock ? styles.authCodeEntryRowAccount : null,
             ]}
+            testID="auth-code-entry-row"
           >
             <View
               style={[
@@ -4295,16 +4306,6 @@ function PhoneSmsPanel({
               </Pressable>
             ) : null}
           </View>
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.authCodeSentMeta,
-              styles.authCodeReturnText,
-              { color: palette.textMuted },
-            ]}
-          >
-            {`4-6 位短码，完成后回到${returnTarget}。`}
-          </Text>
         </View>
       ) : null}
 
@@ -5343,19 +5344,21 @@ const styles = StyleSheet.create({
   authCodeInlineDock: {
     borderRadius: 20,
     borderWidth: 1,
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    gap: 11,
+    minHeight: 214,
+    paddingHorizontal: 13,
+    paddingVertical: 13,
   },
   authCodeInlineDockAccount: {
-    gap: 9,
-    paddingBottom: 10,
-    paddingHorizontal: 11,
-    paddingTop: 10,
+    gap: 10,
+    minHeight: 205,
+    paddingBottom: 12,
+    paddingHorizontal: 12,
+    paddingTop: 12,
   },
   authCodeInlineDockRoute: {
-    paddingBottom: 10,
-    paddingTop: 9,
+    paddingBottom: 12,
+    paddingTop: 12,
   },
   authCodeSentHeader: {
     alignItems: 'center',
@@ -5381,8 +5384,9 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   authCodeReturnText: {
-    paddingLeft: 0,
-    textAlign: 'center',
+    paddingLeft: 19,
+    paddingRight: 2,
+    textAlign: 'left',
   },
   authCodeEntryRow: {
     alignItems: 'stretch',
@@ -5391,20 +5395,20 @@ const styles = StyleSheet.create({
   },
   authCodeEntryRowAccount: {
     alignItems: 'stretch',
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: 8,
   },
   authCodeCellsFrame: {
-    flex: 1,
-    minWidth: 0,
     minHeight: 54,
+    minWidth: 0,
     borderRadius: 18,
     borderWidth: 1,
     justifyContent: 'center',
     overflow: 'hidden',
+    width: '100%',
   },
   authCodeCellsFrameAccount: {
-    minHeight: 44,
+    minHeight: 52,
   },
   authCodeCells: {
     alignItems: 'center',
@@ -5414,8 +5418,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   authCodeCellsAccount: {
-    gap: 3,
-    paddingHorizontal: 7,
+    gap: 5,
+    paddingHorizontal: 10,
   },
   authCodeCell: {
     alignItems: 'center',
@@ -5426,9 +5430,9 @@ const styles = StyleSheet.create({
     width: 36,
   },
   authCodeCellAccount: {
-    borderRadius: 9,
-    height: 34,
-    width: 27,
+    borderRadius: 10,
+    height: 38,
+    width: 34,
   },
   authCodeCellText: {
     fontSize: 17,
@@ -5460,10 +5464,12 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   authCodeSubmitButtonAccount: {
-    minHeight: 46,
-    minWidth: 90,
-    paddingHorizontal: 11,
-    paddingVertical: 9,
+    alignSelf: 'stretch',
+    minHeight: 44,
+    minWidth: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    width: '100%',
   },
   authCodeSubmitLabel: {
     fontSize: 12,

@@ -561,6 +561,15 @@ test('keeps mine code-sent state attached to the account object', async () => {
   );
   expect(inlineDockStyle.borderWidth).toBe(1);
   expect(inlineDockStyle.borderRadius).toBe(20);
+  const entryRowStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'auth-code-entry-row' }).props.style,
+  );
+  expect(entryRowStyle.flexDirection).toBe('column');
+  const submitButtonStyle = StyleSheet.flatten(
+    findPressableByTestId(root, 'auth-submit-button').props.style,
+  );
+  expect(submitButtonStyle.width).toBe('100%');
+  expect(submitButtonStyle.minWidth).toBe(0);
   expect(findPressableByTestId(root, 'auth-submit-button').props.disabled).toBe(
     true,
   );
