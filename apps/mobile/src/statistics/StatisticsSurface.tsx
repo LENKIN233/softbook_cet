@@ -254,13 +254,14 @@ export function StatisticsSurface({
             style={[
               styles.metricLedger,
               {
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
+                backgroundColor: hexToRgba(dailyRailTone, 0.045),
+                borderColor: hexToRgba(dailyRailTone, 0.08),
               },
             ]}
             testID="statistics-metric-strip"
           >
             <MetricLedgerRow
+              dividerAfter
               emphasis
               label="今日完成"
               palette={palette}
@@ -268,12 +269,14 @@ export function StatisticsSurface({
               value={`${combinedResults.length}`}
             />
             <MetricLedgerRow
+              dividerAfter
               label="首轮"
               palette={palette}
               testID="statistics-metric-learning"
               value={`${learningResults.length}`}
             />
             <MetricLedgerRow
+              dividerAfter
               label="回看"
               palette={palette}
               testID="statistics-metric-review"
@@ -420,32 +423,34 @@ export function StatisticsSurface({
               </Text>
             </Pressable>
           </View>
-        </View>
 
-        <View
-          style={[
-            styles.statusLedger,
-            {
-              borderTopColor: hexToRgba(palette.textMuted, 0.1),
-            },
-          ]}
-          testID="statistics-status-ledger"
-        >
-          <View style={styles.ledgerRail} testID="statistics-ledger-rail">
-            <LedgerRow
-              label="回看"
-              palette={palette}
-              testID="statistics-review-status"
-              value={reviewStatus}
-            />
-            <LedgerRow
-              detail={syncStatusDetail}
-              detailTestID="statistics-sync-detail"
-              label="记录"
-              palette={palette}
-              testID="statistics-sync-label"
-              value={syncStatusLabel}
-            />
+          <View
+            pointerEvents="none"
+            style={[
+              styles.actionDockDivider,
+              {
+                backgroundColor: hexToRgba(palette.textMuted, 0.1),
+              },
+            ]}
+          />
+
+          <View style={styles.statusLedger} testID="statistics-status-ledger">
+            <View style={styles.ledgerRail} testID="statistics-ledger-rail">
+              <LedgerRow
+                label="回看"
+                palette={palette}
+                testID="statistics-review-status"
+                value={reviewStatus}
+              />
+              <LedgerRow
+                detail={syncStatusDetail}
+                detailTestID="statistics-sync-detail"
+                label="记录"
+                palette={palette}
+                testID="statistics-sync-label"
+                value={syncStatusLabel}
+              />
+            </View>
           </View>
         </View>
       </SurfaceCard>
@@ -454,6 +459,7 @@ export function StatisticsSurface({
 }
 
 function MetricLedgerRow({
+  dividerAfter = false,
   emphasis = false,
   label,
   palette,
@@ -461,6 +467,7 @@ function MetricLedgerRow({
   tone,
   value,
 }: {
+  dividerAfter?: boolean;
   emphasis?: boolean;
   label: string;
   palette: StatisticsPalette;
@@ -482,13 +489,9 @@ function MetricLedgerRow({
       style={[
         styles.metricLedgerRow,
         emphasis ? styles.metricLedgerRowEmphasis : null,
+        dividerAfter ? styles.metricLedgerDivider : null,
         {
-          backgroundColor: emphasis
-            ? hexToRgba(palette.accent, 0.07)
-            : hexToRgba(palette.accent, 0.03),
-          borderColor: emphasis
-            ? hexToRgba(palette.accent, 0.13)
-            : hexToRgba(palette.accent, 0.07),
+          borderRightColor: hexToRgba(palette.textMuted, 0.11),
         },
       ]}
       testID={testID}
@@ -619,40 +622,43 @@ const styles = StyleSheet.create({
   },
   metricLedger: {
     alignItems: 'stretch',
-    borderRadius: 0,
-    borderWidth: 0,
+    borderRadius: 16,
+    borderWidth: 1,
     flexDirection: 'row',
-    gap: 5,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
+    gap: 0,
+    overflow: 'hidden',
+    paddingHorizontal: 2,
+    paddingVertical: 1,
   },
   metricLedgerRow: {
     alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 0,
+    borderWidth: 0,
     flex: 1,
     flexDirection: 'column',
-    gap: 2,
+    gap: 1,
     justifyContent: 'center',
-    minHeight: 46,
+    minHeight: 36,
     minWidth: 0,
     paddingHorizontal: 3,
-    paddingVertical: 6,
+    paddingVertical: 5,
   },
   metricLedgerRowEmphasis: {
     flex: 1.18,
-    minHeight: 48,
+  },
+  metricLedgerDivider: {
+    borderRightWidth: 1,
   },
   metricValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
-    lineHeight: 20,
+    lineHeight: 18,
     textAlign: 'center',
   },
   metricValueEmphasis: {
-    fontSize: 21,
-    lineHeight: 24,
+    fontSize: 19,
+    lineHeight: 22,
   },
   metricLabel: {
     fontSize: 10,
@@ -712,11 +718,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   progressDock: {
-    borderRadius: 21,
+    borderRadius: 20,
     borderWidth: 1,
-    gap: 9,
+    gap: 8,
     paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingVertical: 9,
   },
   progressHeader: {
     alignItems: 'center',
@@ -836,8 +842,8 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   ledgerRail: {
-    flexDirection: 'column',
-    gap: 5,
+    flexDirection: 'row',
+    gap: 6,
   },
   ledgerLabel: {
     fontSize: 11,
@@ -855,30 +861,26 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   ledgerRow: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     borderRadius: 14,
     borderWidth: 1,
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-    minHeight: 36,
+    flex: 1,
+    gap: 3,
+    justifyContent: 'center',
+    minHeight: 43,
     minWidth: 0,
-    paddingHorizontal: 11,
+    paddingHorizontal: 10,
     paddingVertical: 7,
   },
   ledgerValueStack: {
-    alignItems: 'center',
-    flex: 1,
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    gap: 1,
     minWidth: 0,
+    width: '100%',
   },
   statusLedger: {
-    borderTopWidth: 1,
-    marginTop: 0,
     paddingHorizontal: 0,
-    paddingTop: 7,
-    paddingBottom: 1,
+    paddingTop: 8,
+    paddingBottom: 0,
   },
 });
