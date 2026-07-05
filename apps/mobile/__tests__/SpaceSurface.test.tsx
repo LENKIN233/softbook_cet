@@ -292,6 +292,13 @@ test('uses anonymous ordered selector IDs for Space library and group chips in t
   expect(
     root.findAllByProps({ testID: 'space-browse-rail' }).length,
   ).toBeGreaterThan(0);
+  const browseRailStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'space-browse-rail' }).props.style,
+  );
+  expect(browseRailStyle.borderWidth).toBe(1);
+  expect(browseRailStyle.borderTopWidth).toBe(0);
+  expect(browseRailStyle.borderRadius).toBeGreaterThanOrEqual(18);
+  expect(browseRailStyle.paddingHorizontal).toBeGreaterThanOrEqual(8);
   expect(
     root.findAllByProps({ testID: 'space-browse-card-continuity' }).length,
   ).toBeGreaterThan(0);
@@ -318,7 +325,7 @@ test('uses anonymous ordered selector IDs for Space library and group chips in t
   expect(renderedText).not.toContain(currentCard.space_metadata.box);
   expect(renderedText).not.toContain(currentCard.space_metadata.box_ref);
   expect(renderedText).toContain('盒内查看');
-  expect(renderedText).toContain('位置');
+  expect(renderedText).toContain('切换位置');
   expect(renderedText).toContain('2 张卡');
   expect(renderedText).toContain('盒内 2 张');
   expect(renderedText).toContain('贴卡标签');

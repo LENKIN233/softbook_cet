@@ -1237,7 +1237,8 @@ export function SpaceSurface({
                       styles.browseRail,
                       styles.browseRailDesk,
                       {
-                        borderTopColor: neutralObjectBorder,
+                        backgroundColor: neutralObjectSurface,
+                        borderColor: neutralObjectBorder,
                       },
                     ]}
                     testID="space-browse-rail"
@@ -1249,7 +1250,7 @@ export function SpaceSurface({
                           { color: palette.text },
                         ]}
                       >
-                        位置
+                        切换位置
                       </Text>
                       <Text
                         style={[
@@ -1301,10 +1302,10 @@ export function SpaceSurface({
                                   isActive ? styles.browseRailChipActive : null,
                                   {
                                     backgroundColor: isActive
-                                      ? neutralObjectSurface
+                                      ? hexToRgba(selectedTone.accent, 0.09)
                                       : solidPanelStrong,
                                     borderColor: isActive
-                                      ? neutralObjectBorder
+                                      ? hexToRgba(selectedTone.accent, 0.28)
                                       : hexToRgba(palette.textMuted, 0.08),
                                   },
                                 ]}
@@ -1366,10 +1367,10 @@ export function SpaceSurface({
                                   isActive ? styles.browseRailChipActive : null,
                                   {
                                     backgroundColor: isActive
-                                      ? neutralObjectSurface
+                                      ? hexToRgba(selectedTone.accent, 0.09)
                                       : solidPanelStrong,
                                     borderColor: isActive
-                                      ? neutralObjectBorder
+                                      ? hexToRgba(selectedTone.accent, 0.28)
                                       : hexToRgba(palette.textMuted, 0.08),
                                   },
                                 ]}
@@ -1425,10 +1426,10 @@ export function SpaceSurface({
                                   isActive ? styles.browseRailChipActive : null,
                                   {
                                     backgroundColor: isActive
-                                      ? neutralObjectSurface
+                                      ? hexToRgba(selectedTone.accent, 0.09)
                                       : solidPanelStrong,
                                     borderColor: isActive
-                                      ? neutralObjectBorder
+                                      ? hexToRgba(selectedTone.accent, 0.28)
                                       : hexToRgba(palette.textMuted, 0.08),
                                   },
                                 ]}
@@ -2508,44 +2509,46 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   browseRail: {
-    borderTopWidth: 1,
-    gap: 5,
-    paddingHorizontal: 0,
-    paddingTop: 7,
+    borderRadius: 18,
+    borderTopWidth: 0,
+    borderWidth: 1,
+    gap: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
   },
   browseRailDesk: {
-    gap: 5,
-    paddingVertical: 0,
+    gap: 6,
   },
   browseRailTitleRow: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingHorizontal: 2,
   },
   browseRailTitle: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '900',
-    lineHeight: 13,
+    lineHeight: 14,
   },
   browseRailHint: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '700',
-    lineHeight: 12,
+    lineHeight: 13,
   },
   browseRailShelfRow: {
-    gap: 4,
+    gap: 3,
   },
   browseRailLevel: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 5,
+    alignItems: 'stretch',
+    flexDirection: 'column',
+    gap: 4,
   },
   browseRailShelfLevel: {
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
   browseRailPairRow: {
     flexDirection: 'row',
-    gap: 5,
+    gap: 7,
   },
   browseRailLevelHalf: {
     flex: 1,
@@ -2554,20 +2557,18 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 0.7,
-    width: 22,
   },
   browseRailRow: {
-    flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 5,
+    gap: 4,
   },
   browseRailChip: {
     alignItems: 'center',
     borderRadius: 999,
     borderWidth: 1,
     minWidth: 56,
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     paddingVertical: 3,
   },
   browseRailChipSmall: {
