@@ -428,6 +428,16 @@ test('renders correctly', async () => {
   expect(output).toContain('输入手机号');
   expect(output).toContain('输入手机号，完成后回到当前卡。');
   expect(output).toContain('待输入');
+  const routeObjectScreenStyle = StyleSheet.flatten(
+    tree!.root.findByProps({ testID: 'auth-route-object-screen' }).props.style,
+  );
+  expect(routeObjectScreenStyle.justifyContent).toBe('flex-start');
+  expect(routeObjectScreenStyle.paddingTop).toBe(2);
+  const routeObjectCardStyle = StyleSheet.flatten(
+    tree!.root.findByProps({ testID: 'auth-route-object-card' }).props.style,
+  );
+  expect(routeObjectCardStyle.justifyContent).toBe('flex-start');
+  expect(routeObjectCardStyle.minHeight).toBe(0);
   const requestDockStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'auth-request-inline-dock' }).props.style,
   );
