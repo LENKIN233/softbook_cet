@@ -485,11 +485,12 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
   expect(output).toContain('确认账号后继续');
   expect(output).toContain('学习记录、空间位置和会员权益会归到同一账号。');
-  expect(output).toContain('待验证');
-  expect(output).toContain('学习空间');
-  expect(output).toContain('登录确认');
-  expect(output).toContain('手机号验证');
-  expect(output).toContain('输入手机号，验证后回到我的。');
+  expect(output).toContain('账号承接 · 待确认');
+  expect(output).toContain('记录');
+  expect(output).toContain('空间');
+  expect(output).toContain('权益');
+  expect(output).toContain('手机验证');
+  expect(output).toContain('输入手机号，完成后回到我的。');
   expect(output).not.toContain('确认身份继续学');
   expect(output).not.toContain('当前学习卡');
   expect(
