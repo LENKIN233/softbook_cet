@@ -3137,8 +3137,8 @@ test('can browse the seeded knowledge map after login', async () => {
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('The committee postponed the vote');
   expect(output).toContain('盒内查看');
-  expect(output).toContain('贴在这张卡上');
-  expect(output).toContain('休眠区');
+  expect(output).toContain('贴卡标签');
+  expect(output).toContain('休眠');
   expect(output).not.toContain('收藏标签');
   expect(output).not.toContain('卡片列表');
   expectNoUserVisibleMetadataLeakage(tree!);
