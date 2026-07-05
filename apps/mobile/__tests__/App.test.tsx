@@ -2894,7 +2894,7 @@ test('can check in from statistics after making learning progress', async () => 
   const ledgerRailStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'statistics-ledger-rail' }).props.style,
   );
-  expect(ledgerRailStyle.flexDirection).toBe('column');
+  expect(ledgerRailStyle.flexDirection).toBe('row');
 
   await ReactTestRenderer.act(() => {
     root
