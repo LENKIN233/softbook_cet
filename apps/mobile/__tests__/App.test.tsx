@@ -2695,7 +2695,7 @@ test('can start a review round from cards that need revisiting', async () => {
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('先处理回看');
   expect(output).toContain('开始回看');
-  expect(output).toContain('统计只提醒，不让你停在这里。');
+  expect(output).toContain('统计只提醒。');
   expect(
     findPressableByTestId(root, 'statistics-start-review-button'),
   ).toBeTruthy();
@@ -2776,7 +2776,7 @@ test('can check in from statistics after making learning progress', async () => 
   expect(output).toContain('继续下一张');
   expect(output).toContain('回学习');
   expect(output).toContain('今日可签到');
-  expect(output).toContain('今天已经产生有效学习进展，可以记录一次签到。');
+  expect(output).toContain('已有有效学习进展，可以记录今天。');
   expect(output).toContain('已记录');
   expect(output).not.toContain('今日统计与签到');
   expect(output).not.toContain('练习信号');

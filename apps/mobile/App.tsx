@@ -2212,7 +2212,6 @@ function AppShell({
   ) : route.key === 'statistics' ? (
     <StatisticsSurface
       canCheckInToday={canCheckInToday}
-      dayLabel={todayKey}
       deviceClass={deviceClass}
       hasCheckedInToday={hasCheckedInToday}
       learningResults={learningCompletedResults}
