@@ -3066,6 +3066,12 @@ function AuthGate({
                   isCompactAuthGate
                     ? styles.authRetainedLedgerRowCompact
                     : null,
+                  isCompactAuthGate
+                    ? {
+                        backgroundColor: palette.panel,
+                        borderColor: hexToRgba(palette.accent, 0.12),
+                      }
+                    : null,
                 ]}
                 testID="auth-retained-ledger-row"
               >
@@ -4054,15 +4060,13 @@ function PhoneSmsPanel({
     isPhoneNumberReady(authState.phoneNumber) && !isPending && !isAuthenticated;
   const canSubmitCode =
     isSmsCodeReady(authState.smsCode) && !isPending && !isAuthenticated;
-  const requestCodeLabelColor = canRequestCode
-    ? palette.panel
-    : palette.textMuted;
+  const requestCodeLabelColor = canRequestCode ? palette.panel : palette.accent;
   const requestDockTitle =
     authState.pendingAction === 'request_code'
       ? '正在发送验证码'
       : canRequestCode
       ? '手机号已准备好'
-      : '输入手机号';
+      : '把当前位置接到账号';
   const requestDockDetail =
     authState.pendingAction === 'request_code'
       ? '正在向当前手机号发送短码。'
@@ -4074,13 +4078,11 @@ function PhoneSmsPanel({
     : requestDockDetail;
   const submitCodeButtonBackground = canSubmitCode
     ? palette.accent
-    : palette.panel;
+    : hexToRgba(palette.accent, 0.08);
   const submitCodeButtonBorder = canSubmitCode
     ? palette.accent
-    : palette.border;
-  const submitCodeLabelColor = canSubmitCode
-    ? palette.panel
-    : palette.textMuted;
+    : hexToRgba(palette.accent, 0.14);
+  const submitCodeLabelColor = canSubmitCode ? palette.panel : palette.accent;
   const smsCodeDigits = authState.smsCode
     .split('')
     .slice(0, SMS_CODE_CELL_COUNT);
@@ -4199,10 +4201,10 @@ function PhoneSmsPanel({
                         {
                           backgroundColor: isFilled
                             ? palette.panelStrong
-                            : palette.panel,
+                            : hexToRgba(palette.accent, 0.045),
                           borderColor: isActive
                             ? palette.accent
-                            : palette.border,
+                            : hexToRgba(palette.accent, 0.16),
                         },
                       ]}
                     >
@@ -4341,8 +4343,10 @@ function PhoneSmsPanel({
                 {
                   backgroundColor: canRequestCode
                     ? palette.accent
-                    : palette.panel,
-                  borderColor: canRequestCode ? palette.accent : palette.border,
+                    : hexToRgba(palette.accent, 0.08),
+                  borderColor: canRequestCode
+                    ? palette.accent
+                    : hexToRgba(palette.accent, 0.14),
                 },
               ]}
               testID="auth-request-code-button"
@@ -4892,12 +4896,13 @@ const styles = StyleSheet.create({
   authGateScreen: {
     flex: 1,
     gap: 10,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 10,
+    paddingTop: 10,
+    paddingBottom: 18,
   },
   authGateScreenEmbedded: {
+    justifyContent: 'flex-start',
     paddingHorizontal: 0,
     paddingTop: 0,
     paddingBottom: 0,
@@ -4917,14 +4922,18 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   authEntryCardRouteObject: {
-    gap: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 14,
+    gap: 12,
+    justifyContent: 'space-between',
+    minHeight: 468,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
   },
   authEntryCardMine: {
-    gap: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 14,
+    gap: 11,
+    justifyContent: 'space-between',
+    minHeight: 428,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
   },
   authObjectHeader: {
     gap: 8,
@@ -4995,9 +5004,9 @@ const styles = StyleSheet.create({
   },
   authRetainedObjectCompact: {
     borderRadius: 21,
-    gap: 7,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   authRetainedHead: {
     alignItems: 'center',
@@ -5005,7 +5014,8 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   authRetainedHeadCompact: {
-    gap: 7,
+    alignItems: 'flex-start',
+    gap: 9,
   },
   authRetainedAccent: {
     borderRadius: 999,
@@ -5013,8 +5023,8 @@ const styles = StyleSheet.create({
     width: 10,
   },
   authRetainedAccentCompact: {
-    height: 9,
-    width: 9,
+    height: 38,
+    width: 4,
   },
   authRetainedCopy: {
     flex: 1,
@@ -5037,7 +5047,7 @@ const styles = StyleSheet.create({
   authRetainedLedgerCompact: {
     borderTopWidth: 0,
     flexDirection: 'row',
-    gap: 6,
+    gap: 7,
     paddingTop: 0,
   },
   authRetainedLedgerRow: {
@@ -5049,13 +5059,15 @@ const styles = StyleSheet.create({
   },
   authRetainedLedgerRowCompact: {
     alignItems: 'center',
+    borderRadius: 15,
+    borderWidth: 1,
     flex: 1,
     flexDirection: 'column',
     gap: 2,
     justifyContent: 'center',
-    minHeight: 42,
+    minHeight: 50,
     paddingHorizontal: 3,
-    paddingVertical: 4,
+    paddingVertical: 7,
   },
   authObjectBadge: {
     alignItems: 'center',
@@ -5156,7 +5168,7 @@ const styles = StyleSheet.create({
   },
   authPanelDock: {
     borderTopWidth: 0,
-    gap: 7,
+    gap: 10,
     marginTop: 0,
     paddingTop: 0,
   },
@@ -5192,15 +5204,15 @@ const styles = StyleSheet.create({
   authRequestInlineDock: {
     borderRadius: 18,
     borderWidth: 1,
-    gap: 7,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
   },
   authRequestActionRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'space-between',
+    alignItems: 'stretch',
+    flexDirection: 'column',
+    gap: 9,
+    justifyContent: 'flex-start',
   },
   authRequestInlineDockAccount: {
     paddingBottom: 9,
@@ -5234,9 +5246,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 999,
     borderWidth: 1,
+    alignSelf: 'stretch',
     justifyContent: 'center',
-    minHeight: 42,
-    minWidth: 86,
+    minHeight: 44,
     paddingHorizontal: 11,
   },
   authRequestButtonLabel: {
@@ -5247,9 +5259,9 @@ const styles = StyleSheet.create({
   authCodeInlineDock: {
     borderRadius: 20,
     borderWidth: 1,
-    gap: 9,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   authCodeInlineDockAccount: {
     paddingBottom: 10,
@@ -5283,17 +5295,18 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   authCodeReturnText: {
-    paddingLeft: 19,
+    paddingLeft: 0,
+    textAlign: 'center',
   },
   authCodeEntryRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
+    alignItems: 'stretch',
+    flexDirection: 'column',
+    gap: 9,
   },
   authCodeCellsFrame: {
     flex: 1,
     minWidth: 0,
-    minHeight: 46,
+    minHeight: 54,
     borderRadius: 18,
     borderWidth: 1,
     justifyContent: 'center',
@@ -5308,12 +5321,11 @@ const styles = StyleSheet.create({
   },
   authCodeCell: {
     alignItems: 'center',
-    aspectRatio: 0.82,
     borderRadius: 11,
     borderWidth: 1,
-    flex: 1,
+    height: 40,
     justifyContent: 'center',
-    minHeight: 32,
+    width: 36,
   },
   authCodeCellText: {
     fontSize: 17,
@@ -5336,10 +5348,11 @@ const styles = StyleSheet.create({
   },
   authCodeSubmitButton: {
     alignItems: 'center',
+    alignSelf: 'stretch',
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    minWidth: 82,
+    minHeight: 45,
     paddingHorizontal: 10,
     paddingVertical: 11,
   },
@@ -5373,7 +5386,7 @@ const styles = StyleSheet.create({
     gap: 8,
     minWidth: 0,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 7,
   },
   authPhoneFieldDockLabel: {
     fontSize: 11,
