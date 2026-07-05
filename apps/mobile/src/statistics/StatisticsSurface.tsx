@@ -75,12 +75,12 @@ export function StatisticsSurface({
     : '先至少完成 1 张学习或回看卡，再把今天记成一次有效签到。';
   const reviewStatus =
     reviewResults.length > 0
-      ? `已完成 ${reviewResults.length} 张回看卡，当前还剩 ${pendingReviewCount} 张待回看。`
+      ? `已回看 ${reviewResults.length} · 待回看 ${pendingReviewCount}`
       : pendingReviewCount > 0
-      ? `首轮里还有 ${pendingReviewCount} 张卡待回看，先把需要再看的卡处理完。`
+      ? `${pendingReviewCount} 张待回看`
       : combinedResults.length > 0
-      ? '首轮已收口，暂时没有额外待回看卡。'
-      : '今天还没有形成可展示的今日进展。';
+      ? '首轮已收口'
+      : '暂无今日进展';
   const dailyTitle = hasCheckedInToday
     ? '今日已记录'
     : hasLearningProgress
@@ -181,8 +181,8 @@ export function StatisticsSurface({
           style={[
             styles.metricLedger,
             {
-              backgroundColor: hexToRgba(palette.accent, 0.026),
-              borderColor: hexToRgba(palette.accent, 0.08),
+              backgroundColor: 'transparent',
+              borderColor: 'transparent',
             },
           ]}
           testID="statistics-metric-strip"
@@ -219,8 +219,8 @@ export function StatisticsSurface({
           style={[
             styles.actionDock,
             {
-              backgroundColor: 'transparent',
-              borderColor: 'transparent',
+              backgroundColor: hexToRgba(palette.accent, 0.03),
+              borderColor: hexToRgba(palette.accent, 0.08),
             },
           ]}
           testID="statistics-action-dock"
@@ -230,14 +230,8 @@ export function StatisticsSurface({
               styles.actionObjectRow,
               styles.nextStepRow,
               {
-                backgroundColor: hexToRgba(
-                  nextStepIsReview ? palette.warning : palette.accent,
-                  0.034,
-                ),
-                borderColor: hexToRgba(
-                  nextStepIsReview ? palette.warning : palette.accent,
-                  0.09,
-                ),
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
               },
             ]}
             testID="statistics-next-step-card"
@@ -296,7 +290,7 @@ export function StatisticsSurface({
             style={[
               styles.actionDockDivider,
               {
-                backgroundColor: 'transparent',
+                backgroundColor: hexToRgba(palette.textMuted, 0.12),
               },
             ]}
           />
@@ -305,8 +299,8 @@ export function StatisticsSurface({
             style={[
               styles.actionObjectRow,
               {
-                backgroundColor: hexToRgba(palette.accent, 0.022),
-                borderColor: hexToRgba(palette.accent, 0.07),
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
               },
               styles.checkInDockRow,
               deviceClass === 'tablet' ? styles.checkInDockRowTablet : null,
@@ -358,7 +352,7 @@ export function StatisticsSurface({
           style={[
             styles.statusLedger,
             {
-              borderTopColor: 'transparent',
+              borderTopColor: hexToRgba(palette.textMuted, 0.1),
             },
           ]}
         >
@@ -413,6 +407,14 @@ function MetricLedgerRow({
       style={[
         styles.metricLedgerRow,
         emphasis ? styles.metricLedgerRowEmphasis : null,
+        {
+          backgroundColor: emphasis
+            ? hexToRgba(palette.accent, 0.07)
+            : hexToRgba(palette.accent, 0.03),
+          borderColor: emphasis
+            ? hexToRgba(palette.accent, 0.13)
+            : hexToRgba(palette.accent, 0.07),
+        },
       ]}
       testID={testID}
     >
@@ -542,45 +544,50 @@ const styles = StyleSheet.create({
   },
   metricLedger: {
     alignItems: 'stretch',
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 2,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: 0,
+    borderWidth: 0,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   metricLedgerRow: {
     alignItems: 'center',
-    borderRadius: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    minHeight: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    flex: 1,
+    flexDirection: 'column',
+    gap: 2,
+    justifyContent: 'center',
+    minHeight: 54,
     minWidth: 0,
-    paddingHorizontal: 2,
-    paddingVertical: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 7,
   },
   metricLedgerRowEmphasis: {
-    minHeight: 36,
+    flex: 1.18,
+    minHeight: 58,
   },
   metricValue: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
-    lineHeight: 21,
-    textAlign: 'right',
+    lineHeight: 22,
+    textAlign: 'center',
   },
   metricValueEmphasis: {
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: 23,
+    lineHeight: 27,
   },
   metricLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '800',
-    lineHeight: 16,
-    textAlign: 'left',
+    lineHeight: 14,
+    textAlign: 'center',
   },
   metricLabelEmphasis: {
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 10,
+    lineHeight: 14,
   },
   surfaceCard: {
     borderWidth: 1,
@@ -630,26 +637,27 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   actionDock: {
-    borderRadius: 0,
-    borderWidth: 0,
-    gap: 6,
-    overflow: 'visible',
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-  },
-  actionObjectRow: {
     borderRadius: 20,
     borderWidth: 1,
+    gap: 0,
+    overflow: 'visible',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  actionObjectRow: {
+    borderRadius: 0,
+    borderWidth: 0,
   },
   nextStepRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingHorizontal: 2,
+    paddingBottom: 7,
+    paddingTop: 2,
   },
   actionDockDivider: {
-    height: 0,
+    height: 1,
   },
   nextStepCopy: {
     flex: 1,
@@ -669,9 +677,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
-    minHeight: 48,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    minHeight: 44,
+    paddingHorizontal: 2,
+    paddingBottom: 2,
+    paddingTop: 7,
   },
   checkInDockRowTablet: {
     alignItems: 'flex-start',
@@ -709,7 +718,8 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   ledgerRail: {
-    gap: 5,
+    flexDirection: 'row',
+    gap: 6,
   },
   ledgerLabel: {
     fontSize: 11,
@@ -728,15 +738,16 @@ const styles = StyleSheet.create({
   },
   ledgerRow: {
     alignItems: 'flex-start',
-    borderRadius: 16,
+    borderRadius: 15,
     borderWidth: 1,
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-    minHeight: 44,
+    flex: 1,
+    flexDirection: 'column',
+    gap: 4,
+    justifyContent: 'flex-start',
+    minHeight: 58,
     minWidth: 0,
     paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingVertical: 8,
   },
   ledgerValueStack: {
     flex: 1,
@@ -744,10 +755,10 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   statusLedger: {
-    borderTopWidth: 0,
-    marginTop: 1,
+    borderTopWidth: 1,
+    marginTop: 0,
     paddingHorizontal: 0,
-    paddingTop: 0,
+    paddingTop: 7,
     paddingBottom: 1,
   },
 });

@@ -2736,7 +2736,7 @@ test('can start a review round from cards that need revisiting', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已完成 1 张回看卡，当前还剩 0 张待回看。');
+  expect(output).toContain('已回看 1 · 待回看 0');
 });
 
 test('can check in from statistics after making learning progress', async () => {
