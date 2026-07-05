@@ -4350,6 +4350,7 @@ function PhoneSmsPanel({
               styles.authRequestActionRow,
               accountDock ? styles.authRequestActionRowAccount : null,
             ]}
+            testID="auth-request-action-row"
           >
             <View
               style={[
@@ -5288,14 +5289,14 @@ const styles = StyleSheet.create({
   },
   authRequestActionRowAccount: {
     alignItems: 'stretch',
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: 8,
   },
   authRequestInlineDockAccount: {
-    gap: 8,
-    paddingBottom: 10,
-    paddingHorizontal: 11,
-    paddingTop: 10,
+    gap: 9,
+    paddingBottom: 12,
+    paddingHorizontal: 12,
+    paddingTop: 12,
   },
   authRequestInlineDockRoute: {
     paddingBottom: 9,
@@ -5332,9 +5333,10 @@ const styles = StyleSheet.create({
   },
   authRequestButtonAccount: {
     alignSelf: 'stretch',
-    minHeight: 46,
-    minWidth: 92,
+    minHeight: 44,
+    minWidth: 0,
     paddingHorizontal: 12,
+    width: '100%',
   },
   authRequestButtonLabel: {
     fontSize: 14,
@@ -5506,9 +5508,10 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   authPhoneFieldDockAccount: {
-    flex: 1,
-    minHeight: 46,
-    paddingHorizontal: 11,
+    flex: 0,
+    minHeight: 52,
+    paddingHorizontal: 12,
+    width: '100%',
   },
   authPhoneFieldDockLabel: {
     fontSize: 12,

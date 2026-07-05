@@ -506,6 +506,16 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   expect(
     mineProfileCard.findByProps({ testID: 'auth-request-inline-dock' }),
   ).toBeTruthy();
+  const requestActionRowStyle = StyleSheet.flatten(
+    mineProfileCard.findByProps({ testID: 'auth-request-action-row' }).props
+      .style,
+  );
+  expect(requestActionRowStyle.flexDirection).toBe('column');
+  const requestButtonStyle = StyleSheet.flatten(
+    findPressableByTestId(root, 'auth-request-code-button').props.style,
+  );
+  expect(requestButtonStyle.width).toBe('100%');
+  expect(requestButtonStyle.minWidth).toBe(0);
 
   await ReactTestRenderer.act(() => {
     root
