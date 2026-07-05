@@ -427,6 +427,7 @@ test('renders correctly', async () => {
   expect(output).toContain('手机号验证');
   expect(output).toContain('输入手机号');
   expect(output).toContain('输入手机号，完成后回到当前卡。');
+  expect(output).toContain('待输入');
   const requestDockStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'auth-request-inline-dock' }).props.style,
   );
@@ -526,6 +527,11 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   const readyOutput = JSON.stringify(tree!.toJSON());
   expect(readyOutput).toContain('手机号已准备好');
   expect(readyOutput).toContain('验证码通过后回到我的。');
+  expect(readyOutput).toContain('可发送');
+  expect(readyOutput).toContain('发送短码');
+  expect(
+    mineProfileCard.findByProps({ testID: 'auth-request-readiness-pill' }),
+  ).toBeTruthy();
   expect(
     findPressableByTestId(root, 'auth-request-code-button').props.disabled,
   ).toBe(false);

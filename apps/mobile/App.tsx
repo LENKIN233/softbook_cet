@@ -4069,11 +4069,17 @@ function PhoneSmsPanel({
   const isAuthenticated = authState.stage === 'authenticated';
   const isPending = authState.pendingAction !== null;
   const hasRequestedCode = authState.stage !== 'logged_out';
-  const canRequestCode =
-    isPhoneNumberReady(authState.phoneNumber) && !isPending && !isAuthenticated;
+  const isPhoneReady = isPhoneNumberReady(authState.phoneNumber);
+  const canRequestCode = isPhoneReady && !isPending && !isAuthenticated;
   const canSubmitCode =
     isSmsCodeReady(authState.smsCode) && !isPending && !isAuthenticated;
   const requestCodeLabelColor = canRequestCode ? palette.panel : palette.accent;
+  const requestReadinessLabel =
+    authState.pendingAction === 'request_code'
+      ? '发送中'
+      : canRequestCode
+      ? '可发送'
+      : '待输入';
   const requestDockTitle =
     authState.pendingAction === 'request_code'
       ? '正在发送验证码'
@@ -4093,6 +4099,7 @@ function PhoneSmsPanel({
   const dockSummary = hasRequestedCode
     ? `短码已发送，完成后回到${returnTarget}。`
     : requestDockDetail;
+  const requestStatusTone = canRequestCode ? palette.success : palette.accent;
   const submitCodeButtonBackground = canSubmitCode
     ? palette.accent
     : hexToRgba(palette.accent, 0.08);
@@ -4327,7 +4334,7 @@ function PhoneSmsPanel({
               pointerEvents="none"
               style={[
                 styles.authCodeSentDot,
-                { backgroundColor: palette.accent },
+                { backgroundColor: requestStatusTone },
               ]}
             />
             <View style={styles.authRequestCopy}>
@@ -4344,6 +4351,32 @@ function PhoneSmsPanel({
                 {dockSummary}
               </Text>
             </View>
+            <View
+              style={[
+                styles.authRequestReadinessPill,
+                {
+                  backgroundColor: canRequestCode
+                    ? hexToRgba(palette.success, 0.12)
+                    : palette.panel,
+                  borderColor: canRequestCode
+                    ? hexToRgba(palette.success, 0.28)
+                    : palette.border,
+                },
+              ]}
+              testID="auth-request-readiness-pill"
+            >
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.authRequestReadinessText,
+                  {
+                    color: canRequestCode ? palette.success : palette.textMuted,
+                  },
+                ]}
+              >
+                {requestReadinessLabel}
+              </Text>
+            </View>
           </View>
           <View
             style={[
@@ -4357,8 +4390,12 @@ function PhoneSmsPanel({
                 styles.authPhoneFieldDock,
                 accountDock ? styles.authPhoneFieldDockAccount : null,
                 {
-                  backgroundColor: palette.panel,
-                  borderColor: palette.border,
+                  backgroundColor: isPhoneReady
+                    ? hexToRgba(palette.success, 0.055)
+                    : palette.panel,
+                  borderColor: isPhoneReady
+                    ? hexToRgba(palette.success, 0.34)
+                    : palette.border,
                 },
               ]}
               testID="auth-phone-field-dock"
@@ -4424,6 +4461,8 @@ function PhoneSmsPanel({
               >
                 {authState.pendingAction === 'request_code'
                   ? '发送中'
+                  : canRequestCode
+                  ? '发送短码'
                   : '获取短码'}
               </Text>
             </Pressable>
@@ -5312,6 +5351,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 2,
+  },
+  authRequestReadinessPill: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 28,
+    minWidth: 56,
+    paddingHorizontal: 9,
+  },
+  authRequestReadinessText: {
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 14,
   },
   authRequestTitle: {
     fontSize: 13,
