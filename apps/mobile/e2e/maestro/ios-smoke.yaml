@@ -157,6 +157,8 @@ name: ios-auth-learning-space-statistics-smoke
 - tapOn:
     id: "route-tab-statistics"
 - assertVisible:
+    id: "statistics-progress-dock"
+- assertVisible:
     id: "statistics-metric-completed"
 - assertVisible:
     id: "statistics-checkin-button"

@@ -30,6 +30,7 @@ type StatisticsPalette = {
   text: string;
   textMuted: string;
   warning: string;
+  warningText: string;
 };
 
 type DeviceClass = 'phone' | 'tablet';
@@ -109,6 +110,31 @@ export function StatisticsSurface({
     ? 'statistics-start-review-button'
     : 'statistics-go-learning-button';
   const onPressNextStep = nextStepIsReview ? onStartReview : onGoToLearning;
+  const dailyRailTarget = Math.max(
+    combinedResults.length + pendingReviewCount,
+    hasLearningProgress ? combinedResults.length : 1,
+    1,
+  );
+  const dailyRailProgress = Math.min(
+    1,
+    combinedResults.length / dailyRailTarget,
+  );
+  const dailyRailFillPercent = hasLearningProgress
+    ? Math.max(14, Math.round(dailyRailProgress * 100))
+    : 8;
+  const dailyRailFill = `${dailyRailFillPercent}%` as ViewStyle['width'];
+  const dailyRailTone = nextStepIsReview
+    ? palette.warning
+    : hasCheckedInToday
+    ? palette.success
+    : palette.accent;
+  const dailyRailLabel = nextStepIsReview
+    ? `${pendingReviewCount} 张回看待处理`
+    : hasCheckedInToday
+    ? '今天已经收好'
+    : canCheckInToday
+    ? '可以记录今天'
+    : '完成一张后点亮';
   const checkInButtonBackground = hasCheckedInToday
     ? palette.panelStrong
     : canCheckInToday
@@ -179,40 +205,88 @@ export function StatisticsSurface({
 
         <View
           style={[
-            styles.metricLedger,
+            styles.progressDock,
             {
-              backgroundColor: 'transparent',
-              borderColor: 'transparent',
+              backgroundColor: hexToRgba(dailyRailTone, 0.055),
+              borderColor: hexToRgba(dailyRailTone, 0.16),
             },
           ]}
-          testID="statistics-metric-strip"
+          testID="statistics-progress-dock"
         >
-          <MetricLedgerRow
-            emphasis
-            label="今日完成"
-            palette={palette}
-            testID="statistics-metric-completed"
-            value={`${combinedResults.length}`}
-          />
-          <MetricLedgerRow
-            label="首轮"
-            palette={palette}
-            testID="statistics-metric-learning"
-            value={`${learningResults.length}`}
-          />
-          <MetricLedgerRow
-            label="回看"
-            palette={palette}
-            testID="statistics-metric-review"
-            value={`${reviewResults.length}`}
-          />
-          <MetricLedgerRow
-            label="待回看"
-            palette={palette}
-            testID="statistics-metric-pending-review"
-            tone={pendingReviewCount > 0 ? 'warning' : 'success'}
-            value={`${pendingReviewCount}`}
-          />
+          <View style={styles.progressHeader}>
+            <View style={styles.progressCopy}>
+              <Text style={[styles.progressEyebrow, { color: dailyRailTone }]}>
+                今日节奏
+              </Text>
+              <Text
+                style={[styles.progressTitle, { color: palette.text }]}
+                testID="statistics-progress-label"
+              >
+                {dailyRailLabel}
+              </Text>
+            </View>
+            <Text
+              style={[styles.progressRatio, { color: palette.text }]}
+              testID="statistics-progress-ratio"
+            >
+              {`${combinedResults.length}/${dailyRailTarget}`}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.progressTrack,
+              { backgroundColor: hexToRgba(dailyRailTone, 0.12) },
+            ]}
+            testID="statistics-progress-rail"
+          >
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  backgroundColor: dailyRailTone,
+                  width: dailyRailFill,
+                },
+              ]}
+              testID="statistics-progress-fill"
+            />
+          </View>
+          <View
+            style={[
+              styles.metricLedger,
+              {
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+              },
+            ]}
+            testID="statistics-metric-strip"
+          >
+            <MetricLedgerRow
+              emphasis
+              label="今日完成"
+              palette={palette}
+              testID="statistics-metric-completed"
+              value={`${combinedResults.length}`}
+            />
+            <MetricLedgerRow
+              label="首轮"
+              palette={palette}
+              testID="statistics-metric-learning"
+              value={`${learningResults.length}`}
+            />
+            <MetricLedgerRow
+              label="回看"
+              palette={palette}
+              testID="statistics-metric-review"
+              value={`${reviewResults.length}`}
+            />
+            <MetricLedgerRow
+              label="待回看"
+              palette={palette}
+              testID="statistics-metric-pending-review"
+              tone={pendingReviewCount > 0 ? 'warning' : 'success'}
+              value={`${pendingReviewCount}`}
+            />
+          </View>
         </View>
 
         <View
@@ -275,7 +349,7 @@ export function StatisticsSurface({
                   styles.primaryButtonLabel,
                   {
                     color: nextStepIsReview
-                      ? palette.panel
+                      ? palette.warningText
                       : palette.primaryActionText,
                   },
                 ]}
@@ -548,7 +622,7 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     borderWidth: 0,
     flexDirection: 'row',
-    gap: 6,
+    gap: 5,
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
@@ -560,25 +634,25 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     gap: 2,
     justifyContent: 'center',
-    minHeight: 54,
+    minHeight: 46,
     minWidth: 0,
-    paddingHorizontal: 4,
-    paddingVertical: 7,
+    paddingHorizontal: 3,
+    paddingVertical: 6,
   },
   metricLedgerRowEmphasis: {
     flex: 1.18,
-    minHeight: 58,
+    minHeight: 48,
   },
   metricValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
-    lineHeight: 22,
+    lineHeight: 20,
     textAlign: 'center',
   },
   metricValueEmphasis: {
-    fontSize: 23,
-    lineHeight: 27,
+    fontSize: 21,
+    lineHeight: 24,
   },
   metricLabel: {
     fontSize: 10,
@@ -603,7 +677,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   dailyObjectCard: {
-    gap: 8,
+    gap: 9,
     paddingHorizontal: 17,
     paddingVertical: 13,
   },
@@ -637,13 +711,56 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
+  progressDock: {
+    borderRadius: 21,
+    borderWidth: 1,
+    gap: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  progressHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  progressCopy: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  progressEyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 15,
+  },
+  progressTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 20,
+  },
+  progressRatio: {
+    fontSize: 18,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+    lineHeight: 22,
+  },
+  progressTrack: {
+    borderRadius: 999,
+    height: 9,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    borderRadius: 999,
+    height: '100%',
+  },
   actionDock: {
     borderRadius: 20,
     borderWidth: 1,
     gap: 0,
     overflow: 'visible',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
   },
   actionObjectRow: {
     borderRadius: 0,
@@ -654,7 +771,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     paddingHorizontal: 2,
-    paddingBottom: 7,
+    paddingBottom: 8,
     paddingTop: 2,
   },
   actionDockDivider: {
@@ -670,9 +787,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   nextStepTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
-    lineHeight: 20,
+    lineHeight: 21,
   },
   checkInDockRow: {
     alignItems: 'center',
@@ -681,7 +798,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 2,
     paddingBottom: 2,
-    paddingTop: 7,
+    paddingTop: 8,
   },
   checkInDockRowTablet: {
     alignItems: 'flex-start',
