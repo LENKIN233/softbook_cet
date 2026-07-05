@@ -4100,6 +4100,12 @@ function PhoneSmsPanel({
     ? `短码已发送，完成后回到${returnTarget}。`
     : requestDockDetail;
   const requestStatusTone = canRequestCode ? palette.success : palette.accent;
+  const authErrorTitle = hasRequestedCode
+    ? '验证码暂时没通过'
+    : '短码暂时没发出';
+  const authErrorDetail = hasRequestedCode
+    ? '检查短码后再试，当前位置仍保留。'
+    : '检查手机号后再试，当前位置仍保留。';
   const submitCodeButtonBackground = canSubmitCode
     ? palette.accent
     : hexToRgba(palette.accent, 0.08);
@@ -4471,9 +4477,54 @@ function PhoneSmsPanel({
       ) : null}
 
       {authState.error ? (
-        <Text style={[styles.authError, { color: palette.danger }]}>
-          {authState.error}
-        </Text>
+        <View
+          style={[
+            styles.authErrorDock,
+            {
+              backgroundColor: hexToRgba(palette.warning, 0.1),
+              borderColor: hexToRgba(palette.warning, 0.24),
+            },
+          ]}
+          testID="auth-error-dock"
+        >
+          <View
+            pointerEvents="none"
+            style={[styles.authErrorDot, { backgroundColor: palette.warning }]}
+          />
+          <View style={styles.authErrorCopy}>
+            <Text
+              numberOfLines={1}
+              style={[styles.authErrorTitle, { color: palette.text }]}
+              testID="auth-error-title"
+            >
+              {authErrorTitle}
+            </Text>
+            <Text
+              numberOfLines={2}
+              style={[styles.authErrorDetail, { color: palette.textMuted }]}
+              testID="auth-error-detail"
+            >
+              {`${authState.error} ${authErrorDetail}`}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.authErrorPill,
+              {
+                backgroundColor: palette.panel,
+                borderColor: hexToRgba(palette.warning, 0.22),
+              },
+            ]}
+            testID="auth-error-retry-pill"
+          >
+            <Text
+              numberOfLines={1}
+              style={[styles.authErrorPillText, { color: palette.warning }]}
+            >
+              可重试
+            </Text>
+          </View>
+        </View>
       ) : null}
 
       {Platform.OS === 'ios' ? (
@@ -5627,6 +5678,47 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     lineHeight: 19,
+  },
+  authErrorDock: {
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  authErrorDot: {
+    borderRadius: 999,
+    height: 10,
+    width: 10,
+  },
+  authErrorCopy: {
+    flex: 1,
+    gap: 1,
+    minWidth: 0,
+  },
+  authErrorTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  authErrorDetail: {
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  authErrorPill: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 28,
+    paddingHorizontal: 9,
+  },
+  authErrorPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 14,
   },
   authSuccess: {
     fontSize: 13,

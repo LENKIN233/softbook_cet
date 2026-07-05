@@ -686,7 +686,15 @@ test('shows remote request-code failure inside the auth gate', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('验证码发送暂时失败（503）。');
+  expect(output).toContain('短码暂时没发出');
+  expect(output).toContain('检查手机号后再试，当前位置仍保留。');
+  expect(output).toContain('可重试');
   expect(output).toContain('验证码通过后回到当前卡。');
+  expect(root.findByProps({ testID: 'auth-error-dock' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'auth-error-title' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'auth-error-detail' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'auth-error-retry-pill' })).toBeTruthy();
+  expectNoUserVisibleMetadataLeakage(tree!);
 });
 
 test('shows remote verify-code failure inside the auth gate', async () => {
@@ -750,7 +758,15 @@ test('shows remote verify-code failure inside the auth gate', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('验证码校验暂时失败（401）。');
+  expect(output).toContain('验证码暂时没通过');
+  expect(output).toContain('检查短码后再试，当前位置仍保留。');
+  expect(output).toContain('可重试');
   expect(output).toContain('4-6 位短码，完成后回到当前卡。');
+  expect(root.findByProps({ testID: 'auth-error-dock' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'auth-error-title' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'auth-error-detail' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'auth-error-retry-pill' })).toBeTruthy();
+  expectNoUserVisibleMetadataLeakage(tree!);
 });
 
 test('keeps verified remote auth when entitlement bootstrap is unavailable', async () => {
