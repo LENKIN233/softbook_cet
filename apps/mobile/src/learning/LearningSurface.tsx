@@ -893,15 +893,6 @@ function InteractionBody({
                   ]}
                   testID={`learning-option-${option.id}`}
                 >
-                  {isSelected ? (
-                    <View
-                      pointerEvents="none"
-                      style={[
-                        styles.optionSelectedRail,
-                        { backgroundColor: optionStateColor },
-                      ]}
-                    />
-                  ) : null}
                   <View style={styles.optionHeaderRow}>
                     <View
                       style={[
@@ -1410,8 +1401,8 @@ export function LearningResultDetailSurface({
           styles.glassCard,
           {
             backgroundColor: palette.panel,
-            borderColor: hexToRgba(detailLibraryTone.accent, 0.18),
-            shadowColor: detailLibraryTone.accent,
+            borderColor: palette.border,
+            shadowColor: palette.text,
           },
         ]}
       >
@@ -1458,8 +1449,8 @@ export function LearningResultDetailSurface({
           style={[
             styles.detailResolvedHero,
             {
-              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.045),
-              borderColor: hexToRgba(detailLibraryTone.accent, 0.16),
+              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.034),
+              borderColor: 'transparent',
             },
           ]}
         >
@@ -1487,8 +1478,8 @@ export function LearningResultDetailSurface({
           style={[
             styles.detailAnswerSlip,
             {
-              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.026),
-              borderColor: hexToRgba(detailLibraryTone.accent, 0.13),
+              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.022),
+              borderColor: 'transparent',
             },
           ]}
         >
@@ -1514,7 +1505,7 @@ export function LearningResultDetailSurface({
               styles.detailAnswerRail,
               {
                 backgroundColor: palette.panel,
-                borderColor: hexToRgba(detailLibraryTone.accent, 0.12),
+                borderColor: 'transparent',
               },
             ]}
           >
@@ -1526,10 +1517,7 @@ export function LearningResultDetailSurface({
                     style={[
                       styles.detailAnswerDivider,
                       {
-                        backgroundColor: hexToRgba(
-                          detailLibraryTone.accent,
-                          0.12,
-                        ),
+                        backgroundColor: 'transparent',
                       },
                     ]}
                   />
@@ -1596,7 +1584,8 @@ export function LearningResultDetailSurface({
             style={[
               styles.detailContinuityRail,
               {
-                borderTopColor: hexToRgba(detailLibraryTone.accent, 0.12),
+                backgroundColor: hexToRgba(detailLibraryTone.accent, 0.03),
+                borderTopColor: 'transparent',
               },
             ]}
           >
@@ -2019,7 +2008,7 @@ const styles = StyleSheet.create({
   },
   detailResolvedHero: {
     borderRadius: 22,
-    borderWidth: 1,
+    borderWidth: 0,
     paddingHorizontal: 14,
     paddingVertical: 11,
   },
@@ -2045,7 +2034,7 @@ const styles = StyleSheet.create({
   },
   detailAnswerSlip: {
     borderRadius: 22,
-    borderWidth: 1,
+    borderWidth: 0,
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 11,
@@ -2071,13 +2060,13 @@ const styles = StyleSheet.create({
   detailAnswerRail: {
     alignItems: 'stretch',
     borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: 0,
     flexDirection: 'row',
     overflow: 'hidden',
   },
   detailAnswerDivider: {
     alignSelf: 'stretch',
-    width: 1,
+    width: 0,
   },
   detailAnswerCell: {
     flex: 1,
@@ -2112,11 +2101,13 @@ const styles = StyleSheet.create({
   },
   detailContinuityRail: {
     alignItems: 'center',
-    borderTopWidth: 1,
+    borderRadius: 16,
+    borderTopWidth: 0,
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
-    paddingTop: 7,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
   },
   detailLocationTitle: {
     flexShrink: 0,
@@ -2206,8 +2197,8 @@ const styles = StyleSheet.create({
   },
   cardObjectAccent: {
     borderRadius: 999,
-    height: 34,
-    width: 5,
+    height: 9,
+    width: 9,
   },
   cardObjectHeaderText: {
     flex: 1,
@@ -2288,7 +2279,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   contextCardSupportActive: {
-    borderLeftWidth: 4,
+    borderLeftWidth: 0,
   },
   cardSupport: {
     fontSize: 16,
@@ -2331,7 +2322,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   attachedLayerPanel: {
-    borderLeftWidth: 4,
+    borderLeftWidth: 0,
     marginTop: -8,
   },
   peekPanel: {
@@ -2474,14 +2465,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 14,
     elevation: 2,
-  },
-  optionSelectedRail: {
-    bottom: 10,
-    borderRadius: 999,
-    left: 7,
-    position: 'absolute',
-    top: 10,
-    width: 3,
   },
   optionHeaderRow: {
     alignItems: 'center',
