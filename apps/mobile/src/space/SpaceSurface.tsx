@@ -1063,14 +1063,24 @@ export function SpaceSurface({
 
         {screen === 'card_list' ? (
           <>
-            <View style={styles.boxBrowseSurface} testID="space-box-detail">
+            <View
+              style={[
+                styles.boxBrowseSurface,
+                {
+                  backgroundColor: solidPanel,
+                  borderColor: hexToRgba(selectedTone.accent, 0.14),
+                },
+              ]}
+              testID="space-box-detail"
+            >
               <View
                 style={[
                   styles.browseObjectPlane,
                   styles.browseObjectPlaneDesk,
+                  styles.browseAddressTray,
                   {
-                    backgroundColor: solidPanel,
-                    borderColor: hexToRgba(selectedTone.accent, 0.14),
+                    backgroundColor: solidPanelStrong,
+                    borderColor: hexToRgba(selectedTone.accent, 0.08),
                   },
                 ]}
                 testID="space-current-box-tray"
@@ -1092,7 +1102,7 @@ export function SpaceSurface({
                       盒内查看
                     </Text>
                     <Text
-                      style={[styles.boxTrayTitle, { color: palette.text }]}
+                      style={[styles.browseTrayTitle, { color: palette.text }]}
                     >
                       当前卡盒
                     </Text>
@@ -1451,13 +1461,10 @@ export function SpaceSurface({
                         style={[
                           styles.cardTile,
                           styles.inspectCardTile,
+                          styles.browseCardTile,
                           {
-                            backgroundColor: isCurrent
-                              ? solidPanel
-                              : solidPanelStrong,
-                            borderColor: isCurrent
-                              ? hexToRgba(selectedTone.accent, 0.22)
-                              : palette.border,
+                            backgroundColor: 'transparent',
+                            borderColor: 'transparent',
                           },
                         ]}
                       >
@@ -1516,6 +1523,7 @@ export function SpaceSurface({
                         <View
                           style={[
                             styles.cardStateDeck,
+                            styles.browseCardStateDeck,
                             {
                               borderTopColor: hexToRgba(
                                 selectedTone.accent,
@@ -1542,6 +1550,7 @@ export function SpaceSurface({
                                 }}
                                 style={[
                                   styles.favoriteTagButton,
+                                  styles.browseCompactStateButton,
                                   {
                                     backgroundColor: isFavorited
                                       ? hexToRgba(selectedTone.accent, 0.1)
@@ -1589,6 +1598,7 @@ export function SpaceSurface({
                                 }}
                                 style={[
                                   styles.sleepPocketButton,
+                                  styles.browseCompactStateButton,
                                   {
                                     backgroundColor: isSleeping
                                       ? hexToRgba(palette.warning, 0.1)
@@ -1647,6 +1657,7 @@ export function SpaceSurface({
                         <View
                           style={[
                             styles.boxBrowsePager,
+                            styles.browseCompactPager,
                             {
                               backgroundColor: 'transparent',
                               borderColor: 'transparent',
@@ -1702,7 +1713,10 @@ export function SpaceSurface({
                           />
                         </View>
                         <View
-                          style={styles.browseContinuityBar}
+                          style={[
+                            styles.browseContinuityBar,
+                            styles.browseCompactContinuityBar,
+                          ]}
                           testID="space-browse-card-continuity"
                         >
                           <Pressable
@@ -2395,9 +2409,14 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   boxBrowseSurface: {
+    borderRadius: 28,
+    borderWidth: 1,
     flexDirection: 'column-reverse',
-    gap: 7,
-    paddingBottom: 0,
+    gap: 2,
+    overflow: 'hidden',
+    paddingBottom: 10,
+    paddingHorizontal: 12,
+    paddingTop: 2,
   },
   boxTrayHeader: {
     alignItems: 'stretch',
@@ -2418,10 +2437,16 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   browseObjectPlaneDesk: {
-    gap: 7,
+    gap: 5,
     overflow: 'hidden',
     paddingHorizontal: 14,
     paddingVertical: 10,
+  },
+  browseAddressTray: {
+    borderRadius: 20,
+    marginTop: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   browseObjectMarker: {
     borderRadius: 999,
@@ -2441,6 +2466,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   browseObjectPath: {
+    display: 'none',
     flexDirection: 'row',
     gap: 5,
   },
@@ -2448,8 +2474,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     flex: 1,
     gap: 2,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 5,
   },
   browsePathLabel: {
     fontSize: 9,
@@ -2463,52 +2489,53 @@ const styles = StyleSheet.create({
   },
   browseRail: {
     borderTopWidth: 0,
-    gap: 4,
+    gap: 3,
     paddingHorizontal: 0,
-    paddingTop: 2,
+    paddingTop: 0,
   },
   browseRailDesk: {
-    gap: 5,
+    gap: 4,
     paddingVertical: 0,
   },
   browseRailTitleRow: {
     alignItems: 'center',
+    display: 'none',
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   browseRailTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '900',
-    lineHeight: 15,
+    lineHeight: 13,
   },
   browseRailHint: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
-    lineHeight: 14,
+    lineHeight: 12,
   },
   browseRailShelfRow: {
     gap: 4,
   },
   browseRailLevel: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flexDirection: 'row',
-    gap: 6,
+    gap: 5,
   },
   browseRailShelfLevel: {
     alignItems: 'center',
   },
   browseRailPairRow: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 5,
   },
   browseRailLevelHalf: {
     flex: 1,
   },
   browseRailLevelLabel: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '900',
     letterSpacing: 0.7,
-    width: 28,
+    width: 22,
   },
   browseRailRow: {
     flex: 1,
@@ -2520,12 +2547,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 999,
     borderWidth: 1,
-    minWidth: 62,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    minWidth: 56,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
   browseRailChipSmall: {
-    minWidth: 60,
+    minWidth: 54,
   },
   browseRailShelfChip: {
     minWidth: 56,
@@ -2538,9 +2565,9 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   browseRailValue: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
-    lineHeight: 14,
+    lineHeight: 12,
     textAlign: 'center',
   },
   boxTrayCopy: {
@@ -2551,6 +2578,11 @@ const styles = StyleSheet.create({
     fontSize: 25,
     fontWeight: '800',
     lineHeight: 32,
+  },
+  browseTrayTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    lineHeight: 18,
   },
   boxAccentRail: {
     borderRadius: 999,
@@ -2844,7 +2876,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardStrip: {
-    gap: 8,
+    gap: 0,
   },
   compactSelectorDeck: {
     gap: 8,
@@ -2870,6 +2902,19 @@ const styles = StyleSheet.create({
     paddingTop: 15,
     paddingVertical: 13,
   },
+  browseCardTile: {
+    borderRadius: 0,
+    borderWidth: 0,
+    elevation: 0,
+    gap: 8,
+    minHeight: 0,
+    paddingBottom: 8,
+    paddingHorizontal: 4,
+    paddingLeft: 18,
+    paddingRight: 4,
+    paddingTop: 14,
+    shadowOpacity: 0,
+  },
   inspectCardEdge: {
     borderRadius: 999,
     height: 9,
@@ -2892,6 +2937,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingTop: 9,
   },
+  browseCardStateDeck: {
+    gap: 6,
+    paddingTop: 5,
+  },
   favoriteTagButton: {
     borderRadius: 14,
     borderWidth: 1,
@@ -2900,6 +2949,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingHorizontal: 10,
     paddingVertical: 9,
+  },
+  browseCompactStateButton: {
+    borderRadius: 16,
+    minHeight: 50,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   favoriteTagLabel: {
     fontSize: 13,
@@ -2952,6 +3007,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
+  browseCompactPager: {
+    gap: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
   boxBrowsePagerMeta: {
     fontSize: 12,
     fontWeight: '800',
@@ -2960,6 +3020,10 @@ const styles = StyleSheet.create({
   browseContinuityBar: {
     flexDirection: 'row',
     gap: 8,
+  },
+  browseCompactContinuityBar: {
+    gap: 8,
+    marginTop: 0,
   },
   browseContinuityPrimary: {
     borderRadius: 20,
