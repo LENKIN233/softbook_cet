@@ -2866,7 +2866,9 @@ function AuthGate({
       style={[
         styles.authGateScreen,
         embedded ? styles.authGateScreenEmbedded : null,
+        isRouteObjectGate ? styles.authGateScreenRouteObject : null,
       ]}
+      testID={isRouteObjectGate ? 'auth-route-object-screen' : undefined}
     >
       <View
         style={[
@@ -2876,7 +2878,10 @@ function AuthGate({
           isMineAccountGate ? styles.authEntryCardMine : null,
           { backgroundColor: palette.panel, borderColor: palette.border },
         ]}
-        testID={cardTestID}
+        testID={
+          cardTestID ??
+          (isRouteObjectGate ? 'auth-route-object-card' : undefined)
+        }
       >
         <View
           style={[
@@ -5086,6 +5091,11 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 0,
   },
+  authGateScreenRouteObject: {
+    justifyContent: 'flex-start',
+    paddingTop: 2,
+    paddingBottom: 10,
+  },
   authEntryCard: {
     borderWidth: 1,
     borderRadius: 28,
@@ -5101,9 +5111,10 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   authEntryCardRouteObject: {
+    flexShrink: 1,
     gap: 12,
-    justifyContent: 'space-between',
-    minHeight: 468,
+    justifyContent: 'flex-start',
+    minHeight: 0,
     paddingHorizontal: 16,
     paddingVertical: 18,
   },
