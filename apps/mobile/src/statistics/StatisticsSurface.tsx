@@ -355,8 +355,9 @@ export function StatisticsSurface({
               borderTopColor: hexToRgba(palette.textMuted, 0.1),
             },
           ]}
+          testID="statistics-status-ledger"
         >
-          <View style={styles.ledgerRail}>
+          <View style={styles.ledgerRail} testID="statistics-ledger-rail">
             <LedgerRow
               label="回看"
               palette={palette}
@@ -496,7 +497,7 @@ function LedgerRow({
       </Text>
       <View style={styles.ledgerValueStack}>
         <Text
-          numberOfLines={2}
+          numberOfLines={1}
           style={[styles.ledgerValue, { color: palette.text }]}
           testID={testID}
         >
@@ -504,7 +505,7 @@ function LedgerRow({
         </Text>
         {detail ? (
           <Text
-            numberOfLines={2}
+            numberOfLines={1}
             style={[styles.ledgerDetail, { color: palette.textMuted }]}
             testID={detailTestID}
           >
@@ -718,8 +719,8 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   ledgerRail: {
-    flexDirection: 'row',
-    gap: 6,
+    flexDirection: 'column',
+    gap: 5,
   },
   ledgerLabel: {
     fontSize: 11,
@@ -732,26 +733,28 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   ledgerDetail: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    lineHeight: 17,
+    lineHeight: 15,
   },
   ledgerRow: {
-    alignItems: 'flex-start',
-    borderRadius: 15,
+    alignItems: 'center',
+    borderRadius: 14,
     borderWidth: 1,
-    flex: 1,
-    flexDirection: 'column',
-    gap: 4,
-    justifyContent: 'flex-start',
-    minHeight: 58,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+    minHeight: 36,
     minWidth: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
   },
   ledgerValueStack: {
+    alignItems: 'center',
     flex: 1,
-    gap: 2,
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'flex-end',
     minWidth: 0,
   },
   statusLedger: {
