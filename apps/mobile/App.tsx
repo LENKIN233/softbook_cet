@@ -3212,7 +3212,7 @@ function MineSurface({
     ? '验证码已发'
     : '待登录';
   const accountSummary = isAuthenticated
-    ? `今天继续这一轮 · ${profileDetail}`
+    ? `今天继续这一轮 · ${syncDetail}`
     : '学习记录、空间位置和会员权益会归到同一账号。';
 
   if (!isAuthenticated) {
@@ -3270,7 +3270,7 @@ function MineSurface({
               numberOfLines={1}
               style={[styles.mineAccountTitle, { color: palette.text }]}
             >
-              {isAuthenticated ? profileName : '登录后管理我的'}
+              {isAuthenticated ? '继续用完整路线备考' : '登录后管理我的'}
             </Text>
             <Text
               numberOfLines={2}
@@ -3452,26 +3452,23 @@ function MineActionCard({
   variant?: 'primary' | 'secondary';
 }) {
   const isPrimary = variant === 'primary';
-  const foregroundColor = isPrimary ? palette.primaryActionText : palette.text;
-  const mutedColor = isPrimary ? palette.primaryActionMuted : palette.textMuted;
+  const foregroundColor = palette.text;
+  const mutedColor = palette.textMuted;
   const glyph = (
     <View
       style={[
         styles.mineActionGlyph,
         {
           backgroundColor: isPrimary
-            ? hexToRgba('#FFFFFF', 0.14)
+            ? hexToRgba(palette.accent, 0.1)
             : palette.accentSoft,
-          borderColor: isPrimary ? hexToRgba('#FFFFFF', 0.18) : palette.border,
+          borderColor: isPrimary
+            ? hexToRgba(palette.accent, 0.16)
+            : palette.border,
         },
       ]}
     >
-      <Text
-        style={[
-          styles.mineActionValue,
-          { color: isPrimary ? palette.primaryActionText : palette.accent },
-        ]}
-      >
+      <Text style={[styles.mineActionValue, { color: palette.accent }]}>
         {value}
       </Text>
     </View>
@@ -3515,10 +3512,10 @@ function MineActionCard({
           : styles.mineActionCardSecondary,
         {
           backgroundColor: isPrimary
-            ? palette.primaryActionSurface
+            ? hexToRgba(palette.accent, 0.065)
             : palette.panelStrong,
           borderColor: isPrimary
-            ? hexToRgba(palette.primaryActionSurface, 0.24)
+            ? hexToRgba(palette.accent, 0.14)
             : palette.border,
         },
       ]}
@@ -4519,14 +4516,23 @@ function SummaryMetricCard({
 
   return (
     <View
-      style={[styles.summaryMetricCard, { borderColor: palette.border }]}
+      style={[
+        styles.summaryMetricCard,
+        {
+          backgroundColor: palette.panelStrong,
+          borderColor: hexToRgba(palette.textMuted, 0.08),
+        },
+      ]}
       testID={testID}
     >
-      <Text style={[styles.summaryMetricValue, { color: valueColor }]}>
-        {value}
-      </Text>
       <Text style={[styles.summaryMetricLabel, { color: palette.textMuted }]}>
         {label}
+      </Text>
+      <Text
+        style={[styles.summaryMetricValue, { color: valueColor }]}
+        testID={testID ? `${testID}-value` : undefined}
+      >
+        {value}
       </Text>
     </View>
   );
@@ -5504,23 +5510,27 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   summaryMetricCard: {
-    minWidth: 68,
-    flexGrow: 1,
-    borderWidth: 0,
-    borderRadius: 0,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    gap: 3,
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    flexGrow: 0,
+    gap: 5,
+    minWidth: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
   },
   summaryMetricValue: {
-    fontSize: 18,
+    fontSize: 13,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
+    lineHeight: 16,
   },
   summaryMetricLabel: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
     letterSpacing: 0,
+    lineHeight: 14,
   },
   infoCard: {
     borderWidth: 1,
@@ -5568,9 +5578,9 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     borderRadius: 26,
     borderWidth: 1,
-    gap: 9,
+    gap: 8,
     paddingHorizontal: 15,
-    paddingVertical: 13,
+    paddingVertical: 12,
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.09,
     shadowRadius: 30,
@@ -5628,9 +5638,9 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     paddingHorizontal: 11,
-    paddingVertical: 9,
+    paddingVertical: 8,
   },
   mineIdentityCopy: {
     flex: 1,
@@ -5654,12 +5664,12 @@ const styles = StyleSheet.create({
   mineMetricStrip: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 0,
+    gap: 6,
     paddingHorizontal: 2,
-    paddingVertical: 1,
+    paddingVertical: 0,
   },
   mineActionRail: {
-    gap: 7,
+    gap: 6,
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
@@ -5679,9 +5689,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 19,
     flexDirection: 'row',
-    minHeight: 62,
+    minHeight: 54,
     paddingHorizontal: 13,
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   mineActionCardSecondary: {
     alignItems: 'center',
@@ -5720,7 +5730,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   mineActionLabelPrimary: {
-    fontSize: 16,
+    fontSize: 14,
   },
   mineActionDetail: {
     fontSize: 10,
@@ -5728,9 +5738,9 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   mineActionDetailPrimary: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    lineHeight: 17,
+    lineHeight: 15,
   },
   mineActionArrow: {
     fontSize: 14,
@@ -5824,14 +5834,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   membershipAccessCompactDock: {
-    alignItems: 'stretch',
+    alignItems: 'center',
     borderRadius: 18,
     borderWidth: 1,
-    gap: 9,
+    flexDirection: 'row',
+    gap: 10,
     paddingHorizontal: 11,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   membershipAccessCompactCopy: {
+    flex: 1,
     gap: 5,
     minWidth: 0,
   },
@@ -5851,9 +5863,10 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   membershipAccessCompactActions: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 7,
+    alignItems: 'stretch',
+    gap: 5,
+    justifyContent: 'center',
+    minWidth: 76,
   },
   membershipCompactBenefitRow: {
     flexDirection: 'row',
@@ -5867,7 +5880,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 4,
     paddingHorizontal: 6,
-    paddingVertical: 4,
+    paddingVertical: 3,
   },
   membershipCompactBenefitDot: {
     borderRadius: 999,
@@ -5883,12 +5896,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 999,
     justifyContent: 'center',
-    minHeight: 34,
-    minWidth: 92,
-    paddingHorizontal: 11,
+    minHeight: 30,
+    minWidth: 76,
+    paddingHorizontal: 9,
   },
   membershipCompactTrialLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     lineHeight: 16,
   },
@@ -5897,12 +5910,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 34,
-    minWidth: 58,
+    minHeight: 28,
+    minWidth: 76,
     paddingHorizontal: 6,
   },
   membershipCompactPurchaseLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     lineHeight: 16,
   },
