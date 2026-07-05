@@ -4324,6 +4324,7 @@ function PhoneSmsPanel({
                 style={[
                   styles.input,
                   styles.authPhoneInputDock,
+                  styles.authPhoneInputText,
                   {
                     backgroundColor: 'transparent',
                     borderColor: 'transparent',
@@ -5204,14 +5205,14 @@ const styles = StyleSheet.create({
   authRequestInlineDock: {
     borderRadius: 18,
     borderWidth: 1,
-    gap: 10,
+    gap: 9,
     paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingVertical: 12,
   },
   authRequestActionRow: {
     alignItems: 'stretch',
     flexDirection: 'column',
-    gap: 9,
+    gap: 10,
     justifyContent: 'flex-start',
   },
   authRequestInlineDockAccount: {
@@ -5248,13 +5249,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignSelf: 'stretch',
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 50,
     paddingHorizontal: 11,
   },
   authRequestButtonLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '800',
-    lineHeight: 17,
+    lineHeight: 19,
   },
   authCodeInlineDock: {
     borderRadius: 20,
@@ -5379,19 +5380,22 @@ const styles = StyleSheet.create({
   },
   authPhoneFieldDock: {
     alignItems: 'center',
+    alignSelf: 'stretch',
     borderRadius: 18,
     borderWidth: 1,
-    flex: 1,
+    flex: 0,
     flexDirection: 'row',
     gap: 8,
+    minHeight: 58,
     minWidth: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 13,
+    paddingVertical: 0,
   },
   authPhoneFieldDockLabel: {
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 0,
-    minWidth: 42,
+    lineHeight: 16,
+    minWidth: 46,
   },
   fieldLabel: {
     fontSize: 12,
@@ -5413,6 +5417,14 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingHorizontal: 0,
     paddingVertical: 7,
+  },
+  authPhoneInputText: {
+    fontSize: 16,
+    fontWeight: '700',
+    height: 42,
+    lineHeight: 22,
+    paddingVertical: 0,
+    textAlignVertical: 'center',
   },
   authActions: {
     gap: 10,
