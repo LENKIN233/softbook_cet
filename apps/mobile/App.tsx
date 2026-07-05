@@ -128,6 +128,7 @@ type Palette = {
   tabIdle: string;
   success: string;
   warning: string;
+  warningText: string;
   danger: string;
 };
 
@@ -252,6 +253,7 @@ const LIGHT_PALETTE: Palette = {
   tabIdle: '#8D948D',
   success: '#249B77',
   warning: '#C98524',
+  warningText: '#12131A',
   danger: '#B6545B',
 };
 
@@ -273,6 +275,7 @@ const DARK_PALETTE: Palette = {
   tabIdle: '#86869C',
   success: '#4FDE9C',
   warning: '#F5B100',
+  warningText: '#12131A',
   danger: '#F15B6E',
 };
 
@@ -4069,6 +4072,8 @@ function PhoneSmsPanel({
   const isAuthenticated = authState.stage === 'authenticated';
   const isPending = authState.pendingAction !== null;
   const hasRequestedCode = authState.stage !== 'logged_out';
+  const hasAuthError = authState.error !== null;
+  const hasCodeError = hasAuthError && hasRequestedCode;
   const isPhoneReady = isPhoneNumberReady(authState.phoneNumber);
   const canRequestCode = isPhoneReady && !isPending && !isAuthenticated;
   const canSubmitCode =
@@ -4106,13 +4111,18 @@ function PhoneSmsPanel({
   const authErrorDetail = hasRequestedCode
     ? '检查短码后再试，当前位置仍保留。'
     : '检查手机号后再试，当前位置仍保留。';
+  const codeActionTone = hasCodeError ? palette.warning : palette.accent;
   const submitCodeButtonBackground = canSubmitCode
-    ? palette.accent
-    : hexToRgba(palette.accent, 0.08);
+    ? codeActionTone
+    : hexToRgba(codeActionTone, 0.08);
   const submitCodeButtonBorder = canSubmitCode
-    ? palette.accent
-    : hexToRgba(palette.accent, 0.14);
-  const submitCodeLabelColor = canSubmitCode ? palette.panel : palette.accent;
+    ? codeActionTone
+    : hexToRgba(codeActionTone, 0.2);
+  const submitCodeLabelColor = canSubmitCode
+    ? hasCodeError
+      ? palette.warningText
+      : palette.panel
+    : codeActionTone;
   const smsCodeDigits = authState.smsCode
     .split('')
     .slice(0, SMS_CODE_CELL_COUNT);
@@ -4164,7 +4174,11 @@ function PhoneSmsPanel({
               pointerEvents="none"
               style={[
                 styles.authCodeSentDot,
-                { backgroundColor: palette.accent },
+                {
+                  backgroundColor: hasCodeError
+                    ? palette.warning
+                    : palette.accent,
+                },
               ]}
             />
             <View style={styles.authCodeSentCopy}>
@@ -4172,7 +4186,7 @@ function PhoneSmsPanel({
                 style={[styles.authCodeSentTitle, { color: palette.text }]}
                 testID="auth-code-sent-title"
               >
-                验证码已发送
+                {hasCodeError ? '验证码待确认' : '验证码已发送'}
               </Text>
               <Text
                 numberOfLines={1}
@@ -4226,10 +4240,17 @@ function PhoneSmsPanel({
                 isDockedPanel ? styles.authPhoneInputDock : null,
                 accountDock ? styles.authCodeCellsFrameAccount : null,
                 {
-                  backgroundColor: palette.panel,
-                  borderColor: canSubmitCode ? palette.accent : palette.border,
+                  backgroundColor: hasCodeError
+                    ? hexToRgba(palette.warning, 0.08)
+                    : palette.panel,
+                  borderColor: hasCodeError
+                    ? hexToRgba(palette.warning, 0.42)
+                    : canSubmitCode
+                    ? palette.accent
+                    : palette.border,
                 },
               ]}
+              testID="auth-code-cells-frame"
             >
               <View
                 pointerEvents="none"
@@ -4253,10 +4274,16 @@ function PhoneSmsPanel({
                         styles.authCodeCell,
                         accountDock ? styles.authCodeCellAccount : null,
                         {
-                          backgroundColor: isFilled
+                          backgroundColor: hasCodeError
+                            ? hexToRgba(palette.warning, isFilled ? 0.16 : 0.07)
+                            : isFilled
                             ? palette.panelStrong
                             : hexToRgba(palette.accent, 0.045),
-                          borderColor: isActive
+                          borderColor: hasCodeError
+                            ? isActive
+                              ? palette.warning
+                              : hexToRgba(palette.warning, 0.3)
+                            : isActive
                             ? palette.accent
                             : hexToRgba(palette.accent, 0.16),
                         },
@@ -4311,7 +4338,9 @@ function PhoneSmsPanel({
                   ]}
                 >
                   {authState.pendingAction === 'verify_code'
-                    ? '正在登录'
+                    ? '正在验证'
+                    : hasCodeError && canSubmitCode
+                    ? '重新验证'
                     : canSubmitCode
                     ? '完成登录'
                     : '输入验证码'}
