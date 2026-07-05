@@ -515,6 +515,9 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   expect(output).toContain('输入手机号，完成后回到我的。');
   expect(output).not.toContain('确认身份继续学');
   expect(output).not.toContain('当前学习卡');
+  expect(collectRenderedText(tree!.toJSON())).not.toEqual(
+    expect.arrayContaining(['我']),
+  );
   expect(
     mineProfileCard.findByProps({ testID: 'auth-retained-ledger' }),
   ).toBeTruthy();
