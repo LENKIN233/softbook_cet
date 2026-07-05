@@ -1,0 +1,24 @@
+appId: com.softbook.cet
+name: ios-auth-error-screenshot
+---
+- extendedWaitUntil:
+    visible:
+      id: 'auth-phone-input'
+    timeout: 30000
+- tapOn:
+    id: 'auth-phone-input'
+- inputText: '13800138000'
+- tapOn:
+    id: 'auth-dismiss-keyboard-button'
+- tapOn:
+    id: 'auth-request-code-button'
+- extendedWaitUntil:
+    visible:
+      id: 'auth-error-dock'
+    timeout: 10000
+- assertVisible:
+    id: 'auth-error-title'
+- assertVisible:
+    id: 'auth-error-detail'
+- assertVisible:
+    id: 'auth-error-retry-pill'
