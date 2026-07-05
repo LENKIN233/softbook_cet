@@ -89,11 +89,11 @@ export function StatisticsSurface({
     ? '学习手感保持中'
     : '先完成一张卡';
   const dailySummary = hasCheckedInToday
-    ? '完成、回看和签到已收成一条安静进度。'
+    ? `首轮 ${learningResults.length} · 回看 ${reviewResults.length} · ${syncStatusLabel}`
     : pendingReviewCount > 0
     ? `还有 ${pendingReviewCount} 张卡需要回看，统计只安静记录，不打断学习。`
     : hasLearningProgress
-    ? '今天的完成和回看都保持在轻负担范围。'
+    ? `首轮 ${learningResults.length} · 回看 ${reviewResults.length} · 待签到`
     : '先回到学习完成一张卡，这里会记录今天的连续性。';
   const nextStepIsReview = pendingReviewCount > 0;
   const nextStepTitle = nextStepIsReview
@@ -135,13 +135,18 @@ export function StatisticsSurface({
         testID="statistics-day-object"
       >
         <View style={styles.dailyHeader}>
-          <View
-            style={[styles.dailyAccent, { backgroundColor: palette.accent }]}
-          />
           <View style={styles.dailyHeading}>
-            <Text style={[styles.eyebrow, { color: palette.accent }]}>
-              今日学习
-            </Text>
+            <View style={styles.dailyEyebrowRow}>
+              <View
+                style={[
+                  styles.dailySignal,
+                  { backgroundColor: palette.accent },
+                ]}
+              />
+              <Text style={[styles.eyebrow, { color: palette.accent }]}>
+                今日学习
+              </Text>
+            </View>
             <Text style={[styles.title, { color: palette.text }]}>
               {dailyTitle}
             </Text>
@@ -178,7 +183,8 @@ export function StatisticsSurface({
           style={[
             styles.metricLedger,
             {
-              backgroundColor: hexToRgba(palette.accent, 0.045),
+              backgroundColor: hexToRgba(palette.accent, 0.032),
+              borderColor: hexToRgba(palette.accent, 0.08),
             },
           ]}
           testID="statistics-metric-strip"
@@ -214,9 +220,8 @@ export function StatisticsSurface({
           style={[
             styles.actionDock,
             {
-              backgroundColor: nextStepIsReview
-                ? hexToRgba(palette.warning, 0.065)
-                : hexToRgba(palette.accent, 0.055),
+              backgroundColor: 'transparent',
+              borderColor: 'transparent',
             },
           ]}
           testID="statistics-action-dock"
@@ -285,8 +290,8 @@ export function StatisticsSurface({
               styles.actionDockDivider,
               {
                 backgroundColor: nextStepIsReview
-                  ? hexToRgba(palette.warning, 0.14)
-                  : hexToRgba(palette.accent, 0.12),
+                  ? hexToRgba(palette.warning, 0.1)
+                  : hexToRgba(palette.accent, 0.08),
               },
             ]}
           />
@@ -491,40 +496,42 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   title: {
-    fontSize: 24,
-    lineHeight: 29,
+    fontSize: 22,
+    lineHeight: 27,
     fontWeight: '800',
   },
   summary: {
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 18,
   },
   metricLedger: {
-    borderRadius: 22,
+    borderRadius: 19,
+    borderWidth: 1,
     flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
+    gap: 0,
+    paddingHorizontal: 7,
+    paddingVertical: 5,
   },
   metricLedgerRow: {
     alignItems: 'center',
     flex: 1,
-    gap: 2,
+    gap: 1,
     justifyContent: 'center',
-    minHeight: 55,
-    paddingHorizontal: 4,
-    paddingVertical: 6,
+    minHeight: 45,
+    paddingHorizontal: 3,
+    paddingVertical: 5,
   },
   metricValue: {
-    fontSize: 24,
+    fontSize: 21,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
-    lineHeight: 28,
+    lineHeight: 25,
   },
   metricLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
-    lineHeight: 15,
+    lineHeight: 14,
     textAlign: 'center',
   },
   surfaceCard: {
@@ -540,48 +547,54 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   dailyObjectCard: {
-    gap: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    gap: 9,
+    paddingHorizontal: 17,
+    paddingVertical: 13,
   },
   dailyHeader: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
   },
   dailyHeading: {
     flex: 1,
-    gap: 5,
+    gap: 4,
+    minWidth: 0,
   },
-  dailyAccent: {
+  dailyEyebrowRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  dailySignal: {
     borderRadius: 999,
-    height: 48,
-    marginTop: 3,
-    width: 5,
+    height: 8,
+    width: 8,
   },
   checkInStatusPill: {
     borderRadius: 999,
-    paddingHorizontal: 11,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
   checkInStatusText: {
     fontSize: 12,
     fontWeight: '800',
   },
   actionDock: {
-    borderRadius: 23,
+    borderRadius: 0,
+    borderWidth: 0,
     gap: 0,
-    overflow: 'hidden',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    overflow: 'visible',
+    paddingHorizontal: 2,
+    paddingVertical: 0,
   },
   nextStepRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 11,
     paddingHorizontal: 0,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   actionDockDivider: {
     height: 1,
@@ -596,17 +609,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   nextStepTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
-    lineHeight: 23,
+    lineHeight: 22,
   },
   checkInDockRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
-    minHeight: 58,
+    minHeight: 50,
     paddingHorizontal: 0,
-    paddingVertical: 9,
+    paddingVertical: 7,
   },
   checkInDockRowTablet: {
     alignItems: 'flex-start',
@@ -628,7 +641,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryButtonLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
   },
   dailyPrimaryButton: {
@@ -677,7 +690,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     marginTop: 1,
     paddingHorizontal: 0,
-    paddingTop: 8,
+    paddingTop: 7,
     paddingBottom: 1,
   },
 });
