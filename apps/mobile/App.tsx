@@ -3008,11 +3008,16 @@ function AuthGate({
           style={[
             styles.authRetainedObject,
             isCompactAuthGate ? styles.authRetainedObjectCompact : null,
+            isMineAccountGate ? styles.authRetainedObjectMine : null,
             {
-              backgroundColor: isCompactAuthGate
+              backgroundColor: isMineAccountGate
+                ? 'transparent'
+                : isCompactAuthGate
                 ? hexToRgba(palette.accent, 0.045)
                 : palette.panelStrong,
-              borderColor: isCompactAuthGate
+              borderColor: isMineAccountGate
+                ? 'transparent'
+                : isCompactAuthGate
                 ? hexToRgba(palette.accent, 0.1)
                 : palette.border,
             },
@@ -3022,6 +3027,7 @@ function AuthGate({
             style={[
               styles.authRetainedHead,
               isCompactAuthGate ? styles.authRetainedHeadCompact : null,
+              isMineAccountGate ? styles.authRetainedHeadMine : null,
             ]}
           >
             <View
@@ -3056,6 +3062,7 @@ function AuthGate({
             style={[
               styles.authRetainedLedger,
               isCompactAuthGate ? styles.authRetainedLedgerCompact : null,
+              isMineAccountGate ? styles.authRetainedLedgerMine : null,
               { borderColor: hexToRgba(palette.accent, 0.1) },
             ]}
             testID="auth-retained-ledger"
@@ -3068,10 +3075,15 @@ function AuthGate({
                   isCompactAuthGate
                     ? styles.authRetainedLedgerRowCompact
                     : null,
+                  isMineAccountGate ? styles.authRetainedLedgerRowMine : null,
                   isCompactAuthGate
                     ? {
-                        backgroundColor: palette.panel,
-                        borderColor: hexToRgba(palette.accent, 0.12),
+                        backgroundColor: isMineAccountGate
+                          ? hexToRgba(palette.accent, 0.055)
+                          : palette.panel,
+                        borderColor: isMineAccountGate
+                          ? hexToRgba(palette.accent, 0.14)
+                          : hexToRgba(palette.accent, 0.12),
                       }
                     : null,
                 ]}
@@ -3082,6 +3094,7 @@ function AuthGate({
                   style={[
                     styles.authContinuityLabel,
                     isCompactAuthGate ? styles.authContinuityTextCompact : null,
+                    isMineAccountGate ? styles.authContinuityTextMine : null,
                     { color: palette.textMuted },
                   ]}
                 >
@@ -3092,6 +3105,7 @@ function AuthGate({
                   style={[
                     styles.authContinuityValue,
                     isCompactAuthGate ? styles.authContinuityTextCompact : null,
+                    isMineAccountGate ? styles.authContinuityTextMine : null,
                     { color: palette.text },
                   ]}
                 >
@@ -4172,18 +4186,30 @@ function PhoneSmsPanel({
               </Text>
             </Pressable>
           </View>
-          <View style={styles.authCodeEntryRow}>
+          <View
+            style={[
+              styles.authCodeEntryRow,
+              accountDock ? styles.authCodeEntryRowAccount : null,
+            ]}
+          >
             <View
               style={[
                 styles.authCodeCellsFrame,
                 isDockedPanel ? styles.authPhoneInputDock : null,
+                accountDock ? styles.authCodeCellsFrameAccount : null,
                 {
                   backgroundColor: palette.panel,
                   borderColor: canSubmitCode ? palette.accent : palette.border,
                 },
               ]}
             >
-              <View pointerEvents="none" style={styles.authCodeCells}>
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.authCodeCells,
+                  accountDock ? styles.authCodeCellsAccount : null,
+                ]}
+              >
                 {Array.from({ length: SMS_CODE_CELL_COUNT }).map((_, index) => {
                   const digit = smsCodeDigits[index] ?? '';
                   const isFilled = digit.length > 0;
@@ -4197,6 +4223,7 @@ function PhoneSmsPanel({
                       key={`auth-code-cell-${index}`}
                       style={[
                         styles.authCodeCell,
+                        accountDock ? styles.authCodeCellAccount : null,
                         {
                           backgroundColor: isFilled
                             ? palette.panelStrong
@@ -4240,6 +4267,7 @@ function PhoneSmsPanel({
                 onPress={handlers.onSubmitCode}
                 style={[
                   styles.authCodeSubmitButton,
+                  accountDock ? styles.authCodeSubmitButtonAccount : null,
                   {
                     backgroundColor: submitCodeButtonBackground,
                     borderColor: submitCodeButtonBorder,
@@ -4289,10 +4317,16 @@ function PhoneSmsPanel({
           ]}
           testID="auth-request-inline-dock"
         >
-          <View style={styles.authRequestActionRow}>
+          <View
+            style={[
+              styles.authRequestActionRow,
+              accountDock ? styles.authRequestActionRowAccount : null,
+            ]}
+          >
             <View
               style={[
                 styles.authPhoneFieldDock,
+                accountDock ? styles.authPhoneFieldDockAccount : null,
                 {
                   backgroundColor: palette.panel,
                   borderColor: palette.border,
@@ -4340,6 +4374,7 @@ function PhoneSmsPanel({
               onPress={handlers.onRequestCode}
               style={[
                 styles.authRequestButton,
+                accountDock ? styles.authRequestButtonAccount : null,
                 {
                   backgroundColor: canRequestCode
                     ? palette.accent
@@ -4938,9 +4973,9 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   authEntryCardMine: {
-    gap: 11,
-    justifyContent: 'space-between',
-    minHeight: 428,
+    gap: 13,
+    justifyContent: 'flex-start',
+    minHeight: 0,
     paddingHorizontal: 16,
     paddingVertical: 18,
   },
@@ -5017,6 +5052,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
   },
+  authRetainedObjectMine: {
+    borderWidth: 0,
+    gap: 7,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
   authRetainedHead: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -5025,6 +5066,9 @@ const styles = StyleSheet.create({
   authRetainedHeadCompact: {
     alignItems: 'flex-start',
     gap: 9,
+  },
+  authRetainedHeadMine: {
+    display: 'none',
   },
   authRetainedAccent: {
     borderRadius: 999,
@@ -5059,6 +5103,10 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingTop: 0,
   },
+  authRetainedLedgerMine: {
+    gap: 6,
+    paddingHorizontal: 1,
+  },
   authRetainedLedgerRow: {
     alignItems: 'baseline',
     flexDirection: 'row',
@@ -5077,6 +5125,12 @@ const styles = StyleSheet.create({
     minHeight: 50,
     paddingHorizontal: 3,
     paddingVertical: 7,
+  },
+  authRetainedLedgerRowMine: {
+    borderRadius: 13,
+    minHeight: 42,
+    paddingHorizontal: 4,
+    paddingVertical: 5,
   },
   authObjectBadge: {
     alignItems: 'center',
@@ -5131,6 +5185,9 @@ const styles = StyleSheet.create({
   },
   authContinuityTextCompact: {
     textAlign: 'center',
+  },
+  authContinuityTextMine: {
+    lineHeight: 14,
   },
   hero: {
     borderWidth: 1,
@@ -5223,9 +5280,16 @@ const styles = StyleSheet.create({
     gap: 10,
     justifyContent: 'flex-start',
   },
+  authRequestActionRowAccount: {
+    alignItems: 'stretch',
+    flexDirection: 'row',
+    gap: 8,
+  },
   authRequestInlineDockAccount: {
-    paddingBottom: 9,
-    paddingTop: 9,
+    gap: 7,
+    paddingBottom: 8,
+    paddingHorizontal: 10,
+    paddingTop: 8,
   },
   authRequestInlineDockRoute: {
     paddingBottom: 9,
@@ -5260,6 +5324,12 @@ const styles = StyleSheet.create({
     minHeight: 50,
     paddingHorizontal: 11,
   },
+  authRequestButtonAccount: {
+    alignSelf: 'stretch',
+    minHeight: 44,
+    minWidth: 88,
+    paddingHorizontal: 12,
+  },
   authRequestButtonLabel: {
     fontSize: 14,
     fontWeight: '800',
@@ -5273,8 +5343,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   authCodeInlineDockAccount: {
-    paddingBottom: 10,
-    paddingTop: 9,
+    gap: 8,
+    paddingBottom: 8,
+    paddingHorizontal: 10,
+    paddingTop: 8,
   },
   authCodeInlineDockRoute: {
     paddingBottom: 10,
@@ -5312,6 +5384,11 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     gap: 9,
   },
+  authCodeEntryRowAccount: {
+    alignItems: 'stretch',
+    flexDirection: 'row',
+    gap: 8,
+  },
   authCodeCellsFrame: {
     flex: 1,
     minWidth: 0,
@@ -5321,12 +5398,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  authCodeCellsFrameAccount: {
+    minHeight: 44,
+  },
   authCodeCells: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 5,
     justifyContent: 'space-between',
     paddingHorizontal: 10,
+  },
+  authCodeCellsAccount: {
+    gap: 3,
+    paddingHorizontal: 7,
   },
   authCodeCell: {
     alignItems: 'center',
@@ -5335,6 +5419,11 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     width: 36,
+  },
+  authCodeCellAccount: {
+    borderRadius: 9,
+    height: 34,
+    width: 28,
   },
   authCodeCellText: {
     fontSize: 17,
@@ -5364,6 +5453,12 @@ const styles = StyleSheet.create({
     minHeight: 45,
     paddingHorizontal: 10,
     paddingVertical: 11,
+  },
+  authCodeSubmitButtonAccount: {
+    minHeight: 44,
+    minWidth: 86,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
   },
   authCodeSubmitLabel: {
     fontSize: 12,
@@ -5398,6 +5493,11 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingHorizontal: 13,
     paddingVertical: 0,
+  },
+  authPhoneFieldDockAccount: {
+    flex: 1,
+    minHeight: 44,
+    paddingHorizontal: 11,
   },
   authPhoneFieldDockLabel: {
     fontSize: 12,
