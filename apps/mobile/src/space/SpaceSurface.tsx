@@ -225,10 +225,6 @@ export function SpaceSurface({
     selectedBoxCards,
     currentLearningCard?.card_id ?? null,
   );
-  const overviewSpines = buildOverviewSpines(
-    selectedLibrary?.groups ?? [],
-    selectedGroup?.groupName ?? '',
-  );
   const selectedLibraryIndex =
     selectedLibrary == null
       ? 1
@@ -813,8 +809,8 @@ export function SpaceSurface({
                   styles.openBoxDeck,
                   styles.openBoxDeckUnified,
                   {
-                    backgroundColor: solidPanelStrong,
-                    borderColor: hexToRgba(selectedTone.accent, 0.12),
+                    backgroundColor: hexToRgba(selectedTone.accent, 0.045),
+                    borderColor: hexToRgba(selectedTone.accent, 0.1),
                   },
                 ]}
                 testID="space-open-box-deck"
@@ -823,8 +819,8 @@ export function SpaceSurface({
                   style={[
                     styles.openBoxLid,
                     {
-                      backgroundColor: solidPanelStrong,
-                      borderColor: palette.border,
+                      backgroundColor: 'transparent',
+                      borderColor: 'transparent',
                     },
                   ]}
                   testID="space-open-box-lid"
@@ -845,53 +841,6 @@ export function SpaceSurface({
                 </View>
 
                 <View style={styles.openBoxDeskBody}>
-                  {overviewSpines.length > 1 ? (
-                    <View style={styles.sideShelf}>
-                      {overviewSpines.map(spine => (
-                        <View
-                          key={`${spine.groupName}-${spine.displayIndex}`}
-                          style={[
-                            styles.shelfSpine,
-                            spine.isActive ? styles.shelfSpineActive : null,
-                            {
-                              backgroundColor: spine.isActive
-                                ? hexToRgba(selectedTone.accent, 0.1)
-                                : hexToRgba(palette.textMuted, 0.045),
-                              borderColor: spine.isActive
-                                ? hexToRgba(selectedTone.accent, 0.22)
-                                : hexToRgba(palette.textMuted, 0.08),
-                            },
-                          ]}
-                        >
-                          <Text
-                            numberOfLines={1}
-                            style={[
-                              styles.shelfSpineText,
-                              {
-                                color: spine.isActive
-                                  ? selectedTone.accent
-                                  : palette.textMuted,
-                              },
-                            ]}
-                          >
-                            {spine.isActive
-                              ? '当前'
-                              : formatSpaceGroupLabel(spine.displayIndex)}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-                  ) : (
-                    <View style={styles.sideShelfAccent}>
-                      <View
-                        style={[
-                          styles.currentBoxAccentSpine,
-                          { backgroundColor: selectedTone.accent },
-                        ]}
-                      />
-                    </View>
-                  )}
-
                   <View style={styles.openBoxTray}>
                     <View style={styles.deckCardRow}>
                       {selectedOverviewDeckCards.slice(0, 2).map(card => {
@@ -957,8 +906,11 @@ export function SpaceSurface({
                         styles.sleepAlcove,
                         styles.sleepAlcoveDesk,
                         {
-                          backgroundColor: hexToRgba(palette.textMuted, 0.035),
-                          borderColor: hexToRgba(palette.textMuted, 0.13),
+                          backgroundColor: hexToRgba(
+                            selectedTone.accent,
+                            0.035,
+                          ),
+                          borderColor: 'transparent',
                         },
                       ]}
                       testID="space-sleep-alcove"
@@ -977,8 +929,11 @@ export function SpaceSurface({
                             style={[
                               styles.sleepAlcoveActionText,
                               {
-                                backgroundColor: palette.accentSoft,
-                                color: palette.accentStrong,
+                                backgroundColor: hexToRgba(
+                                  selectedTone.accent,
+                                  0.1,
+                                ),
+                                color: selectedTone.accent,
                               },
                             ]}
                             testID="space-sleep-alcove-action"
@@ -1009,35 +964,29 @@ export function SpaceSurface({
                   styles.returnContinuity,
                   styles.returnContinuityStrip,
                   {
-                    backgroundColor: hexToRgba(selectedTone.accent, 0.1),
-                    borderColor: hexToRgba(selectedTone.accent, 0.28),
+                    backgroundColor: selectedTone.accent,
+                    borderColor: selectedTone.accent,
                   },
                 ]}
                 testID="space-return-learning"
               >
                 <View style={styles.returnContinuityCopy}>
                   <Text
-                    style={[
-                      styles.returnContinuityTitle,
-                      { color: palette.text },
-                    ]}
+                    style={[styles.returnContinuityTitle, { color: '#FFFFFF' }]}
                   >
-                    回到这张卡
+                    回学习
                   </Text>
                   <Text
                     numberOfLines={1}
-                    style={[
-                      styles.returnContinuityMeta,
-                      { color: palette.textMuted },
-                    ]}
+                    style={[styles.returnContinuityMeta, { color: '#FFFFFF' }]}
                   >
-                    继续处理这张卡，位置保持不变。
+                    同一张卡，同一地址。
                   </Text>
                 </View>
                 <View
                   style={[
                     styles.returnContinuityActionPill,
-                    { backgroundColor: selectedTone.accent },
+                    { backgroundColor: 'rgba(255,255,255,0.18)' },
                   ]}
                 >
                   <Text
@@ -1046,7 +995,7 @@ export function SpaceSurface({
                       { color: '#FFFFFF' },
                     ]}
                   >
-                    回学习
+                    继续
                   </Text>
                   <Text
                     numberOfLines={1}
@@ -1055,7 +1004,7 @@ export function SpaceSurface({
                       { color: '#FFFFFF' },
                     ]}
                   >
-                    同一张卡，同一地址
+                    保持位置
                   </Text>
                 </View>
               </Pressable>
@@ -1220,7 +1169,7 @@ export function SpaceSurface({
                           { color: palette.text },
                         ]}
                       >
-                        位置轨
+                        位置
                       </Text>
                       <Text
                         style={[
@@ -2104,30 +2053,6 @@ function buildSpaceSeed(spaceCards: readonly LearningCard[]): SpaceSeed {
   };
 }
 
-function buildOverviewSpines(
-  groups: readonly SpaceGroupNode[],
-  selectedGroupName: string,
-) {
-  if (groups.length === 0) {
-    return [];
-  }
-
-  const selectedIndex = Math.max(
-    groups.findIndex(group => group.groupName === selectedGroupName),
-    0,
-  );
-  const startIndex = Math.max(
-    Math.min(selectedIndex - 1, groups.length - 3),
-    0,
-  );
-
-  return groups.slice(startIndex, startIndex + 3).map((group, index) => ({
-    displayIndex: startIndex + index + 1,
-    groupName: group.groupName,
-    isActive: group.groupName === selectedGroupName,
-  }));
-}
-
 function buildOverviewDeckCards(
   cards: readonly SpaceCardPreview[],
   currentCardId: string | null,
@@ -2336,8 +2261,8 @@ const styles = StyleSheet.create({
   overviewWorkbench: {
     flex: 1,
     borderRadius: 28,
-    borderWidth: 1,
-    gap: 10,
+    borderWidth: 0,
+    gap: 9,
     minHeight: 0,
     overflow: 'hidden',
     paddingHorizontal: 14,
@@ -2363,7 +2288,7 @@ const styles = StyleSheet.create({
   spaceAddressRail: {
     alignItems: 'center',
     borderRadius: 21,
-    borderWidth: 1,
+    borderWidth: 0,
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 12,
@@ -2376,9 +2301,9 @@ const styles = StyleSheet.create({
   },
   spaceAddressDot: {
     borderRadius: 999,
-    height: 5,
-    opacity: 0.8,
-    width: 5,
+    height: 4,
+    opacity: 0.46,
+    width: 4,
   },
   spaceAddressLabel: {
     fontSize: 10,
@@ -2450,9 +2375,9 @@ const styles = StyleSheet.create({
   },
   browseObjectMarker: {
     borderRadius: 999,
-    height: 48,
+    height: 9,
     opacity: 0.9,
-    width: 4,
+    width: 9,
   },
   browseStatusBadge: {
     borderRadius: 999,
@@ -2487,10 +2412,10 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   browseRail: {
-    borderTopWidth: 1,
+    borderTopWidth: 0,
     gap: 6,
     paddingHorizontal: 0,
-    paddingTop: 8,
+    paddingTop: 6,
   },
   browseRailDesk: {
     gap: 7,
@@ -2583,10 +2508,10 @@ const styles = StyleSheet.create({
     width: 3,
   },
   openBoxDeck: {
-    borderRadius: 22,
-    borderWidth: 1,
+    borderRadius: 25,
+    borderWidth: 0,
     flex: 1,
-    minHeight: 278,
+    minHeight: 292,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -2600,10 +2525,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 21,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginHorizontal: 10,
-    marginTop: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    marginHorizontal: 12,
+    marginTop: 11,
+    paddingHorizontal: 3,
+    paddingVertical: 4,
   },
   openBoxLidTitle: {
     fontSize: 13,
@@ -2617,44 +2542,12 @@ const styles = StyleSheet.create({
   },
   openBoxDeskBody: {
     flex: 1,
-    flexDirection: 'row',
-    gap: 10,
+    flexDirection: 'column',
+    gap: 9,
     minHeight: 0,
-    paddingHorizontal: 10,
-    paddingBottom: 10,
-    paddingTop: 9,
-  },
-  sideShelf: {
-    flexBasis: 56,
-    gap: 8,
-  },
-  sideShelfAccent: {
-    alignItems: 'stretch',
-    flexBasis: 8,
-    paddingVertical: 2,
-  },
-  currentBoxAccentSpine: {
-    borderRadius: 999,
-    flex: 1,
-    opacity: 0.22,
-  },
-  shelfSpine: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 46,
-    paddingHorizontal: 6,
-  },
-  shelfSpineActive: {
-    flex: 1.25,
-  },
-  shelfSpineText: {
-    fontSize: 11,
-    fontWeight: '800',
-    lineHeight: 15,
-    textAlign: 'center',
+    paddingHorizontal: 11,
+    paddingBottom: 11,
+    paddingTop: 6,
   },
   openBoxTray: {
     flex: 1,
@@ -2665,7 +2558,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     gap: 9,
-    minHeight: 0,
+    minHeight: 178,
   },
   deckCard: {
     borderRadius: 18,
@@ -2683,18 +2576,18 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   deckCardOverview: {
-    borderRadius: 22,
+    borderRadius: 23,
     borderWidth: 1,
     flex: 1,
     gap: 8,
     justifyContent: 'flex-start',
     minWidth: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.07,
-    shadowRadius: 18,
-    elevation: 2,
+    paddingHorizontal: 13,
+    paddingVertical: 13,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 1,
   },
   deckCardOverviewActive: {
     shadowOpacity: 0.1,
@@ -2896,18 +2789,18 @@ const styles = StyleSheet.create({
     gap: 7,
     minHeight: 196,
     overflow: 'hidden',
+    paddingLeft: 28,
     paddingTop: 14,
     paddingVertical: 10,
   },
   inspectCardEdge: {
-    borderBottomRightRadius: 999,
-    borderTopRightRadius: 999,
-    height: 68,
+    borderRadius: 999,
+    height: 9,
     opacity: 0.86,
     position: 'absolute',
-    left: 0,
-    top: 22,
-    width: 4,
+    left: 14,
+    top: 18,
+    width: 9,
   },
   inspectCardHeader: {
     alignItems: 'flex-start',
@@ -2916,7 +2809,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardStateDeck: {
-    borderTopWidth: 1,
+    borderTopWidth: 0,
     flexDirection: 'row',
     gap: 6,
     paddingHorizontal: 0,
@@ -3051,9 +2944,10 @@ const styles = StyleSheet.create({
   },
   sleepAlcoveDesk: {
     alignItems: 'stretch',
-    borderStyle: 'dashed',
+    borderStyle: 'solid',
+    borderWidth: 0,
     paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingVertical: 10,
   },
   sleepAlcoveCompact: {
     alignItems: 'stretch',
@@ -3121,11 +3015,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   returnContinuityStrip: {
-    borderRadius: 22,
+    borderRadius: 24,
+    borderWidth: 0,
     gap: 12,
     justifyContent: 'space-between',
-    paddingHorizontal: 13,
-    paddingVertical: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 13,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 2,
   },
   returnContinuityCopy: {
     flex: 1,
@@ -3151,6 +3050,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     lineHeight: 17,
+    opacity: 0.88,
   },
   returnContinuityAction: {
     borderRadius: 999,
@@ -3161,7 +3061,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   returnContinuityActionPill: {
-    borderRadius: 18,
+    borderRadius: 19,
     gap: 1,
     minWidth: 92,
     paddingHorizontal: 13,
