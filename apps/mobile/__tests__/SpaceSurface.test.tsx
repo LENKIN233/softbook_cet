@@ -299,7 +299,12 @@ test('uses anonymous ordered selector IDs for Space library and group chips in t
     root.findByProps({ testID: 'space-browse-card-object' }).props.style,
   );
   expect(browseCardObjectStyle.flex).toBe(0);
-  expect(browseCardObjectStyle.minHeight).toBeLessThan(340);
+  expect(browseCardObjectStyle.minHeight).toBeLessThan(320);
+  const browseStateTrayStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'space-browse-card-state-tray' }).props.style,
+  );
+  expect(browseStateTrayStyle.paddingHorizontal).toBe(4);
+  expect(browseStateTrayStyle.paddingVertical).toBe(4);
   expect(
     root.findAllByProps({ testID: 'space-card-list-back' }).length,
   ).toBeGreaterThan(0);
@@ -316,6 +321,7 @@ test('uses anonymous ordered selector IDs for Space library and group chips in t
   expect(renderedText).toContain('位置');
   expect(renderedText).toContain('2 张卡');
   expect(renderedText).toContain('盒内 2 张');
+  expect(renderedText).toContain('贴卡标签');
   expect(renderedText).not.toContain('可收藏');
   expect(renderedText).not.toContain('有收藏');
   expect(renderedText).not.toContain('卡片列表');

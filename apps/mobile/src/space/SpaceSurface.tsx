@@ -1551,6 +1551,7 @@ export function SpaceSurface({
                               borderColor: neutralObjectBorder,
                             },
                           ]}
+                          testID="space-browse-card-state-tray"
                         >
                           {isGated ? (
                             <Text
@@ -1607,7 +1608,7 @@ export function SpaceSurface({
                                     { color: palette.textMuted },
                                   ]}
                                 >
-                                  贴在这张卡上
+                                  {isFavorited ? '已贴标签' : '贴卡标签'}
                                 </Text>
                               </Pressable>
 
@@ -1638,7 +1639,7 @@ export function SpaceSurface({
                                       { color: palette.text },
                                     ]}
                                   >
-                                    休眠区
+                                    休眠
                                   </Text>
                                   <Text
                                     numberOfLines={1}
@@ -1666,9 +1667,7 @@ export function SpaceSurface({
                                     { color: palette.textMuted },
                                   ]}
                                 >
-                                  {isSleeping
-                                    ? '暂离练习，仍在当前盒'
-                                    : '同盒暂休'}
+                                  {isSleeping ? '仍在当前盒' : '同盒暂休'}
                                 </Text>
                               </Pressable>
                             </>
@@ -2930,8 +2929,8 @@ const styles = StyleSheet.create({
     elevation: 1,
     flex: 0,
     gap: 8,
-    minHeight: 328,
-    paddingBottom: 11,
+    minHeight: 306,
+    paddingBottom: 10,
     paddingHorizontal: 14,
     paddingLeft: 26,
     paddingRight: 14,
@@ -2962,11 +2961,11 @@ const styles = StyleSheet.create({
     paddingTop: 9,
   },
   browseCardStateDeck: {
-    borderRadius: 18,
+    borderRadius: 17,
     borderWidth: 1,
-    gap: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 6,
+    gap: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
   favoriteTagButton: {
     borderRadius: 14,
@@ -2978,10 +2977,10 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   browseCompactStateButton: {
-    borderRadius: 16,
-    minHeight: 47,
+    borderRadius: 14,
+    minHeight: 42,
     paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingVertical: 6,
   },
   favoriteTagLabel: {
     fontSize: 13,
@@ -2989,15 +2988,15 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   favoriteTagMeta: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
-    lineHeight: 14,
+    lineHeight: 13,
   },
   sleepPocketButton: {
     borderRadius: 14,
     borderWidth: 1,
     flex: 1,
-    gap: 5,
+    gap: 3,
     minWidth: 0,
     paddingHorizontal: 10,
     paddingVertical: 9,
@@ -3005,7 +3004,7 @@ const styles = StyleSheet.create({
   sleepPocketHeader: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
     justifyContent: 'space-between',
   },
   sleepPocketLabel: {
@@ -3015,14 +3014,14 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   sleepPocketAction: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
-    lineHeight: 16,
+    lineHeight: 15,
   },
   sleepPocketMeta: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
-    lineHeight: 14,
+    lineHeight: 13,
   },
   boxBrowsePager: {
     alignItems: 'center',
@@ -3035,9 +3034,9 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   browseCompactPager: {
-    gap: 8,
+    gap: 7,
     paddingHorizontal: 0,
-    paddingVertical: 0,
+    paddingVertical: 1,
   },
   boxBrowsePagerMeta: {
     fontSize: 12,
