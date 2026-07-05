@@ -758,10 +758,10 @@ export function SpaceSurface({
                   <Text
                     style={[styles.eyebrow, { color: selectedTone.accent }]}
                   >
-                    当前卡盒
+                    空间盒桌
                   </Text>
                   <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
-                    盒内卡片
+                    当前盒桌
                   </Text>
                   <Text
                     style={[
@@ -788,10 +788,10 @@ export function SpaceSurface({
                   <Text
                     style={[
                       styles.overviewInspectButtonTitle,
-                      { color: palette.text },
+                      { color: selectedTone.accent },
                     ]}
                   >
-                    查看盒内
+                    盒内查看
                   </Text>
                   <Text
                     style={[
@@ -828,7 +828,7 @@ export function SpaceSurface({
                   <Text
                     style={[styles.openBoxLidTitle, { color: palette.text }]}
                   >
-                    当前盒桌
+                    盒内对象
                   </Text>
                   <Text
                     style={[
@@ -843,61 +843,110 @@ export function SpaceSurface({
                 <View style={styles.openBoxDeskBody}>
                   <View style={styles.openBoxTray}>
                     <View style={styles.deckCardRow}>
-                      {selectedOverviewDeckCards.slice(0, 2).map(card => {
-                        const isCurrent =
-                          currentLearningCard?.card_id === card.cardId;
-                        const cardState = cardStateById[card.cardId];
-
-                        return (
-                          <View
-                            key={card.cardId}
+                      {selectedOverviewDeckCards.length === 0 ? (
+                        <View
+                          style={[
+                            styles.deckCardOverview,
+                            styles.deckCardOverviewPrimary,
+                            {
+                              backgroundColor: solidPanelStrong,
+                              borderColor: palette.border,
+                            },
+                          ]}
+                          testID="space-empty-box-slot"
+                        >
+                          <Text
                             style={[
-                              styles.deckCardOverview,
-                              isCurrent ? styles.deckCardOverviewActive : null,
-                              {
-                                backgroundColor: isCurrent
-                                  ? hexToRgba(selectedTone.accent, 0.075)
-                                  : solidPanelStrong,
-                                borderColor: isCurrent
-                                  ? hexToRgba(selectedTone.accent, 0.3)
-                                  : palette.border,
-                              },
+                              styles.deckCardTag,
+                              { color: selectedTone.accent },
                             ]}
                           >
-                            <Text
+                            空盒
+                          </Text>
+                          <Text
+                            numberOfLines={3}
+                            style={[
+                              styles.deckCardPrompt,
+                              { color: palette.text },
+                            ]}
+                          >
+                            当前卡盒暂无可展示卡片
+                          </Text>
+                        </View>
+                      ) : null}
+                      {selectedOverviewDeckCards
+                        .slice(0, 3)
+                        .map((card, index) => {
+                          const isCurrent =
+                            currentLearningCard?.card_id === card.cardId;
+                          const cardState = cardStateById[card.cardId];
+
+                          return (
+                            <View
+                              key={card.cardId}
                               style={[
-                                styles.deckCardTag,
+                                styles.deckCardOverview,
+                                index === 0
+                                  ? styles.deckCardOverviewPrimary
+                                  : index === 1
+                                  ? styles.deckCardOverviewSecondary
+                                  : styles.deckCardOverviewTertiary,
+                                isCurrent
+                                  ? styles.deckCardOverviewActive
+                                  : null,
                                 {
-                                  color: isCurrent
-                                    ? selectedTone.accent
-                                    : cardState?.isSleeping
-                                    ? palette.warning
-                                    : cardState?.isFavorited
-                                    ? palette.accentStrong
-                                    : palette.textMuted,
+                                  backgroundColor: isCurrent
+                                    ? hexToRgba(selectedTone.accent, 0.075)
+                                    : solidPanelStrong,
+                                  borderColor: isCurrent
+                                    ? hexToRgba(selectedTone.accent, 0.3)
+                                    : palette.border,
                                 },
                               ]}
                             >
-                              {isCurrent
-                                ? '当前'
-                                : cardState?.isSleeping
-                                ? '休眠'
-                                : cardState?.isFavorited
-                                ? '收藏'
-                                : '卡片'}
-                            </Text>
-                            <Text
-                              numberOfLines={3}
-                              style={[
-                                styles.deckCardPrompt,
-                                { color: palette.text },
-                              ]}
-                            >
-                              {card.prompt}
-                            </Text>
-                          </View>
-                        );
-                      })}
+                              <Text
+                                style={[
+                                  styles.deckCardTag,
+                                  {
+                                    color: isCurrent
+                                      ? selectedTone.accent
+                                      : cardState?.isSleeping
+                                      ? palette.warning
+                                      : cardState?.isFavorited
+                                      ? palette.accentStrong
+                                      : palette.textMuted,
+                                  },
+                                ]}
+                              >
+                                {isCurrent
+                                  ? '当前'
+                                  : cardState?.isSleeping
+                                  ? '休眠'
+                                  : cardState?.isFavorited
+                                  ? '收藏'
+                                  : '卡片'}
+                              </Text>
+                              <Text
+                                numberOfLines={index === 0 ? 4 : 3}
+                                style={[
+                                  styles.deckCardPrompt,
+                                  { color: palette.text },
+                                ]}
+                              >
+                                {card.prompt}
+                              </Text>
+                              <Text
+                                numberOfLines={1}
+                                style={[
+                                  styles.deckCardMeta,
+                                  { color: palette.textMuted },
+                                ]}
+                              >
+                                {card.interactionLabel}
+                              </Text>
+                            </View>
+                          );
+                        })}
                     </View>
 
                     <Pressable
@@ -2262,11 +2311,11 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 28,
     borderWidth: 0,
-    gap: 9,
+    gap: 8,
     minHeight: 0,
     overflow: 'hidden',
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingHorizontal: 13,
+    paddingVertical: 13,
     shadowOffset: { width: 0, height: 14 },
     shadowOpacity: 0.06,
     shadowRadius: 24,
@@ -2317,19 +2366,19 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   overviewHeroRow: {
-    alignItems: 'center',
+    alignItems: 'flex-end',
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     justifyContent: 'space-between',
   },
   overviewInspectButton: {
     alignItems: 'center',
     borderRadius: 20,
-    borderWidth: 1,
+    borderWidth: 0,
     gap: 3,
-    minWidth: 104,
+    minWidth: 96,
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   overviewInspectButtonTitle: {
     fontSize: 14,
@@ -2543,22 +2592,22 @@ const styles = StyleSheet.create({
   openBoxDeskBody: {
     flex: 1,
     flexDirection: 'column',
-    gap: 9,
+    gap: 8,
     minHeight: 0,
     paddingHorizontal: 11,
     paddingBottom: 11,
-    paddingTop: 6,
+    paddingTop: 4,
   },
   openBoxTray: {
     flex: 1,
     gap: 10,
+    justifyContent: 'space-between',
     minWidth: 0,
   },
   deckCardRow: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 9,
-    minHeight: 178,
+    height: 208,
+    minHeight: 208,
+    position: 'relative',
   },
   deckCard: {
     borderRadius: 18,
@@ -2578,10 +2627,10 @@ const styles = StyleSheet.create({
   deckCardOverview: {
     borderRadius: 23,
     borderWidth: 1,
-    flex: 1,
     gap: 8,
     justifyContent: 'flex-start',
     minWidth: 0,
+    position: 'absolute',
     paddingHorizontal: 13,
     paddingVertical: 13,
     shadowOffset: { width: 0, height: 8 },
@@ -2592,6 +2641,27 @@ const styles = StyleSheet.create({
   deckCardOverviewActive: {
     shadowOpacity: 0.1,
     shadowRadius: 20,
+  },
+  deckCardOverviewPrimary: {
+    height: 190,
+    left: 0,
+    top: 8,
+    width: '53%',
+    zIndex: 3,
+  },
+  deckCardOverviewSecondary: {
+    height: 176,
+    right: 0,
+    top: 22,
+    width: '44%',
+    zIndex: 2,
+  },
+  deckCardOverviewTertiary: {
+    height: 150,
+    right: 8,
+    top: 0,
+    width: '40%',
+    zIndex: 1,
   },
   openBoxActionDock: {
     bottom: 10,
@@ -2641,6 +2711,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     lineHeight: 15,
+  },
+  deckCardMeta: {
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 14,
+    marginTop: 'auto',
   },
   boxTraySkeleton: {
     gap: 8,
@@ -2947,7 +3023,7 @@ const styles = StyleSheet.create({
     borderStyle: 'solid',
     borderWidth: 0,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 9,
   },
   sleepAlcoveCompact: {
     alignItems: 'stretch',
@@ -3015,12 +3091,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   returnContinuityStrip: {
-    borderRadius: 24,
+    borderRadius: 23,
     borderWidth: 0,
     gap: 12,
     justifyContent: 'space-between',
     paddingHorizontal: 15,
-    paddingVertical: 13,
+    paddingVertical: 11,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,
     shadowRadius: 20,

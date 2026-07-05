@@ -1651,7 +1651,8 @@ test('requires explicit remote trial start from protected space', async () => {
   });
 
   const unlockedSpaceText = JSON.stringify(tree!.toJSON());
-  expect(unlockedSpaceText).toContain('盒内卡片');
+  expect(unlockedSpaceText).toContain('当前盒桌');
+  expect(unlockedSpaceText).toContain('盒内对象');
   expect(unlockedSpaceText).toContain('回学习');
 });
 
@@ -1854,7 +1855,8 @@ test('can unlock gated space after remote purchase', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('当前卡盒');
-  expect(output).toContain('盒内卡片');
+  expect(output).toContain('当前盒桌');
+  expect(output).toContain('盒内对象');
   expect(output).toContain('回学习');
   expect(root.findAllByProps({ testID: 'space-gate-rail' })).toHaveLength(0);
   expect(
@@ -2174,7 +2176,8 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('当前卡盒');
-  expect(output).toContain('盒内卡片');
+  expect(output).toContain('当前盒桌');
+  expect(output).toContain('盒内对象');
   expect(output).toContain('回学习');
   expect(
     fetchCalls.filter(
@@ -3187,7 +3190,8 @@ test('requires explicit local trial start from protected space', async () => {
 
   const unlockedOutput = JSON.stringify(tree!.toJSON());
   expect(unlockedOutput).toContain('当前卡盒');
-  expect(unlockedOutput).toContain('盒内卡片');
+  expect(unlockedOutput).toContain('当前盒桌');
+  expect(unlockedOutput).toContain('盒内对象');
   expect(unlockedOutput).toContain('回学习');
 });
 
