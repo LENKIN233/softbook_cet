@@ -31,6 +31,9 @@ type SpacePalette = {
   danger: string;
   panel: string;
   panelStrong: string;
+  primaryActionMuted?: string;
+  primaryActionSurface?: string;
+  primaryActionText?: string;
   success: string;
   text: string;
   textMuted: string;
@@ -264,6 +267,18 @@ export function SpaceSurface({
     palette.background === '#0B0B12' || palette.text === '#F2F1EB';
   const solidPanel = isDarkSpacePalette ? '#1C1C2A' : '#FFFFFA';
   const solidPanelStrong = isDarkSpacePalette ? '#222434' : '#FFFFFC';
+  const neutralObjectSurface = hexToRgba(
+    palette.text,
+    isDarkSpacePalette ? 0.04 : 0.028,
+  );
+  const neutralObjectBorder = hexToRgba(
+    palette.text,
+    isDarkSpacePalette ? 0.08 : 0.065,
+  );
+  const primaryActionSurface = palette.primaryActionSurface ?? palette.text;
+  const primaryActionText = palette.primaryActionText ?? solidPanelStrong;
+  const primaryActionMuted =
+    palette.primaryActionMuted ?? hexToRgba(primaryActionText, 0.72);
   const currentCardPath = currentCardPosition
     ? formatSpacePathByIndex(
         currentCardPosition.libraryIndex,
@@ -675,8 +690,8 @@ export function SpaceSurface({
                   style={[
                     styles.spaceAddressRail,
                     {
-                      backgroundColor: hexToRgba(selectedTone.accent, 0.055),
-                      borderColor: hexToRgba(selectedTone.accent, 0.13),
+                      backgroundColor: neutralObjectSurface,
+                      borderColor: neutralObjectBorder,
                     },
                   ]}
                   testID="space-address-shelf"
@@ -755,19 +770,14 @@ export function SpaceSurface({
 
               <View style={styles.overviewHeroRow}>
                 <View style={styles.statusCopy}>
-                  <Text
-                    style={[styles.eyebrow, { color: selectedTone.accent }]}
-                  >
+                  <Text style={[styles.eyebrow, { color: palette.textMuted }]}>
                     空间盒桌
                   </Text>
                   <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
                     当前盒桌
                   </Text>
                   <Text
-                    style={[
-                      styles.locationText,
-                      { color: selectedTone.accent },
-                    ]}
+                    style={[styles.locationText, { color: palette.textMuted }]}
                   >
                     {currentCardPath
                       ? '当前学习卡在这里'
@@ -788,7 +798,7 @@ export function SpaceSurface({
                   <Text
                     style={[
                       styles.overviewInspectButtonTitle,
-                      { color: selectedTone.accent },
+                      { color: palette.text },
                     ]}
                   >
                     盒内查看
@@ -809,8 +819,8 @@ export function SpaceSurface({
                   styles.openBoxDeck,
                   styles.openBoxDeckUnified,
                   {
-                    backgroundColor: hexToRgba(selectedTone.accent, 0.045),
-                    borderColor: hexToRgba(selectedTone.accent, 0.1),
+                    backgroundColor: neutralObjectSurface,
+                    borderColor: neutralObjectBorder,
                   },
                 ]}
                 testID="space-open-box-deck"
@@ -833,7 +843,7 @@ export function SpaceSurface({
                   <Text
                     style={[
                       styles.openBoxLidCount,
-                      { color: selectedTone.accent },
+                      { color: palette.textMuted },
                     ]}
                   >
                     {`${selectedBoxCards.length} 张`}
@@ -955,10 +965,7 @@ export function SpaceSurface({
                         styles.sleepAlcove,
                         styles.sleepAlcoveDesk,
                         {
-                          backgroundColor: hexToRgba(
-                            selectedTone.accent,
-                            0.035,
-                          ),
+                          backgroundColor: neutralObjectSurface,
                           borderColor: 'transparent',
                         },
                       ]}
@@ -979,10 +986,10 @@ export function SpaceSurface({
                               styles.sleepAlcoveActionText,
                               {
                                 backgroundColor: hexToRgba(
-                                  selectedTone.accent,
-                                  0.1,
+                                  palette.text,
+                                  isDarkSpacePalette ? 0.08 : 0.055,
                                 ),
-                                color: selectedTone.accent,
+                                color: palette.text,
                               },
                             ]}
                             testID="space-sleep-alcove-action"
@@ -1013,21 +1020,33 @@ export function SpaceSurface({
                   styles.returnContinuity,
                   styles.returnContinuityStrip,
                   {
-                    backgroundColor: selectedTone.accent,
-                    borderColor: selectedTone.accent,
+                    backgroundColor: primaryActionSurface,
+                    borderColor: primaryActionSurface,
                   },
                 ]}
                 testID="space-return-learning"
               >
+                <View
+                  style={[
+                    styles.returnContinuityAccent,
+                    { backgroundColor: selectedTone.accent },
+                  ]}
+                />
                 <View style={styles.returnContinuityCopy}>
                   <Text
-                    style={[styles.returnContinuityTitle, { color: '#FFFFFF' }]}
+                    style={[
+                      styles.returnContinuityTitle,
+                      { color: primaryActionText },
+                    ]}
                   >
                     回学习
                   </Text>
                   <Text
                     numberOfLines={1}
-                    style={[styles.returnContinuityMeta, { color: '#FFFFFF' }]}
+                    style={[
+                      styles.returnContinuityMeta,
+                      { color: primaryActionMuted },
+                    ]}
                   >
                     同一张卡，同一地址。
                   </Text>
@@ -1035,13 +1054,18 @@ export function SpaceSurface({
                 <View
                   style={[
                     styles.returnContinuityActionPill,
-                    { backgroundColor: 'rgba(255,255,255,0.18)' },
+                    {
+                      backgroundColor: hexToRgba(
+                        primaryActionText,
+                        isDarkSpacePalette ? 0.12 : 0.14,
+                      ),
+                    },
                   ]}
                 >
                   <Text
                     style={[
                       styles.returnContinuityActionText,
-                      { color: '#FFFFFF' },
+                      { color: primaryActionText },
                     ]}
                   >
                     继续
@@ -1050,7 +1074,7 @@ export function SpaceSurface({
                     numberOfLines={1}
                     style={[
                       styles.returnContinuityActionMeta,
-                      { color: '#FFFFFF' },
+                      { color: primaryActionMuted },
                     ]}
                   >
                     保持位置
@@ -1068,7 +1092,7 @@ export function SpaceSurface({
                 styles.boxBrowseSurface,
                 {
                   backgroundColor: solidPanel,
-                  borderColor: hexToRgba(selectedTone.accent, 0.14),
+                  borderColor: neutralObjectBorder,
                 },
               ]}
               testID="space-box-detail"
@@ -1080,7 +1104,7 @@ export function SpaceSurface({
                   styles.browseAddressTray,
                   {
                     backgroundColor: solidPanelStrong,
-                    borderColor: hexToRgba(selectedTone.accent, 0.08),
+                    borderColor: neutralObjectBorder,
                   },
                 ]}
                 testID="space-current-box-tray"
@@ -1097,7 +1121,7 @@ export function SpaceSurface({
                   />
                   <View style={styles.statusCopy}>
                     <Text
-                      style={[styles.eyebrow, { color: selectedTone.accent }]}
+                      style={[styles.eyebrow, { color: palette.textMuted }]}
                     >
                       盒内查看
                     </Text>
@@ -1110,7 +1134,7 @@ export function SpaceSurface({
                       numberOfLines={1}
                       style={[
                         styles.locationText,
-                        { color: selectedTone.accent },
+                        { color: palette.textMuted },
                       ]}
                     >
                       {currentCardPath
@@ -1122,18 +1146,15 @@ export function SpaceSurface({
                     style={[
                       styles.browseStatusBadge,
                       {
-                        backgroundColor: hexToRgba(
-                          selectedTone.accent,
-                          isGated ? 0.05 : 0.1,
-                        ),
-                        borderColor: hexToRgba(selectedTone.accent, 0.18),
+                        backgroundColor: neutralObjectSurface,
+                        borderColor: neutralObjectBorder,
                       },
                     ]}
                   >
                     <Text
                       style={[
                         styles.browseStatusBadgeText,
-                        { color: selectedTone.accent },
+                        { color: palette.text },
                       ]}
                     >
                       {isGated
@@ -1216,7 +1237,7 @@ export function SpaceSurface({
                       styles.browseRail,
                       styles.browseRailDesk,
                       {
-                        borderTopColor: hexToRgba(selectedTone.accent, 0.12),
+                        borderTopColor: neutralObjectBorder,
                       },
                     ]}
                     testID="space-browse-rail"
@@ -1249,7 +1270,7 @@ export function SpaceSurface({
                         <Text
                           style={[
                             styles.browseRailLevelLabel,
-                            { color: selectedTone.accent },
+                            { color: palette.textMuted },
                           ]}
                         >
                           书架
@@ -1280,10 +1301,10 @@ export function SpaceSurface({
                                   isActive ? styles.browseRailChipActive : null,
                                   {
                                     backgroundColor: isActive
-                                      ? hexToRgba(selectedTone.accent, 0.1)
+                                      ? neutralObjectSurface
                                       : solidPanelStrong,
                                     borderColor: isActive
-                                      ? hexToRgba(selectedTone.accent, 0.18)
+                                      ? neutralObjectBorder
                                       : hexToRgba(palette.textMuted, 0.08),
                                   },
                                 ]}
@@ -1295,7 +1316,7 @@ export function SpaceSurface({
                                     styles.browseRailValue,
                                     {
                                       color: isActive
-                                        ? selectedTone.accent
+                                        ? palette.text
                                         : palette.textMuted,
                                     },
                                   ]}
@@ -1345,10 +1366,10 @@ export function SpaceSurface({
                                   isActive ? styles.browseRailChipActive : null,
                                   {
                                     backgroundColor: isActive
-                                      ? hexToRgba(selectedTone.accent, 0.1)
+                                      ? neutralObjectSurface
                                       : solidPanelStrong,
                                     borderColor: isActive
-                                      ? hexToRgba(selectedTone.accent, 0.18)
+                                      ? neutralObjectBorder
                                       : hexToRgba(palette.textMuted, 0.08),
                                   },
                                 ]}
@@ -1360,7 +1381,7 @@ export function SpaceSurface({
                                     styles.browseRailValue,
                                     {
                                       color: isActive
-                                        ? selectedTone.accent
+                                        ? palette.text
                                         : palette.textMuted,
                                     },
                                   ]}
@@ -1404,10 +1425,10 @@ export function SpaceSurface({
                                   isActive ? styles.browseRailChipActive : null,
                                   {
                                     backgroundColor: isActive
-                                      ? hexToRgba(selectedTone.accent, 0.1)
+                                      ? neutralObjectSurface
                                       : solidPanelStrong,
                                     borderColor: isActive
-                                      ? hexToRgba(selectedTone.accent, 0.18)
+                                      ? neutralObjectBorder
                                       : hexToRgba(palette.textMuted, 0.08),
                                   },
                                 ]}
@@ -1419,7 +1440,7 @@ export function SpaceSurface({
                                     styles.browseRailValue,
                                     {
                                       color: isActive
-                                        ? selectedTone.accent
+                                        ? palette.text
                                         : palette.textMuted,
                                     },
                                   ]}
@@ -1479,7 +1500,7 @@ export function SpaceSurface({
                             <Text
                               style={[
                                 styles.eyebrow,
-                                { color: selectedTone.accent },
+                                { color: palette.textMuted },
                               ]}
                             >
                               盒内卡片
@@ -1525,10 +1546,7 @@ export function SpaceSurface({
                             styles.cardStateDeck,
                             styles.browseCardStateDeck,
                             {
-                              borderTopColor: hexToRgba(
-                                selectedTone.accent,
-                                0.12,
-                              ),
+                              borderTopColor: neutralObjectBorder,
                             },
                           ]}
                         >
@@ -1627,7 +1645,7 @@ export function SpaceSurface({
                                       {
                                         color: isSleeping
                                           ? palette.warning
-                                          : selectedTone.accent,
+                                          : palette.text,
                                       },
                                     ]}
                                     testID={
@@ -1724,8 +1742,10 @@ export function SpaceSurface({
                             style={[
                               styles.browseContinuityPrimary,
                               {
-                                backgroundColor: selectedTone.accent,
-                                borderColor: selectedTone.accent,
+                                backgroundColor: primaryActionSurface,
+                                borderColor: primaryActionSurface,
+                                borderLeftColor: selectedTone.accent,
+                                borderLeftWidth: 4,
                               },
                             ]}
                             testID="space-return-learning"
@@ -1733,7 +1753,7 @@ export function SpaceSurface({
                             <Text
                               style={[
                                 styles.browseContinuityTitle,
-                                { color: palette.panel },
+                                { color: primaryActionText },
                               ]}
                             >
                               回学习
@@ -1742,7 +1762,7 @@ export function SpaceSurface({
                               numberOfLines={1}
                               style={[
                                 styles.browseContinuityMeta,
-                                { color: '#FFFFFF' },
+                                { color: primaryActionMuted },
                               ]}
                             >
                               同一地址
@@ -1753,10 +1773,7 @@ export function SpaceSurface({
                             style={[
                               styles.browseContinuitySecondary,
                               {
-                                backgroundColor: hexToRgba(
-                                  selectedTone.accent,
-                                  0.036,
-                                ),
+                                backgroundColor: neutralObjectSurface,
                                 borderColor: 'transparent',
                               },
                             ]}
@@ -3171,6 +3188,11 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 3,
     minWidth: 0,
+  },
+  returnContinuityAccent: {
+    borderRadius: 999,
+    height: 34,
+    width: 4,
   },
   returnContinuityCompact: {
     alignItems: 'flex-start',
