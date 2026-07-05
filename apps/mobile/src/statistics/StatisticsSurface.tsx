@@ -181,42 +181,38 @@ export function StatisticsSurface({
           style={[
             styles.metricLedger,
             {
-              backgroundColor: hexToRgba(palette.accent, 0.032),
-              borderColor: hexToRgba(palette.accent, 0.06),
+              backgroundColor: hexToRgba(palette.accent, 0.026),
+              borderColor: hexToRgba(palette.accent, 0.08),
             },
           ]}
           testID="statistics-metric-strip"
         >
-          <View style={styles.metricFocalSlot}>
-            <MetricLedgerRow
-              emphasis
-              label="今日完成"
-              palette={palette}
-              testID="statistics-metric-completed"
-              value={`${combinedResults.length}`}
-            />
-          </View>
-          <View style={styles.metricSideGrid}>
-            <MetricLedgerRow
-              label="首轮"
-              palette={palette}
-              testID="statistics-metric-learning"
-              value={`${learningResults.length}`}
-            />
-            <MetricLedgerRow
-              label="回看"
-              palette={palette}
-              testID="statistics-metric-review"
-              value={`${reviewResults.length}`}
-            />
-            <MetricLedgerRow
-              label="待回看"
-              palette={palette}
-              testID="statistics-metric-pending-review"
-              tone={pendingReviewCount > 0 ? 'warning' : 'success'}
-              value={`${pendingReviewCount}`}
-            />
-          </View>
+          <MetricLedgerRow
+            emphasis
+            label="今日完成"
+            palette={palette}
+            testID="statistics-metric-completed"
+            value={`${combinedResults.length}`}
+          />
+          <MetricLedgerRow
+            label="首轮"
+            palette={palette}
+            testID="statistics-metric-learning"
+            value={`${learningResults.length}`}
+          />
+          <MetricLedgerRow
+            label="回看"
+            palette={palette}
+            testID="statistics-metric-review"
+            value={`${reviewResults.length}`}
+          />
+          <MetricLedgerRow
+            label="待回看"
+            palette={palette}
+            testID="statistics-metric-pending-review"
+            tone={pendingReviewCount > 0 ? 'warning' : 'success'}
+            value={`${pendingReviewCount}`}
+          />
         </View>
 
         <View
@@ -236,11 +232,11 @@ export function StatisticsSurface({
               {
                 backgroundColor: hexToRgba(
                   nextStepIsReview ? palette.warning : palette.accent,
-                  0.045,
+                  0.034,
                 ),
                 borderColor: hexToRgba(
                   nextStepIsReview ? palette.warning : palette.accent,
-                  0.1,
+                  0.09,
                 ),
               },
             ]}
@@ -309,8 +305,8 @@ export function StatisticsSurface({
             style={[
               styles.actionObjectRow,
               {
-                backgroundColor: hexToRgba(palette.accent, 0.028),
-                borderColor: hexToRgba(palette.accent, 0.08),
+                backgroundColor: hexToRgba(palette.accent, 0.022),
+                borderColor: hexToRgba(palette.accent, 0.07),
               },
               styles.checkInDockRow,
               deviceClass === 'tablet' ? styles.checkInDockRowTablet : null,
@@ -422,6 +418,15 @@ function MetricLedgerRow({
     >
       <Text
         style={[
+          styles.metricLabel,
+          emphasis ? styles.metricLabelEmphasis : null,
+          { color: palette.textMuted },
+        ]}
+      >
+        {label}
+      </Text>
+      <Text
+        style={[
           styles.metricValue,
           emphasis ? styles.metricValueEmphasis : null,
           { color: valueColor },
@@ -429,15 +434,6 @@ function MetricLedgerRow({
         testID={testID ? `${testID}-value` : undefined}
       >
         {value}
-      </Text>
-      <Text
-        style={[
-          styles.metricLabel,
-          emphasis ? styles.metricLabelEmphasis : null,
-          { color: palette.textMuted },
-        ]}
-      >
-        {label}
       </Text>
     </View>
   );
@@ -496,22 +492,24 @@ function LedgerRow({
       <Text style={[styles.ledgerLabel, { color: palette.textMuted }]}>
         {label}
       </Text>
-      <Text
-        numberOfLines={2}
-        style={[styles.ledgerValue, { color: palette.text }]}
-        testID={testID}
-      >
-        {value}
-      </Text>
-      {detail ? (
+      <View style={styles.ledgerValueStack}>
         <Text
           numberOfLines={2}
-          style={[styles.ledgerDetail, { color: palette.textMuted }]}
-          testID={detailTestID}
+          style={[styles.ledgerValue, { color: palette.text }]}
+          testID={testID}
         >
-          {detail}
+          {value}
         </Text>
-      ) : null}
+        {detail ? (
+          <Text
+            numberOfLines={2}
+            style={[styles.ledgerDetail, { color: palette.textMuted }]}
+            testID={detailTestID}
+          >
+            {detail}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -544,59 +542,45 @@ const styles = StyleSheet.create({
   },
   metricLedger: {
     alignItems: 'stretch',
-    borderRadius: 22,
-    borderWidth: 0,
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-  },
-  metricFocalSlot: {
-    flex: 1,
-    minWidth: 0,
-  },
-  metricSideGrid: {
-    flex: 1.45,
-    flexDirection: 'row',
-    gap: 5,
-    minWidth: 0,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   metricLedgerRow: {
     alignItems: 'center',
-    flex: 1,
-    gap: 2,
-    justifyContent: 'center',
-    minHeight: 56,
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 32,
     minWidth: 0,
-    paddingHorizontal: 3,
-    paddingVertical: 6,
+    paddingHorizontal: 2,
+    paddingVertical: 4,
   },
   metricLedgerRowEmphasis: {
-    alignItems: 'flex-start',
-    minHeight: 68,
-    paddingHorizontal: 5,
-    paddingVertical: 3,
+    minHeight: 36,
   },
   metricValue: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
-    lineHeight: 22,
+    lineHeight: 21,
+    textAlign: 'right',
   },
   metricValueEmphasis: {
-    fontSize: 38,
-    lineHeight: 42,
+    fontSize: 20,
+    lineHeight: 24,
   },
   metricLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    lineHeight: 14,
-    textAlign: 'center',
-  },
-  metricLabelEmphasis: {
     fontSize: 12,
+    fontWeight: '800',
     lineHeight: 16,
     textAlign: 'left',
+  },
+  metricLabelEmphasis: {
+    fontSize: 13,
+    lineHeight: 17,
   },
   surfaceCard: {
     borderWidth: 1,
@@ -655,14 +639,14 @@ const styles = StyleSheet.create({
   },
   actionObjectRow: {
     borderRadius: 20,
-    borderWidth: 0,
+    borderWidth: 1,
   },
   nextStepRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 9,
   },
   actionDockDivider: {
     height: 0,
@@ -677,9 +661,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   nextStepTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
-    lineHeight: 22,
+    lineHeight: 20,
   },
   checkInDockRow: {
     alignItems: 'center',
@@ -687,7 +671,7 @@ const styles = StyleSheet.create({
     gap: 10,
     minHeight: 48,
     paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingVertical: 8,
   },
   checkInDockRowTablet: {
     alignItems: 'flex-start',
@@ -703,8 +687,8 @@ const styles = StyleSheet.create({
   primaryButton: {
     borderWidth: 1,
     borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -720,13 +704,12 @@ const styles = StyleSheet.create({
   },
   nextStepButton: {
     borderRadius: 999,
-    minWidth: 96,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    minWidth: 86,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
   },
   ledgerRail: {
-    flexDirection: 'row',
-    gap: 7,
+    gap: 5,
   },
   ledgerLabel: {
     fontSize: 11,
@@ -746,14 +729,19 @@ const styles = StyleSheet.create({
   ledgerRow: {
     alignItems: 'flex-start',
     borderRadius: 16,
-    borderWidth: 0,
-    flex: 1,
-    gap: 3,
-    justifyContent: 'flex-start',
-    minHeight: 64,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+    minHeight: 44,
     minWidth: 0,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 7,
+  },
+  ledgerValueStack: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
   },
   statusLedger: {
     borderTopWidth: 0,
