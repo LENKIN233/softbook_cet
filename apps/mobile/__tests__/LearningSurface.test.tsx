@@ -24,6 +24,9 @@ const palette = {
   danger: '#D94C5C',
   panel: '#FFFFFF',
   panelStrong: '#F3F4F8',
+  primaryActionMuted: 'rgba(255,255,255,0.74)',
+  primaryActionSurface: '#12131A',
+  primaryActionText: '#FFFFFC',
   success: '#1E9B63',
   tabIdle: 'rgba(124,139,255,0.36)',
   text: '#1E1F2A',
@@ -353,11 +356,16 @@ test('result detail reads as a resolved card without raw metadata', () => {
   expect(output).toContain('B · unclear');
   expect(output).toContain('已作答 · 答对');
   expect(output).toContain('继续下一张');
-  expect(
-    JSON.stringify(
-      tree!.root.findByProps({ testID: 'learning-next-button' }).props.style,
-    ),
-  ).toContain(resolveLibraryTone(card.space_metadata.library).accent);
+  const nextButtonStyle = JSON.stringify(
+    tree!.root.findByProps({ testID: 'learning-next-button' }).props.style,
+  );
+  expect(nextButtonStyle).toContain(palette.primaryActionSurface);
+  expect(nextButtonStyle).not.toContain(
+    resolveLibraryTone(card.space_metadata.library).accent,
+  );
+  expect(output).toContain(
+    resolveLibraryTone(card.space_metadata.library).accent,
+  );
   expect(output).not.toContain('knowledge_ref');
   expect(output).not.toContain('box_ref');
   expect(output).not.toContain(card.knowledge_ref);
