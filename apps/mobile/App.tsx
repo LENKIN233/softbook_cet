@@ -2831,17 +2831,17 @@ function AuthGate({
       : route.key === 'mine'
       ? {
           continuityItems: [
-            { label: '身份', value: hasSentCode ? '验证中' : '待验证' },
-            { label: '同步', value: '学习空间' },
-            { label: '权益', value: '登录确认' },
+            { label: '记录', value: '已保留' },
+            { label: '空间', value: '已保留' },
+            { label: '权益', value: hasSentCode ? '验证中' : '待确认' },
           ],
           eyebrow: '账号与权益',
           gateSummary: '学习记录、空间位置和会员权益会归到同一账号。',
           gateTitle: '确认账号后继续',
           retainedSummary: hasSentCode
-            ? '短码已发到手机，完成后回到我的。'
-            : '输入手机号，验证后回到我的。',
-          retainedTitle: '账号状态 · 待确认',
+            ? '短码已发，完成后接回我的。'
+            : '手机号确认后接回我的。',
+          retainedTitle: '账号承接 · 待确认',
           returnTarget: '我的',
         }
       : {
@@ -2920,7 +2920,7 @@ function AuthGate({
                         { color: palette.text },
                       ]}
                     >
-                      {hasSentCode ? '验证码已发' : '未登录'}
+                      {hasSentCode ? '验证中' : '待确认'}
                     </Text>
                     <Text
                       style={[
@@ -2928,7 +2928,7 @@ function AuthGate({
                         { color: palette.textMuted },
                       ]}
                     >
-                      手机号验证
+                      手机验证
                     </Text>
                   </View>
                 </View>
@@ -4079,12 +4079,16 @@ function PhoneSmsPanel({
       ? '正在发送验证码'
       : canRequestCode
       ? '手机号已准备好'
+      : accountDock
+      ? '确认这个账号'
       : '把当前位置接到账号';
   const requestDockDetail =
     authState.pendingAction === 'request_code'
       ? '正在向当前手机号发送短码。'
       : canRequestCode
       ? `验证码通过后回到${returnTarget}。`
+      : accountDock
+      ? `输入手机号，完成后回到${returnTarget}。`
       : `输入手机号，完成后回到${returnTarget}。`;
   const dockSummary = hasRequestedCode
     ? `短码已发送，完成后回到${returnTarget}。`
@@ -4317,6 +4321,29 @@ function PhoneSmsPanel({
           ]}
           testID="auth-request-inline-dock"
         >
+          <View style={styles.authRequestStatusLine}>
+            <View
+              pointerEvents="none"
+              style={[
+                styles.authCodeSentDot,
+                { backgroundColor: palette.accent },
+              ]}
+            />
+            <View style={styles.authRequestCopy}>
+              <Text
+                numberOfLines={1}
+                style={[styles.authRequestTitle, { color: palette.text }]}
+              >
+                {stateLabel ?? requestDockTitle}
+              </Text>
+              <Text
+                numberOfLines={2}
+                style={[styles.authRequestDetail, { color: palette.textMuted }]}
+              >
+                {dockSummary}
+              </Text>
+            </View>
+          </View>
           <View
             style={[
               styles.authRequestActionRow,
@@ -4398,29 +4425,6 @@ function PhoneSmsPanel({
                   : '获取短码'}
               </Text>
             </Pressable>
-          </View>
-          <View style={styles.authRequestStatusLine}>
-            <View
-              pointerEvents="none"
-              style={[
-                styles.authCodeSentDot,
-                { backgroundColor: palette.accent },
-              ]}
-            />
-            <View style={styles.authRequestCopy}>
-              <Text
-                numberOfLines={1}
-                style={[styles.authRequestTitle, { color: palette.text }]}
-              >
-                {stateLabel ?? requestDockTitle}
-              </Text>
-              <Text
-                numberOfLines={1}
-                style={[styles.authRequestDetail, { color: palette.textMuted }]}
-              >
-                {dockSummary}
-              </Text>
-            </View>
           </View>
         </View>
       ) : null}
@@ -4973,11 +4977,11 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
   },
   authEntryCardMine: {
-    gap: 13,
+    gap: 10,
     justifyContent: 'flex-start',
     minHeight: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 18,
+    paddingHorizontal: 15,
+    paddingVertical: 16,
   },
   authObjectHeader: {
     gap: 8,
@@ -5015,14 +5019,14 @@ const styles = StyleSheet.create({
   authMinePassportHeader: {
     alignItems: 'flex-start',
     flexDirection: 'row',
-    gap: 11,
+    gap: 10,
   },
   authMineAvatar: {
     alignItems: 'center',
     borderRadius: 22,
-    height: 42,
+    height: 44,
     justifyContent: 'center',
-    width: 42,
+    width: 44,
   },
   authMineAvatarText: {
     fontSize: 17,
@@ -5030,7 +5034,7 @@ const styles = StyleSheet.create({
   },
   authMineHeaderCopy: {
     flex: 1,
-    gap: 4,
+    gap: 3,
     minWidth: 0,
   },
   authMineHeaderTopRow: {
@@ -5054,7 +5058,7 @@ const styles = StyleSheet.create({
   },
   authRetainedObjectMine: {
     borderWidth: 0,
-    gap: 7,
+    gap: 5,
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
@@ -5104,8 +5108,8 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   authRetainedLedgerMine: {
-    gap: 6,
-    paddingHorizontal: 1,
+    gap: 5,
+    paddingHorizontal: 0,
   },
   authRetainedLedgerRow: {
     alignItems: 'baseline',
@@ -5127,8 +5131,8 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   authRetainedLedgerRowMine: {
-    borderRadius: 13,
-    minHeight: 42,
+    borderRadius: 999,
+    minHeight: 34,
     paddingHorizontal: 4,
     paddingVertical: 5,
   },
@@ -5142,8 +5146,9 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   authObjectBadgeMine: {
-    maxWidth: 122,
-    paddingHorizontal: 10,
+    maxWidth: 104,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
   },
   authObjectBadgeValue: {
     fontSize: 12,
@@ -5286,10 +5291,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   authRequestInlineDockAccount: {
-    gap: 7,
-    paddingBottom: 8,
-    paddingHorizontal: 10,
-    paddingTop: 8,
+    gap: 8,
+    paddingBottom: 10,
+    paddingHorizontal: 11,
+    paddingTop: 10,
   },
   authRequestInlineDockRoute: {
     paddingBottom: 9,
@@ -5304,7 +5309,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
   },
   authRequestTitle: {
     fontSize: 13,
@@ -5326,8 +5331,8 @@ const styles = StyleSheet.create({
   },
   authRequestButtonAccount: {
     alignSelf: 'stretch',
-    minHeight: 44,
-    minWidth: 88,
+    minHeight: 46,
+    minWidth: 92,
     paddingHorizontal: 12,
   },
   authRequestButtonLabel: {
@@ -5343,10 +5348,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   authCodeInlineDockAccount: {
-    gap: 8,
-    paddingBottom: 8,
-    paddingHorizontal: 10,
-    paddingTop: 8,
+    gap: 9,
+    paddingBottom: 10,
+    paddingHorizontal: 11,
+    paddingTop: 10,
   },
   authCodeInlineDockRoute: {
     paddingBottom: 10,
@@ -5423,7 +5428,7 @@ const styles = StyleSheet.create({
   authCodeCellAccount: {
     borderRadius: 9,
     height: 34,
-    width: 28,
+    width: 27,
   },
   authCodeCellText: {
     fontSize: 17,
@@ -5455,8 +5460,8 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   authCodeSubmitButtonAccount: {
-    minHeight: 44,
-    minWidth: 86,
+    minHeight: 46,
+    minWidth: 90,
     paddingHorizontal: 11,
     paddingVertical: 9,
   },
@@ -5496,7 +5501,7 @@ const styles = StyleSheet.create({
   },
   authPhoneFieldDockAccount: {
     flex: 1,
-    minHeight: 44,
+    minHeight: 46,
     paddingHorizontal: 11,
   },
   authPhoneFieldDockLabel: {
