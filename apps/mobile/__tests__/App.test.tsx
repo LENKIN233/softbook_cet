@@ -2902,7 +2902,7 @@ test('mine page keeps profile status and route actions in one screen after login
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('账号与权益');
+  expect(output).toContain('学习账户');
   expect(output).toContain('今天继续这一轮');
   expect(output).toContain('138****8000');
   expect(output).toContain('已签到 · 1 张完成');
@@ -2923,14 +2923,13 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(
     root.findAllByProps({ testID: 'membership-access-step' }),
   ).toHaveLength(0);
-  expect(output).toContain('权益状态');
+  expect(output).toContain('权益通行证');
   expect(output).toContain('基础可用');
-  expect(output).toContain('首次计入学习时开启试用');
+  expect(output).toContain('试用从首次计入学习开始');
   expect(output).toContain('完整卡库');
   expect(output).toContain('完整空间');
   expect(output).toContain('智能回看');
-  expect(output).toContain('本轮学习不断线');
-  expect(output).toContain('开始完整试用');
+  expect(output).toContain('开始试用');
   expect(
     findPressableByTestId(root, 'membership-start-trial-button'),
   ).toBeTruthy();
@@ -2939,6 +2938,7 @@ test('mine page keeps profile status and route actions in one screen after login
   ).toBeTruthy();
   expect(output).not.toContain('1/4');
   expect(output).not.toContain('账号概览');
+  expect(output).not.toContain('权益状态');
   expect(output).not.toContain('今日已完成 1 张卡，其中首轮 1 张、回看 0 张。');
   expect(output).not.toContain('收藏标签 1 张。');
   expect(output).not.toContain(
@@ -3261,7 +3261,7 @@ test('shows trial gate from the first gated review entry', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('试用待开始');
-  expect(output).toContain('开始完整试用');
+  expect(output).toContain('开始试用');
 
   await ReactTestRenderer.act(async () => {
     root
