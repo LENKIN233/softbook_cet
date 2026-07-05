@@ -447,6 +447,7 @@ export function LearningSurface({
         <View
           style={[
             styles.cardLocationStrip,
+            styles.detailCardLocationStrip,
             {
               backgroundColor: palette.panelStrong,
               borderColor: palette.border,
@@ -1379,22 +1380,26 @@ function getResolvedAnswerRows(
 export function LearningResultDetailSurface({
   card,
   cardState,
+  currentIndex,
   isLastCard,
   onAdvanceCard,
   onBackToPractice,
   palette,
   phase,
   result,
+  sessionCardCount,
   sessionLabel,
 }: {
   card: LearningCard;
   cardState: LearningCardState;
+  currentIndex: number;
   isLastCard: boolean;
   onAdvanceCard: () => void;
   onBackToPractice: () => void;
   palette: LearningSurfacePalette;
   phase: 'learning' | 'review';
   result: LearningCardResult;
+  sessionCardCount: number;
   sessionLabel: string;
 }) {
   const displaySessionLabel = formatLearningSessionLabelForDisplay(
@@ -1407,6 +1412,13 @@ export function LearningResultDetailSurface({
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
   const detailActionTone = detailLibraryTone.accent;
+  const boundedSessionCardCount = Math.max(sessionCardCount, 1);
+  const progressOrdinal = Math.min(currentIndex + 1, boundedSessionCardCount);
+  const progressPercent = `${Math.max(
+    Math.round((progressOrdinal / boundedSessionCardCount) * 100),
+    10,
+  )}%` as DimensionValue;
+  const progressCount = `${progressOrdinal}/${boundedSessionCardCount}`;
 
   return (
     <View
@@ -1424,32 +1436,93 @@ export function LearningResultDetailSurface({
           },
         ]}
       >
-        <View style={styles.detailObjectHeader}>
+        <View style={styles.cardAddressShelf}>
           <View style={styles.heroChipRow}>
             <View
               pointerEvents="none"
               style={[
                 styles.cardObjectAccent,
-                { backgroundColor: detailLibraryTone.accent },
+                { backgroundColor: hexToRgba(detailLibraryTone.accent, 0.92) },
               ]}
             />
             <View style={styles.cardObjectHeaderText}>
               <Text
                 style={[styles.learningFrameMeta, { color: palette.textMuted }]}
               >
-                {phase === 'review' ? '回看答案' : '本卡答案'}
+                {phase === 'review' ? '本轮回看' : displaySessionLabel}
               </Text>
               <Text style={[styles.cardObjectLead, { color: palette.text }]}>
                 当前卡 · {INTERACTION_LABELS[card.interaction_id]}
               </Text>
             </View>
           </View>
+          <View
+            style={[
+              styles.cardProgressCluster,
+              {
+                backgroundColor: palette.panelStrong,
+                borderColor: hexToRgba(detailLibraryTone.accent, 0.14),
+              },
+            ]}
+          >
+            <Text style={[styles.cardProgressCount, { color: palette.text }]}>
+              {progressCount}
+            </Text>
+            <View
+              style={[
+                styles.cardProgressTrack,
+                { backgroundColor: palette.panel, borderColor: palette.border },
+              ]}
+            >
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    backgroundColor: detailLibraryTone.accent,
+                    width: progressPercent,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.cardLocationStrip,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+            },
+          ]}
+        >
+          <View
+            pointerEvents="none"
+            style={[
+              styles.cardLocationDot,
+              { backgroundColor: hexToRgba(detailLibraryTone.accent, 0.62) },
+            ]}
+          />
+          <View style={styles.cardLocationTextWrap}>
+            <Text
+              numberOfLines={1}
+              style={[styles.cardLocationTitle, { color: palette.textMuted }]}
+            >
+              当前馆 · 本轮盒
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[styles.cardLocationMeta, { color: palette.textMuted }]}
+            >
+              结果在当前卡
+            </Text>
+          </View>
           <Pressable
             onPress={onBackToPractice}
             style={[
               styles.detailCollapseButton,
               {
-                backgroundColor: palette.panelStrong,
+                backgroundColor: palette.panel,
                 borderColor: palette.border,
               },
             ]}
@@ -1467,8 +1540,8 @@ export function LearningResultDetailSurface({
           style={[
             styles.detailResolvedHero,
             {
-              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.034),
-              borderColor: 'transparent',
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
             },
           ]}
         >
@@ -1480,7 +1553,7 @@ export function LearningResultDetailSurface({
               ]}
             >
               <Text style={[styles.detailStateText, { color: resultTone }]}>
-                {isPositive ? '答对，继续保持节奏' : '这张先收进回看'}
+                {isPositive ? '已作答 · 答对' : '已作答 · 回看'}
               </Text>
             </View>
             <Text
@@ -1496,8 +1569,8 @@ export function LearningResultDetailSurface({
           style={[
             styles.detailAnswerSlip,
             {
-              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.022),
-              borderColor: 'transparent',
+              backgroundColor: hexToRgba(detailLibraryTone.accent, 0.028),
+              borderColor: hexToRgba(detailLibraryTone.accent, 0.1),
             },
           ]}
         >
@@ -1513,7 +1586,7 @@ export function LearningResultDetailSurface({
                 numberOfLines={1}
                 style={[styles.detailSlipCaption, { color: palette.textMuted }]}
               >
-                先收住关键解释，再继续下一张
+                选择、答案和解释都在当前卡里
               </Text>
             </View>
           </View>
@@ -1523,7 +1596,7 @@ export function LearningResultDetailSurface({
               styles.detailAnswerRail,
               {
                 backgroundColor: palette.panel,
-                borderColor: 'transparent',
+                borderColor: palette.border,
               },
             ]}
           >
@@ -1535,7 +1608,7 @@ export function LearningResultDetailSurface({
                     style={[
                       styles.detailAnswerDivider,
                       {
-                        backgroundColor: 'transparent',
+                        backgroundColor: palette.border,
                       },
                     ]}
                   />
@@ -1572,7 +1645,8 @@ export function LearningResultDetailSurface({
             style={[
               styles.detailExplanationSlip,
               {
-                borderBottomColor: hexToRgba(detailLibraryTone.accent, 0.1),
+                backgroundColor: palette.panel,
+                borderColor: palette.border,
               },
             ]}
           >
@@ -1602,8 +1676,8 @@ export function LearningResultDetailSurface({
             style={[
               styles.detailContinuityRail,
               {
-                backgroundColor: hexToRgba(detailLibraryTone.accent, 0.03),
-                borderTopColor: 'transparent',
+                backgroundColor: palette.panel,
+                borderColor: palette.border,
               },
             ]}
           >
@@ -1611,7 +1685,7 @@ export function LearningResultDetailSurface({
               numberOfLines={1}
               style={[styles.detailLocationTitle, { color: palette.text }]}
             >
-              位置已保持
+              当前位置
             </Text>
             <Text
               numberOfLines={1}
@@ -1619,7 +1693,7 @@ export function LearningResultDetailSurface({
             >
               {isLastCard
                 ? `${displaySessionLabel}即将收好`
-                : '下一张仍按当前位置继续'}
+                : '下一张仍按本轮盒继续'}
             </Text>
           </View>
         </View>
@@ -2008,27 +2082,27 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    paddingHorizontal: 13,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   detailCollapseLabel: {
     fontSize: 12,
     fontWeight: '700',
   },
   detailResolvedCard: {
-    borderRadius: 28,
+    borderRadius: 30,
     borderWidth: 1,
-    gap: 8,
+    gap: 7,
     overflow: 'hidden',
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingHorizontal: 17,
+    paddingVertical: 12,
     position: 'relative',
   },
   detailResolvedHero: {
     borderRadius: 22,
-    borderWidth: 0,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    borderWidth: 1,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
   },
   detailTitleWrap: {
     alignSelf: 'stretch',
@@ -2046,16 +2120,16 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   detailPrompt: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   detailAnswerSlip: {
     borderRadius: 22,
-    borderWidth: 0,
-    gap: 8,
+    borderWidth: 1,
+    gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingVertical: 9,
   },
   detailSlipHeader: {
     alignItems: 'center',
@@ -2078,13 +2152,13 @@ const styles = StyleSheet.create({
   detailAnswerRail: {
     alignItems: 'stretch',
     borderRadius: 16,
-    borderWidth: 0,
+    borderWidth: 1,
     flexDirection: 'row',
     overflow: 'hidden',
   },
   detailAnswerDivider: {
     alignSelf: 'stretch',
-    width: 0,
+    width: 1,
   },
   detailAnswerCell: {
     flex: 1,
@@ -2104,9 +2178,11 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   detailExplanationSlip: {
-    borderBottomWidth: 0,
+    borderRadius: 18,
+    borderWidth: 1,
     gap: 4,
-    paddingBottom: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   detailOutcomeTitle: {
     fontSize: 13,
@@ -2120,7 +2196,7 @@ const styles = StyleSheet.create({
   detailContinuityRail: {
     alignItems: 'center',
     borderRadius: 16,
-    borderTopWidth: 0,
+    borderWidth: 1,
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
@@ -2142,7 +2218,11 @@ const styles = StyleSheet.create({
   },
   detailPrimaryButton: {
     marginTop: 1,
-    paddingVertical: 13,
+    paddingVertical: 12,
+  },
+  detailCardLocationStrip: {
+    paddingHorizontal: 11,
+    paddingVertical: 6,
   },
   progressTrack: {
     height: 8,

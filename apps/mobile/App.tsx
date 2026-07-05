@@ -2151,12 +2151,14 @@ function AppShell({
     <LearningResultDetailSurface
       card={currentLearningCard}
       cardState={learningCardState}
+      currentIndex={learningIndex}
       isLastCard={learningIndex === activeSessionCards.length - 1}
       onAdvanceCard={learningHandlers.onAdvanceCard}
       onBackToPractice={() => setLearningScreen('practice')}
       palette={palette}
       phase={learningPhase}
       result={learningCurrentResult}
+      sessionCardCount={activeSessionCards.length}
       sessionLabel={formatLearningSessionDisplayLabel(learningPhase)}
     />
   ) : route.key === 'learning' ? (

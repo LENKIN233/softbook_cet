@@ -306,6 +306,7 @@ test('result detail reads as a resolved card without raw metadata', () => {
       <LearningResultDetailSurface
         card={card}
         cardState={cardState}
+        currentIndex={1}
         isLastCard={false}
         onAdvanceCard={jest.fn()}
         onBackToPractice={jest.fn()}
@@ -320,6 +321,7 @@ test('result detail reads as a resolved card without raw metadata', () => {
           usedHint: false,
           usedPeek: false,
         }}
+        sessionCardCount={3}
         sessionLabel={session.sourceLabel}
       />,
     );
@@ -343,12 +345,13 @@ test('result detail reads as a resolved card without raw metadata', () => {
     }),
   ).toBeTruthy();
   expect(output).toContain('当前卡');
-  expect(output).toContain('本卡答案');
-  expect(output).toContain('先收住关键解释，再继续下一张');
+  expect(output).toContain('2/3');
+  expect(output).toContain('结果在当前卡');
+  expect(output).toContain('选择、答案和解释都在当前卡里');
   expect(output).toContain('你的选择');
   expect(output).toContain('正确答案');
   expect(output).toContain('B · unclear');
-  expect(output).toContain('答对，继续保持节奏');
+  expect(output).toContain('已作答 · 答对');
   expect(output).toContain('继续下一张');
   expect(
     JSON.stringify(
