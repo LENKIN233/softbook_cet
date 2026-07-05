@@ -362,7 +362,8 @@ test('defaults Space first-read focus to the current learning card box', () => {
 
   expect(expectedPath).not.toMatch(/馆|组|盒\s+\d|\d/);
   expect(renderedText).toContain('书架 相邻书架一 分区 当前分区 卡盒 当前卡盒');
-  expect(renderedText).toContain('当前卡盒 盒内卡片');
+  expect(renderedText).toContain('空间盒桌 当前盒桌');
+  expect(renderedText).toContain('盒内对象');
   expect(renderedText).toContain('当前学习卡在这里');
   expect(renderedText).toContain('休眠区');
   expect(renderedText).toContain('暂无休眠');
