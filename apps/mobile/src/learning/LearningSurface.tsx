@@ -399,7 +399,7 @@ export function LearningSurface({
               pointerEvents="none"
               style={[
                 styles.cardObjectAccent,
-                { backgroundColor: tone.accent },
+                { backgroundColor: hexToRgba(tone.accent, 0.92) },
               ]}
             />
             <View style={styles.cardObjectHeaderText}>
@@ -448,12 +448,19 @@ export function LearningSurface({
           style={[
             styles.cardLocationStrip,
             {
-              backgroundColor: hexToRgba(tone.accent, 0.028),
-              borderColor: hexToRgba(tone.accent, 0.1),
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
             },
           ]}
           testID="learning-card-location-strip"
         >
+          <View
+            pointerEvents="none"
+            style={[
+              styles.cardLocationDot,
+              { backgroundColor: hexToRgba(tone.accent, 0.62) },
+            ]}
+          />
           <View style={styles.cardLocationTextWrap}>
             <Text
               numberOfLines={1}
@@ -469,7 +476,15 @@ export function LearningSurface({
             </Text>
           </View>
         </View>
-        <View style={styles.studyCardTop}>
+        <View
+          style={[
+            styles.studyCardTop,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+            },
+          ]}
+        >
           <View style={styles.studyTitleWrap}>
             <Text style={[styles.cardEyebrow, { color: palette.textMuted }]}>
               先判断，再确认解析
@@ -547,6 +562,7 @@ export function LearningSurface({
               styles.interactionCardOneScreen,
               styles.interactionCardEmbedded,
               {
+                backgroundColor: 'transparent',
                 borderColor: hexToRgba(tone.accent, 0.18),
               },
             ]}
@@ -665,9 +681,11 @@ export function LearningSurface({
                 style={[
                   styles.submitActionDock,
                   {
-                    backgroundColor: palette.panelStrong,
+                    backgroundColor: canSubmitCurrentCard
+                      ? hexToRgba(tone.accent, 0.054)
+                      : palette.panelStrong,
                     borderColor: canSubmitCurrentCard
-                      ? hexToRgba(tone.accent, 0.34)
+                      ? hexToRgba(tone.accent, 0.28)
                       : palette.border,
                   },
                 ]}
@@ -2185,8 +2203,8 @@ const styles = StyleSheet.create({
   studyCardOneScreen: {
     flexGrow: 0,
     flexShrink: 1,
-    gap: 9,
-    paddingHorizontal: 16,
+    gap: 8,
+    paddingHorizontal: 17,
     paddingVertical: 14,
   },
   cardAddressShelf: {
@@ -2197,8 +2215,8 @@ const styles = StyleSheet.create({
   },
   cardObjectAccent: {
     borderRadius: 999,
-    height: 9,
-    width: 9,
+    height: 32,
+    width: 6,
   },
   cardObjectHeaderText: {
     flex: 1,
@@ -2214,7 +2232,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     gap: 4,
-    minWidth: 66,
+    minWidth: 62,
     paddingHorizontal: 9,
     paddingVertical: 7,
   },
@@ -2226,12 +2244,17 @@ const styles = StyleSheet.create({
   cardLocationStrip: {
     alignItems: 'center',
     borderRadius: 18,
-    borderWidth: 0,
+    borderWidth: 1,
     flexDirection: 'row',
-    gap: 12,
+    gap: 9,
     justifyContent: 'space-between',
-    paddingHorizontal: 13,
+    paddingHorizontal: 12,
     paddingVertical: 9,
+  },
+  cardLocationDot: {
+    borderRadius: 999,
+    height: 8,
+    width: 8,
   },
   cardLocationTextWrap: {
     flex: 1,
@@ -2248,14 +2271,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   studyCardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
+    borderRadius: 22,
+    borderWidth: 1,
+    flexDirection: 'row',
     gap: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 13,
+    paddingVertical: 11,
   },
   studyTitleWrap: {
     flex: 1,
-    gap: 8,
+    gap: 7,
   },
   cardEyebrow: {
     fontSize: 12,
@@ -2374,13 +2401,12 @@ const styles = StyleSheet.create({
   },
   interactionCardOneScreen: {
     flexShrink: 1,
-    gap: 10,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
+    gap: 9,
+    paddingHorizontal: 2,
+    paddingVertical: 2,
   },
   interactionCardEmbedded: {
-    backgroundColor: 'transparent',
-    borderRadius: 18,
+    borderRadius: 22,
     borderWidth: 0,
   },
   sectionTitle: {
@@ -2448,7 +2474,7 @@ const styles = StyleSheet.create({
   },
   optionCard: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 20,
     flexBasis: '47%',
     flexGrow: 1,
     gap: 8,
@@ -2456,7 +2482,7 @@ const styles = StyleSheet.create({
     minHeight: 76,
     minWidth: '47%',
     overflow: 'hidden',
-    paddingHorizontal: 13,
+    paddingHorizontal: 14,
     paddingVertical: 11,
     position: 'relative',
   },
@@ -2685,7 +2711,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   oneScreenDock: {
-    gap: 8,
+    gap: 7,
     marginTop: 1,
   },
   oneScreenDockCompact: {
@@ -2693,13 +2719,13 @@ const styles = StyleSheet.create({
   },
   submitActionDock: {
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: 21,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'space-between',
     minHeight: 58,
-    paddingHorizontal: 12,
+    paddingHorizontal: 13,
     paddingVertical: 9,
   },
   submitActionTextStack: {
