@@ -2819,6 +2819,14 @@ test('can check in from statistics after making learning progress', async () => 
   ).toBeGreaterThan(0);
   expect(output).toContain('今日已签到');
   expect(output).toContain('今天的学习进展已记录。');
+  const statusLedger = root.findByProps({
+    testID: 'statistics-status-ledger',
+  });
+  expect(statusLedger).toBeTruthy();
+  const ledgerRailStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'statistics-ledger-rail' }).props.style,
+  );
+  expect(ledgerRailStyle.flexDirection).toBe('column');
 
   await ReactTestRenderer.act(() => {
     root
