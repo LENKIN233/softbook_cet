@@ -426,7 +426,7 @@ test('renders correctly', async () => {
   expect(output).toContain('原位保留');
   expect(output).toContain('手机号验证');
   expect(output).toContain('输入手机号');
-  expect(output).toContain('11 位手机号用于接收验证码。');
+  expect(output).toContain('输入手机号，完成后回到当前卡。');
   const requestDockStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'auth-request-inline-dock' }).props.style,
   );
@@ -483,12 +483,13 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
 
   const output = JSON.stringify(tree!.toJSON());
   const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
-  expect(output).toContain('登录后管理账号');
+  expect(output).toContain('确认账号后继续');
   expect(output).toContain('学习记录、空间位置和会员权益会归到同一账号。');
   expect(output).toContain('待验证');
-  expect(output).toContain('学习/空间/会员');
+  expect(output).toContain('学习空间');
+  expect(output).toContain('登录确认');
   expect(output).toContain('手机号验证');
-  expect(output).toContain('输入验证码确认身份，完成后回到我的。');
+  expect(output).toContain('输入手机号，验证后回到我的。');
   expect(output).not.toContain('确认身份继续学');
   expect(output).not.toContain('当前学习卡');
   expect(
@@ -584,8 +585,7 @@ test('reads installed runtime config when the app mounts', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('用短信验证码确认身份');
-  expect(output).toContain('完成后回到当前卡。');
+  expect(output).toContain('输入手机号，完成后回到当前卡。');
   expect(output).not.toContain('输入验证码即可完成登录。');
 });
 
@@ -617,8 +617,7 @@ test('uses native initial remote runtime profile before the shell mounts', async
       track: 'cet6',
     },
   });
-  expect(output).toContain('用短信验证码确认身份');
-  expect(output).toContain('完成后回到当前卡。');
+  expect(output).toContain('输入手机号，完成后回到当前卡。');
   expect(output).not.toContain('输入验证码即可完成登录。');
 });
 
@@ -661,7 +660,7 @@ test('shows remote request-code failure inside the auth gate', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('验证码发送暂时失败（503）。');
-  expect(output).toContain('用短信验证码确认身份，完成后回到当前卡。');
+  expect(output).toContain('验证码通过后回到当前卡。');
 });
 
 test('shows remote verify-code failure inside the auth gate', async () => {
@@ -725,7 +724,7 @@ test('shows remote verify-code failure inside the auth gate', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('验证码校验暂时失败（401）。');
-  expect(output).toContain('用短信验证码确认身份');
+  expect(output).toContain('4-6 位短码，完成后回到当前卡。');
 });
 
 test('keeps verified remote auth when entitlement bootstrap is unavailable', async () => {
