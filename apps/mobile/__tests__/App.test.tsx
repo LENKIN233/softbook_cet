@@ -420,6 +420,17 @@ test('renders correctly', async () => {
   expect(output).toContain('空间');
   expect(output).toContain('统计');
   expect(output).toContain('我的');
+  const routeTabTexts = (
+    ['learning', 'space', 'statistics', 'mine'] as const
+  ).map(
+    route =>
+      tree!.root.findByProps({ testID: `route-tab-label-${route}` }).props
+        .children,
+  );
+  expect(routeTabTexts).toEqual(['学习', '空间', '统计', '我的']);
+  expect(routeTabTexts).not.toEqual(
+    expect.arrayContaining(['练', '位', '记', '我']),
+  );
   expect(output).toContain('登录后继续学习');
   expect(output).toContain('当前卡 · 四选一');
   expect(output).toContain('已保留');
@@ -3021,6 +3032,9 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(
     root.findByProps({ testID: 'mine-secondary-action-row' }),
   ).toBeTruthy();
+  expect(collectRenderedText(tree!.toJSON())).not.toEqual(
+    expect.arrayContaining(['练', '位', '记', '我']),
+  );
   expect(root.findByProps({ testID: 'membership-host-card' })).toBeTruthy();
   expect(root.findByProps({ testID: 'membership-access-strip' })).toBeTruthy();
   expect(

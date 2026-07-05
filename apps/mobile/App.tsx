@@ -106,7 +106,6 @@ type AppProps = {
 type ShellRoute = {
   key: RouteKey;
   label: string;
-  badge: string;
   eyebrow: string;
 };
 
@@ -211,25 +210,21 @@ const ROUTES: ShellRoute[] = [
   {
     key: 'learning',
     label: '学习',
-    badge: '练',
     eyebrow: '继续学习',
   },
   {
     key: 'space',
     label: '空间',
-    badge: '位',
     eyebrow: '知识空间',
   },
   {
     key: 'statistics',
     label: '统计',
-    badge: '记',
     eyebrow: '今日进展',
   },
   {
     key: 'mine',
     label: '我的',
-    badge: '我',
     eyebrow: '学习账户',
   },
 ];
@@ -2486,16 +2481,11 @@ function PhoneShell({
                 ]}
                 testID={`route-tab-${item.key}`}
               >
-                <Text
-                  style={[
-                    styles.phoneTabBadge,
-                    {
-                      color: isActive ? palette.activeText : palette.tabIdle,
-                    },
-                  ]}
-                >
-                  {item.badge}
-                </Text>
+                <RouteIcon
+                  active={isActive}
+                  color={isActive ? palette.activeText : palette.tabIdle}
+                  routeKey={item.key}
+                />
                 <Text
                   style={[
                     styles.phoneTabLabel,
@@ -2503,6 +2493,7 @@ function PhoneShell({
                       color: isActive ? palette.activeText : palette.textMuted,
                     },
                   ]}
+                  testID={`route-tab-label-${item.key}`}
                 >
                   {item.label}
                 </Text>
@@ -2511,6 +2502,136 @@ function PhoneShell({
           })}
         </View>
       </View>
+    </View>
+  );
+}
+
+function RouteIcon({
+  active = false,
+  color,
+  routeKey,
+  variant = 'tab',
+}: {
+  active?: boolean;
+  color: string;
+  routeKey: RouteKey;
+  variant?: 'tab' | 'sidebar' | 'header';
+}) {
+  const iconStyle =
+    variant === 'sidebar'
+      ? styles.routeIconFrameSidebar
+      : variant === 'header'
+      ? styles.routeIconFrameHeader
+      : styles.routeIconFrameTab;
+  const strokeWidth = variant === 'tab' ? 2 : 2.2;
+  const lineStyle = {
+    backgroundColor: color,
+  };
+  const borderStyle = {
+    borderColor: color,
+  };
+
+  if (routeKey === 'learning') {
+    return (
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[styles.routeIconFrame, iconStyle]}
+      >
+        <View
+          style={[
+            styles.routeIconBook,
+            borderStyle,
+            active ? styles.routeIconBookActive : null,
+          ]}
+        >
+          <View style={[styles.routeIconBookSpine, lineStyle]} />
+          <View style={[styles.routeIconBookLine, lineStyle]} />
+          <View style={[styles.routeIconBookLineShort, lineStyle]} />
+        </View>
+      </View>
+    );
+  }
+
+  if (routeKey === 'space') {
+    return (
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[styles.routeIconFrame, iconStyle]}
+      >
+        <View
+          style={[
+            styles.routeIconSpaceLine,
+            styles.routeIconSpaceLineTop,
+            lineStyle,
+            { height: strokeWidth },
+          ]}
+        />
+        <View
+          style={[
+            styles.routeIconSpaceLine,
+            styles.routeIconSpaceLineBottom,
+            lineStyle,
+            { height: strokeWidth },
+          ]}
+        />
+        <View
+          style={[
+            styles.routeIconSpaceNode,
+            styles.routeIconSpaceNodeStart,
+            borderStyle,
+            active ? lineStyle : null,
+          ]}
+        />
+        <View
+          style={[
+            styles.routeIconSpaceNode,
+            styles.routeIconSpaceNodeMiddle,
+            borderStyle,
+            active ? lineStyle : null,
+          ]}
+        />
+        <View
+          style={[
+            styles.routeIconSpaceNode,
+            styles.routeIconSpaceNodeEnd,
+            borderStyle,
+            active ? lineStyle : null,
+          ]}
+        />
+      </View>
+    );
+  }
+
+  if (routeKey === 'statistics') {
+    return (
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[styles.routeIconFrame, iconStyle, styles.routeIconStatsFrame]}
+      >
+        <View style={[styles.routeIconStatBarShort, lineStyle]} />
+        <View style={[styles.routeIconStatBarMid, lineStyle]} />
+        <View style={[styles.routeIconStatBarTall, lineStyle]} />
+      </View>
+    );
+  }
+
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[styles.routeIconFrame, iconStyle]}
+    >
+      <View
+        style={[
+          styles.routeIconMineHead,
+          borderStyle,
+          active ? lineStyle : null,
+        ]}
+      />
+      <View style={[styles.routeIconMineBody, borderStyle]} />
     </View>
   );
 }
@@ -2633,16 +2754,12 @@ function TabletShell({
                 ]}
                 testID={`route-sidebar-${item.key}`}
               >
-                <Text
-                  style={[
-                    styles.sidebarBadge,
-                    {
-                      color: isActive ? palette.accentStrong : palette.tabIdle,
-                    },
-                  ]}
-                >
-                  {item.badge}
-                </Text>
+                <RouteIcon
+                  active={isActive}
+                  color={isActive ? palette.accentStrong : palette.tabIdle}
+                  routeKey={item.key}
+                  variant="sidebar"
+                />
                 <View style={styles.sidebarCopy}>
                   <Text
                     style={[
@@ -2730,11 +2847,12 @@ function ShellHeader({
             },
           ]}
         >
-          <Text
-            style={[styles.headerPillText, { color: palette.accentStrong }]}
-          >
-            {route.badge}
-          </Text>
+          <RouteIcon
+            active
+            color={palette.accentStrong}
+            routeKey={route.key}
+            variant="header"
+          />
         </View>
         <Text style={[styles.headerAuthText, { color: palette.textMuted }]}>
           {authText}
@@ -3279,9 +3397,7 @@ function MineSurface({
             <View
               style={[styles.mineAvatar, { backgroundColor: palette.accent }]}
             >
-              <Text style={[styles.mineAvatarText, { color: palette.panel }]}>
-                {isAuthenticated ? '我' : '登'}
-              </Text>
+              <RouteIcon active color={palette.panel} routeKey="mine" />
             </View>
             <View style={styles.mineAccountHeaderCopy}>
               <Text
@@ -3423,8 +3539,8 @@ function MineSurface({
               label="继续学习"
               onPress={onGoToLearning}
               palette={palette}
+              routeKey="learning"
               testID="mine-go-learning"
-              value="练"
               variant="primary"
             />
             <View
@@ -3436,16 +3552,16 @@ function MineSurface({
                 label="查看空间"
                 onPress={onGoToSpace}
                 palette={palette}
+                routeKey="space"
                 testID="mine-go-space"
-                value="位"
               />
               <MineActionCard
                 detail={checkedInToday ? '今日已签到' : '今日未签到'}
                 label="今日进展"
                 onPress={onGoToStatistics}
                 palette={palette}
+                routeKey="statistics"
                 testID="mine-go-statistics"
-                value="记"
               />
             </View>
           </View>
@@ -3471,16 +3587,16 @@ function MineActionCard({
   label,
   onPress,
   palette,
+  routeKey,
   testID,
-  value,
   variant = 'secondary',
 }: {
   detail: string;
   label: string;
   onPress: () => void;
   palette: Palette;
+  routeKey: RouteKey;
   testID: string;
-  value: string;
   variant?: 'primary' | 'secondary';
 }) {
   const isPrimary = variant === 'primary';
@@ -3500,9 +3616,11 @@ function MineActionCard({
         },
       ]}
     >
-      <Text style={[styles.mineActionValue, { color: palette.accent }]}>
-        {value}
-      </Text>
+      <RouteIcon
+        active={isPrimary}
+        color={palette.accent}
+        routeKey={routeKey}
+      />
     </View>
   );
   const copy = (
@@ -3553,19 +3671,9 @@ function MineActionCard({
       ]}
       testID={testID}
     >
-      {isPrimary ? (
-        <>
-          {glyph}
-          {copy}
-          {arrow}
-        </>
-      ) : (
-        <>
-          {glyph}
-          {copy}
-          {arrow}
-        </>
-      )}
+      {glyph}
+      {copy}
+      {arrow}
     </Pressable>
   );
 }
@@ -4935,6 +5043,128 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  routeIconFrame: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  routeIconFrameTab: {
+    width: 23,
+    height: 23,
+  },
+  routeIconFrameSidebar: {
+    width: 26,
+    height: 26,
+  },
+  routeIconFrameHeader: {
+    width: 23,
+    height: 23,
+  },
+  routeIconBook: {
+    width: 17,
+    height: 18,
+    borderWidth: 2,
+    borderRadius: 5,
+  },
+  routeIconBookActive: {
+    backgroundColor: 'rgba(255,255,255,0.10)',
+  },
+  routeIconBookSpine: {
+    position: 'absolute',
+    left: 4,
+    top: 2,
+    width: 2,
+    height: 13,
+    borderRadius: 999,
+  },
+  routeIconBookLine: {
+    position: 'absolute',
+    left: 8,
+    top: 6,
+    width: 6,
+    height: 2,
+    borderRadius: 999,
+  },
+  routeIconBookLineShort: {
+    position: 'absolute',
+    left: 8,
+    top: 11,
+    width: 4,
+    height: 2,
+    borderRadius: 999,
+  },
+  routeIconSpaceLine: {
+    position: 'absolute',
+    width: 13,
+    borderRadius: 999,
+  },
+  routeIconSpaceLineTop: {
+    left: 6,
+    top: 8,
+    transform: [{ rotate: '-26deg' }],
+  },
+  routeIconSpaceLineBottom: {
+    left: 6,
+    top: 14,
+    transform: [{ rotate: '26deg' }],
+  },
+  routeIconSpaceNode: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    borderWidth: 2,
+    backgroundColor: 'transparent',
+  },
+  routeIconSpaceNodeStart: {
+    left: 2,
+    top: 9,
+  },
+  routeIconSpaceNodeMiddle: {
+    left: 11,
+    top: 3,
+  },
+  routeIconSpaceNodeEnd: {
+    right: 2,
+    bottom: 4,
+  },
+  routeIconStatsFrame: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 3,
+  },
+  routeIconStatBarShort: {
+    width: 4,
+    height: 9,
+    borderRadius: 999,
+  },
+  routeIconStatBarMid: {
+    width: 4,
+    height: 14,
+    borderRadius: 999,
+  },
+  routeIconStatBarTall: {
+    width: 4,
+    height: 18,
+    borderRadius: 999,
+  },
+  routeIconMineHead: {
+    width: 9,
+    height: 9,
+    borderRadius: 999,
+    borderWidth: 2,
+    marginBottom: 2,
+  },
+  routeIconMineBody: {
+    width: 17,
+    height: 9,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
+    borderBottomWidth: 0,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
   tabletRoot: {
     flex: 1,
     flexDirection: 'row',
@@ -4965,11 +5195,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 14,
     paddingVertical: 14,
-  },
-  sidebarBadge: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
   },
   sidebarCopy: {
     flex: 1,
@@ -5054,17 +5279,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   headerPill: {
-    minWidth: 50,
+    width: 48,
+    height: 42,
     borderWidth: 1,
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: 21,
     alignItems: 'center',
-  },
-  headerPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.1,
+    justifyContent: 'center',
   },
   headerAuthText: {
     fontSize: 12,
@@ -5931,10 +6151,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 40,
   },
-  mineAvatarText: {
-    fontSize: 17,
-    fontWeight: '800',
-  },
   mineMembershipPill: {
     borderRadius: 999,
     borderWidth: 1,
@@ -6036,11 +6252,6 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: 'center',
     width: 32,
-  },
-  mineActionValue: {
-    fontSize: 13,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
   },
   mineActionLabel: {
     fontSize: 13,
@@ -6300,24 +6511,20 @@ const styles = StyleSheet.create({
   phoneTabButton: {
     flex: 1,
     alignItems: 'center',
-    gap: 1,
-    minHeight: 52,
+    gap: 3,
+    minHeight: 54,
     justifyContent: 'center',
-    paddingVertical: 7,
+    paddingVertical: 6,
     borderRadius: 999,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.12,
     shadowRadius: 18,
     elevation: 3,
   },
-  phoneTabBadge: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
   phoneTabLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
+    lineHeight: 14,
   },
 });
 
