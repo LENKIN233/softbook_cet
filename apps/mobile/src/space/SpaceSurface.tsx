@@ -882,6 +882,25 @@ export function SpaceSurface({
                           const isCurrent =
                             currentLearningCard?.card_id === card.cardId;
                           const cardState = cardStateById[card.cardId];
+                          const cardOrder = selectedBoxCards.findIndex(
+                            item => item.cardId === card.cardId,
+                          );
+                          const cardDisplayIndex =
+                            cardOrder >= 0 ? cardOrder + 1 : index + 1;
+                          const cardCountLabel =
+                            selectedBoxCards.length > 0
+                              ? `${cardDisplayIndex}/${selectedBoxCards.length}`
+                              : '0/0';
+                          const cardStatusLabel = isCurrent
+                            ? '当前'
+                            : cardState?.isSleeping
+                            ? '休眠'
+                            : cardState?.isFavorited
+                            ? '标记'
+                            : '盒内';
+                          const cardPositionLabel = isCurrent
+                            ? '当前卡位'
+                            : '同盒卡位';
 
                           return (
                             <View
@@ -905,31 +924,36 @@ export function SpaceSurface({
                                     : palette.border,
                                 },
                               ]}
+                              testID="space-overview-card-object"
                             >
+                              <View style={styles.deckCardHeader}>
+                                <Text
+                                  style={[
+                                    styles.deckCardTag,
+                                    {
+                                      color: isCurrent
+                                        ? selectedTone.accent
+                                        : cardState?.isSleeping
+                                        ? palette.warning
+                                        : cardState?.isFavorited
+                                        ? palette.accentStrong
+                                        : palette.textMuted,
+                                    },
+                                  ]}
+                                >
+                                  {cardStatusLabel}
+                                </Text>
+                                <Text
+                                  style={[
+                                    styles.deckCardIndex,
+                                    { color: palette.textMuted },
+                                  ]}
+                                >
+                                  {cardCountLabel}
+                                </Text>
+                              </View>
                               <Text
-                                style={[
-                                  styles.deckCardTag,
-                                  {
-                                    color: isCurrent
-                                      ? selectedTone.accent
-                                      : cardState?.isSleeping
-                                      ? palette.warning
-                                      : cardState?.isFavorited
-                                      ? palette.accentStrong
-                                      : palette.textMuted,
-                                  },
-                                ]}
-                              >
-                                {isCurrent
-                                  ? '当前'
-                                  : cardState?.isSleeping
-                                  ? '休眠'
-                                  : cardState?.isFavorited
-                                  ? '收藏'
-                                  : '卡片'}
-                              </Text>
-                              <Text
-                                numberOfLines={index === 0 ? 4 : 3}
+                                numberOfLines={index === 0 ? 3 : 2}
                                 style={[
                                   styles.deckCardPrompt,
                                   { color: palette.text },
@@ -937,15 +961,57 @@ export function SpaceSurface({
                               >
                                 {card.prompt}
                               </Text>
-                              <Text
-                                numberOfLines={1}
+                              <View
                                 style={[
-                                  styles.deckCardMeta,
-                                  { color: palette.textMuted },
+                                  styles.deckCardStateRail,
+                                  {
+                                    backgroundColor: hexToRgba(
+                                      selectedTone.accent,
+                                      isCurrent ? 0.09 : 0.055,
+                                    ),
+                                  },
                                 ]}
+                                testID="space-overview-card-state-rail"
                               >
-                                {card.interactionLabel}
-                              </Text>
+                                <View style={styles.deckCardStateLine}>
+                                  <Text
+                                    style={[
+                                      styles.deckCardStateLabel,
+                                      { color: palette.textMuted },
+                                    ]}
+                                  >
+                                    位置
+                                  </Text>
+                                  <Text
+                                    numberOfLines={1}
+                                    style={[
+                                      styles.deckCardStateValue,
+                                      { color: palette.text },
+                                    ]}
+                                  >
+                                    {cardPositionLabel}
+                                  </Text>
+                                </View>
+                                <View style={styles.deckCardStateLine}>
+                                  <Text
+                                    style={[
+                                      styles.deckCardStateLabel,
+                                      { color: palette.textMuted },
+                                    ]}
+                                  >
+                                    动作
+                                  </Text>
+                                  <Text
+                                    numberOfLines={1}
+                                    style={[
+                                      styles.deckCardStateValue,
+                                      { color: palette.text },
+                                    ]}
+                                  >
+                                    {card.interactionLabel}
+                                  </Text>
+                                </View>
+                              </View>
                             </View>
                           );
                         })}
@@ -2504,12 +2570,12 @@ const styles = StyleSheet.create({
   deckCardOverview: {
     borderRadius: 23,
     borderWidth: 1,
-    gap: 8,
+    gap: 7,
     justifyContent: 'flex-start',
     minWidth: 0,
     position: 'absolute',
-    paddingHorizontal: 13,
-    paddingVertical: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.05,
     shadowRadius: 14,
@@ -2582,7 +2648,20 @@ const styles = StyleSheet.create({
   },
   deckCardTag: {
     fontSize: 11,
+    fontWeight: '900',
+    lineHeight: 14,
+  },
+  deckCardHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'space-between',
+    minHeight: 15,
+  },
+  deckCardIndex: {
+    fontSize: 10,
     fontWeight: '800',
+    lineHeight: 13,
   },
   deckCardPrompt: {
     fontSize: 11,
@@ -2594,6 +2673,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 14,
     marginTop: 'auto',
+  },
+  deckCardStateRail: {
+    borderRadius: 16,
+    gap: 5,
+    marginTop: 'auto',
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+  },
+  deckCardStateLine: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'space-between',
+    minHeight: 13,
+  },
+  deckCardStateLabel: {
+    flexShrink: 0,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+    lineHeight: 12,
+  },
+  deckCardStateValue: {
+    flexShrink: 1,
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 13,
+    textAlign: 'right',
   },
   boxTraySkeleton: {
     gap: 8,

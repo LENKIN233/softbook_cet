@@ -3436,7 +3436,14 @@ test('requires explicit local trial start from protected space', async () => {
   expect(unlockedOutput).toContain('当前卡盒');
   expect(unlockedOutput).toContain('当前盒桌');
   expect(unlockedOutput).toContain('同盒卡片');
+  expect(unlockedOutput).toContain('动作');
   expect(unlockedOutput).toContain('回学习');
+  expect(
+    root.findAllByProps({ testID: 'space-overview-card-object' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    root.findAllByProps({ testID: 'space-overview-card-state-rail' }).length,
+  ).toBeGreaterThan(0);
 });
 
 test('shows trial gate from the first gated review entry', async () => {
