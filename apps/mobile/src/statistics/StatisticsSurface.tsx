@@ -229,11 +229,21 @@ export function StatisticsSurface({
                 {dailyRailLabel}
               </Text>
             </View>
+          </View>
+          <View style={styles.progressMeter}>
             <Text
               style={[styles.progressRatio, { color: palette.text }]}
               testID="statistics-progress-ratio"
             >
               {`${combinedResults.length}/${dailyRailTarget}`}
+            </Text>
+            <Text
+              style={[
+                styles.progressMeterCaption,
+                { color: palette.textMuted },
+              ]}
+            >
+              今日完成 / 今日目标
             </Text>
           </View>
           <View
@@ -687,9 +697,12 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   dailyObjectCard: {
-    gap: 9,
+    flex: 1,
+    gap: 12,
+    justifyContent: 'space-between',
+    minHeight: 0,
     paddingHorizontal: 17,
-    paddingVertical: 13,
+    paddingVertical: 15,
   },
   dailyHeader: {
     alignItems: 'center',
@@ -724,12 +737,15 @@ const styles = StyleSheet.create({
   progressDock: {
     borderRadius: 20,
     borderWidth: 1,
+    flex: 1,
     gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
+    justifyContent: 'space-between',
+    minHeight: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
   },
   progressHeader: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
@@ -750,10 +766,22 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   progressRatio: {
-    fontSize: 18,
+    fontSize: 46,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
-    lineHeight: 22,
+    lineHeight: 50,
+  },
+  progressMeter: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 3,
+    justifyContent: 'center',
+    minHeight: 72,
+  },
+  progressMeterCaption: {
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 15,
   },
   progressTrack: {
     borderRadius: 999,
@@ -767,6 +795,7 @@ const styles = StyleSheet.create({
   actionDock: {
     borderRadius: 20,
     borderWidth: 1,
+    flexShrink: 0,
     gap: 0,
     overflow: 'visible',
     paddingHorizontal: 11,
