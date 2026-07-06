@@ -2862,7 +2862,7 @@ test('can check in from statistics after making learning progress', async () => 
   expect(output).toContain('可以记录今天');
   expect(output).toContain('下一步');
   expect(output).toContain('继续下一张');
-  expect(output).toContain('回学习');
+  expect(output).toContain('继续学习');
   expect(output).toContain('今日可签到');
   expect(output).toContain('已有有效学习进展，可以记录今天。');
   expect(output).toContain('已记录');

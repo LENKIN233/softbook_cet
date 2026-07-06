@@ -105,7 +105,7 @@ export function StatisticsSurface({
     : hasLearningProgress
     ? '回到学习，继续往前推。'
     : '回到学习完成第一张，统计会自动收起当天进度。';
-  const nextStepButtonLabel = nextStepIsReview ? '开始回看' : '回学习';
+  const nextStepButtonLabel = nextStepIsReview ? '开始回看' : '继续学习';
   const nextStepButtonTestID = nextStepIsReview
     ? 'statistics-start-review-button'
     : 'statistics-go-learning-button';
