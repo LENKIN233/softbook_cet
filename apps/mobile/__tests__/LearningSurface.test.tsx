@@ -99,11 +99,14 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('本组第');
   expect(output).not.toContain('学习进度');
   expect(output).toContain('当前卡');
-  expect(output).toContain('先判断，再确认解析');
+  expect(output).toContain('先读题干');
+  expect(output).not.toContain('先判断，再确认解析');
   expect(output).not.toContain('先做这一张');
   expect(output).not.toContain('当前这一张');
-  expect(output).toContain('位置保持');
-  expect(output).toContain('位置 · 本轮盒');
+  expect(output).toContain('位置已接上');
+  expect(output).toContain('本轮盒');
+  expect(output).not.toContain('位置保持');
+  expect(output).not.toContain('位置 · 本轮盒');
   expect(output).not.toContain('当前位置 · 本轮盒');
   expect(output).not.toContain('当前馆 · 本轮盒');
   expect(output).not.toContain('位置已保持');
@@ -119,7 +122,8 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('系统顺序');
   expect(output).not.toContain('系统顺序学习');
   expect(output).not.toContain('当前学习会话');
-  expect(output).toContain('先翻面，看完解析后选有把握或再回看。');
+  expect(output).toContain('翻开卡背');
+  expect(output).not.toContain('先翻面，看完解析后选有把握或再回看。');
   expect(output).toContain('查看提示');
   expect(output).not.toContain('要一点线索');
   expect(output).not.toContain('收起这点线索');
@@ -127,7 +131,8 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).toContain('先把题干里的信号抓出来，再回到选项或解析确认。');
   expect(output).not.toContain('这张卡为什么出现');
   expect(output).not.toContain('该题来自当前练习安排');
-  expect(output).toContain('同盒位置保持');
+  expect(output).toContain('同盒继续');
+  expect(output).not.toContain('同盒位置保持');
   expect(output).not.toContain('同盒位置已保持');
   expect(output).not.toContain('这张在：');
   expect(output).not.toContain('当前位置：');
@@ -189,8 +194,10 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   expect(
     tree!.root.findByProps({ testID: 'learning-submit-button' }).props.disabled,
   ).toBe(true);
-  expect(output).toContain('先选一个答案');
-  expect(output).toContain('完成选择后再看解析');
+  expect(output).toContain('先选答案');
+  expect(output).toContain('选定后再提交');
+  expect(output).not.toContain('先选一个答案');
+  expect(output).not.toContain('完成选择后再看解析');
   expect(output).not.toContain('queue');
   expect(output).not.toContain('payload');
 
@@ -230,8 +237,10 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   expect(
     tree!.root.findByProps({ testID: 'learning-submit-button' }).props.disabled,
   ).toBe(false);
-  expect(output).toContain(`已选 ${currentCard.options[0].label}`);
-  expect(output).toContain('提交后立即看解析');
+  expect(output).toContain(`${currentCard.options[0].label} 已选`);
+  expect(output).toContain('确认后看解析');
+  expect(output).not.toContain(`已选 ${currentCard.options[0].label}`);
+  expect(output).not.toContain('提交后立即看解析');
   expect(output).not.toContain(currentCard.space_metadata.box_ref);
 });
 

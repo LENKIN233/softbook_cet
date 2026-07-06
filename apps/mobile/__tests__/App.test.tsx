@@ -2376,12 +2376,15 @@ test('can unlock the learning flow after fake sms verification', async () => {
   await loginIntoLearningFlow(root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('位置保持');
-  expect(output).toContain('位置 · 本轮盒');
+  expect(output).toContain('位置已接上');
+  expect(output).toContain('本轮盒');
+  expect(output).not.toContain('位置保持');
+  expect(output).not.toContain('位置 · 本轮盒');
   expect(output).not.toContain('当前位置 · 本轮盒');
   expect(output).not.toContain('当前馆 · 本轮盒');
   expect(output).not.toContain('位置已保持');
-  expect(output).toContain('先判断，再确认解析');
+  expect(output).toContain('先读题干');
+  expect(output).not.toContain('先判断，再确认解析');
   expect(output).toContain('账户');
   expect(output).toContain('已确认');
   expect(output).not.toContain('已登录 138****8000');
@@ -2390,7 +2393,7 @@ test('can unlock the learning flow after fake sms verification', async () => {
     testID: 'learning-address-aperture',
   });
   const addressText = addressAperture.findByType(Text).props.children;
-  expect(addressText).toBe('同盒位置保持');
+  expect(addressText).toBe('同盒继续');
   expect(
     root.findByProps({ testID: 'learning-card-address-shelf' }),
   ).toBeTruthy();
@@ -2826,7 +2829,8 @@ test('can start a review round from cards that need revisiting', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看');
-  expect(output).toContain('回看卡已在眼前');
+  expect(output).toContain('回看卡在这');
+  expect(output).not.toContain('回看卡已在眼前');
   expect(output).not.toContain('需要再看的卡已放到眼前');
   expect(output).toContain('however');
   expectNoUserVisibleMetadataLeakage(tree!);
@@ -3541,7 +3545,8 @@ test('starts review after membership is already unlocked', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看');
-  expect(output).toContain('回看卡已在眼前');
+  expect(output).toContain('回看卡在这');
+  expect(output).not.toContain('回看卡已在眼前');
   expect(output).not.toContain('需要再看的卡已放到眼前');
 });
 
