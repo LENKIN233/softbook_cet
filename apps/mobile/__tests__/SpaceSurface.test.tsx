@@ -302,20 +302,25 @@ test('uses a compact address clue instead of selector controls in the card list 
     root.findByProps({ testID: 'space-contained-card-strip' }).props.style,
   );
   expect(containedStripStyle.flex).toBe(1);
+  expect(containedStripStyle.justifyContent).toBe('center');
   const browseCardObjectStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'space-browse-card-object' }).props.style,
   );
-  expect(browseCardObjectStyle.flexGrow).toBe(1);
+  expect(browseCardObjectStyle.flexGrow).toBe(0);
   expect(browseCardObjectStyle.minHeight).toBe(0);
   const browseCardFaceStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'space-browse-card-face' }).props.style,
   );
-  expect(browseCardFaceStyle.flexGrow).toBe(1);
-  expect(browseCardFaceStyle.justifyContent).toBe('center');
+  expect(browseCardFaceStyle.borderWidth).toBe(1);
+  expect(browseCardFaceStyle.minHeight).toBe(166);
+  expect(browseCardFaceStyle.justifyContent).toBe('space-between');
+  expect(
+    root.findAllByProps({ testID: 'space-browse-card-locator' }).length,
+  ).toBeGreaterThan(0);
   const browsePagerStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'space-browse-card-pager' }).props.style,
   );
-  expect(browsePagerStyle.marginTop).toBe('auto');
+  expect(browsePagerStyle.marginTop).toBeUndefined();
   const browseStateTrayStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'space-browse-card-state-tray' }).props.style,
   );
@@ -334,7 +339,7 @@ test('uses a compact address clue instead of selector controls in the card list 
   expect(renderedText).not.toContain(currentCard.space_metadata.group);
   expect(renderedText).not.toContain(currentCard.space_metadata.box);
   expect(renderedText).not.toContain(currentCard.space_metadata.box_ref);
-  expect(renderedText).toContain('当前盒桌');
+  expect(renderedText).toContain('盒内浏览');
   expect(renderedText).toContain('当前位置');
   expect(renderedText).toContain('2 张');
   expect(renderedText).toContain('本盒共 2 张');

@@ -3365,9 +3365,12 @@ test('can browse the current Space box after login', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('短对话里听到 however');
-  expect(output).toContain('当前盒桌');
+  expect(output).toContain('盒内浏览');
   expect(output).toContain('贴上标记');
   expect(output).toContain('休眠');
+  expect(
+    root.findByProps({ testID: 'space-browse-card-locator' }),
+  ).toBeTruthy();
   expect(output).not.toContain('收藏标签');
   expect(output).not.toContain('卡片列表');
   expectNoUserVisibleMetadataLeakage(tree!);
