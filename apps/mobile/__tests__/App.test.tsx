@@ -3073,9 +3073,18 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(output).toContain('空间');
   expect(output).toContain('今日');
   expect(output).not.toContain('继续用完整路线备考');
-  expect(mineProfileStyle.minHeight).toBeGreaterThanOrEqual(390);
+  expect(mineProfileStyle.flex).toBe(1);
+  expect(mineProfileStyle.minHeight).toBe(0);
   expect(root.findByProps({ testID: 'mine-passport-stack' })).toBeTruthy();
-  expect(root.findByProps({ testID: 'mine-route-dock' })).toBeTruthy();
+  const mineRouteDockStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'mine-route-dock' }).props.style,
+  );
+  expect(mineRouteDockStyle.flex).toBe(1);
+  expect(mineRouteDockStyle.justifyContent).toBe('flex-end');
+  const mineActionRailStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'mine-action-rail' }).props.style,
+  );
+  expect(mineActionRailStyle.flex).toBe(1);
   expect(readMetricValue(root, 'mine-metric-completed')).toBe('1');
   expect(readMetricValue(root, 'mine-metric-review')).toBe('0');
   expect(readMetricValue(root, 'mine-metric-favorites')).toBe('1');
