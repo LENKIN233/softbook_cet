@@ -2980,42 +2980,42 @@ function AuthGate({
     route.key === 'space'
       ? {
           continuityPill: '空间',
-          eyebrow: '查看空间',
-          gateSummary: '验证后回到当前空间，收藏和休眠动作继续可用。',
-          gateTitle: '登录后查看空间',
-          retainedSummary: '书架、分区和卡盒位置不变。',
-          retainedTitle: '空间位置会留在原处',
-          returnTarget: '当前位置',
+          eyebrow: '空间',
+          gateSummary: '确认手机号后直接回到当前盒位。',
+          gateTitle: '确认后进入空间',
+          retainedSummary: '书架、分区和卡盒都留在原位。',
+          retainedTitle: '当前位置已保留',
+          returnTarget: '空间',
         }
       : route.key === 'statistics'
       ? {
           continuityPill: '统计',
           eyebrow: '今日进展',
-          gateSummary: '验证后查看今天完成、回看和签到。',
-          gateTitle: '登录后查看今日进展',
+          gateSummary: '确认手机号后查看今天的完成、回看和签到。',
+          gateTitle: '确认后查看进展',
           retainedSummary: '完成、回看和签到都会接上。',
-          retainedTitle: '今日节奏会保留',
+          retainedTitle: '今日节奏已保留',
           returnTarget: '今日进展',
         }
       : route.key === 'mine'
       ? {
-          continuityPill: '我的',
+          continuityPill: '账户',
           eyebrow: '学习账户',
-          gateSummary: '学习记录、空间位置和会员权益会归到同一账号。',
-          gateTitle: '确认手机号后继续',
+          gateSummary: '学习记录、空间位置和会员权益统一归到这个账号。',
+          gateTitle: '确认手机号',
           retainedSummary: hasSentCode
-            ? '短码已发，完成后回到我的。'
-            : '手机号确认后回到我的。',
-          retainedTitle: '记录和权益会归到账号',
+            ? '短码确认后可查看记录与权益。'
+            : '手机号确认后可查看记录与权益。',
+          retainedTitle: '账号归属待确认',
           returnTarget: '我的',
         }
       : {
-          continuityPill: '当前卡',
-          eyebrow: '继续学习',
-          gateSummary: '验证码通过后回到这张题，空间位置和权益保持一致。',
-          gateTitle: '登录后继续学习',
-          retainedSummary: '题面和位置都在，验证后继续判断。',
-          retainedTitle: '这张题会留在原处',
+          continuityPill: '学习',
+          eyebrow: '当前卡',
+          gateSummary: '手机号确认后，题面、进度和权益会自动接上。',
+          gateTitle: '从这张题继续',
+          retainedSummary: '确认后回到作答区。',
+          retainedTitle: '题面和作答位置已保留',
           returnTarget: '当前卡',
         };
 
@@ -3082,7 +3082,7 @@ function AuthGate({
                         { color: palette.text },
                       ]}
                     >
-                      {hasSentCode ? '验证码' : '手机号'}
+                      {hasSentCode ? '短码' : '手机'}
                     </Text>
                     <Text
                       style={[
@@ -3090,7 +3090,7 @@ function AuthGate({
                         { color: palette.textMuted },
                       ]}
                     >
-                      {hasSentCode ? '已发送' : '验证'}
+                      {hasSentCode ? '待确认' : '验证'}
                     </Text>
                   </View>
                 </View>
@@ -3134,7 +3134,7 @@ function AuthGate({
                       { color: palette.text },
                     ]}
                   >
-                    {hasSentCode ? '验证码已发' : '手机号登录'}
+                    {hasSentCode ? '短码已发' : '短信验证'}
                   </Text>
                   <Text
                     style={[
@@ -3142,7 +3142,7 @@ function AuthGate({
                       { color: palette.textMuted },
                     ]}
                   >
-                    手机号验证
+                    手机号
                   </Text>
                 </View>
               </View>
@@ -3248,8 +3248,8 @@ function AuthGate({
           title="手机号验证"
           summary={
             authRepositoryMode === 'remote'
-              ? `用短信验证码确认身份，完成后回到${authGateContent.returnTarget}。`
-              : `输入验证码确认身份，完成后回到${authGateContent.returnTarget}。`
+              ? '用短信短码确认身份。'
+              : '输入短码确认身份。'
           }
           successMessage={
             authRepositoryMode === 'remote'
@@ -4196,30 +4196,28 @@ function PhoneSmsPanel({
       : '待输入';
   const requestDockTitle =
     authState.pendingAction === 'request_code'
-      ? '正在发送验证码'
+      ? '正在发送短码'
       : canRequestCode
-      ? '手机号已准备好'
+      ? '手机号可用'
       : accountDock
-      ? '确认手机号'
-      : '输入手机号';
+      ? '填写手机号'
+      : '手机号';
   const requestDockDetail =
     authState.pendingAction === 'request_code'
-      ? '正在向当前手机号发送短码。'
+      ? '短信短码正在发送。'
       : canRequestCode
-      ? `验证码通过后回到${returnTarget}。`
-      : accountDock
-      ? `输入手机号，完成后回到${returnTarget}。`
-      : `输入手机号，完成后回到${returnTarget}。`;
+      ? '下一步输入短码。'
+      : '输入手机号获取短码。';
   const dockSummary = hasRequestedCode
-    ? `短码已发送，完成后回到${returnTarget}。`
+    ? `短码已发送，确认后回到${returnTarget}。`
     : requestDockDetail;
   const requestStatusTone = canRequestCode ? palette.success : palette.accent;
   const authErrorTitle = hasRequestedCode
     ? '验证码暂时没通过'
     : '短码暂时没发出';
   const authErrorDetail = hasRequestedCode
-    ? `检查短码后再试，仍会回到${returnTarget}。`
-    : `检查手机号后再试，仍会回到${returnTarget}。`;
+    ? '检查短码后重试，当前位置不变。'
+    : '检查手机号后重试，当前位置不变。';
   const codeActionTone = hasCodeError ? palette.warning : palette.accent;
   const submitCodeButtonBackground = canSubmitCode
     ? codeActionTone
@@ -4239,6 +4237,56 @@ function PhoneSmsPanel({
     smsCodeDigits.length,
     SMS_CODE_CELL_COUNT - 1,
   );
+  const errorDock = authState.error ? (
+    <View
+      style={[
+        styles.authErrorDock,
+        {
+          backgroundColor: hexToRgba(palette.warning, 0.1),
+          borderColor: hexToRgba(palette.warning, 0.24),
+        },
+      ]}
+      testID="auth-error-dock"
+    >
+      <View
+        pointerEvents="none"
+        style={[styles.authErrorDot, { backgroundColor: palette.warning }]}
+      />
+      <View style={styles.authErrorCopy}>
+        <Text
+          numberOfLines={1}
+          style={[styles.authErrorTitle, { color: palette.text }]}
+          testID="auth-error-title"
+        >
+          {authErrorTitle}
+        </Text>
+        <Text
+          numberOfLines={2}
+          style={[styles.authErrorDetail, { color: palette.textMuted }]}
+          testID="auth-error-detail"
+        >
+          {`${authState.error} ${authErrorDetail}`}
+        </Text>
+      </View>
+      <View
+        style={[
+          styles.authErrorPill,
+          {
+            backgroundColor: palette.panel,
+            borderColor: hexToRgba(palette.warning, 0.22),
+          },
+        ]}
+        testID="auth-error-retry-pill"
+      >
+        <Text
+          numberOfLines={1}
+          style={[styles.authErrorPillText, { color: palette.warning }]}
+        >
+          可重试
+        </Text>
+      </View>
+    </View>
+  ) : null;
 
   return (
     <View
@@ -4334,7 +4382,7 @@ function PhoneSmsPanel({
               { color: palette.textMuted },
             ]}
           >
-            {`4-6 位短码，完成后回到${returnTarget}。`}
+            {`4-6 位短码，确认后回到${returnTarget}。`}
           </Text>
           <View
             style={[
@@ -4457,6 +4505,7 @@ function PhoneSmsPanel({
               </Pressable>
             ) : null}
           </View>
+          {errorDock}
         </View>
       ) : null}
 
@@ -4611,57 +4660,7 @@ function PhoneSmsPanel({
               </Text>
             </Pressable>
           </View>
-        </View>
-      ) : null}
-
-      {authState.error ? (
-        <View
-          style={[
-            styles.authErrorDock,
-            {
-              backgroundColor: hexToRgba(palette.warning, 0.1),
-              borderColor: hexToRgba(palette.warning, 0.24),
-            },
-          ]}
-          testID="auth-error-dock"
-        >
-          <View
-            pointerEvents="none"
-            style={[styles.authErrorDot, { backgroundColor: palette.warning }]}
-          />
-          <View style={styles.authErrorCopy}>
-            <Text
-              numberOfLines={1}
-              style={[styles.authErrorTitle, { color: palette.text }]}
-              testID="auth-error-title"
-            >
-              {authErrorTitle}
-            </Text>
-            <Text
-              numberOfLines={2}
-              style={[styles.authErrorDetail, { color: palette.textMuted }]}
-              testID="auth-error-detail"
-            >
-              {`${authState.error} ${authErrorDetail}`}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.authErrorPill,
-              {
-                backgroundColor: palette.panel,
-                borderColor: hexToRgba(palette.warning, 0.22),
-              },
-            ]}
-            testID="auth-error-retry-pill"
-          >
-            <Text
-              numberOfLines={1}
-              style={[styles.authErrorPillText, { color: palette.warning }]}
-            >
-              可重试
-            </Text>
-          </View>
+          {errorDock}
         </View>
       ) : null}
 
