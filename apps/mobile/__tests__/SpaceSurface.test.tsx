@@ -321,11 +321,11 @@ test('uses a compact address clue instead of selector controls in the card list 
   expect(renderedText).not.toContain(currentCard.space_metadata.group);
   expect(renderedText).not.toContain(currentCard.space_metadata.box);
   expect(renderedText).not.toContain(currentCard.space_metadata.box_ref);
-  expect(renderedText).toContain('盒内查看');
-  expect(renderedText).toContain('空间地址');
-  expect(renderedText).toContain('2 张卡');
-  expect(renderedText).toContain('盒内 2 张');
-  expect(renderedText).toContain('贴卡标签');
+  expect(renderedText).toContain('当前盒桌');
+  expect(renderedText).toContain('当前位置');
+  expect(renderedText).toContain('2 张');
+  expect(renderedText).toContain('本盒共 2 张');
+  expect(renderedText).toContain('贴上标记');
   expect(renderedText).not.toContain('可收藏');
   expect(renderedText).not.toContain('有收藏');
   expect(renderedText).not.toContain('卡片列表');
@@ -370,12 +370,12 @@ test('defaults Space first-read focus to the current learning card box', () => {
 
   expect(expectedPath).not.toMatch(/馆|组|盒\s+\d|\d/);
   expect(renderedText).toContain('书架 相邻书架一 分区 当前分区 卡盒 当前卡盒');
-  expect(renderedText).toContain('空间盒桌 当前盒桌');
-  expect(renderedText).toContain('盒内对象');
-  expect(renderedText).toContain('当前学习卡在这里');
-  expect(renderedText).toContain('休眠区');
+  expect(renderedText).toContain('当前盒桌 打开卡盒');
+  expect(renderedText).toContain('同盒卡片');
+  expect(renderedText).toContain('同盒卡片都在这里');
+  expect(renderedText).toContain('同盒休眠');
   expect(renderedText).toContain('暂无休眠');
-  expect(renderedText).toContain('回学习 同一张卡，同一地址');
+  expect(renderedText).toContain('回学习 回到刚才那张卡');
   expect(
     root.findAllByProps({ testID: 'space-open-box-lid' }).length,
   ).toBeGreaterThan(0);
@@ -441,7 +441,7 @@ test('resyncs Space focus when the current learning card changes after render', 
 
   const updatedText = collectRenderedText(tree!.toJSON()).join(' ');
 
-  expect(updatedText).toContain('当前学习卡在这里');
+  expect(updatedText).toContain('同盒卡片都在这里');
   expect(countOccurrences(updatedText, nextCard.front.prompt)).toBeGreaterThan(
     0,
   );
