@@ -419,6 +419,7 @@ export function LearningSurface({
         style={[
           styles.studyCard,
           styles.studyCardOneScreen,
+          currentResult === null ? styles.studyCardWorkArea : null,
           styles.glassCard,
           {
             backgroundColor: palette.panel,
@@ -646,8 +647,10 @@ export function LearningSurface({
           <View
             style={[
               styles.oneScreenDock,
+              styles.oneScreenDockAnchored,
               isLockInteraction ? styles.oneScreenDockCompact : null,
             ]}
+            testID="learning-action-dock"
           >
             {shouldShowUtilityDock ? (
               <>
@@ -918,8 +921,11 @@ function InteractionBody({
       );
     case 'multiple_choice':
       return (
-        <View style={styles.interactionBody}>
-          <View style={styles.optionGrid}>
+        <View style={[styles.interactionBody, styles.choiceInteractionBody]}>
+          <View
+            style={[styles.optionGrid, styles.optionGridWorkArea]}
+            testID="learning-option-grid"
+          >
             {card.options.map(option => {
               const isSelected = cardState.selectedOptionId === option.id;
               const isCorrect =
@@ -2306,6 +2312,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 17,
     paddingVertical: 14,
   },
+  studyCardWorkArea: {
+    flexGrow: 1,
+  },
   cardAddressShelf: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -2499,6 +2508,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   interactionCardOneScreen: {
+    flexGrow: 1,
     flexShrink: 1,
     gap: 9,
     paddingHorizontal: 2,
@@ -2530,6 +2540,9 @@ const styles = StyleSheet.create({
   },
   interactionBody: {
     gap: 8,
+  },
+  choiceInteractionBody: {
+    flexGrow: 1,
   },
   revealPanel: {
     borderWidth: 1,
@@ -2571,6 +2584,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 9,
   },
+  optionGridWorkArea: {
+    alignContent: 'stretch',
+    flexGrow: 1,
+  },
   optionCard: {
     borderWidth: 1,
     borderRadius: 20,
@@ -2584,6 +2601,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
     position: 'relative',
+    justifyContent: 'space-between',
   },
   optionCardSelected: {
     shadowOffset: { width: 0, height: 8 },
@@ -2812,6 +2830,9 @@ const styles = StyleSheet.create({
   oneScreenDock: {
     gap: 7,
     marginTop: 1,
+  },
+  oneScreenDockAnchored: {
+    marginTop: 'auto',
   },
   oneScreenDockCompact: {
     gap: 0,
