@@ -3122,6 +3122,31 @@ test('mine page keeps profile status and route actions in one screen after login
     root.findByProps({ testID: 'mine-action-rail' }).props.style,
   );
   expect(mineActionRailStyle.flex).toBe(1);
+  expect(root.findByProps({ testID: 'mine-resume-header' })).toBeTruthy();
+  const mineResumeCenterStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'mine-resume-center' }).props.style,
+  );
+  expect(mineResumeCenterStyle.flex).toBe(1);
+  expect(mineResumeCenterStyle.justifyContent).toBe('center');
+  const mineResumeMetaStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'mine-resume-meta-row' }).props.style,
+  );
+  expect(mineResumeMetaStyle.flexDirection).toBe('row');
+  expect(root.findByProps({ testID: 'mine-resume-hero' }).props.children).toBe(
+    '当前卡',
+  );
+  expect(
+    root.findByProps({ testID: 'mine-resume-hero-label' }).props.children,
+  ).toBe('从这里继续');
+  expect(
+    root.findByProps({ testID: 'mine-resume-today-value' }).props.children,
+  ).toBe('已签到 · 1 张');
+  expect(
+    root.findByProps({ testID: 'mine-resume-review-value' }).props.children,
+  ).toBe('0 张');
+  expect(
+    root.findByProps({ testID: 'mine-resume-sync-value' }).props.children,
+  ).toBe('记录已保存');
   expect(readMetricValue(root, 'mine-metric-completed')).toBe('1');
   expect(readMetricValue(root, 'mine-metric-review')).toBe('0');
   expect(readMetricValue(root, 'mine-metric-favorites')).toBe('1');

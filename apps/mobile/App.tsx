@@ -3554,7 +3554,28 @@ function MineSurface({
                   ? `${pendingReviewCount} 张卡等待回看`
                   : '当前顺序，下一张已准备好'
               }
+              heroLabel={
+                pendingReviewCount > 0 ? '先回看，再继续前进' : '从这里继续'
+              }
+              heroValue={pendingReviewCount > 0 ? '回看' : '当前卡'}
               label="继续学习"
+              metaItems={[
+                {
+                  label: '今日',
+                  testID: 'mine-resume-today',
+                  value: profileDetail,
+                },
+                {
+                  label: '回看',
+                  testID: 'mine-resume-review',
+                  value: `${pendingReviewCount} 张`,
+                },
+                {
+                  label: '记录',
+                  testID: 'mine-resume-sync',
+                  value: syncDetail,
+                },
+              ]}
               onPress={onGoToLearning}
               palette={palette}
               routeKey="learning"
@@ -3602,7 +3623,10 @@ function MineSurface({
 
 function MineActionCard({
   detail,
+  heroLabel,
+  heroValue,
   label,
+  metaItems,
   onPress,
   palette,
   routeKey,
@@ -3610,7 +3634,14 @@ function MineActionCard({
   variant = 'secondary',
 }: {
   detail: string;
+  heroLabel?: string;
+  heroValue?: string;
   label: string;
+  metaItems?: Array<{
+    label: string;
+    testID: string;
+    value: string;
+  }>;
   onPress: () => void;
   palette: Palette;
   routeKey: RouteKey;
@@ -3668,6 +3699,75 @@ function MineActionCard({
   const arrow = (
     <Text style={[styles.mineActionArrow, { color: mutedColor }]}>→</Text>
   );
+  const primaryHeader = (
+    <View style={styles.mineActionPrimaryHeader} testID="mine-resume-header">
+      {glyph}
+      {copy}
+      {arrow}
+    </View>
+  );
+  const primaryCenter =
+    isPrimary && heroValue ? (
+      <View style={styles.mineActionPrimaryCenter} testID="mine-resume-center">
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.mineActionPrimaryHero,
+            { color: palette.primaryActionText },
+          ]}
+          testID="mine-resume-hero"
+        >
+          {heroValue}
+        </Text>
+        {heroLabel ? (
+          <Text
+            numberOfLines={1}
+            style={[styles.mineActionPrimaryHeroLabel, { color: mutedColor }]}
+            testID="mine-resume-hero-label"
+          >
+            {heroLabel}
+          </Text>
+        ) : null}
+      </View>
+    ) : null;
+  const primaryMeta =
+    isPrimary && metaItems?.length ? (
+      <View
+        style={styles.mineActionPrimaryMetaRow}
+        testID="mine-resume-meta-row"
+      >
+        {metaItems.map(item => (
+          <View
+            key={item.testID}
+            style={[
+              styles.mineActionPrimaryMetaPill,
+              {
+                backgroundColor: hexToRgba(palette.primaryActionText, 0.08),
+                borderColor: hexToRgba(palette.primaryActionText, 0.12),
+              },
+            ]}
+            testID={item.testID}
+          >
+            <Text
+              numberOfLines={1}
+              style={[styles.mineActionPrimaryMetaLabel, { color: mutedColor }]}
+            >
+              {item.label}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.mineActionPrimaryMetaValue,
+                { color: foregroundColor },
+              ]}
+              testID={`${item.testID}-value`}
+            >
+              {item.value}
+            </Text>
+          </View>
+        ))}
+      </View>
+    ) : null;
 
   return (
     <Pressable
@@ -3689,9 +3789,19 @@ function MineActionCard({
       ]}
       testID={testID}
     >
-      {glyph}
-      {copy}
-      {arrow}
+      {isPrimary ? (
+        <>
+          {primaryHeader}
+          {primaryCenter}
+          {primaryMeta}
+        </>
+      ) : (
+        <>
+          {glyph}
+          {copy}
+          {arrow}
+        </>
+      )}
     </Pressable>
   );
 }
@@ -6155,13 +6265,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   mineActionCardPrimary: {
-    alignItems: 'center',
+    alignItems: 'stretch',
     borderRadius: 20,
     flex: 1.1,
-    flexDirection: 'row',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
     minHeight: 76,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 15,
+    paddingVertical: 13,
   },
   mineActionCardSecondary: {
     alignItems: 'center',
@@ -6176,6 +6287,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  mineActionPrimaryHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  mineActionPrimaryCenter: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 4,
+    justifyContent: 'center',
+    minHeight: 62,
+  },
+  mineActionPrimaryHero: {
+    fontSize: 34,
+    fontWeight: '800',
+    lineHeight: 40,
+  },
+  mineActionPrimaryHeroLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 15,
+  },
+  mineActionPrimaryMetaRow: {
+    flexDirection: 'row',
+    gap: 7,
+  },
+  mineActionPrimaryMetaPill: {
+    borderRadius: 15,
+    borderWidth: 1,
+    flex: 1,
+    gap: 2,
+    justifyContent: 'center',
+    minHeight: 45,
+    minWidth: 0,
+    paddingHorizontal: 7,
+    paddingVertical: 6,
+  },
+  mineActionPrimaryMetaLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    lineHeight: 12,
+  },
+  mineActionPrimaryMetaValue: {
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 14,
   },
   mineActionCopy: {
     flex: 1,
