@@ -149,12 +149,12 @@ function getShellAccountChipCopy(authState: AuthState): ShellAccountChipCopy {
       }
     : authState.stage === 'code_sent'
     ? {
-        label: '验证',
-        value: '待输入',
+        label: '验证码',
+        value: '继续',
       }
     : {
-        label: '登录',
-        value: '保留卡',
+        label: '账号',
+        value: '登录',
       };
 }
 
@@ -2979,59 +2979,43 @@ function AuthGate({
   const authGateContent =
     route.key === 'space'
       ? {
-          continuityItems: [
-            { label: '层级', value: '库组盒' },
-            { label: '卡片', value: '原位保留' },
-            { label: '操作', value: '登录后同步' },
-          ],
-          eyebrow: '空间位置已保留',
-          gateSummary: '验证后回到当前位置，收藏、休眠和会员状态保持一致。',
+          continuityPill: '空间',
+          eyebrow: '查看空间',
+          gateSummary: '验证后回到当前空间，收藏和休眠动作继续可用。',
           gateTitle: '登录后查看空间',
-          retainedSummary: '库、组、盒和卡片位置已收好，验证后继续查看。',
-          retainedTitle: '空间 · 当前位置',
+          retainedSummary: '书架、分区和卡盒位置不变。',
+          retainedTitle: '空间位置会留在原处',
           returnTarget: '当前位置',
         }
       : route.key === 'statistics'
       ? {
-          continuityItems: [
-            { label: '完成', value: '已暂存' },
-            { label: '回看', value: '待同步' },
-            { label: '签到', value: '登录后保存' },
-          ],
-          eyebrow: '今日记录已保留',
-          gateSummary: '验证后查看今日完成、回看和签到状态。',
+          continuityPill: '统计',
+          eyebrow: '今日进展',
+          gateSummary: '验证后查看今天完成、回看和签到。',
           gateTitle: '登录后查看今日进展',
-          retainedSummary: '完成记录和回看队列已保留，登录后继续同步。',
-          retainedTitle: '今日进展 · 待同步',
+          retainedSummary: '完成、回看和签到都会接上。',
+          retainedTitle: '今日节奏会保留',
           returnTarget: '今日进展',
         }
       : route.key === 'mine'
       ? {
-          continuityItems: [
-            { label: '记录', value: '已保留' },
-            { label: '空间', value: '已保留' },
-            { label: '权益', value: hasSentCode ? '验证中' : '待确认' },
-          ],
-          eyebrow: '账号与权益',
+          continuityPill: '我的',
+          eyebrow: '学习账户',
           gateSummary: '学习记录、空间位置和会员权益会归到同一账号。',
-          gateTitle: '确认账号后继续',
+          gateTitle: '确认手机号后继续',
           retainedSummary: hasSentCode
-            ? '短码已发，完成后接回我的。'
-            : '手机号确认后接回我的。',
-          retainedTitle: '账号承接 · 待确认',
+            ? '短码已发，完成后回到我的。'
+            : '手机号确认后回到我的。',
+          retainedTitle: '记录和权益会归到账号',
           returnTarget: '我的',
         }
       : {
-          continuityItems: [
-            { label: '卡片', value: '已保留' },
-            { label: '位置', value: '原位保留' },
-            { label: '记录', value: '登录后保存' },
-          ],
-          eyebrow: '当前卡已保留',
-          gateSummary: '验证码通过后回到这张卡，空间和会员状态保持一致。',
+          continuityPill: '当前卡',
+          eyebrow: '继续学习',
+          gateSummary: '验证码通过后回到这张题，空间位置和权益保持一致。',
           gateTitle: '登录后继续学习',
-          retainedSummary: '题面和位置已收好，验证后继续判断。',
-          retainedTitle: '当前卡 · 四选一',
+          retainedSummary: '题面和位置都在，验证后继续判断。',
+          retainedTitle: '这张题会留在原处',
           returnTarget: '当前卡',
         };
 
@@ -3098,7 +3082,7 @@ function AuthGate({
                         { color: palette.text },
                       ]}
                     >
-                      {hasSentCode ? '验证中' : '待确认'}
+                      {hasSentCode ? '验证码' : '手机号'}
                     </Text>
                     <Text
                       style={[
@@ -3106,7 +3090,7 @@ function AuthGate({
                         { color: palette.textMuted },
                       ]}
                     >
-                      手机验证
+                      {hasSentCode ? '已发送' : '验证'}
                     </Text>
                   </View>
                 </View>
@@ -3150,7 +3134,7 @@ function AuthGate({
                       { color: palette.text },
                     ]}
                   >
-                    {hasSentCode ? '验证码已发' : '未登录'}
+                    {hasSentCode ? '验证码已发' : '手机号登录'}
                   </Text>
                   <Text
                     style={[
@@ -3188,24 +3172,20 @@ function AuthGate({
             isCompactAuthGate ? styles.authRetainedObjectCompact : null,
             isMineAccountGate ? styles.authRetainedObjectMine : null,
             {
-              backgroundColor: isMineAccountGate
-                ? 'transparent'
-                : isCompactAuthGate
+              backgroundColor: isCompactAuthGate
                 ? hexToRgba(palette.accent, 0.045)
                 : palette.panelStrong,
-              borderColor: isMineAccountGate
-                ? 'transparent'
-                : isCompactAuthGate
-                ? hexToRgba(palette.accent, 0.1)
+              borderColor: isCompactAuthGate
+                ? hexToRgba(palette.accent, 0.12)
                 : palette.border,
             },
           ]}
+          testID="auth-continuity-promise"
         >
           <View
             style={[
               styles.authRetainedHead,
               isCompactAuthGate ? styles.authRetainedHeadCompact : null,
-              isMineAccountGate ? styles.authRetainedHeadMine : null,
             ]}
           >
             <View
@@ -3235,62 +3215,26 @@ function AuthGate({
                 {authGateContent.retainedSummary}
               </Text>
             </View>
-          </View>
-          <View
-            style={[
-              styles.authRetainedLedger,
-              isCompactAuthGate ? styles.authRetainedLedgerCompact : null,
-              isMineAccountGate ? styles.authRetainedLedgerMine : null,
-              { borderColor: hexToRgba(palette.accent, 0.1) },
-            ]}
-            testID="auth-retained-ledger"
-          >
-            {authGateContent.continuityItems.map(item => (
-              <View
-                key={item.label}
+            <View
+              style={[
+                styles.authContinuityPromisePill,
+                {
+                  backgroundColor: palette.panel,
+                  borderColor: hexToRgba(palette.accent, 0.16),
+                },
+              ]}
+              testID="auth-continuity-promise-pill"
+            >
+              <Text
+                numberOfLines={1}
                 style={[
-                  styles.authRetainedLedgerRow,
-                  isCompactAuthGate
-                    ? styles.authRetainedLedgerRowCompact
-                    : null,
-                  isMineAccountGate ? styles.authRetainedLedgerRowMine : null,
-                  isCompactAuthGate
-                    ? {
-                        backgroundColor: isMineAccountGate
-                          ? hexToRgba(palette.accent, 0.055)
-                          : palette.panel,
-                        borderColor: isMineAccountGate
-                          ? hexToRgba(palette.accent, 0.14)
-                          : hexToRgba(palette.accent, 0.12),
-                      }
-                    : null,
+                  styles.authContinuityPromiseText,
+                  { color: palette.text },
                 ]}
-                testID="auth-retained-ledger-row"
               >
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.authContinuityLabel,
-                    isCompactAuthGate ? styles.authContinuityTextCompact : null,
-                    isMineAccountGate ? styles.authContinuityTextMine : null,
-                    { color: palette.textMuted },
-                  ]}
-                >
-                  {item.label}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.authContinuityValue,
-                    isCompactAuthGate ? styles.authContinuityTextCompact : null,
-                    isMineAccountGate ? styles.authContinuityTextMine : null,
-                    { color: palette.text },
-                  ]}
-                >
-                  {item.value}
-                </Text>
-              </View>
-            ))}
+                {authGateContent.continuityPill}
+              </Text>
+            </View>
           </View>
         </View>
         <PhoneSmsPanel
@@ -3312,7 +3256,6 @@ function AuthGate({
               ? '已完成短信验证码登录。'
               : '已完成登录。'
           }
-          stateLabel={hasSentCode ? '验证中' : undefined}
         />
       </View>
     </View>
@@ -4266,8 +4209,8 @@ function PhoneSmsPanel({
       : canRequestCode
       ? '手机号已准备好'
       : accountDock
-      ? '确认这个账号'
-      : '把当前位置接到账号';
+      ? '确认手机号'
+      : '输入手机号';
   const requestDockDetail =
     authState.pendingAction === 'request_code'
       ? '正在向当前手机号发送短码。'
@@ -4284,8 +4227,8 @@ function PhoneSmsPanel({
     ? '验证码暂时没通过'
     : '短码暂时没发出';
   const authErrorDetail = hasRequestedCode
-    ? '检查短码后再试，当前位置仍保留。'
-    : '检查手机号后再试，当前位置仍保留。';
+    ? `检查短码后再试，仍会回到${returnTarget}。`
+    : `检查手机号后再试，仍会回到${returnTarget}。`;
   const codeActionTone = hasCodeError ? palette.warning : palette.accent;
   const submitCodeButtonBackground = canSubmitCode
     ? codeActionTone
@@ -5491,16 +5434,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   authRetainedObjectCompact: {
-    borderRadius: 21,
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderRadius: 20,
+    gap: 0,
+    paddingHorizontal: 11,
+    paddingVertical: 10,
   },
   authRetainedObjectMine: {
-    borderWidth: 0,
-    gap: 5,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
   },
   authRetainedHead: {
     alignItems: 'center',
@@ -5508,11 +5451,8 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   authRetainedHeadCompact: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 9,
-  },
-  authRetainedHeadMine: {
-    display: 'none',
   },
   authRetainedAccent: {
     borderRadius: 999,
@@ -5526,6 +5466,7 @@ const styles = StyleSheet.create({
   authRetainedCopy: {
     flex: 1,
     gap: 3,
+    minWidth: 0,
   },
   authRetainedTitle: {
     fontSize: 18,
@@ -5536,45 +5477,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
-  authRetainedLedger: {
-    borderTopWidth: 1,
-    gap: 0,
-    paddingTop: 7,
-  },
-  authRetainedLedgerCompact: {
-    borderTopWidth: 0,
-    flexDirection: 'row',
-    gap: 7,
-    paddingTop: 0,
-  },
-  authRetainedLedgerMine: {
-    gap: 5,
-    paddingHorizontal: 0,
-  },
-  authRetainedLedgerRow: {
-    alignItems: 'baseline',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    minHeight: 29,
-    paddingVertical: 4,
-  },
-  authRetainedLedgerRowCompact: {
+  authContinuityPromisePill: {
     alignItems: 'center',
-    borderRadius: 15,
+    borderRadius: 999,
     borderWidth: 1,
-    flex: 1,
-    flexDirection: 'column',
-    gap: 2,
+    flexShrink: 0,
     justifyContent: 'center',
-    minHeight: 50,
-    paddingHorizontal: 3,
+    minHeight: 34,
+    paddingHorizontal: 10,
     paddingVertical: 7,
   },
-  authRetainedLedgerRowMine: {
-    borderRadius: 999,
-    minHeight: 34,
-    paddingHorizontal: 4,
-    paddingVertical: 5,
+  authContinuityPromiseText: {
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 15,
   },
   authObjectBadge: {
     alignItems: 'center',
@@ -5600,39 +5516,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 14,
     textAlign: 'center',
-  },
-  authContinuityRail: {
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    gap: 8,
-    paddingTop: 10,
-  },
-  authContinuityItem: {
-    alignItems: 'flex-start',
-    flex: 1,
-    gap: 4,
-    minWidth: 0,
-  },
-  authContinuityDot: {
-    borderRadius: 999,
-    height: 7,
-    width: 7,
-  },
-  authContinuityLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    lineHeight: 14,
-  },
-  authContinuityValue: {
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 16,
-  },
-  authContinuityTextCompact: {
-    textAlign: 'center',
-  },
-  authContinuityTextMine: {
-    lineHeight: 14,
   },
   hero: {
     borderWidth: 1,
