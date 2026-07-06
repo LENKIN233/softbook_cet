@@ -65,15 +65,15 @@ export function StatisticsSurface({
   const combinedResults = [...learningResults, ...reviewResults];
   const hasLearningProgress = combinedResults.length > 0;
   const checkInTitle = hasCheckedInToday
-    ? '今日已签到'
+    ? '记录完成'
     : canCheckInToday
-    ? '今日可签到'
-    : '先完成今日学习';
+    ? '可收好'
+    : '待学习';
   const checkInSummary = hasCheckedInToday
-    ? '今日连续性已记录。'
+    ? '今日已签到，记录已保存。'
     : canCheckInToday
-    ? '已有有效学习进展，可以记录今天。'
-    : '先至少完成 1 张学习或回看卡，再把今天记成一次有效签到。';
+    ? '已完成学习，点一下收好今天。'
+    : '完成 1 张后再收好今天。';
   const reviewStatus =
     reviewResults.length > 0
       ? `已回看 ${reviewResults.length} · 待回看 ${pendingReviewCount}`
@@ -83,33 +83,37 @@ export function StatisticsSurface({
       ? '首轮已收口'
       : '暂无今日进展';
   const dailyTitle = hasCheckedInToday
-    ? '今日已记录'
+    ? '今天收好'
     : hasLearningProgress
-    ? '学习手感保持中'
-    : '先完成一张卡';
+    ? '学习在推进'
+    : '从第一张开始';
   const dailySummary = hasCheckedInToday
-    ? `首轮 ${learningResults.length} · 回看 ${reviewResults.length} · ${syncStatusLabel}`
+    ? `完成 ${combinedResults.length} · 回看 ${reviewResults.length} · ${syncStatusLabel}`
     : pendingReviewCount > 0
     ? `还有 ${pendingReviewCount} 张卡需要回看，统计只安静记录，不打断学习。`
     : hasLearningProgress
-    ? `首轮 ${learningResults.length} · 回看 ${reviewResults.length} · 待签到`
-    : '先回到学习完成一张卡，这里会记录今天的连续性。';
+    ? `完成 ${combinedResults.length} · 可以收好今天`
+    : '回到学习完成一张卡，这里只记录当天进度。';
   const nextStepIsReview = pendingReviewCount > 0;
   const nextStepTitle = nextStepIsReview
     ? '先处理回看'
     : hasLearningProgress
-    ? '继续下一张'
-    : '回到第一张';
+    ? '回到学习'
+    : '开始第一张';
   const nextStepSummary = nextStepIsReview
     ? `${pendingReviewCount} 张卡需要再看一次，统计只提醒。`
     : hasLearningProgress
-    ? '回到学习，继续往前推。'
-    : '回到学习完成第一张，统计会自动收起当天进度。';
+    ? '继续当前顺序，系统带你往前。'
+    : '先完成第一张，进度会自动收起。';
   const nextStepButtonLabel = nextStepIsReview ? '开始回看' : '继续学习';
   const nextStepButtonTestID = nextStepIsReview
     ? 'statistics-start-review-button'
     : 'statistics-go-learning-button';
   const onPressNextStep = nextStepIsReview ? onStartReview : onGoToLearning;
+  const syncLedgerDetail =
+    hasCheckedInToday && syncStatusLabel === '已记录'
+      ? undefined
+      : syncStatusDetail;
   const dailyRailTarget = Math.max(
     combinedResults.length + pendingReviewCount,
     hasLearningProgress ? combinedResults.length : 1,
@@ -131,9 +135,9 @@ export function StatisticsSurface({
   const dailyRailLabel = nextStepIsReview
     ? `${pendingReviewCount} 张回看待处理`
     : hasCheckedInToday
-    ? '今天已经收好'
+    ? '学习进度已收好'
     : canCheckInToday
-    ? '可以记录今天'
+    ? '可以收好今天'
     : '完成一张后点亮';
   const checkInButtonBackground = hasCheckedInToday
     ? palette.panelStrong
@@ -376,8 +380,8 @@ export function StatisticsSurface({
             style={[
               styles.actionObjectRow,
               {
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
+                backgroundColor: hexToRgba(palette.accent, 0.035),
+                borderColor: hexToRgba(palette.accent, 0.08),
               },
               styles.checkInDockRow,
               deviceClass === 'tablet' ? styles.checkInDockRowTablet : null,
@@ -386,7 +390,7 @@ export function StatisticsSurface({
           >
             <View style={styles.checkInCopy}>
               <Text style={[styles.checkInTitle, { color: palette.text }]}>
-                连续性
+                今日连续性
               </Text>
               <Text
                 style={[styles.cardSummary, { color: palette.textMuted }]}
@@ -419,7 +423,7 @@ export function StatisticsSurface({
                     : 'statistics-checkin-ready-label'
                 }
               >
-                {hasCheckedInToday ? '已记录' : '完成签到'}
+                {hasCheckedInToday ? '今日已签到' : '收好今天'}
               </Text>
             </Pressable>
           </View>
@@ -443,7 +447,7 @@ export function StatisticsSurface({
                 value={reviewStatus}
               />
               <LedgerRow
-                detail={syncStatusDetail}
+                detail={syncLedgerDetail}
                 detailTestID="statistics-sync-detail"
                 label="记录"
                 palette={palette}
@@ -564,8 +568,8 @@ function LedgerRow({
       style={[
         styles.ledgerRow,
         {
-          backgroundColor: hexToRgba(palette.accent, 0.024),
-          borderColor: hexToRgba(palette.accent, 0.06),
+          backgroundColor: 'transparent',
+          borderColor: 'transparent',
         },
       ]}
     >
@@ -769,8 +773,8 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   actionObjectRow: {
-    borderRadius: 0,
-    borderWidth: 0,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   nextStepRow: {
     alignItems: 'center',
@@ -801,9 +805,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
-    minHeight: 44,
-    paddingHorizontal: 2,
-    paddingBottom: 2,
+    minHeight: 42,
+    paddingHorizontal: 10,
+    paddingBottom: 8,
     paddingTop: 8,
   },
   checkInDockRowTablet: {
@@ -814,8 +818,9 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   checkInTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '800',
+    lineHeight: 16,
   },
   primaryButton: {
     borderWidth: 1,
@@ -865,12 +870,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     flex: 1,
-    gap: 3,
+    gap: 2,
     justifyContent: 'center',
-    minHeight: 43,
+    minHeight: 34,
     minWidth: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 4,
+    paddingVertical: 3,
   },
   ledgerValueStack: {
     alignItems: 'flex-start',

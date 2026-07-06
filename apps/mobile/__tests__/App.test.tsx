@@ -2868,15 +2868,15 @@ test('can check in from statistics after making learning progress', async () => 
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('学习手感保持中');
+  expect(output).toContain('学习在推进');
   expect(output).toContain('今日节奏');
-  expect(output).toContain('可以记录今天');
+  expect(output).toContain('可以收好今天');
   expect(output).toContain('下一步');
-  expect(output).toContain('继续下一张');
+  expect(output).toContain('回到学习');
   expect(output).toContain('继续学习');
-  expect(output).toContain('今日可签到');
-  expect(output).toContain('已有有效学习进展，可以记录今天。');
-  expect(output).toContain('已记录');
+  expect(output).toContain('可收好');
+  expect(output).toContain('已完成学习，点一下收好今天。');
+  expect(output).toContain('收好今天');
   expect(output).not.toContain('今日统计与签到');
   expect(output).not.toContain('练习信号');
   const progressDock = root.findByProps({
@@ -2918,8 +2918,8 @@ test('can check in from statistics after making learning progress', async () => 
     root.findAllByProps({ testID: 'statistics-checkin-complete-label' }).length,
   ).toBeGreaterThan(0);
   expect(output).toContain('今日已签到');
-  expect(output).toContain('今天已经收好');
-  expect(output).toContain('今天的学习进展已记录。');
+  expect(output).toContain('学习进度已收好');
+  expect(output).toContain('今日已签到，记录已保存。');
   const statusLedger = root.findByProps({
     testID: 'statistics-status-ledger',
   });
