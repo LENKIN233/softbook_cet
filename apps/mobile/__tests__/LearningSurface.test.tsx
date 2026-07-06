@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 
 import {
@@ -191,6 +192,21 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   expect(
     tree!.root.findByProps({ testID: 'learning-submit-action-dock' }),
   ).toBeTruthy();
+  expect(
+    StyleSheet.flatten(
+      tree!.root.findByProps({ testID: 'learning-current-card' }).props.style,
+    ).flexGrow,
+  ).toBe(1);
+  expect(
+    StyleSheet.flatten(
+      tree!.root.findByProps({ testID: 'learning-action-dock' }).props.style,
+    ).marginTop,
+  ).toBe('auto');
+  const optionGridStyle = StyleSheet.flatten(
+    tree!.root.findByProps({ testID: 'learning-option-grid' }).props.style,
+  );
+  expect(optionGridStyle.flexGrow).toBe(1);
+  expect(optionGridStyle.alignContent).toBe('stretch');
   expect(
     tree!.root.findByProps({ testID: 'learning-submit-button' }).props.disabled,
   ).toBe(true);
