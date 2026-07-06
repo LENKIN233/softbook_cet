@@ -102,7 +102,11 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).toContain('先判断，再确认解析');
   expect(output).not.toContain('先做这一张');
   expect(output).not.toContain('当前这一张');
-  expect(output).toContain('位置已保持');
+  expect(output).toContain('位置保持');
+  expect(output).toContain('位置 · 本轮盒');
+  expect(output).not.toContain('当前位置 · 本轮盒');
+  expect(output).not.toContain('当前馆 · 本轮盒');
+  expect(output).not.toContain('位置已保持');
   expect(output).not.toContain('先完成这一张，再继续下一步');
   expect(output).not.toContain('系统递给你当前这一张');
   expect(output).toContain('本轮学习卡');
@@ -123,7 +127,8 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).toContain('先把题干里的信号抓出来，再回到选项或解析确认。');
   expect(output).not.toContain('这张卡为什么出现');
   expect(output).not.toContain('该题来自当前练习安排');
-  expect(output).toContain('同盒位置已保持');
+  expect(output).toContain('同盒位置保持');
+  expect(output).not.toContain('同盒位置已保持');
   expect(output).not.toContain('这张在：');
   expect(output).not.toContain('当前位置：');
   expect(output).not.toContain('馆 1 / 组 1 / 盒 1');
@@ -349,7 +354,8 @@ test('result detail reads as a resolved card without raw metadata', () => {
   ).toBeTruthy();
   expect(output).toContain('当前卡');
   expect(output).toContain('2/3');
-  expect(output).toContain('结果在当前卡');
+  expect(output).toContain('结果留在本卡');
+  expect(output).not.toContain('结果在当前卡');
   expect(output).toContain('选择、答案和解释都在当前卡里');
   expect(output).toContain('你的选择');
   expect(output).toContain('正确答案');
