@@ -3168,95 +3168,104 @@ function AuthGate({
         </View>
         <View
           style={[
-            styles.authRetainedObject,
-            isCompactAuthGate ? styles.authRetainedObjectCompact : null,
-            isMineAccountGate ? styles.authRetainedObjectMine : null,
-            {
-              backgroundColor: isCompactAuthGate
-                ? hexToRgba(palette.accent, 0.045)
-                : palette.panelStrong,
-              borderColor: isCompactAuthGate
-                ? hexToRgba(palette.accent, 0.12)
-                : palette.border,
-            },
+            styles.authGateActionStack,
+            isCompactAuthGate ? styles.authGateActionStackCompact : null,
+            isMineAccountGate ? styles.authGateActionStackMine : null,
           ]}
-          testID="auth-continuity-promise"
+          testID="auth-gate-action-stack"
         >
           <View
             style={[
-              styles.authRetainedHead,
-              isCompactAuthGate ? styles.authRetainedHeadCompact : null,
+              styles.authRetainedObject,
+              isCompactAuthGate ? styles.authRetainedObjectCompact : null,
+              isMineAccountGate ? styles.authRetainedObjectMine : null,
+              {
+                backgroundColor: isCompactAuthGate
+                  ? hexToRgba(palette.accent, 0.045)
+                  : palette.panelStrong,
+                borderColor: isCompactAuthGate
+                  ? hexToRgba(palette.accent, 0.12)
+                  : palette.border,
+              },
             ]}
+            testID="auth-continuity-promise"
           >
             <View
-              pointerEvents="none"
               style={[
-                styles.authRetainedAccent,
-                isCompactAuthGate ? styles.authRetainedAccentCompact : null,
-                { backgroundColor: palette.accent },
+                styles.authRetainedHead,
+                isCompactAuthGate ? styles.authRetainedHeadCompact : null,
               ]}
-            />
-            <View style={styles.authRetainedCopy}>
-              <Text
-                numberOfLines={1}
-                style={[styles.authRetainedTitle, { color: palette.text }]}
-                testID="auth-retained-object-title"
-              >
-                {authGateContent.retainedTitle}
-              </Text>
-              <Text
-                numberOfLines={2}
-                style={[
-                  styles.authRetainedSummary,
-                  { color: palette.textMuted },
-                ]}
-                testID="auth-retained-object-summary"
-              >
-                {authGateContent.retainedSummary}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.authContinuityPromisePill,
-                {
-                  backgroundColor: palette.panel,
-                  borderColor: hexToRgba(palette.accent, 0.16),
-                },
-              ]}
-              testID="auth-continuity-promise-pill"
             >
-              <Text
-                numberOfLines={1}
+              <View
+                pointerEvents="none"
                 style={[
-                  styles.authContinuityPromiseText,
-                  { color: palette.text },
+                  styles.authRetainedAccent,
+                  isCompactAuthGate ? styles.authRetainedAccentCompact : null,
+                  { backgroundColor: palette.accent },
                 ]}
+              />
+              <View style={styles.authRetainedCopy}>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.authRetainedTitle, { color: palette.text }]}
+                  testID="auth-retained-object-title"
+                >
+                  {authGateContent.retainedTitle}
+                </Text>
+                <Text
+                  numberOfLines={2}
+                  style={[
+                    styles.authRetainedSummary,
+                    { color: palette.textMuted },
+                  ]}
+                  testID="auth-retained-object-summary"
+                >
+                  {authGateContent.retainedSummary}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.authContinuityPromisePill,
+                  {
+                    backgroundColor: palette.panel,
+                    borderColor: hexToRgba(palette.accent, 0.16),
+                  },
+                ]}
+                testID="auth-continuity-promise-pill"
               >
-                {authGateContent.continuityPill}
-              </Text>
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.authContinuityPromiseText,
+                    { color: palette.text },
+                  ]}
+                >
+                  {authGateContent.continuityPill}
+                </Text>
+              </View>
             </View>
           </View>
+          <PhoneSmsPanel
+            accountDock={isMineAccountGate}
+            authState={authState}
+            embedded
+            handlers={handlers}
+            palette={palette}
+            routeDock={isRouteObjectGate}
+            returnTarget={authGateContent.returnTarget}
+            title="手机号验证"
+            summary={
+              authRepositoryMode === 'remote'
+                ? '用短信短码确认身份。'
+                : '输入短码确认身份。'
+            }
+            successMessage={
+              authRepositoryMode === 'remote'
+                ? '已完成短信验证码登录。'
+                : '已完成登录。'
+            }
+          />
         </View>
-        <PhoneSmsPanel
-          accountDock={isMineAccountGate}
-          authState={authState}
-          embedded
-          handlers={handlers}
-          palette={palette}
-          routeDock={isRouteObjectGate}
-          returnTarget={authGateContent.returnTarget}
-          title="手机号验证"
-          summary={
-            authRepositoryMode === 'remote'
-              ? '用短信短码确认身份。'
-              : '输入短码确认身份。'
-          }
-          successMessage={
-            authRepositoryMode === 'remote'
-              ? '已完成短信验证码登录。'
-              : '已完成登录。'
-          }
-        />
       </View>
     </View>
   );
@@ -5415,19 +5424,15 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   authEntryCardRouteObject: {
-    flex: 1,
     flexShrink: 1,
     gap: 12,
-    justifyContent: 'space-between',
-    minHeight: 0,
+    justifyContent: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 18,
   },
   authEntryCardMine: {
-    flex: 1,
     gap: 10,
-    justifyContent: 'space-between',
-    minHeight: 0,
+    justifyContent: 'flex-start',
     paddingHorizontal: 15,
     paddingVertical: 16,
   },
@@ -5463,6 +5468,17 @@ const styles = StyleSheet.create({
   authGateSummary: {
     fontSize: 13,
     lineHeight: 19,
+  },
+  authGateActionStack: {
+    gap: 12,
+  },
+  authGateActionStackCompact: {
+    gap: 10,
+    marginTop: 10,
+  },
+  authGateActionStackMine: {
+    gap: 10,
+    marginTop: 12,
   },
   authMinePassportHeader: {
     alignItems: 'flex-start',
@@ -5623,9 +5639,7 @@ const styles = StyleSheet.create({
   },
   authPanelDock: {
     borderTopWidth: 0,
-    flex: 1,
     gap: 10,
-    justifyContent: 'flex-end',
     marginTop: 0,
     minHeight: 0,
     paddingTop: 0,
