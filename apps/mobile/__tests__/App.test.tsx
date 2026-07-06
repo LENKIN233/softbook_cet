@@ -1748,7 +1748,7 @@ test('requires explicit remote trial start from protected space', async () => {
 
   const unlockedSpaceText = JSON.stringify(tree!.toJSON());
   expect(unlockedSpaceText).toContain('当前盒桌');
-  expect(unlockedSpaceText).toContain('盒内对象');
+  expect(unlockedSpaceText).toContain('同盒卡片');
   expect(unlockedSpaceText).toContain('回学习');
 });
 
@@ -1952,7 +1952,7 @@ test('can unlock gated space after remote purchase', async () => {
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('当前卡盒');
   expect(output).toContain('当前盒桌');
-  expect(output).toContain('盒内对象');
+  expect(output).toContain('同盒卡片');
   expect(output).toContain('回学习');
   expect(root.findAllByProps({ testID: 'space-gate-rail' })).toHaveLength(0);
   expect(
@@ -2277,7 +2277,7 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('当前卡盒');
   expect(output).toContain('当前盒桌');
-  expect(output).toContain('盒内对象');
+  expect(output).toContain('同盒卡片');
   expect(output).toContain('回学习');
   expect(
     fetchCalls.filter(
@@ -3159,10 +3159,10 @@ test('can browse the current Space box after login', async () => {
   expect(
     root.findAllByProps({ testID: 'space-return-learning' }).length,
   ).toBeGreaterThan(0);
-  expect(output).toContain('当前学习卡在这里');
+  expect(output).toContain('正在查看同盒卡片');
   expect(output).toContain('当前卡盒');
-  expect(output).toContain('空间地址');
-  expect(output).toContain('盒内 2 张');
+  expect(output).toContain('当前位置');
+  expect(output).toContain('本盒共 2 张');
   expect(root.findAllByProps({ testID: 'space-browse-rail' })).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'space-library-3' })).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'space-group-2' })).toHaveLength(0);
@@ -3194,8 +3194,8 @@ test('can browse the current Space box after login', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('短对话里听到 however');
-  expect(output).toContain('盒内查看');
-  expect(output).toContain('贴卡标签');
+  expect(output).toContain('当前盒桌');
+  expect(output).toContain('贴上标记');
   expect(output).toContain('休眠');
   expect(output).not.toContain('收藏标签');
   expect(output).not.toContain('卡片列表');
@@ -3301,7 +3301,8 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   expect(
     root.findAllByProps({ testID: 'space-favorite-active-1' }).length,
   ).toBeGreaterThan(0);
-  expect(output).toContain('1 张收藏');
+  expect(output).toContain('已标记');
+  expect(output).not.toContain('1 张收藏');
   expect(output).not.toContain('可收藏');
   expect(output).not.toContain('收藏标签');
   expect(output).toContain('取消收藏');
@@ -3343,7 +3344,7 @@ test('requires explicit local trial start from protected space', async () => {
   const unlockedOutput = JSON.stringify(tree!.toJSON());
   expect(unlockedOutput).toContain('当前卡盒');
   expect(unlockedOutput).toContain('当前盒桌');
-  expect(unlockedOutput).toContain('盒内对象');
+  expect(unlockedOutput).toContain('同盒卡片');
   expect(unlockedOutput).toContain('回学习');
 });
 

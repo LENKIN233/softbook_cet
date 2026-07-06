@@ -464,7 +464,7 @@ export function SpaceSurface({
             ) : null}
 
             <Text style={[styles.locationText, { color: emptyTone.accent }]}>
-              {currentCardPath ? '当前学习卡在这里' : '空间正在等待本轮卡片。'}
+              {currentCardPath ? '当前卡会回到这里' : '空间正在等待本轮卡片。'}
             </Text>
 
             <View style={styles.boxShelf} testID="space-current-position">
@@ -496,7 +496,7 @@ export function SpaceSurface({
               <View style={styles.containedHeader}>
                 <View style={styles.statusCopy}>
                   <Text style={[styles.cardTitle, { color: palette.text }]}>
-                    盒内查看
+                    当前卡盒
                   </Text>
                   <Text style={[styles.ruleText, { color: palette.textMuted }]}>
                     {emptySelectedPath}
@@ -507,7 +507,7 @@ export function SpaceSurface({
                     {isSpaceLoading ? '整理中' : '待整理'}
                   </Text>
                   <ActionChip
-                    label="返回概览"
+                    label="回盒桌"
                     onPress={onBackToOverview ?? noop}
                     palette={palette}
                     testID="space-card-list-back"
@@ -771,17 +771,17 @@ export function SpaceSurface({
               <View style={styles.overviewHeroRow}>
                 <View style={styles.statusCopy}>
                   <Text style={[styles.eyebrow, { color: palette.textMuted }]}>
-                    空间盒桌
+                    当前盒桌
                   </Text>
                   <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
-                    当前盒桌
+                    打开卡盒
                   </Text>
                   <Text
                     style={[styles.locationText, { color: palette.textMuted }]}
                   >
                     {currentCardPath
-                      ? '当前学习卡在这里'
-                      : '学习卡位置会随进度更新'}
+                      ? '同盒卡片都在这里'
+                      : '学习卡位置会随进度归位'}
                   </Text>
                 </View>
                 <Pressable
@@ -801,15 +801,7 @@ export function SpaceSurface({
                       { color: palette.text },
                     ]}
                   >
-                    盒内查看
-                  </Text>
-                  <Text
-                    style={[
-                      styles.overviewInspectButtonMeta,
-                      { color: palette.textMuted },
-                    ]}
-                  >
-                    {`${selectedBoxCards.length} 张`}
+                    查看卡片
                   </Text>
                 </Pressable>
               </View>
@@ -838,7 +830,7 @@ export function SpaceSurface({
                   <Text
                     style={[styles.openBoxLidTitle, { color: palette.text }]}
                   >
-                    盒内对象
+                    同盒卡片
                   </Text>
                   <Text
                     style={[
@@ -979,7 +971,7 @@ export function SpaceSurface({
                               { color: palette.text },
                             ]}
                           >
-                            休眠区
+                            同盒休眠
                           </Text>
                           <Text
                             style={[
@@ -1005,8 +997,8 @@ export function SpaceSurface({
                           ]}
                         >
                           {selectedSleepingCards.length > 0
-                            ? `${selectedSleepingCards.length} 张暂休，仍在当前盒`
-                            : '暂无休眠，盒内节奏保持连续'}
+                            ? `${selectedSleepingCards.length} 张暂休，仍留在盒内`
+                            : '暂无休眠，继续按盒内顺序学习'}
                         </Text>
                       </View>
                     </Pressable>
@@ -1048,7 +1040,7 @@ export function SpaceSurface({
                       { color: primaryActionMuted },
                     ]}
                   >
-                    同一张卡，同一地址。
+                    回到刚才那张卡。
                   </Text>
                 </View>
                 <View
@@ -1123,7 +1115,7 @@ export function SpaceSurface({
                     <Text
                       style={[styles.eyebrow, { color: palette.textMuted }]}
                     >
-                      盒内查看
+                      当前盒桌
                     </Text>
                     <Text
                       style={[styles.browseTrayTitle, { color: palette.text }]}
@@ -1138,8 +1130,8 @@ export function SpaceSurface({
                       ]}
                     >
                       {currentCardPath
-                        ? '当前学习卡在这里'
-                        : '当前学习卡位置会随学习更新'}
+                        ? '正在查看同盒卡片'
+                        : '学习卡位置会随学习更新'}
                     </Text>
                   </View>
                   <View
@@ -1160,8 +1152,8 @@ export function SpaceSurface({
                       {isGated
                         ? '待开放'
                         : selectedFavoriteCards.length > 0
-                        ? `${selectedFavoriteCards.length} 张收藏`
-                        : `${selectedBoxCards.length} 张卡`}
+                        ? '已标记'
+                        : '浏览中'}
                     </Text>
                   </View>
                 </View>
@@ -1182,7 +1174,7 @@ export function SpaceSurface({
                         { color: selectedTone.accent },
                       ]}
                     >
-                      空间地址
+                      当前位置
                     </Text>
                     <Text
                       style={[
@@ -1190,85 +1182,56 @@ export function SpaceSurface({
                         { color: palette.textMuted },
                       ]}
                     >
-                      {`盒内 ${selectedBoxCards.length} 张`}
+                      {`本盒共 ${selectedBoxCards.length} 张`}
                     </Text>
                   </View>
                   <View
-                    style={styles.browseObjectPath}
+                    style={[styles.browseObjectPath, styles.browseAddressLine]}
                     testID="space-browse-address-clue"
                   >
-                    <View
+                    <Text
+                      numberOfLines={1}
                       style={[
-                        styles.browsePathStep,
-                        { backgroundColor: solidPanelStrong },
+                        styles.browseAddressLineText,
+                        { color: selectedTone.accent },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.browsePathLabel,
-                          { color: selectedTone.accent },
-                        ]}
-                      >
-                        书架
-                      </Text>
-                      <Text
-                        numberOfLines={1}
-                        style={[
-                          styles.browsePathValue,
-                          { color: palette.text },
-                        ]}
-                      >
-                        {formatSpaceLibraryLabel(selectedLibraryIndex)}
-                      </Text>
-                    </View>
-                    <View
+                      {formatSpaceLibraryLabel(selectedLibraryIndex)}
+                    </Text>
+                    <Text
                       style={[
-                        styles.browsePathStep,
-                        { backgroundColor: solidPanelStrong },
+                        styles.browseAddressSeparator,
+                        { color: palette.textMuted },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.browsePathLabel,
-                          { color: palette.textMuted },
-                        ]}
-                      >
-                        分区
-                      </Text>
-                      <Text
-                        numberOfLines={1}
-                        style={[
-                          styles.browsePathValue,
-                          { color: palette.text },
-                        ]}
-                      >
-                        {formatSpaceGroupLabel(selectedGroupIndex)}
-                      </Text>
-                    </View>
-                    <View
+                      /
+                    </Text>
+                    <Text
+                      numberOfLines={1}
                       style={[
-                        styles.browsePathStep,
-                        { backgroundColor: solidPanelStrong },
+                        styles.browseAddressLineText,
+                        { color: palette.text },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.browsePathLabel,
-                          { color: palette.textMuted },
-                        ]}
-                      >
-                        卡盒
-                      </Text>
-                      <Text
-                        numberOfLines={1}
-                        style={[
-                          styles.browsePathValue,
-                          { color: palette.text },
-                        ]}
-                      >
-                        {formatSpaceBoxLabel(selectedBoxIndex)}
-                      </Text>
-                    </View>
+                      {formatSpaceGroupLabel(selectedGroupIndex)}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.browseAddressSeparator,
+                        { color: palette.textMuted },
+                      ]}
+                    >
+                      /
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.browseAddressLineText,
+                        { color: palette.text },
+                      ]}
+                    >
+                      {formatSpaceBoxLabel(selectedBoxIndex)}
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -1320,7 +1283,7 @@ export function SpaceSurface({
                                 { color: palette.textMuted },
                               ]}
                             >
-                              盒内卡片
+                              同盒卡片
                             </Text>
                             <Text
                               style={[
@@ -1424,7 +1387,7 @@ export function SpaceSurface({
                                     { color: palette.textMuted },
                                   ]}
                                 >
-                                  {isFavorited ? '已贴标签' : '贴卡标签'}
+                                  {isFavorited ? '已贴标记' : '贴上标记'}
                                 </Text>
                               </Pressable>
 
@@ -1483,7 +1446,7 @@ export function SpaceSurface({
                                     { color: palette.textMuted },
                                   ]}
                                 >
-                                  {isSleeping ? '仍在当前盒' : '同盒暂休'}
+                                  {isSleeping ? '仍留在盒内' : '暂时不练'}
                                 </Text>
                               </Pressable>
                             </>
@@ -1602,7 +1565,7 @@ export function SpaceSurface({
                                 { color: palette.text },
                               ]}
                             >
-                              概览
+                              回盒桌
                             </Text>
                             <Text
                               numberOfLines={1}
@@ -1611,7 +1574,7 @@ export function SpaceSurface({
                                 { color: palette.textMuted },
                               ]}
                             >
-                              当前盒
+                              盒内概览
                             </Text>
                           </Pressable>
                         </View>
@@ -2233,11 +2196,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 18,
   },
-  overviewInspectButtonMeta: {
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 16,
-  },
   openBoxTrayCard: {
     gap: 8,
     paddingBottom: 12,
@@ -2305,12 +2263,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
   },
+  browseAddressLine: {
+    alignItems: 'center',
+    minHeight: 24,
+    paddingHorizontal: 2,
+  },
+  browseAddressLineText: {
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+  },
+  browseAddressSeparator: {
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 16,
+    opacity: 0.55,
+  },
   browseAddressClue: {
     borderRadius: 17,
     borderWidth: 0,
-    gap: 7,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    gap: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
   },
   browseAddressClueHeader: {
     alignItems: 'center',
