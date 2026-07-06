@@ -2939,10 +2939,20 @@ test('can check in from statistics after making learning progress', async () => 
   expect(output).toContain('收好今天');
   expect(output).not.toContain('今日统计与签到');
   expect(output).not.toContain('练习信号');
+  const dayObjectStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'statistics-day-object' }).props.style,
+  );
+  expect(dayObjectStyle.flex).toBe(1);
+  expect(dayObjectStyle.justifyContent).toBe('space-between');
+  expect(dayObjectStyle.minHeight).toBe(0);
   const progressDock = root.findByProps({
     testID: 'statistics-progress-dock',
   });
   expect(progressDock).toBeTruthy();
+  const progressDockStyle = StyleSheet.flatten(progressDock.props.style);
+  expect(progressDockStyle.flex).toBe(1);
+  expect(progressDockStyle.justifyContent).toBe('space-between');
+  expect(progressDockStyle.minHeight).toBe(0);
   expect(
     root.findByProps({ testID: 'statistics-progress-ratio' }).props.children,
   ).toBe('1/1');
@@ -2951,6 +2961,8 @@ test('can check in from statistics after making learning progress', async () => 
   );
   expect(progressFillStyle.width).toBe('100%');
   const actionDock = root.findByProps({ testID: 'statistics-action-dock' });
+  const actionDockStyle = StyleSheet.flatten(actionDock.props.style);
+  expect(actionDockStyle.flexShrink).toBe(0);
   expect(
     actionDock.findAllByProps({ testID: 'statistics-next-step-card' }).length,
   ).toBeGreaterThan(0);
