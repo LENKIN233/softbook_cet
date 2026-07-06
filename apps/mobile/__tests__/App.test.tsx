@@ -772,7 +772,8 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expect(output).toContain('验证码已发送');
   expect(output).toContain('已发送到');
   expect(output).toContain('138****8000');
-  expect(output).toContain('验证中');
+  expect(output).toContain('验证');
+  expect(output).toContain('待输入');
   expect(output).toContain('完成后回到当前卡。');
   expect(output).toContain('重新发送');
   expect(output).not.toContain('等待登录');
@@ -2365,7 +2366,8 @@ test('can unlock the learning flow after fake sms verification', async () => {
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('位置已保持');
   expect(output).toContain('先判断，再确认解析');
-  expect(output).toContain('已登录');
+  expect(output).toContain('账户');
+  expect(output).toContain('已确认');
   expect(output).not.toContain('已登录 138****8000');
   expect(output).toContain('however');
   const addressAperture = root.findByProps({
@@ -2392,6 +2394,15 @@ test('can unlock the learning flow after fake sms verification', async () => {
   expect(output).not.toContain('要一点线索');
   expect(output).not.toContain('收起这点线索');
   expectNoUserVisibleMetadataLeakage(tree!);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'shell-account-chip' }).props.onPress();
+  });
+
+  const accountOutput = JSON.stringify(tree!.toJSON());
+  expect(accountOutput).toContain('我的');
+  expect(accountOutput).toContain('学习账户');
+  expect(root.findByProps({ testID: 'mine-profile-card' })).toBeTruthy();
 });
 
 test('does not expose internal metadata copy on primary surfaces', async () => {

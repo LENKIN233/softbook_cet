@@ -136,12 +136,26 @@ type AuthStatusCopy = {
   value: string;
 };
 
-function getShellAuthStatusText(authState: AuthState): string {
+type ShellAccountChipCopy = {
+  label: string;
+  value: string;
+};
+
+function getShellAccountChipCopy(authState: AuthState): ShellAccountChipCopy {
   return authState.stage === 'authenticated'
-    ? '已登录'
+    ? {
+        label: '账户',
+        value: '已确认',
+      }
     : authState.stage === 'code_sent'
-    ? '验证中'
-    : '未登录';
+    ? {
+        label: '验证',
+        value: '待输入',
+      }
+    : {
+        label: '登录',
+        value: '保留卡',
+      };
 }
 
 function getAuthStatusCopy(authState: AuthState): AuthStatusCopy {
@@ -2447,7 +2461,12 @@ function PhoneShell({
 }) {
   return (
     <View style={styles.shellRoot}>
-      <PhoneTopBar authState={authState} palette={palette} route={route} />
+      <PhoneTopBar
+        authState={authState}
+        onOpenAccount={() => onSelectRoute('mine')}
+        palette={palette}
+        route={route}
+      />
       <View style={styles.shellContent}>{content}</View>
       <View style={styles.phoneTabBarWrap}>
         <View
@@ -2638,13 +2657,16 @@ function RouteIcon({
 
 function PhoneTopBar({
   authState,
+  onOpenAccount,
   palette,
   route,
 }: {
   authState: AuthState;
+  onOpenAccount: () => void;
   palette: Palette;
   route: ShellRoute;
 }) {
+  const accountChipCopy = getShellAccountChipCopy(authState);
   const routeCue =
     route.key === 'learning'
       ? '继续当前卡'
@@ -2682,19 +2704,38 @@ function PhoneTopBar({
           {routeCue}
         </Text>
       </View>
-      <View
+      <Pressable
+        accessibilityLabel={`${accountChipCopy.label}，${accountChipCopy.value}`}
+        accessibilityRole="button"
+        onPress={() => {
+          startTransition(() => onOpenAccount());
+        }}
         style={[
-          styles.phoneTopPill,
+          styles.phoneAccountChip,
           {
             backgroundColor: palette.panelStrong,
             borderColor: palette.border,
           },
         ]}
+        testID="shell-account-chip"
       >
-        <Text style={[styles.phoneTopPillText, { color: palette.textMuted }]}>
-          {getShellAuthStatusText(authState)}
-        </Text>
-      </View>
+        <View
+          style={[
+            styles.phoneAccountChipDot,
+            { backgroundColor: palette.textMuted },
+          ]}
+        />
+        <View style={styles.phoneAccountChipCopy}>
+          <Text
+            style={[styles.phoneAccountChipLabel, { color: palette.textMuted }]}
+          >
+            {accountChipCopy.label}
+          </Text>
+          <Text style={[styles.phoneAccountChipValue, { color: palette.text }]}>
+            {accountChipCopy.value}
+          </Text>
+        </View>
+      </Pressable>
     </View>
   );
 }
@@ -2783,6 +2824,7 @@ function TabletShell({
       <View style={styles.tabletContent}>
         <ShellHeader
           authState={authState}
+          onOpenAccount={() => onSelectRoute('mine')}
           palette={palette}
           route={route}
           deviceClass="tablet"
@@ -2795,16 +2837,18 @@ function TabletShell({
 
 function ShellHeader({
   authState,
+  onOpenAccount,
   palette,
   route,
   deviceClass,
 }: {
   authState: AuthState;
+  onOpenAccount: () => void;
   palette: Palette;
   route: ShellRoute;
   deviceClass: DeviceClass;
 }) {
-  const authText = getShellAuthStatusText(authState);
+  const accountChipCopy = getShellAccountChipCopy(authState);
 
   return (
     <View
@@ -2838,25 +2882,37 @@ function ShellHeader({
         </Text>
       </View>
       <View style={styles.headerMeta}>
-        <View
+        <Pressable
+          accessibilityLabel={`${accountChipCopy.label}，${accountChipCopy.value}`}
+          accessibilityRole="button"
+          onPress={() => {
+            startTransition(() => onOpenAccount());
+          }}
           style={[
-            styles.headerPill,
+            styles.headerAccountChip,
             {
-              backgroundColor: palette.accentSoft,
+              backgroundColor: palette.panelStrong,
               borderColor: palette.border,
             },
           ]}
+          testID="shell-account-chip-tablet"
         >
           <RouteIcon
-            active
-            color={palette.accentStrong}
-            routeKey={route.key}
+            color={palette.textMuted}
+            routeKey="mine"
             variant="header"
           />
-        </View>
-        <Text style={[styles.headerAuthText, { color: palette.textMuted }]}>
-          {authText}
-        </Text>
+          <View style={styles.headerAccountCopy}>
+            <Text
+              style={[styles.headerAccountLabel, { color: palette.textMuted }]}
+            >
+              {accountChipCopy.label}
+            </Text>
+            <Text style={[styles.headerAccountValue, { color: palette.text }]}>
+              {accountChipCopy.value}
+            </Text>
+          </View>
+        </Pressable>
       </View>
     </View>
   );
@@ -5029,15 +5085,33 @@ const styles = StyleSheet.create({
   phoneTopMetaLearning: {
     fontSize: 11,
   },
-  phoneTopPill: {
+  phoneAccountChip: {
+    alignItems: 'center',
     borderRadius: 999,
     borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    minWidth: 72,
     paddingHorizontal: 9,
     paddingVertical: 5,
   },
-  phoneTopPillText: {
-    fontSize: 12,
+  phoneAccountChipDot: {
+    borderRadius: 999,
+    height: 6,
+    width: 6,
+  },
+  phoneAccountChipCopy: {
+    gap: 1,
+  },
+  phoneAccountChipLabel: {
+    fontSize: 9,
     fontWeight: '700',
+    lineHeight: 11,
+  },
+  phoneAccountChipValue: {
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 13,
   },
   routeIconFrame: {
     alignItems: 'center',
@@ -5274,17 +5348,29 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 6,
   },
-  headerPill: {
-    width: 48,
-    height: 42,
-    borderWidth: 1,
-    borderRadius: 21,
+  headerAccountChip: {
     alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: 22,
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 44,
+    minWidth: 106,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
   },
-  headerAuthText: {
+  headerAccountCopy: {
+    gap: 1,
+  },
+  headerAccountLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 12,
+  },
+  headerAccountValue: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '800',
+    lineHeight: 15,
   },
   stateScreen: {
     flex: 1,
