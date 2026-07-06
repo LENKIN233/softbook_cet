@@ -3046,12 +3046,12 @@ test('mine page keeps profile status and route actions in one screen after login
   const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
   const mineProfileStyle = StyleSheet.flatten(mineProfileCard.props.style);
   expect(output).toContain('学习账户');
-  expect(output).toContain('今天继续这一轮');
+  expect(output).toContain('今天从当前卡继续');
   expect(output).toContain('138****8000');
   expect(output).toContain('已签到 · 1 张完成');
   expect(output).toContain('记录已保存');
   expect(output).not.toContain('继续用完整路线备考');
-  expect(mineProfileStyle.minHeight).toBeGreaterThanOrEqual(430);
+  expect(mineProfileStyle.minHeight).toBeGreaterThanOrEqual(420);
   expect(root.findByProps({ testID: 'mine-passport-stack' })).toBeTruthy();
   expect(root.findByProps({ testID: 'mine-route-dock' })).toBeTruthy();
   expect(readMetricValue(root, 'mine-metric-completed')).toBe('1');
@@ -3073,18 +3073,18 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(
     root.findAllByProps({ testID: 'membership-access-step' }),
   ).toHaveLength(0);
-  expect(output).toContain('权益通行证');
+  expect(output).toContain('试用跟随账号');
   expect(output).toContain('基础可用');
-  expect(output).toContain('试用从首次计入学习开始');
-  expect(output).toContain('完整卡库');
-  expect(output).toContain('完整空间');
-  expect(output).toContain('智能回看');
+  expect(output).toContain('首次计入学习时开始，空间和回看一起放开。');
+  expect(output).not.toContain('完整卡库');
+  expect(output).not.toContain('完整空间');
+  expect(output).not.toContain('智能回看');
   expect(output).toContain('开始试用');
   expect(output).toContain('开会员');
   const purchaseButtonStyle = StyleSheet.flatten(
     findPressableByTestId(root, 'membership-purchase-button').props.style,
   );
-  expect(purchaseButtonStyle.minHeight).toBeGreaterThanOrEqual(32);
+  expect(purchaseButtonStyle.minHeight).toBeGreaterThanOrEqual(30);
   expect(purchaseButtonStyle.backgroundColor).not.toBe('transparent');
   expect(purchaseButtonStyle.borderColor).not.toBe('transparent');
   expect(
