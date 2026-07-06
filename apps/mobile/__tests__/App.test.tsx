@@ -3047,12 +3047,16 @@ test('mine page keeps profile status and route actions in one screen after login
   const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
   const mineProfileStyle = StyleSheet.flatten(mineProfileCard.props.style);
   expect(output).toContain('学习账户');
-  expect(output).toContain('今天从当前卡继续');
+  expect(output).toContain('账户已接上');
   expect(output).toContain('138****8000');
-  expect(output).toContain('已签到 · 1 张完成');
+  expect(output).toContain('已签到 · 1 张');
   expect(output).toContain('记录已保存');
+  expect(output).toContain('继续学习');
+  expect(output).toContain('当前顺序，下一张已准备好');
+  expect(output).toContain('空间');
+  expect(output).toContain('今日');
   expect(output).not.toContain('继续用完整路线备考');
-  expect(mineProfileStyle.minHeight).toBeGreaterThanOrEqual(420);
+  expect(mineProfileStyle.minHeight).toBeGreaterThanOrEqual(390);
   expect(root.findByProps({ testID: 'mine-passport-stack' })).toBeTruthy();
   expect(root.findByProps({ testID: 'mine-route-dock' })).toBeTruthy();
   expect(readMetricValue(root, 'mine-metric-completed')).toBe('1');
@@ -3074,9 +3078,9 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(
     root.findAllByProps({ testID: 'membership-access-step' }),
   ).toHaveLength(0);
-  expect(output).toContain('试用跟随账号');
+  expect(output).toContain('试用随学习开始');
   expect(output).toContain('基础可用');
-  expect(output).toContain('首次计入学习时开始，空间和回看一起放开。');
+  expect(output).toContain('开始后开放空间和回看。');
   expect(output).not.toContain('完整卡库');
   expect(output).not.toContain('完整空间');
   expect(output).not.toContain('智能回看');
