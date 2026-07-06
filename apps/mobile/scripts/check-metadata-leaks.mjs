@@ -59,8 +59,9 @@ const visibleCopyPropNames = [
   'value',
 ];
 
-const visiblePropPattern =
-  new RegExp(`\\b(?:${visibleCopyPropNames.join('|')})\\s*(?::|=(?!=|>))`);
+const visiblePropPattern = new RegExp(
+  `\\b(?:${visibleCopyPropNames.join('|')})\\s*(?::|=(?!=|>))`,
+);
 
 const visiblePropOpenPattern = new RegExp(
   `\\b(?:${visibleCopyPropNames.join('|')})\\s*(?::|=(?!=|>))\\s*(?:\\{|\\(|$)`,
@@ -70,10 +71,9 @@ const visiblePropTemplateOpenPattern = new RegExp(
   `\\b(?:${visibleCopyPropNames.join('|')})\\s*(?::|=(?!=|>))\\s*\\x60`,
 );
 
-const rawMetadataExpressionPattern =
-  new RegExp(
-    `${rawMetadataReferencePattern.source}|\\bspace_metadata${propertyAccessPattern}(?:${rawSpaceMetadataFieldNames})\\b|track\\.toUpperCase\\(`,
-  );
+const rawMetadataExpressionPattern = new RegExp(
+  `${rawMetadataReferencePattern.source}|\\bspace_metadata${propertyAccessPattern}(?:${rawSpaceMetadataFieldNames})\\b|track\\.toUpperCase\\(`,
+);
 
 const renderedMetadataPropNames = [
   'testID',
@@ -83,11 +83,19 @@ const renderedMetadataPropNames = [
 ];
 
 const renderedMetadataPropPattern = new RegExp(
-  `(?:${renderedMetadataPropNames.join('|')})\\s*=\\s*\\{(?:\`[^\`]*\\$\\{[^\`]*(?:${rawMetadataExpressionPattern.source})[^\`]*\\}[^\`]*\`|[^}\`\\n]*(?:${rawMetadataExpressionPattern.source})[^}\`\\n]*)\\}`,
+  `(?:${renderedMetadataPropNames.join(
+    '|',
+  )})\\s*=\\s*\\{(?:\`[^\`]*\\$\\{[^\`]*(?:${
+    rawMetadataExpressionPattern.source
+  })[^\`]*\\}[^\`]*\`|[^}\`\\n]*(?:${
+    rawMetadataExpressionPattern.source
+  })[^}\`\\n]*)\\}`,
 );
 
 const renderedMetadataStringPropPattern = new RegExp(
-  `(?:${renderedMetadataPropNames.join('|')})\\s*=\\s*["'][^"'\\n]*(?:${rawMetadataExpressionPattern.source})[^"'\\n]*["']`,
+  `(?:${renderedMetadataPropNames.join('|')})\\s*=\\s*["'][^"'\\n]*(?:${
+    rawMetadataExpressionPattern.source
+  })[^"'\\n]*["']`,
 );
 
 const renderedMetadataPropOpenPattern = new RegExp(
@@ -101,7 +109,7 @@ const visibleCardContentLeakPattern =
   /\bCET[46]\b|(?:听力|阅读|写作|翻译|词汇|仔细阅读|快速阅读|学习馆|知识组|训练轨道|原盒位|卡组)|\b0\d{3,6}\b/;
 
 const visibleDesignJargonLeakPattern =
-  /\b(?:SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC)\b|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|本组第|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
+  /\b(?:SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC)\b|JSON Parse error|Unexpected character|SyntaxError|parse failed|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|本组第|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
 const visibleProductMetadataLeakPattern =
   /(?:已登录\s+(?:\$\{[^}]*?(?:phone|Phone|手机号|maskPhoneNumber)[^}]*\}|\{?\s*maskPhoneNumber|1\d{2}|[0-9*]{4,})|第\s+\$?\{?.*?张\s*\/\s*共|馆\s+\$?\{?|\b馆\s*\d|组\s+\$?\{?|\b组\s*\d|盒\s+\$?\{?|\b盒\s*\d|当前地址|当前学习卡位于|空间地址架|当前盒位|当前空间路径|收藏标签\s+\$?\{?|休眠区\s+\$?\{?|0\s*张可展示|正在整理卡片\s+\$?\{?index)/;
@@ -109,13 +117,12 @@ const visibleProductMetadataLeakPattern =
 const internalGuardLinePattern =
   /INTERNAL_ERROR_COPY_PATTERN|visibleDesignJargonLeakPattern|visibleProductMetadataLeakPattern/;
 
-const visibleStringLinePattern =
-  new RegExp(
-    `(?:<Text\\b|>[^<]*(?:<\\/Text>|$)|\\b(?:${[
-      ...visibleCopyPropNames,
-      'eyebrow',
-    ].join('|')})\\s*[:=]|^['"\\x60].*[,)'"\\x60]?$)`,
-  );
+const visibleStringLinePattern = new RegExp(
+  `(?:<Text\\b|>[^<]*(?:<\\/Text>|$)|\\b(?:${[
+    ...visibleCopyPropNames,
+    'eyebrow',
+  ].join('|')})\\s*[:=]|^['"\\x60].*[,)'"\\x60]?$)`,
+);
 
 const nonVisibleDesignJargonLinePattern =
   /^(?:import\b|export\b|type\b|interface\b|const\b|let\b|var\b|function\b|case\b|switch\b|if\b|return\b|[A-Za-z0-9_]+[,:])|\b(?:testID|nativeID|status|gate)\s*=/;
@@ -196,7 +203,9 @@ function stripAllowedMetadataDisplayLookups(text) {
 }
 
 function hasRawMetadataExpression(text) {
-  return rawMetadataExpressionPattern.test(stripAllowedMetadataDisplayLookups(text));
+  return rawMetadataExpressionPattern.test(
+    stripAllowedMetadataDisplayLookups(text),
+  );
 }
 
 function checkTextNodeMetadata(filePath) {
@@ -216,11 +225,7 @@ function checkTextNodeMetadata(filePath) {
     const isStyleOnlyName =
       /\bstyles\.(?:libraryName|groupName|boxName)\b/.test(trimmed);
 
-    if (
-      inTextNode &&
-      hasRawMetadataExpression(trimmed) &&
-      !isStyleOnlyName
-    ) {
+    if (inTextNode && hasRawMetadataExpression(trimmed) && !isStyleOnlyName) {
       findings.push({
         filePath,
         line: index + 1,
@@ -273,7 +278,8 @@ function checkDirectDisplayMetadata(filePath) {
         filePath,
         line: index + 1,
         text,
-        reason: 'raw metadata passed through multiline visible or accessibility copy prop',
+        reason:
+          'raw metadata passed through multiline visible or accessibility copy prop',
       });
       pendingVisibleCopyProp = null;
     }
@@ -301,7 +307,8 @@ function checkDirectDisplayMetadata(filePath) {
         filePath,
         line: index + 1,
         text,
-        reason: 'raw metadata passed through visible or accessibility copy prop',
+        reason:
+          'raw metadata passed through visible or accessibility copy prop',
       });
     }
 
@@ -377,7 +384,8 @@ function checkDirectDisplayMetadata(filePath) {
         filePath,
         line: index + 1,
         text,
-        reason: 'product-facing metadata or fixture state leaked in visible copy',
+        reason:
+          'product-facing metadata or fixture state leaked in visible copy',
       });
     }
 
@@ -442,8 +450,8 @@ function collectFindings() {
     ...checkTextNodeMetadata(file),
     ...checkDirectDisplayMetadata(file),
   ]);
-  const visibleCopySourceFindings = collectVisibleCopySourceFiles().flatMap(file =>
-    checkVisibleCopySourceMetadata(file),
+  const visibleCopySourceFindings = collectVisibleCopySourceFiles().flatMap(
+    file => checkVisibleCopySourceMetadata(file),
   );
   return [...allFindings, ...visibleCopySourceFindings];
 }

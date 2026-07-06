@@ -1651,7 +1651,7 @@ function AppShell({
         .catch((error: unknown) => {
           setAuthState(current => ({
             ...current,
-            error: getUserFacingErrorMessage(error, '登录暂时失败。'),
+            error: getUserFacingErrorMessage(error, '验证码暂时没通过。'),
             pendingAction: null,
           }));
         });
@@ -4972,7 +4972,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 const INTERNAL_ERROR_COPY_PATTERN =
-  /\b(Remote|payload|source_id|source_label|card_records|remoteConfig|authToken|endpoint|repository|card_id|knowledge_ref|box_ref|space_metadata|MutationQueue|runtime|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC)\b|data\.|卡源|离线队列|离线重试|本机缓存|当前设备|会员矩阵|占位|快照|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
+  /\b(Remote|payload|source_id|source_label|card_records|remoteConfig|authToken|endpoint|repository|card_id|knowledge_ref|box_ref|space_metadata|MutationQueue|runtime|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC)\b|JSON Parse error|Unexpected character|SyntaxError|parse failed|data\.|卡源|离线队列|离线重试|本机缓存|当前设备|会员矩阵|占位|快照|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
 function getUserFacingErrorMessage(error: unknown, fallback: string) {
   const message = getErrorMessage(error, fallback);
