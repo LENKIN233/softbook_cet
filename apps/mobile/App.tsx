@@ -4241,6 +4241,7 @@ function PhoneSmsPanel({
     <View
       style={[
         styles.authErrorDock,
+        hasCodeError ? styles.authErrorDockCode : null,
         {
           backgroundColor: hexToRgba(palette.warning, 0.1),
           borderColor: hexToRgba(palette.warning, 0.24),
@@ -4299,6 +4300,7 @@ function PhoneSmsPanel({
           borderColor: palette.border,
         },
       ]}
+      testID="auth-sms-panel"
     >
       {!isDockedPanel ? (
         <View style={styles.authPanelHeader}>
@@ -4388,6 +4390,7 @@ function PhoneSmsPanel({
             style={[
               styles.authCodeEntryRow,
               accountDock ? styles.authCodeEntryRowAccount : null,
+              hasCodeError ? styles.authCodeEntryRowError : null,
             ]}
             testID="auth-code-entry-row"
           >
@@ -5302,16 +5305,18 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   authEntryCardRouteObject: {
+    flex: 1,
     flexShrink: 1,
     gap: 12,
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     minHeight: 0,
     paddingHorizontal: 16,
     paddingVertical: 18,
   },
   authEntryCardMine: {
+    flex: 1,
     gap: 10,
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     minHeight: 0,
     paddingHorizontal: 15,
     paddingVertical: 16,
@@ -5508,8 +5513,11 @@ const styles = StyleSheet.create({
   },
   authPanelDock: {
     borderTopWidth: 0,
+    flex: 1,
     gap: 10,
+    justifyContent: 'flex-end',
     marginTop: 0,
+    minHeight: 0,
     paddingTop: 0,
   },
   authPanelHeader: {
@@ -5680,6 +5688,9 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     flexDirection: 'column',
     gap: 8,
+  },
+  authCodeEntryRowError: {
+    marginBottom: 8,
   },
   authCodeCellsFrame: {
     minHeight: 54,
@@ -5864,6 +5875,9 @@ const styles = StyleSheet.create({
     gap: 9,
     paddingHorizontal: 12,
     paddingVertical: 10,
+  },
+  authErrorDockCode: {
+    marginTop: 12,
   },
   authErrorDot: {
     borderRadius: 999,
