@@ -3116,7 +3116,7 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(learningOutput).toContain('继续当前卡');
 });
 
-test('can browse the seeded knowledge map after login', async () => {
+test('can browse the current Space box after login', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -3146,7 +3146,14 @@ test('can browse the seeded knowledge map after login', async () => {
   ).toBeGreaterThan(0);
   expect(output).toContain('当前学习卡在这里');
   expect(output).toContain('当前卡盒');
+  expect(output).toContain('空间地址');
+  expect(output).toContain('盒内 2 张');
+  expect(root.findAllByProps({ testID: 'space-browse-rail' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'space-library-3' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'space-group-2' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'space-box-1' })).toHaveLength(0);
   expect(output).not.toContain('当前学习卡位于 ');
+  expect(output).not.toContain('切换位置');
   expectNoUserVisibleMetadataLeakage(tree!);
   expect(findPressableByTestId(root, 'space-card-prev').props.disabled).toBe(
     true,
@@ -3170,20 +3177,8 @@ test('can browse the seeded knowledge map after login', async () => {
     root.findByProps({ testID: 'space-card-prev' }).props.onPress();
   });
 
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-library-3' }).props.onPress();
-  });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-group-2' }).props.onPress();
-  });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-box-1' }).props.onPress();
-  });
-
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('The committee postponed the vote');
+  expect(output).toContain('短对话里听到 however');
   expect(output).toContain('盒内查看');
   expect(output).toContain('贴卡标签');
   expect(output).toContain('休眠');
@@ -3560,7 +3555,7 @@ test('shows recovery reminder after local trial ends and clears it after purchas
   ).toBe(0);
 });
 
-test('keeps basic learning recoverable when free cards all enter sleep zone', async () => {
+test('keeps basic learning usable when current box cards enter sleep zone', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -3576,31 +3571,11 @@ test('keeps basic learning recoverable when free cards all enter sleep zone', as
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-library-3' }).props.onPress();
+    root.findByProps({ testID: 'space-card-next' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-group-2' }).props.onPress();
-  });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-box-1' }).props.onPress();
-  });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-sleep-1' }).props.onPress();
-  });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-library-2' }).props.onPress();
-  });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-box-1' }).props.onPress();
-  });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-sleep-1' }).props.onPress();
+    root.findByProps({ testID: 'space-sleep-2' }).props.onPress();
   });
 
   await openRoute(root, 'mine');
@@ -3613,18 +3588,9 @@ test('keeps basic learning recoverable when free cards all enter sleep zone', as
 
   await openRoute(root, 'learning');
 
-  let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前免费态还不能进入完整空间');
-  expect(output).toContain('恢复一张可学习卡');
-  expect(output).toContain('下一张可恢复卡：短对话里听到 however');
-
-  await ReactTestRenderer.act(() => {
-    root
-      .findByProps({ testID: 'learning-recover-sleeping-card-button' })
-      .props.onPress();
-  });
-
-  output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('however');
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('The committee postponed the vote');
+  expect(output).not.toContain('当前免费态还不能进入完整空间');
+  expect(output).not.toContain('恢复一张可学习卡');
   expect(output).not.toContain('当前学习卡都已进入休眠区');
 });

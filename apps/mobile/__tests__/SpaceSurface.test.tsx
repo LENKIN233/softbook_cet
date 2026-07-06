@@ -262,7 +262,7 @@ test('places Space state rail between address context and current box', () => {
   expectSpaceFirstReadOrder(tree!, 'space-sync-rail');
 });
 
-test('uses anonymous ordered selector IDs for Space library and group chips in the card list layer', () => {
+test('uses a compact address clue instead of selector controls in the card list layer', () => {
   const session = createLocalLearningSession('cet4');
   const currentCard = session.catalogCards[0];
   let tree: ReactTestRenderer.ReactTestRenderer;
@@ -286,19 +286,15 @@ test('uses anonymous ordered selector IDs for Space library and group chips in t
   const root = tree!.root;
   const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
 
+  expect(root.findAllByProps({ testID: 'space-browse-rail' })).toHaveLength(0);
   expect(
-    root.findAllByProps({ testID: 'space-library-1' }).length,
+    root.findAllByProps({ testID: 'space-browse-address-clue' }).length,
   ).toBeGreaterThan(0);
-  expect(
-    root.findAllByProps({ testID: 'space-browse-rail' }).length,
-  ).toBeGreaterThan(0);
-  const browseRailStyle = StyleSheet.flatten(
-    root.findByProps({ testID: 'space-browse-rail' }).props.style,
+  const addressClueStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'space-browse-address-clue' }).props.style,
   );
-  expect(browseRailStyle.borderWidth).toBe(1);
-  expect(browseRailStyle.borderTopWidth).toBe(0);
-  expect(browseRailStyle.borderRadius).toBeGreaterThanOrEqual(18);
-  expect(browseRailStyle.paddingHorizontal).toBeGreaterThanOrEqual(8);
+  expect(addressClueStyle.flexDirection).toBe('row');
+  expect(addressClueStyle.gap).toBeGreaterThanOrEqual(6);
   expect(
     root.findAllByProps({ testID: 'space-browse-card-continuity' }).length,
   ).toBeGreaterThan(0);
@@ -315,36 +311,26 @@ test('uses anonymous ordered selector IDs for Space library and group chips in t
   expect(
     root.findAllByProps({ testID: 'space-card-list-back' }).length,
   ).toBeGreaterThan(0);
-  expect(
-    root.findAllByProps({ testID: 'space-library-2' }).length,
-  ).toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'space-library-00' })).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'space-library-05' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'space-library-1' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'space-library-2' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'space-group-1' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'space-box-1' })).toHaveLength(0);
   expect(renderedText).not.toContain(currentCard.space_metadata.library);
   expect(renderedText).not.toContain(currentCard.space_metadata.group);
   expect(renderedText).not.toContain(currentCard.space_metadata.box);
   expect(renderedText).not.toContain(currentCard.space_metadata.box_ref);
   expect(renderedText).toContain('盒内查看');
-  expect(renderedText).toContain('切换位置');
+  expect(renderedText).toContain('空间地址');
   expect(renderedText).toContain('2 张卡');
   expect(renderedText).toContain('盒内 2 张');
   expect(renderedText).toContain('贴卡标签');
   expect(renderedText).not.toContain('可收藏');
   expect(renderedText).not.toContain('有收藏');
   expect(renderedText).not.toContain('卡片列表');
+  expect(renderedText).not.toContain('切换位置');
   expect(renderedText).not.toContain('相邻对象');
-
-  ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'space-library-2' }).props.onPress();
-  });
-
-  expect(
-    root.findAllByProps({ testID: 'space-group-1' }).length,
-  ).toBeGreaterThan(0);
-  expect(
-    root.findAllByProps({ testID: 'space-group-2' }).length,
-  ).toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'space-group-052' })).toHaveLength(0);
 });
 
 test('defaults Space first-read focus to the current learning card box', () => {

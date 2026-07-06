@@ -1165,294 +1165,109 @@ export function SpaceSurface({
                     </Text>
                   </View>
                 </View>
-                <View style={styles.browseObjectPath}>
-                  <View
-                    style={[
-                      styles.browsePathStep,
-                      { backgroundColor: solidPanelStrong },
-                    ]}
-                  >
+                <View
+                  style={[
+                    styles.browseAddressClue,
+                    {
+                      backgroundColor: neutralObjectSurface,
+                      borderColor: neutralObjectBorder,
+                    },
+                  ]}
+                  testID="space-address-shelf"
+                >
+                  <View style={styles.browseAddressClueHeader}>
                     <Text
                       style={[
-                        styles.browsePathLabel,
+                        styles.browseAddressClueTitle,
                         { color: selectedTone.accent },
                       ]}
                     >
-                      书架
+                      空间地址
                     </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.browsePathValue, { color: palette.text }]}
-                    >
-                      {formatSpaceLibraryLabel(selectedLibraryIndex)}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.browsePathStep,
-                      { backgroundColor: solidPanelStrong },
-                    ]}
-                  >
                     <Text
                       style={[
-                        styles.browsePathLabel,
+                        styles.browseAddressClueMeta,
                         { color: palette.textMuted },
                       ]}
                     >
-                      分区
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.browsePathValue, { color: palette.text }]}
-                    >
-                      {formatSpaceGroupLabel(selectedGroupIndex)}
+                      {`盒内 ${selectedBoxCards.length} 张`}
                     </Text>
                   </View>
                   <View
-                    style={[
-                      styles.browsePathStep,
-                      { backgroundColor: solidPanelStrong },
-                    ]}
+                    style={styles.browseObjectPath}
+                    testID="space-browse-address-clue"
                   >
-                    <Text
+                    <View
                       style={[
-                        styles.browsePathLabel,
-                        { color: palette.textMuted },
+                        styles.browsePathStep,
+                        { backgroundColor: solidPanelStrong },
                       ]}
                     >
-                      卡盒
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.browsePathValue, { color: palette.text }]}
-                    >
-                      {formatSpaceBoxLabel(selectedBoxIndex)}
-                    </Text>
-                  </View>
-                </View>
-
-                <View testID="space-address-shelf">
-                  <View
-                    style={[
-                      styles.browseRail,
-                      styles.browseRailDesk,
-                      {
-                        backgroundColor: neutralObjectSurface,
-                        borderColor: neutralObjectBorder,
-                      },
-                    ]}
-                    testID="space-browse-rail"
-                  >
-                    <View style={styles.browseRailTitleRow}>
                       <Text
                         style={[
-                          styles.browseRailTitle,
+                          styles.browsePathLabel,
+                          { color: selectedTone.accent },
+                        ]}
+                      >
+                        书架
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.browsePathValue,
                           { color: palette.text },
                         ]}
                       >
-                        切换位置
+                        {formatSpaceLibraryLabel(selectedLibraryIndex)}
                       </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.browsePathStep,
+                        { backgroundColor: solidPanelStrong },
+                      ]}
+                    >
                       <Text
                         style={[
-                          styles.browseRailHint,
+                          styles.browsePathLabel,
                           { color: palette.textMuted },
                         ]}
                       >
-                        {`盒内 ${selectedBoxCards.length} 张`}
+                        分区
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.browsePathValue,
+                          { color: palette.text },
+                        ]}
+                      >
+                        {formatSpaceGroupLabel(selectedGroupIndex)}
                       </Text>
                     </View>
-                    <View style={styles.browseRailShelfRow}>
-                      <View
+                    <View
+                      style={[
+                        styles.browsePathStep,
+                        { backgroundColor: solidPanelStrong },
+                      ]}
+                    >
+                      <Text
                         style={[
-                          styles.browseRailLevel,
-                          styles.browseRailShelfLevel,
+                          styles.browsePathLabel,
+                          { color: palette.textMuted },
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.browseRailLevelLabel,
-                            { color: palette.textMuted },
-                          ]}
-                        >
-                          书架
-                        </Text>
-                        <View style={styles.browseRailRow}>
-                          {seed.libraries.map((library, index) => {
-                            const isActive =
-                              library.libraryName ===
-                              selectedLibrary.libraryName;
-
-                            return (
-                              <Pressable
-                                key={library.libraryName}
-                                onPress={() => {
-                                  setSelectionMode('manual');
-                                  setSelectedLibraryName(library.libraryName);
-                                  setSelectedGroupName(
-                                    library.groups[0]?.groupName ?? '',
-                                  );
-                                  setSelectedBoxRef(
-                                    library.groups[0]?.boxes[0]?.boxRef ?? '',
-                                  );
-                                  setSelectedCardIndex(0);
-                                }}
-                                style={[
-                                  styles.browseRailChip,
-                                  styles.browseRailShelfChip,
-                                  isActive ? styles.browseRailChipActive : null,
-                                  {
-                                    backgroundColor: isActive
-                                      ? hexToRgba(selectedTone.accent, 0.09)
-                                      : solidPanelStrong,
-                                    borderColor: isActive
-                                      ? hexToRgba(selectedTone.accent, 0.28)
-                                      : hexToRgba(palette.textMuted, 0.08),
-                                  },
-                                ]}
-                                testID={`space-library-${index + 1}`}
-                              >
-                                <Text
-                                  numberOfLines={1}
-                                  style={[
-                                    styles.browseRailValue,
-                                    {
-                                      color: isActive
-                                        ? palette.text
-                                        : palette.textMuted,
-                                    },
-                                  ]}
-                                >
-                                  {formatSpaceLibraryLabel(index + 1)}
-                                </Text>
-                              </Pressable>
-                            );
-                          })}
-                        </View>
-                      </View>
-                    </View>
-                    <View style={styles.browseRailPairRow}>
-                      <View
+                        卡盒
+                      </Text>
+                      <Text
+                        numberOfLines={1}
                         style={[
-                          styles.browseRailLevel,
-                          styles.browseRailLevelHalf,
+                          styles.browsePathValue,
+                          { color: palette.text },
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.browseRailLevelLabel,
-                            { color: palette.textMuted },
-                          ]}
-                        >
-                          分区
-                        </Text>
-                        <View style={styles.browseRailRow}>
-                          {selectedLibrary.groups.map((group, index) => {
-                            const isActive =
-                              group.groupName === selectedGroup.groupName;
-
-                            return (
-                              <Pressable
-                                key={`${selectedLibrary.libraryName}-${group.groupName}`}
-                                onPress={() => {
-                                  setSelectionMode('manual');
-                                  setSelectedGroupName(group.groupName);
-                                  setSelectedBoxRef(
-                                    group.boxes[0]?.boxRef ?? '',
-                                  );
-                                  setSelectedCardIndex(0);
-                                }}
-                                style={[
-                                  styles.browseRailChip,
-                                  styles.browseRailChipSmall,
-                                  isActive ? styles.browseRailChipActive : null,
-                                  {
-                                    backgroundColor: isActive
-                                      ? hexToRgba(selectedTone.accent, 0.09)
-                                      : solidPanelStrong,
-                                    borderColor: isActive
-                                      ? hexToRgba(selectedTone.accent, 0.28)
-                                      : hexToRgba(palette.textMuted, 0.08),
-                                  },
-                                ]}
-                                testID={`space-group-${index + 1}`}
-                              >
-                                <Text
-                                  numberOfLines={1}
-                                  style={[
-                                    styles.browseRailValue,
-                                    {
-                                      color: isActive
-                                        ? palette.text
-                                        : palette.textMuted,
-                                    },
-                                  ]}
-                                >
-                                  {formatSpaceGroupLabel(index + 1)}
-                                </Text>
-                              </Pressable>
-                            );
-                          })}
-                        </View>
-                      </View>
-                      <View
-                        style={[
-                          styles.browseRailLevel,
-                          styles.browseRailLevelHalf,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.browseRailLevelLabel,
-                            { color: palette.textMuted },
-                          ]}
-                        >
-                          卡盒
-                        </Text>
-                        <View style={styles.browseRailRow}>
-                          {selectedGroup.boxes.map((box, boxIndex) => {
-                            const isActive = box.boxRef === selectedBox.boxRef;
-
-                            return (
-                              <Pressable
-                                key={box.boxRef}
-                                onPress={() => {
-                                  setSelectionMode('manual');
-                                  setSelectedBoxRef(box.boxRef);
-                                  setSelectedCardIndex(0);
-                                }}
-                                style={[
-                                  styles.browseRailChip,
-                                  styles.browseRailChipSmall,
-                                  isActive ? styles.browseRailChipActive : null,
-                                  {
-                                    backgroundColor: isActive
-                                      ? hexToRgba(selectedTone.accent, 0.09)
-                                      : solidPanelStrong,
-                                    borderColor: isActive
-                                      ? hexToRgba(selectedTone.accent, 0.28)
-                                      : hexToRgba(palette.textMuted, 0.08),
-                                  },
-                                ]}
-                                testID={`space-box-${boxIndex + 1}`}
-                              >
-                                <Text
-                                  numberOfLines={1}
-                                  style={[
-                                    styles.browseRailValue,
-                                    {
-                                      color: isActive
-                                        ? palette.text
-                                        : palette.textMuted,
-                                    },
-                                  ]}
-                                >
-                                  {formatSpaceBoxLabel(boxIndex + 1)}
-                                </Text>
-                              </Pressable>
-                            );
-                          })}
-                        </View>
-                      </View>
+                        {formatSpaceBoxLabel(selectedBoxIndex)}
+                      </Text>
                     </View>
                   </View>
                 </View>
@@ -2487,16 +2302,39 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   browseObjectPath: {
-    display: 'none',
     flexDirection: 'row',
-    gap: 5,
+    gap: 6,
+  },
+  browseAddressClue: {
+    borderRadius: 17,
+    borderWidth: 0,
+    gap: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  browseAddressClueHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+  },
+  browseAddressClueTitle: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.7,
+    lineHeight: 13,
+  },
+  browseAddressClueMeta: {
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 13,
   },
   browsePathStep: {
-    borderRadius: 16,
+    borderRadius: 13,
     flex: 1,
     gap: 2,
-    paddingHorizontal: 7,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   browsePathLabel: {
     fontSize: 9,
