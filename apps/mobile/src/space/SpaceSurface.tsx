@@ -515,7 +515,7 @@ export function SpaceSurface({
                 </View>
               </View>
               <View
-                style={styles.cardStrip}
+                style={[styles.cardStrip, styles.browseCardStrip]}
                 testID="space-contained-card-strip"
               >
                 {isSpaceLoading ? (
@@ -1181,7 +1181,7 @@ export function SpaceSurface({
                     <Text
                       style={[styles.eyebrow, { color: palette.textMuted }]}
                     >
-                      当前盒桌
+                      盒内浏览
                     </Text>
                     <Text
                       style={[styles.browseTrayTitle, { color: palette.text }]}
@@ -1303,7 +1303,7 @@ export function SpaceSurface({
               </View>
 
               <View
-                style={styles.cardStrip}
+                style={[styles.cardStrip, styles.browseCardStrip]}
                 testID="space-contained-card-strip"
               >
                 {selectedBoxCards
@@ -1374,11 +1374,17 @@ export function SpaceSurface({
                           ) : null}
                         </View>
                         <View
-                          style={styles.browseCardFace}
+                          style={[
+                            styles.browseCardFace,
+                            {
+                              backgroundColor: neutralObjectSurface,
+                              borderColor: neutralObjectBorder,
+                            },
+                          ]}
                           testID="space-browse-card-face"
                         >
                           <Text
-                            numberOfLines={4}
+                            numberOfLines={3}
                             style={[
                               styles.cardPrompt,
                               styles.browseCardPrompt,
@@ -1387,15 +1393,49 @@ export function SpaceSurface({
                           >
                             {card.prompt}
                           </Text>
-                          <Text
-                            style={[
-                              styles.cardMeta,
-                              styles.browseCardMeta,
-                              { color: palette.textMuted },
-                            ]}
+                          <View
+                            style={styles.browseCardLocatorShelf}
+                            testID="space-browse-card-locator"
                           >
-                            {card.interactionLabel}
-                          </Text>
+                            <View style={styles.browseCardLocatorItem}>
+                              <Text
+                                style={[
+                                  styles.browseCardLocatorLabel,
+                                  { color: palette.textMuted },
+                                ]}
+                              >
+                                位置
+                              </Text>
+                              <Text
+                                numberOfLines={1}
+                                style={[
+                                  styles.browseCardLocatorValue,
+                                  { color: palette.text },
+                                ]}
+                              >
+                                {isCurrent ? '当前卡位' : '同盒卡位'}
+                              </Text>
+                            </View>
+                            <View style={styles.browseCardLocatorItem}>
+                              <Text
+                                style={[
+                                  styles.browseCardLocatorLabel,
+                                  { color: palette.textMuted },
+                                ]}
+                              >
+                                动作
+                              </Text>
+                              <Text
+                                numberOfLines={1}
+                                style={[
+                                  styles.browseCardLocatorValue,
+                                  { color: palette.text },
+                                ]}
+                              >
+                                {card.interactionLabel}
+                              </Text>
+                            </View>
+                          </View>
                         </View>
                         <View
                           style={[
@@ -1642,7 +1682,7 @@ export function SpaceSurface({
                                 { color: palette.text },
                               ]}
                             >
-                              回盒桌
+                              回卡盒
                             </Text>
                             <Text
                               numberOfLines={1}
@@ -2831,6 +2871,11 @@ const styles = StyleSheet.create({
     gap: 0,
     minHeight: 0,
   },
+  browseCardStrip: {
+    justifyContent: 'center',
+    paddingBottom: 2,
+    paddingTop: 1,
+  },
   compactSelectorDeck: {
     gap: 8,
   },
@@ -2859,7 +2904,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     elevation: 1,
-    flexGrow: 1,
+    flexGrow: 0,
     gap: 8,
     minHeight: 0,
     paddingBottom: 10,
@@ -2886,17 +2931,39 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   browseCardFace: {
-    flexGrow: 1,
+    borderRadius: 19,
+    borderWidth: 1,
     gap: 8,
-    justifyContent: 'center',
-    minHeight: 0,
+    justifyContent: 'space-between',
+    minHeight: 166,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   browseCardPrompt: {
     fontSize: 18,
     lineHeight: 25,
   },
-  browseCardMeta: {
+  browseCardLocatorShelf: {
+    borderRadius: 16,
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 2,
+  },
+  browseCardLocatorItem: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  browseCardLocatorLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+    lineHeight: 13,
+  },
+  browseCardLocatorValue: {
+    fontSize: 13,
     fontWeight: '800',
+    lineHeight: 17,
   },
   cardStateDeck: {
     borderTopWidth: 0,
@@ -2980,7 +3047,6 @@ const styles = StyleSheet.create({
   },
   browseCompactPager: {
     gap: 7,
-    marginTop: 'auto',
     paddingHorizontal: 0,
     paddingVertical: 1,
   },
