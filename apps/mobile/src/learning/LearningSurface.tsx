@@ -84,10 +84,22 @@ function formatLearningActionCue(
   }
 
   if (card.interaction_id === 'flip') {
-    return '先翻面，看完解析后选有把握或再回看。';
+    return '翻开卡背';
   }
 
-  return `先完成${INTERACTION_LABELS[card.interaction_id]}，再提交看解析。`;
+  const fallbackLabel = INTERACTION_LABELS[card.interaction_id];
+  switch (card.interaction_id) {
+    case 'multiple_choice':
+      return '选一个答案';
+    case 'lock':
+      return '补齐锁位';
+    case 'elimination':
+      return '点掉干扰项';
+    case 'swipe':
+      return '选择判断';
+    default:
+      return fallbackLabel;
+  }
 }
 
 function formatLearningSubmitDockCopy(
@@ -102,12 +114,12 @@ function formatLearningSubmitDockCopy(
 
       return selectedOption
         ? {
-            title: `已选 ${selectedOption.label}`,
-            detail: '提交后立即看解析',
+            title: `${selectedOption.label} 已选`,
+            detail: '确认后看解析',
           }
         : {
-            title: '先选一个答案',
-            detail: '完成选择后再看解析',
+            title: '先选答案',
+            detail: '选定后再提交',
           };
     }
     case 'lock': {
@@ -118,12 +130,12 @@ function formatLearningSubmitDockCopy(
 
       return selectedCount === totalCount
         ? {
-            title: '锁位已完成',
-            detail: '提交后检查句子结构',
+            title: '锁位已齐',
+            detail: '确认后看解析',
           }
         : {
-            title: `已完成 ${selectedCount}/${totalCount}`,
-            detail: '补齐所有锁位后提交',
+            title: `${selectedCount}/${totalCount} 已锁`,
+            detail: '补齐后再提交',
           };
     }
     case 'elimination': {
@@ -131,12 +143,12 @@ function formatLearningSubmitDockCopy(
 
       return eliminatedCount > 0
         ? {
-            title: `已排除 ${eliminatedCount} 项`,
-            detail: '提交后确认排除依据',
+            title: `已排除 ${eliminatedCount}`,
+            detail: '确认后看解析',
           }
         : {
-            title: '先划掉可排除项',
-            detail: '至少排除一项再提交',
+            title: '先排除干扰项',
+            detail: '至少点掉一项',
           };
     }
     case 'swipe': {
@@ -146,12 +158,12 @@ function formatLearningSubmitDockCopy(
 
       return selectedState
         ? {
-            title: `已选 ${selectedState.label}`,
-            detail: '提交后确认判断',
+            title: `${selectedState.label} 已选`,
+            detail: '确认后看解析',
           }
         : {
-            title: '先选择判断方向',
-            detail: '选定后提交确认',
+            title: '先做判断',
+            detail: '选定后再提交',
           };
     }
     case 'flip':
@@ -493,13 +505,13 @@ export function LearningSurface({
               numberOfLines={1}
               style={[styles.cardLocationTitle, { color: palette.textMuted }]}
             >
-              位置 · 本轮盒
+              本轮盒
             </Text>
             <Text
               numberOfLines={1}
               style={[styles.cardLocationMeta, { color: palette.textMuted }]}
             >
-              {isReviewPhase ? '回看卡已在眼前' : '位置保持'}
+              {isReviewPhase ? '回看卡在这' : '位置已接上'}
             </Text>
           </View>
         </View>
@@ -514,7 +526,7 @@ export function LearningSurface({
         >
           <View style={styles.studyTitleWrap}>
             <Text style={[styles.cardEyebrow, { color: palette.textMuted }]}>
-              先判断，再确认解析
+              先读题干
             </Text>
             <Text
               numberOfLines={isDenseInteraction ? 2 : 4}
@@ -698,7 +710,7 @@ export function LearningSurface({
                   <Text
                     style={[styles.addressText, { color: palette.textMuted }]}
                   >
-                    同盒位置保持
+                    同盒继续
                   </Text>
                 </View>
               </>
@@ -987,7 +999,7 @@ function InteractionBody({
                           { color: palette.textMuted },
                         ]}
                       >
-                        已选择
+                        已选
                       </Text>
                     ) : null}
                   </View>
