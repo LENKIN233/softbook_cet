@@ -377,6 +377,19 @@ test('result detail reads as a resolved card without raw metadata', () => {
       testID: 'learning-detail-correct-answer',
     }),
   ).toBeTruthy();
+  const detailResolvedCardStyle = StyleSheet.flatten(
+    tree!.root.findByProps({ testID: 'learning-detail-resolved-card' }).props
+      .style,
+  );
+  expect(detailResolvedCardStyle.flex).toBe(1);
+  expect(detailResolvedCardStyle.justifyContent).toBe('space-between');
+  expect(detailResolvedCardStyle.minHeight).toBe(0);
+  const detailAnswerSlipStyle = StyleSheet.flatten(
+    tree!.root.findByProps({ testID: 'learning-detail-answer-slip' }).props
+      .style,
+  );
+  expect(detailAnswerSlipStyle.flexGrow).toBe(1);
+  expect(detailAnswerSlipStyle.justifyContent).toBe('space-between');
   expect(output).toContain('当前卡');
   expect(output).toContain('2/3');
   expect(output).toContain('答案留在本卡');
