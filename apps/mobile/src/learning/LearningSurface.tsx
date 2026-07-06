@@ -473,10 +473,10 @@ export function LearningSurface({
         <View
           style={[
             styles.cardLocationStrip,
-            styles.detailCardLocationStrip,
+            styles.learningCardLocationHint,
             {
-              backgroundColor: palette.panelStrong,
-              borderColor: palette.border,
+              backgroundColor: 'transparent',
+              borderColor: 'transparent',
             },
           ]}
           testID="learning-card-location-strip"
@@ -493,13 +493,13 @@ export function LearningSurface({
               numberOfLines={1}
               style={[styles.cardLocationTitle, { color: palette.textMuted }]}
             >
-              当前馆 · 本轮盒
+              位置 · 本轮盒
             </Text>
             <Text
               numberOfLines={1}
               style={[styles.cardLocationMeta, { color: palette.textMuted }]}
             >
-              {isReviewPhase ? '需要再看的卡已放到眼前' : '位置已保持'}
+              {isReviewPhase ? '回看卡已在眼前' : '位置保持'}
             </Text>
           </View>
         </View>
@@ -698,7 +698,7 @@ export function LearningSurface({
                   <Text
                     style={[styles.addressText, { color: palette.textMuted }]}
                   >
-                    同盒位置已保持
+                    同盒位置保持
                   </Text>
                 </View>
               </>
@@ -1538,8 +1538,8 @@ export function LearningResultDetailSurface({
           style={[
             styles.cardLocationStrip,
             {
-              backgroundColor: palette.panelStrong,
-              borderColor: palette.border,
+              backgroundColor: 'transparent',
+              borderColor: hexToRgba(palette.textMuted, 0.14),
             },
           ]}
         >
@@ -1555,13 +1555,13 @@ export function LearningResultDetailSurface({
               numberOfLines={1}
               style={[styles.cardLocationTitle, { color: palette.textMuted }]}
             >
-              当前馆 · 本轮盒
+              位置 · 本轮盒
             </Text>
             <Text
               numberOfLines={1}
               style={[styles.cardLocationMeta, { color: palette.textMuted }]}
             >
-              结果在当前卡
+              结果留在本卡
             </Text>
           </View>
           <Pressable
@@ -2277,6 +2277,12 @@ const styles = StyleSheet.create({
   detailCardLocationStrip: {
     paddingHorizontal: 11,
     paddingVertical: 6,
+  },
+  learningCardLocationHint: {
+    borderWidth: 0,
+    gap: 7,
+    paddingHorizontal: 2,
+    paddingVertical: 2,
   },
   progressTrack: {
     height: 8,
