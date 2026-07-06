@@ -3325,12 +3325,12 @@ function MineSurface({
   const profileName = isAuthenticated
     ? maskPhoneNumber(authState.phoneNumber)
     : '待验证';
-  const profileContinuityValue = isAuthenticated ? '当前卡保留' : profileName;
+  const profileContinuityValue = isAuthenticated ? '当前卡' : profileName;
   const profileDetail = isAuthenticated
-    ? `${checkedInToday ? '已签到' : '未签到'} · ${completedCount} 张完成`
+    ? `${checkedInToday ? '已签到' : '未签到'} · ${completedCount} 张`
     : '学习/空间/会员';
-  const profileIdentityLabel = isAuthenticated ? '当前位置' : '身份';
-  const profileProgressLabel = isAuthenticated ? '今日节奏' : '同步';
+  const profileIdentityLabel = isAuthenticated ? '继续位置' : '身份';
+  const profileProgressLabel = isAuthenticated ? '今日' : '同步';
   const syncDetail = isAuthenticated
     ? progressSyncState.state === 'error' ||
       learningStateSyncState.state === 'error'
@@ -3416,7 +3416,7 @@ function MineSurface({
                 numberOfLines={1}
                 style={[styles.mineAccountTitle, { color: palette.text }]}
               >
-                今天从当前卡继续
+                账户已接上
               </Text>
               <Text
                 numberOfLines={2}
@@ -3552,9 +3552,9 @@ function MineSurface({
               detail={
                 pendingReviewCount > 0
                   ? `${pendingReviewCount} 张卡等待回看`
-                  : '当前顺序继续，下一张已经准备好'
+                  : '当前顺序，下一张已准备好'
               }
-              label="回到学习"
+              label="继续学习"
               onPress={onGoToLearning}
               palette={palette}
               routeKey="learning"
@@ -3567,7 +3567,7 @@ function MineSurface({
             >
               <MineActionCard
                 detail={`${favoriteCount} 收藏 · ${sleepingCount} 休眠`}
-                label="空间位置"
+                label="空间"
                 onPress={onGoToSpace}
                 palette={palette}
                 routeKey="space"
@@ -3575,7 +3575,7 @@ function MineSurface({
               />
               <MineActionCard
                 detail={checkedInToday ? '今日已签到' : '今日未签到'}
-                label="今日节奏"
+                label="今日"
                 onPress={onGoToStatistics}
                 palette={palette}
                 routeKey="statistics"
@@ -3618,25 +3618,25 @@ function MineActionCard({
   variant?: 'primary' | 'secondary';
 }) {
   const isPrimary = variant === 'primary';
-  const foregroundColor = palette.text;
-  const mutedColor = palette.textMuted;
+  const foregroundColor = isPrimary ? palette.primaryActionText : palette.text;
+  const mutedColor = isPrimary ? palette.primaryActionMuted : palette.textMuted;
   const glyph = (
     <View
       style={[
         styles.mineActionGlyph,
         {
           backgroundColor: isPrimary
-            ? hexToRgba(palette.accent, 0.1)
+            ? hexToRgba(palette.primaryActionText, 0.12)
             : palette.accentSoft,
           borderColor: isPrimary
-            ? hexToRgba(palette.accent, 0.16)
+            ? hexToRgba(palette.primaryActionText, 0.16)
             : palette.border,
         },
       ]}
     >
       <RouteIcon
         active={isPrimary}
-        color={palette.accent}
+        color={isPrimary ? palette.primaryActionText : palette.accent}
         routeKey={routeKey}
       />
     </View>
@@ -3680,10 +3680,10 @@ function MineActionCard({
           : styles.mineActionCardSecondary,
         {
           backgroundColor: isPrimary
-            ? hexToRgba(palette.accent, 0.065)
+            ? palette.primaryActionSurface
             : palette.panelStrong,
           borderColor: isPrimary
-            ? hexToRgba(palette.accent, 0.14)
+            ? palette.primaryActionSurface
             : palette.border,
         },
       ]}
@@ -3827,7 +3827,7 @@ function MembershipHostCard({
                   { color: palette.text },
                 ]}
               >
-                试用跟随账号
+                试用随学习开始
               </Text>
               <View
                 style={[
@@ -3856,7 +3856,7 @@ function MembershipHostCard({
                 { color: palette.textMuted },
               ]}
             >
-              首次计入学习时开始，空间和回看一起放开。
+              开始后开放空间和回看。
             </Text>
           </View>
           <View style={styles.membershipAccessCompactActions}>
@@ -5991,18 +5991,18 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     borderRadius: 26,
     borderWidth: 1,
-    gap: 10,
+    gap: 9,
     justifyContent: 'space-between',
-    minHeight: 420,
+    minHeight: 394,
     paddingHorizontal: 15,
-    paddingVertical: 14,
+    paddingVertical: 13,
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.09,
     shadowRadius: 30,
     elevation: 4,
   },
   minePassportStack: {
-    gap: 10,
+    gap: 8,
   },
   minePassportHeader: {
     alignItems: 'center',
@@ -6019,9 +6019,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   mineAccountTitle: {
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '800',
-    lineHeight: 26,
+    lineHeight: 25,
   },
   mineAccountSummary: {
     fontSize: 12,
@@ -6057,7 +6057,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   mineContinuityDock: {
-    gap: 7,
+    gap: 6,
   },
   mineIdentityCopy: {
     flex: 1,
@@ -6085,7 +6085,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 5,
     paddingHorizontal: 4,
-    paddingVertical: 4,
+    paddingVertical: 3,
   },
   mineSignalPill: {
     alignItems: 'center',
@@ -6110,10 +6110,10 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   mineRouteDock: {
-    gap: 7,
+    gap: 6,
   },
   mineActionRail: {
-    gap: 7,
+    gap: 6,
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
@@ -6122,7 +6122,7 @@ const styles = StyleSheet.create({
   },
   mineSecondaryActionRow: {
     flexDirection: 'row',
-    gap: 7,
+    gap: 6,
   },
   mineActionCard: {
     alignItems: 'stretch',
@@ -6133,18 +6133,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 20,
     flexDirection: 'row',
-    minHeight: 62,
+    minHeight: 58,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 9,
   },
   mineActionCardSecondary: {
     alignItems: 'center',
     borderRadius: 17,
     flex: 1,
     flexDirection: 'row',
-    minHeight: 54,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    minHeight: 49,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
   },
   mineActionTopRow: {
     alignItems: 'center',
@@ -6160,9 +6160,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
     borderWidth: 1,
-    height: 32,
+    height: 30,
     justifyContent: 'center',
-    width: 32,
+    width: 30,
   },
   mineActionLabel: {
     fontSize: 13,
@@ -6174,12 +6174,12 @@ const styles = StyleSheet.create({
   mineActionDetail: {
     fontSize: 10,
     fontWeight: '600',
-    lineHeight: 14,
+    lineHeight: 13,
   },
   mineActionDetailPrimary: {
     fontSize: 11,
     fontWeight: '700',
-    lineHeight: 15,
+    lineHeight: 14,
   },
   mineActionArrow: {
     fontSize: 14,
@@ -6274,17 +6274,17 @@ const styles = StyleSheet.create({
   },
   membershipAccessCompactDock: {
     alignItems: 'center',
-    borderRadius: 19,
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 8,
-    minHeight: 78,
-    paddingHorizontal: 11,
-    paddingVertical: 9,
+    gap: 7,
+    minHeight: 68,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   membershipAccessCompactCopy: {
     flex: 1,
-    gap: 5,
+    gap: 4,
     minWidth: 0,
   },
   membershipAccessCompactTitleRow: {
@@ -6300,13 +6300,13 @@ const styles = StyleSheet.create({
   membershipAccessCompactMeta: {
     fontSize: 11,
     fontWeight: '600',
-    lineHeight: 16,
+    lineHeight: 15,
   },
   membershipAccessCompactActions: {
     alignItems: 'stretch',
-    gap: 6,
+    gap: 5,
     justifyContent: 'center',
-    minWidth: 82,
+    minWidth: 80,
   },
   membershipCompactBenefitRow: {
     flexDirection: 'row',
@@ -6337,8 +6337,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     justifyContent: 'center',
     minHeight: 30,
-    minWidth: 82,
-    paddingHorizontal: 10,
+    minWidth: 80,
+    paddingHorizontal: 9,
   },
   membershipCompactTrialLabel: {
     fontSize: 11,
