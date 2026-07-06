@@ -449,9 +449,16 @@ test('renders correctly', async () => {
   const routeObjectCardStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'auth-route-object-card' }).props.style,
   );
-  expect(routeObjectCardStyle.flex).toBe(1);
-  expect(routeObjectCardStyle.justifyContent).toBe('space-between');
-  expect(routeObjectCardStyle.minHeight).toBe(0);
+  expect(routeObjectCardStyle.flex).toBeUndefined();
+  expect(routeObjectCardStyle.justifyContent).toBe('flex-start');
+  expect(routeObjectCardStyle.minHeight).toBeUndefined();
+  const actionStack = tree!.root.findByProps({
+    testID: 'auth-gate-action-stack',
+  });
+  expect(
+    actionStack.findByProps({ testID: 'auth-continuity-promise' }),
+  ).toBeTruthy();
+  expect(actionStack.findByProps({ testID: 'auth-sms-panel' })).toBeTruthy();
   const requestDockStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'auth-request-inline-dock' }).props.style,
   );
@@ -460,8 +467,8 @@ test('renders correctly', async () => {
   const smsPanelStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'auth-sms-panel' }).props.style,
   );
-  expect(smsPanelStyle.flex).toBe(1);
-  expect(smsPanelStyle.justifyContent).toBe('flex-end');
+  expect(smsPanelStyle.flex).toBeUndefined();
+  expect(smsPanelStyle.justifyContent).toBeUndefined();
   expect(
     tree!.root.findByProps({ testID: 'auth-continuity-promise' }),
   ).toBeTruthy();
@@ -521,9 +528,16 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   const output = JSON.stringify(tree!.toJSON());
   const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
   const mineProfileCardStyle = StyleSheet.flatten(mineProfileCard.props.style);
-  expect(mineProfileCardStyle.flex).toBe(1);
-  expect(mineProfileCardStyle.justifyContent).toBe('space-between');
-  expect(mineProfileCardStyle.minHeight).toBe(0);
+  expect(mineProfileCardStyle.flex).toBeUndefined();
+  expect(mineProfileCardStyle.justifyContent).toBe('flex-start');
+  expect(mineProfileCardStyle.minHeight).toBeUndefined();
+  const actionStack = mineProfileCard.findByProps({
+    testID: 'auth-gate-action-stack',
+  });
+  expect(
+    actionStack.findByProps({ testID: 'auth-continuity-promise' }),
+  ).toBeTruthy();
+  expect(actionStack.findByProps({ testID: 'auth-sms-panel' })).toBeTruthy();
   expect(output).toContain('确认手机号');
   expect(output).toContain('学习记录、空间位置和会员权益统一归到这个账号。');
   expect(output).toContain('账号归属待确认');
@@ -561,8 +575,8 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   const smsPanelStyle = StyleSheet.flatten(
     mineProfileCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
   );
-  expect(smsPanelStyle.flex).toBe(1);
-  expect(smsPanelStyle.justifyContent).toBe('flex-end');
+  expect(smsPanelStyle.flex).toBeUndefined();
+  expect(smsPanelStyle.justifyContent).toBeUndefined();
   const requestActionRowStyle = StyleSheet.flatten(
     mineProfileCard.findByProps({ testID: 'auth-request-action-row' }).props
       .style,
@@ -636,8 +650,8 @@ test('keeps mine code-sent state attached to the account object', async () => {
   const smsPanelStyle = StyleSheet.flatten(
     mineProfileCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
   );
-  expect(smsPanelStyle.flex).toBe(1);
-  expect(smsPanelStyle.justifyContent).toBe('flex-end');
+  expect(smsPanelStyle.flex).toBeUndefined();
+  expect(smsPanelStyle.justifyContent).toBeUndefined();
   const entryRowStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'auth-code-entry-row' }).props.style,
   );
