@@ -65,12 +65,12 @@ export function StatisticsSurface({
   const combinedResults = [...learningResults, ...reviewResults];
   const hasLearningProgress = combinedResults.length > 0;
   const checkInTitle = hasCheckedInToday
-    ? '记录完成'
+    ? `${combinedResults.length} 张`
     : canCheckInToday
     ? '可收好'
     : '待学习';
   const checkInSummary = hasCheckedInToday
-    ? '今日已签到，记录已保存。'
+    ? '今天已签到，记录跟着账号保存。'
     : canCheckInToday
     ? '已完成学习，点一下收好今天。'
     : '完成 1 张后再收好今天。';
@@ -83,12 +83,12 @@ export function StatisticsSurface({
       ? '首轮已收口'
       : '暂无今日进展';
   const dailyTitle = hasCheckedInToday
-    ? '今天收好'
+    ? '今天已收好'
     : hasLearningProgress
     ? '学习在推进'
     : '从第一张开始';
   const dailySummary = hasCheckedInToday
-    ? `完成 ${combinedResults.length} · 回看 ${reviewResults.length} · ${syncStatusLabel}`
+    ? `完成 ${combinedResults.length} · 回看 ${reviewResults.length}`
     : pendingReviewCount > 0
     ? `还有 ${pendingReviewCount} 张卡需要回看，统计只安静记录，不打断学习。`
     : hasLearningProgress
@@ -135,7 +135,7 @@ export function StatisticsSurface({
   const dailyRailLabel = nextStepIsReview
     ? `${pendingReviewCount} 张回看待处理`
     : hasCheckedInToday
-    ? '学习进度已收好'
+    ? '节奏已收好'
     : canCheckInToday
     ? '可以收好今天'
     : '完成一张后点亮';
@@ -390,7 +390,7 @@ export function StatisticsSurface({
           >
             <View style={styles.checkInCopy}>
               <Text style={[styles.checkInTitle, { color: palette.text }]}>
-                今日连续性
+                今日记录
               </Text>
               <Text
                 style={[styles.cardSummary, { color: palette.textMuted }]}

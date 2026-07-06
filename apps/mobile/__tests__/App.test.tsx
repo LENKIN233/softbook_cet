@@ -2937,8 +2937,10 @@ test('can check in from statistics after making learning progress', async () => 
     root.findAllByProps({ testID: 'statistics-checkin-complete-label' }).length,
   ).toBeGreaterThan(0);
   expect(output).toContain('今日已签到');
-  expect(output).toContain('学习进度已收好');
-  expect(output).toContain('今日已签到，记录已保存。');
+  expect(output).toContain('节奏已收好');
+  expect(output).toContain('今天已签到，记录跟着账号保存。');
+  expect(output).not.toContain('今天收好');
+  expect(output).not.toContain('记录完成');
   const statusLedger = root.findByProps({
     testID: 'statistics-status-ledger',
   });
