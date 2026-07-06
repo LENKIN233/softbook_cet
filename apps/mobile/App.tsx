@@ -3325,11 +3325,12 @@ function MineSurface({
   const profileName = isAuthenticated
     ? maskPhoneNumber(authState.phoneNumber)
     : '待验证';
+  const profileContinuityValue = isAuthenticated ? '当前卡保留' : profileName;
   const profileDetail = isAuthenticated
     ? `${checkedInToday ? '已签到' : '未签到'} · ${completedCount} 张完成`
     : '学习/空间/会员';
-  const profileIdentityLabel = isAuthenticated ? '已确认' : '身份';
-  const profileProgressLabel = isAuthenticated ? '今日' : '同步';
+  const profileIdentityLabel = isAuthenticated ? '当前位置' : '身份';
+  const profileProgressLabel = isAuthenticated ? '今日节奏' : '同步';
   const syncDetail = isAuthenticated
     ? progressSyncState.state === 'error' ||
       learningStateSyncState.state === 'error'
@@ -3347,8 +3348,19 @@ function MineSurface({
     ? '验证码已发'
     : '待登录';
   const accountSummary = isAuthenticated
-    ? `今天继续这一轮 · ${syncDetail}`
+    ? `${profileName} · ${syncDetail}`
     : '学习记录、空间位置和会员权益会归到同一账号。';
+  const mineStatusItems = [
+    { label: '完成', testID: 'mine-metric-completed', value: completedCount },
+    {
+      label: '回看',
+      testID: 'mine-metric-review',
+      tone: pendingReviewCount > 0 ? 'warning' : 'neutral',
+      value: pendingReviewCount,
+    },
+    { label: '收藏', testID: 'mine-metric-favorites', value: favoriteCount },
+    { label: '休眠', testID: 'mine-metric-sleeping', value: sleepingCount },
+  ] as const;
 
   if (!isAuthenticated) {
     return (
@@ -3404,7 +3416,7 @@ function MineSurface({
                 numberOfLines={1}
                 style={[styles.mineAccountTitle, { color: palette.text }]}
               >
-                {isAuthenticated ? '继续今天这一轮' : '登录后管理我的'}
+                今天从当前卡继续
               </Text>
               <Text
                 numberOfLines={2}
@@ -3437,83 +3449,94 @@ function MineSurface({
             </View>
           </View>
 
-          <View
-            style={[
-              styles.mineIdentityBand,
-              {
-                backgroundColor: palette.panelStrong,
-                borderColor: palette.border,
-              },
-            ]}
-          >
-            <View style={styles.mineIdentityCopy}>
-              <Text
-                style={[styles.mineIdentityLabel, { color: palette.textMuted }]}
-              >
-                {profileIdentityLabel}
-              </Text>
-              <Text
-                numberOfLines={1}
-                style={[styles.mineIdentityValue, { color: palette.text }]}
-                testID="mine-profile-phone"
-              >
-                {profileName}
-              </Text>
-            </View>
-            <View style={styles.mineIdentityCopy}>
-              <Text
-                style={[styles.mineIdentityLabel, { color: palette.textMuted }]}
-              >
-                {profileProgressLabel}
-              </Text>
-              <Text
-                numberOfLines={1}
-                style={[styles.mineIdentityValue, { color: palette.text }]}
-                testID="mine-profile-today"
-              >
-                {profileDetail}
-              </Text>
-            </View>
-            <Text
-              numberOfLines={1}
-              style={[styles.mineIdentitySync, { color: palette.textMuted }]}
+          <View style={styles.mineContinuityDock}>
+            <View
+              style={[
+                styles.mineIdentityBand,
+                {
+                  backgroundColor: palette.panelStrong,
+                  borderColor: palette.border,
+                },
+              ]}
             >
-              {syncDetail}
-            </Text>
-          </View>
+              <View style={styles.mineIdentityCopy}>
+                <Text
+                  style={[
+                    styles.mineIdentityLabel,
+                    { color: palette.textMuted },
+                  ]}
+                >
+                  {profileIdentityLabel}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.mineIdentityValue, { color: palette.text }]}
+                  testID="mine-profile-phone"
+                >
+                  {profileContinuityValue}
+                </Text>
+              </View>
+              <View style={styles.mineIdentityCopy}>
+                <Text
+                  style={[
+                    styles.mineIdentityLabel,
+                    { color: palette.textMuted },
+                  ]}
+                >
+                  {profileProgressLabel}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.mineIdentityValue, { color: palette.text }]}
+                  testID="mine-profile-today"
+                >
+                  {profileDetail}
+                </Text>
+              </View>
+            </View>
 
-          <View
-            style={[
-              styles.mineMetricStrip,
-              deviceClass === 'tablet' ? styles.mineMetricStripTablet : null,
-            ]}
-            testID="mine-status-strip"
-          >
-            <SummaryMetricCard
-              label="已完成"
-              value={`${completedCount}`}
-              palette={palette}
-              testID="mine-metric-completed"
-            />
-            <SummaryMetricCard
-              label="待回看"
-              value={`${pendingReviewCount}`}
-              palette={palette}
-              testID="mine-metric-review"
-              tone={pendingReviewCount > 0 ? 'warning' : 'neutral'}
-            />
-            <SummaryMetricCard
-              label="收藏"
-              value={`${favoriteCount}`}
-              palette={palette}
-              testID="mine-metric-favorites"
-            />
-            <SummaryMetricCard
-              label="休眠"
-              value={`${sleepingCount}`}
-              palette={palette}
-              testID="mine-metric-sleeping"
-            />
+            <View
+              style={[
+                styles.mineMetricStrip,
+                deviceClass === 'tablet' ? styles.mineMetricStripTablet : null,
+                {
+                  backgroundColor: palette.panelStrong,
+                  borderColor: hexToRgba(palette.textMuted, 0.08),
+                },
+              ]}
+              testID="mine-status-strip"
+            >
+              {mineStatusItems.map(item => {
+                const valueColor =
+                  'tone' in item && item.tone === 'warning'
+                    ? palette.warning
+                    : palette.text;
+
+                return (
+                  <View
+                    key={item.testID}
+                    style={styles.mineSignalPill}
+                    testID={item.testID}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.mineSignalLabel,
+                        { color: palette.textMuted },
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                    <Text
+                      style={[styles.mineSignalValue, { color: valueColor }]}
+                      testID={`${item.testID}-value`}
+                    >
+                      {`${item.value}`}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
           </View>
         </View>
 
@@ -3529,9 +3552,9 @@ function MineSurface({
               detail={
                 pendingReviewCount > 0
                   ? `${pendingReviewCount} 张卡等待回看`
-                  : '下一张已经准备好'
+                  : '当前顺序继续，下一张已经准备好'
               }
-              label="继续学习"
+              label="回到学习"
               onPress={onGoToLearning}
               palette={palette}
               routeKey="learning"
@@ -3544,7 +3567,7 @@ function MineSurface({
             >
               <MineActionCard
                 detail={`${favoriteCount} 收藏 · ${sleepingCount} 休眠`}
-                label="查看空间"
+                label="空间位置"
                 onPress={onGoToSpace}
                 palette={palette}
                 routeKey="space"
@@ -3552,7 +3575,7 @@ function MineSurface({
               />
               <MineActionCard
                 detail={checkedInToday ? '今日已签到' : '今日未签到'}
-                label="今日进展"
+                label="今日节奏"
                 onPress={onGoToStatistics}
                 palette={palette}
                 routeKey="statistics"
@@ -3702,7 +3725,6 @@ function MembershipHostCard({
     { label: '完整空间', open: access.completePhysicalSpace },
     { label: '智能回看', open: access.completeAlgorithm },
   ];
-  const compactBenefitSummary = benefitSummary;
   const isTrialAvailable = membershipState.stage === 'trial_available';
   const focusCopy =
     focusGate === null
@@ -3805,7 +3827,7 @@ function MembershipHostCard({
                   { color: palette.text },
                 ]}
               >
-                权益通行证
+                试用跟随账号
               </Text>
               <View
                 style={[
@@ -3834,39 +3856,8 @@ function MembershipHostCard({
                 { color: palette.textMuted },
               ]}
             >
-              试用从首次计入学习开始
+              首次计入学习时开始，空间和回看一起放开。
             </Text>
-            <View style={styles.membershipCompactBenefitRow}>
-              {compactBenefitSummary.map(item => (
-                <View
-                  key={item.label}
-                  style={[
-                    styles.membershipCompactBenefitChip,
-                    { borderColor: hexToRgba(palette.accent, 0.09) },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.membershipCompactBenefitDot,
-                      {
-                        backgroundColor: item.open
-                          ? palette.success
-                          : hexToRgba(palette.warning, 0.28),
-                      },
-                    ]}
-                  />
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.membershipCompactBenefitLabel,
-                      { color: palette.textMuted },
-                    ]}
-                  >
-                    {item.label}
-                  </Text>
-                </View>
-              ))}
-            </View>
           </View>
           <View style={styles.membershipAccessCompactActions}>
             <Pressable
@@ -4768,50 +4759,6 @@ function InfoCard({
           </Text>
         </View>
       ))}
-    </View>
-  );
-}
-
-function SummaryMetricCard({
-  label,
-  palette,
-  testID,
-  tone = 'neutral',
-  value,
-}: {
-  label: string;
-  palette: Palette;
-  testID?: string;
-  tone?: 'neutral' | 'success' | 'warning';
-  value: string;
-}) {
-  const valueColor =
-    tone === 'success'
-      ? palette.success
-      : tone === 'warning'
-      ? palette.warning
-      : palette.text;
-
-  return (
-    <View
-      style={[
-        styles.summaryMetricCard,
-        {
-          backgroundColor: palette.panelStrong,
-          borderColor: hexToRgba(palette.textMuted, 0.08),
-        },
-      ]}
-      testID={testID}
-    >
-      <Text style={[styles.summaryMetricLabel, { color: palette.textMuted }]}>
-        {label}
-      </Text>
-      <Text
-        style={[styles.summaryMetricValue, { color: valueColor }]}
-        testID={testID ? `${testID}-value` : undefined}
-      >
-        {value}
-      </Text>
     </View>
   );
 }
@@ -5999,29 +5946,6 @@ const styles = StyleSheet.create({
   mineMetricStripTablet: {
     gap: 12,
   },
-  summaryMetricCard: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    flexDirection: 'row',
-    flexGrow: 0,
-    gap: 5,
-    minWidth: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-  summaryMetricValue: {
-    fontSize: 13,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-    lineHeight: 16,
-  },
-  summaryMetricLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0,
-    lineHeight: 14,
-  },
   infoCard: {
     borderWidth: 1,
     borderRadius: 22,
@@ -6068,9 +5992,9 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     borderRadius: 26,
     borderWidth: 1,
-    gap: 12,
+    gap: 10,
     justifyContent: 'space-between',
-    minHeight: 438,
+    minHeight: 420,
     paddingHorizontal: 15,
     paddingVertical: 14,
     shadowOffset: { width: 0, height: 16 },
@@ -6079,7 +6003,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   minePassportStack: {
-    gap: 9,
+    gap: 10,
   },
   minePassportHeader: {
     alignItems: 'center',
@@ -6096,9 +6020,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   mineAccountTitle: {
-    fontSize: 21,
+    fontSize: 22,
     fontWeight: '800',
-    lineHeight: 25,
+    lineHeight: 26,
   },
   mineAccountSummary: {
     fontSize: 12,
@@ -6107,10 +6031,10 @@ const styles = StyleSheet.create({
   },
   mineAvatar: {
     alignItems: 'center',
-    borderRadius: 20,
-    height: 40,
+    borderRadius: 22,
+    height: 44,
     justifyContent: 'center',
-    width: 40,
+    width: 44,
   },
   mineMembershipPill: {
     borderRadius: 999,
@@ -6126,12 +6050,15 @@ const styles = StyleSheet.create({
   },
   mineIdentityBand: {
     alignItems: 'center',
-    borderRadius: 19,
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 8,
-    paddingHorizontal: 11,
+    paddingHorizontal: 10,
     paddingVertical: 8,
+  },
+  mineContinuityDock: {
+    gap: 7,
   },
   mineIdentityCopy: {
     flex: 1,
@@ -6153,17 +6080,41 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   mineMetricStrip: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    paddingHorizontal: 2,
-    paddingVertical: 0,
+    gap: 5,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  mineSignalPill: {
+    alignItems: 'center',
+    borderRadius: 999,
+    flex: 1,
+    flexDirection: 'row',
+    gap: 4,
+    justifyContent: 'center',
+    minHeight: 26,
+    minWidth: 0,
+    paddingHorizontal: 5,
+  },
+  mineSignalLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 12,
+  },
+  mineSignalValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+    lineHeight: 16,
   },
   mineRouteDock: {
-    gap: 8,
+    gap: 7,
   },
   mineActionRail: {
-    gap: 8,
+    gap: 7,
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
@@ -6172,7 +6123,7 @@ const styles = StyleSheet.create({
   },
   mineSecondaryActionRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 7,
   },
   mineActionCard: {
     alignItems: 'stretch',
@@ -6181,20 +6132,20 @@ const styles = StyleSheet.create({
   },
   mineActionCardPrimary: {
     alignItems: 'center',
-    borderRadius: 19,
+    borderRadius: 20,
     flexDirection: 'row',
-    minHeight: 66,
+    minHeight: 62,
     paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingVertical: 10,
   },
   mineActionCardSecondary: {
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: 17,
     flex: 1,
     flexDirection: 'row',
-    minHeight: 70,
-    paddingHorizontal: 11,
-    paddingVertical: 10,
+    minHeight: 54,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
   },
   mineActionTopRow: {
     alignItems: 'center',
@@ -6324,13 +6275,13 @@ const styles = StyleSheet.create({
   },
   membershipAccessCompactDock: {
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: 19,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 10,
-    minHeight: 92,
+    gap: 8,
+    minHeight: 78,
     paddingHorizontal: 11,
-    paddingVertical: 10,
+    paddingVertical: 9,
   },
   membershipAccessCompactCopy: {
     flex: 1,
@@ -6343,14 +6294,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   membershipAccessCompactTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
-    lineHeight: 16,
+    lineHeight: 17,
   },
   membershipAccessCompactMeta: {
     fontSize: 11,
     fontWeight: '600',
-    lineHeight: 15,
+    lineHeight: 16,
   },
   membershipAccessCompactActions: {
     alignItems: 'stretch',
@@ -6386,7 +6337,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 999,
     justifyContent: 'center',
-    minHeight: 32,
+    minHeight: 30,
     minWidth: 82,
     paddingHorizontal: 10,
   },
@@ -6400,7 +6351,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 32,
+    minHeight: 30,
     minWidth: 82,
     paddingHorizontal: 10,
   },
