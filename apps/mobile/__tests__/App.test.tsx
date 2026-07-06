@@ -432,13 +432,15 @@ test('renders correctly', async () => {
     expect.arrayContaining(['练', '位', '记', '我']),
   );
   expect(output).toContain('登录后继续学习');
-  expect(output).toContain('当前卡 · 四选一');
-  expect(output).toContain('已保留');
-  expect(output).toContain('原位保留');
+  expect(output).toContain('这张题会留在原处');
+  expect(output).toContain('题面和位置都在');
   expect(output).toContain('手机号验证');
   expect(output).toContain('输入手机号');
   expect(output).toContain('输入手机号，完成后回到当前卡。');
   expect(output).toContain('待输入');
+  expect(output).not.toContain('当前卡 · 四选一');
+  expect(output).not.toContain('原位保留');
+  expect(output).not.toContain('登录后保存');
   const routeObjectScreenStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'auth-route-object-screen' }).props.style,
   );
@@ -455,6 +457,9 @@ test('renders correctly', async () => {
   expect(requestDockStyle.borderWidth).toBe(1);
   expect(requestDockStyle.borderRadius).toBe(18);
   expect(
+    tree!.root.findByProps({ testID: 'auth-continuity-promise' }),
+  ).toBeTruthy();
+  expect(
     findPressableByTestId(tree!.root, 'auth-request-code-button').props
       .disabled,
   ).toBe(true);
@@ -470,25 +475,29 @@ test('keeps protected route auth gates attached to the selected object', async (
   const root = tree!.root;
 
   expect(JSON.stringify(tree!.toJSON())).toContain('登录后继续学习');
-  expect(JSON.stringify(tree!.toJSON())).toContain('当前卡 · 四选一');
+  expect(JSON.stringify(tree!.toJSON())).toContain('这张题会留在原处');
 
   await openRoute(root, 'space');
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('登录后查看空间');
-  expect(output).toContain('空间 · 当前位置');
-  expect(output).toContain('库组盒');
-  expect(output).toContain('登录后同步');
+  expect(output).toContain('空间位置会留在原处');
+  expect(output).toContain('空间');
   expect(output).toContain('完成后回到当前位置');
+  expect(output).not.toContain('空间 · 当前位置');
+  expect(output).not.toContain('库组盒');
+  expect(output).not.toContain('登录后同步');
   expect(output).not.toContain('登录后继续学习');
   expect(output).not.toContain('当前学习');
 
   await openRoute(root, 'statistics');
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('登录后查看今日进展');
-  expect(output).toContain('今日进展 · 待同步');
+  expect(output).toContain('今日节奏会保留');
+  expect(output).toContain('统计');
   expect(output).toContain('完成后回到今日进展');
-  expect(output).toContain('回看');
-  expect(output).toContain('签到');
+  expect(output).toContain('完成、回看和签到都会接上。');
+  expect(output).not.toContain('今日进展 · 待同步');
+  expect(output).not.toContain('待同步');
   expect(output).not.toContain('登录后查看空间');
   expect(output).not.toContain('当前学习');
 });
@@ -505,26 +514,30 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
 
   const output = JSON.stringify(tree!.toJSON());
   const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
-  expect(output).toContain('确认账号后继续');
+  expect(output).toContain('确认手机号后继续');
   expect(output).toContain('学习记录、空间位置和会员权益会归到同一账号。');
-  expect(output).toContain('账号承接 · 待确认');
-  expect(output).toContain('记录');
-  expect(output).toContain('空间');
-  expect(output).toContain('权益');
-  expect(output).toContain('手机验证');
+  expect(output).toContain('记录和权益会归到账号');
+  expect(output).toContain('我的');
+  expect(output).toContain('确认手机号');
   expect(output).toContain('输入手机号，完成后回到我的。');
+  expect(output).not.toContain('账号承接');
+  expect(output).not.toContain('待确认');
   expect(output).not.toContain('确认身份继续学');
   expect(output).not.toContain('当前学习卡');
+  expectNoUserVisibleMetadataLeakage(tree!);
   expect(collectRenderedText(tree!.toJSON())).not.toEqual(
     expect.arrayContaining(['我']),
   );
   expect(
-    mineProfileCard.findByProps({ testID: 'auth-retained-ledger' }),
+    mineProfileCard.findByProps({ testID: 'auth-continuity-promise' }),
+  ).toBeTruthy();
+  expect(
+    mineProfileCard.findByProps({ testID: 'auth-continuity-promise-pill' }),
   ).toBeTruthy();
   expect(
     mineProfileCard.findAllByProps({ testID: 'auth-retained-ledger-row' })
       .length,
-  ).toBeGreaterThanOrEqual(3);
+  ).toBe(0);
   expect(
     mineProfileCard.findByProps({ testID: 'auth-phone-input' }),
   ).toBeTruthy();
@@ -586,7 +599,7 @@ test('keeps mine code-sent state attached to the account object', async () => {
   const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
   expect(output).toContain('验证码已发');
   expect(output).toContain('输入验证码');
-  expect(output).toContain('验证中');
+  expect(output).toContain('已发送');
   expect(output).toContain('验证码已发送');
   expect(output).toContain('完成后回到');
   expect(output).toContain('我的');
@@ -713,7 +726,7 @@ test('shows remote request-code failure inside the auth gate', async () => {
   expect(output).not.toContain('验证码发送暂时失败（503）。');
   expect(output).not.toContain('（503）');
   expect(output).toContain('短码暂时没发出');
-  expect(output).toContain('检查手机号后再试，当前位置仍保留。');
+  expect(output).toContain('检查手机号后再试，仍会回到当前卡。');
   expect(output).toContain('可重试');
   expect(output).toContain('验证码通过后回到当前卡。');
   expect(root.findByProps({ testID: 'auth-error-dock' })).toBeTruthy();
@@ -773,7 +786,7 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expect(output).toContain('已发送到');
   expect(output).toContain('138****8000');
   expect(output).toContain('验证');
-  expect(output).toContain('待输入');
+  expect(output).toContain('继续');
   expect(output).toContain('完成后回到当前卡。');
   expect(output).toContain('重新发送');
   expect(output).not.toContain('等待登录');
@@ -789,7 +802,7 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expect(output).not.toContain('（401）');
   expect(output).toContain('验证码暂时没通过');
   expect(output).toContain('验证码待确认');
-  expect(output).toContain('检查短码后再试，当前位置仍保留。');
+  expect(output).toContain('检查短码后再试，仍会回到当前卡。');
   expect(output).toContain('重新验证');
   expect(output).toContain('可重试');
   expect(output).toContain('4-6 位短码，完成后回到当前卡。');
