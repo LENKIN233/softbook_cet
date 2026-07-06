@@ -45,19 +45,9 @@ name: ios-remote-auth-learning-space-statistics-smoke
 - tapOn:
     id: "space-open-card-list"
 - assertVisible:
+    id: "space-browse-address-clue"
+- assertVisible:
     id: "space-contained-card-strip"
-- assertVisible:
-    id: "space-library-3"
-- tapOn:
-    id: "space-library-3"
-- assertVisible:
-    id: "space-group-2"
-- tapOn:
-    id: "space-group-2"
-- assertVisible:
-    id: "space-box-1"
-- tapOn:
-    id: "space-box-1"
 - assertVisible:
     id: "space-favorite-1"
 - tapOn:

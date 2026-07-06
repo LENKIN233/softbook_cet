@@ -38,7 +38,7 @@ name: ios-space-browse-screenshot
 - tapOn:
     id: "space-open-card-list"
 - assertVisible:
-    id: "space-browse-rail"
+    id: "space-browse-address-clue"
 - assertVisible:
     id: "space-contained-card-strip"
 - assertVisible:
