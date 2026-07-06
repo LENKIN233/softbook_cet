@@ -1459,6 +1459,10 @@ export function LearningResultDetailSurface({
     result.outcome === 'correct' || result.outcome === 'confident';
   const primaryAction = getPrimaryActionColors(palette);
   const neutralAction = getNeutralActionSurface(palette);
+  const detailOutcomeTitle = isPositive ? '答案已归位' : '留到回看';
+  const detailOutcomeCaption = isPositive
+    ? '你的选择和正确答案已对齐'
+    : '先保留判断，回看时再确认';
   const boundedSessionCardCount = Math.max(sessionCardCount, 1);
   const progressOrdinal = Math.min(currentIndex + 1, boundedSessionCardCount);
   const progressPercent = `${Math.max(
@@ -1561,7 +1565,7 @@ export function LearningResultDetailSurface({
               numberOfLines={1}
               style={[styles.cardLocationMeta, { color: palette.textMuted }]}
             >
-              结果留在本卡
+              答案留在本卡
             </Text>
           </View>
           <Pressable
@@ -1600,7 +1604,7 @@ export function LearningResultDetailSurface({
               ]}
             >
               <Text style={[styles.detailStateText, { color: resultTone }]}>
-                {isPositive ? '已作答 · 答对' : '已作答 · 回看'}
+                {isPositive ? '已答对' : '待回看'}
               </Text>
             </View>
             <Text
@@ -1627,41 +1631,36 @@ export function LearningResultDetailSurface({
             />
             <View style={styles.detailSlipTitleWrap}>
               <Text style={[styles.detailOutcomeTitle, { color: resultTone }]}>
-                {isPositive ? '答对' : '回看'}
+                {detailOutcomeTitle}
               </Text>
               <Text
                 numberOfLines={1}
                 style={[styles.detailSlipCaption, { color: palette.textMuted }]}
               >
-                选择、答案和解释都在当前卡里
+                {detailOutcomeCaption}
               </Text>
             </View>
           </View>
 
-          <View
-            style={[
-              styles.detailAnswerRail,
-              {
-                backgroundColor: palette.panel,
-                borderColor: palette.border,
-              },
-            ]}
-          >
-            {resolvedRows.map((row, index) => (
-              <React.Fragment key={row.label}>
-                {index > 0 ? (
-                  <View
-                    pointerEvents="none"
-                    style={[
-                      styles.detailAnswerDivider,
-                      {
-                        backgroundColor: palette.border,
-                      },
-                    ]}
-                  />
-                ) : null}
+          <View style={styles.detailAnswerRail}>
+            {resolvedRows.map(row => {
+              const rowTone =
+                row.tone === 'success'
+                  ? palette.success
+                  : row.tone === 'warning'
+                  ? palette.warning
+                  : palette.textMuted;
+
+              return (
                 <View
-                  style={styles.detailAnswerCell}
+                  key={row.label}
+                  style={[
+                    styles.detailAnswerCell,
+                    {
+                      backgroundColor: hexToRgba(rowTone, 0.075),
+                      borderColor: hexToRgba(rowTone, 0.14),
+                    },
+                  ]}
                   testID={
                     row.testID === 'learning-detail-selected-answer'
                       ? 'learning-detail-selected-answer'
@@ -1670,10 +1669,7 @@ export function LearningResultDetailSurface({
                 >
                   <Text
                     numberOfLines={1}
-                    style={[
-                      styles.detailAnswerLabel,
-                      { color: palette.textMuted },
-                    ]}
+                    style={[styles.detailAnswerLabel, { color: rowTone }]}
                   >
                     {row.label}
                   </Text>
@@ -1684,8 +1680,8 @@ export function LearningResultDetailSurface({
                     {row.displayText}
                   </Text>
                 </View>
-              </React.Fragment>
-            ))}
+              );
+            })}
           </View>
 
           <View
@@ -1716,29 +1712,6 @@ export function LearningResultDetailSurface({
               style={[styles.detailTip, { color: palette.textMuted }]}
             >
               过级提醒：{card.analysis.exam_tip}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.detailContinuityRail,
-              {
-                backgroundColor: 'transparent',
-                borderColor: hexToRgba(palette.textMuted, 0.16),
-              },
-            ]}
-          >
-            <Text
-              numberOfLines={1}
-              style={[styles.detailLocationTitle, { color: palette.text }]}
-            >
-              位置保持
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[styles.detailNextHint, { color: palette.textMuted }]}
-            >
-              {isLastCard ? `${displaySessionLabel}即将收好` : '本轮盒节奏保持'}
             </Text>
           </View>
         </View>
@@ -2146,7 +2119,7 @@ const styles = StyleSheet.create({
   detailResolvedCard: {
     borderRadius: 30,
     borderWidth: 1,
-    gap: 7,
+    gap: 6,
     overflow: 'hidden',
     paddingHorizontal: 17,
     paddingVertical: 12,
@@ -2156,7 +2129,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     paddingHorizontal: 13,
-    paddingVertical: 9,
+    paddingVertical: 8,
   },
   detailTitleWrap: {
     alignSelf: 'stretch',
@@ -2181,14 +2154,14 @@ const styles = StyleSheet.create({
   detailAnswerSlip: {
     borderRadius: 22,
     borderWidth: 1,
-    gap: 6,
+    gap: 7,
     paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingVertical: 8,
   },
   detailSlipHeader: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 9,
+    gap: 8,
   },
   detailSlipDot: {
     borderRadius: 999,
@@ -2205,21 +2178,18 @@ const styles = StyleSheet.create({
   },
   detailAnswerRail: {
     alignItems: 'stretch',
-    borderRadius: 16,
-    borderWidth: 1,
     flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  detailAnswerDivider: {
-    alignSelf: 'stretch',
-    width: 1,
+    gap: 6,
   },
   detailAnswerCell: {
+    borderRadius: 15,
+    borderWidth: 1,
     flex: 1,
     gap: 2,
+    minHeight: 49,
     minWidth: 0,
-    paddingHorizontal: 11,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
   detailAnswerLabel: {
     fontSize: 11,
@@ -2236,7 +2206,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 4,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
   detailOutcomeTitle: {
     fontSize: 13,
@@ -2246,29 +2216,6 @@ const styles = StyleSheet.create({
   detailTip: {
     fontSize: 12,
     lineHeight: 18,
-  },
-  detailContinuityRail: {
-    alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-  },
-  detailLocationTitle: {
-    flexShrink: 0,
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 16,
-  },
-  detailNextHint: {
-    flex: 1,
-    fontSize: 11,
-    fontWeight: '700',
-    lineHeight: 15,
-    textAlign: 'right',
   },
   detailPrimaryButton: {
     marginTop: 1,
