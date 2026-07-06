@@ -1723,8 +1723,8 @@ export function LearningResultDetailSurface({
             style={[
               styles.detailContinuityRail,
               {
-                backgroundColor: palette.panel,
-                borderColor: palette.border,
+                backgroundColor: 'transparent',
+                borderColor: hexToRgba(palette.textMuted, 0.16),
               },
             ]}
           >
@@ -1732,15 +1732,13 @@ export function LearningResultDetailSurface({
               numberOfLines={1}
               style={[styles.detailLocationTitle, { color: palette.text }]}
             >
-              当前位置
+              位置保持
             </Text>
             <Text
               numberOfLines={1}
               style={[styles.detailNextHint, { color: palette.textMuted }]}
             >
-              {isLastCard
-                ? `${displaySessionLabel}即将收好`
-                : '下一张仍按本轮盒继续'}
+              {isLastCard ? `${displaySessionLabel}即将收好` : '本轮盒节奏保持'}
             </Text>
           </View>
         </View>

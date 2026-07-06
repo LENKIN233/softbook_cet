@@ -355,6 +355,9 @@ test('result detail reads as a resolved card without raw metadata', () => {
   expect(output).toContain('正确答案');
   expect(output).toContain('B · unclear');
   expect(output).toContain('已作答 · 答对');
+  expect(output).toContain('位置保持');
+  expect(output).toContain('本轮盒节奏保持');
+  expect(output).not.toContain('下一张仍按本轮盒继续');
   expect(output).toContain('继续下一张');
   const nextButtonStyle = JSON.stringify(
     tree!.root.findByProps({ testID: 'learning-next-button' }).props.style,
