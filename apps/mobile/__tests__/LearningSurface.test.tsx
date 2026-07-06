@@ -354,15 +354,18 @@ test('result detail reads as a resolved card without raw metadata', () => {
   ).toBeTruthy();
   expect(output).toContain('当前卡');
   expect(output).toContain('2/3');
-  expect(output).toContain('结果留在本卡');
+  expect(output).toContain('答案留在本卡');
   expect(output).not.toContain('结果在当前卡');
-  expect(output).toContain('选择、答案和解释都在当前卡里');
+  expect(output).toContain('答案已归位');
+  expect(output).toContain('你的选择和正确答案已对齐');
   expect(output).toContain('你的选择');
   expect(output).toContain('正确答案');
   expect(output).toContain('B · unclear');
-  expect(output).toContain('已作答 · 答对');
-  expect(output).toContain('位置保持');
-  expect(output).toContain('本轮盒节奏保持');
+  expect(output).toContain('已答对');
+  expect(output).not.toContain('已作答 · 答对');
+  expect(output).not.toContain('选择、答案和解释都在当前卡里');
+  expect(output).not.toContain('位置保持');
+  expect(output).not.toContain('本轮盒节奏保持');
   expect(output).not.toContain('下一张仍按本轮盒继续');
   expect(output).toContain('继续下一张');
   const nextButtonStyle = JSON.stringify(

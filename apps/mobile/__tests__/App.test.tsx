@@ -2641,12 +2641,16 @@ test('can complete the local single-card deck and restart it', async () => {
     }),
   ).toBeTruthy();
   expect(output).toContain('当前卡');
-  expect(output).toContain('结果留在本卡');
+  expect(output).toContain('答案留在本卡');
   expect(output).not.toContain('结果在当前卡');
-  expect(output).toContain('选择、答案和解释都在当前卡里');
+  expect(output).toContain('答案已归位');
+  expect(output).toContain('你的选择和正确答案已对齐');
   expect(output).toContain('你的选择');
   expect(output).toContain('正确答案');
-  expect(output).toContain('已作答 · 答对');
+  expect(output).toContain('已答对');
+  expect(output).not.toContain('已作答 · 答对');
+  expect(output).not.toContain('选择、答案和解释都在当前卡里');
+  expect(output).not.toContain('位置保持');
   expectNoUserVisibleMetadataLeakage(tree!);
 
   await ReactTestRenderer.act(() => {
