@@ -1504,6 +1504,7 @@ export function LearningResultDetailSurface({
             shadowColor: palette.text,
           },
         ]}
+        testID="learning-detail-resolved-card"
       >
         <View style={styles.cardAddressShelf}>
           <View style={styles.heroChipRow}>
@@ -1642,6 +1643,7 @@ export function LearningResultDetailSurface({
               borderColor: neutralAction.border,
             },
           ]}
+          testID="learning-detail-answer-slip"
         >
           <View style={styles.detailSlipHeader}>
             <View
@@ -2137,7 +2139,10 @@ const styles = StyleSheet.create({
   detailResolvedCard: {
     borderRadius: 30,
     borderWidth: 1,
+    flex: 1,
     gap: 6,
+    justifyContent: 'space-between',
+    minHeight: 0,
     overflow: 'hidden',
     paddingHorizontal: 17,
     paddingVertical: 12,
@@ -2172,7 +2177,10 @@ const styles = StyleSheet.create({
   detailAnswerSlip: {
     borderRadius: 22,
     borderWidth: 1,
+    flexGrow: 1,
     gap: 7,
+    justifyContent: 'space-between',
+    minHeight: 0,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -2222,7 +2230,10 @@ const styles = StyleSheet.create({
   detailExplanationSlip: {
     borderRadius: 18,
     borderWidth: 1,
+    flexGrow: 1,
     gap: 4,
+    justifyContent: 'center',
+    minHeight: 0,
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
@@ -2236,7 +2247,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   detailPrimaryButton: {
-    marginTop: 1,
+    marginTop: 0,
     paddingVertical: 12,
   },
   detailCardLocationStrip: {

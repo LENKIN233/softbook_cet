@@ -2643,6 +2643,15 @@ test('can complete the local single-card deck and restart it', async () => {
       testID: 'learning-result-detail-screen',
     }),
   ).toBeTruthy();
+  const detailResolvedCardStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'learning-detail-resolved-card' }).props.style,
+  );
+  expect(detailResolvedCardStyle.flex).toBe(1);
+  expect(detailResolvedCardStyle.justifyContent).toBe('space-between');
+  const detailAnswerSlipStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'learning-detail-answer-slip' }).props.style,
+  );
+  expect(detailAnswerSlipStyle.flexGrow).toBe(1);
   expect(output).toContain('当前卡');
   expect(output).toContain('答案留在本卡');
   expect(output).not.toContain('结果在当前卡');
