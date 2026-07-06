@@ -298,11 +298,24 @@ test('uses a compact address clue instead of selector controls in the card list 
   expect(
     root.findAllByProps({ testID: 'space-browse-card-continuity' }).length,
   ).toBeGreaterThan(0);
+  const containedStripStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'space-contained-card-strip' }).props.style,
+  );
+  expect(containedStripStyle.flex).toBe(1);
   const browseCardObjectStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'space-browse-card-object' }).props.style,
   );
-  expect(browseCardObjectStyle.flex).toBe(0);
-  expect(browseCardObjectStyle.minHeight).toBeLessThan(320);
+  expect(browseCardObjectStyle.flexGrow).toBe(1);
+  expect(browseCardObjectStyle.minHeight).toBe(0);
+  const browseCardFaceStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'space-browse-card-face' }).props.style,
+  );
+  expect(browseCardFaceStyle.flexGrow).toBe(1);
+  expect(browseCardFaceStyle.justifyContent).toBe('center');
+  const browsePagerStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'space-browse-card-pager' }).props.style,
+  );
+  expect(browsePagerStyle.marginTop).toBe('auto');
   const browseStateTrayStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'space-browse-card-state-tray' }).props.style,
   );

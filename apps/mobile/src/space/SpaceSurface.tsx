@@ -1307,20 +1307,30 @@ export function SpaceSurface({
                             </Text>
                           ) : null}
                         </View>
-                        <Text
-                          numberOfLines={3}
-                          style={[styles.cardPrompt, { color: palette.text }]}
+                        <View
+                          style={styles.browseCardFace}
+                          testID="space-browse-card-face"
                         >
-                          {card.prompt}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.cardMeta,
-                            { color: palette.textMuted },
-                          ]}
-                        >
-                          {card.interactionLabel}
-                        </Text>
+                          <Text
+                            numberOfLines={4}
+                            style={[
+                              styles.cardPrompt,
+                              styles.browseCardPrompt,
+                              { color: palette.text },
+                            ]}
+                          >
+                            {card.prompt}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.cardMeta,
+                              styles.browseCardMeta,
+                              { color: palette.textMuted },
+                            ]}
+                          >
+                            {card.interactionLabel}
+                          </Text>
+                        </View>
                         <View
                           style={[
                             styles.cardStateDeck,
@@ -1461,6 +1471,7 @@ export function SpaceSurface({
                               borderColor: 'transparent',
                             },
                           ]}
+                          testID="space-browse-card-pager"
                         >
                           <ActionChip
                             disabled={!canShowPreviousCard}
@@ -2203,7 +2214,7 @@ const styles = StyleSheet.create({
   boxBrowseSurface: {
     borderRadius: 28,
     borderWidth: 1,
-    flex: 0,
+    flex: 1,
     flexDirection: 'column',
     gap: 7,
     minHeight: 0,
@@ -2709,7 +2720,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardStrip: {
-    flex: 0,
+    flex: 1,
     gap: 0,
     minHeight: 0,
   },
@@ -2741,9 +2752,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     elevation: 1,
-    flex: 0,
+    flexGrow: 1,
     gap: 8,
-    minHeight: 306,
+    minHeight: 0,
     paddingBottom: 10,
     paddingHorizontal: 14,
     paddingLeft: 26,
@@ -2766,6 +2777,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
+  },
+  browseCardFace: {
+    flexGrow: 1,
+    gap: 8,
+    justifyContent: 'center',
+    minHeight: 0,
+  },
+  browseCardPrompt: {
+    fontSize: 18,
+    lineHeight: 25,
+  },
+  browseCardMeta: {
+    fontWeight: '800',
   },
   cardStateDeck: {
     borderTopWidth: 0,
@@ -2849,6 +2873,7 @@ const styles = StyleSheet.create({
   },
   browseCompactPager: {
     gap: 7,
+    marginTop: 'auto',
     paddingHorizontal: 0,
     paddingVertical: 1,
   },
