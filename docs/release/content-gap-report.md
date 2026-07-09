@@ -2,7 +2,7 @@
 
 Referenced specs: `spec/requirement-memory.json`, `spec/product-core.json`, `spec/box-catalog.json`, `spec/membership.json`, `spec/runtime-boundaries.json`, `spec/platform-contract.json`.
 
-Generated at: `2026-05-18T04:32:34.035Z`
+Generated at: `2026-07-09T08:45:13.382Z`
 
 `product_truth`: Public release content must satisfy the active CET4/CET6 box catalog, free users need near-half normal card access, and current card records must map to active box prefixes.
 
