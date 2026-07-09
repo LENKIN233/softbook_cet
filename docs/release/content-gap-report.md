@@ -2,11 +2,11 @@
 
 Referenced specs: `spec/requirement-memory.json`, `spec/product-core.json`, `spec/box-catalog.json`, `spec/membership.json`, `spec/runtime-boundaries.json`, `spec/platform-contract.json`.
 
-Generated at: `2026-07-09T08:45:13.382Z`
+Generated at: `2026-07-09T09:00:14.668Z`
 
 `product_truth`: Public release content must satisfy the active CET4/CET6 box catalog, free users need near-half normal card access, and current card records must map to active box prefixes.
 
-`implementation_hypothesis`: This report compares the active box catalog against the repository development card source. It does not prove production content quality, production SMS, payment, or App Store readiness.
+`implementation_hypothesis`: This report compares the active box catalog against the repository development card source. Candidate handoff deltas, when present, are dry-run projections only. They do not prove production content quality, production SMS, payment, content approval, import application, or App Store readiness.
 
 ## Summary
 
@@ -142,5 +142,6 @@ These cards exist in the repository development card source but do not map to ac
 ## Immediate Implications
 
 - The current development source is enough to prove the five core interaction shapes, but it is not enough for public release content.
-- CET6 currently has repository dev cards, but they are unmapped against the active `box-catalog` prefixes and therefore should not be counted as catalog coverage until corrected or the catalog is intentionally revised.
+- The current development cards map to active `box-catalog` prefixes, but mapped coverage is still far below the free-after-trial near-half target.
+- Candidate handoff deltas quantify validated dry-run payload contribution only; they do not approve content or apply production imports.
 - To reach the free-after-trial near-half target before full catalog completion, the current mapped content must reach the `Near-half free target` counts above.
