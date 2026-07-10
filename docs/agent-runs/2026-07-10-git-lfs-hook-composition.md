@@ -4,7 +4,7 @@
 
 - Date: 2026-07-10
 - Branch: `infra/git-lfs-hook-composition`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/402
 - Summary: Make a fresh clone install the repository main guard and Git LFS pre-push behavior without either hook overwriting the other.
 
 ## Referenced specs
