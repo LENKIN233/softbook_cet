@@ -1,0 +1,43 @@
+#!/usr/bin/env node
+
+import {spawnSync} from 'node:child_process';
+
+const envId = process.env.CLOUDBASE_ENV_ID || 'test-d2gzcyxr9f7e80972';
+const collections = [
+  'softbook_card_sources',
+  'softbook_memberships',
+  'softbook_daily_progress',
+  'softbook_learning_states',
+  'softbook_space_states',
+];
+const now = new Date().toISOString();
+const command = JSON.stringify(
+  collections.map(collectionName => ({
+    TableName: collectionName,
+    CommandType: 'UPDATE',
+    Command: JSON.stringify({
+      update: collectionName,
+      updates: [
+        {
+          q: {_id: '__provision__'},
+          u: {
+            $set: {
+              kind: 'provision',
+              updated_at: now,
+            },
+          },
+          upsert: true,
+        },
+      ],
+    }),
+  })),
+);
+const result = spawnSync(
+  'tcb',
+  ['db', 'nosql', 'execute', '-e', envId, '--command', command, '--json'],
+  {
+    stdio: 'inherit',
+  },
+);
+
+process.exit(result.status ?? 1);

@@ -1,0 +1,737 @@
+{
+  "version": "vnext-16",
+  "regressions": [
+    {
+      "id": "HR-01",
+      "prompt": "解释软书四六级是什么产品",
+      "fail_signal": "answered_as_general_english_teaching_or_vocab_tool",
+      "must_hit": [
+        "exam_oriented",
+        "low_burden",
+        "cards",
+        "interactions",
+        "physical_space"
+      ]
+    },
+    {
+      "id": "HR-02",
+      "prompt": "设计主学习流页面",
+      "fail_signal": "starts_with_component_tree_or_timing_constants",
+      "must_hit": [
+        "experience_goal",
+        "information_goal",
+        "key_actions"
+      ]
+    },
+    {
+      "id": "HR-03",
+      "prompt": "解释物理空间",
+      "fail_signal": "favorite_box_plus_sleep_box_only",
+      "must_hit": [
+        "knowledge_map",
+        "card_position_system",
+        "library_group_box_card"
+      ]
+    },
+    {
+      "id": "HR-04",
+      "prompt": "定义提示",
+      "fail_signal": "hint_as_standalone_card_type",
+      "must_hit": [
+        "enhancement_layer"
+      ]
+    },
+    {
+      "id": "HR-05",
+      "prompt": "定义音频交互",
+      "fail_signal": "audio_as_interaction_family",
+      "must_hit": [
+        "audio_as_medium"
+      ]
+    },
+    {
+      "id": "HR-06",
+      "prompt": "说明产品重点指标",
+      "fail_signal": "counters_before_user_value",
+      "must_hit": [
+        "trust",
+        "easier_exam_passing",
+        "paid_value"
+      ]
+    },
+    {
+      "id": "HR-07",
+      "prompt": "说明免费与会员差异",
+      "fail_signal": "trial_missing_or_free_equals_complete",
+      "must_hit": [
+        "full_trial",
+        "limited_free_after_trial",
+        "premium_core_value",
+        "near_half_free_access"
+      ]
+    },
+    {
+      "id": "HR-08",
+      "prompt": "说明卡片页应该显性暴露哪些动作",
+      "fail_signal": "drops_peek_or_requires_heavy_mastery_decision_every_card",
+      "must_hit": [
+        "peek",
+        "favorite",
+        "interaction_primary_action",
+        "low_operation_cost"
+      ]
+    },
+    {
+      "id": "HR-09",
+      "prompt": "说明用户在物理空间里能做什么",
+      "fail_signal": "arbitrary_free_drag_or_no_user_control_at_all",
+      "must_hit": [
+        "partial_user_control",
+        "algorithm_primary",
+        "sleep_zone_rule",
+        "favorite_not_box"
+      ]
+    },
+    {
+      "id": "HR-10",
+      "prompt": "说明多端发布与适配策略",
+      "fail_signal": "omits_web_or_uses_one_ui_for_all_or_treats_pc_as_native_desktop",
+      "must_hit": [
+        "ios_android_web",
+        "phone_tablet_pc_web",
+        "dedicated_ui_per_device_class",
+        "ios_equals_android_before_web"
+      ]
+    },
+    {
+      "id": "HR-11",
+      "prompt": "说明三端连续性、会员与购买策略",
+      "fail_signal": "requires_exact_cross_device_resume_or_drops_shared_membership_or_web_purchase",
+      "must_hit": [
+        "daily_level_sync",
+        "some_progress_inheritance",
+        "shared_membership",
+        "purchase_on_all_release_targets"
+      ]
+    },
+    {
+      "id": "HR-12",
+      "prompt": "说明音频在产品里的角色",
+      "fail_signal": "audio_missing_on_some_release_targets_or_bound_to_interaction_family",
+      "must_hit": [
+        "audio_on_all_release_targets",
+        "audio_as_front_content",
+        "audio_not_interaction_family"
+      ]
+    },
+    {
+      "id": "HR-13",
+      "prompt": "说明登录与开始学习的关系",
+      "fail_signal": "allows_guest_learning_before_login",
+      "must_hit": [
+        "login_required_before_learning",
+        "no_guest_learning"
+      ],
+      "must_preserve_source_anchors": [
+        "必须登入"
+      ]
+    },
+    {
+      "id": "HR-14",
+      "prompt": "说明认证、试用与购买规则",
+      "fail_signal": "wrong_login_method_or_wrong_trial_start_or_web_purchase_weaker_than_app",
+      "must_hit": [
+        "phone_sms_login",
+        "trial_starts_on_first_counted_entry",
+        "web_app_purchase_equal",
+        "recovery_reminder_after_membership_experience"
+      ],
+      "must_preserve_source_anchors": [
+        "手机号+验证码",
+        "web与app购买同权"
+      ]
+    },
+    {
+      "id": "HR-15",
+      "prompt": "说明三端导航与非触摸输入",
+      "fail_signal": "changes_top_level_nav_or_ignores_keyboard_mouse_strategy",
+      "must_hit": [
+        "learning_space_statistics_mine",
+        "device_specific_page_composition",
+        "keyboard_plus_mouse_on_non_touch"
+      ],
+      "must_preserve_source_anchors": [
+        "三端信息架构导航是一致的：学习 空间 统计 我的"
+      ]
+    },
+    {
+      "id": "HR-16",
+      "prompt": "说明音频播放与字幕策略",
+      "fail_signal": "autoplays_audio_or_requires_front_subtitles",
+      "must_hit": [
+        "no_autoplay",
+        "no_front_subtitles",
+        "back_text_or_transcript_may_exist"
+      ],
+      "must_preserve_source_anchors": [
+        "不自动播放，没有字幕（背面可以有）"
+      ]
+    },
+    {
+      "id": "HR-17",
+      "prompt": "在经历多轮错误引导后，重新复述软书四六级的原始需求",
+      "fail_signal": "restatement_misses_exam_first_cards_interactions_physical_space_or_multisurface_truth",
+      "must_hit": [
+        "exam_oriented_low_burden_promise",
+        "cards_are_progress_unit",
+        "interaction_is_core_content_contract",
+        "physical_space_is_core_differentiator",
+        "system_sequenced_default_learning_path",
+        "ios_android_web",
+        "learning_and_space_are_top_level_entries",
+        "login_required_before_learning",
+        "membership_shared_purchase_all_surfaces"
+      ],
+      "must_preserve_source_anchors": [
+        "必须登入",
+        "手机号+验证码",
+        "web与app购买同权",
+        "三端信息架构导航是一致的：学习 空间 统计 我的",
+        "不自动播放，没有字幕（背面可以有）",
+        "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
+      ]
+    },
+    {
+      "id": "HR-18",
+      "prompt": "说明学习路径策略",
+      "fail_signal": "recommends_module_first_learning_or_treats_module_choice_as_equal_to_main_flow",
+      "must_hit": [
+        "system_sequenced_default_learning_path",
+        "single_card_flow",
+        "module_browsing_secondary_for_targeted_review",
+        "avoid_user_mode_switching"
+      ],
+      "must_preserve_source_anchors": [
+        "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
+      ]
+    },
+    {
+      "id": "HR-19",
+      "prompt": "说明 main 分支的工程治理约束",
+      "fail_signal": "allows_direct_main_development_or_treats_protection_as_doc_only",
+      "must_hit": [
+        "main_read_only_integration_branch",
+        "topic_branch_required",
+        "local_hooks_installed",
+        "github_branch_protection"
+      ]
+    },
+    {
+      "id": "HR-20",
+      "prompt": "flip 翻面后有几档自评？再回看是什么颜色？",
+      "fail_signal": "answers_four_levels_or_paints_review_as_red_instead_of_amber",
+      "must_hit": [
+        "two_levels_only",
+        "confident_green",
+        "review_amber_not_red",
+        "scoped_to_flip"
+      ]
+    },
+    {
+      "id": "HR-21",
+      "prompt": "为某个新 surface 设计视觉输出，直接给出组件树",
+      "fail_signal": "produces_component_tree_without_first_answering_design_review_checklist",
+      "must_hit": [
+        "design_review_checklist_answered",
+        "Law_of_One_stated",
+        "focal_object_stated",
+        "interaction_silhouette_referenced"
+      ]
+    },
+    {
+      "id": "HR-22",
+      "prompt": "评审一张产出稿：同屏同时用听力蓝和词汇玫瑰作为 CTA 强色",
+      "fail_signal": "approves_multi_library_accent_on_one_screen_or_only_comments_on_aesthetics",
+      "must_hit": [
+        "Law_of_One_violation",
+        "VL_AP_01",
+        "require_demotion_to_chips"
+      ]
+    },
+    {
+      "id": "HR-23",
+      "prompt": "说明默认代码交付路径与 PR 规则",
+      "fail_signal": "keeps_code_changes_local_by_default_or_leaves_reviewed_green_pr_waiting_for_explicit_merge_instruction",
+      "must_hit": [
+        "topic_branch_default",
+        "pull_request_default_unless_local_only",
+        "handoff_branch_commit_validation_when_pr_blocked",
+        "agent_review_before_merge",
+        "agent_review_record_gate_before_merge",
+        "auto_merge_after_clean_review_and_green_gates"
+      ]
+    },
+    {
+      "id": "HR-24",
+      "prompt": "开始实现一个用户可见 UI 改动",
+      "fail_signal": "starts_RN_or_CSS_implementation_without_design_artifact_source",
+      "must_hit": [
+        "design_artifact_required_before_implementation",
+        "existing_RN_is_behavior_prototype_not_visual_authority",
+        "design_source_named_in_PR",
+        "implementation_maps_to_accepted_design"
+      ]
+    },
+    {
+      "id": "HR-25",
+      "prompt": "开始实现 Learning 或 Space 的核心 UI 改动",
+      "fail_signal": "treats_design_as_generic_UI_or_skips_interaction_motion_physical_space_evidence",
+      "must_hit": [
+        "surface_specific_accepted_artifact",
+        "interaction_motion_artifact_for_learning_or_core_interaction_change",
+        "physical_space_artifact_for_space_change",
+        "design_review_checklist_answers",
+        "implementation_mapping_and_unimplemented_gaps"
+      ]
+    },
+    {
+      "id": "HR-26",
+      "prompt": "让 AI 直接生成一个 Space 设计稿并作为最终设计基准",
+      "fail_signal": "promotes_first_generation_AI_output_without_candidate_population_pairwise_review_fragment_harvest_or_mutation_log",
+      "must_hit": [
+        "design_evolution_engine_required_for_core_surface_optimization",
+        "context_pack_shared_by_candidates",
+        "candidate_population_with_provenance",
+        "surviving_candidate_visual_evidence",
+        "hard_filters_before_review",
+        "non_empty_run_records_not_templates",
+        "pairwise_review_not_single_aesthetic_score",
+        "pairwise_visual_evidence_for_compared_candidates",
+        "pairwise_coverage_for_candidate_population",
+        "fragment_harvest_and_targeted_mutation",
+        "promotion_record_before_accepted_artifact",
+        "rendered_or_external_prototype_proof_required"
+      ]
+    },
+    {
+      "id": "HR-27",
+      "prompt": "评审一个含 agent、harness、spec、validator 或 metadata 字样的用户可见设计稿",
+      "fail_signal": "treats_metadata_leakage_as_copy_polish_or_allows_artifact_to_back_UI_implementation",
+      "must_hit": [
+        "metadata_leakage_is_delivery_blocker",
+        "design_quarantine_required",
+        "user_visible_copy_must_not_expose_internal_process",
+        "repair_then_re_review_before_implementation"
+      ]
+    },
+    {
+      "id": "HR-28",
+      "prompt": "解释单卡流是否等于把所有信息放进一屏",
+      "fail_signal": "approves_one_screen_cram_or_omits_primary_task_primary_action_feedback_recovery",
+      "must_hit": [
+        "single_card_flow_is_operable_focused_flow_not_one_screen_cram",
+        "current_card_focal_object",
+        "primary_task_and_primary_action",
+        "bounded_secondary_actions",
+        "feedback_and_recovery",
+        "learning_space_continuity"
+      ]
+    },
+    {
+      "id": "HR-29",
+      "prompt": "说明 agent 阅读工作区时哪些内容不能默认作为上下文",
+      "fail_signal": "treats_node_modules_build_Pods_pycache_DS_Store_archive_or_card_make_as_active_context",
+      "must_hit": [
+        "workspace_boundary_spec_is_owner",
+        "generated_dependency_cache_archive_excluded_by_default",
+        "external_card_make_workspace_only_by_contract",
+        "read_escalation_requires_explicit_debug_or_handoff_reason"
+      ]
+    },
+    {
+      "id": "HR-30",
+      "prompt": "审查一个 agent 声称已经读完整个工作区并据此下结论",
+      "fail_signal": "approves_bulk_reading_without_classifying_generated_dependency_cache_archive_or_external_workspace_noise",
+      "must_hit": [
+        "context_pollution_risk",
+        "active_truth_and_source_separated_from_generated_artifacts",
+        "dependencies_and_build_outputs_not_product_truth",
+        "archive_not_active_truth"
+      ]
+    },
+    {
+      "id": "HR-31",
+      "prompt": "说明 validate_harness.py 的分层架构",
+      "fail_signal": "describes_harness_as_one_big_validator_or_cannot_name_truth_workspace_delivery_design_runtime_layers",
+      "must_hit": [
+        "harness_architecture_spec_is_owner",
+        "truth_spec_layer_is_pure",
+        "workspace_hygiene_layer_is_pure",
+        "delivery_governance_layer_may_read_git_and_github",
+        "design_governance_layer_uses_local_fixtures_no_remote",
+        "runtime_smoke_layer_delegated_to_backend_contract_and_mobile_quality"
+      ]
+    },
+    {
+      "id": "HR-32",
+      "prompt": "往 harness 新增一个检查时应该放在哪里",
+      "fail_signal": "adds_check_to_any_section_without_layer_owner_or_puts_side_effects_in_truth_workspace_layer",
+      "must_hit": [
+        "choose_layer_before_implementation",
+        "pure_layers_no_subprocess_or_remote_reads",
+        "delivery_governance_for_branch_pr_ci_wiring",
+        "design_governance_for_design_artifact_regressions",
+        "runtime_tests_stay_in_ci_jobs"
+      ]
+    },
+    {
+      "id": "HR-33",
+      "title": "Agent run record is wired into manifest, authority, delivery contract, harness, PR template, and agent review gate.",
+      "protects_against": "PR-bound agent work disappearing into chat-only context or untraceable local decisions.",
+      "command": "python3 scripts/validate_harness.py",
+      "expected": "HARNESS VALIDATION OK"
+    },
+    {
+      "id": "HR-34",
+      "title": "Agent review rejects PR bodies without a committed docs/agent-runs/*.md reference.",
+      "protects_against": "Run-record section existing as a cosmetic template field while merge review lacks durable evidence.",
+      "command": "PR_BODY=<body> python3 scripts/validate_agent_review.py",
+      "expected": "AGENT REVIEW GATE OK only when Run record points to docs/agent-runs/*.md"
+    },
+    {
+      "id": "HR-35",
+      "prompt": "PR merge command reports a local main worktree lock after required gates passed",
+      "fail_signal": "assumes_remote_merge_failed_or_continues_from_stale_local_main",
+      "must_hit": [
+        "github_pr_state_is_remote_merge_authority",
+        "origin_main_checked_for_merge_commit",
+        "clean_local_main_fast_forwarded_to_origin_main",
+        "dirty_local_main_reported_as_workspace_hygiene_blocker",
+        "topic_worktree_not_reused_after_merge_without_refresh"
+      ]
+    }
+  ],
+  "golden_tasks": [
+    {
+      "id": "GT-01",
+      "task": "解释产品定位",
+      "must_include": [
+        "exam_oriented",
+        "low_burden",
+        "single_card_flow",
+        "physical_space"
+      ]
+    },
+    {
+      "id": "GT-02",
+      "task": "设计主学习流",
+      "must_include": [
+        "experience_goal",
+        "user_actions",
+        "auto_scoring_first",
+        "not_overly_disruptive"
+      ]
+    },
+    {
+      "id": "GT-03",
+      "task": "设计物理空间",
+      "must_include": [
+        "library_group_box_card",
+        "card_position",
+        "partial_move_power",
+        "favorites_not_physical_box"
+      ]
+    },
+    {
+      "id": "GT-04",
+      "task": "定义一张卡",
+      "must_include": [
+        "knowledge_ownership",
+        "interaction",
+        "front",
+        "analysis",
+        "optional_audio_and_hint"
+      ]
+    },
+    {
+      "id": "GT-05",
+      "task": "选择交互",
+      "must_include": [
+        "why_this_interaction",
+        "scoring_mode",
+        "hint_need"
+      ]
+    },
+    {
+      "id": "GT-06",
+      "task": "解释付费结构",
+      "must_include": [
+        "full_trial",
+        "limited_free_after_trial",
+        "premium_is_smarter_guidance",
+        "near_half_free_access"
+      ]
+    },
+    {
+      "id": "GT-07",
+      "task": "定义卡片页动作显隐",
+      "must_include": [
+        "peek",
+        "favorite",
+        "interaction_primary_action",
+        "avoid_heavy_mastery_every_card"
+      ]
+    },
+    {
+      "id": "GT-08",
+      "task": "定义多端产品面",
+      "must_include": [
+        "ios_android_web",
+        "phone_tablet_pc_web",
+        "different_information_architecture_allowed",
+        "do_not_force_touch_literalism"
+      ],
+      "must_preserve_source_anchors": [
+        "三端信息架构导航是一致的：学习 空间 统计 我的"
+      ]
+    },
+    {
+      "id": "GT-09",
+      "task": "定义跨端连续性与会员购买",
+      "must_include": [
+        "daily_level_sync",
+        "exact_resume_not_required",
+        "membership_shared",
+        "purchase_on_all_release_targets"
+      ],
+      "must_preserve_source_anchors": [
+        "web与app购买同权"
+      ]
+    },
+    {
+      "id": "GT-10",
+      "task": "定义登录门槛",
+      "must_include": [
+        "login_required_before_learning",
+        "guest_learning_not_supported"
+      ],
+      "must_preserve_source_anchors": [
+        "必须登入"
+      ]
+    },
+    {
+      "id": "GT-11",
+      "task": "定义账号、试用与同步",
+      "must_include": [
+        "phone_sms_login",
+        "trial_start_on_first_counted_entry",
+        "sync_learning_and_space_state",
+        "server_authoritative_default_merge_as_hypothesis"
+      ],
+      "must_preserve_source_anchors": [
+        "必须登入",
+        "手机号+验证码",
+        "web与app购买同权"
+      ]
+    },
+    {
+      "id": "GT-12",
+      "task": "复述原始产品需求",
+      "must_include": [
+        "pass_cet_more_easily",
+        "cards_interactions_knowledge_points",
+        "single_card_flow",
+        "system_sequenced_default_learning_path",
+        "physical_space_core",
+        "ios_android_web_phone_tablet_pc_web",
+        "login_required",
+        "shared_membership_and_all_surface_purchase"
+      ],
+      "must_preserve_source_anchors": [
+        "必须登入",
+        "手机号+验证码",
+        "web与app购买同权",
+        "三端信息架构导航是一致的：学习 空间 统计 我的",
+        "不自动播放，没有字幕（背面可以有）",
+        "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
+      ]
+    },
+    {
+      "id": "GT-13",
+      "task": "定义学习路径策略",
+      "must_include": [
+        "system_sequenced_default_learning_path",
+        "single_card_flow",
+        "module_browsing_secondary_for_targeted_review",
+        "not_primary_learning_mode"
+      ],
+      "must_preserve_source_anchors": [
+        "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
+      ]
+    },
+    {
+      "id": "GT-14",
+      "task": "定义 main 分支治理",
+      "must_include": [
+        "main_read_only_integration_branch",
+        "topic_branch_required",
+        "local_hooks_installed",
+        "github_branch_protection"
+      ]
+    },
+    {
+      "id": "GT-15",
+      "task": "产出任意视觉稿（screen / mock / reference HTML）",
+      "must_include": [
+        "design_review_checklist_universal_Q1_Q4_answered",
+        "applicable_conditional_Q5_Q6_answered",
+        "Law_of_One_named_current_library",
+        "focal_object_named",
+        "interaction_silhouette_matched_or_justified",
+        "forbidden_design_patterns_hit_list_empty_or_declared"
+      ]
+    },
+    {
+      "id": "GT-16",
+      "task": "评审视觉稿",
+      "must_include": [
+        "product_distortion_risks_ranked_first",
+        "aesthetic_findings_second",
+        "layout_bugs_third",
+        "each_failure_cites_VL_AP_or_AP_id",
+        "never_approves_without_running_design_review_checklist"
+      ]
+    },
+    {
+      "id": "GT-17",
+      "task": "定义代码交付与 PR 规则",
+      "must_include": [
+        "topic_branch_commit_pull_request_agent_review_auto_merge_default",
+        "local_only_must_be_explicit",
+        "pull_request_body_contains_specs_summary_validation",
+        "agent_review_before_merge",
+        "agent_review_record_checked_by_required_gate",
+        "merge_only_blocks_on_review_gate_or_permission_failure"
+      ]
+    },
+    {
+      "id": "GT-18",
+      "task": "实现用户可见 UI",
+      "must_include": [
+        "accepted_design_artifact_before_implementation",
+        "design_source_and_mapping_in_PR",
+        "visual_language_checklist_answered",
+        "existing_RN_not_used_as_design_authority",
+        "unimplemented_design_gaps_declared"
+      ]
+    },
+    {
+      "id": "GT-19",
+      "task": "定义软书设计体系",
+      "must_include": [
+        "product_capability_systems_not_generic_UI_taxonomy",
+        "learning_progression_system",
+        "card_content_expression_system",
+        "interaction_motion_system",
+        "physical_space_system",
+        "surface_experience_as_carrier",
+        "visual_language_as_style_governance_not_product_owner",
+        "artifact_lifecycle_to_rendered_mock_storyboard_mapping"
+      ]
+    },
+    {
+      "id": "GT-20",
+      "task": "定义 AI 如何迭代出更符合需求的核心设计内容",
+      "must_include": [
+        "constraints_define_search_boundary",
+        "candidate_population_not_single_output",
+        "surviving_candidate_visual_evidence",
+        "hard_filter_product_truth_and_layout_violations",
+        "reject_placeholder_only_search_run_records",
+        "pairwise_rank_surviving_candidates",
+        "pairwise_visual_evidence_for_compared_candidates",
+        "pairwise_coverage_scales_with_candidate_count",
+        "fragment_harvest_before_synthesis",
+        "targeted_mutation_from_named_failures",
+        "promotion_record_with_rendered_proof",
+        "failure_sedimentation_back_to_harness"
+      ]
+    },
+    {
+      "id": "GT-21",
+      "task": "隔离含用户可见元信息泄露的设计内容",
+      "must_include": [
+        "metadata_leakage_is_delivery_blocker",
+        "design_quarantine_required",
+        "artifact_status_accepted_candidate_quarantined_rejected",
+        "implementation_PR_must_not_consume_quarantined_artifact"
+      ]
+    },
+    {
+      "id": "GT-22",
+      "task": "定义可操作单卡流",
+      "must_include": [
+        "single_card_flow_is_operable_focused_flow_not_one_screen_cram",
+        "current_card",
+        "primary_task",
+        "primary_action",
+        "secondary_actions_bounded",
+        "feedback_state",
+        "escape_or_recovery",
+        "space_continuity"
+      ]
+    },
+    {
+      "id": "GT-23",
+      "task": "定义 workspace boundary 与 agent 默认读取边界",
+      "must_include": [
+        "active_truth",
+        "source",
+        "design_authority",
+        "runtime_contract",
+        "generated",
+        "dependency_vendor",
+        "cache_or_machine_local",
+        "archive",
+        "external_workspace",
+        "do_not_default_read_generated_dependency_cache_archive_external_workspace"
+      ]
+    },
+    {
+      "id": "GT-24",
+      "task": "定义 harness architecture split",
+      "must_include": [
+        "bootstrap_layer",
+        "truth_spec_layer",
+        "workspace_hygiene_layer",
+        "delivery_governance_layer",
+        "design_governance_layer",
+        "runtime_smoke_layer",
+        "pure_local_file_checks",
+        "runtime_smoke_delegated_to_backend_contract_and_mobile_quality"
+      ]
+    },
+    {
+      "id": "GT-25",
+      "title": "PR-bound governance change creates and references a durable agent run record.",
+      "prompt": "Add a governance or harness contract change and prepare the PR body.",
+      "expected_artifacts": [
+        "docs/agent-runs/*.md",
+        "PR body Agent run record section with Run record pointing to that committed file",
+        "validate_harness.py covers the contract wiring",
+        "validate_agent_review.py rejects missing or placeholder run records"
+      ]
+    },
+    {
+      "id": "GT-26",
+      "task": "处理本地 main worktree stale 或 merge 后 worktree lock",
+      "must_include": [
+        "verify_remote_pr_state_and_origin_main",
+        "classify_stale_local_main_as_workspace_hygiene_not_product_truth",
+        "fast_forward_clean_local_main_only",
+        "do_not_overwrite_dirty_worktree",
+        "start_next_pr_from_origin_main"
+      ]
+    }
+  ]
+}

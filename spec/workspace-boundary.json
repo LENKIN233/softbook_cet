@@ -1,0 +1,206 @@
+{
+  "version": "vnext-2",
+  "layer": "implementation_hypothesis_with_repo_governance_truth",
+  "purpose": "Define what the active repository workspace means for agents and harness checks. This prevents generated artifacts, dependency trees, caches, archives, and sibling workspaces from becoming semantic context by accident.",
+  "authority_note": "This file owns workspace classification and agent read-boundary policy. It does not override product truth, design truth, runtime contracts, or content approval boundaries owned by other specs.",
+  "product_truth": {
+    "card_make_is_external_content_workspace": {
+      "claim": "The sibling `/Users/lenkin/programing/card make` workspace produces and approves candidate card content. softbook_cet consumes exported payloads, dry-run/imports them, audits coverage, and runs runtime smoke; it does not treat that workspace as internal source.",
+      "binding": [
+        "spec/agent-harness.json",
+        "infra/cloudbase/mobile-runtime-contract.md",
+        "spec/box-catalog.json"
+      ],
+      "violation_is": "product_and_delivery_boundary_break"
+    },
+    "active_workspace_must_exclude_generated_dependency_cache_and_archive_by_default": {
+      "claim": "Generated outputs, dependency/vendor directories, caches, machine-local files, and inactive archives must not be read as semantic product or implementation authority by default.",
+      "violation_is": "agent_context_pollution"
+    }
+  },
+  "classification": {
+    "active_truth": {
+      "description": "Normative product, delivery, design, and harness truth.",
+      "examples": [
+        "AGENTS.md",
+        "spec/*.json",
+        "docs/design/design-harness.md",
+        "docs/design/canon.md",
+        "docs/design/design-quarantine.md",
+        "docs/design/single-card-ux-contract.md"
+      ],
+      "default_read": "only_when_task_relevant"
+    },
+    "source": {
+      "description": "Human-authored implementation source and scripts.",
+      "examples": [
+        "apps/mobile/App.tsx",
+        "apps/mobile/src/**",
+        "apps/mobile/scripts/**",
+        "infra/cloudbase/functions/**",
+        "infra/cloudbase/*.mjs",
+        "scripts/**"
+      ],
+      "default_read": "only_when_task_relevant"
+    },
+    "design_authority": {
+      "description": "Accepted design artifacts and design governance documents. Search runs or candidates are evidence, not automatic implementation authority.",
+      "examples": [
+        "docs/design/visual-reference.html",
+        "docs/design/briefs/**",
+        "docs/design/decisions/**",
+        "docs/design/interaction-motion/**",
+        "docs/design/physical-space/**",
+        "docs/design/mocks/**",
+        "docs/design/storyboards/**",
+        "docs/design/search-runs/**"
+      ],
+      "default_read": "only_for_visual_design_or_user_facing_ui_tasks"
+    },
+    "runtime_contract": {
+      "description": "Contracts, package metadata, smoke scripts, and deployment notes that describe runtime boundaries.",
+      "examples": [
+        "infra/cloudbase/mobile-runtime-contract.md",
+        "infra/cloudbase/README.md",
+        "apps/mobile/package.json",
+        "infra/cloudbase/functions/softbook-api/package.json"
+      ],
+      "default_read": "only_for_runtime_backend_mobile_contract_tasks"
+    },
+    "generated": {
+      "description": "Build products and generated outputs. They may exist locally but are not active semantic context.",
+      "examples": [
+        "apps/mobile/build/**",
+        "apps/mobile/ios/build/**",
+        "apps/mobile/android/app/build/**",
+        "apps/mobile/coverage/**",
+        "docs/agent-runs/artifacts/**",
+        "docs/design/app-screenshots/**",
+        "docs/design/search-runs/**/screenshots/**",
+        "exports/**",
+        "*.jsbundle"
+      ],
+      "default_read": "never_without_explicit_debug_need"
+    },
+    "dependency_vendor": {
+      "description": "Third-party dependency trees and vendored package outputs. Read package manifests or lockfiles first; do not bulk-read dependency trees.",
+      "examples": [
+        "apps/mobile/node_modules/**",
+        "apps/mobile/ios/Pods/**",
+        "**/vendor/bundle/**"
+      ],
+      "default_read": "never_without_explicit_dependency_debug_need"
+    },
+    "cache_or_machine_local": {
+      "description": "Machine-local, transient, cache, and editor/runtime byproducts.",
+      "examples": [
+        ".DS_Store",
+        "__pycache__/**",
+        "*.pyc",
+        ".tmp/**",
+        "apps/mobile/.bundle/**",
+        "apps/mobile/.metro-health-check*",
+        "apps/mobile/ios/DerivedData/**",
+        "apps/mobile/ios/xcuserdata/**"
+      ],
+      "default_read": "never"
+    },
+    "archive": {
+      "description": "Inactive historical material. Do not use as active truth unless a task explicitly asks for historical comparison.",
+      "examples": [
+        "archive/legacy-v3/**",
+        "archive/transitional-vnext-prose/**"
+      ],
+      "default_read": "never_for_active_truth"
+    },
+    "external_workspace": {
+      "description": "Sibling or external workspaces referenced by contract but not owned by this repository.",
+      "examples": [
+        "/Users/lenkin/programing/card make"
+      ],
+      "default_read": "only_when_task_explicitly_crosses_the_external_contract"
+    }
+  },
+  "agent_read_policy": {
+    "default": "Start from AGENTS.md, doc-manifest, authority-map, and the task-relevant specs. Do not discover context by recursively reading the whole worktree.",
+    "do_not_default_read": [
+      "generated",
+      "dependency_vendor",
+      "cache_or_machine_local",
+      "archive",
+      "external_workspace"
+    ],
+    "allowed_escalation": [
+      "explicit user request to inspect generated or dependency artifacts",
+      "debug task where the failing artifact itself is the subject",
+      "historical comparison task that names archive material",
+      "card content handoff task that explicitly crosses into card make"
+    ],
+    "read_record_must_separate": [
+      "product_truth",
+      "implementation_hypothesis",
+      "source_files",
+      "generated_or_dependency_artifacts_if_any",
+      "external_workspace_if_any"
+    ]
+  },
+  "harness_expectations": {
+    "workspace_boundary_layer_is_pure": true,
+    "must_not_call": [
+      "gh",
+      "remote GitHub API",
+      "npm install",
+      "pod install",
+      "xcodebuild"
+    ],
+    "must_check": [
+      "manifest_lists_workspace_boundary_spec",
+      "authority_map_assigns_workspace_boundary_owner",
+      "agent_harness_has_workspace_boundary_read_path",
+      "evals_cover_generated_dependency_cache_archive_context_pollution",
+      "gitignore_patterns_cover_known_cache_and_dependency_paths",
+      "worktree_lifecycle_records_remote_main_authority_and_stale_main_guard"
+    ]
+  },
+  "anti_patterns": [
+    {
+      "id": "WB-AP-01",
+      "name": "bulk_read_generated_dependency_cache_or_archive_as_context",
+      "correction": "classify_workspace_first_and_read_only_task_relevant_active_truth_source_or_contract_files"
+    },
+    {
+      "id": "WB-AP-02",
+      "name": "treat_card_make_as_internal_source_tree",
+      "correction": "treat_card_make_as_external_content_workspace_and_cross_it_only_through_handoff_contracts"
+    },
+    {
+      "id": "WB-AP-03",
+      "name": "use_ignored_local_artifacts_to_infer_product_or_design_truth",
+      "correction": "ignored_local_artifacts_are_debug_subjects_only_not_authority"
+    },
+    {
+      "id": "WB-AP-04",
+      "name": "treat_stale_local_main_worktree_as_integration_truth",
+      "correction": "treat_origin_main_and_github_pr_state_as_authority_then_fast_forward_clean_local_main_worktree"
+    }
+  ],
+  "worktree_lifecycle": {
+    "remote_main_authority": "origin/main and GitHub PR merged state are the integration authority; a stale local main worktree is not evidence that a merge failed.",
+    "local_main_worktree_policy": {
+      "role": "read_only_integration_mirror",
+      "allowed_operation": "fast_forward_to_origin_main_when_clean",
+      "forbidden_operation": "develop_commit_or_resolve_feature_conflicts_on_main",
+      "stale_state_is": "workspace_hygiene_drift_not_product_or_delivery_truth"
+    },
+    "topic_worktree_policy": {
+      "base": "origin/main",
+      "after_pr_merge": "treat_topic_worktree_as_inactive_until_refreshed_recreated_or_removed",
+      "do_not_use_for_next_pr_if_behind_origin_main": true
+    },
+    "merge_command_failure_policy": {
+      "local_error": "main_already_used_by_worktree_or_stale_local_main",
+      "required_response": "verify_remote_pr_state_and_merge_commit_then_sync_clean_local_main_by_fast_forward",
+      "forbidden_response": "assume_remote_merge_failed_or_continue_from_stale_local_main"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+appId: com.softbook.cet
+name: ios-mine-signed-out-screenshot
+---
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: 'auth-phone-input'
+    timeout: 30000
+- tapOn:
+    id: 'route-tab-mine'
+- assertVisible:
+    id: 'mine-profile-card'
+- assertVisible:
+    id: 'auth-phone-input'
+- assertVisible:
+    id: 'auth-request-code-button'

@@ -1,0 +1,104 @@
+{
+  "version": "vnext-5",
+  "purpose": "Machine-readable contract for release targets, device-class strategy, parity expectations, and acceptable platform-specific adaptation.",
+  "source_anchors": {
+    "top_level_information_architecture": "三端信息架构导航是一致的：学习 空间 统计 我的"
+  },
+  "release_targets": {
+    "ios_app": true,
+    "android_app": true,
+    "web": true,
+    "harmonyos": false
+  },
+  "device_classes": {
+    "phone": {
+      "is_required": true,
+      "ui_requires_dedicated_design": true
+    },
+    "tablet": {
+      "is_required": true,
+      "ui_requires_dedicated_design": true
+    },
+    "pc_web": {
+      "is_required": true,
+      "definition": "web experience on personal-computer-sized screens",
+      "ui_requires_dedicated_design": true
+    }
+  },
+  "design_strategy": {
+    "one_ui_adapted_everywhere_is_forbidden": true,
+    "different_device_classes_may_have_clearly_different_information_architecture": true,
+    "mobile_priority": "ios_equals_android_before_web"
+  },
+  "v1_parity": {
+    "all_release_targets_must_have": [
+      "main_learning_flow",
+      "review_flow",
+      "physical_space",
+      "all_core_interactions",
+      "audio_as_resource",
+      "membership_and_paywall_constraints"
+    ]
+  },
+  "entry_priority_by_surface": {
+    "learning_flow_is_most_important_entry_on_all_release_targets": true,
+    "physical_space_is_top_level_entry_on_all_release_targets": true
+  },
+  "navigation_contract": {
+    "top_level_navigation_is_consistent_across_surfaces": true,
+    "order": [
+      "learning",
+      "space",
+      "statistics",
+      "mine"
+    ],
+    "page_composition_must_adapt_by_device_class": true
+  },
+  "continuity_and_sync": {
+    "progress_sync_granularity": "daily_level",
+    "exact_cross_device_resume_is_not_required": true,
+    "cross_device_should_inherit_some_progress": true,
+    "membership_state_must_be_unified": true
+  },
+  "authentication_policy": {
+    "login_is_required_before_learning": true,
+    "guest_learning_before_authentication": false,
+    "primary_login_method": "phone_sms_code"
+  },
+  "audio_surface_policy": {
+    "audio_must_be_available_on_all_release_targets": true,
+    "audio_is_not_bound_to_specific_interaction_family": true,
+    "audio_can_be_front_content_for": [
+      "listening_cards",
+      "some_other_cards_when_content_requires_it"
+    ]
+  },
+  "commerce_surface_policy": {
+    "all_release_targets_must_support_purchase": true,
+    "membership_entitlement_must_be_shared_across_release_targets": true,
+    "web_and_app_purchase_authority": "equal",
+    "purchase_recovery_reminder": "after_membership_experience_ends"
+  },
+  "physical_space_by_device_class": {
+    "phone": {
+      "must_remain_low_operation_cost": true,
+      "simultaneous_visible_hierarchy_can_expand": "limited"
+    },
+    "tablet": {
+      "must_remain_low_operation_cost": true,
+      "simultaneous_visible_hierarchy_can_expand": "more_than_phone"
+    },
+    "pc_web": {
+      "must_remain_low_operation_cost": true,
+      "simultaneous_visible_hierarchy_can_expand": "more_than_phone"
+    }
+  },
+  "interaction_fidelity_policy": {
+    "target": "as_faithful_as_reasonable",
+    "touch_exclusive_mechanics_do_not_need_forced_literal_adaptation_on_non_touch_surfaces": true,
+    "preferred_non_touch_strategy": "use_equivalent_low_cost_interaction_when_meaningful",
+    "non_touch_input_mode": "keyboard_shortcuts_plus_mouse",
+    "mapping_owner": "agent_defined_under_low_cost_and_meaning_preservation"
+  },
+  "unresolved_questions": []
+}

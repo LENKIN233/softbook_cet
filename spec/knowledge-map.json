@@ -1,0 +1,97 @@
+{
+  "version": "vnext-3",
+  "id_schema": {
+    "format": "TLGBNN",
+    "fields": {
+      "T": "track",
+      "L": "library",
+      "G": "group",
+      "B": "box",
+      "NN": "card_sequence"
+    }
+  },
+  "box_catalog_spec": "spec/box-catalog.json",
+  "tracks": [
+    { "id": "0", "name": "cet4" },
+    { "id": "1", "name": "cet6" }
+  ],
+  "libraries": [
+    {
+      "id": "0",
+      "name": "听力",
+      "groups": [
+        { "id": "0", "name": "听前预测" },
+        { "id": "1", "name": "语音现象" },
+        { "id": "2", "name": "逻辑关系" },
+        { "id": "3", "name": "细节捕捉" },
+        { "id": "4", "name": "推理判断" },
+        { "id": "5", "name": "主旨大意" }
+      ]
+    },
+    {
+      "id": "1",
+      "name": "仔细阅读",
+      "groups": [
+        { "id": "0", "name": "定位词抓取" },
+        { "id": "1", "name": "干扰项排除" },
+        { "id": "2", "name": "长难句主干" },
+        { "id": "3", "name": "长难句关键修饰" },
+        { "id": "4", "name": "上下文猜词" }
+      ]
+    },
+    {
+      "id": "2",
+      "name": "选词填空",
+      "groups": [
+        { "id": "0", "name": "词性判断" },
+        { "id": "1", "name": "空格语法预判" },
+        { "id": "2", "name": "固定搭配" }
+      ]
+    },
+    {
+      "id": "3",
+      "name": "写作",
+      "groups": [
+        { "id": "0", "name": "判断作文体裁" },
+        { "id": "1", "name": "模版句式" }
+      ]
+    },
+    {
+      "id": "4",
+      "name": "翻译",
+      "groups": [
+        { "id": "0", "name": "词义选择" },
+        { "id": "1", "name": "语序重组" },
+        { "id": "2", "name": "主干搭建" },
+        { "id": "3", "name": "固定表达" }
+      ]
+    },
+    {
+      "id": "5",
+      "name": "词汇",
+      "groups": [
+        { "id": "1", "name": "中国特色词汇" },
+        { "id": "2", "name": "高频词" }
+      ]
+    },
+    {
+      "id": "6",
+      "name": "语法",
+      "groups": [
+        { "id": "0", "name": "时态" },
+        { "id": "1", "name": "复杂句" },
+        { "id": "2", "name": "虚拟语气" },
+        { "id": "3", "name": "主被动语态" }
+      ]
+    }
+  ],
+  "box_semantics": {
+    "role": "knowledge_point_container",
+    "visible_in_physical_space": true,
+    "can_be_reassigned_by_user": false,
+    "can_contain_multiple_cards": true,
+    "detailed_catalog_is_required": true,
+    "detailed_catalog_source": "spec/box-catalog.json",
+    "space_operations_source": "spec/space-operations.json"
+  }
+}

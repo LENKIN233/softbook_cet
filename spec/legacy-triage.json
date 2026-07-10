@@ -1,0 +1,83 @@
+{
+  "version": "vnext-2",
+  "decisions": [
+    {
+      "legacy_source": "legacy-v3/AGENTS.md",
+      "legacy_domain": "task_routing_and_token_tips",
+      "classification": "reframe",
+      "current_target": ["AGENTS.md", "spec/agent-harness.json"]
+    },
+    {
+      "legacy_source": "legacy-v3/AGENTS.md",
+      "legacy_domain": "api_quick_reference",
+      "classification": "delete",
+      "current_target": []
+    },
+    {
+      "legacy_source": "legacy-v3/00-*",
+      "legacy_domain": "product_positioning",
+      "classification": "keep",
+      "current_target": ["spec/product-core.json"]
+    },
+    {
+      "legacy_source": "legacy-v3/00-*",
+      "legacy_domain": "physical_space_as_favorite_plus_sleep",
+      "classification": "delete",
+      "current_target": []
+    },
+    {
+      "legacy_source": "legacy-v3/01-*",
+      "legacy_domain": "component_level_page_spec",
+      "classification": "delete",
+      "current_target": []
+    },
+    {
+      "legacy_source": "legacy-v3/02-*",
+      "legacy_domain": "full_algorithm_authority",
+      "classification": "demote",
+      "current_target": ["spec/runtime-boundaries.json"]
+    },
+    {
+      "legacy_source": "legacy-v3/03-*",
+      "legacy_domain": "full_rest_and_table_authority",
+      "classification": "demote",
+      "current_target": ["spec/runtime-boundaries.json"]
+    },
+    {
+      "legacy_source": "legacy-v3/04-*",
+      "legacy_domain": "9_interaction_system",
+      "classification": "reframe",
+      "current_target": ["spec/interactions.json"]
+    },
+    {
+      "legacy_source": "legacy-v3/04-*",
+      "legacy_domain": "hint_as_standalone_type",
+      "classification": "delete",
+      "current_target": []
+    },
+    {
+      "legacy_source": "legacy-v3/04-*",
+      "legacy_domain": "coding_skeleton",
+      "classification": "keep",
+      "current_target": ["spec/knowledge-map.json", "spec/box-catalog.json"]
+    },
+    {
+      "legacy_source": "legacy-v3/05-*",
+      "legacy_domain": "implementation_driven_acceptance",
+      "classification": "delete",
+      "current_target": ["spec/evals.json"]
+    },
+    {
+      "legacy_source": "legacy-v3/06-*",
+      "legacy_domain": "large_content_production_system",
+      "classification": "delete",
+      "current_target": []
+    },
+    {
+      "legacy_source": "legacy-v3/07-*",
+      "legacy_domain": "detailed_box_catalog",
+      "classification": "keep",
+      "current_target": ["spec/box-catalog.json"]
+    }
+  ]
+}

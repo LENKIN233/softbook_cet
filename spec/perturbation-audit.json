@@ -1,0 +1,331 @@
+{
+  "version": "vnext-15",
+  "purpose": "Counterfactual perturbation audit used to avoid local optima and catch silent drift away from the user's original requirements.",
+  "perturbations": [
+    {
+      "id": "P-01",
+      "change": "Reframe product as general English teaching system",
+      "expected_failure": "breaks exam-first promise and paid trust model",
+      "guarded_by": ["spec/product-core.json", "spec/evals.json", "spec/agent-harness.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-02",
+      "change": "Reduce physical space to favorite box plus sleep box",
+      "expected_failure": "destroys knowledge-map semantics and core differentiation",
+      "guarded_by": ["spec/product-core.json", "spec/knowledge-map.json", "spec/box-catalog.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-03",
+      "change": "Remove detailed box catalog and keep only library/group skeleton",
+      "expected_failure": "drops content team's knowledge decomposition asset",
+      "guarded_by": ["spec/box-catalog.json", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-04",
+      "change": "Treat hint as standalone card type",
+      "expected_failure": "breaks card authoring model and user-specified hint behavior",
+      "guarded_by": ["spec/interactions.json", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-05",
+      "change": "Treat audio as independent interaction family",
+      "expected_failure": "adds an interaction family the user explicitly rejected",
+      "guarded_by": ["spec/interactions.json", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-06",
+      "change": "Require heavy self-rating on every card",
+      "expected_failure": "increases software cost and breaks fluent continuity",
+      "guarded_by": ["spec/product-core.json", "spec/interactions.json", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-07",
+      "change": "Make free-after-trial equivalent to full experience",
+      "expected_failure": "weakens paywall structure and contradicts user input",
+      "guarded_by": ["spec/membership.json", "spec/product-core.json", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-08",
+      "change": "Return to prose-first active docs",
+      "expected_failure": "moves active truth away from agent-first structured harness",
+      "guarded_by": ["spec/doc-manifest.json", "AGENTS.md", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-09",
+      "change": "Drop peek from visible card actions",
+      "expected_failure": "removes a user-confirmed low-cost learning action",
+      "guarded_by": ["spec/action-surface.json", "spec/requirement-memory.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-10",
+      "change": "Shrink free-after-trial into a tiny demo instead of near-half normal learning",
+      "expected_failure": "breaks the intended free-to-paid value bridge",
+      "guarded_by": ["spec/membership.json", "spec/product-core.json", "spec/requirement-memory.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-11",
+      "change": "Turn physical space into either arbitrary free drag or fully locked system",
+      "expected_failure": "breaks the partial-control model specified by the user",
+      "guarded_by": ["spec/space-operations.json", "spec/product-core.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-12",
+      "change": "Assume one adaptive UI can cover phone, tablet, and PC web without dedicated design",
+      "expected_failure": "breaks the explicit multi-surface product requirement",
+      "guarded_by": ["spec/platform-contract.json", "spec/product-core.json", "spec/agent-harness.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-13",
+      "change": "Treat PC as a separate native desktop client or drop Web parity",
+      "expected_failure": "misstates the release matrix and priority model",
+      "guarded_by": ["spec/platform-contract.json", "spec/runtime-boundaries.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-14",
+      "change": "Require exact same-card cross-device resume as product truth",
+      "expected_failure": "over-constrains continuity beyond what the user asked for",
+      "guarded_by": ["spec/platform-contract.json", "spec/runtime-boundaries.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-15",
+      "change": "Allow membership to diverge across iOS, Android, and Web or make Web non-purchasable",
+      "expected_failure": "breaks unified entitlement and all-surface commerce requirement",
+      "guarded_by": ["spec/membership.json", "spec/platform-contract.json", "spec/evals.json"],
+      "must_preserve_source_anchors": ["web与app购买同权"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-16",
+      "change": "Make audio unavailable on Web or tie it to one interaction family",
+      "expected_failure": "breaks audio content parity and misstates audio's role",
+      "guarded_by": ["spec/interactions.json", "spec/platform-contract.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-17",
+      "change": "Demote physical space below top-level entry on one or more release targets",
+      "expected_failure": "breaks the required entry structure across surfaces",
+      "guarded_by": ["spec/platform-contract.json", "spec/product-core.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-18",
+      "change": "Allow guest learning before login",
+      "expected_failure": "breaks the required authentication gate before learning starts",
+      "guarded_by": ["spec/platform-contract.json", "spec/product-core.json", "spec/evals.json"],
+      "must_preserve_source_anchors": ["必须登入"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-19",
+      "change": "Use a different login method or start trial at install/registration time",
+      "expected_failure": "breaks the confirmed authentication and trial trigger policy",
+      "guarded_by": ["spec/account-sync-contract.json", "spec/requirement-memory.json", "spec/evals.json"],
+      "must_preserve_source_anchors": ["手机号+验证码"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-20",
+      "change": "Change top-level navigation across release targets or drop keyboard/mouse adaptation on non-touch surfaces",
+      "expected_failure": "breaks confirmed navigation consistency and non-touch input policy",
+      "guarded_by": ["spec/platform-contract.json", "spec/product-core.json", "spec/evals.json"],
+      "must_preserve_source_anchors": ["三端信息架构导航是一致的：学习 空间 统计 我的"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-21",
+      "change": "Autoplay audio or require front-side subtitles",
+      "expected_failure": "breaks confirmed audio presentation policy",
+      "guarded_by": ["spec/interactions.json", "spec/product-core.json", "spec/evals.json"],
+      "must_preserve_source_anchors": ["不自动播放，没有字幕（背面可以有）"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-22",
+      "change": "Promote module-first learning or treat free module choice as equal to the main learning flow",
+      "expected_failure": "breaks guided low-burden sequencing and reintroduces user-side mode switching as primary learning work",
+      "guarded_by": ["spec/requirement-memory.json", "spec/product-core.json", "spec/evals.json"],
+      "must_preserve_source_anchors": ["建议用户按照我们拟定的顺序学习，不建议用户按模块学习"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-23",
+      "change": "Treat direct development or direct push on main as normal workflow",
+      "expected_failure": "bypasses review flow and destroys the read-only integration baseline",
+      "guarded_by": ["spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-24",
+      "change": "Use two library identity colors simultaneously as strong accents on a single screen (e.g. listening indigo CTA + vocabulary rose highlight together)",
+      "expected_failure": "breaks Law of One and dissolves the library identity semantics the user can learn to navigate by",
+      "guarded_by": ["spec/visual-language.json", "spec/knowledge-map.json", "spec/agent-harness.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-25",
+      "change": "Re-inflate self-assess feedback from 2 levels (有把握/再回看) back to 4 levels (掌握/知道/不确定/忘了)",
+      "expected_failure": "violates product-core user_cost_minimization ('反复做高成本掌握度判断') and diverges from apps/mobile/src/learning/LearningSurface.tsx canonical implementation",
+      "guarded_by": ["spec/visual-language.json", "spec/product-core.json", "spec/interactions.json", "scripts/validate_harness.py"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-26",
+      "change": "Paint the review self-assess level red (#F15B6E) instead of amber, implying '错了/惩罚'",
+      "expected_failure": "turns a warm 'come back to this' signal into punishment, contradicting the light_self_assess semantic in spec/interactions.json",
+      "guarded_by": ["spec/visual-language.json", "spec/interactions.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-27",
+      "change": "Ship visual output (screens, mocks, reference HTML changes) without answering the design_review_checklist",
+      "expected_failure": "removes the last gate between agent-produced design and user review; reintroduces taste drift and layout bugs that the checklist would have caught",
+      "guarded_by": ["spec/visual-language.json", "spec/agent-harness.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-28",
+      "change": "Promote hex values in visual-language.json#implementation_hypothesis into inflexible product_truth and enforce them as literal strings across all docs and code",
+      "expected_failure": "collapses the implementation_hypothesis layer and makes micro-tuning a governance event; only the 7 library identities + 2 self-assess hexes belong in the locked mirror set",
+      "guarded_by": ["spec/visual-language.json", "spec/authority-map.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-29",
+      "change": "Treat local dirty working tree as acceptable default delivery for code-changing tasks",
+      "expected_failure": "drops reviewable artifacts and makes branch / PR history optional instead of default",
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-30",
+      "change": "Leave a reviewed green pull request waiting for explicit user merge instruction",
+      "expected_failure": "reintroduces repetitive orchestration and contradicts the repo delivery default of review-then-merge",
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-31",
+      "change": "Merge a pull request before agent review finishes or while required gates are red",
+      "expected_failure": "bypasses the review-and-gate contract and can land unchecked changes on main",
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-32",
+      "change": "Implement user-facing UI directly from RN code or agent taste without an accepted design artifact",
+      "expected_failure": "solidifies an unreviewed visual layer into product implementation and bypasses the design-artifact gate",
+      "guarded_by": ["spec/visual-language.json", "spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-33",
+      "change": "Use a task-local design brief as the authority for the same implementation PR",
+      "expected_failure": "lets agents self-author design justification and implementation in one pass without accepted artifact review",
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/visual-language.json", "scripts/validate_pr_design_gate.py"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-34",
+      "change": "Treat core interaction motion as decorative animation added after UI implementation",
+      "expected_failure": "loses the product-specific operation, feedback, failure, and state-change semantics of core interactions",
+      "guarded_by": ["spec/interactions.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-35",
+      "change": "Treat physical space as a normal page UI without a spatial model or state transitions",
+      "expected_failure": "collapses library/group/box/card semantics into a flat surface and weakens the product's core differentiator",
+      "guarded_by": ["spec/knowledge-map.json", "spec/space-operations.json", "spec/agent-harness.json", "spec/evals.json"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-36",
+      "change": "Treat agent review as an unrecorded convention outside required PR gates",
+      "expected_failure": "lets a PR merge without a durable review artifact even though repo delivery policy requires clean agent review before merge",
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json", "scripts/validate_agent_review.py"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-37",
+      "change": "Promote the first AI-generated core-surface design as accepted without search, pairwise review, fragment harvest, targeted mutation, or promotion evidence",
+      "expected_failure": "turns the harness back into one-shot generation and cannot prove that the design content was optimized against softbook product constraints",
+      "guarded_by": ["docs/design/design-harness.md", "docs/design/search-runs/README.md", "spec/agent-harness.json", "spec/evals.json", "scripts/validate_design_search_run.py"],
+      "status": "rejected"
+    },
+    {
+      "id": "P-38",
+      "change": "Let a design search run pass with copied templates, one pairwise review, surviving candidates without visual evidence, pairwise reviews without visual evidence, or a promotion record that only names proof text without proof artifacts",
+      "expected_failure": "makes the Design Evolution Engine look complete while preserving no concrete generation, visual comparison, mutation, or rendered evidence",
+      "guarded_by": ["docs/design/search-runs/README.md", "scripts/validate_design_search_run.py", "scripts/validate_harness.py"],
+      "status": "rejected"
+    }
+  ],
+  "audit_summary": {
+    "result": "pass",
+    "restatement_capability_after_perturbation": {
+      "result": "pass",
+      "anchored_by": [
+        "spec/requirement-memory.json",
+        "spec/authority-map.json",
+        "spec/product-core.json",
+        "spec/account-sync-contract.json",
+        "spec/platform-contract.json",
+        "spec/evals.json"
+      ],
+      "required_restated_anchors": [
+        "exam_oriented_low_burden_promise",
+        "cards_interactions_knowledge_points",
+        "single_card_flow",
+        "system_sequenced_default_learning_path_with_secondary_module_review",
+        "physical_space_core_differentiator",
+        "ios_android_web_with_phone_tablet_pc_web",
+        "learning_and_space_as_top_level_entries",
+        "login_required_before_learning",
+        "shared_membership_and_purchase_on_all_surfaces"
+      ],
+      "required_literal_source_anchors": [
+        "必须登入",
+        "手机号+验证码",
+        "web与app购买同权",
+        "三端信息架构导航是一致的：学习 空间 统计 我的",
+        "不自动播放，没有字幕（背面可以有）",
+        "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
+      ]
+    },
+    "reviewed_active_specs": [
+      "spec/product-core.json",
+      "spec/account-sync-contract.json",
+      "spec/card-system.json",
+      "spec/interactions.json",
+      "spec/action-surface.json",
+      "spec/knowledge-map.json",
+      "spec/space-operations.json",
+      "spec/platform-contract.json",
+      "spec/box-catalog.json",
+      "spec/membership.json",
+      "spec/runtime-boundaries.json",
+      "spec/agent-harness.json",
+      "spec/evals.json",
+      "spec/requirement-memory.json"
+    ],
+    "remaining_risk": [
+      "future edits might shrink box catalog if not validated",
+      "future edits might over-spec implementation details unless runtime boundaries stay minimal"
+    ]
+  }
+}

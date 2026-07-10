@@ -1,0 +1,138 @@
+{
+  "version": "vnext-3",
+  "purpose": "Single-source ownership map for active harness facts. If the same concept appears in multiple files, the owner here wins and non-owner copies must stay consistent.",
+  "domains": {
+    "user_origin_memory": {
+      "owner": "spec/requirement-memory.json",
+      "notes": "raw user-provided intent snapshot"
+    },
+    "auth_trial_sync_purchase": {
+      "owner": "spec/account-sync-contract.json",
+      "mirrors": [
+        "spec/requirement-memory.json",
+        "spec/platform-contract.json",
+        "spec/product-core.json",
+        "spec/membership.json",
+        "spec/runtime-boundaries.json"
+      ]
+    },
+    "release_targets_device_classes_navigation_input": {
+      "owner": "spec/platform-contract.json",
+      "mirrors": [
+        "spec/requirement-memory.json",
+        "spec/product-core.json",
+        "spec/runtime-boundaries.json"
+      ]
+    },
+    "product_promise_scope_experience": {
+      "owner": "spec/product-core.json"
+    },
+    "card_surface_actions": {
+      "owner": "spec/action-surface.json"
+    },
+    "interaction_and_audio_contract": {
+      "owner": "spec/interactions.json",
+      "mirrors": [
+        "spec/card-system.json",
+        "spec/requirement-memory.json",
+        "spec/product-core.json"
+      ]
+    },
+    "card_schema": {
+      "owner": "spec/card-system.json"
+    },
+    "knowledge_map_and_boxes": {
+      "owner": "spec/knowledge-map.json",
+      "related_owner": "spec/box-catalog.json"
+    },
+    "space_operations": {
+      "owner": "spec/space-operations.json"
+    },
+    "membership_access_matrix": {
+      "owner": "spec/membership.json",
+      "mirrors": [
+        "spec/product-core.json",
+        "spec/requirement-memory.json",
+        "spec/runtime-boundaries.json"
+      ]
+    },
+    "runtime_hypotheses_and_boundaries": {
+      "owner": "spec/runtime-boundaries.json"
+    },
+    "repo_delivery_and_pull_request_contract": {
+      "owner": "spec/repo-delivery-contract.json",
+      "mirrors": [
+        "spec/agent-harness.json"
+      ]
+    },
+    "agent_read_paths_and_anti_patterns": {
+      "owner": "spec/agent-harness.json"
+    },
+    "regressions_and_golden_tasks": {
+      "owner": "spec/evals.json"
+    },
+    "drift_guards": {
+      "owner": "spec/perturbation-audit.json"
+    },
+    "visual_language_anchor": {
+      "owner": "spec/visual-language.json",
+      "related_anchor": "docs/design/visual-reference.html",
+      "prose_anchor": "docs/design/canon.md",
+      "design_harness": "docs/design/design-harness.md",
+      "design_quarantine_contract": "docs/design/design-quarantine.md",
+      "single_card_ux_contract": "docs/design/single-card-ux-contract.md",
+      "first_worldview_brief": "docs/design/briefs/learning-space-worldview.md",
+      "first_accepted_decision": "docs/design/decisions/learning-space-direction-decision-v1.md",
+      "first_platform_layout_decision": "docs/design/decisions/learning-space-platform-layout-v1.md",
+      "first_implementation_mapping": "docs/design/mapping/learning-space-implementation-map-v1.md",
+      "interaction_motion_artifact_index": "docs/design/interaction-motion/README.md",
+      "first_interaction_motion_artifact": "docs/design/interaction-motion/learning-core-interactions-v1.md",
+      "physical_space_artifact_index": "docs/design/physical-space/README.md",
+      "first_physical_space_artifact": "docs/design/physical-space/space-model-v1.md",
+      "rendered_mock_artifact_index": "docs/design/mocks/README.md",
+      "first_rendered_mock_artifact": "docs/design/mocks/learning-space-phone-frames-v1.md",
+      "storyboard_artifact_index": "docs/design/storyboards/README.md",
+      "first_storyboard_artifact": "docs/design/storyboards/learning-space-motion-prototype-v1.md",
+      "mirrors": [
+        "spec/knowledge-map.json",
+        "spec/interactions.json",
+        "spec/product-core.json",
+        "spec/repo-delivery-contract.json",
+        "spec/agent-harness.json"
+      ],
+      "notes": "Stabilizes visual output across agents. Product_truth here is narrow but includes library identity, Law of One, self-assess scoping to flip, map hierarchy, interaction silhouettes, and the user-facing UI design-artifact gate; everything else is implementation hypothesis."
+    },
+    "workspace_boundary_and_agent_context": {
+      "owner": "spec/workspace-boundary.json",
+      "mirrors": [
+        "spec/agent-harness.json",
+        "spec/evals.json",
+        ".gitignore",
+        "apps/mobile/.gitignore"
+      ],
+      "notes": "Defines active workspace classification and default agent read boundaries. Product specs remain owners of product truth; this domain owns what counts as active repository context."
+    },
+    "harness_architecture": {
+      "owner": "spec/harness-architecture.json",
+      "mirrors": [
+        "spec/agent-harness.json",
+        "spec/evals.json",
+        "scripts/harness_validator/runner.py",
+        "scripts/harness_validator/sections/harness_architecture.py"
+      ],
+      "notes": "Defines validate_harness.py layer ownership, side-effect boundaries, and runtime-smoke delegation. Individual product and delivery facts remain owned by their existing specs."
+    },
+    "agent_run_records": {
+      "owner": "spec/agent-run-record.json",
+      "status": "active",
+      "mirrors": [
+        "spec/agent-harness.json",
+        "spec/repo-delivery-contract.json",
+        "spec/evals.json",
+        "scripts/validate_agent_review.py",
+        ".github/pull_request_template.md"
+      ],
+      "conflict_policy": "spec/agent-run-record.json owns whether durable agent run records are required and how they are referenced from PRs."
+    }
+  }
+}

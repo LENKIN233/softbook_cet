@@ -1,0 +1,177 @@
+appId: com.softbook.cet
+name: ios-remote-auth-learning-space-statistics-smoke
+---
+- extendedWaitUntil:
+    visible:
+      id: "auth-phone-input"
+    timeout: 30000
+- tapOn:
+    id: "auth-phone-input"
+- inputText: "${SOFTBOOK_CET_MAESTRO_PHONE}"
+- tapOn:
+    id: "auth-dismiss-keyboard-button"
+- assertVisible:
+    id: "auth-request-code-button"
+- tapOn:
+    id: "auth-request-code-button"
+- assertVisible:
+    id: "auth-code-input"
+- tapOn:
+    id: "auth-code-input"
+- inputText: "${SOFTBOOK_CET_MAESTRO_CODE}"
+- tapOn:
+    id: "auth-gate-keyboard-dismiss-target"
+- assertVisible:
+    id: "auth-submit-button"
+- tapOn:
+    id: "auth-submit-button"
+- tapOn:
+    id: "route-tab-learning"
+- assertVisible:
+    id: "learning-current-card"
+
+- tapOn:
+    id: "route-tab-space"
+- assertVisible:
+    id: "space-address-shelf"
+- assertVisible:
+    id: "membership-start-trial-button"
+- tapOn:
+    id: "membership-start-trial-button"
+- extendedWaitUntil:
+    visible:
+      id: "space-open-card-list"
+    timeout: 10000
+- tapOn:
+    id: "space-open-card-list"
+- assertVisible:
+    id: "space-browse-address-clue"
+- assertVisible:
+    id: "space-contained-card-strip"
+- assertVisible:
+    id: "space-favorite-1"
+- tapOn:
+    id: "space-favorite-1"
+- assertVisible:
+    id: "space-favorite-active-1"
+- assertVisible:
+    id: "space-sleep-1"
+- tapOn:
+    id: "space-sleep-1"
+- assertVisible:
+    id: "space-sleep-active-1"
+- tapOn:
+    id: "space-sleep-1"
+- tapOn:
+    id: "route-tab-learning"
+- assertVisible:
+    id: "learning-current-card"
+
+- assertVisible:
+    id: "learning-flip-button"
+- tapOn:
+    id: "learning-flip-button"
+- assertVisible:
+    id: "learning-flip-confident-button"
+- tapOn:
+    id: "learning-flip-confident-button"
+- assertVisible:
+    id: "learning-next-button"
+- tapOn:
+    id: "learning-next-button"
+
+- assertVisible:
+    id: "learning-option-unclear"
+- tapOn:
+    id: "learning-option-unclear"
+- assertVisible:
+    id: "learning-submit-button"
+- tapOn:
+    id: "learning-submit-button"
+- assertVisible:
+    id: "learning-next-button"
+- tapOn:
+    id: "learning-next-button"
+
+- assertVisible:
+    id: "learning-lock-subject-the-policy"
+- tapOn:
+    id: "learning-lock-subject-the-policy"
+- tapOn:
+    id: "learning-lock-verb-reduces"
+- tapOn:
+    id: "learning-lock-object-test-anxiety"
+- assertVisible:
+    id: "learning-submit-button"
+- tapOn:
+    id: "learning-submit-button"
+- assertVisible:
+    id: "learning-next-button"
+- tapOn:
+    id: "learning-next-button"
+
+- assertVisible:
+    id: "learning-elimination-relative_clause"
+- tapOn:
+    id: "learning-elimination-relative_clause"
+- tapOn:
+    id: "learning-elimination-adverb"
+- tapOn:
+    id: "learning-elimination-time_phrase"
+- assertVisible:
+    id: "learning-submit-button"
+- tapOn:
+    id: "learning-submit-button"
+- assertVisible:
+    id: "learning-next-button"
+- tapOn:
+    id: "learning-next-button"
+
+- assertVisible:
+    id: "learning-swipe-safe"
+- tapOn:
+    id: "learning-swipe-safe"
+- assertVisible:
+    id: "learning-submit-button"
+- tapOn:
+    id: "learning-submit-button"
+- assertVisible:
+    id: "learning-next-button"
+- tapOn:
+    id: "learning-next-button"
+- assertVisible:
+    id: "learning-complete-details"
+
+- tapOn:
+    id: "route-tab-statistics"
+- assertVisible:
+    id: "statistics-progress-dock"
+- assertVisible:
+    id: "statistics-metric-completed"
+- assertVisible:
+    id: "statistics-checkin-button"
+- tapOn:
+    id: "statistics-checkin-button"
+- assertVisible:
+    id: "statistics-checkin-complete-label"
+
+- tapOn:
+    id: "route-tab-mine"
+- assertVisible:
+    id: "mine-profile-card"
+- assertVisible:
+    id: "mine-go-learning"
+- assertVisible:
+    id: "mine-go-space"
+- assertVisible:
+    id: "mine-go-statistics"
+- assertVisible:
+    id: "membership-host-card"
+- tapOn:
+    id: "mine-go-statistics"
+- assertVisible:
+    id: "statistics-metric-completed"
+- tapOn:
+    id: "route-tab-mine"
+- assertVisible:
+    id: "mine-profile-card"

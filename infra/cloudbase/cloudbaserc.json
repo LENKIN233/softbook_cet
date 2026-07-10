@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.cloudbase.net/cli/cloudbaserc.schema.json",
+  "envId": "test-d2gzcyxr9f7e80972",
+  "functionRoot": "functions",
+  "functions": [
+    {
+      "name": "softbook-api",
+      "handler": "index.main",
+      "runtime": "Nodejs20.19",
+      "timeout": 10,
+      "memorySize": 256,
+      "description": "Softbook CET minimal mobile REST backend for CloudBase dev",
+      "envVariables": {
+        "SOFTBOOK_STORE_MODE": "cloudbase"
+      }
+    }
+  ]
+}

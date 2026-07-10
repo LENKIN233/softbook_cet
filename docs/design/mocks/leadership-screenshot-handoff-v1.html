@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>软书四六级界面截图包</title>
+  <style>
+    :root {
+      --page: #f5f3ee;
+      --ink: #12121a;
+      --muted: #58596a;
+      --soft: #eef3f4;
+      --panel: #f9f9fb;
+      --panel-2: rgba(255,255,255,.72);
+      --edge: rgba(18,18,26,.1);
+      --accent: #6a7c89;
+      --accent-ink: #31414b;
+      --mint: #22c58b;
+      --mint-soft: #e7f7f0;
+      --amber: #f5b100;
+      --amber-soft: #fff3ce;
+      --radius: 28px;
+      font-family: Inter, "Noto Sans SC", system-ui, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    [hidden] { display: none !important; }
+
+    html { background: var(--page); }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--page);
+      overflow-x: hidden;
+    }
+
+    main {
+      display: grid;
+      gap: 34px;
+      padding: 36px;
+    }
+
+    .cover {
+      display: grid;
+      gap: 12px;
+      margin: 0 auto;
+      max-width: 1050px;
+      width: 100%;
+    }
+
+    .cover-kicker {
+      color: var(--accent-ink);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+
+    h1, h2, h3, p { margin: 0; letter-spacing: 0; }
+
+    h1 {
+      font-size: 42px;
+      line-height: 1.14;
+      max-width: 780px;
+    }
+
+    .cover p {
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.68;
+      max-width: 760px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 28px;
+      grid-template-columns: repeat(4, 393px);
+      justify-content: center;
+    }
+
+    .shot {
+      display: grid;
+      gap: 14px;
+      justify-items: center;
+    }
+
+    .shot-label {
+      align-items: center;
+      background: rgba(255,255,255,.72);
+      border: 1px solid var(--edge);
+      border-radius: 999px;
+      color: var(--accent-ink);
+      display: inline-flex;
+      font-size: 13px;
+      font-weight: 800;
+      gap: 9px;
+      padding: 9px 14px;
+    }
+
+    .shot-label::before {
+      background: var(--accent);
+      border-radius: 999px;
+      content: "";
+      height: 8px;
+      width: 8px;
+    }
+
+    .phone {
+      background: var(--page);
+      border: 1px solid rgba(18,18,26,.14);
+      border-radius: 46px;
+      box-shadow: 0 24px 70px rgba(18,18,26,.16);
+      height: 852px;
+      overflow: hidden;
+      padding: 24px 18px 18px;
+      position: relative;
+      width: 393px;
+    }
+
+    .island {
+      background: #0b0b12;
+      border-radius: 22px;
+      height: 37px;
+      margin: 0 auto 16px;
+      width: 122px;
+    }
+
+    .surface {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 757px;
+      position: relative;
+    }
+
+    .topline {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      min-height: 34px;
+    }
+
+    .chip {
+      align-items: center;
+      background: var(--soft);
+      border: 1px solid rgba(106,124,137,.28);
+      border-radius: 999px;
+      color: var(--accent-ink);
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 800;
+      gap: 8px;
+      padding: 8px 12px;
+    }
+
+    .chip::before {
+      background: var(--accent);
+      border-radius: 999px;
+      content: "";
+      height: 8px;
+      width: 8px;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .object, .panel {
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: var(--radius);
+      box-shadow: 0 16px 42px rgba(18,18,26,.08);
+    }
+
+    .object {
+      display: grid;
+      gap: 14px;
+      padding: 22px;
+    }
+
+    .panel {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .eyebrow {
+      color: var(--accent-ink);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .08em;
+    }
+
+    h2 {
+      font-size: 25px;
+      line-height: 1.22;
+    }
+
+    h3 {
+      font-size: 17px;
+      line-height: 1.3;
+    }
+
+    p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.56;
+    }
+
+    .progress {
+      background: rgba(18,18,26,.08);
+      border-radius: 999px;
+      height: 7px;
+      overflow: hidden;
+    }
+
+    .progress > span {
+      background: var(--accent);
+      border-radius: 999px;
+      display: block;
+      height: 100%;
+      width: 62%;
+    }
+
+    .quick-row, .tools, .actions, .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .stat {
+      background: var(--panel-2);
+      border: 1px solid var(--edge);
+      border-radius: 18px;
+      flex: 1;
+      min-width: 98px;
+      padding: 12px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 21px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .choice-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .choice, .tile, .box, .list-card {
+      background: var(--panel-2);
+      border: 1px solid var(--edge);
+      border-radius: 20px;
+    }
+
+    .choice {
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.42;
+      min-height: 70px;
+      padding: 12px;
+    }
+
+    .choice.current {
+      border-color: rgba(106,124,137,.68);
+      box-shadow: inset 0 0 0 1px rgba(106,124,137,.22);
+    }
+
+    .tool, .button, .pill {
+      align-items: center;
+      border: 1px solid var(--edge);
+      border-radius: 999px;
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 800;
+      gap: 6px;
+      min-height: 36px;
+      padding: 9px 12px;
+    }
+
+    .tool, .pill { background: var(--panel-2); color: var(--muted); }
+
+    .button {
+      background: var(--accent);
+      border-color: rgba(106,124,137,.48);
+      color: #ffffff;
+      justify-content: center;
+    }
+
+    .outline {
+      background: var(--panel-2);
+      color: var(--accent-ink);
+    }
+
+    .address {
+      align-items: center;
+      background: rgba(255,255,255,.68);
+      border: 1px solid var(--edge);
+      border-radius: 18px;
+      color: var(--accent-ink);
+      display: flex;
+      font-size: 12px;
+      font-weight: 800;
+      justify-content: center;
+      min-height: 40px;
+      padding: 10px 12px;
+    }
+
+    .nav {
+      align-items: center;
+      align-self: center;
+      background: rgba(255,255,255,.76);
+      border: 1px solid var(--edge);
+      border-radius: 999px;
+      display: flex;
+      gap: 5px;
+      justify-content: space-between;
+      margin-top: auto;
+      padding: 8px;
+      width: 285px;
+    }
+
+    .nav span {
+      border-radius: 999px;
+      color: var(--muted);
+      flex: 1;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 8px 0;
+      text-align: center;
+    }
+
+    .nav .active {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .section-title {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .section-title .pill {
+      color: var(--accent-ink);
+      white-space: nowrap;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .list-card {
+      display: grid;
+      gap: 8px;
+      padding: 14px;
+    }
+
+    .list-card.active {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(106,124,137,.2);
+    }
+
+    .list-card h3 {
+      font-size: 15px;
+      line-height: 1.42;
+    }
+
+    .tags span {
+      background: var(--soft);
+      border-radius: 999px;
+      color: var(--accent-ink);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 9px;
+    }
+
+    .tags .mint {
+      background: var(--mint-soft);
+      color: #0b6f4c;
+    }
+
+    .tags .amber {
+      background: var(--amber-soft);
+      color: #7a5600;
+    }
+
+    .box-row {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .box {
+      display: grid;
+      gap: 4px;
+      min-height: 84px;
+      padding: 12px;
+    }
+
+    .box.active {
+      background: var(--soft);
+      border-color: var(--accent);
+    }
+
+    .box strong {
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .box span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .accent-rail {
+      background: var(--accent);
+      border-radius: 999px;
+      width: 6px;
+    }
+
+    .box-focus {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: 1fr;
+    }
+
+    .answer {
+      background: var(--mint-soft);
+      border: 1px solid rgba(34,197,139,.28);
+      border-radius: 20px;
+      padding: 14px;
+    }
+
+    .answer h3 { color: #0b6f4c; }
+
+    .compare {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .compare .panel {
+      border-radius: 20px;
+      padding: 13px;
+    }
+
+    .sleep {
+      background: rgba(255,243,206,.48);
+      border: 1px dashed rgba(245,177,0,.52);
+      border-radius: 20px;
+      color: #7a5600;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 12px;
+      text-align: center;
+    }
+
+    [data-shot="home"] .object {
+      gap: 10px;
+      padding: 18px;
+    }
+
+    [data-shot="home"] h2 {
+      font-size: 23px;
+    }
+
+    [data-shot="home"] .panel {
+      gap: 10px;
+      padding: 14px;
+    }
+
+    [data-shot="home"] .stat {
+      padding: 10px;
+    }
+
+    [data-shot="home"] .choice {
+      min-height: 58px;
+      padding: 10px;
+    }
+
+    [data-shot="home"] .tool,
+    [data-shot="home"] .address {
+      min-height: 32px;
+      padding: 7px 10px;
+    }
+
+    [data-shot="space"] .object {
+      gap: 10px;
+      padding: 18px;
+    }
+
+    [data-shot="space"] h2 {
+      font-size: 23px;
+    }
+
+    [data-shot="space"] .panel {
+      gap: 10px;
+      padding: 14px;
+    }
+
+    [data-shot="space"] .box {
+      min-height: 72px;
+      padding: 10px;
+    }
+
+    [data-shot="space"] .list-card {
+      gap: 6px;
+      padding: 12px;
+    }
+
+    @media (max-width: 1740px) {
+      .grid { grid-template-columns: repeat(2, 393px); }
+    }
+
+    @media (max-width: 880px) {
+      main { padding: 22px 14px; }
+      h1 { font-size: 30px; }
+      .grid { grid-template-columns: 1fr; }
+      .phone { transform: scale(.92); transform-origin: top center; }
+      .shot { margin-bottom: -56px; }
+    }
+
+    html[data-export-shot] main {
+      align-items: start;
+      display: grid;
+      justify-items: center;
+      min-height: 950px;
+      padding: 24px;
+    }
+
+    html[data-export-shot] .grid {
+      grid-template-columns: 393px;
+    }
+
+    html[data-export-shot] .shot {
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="cover" aria-label="界面截图说明">
+      <div class="cover-kicker">软书四六级 · 领导汇报截图</div>
+      <h1>从当前卡出发，看见学习进度、盒内卡片和知识空间。</h1>
+      <p>这组图用于汇报产品方向：默认跟随系统顺序学习，卡片有考试任务、解析、位置和状态；卡片列表以知识盒内容呈现，避免变成普通背词列表。</p>
+    </section>
+
+    <section class="grid" aria-label="四张界面截图">
+      <article class="shot" data-shot="home">
+        <div class="shot-label">首页</div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="surface">
+            <div class="topline">
+              <span class="chip">当前学习</span>
+              <span class="meta">今天 18 分钟</span>
+            </div>
+            <section class="object">
+              <div class="eyebrow">继续学习</div>
+              <h2>把这一张题感练稳，再继续下一张。</h2>
+              <p>系统已排好今天的顺序。完成当前卡后，再看解析和下一步。</p>
+              <div class="progress" aria-label="今日进度"><span></span></div>
+              <div class="quick-row">
+                <div class="stat">
+                  <strong>12</strong>
+                  <span>今日完成</span>
+                </div>
+                <div class="stat">
+                  <strong>3</strong>
+                  <span>待回看</span>
+                </div>
+                <div class="stat">
+                  <strong>1</strong>
+                  <span>当前盒</span>
+                </div>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="section-title">
+                <h3>当前卡片</h3>
+                <span class="pill">自动判断</span>
+              </div>
+              <p>这句话里的转折词提示你，后半句才是答案真正指向的位置。</p>
+              <div class="choice-grid">
+                <div class="choice current">A. 强调真实原因</div>
+                <div class="choice">B. 补充背景条件</div>
+                <div class="choice">C. 重复前文观点</div>
+                <div class="choice">D. 引出无关例子</div>
+              </div>
+            </section>
+            <div class="tools">
+              <span class="tool">线索</span>
+              <span class="tool">收藏</span>
+              <span class="tool">看解析</span>
+            </div>
+            <div class="address">本轮 / 当前馆 / 当前组 / 当前盒</div>
+            <nav class="nav" aria-label="底部导航">
+              <span class="active">学习</span>
+              <span>空间</span>
+              <span>统计</span>
+              <span>我的</span>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="shot" data-shot="card-list">
+        <div class="shot-label">卡片列表</div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="surface">
+            <div class="topline">
+              <span class="chip">当前盒</span>
+              <span class="meta">6 张卡</span>
+            </div>
+            <section class="object">
+              <div class="box-focus">
+                <div>
+                  <div class="eyebrow">盒内卡片</div>
+                  <h2>同一知识位置的卡，都在这里。</h2>
+                  <p>卡片列表不是背词清单，而是当前盒里的考试任务。收藏和休眠都附着在卡片上。</p>
+                </div>
+              </div>
+              <div class="box-row">
+                <div class="box">
+                  <strong>相邻盒</strong>
+                  <span>4 张卡</span>
+                </div>
+                <div class="box active">
+                  <strong>当前盒</strong>
+                  <span>6 张卡</span>
+                </div>
+                <div class="box">
+                  <strong>下一盒</strong>
+                  <span>5 张卡</span>
+                </div>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="section-title">
+                <h3>卡片</h3>
+                <span class="pill">当前学习卡在此</span>
+              </div>
+              <div class="list">
+                <div class="list-card active">
+                  <h3>看到转折词后，判断作者真正保留的观点。</h3>
+                  <p>多选项判断 · 当前卡</p>
+                  <div class="tags">
+                    <span class="mint">已收藏</span>
+                    <span>题感练习</span>
+                  </div>
+                </div>
+                <div class="list-card">
+                  <h3>从句子前后关系里找出被弱化的说法。</h3>
+                  <p>划掉干扰项 · 稍后练</p>
+                  <div class="tags">
+                    <span>同盒内容</span>
+                  </div>
+                </div>
+                <div class="list-card">
+                  <h3>先抓主干，再判断修饰语是否改变答案。</h3>
+                  <p>解锁步骤 · 待回看</p>
+                  <div class="tags">
+                    <span class="amber">再回看</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <div class="sleep">休眠区在当前盒下方，卡片移入后会暂时退出学习流。</div>
+            <nav class="nav" aria-label="底部导航">
+              <span>学习</span>
+              <span class="active">空间</span>
+              <span>统计</span>
+              <span>我的</span>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="shot" data-shot="detail">
+        <div class="shot-label">学习详情</div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="surface">
+            <div class="topline">
+              <span class="chip">解析中</span>
+              <span class="meta">本张已完成</span>
+            </div>
+            <section class="object">
+              <div class="eyebrow">当前卡</div>
+              <h2>为什么答案不是“补充背景条件”？</h2>
+              <p>题干前半句给出让步，后半句才是作者站稳的位置。真正要抓的是转折后的判断。</p>
+              <div class="choice-grid">
+                <div class="choice current">你的选择：强调真实原因</div>
+                <div class="choice">干扰项：补充背景条件</div>
+              </div>
+            </section>
+            <section class="answer">
+              <h3>解析</h3>
+              <p>转折后的句子通常承接作者态度。先看连接词，再看评价词，可以更快排除只重复背景的信息。</p>
+            </section>
+            <div class="compare">
+              <section class="panel">
+                <h3>易错点</h3>
+                <p>不要把前文事实当成最终观点。</p>
+              </section>
+              <section class="panel">
+                <h3>下次提示</h3>
+                <p>先圈转折，再看评价词。</p>
+              </section>
+            </div>
+            <div class="actions">
+              <span class="button">继续下一张</span>
+              <span class="button outline">放入回看</span>
+            </div>
+            <div class="address">本张位置仍在当前盒，完成后回到学习顺序</div>
+            <nav class="nav" aria-label="底部导航">
+              <span class="active">学习</span>
+              <span>空间</span>
+              <span>统计</span>
+              <span>我的</span>
+            </nav>
+          </div>
+        </div>
+      </article>
+
+      <article class="shot" data-shot="space">
+        <div class="shot-label">知识空间</div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="surface">
+            <div class="topline">
+              <span class="chip">知识空间</span>
+              <span class="meta">当前位置</span>
+            </div>
+            <section class="object">
+              <div class="eyebrow">空间地址</div>
+              <h2>卡片放在知识盒里。</h2>
+              <p>当前位置、同盒内容、收藏和休眠状态，都在同一套空间结构里。</p>
+              <div class="quick-row">
+                <div class="stat">
+                  <strong>1</strong>
+                  <span>当前馆</span>
+                </div>
+                <div class="stat">
+                  <strong>2</strong>
+                  <span>当前组</span>
+                </div>
+                <div class="stat">
+                  <strong>6</strong>
+                  <span>盒内卡</span>
+                </div>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="section-title">
+                <h3>当前盒</h3>
+                <span class="pill">当前卡在此</span>
+              </div>
+              <div class="box-row">
+                <div class="box">
+                  <strong>盒 1</strong>
+                  <span>4 张卡</span>
+                </div>
+                <div class="box active">
+                  <strong>盒 2</strong>
+                  <span>6 张卡</span>
+                </div>
+                <div class="box">
+                  <strong>盒 3</strong>
+                  <span>5 张卡</span>
+                </div>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="section-title">
+                <h3>盒内状态</h3>
+                <span class="pill">收藏 1 张</span>
+              </div>
+              <div class="list">
+                <div class="list-card active">
+                  <h3>当前学习卡</h3>
+                  <p>保留在当前盒；休眠卡暂时退出学习流，位置仍属于当前盒。</p>
+                </div>
+              </div>
+            </section>
+            <div class="actions">
+              <span class="button">回到学习</span>
+              <span class="button outline">查看盒内卡片</span>
+            </div>
+            <nav class="nav" aria-label="底部导航">
+              <span>学习</span>
+              <span class="active">空间</span>
+              <span>统计</span>
+              <span>我的</span>
+            </nav>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script>
+    const exportShot = new URLSearchParams(window.location.search).get('shot');
+
+    if (exportShot) {
+      document.documentElement.dataset.exportShot = exportShot;
+      document.querySelector('.cover')?.setAttribute('hidden', '');
+      document.querySelectorAll('[data-shot]').forEach((node) => {
+        if (node.getAttribute('data-shot') !== exportShot) {
+          node.setAttribute('hidden', '');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

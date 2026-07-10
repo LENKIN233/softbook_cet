@@ -1,0 +1,179 @@
+{
+  "version": "vnext-7",
+  "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
+  "delivery_defaults": {
+    "code_change_tasks": {
+      "default_strategy": "topic_branch_commit_pull_request_agent_review_auto_merge",
+      "topic_branch_required": true,
+      "allowed_topic_branch_prefixes": [
+        "infra/",
+        "shell/",
+        "module/",
+        "cross/",
+        "fix/"
+      ],
+      "local_only_requires_explicit_user_instruction": true,
+      "pull_request_required_unless_local_only": true,
+      "agent_review_required_before_merge": true,
+      "agent_review_record_required_before_merge": true,
+      "auto_merge_after_agent_review_and_green_gates": true,
+      "merge_blockers": [
+        "blocking_review_findings",
+        "agent_review_record_missing_or_blocking",
+        "required_gates_not_green",
+        "pull_request_or_merge_permission_failure"
+      ],
+      "if_pull_request_cannot_be_created": "handoff_branch_commit_validation_and_blocker"
+    }
+  },
+  "pull_request_contract": {
+    "target_branch": "main",
+    "default_action": "open_or_update_pull_request_then_review_and_merge_when_green",
+    "required_body_sections": [
+      "当前任务引用的 spec",
+      "变更摘要",
+      "验证",
+      "Agent review",
+      "Agent run record",
+      "设计稿来源（用户可见 UI 如适用）",
+      "design_review_checklist（如适用）"
+    ],
+    "validation_record_policy": {
+      "full_harness_required_command": "python3 scripts/validate_harness.py",
+      "skip_remote_guard_is_ci_only": true,
+      "skip_remote_guard_only_record_is_merge_blocker": true
+    },
+    "visual_output_rule": "if_visual_output_changes_exist_the_pull_request_must_answer_the_design_review_checklist",
+    "user_facing_ui_design_gate": {
+      "applies_when": "pull_request_changes_user_facing_UI_or_visual_state",
+      "required_before_implementation": true,
+      "accepted_sources": [
+        "docs/design/visual-reference.html",
+        "docs/design/canon.md",
+        "docs/design/briefs/*.md",
+        "docs/design/directions/*.md",
+        "docs/design/decisions/*.md",
+        "docs/design/interaction-motion/*.md",
+        "docs/design/physical-space/*.md",
+        "docs/design/mocks/*.md",
+        "docs/design/storyboards/*.md",
+        "linked_external_design_file"
+      ],
+      "same_pull_request_design_artifact_rule": "design brief, direction, or decision added in the same PR may satisfy design-only work, but cannot satisfy an implementation PR that also changes user-facing UI",
+      "task_local_design_brief_rule": "task-local design briefs may guide exploration but are not accepted implementation authority",
+      "existing_code_is_not_design_authority": true,
+      "implementation_without_design_artifact": "delivery_blocker",
+      "pull_request_must_state": [
+        "design_artifact_source",
+        "interaction_motion_artifact_if_core_interaction_changes",
+        "physical_space_artifact_if_space_changes",
+        "implementation_mapping",
+        "unimplemented_design_gaps_if_any",
+        "design_review_checklist_answers"
+      ],
+      "core_product_capability_design_gate": {
+        "learning_or_space_ui_requires_surface_specific_artifact": true,
+        "core_interaction_ui_requires_interaction_motion_artifact": true,
+        "space_ui_requires_physical_space_artifact": true,
+        "space_ui_requires_space_visual_proof_artifact": true,
+        "core_surface_quality_requires_rendered_mock_or_storyboard_before_full_visual_completion": true
+      }
+    },
+    "card_content_handoff_gate": {
+      "applies_when": "pull_request_changes_repository_dev_card_content_or_card_payload_seed",
+      "direct_content_production_without_external_handoff": "delivery_blocker",
+      "watched_files": [
+        "apps/mobile/src/learning/localCardRecords.ts"
+      ],
+      "accepted_handoff_sources": [
+        "external_workspace:/Users/lenkin/programing/card make",
+        "/Users/lenkin/programing/card make",
+        "../card make"
+      ],
+      "pull_request_must_state": [
+        "card_make_handoff_source",
+        "dry_run_import_result_or_catalog_audit_result_or_runtime_smoke_result_or_release_content_gap_delta"
+      ],
+      "accepted_validation_evidence": [
+        "dry_run_import_result",
+        "catalog_audit_result",
+        "runtime_smoke_result",
+        "release_content_gap_delta",
+        "infra/cloudbase/import-card-source.mjs",
+        "infra/cloudbase/audit-card-sources.mjs",
+        "infra/cloudbase/smoke-softbook-api.mjs",
+        "scripts/report_release_content_gap.mjs"
+      ]
+    },
+    "agent_run_record_policy": {
+      "required_before_merge": true,
+      "required_for": [
+        "governance_or_harness_changes",
+        "user_visible_ui_changes",
+        "runtime_contract_changes",
+        "card_payload_handoff_changes",
+        "multi_file_refactor_changes"
+      ],
+      "storage": "docs/agent-runs/",
+      "pr_body_field": "Run record",
+      "allowed_placeholder_before_review": "N/A",
+      "merge_blocker": "PR body must reference a committed docs/agent-runs/*.md record before review/merge."
+    },
+    "post_merge_local_sync_policy": {
+      "remote_merge_state_is_authoritative": true,
+      "verify_remote_state_with": [
+        "gh pr view --json state,mergedAt,mergeCommit,statusCheckRollup",
+        "git ls-remote origin refs/heads/main"
+      ],
+      "if_local_main_worktree_exists_and_is_clean": "fast_forward_local_main_worktree_to_origin_main",
+      "if_local_main_worktree_is_dirty": "do_not_overwrite_report_dirty_main_worktree_as_workspace_hygiene_blocker",
+      "local_worktree_lock_error_after_merge": "not_remote_merge_failure_when_github_pr_state_is_MERGED"
+    }
+  },
+  "ci_contract": {
+    "workflow_path": ".github/workflows/pr-gates.yml",
+    "pull_request_template_path": ".github/pull_request_template.md",
+    "required_pull_request_gates": [
+      {
+        "id": "design_artifact_gate",
+        "command": "python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>"
+      },
+      {
+        "id": "validate_harness",
+        "command": "python3 scripts/validate_harness.py --skip-remote-guard"
+      },
+      {
+        "id": "maestro_selector_guard",
+        "command": "python3 scripts/validate_maestro_selectors.py"
+      },
+      {
+        "id": "agent_review_record",
+        "command": "python3 scripts/validate_agent_review.py"
+      },
+      {
+        "id": "mobile_lint",
+        "command": "cd apps/mobile && npm run lint -- --quiet"
+      },
+      {
+        "id": "mobile_typecheck",
+        "command": "cd apps/mobile && npm run typecheck"
+      },
+      {
+        "id": "mobile_test",
+        "command": "cd apps/mobile && npm test -- --runInBand --watchAll=false"
+      },
+      {
+        "id": "backend_contract_test",
+        "command": "cd infra/cloudbase/functions/softbook-api && npm test"
+      },
+      {
+        "id": "repository_health",
+        "command": "node scripts/report_repo_health.mjs --base <base_sha> --strict"
+      },
+      {
+        "id": "agent_run_evidence_archive",
+        "command": "node scripts/validate_agent_run_evidence.mjs"
+      }
+    ]
+  }
+}

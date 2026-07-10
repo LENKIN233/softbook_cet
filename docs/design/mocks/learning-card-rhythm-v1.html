@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>学习卡节奏 v1</title>
+  <style>
+    :root {
+      --surface-accent: #6A7C89;
+      --surface-accent-soft: #EEF3F4;
+      --mint: #22c58b;
+      --mint-soft: #e7f8f1;
+      --amber: #f5b100;
+      --amber-soft: #fff4cc;
+      --page: #f5f3ee;
+      --ink: #12121a;
+      --muted: #58596a;
+      --soft: #f8f8fb;
+      --line: rgba(18, 18, 26, .1);
+      --shadow: rgba(18, 18, 26, .14);
+      --deep: #252530;
+      font-family: Inter, "Noto Sans SC", system-ui, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      overflow-x: hidden;
+      background: var(--page);
+      color: var(--ink);
+    }
+
+    body {
+      padding: 36px;
+    }
+
+    h1, h2, h3, p {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    .proof-header {
+      max-width: 1120px;
+      margin: 0 auto 24px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .proof-header h1 {
+      font-size: 30px;
+      line-height: 1.2;
+      font-weight: 800;
+    }
+
+    .proof-header p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+      max-width: 760px;
+    }
+
+    .proof-board {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .phone {
+      width: 393px;
+      height: 852px;
+      overflow: hidden;
+      position: relative;
+      border-radius: 46px;
+      border: 1px solid rgba(18, 18, 26, .14);
+      background: var(--page);
+      box-shadow: 0 26px 72px var(--shadow);
+      padding: 24px 18px 18px;
+    }
+
+    .island {
+      width: 122px;
+      height: 37px;
+      border-radius: 22px;
+      background: #0b0b12;
+      margin: 0 auto 16px;
+    }
+
+    .surface {
+      height: 757px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .topline {
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .chip,
+    .quiet-chip,
+    .tool,
+    .pill {
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .chip {
+      padding: 8px 12px;
+      background: var(--surface-accent-soft);
+      color: #6b2d00;
+      border-color: rgba(106, 124, 137, .28);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--surface-accent);
+      flex: 0 0 auto;
+    }
+
+    .quiet-chip {
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, .54);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .phone-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .card-object {
+      position: relative;
+      border-radius: 28px;
+      border: 1px solid var(--line);
+      background: rgba(248, 248, 251, .9);
+      box-shadow: 0 18px 44px rgba(18, 18, 26, .1);
+      padding: 20px;
+    }
+
+    .card-object::before {
+      content: "";
+      position: absolute;
+      top: 18px;
+      bottom: 18px;
+      left: 0;
+      width: 5px;
+      border-radius: 0 999px 999px 0;
+      background: var(--surface-accent);
+    }
+
+    .stage-label {
+      color: var(--surface-accent);
+      font-size: 12px;
+      line-height: 1.2;
+      font-weight: 900;
+      margin-bottom: 10px;
+    }
+
+    .prompt {
+      font-size: 22px;
+      line-height: 1.28;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .copy {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.58;
+    }
+
+    .choices {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .choice {
+      min-height: 76px;
+      padding: 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(18, 18, 26, .1);
+      background: rgba(255, 255, 255, .72);
+      font-size: 13px;
+      line-height: 1.4;
+      font-weight: 700;
+    }
+
+    .choice.focused {
+      border-color: rgba(106, 124, 137, .68);
+      box-shadow: inset 0 0 0 1px rgba(106, 124, 137, .22);
+    }
+
+    .support-layer {
+      margin-top: 14px;
+      border-radius: 22px;
+      border: 1px solid rgba(106, 124, 137, .26);
+      background: #fff7ef;
+      padding: 14px;
+    }
+
+    .support-layer h3,
+    .analysis h3 {
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.3;
+      margin-bottom: 6px;
+      font-weight: 900;
+    }
+
+    .tools {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+    }
+
+    .tool {
+      justify-content: center;
+      min-height: 42px;
+      background: rgba(255, 255, 255, .62);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .tool.active {
+      color: #6b2d00;
+      border-color: rgba(106, 124, 137, .28);
+      background: var(--surface-accent-soft);
+    }
+
+    .address {
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .58);
+      padding: 14px;
+      display: grid;
+      gap: 4px;
+    }
+
+    .address b {
+      font-size: 13px;
+    }
+
+    .address span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .analysis {
+      border-radius: 22px;
+      border: 1px solid rgba(18, 18, 26, .08);
+      background: rgba(255, 255, 255, .68);
+      padding: 14px;
+      margin-top: 14px;
+    }
+
+    .self-assess {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .pill {
+      min-height: 46px;
+      justify-content: center;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 900;
+    }
+
+    .pill.mint {
+      background: var(--mint-soft);
+      color: #116547;
+      border-color: rgba(34, 197, 139, .32);
+    }
+
+    .pill.amber {
+      background: var(--amber-soft);
+      color: #705100;
+      border-color: rgba(245, 177, 0, .34);
+    }
+
+    .feedback-key {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .settle {
+      border-radius: 22px;
+      border: 1px solid rgba(34, 197, 139, .24);
+      background: rgba(231, 248, 241, .74);
+      padding: 13px 14px;
+      display: grid;
+      gap: 4px;
+    }
+
+    .settle b {
+      color: #116547;
+      font-size: 13px;
+    }
+
+    .settle span {
+      color: #346957;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .cta {
+      border: 0;
+      border-radius: 999px;
+      min-height: 48px;
+      color: #3b1f0a;
+      background: var(--surface-accent);
+      font-weight: 900;
+      font-size: 14px;
+      box-shadow: 0 14px 28px rgba(106, 124, 137, .24);
+    }
+
+    .nav {
+      width: 286px;
+      min-height: 48px;
+      margin: auto auto 0;
+      padding: 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .78);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+
+    .nav span {
+      border-radius: 999px;
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .nav span.current {
+      background: var(--deep);
+      color: #f7f4ed;
+    }
+
+    .proof-note {
+      max-width: 1120px;
+      margin: 22px auto 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 460px) {
+      body {
+        padding: 18px 10px;
+      }
+
+      .proof-header h1 {
+        font-size: 24px;
+      }
+
+      .proof-board {
+        gap: 20px;
+      }
+
+      .phone {
+        width: min(393px, calc(100vw - 20px));
+        height: 852px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="proof-header">
+    <h1>学习卡节奏</h1>
+    <p>手机画面展示“有地址的学习节奏”：落位 -> 聚焦 -> 支撑 -> 作答 -> 收束 -> 继续。当前学科用匿名当前位置和单一珊瑚强调色表达。</p>
+  </header>
+
+  <main class="proof-board">
+    <section class="phone" aria-label="Place and focus phone frame">
+      <div class="island"></div>
+      <div class="surface">
+        <div class="topline">
+          <div class="chip"><span class="dot"></span>馆 1 · 本轮</div>
+          <div class="quiet-chip">本轮卡组</div>
+        </div>
+        <div class="phone-stage">
+          <article class="card-object">
+            <div class="stage-label">PLACE + FOCUS</div>
+            <h2 class="prompt">The phrase "account for" 在题干里最接近哪种关系？</h2>
+            <p class="copy">先判断语义角色，再看选项。系统只递给你当前这一张卡。</p>
+            <div class="choices" aria-label="Multiple choice silhouette">
+              <div class="choice focused">A. explain the reason</div>
+              <div class="choice">B. take responsibility</div>
+              <div class="choice">C. list a number</div>
+              <div class="choice">D. replace a clause</div>
+            </div>
+          </article>
+          <div class="tools">
+            <div class="tool">查看线索</div>
+            <div class="tool">标记</div>
+            <div class="tool">看位置</div>
+          </div>
+          <div class="address">
+            <b>位置线索</b>
+            <span>馆 1 / 组 1 / 盒 1</span>
+          </div>
+        </div>
+        <nav class="nav" aria-label="Top level navigation">
+          <span class="current">学习</span>
+          <span>空间</span>
+          <span>统计</span>
+          <span>我的</span>
+        </nav>
+      </div>
+    </section>
+
+    <section class="phone" aria-label="Support phone frame">
+      <div class="island"></div>
+      <div class="surface">
+        <div class="topline">
+          <div class="chip"><span class="dot"></span>馆 1 · 本轮</div>
+          <div class="quiet-chip">线索已打开</div>
+        </div>
+        <div class="phone-stage">
+          <article class="card-object">
+            <div class="stage-label">SUPPORT</div>
+            <h2 class="prompt">先别急着选。这里考的是"解释原因"而不是"承担责任"。</h2>
+            <p class="copy">线索从当前卡边缘出现，不变成新卡，也不替用户作答。</p>
+            <div class="support-layer">
+              <h3>考点线索</h3>
+              <p class="copy">如果后面接 proportion、rise、failure，常见含义是说明原因或占比。</p>
+            </div>
+          </article>
+          <div class="tools">
+            <div class="tool active">收起线索</div>
+            <div class="tool">标记</div>
+            <div class="tool">看位置</div>
+          </div>
+          <div class="address">
+            <b>Peek 不打开管理页</b>
+            <span>只给当前知识点和空间位置，不暴露来源或内部编号。</span>
+          </div>
+        </div>
+        <nav class="nav" aria-label="Top level navigation">
+          <span class="current">学习</span>
+          <span>空间</span>
+          <span>统计</span>
+          <span>我的</span>
+        </nav>
+      </div>
+    </section>
+
+    <section class="phone" aria-label="Resolve and settle phone frame">
+      <div class="island"></div>
+      <div class="surface">
+        <div class="topline">
+          <div class="chip"><span class="dot"></span>馆 1 · 本轮</div>
+          <div class="quiet-chip">解析面</div>
+        </div>
+        <div class="phone-stage">
+          <article class="card-object">
+            <div class="stage-label">RESOLVE + SETTLE</div>
+            <h2 class="prompt">account for = 解释原因 / 占比说明</h2>
+            <p class="copy">在题目里，它经常用于解释现象背后的原因，不是简单的"负责"。</p>
+            <div class="analysis">
+              <h3>易错点</h3>
+              <p class="copy">遇到抽象名词或比例变化时，先判断它是不是在回答 why / how much。</p>
+            </div>
+            <div class="self-assess" aria-label="Flip self assess">
+              <div class="pill mint">有把握</div>
+              <div class="pill amber">再回看</div>
+            </div>
+            <div class="feedback-key">有把握 = mint / confident (#22c58b); 再回看 = amber / review (#f5b100)</div>
+          </article>
+          <div class="settle">
+            <b>已记录本次结果</b>
+            <span>网络恢复后会自动再试；你可以继续下一张。</span>
+          </div>
+          <button class="cta" type="button">继续下一张</button>
+        </div>
+        <nav class="nav" aria-label="Top level navigation">
+          <span class="current">学习</span>
+          <span>空间</span>
+          <span>统计</span>
+          <span>我的</span>
+        </nav>
+      </div>
+    </section>
+  </main>
+
+  <p class="proof-note">收敛性：每个手机画面保持 393 x 852；横向溢出被隐藏，窄屏规则让画面始终留在屏幕内。界面外壳保持学习取向，不展示内部标签。</p>
+</body>
+</html>

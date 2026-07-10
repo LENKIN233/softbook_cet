@@ -1,0 +1,764 @@
+{
+  "version": "vnext-16",
+  "read_paths": {
+    "product_or_scope": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json"
+    ],
+    "auth_or_sync_or_purchase": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/account-sync-contract.json",
+      "spec/membership.json",
+      "spec/runtime-boundaries.json"
+    ],
+    "platform_or_multisurface": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/platform-contract.json",
+      "spec/runtime-boundaries.json"
+    ],
+    "navigation_or_input_surface": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/platform-contract.json",
+      "spec/interactions.json"
+    ],
+    "card_or_interaction": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/action-surface.json",
+      "spec/card-system.json",
+      "spec/interactions.json"
+    ],
+    "card_content_handoff": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/card-system.json",
+      "spec/box-catalog.json",
+      "spec/runtime-boundaries.json",
+      "spec/agent-harness.json",
+      "infra/cloudbase/mobile-runtime-contract.md"
+    ],
+    "physical_space_or_box_codes": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/knowledge-map.json",
+      "spec/space-operations.json",
+      "spec/box-catalog.json"
+    ],
+    "membership_or_trial": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/membership.json"
+    ],
+    "continuity_or_commerce": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/account-sync-contract.json",
+      "spec/platform-contract.json",
+      "spec/product-core.json",
+      "spec/membership.json",
+      "spec/runtime-boundaries.json"
+    ],
+    "implementation": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "related_product_specs",
+      "related_contract_specs",
+      "spec/runtime-boundaries.json"
+    ],
+    "repo_delivery_or_pull_request": [
+      "spec/authority-map.json",
+      "spec/agent-harness.json",
+      "spec/repo-delivery-contract.json",
+      "spec/evals.json"
+    ],
+    "review_or_acceptance": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "related_specs",
+      "spec/agent-harness.json",
+      "spec/evals.json"
+    ],
+    "visual_or_design_output": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "relevant_product_specs",
+      "spec/visual-language.json",
+      "docs/design/design-harness.md",
+      "docs/design/visual-reference.html"
+    ],
+    "user_facing_ui_implementation": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "relevant_product_specs",
+      "spec/visual-language.json",
+      "docs/design/design-harness.md",
+      "docs/design/visual-reference.html",
+      "docs/design/canon.md",
+      "the_accepted_design_artifact",
+      "the_implementation_mapping",
+      "spec/runtime-boundaries.json"
+    ],
+    "interaction_or_motion_design": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/interactions.json",
+      "spec/visual-language.json",
+      "docs/design/design-harness.md",
+      "docs/design/interaction-motion/README.md",
+      "docs/design/storyboards/README.md"
+    ],
+    "physical_space_design": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/knowledge-map.json",
+      "spec/space-operations.json",
+      "spec/box-catalog.json",
+      "spec/visual-language.json",
+      "docs/design/design-harness.md",
+      "docs/design/physical-space/README.md",
+      "docs/design/storyboards/README.md"
+    ],
+    "visual_review_or_design_critique": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/visual-language.json",
+      "docs/design/visual-reference.html",
+      "docs/design/canon.md",
+      "spec/agent-harness.json",
+      "the_artifact_under_review"
+    ],
+    "design_search_or_core_surface_optimization": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "relevant_product_specs",
+      "spec/visual-language.json",
+      "docs/design/design-harness.md",
+      "docs/design/search-runs/README.md",
+      "accepted_baseline_artifact",
+      "relevant_interaction_motion_or_physical_space_artifacts"
+    ],
+    "workspace_boundary_or_repo_structure": [
+      "spec/authority-map.json",
+      "spec/workspace-boundary.json",
+      "spec/agent-harness.json",
+      "spec/repo-delivery-contract.json",
+      "spec/evals.json"
+    ],
+    "harness_architecture_or_validator_refactor": [
+      "spec/authority-map.json",
+      "spec/harness-architecture.json",
+      "spec/workspace-boundary.json",
+      "spec/agent-harness.json",
+      "spec/repo-delivery-contract.json",
+      "spec/evals.json"
+    ],
+    "agent_run_record_or_context_handoff": [
+      "spec/authority-map.json",
+      "spec/agent-run-record.json",
+      "spec/workspace-boundary.json",
+      "spec/harness-architecture.json",
+      "spec/agent-harness.json",
+      "spec/repo-delivery-contract.json",
+      "spec/evals.json"
+    ]
+  },
+  "progressive_disclosure_policy": {
+    "default_behavior": "read_only_the_minimum_spec_subset_needed_for_the_current_task",
+    "escalate_when": [
+      "task_crosses_multiple_truth_domains",
+      "two_specs_conflict_or_leave_a_gap",
+      "platform_specific_behavior_changes_product_shape",
+      "membership_or_space_rules_change_interaction_or_surface_design",
+      "user_facing_ui_change_has_no_accepted_design_artifact"
+    ],
+    "forbidden_behavior": [
+      "loading_the_entire_active_tree_by_default",
+      "using_archive_as_shortcut_for_missing_active_truth",
+      "inventing_cross_domain_requirements_without_loading_the_relevant_contract",
+      "editing_a_mirrored_fact_without_checking_its_owner_in_authority_map"
+    ]
+  },
+  "task_briefs": {
+    "design": {
+      "inputs": [
+        "spec/requirement-memory.json",
+        "product_specs",
+        "relevant_contract_specs",
+        "docs/design/design-harness.md_when_direction_or_worldview_is_needed",
+        "spec/visual-language.json_when_output_is_visual"
+      ],
+      "outputs": [
+        "experience_goal",
+        "information_goal",
+        "key_actions",
+        "misunderstanding_risks"
+      ],
+      "stop_when": "no_more_implementation_detail_is_needed_to_guide_design",
+      "visual_output_rule": "if_the_design_task_produces_visual_artifacts_mocks_or_renderings_the_agent_must_inherit_tokens_and_silhouettes_from_spec_visual_language_json_and_docs_design_visual_reference_html_instead_of_inventing_new_ones"
+    },
+    "product": {
+      "inputs": [
+        "spec/requirement-memory.json",
+        "spec/product-core.json"
+      ],
+      "outputs": [
+        "requirement_interpretation",
+        "scope_judgment",
+        "value_priority",
+        "non_goals"
+      ],
+      "stop_when": "product_truth_and_implementation_hypothesis_are_clearly_separated"
+    },
+    "coding": {
+      "inputs": [
+        "product_specs",
+        "contract_specs",
+        "spec/runtime-boundaries.json"
+      ],
+      "outputs": [
+        "implementation",
+        "explicit_hypotheses"
+      ],
+      "stop_when": "implementation_does_not_invent_product_requirements",
+      "user_facing_ui_rule": "before_changing_user_facing_UI_load_the_accepted_design_artifact_and_map_implementation_to_it"
+    },
+    "card_content_handoff": {
+      "inputs": [
+        "spec/requirement-memory.json",
+        "spec/product-core.json",
+        "spec/card-system.json",
+        "spec/box-catalog.json",
+        "spec/runtime-boundaries.json",
+        "infra/cloudbase/mobile-runtime-contract.md",
+        "external_workspace:/Users/lenkin/programing/card make"
+      ],
+      "outputs": [
+        "upstream_workspace_reference",
+        "export_contract_or_payload_path",
+        "dry_run_import_result",
+        "catalog_audit_result",
+        "runtime_smoke_result",
+        "release_content_gap_delta"
+      ],
+      "stop_when": "softbook_cet_has_only_received_validated_card_payloads_from_card_make_and_has_not_produced_or_approved_card_content_itself",
+      "blocked_when": "the_task_requires_generating_candidate_card_content_or_marking_content_approved_inside_softbook_cet"
+    },
+    "user_facing_ui_implementation": {
+      "inputs": [
+        "spec/requirement-memory.json",
+        "spec/authority-map.json",
+        "relevant_product_specs",
+        "spec/visual-language.json",
+        "accepted_design_artifact",
+        "implementation_mapping",
+        "spec/runtime-boundaries.json"
+      ],
+      "outputs": [
+        "design_artifact_reference",
+        "interaction_motion_artifact_if_core_interaction_changes",
+        "physical_space_artifact_if_space_changes",
+        "space_visual_proof_artifact_if_space_ui_changes",
+        "implementation_mapping",
+        "unimplemented_design_gaps",
+        "design_review_checklist_answers"
+      ],
+      "stop_when": "implementation_maps_only_the_accepted_design_artifact_and_does_not_create_new_user_facing_design",
+      "blocked_when": "no_accepted_design_artifact_exists_for_the_user_facing_surface"
+    },
+    "interaction_motion_design": {
+      "inputs": [
+        "spec/product-core.json",
+        "spec/interactions.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md"
+      ],
+      "outputs": [
+        "target_interaction",
+        "operation_model",
+        "feedback_model",
+        "failure_and_recovery_states",
+        "motion_intent",
+        "interruptibility",
+        "reduce_motion_fallback",
+        "storyboard_reference"
+      ],
+      "stop_when": "interaction_and_motion_explain_product_state_change_without_becoming_decorative_animation",
+      "blocked_when": "new_or_changed_interaction_contract_has_not_been_updated_in_spec_interactions_json"
+    },
+    "physical_space_design": {
+      "inputs": [
+        "spec/product-core.json",
+        "spec/knowledge-map.json",
+        "spec/space-operations.json",
+        "spec/box-catalog.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md"
+      ],
+      "outputs": [
+        "spatial_model",
+        "current_object_and_parent_context",
+        "allowed_operations",
+        "disallowed_operations",
+        "favorite_tag_semantics",
+        "sleep_wake_state_transition",
+        "learning_space_continuity",
+        "visual_proof_against_flat_list_or_two_box_drift"
+      ],
+      "stop_when": "space_is_designed_as_library_group_box_card_system_not_a_surface_ui_shell",
+      "blocked_when": "space_operation_or_knowledge_ownership_change_has_not_been_updated_in_owner_specs"
+    },
+    "design_search": {
+      "inputs": [
+        "spec/requirement-memory.json",
+        "spec/authority-map.json",
+        "relevant_product_specs",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md",
+        "docs/design/search-runs/README.md",
+        "accepted_baseline_artifact"
+      ],
+      "outputs": [
+        "context_pack",
+        "candidate_population_with_provenance",
+        "surviving_candidate_visual_evidence",
+        "hard_filter_results",
+        "pairwise_reviews",
+        "fragment_harvest",
+        "targeted_mutation_log",
+        "promotion_record_or_no_promotion_reason",
+        "failure_sedimentation_targets"
+      ],
+      "stop_when": "one_candidate_beats_the_accepted_baseline_or_the_run_records_why_no_candidate_should_be_promoted",
+      "blocked_when": "the_task_tries_to_promote_first_generation_AI_output_without_hard_filters_pairwise_review_fragment_harvest_and_promotion_record"
+    },
+    "review": {
+      "inputs": [
+        "relevant_specs",
+        "anti_patterns"
+      ],
+      "outputs": [
+        "product_distortion_risks_first",
+        "then_implementation_findings"
+      ],
+      "stop_when": "violated_truth_or_contract_is_named"
+    },
+    "design_review": {
+      "inputs": [
+        "spec/requirement-memory.json",
+        "spec/visual-language.json",
+        "docs/design/visual-reference.html",
+        "docs/design/canon.md",
+        "the_artifact_under_review"
+      ],
+      "outputs": [
+        "answers_to_visual_language_design_review_checklist_universal_Q1_through_Q4",
+        "answers_to_applicable_conditional_Q5_and_Q6",
+        "product_distortion_risks_first_then_aesthetic_findings_then_layout_bugs",
+        "forbidden_design_patterns_hit_list_if_any"
+      ],
+      "stop_when": "checklist_is_answered_and_each_failure_is_named_with_its_anti_pattern_id",
+      "ordering_rule": "product_truth_violations_rank_above_taste_findings_rank_above_token_drift_rank_above_micro_styling"
+    },
+    "acceptance": {
+      "inputs": [
+        "relevant_specs",
+        "spec/evals.json"
+      ],
+      "outputs": [
+        "validation_result",
+        "coverage_gap"
+      ],
+      "stop_when": "old_anti_patterns_are_ruled_out"
+    },
+    "workspace_boundary": {
+      "inputs": [
+        "spec/authority-map.json",
+        "spec/workspace-boundary.json",
+        "spec/agent-harness.json",
+        "spec/repo-delivery-contract.json",
+        "spec/evals.json"
+      ],
+      "outputs": [
+        "active_truth_source_and_contract_scope",
+        "excluded_generated_dependency_cache_archive_scope",
+        "external_workspace_boundary_if_any",
+        "agent_read_escalation_reason_if_boundary_is_crossed",
+        "local_main_worktree_sync_state",
+        "topic_worktree_base_and_inactive_after_merge_state",
+        "remote_merge_state_vs_local_worktree_error_boundary"
+      ],
+      "stop_when": "agent can name what is active context, what is excluded by default, and why any excluded path was read",
+      "blocked_when": "the task depends on bulk-reading generated dependency cache archive or sibling workspace material without an explicit debug or handoff reason"
+    },
+    "harness_architecture": {
+      "inputs": [
+        "spec/authority-map.json",
+        "spec/harness-architecture.json",
+        "spec/workspace-boundary.json",
+        "spec/agent-harness.json",
+        "spec/repo-delivery-contract.json",
+        "spec/evals.json"
+      ],
+      "outputs": [
+        "layer_ownership_map",
+        "pure_layer_side_effect_boundary",
+        "delivery_governance_side_effect_boundary",
+        "design_governance_fixture_boundary",
+        "runtime_smoke_delegation"
+      ],
+      "stop_when": "each harness section has exactly one layer owner and side effects are confined to the allowed layer or CI job",
+      "blocked_when": "a validator change adds remote, runtime, generated, dependency, or temporary-fixture behavior to a pure truth or workspace layer"
+    },
+    "agent_run_record": {
+      "inputs": [
+        "spec/authority-map.json",
+        "spec/agent-run-record.json",
+        "spec/workspace-boundary.json",
+        "spec/harness-architecture.json",
+        "spec/agent-harness.json",
+        "spec/repo-delivery-contract.json",
+        "spec/evals.json"
+      ],
+      "outputs": [
+        "referenced_specs",
+        "product_truth_used",
+        "implementation_hypothesis_changed",
+        "workspace_boundary_and_read_scope",
+        "files_changed",
+        "commands_run",
+        "validation_results",
+        "agent_review_status",
+        "risks_and_follow_up"
+      ],
+      "stop_when": "a_committed_docs_agent_runs_record_exists_and_the_pull_request_body_references_it",
+      "blocked_when": "the_record_would_include_hidden_reasoning_secrets_raw_private_comments_or_unreviewed_candidate_card_content"
+    }
+  },
+  "governance": {
+    "main_branch_policy": {
+      "branch_name": "main",
+      "role": "read_only_integration_branch",
+      "direct_development": "forbidden",
+      "direct_merge_commit": "forbidden",
+      "direct_push": "forbidden",
+      "dirty_checkout": "forbidden",
+      "allowed_topic_branch_prefixes": [
+        "infra/",
+        "shell/",
+        "module/",
+        "cross/",
+        "fix/"
+      ]
+    },
+    "local_guard": {
+      "install_command": "./scripts/install_git_hooks.sh",
+      "hooks_path": ".githooks",
+      "guard_script": "scripts/guard_main_branch.sh",
+      "hook_wrapper_root_resolution": "git rev-parse --path-format=absolute --git-common-dir",
+      "bypass_env": "SOFTBOOK_ALLOW_MAIN_BYPASS",
+      "required_hooks": [
+        {
+          "path": ".githooks/pre-commit",
+          "action": "pre-commit",
+          "behavior": "block_commit_on_main"
+        },
+        {
+          "path": ".githooks/pre-merge-commit",
+          "action": "pre-merge-commit",
+          "behavior": "block_local_merge_commit_on_main"
+        },
+        {
+          "path": ".githooks/pre-push",
+          "action": "pre-push",
+          "behavior": "block_push_from_local_main_to_remote_main"
+        },
+        {
+          "path": ".githooks/post-checkout",
+          "action": "post-checkout",
+          "behavior": "block_dirty_checkout_to_main_and_warn_on_clean_checkout"
+        }
+      ]
+    },
+    "remote_guard": {
+      "provider": "github",
+      "repository": "LENKIN233/softbook_cet",
+      "protected_branch": "main",
+      "require_pull_request": true,
+      "required_approving_review_count": 0,
+      "required_status_checks": [
+        "agent-review",
+        "backend-contract",
+        "design-artifact-gate",
+        "validate-harness",
+        "mobile-quality"
+      ],
+      "require_strict_status_checks": true,
+      "allow_force_pushes": false,
+      "allow_deletions": false
+    },
+    "external_content_workspace": {
+      "name": "card make",
+      "absolute_path": "/Users/lenkin/programing/card make",
+      "sibling_path_from_repo": "../card make",
+      "role": "upstream_candidate_card_content_production_workspace",
+      "softbook_cet_role": "card_payload_consumer_importer_auditor_and_runtime_validator",
+      "handoff_contract": "infra/cloudbase/mobile-runtime-contract.md",
+      "catalog_authority": "spec/box-catalog.json",
+      "approval_boundary": "candidate_or_approved_content_status_lives_in_card_make_not_softbook_cet",
+      "forbidden_in_softbook_cet": [
+        "generating_candidate_card_content",
+        "marking_card_batches_as_approved",
+        "using_softbook_cet_dev_seed_cards_as_release_content_quantity"
+      ],
+      "allowed_in_softbook_cet": [
+        "dry_run_import_card_payloads",
+        "apply_imports_after_explicit_or_existing_validated_handoff",
+        "audit_cloudbase_card_sources",
+        "run_runtime_smoke_against_imported_payloads",
+        "report_release_content_gap_delta"
+      ]
+    },
+    "repo_delivery_contract": {
+      "owner": "spec/repo-delivery-contract.json",
+      "default_behavior": "code-changing tasks default to topic branch -> commit -> pull request -> recorded agent review -> merge unless the user explicitly requests local-only delivery",
+      "merge_policy": "merge to main defaults to automatic merge after a recorded clean agent review and required gates are green",
+      "design_gate_policy": "user-facing UI changes require accepted design artifacts, checklist answers, implementation mapping, and capability-specific interaction/motion or physical-space evidence when the change touches those systems"
+    }
+  },
+  "anti_patterns": [
+    {
+      "id": "AP-01",
+      "name": "teaching_system_instead_of_exam_product",
+      "correction": "pass_exam_first"
+    },
+    {
+      "id": "AP-02",
+      "name": "physical_space_as_two_boxes_only",
+      "correction": "knowledge_map_plus_card_position_system"
+    },
+    {
+      "id": "AP-03",
+      "name": "hint_as_standalone_card_type",
+      "correction": "hint_is_enhancement_layer"
+    },
+    {
+      "id": "AP-04",
+      "name": "audio_as_standalone_interaction_family",
+      "correction": "audio_is_resource_medium"
+    },
+    {
+      "id": "AP-05",
+      "name": "stats_and_state_machine_as_product_center",
+      "correction": "stats_only_serve_core_value"
+    },
+    {
+      "id": "AP-06",
+      "name": "screen_spec_over_implementationized",
+      "correction": "define_goals_and_risks_not_component_constants"
+    },
+    {
+      "id": "AP-07",
+      "name": "drop_confirmed_user_facing_actions_like_peek",
+      "correction": "preserve_low_cost_learning_and_management_actions"
+    },
+    {
+      "id": "AP-08",
+      "name": "treat_space_as_fully_free_drag_or_fully_locked",
+      "correction": "algorithm_primary_with_partial_user_control"
+    },
+    {
+      "id": "AP-09",
+      "name": "assume_one_ui_can_be_adapted_to_all_device_classes",
+      "correction": "phone_tablet_pc_web_need_dedicated_ui_and_page_design"
+    },
+    {
+      "id": "AP-10",
+      "name": "treat_pc_as_native_desktop_client_instead_of_web_surface",
+      "correction": "pc_means_web_on_personal_computer_sized_screens"
+    },
+    {
+      "id": "AP-11",
+      "name": "force_literal_touch_gestures_on_non_touch_surfaces",
+      "correction": "preserve_meaning_and_low_cost_with_equivalent_non_touch_mapping"
+    },
+    {
+      "id": "AP-12",
+      "name": "assume_exact_cross_device_resume_is_required_product_truth",
+      "correction": "daily_sync_and_some_progress_inheritance_are_required_but_exact_resume_is_not"
+    },
+    {
+      "id": "AP-13",
+      "name": "drop_purchase_or_membership_unification_on_web_or_one_mobile_platform",
+      "correction": "all_release_targets_support_purchase_and_share_membership"
+    },
+    {
+      "id": "AP-14",
+      "name": "treat_audio_as_optional_on_web_even_when_card_content_requires_it",
+      "correction": "audio_availability_must_hold_on_all_release_targets"
+    },
+    {
+      "id": "AP-15",
+      "name": "assume_guest_learning_is_allowed_before_login",
+      "correction": "login_is_required_before_learning"
+    },
+    {
+      "id": "AP-16",
+      "name": "change_top_level_navigation_across_surfaces",
+      "correction": "keep_learning_space_statistics_mine_consistent_while_adapting_page_composition"
+    },
+    {
+      "id": "AP-17",
+      "name": "make_trial_start_at_install_or_registration_instead_of_first_counted_entry",
+      "correction": "trial_starts_when_first_entry_is_counted_as_membership_trial"
+    },
+    {
+      "id": "AP-18",
+      "name": "autoplay_audio_or_require_front_subtitles",
+      "correction": "audio_does_not_autoplay_and_front_side_subtitles_are_not_required"
+    },
+    {
+      "id": "AP-19",
+      "name": "treat_module_selection_as_primary_learning_mode",
+      "correction": "keep_system_sequenced_single_flow_primary_and_use_module_browsing_only_for_targeted_review"
+    },
+    {
+      "id": "AP-20",
+      "name": "treat_main_as_normal_development_branch",
+      "correction": "main_is_read_only_integration_branch_and_topic_branches_are_required"
+    },
+    {
+      "id": "AP-21",
+      "name": "reinvent_visual_language_per_screen_or_per_agent",
+      "correction": "inherit_from_spec_visual_language_json_and_docs_design_visual_reference_html_and_treat_hex_as_implementation_hypothesis_but_library_identity_and_self_assess_scoping_and_law_of_one_as_product_truth"
+    },
+    {
+      "id": "AP-22",
+      "name": "ship_visual_output_without_answering_design_review_checklist",
+      "correction": "any_task_that_produces_visual_output_must_emit_answers_to_visual_language_design_review_checklist_universal_Q1_Q4_plus_applicable_conditional_Q5_Q6"
+    },
+    {
+      "id": "AP-23",
+      "name": "use_red_for_self_assess_review_level_implying_punishment",
+      "correction": "self_assess_has_two_levels_confident_green_and_review_amber_red_is_reserved_for_rule_dont_and_trend_down_only"
+    },
+    {
+      "id": "AP-24",
+      "name": "treat_local_dirty_worktree_as_default_delivery_for_code_changes",
+      "correction": "code_changes_default_to_topic_branch_commit_pull_request_unless_local_only_is_explicitly_requested"
+    },
+    {
+      "id": "AP-25",
+      "name": "leave_reviewed_green_pull_request_waiting_for_explicit_merge_instruction",
+      "correction": "open_or_update_pull_request_then_merge_after_clean_agent_review_and_green_required_gates"
+    },
+    {
+      "id": "AP-26",
+      "name": "implement_user_facing_UI_directly_from_RN_or_agent_taste_without_design_artifact",
+      "correction": "treat_existing_RN_as_behavior_prototype_and_require_accepted_design_artifact_before_user_facing_implementation"
+    },
+    {
+      "id": "AP-27",
+      "name": "treat_interaction_motion_as_component_animation_afterthought",
+      "correction": "design_core_interaction_operation_feedback_failure_and_motion_artifacts_before_implementation"
+    },
+    {
+      "id": "AP-28",
+      "name": "treat_physical_space_as_surface_UI_without_spatial_model",
+      "correction": "design_library_group_box_card_spatial_model_state_transitions_and_learning_space_continuity"
+    },
+    {
+      "id": "AP-29",
+      "name": "use_task_local_design_brief_as_implementation_authority",
+      "correction": "task_local_briefs_are_exploration_only_and_implementation_consumes_preexisting_accepted_artifacts"
+    },
+    {
+      "id": "AP-30",
+      "name": "treat_agent_review_as_unrecorded_convention",
+      "correction": "agent_review_must_be_recorded_in_the_pull_request_and_checked_by_required_agent_review_gate_before_merge"
+    },
+    {
+      "id": "AP-31",
+      "name": "promote_first_generation_AI_design_without_search_or_pairwise_review",
+      "correction": "run_design_evolution_with_context_pack_candidate_population_hard_filters_pairwise_review_fragment_harvest_targeted_mutation_and_promotion_record_before_acceptance"
+    },
+    {
+      "id": "AP-32",
+      "name": "produce_or_approve_card_content_inside_softbook_cet",
+      "correction": "use_the_sibling_card_make_workspace_for_candidate_content_production_and_approval_then_import_validate_and_smoke_in_softbook_cet"
+    },
+    {
+      "id": "AP-33",
+      "name": "consume_design_artifact_with_user_visible_metadata_leakage",
+      "correction": "quarantine_or_repair_any_design_artifact_before_UI_implementation"
+    },
+    {
+      "id": "AP-34",
+      "name": "treat_single_card_flow_as_non_operable_one_screen_poster",
+      "correction": "define_current_card_primary_task_primary_action_feedback_recovery_and_space_continuity_before_visual_implementation"
+    },
+    {
+      "id": "AP-35",
+      "name": "bulk_read_generated_dependency_cache_or_archive_as_active_context",
+      "correction": "classify_workspace_first_and_read_only_task_relevant_active_truth_source_contract_or_design_authority_files"
+    },
+    {
+      "id": "AP-36",
+      "name": "treat_external_card_make_workspace_as_internal_source_tree",
+      "correction": "cross_into_card_make_only_through_explicit_card_content_handoff_contracts_and_keep_softbook_cet_as_payload_consumer"
+    },
+    {
+      "id": "AP-37",
+      "name": "add_harness_check_without_layer_owner",
+      "correction": "assign_every_validate_harness_section_to_one_harness_architecture_layer_and_record_allowed_side_effects"
+    },
+    {
+      "id": "AP-38",
+      "name": "mix_runtime_or_remote_side_effects_into_truth_workspace_or_design_pure_layers",
+      "correction": "keep_truth_and_workspace_layers_pure_move_remote_reads_to_delivery_governance_and_runtime_behavior_to_ci_smoke_jobs"
+    },
+    {
+      "id": "AP-39",
+      "name": "leave_pr_bound_agent_work_only_in_chat_history",
+      "correction": "commit_a_minimal_docs_agent_runs_record_and_reference_it_from_the_pull_request_before_review_or_merge"
+    },
+    {
+      "id": "AP-40",
+      "name": "put_hidden_reasoning_or_private_material_in_agent_run_record",
+      "correction": "record_public_task_facts_specs_files_commands_validation_and_risks_only_never_hidden_reasoning_secrets_raw_private_comments_or_unreviewed_card_content"
+    },
+    {
+      "id": "AP-41",
+      "name": "treat_stale_local_main_or_worktree_lock_as_remote_merge_failure",
+      "correction": "verify_github_pr_state_and_origin_main_then_fast_forward_clean_local_main_or_report_dirty_workspace_hygiene_blocker"
+    }
+  ],
+  "compaction_keep": [
+    "spec/requirement-memory.json",
+    "current_task_related_specs",
+    "current_decisions",
+    "open_questions",
+    "membership_structure",
+    "core_interactions",
+    "physical_space_semantics",
+    "detailed_box_catalog",
+    "card_make_external_workspace_boundary",
+    "repo_delivery_policy",
+    "edited_files",
+    "workspace_boundary_and_agent_read_scope",
+    "harness_architecture_layer_boundaries",
+    "agent_run_record_path",
+    "local_main_worktree_sync_state"
+  ]
+}

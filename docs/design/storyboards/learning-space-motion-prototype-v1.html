@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>学习与空间动效 v1</title>
+  <style>
+    :root {
+      --surface-accent: #6A7C89;
+      --surface-accent-soft: #EEF3F4;
+      --confident: #22c58b;
+      --confident-soft: #e9fbf4;
+      --review: #f5b100;
+      --review-soft: #fff7dc;
+      --ink: #12121a;
+      --muted: #4f5062;
+      --page: #f5f3ee;
+      --panel: #f8f8fb;
+      --edge: rgba(18,18,26,.1);
+      --ease: cubic-bezier(.22,1,.36,1);
+      font-family: Inter, "Noto Sans SC", system-ui, Arial;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      overflow-x: hidden;
+      padding: 36px;
+    }
+
+    main {
+      display: grid;
+      gap: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 28px;
+      padding: 24px;
+      min-height: 220px;
+    }
+
+    h1, h2, p { margin: 0; letter-spacing: 0; }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    p {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .frame {
+      min-height: 126px;
+      border-radius: 22px;
+      border: 1px solid var(--edge);
+      background: #fff;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .label {
+      color: var(--surface-accent);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .card {
+      height: 76px;
+      border-radius: 18px;
+      border: 1px solid rgba(106, 124, 137, .32);
+      background: var(--surface-accent-soft);
+      display: grid;
+      place-items: center;
+      color: #6b2d00;
+      font-weight: 800;
+    }
+
+    .flip-mid .card {
+      animation: flip 320ms var(--ease) infinite alternate;
+      transform-style: preserve-3d;
+    }
+
+    .pills {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 9px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .pill.confident {
+      background: var(--confident-soft);
+      color: #146b4a;
+      border: 1px solid rgba(34,197,139,.34);
+    }
+
+    .pill.review {
+      background: var(--review-soft);
+      color: #725000;
+      border: 1px solid rgba(245,177,0,.38);
+    }
+
+    .motion-state {
+      display: block;
+    }
+
+    .reduced-state,
+    .reduced-actions {
+      display: none;
+    }
+
+    .hint-layer {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 14px;
+      border-radius: 16px;
+      background: var(--surface-accent-soft);
+      border: 1px solid rgba(106, 124, 137, .28);
+      color: #6b2d00;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      animation: hint 180ms var(--ease) infinite alternate;
+    }
+
+    .swipe-card {
+      width: 72%;
+      height: 84px;
+      margin: 0 auto;
+      border-radius: 18px;
+      background: var(--surface-accent-soft);
+      border: 1px solid rgba(106, 124, 137, .32);
+      color: #6b2d00;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+    }
+
+    .swipe-mid .swipe-card {
+      animation: swipe 240ms var(--ease) infinite alternate;
+    }
+
+    .trail {
+      position: absolute;
+      top: 58px;
+      color: rgba(106, 124, 137, .42);
+      font-weight: 900;
+    }
+
+    .trail.left { left: 22px; }
+    .trail.right { right: 22px; }
+
+    .reduced-actions {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .direction-button {
+      border-radius: 999px;
+      border: 1px solid rgba(106, 124, 137, .32);
+      background: var(--surface-accent-soft);
+      color: #6b2d00;
+      padding: 8px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    @keyframes flip {
+      from { transform: rotateY(0deg); }
+      to { transform: rotateY(18deg); }
+    }
+
+    @keyframes hint {
+      from { transform: translateY(10px); opacity: .55; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes swipe {
+      from { transform: translateX(0) rotate(0deg); }
+      to { transform: translateX(34px) rotate(4deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .flip-mid .card,
+      .hint-layer,
+      .swipe-mid .swipe-card {
+        animation: none;
+      }
+
+      .motion-state {
+        display: none;
+      }
+
+      .reduced-state {
+        display: block;
+      }
+
+      .flip-mid .card {
+        transform: none;
+        background: var(--surface-accent-soft);
+        box-shadow: inset 0 0 0 2px rgba(106, 124, 137, .18);
+      }
+
+      .hint-layer {
+        position: static;
+        margin-top: 10px;
+        transform: none;
+        opacity: 1;
+      }
+
+      .swipe-mid .swipe-card {
+        transform: none;
+      }
+
+      .trail {
+        display: none;
+      }
+
+      .reduced-actions {
+        display: grid;
+      }
+    }
+
+    @media (max-width: 430px) {
+      body {
+        padding: 18px;
+      }
+
+      main {
+        max-width: 100%;
+      }
+
+      .strip {
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <h1>Flip</h1>
+      <p>Same card object, front to back, then two low-cost self-assess pills.</p>
+      <div class="strip">
+        <div class="frame"><div class="label">start</div><div class="card">front</div></div>
+        <div class="frame flip-mid"><div class="label">motion</div><div class="card"><span class="motion-state">same object</span><span class="reduced-state">front / back crossfade</span></div></div>
+        <div class="frame"><div class="label">end</div><div class="card">back</div><div class="pills"><div class="pill confident">有把握</div><div class="pill review">再回看</div></div></div>
+      </div>
+    </section>
+
+    <section>
+      <h1>Hint Layer</h1>
+      <p>Hint attaches to the current card and never becomes a separate card type.</p>
+      <div class="strip">
+        <div class="frame"><div class="label">start</div><div class="card">card + hint trigger</div></div>
+        <div class="frame"><div class="label">motion</div><div class="card">card</div><div class="hint-layer">定位转折词后再看选项</div></div>
+        <div class="frame"><div class="label">end</div><div class="card">answer still pending</div></div>
+      </div>
+    </section>
+
+    <section>
+      <h1>Swipe</h1>
+      <p>One top card moves with direction, then the next card enters from stack context.</p>
+      <div class="strip">
+        <div class="frame"><div class="label">start</div><span class="trail left">‹</span><div class="swipe-card">top card</div><span class="trail right">›</span><div class="reduced-actions"><div class="direction-button">left</div><div class="direction-button">right</div></div></div>
+        <div class="frame swipe-mid"><div class="label">release</div><span class="trail left">‹</span><div class="swipe-card">right</div><span class="trail right">›</span><div class="reduced-actions"><div class="direction-button">left</div><div class="direction-button">right</div></div></div>
+        <div class="frame"><div class="label">end</div><div class="swipe-card">next card</div></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

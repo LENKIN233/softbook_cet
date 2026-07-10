@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Space Surface Shelf Desk v1</title>
+  <style>
+    :root {
+      --surface-accent: #6A7C89;
+      --surface-accent-soft: rgba(106, 124, 137, .13);
+      --surface-accent-line: rgba(106, 124, 137, .42);
+      --mint: #22c58b;
+      --amber: #f5b100;
+      --ink-1: #101018;
+      --ink-2: #343448;
+      --ink-3: #67677c;
+      --ink-4: #9999aa;
+      --paper: #f3f1f7;
+      --paper-2: #ebe8f2;
+      --glass: rgba(255, 255, 255, .76);
+      --glass-strong: rgba(255, 255, 255, .94);
+      --hair: rgba(16, 16, 24, .09);
+      --shadow: rgba(16, 16, 24, .16);
+      font-family: Inter, "Noto Sans SC", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink-1);
+      background:
+        radial-gradient(circle at 20% 8%, rgba(106, 124, 137, .13), transparent 34%),
+        radial-gradient(circle at 86% 18%, rgba(34, 197, 139, .08), transparent 32%),
+        var(--paper);
+      overflow-x: hidden;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    header {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 34px 0 18px;
+    }
+
+    h1 {
+      max-width: 760px;
+      font-size: 32px;
+      line-height: 1.14;
+      font-weight: 850;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin-top: 12px;
+      color: var(--ink-3);
+      font-size: 14px;
+      line-height: 1.62;
+    }
+
+    main {
+      width: min(1240px, 100%);
+      margin: 0 auto;
+      padding: 8px 20px 44px;
+      display: flex;
+      justify-content: center;
+      gap: 22px;
+      flex-wrap: wrap;
+    }
+
+    .proof-note {
+      width: 320px;
+      align-self: flex-start;
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid var(--hair);
+      background: rgba(255, 255, 255, .56);
+      box-shadow: 0 18px 50px rgba(16, 16, 24, .08);
+    }
+
+    .proof-note h2 {
+      font-size: 15px;
+      line-height: 1.2;
+      font-weight: 820;
+    }
+
+    .proof-note p {
+      margin-top: 10px;
+      color: var(--ink-3);
+      font-size: 13px;
+      line-height: 1.56;
+    }
+
+    .phone {
+      width: 393px;
+      height: 852px;
+      flex: 0 0 393px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 46px;
+      border: 1px solid rgba(16, 16, 24, .14);
+      background: linear-gradient(180deg, #faf9fd, var(--paper-2));
+      box-shadow:
+        0 28px 72px rgba(16, 16, 24, .16),
+        inset 0 1px 0 rgba(255, 255, 255, .82);
+      padding: 24px 18px 18px;
+    }
+
+    .island {
+      width: 120px;
+      height: 36px;
+      margin: 0 auto 14px;
+      border-radius: 20px;
+      background: #101018;
+    }
+
+    .screen {
+      height: 760px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      gap: 10px;
+    }
+
+    .top-row,
+    .address-row,
+    .box-title,
+    .card-row,
+    .sleep-head,
+    .return-strip,
+    .tabs {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .top-row,
+    .box-title,
+    .sleep-head,
+    .return-strip,
+    .tabs {
+      justify-content: space-between;
+    }
+
+    .surface-kicker {
+      min-width: 0;
+    }
+
+    .surface-kicker span {
+      display: block;
+      color: var(--ink-3);
+      font-size: 11px;
+      font-weight: 780;
+      text-transform: uppercase;
+    }
+
+    .surface-kicker strong {
+      display: block;
+      margin-top: 4px;
+      color: var(--ink-1);
+      font-size: 22px;
+      line-height: 1.05;
+      font-weight: 880;
+    }
+
+    .library-chip,
+    .address-node,
+    .tag,
+    .mini-button,
+    .tab {
+      min-width: 0;
+      border-radius: 999px;
+      border: 1px solid var(--hair);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .library-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 132px;
+      padding: 9px 11px;
+      color: #683000;
+      background: var(--surface-accent-soft);
+      border-color: var(--surface-accent-line);
+      font-size: 12px;
+      font-weight: 780;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 99px;
+      background: var(--surface-accent);
+    }
+
+    .address-shelf {
+      margin-top: 2px;
+      padding: 10px;
+      border-radius: 22px;
+      border: 1px solid var(--hair);
+      background: rgba(255, 255, 255, .52);
+    }
+
+    .address-row {
+      gap: 7px;
+    }
+
+    .address-node {
+      padding: 8px 9px;
+      color: var(--ink-3);
+      background: rgba(255, 255, 255, .64);
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .address-node.current {
+      color: #6b2d00;
+      background: var(--surface-accent-soft);
+      border-color: var(--surface-accent-line);
+    }
+
+    .desk {
+      position: relative;
+      min-height: 0;
+      flex: 1 1 auto;
+      padding: 16px;
+      border-radius: 32px;
+      border: 1px solid rgba(106, 124, 137, .28);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .62)),
+        linear-gradient(180deg, rgba(106, 124, 137, .09), rgba(255, 255, 255, 0));
+      box-shadow:
+        0 18px 44px rgba(16, 16, 24, .1),
+        inset 5px 0 0 var(--surface-accent);
+    }
+
+    .box-title {
+      gap: 12px;
+    }
+
+    .box-title h2 {
+      min-width: 0;
+      font-size: 20px;
+      line-height: 1.16;
+      font-weight: 860;
+    }
+
+    .box-title p {
+      margin-top: 5px;
+      color: var(--ink-3);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .box-count {
+      flex: 0 0 auto;
+      padding: 9px 10px;
+      border-radius: 15px;
+      color: #6b2d00;
+      background: var(--surface-accent-soft);
+      border: 1px solid var(--surface-accent-line);
+      font-size: 12px;
+      font-weight: 820;
+    }
+
+    .shelf-desk {
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+      min-height: 0;
+    }
+
+    .side-shelf {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .spine {
+      min-height: 54px;
+      border-radius: 18px;
+      border: 1px solid var(--hair);
+      background: rgba(255, 255, 255, .52);
+      color: var(--ink-4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 780;
+      library-4-mode: vertical-rl;
+    }
+
+    .spine.active {
+      min-height: 78px;
+      color: #6b2d00;
+      background: var(--surface-accent-soft);
+      border-color: var(--surface-accent-line);
+    }
+
+    .tray {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-row {
+      gap: 9px;
+      align-items: stretch;
+    }
+
+    .card {
+      min-width: 0;
+      flex: 1 1 0;
+      min-height: 132px;
+      padding: 12px;
+      border-radius: 22px;
+      border: 1px solid var(--hair);
+      background: var(--glass-strong);
+      box-shadow: 0 10px 24px rgba(16, 16, 24, .07);
+    }
+
+    .card.active {
+      border-color: var(--surface-accent-line);
+      background:
+        linear-gradient(180deg, rgba(106, 124, 137, .1), rgba(255, 255, 255, .92));
+    }
+
+    .card h3 {
+      font-size: 13px;
+      line-height: 1.26;
+      font-weight: 820;
+    }
+
+    .card p {
+      margin-top: 7px;
+      color: var(--ink-3);
+      font-size: 11px;
+      line-height: 1.38;
+    }
+
+    .tag {
+      display: inline-flex;
+      max-width: 100%;
+      margin-top: 10px;
+      padding: 7px 8px;
+      color: #126b4c;
+      background: rgba(34, 197, 139, .12);
+      border-color: rgba(34, 197, 139, .34);
+      font-size: 10px;
+      font-weight: 780;
+    }
+
+    .sleep-zone {
+      margin-top: 2px;
+      padding: 12px;
+      border-radius: 24px;
+      border: 1px dashed rgba(16, 16, 24, .14);
+      background: rgba(255, 255, 255, .46);
+    }
+
+    .sleep-head {
+      gap: 10px;
+    }
+
+    .sleep-head strong {
+      font-size: 12px;
+      line-height: 1.2;
+      font-weight: 820;
+    }
+
+    .sleep-head span {
+      color: var(--ink-3);
+      font-size: 11px;
+    }
+
+    .sleep-card {
+      margin-top: 9px;
+      padding: 10px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, .68);
+      border: 1px solid var(--hair);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .sleep-card p {
+      color: var(--ink-2);
+      font-size: 12px;
+      font-weight: 780;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mini-button {
+      padding: 8px 10px;
+      color: var(--ink-1);
+      background: rgba(255, 255, 255, .86);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .return-strip {
+      gap: 12px;
+      padding: 13px;
+      border-radius: 22px;
+      border: 1px solid var(--surface-accent-line);
+      background: var(--surface-accent-soft);
+    }
+
+    .return-strip p {
+      min-width: 0;
+      color: #6b2d00;
+      font-size: 12px;
+      line-height: 1.32;
+      font-weight: 760;
+    }
+
+    .return-strip strong {
+      display: block;
+      color: #4b2400;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .return-action {
+      flex: 0 0 auto;
+      padding: 11px 13px;
+      border-radius: 999px;
+      color: #fffaf4;
+      background: var(--surface-accent);
+      font-size: 12px;
+      font-weight: 850;
+      box-shadow: 0 10px 22px rgba(106, 124, 137, .26);
+    }
+
+    .tabs {
+      margin-top: auto;
+      gap: 6px;
+      padding: 7px;
+      border-radius: 999px;
+      border: 1px solid var(--hair);
+      background: rgba(255, 255, 255, .8);
+      box-shadow: 0 12px 28px rgba(16, 16, 24, .08);
+    }
+
+    .tab {
+      flex: 1 1 0;
+      padding: 10px 6px;
+      text-align: center;
+      color: var(--ink-3);
+      background: transparent;
+      font-size: 11px;
+      font-weight: 780;
+    }
+
+    .tab.active {
+      color: #6b2d00;
+      background: var(--surface-accent-soft);
+      border-color: var(--surface-accent-line);
+    }
+
+    @media (max-width: 760px) {
+      header {
+        width: calc(100% - 28px);
+        padding-top: 24px;
+      }
+
+      h1 {
+        font-size: 25px;
+      }
+
+      main {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .phone {
+        width: min(393px, calc(100vw - 24px));
+        flex-basis: min(393px, calc(100vw - 24px));
+      }
+
+      .proof-note {
+        width: min(393px, calc(100vw - 24px));
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>空间盒桌</h1>
+    <p class="lead">空间不是列表，而是一张能看见归属关系的盒桌：当前架、当前组、当前盒、盒内卡片、附着的收藏标记、回看角，以及回到学习的连续路径。</p>
+  </header>
+
+  <main>
+    <section class="phone" aria-label="Space shelf desk phone proof">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="top-row">
+          <div class="surface-kicker">
+            <span>Space</span>
+            <strong>盒桌</strong>
+          </div>
+          <div class="library-chip"><i class="dot"></i><span>组 1</span></div>
+        </div>
+
+        <section class="address-shelf" aria-label="parent address shelf">
+          <div class="address-row">
+            <span class="address-node">本轮</span>
+            <span class="address-node current">组 1</span>
+            <span class="address-node">组 1</span>
+          </div>
+        </section>
+
+        <section class="desk" aria-label="current box tray">
+          <div class="box-title">
+            <div>
+              <h2>盒 1</h2>
+              <p>当前卡仍属于 当前馆 / 当前组 / 当前盒</p>
+            </div>
+            <div class="box-count">12 张卡</div>
+          </div>
+
+          <div class="shelf-desk">
+            <aside class="side-shelf" aria-label="quiet sibling shelf">
+              <div class="spine">主旨</div>
+              <div class="spine active">定位</div>
+              <div class="spine">排除</div>
+            </aside>
+
+            <div class="tray">
+              <div class="card-row">
+                <article class="card active">
+                  <h3>题干线索先圈出</h3>
+                  <p>先找人名、年份、转折，再回原文定位。</p>
+                  <span class="tag">收藏标记</span>
+                </article>
+                <article class="card">
+                  <h3>干扰项同义替换</h3>
+                  <p>不看熟词，看句内关系。</p>
+                </article>
+              </div>
+
+              <section class="sleep-zone" aria-label="sleep alcove under current box">
+                <div class="sleep-head">
+                  <strong>回看角</strong>
+                  <span>仍在盒 1下</span>
+                </div>
+                <div class="sleep-card">
+                  <p>长句修饰误判</p>
+                  <button class="mini-button">唤回</button>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section class="return-strip" aria-label="return to learning with context">
+          <p><strong>回到当前学习流</strong>继续处理这张线索卡，不切到模块选择。</p>
+          <div class="return-action">回到学习</div>
+        </section>
+
+        <nav class="tabs" aria-label="top level navigation">
+          <div class="tab">学习</div>
+          <div class="tab active">空间</div>
+          <div class="tab">统计</div>
+          <div class="tab">我的</div>
+        </nav>
+      </div>
+    </section>
+
+    <aside class="proof-note">
+      <h2>检查结论</h2>
+      <p>Q1：当前学科是唯一强强调色。Q2：当前盒桌是首读焦点。Q3：层级由架、盒、卡片和回看角组成。Q4：没有使用禁用视觉模式。Q5：画面收敛在 393 x 852 手机框内。Q6：仅适用于空间；学习与统计规则不变。</p>
+      <p>后续落地必须保留设计来源、空间关系、区域映射和未完成差距说明。</p>
+    </aside>
+  </main>
+</body>
+</html>

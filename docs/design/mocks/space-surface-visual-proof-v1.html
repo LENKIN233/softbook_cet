@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>空间表面视觉 v1</title>
+  <style>
+    :root {
+      --surface-accent: #6A7C89;
+      --surface-accent-soft: #EEF3F4;
+      --ink: #12121a;
+      --muted: #4f5062;
+      --page: #f5f3ee;
+      --panel: #f8f8fb;
+      --panel-2: #fbfbf6;
+      --edge: rgba(18,18,26,.1);
+      --shadow: rgba(18,18,26,.16);
+      --sleep: #7d8794;
+      --favorite: #f5b100;
+      --mint: #22c58b;
+      font-family: Inter, "Noto Sans SC", system-ui, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      overflow-x: hidden;
+    }
+
+    header {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 34px 32px 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .section-title {
+      width: min(1120px, calc(100% - 48px));
+      margin: 30px auto 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    main {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 0 24px 48px;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 24px;
+    }
+
+    .phone {
+      width: 393px;
+      height: 852px;
+      overflow: hidden;
+      position: relative;
+      border-radius: 46px;
+      border: 1px solid rgba(18,18,26,.14);
+      background: var(--page);
+      box-shadow: 0 24px 70px var(--shadow);
+      padding: 26px 18px 18px;
+    }
+
+    .phone.small {
+      width: 310px;
+      height: 690px;
+      border-radius: 38px;
+      padding: 20px 14px 14px;
+      box-shadow: 0 18px 48px rgba(18,18,26,.12);
+    }
+
+    .island {
+      width: 122px;
+      height: 37px;
+      border-radius: 22px;
+      background: #0b0b12;
+      margin: 0 auto 18px;
+    }
+
+    .phone.small .island {
+      width: 92px;
+      height: 28px;
+      margin-bottom: 12px;
+    }
+
+    .surface {
+      height: 755px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .phone.small .surface {
+      height: 616px;
+      gap: 10px;
+    }
+
+    .topline,
+    .nav,
+    .return-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chip,
+    .state,
+    .tab,
+    .crumb {
+      border-radius: 999px;
+      border: 1px solid var(--edge);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--surface-accent-soft);
+      color: #6b2d00;
+      border-color: rgba(106, 124, 137, .28);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--surface-accent);
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .object {
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 28px;
+      padding: 20px;
+      box-shadow: 0 18px 40px rgba(18,18,26,.08);
+    }
+
+    .phone.small .object {
+      border-radius: 22px;
+      padding: 15px;
+    }
+
+    .eyebrow {
+      color: var(--surface-accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .6px;
+      margin-bottom: 8px;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.18;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .phone.small h3 {
+      font-size: 19px;
+    }
+
+    p {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.48;
+    }
+
+    .shelf,
+    .card-grid,
+    .state-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .shelf {
+      grid-template-columns: 1fr;
+      flex: 1;
+    }
+
+    .shelf-layer,
+    .box-drawer,
+    .dock-panel,
+    .sleep-zone {
+      border: 1px solid var(--edge);
+      background: rgba(255,255,255,.62);
+      border-radius: 24px;
+      padding: 14px;
+    }
+
+    .layer-title,
+    .tile-title {
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .layer-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .crumb {
+      padding: 8px 10px;
+      color: var(--muted);
+      background: rgba(255,255,255,.74);
+    }
+
+    .crumb.active {
+      color: #6b2d00;
+      background: var(--surface-accent-soft);
+      border-color: rgba(106, 124, 137, .38);
+    }
+
+    .box-focus {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .box-drawer,
+    .dock-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .card-tile {
+      min-height: 86px;
+      border-radius: 18px;
+      border: 1px solid var(--edge);
+      background: var(--panel-2);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      justify-content: space-between;
+    }
+
+    .card-tile.current {
+      border-color: rgba(106, 124, 137, .6);
+      box-shadow: inset 0 0 0 1px rgba(106, 124, 137, .22);
+    }
+
+    .card-tile.sleeping {
+      border-color: rgba(125,135,148,.35);
+      background: rgba(125,135,148,.1);
+    }
+
+    .tile-copy {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .state {
+      align-self: flex-start;
+      padding: 6px 8px;
+      color: var(--muted);
+      background: rgba(255,255,255,.78);
+    }
+
+    .state.favorite {
+      color: #725100;
+      border-color: rgba(245,177,0,.42);
+      background: rgba(245,177,0,.16);
+    }
+
+    .state.sleep {
+      color: #424c58;
+      border-color: rgba(125,135,148,.44);
+      background: rgba(125,135,148,.14);
+    }
+
+    .state.ready {
+      color: #12633f;
+      border-color: rgba(34,197,139,.38);
+      background: rgba(34,197,139,.14);
+    }
+
+    .sleep-zone {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .sleep-zone .copy {
+      min-width: 0;
+    }
+
+    .return-row {
+      border: 1px solid var(--edge);
+      border-radius: 999px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,.64);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px 8px;
+      color: var(--muted);
+      background: rgba(255,255,255,.58);
+    }
+
+    .tab.active {
+      color: #f8f8fb;
+      background: var(--ink);
+      border-color: var(--ink);
+    }
+
+    .operation-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .operation {
+      border-radius: 18px;
+      border: 1px solid var(--edge);
+      background: var(--panel-2);
+      padding: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .mini-map {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .mini-box {
+      min-height: 64px;
+      border-radius: 16px;
+      border: 1px solid var(--edge);
+      background: rgba(255,255,255,.62);
+      padding: 9px;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .mini-box.active {
+      color: #6b2d00;
+      border-color: rgba(106, 124, 137, .5);
+      background: var(--surface-accent-soft);
+    }
+
+    .state-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    @media (max-width: 740px) {
+      header {
+        max-width: 390px;
+        padding: 28px 20px 8px;
+      }
+      h1 {
+        font-size: 27px;
+        line-height: 1.08;
+        overflow-wrap: anywhere;
+      }
+      .lead {
+        max-width: 350px;
+        font-size: 14px;
+        overflow-wrap: anywhere;
+      }
+      main { padding-inline: 14px; }
+      .section-title {
+        width: calc(100% - 28px);
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+      .note {
+        max-width: 100%;
+        line-height: 1.35;
+      }
+      .phone {
+        width: min(393px, calc(100vw - 72px));
+      }
+      .state-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>空间表面视觉 v1</h1>
+    <p class="lead">空间需要先看见物理层级：当前架、当前组、当前盒、盒内卡片、收藏标记、回看区、唤回动作，以及回到学习的连续路径。</p>
+  </header>
+
+  <div class="section-title">
+    <h2>三种空间方向</h2>
+    <div class="note">三个明显不同的空间组织方式</div>
+  </div>
+
+  <main>
+    <div class="row">
+      <section class="phone" aria-label="Direction A Shelf Map">
+        <div class="island"></div>
+        <div class="surface">
+          <div class="topline">
+            <div class="chip"><span class="dot"></span> 馆 1 · Space A</div>
+            <div class="meta">shelf map</div>
+          </div>
+          <article class="object">
+            <div class="eyebrow">Direction A</div>
+            <h3>Shelf Map</h3>
+            <p>先读 library 和 group 架层，再进入当前 box 抽屉。空间感强，但容易变成目录管理器。</p>
+          </article>
+          <div class="shelf">
+            <div class="shelf-layer">
+              <div class="layer-title">Library shelf</div>
+              <div class="layer-row">
+                <span class="crumb">馆 2</span>
+                <span class="crumb active">馆 1</span>
+                <span class="crumb">馆 3</span>
+              </div>
+            </div>
+            <div class="shelf-layer">
+              <div class="layer-title">Group rail</div>
+              <div class="layer-row">
+                <span class="crumb">线索</span>
+                <span class="crumb active">盒 1</span>
+                <span class="crumb">干扰项</span>
+              </div>
+            </div>
+            <div class="box-drawer">
+              <div class="layer-title">当前抽屉 · 盒 1</div>
+              <div class="card-grid">
+                <div class="card-tile current"><div class="tile-title">卡 1</div><div class="state favorite">favorite</div></div>
+                <div class="card-tile"><div class="tile-title">卡 2</div><div class="state ready">ready</div></div>
+                <div class="card-tile sleeping"><div class="tile-title">卡 3</div><div class="state sleep">sleep</div></div>
+                <div class="card-tile"><div class="tile-title">卡 4</div><div class="state">inspect</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="return-row"><span>返回学习</span><span>当前盒保持上下文</span></div>
+        </div>
+      </section>
+
+      <section class="phone" aria-label="Direction B Box Desk">
+        <div class="island"></div>
+        <div class="surface">
+          <div class="topline">
+            <div class="chip"><span class="dot"></span> 馆 1 · Space B</div>
+            <div class="meta">accepted</div>
+          </div>
+          <article class="object">
+            <div class="eyebrow">Direction B · Accepted</div>
+            <h3>Box Desk</h3>
+            <p>当前 box 是桌面上的主对象。父层级清楚，卡片状态附着在对象上，不把 favorite 或 sleep 画成盒子。</p>
+            <div class="mini-map">
+              <div class="mini-box">馆 1</div>
+              <div class="mini-box active">盒 1</div>
+              <div class="mini-box active">盒 1</div>
+            </div>
+          </article>
+          <div class="box-focus">
+            <div class="box-drawer">
+              <div class="layer-title">当前盒 · 盒 1</div>
+              <div class="card-grid">
+                <div class="card-tile current">
+                  <div class="tile-title">卡 1</div>
+                  <div class="tile-copy">卡 1</div>
+                  <div class="state favorite">favorite tag</div>
+                </div>
+                <div class="card-tile">
+                  <div class="tile-title">卡 2</div>
+                  <div class="tile-copy">detail trap</div>
+                  <div class="state ready">ready</div>
+                </div>
+                <div class="card-tile sleeping">
+                  <div class="tile-title">卡 3</div>
+                  <div class="tile-copy">same owning container</div>
+                  <div class="state sleep">sleeping</div>
+                </div>
+                <div class="card-tile">
+                  <div class="tile-title">卡 4</div>
+                  <div class="tile-copy">sibling card</div>
+                  <div class="state">inspect</div>
+                </div>
+              </div>
+            </div>
+            <div class="sleep-zone">
+              <div class="copy">
+                <div class="layer-title">Sleep zone</div>
+                <p>暂离学习流，但仍在 盒 1 盒内。</p>
+              </div>
+              <span class="state sleep">wake</span>
+            </div>
+          </div>
+          <div class="return-row"><span>返回学习</span><span>本轮 / 当前馆 / 当前组 / 当前盒</span></div>
+        </div>
+      </section>
+
+      <section class="phone" aria-label="Direction C Operation Dock">
+        <div class="island"></div>
+        <div class="surface">
+          <div class="topline">
+            <div class="chip"><span class="dot"></span> 馆 1 · Space C</div>
+            <div class="meta">operation dock</div>
+          </div>
+          <article class="object">
+            <div class="eyebrow">Direction C</div>
+            <h3>Operation Dock</h3>
+            <p>围绕当前卡显示 inspect、favorite、sleep、wake。动作清楚，但太像工具面板，空间层级变弱。</p>
+          </article>
+          <div class="dock-panel">
+            <div class="layer-title">Current card address</div>
+            <div class="return-row"><span>卡 1</span><span>馆 1 / 盒 1 / 盒 1</span></div>
+            <div class="operation-list">
+              <div class="operation"><span>Inspect box</span><span class="state">open</span></div>
+              <div class="operation"><span>Favorite</span><span class="state favorite">tag</span></div>
+              <div class="operation"><span>Move to sleep</span><span class="state sleep">zone</span></div>
+              <div class="operation"><span>Continue Learning</span><span class="state ready">return</span></div>
+            </div>
+          </div>
+          <div class="box-drawer">
+            <div class="layer-title">Nearby cards</div>
+            <div class="card-grid">
+              <div class="card-tile current"><div class="tile-title">卡 1</div><div class="state favorite">favorite</div></div>
+              <div class="card-tile"><div class="tile-title">卡 2</div><div class="state">nearby</div></div>
+            </div>
+          </div>
+          <div class="return-row"><span>返回学习</span><span>operation-first risk</span></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="section-title">
+      <h2>方向 B 的状态展开</h2>
+      <div class="note">盒内查看、收藏、回看、唤回和回到学习</div>
+    </div>
+
+    <div class="row state-grid">
+      <section class="phone small" aria-label="Box focus state">
+        <div class="island"></div>
+        <div class="surface">
+          <div class="topline"><div class="chip"><span class="dot"></span> 馆 1 · 盒 1</div><div class="meta">当前盒</div></div>
+          <article class="object">
+            <div class="eyebrow">当前盒</div>
+            <h3>盒 1</h3>
+            <p>父级上下文可见，当前盒是第一视觉对象。</p>
+          </article>
+          <div class="box-drawer">
+            <div class="card-grid">
+              <div class="card-tile current"><div class="tile-title">卡 1</div><div class="state favorite">favorite</div></div>
+              <div class="card-tile"><div class="tile-title">卡 2</div><div class="state ready">ready</div></div>
+            </div>
+          </div>
+          <div class="return-row"><span>Learning context</span><span>preserved</span></div>
+        </div>
+      </section>
+
+      <section class="phone small" aria-label="Card inspect state">
+        <div class="island"></div>
+        <div class="surface">
+          <div class="topline"><div class="chip"><span class="dot"></span> 馆 1 · 盒 1</div><div class="meta">inspect</div></div>
+          <article class="object">
+            <div class="eyebrow">卡片检查</div>
+            <h3>卡 1</h3>
+            <p>这张卡仍属于当前盒。inspect 只放大对象，不重写归属。</p>
+          </article>
+          <div class="box-drawer">
+            <div class="layer-title">Sibling cards</div>
+            <div class="card-grid">
+              <div class="card-tile current"><div class="tile-title">卡 1</div><div class="state">selected</div></div>
+              <div class="card-tile"><div class="tile-title">卡 2</div><div class="state">sibling</div></div>
+            </div>
+          </div>
+          <div class="return-row"><span>本轮 / 当前馆 / 当前组 / 当前盒</span></div>
+        </div>
+      </section>
+
+      <section class="phone small" aria-label="Favorite tag state">
+        <div class="island"></div>
+        <div class="surface">
+          <div class="topline"><div class="chip"><span class="dot"></span> 馆 1 · 盒 1</div><div class="meta">favorite</div></div>
+          <article class="object">
+            <div class="eyebrow">Favorite Tag</div>
+            <h3>Tag, not a box</h3>
+            <p>收藏只提高可见性，不把卡移动到收藏盒。</p>
+          </article>
+          <div class="box-drawer">
+            <div class="card-grid">
+              <div class="card-tile current"><div class="tile-title">卡 1</div><div class="state favorite">favorite tag</div></div>
+              <div class="card-tile"><div class="tile-title">卡 2</div><div class="state">ready</div></div>
+            </div>
+          </div>
+          <div class="return-row"><span>返回位置</span><span>仍在盒 1</span></div>
+        </div>
+      </section>
+
+      <section class="phone small" aria-label="Sleep zone state">
+        <div class="island"></div>
+        <div class="surface">
+          <div class="topline"><div class="chip"><span class="dot"></span> 馆 1 · 盒 1</div><div class="meta">sleep</div></div>
+          <article class="object">
+            <div class="eyebrow">Sleep Zone</div>
+            <h3>Temporarily quiet</h3>
+            <p>sleep 让卡暂离学习压力，但空间地址不变。</p>
+          </article>
+          <div class="sleep-zone">
+            <div class="copy">
+              <div class="layer-title">卡 3 sleeping</div>
+              <p>本轮 / 当前馆 / 当前组 / 当前盒</p>
+            </div>
+            <span class="state sleep">wake</span>
+          </div>
+          <div class="return-row"><span>Not deleted</span><span>Not archived</span></div>
+        </div>
+      </section>
+
+      <section class="phone small" aria-label="Wake state">
+        <div class="island"></div>
+        <div class="surface">
+          <div class="topline"><div class="chip"><span class="dot"></span> 馆 1 · 盒 1</div><div class="meta">wake</div></div>
+          <article class="object">
+            <div class="eyebrow">Wake Action</div>
+            <h3>Back to eligible flow</h3>
+            <p>wake 只恢复学习资格，不允许用户改知识归属。</p>
+          </article>
+          <div class="box-drawer">
+            <div class="card-grid">
+              <div class="card-tile current"><div class="tile-title">卡 3</div><div class="state ready">eligible</div></div>
+              <div class="card-tile"><div class="tile-title">卡 4</div><div class="state">sibling</div></div>
+            </div>
+          </div>
+          <div class="return-row"><span>同盒</span><span>盒 1</span></div>
+        </div>
+      </section>
+
+      <section class="phone small" aria-label="Return to Learning state">
+        <div class="island"></div>
+        <div class="surface">
+          <div class="topline"><div class="chip"><span class="dot"></span> 馆 1 · 盒 1</div><div class="meta">return</div></div>
+          <article class="object">
+            <div class="eyebrow">Return To Learning</div>
+            <h3>Continue current path</h3>
+            <p>返回不是普通 back。它带着当前盒上下文回到下一张学习卡。</p>
+          </article>
+          <div class="box-drawer">
+            <div class="card-grid">
+              <div class="card-tile current"><div class="tile-title">Next card</div><div class="state ready">learning</div></div>
+              <div class="card-tile"><div class="tile-title">Address</div><div class="state">visible</div></div>
+            </div>
+          </div>
+          <div class="return-row"><span>学习</span><span>本轮 / 当前馆 / 当前组 / 当前盒</span></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

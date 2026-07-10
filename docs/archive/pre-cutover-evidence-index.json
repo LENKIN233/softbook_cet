@@ -1,0 +1,4095 @@
+{
+  "schema_version": "pre-cutover-evidence-index.v1",
+  "cutover_id": "history-cutover-2026-07-10",
+  "source_commit": "fa108d36d2b406c26737f77333edb191816482f5",
+  "archive": {
+    "url": "https://github.com/LENKIN233/softbook_cet/releases/download/history-cutover-2026-07-10/softbook-visual-evidence-2026-07-10.tar.gz",
+    "asset_name": "softbook-visual-evidence-2026-07-10.tar.gz",
+    "sha256": "6214759f93c30e645f61a12d537c844e9022581d3d36a8ba1548d5f6addb9f23",
+    "size_bytes": 162388780
+  },
+  "file_count": 391,
+  "files": [
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-28-mine-one-screen-app-flow-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 624832,
+      "sha256": "cf33eb7c5d2480cb655f3d72b498d7d305f86f2ef0379b462d75741c7802dddc",
+      "references": [
+        "docs/agent-runs/2026-06-28-mine-one-screen-frontend-quality.md",
+        "docs/design/app-screenshots/README.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-28-one-screen-app-flow-simulator-auth.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 562484,
+      "sha256": "5a9263b6d7ac453144a6513a10f5df4bf61c9e03d60f3f0a88082c62b26be0bb",
+      "references": [
+        "docs/agent-runs/2026-06-28-one-screen-app-flow-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-28-one-screen-app-flow-simulator-learning.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 450694,
+      "sha256": "1e646b3c9f1ce5de8176bf5173ae86bd01eed7b877ec543c5154492c95d0a6a5",
+      "references": [
+        "docs/agent-runs/2026-06-28-one-screen-app-flow-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-28-one-screen-app-flow-simulator-space-fixed.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 472484,
+      "sha256": "ac8050f0bb436eee98df9e5e1a8f40661c10be98b4f488cd981014014dda387b",
+      "references": [
+        "docs/agent-runs/2026-06-28-one-screen-app-flow-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-28-one-screen-app-flow-simulator-statistics-final.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 425705,
+      "sha256": "571b65dafec207a484f3ff0d1c3e69ad8eaf4b21ef1b97a1ca164d6c86721eaa",
+      "references": [
+        "docs/agent-runs/2026-06-28-one-screen-app-flow-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-29-space-shelf-desk-fidelity-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 502867,
+      "sha256": "33164f336f3b69b574e8dc96f612f1a09d6146a96ddee9d5e0456e545cf87d51",
+      "references": [
+        "docs/agent-runs/2026-06-29-space-shelf-desk-fidelity.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-auth-entry-app-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 598231,
+      "sha256": "7f34ab601bf5e9ebe142885c12db4f9cbb2635e64f1480da92d201aeaa456f41",
+      "references": [
+        "docs/agent-runs/2026-06-30-auth-entry-app-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-detail-answer-slip-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 461716,
+      "sha256": "e22838f89dd025ad38c65643cce675699a70e12b3bca3f3d2f456525cb8e97a5",
+      "references": [
+        "docs/agent-runs/2026-06-30-detail-answer-slip-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-detail-resolved-object-unification-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 460175,
+      "sha256": "12d29cf91b9f1e018d6d5c92fc922a3ca22dbff06f640b2221f445c99993d19d",
+      "references": [
+        "docs/agent-runs/2026-06-30-detail-resolved-object-unification.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-learning-detail-fidelity-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 459052,
+      "sha256": "b1fcc0f0602ed39392b1fb80f3d907e442ce713d66df29897b78a90fdfaff903",
+      "references": [
+        "docs/agent-runs/2026-06-30-learning-detail-fidelity.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-learning-detail-guide-line-cleanup-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 457268,
+      "sha256": "635c21dfe0cee293ee34a3812c5a5b4e4345bf1c883224e5ad18cdcd3d516cd1",
+      "references": [
+        "docs/agent-runs/2026-06-30-learning-detail-guide-line-cleanup.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-learning-detail-visual-polish-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 452905,
+      "sha256": "8de6898103f6cfd37bccb161d9bec7fab30937885da345b1bd86ae5115ddf03f",
+      "references": [
+        "docs/agent-runs/2026-06-30-learning-detail-visual-polish.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-learning-main-fidelity-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 430715,
+      "sha256": "f20e8b539a58016383a120b56f83e3727ffe8ee1dc237a3f72ed6d1bec151580",
+      "references": [
+        "docs/agent-runs/2026-06-30-learning-main-fidelity.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-learning-main-object-semantics-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 395828,
+      "sha256": "97b147393dc89e97db2d6990ac5e147567bfd3a4589371566392151f3537e88a",
+      "references": [
+        "docs/agent-runs/2026-06-30-learning-main-object-semantics.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-learning-visual-polish-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 425088,
+      "sha256": "88095a9a75760913e8d8700e589e9cf276a22586a3a502e29a3b20ec2c7055cc",
+      "references": [
+        "docs/agent-runs/2026-06-30-learning-visual-polish.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-mine-account-object-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 612868,
+      "sha256": "6bce5ec361beb5de0b51f52947df7066232046c5c0eda1319f35d52183400517",
+      "references": [
+        "docs/agent-runs/2026-06-30-mine-account-object-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-mobile-market-ui-detail-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 451574,
+      "sha256": "14e5717e6deafbb736ba8dbfa28453cc622640f48da02a9478d31334cd7cb927",
+      "references": [
+        "docs/agent-runs/2026-06-30-mobile-market-ui-reset.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-mobile-market-ui-learning-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 408271,
+      "sha256": "710016dd7ce3cede5ca573300abe0d3e2a9fd37e39bb5105e33a217dbd6b965e",
+      "references": [
+        "docs/agent-runs/2026-06-30-mobile-market-ui-reset.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-mobile-market-ui-mine-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 616428,
+      "sha256": "10d6d276248dc970677d118a26f5bcc8924a73c789a7b51bc4956f5f5adaea7c",
+      "references": [
+        "docs/agent-runs/2026-06-30-mobile-market-ui-reset.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-mobile-market-ui-space-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 504013,
+      "sha256": "9b21f13905671a24045263e9c2f230a0c6815c2cf3a2e278458379f1ecc93dee",
+      "references": [
+        "docs/agent-runs/2026-06-30-mobile-market-ui-reset.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-mobile-market-ui-statistics-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 419888,
+      "sha256": "d3e55f52c4e10bab4135061a53b0246dd2021e4a398e78dab923cad74bae1a4f",
+      "references": [
+        "docs/agent-runs/2026-06-30-mobile-market-ui-reset.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-space-browse-inspect-unification-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 405224,
+      "sha256": "b2058ee89dcd60b6dc30b625bb6821dca2e2a054124d9e2faa07c5dc01f77d80",
+      "references": [
+        "docs/agent-runs/2026-06-30-space-browse-inspect-unification.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-space-browse-object-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 412033,
+      "sha256": "662f66cc6c2e5ba39a1371e10402aded250ad056c0f9ea5bfe6c64c0626ec0d2",
+      "references": [
+        "docs/agent-runs/2026-06-30-space-browse-object-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-space-object-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 461775,
+      "sha256": "36e03ae482085ff3b016f35408c5569c6b1842e5785dff0ab866501475cc82fb",
+      "references": [
+        "docs/agent-runs/2026-06-30-space-object-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-06-30-statistics-daily-object-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 414165,
+      "sha256": "16c892dfe2c220e50ccad2751fb4b1079bb3e5c7a2f8a848572187d3b2a557cc",
+      "references": [
+        "docs/agent-runs/2026-06-30-statistics-daily-object-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-auth-card-gate-object-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 620089,
+      "sha256": "e5468a852cab50ecb5c4aafc7d2424c73a09c259f0372653d272159de40e64d9",
+      "references": [
+        "docs/agent-runs/2026-07-01-auth-card-gate-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-auth-code-sent-object-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 570753,
+      "sha256": "b4278e1fc8f7ad65dcd9616f320e5116f644d7113124d098b97f6b3de96f20a5",
+      "references": [
+        "docs/agent-runs/2026-07-01-auth-code-sent-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-auth-code-sent-status-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 570613,
+      "sha256": "2c7c9bad42ff4e64df2696e2d8f3993751c6933956cd0ced35e6628fe0e74e21",
+      "references": [
+        "docs/agent-runs/2026-07-01-auth-code-sent-status.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-auth-code-submit-readiness-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 475821,
+      "sha256": "b0dd388b4e87838601f5b14aaf31f5723b076227d401b7d6dacd26594583bdc4",
+      "references": [
+        "docs/agent-runs/2026-07-01-auth-primary-action-readiness.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-auth-entry-continuation-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 580616,
+      "sha256": "0fe9807d70a887d6fd9d0d7521fc8bea0489575af1009e273fff8d7b6201a13e",
+      "references": [
+        "docs/agent-runs/2026-07-01-auth-entry-continuation-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-auth-primary-action-readiness-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 453511,
+      "sha256": "e854e94eecebe6cc6b6b6b57e315b8cd0d5323d3fea407cde1f57fc9ed6de593",
+      "references": [
+        "docs/agent-runs/2026-07-01-auth-primary-action-readiness.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-auth-route-gates-learning-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 617407,
+      "sha256": "4cbc4696432afec1d52b8717ea1d211177a80164a2ef863eb4523929a5b8cbe4",
+      "references": [
+        "docs/agent-runs/2026-07-01-auth-route-gates-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-auth-space-gate-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 631040,
+      "sha256": "65ec0905958b42c0ce899fa7d1ebb8f9c7b307e8b6bf15b0a589e0a7e7df00e1",
+      "references": [
+        "docs/agent-runs/2026-07-01-auth-route-gates-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-auth-statistics-gate-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 631146,
+      "sha256": "f410a5239f568a344f277bc4da144eb6b4f0354c071921171688592f6aac043f",
+      "references": [
+        "docs/agent-runs/2026-07-01-auth-route-gates-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-detail-result-object-flow-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 478503,
+      "sha256": "f84b7f789ef04c2c8ee5e95469ae82bd885b78aede56b22a43b60f4f7a9c4f5b",
+      "references": [
+        "docs/agent-runs/2026-07-01-detail-result-object-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-learning-current-card-flow-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 395747,
+      "sha256": "e104255d2be173d5c0c5912aeee5541b28b205773eab37f72c421e5908d115a0",
+      "references": [
+        "docs/agent-runs/2026-07-01-learning-current-card-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-mine-account-object-unification-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 643696,
+      "sha256": "bab53ab2879d5bc19de4804feb9415941350bccc4cbff13ac9d178d28eeda897",
+      "references": [
+        "docs/agent-runs/2026-07-01-mine-account-object-unification.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-mine-action-routing-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 630292,
+      "sha256": "19d7b1d4399d70f2b0dd7fe57a90a32e5b97796c1449ebe6d967a3346ce16db9",
+      "references": [
+        "docs/agent-runs/2026-07-01-mine-action-routing-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-mine-auth-request-readiness-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 437103,
+      "sha256": "11ef9d58e22b67b21f9903abf44cc7e741b646278d76e2e486206370f2cd9e27",
+      "references": [
+        "docs/agent-runs/2026-07-01-mine-auth-readiness-screenshots.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-mine-auth-submit-readiness-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 479557,
+      "sha256": "ef48d93833bf238539dc5055008dcf82638b58df14d9fcdf261fc8adf4ed92ff",
+      "references": [
+        "docs/agent-runs/2026-07-01-mine-auth-readiness-screenshots.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-mine-code-sent-object-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 629969,
+      "sha256": "4161a9077154329ab7e0a3a3647cedce4357062df8e168006b0f3b9fd4dbaed5",
+      "references": [
+        "docs/agent-runs/2026-07-01-mine-code-sent-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-mine-membership-hierarchy-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 606566,
+      "sha256": "480d039960b1c1d24d8e100345317992b5be30a86521f93b2ad3e19b5f61f63e",
+      "references": [
+        "docs/agent-runs/2026-07-01-mine-membership-hierarchy.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-mine-membership-state-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 634991,
+      "sha256": "7a06a92a96e9cd340144059a0884bf6b343d6f76b1e06645de7a6ef9397ad3a2",
+      "references": [
+        "docs/agent-runs/2026-07-01-mine-membership-state-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-mine-signed-out-object-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 598498,
+      "sha256": "c77ca5cd78b9a8bebd0e16f5a90dff20a4093ff676b66adce8bf9e5c9d5bc285",
+      "references": [
+        "docs/agent-runs/2026-07-01-mine-signed-out-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-result-detail-slip-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 449926,
+      "sha256": "af51c6bc4b5379c562e99097467727ac356c8ee085c92e006b623b52dd195b4d",
+      "references": [
+        "docs/agent-runs/2026-07-01-result-detail-slip-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-result-detail-success-tone-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 477975,
+      "sha256": "7b65100e6595f3df94542b0a45b3ad91e414b9f93ba0e5adfbcede140e892ba6",
+      "references": [
+        "docs/agent-runs/2026-07-01-result-detail-success-tone.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-space-browse-box-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 416495,
+      "sha256": "51dc92da2edf3b593da8b4f721141448939f613af4311f6f0f5a3d87796eb75b",
+      "references": [
+        "docs/agent-runs/2026-07-01-space-browse-box-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-space-browse-navigation-readiness-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 418484,
+      "sha256": "94a8320d75f282aac8b97992f89650a77cb6a17236968d34c13ef3459848276a",
+      "references": [
+        "docs/agent-runs/2026-07-01-space-browse-navigation-readiness.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-space-browse-rail-polish-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 414561,
+      "sha256": "6bd1ed2b2b83064565f6e26ab81f53e7d25e26b55a089f82efe1efd4648a4894",
+      "references": [
+        "docs/agent-runs/2026-07-01-space-browse-rail-polish.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-space-overview-app-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 503531,
+      "sha256": "282f1cee36b8ad4169ead4e1cff416ec1edc911209fa6f1c98a178ec6b0399a6",
+      "references": [
+        "docs/agent-runs/2026-07-01-space-overview-app-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-space-overview-object-unification-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 602045,
+      "sha256": "afbc6405111fccce3767773284eaa1bab622f47ff78afbe729e7eefe5214571f",
+      "references": [
+        "docs/agent-runs/2026-07-01-space-overview-object-unification.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-statistics-daily-action-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 418305,
+      "sha256": "c7be0775b709dc599a0e0a781b849c743a2f6cb6acfdcb8f77df0df0350bdc75",
+      "references": [
+        "docs/agent-runs/2026-07-01-statistics-daily-action-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-statistics-ledger-flow-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 414360,
+      "sha256": "10179ef7d4cbeabce0aee354a1670343a704068d1c13d7ebf40b56403ac2447f",
+      "references": [
+        "docs/agent-runs/2026-07-01-statistics-ledger-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-01-statistics-route-object-quality-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 411694,
+      "sha256": "b3536ea235cbcfad68bf6c3711ec1a79acf4693e76a8195677384f2dc84332a5",
+      "references": [
+        "docs/agent-runs/2026-07-01-statistics-route-object-quality.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-02-auth-code-inline-dock-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 467439,
+      "sha256": "7bd028e157d73839d96e54365e25e4eab9a78efd83e922d07924a4be6f3249f7",
+      "references": [
+        "docs/agent-runs/2026-07-02-auth-code-inline-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-02-auth-code-submit-inline-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 469419,
+      "sha256": "b9c8c9f77aad63eddc2cce5e1a145bd4c839309681aa6e98b025c9431a18d888",
+      "references": [
+        "docs/agent-runs/2026-07-02-auth-code-submit-inline.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-02-auth-request-inline-dock-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 446415,
+      "sha256": "0d07181028cac5536f0a384c1f3798e67e4f484061138939beb6addf0774b38e",
+      "references": [
+        "docs/agent-runs/2026-07-02-auth-request-inline-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-02-auth-space-request-inline-dock-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 459458,
+      "sha256": "6c139c7d925bbd4708c3387b824d99909fa4ee990517000cd31fed1c8082713b",
+      "references": [
+        "docs/agent-runs/2026-07-02-auth-request-inline-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-02-auth-statistics-request-inline-dock-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 459905,
+      "sha256": "7371110503eb6d05c352187cb34b38c9a3f0e8dc882a04bcbc6667e0427a2b05",
+      "references": [
+        "docs/agent-runs/2026-07-02-auth-request-inline-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-02-learning-action-dock-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 406803,
+      "sha256": "64e904aa74fba47a31b4baf292ae642c5d136cfab16e5b1d9b99c22b14e02485",
+      "references": [
+        "docs/agent-runs/2026-07-02-learning-action-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-02-learning-detail-analysis-first-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 486283,
+      "sha256": "911fe0a702235120520dd0969eaa507029c7666291359550fabd2538c3ffa281",
+      "references": [
+        "docs/agent-runs/2026-07-02-learning-detail-analysis-first.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-02-mine-auth-embedded-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 436568,
+      "sha256": "a0bd8bd087d07858dd14d169058ff12a81fefb8db65947d37fd9c4a37593afab",
+      "references": [
+        "docs/agent-runs/2026-07-02-mine-auth-embedded-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-02-mine-auth-embedded-signed-out-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 407805,
+      "sha256": "a8000ced4182ec6a39bb4cdef3783eaa1b1631e108962c971fea679383129feb",
+      "references": [
+        "docs/agent-runs/2026-07-02-mine-auth-embedded-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-02-mine-code-inline-dock-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 455982,
+      "sha256": "60ccb8052ca6f6cee22352ef03214212dc76b399e0d56d961a3414ec481c2e56",
+      "references": [
+        "docs/agent-runs/2026-07-02-auth-code-inline-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-02-mine-code-submit-inline-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 463007,
+      "sha256": "7736e8615cc6d63fbc9d36671e1cf0df1a9b15bd06feeecb4ac28b566024fcbb",
+      "references": [
+        "docs/agent-runs/2026-07-02-auth-code-submit-inline.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-02-space-browse-state-deck-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 443902,
+      "sha256": "7a1218ab4d603178599f069fae7a0375ac8f1a467677bb5ebfe195d3e8dfe6f1",
+      "references": [
+        "docs/agent-runs/2026-07-02-space-browse-state-deck.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-02-statistics-next-step-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 437199,
+      "sha256": "16907269623b502b350e69bb002259fa1363e668d5434209df51520230a2d9fc",
+      "references": [
+        "docs/agent-runs/2026-07-02-statistics-next-step-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-auth-gate-ledger-auth-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 459352,
+      "sha256": "d37feb32eb794ec84a3578c5393762ea3f17657db2806812a00dae01dec2ebec",
+      "references": [
+        "docs/agent-runs/2026-07-03-auth-gate-ledger-unification.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-auth-gate-ledger-auth-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 442225,
+      "sha256": "4071232dad903c1f12b52574a3fc2ccf271418a5cf4073c1b551d94e64bee7e8",
+      "references": [
+        "docs/agent-runs/2026-07-03-auth-gate-ledger-unification.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-auth-gate-ledger-mine-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 468935,
+      "sha256": "d552293178092c6166551898fa0f98b522040eabf3d24d1a168a5169f46dc107",
+      "references": [
+        "docs/agent-runs/2026-07-03-auth-gate-ledger-unification.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-auth-gate-ledger-mine-signed-out-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 449337,
+      "sha256": "09d11e46aab638a93fb3884bab6e6ad37b454f67f9d1219c0d953650b91cfe7a",
+      "references": [
+        "docs/agent-runs/2026-07-03-auth-gate-ledger-unification.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-auth-gate-ledger-space-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 451973,
+      "sha256": "735220f35fc3ad555193b82750c03aa1d7cec14df604d25280f77acddb3a57cc",
+      "references": [
+        "docs/agent-runs/2026-07-03-auth-gate-ledger-unification.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-auth-gate-ledger-statistics-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 453590,
+      "sha256": "bf0e4607f0d7adb5cd3cd45b3b6ec62610bd8a290a8bf5a40e577f1833e5515f",
+      "references": [
+        "docs/agent-runs/2026-07-03-auth-gate-ledger-unification.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-auth-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 459460,
+      "sha256": "e3008e16652df9d04e204a7a2b542703e2b67b9f9a3e8279221b6c0e64c568b6",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-auth-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 439236,
+      "sha256": "5fda9ecdabb8d8496db5efaaee2371e371e1c607899c2902e22fab1a3c3bc4c4",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-auth-space-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 450566,
+      "sha256": "e2272e3e03a8fb23faa3e2932d33dab998721e2df13efb9779b497b59eb459e5",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-auth-statistics-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 451565,
+      "sha256": "38d8cd90e5c4a4d6b30261883224197af4678e3aaaf1330612bd0dbf4ce14441",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-detail-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 480567,
+      "sha256": "07a8c99af48bef4cf0114c66416e7c2bfe768654e938c71e26798b276fdac13e",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-learning-dark-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 391992,
+      "sha256": "c876659614046a561f7e940ab0af461508dfbae0d913d28730ef9ca9d3bb8c2e",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-learning-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 401141,
+      "sha256": "8f65e2bb8af2f9ee5d82988a7e17901b55167984213853b4de2300576fd872b8",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-mine-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 471305,
+      "sha256": "1c2f66f3b3849271e0219b160e619a850de73591ea32114a7ce130da1b7ddf05",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-mine-dark-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 440863,
+      "sha256": "52bae5fad4932d4ed4e582db074806559579396a65051fba7573326498b51404",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-mine-signed-out-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 445681,
+      "sha256": "06a2825924757ebc7005e020a6a94ad0daa4ac21e05c1e176eb5a82050951b9d",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-mine-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 488757,
+      "sha256": "40e64c08d0b6d55545600fa879b3522c52ea0d3048ea3510fece4cc13da5cf0f",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-space-browse-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 445810,
+      "sha256": "487113e0bd074a8dbc63317cbc0a01f39272b539e4726906aeaba7699ba4e90b",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-space-dark-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 399254,
+      "sha256": "dbe28639e77b50749d495a021dcd55416c1605addf41092d2fa47250aaeb3dea",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-space-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 506897,
+      "sha256": "06d3192f914749d5d767cbfe41d2c0febe969e5b00dd3a0c6df4c1d6b6fc2450",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-statistics-dark-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 389959,
+      "sha256": "81357c277e94c76d57aecc523396df73e899e2dca6e821907aebf75d5a416c09",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-continuous-canvas-statistics-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 428081,
+      "sha256": "477b9daa48fd5a9f5a4b89a0e4504555c3573263b99130e9499b2f572ce3b678",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-dark-primary-surfaces-learning-light-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 407911,
+      "sha256": "24eb8d5e03561531c19f9fcd79fd01ed50124868a205030fd864fa1f5d6f46c2",
+      "references": [
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-dark-primary-surfaces-learning-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 409646,
+      "sha256": "fe6ededadca62f0707c1901d08175dedc7c772a9caf1d3effb97bae38b24e061",
+      "references": [
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-dark-primary-surfaces-mine-light-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 495026,
+      "sha256": "4367dd28f65876b319c1b9cd1a2610ac6e88dc9ae53888105950cb4e963ae779",
+      "references": [
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-dark-primary-surfaces-mine-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 462384,
+      "sha256": "2f79333b07da7dc5dcfd115910ffe395805f2c1f435a3e0ef9c5b3d38a456d97",
+      "references": [
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-dark-primary-surfaces-space-light-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 508692,
+      "sha256": "d9c84f99d5be792201379d3a82e2d4d3277cd9a90306439ce1f147ca258f0794",
+      "references": [
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-dark-primary-surfaces-space-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 420446,
+      "sha256": "39337a02338d3472309b51ceb709e367ccac4bc415647bb8e9746bd50f81a835",
+      "references": [
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-dark-primary-surfaces-statistics-light-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 430131,
+      "sha256": "07c58e26ad6b392f1cc8a1f07b7833a2c2cf3fee5b970e58991de3f29bc12da2",
+      "references": [
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-dark-primary-surfaces-statistics-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 410368,
+      "sha256": "5952a537473cfc83c2a139836e11c2db26240bc3463177fb3c7e489466b9420b",
+      "references": [
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-mine-account-dock-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 495280,
+      "sha256": "86de7d88a0f327c7b57fcba42cfb2a5779f7976ef7132b8e58a85ac4261ed3e7",
+      "references": [
+        "docs/agent-runs/2026-07-03-mine-account-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-mine-auth-object-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 478591,
+      "sha256": "97394bb27660142c398897c141f0169bf05236d98ad836a17f818a680f088239",
+      "references": [
+        "docs/agent-runs/2026-07-03-mine-auth-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-mine-auth-object-signed-out-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 452345,
+      "sha256": "64b13ee05b2e6b990e26ff38be410283caa25601ccaab087f11b38a6dbd49a54",
+      "references": [
+        "docs/agent-runs/2026-07-03-mine-auth-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-mine-membership-compact-dock-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 497778,
+      "sha256": "283de0e55234c0b7da67871e1f6602a821ae65143636594997bcbfad98d36ea4",
+      "references": [
+        "docs/agent-runs/2026-07-03-mine-membership-compact-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-route-auth-object-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 462328,
+      "sha256": "65f09e79e901c1bfc661055314fc89f79912318af1a246988f62ca08612004ed",
+      "references": [
+        "docs/agent-runs/2026-07-03-route-auth-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-route-auth-object-learning-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 444221,
+      "sha256": "9c8050129caa9f8899d88d6bb86ae6ffb0a48ae3934c71286195fabe3d09517f",
+      "references": [
+        "docs/agent-runs/2026-07-03-route-auth-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-route-auth-object-space-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 454683,
+      "sha256": "6dd6572b61d130c1984cbe17eb805e554243120d2de567a1f3ce249d35d31bf0",
+      "references": [
+        "docs/agent-runs/2026-07-03-route-auth-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-route-auth-object-statistics-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 455514,
+      "sha256": "10277eb28c948e30f937beb8110fbfd584b56c52646803219191d73de28054cc",
+      "references": [
+        "docs/agent-runs/2026-07-03-route-auth-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-space-browse-address-desk-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 447581,
+      "sha256": "14b4e3c592eb6a0c6f6ae5c3d0c34c39faf4c10e8d90f2400d96d31d4e7f9411",
+      "references": [
+        "docs/agent-runs/2026-07-03-space-browse-address-desk.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-space-browse-attached-actions-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 420035,
+      "sha256": "99351fa1315d88d03badfb789c2c5a2bfa20b7878f51ca7a592b1ea315a601f3",
+      "references": [
+        "docs/agent-runs/2026-07-03-space-browse-attached-actions.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-space-browse-position-switcher-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 449570,
+      "sha256": "73413b98cd0e73e4567b57662b58c75c6b67b7dc3b80d44b3d09b0ab3ffbc4b8",
+      "references": [
+        "docs/agent-runs/2026-07-03-space-browse-position-switcher.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-space-overview-attached-dock-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 510381,
+      "sha256": "c6e9203070db3529948e4dfc8ae31b86fdb0c6ae47b6b2d2f0d73e0eaffe12e4",
+      "references": [
+        "docs/agent-runs/2026-07-03-space-overview-attached-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-statistics-daily-object-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 430921,
+      "sha256": "8c2b9e0a3c56f70739ed4d5623bf30a4692089769f837d50f0f0fc36b6ebd34d",
+      "references": [
+        "docs/agent-runs/2026-07-03-statistics-daily-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-03-statistics-ledger-dock-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 428910,
+      "sha256": "f2283b6cb7ca7fba6f03a0baf14df579f1999c087202c89fe269c76875d6ad5f",
+      "references": [
+        "docs/agent-runs/2026-07-03-statistics-ledger-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-code-cells-auth-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 460980,
+      "sha256": "0c92d587db9d0607d178f17543967ee9fe38e1c93ffbd09f83f86f6ead1117c6",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-code-cells.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-code-cells-mine-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 474639,
+      "sha256": "def9612217177d79d7ae9668940b56e78344bc5c9b0ee4cbd8f9f8fbe8ce3884",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-code-cells.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-identity-capsule-auth-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 421881,
+      "sha256": "0dc20ba29e7bcdc9f5c6ed828853a86968c85dbbeef3afa8f7dea0237595046d",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-identity-capsule-compression.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-identity-capsule-auth-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 404226,
+      "sha256": "683b1fcf205e629d7c0cec7bff02c2e1a4382eb0050a593f7bfab4a2b7c5b7e3",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-identity-capsule-compression.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-identity-capsule-auth-space-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 418549,
+      "sha256": "6a9c61a53c7acec1da2f6e13ad554b5f08303c95a812dc3a6b9e20d73d330179",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-identity-capsule-compression.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-identity-capsule-auth-statistics-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 420186,
+      "sha256": "ae1876e3ad0dee5f961d4c468290bada38e22cfd8f1888f5e2537b46adea0c9e",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-identity-capsule-compression.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-identity-capsule-mine-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 427843,
+      "sha256": "8a6d7746ba3a94b0b3dc342b730d5fbcdc9e21f7d6adc7c1df1a90d3caeda367",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-identity-capsule-compression.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-identity-capsule-mine-signed-out-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 411036,
+      "sha256": "f77a1489de5c98bcd0d8a4099520630cd0837cdff5cf8eccc188ffdfe05c90d5",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-identity-capsule-compression.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-identity-dock-auth-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 457528,
+      "sha256": "38a5ada552ebe590f2ed32c3ec351adc3c3b9deb7f2192c82b895e9129311af6",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-identity-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-identity-dock-auth-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 439143,
+      "sha256": "fc0b9dd54ba04eb37e351aff0f2c21ce6fed1b3ee20f14f77fb600a8dee25924",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-identity-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-identity-dock-auth-space-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 451066,
+      "sha256": "bbe33ac4da5095f45926a1a3e2daf327ca58fe29066e56585f5cfb2bab62018f",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-identity-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-identity-dock-auth-statistics-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 452303,
+      "sha256": "2cf44a87d5742fea0169f99bbae9c804d3909823429e77c45bc83b81b4dc24a8",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-identity-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-identity-dock-mine-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 464281,
+      "sha256": "e4cd001a5b7fb628a711afd7083dc61939c7f4edb9e81913c2e690ac4f392148",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-identity-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-auth-identity-dock-mine-signed-out-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 446924,
+      "sha256": "27d45006df68fbd09e3e86b7c43f806557fbcb9ac251da81b0493830cd9fd7b6",
+      "references": [
+        "docs/agent-runs/2026-07-04-auth-identity-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-detail-answer-slip-compression-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 466106,
+      "sha256": "f57cd7914d2fb4320bd42447b04766262cadd39bbd07cb234e2bdada0ee04357",
+      "references": [
+        "docs/agent-runs/2026-07-04-detail-answer-slip-compression.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-detail-feedback-continuity-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 481701,
+      "sha256": "247a2e6c1e58c55d7ded354f1e7236c617a329e9e616951c639d912ed26013e9",
+      "references": [
+        "docs/agent-runs/2026-07-04-detail-feedback-continuity.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-learning-detail-resolved-object-compression-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 469063,
+      "sha256": "95fba5f38823856b8992e7b50f884303ffd96561b005a3a3efe6a2ba3dc160b0",
+      "references": [
+        "docs/agent-runs/2026-07-04-learning-detail-resolved-object-compression.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-mine-membership-entitlement-dock-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 492804,
+      "sha256": "33b464af76b155c4c6f18b7388cbee719175db94ee13b5052a61bad2ba2e75a2",
+      "references": [
+        "docs/agent-runs/2026-07-04-mine-membership-entitlement-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-space-browse-control-deck-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 433826,
+      "sha256": "a7e0addbbeec70a0e76b35d0b7ff79d53a20ccc39e17502da762cca28ccb9fbf",
+      "references": [
+        "docs/agent-runs/2026-07-04-space-browse-control-deck.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-space-browse-position-rail-compression-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 426130,
+      "sha256": "ffabb1ccc78eb02995fa2238234111f13cd1aaad8ba6a88431425745cfeb60c4",
+      "references": [
+        "docs/agent-runs/2026-07-04-space-browse-position-rail-compression.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-space-overview-box-desk-compression-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 597063,
+      "sha256": "c953de844ffb3ebc3f0d0641c99239b9adf10d8c3d3480937acd5a6fabbf8fea",
+      "references": [
+        "docs/agent-runs/2026-07-04-space-overview-box-desk-compression.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-04-statistics-daily-ledger-compression-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 406275,
+      "sha256": "131ae84b997c3d35f297ed696fa36712b1f0a637ded183ba258af9d419e1d8c6",
+      "references": [
+        "docs/agent-runs/2026-07-04-statistics-daily-ledger-compression.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-auth-gate-account-dock-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 417940,
+      "sha256": "a07a1f7ca60469a84d48dc1d9c9c39f5ec72e98c58c9d7250590d0508214cd3b",
+      "references": [
+        "docs/agent-runs/2026-07-05-auth-gate-account-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-auth-gate-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 431090,
+      "sha256": "375ff734e777485b2be5f8b9ec7bcda2cb058cf74832a21ca9286e33ee45de7b",
+      "references": [
+        "docs/agent-runs/2026-07-05-auth-gate-account-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-auth-gate-mine-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 435722,
+      "sha256": "f89cb26c9fcde794a1a74dea2c18696637247f7ce47976ed4b77f39171c651d0",
+      "references": [
+        "docs/agent-runs/2026-07-05-auth-gate-account-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-auth-gate-mine-signed-out-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 422752,
+      "sha256": "3e3161aabbd93cc5a2969dbc88b4576209373d8c20d9d34ad21611948151d521",
+      "references": [
+        "docs/agent-runs/2026-07-05-auth-gate-account-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-auth-gate-object-flow-auth-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 429105,
+      "sha256": "4d58649e8c3b739e7e616e0912c7cfa0b22928d11075f93c3643f9c8fb06476d",
+      "references": [
+        "docs/agent-runs/2026-07-05-auth-gate-object-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-auth-gate-object-flow-auth-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 412277,
+      "sha256": "ca5c4284e33d2f21de7b34d03b0661f252ab1983590b6a8980646ee8f7d80216",
+      "references": [
+        "docs/agent-runs/2026-07-05-auth-gate-object-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-auth-gate-object-flow-auth-space-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 425746,
+      "sha256": "279281258bd271d24a13763c2a7361abb62e4ae8b6f1fa3dc3212c78aa46c2cd",
+      "references": [
+        "docs/agent-runs/2026-07-05-auth-gate-object-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-auth-gate-object-flow-auth-statistics-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 426503,
+      "sha256": "ea96013bddc6cb56b7756f1b82b179e69b08bbc6a4a2b2d7b2130d310133b90d",
+      "references": [
+        "docs/agent-runs/2026-07-05-auth-gate-object-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-auth-gate-object-flow-mine-code-sent-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 435784,
+      "sha256": "63cb39afe7f23dd9e69bc38d42745d05541cfca2433189db0615e9fa72fbb164",
+      "references": [
+        "docs/agent-runs/2026-07-05-auth-gate-object-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-auth-gate-object-flow-mine-signed-out-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 416433,
+      "sha256": "400b05da6bb16db86886a882e36abe1de75aa35d2ea62c3ab038f010abe3c2b7",
+      "references": [
+        "docs/agent-runs/2026-07-05-auth-gate-object-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-dark-neutral-chrome/learning-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 389036,
+      "sha256": "f10db592916d78a8a5394c21b04c59af50f4504444ba3d71acfc1986bbcbc96a",
+      "references": [
+        "docs/agent-runs/2026-07-05-dark-neutral-chrome.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-dark-neutral-chrome/mine-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 393693,
+      "sha256": "428777c1408b4b99dd05b25cf457dd1be2cdcef341b05f9914d1797a05665b85",
+      "references": [
+        "docs/agent-runs/2026-07-05-dark-neutral-chrome.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-dark-neutral-chrome/space-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 423424,
+      "sha256": "45c25042ce6afef6036fadbc01677e31fe0e9e6d073364afe4de3ecbfae9afe7",
+      "references": [
+        "docs/agent-runs/2026-07-05-dark-neutral-chrome.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-dark-neutral-chrome/statistics-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 352103,
+      "sha256": "fc2ef576c2710242d816a7aa39a69619ffcb72ddbc87e75d1ee0e45912536b97",
+      "references": [
+        "docs/agent-runs/2026-07-05-dark-neutral-chrome.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-learning-detail-answer-slip-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 468131,
+      "sha256": "85db6e50cbc5bf316058d5b7c1d506c57a0763725f1ba7fcd7c8e0a4bf5a9ab8",
+      "references": [
+        "docs/agent-runs/2026-07-05-learning-detail-answer-slip.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-learning-dot-signals/detail-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 444437,
+      "sha256": "a857a5589044174239f5b63fa55b17a0feab5ef79b85fafa8e97bb6a324a8a07",
+      "references": [
+        "docs/agent-runs/2026-07-05-learning-dot-signals.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-learning-dot-signals/learning-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 401207,
+      "sha256": "8376ae7830e4a27f7f813d6bde31fc85270a308c794b0c3fed2ef36c2c0b0270",
+      "references": [
+        "docs/agent-runs/2026-07-05-learning-dot-signals.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-learning-object-rhythm-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 409674,
+      "sha256": "6c69e6d051445b8c2fdc0d04943264600d82b7c0f999f35d1a0797c6aeb4bce6",
+      "references": [
+        "docs/agent-runs/2026-07-05-learning-object-rhythm.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-mine-account-gate/mine-code-sent-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 400853,
+      "sha256": "970ec0046d896191e7285ed09f058eba67d36fb7367316d221dcdd8a1a5b5881",
+      "references": [
+        "docs/agent-runs/2026-07-05-mine-account-gate.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-mine-account-gate/mine-signed-out-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 389697,
+      "sha256": "a4bdcca0a271ab0fe35c96f81f35228e410fc210a11ca7d087c1854dbcce224d",
+      "references": [
+        "docs/agent-runs/2026-07-05-mine-account-gate.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-mine-account-layer/mine-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 445758,
+      "sha256": "c1d96551e870a1f974411d16c67765a2c84f80c14da843e704568ec6ccd84463",
+      "references": [
+        "docs/agent-runs/2026-07-05-mine-account-layer.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-mine-account-passport/mine-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 440015,
+      "sha256": "5379c2d38514ec437025457a33e45b945989d33a6bc0a2847026554596ebd23a",
+      "references": [
+        "docs/agent-runs/2026-07-05-mine-account-passport.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-space-browse-object-tray-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 419475,
+      "sha256": "1806175cc8ebc1e3b5ed7d36a951b9a3fd3dc5a68e248612b76a191363f8e4fc",
+      "references": [
+        "docs/agent-runs/2026-07-05-space-browse-object-tray.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-space-browse-unified-tray/space-browse-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 392844,
+      "sha256": "a5ede3a3cdc221a593095f8d2123ef9829d998a48337d46e187762367ce5a4b8",
+      "references": [
+        "docs/agent-runs/2026-07-05-space-browse-unified-tray.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-space-object-stage/space-browse-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 424355,
+      "sha256": "96c576cb2ab962fd69e8bd5af489d9ab8e77d8ec82fffe94c55638cba8970a7d",
+      "references": [
+        "docs/agent-runs/2026-07-05-space-object-stage.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-space-object-stage/space-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 605387,
+      "sha256": "3fa252483a7e87df4db68531512d8814bf81858f54b36e7157019570f46e2828",
+      "references": [
+        "docs/agent-runs/2026-07-05-space-object-stage.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-space-overview-box-desk/space-overview-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 590668,
+      "sha256": "1f44b986e42515b8036e7f3ac2a95db472d624adfa775601975b9c50829eee17",
+      "references": [
+        "docs/agent-runs/2026-07-05-space-overview-box-desk.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-statistics-daily-ledger/statistics-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 384673,
+      "sha256": "a70f040c0febf5f7a10e571b20a81996769033bf39cb8ad88773b6b453246816",
+      "references": [
+        "docs/agent-runs/2026-07-05-statistics-daily-ledger.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-05-statistics-ledger-quieting-simulator.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 396144,
+      "sha256": "fa6eddf9efa05b404ae09e8da40b4b8b042e746b84aab530121bca894961130d",
+      "references": [
+        "docs/agent-runs/2026-07-05-statistics-ledger-quieting.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-action-stack/auth-code-sent-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 359092,
+      "sha256": "5fc1b713255f07e0d36d00389f4473879c3fa943a71b025d5a6aa41ef70edfb5",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-action-stack.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-action-stack/auth-code-sent-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 417259,
+      "sha256": "7dc7b99c7a237661b1e480e6ab3bcce7ba06fb74e929d1006211276dcde564b6",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-action-stack.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-action-stack/auth-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 345402,
+      "sha256": "e37c36dd2181838aebba636f4b31b60ab053003b629dd8483f925101ada5a36f",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-action-stack.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-action-stack/auth-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 400243,
+      "sha256": "ec559f1a81735c366d00311f351712b321de16b8498ffb67c587c795acc68aac",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-action-stack.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-action-stack/mine-code-sent-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 361410,
+      "sha256": "2c334a52dcbcd5131faa99a48577e0601f464411d4aeeef2c8f79e99181b8b7c",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-action-stack.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-action-stack/mine-code-sent-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 418910,
+      "sha256": "27530a55d7ec92a19e9c36db2728b0f6b82e44b527ab904183b1d819060651cd",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-action-stack.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-action-stack/mine-signed-out-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 345008,
+      "sha256": "c24ccd374f623e765c6511453f49dbf8a54088d93bf9083beeda1a594fb23419",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-action-stack.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-action-stack/mine-signed-out-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 401067,
+      "sha256": "d631208124b0c013664206cf2167fdfdda5f759ef6247e1b4ef781c9cc16fade",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-action-stack.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-code-dock/auth-code-sent-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 375865,
+      "sha256": "72c25c57e593ebbf9432d8b96c673216467ec7ea3c770347155d17dae2c8d6ae",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-code-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-code-dock/auth-code-sent-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 430532,
+      "sha256": "6e5ca88f887544dcb63c434ede97f4d947aa370bcbf720de70b413cd237e20b5",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-code-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-code-dock/mine-code-sent-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 344950,
+      "sha256": "fe7f5f22571da4baa972077cb3119701dd821b8768fbe8c9453e9633de71e464",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-code-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-code-dock/mine-code-sent-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 397520,
+      "sha256": "4687f2da7959b005c5ed795ce9233ae0df64049d5857ce90ec8b953bce4eab39",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-code-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/auth-code-sent-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 375411,
+      "sha256": "c62fab69a09713b6f4b4b1108d27fc722446af32df0025e91391d2b8bc903fd4",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/auth-code-sent-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 431466,
+      "sha256": "5b71dc431ac5b5d22ddd8fee4eb704bea58b20c65a9ed0e8f4dcdff42837648e",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/auth-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 361921,
+      "sha256": "2dceb1641ddb31441461a68235152efa2530ed8af9ce37b55cb211f0ce71cab7",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/auth-error-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 400028,
+      "sha256": "a26891d51db660b73d6f0a9b67559c7ed628cbc18e024c83730d885bca5fc8b3",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/auth-error-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 456757,
+      "sha256": "85a598fdf42cf62a0fb95113cb002af822603d0f8ef8f1b3094eeb538e569039",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/auth-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 420489,
+      "sha256": "c5cbac84d071bbcf6e6257f1542440ae5b5232ab79c0ebd88154815ac210ebd4",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/auth-phone-ready-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 361283,
+      "sha256": "ad690157b044e7296f75043c17e03a816cda442760dcd48ca5ef30a44fc62e38",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/auth-phone-ready-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 419295,
+      "sha256": "760ba30c977c9e600a8b6c8cedbcc92498e2dd96be8094707a2428e707d3ea83",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/auth-space-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 417352,
+      "sha256": "9a93485e2664636c2d4d818466ae837ce39adf890a79b06e3fdb3d38e35ec1cf",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/auth-statistics-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 419183,
+      "sha256": "65e4fb8c80bde26349f4ccd838b15dea6c986a299f501aee0a8e1f87b18535d2",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/auth-verify-error-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 418352,
+      "sha256": "f9b3357c09d773190193e8a855d9c8befa07bd0883ad1bc4355b6667e824697b",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/auth-verify-error-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 478454,
+      "sha256": "e075d671cac32e81d11d7d27472a969505f1a6509ff2108178e42e24315fd902",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/mine-auth-error-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 389203,
+      "sha256": "154e364b20e7686b87840b1c330e875891026ba912c57f4dece7fa3c1f67db39",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/mine-auth-error-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 447268,
+      "sha256": "63eb79e609d83f52433dd88ac7d3aef7f0ae6299c30048650d34c63a2b1e1209",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/mine-code-sent-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 367803,
+      "sha256": "9e4713e9dfddae2551f37e21448208b1c068c4abc344eff5de26ab62ac361e3f",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/mine-code-sent-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 423398,
+      "sha256": "1a92515eb6e6a23e18a426b9ad78e060bc0301bf44850877e5a99345662872d0",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/mine-phone-ready-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 349227,
+      "sha256": "2de882532ea095858e414a948c31f740f9ccd2e988630cce8b54940e27885614",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/mine-phone-ready-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 409328,
+      "sha256": "7ce181431195dbd58af1a700ceb3a063a83b4d55c27a2c52b09ba9dccf26f982",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/mine-signed-out-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 350650,
+      "sha256": "5b7177cddbb4cf54cd08cba124da791d478a6d93cec86596bab799b5d73a7ea4",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/mine-signed-out-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 409424,
+      "sha256": "336c846eab745485510566f71b0cd9f67807bd5741bd14768181471a8d750c59",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/mine-verify-error-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 412238,
+      "sha256": "b0dabfa87f76fecbc16130ca1f2be0bc3a7e2681b9dd70aea6fa461e8a3b0a77",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-continuity-promise/mine-verify-error-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 471858,
+      "sha256": "c2bfdf64173469eaa5a5a9a752826f01eb748e3b58fba080bc0678c6ece95fe8",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-error-dock/auth-error-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 405508,
+      "sha256": "8c35182cb42e044929b4d5e5e77743144e2e0e58bcdb35af102f6e1954eaac55",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-error-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-error-dock/auth-error-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 460469,
+      "sha256": "2624dcd93dcd976af611116d02e4de96af3daa75e3c7fa514939b50138ee2bce",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-error-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-error-dock/mine-auth-error-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 377706,
+      "sha256": "a306b3154a5d06bbea59ccc6503d7fb3a20421d962532e9c1db6415fbb40c298",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-error-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-error-dock/mine-auth-error-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 435555,
+      "sha256": "e679978e2a7d994e9c63de85cb9cd44fae1e84cc3ed094e4148accc72fb9ac8e",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-error-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/auth-code-sent-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 358358,
+      "sha256": "94eb00ef7ab67a6341750bfef91b59e08ed05ed23171e3a948c488045ad25df0",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/auth-code-sent-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 409130,
+      "sha256": "93afa0593bf4ba1c5d4ff2030017015e0ef1ce1c8bf623e72f3c6d2e1d88896c",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/auth-error-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 376780,
+      "sha256": "67d5c6af3502a79a1648194c6ba1dc57b2fbe9e3e1b786ff24adff768058b8cb",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/auth-error-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 429391,
+      "sha256": "85e72548bc8cbb42f04fb166533ebf13f0615a479cd78b6a0e060a22b757aa42",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/auth-phone-ready-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 338920,
+      "sha256": "c7b614cd7b4713a8b2db0fa741641abf1fde3dc6973a65e4b9c674d56e592e9f",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/auth-phone-ready-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 391666,
+      "sha256": "f416f994c5d8919237825b672266e5d584b37c0fd351b5988e87fcb401f27317",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/auth-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 341371,
+      "sha256": "aa28fd3d49739c27599f793d870c4d1d23b14e0437a3c53768c13a9c7fa32769",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/auth-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 394781,
+      "sha256": "0ba847aa056716c589d5759c331157ac14cc697e783de4999631b09a6ad7932f",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/auth-space-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 395071,
+      "sha256": "b134fb18a794e1e5714f4c1c660bf7bba9ef44a264bbb6e0fd4a86f876e699bd",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/auth-statistics-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 405460,
+      "sha256": "3e513b980ce367ae2a2c481d5aa00d7f101db1742d045748fae2c054d34547ea",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/auth-verify-error-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 402131,
+      "sha256": "fe93e553ad56b50b5589e755363819d0605fbff6901dfa75abe85cc3789e0c46",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/auth-verify-error-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 455003,
+      "sha256": "ef9dcfa89ef41b5733a8bae154b7097afc7f7a8969ab7087b559b5e4aa5aa475",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/mine-auth-error-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 375614,
+      "sha256": "f3837b699fd583eaf93e1ea1b3c867fb608a5cbfd2027a72b7f480496beda39b",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/mine-auth-error-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 427359,
+      "sha256": "df9a0edbae3cf4a48362b5f2277ae3876d77083abc0f9471b8ac93a4c5e26ac1",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/mine-code-sent-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 360593,
+      "sha256": "c994fc7b089476d3d60028092f30e92c106b5f10882c751053ef3fa32f2b0fdc",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/mine-code-sent-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 411621,
+      "sha256": "41c7926fbcb97b7bd399349d96d692da46be4acfad402c7c7aa4a69ba52a5774",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/mine-phone-ready-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 338163,
+      "sha256": "43b60c02a2a0699bd2a08e488e087f2113f2eb1bd3cdb153732f55df81787f2c",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/mine-phone-ready-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 389539,
+      "sha256": "92f28549b9bcf72efad4e187d374509ff981be668e2677eab62b93178ff86a93",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/mine-signed-out-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 343553,
+      "sha256": "2753d75013d8f495ebc12c61acc62de90d363d0224b050b830f0f26bf7537c8b",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/mine-signed-out-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 394307,
+      "sha256": "51461f6316aab85526c633686e7c8b04308a84c3af584a1ecfbd34712ee1bd86",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/mine-verify-error-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 403757,
+      "sha256": "84eb56bc8095c35ecac900fd6ca10c43c478e3ec13b99c8956100a5df929a88b",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-gate-work-area/mine-verify-error-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 457643,
+      "sha256": "bafb24b74f87cc8ceb78823045d4fd5349d2be50e1bf64395297ca806ce59af6",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-phone-ready/auth-phone-ready-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 363617,
+      "sha256": "fa7d9408bf01f53d155abc70a927eed346e4a8794f5e0eeed369c9d2ce358b33",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-phone-ready.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-phone-ready/auth-phone-ready-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 421694,
+      "sha256": "3db2c94a0a6f70c2eb056eec4db1215f4e3ecddf96eb388d7f5fa4d634ac0050",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-phone-ready.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-phone-ready/mine-phone-ready-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 335813,
+      "sha256": "176793b552bc929399e67801a50e2005b792cfa321dc79ee62d6cc3a391765cc",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-phone-ready.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-phone-ready/mine-phone-ready-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 389653,
+      "sha256": "6b95f12fde4d41dbf82ee12f59fffc2108f5e4a12d533c792c304f41e104301f",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-phone-ready.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/auth-error-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 377599,
+      "sha256": "d9bc58d64ebf779580548dc16862495093762a801d50a41e16cae3485ed24cc9",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/auth-error-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 437374,
+      "sha256": "5de862d79320ef7f884c0df9f3cf2a5bc7a69916d49f3607464026698cfd5bf1",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/auth-phone-ready-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 340537,
+      "sha256": "62f150f40da1d205245c754652f3d04294b1903ede9c594556d6af946dd1be20",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/auth-phone-ready-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 396929,
+      "sha256": "c5ced48a6a21b2148079befdff90f2658a8605687dbc80967885b68a7e45383a",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/auth-space-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 401962,
+      "sha256": "ca987d6469979aeb6a04fe558676226f38fc1568d9f97859663c63064e78eedb",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/auth-statistics-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 408763,
+      "sha256": "2d03633995dc4f8da03b954c01c56805735e7d18d049cc0ac45e315df6666171",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/auth-verify-error-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 402427,
+      "sha256": "836a737c88b2f3ed73cedf92d41b5d23aa4877a36d5a8eaea00127c6e09c9d98",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/auth-verify-error-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 460844,
+      "sha256": "86d9ec87903a57156ecc74431b24426fa49f99bd6786985484b595d90993d902",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/mine-auth-error-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 376854,
+      "sha256": "4c7813f1f59487905c85b68709162740b948a9796f3510dc16e5d98c63d8581d",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/mine-auth-error-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 434305,
+      "sha256": "ace1d90dbf9c1ae9c7b04c4e618752e610e09f7973e2b255d0f135ca3d844a9e",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/mine-phone-ready-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 339156,
+      "sha256": "6e12ed3a395fe398e19fb42fb52418fd6c4ee033923238e2eee371db28852db9",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/mine-phone-ready-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 395229,
+      "sha256": "aaaa8e9df8f98045790ec6de21b97d65897bee07541ebf0ec6db09377f78d9e1",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/mine-verify-error-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 403799,
+      "sha256": "a5bf6e96d6ce7190b1493a15748dc17d016986d1c4d4032e2600a45fe537f21d",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-remaining-state-refresh/mine-verify-error-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 461474,
+      "sha256": "1e1887452bb9c0119cf33ff618a0f6d0e42e2fe46a1b659d98d79e6075500cf8",
+      "references": []
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-route-object/auth-route-object-code-sent-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 375258,
+      "sha256": "d1292e60b293b453ccae5a79c4e2d3e2a6e238f24b316c00f503b9405c401404",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-route-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-route-object/auth-route-object-code-sent-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 430192,
+      "sha256": "4bb40c49249529187e04cabcb9fa65e8161784e540c520bdc188e0f3604a2ea9",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-route-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-route-object/auth-route-object-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 367517,
+      "sha256": "528dfa6b814909a24cc11c235738ec8a62df8700970934e100ef2e25033667a2",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-route-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-route-object/auth-route-object-error-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 404532,
+      "sha256": "e067bf4069e3fae45f71781b06cb0e55b363cd21bbcb6066e4568e077bddb51f",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-route-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-route-object/auth-route-object-error-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 461151,
+      "sha256": "fc7c940e823d2f01fe6104c64a8cb93438e2b070a769fe3c11aa117ed1ca0d70",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-route-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-route-object/auth-route-object-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 423279,
+      "sha256": "6de6074857cdf05b9596b56fc5fcbf4e515c3d8c508df3b5889622299fada380",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-route-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-route-object/auth-route-object-phone-ready-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 362589,
+      "sha256": "5651bc7b097d2efae24d1f99c6d3429aaaf9066a0c06d688fe09905982587081",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-route-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-route-object/auth-route-object-phone-ready-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 419251,
+      "sha256": "9f0d94b7fc250aca66f5baa3a1e1497274535255bb84dfff6bcbcc8aca6e45db",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-route-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-route-object/auth-route-object-space-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 437625,
+      "sha256": "95a160e92da075a043aeb886b230eed4a5001076768cb4b0e68bd9262a6f56a3",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-route-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-route-object/auth-route-object-statistics-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 438247,
+      "sha256": "0203d97d95054d7bd6e06cf724360526182421395b95a07747d6dd8389ba6208",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-route-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-route-object/auth-route-object-verify-error-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 421964,
+      "sha256": "569f6bb5d5b858ac74dea0664efd487058080081f6ebc5e934ceb33f3d8728f7",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-route-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-route-object/auth-route-object-verify-error-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 478105,
+      "sha256": "701b0884816652f589aacd4a23290654199a1683721000ffa06e66df33b72c8b",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-route-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-verify-error/auth-verify-error-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 421622,
+      "sha256": "6dac703a4141cf0d68d7f4978e7ad4be57a69ea1b9772799741844068a2b2e7b",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-verify-error.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-verify-error/auth-verify-error-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 477612,
+      "sha256": "e8c434cfcf505bd16cecad85d820b059281dc1c87c27896fd2e3d909f1a3a473",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-verify-error.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-verify-error/mine-verify-error-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 391725,
+      "sha256": "9e62306338549a959adbbd09780876c75e938e5d32501dfa4c0713ba6384eef7",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-verify-error.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-auth-verify-error/mine-verify-error-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 449463,
+      "sha256": "1c99dcd5b90d0f9bcbfc869ae826338c78cd753cfd4e6c6c6077ce85541f3f9b",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-verify-error.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-learning-detail-work-area/detail-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 449277,
+      "sha256": "b5c2da4fd3f0b5954939c004b9fc3fbf5e12173701e70cadd3c49255abe5eb79",
+      "references": [
+        "docs/agent-runs/2026-07-06-learning-detail-work-area.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-learning-detail-work-area/detail-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 463541,
+      "sha256": "2df79ce511decfd588d39d31d6b77f528639894bb7d551606afb8a5b6b3d22ad",
+      "references": [
+        "docs/agent-runs/2026-07-06-learning-detail-work-area.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-learning-neutral-actions/detail-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 452351,
+      "sha256": "842bef43de5c1886b00da50b6f61e66b38c7e2749e1c3215d9f53ba05f704cce",
+      "references": [
+        "docs/agent-runs/2026-07-06-learning-neutral-actions.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-learning-neutral-actions/detail-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 467953,
+      "sha256": "a59b81888634e0625e995f832e291c46a8ad2db4adcccc6516a8f0bb56eefee9",
+      "references": [
+        "docs/agent-runs/2026-07-06-learning-neutral-actions.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-learning-neutral-actions/learning-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 388309,
+      "sha256": "33addf59a8452c2ea522260470c2a1d6e30591c711d53ea0c67e26b27fc81c7d",
+      "references": [
+        "docs/agent-runs/2026-07-06-learning-neutral-actions.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-learning-neutral-actions/learning-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 408342,
+      "sha256": "ed0f55f2fbfe481f00218406d3138b5f85c98c9ced9c11ba2a566f28cd94a589",
+      "references": [
+        "docs/agent-runs/2026-07-06-learning-neutral-actions.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-account-route-dock/mine-account-route-dock-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 391756,
+      "sha256": "cced19f74435579961b814ea6f14d6f70eb1fa5f7a235e0c0fa77db14bdf69ea",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-account-route-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-account-route-dock/mine-account-route-dock-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 445084,
+      "sha256": "59416a6f03b4e49badcafc12d29b0999b92e31df6b72d846e30f6306fcb8a015",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-account-route-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-account-work-area/mine-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 368018,
+      "sha256": "02aec9b1d7266a12b2af610cc6682a9e567435516c53bfe081b62f44b6a105a6",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-account-work-area.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-account-work-area/mine-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 418717,
+      "sha256": "b77f4337203114ef884d29f5f22104113a9508886d22e3baf929012064b00e21",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-account-work-area.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-auth-object-dock/auth-code-sent-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 430131,
+      "sha256": "de3b7092962a6a809e4da24a6254c6987b97e23b4be5e5d1c5ab42ad968c810b",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-auth-object-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-auth-object-dock/auth-learning-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 418114,
+      "sha256": "4dedcab308a17e1bbcd191aa97fd5880254e6653bbdc8e7dc22bd2e4e623912a",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-auth-object-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-auth-object-dock/auth-space-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 432654,
+      "sha256": "aa2469091533b9ac6a00604d4fb73578d46f81cc559054df6454b4ba09287fe7",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-auth-object-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-auth-object-dock/auth-statistics-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 433470,
+      "sha256": "7b9410d89724a76f184cacbb1e0f801a2e1c89d8f5b96bb8f49d3ddb6fd86e41",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-auth-object-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-auth-object-dock/mine-code-sent-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 395824,
+      "sha256": "cea51c7d81783f1430994a8704460800576ddde01708c572ffa298b1549c912b",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-auth-object-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-auth-object-dock/mine-signed-out-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 385066,
+      "sha256": "f0d166a114a0dc18b3738d928e14efc6f926bf2a128a1ba53d645805531c1ed3",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-auth-object-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-home-unification/mine-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 389454,
+      "sha256": "4a9e5d067f5293c28b012ffb86a1696450eeb53344b4ee6434725491ec95a9cc",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-home-unification.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-home-unification/mine-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 444925,
+      "sha256": "e7f92837646b408ed73d3728a443d7e14527b226b6bc62454ca4171603a43a2f",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-home-unification.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-request-dock/mine-signed-out-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 332283,
+      "sha256": "d0cd2c89c6bd0d56bb958411d29d12b847ca41e43cda3ce1042949f5c789cccd",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-request-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-request-dock/mine-signed-out-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 388047,
+      "sha256": "8962472c184107bad3b2a31c755245b3fea4195624b414803a5072aad1fd5786",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-request-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-resume-object/mine-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 397257,
+      "sha256": "100320df7974c2becb4c3150b60b74de859c47084313aa9b4407be342176ff0a",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-resume-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-mine-resume-object/mine-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 447585,
+      "sha256": "b1502fcdf8bce71f67afe5cd1a5c807a940bd933ae188f83fae3ffc133ad686a",
+      "references": [
+        "docs/agent-runs/2026-07-06-mine-resume-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-box-flow/space-browse-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 353757,
+      "sha256": "225b9f953cc79c9d068a7ba317f9e387586cd2e1d43a22e3b100ac97c97cae78",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-box-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-box-flow/space-browse-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 396284,
+      "sha256": "d7e6cb95c541948193e915015c85da3b2e13f63a6fea9a70b2aca0d734a1dbb4",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-box-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-box-flow/space-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 421739,
+      "sha256": "d0c4cbf6995648d555486c24f3f806664c64c309c40653922e98e05e5093bc97",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-box-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-box-flow/space-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 601493,
+      "sha256": "68e69e979f042aa907702cf72f565f9345fea16d948cc0f2b2663f75f7aede90",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-box-flow.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-browse-action-tray/space-browse-action-tray-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 358294,
+      "sha256": "b5d2873bf8aa4518f16c391cc36afcc1fb7d961fb50320ef9c256efa15c2ed49",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-browse-action-tray.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-browse-action-tray/space-browse-action-tray-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 401640,
+      "sha256": "f3a0e840f9e2deacff19c77c1aa0b434f6c764ac6e895f081b8b4599c2714340",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-browse-action-tray.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-browse-box-desk/space-browse-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 362852,
+      "sha256": "a5990e3db8c44a007b711bd5532e5b37498449a0b370750f954aa0e802937ba1",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-browse-box-desk.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-browse-box-desk/space-browse-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 405352,
+      "sha256": "6bc520323cdad464fe35e5e1ad499092aeee3a989b8926e1904e02de2f92d564",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-browse-box-desk.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-browse-card-slot/space-browse-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 369954,
+      "sha256": "833a541fb42f26d58ed1fec41258aa7a29631e4a3b64c81a490695889d8121f6",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-browse-card-slot.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-browse-card-slot/space-browse-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 410733,
+      "sha256": "2f996cb007a7017fc66a5a42b78cda7c717dd0ae55751cbdba108b5268c0b978",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-browse-card-slot.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-browse-compact-object/space-browse-compact-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 363273,
+      "sha256": "45519ba3e6dcbc7bf6eb59b5fef1833c9606a3492f18ee5b37d241747139d6da",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-browse-compact-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-browse-compact-object/space-browse-compact-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 405700,
+      "sha256": "73bf25270875e3a97e7d6754baa539065ab0e890a1bf11433df3a05368545ae7",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-browse-compact-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-browse-selector-reduction/space-browse-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 361415,
+      "sha256": "ef437a2c786702e4ee3e148ad7f73934c2e23e1b88f3f5c21e7b735982171b0b",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-browse-selector-reduction.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-browse-selector-reduction/space-browse-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 403633,
+      "sha256": "a0af8085b2e72077252aaefa31fa0f02fe6d0af52548da93261447af4032f104",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-browse-selector-reduction.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-browse-work-area/space-browse-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 358030,
+      "sha256": "229c7c8f7257d5e03f4e17af5d80dbb5cf5a040ff2a32d24842a4b66b2e4a912",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-browse-work-area.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-browse-work-area/space-browse-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 398150,
+      "sha256": "3c790bf96f104927500d37e2c72f2daa7f632f1b6163ad62da4a943a93fc39ce",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-browse-work-area.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-overview-card-object/space-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 436682,
+      "sha256": "8f81bb804a4af7a51e8d03f9ea5a026993d51f34ebb673247652ae3f9038965d",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-overview-card-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-overview-card-object/space-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 617466,
+      "sha256": "0cd6c595e3d52ec5ae012b171988b0e34a8582cf5a6992c34e13a49427a6d221",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-overview-card-object.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-overview-neutral-return/auth-space-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 432573,
+      "sha256": "aaa1acf25e44388c5a06520be0f6efe388142ddcf8691d9dfe83c826986a2641",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-overview-neutral-return.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-overview-neutral-return/auth-statistics-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 433429,
+      "sha256": "fe3816d56f5aaaf2769baaa54d0bac337a7a411bc109bd5f8622fcfae9321943",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-overview-neutral-return.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-overview-neutral-return/space-browse-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 347650,
+      "sha256": "346788c348fbaee65522fada4addb6b9bef438f79d299c7446e956ac88387b87",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-overview-neutral-return.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-overview-neutral-return/space-browse-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 391204,
+      "sha256": "42e88d38e9d804f23b76d9edccbc801b7f540428b3394743259ac9cd0adb8d6c",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-overview-neutral-return.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-overview-neutral-return/space-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 419591,
+      "sha256": "76e59241a68fafc11fc523012e658f9b8109cfe87b54adb625f97a67eba9bde2",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-overview-neutral-return.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-space-overview-neutral-return/space-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 598319,
+      "sha256": "ca82f317fd45a73267cf146d56c4512eed8ec13868af7d072f987b02fdb5b334",
+      "references": [
+        "docs/agent-runs/2026-07-06-space-overview-neutral-return.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-statistics-action-ledger/statistics-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 347904,
+      "sha256": "f1d64004dbfec5f34344cc4806f9878e456fce0a8a079ea335e46de3ec3e03e6",
+      "references": [
+        "docs/agent-runs/2026-07-06-statistics-action-ledger.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-statistics-action-ledger/statistics-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 392043,
+      "sha256": "76b48315f0ce6b84330cb5b98b9c81c61f335967923cde1eb18a8d0e4da61d5d",
+      "references": [
+        "docs/agent-runs/2026-07-06-statistics-action-ledger.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-statistics-ledger-dock/statistics-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 336431,
+      "sha256": "d56cbc14920977d2754d1f1edd0138e2320b2c88d8383bab1dd13f710fb2ddc9",
+      "references": [
+        "docs/agent-runs/2026-07-06-statistics-ledger-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-statistics-ledger-dock/statistics-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 381685,
+      "sha256": "5002d9dfd2a3d4247083786e24c6ea30860071a9cb2d6c896a01b1a60fff2316",
+      "references": [
+        "docs/agent-runs/2026-07-06-statistics-ledger-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-statistics-light-record/statistics-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 347535,
+      "sha256": "303eb0bd36177d4a8e94c64464e8de4ea21177942c8f15fd5282d0444d383330",
+      "references": [
+        "docs/agent-runs/2026-07-06-statistics-light-record.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-statistics-light-record/statistics-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 395617,
+      "sha256": "17726fa7783f1809ab022cf3352080566123ab3f4608d1ebaf6891989761ca16",
+      "references": [
+        "docs/agent-runs/2026-07-06-statistics-light-record.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-statistics-one-screen-dock/statistics-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 334622,
+      "sha256": "59bbaa8b3fc0dfbe13896f35ac177a96502b139d83061a911a988eac07c65d71",
+      "references": [
+        "docs/agent-runs/2026-07-06-statistics-one-screen-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-statistics-one-screen-dock/statistics-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 379807,
+      "sha256": "f67865737c45d17749aa8212607f5dd31a797550145f79e23f5fbf54d1cbec8c",
+      "references": [
+        "docs/agent-runs/2026-07-06-statistics-one-screen-dock.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-statistics-progress-rail/statistics-progress-rail-dark-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 354970,
+      "sha256": "0aee805b2597b2fe289fe558ce428da3aa4ec07f71a59ff63131df35b512d772",
+      "references": [
+        "docs/agent-runs/2026-07-06-statistics-progress-rail.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-statistics-progress-rail/statistics-progress-rail-light-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 398881,
+      "sha256": "5345f1e0f7d7bee2d70aaf83bc3b6feef06bb950b3120f3f85a3d6bf4c0a47d7",
+      "references": [
+        "docs/agent-runs/2026-07-06-statistics-progress-rail.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-statistics-work-area/statistics-real-app-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 359162,
+      "sha256": "d59d5b420fee425eca4315753ec2eb8e43a9b2a5b761c8d491a7f6ed6d58afee",
+      "references": [
+        "docs/agent-runs/2026-07-06-statistics-work-area.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-statistics-work-area/statistics-real-app.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 404277,
+      "sha256": "a712e72498dcaa33043b98dff6cb574d001dffb3f251403d93f5725d628ebc4d",
+      "references": [
+        "docs/agent-runs/2026-07-06-statistics-work-area.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-user-facing-error-copy/auth-error-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 401291,
+      "sha256": "3efda65781033a65576a0f325d3f516ef48b00e2f8078eae685a98c01d34e421",
+      "references": [
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-user-facing-error-copy/auth-error-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 458159,
+      "sha256": "2089232dde6fd45215606db521be8da003b2314baac70de22dce347a5d8c465b",
+      "references": [
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-user-facing-error-copy/auth-verify-error-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 419100,
+      "sha256": "2590bf9aab34720f0da8be31f254b7dbb0b90ea340dfabc2447ead5e85e622ae",
+      "references": [
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-user-facing-error-copy/auth-verify-error-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 475132,
+      "sha256": "fb3c83699147bb8d54c1015e6985287a68c285a14f0759e8f50928c5c65f8f33",
+      "references": [
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-user-facing-error-copy/mine-auth-error-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 373284,
+      "sha256": "a51bb56e952a832771f0442a2f214242e38f3712af626404ad714f6755d80c83",
+      "references": [
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-user-facing-error-copy/mine-auth-error-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 431599,
+      "sha256": "6ceb3f9c6701baae62bdde88a9372f15241e3deb94e4865390d328d5abe45f99",
+      "references": [
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-user-facing-error-copy/mine-verify-error-dark.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 388028,
+      "sha256": "4690bda4f2cfe97ebb812be20aa3656ebfbceff0438952fb0c29df06e543b889",
+      "references": [
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/agent-runs/artifacts/2026-07-06-user-facing-error-copy/mine-verify-error-light.png",
+      "role": "agent_run_visual_evidence",
+      "media_type": "image/png",
+      "size_bytes": 446679,
+      "sha256": "26f4569b5b6276914bd7829217d1886f6075b1a227b4a974070acebabf678910",
+      "references": [
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/archive/leadership-real-app-v1/card-list.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 475548,
+      "sha256": "57eea34afc8ac76ff54f4e36cdd7a05492ee9fdbf8353278abda469a7d5b7440",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/archive/leadership-real-app-v1/detail.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 481278,
+      "sha256": "01b040399160b1edb9e8e2eea31a2b364e301f2d468116658e38dad9c88b0e2d",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/archive/leadership-real-app-v1/home.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 514594,
+      "sha256": "da4d7af3496f1d09cbace8bbaeadc0e99780821fac390b804f20b223aae16586",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/archive/leadership-real-app-v1/space.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 446704,
+      "sha256": "d380609cbd990ac76c6498cb28b070baeadb1450e4611ac8d537a4b773fdd431",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/archive/leadership-real-app-v2/card-list.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 485994,
+      "sha256": "7425b18a1e29f67fce261e44e856b537ebb1bf6286e8f0054b85aa95d3d6511e",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/archive/leadership-real-app-v2/detail.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 519940,
+      "sha256": "63634e0effe385ecbb2ff031128c4d99da6c73f572729bfcf40344eabcab7f48",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/archive/leadership-real-app-v2/home.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 515010,
+      "sha256": "20a3d2344cb62fb5f6d2b32fded7dc93076fa087ba84aa05ea41ffa597af8450",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/archive/leadership-real-app-v2/space.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 445643,
+      "sha256": "eebccec619fd7f7622df8913481dab6ebc10301918050eed623a7df42c786d15",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/archive/one-screen-app-flow-2026-06-26/learning-detail.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 470901,
+      "sha256": "d8d6b7d491b8f491ffdc5228569b82e9c012fc02efb30ac3b34492891077a944",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/archive/one-screen-app-flow-2026-06-26/learning-result.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 445681,
+      "sha256": "b814eee5d5c92cac5f1a755d2eead143272527faffd8b1e3377633d8367e1d70",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/archive/one-screen-app-flow-2026-06-26/learning.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 476036,
+      "sha256": "fd93de60807823638a24f164749d76d591ab503c6e33f6e8f6de2148c8629864",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/archive/one-screen-app-flow-2026-06-26/space-card-list.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 427746,
+      "sha256": "3671575a6b3fb326fa34952d6ee6fa075d0e66fee71c7bcec8a76ff51de2878c",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/archive/one-screen-app-flow-2026-06-26/space-overview.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 465541,
+      "sha256": "51c4854d6ef3db4277b5bacc50737c5fbfffed266d24c03358b23ede15451de6",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/auth-code-sent.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 417259,
+      "sha256": "7dc7b99c7a237661b1e480e6ab3bcce7ba06fb74e929d1006211276dcde564b6",
+      "references": [
+        "docs/agent-runs/2026-07-01-auth-code-sent-object.md",
+        "docs/agent-runs/2026-07-01-auth-code-sent-status.md",
+        "docs/agent-runs/2026-07-01-auth-primary-action-readiness.md",
+        "docs/agent-runs/2026-07-02-auth-code-inline-dock.md",
+        "docs/agent-runs/2026-07-02-auth-code-submit-inline.md",
+        "docs/agent-runs/2026-07-03-auth-gate-ledger-unification.md",
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-route-auth-object.md",
+        "docs/agent-runs/2026-07-04-auth-code-cells.md",
+        "docs/agent-runs/2026-07-04-auth-identity-capsule-compression.md",
+        "docs/agent-runs/2026-07-04-auth-identity-dock.md",
+        "docs/agent-runs/2026-07-05-auth-gate-account-dock.md",
+        "docs/agent-runs/2026-07-05-auth-gate-object-flow.md",
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-action-stack.md",
+        "docs/agent-runs/2026-07-06-auth-code-dock.md",
+        "docs/agent-runs/2026-07-06-auth-continuity-promise.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-mine-auth-object-dock.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/auth-error.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 437374,
+      "sha256": "5de862d79320ef7f884c0df9f3cf2a5bc7a69916d49f3607464026698cfd5bf1",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-continuity-promise.md",
+        "docs/agent-runs/2026-07-06-auth-error-dock.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md",
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/auth-phone-ready.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 396929,
+      "sha256": "c5ced48a6a21b2148079befdff90f2658a8605687dbc80967885b68a7e45383a",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-continuity-promise.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-phone-ready.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/auth-space.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 401962,
+      "sha256": "ca987d6469979aeb6a04fe558676226f38fc1568d9f97859663c63064e78eedb",
+      "references": [
+        "docs/agent-runs/2026-07-01-auth-route-gates-quality.md",
+        "docs/agent-runs/2026-07-02-auth-request-inline-dock.md",
+        "docs/agent-runs/2026-07-03-auth-gate-ledger-unification.md",
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-route-auth-object.md",
+        "docs/agent-runs/2026-07-04-auth-identity-capsule-compression.md",
+        "docs/agent-runs/2026-07-04-auth-identity-dock.md",
+        "docs/agent-runs/2026-07-05-auth-gate-object-flow.md",
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-continuity-promise.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md",
+        "docs/agent-runs/2026-07-06-mine-auth-object-dock.md",
+        "docs/agent-runs/2026-07-06-space-overview-neutral-return.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/auth-statistics.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 408763,
+      "sha256": "2d03633995dc4f8da03b954c01c56805735e7d18d049cc0ac45e315df6666171",
+      "references": [
+        "docs/agent-runs/2026-07-01-auth-route-gates-quality.md",
+        "docs/agent-runs/2026-07-02-auth-request-inline-dock.md",
+        "docs/agent-runs/2026-07-03-auth-gate-ledger-unification.md",
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-route-auth-object.md",
+        "docs/agent-runs/2026-07-04-auth-identity-capsule-compression.md",
+        "docs/agent-runs/2026-07-04-auth-identity-dock.md",
+        "docs/agent-runs/2026-07-05-auth-gate-object-flow.md",
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-continuity-promise.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md",
+        "docs/agent-runs/2026-07-06-mine-auth-object-dock.md",
+        "docs/agent-runs/2026-07-06-space-overview-neutral-return.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/auth-verify-error.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 460844,
+      "sha256": "86d9ec87903a57156ecc74431b24426fa49f99bd6786985484b595d90993d902",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-continuity-promise.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md",
+        "docs/agent-runs/2026-07-06-auth-verify-error.md",
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/auth.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 400243,
+      "sha256": "ec559f1a81735c366d00311f351712b321de16b8498ffb67c587c795acc68aac",
+      "references": [
+        "docs/agent-runs/2026-06-30-auth-entry-app-quality.md",
+        "docs/agent-runs/2026-07-01-auth-card-gate-object.md",
+        "docs/agent-runs/2026-07-01-auth-code-sent-object.md",
+        "docs/agent-runs/2026-07-01-auth-entry-continuation-quality.md",
+        "docs/agent-runs/2026-07-01-auth-primary-action-readiness.md",
+        "docs/agent-runs/2026-07-01-auth-route-gates-quality.md",
+        "docs/agent-runs/2026-07-02-auth-request-inline-dock.md",
+        "docs/agent-runs/2026-07-03-auth-gate-ledger-unification.md",
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-route-auth-object.md",
+        "docs/agent-runs/2026-07-04-auth-identity-capsule-compression.md",
+        "docs/agent-runs/2026-07-04-auth-identity-dock.md",
+        "docs/agent-runs/2026-07-05-auth-gate-account-dock.md",
+        "docs/agent-runs/2026-07-05-auth-gate-object-flow.md",
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-action-stack.md",
+        "docs/agent-runs/2026-07-06-auth-continuity-promise.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-mine-auth-object-dock.md",
+        "docs/design/search-runs/2026-06-30-mobile-app-quality-reset/context-pack.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/auth-code-sent.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 359092,
+      "sha256": "5fc1b713255f07e0d36d00389f4473879c3fa943a71b025d5a6aa41ef70edfb5",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-action-stack.md",
+        "docs/agent-runs/2026-07-06-auth-code-dock.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/auth-error.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 377599,
+      "sha256": "d9bc58d64ebf779580548dc16862495093762a801d50a41e16cae3485ed24cc9",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-error-dock.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md",
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/auth-phone-ready.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 340537,
+      "sha256": "62f150f40da1d205245c754652f3d04294b1903ede9c594556d6af946dd1be20",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-phone-ready.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/auth-verify-error.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 402427,
+      "sha256": "836a737c88b2f3ed73cedf92d41b5d23aa4877a36d5a8eaea00127c6e09c9d98",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md",
+        "docs/agent-runs/2026-07-06-auth-verify-error.md",
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/auth.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 345402,
+      "sha256": "e37c36dd2181838aebba636f4b31b60ab053003b629dd8483f925101ada5a36f",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-action-stack.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-route-object.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/detail.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 449277,
+      "sha256": "b5c2da4fd3f0b5954939c004b9fc3fbf5e12173701e70cadd3c49255abe5eb79",
+      "references": [
+        "docs/agent-runs/2026-07-06-detail-result-slip.md",
+        "docs/agent-runs/2026-07-06-learning-detail-continuity-rail.md",
+        "docs/agent-runs/2026-07-06-learning-detail-work-area.md",
+        "docs/agent-runs/2026-07-06-learning-location-hint-weight.md",
+        "docs/agent-runs/2026-07-06-route-icon-chrome.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/learning.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 383219,
+      "sha256": "1dc70953e64e936368e72982215b1f0e006703a03a6cfcf9b9274c939bf4d374",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md",
+        "docs/agent-runs/2026-07-05-dark-neutral-chrome.md",
+        "docs/agent-runs/2026-07-06-learning-location-hint-weight.md",
+        "docs/agent-runs/2026-07-06-learning-neutral-actions.md",
+        "docs/agent-runs/2026-07-06-learning-practice-action-flow.md",
+        "docs/agent-runs/2026-07-06-learning-work-area-grid.md",
+        "docs/agent-runs/2026-07-06-route-icon-chrome.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/mine-auth-error.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 376854,
+      "sha256": "4c7813f1f59487905c85b68709162740b948a9796f3510dc16e5d98c63d8581d",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-error-dock.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md",
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/mine-code-sent.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 361410,
+      "sha256": "2c334a52dcbcd5131faa99a48577e0601f464411d4aeeef2c8f79e99181b8b7c",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-action-stack.md",
+        "docs/agent-runs/2026-07-06-auth-code-dock.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/mine-phone-ready.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 339156,
+      "sha256": "6e12ed3a395fe398e19fb42fb52418fd6c4ee033923238e2eee371db28852db9",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-phone-ready.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/mine-signed-out.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 345008,
+      "sha256": "c24ccd374f623e765c6511453f49dbf8a54088d93bf9083beeda1a594fb23419",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-action-stack.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-mine-request-dock.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/mine-verify-error.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 403799,
+      "sha256": "a5bf6e96d6ce7190b1493a15748dc17d016986d1c4d4032e2600a45fe537f21d",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md",
+        "docs/agent-runs/2026-07-06-auth-verify-error.md",
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/mine.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 397257,
+      "sha256": "100320df7974c2becb4c3150b60b74de859c47084313aa9b4407be342176ff0a",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md",
+        "docs/agent-runs/2026-07-05-dark-neutral-chrome.md",
+        "docs/agent-runs/2026-07-06-membership-action-dock.md",
+        "docs/agent-runs/2026-07-06-mine-account-continuity.md",
+        "docs/agent-runs/2026-07-06-mine-account-route-dock.md",
+        "docs/agent-runs/2026-07-06-mine-account-work-area.md",
+        "docs/agent-runs/2026-07-06-mine-home-unification.md",
+        "docs/agent-runs/2026-07-06-mine-resume-object.md",
+        "docs/agent-runs/2026-07-06-route-icon-chrome.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/space-browse.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 369954,
+      "sha256": "833a541fb42f26d58ed1fec41258aa7a29631e4a3b64c81a490695889d8121f6",
+      "references": [
+        "docs/agent-runs/2026-07-06-route-icon-chrome.md",
+        "docs/agent-runs/2026-07-06-space-box-flow.md",
+        "docs/agent-runs/2026-07-06-space-browse-action-tray.md",
+        "docs/agent-runs/2026-07-06-space-browse-box-desk.md",
+        "docs/agent-runs/2026-07-06-space-browse-card-slot.md",
+        "docs/agent-runs/2026-07-06-space-browse-compact-object.md",
+        "docs/agent-runs/2026-07-06-space-browse-position-dock.md",
+        "docs/agent-runs/2026-07-06-space-browse-selector-reduction.md",
+        "docs/agent-runs/2026-07-06-space-browse-work-area.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/space.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 436682,
+      "sha256": "8f81bb804a4af7a51e8d03f9ea5a026993d51f34ebb673247652ae3f9038965d",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md",
+        "docs/agent-runs/2026-07-05-dark-neutral-chrome.md",
+        "docs/agent-runs/2026-07-06-route-icon-chrome.md",
+        "docs/agent-runs/2026-07-06-space-box-flow.md",
+        "docs/agent-runs/2026-07-06-space-overview-card-object.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/dark/statistics.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 359162,
+      "sha256": "d59d5b420fee425eca4315753ec2eb8e43a9b2a5b761c8d491a7f6ed6d58afee",
+      "references": [
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md",
+        "docs/agent-runs/2026-07-05-dark-neutral-chrome.md",
+        "docs/agent-runs/2026-07-06-route-icon-chrome.md",
+        "docs/agent-runs/2026-07-06-statistics-action-ledger.md",
+        "docs/agent-runs/2026-07-06-statistics-continue-learning-cta.md",
+        "docs/agent-runs/2026-07-06-statistics-daily-object-continuity.md",
+        "docs/agent-runs/2026-07-06-statistics-ledger-dock.md",
+        "docs/agent-runs/2026-07-06-statistics-light-record.md",
+        "docs/agent-runs/2026-07-06-statistics-one-screen-dock.md",
+        "docs/agent-runs/2026-07-06-statistics-progress-rail.md",
+        "docs/agent-runs/2026-07-06-statistics-work-area.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/detail.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 463541,
+      "sha256": "2df79ce511decfd588d39d31d6b77f528639894bb7d551606afb8a5b6b3d22ad",
+      "references": [
+        "docs/agent-runs/2026-06-30-detail-answer-slip-quality.md",
+        "docs/agent-runs/2026-06-30-detail-resolved-object-unification.md",
+        "docs/agent-runs/2026-06-30-learning-detail-fidelity.md",
+        "docs/agent-runs/2026-06-30-learning-detail-guide-line-cleanup.md",
+        "docs/agent-runs/2026-06-30-learning-detail-visual-polish.md",
+        "docs/agent-runs/2026-07-01-detail-result-object-flow.md",
+        "docs/agent-runs/2026-07-01-result-detail-slip-quality.md",
+        "docs/agent-runs/2026-07-01-result-detail-success-tone.md",
+        "docs/agent-runs/2026-07-02-learning-detail-analysis-first.md",
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-04-detail-answer-slip-compression.md",
+        "docs/agent-runs/2026-07-04-detail-feedback-continuity.md",
+        "docs/agent-runs/2026-07-04-learning-detail-resolved-object-compression.md",
+        "docs/agent-runs/2026-07-05-learning-detail-answer-slip.md",
+        "docs/agent-runs/2026-07-05-learning-dot-signals.md",
+        "docs/agent-runs/2026-07-06-detail-result-slip.md",
+        "docs/agent-runs/2026-07-06-learning-detail-continuity-rail.md",
+        "docs/agent-runs/2026-07-06-learning-detail-work-area.md",
+        "docs/agent-runs/2026-07-06-learning-location-hint-weight.md",
+        "docs/agent-runs/2026-07-06-learning-neutral-actions.md",
+        "docs/agent-runs/2026-07-06-route-icon-chrome.md",
+        "docs/design/search-runs/2026-06-30-mobile-app-quality-reset/context-pack.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/learning.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 395761,
+      "sha256": "4cfbecf525f93bb91607a834ae8ec7786268cf6cdc19797ee2b99f9a28ea9a16",
+      "references": [
+        "docs/agent-runs/2026-06-30-learning-main-fidelity.md",
+        "docs/agent-runs/2026-06-30-learning-main-object-semantics.md",
+        "docs/agent-runs/2026-06-30-learning-visual-polish.md",
+        "docs/agent-runs/2026-07-01-learning-current-card-flow.md",
+        "docs/agent-runs/2026-07-02-learning-action-dock.md",
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md",
+        "docs/agent-runs/2026-07-05-learning-dot-signals.md",
+        "docs/agent-runs/2026-07-05-learning-object-rhythm.md",
+        "docs/agent-runs/2026-07-06-learning-location-hint-weight.md",
+        "docs/agent-runs/2026-07-06-learning-neutral-actions.md",
+        "docs/agent-runs/2026-07-06-learning-practice-action-flow.md",
+        "docs/agent-runs/2026-07-06-learning-work-area-grid.md",
+        "docs/agent-runs/2026-07-06-route-icon-chrome.md",
+        "docs/design/search-runs/2026-06-30-mobile-app-quality-reset/context-pack.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/mine-auth-error.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 434305,
+      "sha256": "ace1d90dbf9c1ae9c7b04c4e618752e610e09f7973e2b255d0f135ca3d844a9e",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-continuity-promise.md",
+        "docs/agent-runs/2026-07-06-auth-error-dock.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md",
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/mine-code-sent.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 418910,
+      "sha256": "27530a55d7ec92a19e9c36db2728b0f6b82e44b527ab904183b1d819060651cd",
+      "references": [
+        "docs/agent-runs/2026-07-01-mine-auth-readiness-screenshots.md",
+        "docs/agent-runs/2026-07-01-mine-code-sent-object.md",
+        "docs/agent-runs/2026-07-02-auth-code-inline-dock.md",
+        "docs/agent-runs/2026-07-02-auth-code-submit-inline.md",
+        "docs/agent-runs/2026-07-02-mine-auth-embedded-object.md",
+        "docs/agent-runs/2026-07-03-auth-gate-ledger-unification.md",
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-mine-auth-object.md",
+        "docs/agent-runs/2026-07-04-auth-code-cells.md",
+        "docs/agent-runs/2026-07-04-auth-identity-capsule-compression.md",
+        "docs/agent-runs/2026-07-04-auth-identity-dock.md",
+        "docs/agent-runs/2026-07-05-auth-gate-account-dock.md",
+        "docs/agent-runs/2026-07-05-auth-gate-object-flow.md",
+        "docs/agent-runs/2026-07-05-mine-account-gate.md",
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-action-stack.md",
+        "docs/agent-runs/2026-07-06-auth-code-dock.md",
+        "docs/agent-runs/2026-07-06-auth-continuity-promise.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-mine-auth-object-dock.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/mine-phone-ready.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 395229,
+      "sha256": "aaaa8e9df8f98045790ec6de21b97d65897bee07541ebf0ec6db09377f78d9e1",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-continuity-promise.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-phone-ready.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/mine-signed-out.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 401067,
+      "sha256": "d631208124b0c013664206cf2167fdfdda5f759ef6247e1b4ef781c9cc16fade",
+      "references": [
+        "docs/agent-runs/2026-07-01-mine-auth-readiness-screenshots.md",
+        "docs/agent-runs/2026-07-01-mine-signed-out-object.md",
+        "docs/agent-runs/2026-07-02-mine-auth-embedded-object.md",
+        "docs/agent-runs/2026-07-03-auth-gate-ledger-unification.md",
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-mine-auth-object.md",
+        "docs/agent-runs/2026-07-04-auth-identity-capsule-compression.md",
+        "docs/agent-runs/2026-07-04-auth-identity-dock.md",
+        "docs/agent-runs/2026-07-05-auth-gate-account-dock.md",
+        "docs/agent-runs/2026-07-05-auth-gate-object-flow.md",
+        "docs/agent-runs/2026-07-05-mine-account-gate.md",
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-action-stack.md",
+        "docs/agent-runs/2026-07-06-auth-continuity-promise.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-mine-auth-object-dock.md",
+        "docs/agent-runs/2026-07-06-mine-request-dock.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/mine-verify-error.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 461474,
+      "sha256": "1e1887452bb9c0119cf33ff618a0f6d0e42e2fe46a1b659d98d79e6075500cf8",
+      "references": [
+        "docs/agent-runs/2026-07-06-auth-account-object.md",
+        "docs/agent-runs/2026-07-06-auth-continuity-promise.md",
+        "docs/agent-runs/2026-07-06-auth-icon-continuity.md",
+        "docs/agent-runs/2026-07-06-auth-remaining-state-refresh.md",
+        "docs/agent-runs/2026-07-06-auth-verify-error.md",
+        "docs/agent-runs/2026-07-06-user-facing-error-copy.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/mine.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 447585,
+      "sha256": "b1502fcdf8bce71f67afe5cd1a5c807a940bd933ae188f83fae3ffc133ad686a",
+      "references": [
+        "docs/agent-runs/2026-06-28-mine-one-screen-frontend-quality.md",
+        "docs/agent-runs/2026-06-30-mine-account-object-quality.md",
+        "docs/agent-runs/2026-07-01-mine-account-object-unification.md",
+        "docs/agent-runs/2026-07-01-mine-action-routing-quality.md",
+        "docs/agent-runs/2026-07-01-mine-membership-hierarchy.md",
+        "docs/agent-runs/2026-07-01-mine-membership-state-quality.md",
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md",
+        "docs/agent-runs/2026-07-03-mine-account-dock.md",
+        "docs/agent-runs/2026-07-03-mine-membership-compact-dock.md",
+        "docs/agent-runs/2026-07-04-mine-membership-entitlement-dock.md",
+        "docs/agent-runs/2026-07-05-mine-account-layer.md",
+        "docs/agent-runs/2026-07-05-mine-account-passport.md",
+        "docs/agent-runs/2026-07-06-membership-action-dock.md",
+        "docs/agent-runs/2026-07-06-mine-account-continuity.md",
+        "docs/agent-runs/2026-07-06-mine-account-route-dock.md",
+        "docs/agent-runs/2026-07-06-mine-account-work-area.md",
+        "docs/agent-runs/2026-07-06-mine-home-unification.md",
+        "docs/agent-runs/2026-07-06-mine-resume-object.md",
+        "docs/agent-runs/2026-07-06-route-icon-chrome.md",
+        "docs/design/search-runs/2026-06-30-mobile-app-quality-reset/context-pack.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/space-browse.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 410733,
+      "sha256": "2f996cb007a7017fc66a5a42b78cda7c717dd0ae55751cbdba108b5268c0b978",
+      "references": [
+        "docs/agent-runs/2026-06-30-space-browse-inspect-unification.md",
+        "docs/agent-runs/2026-06-30-space-browse-object-quality.md",
+        "docs/agent-runs/2026-07-01-space-browse-box-quality.md",
+        "docs/agent-runs/2026-07-01-space-browse-navigation-readiness.md",
+        "docs/agent-runs/2026-07-01-space-browse-rail-polish.md",
+        "docs/agent-runs/2026-07-02-space-browse-state-deck.md",
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-space-browse-address-desk.md",
+        "docs/agent-runs/2026-07-03-space-browse-attached-actions.md",
+        "docs/agent-runs/2026-07-03-space-browse-position-switcher.md",
+        "docs/agent-runs/2026-07-04-space-browse-control-deck.md",
+        "docs/agent-runs/2026-07-04-space-browse-position-rail-compression.md",
+        "docs/agent-runs/2026-07-05-space-browse-object-tray.md",
+        "docs/agent-runs/2026-07-05-space-browse-unified-tray.md",
+        "docs/agent-runs/2026-07-05-space-object-stage.md",
+        "docs/agent-runs/2026-07-06-route-icon-chrome.md",
+        "docs/agent-runs/2026-07-06-space-box-flow.md",
+        "docs/agent-runs/2026-07-06-space-browse-action-tray.md",
+        "docs/agent-runs/2026-07-06-space-browse-box-desk.md",
+        "docs/agent-runs/2026-07-06-space-browse-card-slot.md",
+        "docs/agent-runs/2026-07-06-space-browse-compact-object.md",
+        "docs/agent-runs/2026-07-06-space-browse-position-dock.md",
+        "docs/agent-runs/2026-07-06-space-browse-selector-reduction.md",
+        "docs/agent-runs/2026-07-06-space-browse-work-area.md",
+        "docs/agent-runs/2026-07-06-space-overview-neutral-return.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/space.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 617466,
+      "sha256": "0cd6c595e3d52ec5ae012b171988b0e34a8582cf5a6992c34e13a49427a6d221",
+      "references": [
+        "docs/agent-runs/2026-06-29-space-shelf-desk-fidelity.md",
+        "docs/agent-runs/2026-06-30-space-object-quality.md",
+        "docs/agent-runs/2026-07-01-space-overview-app-quality.md",
+        "docs/agent-runs/2026-07-01-space-overview-object-unification.md",
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md",
+        "docs/agent-runs/2026-07-03-space-overview-attached-dock.md",
+        "docs/agent-runs/2026-07-04-space-overview-box-desk-compression.md",
+        "docs/agent-runs/2026-07-05-space-object-stage.md",
+        "docs/agent-runs/2026-07-05-space-overview-box-desk.md",
+        "docs/agent-runs/2026-07-06-route-icon-chrome.md",
+        "docs/agent-runs/2026-07-06-space-box-flow.md",
+        "docs/agent-runs/2026-07-06-space-overview-card-object.md",
+        "docs/agent-runs/2026-07-06-space-overview-neutral-return.md",
+        "docs/design/search-runs/2026-06-30-mobile-app-quality-reset/context-pack.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/current-real-app/statistics.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 404277,
+      "sha256": "a712e72498dcaa33043b98dff6cb574d001dffb3f251403d93f5725d628ebc4d",
+      "references": [
+        "docs/agent-runs/2026-06-30-statistics-daily-object-quality.md",
+        "docs/agent-runs/2026-07-01-statistics-daily-action-quality.md",
+        "docs/agent-runs/2026-07-01-statistics-ledger-flow.md",
+        "docs/agent-runs/2026-07-01-statistics-route-object-quality.md",
+        "docs/agent-runs/2026-07-02-statistics-next-step-flow.md",
+        "docs/agent-runs/2026-07-03-continuous-app-canvas.md",
+        "docs/agent-runs/2026-07-03-dark-primary-surfaces.md",
+        "docs/agent-runs/2026-07-03-statistics-daily-object.md",
+        "docs/agent-runs/2026-07-03-statistics-ledger-dock.md",
+        "docs/agent-runs/2026-07-04-statistics-daily-ledger-compression.md",
+        "docs/agent-runs/2026-07-05-statistics-daily-ledger.md",
+        "docs/agent-runs/2026-07-05-statistics-ledger-quieting.md",
+        "docs/agent-runs/2026-07-06-route-icon-chrome.md",
+        "docs/agent-runs/2026-07-06-statistics-action-ledger.md",
+        "docs/agent-runs/2026-07-06-statistics-continue-learning-cta.md",
+        "docs/agent-runs/2026-07-06-statistics-daily-object-continuity.md",
+        "docs/agent-runs/2026-07-06-statistics-ledger-dock.md",
+        "docs/agent-runs/2026-07-06-statistics-light-record.md",
+        "docs/agent-runs/2026-07-06-statistics-one-screen-dock.md",
+        "docs/agent-runs/2026-07-06-statistics-progress-rail.md",
+        "docs/agent-runs/2026-07-06-statistics-work-area.md",
+        "docs/design/search-runs/2026-06-30-mobile-app-quality-reset/context-pack.md"
+      ]
+    },
+    {
+      "path": "docs/design/app-screenshots/reference-design-real-context-2026-06-30/00-reference-pack-overview.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 752556,
+      "sha256": "2dbd5da3909895b6d5824c27df84b9fdf4df19f38e7c9df7948df263cf89a1d7",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/reference-design-real-context-2026-06-30/01-home-v2.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 848583,
+      "sha256": "7ebdbe178221e85c6bbcfffc19c4582e815be5fe154d1064dabd1c5817873c0d",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/reference-design-real-context-2026-06-30/02-learning-v2.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 930446,
+      "sha256": "77fe8ee5814ea29b53fdbfe2e88d3e8c4fab3a8cf70d2aa1d19fb84a3dff4b30",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/reference-design-real-context-2026-06-30/03-detail-v2.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 853221,
+      "sha256": "b83f10dcf7b29c3627231e311596ad27a9363c287b52facf81b21f919b009afc",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/reference-design-real-context-2026-06-30/04-space-v2.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 982953,
+      "sha256": "f146602dd633357557a37b52edaa71d9e7d010ccf704d5d6766595b8a1dea2c2",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/reference-design-real-context-2026-06-30/05-home-v1.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 558418,
+      "sha256": "00edbb295c6000762eff5bac9f1d78a01958bbab6b2f2e953be417c9a7288112",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/reference-design-real-context-2026-06-30/06-learning-v1.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 583141,
+      "sha256": "c71af9d2807bd8b0bb94d48359ffa43b240b4ab1fcc69430d8205a31132954a0",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/reference-design-real-context-2026-06-30/07-detail-v1.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 651440,
+      "sha256": "2291ce45bc382e10476ec3de82888f238e1edf5e4f08121c7e81889dd879b01c",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/reference-design-real-context-2026-06-30/08-space-v1.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 503082,
+      "sha256": "d08f3231088f63b42d47af102ae7943539021096927f4945f78bac3e71d5a24f",
+      "references": []
+    },
+    {
+      "path": "docs/design/app-screenshots/reference-design-real-context-2026-06-30/09-space-board-landscape.png",
+      "role": "design_runtime_capture",
+      "media_type": "image/png",
+      "size_bytes": 980036,
+      "sha256": "a86f467775abed0136268a75b7c5fce65ecf56131001dfaa3565777ff13f90fe",
+      "references": []
+    },
+    {
+      "path": "docs/design/mocks/leadership-screenshot-handoff-v1/board.png",
+      "role": "design_handoff_capture",
+      "media_type": "image/png",
+      "size_bytes": 770503,
+      "sha256": "9a632b14d2edba05800616a1dc583b7771fa5bb8b3688956ba186ef6df4906b4",
+      "references": [
+        "docs/agent-runs/2026-06-25-leadership-screenshot-handoff.md",
+        "docs/design/mocks/leadership-screenshot-handoff-v1.md"
+      ]
+    },
+    {
+      "path": "docs/design/mocks/leadership-screenshot-handoff-v1/card-list.png",
+      "role": "design_handoff_capture",
+      "media_type": "image/png",
+      "size_bytes": 172645,
+      "sha256": "85e29be4c102d27c7cf9d17dba5e48c8ea1d430afea23620e3d59670073e5380",
+      "references": [
+        "docs/agent-runs/2026-06-25-leadership-screenshot-handoff.md",
+        "docs/design/app-screenshots/reference-design-real-context-2026-06-30/README.md",
+        "docs/design/mocks/leadership-screenshot-handoff-v1.md"
+      ]
+    },
+    {
+      "path": "docs/design/mocks/leadership-screenshot-handoff-v1/detail.png",
+      "role": "design_handoff_capture",
+      "media_type": "image/png",
+      "size_bytes": 190664,
+      "sha256": "9642a0fbca1ace540a1eae2837ce3f2b396ec64d3c556e7e685122d4a196969a",
+      "references": [
+        "docs/agent-runs/2026-06-25-leadership-screenshot-handoff.md",
+        "docs/design/app-screenshots/reference-design-real-context-2026-06-30/README.md",
+        "docs/design/mocks/leadership-screenshot-handoff-v1.md"
+      ]
+    },
+    {
+      "path": "docs/design/mocks/leadership-screenshot-handoff-v1/home.png",
+      "role": "design_handoff_capture",
+      "media_type": "image/png",
+      "size_bytes": 171241,
+      "sha256": "05d968ae92e43cc9993de7acf9346687873d594c55617886d4f7ac56aaa29293",
+      "references": [
+        "docs/agent-runs/2026-06-25-leadership-screenshot-handoff.md",
+        "docs/design/app-screenshots/reference-design-real-context-2026-06-30/README.md",
+        "docs/design/mocks/leadership-screenshot-handoff-v1.md"
+      ]
+    },
+    {
+      "path": "docs/design/mocks/leadership-screenshot-handoff-v1/space.png",
+      "role": "design_handoff_capture",
+      "media_type": "image/png",
+      "size_bytes": 162893,
+      "sha256": "3b4ed8019a2cac408c2835adf56102d495b3aad999a3d5acdb075d2010dd84f5",
+      "references": [
+        "docs/agent-runs/2026-06-25-leadership-screenshot-handoff.md",
+        "docs/design/app-screenshots/reference-design-real-context-2026-06-30/README.md",
+        "docs/design/mocks/leadership-screenshot-handoff-v1.md"
+      ]
+    },
+    {
+      "path": "docs/design/mocks/leadership-screenshot-handoff-v2/board.png",
+      "role": "design_handoff_capture",
+      "media_type": "image/png",
+      "size_bytes": 2121829,
+      "sha256": "82917589c611ec5fd91c8af48392220ca67baccdeffceceb83f95f6f60a1b3a8",
+      "references": [
+        "docs/design/app-screenshots/reference-design-real-context-2026-06-30/README.md",
+        "docs/design/mocks/leadership-screenshot-handoff-v2.md"
+      ]
+    },
+    {
+      "path": "docs/design/mocks/leadership-screenshot-handoff-v2/card-list.png",
+      "role": "design_handoff_capture",
+      "media_type": "image/png",
+      "size_bytes": 495295,
+      "sha256": "7cd2d936292d8286eb08ec088c42c090085973d48aaac28cd1dc47517aafded9",
+      "references": [
+        "docs/design/app-screenshots/reference-design-real-context-2026-06-30/README.md",
+        "docs/design/mocks/leadership-screenshot-handoff-v2.md"
+      ]
+    },
+    {
+      "path": "docs/design/mocks/leadership-screenshot-handoff-v2/detail.png",
+      "role": "design_handoff_capture",
+      "media_type": "image/png",
+      "size_bytes": 445384,
+      "sha256": "3260fdea7669fac694af51ea018d891c01531f85272bcefcdae83f3f0182c34b",
+      "references": [
+        "docs/design/app-screenshots/reference-design-real-context-2026-06-30/README.md",
+        "docs/design/mocks/leadership-screenshot-handoff-v2.md"
+      ]
+    },
+    {
+      "path": "docs/design/mocks/leadership-screenshot-handoff-v2/home.png",
+      "role": "design_handoff_capture",
+      "media_type": "image/png",
+      "size_bytes": 443110,
+      "sha256": "ecbfc8ace8130218b056622a0a666583326a336818ef9375264b6d49a35aa16a",
+      "references": [
+        "docs/design/app-screenshots/reference-design-real-context-2026-06-30/README.md",
+        "docs/design/mocks/leadership-screenshot-handoff-v2.md"
+      ]
+    },
+    {
+      "path": "docs/design/mocks/leadership-screenshot-handoff-v2/space.png",
+      "role": "design_handoff_capture",
+      "media_type": "image/png",
+      "size_bytes": 512800,
+      "sha256": "d95c8cb773aaf59011d6242bdcd93dc6fb3c220224e93a5ebd87d9b985c2526e",
+      "references": [
+        "docs/design/app-screenshots/reference-design-real-context-2026-06-30/README.md",
+        "docs/design/mocks/leadership-screenshot-handoff-v2.md"
+      ]
+    },
+    {
+      "path": "docs/design/search-runs/2026-06-30-mobile-app-quality-reset/screenshots/candidate-proof.png",
+      "role": "design_search_evidence",
+      "media_type": "image/png",
+      "size_bytes": 585053,
+      "sha256": "572139d0185110dab1906cf52b57f9f03c69c674af158cedac59fd612e6d3681",
+      "references": [
+        "docs/agent-runs/2026-06-30-mobile-app-quality-reset.md"
+      ]
+    },
+    {
+      "path": "docs/design/search-runs/2026-06-30-mobile-app-quality-reset/screenshots/promoted-proof.png",
+      "role": "design_search_evidence",
+      "media_type": "image/png",
+      "size_bytes": 949412,
+      "sha256": "067d0d242063121617dfb5c8533b4fe681f385967caa7bbd3593b967f0b7f1bc",
+      "references": [
+        "docs/agent-runs/2026-06-30-mobile-app-quality-reset.md"
+      ]
+    }
+  ]
+}

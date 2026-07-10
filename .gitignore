@@ -1,0 +1,10 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+node_modules/
+.tmp/
+infra/cloudbase/*.local.env
+exports/
+docs/agent-runs/artifacts/
+docs/design/app-screenshots/
+docs/design/search-runs/**/screenshots/

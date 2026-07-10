@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Promoted Mobile Core Surface Proof</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 16% 14%, rgba(255, 138, 61, .20), transparent 34%),
+        linear-gradient(180deg, #fbfafd 0%, #eceaf4 100%);
+      color: #0b0b14;
+      font-family: Outfit, "Noto Sans SC", Arial, sans-serif;
+    }
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 18px 42px;
+    }
+    .shell {
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, .74);
+      background: rgba(255, 255, 255, .70);
+      box-shadow: 0 22px 52px rgba(24, 20, 44, .13);
+      overflow: hidden;
+    }
+    iframe {
+      display: block;
+      width: 100%;
+      height: 960px;
+      border: 0;
+      background: #f1f0f6;
+    }
+    @media (max-width: 720px) {
+      main {
+        padding: 18px 10px 28px;
+      }
+      iframe {
+        height: 1040px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="shell">
+      <iframe title="Promoted phone proof" src="../../mocks/mobile-core-surface-reset-v1.html"></iframe>
+    </section>
+  </main>
+</body>
+</html>
