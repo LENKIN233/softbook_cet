@@ -4,7 +4,7 @@
 
 - Date: 2026-07-10
 - Branch: `module/persistent-auth-user-state`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/403
 - Summary: Reimplement the archived persistence intent on the post-cutover baseline with a secure auth-session store and a separate versioned user-state store.
 
 ## Referenced specs
