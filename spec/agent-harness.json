@@ -467,6 +467,9 @@
       "hooks_path": ".githooks",
       "guard_script": "scripts/guard_main_branch.sh",
       "hook_wrapper_root_resolution": "git rev-parse --path-format=absolute --git-common-dir",
+      "lfs_install_command": "git lfs install --skip-repo",
+      "lfs_pre_push_command": "git lfs pre-push \"$@\"",
+      "hooks_config_scope": "worktree",
       "bypass_env": "SOFTBOOK_ALLOW_MAIN_BYPASS",
       "required_hooks": [
         {
@@ -502,7 +505,9 @@
         "backend-contract",
         "design-artifact-gate",
         "validate-harness",
-        "mobile-quality"
+        "mobile-quality",
+        "repo-health",
+        "evidence-archive"
       ],
       "require_strict_status_checks": true,
       "allow_force_pushes": false,

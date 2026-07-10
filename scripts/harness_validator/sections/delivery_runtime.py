@@ -23,8 +23,14 @@ if install_script.exists():
     check_contains(
         "install hooksPath wiring",
         install_text,
-        'git -C "$ROOT_DIR" config core.hooksPath "$HOOKS_DIR"',
+        'git -C "$ROOT_DIR" config --worktree core.hooksPath "$HOOKS_DIR"',
     )
+    check_contains(
+        "install worktree config extension",
+        install_text,
+        'git -C "$ROOT_DIR" config extensions.worktreeConfig true',
+    )
+    check_contains("install Git LFS filters", install_text, local_guard["lfs_install_command"])
 
 for hook in local_guard["required_hooks"]:
     hook_path = ROOT / hook["path"]
@@ -43,12 +49,18 @@ for hook in local_guard["required_hooks"]:
         hook_text,
         f'"$ROOT_DIR/{local_guard["guard_script"]}" {hook["action"]} "$@"',
     )
+    if hook["action"] == "pre-push":
+        check_contains(
+            f"{hook['path']} Git LFS dispatch",
+            hook_text,
+            local_guard["lfs_pre_push_command"],
+        )
 
 git_dir = run_command("git", "rev-parse", "--git-dir")
 if git_dir is None or git_dir.returncode != 0:
     errors.append("repository is not in a git checkout")
 else:
-    configured_hooks = run_command("git", "config", "--path", "--get", "core.hooksPath")
+    configured_hooks = run_command("git", "config", "--worktree", "--path", "--get", "core.hooksPath")
     if configured_hooks is None or configured_hooks.returncode != 0:
         errors.append("core.hooksPath is not configured; run ./scripts/install_git_hooks.sh")
     else:

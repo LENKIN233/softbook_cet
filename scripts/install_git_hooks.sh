@@ -29,6 +29,13 @@ chmod +x \
   "$HOOKS_DIR/pre-push" \
   "$HOOKS_DIR/post-checkout"
 
-git -C "$ROOT_DIR" config core.hooksPath "$HOOKS_DIR"
+if ! git lfs version >/dev/null 2>&1; then
+  echo "Git LFS is required. Install it before configuring repository hooks." >&2
+  exit 1
+fi
+
+git lfs install --skip-repo >/dev/null
+git -C "$ROOT_DIR" config extensions.worktreeConfig true
+git -C "$ROOT_DIR" config --worktree core.hooksPath "$HOOKS_DIR"
 
 echo "Installed repository hooks from $HOOKS_DIR"
