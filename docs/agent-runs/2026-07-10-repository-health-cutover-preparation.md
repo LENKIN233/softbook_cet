@@ -4,7 +4,7 @@
 
 - Date: 2026-07-10
 - Branch: `infra/repository-health-cutover`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/401
 - Summary: Prepare repository health checks, external binary evidence manifests, and bounded CI execution before the authorized history cutover.
 
 ## Referenced specs
