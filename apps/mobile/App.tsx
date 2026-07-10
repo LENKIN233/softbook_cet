@@ -56,6 +56,11 @@ import {
 } from './src/membership/localMembership';
 import { createMembershipRepository } from './src/membership/membershipRepository';
 import { resolveMembershipRepositoryConfig } from './src/membership/membershipRuntimeConfig';
+import { createAuthSessionStore } from './src/persistence/authSessionStore';
+import {
+  createUserStateStore,
+  type PersistedLearningCursor,
+} from './src/persistence/userStateStore';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
 import {
   readSoftbookAppRuntimeConfig,
@@ -425,11 +430,14 @@ function AppShell({
       spaceStateRepository,
     ],
   );
+  const authSessionStore = useMemo(() => createAuthSessionStore(), []);
+  const userStateStore = useMemo(() => createUserStateStore(), []);
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
   const [learningScreen, setLearningScreen] =
     useState<LearningSurfaceScreen>('practice');
   const [spaceScreen, setSpaceScreen] =
     useState<SpaceSurfaceScreen>('overview');
+  const [persistenceHydrated, setPersistenceHydrated] = useState(false);
   const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
   const [learningSession, setLearningSession] =
     useState<LearningSession | null>(null);
@@ -488,6 +496,7 @@ function AppShell({
   );
   const lastMembershipRefreshKey = useRef<string | null>(null);
   const pendingMembershipRefreshKey = useRef<string | null>(null);
+  const persistedLearningCursor = useRef<PersistedLearningCursor | null>(null);
   const { width, height } = useWindowDimensions();
   const deviceClass = getDeviceClass(width, height);
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
@@ -841,6 +850,129 @@ function AppShell({
   );
 
   useEffect(() => {
+    let isCancelled = false;
+
+    const hydratePersistence = async () => {
+      const session = await authSessionStore.load();
+
+      if (isCancelled || session === null) {
+        return;
+      }
+
+      const membershipContext = {
+        authToken: session.authToken ?? undefined,
+        phoneNumber: session.phoneNumber,
+      };
+      const [persistedUserState, membershipResolution] = await Promise.all([
+        userStateStore.load(session.phoneNumber),
+        membershipRepository
+          .loadState(membershipContext)
+          .then(state => ({ errorMessage: null, state }))
+          .catch((error: unknown) => {
+            if (runtimeMembershipRepositoryMode === 'remote') {
+              mutationQueueRepository
+                .enqueueMutation(
+                  'refresh_membership',
+                  { context: membershipContext },
+                  `membership:${
+                    session.authToken ?? session.phoneNumber
+                  }:restore`,
+                )
+                .catch(() => undefined);
+            }
+
+            return {
+              errorMessage: `${getUserFacingErrorMessage(
+                error,
+                '会员状态暂时无法读取。',
+              )} 已恢复登录；网络恢复后会重新读取服务端权益。`,
+              state: createEntitlementPendingMembershipState(),
+            };
+          }),
+      ]);
+
+      if (isCancelled) {
+        return;
+      }
+
+      persistedLearningCursor.current = persistedUserState.learningCursor;
+      previousMembershipStage.current = membershipResolution.state.stage;
+      setCheckedInDayKey(persistedUserState.checkedInDayKey);
+      setSpaceCardStateById(persistedUserState.spaceCardStateById);
+      setMembershipState(membershipResolution.state);
+      setMembershipError(membershipResolution.errorMessage);
+      setAuthState({
+        ...INITIAL_AUTH_STATE,
+        authToken: session.authToken,
+        phoneNumber: session.phoneNumber,
+        stage: 'authenticated',
+      });
+    };
+
+    hydratePersistence()
+      .catch((error: unknown) => {
+        console.warn('[AppPersistence] Failed to hydrate app state.', error);
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setPersistenceHydrated(true);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    authSessionStore,
+    membershipRepository,
+    mutationQueueRepository,
+    runtimeMembershipRepositoryMode,
+    userStateStore,
+  ]);
+
+  useEffect(() => {
+    if (!persistenceHydrated || !isAuthenticated) {
+      return;
+    }
+
+    if (
+      learningPhase === 'learning' &&
+      learningSession !== null &&
+      currentLearningCard !== null
+    ) {
+      persistedLearningCursor.current = {
+        cardId: currentLearningCard.card_id,
+        sourceId: learningSession.sourceId,
+        track: learningSession.track,
+      };
+    }
+
+    userStateStore
+      .save(authState.phoneNumber, {
+        checkedInDayKey,
+        learningCursor: persistedLearningCursor.current,
+        spaceCardStateById,
+      })
+      .catch((error: unknown) => {
+        console.warn('[AppPersistence] Failed to persist user state.', error);
+      });
+  }, [
+    authState.phoneNumber,
+    checkedInDayKey,
+    currentLearningCard,
+    isAuthenticated,
+    learningPhase,
+    learningSession,
+    persistenceHydrated,
+    spaceCardStateById,
+    userStateStore,
+  ]);
+
+  useEffect(() => {
+    if (!persistenceHydrated) {
+      return;
+    }
+
     if (!isAuthenticated) {
       lastMembershipRefreshKey.current = null;
       pendingMembershipRefreshKey.current = null;
@@ -873,7 +1005,7 @@ function AppShell({
 
     setLearningBootstrapStatus('loading');
     setLearningBootstrapError(null);
-  }, [isAuthenticated, learningBootstrapStatus]);
+  }, [isAuthenticated, learningBootstrapStatus, persistenceHydrated]);
 
   useEffect(() => {
     if (activeRoute === 'mine') {
@@ -1310,7 +1442,6 @@ function AppShell({
         }
 
         setLearningSession(session);
-        setLearningIndex(0);
         setLearningCurrentResult(null);
         setLearningCompletedResults([]);
         setLearningPhase('learning');
@@ -1323,9 +1454,21 @@ function AppShell({
         const nextVisibleCards = session.cards
           .slice(0, accessibleCardCount)
           .filter(card => !readSpaceCardState(card.card_id).isSleeping);
+        const restoredCursor = persistedLearningCursor.current;
+        const restoredIndex =
+          restoredCursor !== null &&
+          restoredCursor.sourceId === session.sourceId &&
+          restoredCursor.track === session.track
+            ? nextVisibleCards.findIndex(
+                card => card.card_id === restoredCursor.cardId,
+              )
+            : -1;
+        const nextIndex = restoredIndex >= 0 ? restoredIndex : 0;
+
+        setLearningIndex(nextIndex);
         setLearningCardState(
-          nextVisibleCards[0]
-            ? createTrackedLearningCardState(nextVisibleCards[0])
+          nextVisibleCards[nextIndex]
+            ? createTrackedLearningCardState(nextVisibleCards[nextIndex])
             : null,
         );
         setLearningBootstrapStatus('ready');
@@ -1621,11 +1764,24 @@ function AppShell({
                 }));
             });
         })
+        .then(result =>
+          Promise.all([
+            authSessionStore.save({
+              authToken: result.session.authToken ?? null,
+              phoneNumber: result.session.phoneNumber,
+            }),
+            userStateStore.load(result.session.phoneNumber),
+          ]).then(([, persistedUserState]) => ({
+            ...result,
+            persistedUserState,
+          })),
+        )
         .then(
           ({
             membershipErrorMessage,
             membershipRefreshSucceeded,
             membershipState: nextMembershipState,
+            persistedUserState,
             session,
           }) => {
             if (runtimeMembershipRepositoryMode === 'remote') {
@@ -1637,6 +1793,9 @@ function AppShell({
             setMembershipState(nextMembershipState);
             setMembershipError(membershipErrorMessage);
             setMembershipGate(null);
+            persistedLearningCursor.current = persistedUserState.learningCursor;
+            setCheckedInDayKey(persistedUserState.checkedInDayKey);
+            setSpaceCardStateById(persistedUserState.spaceCardStateById);
             setAuthState(current => ({
               ...current,
               authToken: session.authToken ?? null,
@@ -1659,6 +1818,7 @@ function AppShell({
     onLogout: () => {
       lastMembershipRefreshKey.current = null;
       pendingMembershipRefreshKey.current = null;
+      persistedLearningCursor.current = null;
       setAuthState(INITIAL_AUTH_STATE);
       setLearningPhase('learning');
       setReviewSessionCards([]);
@@ -1672,6 +1832,12 @@ function AppShell({
       setLastSyncedProgressKey(null);
       setLastSyncedLearningStateKey(null);
       setLastSyncedSpaceStateKey(null);
+      authSessionStore.clear().catch((error: unknown) => {
+        console.warn('[AppPersistence] Failed to clear auth session.', error);
+      });
+      userStateStore.clear().catch((error: unknown) => {
+        console.warn('[AppPersistence] Failed to clear user state.', error);
+      });
       mutationQueueRepository.clear().catch(() => undefined);
       setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
       setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
