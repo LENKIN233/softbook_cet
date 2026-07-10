@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -55,14 +56,35 @@ const files = fs.existsSync(EVIDENCE_DIR)
   ? fs.readdirSync(EVIDENCE_DIR).filter(file => file.endsWith('.json')).sort()
   : [];
 const errors = [];
+const manifests = [];
 
 for (const file of files) {
   const relative = path.join('docs', 'agent-runs', 'evidence', file);
   try {
     const payload = JSON.parse(fs.readFileSync(path.join(EVIDENCE_DIR, file), 'utf8'));
     errors.push(...validateManifest(relative, payload));
+    manifests.push({file: relative, payload});
   } catch (error) {
     errors.push({file: relative, message: `invalid JSON: ${error.message}`});
+  }
+}
+
+if (process.argv.includes('--verify-remote')) {
+  for (const {file, payload} of manifests) {
+    if (!payload.archive?.url || !SHA256_RE.test(String(payload.archive?.sha256 || ''))) continue;
+    try {
+      const headers = process.env.GITHUB_TOKEN
+        ? {Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, Accept: 'application/octet-stream'}
+        : {};
+      const response = await fetch(payload.archive.url, {headers, redirect: 'follow'});
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = Buffer.from(await response.arrayBuffer());
+      const digest = crypto.createHash('sha256').update(data).digest('hex');
+      if (digest !== payload.archive.sha256) errors.push({file, message: 'remote archive SHA-256 mismatch'});
+      if (data.byteLength !== payload.archive.size_bytes) errors.push({file, message: 'remote archive byte size mismatch'});
+    } catch (error) {
+      errors.push({file, message: `remote archive unavailable: ${error.message}`});
+    }
   }
 }
 
