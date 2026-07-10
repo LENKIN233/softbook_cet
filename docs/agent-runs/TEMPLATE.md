@@ -38,6 +38,11 @@
 - <local validation>
 - <CI validation if available>
 
+## Binary evidence
+
+- Evidence manifest: <docs/agent-runs/evidence/*.json or N/A>
+- Archive: <immutable URL or N/A>
+
 ## Agent review status
 
 - Reviewer: <reviewer>

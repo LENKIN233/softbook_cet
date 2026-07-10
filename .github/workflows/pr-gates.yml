@@ -9,10 +9,19 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pr-gates-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   design-artifact-gate:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,6 +35,7 @@ jobs:
 
   validate-harness:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -47,6 +57,7 @@ jobs:
   agent-review:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -58,6 +69,7 @@ jobs:
 
   mobile-quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: apps/mobile
@@ -92,6 +104,7 @@ jobs:
 
   backend-contract:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: infra/cloudbase/functions/softbook-api
@@ -111,3 +124,33 @@ jobs:
 
       - name: Run backend contract tests
         run: npm test
+
+  repo-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Validate repository health
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            node scripts/report_repo_health.mjs --base "$BASE_SHA" --strict --output "$RUNNER_TEMP/repository-health.json"
+          else
+            node scripts/report_repo_health.mjs --strict --output "$RUNNER_TEMP/repository-health.json"
+          fi
+
+  evidence-archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate agent run evidence manifests
+        run: node scripts/validate_agent_run_evidence.mjs

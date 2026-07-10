@@ -74,6 +74,10 @@
         "apps/mobile/ios/build/**",
         "apps/mobile/android/app/build/**",
         "apps/mobile/coverage/**",
+        "docs/agent-runs/artifacts/**",
+        "docs/design/app-screenshots/**",
+        "docs/design/search-runs/**/screenshots/**",
+        "exports/**",
         "*.jsbundle"
       ],
       "default_read": "never_without_explicit_debug_need"

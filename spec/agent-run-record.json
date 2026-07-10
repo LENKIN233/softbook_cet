@@ -10,7 +10,30 @@
     "directory": "docs/agent-runs/",
     "filename_pattern": "YYYY-MM-DD-<short-slug>.md",
     "template": "docs/agent-runs/TEMPLATE.md",
-    "index": "docs/agent-runs/README.md"
+    "index": "docs/agent-runs/README.md",
+    "binary_evidence_policy": {
+      "schema_version": "agent-run-evidence.v1",
+      "local_capture_directory": "docs/agent-runs/artifacts/",
+      "local_capture_is_ignored": true,
+      "manifest_directory": "docs/agent-runs/evidence/",
+      "required_manifest_fields": [
+        "run_id",
+        "run_record",
+        "archive.url",
+        "archive.sha256",
+        "archive.size_bytes",
+        "files[].path",
+        "files[].role",
+        "files[].media_type",
+        "files[].size_bytes",
+        "files[].sha256"
+      ],
+      "ordinary_git_must_not_store": [
+        "screenshots",
+        "screen_recordings",
+        "generated_visual_evidence"
+      ]
+    }
   },
   "required_fields": [
     "task_summary",
@@ -62,7 +85,8 @@
     "validate_agent_review_requires_pr_reference": true,
     "validate_harness_checks_template_and_contract": true,
     "run_record_must_not_replace_tests_or_review": true,
-    "run_record_must_separate_product_truth_and_implementation_hypothesis": true
+    "run_record_must_separate_product_truth_and_implementation_hypothesis": true,
+    "binary_evidence_manifest_validator": "node scripts/validate_agent_run_evidence.mjs"
   },
   "anti_patterns": [
     {

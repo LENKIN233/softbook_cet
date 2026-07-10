@@ -436,6 +436,14 @@ check_equal(
             "id": "backend_contract_test",
             "command": "cd infra/cloudbase/functions/softbook-api && npm test",
         },
+        {
+            "id": "repository_health",
+            "command": "node scripts/report_repo_health.mjs --base <base_sha> --strict",
+        },
+        {
+            "id": "agent_run_evidence_archive",
+            "command": "node scripts/validate_agent_run_evidence.mjs",
+        },
     ],
     ci_contract["required_pull_request_gates"],
 )

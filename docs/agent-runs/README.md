@@ -45,6 +45,14 @@ Do not include hidden chain-of-thought, secrets, tokens, credentials, private us
 data, or raw logs that contain sensitive material. Record facts, commands,
 validation results, decisions, risks, and follow-up items.
 
+## Binary evidence
+
+Do not commit screenshots, screen recordings, or generated visual evidence.
+Capture them under the ignored `docs/agent-runs/artifacts/` directory, publish
+an immutable archive, and commit an `agent-run-evidence.v1` manifest under
+`docs/agent-runs/evidence/`. The manifest records archive and per-file hashes so
+the run remains auditable without growing ordinary Git history.
+
 ## Template
 
 Use `docs/agent-runs/TEMPLATE.md`.
