@@ -1,5 +1,5 @@
 {
-  "version": "vnext-6",
+  "version": "vnext-7",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -60,6 +60,30 @@
     "offline_use_can_be_allowed_for_authenticated_users_with_cached_state_and_content_only",
     "sync_conflict_resolution_can_use_server_authoritative_event_merging"
   ],
+  "local_persistence": {
+    "classification": "implementation_hypothesis",
+    "auth_session_store": {
+      "sensitive_value": "auth_token",
+      "storage": "platform_keychain_or_keystore",
+      "schema": "auth-session.v1",
+      "must_not_use": "AsyncStorage"
+    },
+    "user_state_store": {
+      "storage": "versioned_AsyncStorage",
+      "schema": "user-state.v1",
+      "owner_key": "phone_number",
+      "scope": [
+        "daily_check_in_key",
+        "learning_cursor",
+        "favorite_tags",
+        "sleep_state"
+      ],
+      "corruption_behavior": "discard_invalid_payload_and_fall_back_to_empty_state"
+    },
+    "membership_state": "reload_from_server_authority_after_auth_session_restore",
+    "mutation_queue": "persisted_under_an_independent_key_and_not_embedded_in_user_state",
+    "logout": "clear_auth_session_user_state_and_account_bound_mutation_queue"
+  },
   "decision_rule": {
     "if_runtime_conflicts_with_experience": [
       "prefer_product_experience",
