@@ -142,7 +142,7 @@ jobs:
       - name: Test dependency policies
         run: |
           node scripts/test_validate_dependency_security.mjs
-          node scripts/test_normalize_hermes_podspec.mjs
+          node scripts/test_normalize_react_native_podspecs.mjs
 
       - name: Validate dependency security
         run: node scripts/validate_dependency_security.mjs
