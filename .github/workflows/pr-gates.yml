@@ -139,8 +139,10 @@ jobs:
         with:
           node-version: "22.11.0"
 
-      - name: Test dependency security policy
-        run: node scripts/test_validate_dependency_security.mjs
+      - name: Test dependency policies
+        run: |
+          node scripts/test_validate_dependency_security.mjs
+          node scripts/test_normalize_hermes_podspec.mjs
 
       - name: Validate dependency security
         run: node scripts/validate_dependency_security.mjs
@@ -166,7 +168,10 @@ jobs:
         run: npm ci
 
       - name: Install Ruby dependencies
-        run: bundle install --jobs 4 --retry 3
+        env:
+          BUNDLE_JOBS: "4"
+          BUNDLE_RETRY: "3"
+        run: bundle install
 
       - name: Install native build tools
         run: brew install cmake

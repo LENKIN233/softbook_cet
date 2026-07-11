@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "design-metadata-leak-scan": "node ../../scripts/check_design_metadata_leaks.mjs",
     "metadata-leak-scan": "node scripts/check-metadata-leaks.mjs",
+    "postinstall": "node ../../scripts/normalize_hermes_podspec.mjs",
     "pretest": "npm run metadata-leak-scan",
     "start": "react-native start",
     "test": "jest",
