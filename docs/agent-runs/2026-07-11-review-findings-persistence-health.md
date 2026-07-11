@@ -4,7 +4,7 @@
 
 - Date: 2026-07-11
 - Branch: `fix/review-findings-persistence`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/404
 - Summary: Resolve the post-cutover review findings around restored-session authorization, durable logout, server-authoritative space state, and transient Git blob auditing.
 
 ## Referenced specs
@@ -62,7 +62,8 @@
 
 - Authorization, tombstone, user-state migration, canonical space merge, offline replay, and App restoration regressions: passed.
 - Backend memory and CloudBase-compatible canonical/migration tests: passed.
-- Full local harness and final CI: pending final run.
+- Full local harness, mobile quality, backend contract, repository health, and evidence validation: passed.
+- GitHub required checks: pending.
 
 ## Binary evidence
 
@@ -93,4 +94,4 @@
 
 ## Follow-up
 
-- Update this record with the PR URL and final validation state, then merge only after required checks pass.
+- Merge only after all required GitHub checks pass.
