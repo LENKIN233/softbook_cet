@@ -153,7 +153,7 @@ else:
         "npm run lint -- --quiet",
         "npm run typecheck",
         "npm test -- --runInBand --watchAll=false",
-        'node-version: "22.11.0"',
+        'node-version: "22.13.0"',
     ]:
         check_contains("PR workflow gate", workflow_text, snippet)
 
