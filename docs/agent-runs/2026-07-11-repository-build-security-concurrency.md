@@ -31,7 +31,7 @@
 - Mobile `npm ci` deterministically normalizes the Hermes podspec's clone path and CMake executable fields; exact upstream drift fails instead of being silently rewritten.
 - Dependency security rejects unknown, critical, expired, mismatched, and stale exceptions. The only allowed advisory is the time-limited CloudBase `lodash.set` watch-path advisory.
 - Repository health checks every linked worktree, stash, topic branch, missing upstream, and deleted upstream rather than only the current directory.
-- CI and local mobile setup use Node 22.13 or newer, matching React Native 0.85.2, and Bundler 2.4.22, which remains compatible with local Ruby 2.6 while running correctly on the GitHub macOS runner's Ruby 3.4.
+- CI and local mobile setup use Node 22.13 or newer, matching React Native 0.85.2. iOS CI explicitly provisions Ruby 3.3 with Bundler 2.4.22, while the same lock remains compatible with the documented local Ruby 2.6 minimum.
 
 ## Workspace boundary and read scope
 
@@ -48,7 +48,7 @@
 - `scripts/normalize_hermes_podspec.mjs` and its test: deterministic normalization with exact upstream-drift rejection.
 - `scripts/validate_dependency_security.mjs`, its test, and `security/dependency-audit-policy.json`: live npm advisory policy.
 - `scripts/report_repo_health.mjs` and its test: all-worktree, stash, topic-branch, and upstream validation.
-- `.github/workflows/pr-gates.yml`, `.github/dependabot.yml`, and the PR template: maintained Actions, explicit timeouts, Release iOS CI, dependency gates, and weekly dependency updates.
+- `.github/workflows/pr-gates.yml`, `.github/dependabot.yml`, and the PR template: maintained Actions, a SHA-pinned third-party Ruby action, explicit Node/Ruby toolchains and timeouts, Release iOS CI, dependency gates, and weekly dependency updates.
 - `spec/account-sync-contract.json`, `spec/runtime-boundaries.json`, `spec/agent-harness.json`, and `spec/repo-delivery-contract.json`: transaction and delivery contracts.
 
 ## Commands run
@@ -72,7 +72,7 @@
 - Native release: Release simulator build and unsigned device archive both succeeded with the normalized Hermes script phases.
 - Fresh clone: hooks, LFS, both npm installs, exact Bundler 2.4.22, CocoaPods deployment, unchanged Bundler/Pod lockfiles, and a clean final worktree all passed at commit `8c833c645a965cf20d59253ea7ee84692300b2d7`.
 - Repository governance: harness, health regressions, evidence index, LFS, plist, JSON/YAML, and whitespace checks passed.
-- GitHub required checks: the initial PR run passed eight checks and exposed Ruby 3.4 incompatibility in the legacy Bundler 1.17.2 launcher before native compilation; the runtime-alignment fix now requires a complete rerun before merge.
+- GitHub required checks: the first PR run passed eight checks and exposed Ruby 3.4 incompatibility in the legacy Bundler 1.17.2 launcher. The second passed eight and exposed CocoaPods' undeclared `base64` dependency under the runner's floating Ruby 3.4. CI now pins Ruby 3.3 and requires a complete rerun before merge.
 
 ## Binary evidence
 
@@ -85,7 +85,7 @@
 - Reviewer: Codex
 - Status: Passed
 - Blocking findings: none
-- Review summary: The initial fresh-clone check exposed remaining absolute Hermes and CMake paths, and the first GitHub iOS run exposed legacy Bundler and Node engine drift. The final normalizer, source builds, cross-Ruby Bundler lock, Node floor, and random-path deployment close those reproducibility gaps.
+- Review summary: The initial fresh-clone check exposed remaining absolute Hermes and CMake paths, while the GitHub iOS runs exposed legacy Bundler, Node engine, and floating Ruby drift. The final normalizer, source builds, explicit Node/Ruby toolchains, cross-Ruby Bundler lock, and random-path deployment close those reproducibility gaps.
 
 ## User-visible UI impact
 
