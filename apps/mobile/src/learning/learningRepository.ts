@@ -9,6 +9,7 @@ import {
   createLearningSession,
 } from './session';
 import { LearningCardSource, localLearningCardSource } from './localCardSource';
+import {isRemoteAuthorizationError} from '../runtime/remoteHttpError';
 
 export type LearningRepositoryMode = 'local' | 'remote';
 
@@ -75,7 +76,10 @@ export function createLearningSessionRepository(
             ),
           );
         } catch (error) {
-          if (!config.fallbackToLocalOnRemoteError) {
+          if (
+            isRemoteAuthorizationError(error) ||
+            !config.fallbackToLocalOnRemoteError
+          ) {
             throw error;
           }
 

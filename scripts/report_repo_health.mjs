@@ -46,6 +46,14 @@ function run(command, args, {allowFailure = false} = {}) {
   }
 }
 
+function runWithInput(command, args, input) {
+  return execFileSync(command, args, {
+    cwd: ROOT,
+    encoding: 'utf8',
+    input,
+  }).trim();
+}
+
 function git(...args) {
   return run('git', args);
 }
@@ -77,6 +85,76 @@ function trackedFiles({base, fullTree}) {
   return lines(git('-c', 'core.quotepath=false', 'ls-files'));
 }
 
+function rangeBase({base, fullTree}) {
+  if (fullTree) return null;
+
+  if (resolvesCommit(base)) {
+    return git('merge-base', base, 'HEAD');
+  }
+
+  return resolvesCommit('HEAD^') ? git('rev-parse', 'HEAD^') : null;
+}
+
+function introducedPaths(commit) {
+  if (!commit) return [];
+
+  return lines(
+    git(
+      '-c',
+      'core.quotepath=false',
+      'log',
+      '--format=',
+      '--name-only',
+      '--diff-filter=ACMR',
+      `${commit}..HEAD`,
+    ),
+  );
+}
+
+function introducedBlobs(commit) {
+  if (!commit) return [];
+
+  const objects = lines(
+    git(
+      '-c',
+      'core.quotepath=false',
+      'rev-list',
+      '--objects',
+      'HEAD',
+      '--not',
+      commit,
+    ),
+  ).map(line => {
+    const separator = line.indexOf(' ');
+    return {
+      oid: separator === -1 ? line : line.slice(0, separator),
+      file: separator === -1 ? null : line.slice(separator + 1),
+    };
+  });
+
+  if (objects.length === 0) return [];
+
+  const metadata = new Map(
+    lines(
+      runWithInput(
+        'git',
+        ['cat-file', '--batch-check=%(objectname) %(objecttype) %(objectsize)'],
+        `${objects.map(object => object.oid).join('\n')}\n`,
+      ),
+    ).map(line => {
+      const [oid, type, size] = line.split(' ');
+      return [oid, {bytes: Number(size), type}];
+    }),
+  );
+
+  return objects.flatMap(object => {
+    const objectMetadata = metadata.get(object.oid);
+    return objectMetadata?.type === 'blob'
+      ? [{...object, bytes: objectMetadata.bytes}]
+      : [];
+  });
+}
+
 function isForbidden(file) {
   if (FORBIDDEN_TRACKED_PREFIXES.some(prefix => file.startsWith(prefix))) return true;
   const generatedVisualPath = file.startsWith('docs/design/app-screenshots/') || file.includes('/screenshots/');
@@ -86,6 +164,24 @@ function isForbidden(file) {
 function blobSize(file) {
   const output = run('git', ['cat-file', '-s', `HEAD:${file}`], {allowFailure: true});
   return output ? Number(output) : null;
+}
+
+function currentBlobs(files) {
+  return files.flatMap(file => {
+    const bytes = blobSize(file);
+    const oid = run('git', ['rev-parse', `HEAD:${file}`], {
+      allowFailure: true,
+    });
+    return bytes === null || !oid ? [] : [{bytes, file, oid}];
+  });
+}
+
+function uniqueBlobEntries(entries) {
+  return [
+    ...new Map(
+      entries.map(entry => [`${entry.oid}:${entry.file ?? ''}`, entry]),
+    ).values(),
+  ];
 }
 
 function remoteSnapshot(errors, warnings) {
@@ -147,11 +243,20 @@ const maxStashes = integerOption('--expected-max-stashes');
 const blobLimit = integerOption('--blob-limit-bytes') ?? DEFAULT_BLOB_LIMIT;
 const errors = [];
 const warnings = [];
+const auditRangeBase = rangeBase({base, fullTree});
 const files = trackedFiles({base, fullTree});
-const forbiddenTrackedFiles = files.filter(isForbidden);
-const oversizedBlobs = files
-  .map(file => ({file, bytes: blobSize(file)}))
-  .filter(entry => entry.bytes !== null && entry.bytes > blobLimit);
+const historicalPaths = introducedPaths(auditRangeBase);
+const introducedBlobEntries = introducedBlobs(auditRangeBase);
+const auditedBlobEntries = uniqueBlobEntries([
+  ...currentBlobs(files),
+  ...introducedBlobEntries,
+]);
+const forbiddenTrackedFiles = [
+  ...new Set([...files, ...historicalPaths].filter(isForbidden)),
+];
+const oversizedBlobs = auditedBlobEntries.filter(
+  entry => entry.bytes > blobLimit,
+);
 const status = lines(git('status', '--porcelain'));
 const worktreeCount = lines(git('worktree', 'list', '--porcelain')).filter(line => line.startsWith('worktree ')).length;
 const stashCount = lines(git('stash', 'list')).length;
@@ -183,6 +288,8 @@ const report = {
   ok: errors.length === 0,
   metrics: {
     checked_files: files.length,
+    checked_blobs: auditedBlobEntries.length,
+    introduced_blobs: introducedBlobEntries.length,
     worktrees: worktreeCount,
     stashes: stashCount,
     gone_branches: goneBranches.length,

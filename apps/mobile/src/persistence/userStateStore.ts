@@ -1,11 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { LearningTrack } from '../learning/model';
+import type {SpaceCardStateValue} from '../space/spaceStateRepository';
 
-export type PersistedSpaceCardState = {
-  isFavorited: boolean;
-  isSleeping: boolean;
-};
+export type PersistedSpaceCardState = SpaceCardStateValue;
 
 export type PersistedLearningCursor = {
   cardId: string;
@@ -32,7 +30,9 @@ export type UserStateStore = {
 };
 
 export const USER_STATE_STORAGE_KEY = 'softbook-cet/user-state/v1';
-const USER_STATE_SCHEMA_VERSION = 'user-state.v1';
+const USER_STATE_SCHEMA_VERSION = 'user-state.v2';
+const LEGACY_USER_STATE_SCHEMA_VERSION = 'user-state.v1';
+export const LEGACY_SPACE_STATE_TIMESTAMP = '1970-01-01T00:00:00.000Z';
 
 type UserStatePayload = {
   checked_in_day_key: string | null;
@@ -45,7 +45,11 @@ type UserStatePayload = {
   schema_version: typeof USER_STATE_SCHEMA_VERSION;
   space_card_state_by_id: Record<
     string,
-    { is_favorited: boolean; is_sleeping: boolean }
+    {
+      is_favorited: boolean;
+      is_sleeping: boolean;
+      last_modified_at: string;
+    }
   >;
 };
 
@@ -156,6 +160,7 @@ function serializeUserStatePayload(
         {
           is_favorited: cardState.isFavorited,
           is_sleeping: cardState.isSleeping,
+          last_modified_at: cardState.lastModifiedAt,
         },
       ]),
     ),
@@ -168,7 +173,8 @@ function parseUserStatePayload(payload: unknown): {
 } {
   if (
     !isObject(payload) ||
-    payload.schema_version !== USER_STATE_SCHEMA_VERSION
+    (payload.schema_version !== USER_STATE_SCHEMA_VERSION &&
+      payload.schema_version !== LEGACY_USER_STATE_SCHEMA_VERSION)
   ) {
     throw new Error('User state payload version is invalid.');
   }
@@ -183,6 +189,7 @@ function parseUserStatePayload(payload: unknown): {
       learningCursor: parseLearningCursorPayload(payload.learning_cursor),
       spaceCardStateById: parseSpaceCardStatePayload(
         payload.space_card_state_by_id,
+        payload.schema_version === LEGACY_USER_STATE_SCHEMA_VERSION,
       ),
     },
   };
@@ -239,7 +246,9 @@ function parseSpaceCardStateMap(
     if (
       !isObject(cardState) ||
       typeof cardState.isFavorited !== 'boolean' ||
-      typeof cardState.isSleeping !== 'boolean'
+      typeof cardState.isSleeping !== 'boolean' ||
+      typeof cardState.lastModifiedAt !== 'string' ||
+      Number.isNaN(Date.parse(cardState.lastModifiedAt))
     ) {
       throw new Error(`Space card state ${cardId} is invalid.`);
     }
@@ -247,6 +256,7 @@ function parseSpaceCardStateMap(
     parsed[cardId] = {
       isFavorited: cardState.isFavorited,
       isSleeping: cardState.isSleeping,
+      lastModifiedAt: cardState.lastModifiedAt,
     };
   }
 
@@ -255,6 +265,7 @@ function parseSpaceCardStateMap(
 
 function parseSpaceCardStatePayload(
   value: unknown,
+  isLegacy: boolean,
 ): Record<string, PersistedSpaceCardState> {
   if (!isObject(value)) {
     throw new Error('Persisted space card state map must be an object.');
@@ -268,7 +279,10 @@ function parseSpaceCardStatePayload(
     if (
       !isObject(cardState) ||
       typeof cardState.is_favorited !== 'boolean' ||
-      typeof cardState.is_sleeping !== 'boolean'
+      typeof cardState.is_sleeping !== 'boolean' ||
+      (!isLegacy &&
+        (typeof cardState.last_modified_at !== 'string' ||
+          Number.isNaN(Date.parse(cardState.last_modified_at))))
     ) {
       throw new Error(`Persisted space card state ${cardId} is invalid.`);
     }
@@ -276,6 +290,9 @@ function parseSpaceCardStatePayload(
     parsed[cardId] = {
       isFavorited: cardState.is_favorited,
       isSleeping: cardState.is_sleeping,
+      lastModifiedAt: isLegacy
+        ? LEGACY_SPACE_STATE_TIMESTAMP
+        : (cardState.last_modified_at as string),
     };
   }
 

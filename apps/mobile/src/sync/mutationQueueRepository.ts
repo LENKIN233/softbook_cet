@@ -1,6 +1,9 @@
 import type {MembershipRepository} from '../membership/membershipRepository';
 import type {MembershipState} from '../membership/localMembership';
-import type {SpaceStateRepository} from '../space/spaceStateRepository';
+import type {
+  SpaceStateRepository,
+  SpaceStateSnapshot,
+} from '../space/spaceStateRepository';
 import type {LearningStateRepository} from './learningStateRepository';
 import {
   MutationQueueManager,
@@ -9,13 +12,23 @@ import {
   MutationType,
 } from './mutationQueue';
 import type {ProgressSyncRepository} from './progressSyncRepository';
+import {isRemoteAuthorizationError} from '../runtime/remoteHttpError';
 
 export type MutationReplayResult =
   | {
       entry: Exclude<
         MutationQueueEntry,
-        {type: 'refresh_membership' | 'start_membership_trial'}
+        {
+          type:
+            | 'refresh_membership'
+            | 'start_membership_trial'
+            | 'sync_space_state';
+        }
       >;
+    }
+  | {
+      entry: Extract<MutationQueueEntry, {type: 'sync_space_state'}>;
+      spaceStateSnapshot: SpaceStateSnapshot;
     }
   | {
       entry: Extract<
@@ -65,11 +78,15 @@ export function createMutationQueueRepository(options: {
           );
           return {entry};
         case 'sync_space_state':
-          await options.spaceStateRepository.syncSpaceState(
-            entry.payload.context,
-            entry.payload.snapshot,
-          );
-          return {entry};
+          return {
+            entry,
+            spaceStateSnapshot: (
+              await options.spaceStateRepository.syncSpaceState(
+                entry.payload.context,
+                entry.payload.snapshot,
+              )
+            ).snapshot,
+          };
         case 'sync_learning_state':
           await options.learningStateRepository.syncLearningState(
             entry.payload.context,
@@ -95,6 +112,10 @@ export function createMutationQueueRepository(options: {
           };
       }
     } catch (error) {
+      if (isRemoteAuthorizationError(error)) {
+        throw error;
+      }
+
       console.warn(
         `[MutationQueue] Replay failed for ${entry.type}: ${
           error instanceof Error ? error.message : String(error)

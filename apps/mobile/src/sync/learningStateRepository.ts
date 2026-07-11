@@ -1,4 +1,5 @@
 import type {LearningCardResult, LearningSession} from '../learning/model';
+import {RemoteHttpError} from '../runtime/remoteHttpError';
 
 export type LearningStateRepositoryMode = 'local' | 'remote';
 export type LearningStatePhase = 'learning' | 'review';
@@ -110,8 +111,9 @@ export function createLearningStateRepository(
         });
 
         if (!response.ok) {
-          throw new Error(
+          throw new RemoteHttpError(
             `Remote learning state sync failed with ${response.status}.`,
+            response.status,
           );
         }
 
@@ -150,7 +152,10 @@ function buildRemoteLearningStateHeaders(
   context: LearningStateContext,
 ) {
   if (!context.authToken) {
-    throw new Error('Remote learning state sync requires authToken.');
+    throw new RemoteHttpError(
+      'Remote learning state sync requires authToken.',
+      401,
+    );
   }
 
   return {

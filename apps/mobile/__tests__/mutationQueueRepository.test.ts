@@ -5,6 +5,7 @@ import {
 import type {MembershipState} from '../src/membership/localMembership';
 import {createLearningStateSnapshot} from '../src/sync/learningStateRepository';
 import {createMutationQueueRepository} from '../src/sync/mutationQueueRepository';
+import {RemoteHttpError} from '../src/runtime/remoteHttpError';
 
 const createProgressPayload = () => ({
   context: {
@@ -106,6 +107,7 @@ describe('MutationQueueRepository', () => {
     mockSpaceStateRepository.syncSpaceState.mockResolvedValue({
       acknowledgedAt: '2026-04-27T00:00:00.000Z',
       mode: 'remote',
+      snapshot: createSpacePayload().snapshot,
     });
     mockMembershipRepository.loadState.mockResolvedValue({
       countedEntryCount: 2,
@@ -196,6 +198,7 @@ describe('MutationQueueRepository', () => {
         entry: {
           type: 'sync_space_state',
         },
+        spaceStateSnapshot: payload.snapshot,
       },
     ]);
 
@@ -329,6 +332,27 @@ describe('MutationQueueRepository', () => {
     );
   });
 
+  it('surfaces authorization failures so the app can revoke the session', async () => {
+    const repository = createMutationQueueRepository({
+      learningStateRepository: mockLearningStateRepository as never,
+      membershipRepository: mockMembershipRepository as never,
+      progressSyncRepository: mockProgressSyncRepository as never,
+      spaceStateRepository: mockSpaceStateRepository as never,
+    });
+    mockMembershipRepository.loadState.mockRejectedValue(
+      new RemoteHttpError('Unauthorized', 401),
+    );
+    await repository.enqueueMutation('refresh_membership', {
+      context: {
+        authToken: 'expired-token',
+        phoneNumber: '13800138002',
+      },
+    });
+
+    await expect(repository.startReplay()).rejects.toMatchObject({status: 401});
+    await expect(repository.getQueueSize()).resolves.toBe(1);
+  });
+
   it('drops stale entries for a different auth context before replaying current user mutations', async () => {
     const repository = createMutationQueueRepository({
       learningStateRepository: mockLearningStateRepository as never,
@@ -416,7 +440,12 @@ describe('MutationQueueRepository', () => {
     mockSpaceStateRepository.syncSpaceState.mockImplementation(
       () =>
         new Promise(resolve => {
-          resolveReplay = () => resolve(undefined);
+          resolveReplay = () =>
+            resolve({
+              acknowledgedAt: '2026-04-27T00:00:00.000Z',
+              mode: 'remote',
+              snapshot: createSpacePayload().snapshot,
+            });
           markReplayStarted?.();
         }),
     );

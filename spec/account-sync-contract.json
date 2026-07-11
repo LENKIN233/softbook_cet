@@ -34,6 +34,7 @@
     ],
     "learning_state_rule": "latest_valid_learning_event_wins_per_card; aggregate progress and counters are derived on the server from accepted events",
     "physical_space_rule": "latest_valid_explicit_space_action_wins unless it violates box knowledge ownership or contract constraints; invalid actions are rejected and client refreshes from server canonical state",
+    "physical_space_snapshot_reconciliation": "clients preserve each explicit action timestamp, read account-level server canonical state before restored-state push, and accept the canonical merged response; day_key is batch metadata rather than the canonical partition key",
     "membership_rule": "server_entitlement_wins"
   },
   "offline_policy": {

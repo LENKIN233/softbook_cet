@@ -91,6 +91,25 @@ test('remote learning session repository falls back to local cards when remote s
   expect(session.cards).toHaveLength(5);
 });
 
+test('remote learning session repository never hides authorization failure behind local fallback', async () => {
+  const repository = createLearningSessionRepository({
+    fallbackToLocalOnRemoteError: true,
+    mode: 'remote',
+    remoteConfig: {
+      endpoint: 'https://example.com/api/learning/cards',
+    },
+    fetchImpl: jest.fn().mockResolvedValue({
+      json: async () => ({}),
+      ok: false,
+      status: 401,
+    }),
+  });
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).rejects.toMatchObject({status: 401});
+});
+
 test('remote learning session repository still surfaces remote failures when fallback is disabled', async () => {
   const fetchMock = jest.fn().mockResolvedValue({
     ok: false,
