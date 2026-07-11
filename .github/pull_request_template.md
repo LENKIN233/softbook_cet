@@ -14,6 +14,8 @@
 - [ ] `cd apps/mobile && npm run typecheck`
 - [ ] `cd apps/mobile && npm test -- --runInBand --watchAll=false`
 - [ ] `cd infra/cloudbase/functions/softbook-api && npm test`
+- [ ] `node scripts/validate_dependency_security.mjs`
+- [ ] `cd apps/mobile && bundle exec pod install --project-directory=ios --deployment`
 
 ## Agent review
 

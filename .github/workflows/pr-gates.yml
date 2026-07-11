@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -40,10 +40,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.x"
 
@@ -62,7 +62,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Validate agent review record
         env:
@@ -77,10 +77,10 @@ jobs:
         working-directory: apps/mobile
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22.11.0"
           cache: "npm"
@@ -112,10 +112,10 @@ jobs:
         working-directory: infra/cloudbase/functions/softbook-api
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22.11.0"
           cache: "npm"
@@ -127,12 +127,85 @@ jobs:
       - name: Run backend contract tests
         run: npm test
 
+  dependency-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22.11.0"
+
+      - name: Test dependency security policy
+        run: node scripts/test_validate_dependency_security.mjs
+
+      - name: Validate dependency security
+        run: node scripts/validate_dependency_security.mjs
+
+  ios-release:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22.11.0"
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Install Ruby dependencies
+        run: bundle install --jobs 4 --retry 3
+
+      - name: Install native build tools
+        run: brew install cmake
+
+      - name: Verify CocoaPods lock
+        run: bundle exec pod install --project-directory=ios --deployment
+
+      - name: Build Release simulator app
+        run: >-
+          xcodebuild
+          -workspace ios/SoftbookCET.xcworkspace
+          -scheme SoftbookCET
+          -configuration Release
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath "$RUNNER_TEMP/softbook-simulator-derived"
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_REQUIRED=NO
+          build
+
+      - name: Create unsigned Release archive
+        run: >-
+          xcodebuild
+          -workspace ios/SoftbookCET.xcworkspace
+          -scheme SoftbookCET
+          -configuration Release
+          -destination 'generic/platform=iOS'
+          -archivePath "$RUNNER_TEMP/SoftbookCET.xcarchive"
+          -derivedDataPath "$RUNNER_TEMP/softbook-device-derived"
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_REQUIRED=NO
+          archive
+
   repo-health:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           lfs: true
@@ -145,11 +218,11 @@ jobs:
         run: |
           node scripts/test_report_repo_health.mjs
           if [ "$EVENT_NAME" = "schedule" ]; then
-            node scripts/report_repo_health.mjs --full-tree --remote --strict --output "$RUNNER_TEMP/repository-health.json"
+            node scripts/report_repo_health.mjs --full-tree --remote --strict --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams --output "$RUNNER_TEMP/repository-health.json"
           elif git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
-            node scripts/report_repo_health.mjs --base "$BASE_SHA" --strict --output "$RUNNER_TEMP/repository-health.json"
+            node scripts/report_repo_health.mjs --base "$BASE_SHA" --strict --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams --output "$RUNNER_TEMP/repository-health.json"
           else
-            node scripts/report_repo_health.mjs --strict --output "$RUNNER_TEMP/repository-health.json"
+            node scripts/report_repo_health.mjs --strict --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams --output "$RUNNER_TEMP/repository-health.json"
           fi
 
   evidence-archive:
@@ -157,7 +230,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Validate agent run evidence manifests
         env:

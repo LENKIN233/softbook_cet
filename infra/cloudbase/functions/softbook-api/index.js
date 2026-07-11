@@ -637,41 +637,52 @@ function createCloudBaseStore(options = {}) {
     },
     getSpaceState: async (phoneNumber, dayKey) => {
       const documentId = createCloudBaseDocumentId(phoneNumber);
-      return getCloudBaseCanonicalSpaceState(
-        spaceStates,
-        documentId,
-        phoneNumber,
-        dayKey,
+      return db.runTransaction(async transaction =>
+        getCloudBaseCanonicalSpaceState(
+          transaction.collection(CLOUDBASE_COLLECTIONS.spaceStates),
+          documentId,
+          phoneNumber,
+          dayKey,
+        ),
       );
     },
     saveSpaceState: async (phoneNumber, snapshot, acknowledgedAt) => {
       const documentId = createCloudBaseDocumentId(phoneNumber);
-      const existing = await getCloudBaseCanonicalSpaceState(
-        spaceStates,
-        documentId,
-        phoneNumber,
-        snapshot.day_key,
-      );
-      const statesByCardId = {
-        ...(existing.states_by_card_id ?? {}),
-      };
+      return db.runTransaction(async transaction => {
+        const transactionSpaceStates = transaction.collection(
+          CLOUDBASE_COLLECTIONS.spaceStates,
+        );
+        const existing = await getCloudBaseCanonicalSpaceState(
+          transactionSpaceStates,
+          documentId,
+          phoneNumber,
+          snapshot.day_key,
+        );
+        const statesByCardId = {
+          ...(existing.states_by_card_id ?? {}),
+        };
 
-      snapshot.states.forEach(state => {
-        const current = statesByCardId[state.card_id];
+        snapshot.states.forEach(state => {
+          const current = statesByCardId[state.card_id];
 
-        if (shouldReplaceSpaceState(current, state)) {
-          statesByCardId[state.card_id] = {...state};
-        }
+          if (shouldReplaceSpaceState(current, state)) {
+            statesByCardId[state.card_id] = {...state};
+          }
+        });
+
+        const canonicalState = {
+          acknowledged_at: acknowledgedAt,
+          day_key: snapshot.day_key,
+          phone_number: phoneNumber,
+          states_by_card_id: statesByCardId,
+        };
+        await setCloudBaseDocument(
+          transactionSpaceStates,
+          documentId,
+          canonicalState,
+        );
+        return cloneSpaceState(canonicalState);
       });
-
-      const canonicalState = {
-        acknowledged_at: acknowledgedAt,
-        day_key: snapshot.day_key,
-        phone_number: phoneNumber,
-        states_by_card_id: statesByCardId,
-      };
-      await setCloudBaseDocument(spaceStates, documentId, canonicalState);
-      return cloneSpaceState(canonicalState);
     },
   };
 }

@@ -13,6 +13,8 @@ const REQUIRED_CHECKS = [
   'agent-review',
   'mobile-quality',
   'backend-contract',
+  'dependency-security',
+  'ios-release',
   'repo-health',
   'evidence-archive',
 ];
@@ -37,9 +39,9 @@ function integerOption(name) {
   return parsed;
 }
 
-function run(command, args, {allowFailure = false} = {}) {
+function run(command, args, {allowFailure = false, cwd = ROOT} = {}) {
   try {
-    return execFileSync(command, args, {cwd: ROOT, encoding: 'utf8'}).trim();
+    return execFileSync(command, args, {cwd, encoding: 'utf8'}).trim();
   } catch (error) {
     if (allowFailure) return '';
     throw error;
@@ -184,6 +186,23 @@ function uniqueBlobEntries(entries) {
   ];
 }
 
+function worktreePaths() {
+  return lines(git('worktree', 'list', '--porcelain'))
+    .filter(line => line.startsWith('worktree '))
+    .map(line => line.slice('worktree '.length));
+}
+
+function localBranches() {
+  return lines(git(
+    'for-each-ref',
+    'refs/heads',
+    '--format=%(refname:short)%09%(upstream:short)%09%(upstream:track)',
+  )).map(line => {
+    const [name, upstream = '', tracking = ''] = line.split('\t');
+    return {name, upstream, tracking};
+  });
+}
+
 function remoteSnapshot(errors, warnings) {
   const repo = run('gh', ['repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner'], {allowFailure: true});
   if (!repo) {
@@ -236,10 +255,12 @@ const strict = process.argv.includes('--strict');
 const allowDirty = process.argv.includes('--allow-dirty');
 const fullTree = process.argv.includes('--full-tree');
 const includeRemote = process.argv.includes('--remote');
+const requireUpstreams = process.argv.includes('--require-upstreams');
 const base = option('--base');
 const outputPath = option('--output');
 const maxWorktrees = integerOption('--expected-max-worktrees');
 const maxStashes = integerOption('--expected-max-stashes');
+const maxTopicBranches = integerOption('--expected-max-topic-branches');
 const blobLimit = integerOption('--blob-limit-bytes') ?? DEFAULT_BLOB_LIMIT;
 const errors = [];
 const warnings = [];
@@ -257,25 +278,42 @@ const forbiddenTrackedFiles = [
 const oversizedBlobs = auditedBlobEntries.filter(
   entry => entry.bytes > blobLimit,
 );
-const status = lines(git('status', '--porcelain'));
-const worktreeCount = lines(git('worktree', 'list', '--porcelain')).filter(line => line.startsWith('worktree ')).length;
+const worktrees = worktreePaths();
+const dirtyWorktrees = worktrees.flatMap(worktree => {
+  if (!fs.existsSync(worktree)) return [{worktree, entries: ['worktree path is unavailable']}];
+  const entries = lines(run('git', ['status', '--porcelain'], {cwd: worktree}));
+  return entries.length > 0 ? [{worktree, entries}] : [];
+});
 const stashCount = lines(git('stash', 'list')).length;
-const goneBranches = lines(git('for-each-ref', 'refs/heads', '--format=%(refname:short)%09%(upstream:track)'))
-  .filter(line => line.includes('[gone]'))
-  .map(line => line.split('\t')[0]);
+const branches = localBranches();
+const topicBranches = branches.filter(branch => branch.name !== 'main');
+const goneBranches = branches.filter(branch => branch.tracking.includes('[gone]')).map(branch => branch.name);
+const branchesWithoutUpstream = branches.filter(branch => !branch.upstream).map(branch => branch.name);
 
-if (!allowDirty && status.length > 0) errors.push({code: 'dirty_worktree', entries: status});
+if (!allowDirty && dirtyWorktrees.length > 0) errors.push({code: 'dirty_worktree', worktrees: dirtyWorktrees});
 if (forbiddenTrackedFiles.length > 0) {
   errors.push({code: 'generated_or_evidence_files_tracked', files: forbiddenTrackedFiles});
 }
 if (oversizedBlobs.length > 0) errors.push({code: 'ordinary_git_blob_too_large', blobs: oversizedBlobs});
-if (maxWorktrees !== null && worktreeCount > maxWorktrees) {
-  errors.push({code: 'worktree_limit_exceeded', expected_max: maxWorktrees, actual: worktreeCount});
+if (maxWorktrees !== null && worktrees.length > maxWorktrees) {
+  errors.push({code: 'worktree_limit_exceeded', expected_max: maxWorktrees, actual: worktrees.length});
 }
 if (maxStashes !== null && stashCount > maxStashes) {
   errors.push({code: 'stash_limit_exceeded', expected_max: maxStashes, actual: stashCount});
 }
-if (goneBranches.length > 0) warnings.push({code: 'gone_local_branches', branches: goneBranches});
+if (maxTopicBranches !== null && topicBranches.length > maxTopicBranches) {
+  errors.push({code: 'topic_branch_limit_exceeded', expected_max: maxTopicBranches, actual: topicBranches.length});
+}
+if (goneBranches.length > 0) {
+  const issue = {code: 'gone_local_branches', branches: goneBranches};
+  if (requireUpstreams) errors.push(issue);
+  else warnings.push(issue);
+}
+if (branchesWithoutUpstream.length > 0) {
+  const issue = {code: 'branch_upstream_missing', branches: branchesWithoutUpstream};
+  if (requireUpstreams) errors.push(issue);
+  else warnings.push(issue);
+}
 
 const remote = includeRemote ? remoteSnapshot(errors, warnings) : null;
 const report = {
@@ -290,9 +328,12 @@ const report = {
     checked_files: files.length,
     checked_blobs: auditedBlobEntries.length,
     introduced_blobs: introducedBlobEntries.length,
-    worktrees: worktreeCount,
+    worktrees: worktrees.length,
+    dirty_worktrees: dirtyWorktrees.length,
     stashes: stashCount,
+    topic_branches: topicBranches.length,
     gone_branches: goneBranches.length,
+    branches_without_upstream: branchesWithoutUpstream.length,
     oversized_blobs: oversizedBlobs.length,
   },
   remote,
