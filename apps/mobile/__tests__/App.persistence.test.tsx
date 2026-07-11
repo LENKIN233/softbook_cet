@@ -147,6 +147,7 @@ test('restores check-in, learning cursor, favorite, and sleep state', async () =
       [sleepingFavoriteCard.card_id]: {
         isFavorited: true,
         isSleeping: true,
+        lastModifiedAt: '2026-07-10T10:00:00.000Z',
       },
     },
   });
@@ -184,14 +185,14 @@ test('degrades corrupt user state and clears persistence on logout', async () =>
   expect(repairedUserState).not.toBeNull();
   expect(JSON.parse(repairedUserState!)).toMatchObject({
     owner_phone_number: '13800138000',
-    schema_version: 'user-state.v1',
+    schema_version: 'user-state.v2',
   });
 
   await openRoute(tree.root, 'mine');
   const mineSurface = tree.root.findByProps({ testID: 'mine-surface' }).parent;
   expect(mineSurface?.props.handlers.onLogout).toEqual(expect.any(Function));
   await ReactTestRenderer.act(async () => {
-    mineSurface!.props.handlers.onLogout();
+    await mineSurface!.props.handlers.onLogout();
     await flushAsyncEffects();
   });
 
@@ -280,3 +281,178 @@ test('reloads remote membership authority when restoring an auth session', async
     });
   }
 });
+
+test('loads server canonical space state before pushing restored local state', async () => {
+  const originalFetch = globalThis.fetch;
+  const canonicalPayload = {
+    data: {
+      space_state: {
+        day_key: new Date().toISOString().slice(0, 10),
+        states: [
+          {
+            card_id: '002001',
+            is_favorited: true,
+            is_sleeping: false,
+            last_modified_at: '2026-07-10T11:00:00.000Z',
+          },
+        ],
+      },
+    },
+  };
+  const fetchMock = jest.fn(
+    async (
+      _input: string,
+      _init?: {body?: string; headers?: Record<string, string>; method?: string},
+    ) => ({
+      json: async () => canonicalPayload,
+      ok: true,
+      status: 200,
+    }),
+  );
+  Object.defineProperty(globalThis, 'fetch', {
+    configurable: true,
+    value: fetchMock,
+    writable: true,
+  });
+
+  try {
+    await createAuthSessionStore().save({
+      authToken: 'secure-token',
+      phoneNumber: '13800138000',
+    });
+    await createUserStateStore().save('13800138000', {
+      checkedInDayKey: null,
+      learningCursor: null,
+      spaceCardStateById: {
+        '002001': {
+          isFavorited: false,
+          isSleeping: false,
+          lastModifiedAt: '2026-07-10T10:00:00.000Z',
+        },
+      },
+    });
+
+    const tree = await renderAppAndWaitForLearning(
+      <App
+        softbookRemoteRuntimeProfile={{
+          baseUrl: 'https://api.softbook.example/',
+          featureModes: {
+            learningSource: 'local',
+            learningState: 'local',
+            membership: 'local',
+            progressSync: 'local',
+            spaceState: 'remote',
+          },
+        }}
+      />,
+    );
+    await openRoute(tree.root, 'mine');
+
+    expect(
+      tree.root.findByProps({testID: 'mine-metric-favorites-value'}).props
+        .children,
+    ).toBe('1');
+    const calls = fetchMock.mock.calls.map(([input, init]) => ({input, init}));
+    expect(calls[0].input).toContain('/v1/space/state-sync?day_key=');
+    expect(calls[0].init).toMatchObject({method: 'GET'});
+    const postCall = calls.find(call => call.init?.method === 'POST');
+    expect(JSON.parse(String(postCall?.init?.body))).toMatchObject({
+      states: [
+        {
+          card_id: '002001',
+          is_favorited: true,
+          last_modified_at: '2026-07-10T11:00:00.000Z',
+        },
+      ],
+    });
+  } finally {
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: originalFetch,
+      writable: true,
+    });
+  }
+});
+
+test('expired restored session clears account state instead of authenticating offline', async () => {
+  const originalFetch = globalThis.fetch;
+  const fetchMock = jest.fn(async () => ({
+    json: async () => ({error: {code: 'expired_auth_token'}}),
+    ok: false,
+    status: 401,
+  }));
+  Object.defineProperty(globalThis, 'fetch', {
+    configurable: true,
+    value: fetchMock,
+    writable: true,
+  });
+
+  try {
+    await createAuthSessionStore().save({
+      authToken: 'expired-token',
+      phoneNumber: '13800138000',
+    });
+    await createUserStateStore().save(
+      '13800138000',
+      createUserStateStoreFixture(),
+    );
+    await AsyncStorage.setItem(
+      '__softbook_mutation_queue',
+      JSON.stringify([
+        {
+          id: 'stale-refresh',
+          payload: {
+            context: {
+              authToken: 'expired-token',
+              phoneNumber: '13800138000',
+            },
+          },
+          retryCount: 0,
+          timestamp: '2026-07-10T10:00:00.000Z',
+          type: 'refresh_membership',
+        },
+      ]),
+    );
+
+    let tree: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(async () => {
+      tree = ReactTestRenderer.create(
+        <App
+          softbookRemoteRuntimeProfile={{
+            baseUrl: 'https://api.softbook.example/',
+            featureModes: {
+              learningSource: 'local',
+              learningState: 'local',
+              membership: 'remote',
+              progressSync: 'local',
+              spaceState: 'local',
+            },
+          }}
+        />,
+      );
+      await flushAsyncEffects();
+      await flushAsyncEffects();
+    });
+
+    expect(tree!.root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+    await expect(createAuthSessionStore().load()).resolves.toBeNull();
+    await expect(AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).resolves.toBeNull();
+    await expect(
+      AsyncStorage.getItem('__softbook_mutation_queue'),
+    ).resolves.toBe('[]');
+  } finally {
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: originalFetch,
+      writable: true,
+    });
+  }
+});
+
+function createUserStateStoreFixture() {
+  return {
+    checkedInDayKey: '2026-07-10',
+    learningCursor: null,
+    spaceCardStateById: {},
+  };
+}

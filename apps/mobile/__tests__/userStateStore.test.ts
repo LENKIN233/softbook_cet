@@ -1,6 +1,7 @@
 import {
   createEmptyPersistedUserState,
   createUserStateStore,
+  LEGACY_SPACE_STATE_TIMESTAMP,
   USER_STATE_STORAGE_KEY,
   type UserStateStorage,
 } from '../src/persistence/userStateStore';
@@ -32,8 +33,16 @@ describe('UserStateStore', () => {
         track: 'cet4' as const,
       },
       spaceCardStateById: {
-        '110001': { isFavorited: true, isSleeping: false },
-        '110003': { isFavorited: false, isSleeping: true },
+        '110001': {
+          isFavorited: true,
+          isSleeping: false,
+          lastModifiedAt: '2026-07-10T10:00:00.000Z',
+        },
+        '110003': {
+          isFavorited: false,
+          isSleeping: true,
+          lastModifiedAt: '2026-07-10T11:00:00.000Z',
+        },
       },
     };
 
@@ -54,6 +63,31 @@ describe('UserStateStore', () => {
     await expect(store.load('13900139000')).resolves.toEqual(
       createEmptyPersistedUserState(),
     );
+  });
+
+  it('migrates v1 space state with a timestamp that cannot outrank server state', async () => {
+    const {storage} = createStorage({
+      [USER_STATE_STORAGE_KEY]: JSON.stringify({
+        checked_in_day_key: null,
+        learning_cursor: null,
+        owner_phone_number: '13800138000',
+        schema_version: 'user-state.v1',
+        space_card_state_by_id: {
+          '110001': {is_favorited: true, is_sleeping: false},
+        },
+      }),
+    });
+    const store = createUserStateStore(storage);
+
+    await expect(store.load('13800138000')).resolves.toMatchObject({
+      spaceCardStateById: {
+        '110001': {
+          isFavorited: true,
+          isSleeping: false,
+          lastModifiedAt: LEGACY_SPACE_STATE_TIMESTAMP,
+        },
+      },
+    });
   });
 
   it('removes malformed data and degrades to an empty state', async () => {

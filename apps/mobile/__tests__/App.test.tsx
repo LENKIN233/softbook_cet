@@ -1034,8 +1034,31 @@ test('wires remote auth, learning source config, membership, progress sync, and 
       return createJsonResponse({});
     }
 
+    if (
+      input.startsWith(
+        'https://api.softbook.example/v1/space/state-sync?day_key=',
+      )
+    ) {
+      return createJsonResponse({
+        data: {
+          space_state: {
+            day_key: new URL(input).searchParams.get('day_key'),
+            states: [],
+          },
+        },
+      });
+    }
+
     if (input === 'https://api.softbook.example/v1/space/state-sync') {
-      return createJsonResponse({});
+      const body = JSON.parse(String(init?.body));
+      return createJsonResponse({
+        data: {
+          space_state: {
+            day_key: body.day_key,
+            states: body.states,
+          },
+        },
+      });
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -1622,10 +1645,32 @@ test('replays queued space state after network reconnect', async () => {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
+    if (
+      input.startsWith(
+        'https://api.softbook.example/v1/space/state-sync?day_key=',
+      )
+    ) {
+      return createJsonResponse({
+        data: {
+          space_state: {
+            day_key: new URL(input).searchParams.get('day_key'),
+            states: [],
+          },
+        },
+      });
+    }
+
     if (input === 'https://api.softbook.example/v1/space/state-sync') {
       return shouldFailSpaceSync
         ? createJsonResponse({}, 503)
-        : createJsonResponse({});
+        : createJsonResponse({
+            data: {
+              space_state: {
+                day_key: JSON.parse(String(init?.body)).day_key,
+                states: JSON.parse(String(init?.body)).states,
+              },
+            },
+          });
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);

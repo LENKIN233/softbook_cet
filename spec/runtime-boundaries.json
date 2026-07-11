@@ -66,11 +66,13 @@
       "sensitive_value": "auth_token",
       "storage": "platform_keychain_or_keystore",
       "schema": "auth-session.v1",
-      "must_not_use": "AsyncStorage"
+      "must_not_use": "AsyncStorage",
+      "non_sensitive_revocation_marker": "versioned_AsyncStorage tombstone is written before secure credential cleanup and blocks restoration until a new secure session is saved",
+      "authorization_rejection": "HTTP 401 or 403 during restored-session authority reads clears account-bound persistence and returns to login"
     },
     "user_state_store": {
       "storage": "versioned_AsyncStorage",
-      "schema": "user-state.v1",
+      "schema": "user-state.v2",
       "owner_key": "phone_number",
       "scope": [
         "daily_check_in_key",
@@ -78,11 +80,13 @@
         "favorite_tags",
         "sleep_state"
       ],
-      "corruption_behavior": "discard_invalid_payload_and_fall_back_to_empty_state"
+      "corruption_behavior": "discard_invalid_payload_and_fall_back_to_empty_state",
+      "migration": "user-state.v1 space entries receive an epoch timestamp so stale restored state cannot outrank server canonical state",
+      "space_state_timestamp": "preserve the timestamp of each explicit favorite or sleep action"
     },
     "membership_state": "reload_from_server_authority_after_auth_session_restore",
     "mutation_queue": "persisted_under_an_independent_key_and_not_embedded_in_user_state",
-    "logout": "clear_auth_session_user_state_and_account_bound_mutation_queue"
+    "logout": "persist auth revocation first, then clear auth session, user state, and account-bound mutation queue before presenting logged-out runtime state"
   },
   "decision_rule": {
     "if_runtime_conflicts_with_experience": [

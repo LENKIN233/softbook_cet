@@ -119,6 +119,29 @@ test('remote membership repository requires auth token', async () => {
   ).rejects.toThrow('Remote membership repository requires authToken.');
 });
 
+test('remote membership repository preserves authorization status', async () => {
+  const repository = createMembershipRepository({
+    fetchImpl: jest.fn().mockResolvedValue({
+      json: async () => ({}),
+      ok: false,
+      status: 401,
+    }),
+    mode: 'remote',
+    remoteConfig: {
+      dismissRecoveryEndpoint:
+        'https://api.softbook.example/v1/membership/dismiss-recovery',
+      entitlementEndpoint:
+        'https://api.softbook.example/v1/membership/entitlement',
+      purchaseEndpoint: 'https://api.softbook.example/v1/membership/purchase',
+      startTrialEndpoint: 'https://api.softbook.example/v1/membership/start-trial',
+    },
+  });
+
+  await expect(
+    repository.loadState(authenticatedContext),
+  ).rejects.toMatchObject({status: 401});
+});
+
 test('remote membership payload parser validates stage', () => {
   expect(() =>
     parseSoftbookRemoteMembershipPayload({

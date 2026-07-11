@@ -3,6 +3,7 @@ import {
   LearningCardRecord,
   normalizeLearningCardRecords,
 } from './sourceContract';
+import {RemoteHttpError} from '../runtime/remoteHttpError';
 
 export type LearningCardSourceResponse = {
   sourceId: string;
@@ -91,8 +92,9 @@ export async function loadRemoteLearningCardSource(
   );
 
   if (!response.ok) {
-    throw new Error(
+    throw new RemoteHttpError(
       `Remote learning card source request failed with status ${response.status}.`,
+      response.status,
     );
   }
 
@@ -261,7 +263,10 @@ function buildRemoteLearningCardSourceHeaders(
   apiKeyHeader: string,
 ) {
   if (!context.authToken) {
-    throw new Error('Remote learning card source requires authToken.');
+    throw new RemoteHttpError(
+      'Remote learning card source requires authToken.',
+      401,
+    );
   }
 
   return {

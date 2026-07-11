@@ -175,16 +175,26 @@ async function handleHttpRequest(config, request) {
       return acknowledgedResponse(acknowledgedAt);
     }
 
+    if (method === 'GET' && path === '/v1/space/state-sync') {
+      const dayKey = requireDayKey(request.query.day_key);
+      const canonicalState = await config.store.getSpaceState(
+        session.phoneNumber,
+        dayKey,
+      );
+
+      return spaceStateResponse(canonicalState);
+    }
+
     if (method === 'POST' && path === '/v1/space/state-sync') {
       assertBodyPhoneMatchesSession(request.body, session);
       const snapshot = parseSpaceStateSnapshot(request.body);
       const acknowledgedAt = config.now().toISOString();
-      await config.store.saveSpaceState(
+      const canonicalState = await config.store.saveSpaceState(
         session.phoneNumber,
         snapshot,
         acknowledgedAt,
       );
-      return acknowledgedResponse(acknowledgedAt);
+      return spaceStateResponse(canonicalState, acknowledgedAt);
     }
 
     return jsonResponse(404, {
@@ -361,6 +371,22 @@ function acknowledgedResponse(acknowledgedAt) {
   });
 }
 
+function spaceStateResponse(snapshot, acknowledgedAt) {
+  return jsonResponse(200, {
+    data: {
+      ...(acknowledgedAt
+        ? {acknowledged_at: acknowledgedAt, mode: 'remote'}
+        : {}),
+      space_state: {
+        day_key: snapshot.day_key,
+        states: Object.values(snapshot.states_by_card_id).sort((left, right) =>
+          left.card_id.localeCompare(right.card_id),
+        ),
+      },
+    },
+  });
+}
+
 function createDefaultStore() {
   const storeMode = process.env.SOFTBOOK_STORE_MODE ?? 'memory';
 
@@ -459,21 +485,32 @@ function createMemoryStore() {
         track: snapshot.track,
       });
     },
+    getSpaceState: (phoneNumber, dayKey) => {
+      const existing = cloneSpaceState(
+        spaceStates.get(phoneNumber) ?? createEmptySpaceState(dayKey),
+      );
+      return {...existing, day_key: dayKey};
+    },
     saveSpaceState: (phoneNumber, snapshot, acknowledgedAt) => {
-      const key = `${phoneNumber}:${snapshot.day_key}`;
-      const existing = spaceStates.get(key) ?? {
-        states_by_card_id: {},
-      };
+      const existing = cloneSpaceState(
+        spaceStates.get(phoneNumber) ?? createEmptySpaceState(snapshot.day_key),
+      );
 
       snapshot.states.forEach(state => {
-        existing.states_by_card_id[state.card_id] = state;
+        const current = existing.states_by_card_id[state.card_id];
+
+        if (shouldReplaceSpaceState(current, state)) {
+          existing.states_by_card_id[state.card_id] = {...state};
+        }
       });
 
-      spaceStates.set(key, {
+      const canonicalState = {
         ...existing,
         acknowledged_at: acknowledgedAt,
         day_key: snapshot.day_key,
-      });
+      };
+      spaceStates.set(phoneNumber, canonicalState);
+      return cloneSpaceState(canonicalState);
     },
     snapshot: () => ({
       cardSources,
@@ -598,29 +635,116 @@ function createCloudBaseStore(options = {}) {
         track: snapshot.track,
       });
     },
-    saveSpaceState: async (phoneNumber, snapshot, acknowledgedAt) => {
-      const documentId = createCloudBaseDocumentId(
-        `${phoneNumber}:${snapshot.day_key}`,
+    getSpaceState: async (phoneNumber, dayKey) => {
+      const documentId = createCloudBaseDocumentId(phoneNumber);
+      return getCloudBaseCanonicalSpaceState(
+        spaceStates,
+        documentId,
+        phoneNumber,
+        dayKey,
       );
-      const existing = (await getCloudBaseDocument(spaceStates, documentId)) ?? {
-        states_by_card_id: {},
-      };
+    },
+    saveSpaceState: async (phoneNumber, snapshot, acknowledgedAt) => {
+      const documentId = createCloudBaseDocumentId(phoneNumber);
+      const existing = await getCloudBaseCanonicalSpaceState(
+        spaceStates,
+        documentId,
+        phoneNumber,
+        snapshot.day_key,
+      );
       const statesByCardId = {
         ...(existing.states_by_card_id ?? {}),
       };
 
       snapshot.states.forEach(state => {
-        statesByCardId[state.card_id] = state;
+        const current = statesByCardId[state.card_id];
+
+        if (shouldReplaceSpaceState(current, state)) {
+          statesByCardId[state.card_id] = {...state};
+        }
       });
 
-      await setCloudBaseDocument(spaceStates, documentId, {
+      const canonicalState = {
         acknowledged_at: acknowledgedAt,
         day_key: snapshot.day_key,
         phone_number: phoneNumber,
         states_by_card_id: statesByCardId,
-      });
+      };
+      await setCloudBaseDocument(spaceStates, documentId, canonicalState);
+      return cloneSpaceState(canonicalState);
     },
   };
+}
+
+function createEmptySpaceState(dayKey) {
+  return {
+    day_key: dayKey,
+    states_by_card_id: {},
+  };
+}
+
+function cloneSpaceState(snapshot) {
+  return {
+    ...snapshot,
+    states_by_card_id: Object.fromEntries(
+      Object.entries(snapshot.states_by_card_id ?? {}).map(([cardId, state]) => [
+        cardId,
+        {...state},
+      ]),
+    ),
+  };
+}
+
+function shouldReplaceSpaceState(current, incoming) {
+  if (!current) {
+    return true;
+  }
+
+  const currentTimestamp = new Date(current.last_modified_at).getTime();
+
+  return (
+    Number.isNaN(currentTimestamp) ||
+    new Date(incoming.last_modified_at).getTime() > currentTimestamp
+  );
+}
+
+async function getCloudBaseCanonicalSpaceState(
+  collection,
+  documentId,
+  phoneNumber,
+  dayKey,
+) {
+  const existing = await getCloudBaseDocument(collection, documentId);
+
+  if (existing) {
+    return {...cloneSpaceState(existing), day_key: dayKey};
+  }
+
+  const legacyResult = await collection.where({phone_number: phoneNumber}).get();
+  const legacyDocuments = Array.isArray(legacyResult.data)
+    ? legacyResult.data
+    : legacyResult.data
+      ? [legacyResult.data]
+      : [];
+  const migrated = createEmptySpaceState(dayKey);
+
+  for (const document of legacyDocuments) {
+    for (const state of Object.values(document.states_by_card_id ?? {})) {
+      const current = migrated.states_by_card_id[state.card_id];
+      if (shouldReplaceSpaceState(current, state)) {
+        migrated.states_by_card_id[state.card_id] = {...state};
+      }
+    }
+  }
+
+  if (legacyDocuments.length > 0) {
+    await setCloudBaseDocument(collection, documentId, {
+      ...migrated,
+      phone_number: phoneNumber,
+    });
+  }
+
+  return migrated;
 }
 
 function createCloudBaseDatabase() {

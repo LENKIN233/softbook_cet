@@ -125,7 +125,7 @@ const visibleStringLinePattern = new RegExp(
 );
 
 const nonVisibleDesignJargonLinePattern =
-  /^(?:import\b|export\b|type\b|interface\b|const\b|let\b|var\b|function\b|case\b|switch\b|if\b|return\b|[A-Za-z0-9_]+[,:])|\b(?:testID|nativeID|status|gate)\s*=/;
+  /^(?:import\b|export\b|type\b|interface\b|constructor\b|const\b|let\b|var\b|function\b|case\b|switch\b|if\b|return\b|[A-Za-z0-9_]+[,:])|\b(?:testID|nativeID|status|gate)\s*=/;
 
 const directDisplayMetadataPatterns = [
   {
@@ -253,7 +253,9 @@ function checkDirectDisplayMetadata(filePath) {
 
   for (let index = 0; index < lines.length; index += 1) {
     const text = lines[index].trim();
-    const opensInternalErrorExpression = /\bnew Error\(/.test(text);
+    const opensInternalErrorExpression = /\bnew (?:Error|RemoteHttpError)\(/.test(
+      text,
+    );
     const isInternalGuardLine =
       inInternalGuardDeclaration ||
       inInternalErrorExpression ||

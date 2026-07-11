@@ -141,7 +141,9 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          node scripts/test_report_repo_health.mjs
           if [ "$EVENT_NAME" = "schedule" ]; then
             node scripts/report_repo_health.mjs --full-tree --remote --strict --output "$RUNNER_TEMP/repository-health.json"
           elif git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then

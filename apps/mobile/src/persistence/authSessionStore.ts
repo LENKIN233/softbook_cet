@@ -1,4 +1,5 @@
 import * as Keychain from 'react-native-keychain';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type PersistedAuthSession = {
   authToken: string | null;
@@ -13,6 +14,12 @@ export type AuthSessionSecureStorage = {
   saveCredentials: (username: string, password: string) => Promise<boolean>;
 };
 
+export type AuthSessionRevocationStorage = {
+  getItem: (key: string) => Promise<string | null>;
+  removeItem: (key: string) => Promise<void>;
+  setItem: (key: string, value: string) => Promise<void>;
+};
+
 export type AuthSessionStore = {
   clear: () => Promise<void>;
   load: () => Promise<PersistedAuthSession | null>;
@@ -21,6 +28,8 @@ export type AuthSessionStore = {
 
 const AUTH_SESSION_SCHEMA_VERSION = 1;
 const AUTH_SESSION_SERVICE = 'com.softbook.cet.auth-session.v1';
+export const AUTH_SESSION_REVOCATION_KEY =
+  'softbook-cet/auth-session/revoked.v1';
 
 type AuthSessionPayload = {
   authToken: string | null;
@@ -29,13 +38,48 @@ type AuthSessionPayload = {
 
 export function createAuthSessionStore(
   storage: AuthSessionSecureStorage = createReactNativeAuthSessionSecureStorage(),
+  revocationStorage: AuthSessionRevocationStorage = AsyncStorage,
 ): AuthSessionStore {
   return {
     async clear() {
-      await storage.clearCredentials();
+      await revocationStorage.setItem(AUTH_SESSION_REVOCATION_KEY, 'revoked');
+
+      try {
+        await storage.clearCredentials();
+      } catch (error) {
+        console.warn(
+          '[AuthSessionStore] Secure credentials remain covered by the revocation marker.',
+          error,
+        );
+      }
     },
 
     async load() {
+      let revoked: string | null;
+
+      try {
+        revoked = await revocationStorage.getItem(AUTH_SESSION_REVOCATION_KEY);
+      } catch (error) {
+        console.warn(
+          '[AuthSessionStore] Failed to read the auth revocation marker.',
+          error,
+        );
+        return null;
+      }
+
+      if (revoked !== null) {
+        try {
+          await storage.clearCredentials();
+        } catch (error) {
+          console.warn(
+            '[AuthSessionStore] Failed to retry revoked credential cleanup.',
+            error,
+          );
+        }
+
+        return null;
+      }
+
       let credentials: Awaited<
         ReturnType<AuthSessionSecureStorage['loadCredentials']>
       >;
@@ -60,6 +104,10 @@ export function createAuthSessionStore(
         );
 
         try {
+          await revocationStorage.setItem(
+            AUTH_SESSION_REVOCATION_KEY,
+            'revoked',
+          );
           await storage.clearCredentials();
         } catch (clearError) {
           console.warn(
@@ -87,6 +135,21 @@ export function createAuthSessionStore(
 
       if (!saved) {
         throw new Error('Keychain did not persist the auth session.');
+      }
+
+      try {
+        await revocationStorage.removeItem(AUTH_SESSION_REVOCATION_KEY);
+      } catch (error) {
+        try {
+          await storage.clearCredentials();
+        } catch (clearError) {
+          console.warn(
+            '[AuthSessionStore] Failed to roll back credentials after revocation reset failed.',
+            clearError,
+          );
+        }
+
+        throw error;
       }
     },
   };

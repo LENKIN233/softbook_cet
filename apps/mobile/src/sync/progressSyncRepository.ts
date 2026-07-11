@@ -1,3 +1,5 @@
+import {RemoteHttpError} from '../runtime/remoteHttpError';
+
 export type ProgressSyncRepositoryMode = 'local' | 'remote';
 
 export type DailyProgressSnapshot = {
@@ -86,8 +88,9 @@ export function createProgressSyncRepository(
         });
 
         if (!response.ok) {
-          throw new Error(
+          throw new RemoteHttpError(
             `Remote progress sync failed with ${response.status}.`,
+            response.status,
           );
         }
 
@@ -110,7 +113,7 @@ function buildRemoteProgressSyncHeaders(
   context: ProgressSyncContext,
 ) {
   if (!context.authToken) {
-    throw new Error('Remote progress sync requires authToken.');
+    throw new RemoteHttpError('Remote progress sync requires authToken.', 401);
   }
 
   return {

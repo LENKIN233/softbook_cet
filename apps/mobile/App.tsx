@@ -59,6 +59,7 @@ import { resolveMembershipRepositoryConfig } from './src/membership/membershipRu
 import { createAuthSessionStore } from './src/persistence/authSessionStore';
 import {
   createUserStateStore,
+  LEGACY_SPACE_STATE_TIMESTAMP,
   type PersistedLearningCursor,
 } from './src/persistence/userStateStore';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
@@ -76,6 +77,9 @@ import { installSoftbookAppRuntimeConfig } from './src/runtime/installRuntimeCon
 import {
   createSpaceStateRepository,
   createSpaceStateSnapshot,
+  mergeSpaceStateMaps,
+  spaceStateSnapshotToMap,
+  type SpaceCardStateValue,
 } from './src/space/spaceStateRepository';
 import { resolveSpaceStateRepositoryConfig } from './src/space/spaceStateRuntimeConfig';
 import {
@@ -96,6 +100,7 @@ import {
   createProgressSyncRepository,
 } from './src/sync/progressSyncRepository';
 import { resolveProgressSyncRepositoryConfig } from './src/sync/progressSyncRuntimeConfig';
+import {isRemoteAuthorizationError} from './src/runtime/remoteHttpError';
 import { hexToRgba } from './src/visual/tokens';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
@@ -202,10 +207,7 @@ type SpaceStateSyncState = SyncStatusState;
 type LearningBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
 type LearningPhase = 'learning' | 'review';
 
-type SpaceCardState = {
-  isFavorited: boolean;
-  isSleeping: boolean;
-};
+type SpaceCardState = SpaceCardStateValue;
 
 const SHELL_ACCENT = '#637783';
 
@@ -214,7 +216,7 @@ type AuthHandlers = {
   onChangeCode: (value: string) => void;
   onRequestCode: () => void;
   onSubmitCode: () => void;
-  onLogout: () => void;
+  onLogout: () => Promise<void>;
 };
 
 type MembershipHandlers = {
@@ -497,6 +499,85 @@ function AppShell({
   const lastMembershipRefreshKey = useRef<string | null>(null);
   const pendingMembershipRefreshKey = useRef<string | null>(null);
   const persistedLearningCursor = useRef<PersistedLearningCursor | null>(null);
+  const logoutInFlight = useRef<Promise<void> | null>(null);
+  const resetRuntimeAfterLogout = useCallback((error: string | null = null) => {
+    lastMembershipRefreshKey.current = null;
+    pendingMembershipRefreshKey.current = null;
+    persistedLearningCursor.current = null;
+    setAuthState({...INITIAL_AUTH_STATE, error});
+    setLearningPhase('learning');
+    setReviewSessionCards([]);
+    setReviewCompletedResults([]);
+    setMembershipError(null);
+    setMembershipPendingAction(null);
+    setMembershipGate(null);
+    setMembershipState(createInitialMembershipState());
+    setSpaceCardStateById({});
+    setCheckedInDayKey(null);
+    setLastSyncedProgressKey(null);
+    setLastSyncedLearningStateKey(null);
+    setLastSyncedSpaceStateKey(null);
+    setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
+    setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
+    setSpaceStateSyncState(INITIAL_SPACE_STATE_SYNC_STATE);
+    startTransition(() => {
+      setActiveRoute('mine');
+      setLearningScreen('practice');
+      setSpaceScreen('overview');
+    });
+  }, []);
+  const clearAuthenticatedSession = useCallback(
+    (error: string | null = null) => {
+      if (logoutInFlight.current) {
+        return logoutInFlight.current;
+      }
+
+      const logoutTask = (async () => {
+        try {
+          await authSessionStore.clear();
+        } catch (clearError) {
+          console.warn(
+            '[AppPersistence] Failed to persist auth session revocation.',
+            clearError,
+          );
+          setAuthState(current => ({
+            ...current,
+            error: '退出登录暂时失败，请稍后重试。',
+          }));
+          return;
+        }
+
+        const cleanupResults = await Promise.allSettled([
+          userStateStore.clear(),
+          mutationQueueRepository.clear(),
+        ]);
+
+        cleanupResults.forEach(result => {
+          if (result.status === 'rejected') {
+            console.warn(
+              '[AppPersistence] Failed to clear account-bound local state.',
+              result.reason,
+            );
+          }
+        });
+        resetRuntimeAfterLogout(error);
+      })();
+
+      logoutInFlight.current = logoutTask;
+      logoutTask.finally(() => {
+        if (logoutInFlight.current === logoutTask) {
+          logoutInFlight.current = null;
+        }
+      });
+      return logoutTask;
+    },
+    [
+      authSessionStore,
+      mutationQueueRepository,
+      resetRuntimeAfterLogout,
+      userStateStore,
+    ],
+  );
   const { width, height } = useWindowDimensions();
   const deviceClass = getDeviceClass(width, height);
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
@@ -509,7 +590,11 @@ function AppShell({
       cardId: string,
       stateMap: Record<string, SpaceCardState> = spaceCardStateById,
     ): SpaceCardState =>
-      stateMap[cardId] ?? { isFavorited: false, isSleeping: false },
+      stateMap[cardId] ?? {
+        isFavorited: false,
+        isSleeping: false,
+        lastModifiedAt: LEGACY_SPACE_STATE_TIMESTAMP,
+      },
     [spaceCardStateById],
   );
   const createTrackedLearningCardState = useCallback(
@@ -583,6 +668,28 @@ function AppShell({
       !reviewCompletedResults.some(result => result.cardId === card.card_id),
   ).length;
   const todayKey = getTodayKey();
+  const loadCanonicalSpaceState = useCallback(
+    async (context: {authToken?: string; phoneNumber: string}) => {
+      if (runtimeSpaceStateMode === 'local') {
+        return null;
+      }
+
+      try {
+        return await spaceStateRepository.loadSpaceState(context, todayKey);
+      } catch (error) {
+        if (isRemoteAuthorizationError(error)) {
+          throw error;
+        }
+
+        console.warn(
+          '[AppPersistence] Failed to load canonical space state.',
+          error,
+        );
+        return null;
+      }
+    },
+    [runtimeSpaceStateMode, spaceStateRepository, todayKey],
+  );
   const hasCheckedInToday = checkedInDayKey === todayKey;
   const canCheckInToday =
     !hasCheckedInToday &&
@@ -669,9 +776,22 @@ function AppShell({
       return;
     }
 
-    const replayedResults = await mutationQueueRepository.startReplay(
-      authenticatedRuntimeContext,
-    );
+    let replayedResults;
+
+    try {
+      replayedResults = await mutationQueueRepository.startReplay(
+        authenticatedRuntimeContext,
+      );
+    } catch (error) {
+      if (isRemoteAuthorizationError(error)) {
+        await clearAuthenticatedSession(
+          '登录已失效，请重新验证手机号。',
+        );
+        return;
+      }
+
+      throw error;
+    }
 
     replayedResults.forEach(result => {
       if (result.entry.type === 'sync_daily_progress') {
@@ -693,19 +813,23 @@ function AppShell({
       }
 
       if (result.entry.type === 'sync_space_state') {
-        const replayedSpaceStateKey = JSON.stringify(
-          result.entry.payload.snapshot,
-        );
+        if (!('spaceStateSnapshot' in result)) {
+          return;
+        }
+
+        const replayedSpaceState = result.spaceStateSnapshot;
+        const replayedSpaceStateKey = JSON.stringify(replayedSpaceState);
 
         setLastSyncedSpaceStateKey(replayedSpaceStateKey);
 
-        if (replayedSpaceStateKey === spaceStateSyncKey) {
-          setSpaceStateSyncState({
-            detail: '网络恢复后，空间收藏和休眠状态已同步。',
-            label: '已同步',
-            state: 'synced',
-          });
+        if (replayedSpaceStateKey !== spaceStateSyncKey) {
+          setSpaceCardStateById(spaceStateSnapshotToMap(replayedSpaceState));
         }
+        setSpaceStateSyncState({
+          detail: '网络恢复后，空间收藏和休眠状态已同步。',
+          label: '已同步',
+          state: 'synced',
+        });
 
         return;
       }
@@ -748,6 +872,7 @@ function AppShell({
     });
   }, [
     authenticatedRuntimeContext,
+    clearAuthenticatedSession,
     dailyProgressKey,
     isAuthenticated,
     learningStateSyncKey,
@@ -863,12 +988,20 @@ function AppShell({
         authToken: session.authToken ?? undefined,
         phoneNumber: session.phoneNumber,
       };
-      const [persistedUserState, membershipResolution] = await Promise.all([
+      const [
+        persistedUserState,
+        membershipResolution,
+        canonicalSpaceState,
+      ] = await Promise.all([
         userStateStore.load(session.phoneNumber),
         membershipRepository
           .loadState(membershipContext)
           .then(state => ({ errorMessage: null, state }))
           .catch((error: unknown) => {
+            if (isRemoteAuthorizationError(error)) {
+              throw error;
+            }
+
             if (runtimeMembershipRepositoryMode === 'remote') {
               mutationQueueRepository
                 .enqueueMutation(
@@ -889,6 +1022,7 @@ function AppShell({
               state: createEntitlementPendingMembershipState(),
             };
           }),
+        loadCanonicalSpaceState(membershipContext),
       ]);
 
       if (isCancelled) {
@@ -898,7 +1032,14 @@ function AppShell({
       persistedLearningCursor.current = persistedUserState.learningCursor;
       previousMembershipStage.current = membershipResolution.state.stage;
       setCheckedInDayKey(persistedUserState.checkedInDayKey);
-      setSpaceCardStateById(persistedUserState.spaceCardStateById);
+      setSpaceCardStateById(
+        canonicalSpaceState
+          ? mergeSpaceStateMaps(
+              persistedUserState.spaceCardStateById,
+              canonicalSpaceState,
+            )
+          : persistedUserState.spaceCardStateById,
+      );
       setMembershipState(membershipResolution.state);
       setMembershipError(membershipResolution.errorMessage);
       setAuthState({
@@ -910,7 +1051,14 @@ function AppShell({
     };
 
     hydratePersistence()
-      .catch((error: unknown) => {
+      .catch(async (error: unknown) => {
+        if (isRemoteAuthorizationError(error)) {
+          await clearAuthenticatedSession(
+            '登录已失效，请重新验证手机号。',
+          );
+          return;
+        }
+
         console.warn('[AppPersistence] Failed to hydrate app state.', error);
       })
       .finally(() => {
@@ -924,6 +1072,8 @@ function AppShell({
     };
   }, [
     authSessionStore,
+    clearAuthenticatedSession,
+    loadCanonicalSpaceState,
     membershipRepository,
     mutationQueueRepository,
     runtimeMembershipRepositoryMode,
@@ -1058,6 +1208,13 @@ function AppShell({
           return;
         }
 
+        if (isRemoteAuthorizationError(error)) {
+          clearAuthenticatedSession(
+            '登录已失效，请重新验证手机号。',
+          ).catch(() => undefined);
+          return;
+        }
+
         pendingMembershipRefreshKey.current = null;
         mutationQueueRepository
           .enqueueMutation(
@@ -1086,6 +1243,7 @@ function AppShell({
   }, [
     activeMembershipRefreshKey,
     authenticatedRuntimeContext,
+    clearAuthenticatedSession,
     isAuthenticated,
     membershipPendingAction,
     membershipRepository,
@@ -1193,6 +1351,13 @@ function AppShell({
           return;
         }
 
+        if (isRemoteAuthorizationError(error)) {
+          clearAuthenticatedSession(
+            '登录已失效，请重新验证手机号。',
+          ).catch(() => undefined);
+          return;
+        }
+
         mutationQueueRepository
           .enqueueMutation(
             'sync_daily_progress',
@@ -1218,6 +1383,7 @@ function AppShell({
     };
   }, [
     authenticatedRuntimeContext,
+    clearAuthenticatedSession,
     dailyProgressKey,
     dailyProgressSnapshot,
     isAuthenticated,
@@ -1290,6 +1456,13 @@ function AppShell({
           return;
         }
 
+        if (isRemoteAuthorizationError(error)) {
+          clearAuthenticatedSession(
+            '登录已失效，请重新验证手机号。',
+          ).catch(() => undefined);
+          return;
+        }
+
         mutationQueueRepository
           .enqueueMutation(
             'sync_learning_state',
@@ -1315,6 +1488,7 @@ function AppShell({
     };
   }, [
     authenticatedRuntimeContext,
+    clearAuthenticatedSession,
     isAuthenticated,
     lastSyncedLearningStateKey,
     learningBootstrapStatus,
@@ -1366,12 +1540,20 @@ function AppShell({
 
     spaceStateRepository
       .syncSpaceState(authenticatedRuntimeContext, spaceStateSnapshot)
-      .then(() => {
+      .then(result => {
         if (isCancelled) {
           return;
         }
 
-        setLastSyncedSpaceStateKey(spaceStateSyncKey);
+        const canonicalSpaceStateKey = JSON.stringify(result.snapshot);
+
+        setLastSyncedSpaceStateKey(canonicalSpaceStateKey);
+        if (
+          result.mode === 'remote' &&
+          canonicalSpaceStateKey !== spaceStateSyncKey
+        ) {
+          setSpaceCardStateById(spaceStateSnapshotToMap(result.snapshot));
+        }
         setSpaceStateSyncState({
           detail: '空间收藏和休眠状态已同步。',
           label: '已同步',
@@ -1380,6 +1562,13 @@ function AppShell({
       })
       .catch((error: unknown) => {
         if (isCancelled) {
+          return;
+        }
+
+        if (isRemoteAuthorizationError(error)) {
+          clearAuthenticatedSession(
+            '登录已失效，请重新验证手机号。',
+          ).catch(() => undefined);
           return;
         }
 
@@ -1408,6 +1597,7 @@ function AppShell({
     };
   }, [
     authenticatedRuntimeContext,
+    clearAuthenticatedSession,
     isAuthenticated,
     lastSyncedSpaceStateKey,
     mutationQueueRepository,
@@ -1478,6 +1668,13 @@ function AppShell({
           return;
         }
 
+        if (isRemoteAuthorizationError(error)) {
+          clearAuthenticatedSession(
+            '登录已失效，请重新验证手机号。',
+          ).catch(() => undefined);
+          return;
+        }
+
         setLearningSession(null);
         setLearningCardState(null);
         setLearningBootstrapStatus('error');
@@ -1492,6 +1689,7 @@ function AppShell({
   }, [
     createTrackedLearningCardState,
     authenticatedRuntimeContext,
+    clearAuthenticatedSession,
     isAuthenticated,
     learningBootstrapStatus,
     learningTrack,
@@ -1585,6 +1783,13 @@ function AppShell({
         completeMembershipUnlock(result.state, nextGate);
       })
       .catch((error: unknown) => {
+        if (isRemoteAuthorizationError(error)) {
+          clearAuthenticatedSession(
+            '登录已失效，请重新验证手机号。',
+          ).catch(() => undefined);
+          return;
+        }
+
         if (shouldQueueMembershipTrialStart(error)) {
           mutationQueueRepository
             .enqueueMutation(
@@ -1738,6 +1943,10 @@ function AppShell({
               session,
             }))
             .catch((error: unknown) => {
+              if (isRemoteAuthorizationError(error)) {
+                throw error;
+              }
+
               if (runtimeMembershipRepositoryMode !== 'remote') {
                 throw error;
               }
@@ -1764,18 +1973,33 @@ function AppShell({
                 }));
             });
         })
-        .then(result =>
-          Promise.all([
-            authSessionStore.save({
-              authToken: result.session.authToken ?? null,
+        .then(async result => {
+          const [persistedUserState, canonicalSpaceState] = await Promise.all([
+            userStateStore.load(result.session.phoneNumber),
+            loadCanonicalSpaceState({
+              authToken: result.session.authToken,
               phoneNumber: result.session.phoneNumber,
             }),
-            userStateStore.load(result.session.phoneNumber),
-          ]).then(([, persistedUserState]) => ({
+          ]);
+
+          await authSessionStore.save({
+            authToken: result.session.authToken ?? null,
+            phoneNumber: result.session.phoneNumber,
+          });
+
+          return {
             ...result,
-            persistedUserState,
-          })),
-        )
+            persistedUserState: {
+              ...persistedUserState,
+              spaceCardStateById: canonicalSpaceState
+                ? mergeSpaceStateMaps(
+                    persistedUserState.spaceCardStateById,
+                    canonicalSpaceState,
+                  )
+                : persistedUserState.spaceCardStateById,
+            },
+          };
+        })
         .then(
           ({
             membershipErrorMessage,
@@ -1808,6 +2032,13 @@ function AppShell({
           },
         )
         .catch((error: unknown) => {
+          if (isRemoteAuthorizationError(error)) {
+            clearAuthenticatedSession(
+              '登录已失效，请重新验证手机号。',
+            ).catch(() => undefined);
+            return;
+          }
+
           setAuthState(current => ({
             ...current,
             error: getUserFacingErrorMessage(error, '验证码暂时没通过。'),
@@ -1816,37 +2047,7 @@ function AppShell({
         });
     },
     onLogout: () => {
-      lastMembershipRefreshKey.current = null;
-      pendingMembershipRefreshKey.current = null;
-      persistedLearningCursor.current = null;
-      setAuthState(INITIAL_AUTH_STATE);
-      setLearningPhase('learning');
-      setReviewSessionCards([]);
-      setReviewCompletedResults([]);
-      setMembershipError(null);
-      setMembershipPendingAction(null);
-      setMembershipGate(null);
-      setMembershipState(createInitialMembershipState());
-      setSpaceCardStateById({});
-      setCheckedInDayKey(null);
-      setLastSyncedProgressKey(null);
-      setLastSyncedLearningStateKey(null);
-      setLastSyncedSpaceStateKey(null);
-      authSessionStore.clear().catch((error: unknown) => {
-        console.warn('[AppPersistence] Failed to clear auth session.', error);
-      });
-      userStateStore.clear().catch((error: unknown) => {
-        console.warn('[AppPersistence] Failed to clear user state.', error);
-      });
-      mutationQueueRepository.clear().catch(() => undefined);
-      setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
-      setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
-      setSpaceStateSyncState(INITIAL_SPACE_STATE_SYNC_STATE);
-      startTransition(() => {
-        setActiveRoute('mine');
-        setLearningScreen('practice');
-        setSpaceScreen('overview');
-      });
+      return clearAuthenticatedSession();
     },
   };
 
@@ -1876,6 +2077,13 @@ function AppShell({
           completeMembershipUnlock(result.state);
         })
         .catch((error: unknown) => {
+          if (isRemoteAuthorizationError(error)) {
+            clearAuthenticatedSession(
+              '登录已失效，请重新验证手机号。',
+            ).catch(() => undefined);
+            return;
+          }
+
           setMembershipError(
             getUserFacingErrorMessage(error, '会员开通暂时失败。'),
           );
@@ -1921,6 +2129,13 @@ function AppShell({
           setMembershipState(result.state);
         })
         .catch((error: unknown) => {
+          if (isRemoteAuthorizationError(error)) {
+            clearAuthenticatedSession(
+              '登录已失效，请重新验证手机号。',
+            ).catch(() => undefined);
+            return;
+          }
+
           setMembershipError(
             getUserFacingErrorMessage(error, '恢复购买提醒暂时无法更新。'),
           );
@@ -1952,6 +2167,7 @@ function AppShell({
         [currentLearningCard.card_id]: {
           ...readSpaceCardState(currentLearningCard.card_id, current),
           isFavorited: nextFavorited,
+          lastModifiedAt: new Date().toISOString(),
         },
       }));
     },
@@ -2087,6 +2303,7 @@ function AppShell({
         [cardId]: {
           ...readSpaceCardState(cardId, current),
           isFavorited: nextFavorited,
+          lastModifiedAt: new Date().toISOString(),
         },
       }));
 
@@ -2107,6 +2324,7 @@ function AppShell({
         [cardId]: {
           ...currentState,
           isSleeping: !currentState.isSleeping,
+          lastModifiedAt: new Date().toISOString(),
         },
       };
 

@@ -5,6 +5,7 @@ import {
   purchaseMembership,
   startMembershipTrial,
 } from './localMembership';
+import {RemoteHttpError} from '../runtime/remoteHttpError';
 
 export type MembershipRepositoryMode = 'local' | 'remote';
 
@@ -101,8 +102,9 @@ export function createMembershipRepository(
         });
 
         if (!response.ok) {
-          throw new Error(
+          throw new RemoteHttpError(
             `Remote membership entitlement request failed with ${response.status}.`,
+            response.status,
           );
         }
 
@@ -266,7 +268,10 @@ function buildRemoteMembershipHeaders(
   context: MembershipRepositoryContext,
 ) {
   if (!context.authToken) {
-    throw new Error('Remote membership repository requires authToken.');
+    throw new RemoteHttpError(
+      'Remote membership repository requires authToken.',
+      401,
+    );
   }
 
   return {
@@ -295,7 +300,10 @@ async function runRemoteMembershipMutation(
   });
 
   if (!response.ok) {
-    throw new Error(`Remote membership mutation failed with ${response.status}.`);
+    throw new RemoteHttpError(
+      `Remote membership mutation failed with ${response.status}.`,
+      response.status,
+    );
   }
 
   const payload = await response.json();

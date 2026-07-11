@@ -1,5 +1,7 @@
 import {
+  AUTH_SESSION_REVOCATION_KEY,
   createAuthSessionStore,
+  type AuthSessionRevocationStorage,
   type AuthSessionSecureStorage,
 } from '../src/persistence/authSessionStore';
 
@@ -20,6 +22,21 @@ function createSecureStorage(
   };
 
   return { storage };
+}
+
+function createRevocationStorage(seed: Record<string, string> = {}) {
+  const values = {...seed};
+  const storage: AuthSessionRevocationStorage = {
+    getItem: jest.fn(async key => values[key] ?? null),
+    removeItem: jest.fn(async key => {
+      delete values[key];
+    }),
+    setItem: jest.fn(async (key, value) => {
+      values[key] = value;
+    }),
+  };
+
+  return {storage, values};
 }
 
 describe('AuthSessionStore', () => {
@@ -96,5 +113,51 @@ describe('AuthSessionStore', () => {
     await store.clear();
 
     await expect(store.load()).resolves.toBeNull();
+  });
+
+  it('keeps logout durable when secure credential cleanup fails', async () => {
+    const {storage: secureStorage} = createSecureStorage({
+      password: JSON.stringify({authToken: 'token', version: 1}),
+      username: '13800138000',
+    });
+    const {storage: revocationStorage, values} = createRevocationStorage();
+    jest
+      .mocked(secureStorage.clearCredentials)
+      .mockRejectedValue(new Error('Keychain unavailable'));
+    const store = createAuthSessionStore(secureStorage, revocationStorage);
+    const warn = jest
+      .spyOn(console, 'warn')
+      .mockImplementation(() => undefined);
+
+    await expect(store.clear()).resolves.toBeUndefined();
+    expect(values[AUTH_SESSION_REVOCATION_KEY]).toBe('revoked');
+
+    const relaunchedStore = createAuthSessionStore(
+      secureStorage,
+      revocationStorage,
+    );
+    await expect(relaunchedStore.load()).resolves.toBeNull();
+    expect(secureStorage.loadCredentials).not.toHaveBeenCalled();
+
+    warn.mockRestore();
+  });
+
+  it('removes a logout marker only after a new secure session is saved', async () => {
+    const {storage: secureStorage} = createSecureStorage();
+    const {storage: revocationStorage, values} = createRevocationStorage({
+      [AUTH_SESSION_REVOCATION_KEY]: 'revoked',
+    });
+    const store = createAuthSessionStore(secureStorage, revocationStorage);
+
+    await store.save({
+      authToken: 'new-token',
+      phoneNumber: '13800138000',
+    });
+
+    expect(values[AUTH_SESSION_REVOCATION_KEY]).toBeUndefined();
+    await expect(store.load()).resolves.toEqual({
+      authToken: 'new-token',
+      phoneNumber: '13800138000',
+    });
   });
 });

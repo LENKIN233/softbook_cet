@@ -5,6 +5,7 @@ const test = require('node:test');
 const boxCatalog = require('../../../../../spec/box-catalog.json');
 const {
   createCloudBaseStore,
+  createMemoryStore,
   createSoftbookApi,
   validateCardSourceForImport,
 } = require('../index');
@@ -282,6 +283,75 @@ test('sync endpoints acknowledge daily progress, learning state, and space state
   assert.equal(space.body.data.acknowledged_at, fixedNow.toISOString());
 });
 
+test('space state keeps the latest explicit action and returns server canonical state', async () => {
+  const stores = [
+    createMemoryStore(),
+    createCloudBaseStore({db: createFakeCloudBaseDb()}),
+  ];
+
+  for (const store of stores) {
+    const api = createTestApi({store});
+    const token = await authenticatedToken(api);
+    const headers = {authorization: `Bearer ${token}`};
+    const stateBody = (isFavorited, lastModifiedAt) => ({
+      day_key: '2026-04-30',
+      phone_number: '13800138000',
+      states: [
+        {
+          card_id: '002001',
+          is_favorited: isFavorited,
+          is_sleeping: false,
+          last_modified_at: lastModifiedAt,
+        },
+      ],
+    });
+
+    await request(api, {
+      body: stateBody(true, '2026-04-30T12:00:00.000Z'),
+      headers,
+      method: 'POST',
+      path: '/v1/space/state-sync',
+    });
+    const staleWrite = await request(api, {
+      body: stateBody(false, '2026-04-30T11:00:00.000Z'),
+      headers,
+      method: 'POST',
+      path: '/v1/space/state-sync',
+    });
+    const canonicalRead = await request(api, {
+      headers,
+      method: 'GET',
+      path: '/v1/space/state-sync',
+      query: {day_key: '2026-04-30'},
+    });
+    const nextDayRead = await request(api, {
+      headers,
+      method: 'GET',
+      path: '/v1/space/state-sync',
+      query: {day_key: '2026-05-01'},
+    });
+
+    assert.equal(staleWrite.statusCode, 200);
+    assert.deepEqual(staleWrite.body.data.space_state.states, [
+      {
+        card_id: '002001',
+        is_favorited: true,
+        is_sleeping: false,
+        last_modified_at: '2026-04-30T12:00:00.000Z',
+      },
+    ]);
+    assert.deepEqual(
+      canonicalRead.body.data.space_state,
+      staleWrite.body.data.space_state,
+    );
+    assert.deepEqual(
+      nextDayRead.body.data.space_state.states,
+      staleWrite.body.data.space_state.states,
+    );
+    assert.equal(nextDayRead.body.data.space_state.day_key, '2026-05-01');
+  }
+});
+
 test('CloudBase event adapter returns stringified HTTP response bodies', async () => {
   const api = createTestApi();
   const response = await api.handleCloudBaseEvent({
@@ -359,6 +429,38 @@ test('CloudBase store keeps membership and sync state outside function memory', 
     'premium',
   );
   assert.equal(db.snapshot().get('softbook_daily_progress').size, 1);
+});
+
+test('CloudBase space state migrates legacy daily documents into account canonical state', async () => {
+  const db = createFakeCloudBaseDb();
+  await db.collection('softbook_space_states').doc('legacy-daily-document').set({
+    day_key: '2026-04-29',
+    phone_number: '13800138000',
+    states_by_card_id: {
+      '002001': {
+        card_id: '002001',
+        is_favorited: true,
+        is_sleeping: false,
+        last_modified_at: '2026-04-29T12:00:00.000Z',
+      },
+    },
+  });
+  const api = createTestApi({store: createCloudBaseStore({db})});
+  const token = await authenticatedToken(api);
+  const response = await request(api, {
+    headers: {authorization: `Bearer ${token}`},
+    method: 'GET',
+    path: '/v1/space/state-sync',
+    query: {day_key: '2026-04-30'},
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body.data.space_state.day_key, '2026-04-30');
+  assert.equal(
+    response.body.data.space_state.states[0].last_modified_at,
+    '2026-04-29T12:00:00.000Z',
+  );
+  assert.equal(db.snapshot().get('softbook_space_states').size, 2);
 });
 
 test('CloudBase store reads and seeds card source documents', async () => {
@@ -502,6 +604,20 @@ function createFakeCloudBaseDb() {
               id: documentId,
             };
           },
+        }),
+        where: query => ({
+          get: async () => ({
+            data: [...documents.entries()]
+              .filter(([, document]) =>
+                Object.entries(query).every(
+                  ([key, value]) => document[key] === value,
+                ),
+              )
+              .map(([documentId, document]) => ({
+                _id: documentId,
+                ...cloneJson(document),
+              })),
+          }),
         }),
       };
     },
