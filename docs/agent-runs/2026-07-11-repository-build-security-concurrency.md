@@ -31,6 +31,7 @@
 - Mobile `npm ci` deterministically normalizes the Hermes podspec's clone path and CMake executable fields; exact upstream drift fails instead of being silently rewritten.
 - Dependency security rejects unknown, critical, expired, mismatched, and stale exceptions. The only allowed advisory is the time-limited CloudBase `lodash.set` watch-path advisory.
 - Repository health checks every linked worktree, stash, topic branch, missing upstream, and deleted upstream rather than only the current directory.
+- CI and local mobile setup use Node 22.13 or newer, matching React Native 0.85.2, and Bundler 2.4.22, which remains compatible with local Ruby 2.6 while running correctly on the GitHub macOS runner's Ruby 3.4.
 
 ## Workspace boundary and read scope
 
@@ -43,7 +44,7 @@
 
 - `infra/cloudbase/functions/softbook-api/`: SDK and transitive dependency updates, transactional space-state persistence, and a separate-instance concurrent-write regression.
 - `apps/mobile/ios/`: source Pod selection, stable Hermes normalization contract, path-independent lockfile, and removal of an empty location privacy declaration.
-- `apps/mobile/`: exact CLI dependency updates plus generated-Pods exclusions for ESLint and Jest.
+- `apps/mobile/`: exact CLI dependency updates, Node 22.13 engine documentation, Bundler 2.4.22 lock metadata, and generated-Pods exclusions for ESLint and Jest.
 - `scripts/normalize_hermes_podspec.mjs` and its test: deterministic normalization with exact upstream-drift rejection.
 - `scripts/validate_dependency_security.mjs`, its test, and `security/dependency-audit-policy.json`: live npm advisory policy.
 - `scripts/report_repo_health.mjs` and its test: all-worktree, stash, topic-branch, and upstream validation.
@@ -58,6 +59,7 @@
 - `python3 scripts/validate_maestro_selectors.py` and `python3 scripts/validate_harness.py --skip-remote-guard`.
 - `node scripts/test_report_repo_health.mjs` and strict local workspace-health validation.
 - `bundle exec pod install --project-directory=ios --deployment` in the source worktree and a random-path fresh clone.
+- `BUNDLE_JOBS=4 BUNDLE_RETRY=3 bundle install` with an exact Bundler 2.4.22 version check under local Ruby 2.6.
 - Release simulator `xcodebuild` and unsigned Release `archive` with signing disabled.
 - `node scripts/validate_agent_run_evidence.mjs`, `git lfs fsck`, `plutil -lint`, and `git diff --check`.
 
@@ -68,9 +70,9 @@
 - Dependency security: mobile has zero production advisories; the CloudBase advisory set exactly matches the one expiring exception.
 - CocoaPods: deployment mode passed after a clean `npm ci`; the stable Hermes checksum is identical in the source worktree and random-path fresh clone.
 - Native release: Release simulator build and unsigned device archive both succeeded with the normalized Hermes script phases.
-- Fresh clone: hooks, LFS, both npm installs, Bundler, CocoaPods deployment, unchanged lockfile, and a clean final worktree all passed.
+- Fresh clone: hooks, LFS, both npm installs, exact Bundler 2.4.22, CocoaPods deployment, unchanged Bundler/Pod lockfiles, and a clean final worktree all passed at commit `8c833c645a965cf20d59253ea7ee84692300b2d7`.
 - Repository governance: harness, health regressions, evidence index, LFS, plist, JSON/YAML, and whitespace checks passed.
-- GitHub required checks: pending for PR #405.
+- GitHub required checks: the initial PR run passed eight checks and exposed Ruby 3.4 incompatibility in the legacy Bundler 1.17.2 launcher before native compilation; the runtime-alignment fix now requires a complete rerun before merge.
 
 ## Binary evidence
 
@@ -83,7 +85,7 @@
 - Reviewer: Codex
 - Status: Passed
 - Blocking findings: none
-- Review summary: The initial fresh-clone check exposed remaining absolute Hermes and CMake paths; the final normalizer, source builds, and random-path deployment close that reproducibility gap.
+- Review summary: The initial fresh-clone check exposed remaining absolute Hermes and CMake paths, and the first GitHub iOS run exposed legacy Bundler and Node engine drift. The final normalizer, source builds, cross-Ruby Bundler lock, Node floor, and random-path deployment close those reproducibility gaps.
 
 ## User-visible UI impact
 
