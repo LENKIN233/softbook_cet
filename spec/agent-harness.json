@@ -506,6 +506,8 @@
         "design-artifact-gate",
         "validate-harness",
         "mobile-quality",
+        "dependency-security",
+        "ios-release",
         "repo-health",
         "evidence-archive"
       ],

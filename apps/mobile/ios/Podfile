@@ -1,4 +1,14 @@
 # Resolve react_native_pods.rb with node to allow for hoisting
+ENV['RCT_USE_RN_DEP'] = '0'
+ENV['RCT_USE_PREBUILT_RNCORE'] = '0'
+ENV['RCT_BUILD_HERMES_FROM_SOURCE'] = 'true'
+ENV['SOFTBOOK_REACT_NATIVE_PATH'] = File.expand_path('../node_modules/react-native', __dir__)
+
+hermes_podspec = File.join(ENV['SOFTBOOK_REACT_NATIVE_PATH'], 'sdks/hermes-engine/hermes-engine.podspec')
+unless File.read(hermes_podspec).include?('${SOFTBOOK_REACT_NATIVE_PATH}')
+  raise 'Hermes podspec is not normalized. Run npm ci without --ignore-scripts before installing Pods.'
+end
+
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
     "react-native/scripts/react_native_pods.rb",

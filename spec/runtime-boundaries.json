@@ -58,7 +58,8 @@
     "non_touch_surfaces_can_use_equivalent_interaction_mapping_without_forcing_literal_touch_gestures",
     "exact_same_card_cross_device_resume_is_not_required_if_daily_progress_sync_and_some_progress_inheritance_exist",
     "offline_use_can_be_allowed_for_authenticated_users_with_cached_state_and_content_only",
-    "sync_conflict_resolution_can_use_server_authoritative_event_merging"
+    "sync_conflict_resolution_can_use_server_authoritative_event_merging",
+    "CloudBase physical-space canonical state uses database transactions so concurrent function instances retry read-merge-write conflicts"
   ],
   "local_persistence": {
     "classification": "implementation_hypothesis",

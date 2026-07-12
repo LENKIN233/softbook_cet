@@ -463,6 +463,44 @@ test('CloudBase space state migrates legacy daily documents into account canonic
   assert.equal(db.snapshot().get('softbook_space_states').size, 2);
 });
 
+test('CloudBase space transactions preserve simultaneous writes from separate function instances', async () => {
+  const db = createFakeCloudBaseDb();
+  const firstStore = createCloudBaseStore({db});
+  const secondStore = createCloudBaseStore({db});
+  const write = (store, cardId, lastModifiedAt) =>
+    store.saveSpaceState(
+      '13800138000',
+      {
+        day_key: '2026-04-30',
+        states: [
+          {
+            card_id: cardId,
+            is_favorited: true,
+            is_sleeping: false,
+            last_modified_at: lastModifiedAt,
+          },
+        ],
+      },
+      fixedNow.toISOString(),
+    );
+
+  await Promise.all([
+    write(firstStore, '002001', '2026-04-30T12:00:00.000Z'),
+    write(secondStore, '002002', '2026-04-30T12:00:01.000Z'),
+  ]);
+
+  const canonical = await firstStore.getSpaceState(
+    '13800138000',
+    '2026-04-30',
+  );
+
+  assert.deepEqual(Object.keys(canonical.states_by_card_id).sort(), [
+    '002001',
+    '002002',
+  ]);
+  assert.equal(db.transactionCount(), 3);
+});
+
 test('CloudBase store reads and seeds card source documents', async () => {
   const db = createFakeCloudBaseDb();
   await db
@@ -576,52 +614,68 @@ test('card source validator import does not initialize the default store', () =>
 
 function createFakeCloudBaseDb() {
   const collections = new Map();
+  let transactionCount = 0;
+  let transactionTail = Promise.resolve();
+
+  const collection = name => {
+    if (!collections.has(name)) {
+      collections.set(name, new Map());
+    }
+
+    const documents = collections.get(name);
+
+    return {
+      doc: documentId => ({
+        get: async () => ({
+          data: documents.has(documentId)
+            ? [
+                {
+                  _id: documentId,
+                  ...cloneJson(documents.get(documentId)),
+                },
+              ]
+            : [],
+        }),
+        set: async data => {
+          documents.set(documentId, cloneJson(data));
+
+          return {
+            id: documentId,
+          };
+        },
+      }),
+      where: query => ({
+        get: async () => ({
+          data: [...documents.entries()]
+            .filter(([, document]) =>
+              Object.entries(query).every(
+                ([key, value]) => document[key] === value,
+              ),
+            )
+            .map(([documentId, document]) => ({
+              _id: documentId,
+              ...cloneJson(document),
+            })),
+        }),
+      }),
+    };
+  };
 
   return {
-    collection: name => {
-      if (!collections.has(name)) {
-        collections.set(name, new Map());
-      }
-
-      const documents = collections.get(name);
-
-      return {
-        doc: documentId => ({
-          get: async () => ({
-            data: documents.has(documentId)
-              ? [
-                  {
-                    _id: documentId,
-                    ...cloneJson(documents.get(documentId)),
-                  },
-                ]
-              : [],
-          }),
-          set: async data => {
-            documents.set(documentId, cloneJson(data));
-
-            return {
-              id: documentId,
-            };
-          },
-        }),
-        where: query => ({
-          get: async () => ({
-            data: [...documents.entries()]
-              .filter(([, document]) =>
-                Object.entries(query).every(
-                  ([key, value]) => document[key] === value,
-                ),
-              )
-              .map(([documentId, document]) => ({
-                _id: documentId,
-                ...cloneJson(document),
-              })),
-          }),
-        }),
-      };
+    collection,
+    runTransaction: callback => {
+      const run = transactionTail.then(async () => {
+        transactionCount += 1;
+        return callback({collection});
+      });
+      transactionTail = run.then(
+        () => undefined,
+        () => undefined,
+      );
+      return run;
     },
     snapshot: () => collections,
+    transactionCount: () => transactionCount,
   };
 }
 

@@ -437,6 +437,14 @@ check_equal(
             "command": "cd infra/cloudbase/functions/softbook-api && npm test",
         },
         {
+            "id": "dependency_security",
+            "command": "node scripts/validate_dependency_security.mjs",
+        },
+        {
+            "id": "ios_release",
+            "command": "cd apps/mobile && bundle exec pod install --project-directory=ios --deployment && xcodebuild Release simulator build and unsigned archive",
+        },
+        {
             "id": "repository_health",
             "command": "node scripts/report_repo_health.mjs --base <base_sha> --strict",
         },

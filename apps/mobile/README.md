@@ -17,7 +17,7 @@
 
 ## 环境前提
 
-- Node.js `>= 22.11.0`
+- Node.js `>= 22.13.0`
 - Xcode 26+
 - `watchman`
 - `cocoapods`
