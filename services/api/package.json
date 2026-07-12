@@ -1,0 +1,33 @@
+{
+  "name": "@softbook/production-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Production HTTP API for Softbook CET.",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx watch src/server.ts",
+    "migrate": "node dist/migrate.js",
+    "start": "node dist/server.js",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "dependencies": {
+    "@fastify/cors": "11.3.0",
+    "@fastify/helmet": "13.1.0",
+    "@fastify/rate-limit": "11.1.0",
+    "fastify": "5.10.0",
+    "pg": "8.22.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.15.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.3"
+  }
+}

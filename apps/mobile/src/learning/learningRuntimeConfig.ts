@@ -69,6 +69,7 @@ export type SoftbookAppRuntimeConfig = {
   spaceState?: SpaceStateRuntimeConfig;
   learningState?: LearningStateRuntimeConfig;
   mutationQueue?: MutationQueueRuntimeConfig;
+  releaseChannel?: 'development' | 'production';
 };
 
 type RemoteRuntimeFeature =
@@ -144,7 +145,8 @@ export function resolveLearningSessionRepositoryConfig(
     }
 
     return {
-      fallbackToLocalOnRemoteError: true,
+      fallbackToLocalOnRemoteError:
+        runtimeConfig?.releaseChannel !== 'production',
       mode: 'remote',
       remoteConfig: createSoftbookRemoteLearningCardSourceConfig(
         learningSource.remote,

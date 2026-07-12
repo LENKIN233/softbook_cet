@@ -2,6 +2,15 @@
 __pycache__/
 *.py[cod]
 node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
 .tmp/
 infra/cloudbase/*.local.env
 exports/

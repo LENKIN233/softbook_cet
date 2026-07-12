@@ -1,0 +1,12 @@
+environment           = "production"
+availability_zone     = "ap-shanghai-2"
+vpc_id                = "vpc-replace-me"
+subnet_id             = "subnet-replace-me"
+subnet_cidr           = "10.30.10.0/24"
+postgresql_cpu        = 2
+postgresql_memory_gb  = 4
+postgresql_storage_gb = 100
+
+tags = {
+  owner = "softbook"
+}

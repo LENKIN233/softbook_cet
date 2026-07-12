@@ -1,0 +1,66 @@
+{
+  "schema_version": "external-account-readiness.v1",
+  "last_verified_at": null,
+  "overall_status": "unverified",
+  "accounts": [
+    {
+      "id": "apple-developer",
+      "required_capabilities": [
+        "app-store-connect",
+        "storekit-subscriptions",
+        "app-store-server-notifications",
+        "distribution-signing"
+      ],
+      "status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "android-distribution",
+      "required_capabilities": [
+        "huawei",
+        "xiaomi",
+        "oppo",
+        "vivo",
+        "tencent-myapp",
+        "release-signing"
+      ],
+      "status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "tencent-cloud-production",
+      "required_capabilities": [
+        "cloudbase-run",
+        "tencentdb-postgresql",
+        "cos-private-bucket",
+        "sms",
+        "cls",
+        "rum"
+      ],
+      "status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "payments",
+      "required_capabilities": [
+        "wechat-pay",
+        "alipay",
+        "webhook-domain"
+      ],
+      "status": "unverified",
+      "evidence": []
+    },
+    {
+      "id": "china-compliance",
+      "required_capabilities": [
+        "domain-registration",
+        "icp-filing",
+        "app-filing",
+        "privacy-policy-public-url",
+        "customer-support-contact"
+      ],
+      "status": "unverified",
+      "evidence": []
+    }
+  ]
+}

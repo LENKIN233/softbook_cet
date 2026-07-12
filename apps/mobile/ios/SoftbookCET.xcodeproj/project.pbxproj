@@ -106,6 +106,7 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "SoftbookCET" */;
 			buildPhases = (
 				C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */,
+				A7C2D3112F40000100C0DE01 /* Validate Softbook Release Config */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
@@ -200,6 +201,20 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SoftbookCET/Pods-SoftbookCET-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		A7C2D3112F40000100C0DE01 /* Validate Softbook Release Config */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Validate Softbook Release Config";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"$CONFIGURATION\" = \"Release\" ]; then\n  . \"$SRCROOT/.xcode.env\"\n  if [ -f \"$SRCROOT/.xcode.env.local\" ]; then\n    . \"$SRCROOT/.xcode.env.local\"\n  fi\n  \"${NODE_BINARY:-node}\" \"$SRCROOT/../scripts/validate-release-config.mjs\" --platform ios\nfi\n";
+		};
 		C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -275,6 +290,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.softbook.cet;
 				PRODUCT_NAME = SoftbookCET;
+				SOFTBOOK_CET_REMOTE_BASE_URL = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -304,6 +320,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.softbook.cet;
 				PRODUCT_NAME = SoftbookCET;
+				SOFTBOOK_CET_REMOTE_BASE_URL = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

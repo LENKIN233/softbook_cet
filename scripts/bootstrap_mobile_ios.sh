@@ -16,4 +16,4 @@ cd "$APP_DIR"
 
 npm install
 bundle install
-bundle exec pod install
+RCT_BUILD_HERMES_FROM_SOURCE=true bundle exec pod install

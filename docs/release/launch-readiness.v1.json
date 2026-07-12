@@ -1,0 +1,124 @@
+{
+  "schema_version": "launch-readiness.v1",
+  "target_release": "2027-Q2",
+  "status": "not_ready",
+  "current_milestone": "production_platform_foundation",
+  "product_scope": {
+    "tracks": [
+      "cet4",
+      "cet6"
+    ],
+    "release_targets": [
+      "ios",
+      "android",
+      "pc_web"
+    ],
+    "expected_box_count": 218,
+    "expected_card_count": 2414,
+    "trial_duration_days": 5,
+    "subscription_products": [
+      "com.softbook.cet.premium.monthly",
+      "com.softbook.cet.premium.yearly"
+    ]
+  },
+  "external_dependencies": [
+    {
+      "id": "apple-developer",
+      "owner": "product_owner",
+      "status": "unverified"
+    },
+    {
+      "id": "android-distribution",
+      "owner": "product_owner",
+      "status": "unverified"
+    },
+    {
+      "id": "tencent-cloud-production",
+      "owner": "product_owner",
+      "status": "unverified"
+    },
+    {
+      "id": "payments",
+      "owner": "product_owner",
+      "status": "unverified"
+    },
+    {
+      "id": "china-compliance",
+      "owner": "product_owner",
+      "status": "unverified"
+    }
+  ],
+  "gates": [
+    {
+      "id": "production-environments",
+      "phase": "platform",
+      "status": "in_progress",
+      "evidence": []
+    },
+    {
+      "id": "production-auth-and-account-deletion",
+      "phase": "platform",
+      "status": "in_progress",
+      "evidence": []
+    },
+    {
+      "id": "canonical-bootstrap-and-idempotent-events",
+      "phase": "product",
+      "status": "in_progress",
+      "evidence": []
+    },
+    {
+      "id": "server-scheduler",
+      "phase": "product",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "audio-runtime",
+      "phase": "product",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "three-surface-parity",
+      "phase": "product",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "store-and-web-payments",
+      "phase": "commerce",
+      "status": "blocked",
+      "evidence": [],
+      "blocked_by": [
+        "apple-developer",
+        "payments"
+      ]
+    },
+    {
+      "id": "approved-production-content",
+      "phase": "content",
+      "status": "blocked",
+      "evidence": [],
+      "blocked_by": [
+        "218-box-user-approval"
+      ]
+    },
+    {
+      "id": "compliance-and-distribution",
+      "phase": "release",
+      "status": "blocked",
+      "evidence": [],
+      "blocked_by": [
+        "china-compliance",
+        "android-distribution"
+      ]
+    },
+    {
+      "id": "release-slo-and-recovery-drill",
+      "phase": "release",
+      "status": "pending",
+      "evidence": []
+    }
+  ]
+}

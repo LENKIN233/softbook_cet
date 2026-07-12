@@ -71,6 +71,7 @@ import {
 } from './src/learning/learningRuntimeConfig';
 import {
   createSoftbookRemoteRuntimeConfig,
+  resolveSoftbookAppRuntimeConfig,
   type SoftbookRemoteRuntimeProfile,
 } from './src/runtime/appRuntimeConfig';
 import { installSoftbookAppRuntimeConfig } from './src/runtime/installRuntimeConfig';
@@ -337,13 +338,20 @@ function App({
   softbookRemoteRuntimeProfile,
 }: AppProps = {}): React.JSX.Element {
   const runtimeConfig = useMemo(() => {
+    const releaseChannel = __DEV__ ? 'development' : 'production';
     if (softbookRemoteRuntimeProfile) {
       return installSoftbookAppRuntimeConfig(
-        createSoftbookRemoteRuntimeConfig(softbookRemoteRuntimeProfile),
+        createSoftbookRemoteRuntimeConfig({
+          ...softbookRemoteRuntimeProfile,
+          releaseChannel,
+        }),
       );
     }
 
-    return readSoftbookAppRuntimeConfig();
+    return resolveSoftbookAppRuntimeConfig({
+      defaultConfig: readSoftbookAppRuntimeConfig(),
+      releaseChannel,
+    });
   }, [softbookRemoteRuntimeProfile]);
 
   return (

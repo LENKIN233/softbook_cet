@@ -59,6 +59,23 @@ react {
  */
 def enableProguardInReleaseBuilds = false
 
+def softbookRemoteBaseUrl = providers.environmentVariable("SOFTBOOK_CET_REMOTE_BASE_URL")
+        .orElse(providers.gradleProperty("softbookRemoteBaseUrl"))
+        .getOrElse("")
+def softbookReleaseStoreFile = providers.environmentVariable("SOFTBOOK_ANDROID_KEYSTORE_FILE").orNull
+def softbookReleaseStorePassword = providers.environmentVariable("SOFTBOOK_ANDROID_KEYSTORE_PASSWORD").orNull
+def softbookReleaseKeyAlias = providers.environmentVariable("SOFTBOOK_ANDROID_KEY_ALIAS").orNull
+def softbookReleaseKeyPassword = providers.environmentVariable("SOFTBOOK_ANDROID_KEY_PASSWORD").orNull
+def softbookReleaseSigningConfigured = [
+    softbookReleaseStoreFile,
+    softbookReleaseStorePassword,
+    softbookReleaseKeyAlias,
+    softbookReleaseKeyPassword,
+].every { value -> value != null && !value.trim().isEmpty() }
+def quoteBuildConfig = { value ->
+    "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+}
+
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
  *
@@ -84,6 +101,10 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        buildConfigField "String", "SOFTBOOK_REMOTE_BASE_URL", quoteBuildConfig(softbookRemoteBaseUrl)
+    }
+    buildFeatures {
+        buildConfig true
     }
     signingConfigs {
         debug {
@@ -92,18 +113,40 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        if (softbookReleaseSigningConfigured) {
+            release {
+                storeFile file(softbookReleaseStoreFile)
+                storePassword softbookReleaseStorePassword
+                keyAlias softbookReleaseKeyAlias
+                keyPassword softbookReleaseKeyPassword
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            buildConfigField "String", "SOFTBOOK_RELEASE_CHANNEL", '"development"'
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            if (softbookReleaseSigningConfigured) {
+                signingConfig signingConfigs.release
+            }
+            buildConfigField "String", "SOFTBOOK_RELEASE_CHANNEL", '"production"'
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
+    }
+}
+
+tasks.register("validateSoftbookReleaseConfig", Exec) {
+    workingDir rootProject.projectDir.parentFile
+    commandLine "node", "scripts/validate-release-config.mjs", "--platform", "android"
+    environment "SOFTBOOK_CET_REMOTE_BASE_URL", softbookRemoteBaseUrl
+}
+
+tasks.configureEach { task ->
+    if (task.name == "preReleaseBuild") {
+        task.dependsOn "validateSoftbookReleaseConfig"
     }
 }
 

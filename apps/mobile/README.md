@@ -128,6 +128,21 @@ npm start
 
 分段 smoke 时，用 `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES=learningSource,spaceState` 让指定 surface 暂时留在本地，其它远端能力仍由同一个 `baseUrl` 派生。
 
+正式 Release 与开发 smoke 的边界不同：
+
+- iOS/Android Release 必须在构建时提供 HTTPS
+  `SOFTBOOK_CET_REMOTE_BASE_URL`（iOS 作为 `xcodebuild` build setting，
+  Android 作为环境变量或 `softbookRemoteBaseUrl` Gradle property），并由原生层注入
+  `releaseChannel=production`。
+- production profile 不允许任何 `featureModes=local`，远端卡源失败也不会回退到仓库内的开发卡片。
+- Android Release 还必须提供四个 `SOFTBOOK_ANDROID_*` 签名变量，且不再使用 debug keystore。
+- `CI=true` 的 simulator/unsigned archive 只能通过
+  `SOFTBOOK_ALLOW_INCOMPLETE_RELEASE=1` 生成明确不可分发的结构验证产物；
+  本地或正式分发构建不能使用该例外。
+- 可分发 Release 还要求 `docs/release/launch-readiness.v1.json` 与外部账户
+  审计全部通过；当前任一门槛未完成时，构建在原生编译前失败。
+- `SOFTBOOK_CET_REMOTE_API_KEY` 仅用于开发 `/v1` smoke，不嵌入正式包；正式 `/v2` 使用登录会话授权。
+
 - `auth`：手机号验证码请求 / 校验仓储
 - `learningSource`：学习卡源仓储；远端模式要求登录上下文，且 `auth.mode` 也必须是 `remote`
 - `membership`：entitlement 读取、开始试用、开通会员、恢复购买提醒状态更新；远端模式要求 `auth.mode` 也必须是 `remote`

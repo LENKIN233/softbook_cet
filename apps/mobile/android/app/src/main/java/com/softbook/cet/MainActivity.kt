@@ -1,5 +1,6 @@
 package com.softbook.cet
 
+import android.os.Bundle
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -18,5 +19,23 @@ class MainActivity : ReactActivity() {
    * which allows you to enable New Architecture with a single boolean flags [fabricEnabled]
    */
   override fun createReactActivityDelegate(): ReactActivityDelegate =
-      DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
+      object : DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled) {
+        override fun getLaunchOptions(): Bundle? {
+          if (
+              BuildConfig.SOFTBOOK_RELEASE_CHANNEL == "development" &&
+                  BuildConfig.SOFTBOOK_REMOTE_BASE_URL.isBlank()) {
+            return null
+          }
+
+          return Bundle().apply {
+              putBundle(
+                  "softbookRemoteRuntimeProfile",
+                  Bundle().apply {
+                    putString("baseUrl", BuildConfig.SOFTBOOK_REMOTE_BASE_URL)
+                    putString("releaseChannel", BuildConfig.SOFTBOOK_RELEASE_CHANNEL)
+                  },
+              )
+            }
+        }
+      }
 }

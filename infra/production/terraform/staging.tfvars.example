@@ -1,0 +1,9 @@
+environment       = "staging"
+availability_zone = "ap-shanghai-2"
+vpc_id            = "vpc-replace-me"
+subnet_id         = "subnet-replace-me"
+subnet_cidr       = "10.20.10.0/24"
+
+tags = {
+  owner = "softbook"
+}

@@ -35,22 +35,30 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
   private func softbookInitialProperties() -> [String: Any]? {
     let environment = ProcessInfo.processInfo.environment
+    let releaseChannel = softbookReleaseChannel()
+    let baseUrl = softbookRuntimeValue(
+      environment: environment,
+      environmentKey: "SOFTBOOK_CET_REMOTE_BASE_URL",
+      infoKey: "SoftbookRemoteBaseURL"
+    )
 
-    guard
-      let baseUrl = environment["SOFTBOOK_CET_REMOTE_BASE_URL"]?.trimmingCharacters(in: .whitespacesAndNewlines),
-      !baseUrl.isEmpty
-    else {
+    if baseUrl == nil && releaseChannel == "development" {
       return nil
     }
 
-    var remoteProfile: [String: Any] = ["baseUrl": baseUrl]
+    var remoteProfile: [String: Any] = [
+      "baseUrl": baseUrl ?? "",
+      "releaseChannel": releaseChannel,
+    ]
 
+#if DEBUG
     if
       let apiKey = environment["SOFTBOOK_CET_REMOTE_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines),
       !apiKey.isEmpty
     {
       remoteProfile["apiKey"] = apiKey
     }
+#endif
 
     if
       let learningTrack = environment["SOFTBOOK_CET_LEARNING_TRACK"]?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -76,6 +84,37 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     return ["softbookRemoteRuntimeProfile": remoteProfile]
+  }
+
+  private func softbookRuntimeValue(
+    environment: [String: String],
+    environmentKey: String,
+    infoKey: String
+  ) -> String? {
+    if
+      let value = environment[environmentKey]?.trimmingCharacters(in: .whitespacesAndNewlines),
+      !value.isEmpty
+    {
+      return value
+    }
+
+    if
+      let value = Bundle.main.object(forInfoDictionaryKey: infoKey) as? String,
+      !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+      !value.contains("$(")
+    {
+      return value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    return nil
+  }
+
+  private func softbookReleaseChannel() -> String {
+#if DEBUG
+    return "development"
+#else
+    return "production"
+#endif
   }
 }
 

@@ -13,11 +13,13 @@ export type SoftbookRemoteRuntimeProfile = {
   baseUrl: string;
   featureModes?: Partial<Record<SoftbookRemoteRuntimeFeature, 'local' | 'remote'>>;
   learningTrack?: LearningTrack;
+  releaseChannel?: 'development' | 'production';
 };
 
 export type SoftbookAppRuntimeConfigResolverOptions = {
   defaultConfig?: SoftbookAppRuntimeConfig;
   env?: Record<string, string | undefined>;
+  releaseChannel?: 'development' | 'production';
   remoteProfile?: SoftbookRemoteRuntimeProfile;
 };
 
@@ -49,27 +51,41 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
   learningState: {
     mode: 'local',
   },
+  releaseChannel: 'development',
 };
 
 export function resolveSoftbookAppRuntimeConfig(
   options: SoftbookAppRuntimeConfigResolverOptions = {},
 ): SoftbookAppRuntimeConfig {
+  const releaseChannel = options.releaseChannel ?? 'development';
   const remoteProfile =
     options.remoteProfile ??
     readInjectedRemoteRuntimeProfile() ??
     readRemoteRuntimeProfileFromEnv(options.env ?? readGlobalEnv());
 
   if (remoteProfile) {
-    return createSoftbookRemoteRuntimeConfig(remoteProfile);
+    return createSoftbookRemoteRuntimeConfig({
+      ...remoteProfile,
+      releaseChannel: remoteProfile.releaseChannel ?? releaseChannel,
+    });
   }
 
-  return options.defaultConfig ?? SOFTBOOK_APP_RUNTIME_CONFIG;
+  const defaultConfig = options.defaultConfig ?? SOFTBOOK_APP_RUNTIME_CONFIG;
+  if (releaseChannel === 'production') {
+    throw new Error(
+      'Production release requires an injected remote runtime profile.',
+    );
+  }
+
+  return defaultConfig;
 }
 
 export function createSoftbookRemoteRuntimeConfig(
   profile: SoftbookRemoteRuntimeProfile,
 ): SoftbookAppRuntimeConfig {
   const baseUrl = normalizeRemoteBaseUrl(profile.baseUrl);
+  const releaseChannel = profile.releaseChannel ?? 'development';
+  assertRemoteProfileAllowedForRelease(profile, baseUrl, releaseChannel);
   const remote = {
     baseUrl,
     ...(profile.apiKey ? {apiKey: profile.apiKey} : {}),
@@ -129,6 +145,7 @@ export function createSoftbookRemoteRuntimeConfig(
         : {
             mode: 'local',
           },
+    releaseChannel,
   };
 }
 
@@ -145,6 +162,9 @@ export function readRemoteRuntimeProfileFromEnv(
     env?.SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES,
   );
   const learningTrack = parseLearningTrack(env?.SOFTBOOK_CET_LEARNING_TRACK);
+  const releaseChannel = parseReleaseChannel(
+    env?.SOFTBOOK_CET_RELEASE_CHANNEL,
+  );
 
   return {
     baseUrl,
@@ -155,7 +175,31 @@ export function readRemoteRuntimeProfileFromEnv(
       ? {featureModes: createLocalFeatureModes(localFeatures)}
       : {}),
     ...(learningTrack ? {learningTrack} : {}),
+    ...(releaseChannel ? {releaseChannel} : {}),
   };
+}
+
+function assertRemoteProfileAllowedForRelease(
+  profile: SoftbookRemoteRuntimeProfile,
+  baseUrl: string,
+  releaseChannel: 'development' | 'production',
+) {
+  if (releaseChannel !== 'production') {
+    return;
+  }
+
+  if (!baseUrl.startsWith('https://')) {
+    throw new Error('Production remote runtime baseUrl must use HTTPS.');
+  }
+
+  const localFeatures = Object.entries(profile.featureModes ?? {})
+    .filter(([, mode]) => mode === 'local')
+    .map(([feature]) => feature);
+  if (localFeatures.length > 0) {
+    throw new Error(
+      `Production remote runtime cannot enable local features: ${localFeatures.join(', ')}.`,
+    );
+  }
 }
 
 function resolveFeatureMode(
@@ -194,6 +238,20 @@ function parseLearningTrack(value: string | undefined): LearningTrack | null {
   }
 
   throw new Error('SOFTBOOK_CET_LEARNING_TRACK must be cet4 or cet6.');
+}
+
+function parseReleaseChannel(
+  value: string | undefined,
+): 'development' | 'production' | null {
+  if (value === undefined || value.trim().length === 0) {
+    return null;
+  }
+  if (value === 'development' || value === 'production') {
+    return value;
+  }
+  throw new Error(
+    'SOFTBOOK_CET_RELEASE_CHANNEL must be development or production.',
+  );
 }
 
 function parseRuntimeFeatureList(

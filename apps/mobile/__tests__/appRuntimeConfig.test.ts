@@ -151,3 +151,41 @@ test('remote runtime profile can keep one surface local for staged smoke tests',
   expect(resolveSpaceStateRepositoryConfig(config).mode).toBe('local');
   expect(resolveLearningStateRepositoryConfig(config).mode).toBe('remote');
 });
+
+test('production release requires a complete remote HTTPS profile', () => {
+  expect(() =>
+    resolveSoftbookAppRuntimeConfig({
+      env: {},
+      releaseChannel: 'production',
+    }),
+  ).toThrow('Production release requires an injected remote runtime profile.');
+
+  expect(() =>
+    createSoftbookRemoteRuntimeConfig({
+      baseUrl: 'http://api.softbook.example',
+      releaseChannel: 'production',
+    }),
+  ).toThrow('Production remote runtime baseUrl must use HTTPS.');
+
+  expect(() =>
+    createSoftbookRemoteRuntimeConfig({
+      baseUrl: 'https://api.softbook.example',
+      featureModes: {learningSource: 'local'},
+      releaseChannel: 'production',
+    }),
+  ).toThrow(
+    'Production remote runtime cannot enable local features: learningSource.',
+  );
+});
+
+test('production remote learning never falls back to tracked development cards', () => {
+  const config = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    releaseChannel: 'production',
+  });
+
+  expect(resolveLearningSessionRepositoryConfig(config)).toMatchObject({
+    fallbackToLocalOnRemoteError: false,
+    mode: 'remote',
+  });
+});
