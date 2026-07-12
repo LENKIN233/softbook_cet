@@ -4,7 +4,7 @@
 
 - Date: 2026-07-12
 - Branch: `infra/production-platform-foundation`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/412
 - Summary: Implement the first executable slice of the 2027 Q2 launch plan: machine-checked launch readiness, a fail-closed mobile Release boundary, a TypeScript/PostgreSQL `/v2` API foundation, Tencent Cloud infrastructure definitions, and CI coverage. This run does not claim that the product is launch-ready.
 
 ## Referenced specs
