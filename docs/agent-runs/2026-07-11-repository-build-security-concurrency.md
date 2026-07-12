@@ -29,7 +29,7 @@
 - CloudBase canonical physical-space reads, legacy migration, merge, and write-back now execute in one database transaction with SDK conflict retry.
 - React Native Core, its native dependencies, and Hermes build from source so Pod checksums do not depend on downloaded prebuilt artifact paths.
 - Mobile `npm ci` deterministically normalizes Hermes clone-path/CMake fields and Yoga private-header ordering; exact upstream drift fails instead of being silently rewritten.
-- Dependency security rejects unknown, critical, expired, mismatched, and stale exceptions. The only allowed advisory is the time-limited CloudBase `lodash.set` watch-path advisory.
+- Dependency security rejects invalid audit payloads plus unknown, critical, expired, mismatched, and stale exceptions. The only allowed advisory is the time-limited CloudBase `lodash.set` watch-path advisory.
 - Repository health checks every linked worktree, stash, topic branch, missing upstream, and deleted upstream rather than only the current directory.
 - CI and local mobile setup use Node 22.13 or newer, matching React Native 0.85.2. iOS CI explicitly provisions Ruby 3.3 with Bundler 2.4.22, while the same lock remains compatible with the documented local Ruby 2.6 minimum.
 

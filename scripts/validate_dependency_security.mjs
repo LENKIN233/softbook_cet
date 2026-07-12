@@ -33,6 +33,25 @@ export function collectAdvisories(report) {
   );
 }
 
+export function isAuditReport(report) {
+  const vulnerabilities = report?.vulnerabilities;
+  const summary = report?.metadata?.vulnerabilities;
+
+  return Boolean(
+    report &&
+      typeof report === 'object' &&
+      !Array.isArray(report) &&
+      vulnerabilities &&
+      typeof vulnerabilities === 'object' &&
+      !Array.isArray(vulnerabilities) &&
+      summary &&
+      typeof summary === 'object' &&
+      !Array.isArray(summary) &&
+      Number.isInteger(summary.total) &&
+      summary.total >= 0,
+  );
+}
+
 export function validateTargetReport(target, report, now = new Date()) {
   const errors = [];
   const advisories = collectAdvisories(report);
@@ -135,6 +154,25 @@ function auditTarget(target) {
         {
           code: 'audit_output_invalid',
           status: result.status,
+          stderr: result.stderr.trim(),
+        },
+      ],
+    };
+  }
+
+  if (!isAuditReport(report)) {
+    return {
+      id: target.id,
+      ok: false,
+      vulnerabilities: null,
+      advisories: [],
+      errors: [
+        {
+          code: 'audit_output_invalid',
+          status: result.status,
+          message:
+            report?.error?.summary ??
+            'npm audit JSON did not include vulnerability metadata',
           stderr: result.stderr.trim(),
         },
       ],

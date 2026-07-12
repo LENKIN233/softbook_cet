@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import {
   collectAdvisories,
+  isAuditReport,
   validateTargetReport,
 } from './validate_dependency_security.mjs';
 
@@ -33,6 +34,12 @@ const exception = {
 };
 
 assert.equal(collectAdvisories(report).length, 1);
+assert.equal(isAuditReport(report), true);
+assert.equal(
+  isAuditReport({error: {summary: 'registry unavailable'}}),
+  false,
+  'npm audit error payloads must not be accepted as empty reports',
+);
 assert.equal(
   validateTargetReport(
     {id: 'allowed', allowed_advisories: [exception]},
@@ -65,4 +72,6 @@ assert.equal(
   'resolved_exception_still_listed',
 );
 
-console.log('PASS: dependency security policy rejects unknown, expired, and stale exceptions.');
+console.log(
+  'PASS: dependency security policy rejects invalid reports and unknown, expired, or stale exceptions.',
+);
