@@ -4,7 +4,7 @@
 
 - Date: 2026-07-13
 - Branch: `infra/launch-governance-baseline`
-- PR: pending
+- PR: [#413](https://github.com/LENKIN233/softbook_cet/pull/413) (Draft)
 - Summary: Replace the rejected all-in-one production foundation with one auditable launch-governance slice. This run fixes the release scope, keeps every launch gate fail-closed, requires structured hash-bound evidence, and does not claim that the product is launch-ready.
 
 ## Referenced specs
@@ -60,14 +60,15 @@
 - `GITHUB_TOKEN="$(gh auth token)" node scripts/validate_agent_run_evidence.mjs --verify-remote` -> passed after streaming the authenticated Release asset.
 - Independent Release download -> SHA-256 `6214759f93c30e645f61a12d537c844e9022581d3d36a8ba1548d5f6addb9f23`, 162,388,780 bytes, 391 archive entries.
 - `git lfs fsck` -> passed.
+- Strict repository health after push -> passed; 1 worktree, 0 dirty worktrees, 0 stashes, 1 topic branch, 0 missing upstreams, and 0 oversized blobs.
 
 ## Validation results
 
 - Negative coverage rejects deleted gates/capabilities, string or partial evidence, malformed passed/ready evidence, placeholder or mutable URLs, reused evidence artifacts, oversized ordinary-Git evidence, stale/future verification, mismatched repository hashes, untracked repository evidence, repository symlinks, status drift, non-owner account approval, and non-owner formal content coverage approval.
 - The tracked readiness report is valid but not ready. No external account, capability, or launch gate is marked ready/passed.
 - Existing product, mobile, backend, repository-protection, LFS, and archived-evidence checks passed locally.
-- Repository health must be rerun after commit and upstream creation; its pre-commit run correctly reported the dirty worktree and missing branch upstream.
-- GitHub Actions has not run this branch. The known account billing/spending-limit condition remains a remote validation blocker until a new run proves otherwise.
+- Repository health passed on the clean pushed branch after replacing the stale deleted-branch fetch refspec with this branch's remote-tracking ref.
+- GitHub Actions run [29236210306](https://github.com/LENKIN233/softbook_cet/actions/runs/29236210306) created all nine jobs, but every job completed with zero steps. GitHub annotated them: `The job was not started because recent account payments have failed or your spending limit needs to be increased.` No remote test executed.
 
 ## Binary evidence
 
@@ -78,7 +79,7 @@
 
 - Reviewer: Codex
 - Status: Pending
-- Blocking findings: remote required checks have not executed on this branch; repository health still needs the clean committed branch and upstream check.
+- Blocking findings: required checks have not executed. Actions run `29236210306` was rejected before step 1 by the account billing/spending-limit condition.
 
 ## User-visible UI impact
 
@@ -98,6 +99,6 @@
 
 ## Follow-up
 
-- Open this branch as a Draft PR and keep it blocked until every required GitHub job actually executes and passes.
+- Keep PR #413 in Draft and blocked until the account issue is fixed, every required GitHub job actually executes and passes, and a fresh agent review is recorded.
 - After this slice merges, rebuild the production API as a separate PR with durable SMS abuse limits, checksum-protected migrations, content/card membership validation, immutable signed releases, real PostgreSQL integration, and no skipped production tests.
 - Handle mobile `/v2`, infrastructure, Web, payments, audio, content publication, and release evidence as later independent slices; do not restore the rejected all-in-one PR.
