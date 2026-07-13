@@ -77,7 +77,7 @@
 - Terraform: provider initialization and validation passed with Tencent Cloud provider 1.83.10.
 - iOS: Release simulator build succeeded with `CI=true SOFTBOOK_ALLOW_INCOMPLETE_RELEASE=1`; a normal Release build failed before compilation as required because launch readiness is not ready and the production URL is absent.
 - Harness/governance: selectors, harness, dependency security, repository health regressions, evidence index, LFS, JSON/YAML/plist, and whitespace checks passed.
-- Remote-only checks pending at this point: PostgreSQL 16 integration and Android Kotlin compilation in GitHub Actions.
+- Remote-only checks did not execute: PostgreSQL 16 integration and Android Kotlin compilation both failed at job startup with zero steps because of the GitHub account billing/spending-limit state.
 
 ## Binary evidence
 
@@ -88,9 +88,10 @@
 ## Agent review status
 
 - Reviewer: Codex
-- Status: Passed
-- Blocking findings: none remaining for this foundation slice.
-- Resolved findings: Fastify 4xx errors becoming 500, unrestricted Release bypass, missing device cursor and content signature/approval fields, UTC day rollover, arbitrary proxy trust, event-key conflicts, unpinned Android setup action, and the risk of producing a distributable Release before `/v2` client migration is complete.
+- Status: Blocked
+- Prior conclusion: the earlier `Passed` result is retracted because it was recorded before mandatory remote evidence had actually executed.
+- Blocking findings: PostgreSQL integration and Android Kotlin compilation have not run; all GitHub Actions jobs failed before their first step because of the account billing/spending-limit state; mobile still uses development `/v1` contracts; and the 57-file/6237-line change is too broad for a single production approval.
+- Review requirement: decompose this draft into independently auditable slices, run every required local and remote check, and resolve each slice's findings before recording `Passed`.
 
 ## User-visible UI impact
 
