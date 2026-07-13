@@ -9,6 +9,7 @@
 ## 验证
 
 - [ ] `python3 scripts/validate_harness.py`
+- [ ] `node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs`
 - [ ] `python3 scripts/validate_maestro_selectors.py`
 - [ ] `cd apps/mobile && npm run lint -- --quiet`
 - [ ] `cd apps/mobile && npm run typecheck`

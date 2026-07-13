@@ -413,6 +413,10 @@ check_equal(
             "command": "python3 scripts/validate_harness.py --skip-remote-guard",
         },
         {
+            "id": "launch_readiness_governance",
+            "command": "node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs",
+        },
+        {
             "id": "maestro_selector_guard",
             "command": "python3 scripts/validate_maestro_selectors.py",
         },

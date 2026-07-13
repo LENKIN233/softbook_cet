@@ -1,5 +1,5 @@
 {
-  "version": "vnext-7",
+  "version": "vnext-8",
   "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -141,6 +141,10 @@
       {
         "id": "validate_harness",
         "command": "python3 scripts/validate_harness.py --skip-remote-guard"
+      },
+      {
+        "id": "launch_readiness_governance",
+        "command": "node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs"
       },
       {
         "id": "maestro_selector_guard",

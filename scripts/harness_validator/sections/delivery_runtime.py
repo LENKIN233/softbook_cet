@@ -148,6 +148,8 @@ else:
         "working-directory: infra/cloudbase/functions/softbook-api",
         "./scripts/install_git_hooks.sh",
         "python3 scripts/validate_harness.py --skip-remote-guard",
+        "node --test scripts/test_validate_launch_readiness.mjs",
+        "node scripts/validate_launch_readiness.mjs",
         "python3 scripts/validate_maestro_selectors.py",
         "npm ci",
         "npm run lint -- --quiet",
@@ -169,6 +171,7 @@ else:
         check_contains("PR template heading", pr_template_text, f"## {heading}")
     for snippet in [
         "- [ ] `python3 scripts/validate_maestro_selectors.py`",
+        "- [ ] `node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs`",
         "- [ ] `cd infra/cloudbase/functions/softbook-api && npm test`",
         "## Agent review",
         "- Review status: N/A",
