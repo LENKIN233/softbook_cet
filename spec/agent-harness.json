@@ -416,7 +416,10 @@
         "pure_layer_side_effect_boundary",
         "delivery_governance_side_effect_boundary",
         "design_governance_fixture_boundary",
-        "runtime_smoke_delegation"
+        "runtime_smoke_delegation",
+        "structured_runner_interface",
+        "harness_result_v1",
+        "partial_run_completeness"
       ],
       "stop_when": "each harness section has exactly one layer owner and side effects are confined to the allowed layer or CI job",
       "blocked_when": "a validator change adds remote, runtime, generated, dependency, or temporary-fixture behavior to a pure truth or workspace layer"

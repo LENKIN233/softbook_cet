@@ -13,7 +13,12 @@ os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = ROOT / "spec"
 errors = []
-SKIP_REMOTE_GUARD = "--skip-remote-guard" in sys.argv
+SKIP_REMOTE_GUARD = bool(
+    globals().get(
+        "HARNESS_SKIP_REMOTE_GUARD",
+        "--skip-remote-guard" in sys.argv,
+    )
+)
 
 
 def load(name: str):

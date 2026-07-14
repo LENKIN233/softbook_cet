@@ -15,7 +15,17 @@ CHECKED_OR_PASSED_RECORD_RE = re.compile(
     r"(?im)(\[[xX]\]|`[^`]+`\s*(?:passed|pass|ok|通过)|(?:passed|pass|ok|通过)\s*`[^`]+`)"
 )
 FULL_HARNESS_VALIDATION_RE = re.compile(
-    r"`python3\s+scripts/validate_harness\.py(?![^`]*--skip-remote-guard)[^`]*`"
+    r"`python3\s+scripts/validate_harness\.py"
+    r"(?![^`]*(?:"
+    r"--skip-remote-guard|"
+    r"--mode(?:=|\s+)local\b|"
+    r"--layer(?:=|\s+)|"
+    r"--section(?:=|\s+)|"
+    r"--list\b|"
+    r"--help\b|"
+    r"-h(?:\s|`)"
+    r"))"
+    r"[^`]*`"
 )
 REQUIRED_SECTIONS = (
     "当前任务引用的 spec",
@@ -116,7 +126,7 @@ def validate(body: str) -> list[str]:
         )
     elif not FULL_HARNESS_VALIDATION_RE.search(validation_section):
         errors.append(
-            "PR body validation section must record full `python3 scripts/validate_harness.py`, not only the CI --skip-remote-guard variant"
+            "PR body validation section must record full `python3 scripts/validate_harness.py`; local, selected, listed, or CI --skip-remote-guard runs are partial"
         )
 
     reviewer = line_value(body, "Reviewer")

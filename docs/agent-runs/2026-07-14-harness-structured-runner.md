@@ -1,0 +1,100 @@
+# Agent Run Record: Structured Harness runner
+
+## Task summary
+
+- Date: 2026-07-14
+- Branch: `infra/harness-structured-runner`
+- PR: Pending
+- Summary: Add the first Harness optimization slice: a structured, selectable, timed runner with isolated section diagnostics and machine-readable output, while preserving every existing section check and the no-argument full remote-validation behavior.
+
+## Referenced specs
+
+- `spec/authority-map.json`
+- `spec/harness-architecture.json`
+- `spec/workspace-boundary.json`
+- `spec/agent-harness.json`
+- `spec/repo-delivery-contract.json`
+- `spec/agent-run-record.json`
+- `spec/evals.json`
+
+## Product truth used
+
+- N/A. This change is repository-governance truth only. It does not change product scope, UI, membership, runtime behavior, content, formal approval, or launch readiness.
+
+## Implementation hypothesis changed
+
+- The transitional shared-`exec` runner now parses a formal CLI and records each section's status, duration, findings, and completeness as `harness-result.v1`.
+- No-argument execution remains `full`, runs all ten sections, and reads GitHub `main` protection. Local or selected runs are explicitly `partial` and cannot satisfy the PR full-Harness record.
+- Explicit `validate(context)` modules, pure-context capability enforcement, section timeouts, and the local quality aggregate remain later PRs; this slice does not mix them into the runner interface change.
+
+## Workspace boundary and read scope
+
+- Active truth/source read: the referenced specs, Harness runner and sections, PR review validator, CI workflow, PR template, branching strategy, and run-record conventions.
+- Generated/dependency/cache/archive read: existing installed mobile/backend dependencies only for required local tests; ignored `exports/harness-runner/` output for JSON verification.
+- External workspace read: read-only status checks performed before implementation; `/Users/lenkin/programing/card make` was not edited and no candidate or approved content was consumed.
+
+## Files changed
+
+- `scripts/harness_validator/runner.py`: add CLI parsing, full/local mode, layer/section selection with declared prerequisites, timing, exception isolation, structured findings, completeness, catalog, profile, JSON, output-file support, and stable exit codes.
+- `scripts/harness_validator/sections/prelude.py`: accept the runner-provided remote-guard mode without changing legacy fallback behavior.
+- `scripts/test_validate_harness_runner.py`: cover argument errors, compatibility mode, selection, dependencies, exception isolation, multiple findings, JSON contract, output, no-network local behavior, unavailable-GitHub full behavior, and partial PR-record rejection.
+- `scripts/validate_agent_review.py`: prevent `--mode local`, selected, listed, help, or compatibility runs from impersonating full Harness validation.
+- `spec/harness-architecture.json`, `spec/agent-harness.json`, and `spec/evals.json`: own and mirror the structured runner and partial-completeness contract.
+- `scripts/harness_validator/sections/harness_architecture.py`: enforce the new runner contract and regression coverage.
+- `.github/workflows/pr-gates.yml`: pin Python 3.12 and run the runner unit tests in `validate-harness`.
+- `.github/pull_request_template.md`, `scripts/harness_validator/sections/delivery_runtime.py`, `scripts/harness_validator/sections/governance_contracts.py`, and `docs/branching-strategy.md`: keep delivery documentation and CI mirrors aligned.
+
+## Commands run
+
+- `python3 scripts/test_validate_harness_runner.py` -> 12 tests passed.
+- `python3 scripts/validate_harness.py` -> passed with complete full-mode result and live GitHub protection read.
+- `python3 scripts/validate_harness.py --skip-remote-guard` -> passed and explicitly reported partial completeness.
+- Every real section was selected independently in local mode -> all passed; `delivery_runtime` reported its declared `governance_contracts` prerequisite.
+- Temporary detached `origin/main` worktree comparison -> old and new full/local baseline results passed; temporary worktree removed and one worktree remained.
+- `python3 scripts/validate_maestro_selectors.py` -> passed.
+- `node --test scripts/test_validate_launch_readiness.mjs scripts/test_validate_agent_run_evidence.mjs` -> 21 tests passed.
+- `node scripts/validate_launch_readiness.mjs` -> valid and intentionally not ready: 5 pending, 5 blocked, 0 passed.
+- `node scripts/validate_agent_run_evidence.mjs` -> passed; 391 pre-cutover index files verified.
+- Mobile lint, typecheck, metadata scan, and Jest -> passed; 29 suites and 187 tests.
+- Development CloudBase API `npm test` -> 14 tests passed.
+- `node scripts/test_validate_dependency_security.mjs && node scripts/validate_dependency_security.mjs` -> policy passed while still reporting the existing CloudBase `lodash.set` high-severity exception.
+- Python JSON parse, Ruby YAML parse, and `git diff --check` -> passed.
+
+## Validation results
+
+- Clean baseline behavior is unchanged: old and new no-argument runs both pass, and the compatibility local run still executes all existing local checks.
+- Unknown arguments and contradictory remote modes exit 2; check findings exit 1; passing runs exit 0.
+- A section exception is attributed by layer/section/type/message and does not suppress later section diagnostics.
+- Full output reports `complete` only when all ten sections run and `delivery_runtime` executes the remote guard. Local or selected passes report `partial`.
+- A fake `gh` integration test proves local mode does not invoke GitHub; full mode reports GitHub unavailability as a `delivery_runtime` finding.
+- GitHub required jobs: Pending. Do not mark Agent review Passed until the technical jobs execute successfully on the pushed commit.
+
+## Binary evidence
+
+- Evidence manifest: N/A; no binary evidence was created.
+- Archive: N/A.
+
+## Agent review status
+
+- Reviewer: Codex
+- Status: Pending
+- Blocking findings: GitHub required jobs have not yet executed on the pushed commit.
+
+## User-visible UI impact
+
+- N/A. No screen, copy, component, interaction, navigation, design artifact, or visible state changed.
+
+## Card make external workspace impact
+
+- N/A. No card JSON, audio, candidate PR, QC record, or formal approval record changed.
+
+## Risks and open questions
+
+- Section code still shares one `exec` environment. This is intentional transitional compatibility and remains the subject of the second Harness PR.
+- In-process shared execution cannot safely terminate an arbitrary hung section. Timeout isolation is deferred until sections expose explicit `validate(context)` entrypoints; this PR does not claim timeout coverage.
+- The existing CloudBase dependency exception remains visible and expires on 2026-08-10; this Harness PR does not resolve or conceal it.
+
+## Follow-up
+
+- Push this slice, run every required GitHub job, perform fresh Agent review, update this record and the PR body to Passed only after technical checks succeed, then require the final SHA to pass all nine required checks before merge.
+- After merge, start the second serial PR to replace shared `exec` with explicit `validate(context)` modules and enforce pure-layer capabilities.

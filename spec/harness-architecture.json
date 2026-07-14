@@ -1,10 +1,87 @@
 {
-  "version": "vnext-1",
+  "version": "vnext-2",
   "layer": "repo_governance_truth",
   "purpose": "Define the architecture of scripts/validate_harness.py so harness checks are separated into explicit layers instead of an accident-prone linear pile of regressions.",
   "authority_note": "This file owns validator layer boundaries, section ownership, and side-effect policy. It does not own product truth, UI design truth, workspace classification, or PR delivery policy; those remain in their owner specs.",
   "product_truth": {
     "none": "Harness architecture is repo governance truth, not product truth. It protects product truth by making validator responsibilities explicit."
+  },
+  "runner_contract": {
+    "entrypoint": "scripts/validate_harness.py",
+    "implementation": "scripts/harness_validator/runner.py",
+    "default_mode": "full",
+    "default_no_argument_semantics": "run_all_sections_and_require_remote_github_protection_read",
+    "modes": {
+      "local": {
+        "remote_guard": "forbidden",
+        "completeness": "partial"
+      },
+      "full": {
+        "remote_guard": "required_when_delivery_runtime_is_selected",
+        "completeness": "complete_only_when_all_sections_run"
+      }
+    },
+    "compatibility_aliases": {
+      "--skip-remote-guard": "--mode local"
+    },
+    "selectors": [
+      "--layer",
+      "--section"
+    ],
+    "selection_dependency_policy": "shared_environment_prerequisites_are_added_and_reported_in_selected_sections",
+    "section_dependencies": {
+      "delivery_runtime": [
+        "governance_contracts"
+      ]
+    },
+    "formats": [
+      "text",
+      "json"
+    ],
+    "supporting_options": [
+      "--output",
+      "--list",
+      "--profile"
+    ],
+    "exit_codes": {
+      "passed": 0,
+      "failed": 1,
+      "invalid_arguments": 2
+    },
+    "result_contract": {
+      "schema_version": "harness-result.v1",
+      "required_top_level_fields": [
+        "schema_version",
+        "status",
+        "exit_code",
+        "mode",
+        "started_at",
+        "duration_ms",
+        "completeness",
+        "selection",
+        "summary",
+        "sections",
+        "findings"
+      ],
+      "required_finding_fields": [
+        "layer",
+        "section",
+        "type",
+        "message"
+      ],
+      "section_status_values": [
+        "passed",
+        "failed",
+        "skipped"
+      ],
+      "completeness_values": [
+        "complete",
+        "partial"
+      ],
+      "partial_pass_is_not_full_validation": true,
+      "section_exception_isolated": true
+    },
+    "unit_test_command": "python3 scripts/test_validate_harness_runner.py"
   },
   "layers": [
     {
@@ -176,6 +253,11 @@
       "id": "HA-AP-03",
       "name": "use_validate_harness_as_runtime_test_runner",
       "correction": "validate_harness_checks_governance_and_contract_wiring_runtime_behavior_belongs_to_backend_contract_and_mobile_quality_jobs"
+    },
+    {
+      "id": "HA-AP-04",
+      "name": "treat_partial_or_local_harness_result_as_complete",
+      "correction": "require_full_mode_all_sections_and_remote_guard_before_claiming_complete_harness_validation"
     }
   ]
 }

@@ -45,7 +45,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.x"
+          python-version: "3.12"
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -57,6 +57,9 @@ jobs:
 
       - name: Validate Maestro selectors
         run: python3 scripts/validate_maestro_selectors.py
+
+      - name: Test Harness runner
+        run: python3 scripts/test_validate_harness_runner.py
 
       - name: Validate harness contract
         run: python3 scripts/validate_harness.py --skip-remote-guard
