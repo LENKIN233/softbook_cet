@@ -33,6 +33,7 @@
 - External account capabilities and approved box/card coverage evidence require the tracked product owner `github:LENKIN233` as verifier.
 - The existing authenticated archive verifier now streams through bounded `curl` instead of buffering a 162 MB asset through `fetch().arrayBuffer()`.
 - Archive authentication is restricted to trusted GitHub Release asset API URLs. Arbitrary HTTPS archives receive no GitHub authorization header, and the public CI path injects no token.
+- The agent-review job reads the current PR body through a read-only GitHub API request, so a failed review gate can be rerun after review metadata changes without validating a stale event snapshot.
 
 ## Workspace boundary and read scope
 
@@ -46,7 +47,7 @@
 - `docs/release/launch-readiness.v1.json`: fix launch scope and record five pending plus five blocked gates, with zero passed gates.
 - `docs/release/external-account-readiness.v1.json`: record every required external capability as unverified.
 - `scripts/validate_launch_readiness.mjs` and test: validate fixed scope, exact gate/capability sets, evidence shape, global artifact uniqueness, ownership, status derivation, repository hashes, and fail-closed CLI behavior.
-- `.github/workflows/pr-gates.yml`, `.github/pull_request_template.md`, `spec/repo-delivery-contract.json`, and harness mirrors: execute and record the launch check inside the already-required `validate-harness` job.
+- `.github/workflows/pr-gates.yml`, `.github/pull_request_template.md`, `spec/repo-delivery-contract.json`, and harness mirrors: execute and record the launch check inside the already-required `validate-harness` job, and validate the live PR review body through a read-only API fetch.
 - `scripts/validate_agent_run_evidence.mjs` and `scripts/test_validate_agent_run_evidence.mjs`: stream archive hashing with HTTPS restriction, timeout, retry, expected-size bound, bounded stderr, and host-bound credential isolation; any token is supplied through stdin rather than process arguments.
 - `README.md`: expose the release-governance entry point.
 
@@ -61,6 +62,8 @@
 - `node scripts/validate_dependency_security.mjs` -> policy passed; the existing time-bounded CloudBase `lodash.set` high-severity exception remains and is not represented as zero vulnerabilities.
 - `GITHUB_TOKEN="$(gh auth token)" node scripts/validate_agent_run_evidence.mjs --verify-remote` -> passed after streaming the authenticated Release asset.
 - `env -u GITHUB_TOKEN node scripts/validate_agent_run_evidence.mjs --verify-remote` -> passed against the public Release without injecting a token.
+- Live GitHub API PR-body fetch plus `python3 scripts/validate_agent_review.py --body-file <temp>` -> the current remote Pending body failed as expected; the reviewed final body passed.
+- Ruby YAML parse and full harness validation -> passed after the live PR-body workflow change.
 - Independent Release download -> SHA-256 `6214759f93c30e645f61a12d537c844e9022581d3d36a8ba1548d5f6addb9f23`, 162,388,780 bytes, 391 archive entries.
 - Public-conversion preflight fetched 437 remote refs and 914 reachable commits; Gitleaks found only four reviewed `Podfile.lock` checksum false positives. The old-history bundle verified as complete with 475 refs and 879 commits and produced no secret findings. PR bodies, comments, reviews, and the 391-PNG evidence archive produced no secret findings.
 - `git lfs fsck` -> passed.
@@ -74,6 +77,7 @@
 - Repository health passed on the clean pushed branch after replacing the stale deleted-branch fetch refspec with this branch's remote-tracking ref.
 - GitHub Actions run [29236210306](https://github.com/LENKIN233/softbook_cet/actions/runs/29236210306) created all nine jobs, but every job completed with zero steps. GitHub annotated them: `The job was not started because recent account payments have failed or your spending limit needs to be increased.` No remote test executed.
 - After the repository became public, Actions run [29236279814 attempt 4](https://github.com/LENKIN233/softbook_cet/actions/runs/29236279814) executed real steps: seven jobs passed, including the 45-minute iOS Release job. `evidence-archive` failed because the history Release was temporarily drafted for public-conversion review; `agent-review` failed because this record and the PR body still correctly said Pending.
+- Actions run [29297996875](https://github.com/LENKIN233/softbook_cet/actions/runs/29297996875) on reviewed commit `0518ec3` passed all eight technical jobs: harness, design, mobile, backend, dependency, repository health, evidence archive, and the 37-minute iOS Release build/archive. Only `agent-review` failed, as intended, because the PR body still recorded the pre-review Pending state.
 
 ## Binary evidence
 
@@ -83,8 +87,8 @@
 ## Agent review status
 
 - Reviewer: Codex
-- Status: Pending
-- Blocking findings: fresh review found and locally fixed arbitrary-host token forwarding and cross-contract artifact reuse. The fixes require a pushed commit and a complete green required-check run before review can pass.
+- Status: Passed
+- Blocking findings: None. Fresh review found and fixed arbitrary-host token forwarding, cross-contract artifact reuse, and stale PR-body reads; local regression tests pass and all eight technical required jobs executed successfully on reviewed commit `0518ec3`.
 
 ## User-visible UI impact
 
@@ -105,6 +109,6 @@
 
 ## Follow-up
 
-- Push the fresh-review fixes, rerun every required GitHub job, and update the PR body and this record to Passed only after the complete run is green.
+- Commit the live PR-body review gate and this Passed record, update the PR body, and require all nine jobs to pass again on the final SHA before merge.
 - After this slice merges, rebuild the production API as a separate PR with durable SMS abuse limits, checksum-protected migrations, content/card membership validation, immutable signed releases, real PostgreSQL integration, and no skipped production tests.
 - Handle mobile `/v2`, infrastructure, Web, payments, audio, content publication, and release evidence as later independent slices; do not restore the rejected all-in-one PR.

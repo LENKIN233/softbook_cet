@@ -74,10 +74,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Validate agent review record
+      - name: Read current pull request body
         env:
-          PR_BODY: ${{ github.event.pull_request.body }}
-        run: python3 scripts/validate_agent_review.py
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh api "repos/$GH_REPO/pulls/$PR_NUMBER" --jq .body > "$RUNNER_TEMP/pr-body.md"
+
+      - name: Validate agent review record
+        run: python3 scripts/validate_agent_review.py --body-file "$RUNNER_TEMP/pr-body.md"
 
   mobile-quality:
     runs-on: ubuntu-latest

@@ -422,7 +422,7 @@ check_equal(
         },
         {
             "id": "agent_review_record",
-            "command": "python3 scripts/validate_agent_review.py",
+            "command": "gh api repos/<repo>/pulls/<pr> --jq .body > <temp> && python3 scripts/validate_agent_review.py --body-file <temp>",
         },
         {
             "id": "mobile_lint",
