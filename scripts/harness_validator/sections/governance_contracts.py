@@ -413,12 +413,16 @@ check_equal(
             "command": "python3 scripts/validate_harness.py --skip-remote-guard",
         },
         {
+            "id": "launch_readiness_governance",
+            "command": "node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs",
+        },
+        {
             "id": "maestro_selector_guard",
             "command": "python3 scripts/validate_maestro_selectors.py",
         },
         {
             "id": "agent_review_record",
-            "command": "python3 scripts/validate_agent_review.py",
+            "command": "gh api repos/<repo>/pulls/<pr> --jq .body > <temp> && python3 scripts/validate_agent_review.py --body-file <temp>",
         },
         {
             "id": "mobile_lint",
@@ -450,7 +454,7 @@ check_equal(
         },
         {
             "id": "agent_run_evidence_archive",
-            "command": "node scripts/validate_agent_run_evidence.mjs",
+            "command": "node --test scripts/test_validate_agent_run_evidence.mjs && node scripts/validate_agent_run_evidence.mjs --verify-remote",
         },
     ],
     ci_contract["required_pull_request_gates"],

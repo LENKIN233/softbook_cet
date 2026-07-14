@@ -1,0 +1,163 @@
+{
+  "schema_version": "external-account-readiness.v1",
+  "product_owner": "github:LENKIN233",
+  "last_verified_at": null,
+  "overall_status": "unverified",
+  "accounts": [
+    {
+      "id": "apple-developer",
+      "owner": "product_owner",
+      "status": "unverified",
+      "capabilities": [
+        {
+          "id": "app-store-connect",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "storekit-subscriptions",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "app-store-server-notifications",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "distribution-signing",
+          "status": "unverified",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "android-distribution",
+      "owner": "product_owner",
+      "status": "unverified",
+      "capabilities": [
+        {
+          "id": "huawei",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "xiaomi",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "oppo",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "vivo",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "tencent-myapp",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "release-signing",
+          "status": "unverified",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "tencent-cloud-production",
+      "owner": "product_owner",
+      "status": "unverified",
+      "capabilities": [
+        {
+          "id": "cloudbase-run",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "tencentdb-postgresql",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "cos-private-bucket",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "sms",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "cls",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "rum",
+          "status": "unverified",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "payments",
+      "owner": "product_owner",
+      "status": "unverified",
+      "capabilities": [
+        {
+          "id": "wechat-pay",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "alipay",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "webhook-domain",
+          "status": "unverified",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "id": "china-compliance",
+      "owner": "product_owner",
+      "status": "unverified",
+      "capabilities": [
+        {
+          "id": "domain-registration",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "icp-filing",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "app-filing",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "privacy-policy-public-url",
+          "status": "unverified",
+          "evidence": []
+        },
+        {
+          "id": "customer-support-contact",
+          "status": "unverified",
+          "evidence": []
+        }
+      ]
+    }
+  ]
+}

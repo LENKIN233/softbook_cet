@@ -47,6 +47,11 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22.13.0"
+
       - name: Install repository hooks
         run: ./scripts/install_git_hooks.sh
 
@@ -56,6 +61,11 @@ jobs:
       - name: Validate harness contract
         run: python3 scripts/validate_harness.py --skip-remote-guard
 
+      - name: Validate launch readiness governance
+        run: |
+          node --test scripts/test_validate_launch_readiness.mjs
+          node scripts/validate_launch_readiness.mjs
+
   agent-review:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -64,10 +74,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Validate agent review record
+      - name: Read current pull request body
         env:
-          PR_BODY: ${{ github.event.pull_request.body }}
-        run: python3 scripts/validate_agent_review.py
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh api "repos/$GH_REPO/pulls/$PR_NUMBER" --jq .body > "$RUNNER_TEMP/pr-body.md"
+
+      - name: Validate agent review record
+        run: python3 scripts/validate_agent_review.py --body-file "$RUNNER_TEMP/pr-body.md"
 
   mobile-quality:
     runs-on: ubuntu-latest
@@ -244,7 +259,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      - name: Test agent run evidence validator
+        run: node --test scripts/test_validate_agent_run_evidence.mjs
+
       - name: Validate agent run evidence manifests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/validate_agent_run_evidence.mjs --verify-remote
