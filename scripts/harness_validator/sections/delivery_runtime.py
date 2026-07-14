@@ -150,6 +150,8 @@ else:
         "python3 scripts/validate_harness.py --skip-remote-guard",
         "node --test scripts/test_validate_launch_readiness.mjs",
         "node scripts/validate_launch_readiness.mjs",
+        "node --test scripts/test_validate_agent_run_evidence.mjs",
+        "node scripts/validate_agent_run_evidence.mjs --verify-remote",
         "python3 scripts/validate_maestro_selectors.py",
         "npm ci",
         "npm run lint -- --quiet",
@@ -172,6 +174,7 @@ else:
     for snippet in [
         "- [ ] `python3 scripts/validate_maestro_selectors.py`",
         "- [ ] `node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs`",
+        "- [ ] `node --test scripts/test_validate_agent_run_evidence.mjs && node scripts/validate_agent_run_evidence.mjs --verify-remote`",
         "- [ ] `cd infra/cloudbase/functions/softbook-api && npm test`",
         "## Agent review",
         "- Review status: N/A",

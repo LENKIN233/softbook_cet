@@ -254,7 +254,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      - name: Test agent run evidence validator
+        run: node --test scripts/test_validate_agent_run_evidence.mjs
+
       - name: Validate agent run evidence manifests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/validate_agent_run_evidence.mjs --verify-remote

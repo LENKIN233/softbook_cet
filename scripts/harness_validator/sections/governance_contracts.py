@@ -454,7 +454,7 @@ check_equal(
         },
         {
             "id": "agent_run_evidence_archive",
-            "command": "node scripts/validate_agent_run_evidence.mjs",
+            "command": "node --test scripts/test_validate_agent_run_evidence.mjs && node scripts/validate_agent_run_evidence.mjs --verify-remote",
         },
     ],
     ci_contract["required_pull_request_gates"],

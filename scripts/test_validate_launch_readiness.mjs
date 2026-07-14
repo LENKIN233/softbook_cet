@@ -148,6 +148,56 @@ test('evidence rejects reused artifacts and oversized repository records', () =>
   assert.match(message, /must not exceed 1 MiB/);
 });
 
+test('evidence artifacts cannot be reused across gates or account capabilities', () => {
+  const { accounts, launch } = createReadyContracts();
+  const firstGateEvidence = launch.gates[0].evidence[0];
+  const secondGateEvidence = launch.gates[1].evidence[0];
+  secondGateEvidence.artifact_uri = firstGateEvidence.artifact_uri;
+  secondGateEvidence.artifact_sha256 = firstGateEvidence.artifact_sha256;
+
+  const firstCapabilityEvidence = accounts.accounts[0].capabilities[0].evidence[0];
+  const secondCapabilityEvidence =
+    accounts.accounts[1].capabilities[0].evidence[0];
+  secondCapabilityEvidence.artifact_uri = firstCapabilityEvidence.artifact_uri;
+  secondCapabilityEvidence.artifact_sha256 =
+    firstCapabilityEvidence.artifact_sha256;
+
+  const launchResult = validateLaunchReadiness(launch, { now: NOW });
+  const accountResult = validateExternalAccountReadiness(accounts, launch, {
+    now: NOW,
+  });
+
+  assert.equal(launchResult.ok, false);
+  assert.match(
+    launchResult.errors.join('\n'),
+    /reuses artifact_uri already used by gate production-environments/,
+  );
+  assert.equal(accountResult.ok, false);
+  assert.match(
+    accountResult.errors.join('\n'),
+    /reuses artifact_sha256 already used by account apple-developer/,
+  );
+});
+
+test('evidence artifacts cannot be reused across launch and account contracts', () => {
+  const { accounts, launch } = createReadyContracts();
+  const launchEvidence = launch.gates[0].evidence[0];
+  const accountEvidence = accounts.accounts[0].capabilities[0].evidence[0];
+  accountEvidence.artifact_uri = launchEvidence.artifact_uri;
+  accountEvidence.artifact_sha256 = launchEvidence.artifact_sha256;
+
+  const result = verifyRepositoryEvidenceFiles(launch, accounts, {
+    root: ROOT,
+    trackedFiles: new Set(),
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(
+    result.errors.join('\n'),
+    /reuses artifact_uri already used by gate production-environments/,
+  );
+});
+
 test('malformed passed and ready evidence fails closed without throwing', () => {
   const { accounts, launch } = createReadyContracts();
   const contentGate = launch.gates.find(

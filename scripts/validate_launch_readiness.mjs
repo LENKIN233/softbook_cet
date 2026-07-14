@@ -256,6 +256,7 @@ export function validateLaunchReadiness(contract, { now = new Date() } = {}) {
     }
     validateGate(gate, definition, now, errors);
   }
+  validateDistinctEvidenceArtifacts(collectEvidence(contract, null), errors);
 
   const stateReady =
     gates.size === Object.keys(GATE_DEFINITIONS).length &&
@@ -360,6 +361,10 @@ export function validateExternalAccountReadiness(
       );
     }
   }
+  validateDistinctEvidenceArtifacts(
+    collectEvidence(null, accountsContract),
+    errors,
+  );
 
   const stateReady =
     accounts.size === Object.keys(EXTERNAL_ACCOUNT_DEFINITIONS).length &&
@@ -407,10 +412,12 @@ export function verifyRepositoryEvidenceFiles(
   { root = ROOT, trackedFiles = null } = {},
 ) {
   const errors = [];
-  for (const { evidence, label } of collectEvidence(
+  const evidenceRecords = collectEvidence(
     launchContract,
     accountsContract,
-  )) {
+  );
+  validateDistinctEvidenceArtifacts(evidenceRecords, errors);
+  for (const { evidence, label } of evidenceRecords) {
     if (!isRecord(evidence) || !evidence.artifact_uri?.startsWith('repo://')) {
       continue;
     }
@@ -780,6 +787,27 @@ function validateArtifactUri(value, label, errors) {
     errors.push(
       `${label} artifact_uri is not an allowed repository evidence path.`,
     );
+  }
+}
+
+function validateDistinctEvidenceArtifacts(records, errors) {
+  const artifactUris = new Map();
+  const artifactHashes = new Map();
+  for (const { evidence, label } of records) {
+    if (!isRecord(evidence)) continue;
+    for (const [field, seen] of [
+      ['artifact_uri', artifactUris],
+      ['artifact_sha256', artifactHashes],
+    ]) {
+      const value = evidence[field];
+      if (!isNonEmptyString(value)) continue;
+      const firstLabel = seen.get(value);
+      if (firstLabel) {
+        errors.push(`${label} reuses ${field} already used by ${firstLabel}.`);
+      } else {
+        seen.set(value, label);
+      }
+    }
   }
 }
 
