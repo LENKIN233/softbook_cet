@@ -4,7 +4,7 @@
 
 - Date: 2026-07-14
 - Branch: `infra/harness-structured-runner`
-- PR: Pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/414
 - Summary: Add the first Harness optimization slice: a structured, selectable, timed runner with isolated section diagnostics and machine-readable output, while preserving every existing section check and the no-argument full remote-validation behavior.
 
 ## Referenced specs
