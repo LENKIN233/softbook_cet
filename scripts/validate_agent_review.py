@@ -14,8 +14,25 @@ UNCHECKED_CHECKBOX_RE = re.compile(r"(?im)^\s*-\s*\[\s\]\s+")
 CHECKED_OR_PASSED_RECORD_RE = re.compile(
     r"(?im)(\[[xX]\]|`[^`]+`\s*(?:passed|pass|ok|通过)|(?:passed|pass|ok|通过)\s*`[^`]+`)"
 )
-FULL_HARNESS_VALIDATION_RE = re.compile(
-    r"`python3\s+scripts/validate_harness\.py(?![^`]*--skip-remote-guard)[^`]*`"
+FULL_HARNESS_COMMAND_RE = re.compile(
+    r"`python3\s+scripts/validate_harness\.py"
+    r"(?![^`]*(?:"
+    r"--skip-remote-guard|"
+    r"--mode(?:=|\s+)local\b|"
+    r"--layer(?:=|\s+)|"
+    r"--section(?:=|\s+)|"
+    r"--list\b|"
+    r"--help\b|"
+    r"-h(?:\s|`)"
+    r"))"
+    r"[^`]*`"
+)
+CHECKED_BOX_RE = re.compile(r"\[[xX]\]")
+PASS_BEFORE_COMMAND_RE = re.compile(
+    r"(?i)(?:(?:passed|pass|ok)\b|通过)\s*(?:[-:]\s*)?$"
+)
+PASS_AFTER_COMMAND_RE = re.compile(
+    r"(?i)^\s*(?:[-:]\s*)?(?:(?:passed|pass|ok)\b|通过)"
 )
 REQUIRED_SECTIONS = (
     "当前任务引用的 spec",
@@ -88,6 +105,23 @@ def is_blocking_missing(value: str | None) -> bool:
     return value.strip().lower() in BLOCKING_MISSING_VALUES
 
 
+def has_completed_full_harness_record(validation_section: str) -> bool:
+    for line in validation_section.splitlines():
+        command = FULL_HARNESS_COMMAND_RE.search(line)
+        if not command:
+            continue
+
+        before = line[: command.start()]
+        after = line[command.end() :]
+        if (
+            CHECKED_BOX_RE.search(before)
+            or PASS_BEFORE_COMMAND_RE.search(before)
+            or PASS_AFTER_COMMAND_RE.search(after)
+        ):
+            return True
+    return False
+
+
 def validate(body: str) -> list[str]:
     errors = []
 
@@ -114,9 +148,9 @@ def validate(body: str) -> list[str]:
         errors.append(
             "PR body validation section must include checked or explicitly passed command records"
         )
-    elif not FULL_HARNESS_VALIDATION_RE.search(validation_section):
+    elif not has_completed_full_harness_record(validation_section):
         errors.append(
-            "PR body validation section must record full `python3 scripts/validate_harness.py`, not only the CI --skip-remote-guard variant"
+            "PR body validation section must record full `python3 scripts/validate_harness.py`; local, selected, listed, or CI --skip-remote-guard runs are partial"
         )
 
     reviewer = line_value(body, "Reviewer")

@@ -79,6 +79,7 @@ else:
             errors.append("current checkout is dirty on main; move changes to a topic branch")
 
 if not SKIP_REMOTE_GUARD:
+    HARNESS_REMOTE_GUARD_EXECUTED = True
     gh_protection = run_command(
         "gh",
         "api",
@@ -148,6 +149,7 @@ else:
         "cache-dependency-path: infra/cloudbase/functions/softbook-api/package-lock.json",
         "working-directory: infra/cloudbase/functions/softbook-api",
         "./scripts/install_git_hooks.sh",
+        "python3 scripts/test_validate_harness_runner.py",
         "python3 scripts/validate_harness.py --skip-remote-guard",
         "node --test scripts/test_validate_launch_readiness.mjs",
         "node scripts/validate_launch_readiness.mjs",
@@ -159,6 +161,7 @@ else:
         "npm run typecheck",
         "npm test -- --runInBand --watchAll=false",
         'node-version: "22.13.0"',
+        'python-version: "3.12"',
         "uses: ruby/setup-ruby@",
         'ruby-version: "3.3"',
         'bundler: "Gemfile.lock"',
@@ -173,6 +176,7 @@ else:
     for heading in pull_request_contract["required_body_sections"]:
         check_contains("PR template heading", pr_template_text, f"## {heading}")
     for snippet in [
+        "- [ ] `python3 scripts/test_validate_harness_runner.py`",
         "- [ ] `python3 scripts/validate_maestro_selectors.py`",
         "- [ ] `node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs`",
         "- [ ] `node --test scripts/test_validate_agent_run_evidence.mjs && node scripts/validate_agent_run_evidence.mjs --verify-remote`",

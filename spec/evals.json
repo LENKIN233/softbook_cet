@@ -369,7 +369,10 @@
         "workspace_hygiene_layer_is_pure",
         "delivery_governance_layer_may_read_git_and_github",
         "design_governance_layer_uses_local_fixtures_no_remote",
-        "runtime_smoke_layer_delegated_to_backend_contract_and_mobile_quality"
+        "runtime_smoke_layer_delegated_to_backend_contract_and_mobile_quality",
+        "no_argument_runner_executes_full_remote_validation",
+        "local_or_selected_runner_reports_partial_completeness",
+        "section_exception_does_not_suppress_later_diagnostics"
       ]
     },
     {
@@ -708,7 +711,11 @@
         "design_governance_layer",
         "runtime_smoke_layer",
         "pure_local_file_checks",
-        "runtime_smoke_delegated_to_backend_contract_and_mobile_quality"
+        "runtime_smoke_delegated_to_backend_contract_and_mobile_quality",
+        "structured_runner_interface",
+        "harness_result_v1",
+        "partial_result_cannot_satisfy_full_validation",
+        "section_exception_isolated_with_remaining_diagnostics"
       ]
     },
     {

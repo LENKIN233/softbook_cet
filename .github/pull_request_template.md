@@ -9,6 +9,7 @@
 ## 验证
 
 - [ ] `python3 scripts/validate_harness.py`
+- [ ] `python3 scripts/test_validate_harness_runner.py`
 - [ ] `node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs`
 - [ ] `node --test scripts/test_validate_agent_run_evidence.mjs && node scripts/validate_agent_run_evidence.mjs --verify-remote`
 - [ ] `python3 scripts/validate_maestro_selectors.py`

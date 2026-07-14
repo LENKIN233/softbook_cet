@@ -99,9 +99,16 @@
 ## PR 合同与 CI 门槛
 
 - `.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`、`Agent review`、`Agent run record`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。
-- `.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_maestro_selectors.py`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。
+- `.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/test_validate_harness_runner.py`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_maestro_selectors.py`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。
 - merge 的默认前置条件是：agent review 无 blocking finding，PR body 中 `Agent review` 已记录为 passed，`Agent run record` 已引用 `docs/agent-runs/*.md`，且 required gates 全绿。
 - 本地开 PR 前仍然应该执行完整的 `python3 scripts/validate_harness.py`，不要只依赖 CI 的 `--skip-remote-guard` 版本。
+
+### Harness runner
+
+- 无参数 `python3 scripts/validate_harness.py` 是唯一默认完整运行：执行全部 section，并读取 GitHub `main` 保护。
+- `--mode local` 与兼容别名 `--skip-remote-guard` 不读取 GitHub，结果始终标为 `partial`；`--layer` 或 `--section` 筛选结果同样不能替代完整运行。
+- `--format json` 输出 `harness-result.v1`；`--output <path>` 同步写入文件，`--profile` 显示 section 耗时，`--list` 列出 layer 和 section。
+- 退出码固定为：通过 `0`、检查失败 `1`、参数无效 `2`。单个 section 抛出异常时，runner 记录归属并继续收集后续 section 诊断。
 
 ## 合并门槛
 
