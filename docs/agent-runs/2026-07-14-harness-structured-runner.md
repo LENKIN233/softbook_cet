@@ -35,9 +35,9 @@
 
 ## Files changed
 
-- `scripts/harness_validator/runner.py`: add CLI parsing, full/local mode, layer/section selection with declared prerequisites, timing, exception isolation, structured findings, completeness, catalog, profile, JSON, output-file support, and stable exit codes.
+- `scripts/harness_validator/runner.py`: add CLI parsing, full/local mode, layer/section selection with declared prerequisites, timing, exception isolation, shared error-list integrity, structured findings, completeness, catalog, profile, JSON, output-file support, and stable exit codes.
 - `scripts/harness_validator/sections/prelude.py`: accept the runner-provided remote-guard mode without changing legacy fallback behavior.
-- `scripts/test_validate_harness_runner.py`: cover argument errors, compatibility mode, selection, dependencies, exception isolation, multiple findings, JSON contract, output, no-network local behavior, unavailable-GitHub full behavior, and partial PR-record rejection.
+- `scripts/test_validate_harness_runner.py`: cover argument errors, compatibility mode, selection, dependencies, exception isolation, error-list replacement, multiple findings, JSON contract, output, no-network local behavior, unavailable-GitHub full behavior, and partial PR-record rejection.
 - `scripts/validate_agent_review.py`: prevent `--mode local`, selected, listed, help, or compatibility runs from impersonating full Harness validation.
 - `spec/harness-architecture.json`, `spec/agent-harness.json`, and `spec/evals.json`: own and mirror the structured runner and partial-completeness contract.
 - `scripts/harness_validator/sections/harness_architecture.py`: enforce the new runner contract and regression coverage.
@@ -46,7 +46,7 @@
 
 ## Commands run
 
-- `python3 scripts/test_validate_harness_runner.py` -> 12 tests passed.
+- `python3 scripts/test_validate_harness_runner.py` -> 13 tests passed.
 - `python3 scripts/validate_harness.py` -> passed with complete full-mode result and live GitHub protection read.
 - `python3 scripts/validate_harness.py --skip-remote-guard` -> passed and explicitly reported partial completeness.
 - Every real section was selected independently in local mode -> all passed; `delivery_runtime` reported its declared `governance_contracts` prerequisite.
@@ -65,6 +65,7 @@
 - Clean baseline behavior is unchanged: old and new no-argument runs both pass, and the compatibility local run still executes all existing local checks.
 - Unknown arguments and contradictory remote modes exit 2; check findings exit 1; passing runs exit 0.
 - A section exception is attributed by layer/section/type/message and does not suppress later section diagnostics.
+- A section cannot replace the shared error list to hide its own finding; replacement is itself a structured failure and later diagnostics still run.
 - Full output reports `complete` only when all ten sections run and `delivery_runtime` executes the remote guard. Local or selected passes report `partial`.
 - A fake `gh` integration test proves local mode does not invoke GitHub; full mode reports GitHub unavailability as a `delivery_runtime` finding.
 - GitHub required jobs: Pending. Do not mark Agent review Passed until the technical jobs execute successfully on the pushed commit.
@@ -92,6 +93,7 @@
 
 - Section code still shares one `exec` environment. This is intentional transitional compatibility and remains the subject of the second Harness PR.
 - In-process shared execution cannot safely terminate an arbitrary hung section. Timeout isolation is deferred until sections expose explicit `validate(context)` entrypoints; this PR does not claim timeout coverage.
+- Two concurrent Harness processes in the same worktree can still contend over legacy design-governance fixtures. CI executes the runner test and contract serially; fixture isolation remains part of the second Harness PR.
 - The existing CloudBase dependency exception remains visible and expires on 2026-08-10; this Harness PR does not resolve or conceal it.
 
 ## Follow-up

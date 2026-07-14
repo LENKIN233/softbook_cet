@@ -130,6 +130,34 @@ class HarnessRunnerTests(unittest.TestCase):
             all(finding["section"] == "alpha" for finding in alpha_findings)
         )
 
+    def test_replaced_error_collection_cannot_hide_current_or_later_findings(self):
+        replacement_layers = (
+            {"id": "bootstrap_layer", "sections": ("prelude",)},
+            {"id": "test_layer", "sections": ("alpha", "beta", "gamma")},
+        )
+        with self.section_directory(
+            prelude="errors = []\n",
+            alpha="errors.extend(['prior one', 'prior two'])\n",
+            beta="errors = ['replacement finding']\n",
+            gamma="errors.append('later finding')\n",
+        ) as section_dir:
+            result = run_harness(
+                RunnerOptions(),
+                layers=replacement_layers,
+                section_dir=section_dir,
+            )
+
+        beta_findings = result["sections"][2]["findings"]
+        self.assertEqual(
+            [finding["type"] for finding in beta_findings],
+            ["invalid_error_collection", "check_failure"],
+        )
+        self.assertEqual(beta_findings[1]["message"], "replacement finding")
+        self.assertEqual(
+            [finding["message"] for finding in result["sections"][3]["findings"]],
+            ["later finding"],
+        )
+
     def test_local_mode_is_injected_without_remote_guard_access(self):
         delivery_layers = (
             {"id": "bootstrap_layer", "sections": ("prelude",)},

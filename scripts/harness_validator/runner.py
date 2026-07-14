@@ -248,7 +248,30 @@ def _run_section(
     duration_ms = round((clock() - started) * 1000, 3)
     current_errors = env.get("errors")
     if isinstance(current_errors, list):
-        for error in current_errors[before_count:]:
+        collection_replaced = (
+            section != "prelude"
+            and isinstance(existing_errors, list)
+            and current_errors is not existing_errors
+        )
+        if collection_replaced:
+            findings.append(
+                _finding(
+                    layer=layer,
+                    section=section,
+                    finding_type="invalid_error_collection",
+                    message="section must preserve the shared errors list",
+                )
+            )
+            if current_errors[:before_count] == existing_errors:
+                section_errors = current_errors[before_count:]
+            else:
+                section_errors = current_errors
+            existing_errors.extend(section_errors)
+            env["errors"] = existing_errors
+        else:
+            section_errors = current_errors[before_count:]
+
+        for error in section_errors:
             findings.append(
                 _finding(
                     layer=layer,
@@ -266,7 +289,7 @@ def _run_section(
                 message="section must preserve the shared errors list",
             )
         )
-        env["errors"] = []
+        env["errors"] = existing_errors if isinstance(existing_errors, list) else []
 
     return {
         "layer": layer,
