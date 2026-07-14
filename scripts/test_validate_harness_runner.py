@@ -271,6 +271,18 @@ class HarnessRunnerTests(unittest.TestCase):
             with self.subTest(command=command):
                 self.assertEqual(validate_agent_review(self.review_body(command)), [])
 
+        mixed_record = self.review_body(
+            "python3 scripts/validate_harness.py --mode local"
+        ).replace(
+            "## Agent review",
+            "- `python3 scripts/validate_harness.py`\n\n## Agent review",
+        )
+        mixed_errors = validate_agent_review(mixed_record)
+        self.assertTrue(
+            any("runs are partial" in error for error in mixed_errors),
+            mixed_errors,
+        )
+
     def test_json_result_has_stable_schema_and_structured_findings(self):
         with self.section_directory(
             prelude="errors = []\n",

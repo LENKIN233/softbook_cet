@@ -38,7 +38,7 @@
 - `scripts/harness_validator/runner.py`: add CLI parsing, full/local mode, layer/section selection with declared prerequisites, timing, exception isolation, shared error-list integrity, structured findings, completeness, catalog, profile, JSON, output-file support, and stable exit codes.
 - `scripts/harness_validator/sections/prelude.py`: accept the runner-provided remote-guard mode without changing legacy fallback behavior.
 - `scripts/test_validate_harness_runner.py`: cover argument errors, compatibility mode, selection, dependencies, exception isolation, error-list replacement, multiple findings, JSON contract, output, no-network local behavior, unavailable-GitHub full behavior, and partial PR-record rejection.
-- `scripts/validate_agent_review.py`: prevent `--mode local`, selected, listed, help, or compatibility runs from impersonating full Harness validation.
+- `scripts/validate_agent_review.py`: prevent `--mode local`, selected, listed, help, compatibility, or uncompleted full-command text from impersonating a completed full Harness validation record.
 - `spec/harness-architecture.json`, `spec/agent-harness.json`, and `spec/evals.json`: own and mirror the structured runner and partial-completeness contract.
 - `scripts/harness_validator/sections/harness_architecture.py`: enforce the new runner contract and regression coverage.
 - `.github/workflows/pr-gates.yml`: pin Python 3.12 and run the runner unit tests in `validate-harness`.
@@ -68,6 +68,7 @@
 - A section cannot replace the shared error list to hide its own finding; replacement is itself a structured failure and later diagnostics still run.
 - Full output reports `complete` only when all ten sections run and `delivery_runtime` executes the remote guard. Local or selected passes report `partial`.
 - A fake `gh` integration test proves local mode does not invoke GitHub; full mode reports GitHub unavailability as a `delivery_runtime` finding.
+- A checked partial command plus an unchecked/plain full command cannot satisfy the PR full-Harness validation record.
 - GitHub required jobs: Pending. Do not mark Agent review Passed until the technical jobs execute successfully on the pushed commit.
 
 ## Binary evidence
