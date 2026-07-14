@@ -69,7 +69,7 @@
 - Full output reports `complete` only when all ten sections run and `delivery_runtime` executes the remote guard. Local or selected passes report `partial`.
 - A fake `gh` integration test proves local mode does not invoke GitHub; full mode reports GitHub unavailability as a `delivery_runtime` finding.
 - A checked partial command plus an unchecked/plain full command cannot satisfy the PR full-Harness validation record.
-- GitHub required jobs: Pending. Do not mark Agent review Passed until the technical jobs execute successfully on the pushed commit.
+- GitHub technical validation: [run 29304416322](https://github.com/LENKIN233/softbook_cet/actions/runs/29304416322) on `61427c1a17445d769a4352a01140e4e094ab6ef2` passed all eight technical jobs: design artifact, Harness, mobile, backend, repo health, dependency security, evidence archive, and iOS Release. The Agent review job failed closed only because this record and the PR body were still Pending.
 
 ## Binary evidence
 
@@ -79,8 +79,9 @@
 ## Agent review status
 
 - Reviewer: Codex
-- Status: Pending
-- Blocking findings: GitHub required jobs have not yet executed on the pushed commit.
+- Status: Passed
+- Blocking findings: None
+- Review summary: Fresh post-CI review found no blocking issue in the final 14-file diff. It verified CLI and exit-code semantics, actual remote-guard completeness, section exception and append-only finding isolation, completed-command binding in the PR gate, signed commits, scope boundaries, and the eight successful technical jobs.
 
 ## User-visible UI impact
 
@@ -99,5 +100,5 @@
 
 ## Follow-up
 
-- Push this slice, run every required GitHub job, perform fresh Agent review, update this record and the PR body to Passed only after technical checks succeed, then require the final SHA to pass all nine required checks before merge.
+- Push this review record and require its final SHA to pass all nine required checks before merge; a prior technical run or this review conclusion cannot substitute for the final run.
 - After merge, start the second serial PR to replace shared `exec` with explicit `validate(context)` modules and enforce pure-layer capabilities.
