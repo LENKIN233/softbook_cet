@@ -137,7 +137,7 @@ else:
         "test_unknown_argument_and_conflicting_remote_modes_exit_two",
         "test_section_exception_does_not_hide_later_diagnostics",
         "test_multiple_legacy_errors_are_attributed_to_their_section",
-        "test_replaced_error_collection_cannot_hide_current_or_later_findings",
+        "test_replaced_or_mutated_error_collection_cannot_hide_findings",
         "test_section_selection_expands_declared_shared_environment_dependencies",
         "test_json_result_has_stable_schema_and_structured_findings",
         "test_local_mode_is_injected_without_remote_guard_access",

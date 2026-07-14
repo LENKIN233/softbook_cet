@@ -65,7 +65,7 @@
 - Clean baseline behavior is unchanged: old and new no-argument runs both pass, and the compatibility local run still executes all existing local checks.
 - Unknown arguments and contradictory remote modes exit 2; check findings exit 1; passing runs exit 0.
 - A section exception is attributed by layer/section/type/message and does not suppress later section diagnostics.
-- A section cannot replace the shared error list to hide its own finding; replacement is itself a structured failure and later diagnostics still run.
+- A section cannot replace, clear, or rewrite the shared append-only error list to hide its own finding; collection corruption is itself a structured failure and later diagnostics still run.
 - Full output reports `complete` only when all ten sections run and `delivery_runtime` executes the remote guard. Local or selected passes report `partial`.
 - A fake `gh` integration test proves local mode does not invoke GitHub; full mode reports GitHub unavailability as a `delivery_runtime` finding.
 - A checked partial command plus an unchecked/plain full command cannot satisfy the PR full-Harness validation record.

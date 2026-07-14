@@ -130,16 +130,17 @@ class HarnessRunnerTests(unittest.TestCase):
             all(finding["section"] == "alpha" for finding in alpha_findings)
         )
 
-    def test_replaced_error_collection_cannot_hide_current_or_later_findings(self):
+    def test_replaced_or_mutated_error_collection_cannot_hide_findings(self):
         replacement_layers = (
             {"id": "bootstrap_layer", "sections": ("prelude",)},
-            {"id": "test_layer", "sections": ("alpha", "beta", "gamma")},
+            {"id": "test_layer", "sections": ("alpha", "beta", "gamma", "delta")},
         )
         with self.section_directory(
             prelude="errors = []\n",
             alpha="errors.extend(['prior one', 'prior two'])\n",
             beta="errors = ['replacement finding']\n",
-            gamma="errors.append('later finding')\n",
+            gamma="errors.clear()\nerrors.append('in-place finding')\n",
+            delta="errors.append('later finding')\n",
         ) as section_dir:
             result = run_harness(
                 RunnerOptions(),
@@ -153,8 +154,14 @@ class HarnessRunnerTests(unittest.TestCase):
             ["invalid_error_collection", "check_failure"],
         )
         self.assertEqual(beta_findings[1]["message"], "replacement finding")
+        gamma_findings = result["sections"][3]["findings"]
         self.assertEqual(
-            [finding["message"] for finding in result["sections"][3]["findings"]],
+            [finding["type"] for finding in gamma_findings],
+            ["invalid_error_collection", "check_failure"],
+        )
+        self.assertEqual(gamma_findings[1]["message"], "in-place finding")
+        self.assertEqual(
+            [finding["message"] for finding in result["sections"][4]["findings"]],
             ["later finding"],
         )
 

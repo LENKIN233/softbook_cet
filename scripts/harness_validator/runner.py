@@ -228,7 +228,8 @@ def _run_section(
     clock=time.perf_counter,
 ) -> dict[str, object]:
     existing_errors = env.get("errors")
-    before_count = len(existing_errors) if isinstance(existing_errors, list) else 0
+    before_errors = list(existing_errors) if isinstance(existing_errors, list) else []
+    before_count = len(before_errors)
     findings: list[dict[str, object]] = []
     started = clock()
 
@@ -248,28 +249,36 @@ def _run_section(
     duration_ms = round((clock() - started) * 1000, 3)
     current_errors = env.get("errors")
     if isinstance(current_errors, list):
-        collection_replaced = (
+        current_snapshot = list(current_errors)
+        collection_invalid = (
             section != "prelude"
-            and isinstance(existing_errors, list)
-            and current_errors is not existing_errors
+            and (
+                not isinstance(existing_errors, list)
+                or current_errors is not existing_errors
+                or current_snapshot[:before_count] != before_errors
+            )
         )
-        if collection_replaced:
+        if collection_invalid:
             findings.append(
                 _finding(
                     layer=layer,
                     section=section,
                     finding_type="invalid_error_collection",
-                    message="section must preserve the shared errors list",
+                    message="section must preserve the shared errors list as append-only",
                 )
             )
-            if current_errors[:before_count] == existing_errors:
-                section_errors = current_errors[before_count:]
+            if current_snapshot[:before_count] == before_errors:
+                section_errors = current_snapshot[before_count:]
             else:
-                section_errors = current_errors
-            existing_errors.extend(section_errors)
-            env["errors"] = existing_errors
+                section_errors = current_snapshot
+
+            if isinstance(existing_errors, list):
+                existing_errors[:] = [*before_errors, *section_errors]
+                env["errors"] = existing_errors
+            else:
+                env["errors"] = list(section_errors)
         else:
-            section_errors = current_errors[before_count:]
+            section_errors = current_snapshot[before_count:]
 
         for error in section_errors:
             findings.append(
@@ -289,7 +298,11 @@ def _run_section(
                 message="section must preserve the shared errors list",
             )
         )
-        env["errors"] = existing_errors if isinstance(existing_errors, list) else []
+        if isinstance(existing_errors, list):
+            existing_errors[:] = before_errors
+            env["errors"] = existing_errors
+        else:
+            env["errors"] = []
 
     return {
         "layer": layer,
