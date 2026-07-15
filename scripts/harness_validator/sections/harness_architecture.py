@@ -98,8 +98,13 @@ def validate(context) -> None:
     check_equal(
         "harness capability enforcement",
         {
-            "implementation": "scripts/harness_validator/capability_ast.py",
+            "implementations": [
+                "scripts/harness_validator/context.py",
+                "scripts/harness_validator/capability_ast.py",
+            ],
+            "runtime_context_profiles_enforced": True,
             "read_only_profile_forbidden_imports_and_calls": True,
+            "github_api_get_full_mode_only": True,
             "legacy_design_remote_commands_forbidden": True,
             "runtime_smoke_sections_forbidden": True,
             "executable_top_level_statements_forbidden": True,
@@ -272,6 +277,7 @@ def validate(context) -> None:
             "class ReadOnlyContext",
             "class DeliveryContext",
             "section == \"delivery_runtime\"",
+            "GitHub command cannot execute outside full mode",
             "delivery command is not allowlisted",
         ],
         "scripts/harness_validator/capability_ast.py": [
@@ -308,6 +314,7 @@ def validate(context) -> None:
             "test_all_migrated_real_sections_have_valid_module_boundaries",
             "test_each_pure_layer_rejects_an_owner_contract_break",
             "test_delivery_layer_rejects_mutating_command_capability",
+            "test_delivery_context_rejects_github_access_in_local_mode",
             "test_design_layer_rejects_remote_command_during_legacy_transition",
             "test_runtime_smoke_layer_rejects_runnable_harness_section",
             "test_executable_top_level_statement_is_rejected",

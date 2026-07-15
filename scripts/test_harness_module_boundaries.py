@@ -61,6 +61,12 @@ class HarnessModuleBoundaryTests(unittest.TestCase):
             with self.subTest(command=command), self.assertRaises(CapabilityError):
                 context.run_command(*command)
 
+    def test_delivery_context_rejects_github_access_in_local_mode(self):
+        context = DeliveryContext(root=ROOT, mode="local", section="delivery_runtime")
+
+        with self.assertRaisesRegex(CapabilityError, "outside full mode"):
+            context.run_command("gh", "api", "repos/LENKIN233/softbook_cet")
+
     def test_design_layer_rejects_remote_command_during_legacy_transition(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "design_governance.py"

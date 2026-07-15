@@ -138,6 +138,8 @@ class DeliveryContext(ReadOnlyContext):
             return
 
         if executable == "gh":
+            if self.mode != "full":
+                raise CapabilityError("GitHub command cannot execute outside full mode")
             mutating_flags = {"--method", "-X", "--input", "-f", "-F"}
             if len(args) != 3 or args[1] != "api" or mutating_flags.intersection(args):
                 raise CapabilityError(f"delivery GitHub command is not a simple GET: {args!r}")

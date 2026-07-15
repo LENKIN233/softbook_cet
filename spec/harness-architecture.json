@@ -72,8 +72,13 @@
       }
     },
     "capability_enforcement": {
-      "implementation": "scripts/harness_validator/capability_ast.py",
+      "implementations": [
+        "scripts/harness_validator/context.py",
+        "scripts/harness_validator/capability_ast.py"
+      ],
+      "runtime_context_profiles_enforced": true,
       "read_only_profile_forbidden_imports_and_calls": true,
+      "github_api_get_full_mode_only": true,
       "legacy_design_remote_commands_forbidden": true,
       "runtime_smoke_sections_forbidden": true,
       "executable_top_level_statements_forbidden": true,

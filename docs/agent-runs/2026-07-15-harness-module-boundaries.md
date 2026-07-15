@@ -25,7 +25,7 @@
 
 - Nine non-design sections now export `validate(context)` and run in independent Python workers with a default 30-second timeout. Exceptions, worker startup/protocol failures, capability violations, and timeouts are attributed to the owning layer and section without suppressing later diagnostics.
 - Read-only sections receive no command, network, remote-guard, or temporary-directory capability. AST validation rejects non-allowlisted imports, mutating calls, executable top-level statements, and definition-time decorators/defaults before execution.
-- Only `delivery_runtime` receives a capability context. Its Git reads are exact-command allowlisted, GitHub access is one simple GET, the local selector validator is path allowlisted, and temporary files are isolated.
+- Only `delivery_runtime` receives a capability context. Its Git reads are exact-command allowlisted, GitHub access is one simple GET and is rejected outside full mode, the local selector validator is path allowlisted, and temporary files are isolated.
 - `design_governance` remains byte-for-byte in its existing section and is the only declared `exec` adapter. The adapter is transitional, forbids obvious remote imports/commands, and must be deleted after the design split and Agent-review regression move in the next PR.
 
 ## Workspace boundary and read scope
@@ -47,7 +47,7 @@
 ## Commands run
 
 - `python3 scripts/test_validate_harness_runner.py` -> 17 tests passed.
-- `python3 scripts/test_harness_module_boundaries.py` -> 9 tests passed, including an intentional owner-contract break for every Harness layer.
+- `python3 scripts/test_harness_module_boundaries.py` -> 10 tests passed, including an intentional owner-contract break for every Harness layer and a local-mode GitHub capability rejection.
 - `python3 scripts/validate_harness.py --mode local` -> passed, 10/10 sections, explicitly partial with no remote access.
 - `python3 scripts/validate_harness.py --format json` -> passed, 10/10 sections, complete with a live GitHub protection read and no leaked worker-protocol fields.
 - Each migrated section selected independently in local mode -> normalized old/new status, selection, completeness, and findings parity passed 9/9 against base `84239f033f9992d27e571ba7f0cae4510b866018`.
@@ -62,6 +62,7 @@
 - Release simulator build and unsigned device archive -> `BUILD SUCCEEDED` and `ARCHIVE SUCCEEDED`; outputs were written under `/tmp`.
 - `git lfs fsck` -> passed. `git fsck --full` -> no corruption; only existing unreachable objects were reported.
 - JSON parsing, Python compilation, `git diff --check`, and tracked-worktree pollution checks -> passed.
+- GitHub technical baseline on commit `f7b34c8f12217eb4b028389c0b96500cfcaaa674` -> all eight technical jobs passed in [run 29401457312](https://github.com/LENKIN233/softbook_cet/actions/runs/29401457312): `design-artifact-gate`, `validate-harness`, `mobile-quality`, `backend-contract`, `dependency-security`, `ios-release`, `repo-health`, and `evidence-archive`. The separate `agent-review` failure was the intended Pending-review gate.
 
 ## Validation results
 
@@ -70,6 +71,7 @@
 - Section errors are no longer shared. A section starts with an empty finding list and cannot clear or replace another section's diagnostics.
 - Worker startup, nonzero exit, malformed JSON protocol, raised exception, and static capability failure each have distinct structured finding types.
 - The result remains complete only when all ten sections run and `delivery_runtime` actually attempts the full-mode remote guard. Internal worker fields never appear in `harness-result.v1` output.
+- A delivery context cannot invoke `gh` in local mode even if a future section accidentally requests it; this makes the no-network local contract a runtime capability boundary rather than a convention in `delivery_runtime`.
 - Local Python is 3.12.13. Shell validation used Node 25.9.0 and Ruby 2.6.10; Xcode selected the configured Node 24.15.0. Exact Node 22.13.0 and Ruby 3.3 reproduction remains a required GitHub CI result.
 
 ## Binary evidence
@@ -79,9 +81,10 @@
 
 ## Agent review status
 
-- Reviewer: Pending
-- Status: Pending
-- Blocking findings: Pending fresh review and required GitHub checks.
+- Reviewer: Codex
+- Status: Passed
+- Blocking findings: None.
+- Review summary: Reviewed the final governance-only diff, section ownership, explicit context surface, command allowlists, local/full remote behavior, worker startup/protocol/timeout paths, structured result completeness, spec mirrors, CI wiring, and normalized nine-section parity. No product, UI, runtime, card-content, or formal-approval scope entered the change. The review found no blocking defect; the remaining legacy design adapter and local toolchain drift are explicitly bounded follow-up risks rather than hidden completion claims.
 
 ## User-visible UI impact
 
@@ -95,11 +98,11 @@
 
 - `design_governance` remains the only legacy `exec` section and still owns temporary design fixtures plus Agent-review regressions. Its split and concurrent fixture isolation are intentionally the next serial PR; this PR does not claim that work complete.
 - AST enforcement is a repository policy guard, not an operating-system sandbox. Worker process isolation, context omission, exact command allowlists, and timeout termination provide the runtime boundaries for this phase.
-- Local Node/Ruby versions differ from CI; GitHub must run all technical jobs before review can pass.
+- Local Node/Ruby versions differ from CI. The technical baseline reproduced Node 22.13.0, Ruby 3.3, simulator Release, and unsigned archive successfully; the final review commit must reproduce all required jobs again before merge.
 - The 154.9 MiB evidence archive could not be fully rehashed over the current local link. GitHub `evidence-archive` must pass on the final commit.
 - The existing CloudBase dependency exception remains visible and expires on 2026-08-10; this Harness PR does not resolve or conceal it.
 
 ## Follow-up
 
-- Open the PR with review status Pending. Require all eight technical jobs to pass, perform a fresh final-diff review, update this record and the PR body to Passed, then require all nine checks on the final SHA before squash merge.
+- Require all nine checks to pass on the signed final review commit before marking the PR ready or squash merging.
 - After merge, start the next serial PR to split `design_governance`, move Agent-review regressions to delivery governance, isolate every design fixture, and delete `scripts/harness_validator/legacy.py`.
