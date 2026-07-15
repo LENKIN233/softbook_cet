@@ -15,7 +15,7 @@ def validate(context) -> None:
 
     harness_architecture_spec = load("harness-architecture.json")
 
-    check_equal("harness architecture version", "vnext-3", harness_architecture_spec["version"])
+    check_equal("harness architecture version", "vnext-4", harness_architecture_spec["version"])
     check_equal("harness architecture layer", "repo_governance_truth", harness_architecture_spec["layer"])
 
     runner_contract = harness_architecture_spec["runner_contract"]
@@ -38,7 +38,10 @@ def validate(context) -> None:
     )
     check_equal(
         "harness runner logical prerequisites",
-        {"delivery_runtime": ["governance_contracts"]},
+        {
+            "agent_review_regressions": ["governance_contracts"],
+            "delivery_runtime": ["governance_contracts"],
+        },
         runner_contract["section_dependencies"],
     )
     check_equal(
@@ -73,6 +76,7 @@ def validate(context) -> None:
                 "workspace_boundary",
                 "governance_contracts",
                 "agent_run_record",
+                "design_contracts",
             ],
             "capabilities": [
                 "read_repository_files",
@@ -96,6 +100,26 @@ def validate(context) -> None:
         runner_contract["context_profiles"]["delivery"],
     )
     check_equal(
+        "harness fixture context profile",
+        {
+            "sections": [
+                "mobile_metadata_regressions",
+                "design_metadata_regressions",
+                "design_search_regressions",
+                "agent_review_regressions",
+                "pr_design_gate_regressions",
+            ],
+            "capabilities": [
+                "isolated_system_temporary_directory",
+                "section_exact_local_validator_allowlist",
+                "controlled_fixture_copy_and_removal",
+                "pr_body_only_environment_override",
+                "no_remote_or_repository_mutation",
+            ],
+        },
+        runner_contract["context_profiles"]["fixture"],
+    )
+    check_equal(
         "harness capability enforcement",
         {
             "implementations": [
@@ -104,23 +128,16 @@ def validate(context) -> None:
             ],
             "runtime_context_profiles_enforced": True,
             "read_only_profile_forbidden_imports_and_calls": True,
+            "all_sections_explicit_validate_context": True,
+            "direct_process_network_and_temp_imports_forbidden": True,
+            "repository_derived_fixture_writes_forbidden": True,
+            "exec_calls_forbidden": True,
             "github_api_get_full_mode_only": True,
-            "legacy_design_remote_commands_forbidden": True,
             "runtime_smoke_sections_forbidden": True,
             "executable_top_level_statements_forbidden": True,
             "validate_context_signature_required": True,
         },
         runner_contract["capability_enforcement"],
-    )
-    check_equal(
-        "harness transitional legacy adapter",
-        {
-            "section": "design_governance",
-            "implementation": "scripts/harness_validator/legacy.py",
-            "only_allowed_exec_path": True,
-            "removal_gate": "split_design_governance_modules_and_migrate_agent_review_regressions",
-        },
-        runner_contract["transitional_legacy_adapter"],
     )
     check_equal(
         "harness runner exit codes",
@@ -260,12 +277,11 @@ def validate(context) -> None:
         ]:
             check_contains("Harness runner unit coverage", runner_test_text, snippet)
 
-    legacy_section = runner_contract["transitional_legacy_adapter"]["section"]
     for section in harness_architecture_spec["runner_section_order"]:
         section_file = ROOT / "scripts/harness_validator/sections" / f"{section}.py"
         if not section_file.exists():
             errors.append(f"harness architecture references missing section: {section}")
-        elif section != legacy_section:
+        else:
             check_contains(
                 f"Harness section {section} explicit interface",
                 section_file.read_text(encoding="utf-8"),
@@ -276,24 +292,25 @@ def validate(context) -> None:
         "scripts/harness_validator/context.py": [
             "class ReadOnlyContext",
             "class DeliveryContext",
+            "class FixtureContext",
             "section == \"delivery_runtime\"",
+            "FIXTURE_SECTION_LAYERS.get(section) == layer",
             "GitHub command cannot execute outside full mode",
             "delivery command is not allowlisted",
+            "validator is not allowlisted",
+            "path is outside active fixture roots",
         ],
         "scripts/harness_validator/capability_ast.py": [
             "READ_ONLY_SECTIONS",
+            "FIXTURE_SECTION_OWNERS",
             "runtime_smoke_layer is delegated to CI",
-            "legacy design section invokes forbidden remote command",
+            "section imports forbidden direct capability",
+            "section mutates a repository-derived path",
             "executable top-level statement is forbidden",
         ],
         "scripts/harness_validator/section_worker.py": [
             "load_validate",
-            "validate_legacy_design",
             '"remote_guard_executed": context.remote_guard_executed',
-        ],
-        "scripts/harness_validator/legacy.py": [
-            "def validate_legacy_design",
-            "exec(code, env)",
         ],
     }
     for relative_path, snippets in implementation_snippets.items():
@@ -311,16 +328,22 @@ def validate(context) -> None:
     else:
         boundary_test_text = boundary_test_path.read_text(encoding="utf-8")
         for snippet in [
-            "test_all_migrated_real_sections_have_valid_module_boundaries",
-            "test_each_pure_layer_rejects_an_owner_contract_break",
+            "test_all_real_sections_have_valid_explicit_module_boundaries",
+            "test_each_owned_layer_rejects_a_known_section_from_another_owner",
+            "test_each_pure_layer_rejects_a_direct_capability_break",
             "test_delivery_layer_rejects_mutating_command_capability",
             "test_delivery_context_rejects_github_access_in_local_mode",
-            "test_design_layer_rejects_remote_command_during_legacy_transition",
+            "test_fixture_section_rejects_direct_remote_or_process_capabilities",
+            "test_fixture_section_rejects_repository_derived_write",
+            "test_fixture_section_rejects_write_without_fixture_provenance",
+            "test_fixture_context_uses_system_temp_and_cleans_it",
+            "test_fixture_context_rejects_unallowlisted_validator_cwd_and_env",
+            "test_context_factory_moves_agent_review_regressions_to_delivery",
             "test_runtime_smoke_layer_rejects_runnable_harness_section",
             "test_executable_top_level_statement_is_rejected",
             "test_validate_signature_rejects_definition_time_execution_hooks",
-            "test_read_only_context_exposes_no_command_or_temporary_capability",
-            "test_exec_call_exists_only_in_legacy_adapter",
+            "test_read_only_context_exposes_no_command_fixture_or_temp_capability",
+            "test_exec_call_does_not_exist_in_harness_runtime",
         ]:
             check_contains("Harness module boundary coverage", boundary_test_text, snippet)
 
@@ -350,7 +373,8 @@ def validate(context) -> None:
             "isolated_section_workers",
             "read_only_context_capability_enforcement",
             "section_timeout_isolation",
-            "transitional_design_legacy_adapter",
+            "fixture_context_capability_enforcement",
+            "zero_legacy_exec_paths",
         ]:
             if output not in architecture_task.get("outputs", []):
                 errors.append(f"harness_architecture task brief missing output: {output}")
@@ -363,6 +387,8 @@ def validate(context) -> None:
         errors.append("harness architecture missing partial-result anti-pattern: HA-AP-04")
     if not find_by_id(harness_architecture_spec["anti_patterns"], "HA-AP-05"):
         errors.append("harness architecture missing isolated-module anti-pattern: HA-AP-05")
+    if not find_by_id(harness_architecture_spec["anti_patterns"], "HA-AP-06"):
+        errors.append("harness architecture missing fixture-boundary anti-pattern: HA-AP-06")
 
     for regression_id in ["HR-31", "HR-32"]:
         if not find_by_id(evals["regressions"], regression_id):
@@ -381,7 +407,8 @@ def validate(context) -> None:
             "isolated_section_worker_processes",
             "section_timeout_isolated_with_remaining_diagnostics",
             "ast_enforced_read_only_capability_boundary",
-            "declared_transitional_design_legacy_adapter",
+            "ast_enforced_fixture_capability_boundary",
+            "zero_legacy_exec_paths",
         ]:
             if expected not in golden_task["must_include"]:
                 errors.append(f"GT-24 missing structured runner expectation: {expected}")
@@ -392,10 +419,11 @@ def validate(context) -> None:
             "no_argument_runner_executes_full_remote_validation",
             "local_or_selected_runner_reports_partial_completeness",
             "section_exception_does_not_suppress_later_diagnostics",
-            "non_legacy_sections_export_validate_context",
+            "all_sections_export_validate_context",
             "each_selected_section_runs_in_an_isolated_worker",
             "section_timeout_is_attributed_and_does_not_suppress_later_diagnostics",
-            "design_governance_is_the_only_declared_transitional_legacy_adapter",
+            "agent_review_regressions_belong_to_delivery_governance",
+            "zero_legacy_exec_paths",
         ]:
             if expected not in runner_regression["must_hit"]:
                 errors.append(f"HR-31 missing structured runner expectation: {expected}")
@@ -405,6 +433,7 @@ def validate(context) -> None:
         for expected in [
             "pure_layers_no_subprocess_or_remote_reads",
             "read_only_context_and_ast_capability_enforcement",
+            "fixture_context_exact_validator_and_system_temp_enforcement",
             "runtime_tests_stay_in_ci_jobs",
         ]:
             if expected not in capability_regression["must_hit"]:

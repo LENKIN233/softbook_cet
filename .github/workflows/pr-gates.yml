@@ -64,6 +64,9 @@ jobs:
       - name: Test Harness module boundaries
         run: python3 scripts/test_harness_module_boundaries.py
 
+      - name: Test design metadata scanner isolation
+        run: node --test scripts/test_check_design_metadata_leaks.mjs
+
       - name: Validate harness contract
         run: python3 scripts/validate_harness.py --skip-remote-guard
 

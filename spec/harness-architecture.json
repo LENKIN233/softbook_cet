@@ -1,5 +1,5 @@
 {
-  "version": "vnext-3",
+  "version": "vnext-4",
   "layer": "repo_governance_truth",
   "purpose": "Define the architecture of scripts/validate_harness.py so harness checks are separated into explicit layers instead of an accident-prone linear pile of regressions.",
   "authority_note": "This file owns validator layer boundaries, section ownership, and side-effect policy. It does not own product truth, UI design truth, workspace classification, or PR delivery policy; those remain in their owner specs.",
@@ -30,6 +30,9 @@
     ],
     "selection_dependency_policy": "declared_logical_prerequisites_are_added_and_reported_in_selected_sections",
     "section_dependencies": {
+      "agent_review_regressions": [
+        "governance_contracts"
+      ],
       "delivery_runtime": [
         "governance_contracts"
       ]
@@ -51,7 +54,8 @@
           "visual_language",
           "workspace_boundary",
           "governance_contracts",
-          "agent_run_record"
+          "agent_run_record",
+          "design_contracts"
         ],
         "capabilities": [
           "read_repository_files",
@@ -69,6 +73,22 @@
           "allowlisted_local_validator",
           "isolated_temporary_directory"
         ]
+      },
+      "fixture": {
+        "sections": [
+          "mobile_metadata_regressions",
+          "design_metadata_regressions",
+          "design_search_regressions",
+          "agent_review_regressions",
+          "pr_design_gate_regressions"
+        ],
+        "capabilities": [
+          "isolated_system_temporary_directory",
+          "section_exact_local_validator_allowlist",
+          "controlled_fixture_copy_and_removal",
+          "pr_body_only_environment_override",
+          "no_remote_or_repository_mutation"
+        ]
       }
     },
     "capability_enforcement": {
@@ -78,17 +98,14 @@
       ],
       "runtime_context_profiles_enforced": true,
       "read_only_profile_forbidden_imports_and_calls": true,
+      "all_sections_explicit_validate_context": true,
+      "direct_process_network_and_temp_imports_forbidden": true,
+      "repository_derived_fixture_writes_forbidden": true,
+      "exec_calls_forbidden": true,
       "github_api_get_full_mode_only": true,
-      "legacy_design_remote_commands_forbidden": true,
       "runtime_smoke_sections_forbidden": true,
       "executable_top_level_statements_forbidden": true,
       "validate_context_signature_required": true
-    },
-    "transitional_legacy_adapter": {
-      "section": "design_governance",
-      "implementation": "scripts/harness_validator/legacy.py",
-      "only_allowed_exec_path": true,
-      "removal_gate": "split_design_governance_modules_and_migrate_agent_review_regressions"
     },
     "formats": [
       "text",
@@ -212,9 +229,10 @@
       "sections": [
         "governance_contracts",
         "agent_run_record",
+        "agent_review_regressions",
         "delivery_runtime"
       ],
-      "responsibility": "Check branch policy, hooks, branch protection, workflow wiring, PR body gates, and local delivery validators.",
+      "responsibility": "Check branch policy, hooks, branch protection, workflow wiring, Agent review regressions, PR body gates, and local delivery validators.",
       "side_effect_policy": "allowed_local_commands_and_remote_github_reads",
       "allowed_operations": [
         "git_read_commands",
@@ -233,7 +251,11 @@
       "id": "design_governance_layer",
       "name": "Design governance and design-search regressions",
       "sections": [
-        "design_governance"
+        "design_contracts",
+        "mobile_metadata_regressions",
+        "design_metadata_regressions",
+        "design_search_regressions",
+        "pr_design_gate_regressions"
       ],
       "responsibility": "Check design artifact lifecycle, quarantine, single-card UX contract, design-search fixtures, and visual-output PR gate regressions.",
       "side_effect_policy": "allowed_temporary_design_fixtures_no_remote",
@@ -279,8 +301,13 @@
     "workspace_boundary",
     "governance_contracts",
     "agent_run_record",
+    "agent_review_regressions",
     "delivery_runtime",
-    "design_governance"
+    "design_contracts",
+    "mobile_metadata_regressions",
+    "design_metadata_regressions",
+    "design_search_regressions",
+    "pr_design_gate_regressions"
   ],
   "pure_sections": [
     "prelude",
@@ -288,11 +315,16 @@
     "harness_architecture",
     "product_contract_mirrors",
     "visual_language",
-    "workspace_boundary"
+    "workspace_boundary",
+    "design_contracts"
   ],
   "sections_allowed_subprocess_or_tempfiles": [
     "delivery_runtime",
-    "design_governance"
+    "agent_review_regressions",
+    "mobile_metadata_regressions",
+    "design_metadata_regressions",
+    "design_search_regressions",
+    "pr_design_gate_regressions"
   ],
   "sections_allowed_remote_github_reads": [
     "delivery_runtime"
@@ -320,8 +352,13 @@
     },
     {
       "id": "HA-AP-05",
-      "name": "share_mutable_section_globals_or_use_exec_outside_the_declared_legacy_adapter",
-      "correction": "run_each_section_as_validate_context_in_an_isolated_worker_and_restrict_exec_to_the_temporary_design_governance_adapter_until_its_split"
+      "name": "share_mutable_section_globals_or_use_exec_in_harness_runtime",
+      "correction": "run_each_section_as_validate_context_in_an_isolated_worker_and_forbid_exec_throughout_the_harness_runtime"
+    },
+    {
+      "id": "HA-AP-06",
+      "name": "let_fixture_regressions_write_repository_derived_paths_or_run_arbitrary_validators",
+      "correction": "use_the_section_exact_fixture_context_allowlist_and_system_temporary_roots_with_ast_repository_path_guards"
     }
   ]
 }

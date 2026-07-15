@@ -373,10 +373,11 @@
         "no_argument_runner_executes_full_remote_validation",
         "local_or_selected_runner_reports_partial_completeness",
         "section_exception_does_not_suppress_later_diagnostics",
-        "non_legacy_sections_export_validate_context",
+        "all_sections_export_validate_context",
         "each_selected_section_runs_in_an_isolated_worker",
         "section_timeout_is_attributed_and_does_not_suppress_later_diagnostics",
-        "design_governance_is_the_only_declared_transitional_legacy_adapter"
+        "agent_review_regressions_belong_to_delivery_governance",
+        "zero_legacy_exec_paths"
       ]
     },
     {
@@ -387,6 +388,7 @@
         "choose_layer_before_implementation",
         "pure_layers_no_subprocess_or_remote_reads",
         "read_only_context_and_ast_capability_enforcement",
+        "fixture_context_exact_validator_and_system_temp_enforcement",
         "delivery_governance_for_branch_pr_ci_wiring",
         "design_governance_for_design_artifact_regressions",
         "runtime_tests_stay_in_ci_jobs"
@@ -725,7 +727,8 @@
         "isolated_section_worker_processes",
         "section_timeout_isolated_with_remaining_diagnostics",
         "ast_enforced_read_only_capability_boundary",
-        "declared_transitional_design_legacy_adapter"
+        "ast_enforced_fixture_capability_boundary",
+        "zero_legacy_exec_paths"
       ]
     },
     {

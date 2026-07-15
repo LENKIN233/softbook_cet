@@ -7,7 +7,13 @@ import unittest
 from pathlib import Path
 
 from harness_validator.capability_ast import validate_section_module
-from harness_validator.context import CapabilityError, DeliveryContext, ReadOnlyContext
+from harness_validator.context import (
+    CapabilityError,
+    DeliveryContext,
+    FixtureContext,
+    ReadOnlyContext,
+    context_for_layer,
+)
 from harness_validator.runner import HARNESS_LAYERS, SECTION_DIR
 
 
@@ -15,12 +21,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class HarnessModuleBoundaryTests(unittest.TestCase):
-    def test_all_migrated_real_sections_have_valid_module_boundaries(self):
+    def test_all_real_sections_have_valid_explicit_module_boundaries(self):
         violations = []
         for layer in HARNESS_LAYERS:
             for section in layer["sections"]:
-                if section == "design_governance":
-                    continue
                 for message in validate_section_module(
                     SECTION_DIR / f"{section}.py",
                     section=section,
@@ -30,7 +34,23 @@ class HarnessModuleBoundaryTests(unittest.TestCase):
 
         self.assertEqual(violations, [])
 
-    def test_each_pure_layer_rejects_an_owner_contract_break(self):
+    def test_each_owned_layer_rejects_a_known_section_from_another_owner(self):
+        cases = (
+            ("bootstrap_layer", "truth_mirrors"),
+            ("truth_spec_layer", "prelude"),
+            ("workspace_hygiene_layer", "design_contracts"),
+            ("delivery_governance_layer", "design_contracts"),
+            ("design_governance_layer", "agent_review_regressions"),
+        )
+        for layer, section in cases:
+            with self.subTest(layer=layer), self.section_module("pass\n") as path:
+                violations = validate_section_module(path, section=section, layer=layer)
+                self.assertTrue(
+                    any("must be owned" in violation for violation in violations),
+                    violations,
+                )
+
+    def test_each_pure_layer_rejects_a_direct_capability_break(self):
         cases = {
             "bootstrap_layer": "import subprocess\nsubprocess.run(['true'])\n",
             "truth_spec_layer": "context.root.joinpath('x').write_text('bad')\n",
@@ -45,7 +65,10 @@ class HarnessModuleBoundaryTests(unittest.TestCase):
                 )
                 self.assertTrue(violations)
                 self.assertTrue(
-                    any("forbidden" in violation for violation in violations),
+                    any(
+                        "forbidden" in violation or "mutation" in violation
+                        for violation in violations
+                    ),
                     violations,
                 )
 
@@ -67,17 +90,97 @@ class HarnessModuleBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(CapabilityError, "outside full mode"):
             context.run_command("gh", "api", "repos/LENKIN233/softbook_cet")
 
-    def test_design_layer_rejects_remote_command_during_legacy_transition(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            path = Path(tmpdir) / "design_governance.py"
-            path.write_text("subprocess.run(['gh', 'api'])\n", encoding="utf-8")
+    def test_fixture_section_rejects_direct_remote_or_process_capabilities(self):
+        body = "import subprocess\nsubprocess.run(['gh', 'api'])\n"
+        with self.section_module(body) as path:
             violations = validate_section_module(
                 path,
-                section="design_governance",
+                section="design_search_regressions",
                 layer="design_governance_layer",
             )
 
-        self.assertTrue(any("forbidden remote command gh" in item for item in violations))
+        self.assertTrue(
+            any("forbidden direct capability subprocess" in item for item in violations),
+            violations,
+        )
+
+    def test_fixture_section_rejects_repository_derived_write(self):
+        body = "target = context.root / 'leak'\ntarget.write_text('bad')\n"
+        with self.section_module(body) as path:
+            violations = validate_section_module(
+                path,
+                section="design_search_regressions",
+                layer="design_governance_layer",
+            )
+
+        self.assertTrue(
+            any("mutates a repository-derived path" in item for item in violations),
+            violations,
+        )
+
+    def test_fixture_section_rejects_write_without_fixture_provenance(self):
+        body = "from pathlib import Path\nPath('/tmp/leak').write_text('bad')\n"
+        with self.section_module(body) as path:
+            violations = validate_section_module(
+                path,
+                section="design_search_regressions",
+                layer="design_governance_layer",
+            )
+
+        self.assertTrue(
+            any("not proven to be fixture-derived" in item for item in violations),
+            violations,
+        )
+
+    def test_fixture_context_uses_system_temp_and_cleans_it(self):
+        context = FixtureContext(
+            root=ROOT,
+            mode="local",
+            section="design_search_regressions",
+        )
+
+        with context.temporary_directory(prefix="boundary-test") as fixture_root:
+            self.assertNotEqual(fixture_root, ROOT)
+            self.assertNotIn(ROOT, fixture_root.parents)
+            self.assertTrue(fixture_root.exists())
+        self.assertFalse(fixture_root.exists())
+
+    def test_fixture_context_rejects_unallowlisted_validator_cwd_and_env(self):
+        context = FixtureContext(
+            root=ROOT,
+            mode="local",
+            section="design_search_regressions",
+        )
+        with self.assertRaisesRegex(CapabilityError, "not allowlisted"):
+            context.run_validator("scripts/validate_agent_review.py")
+        with self.assertRaisesRegex(CapabilityError, "outside repository and fixture roots"):
+            context.run_validator(
+                "scripts/validate_design_search_run.py",
+                cwd=ROOT.parent,
+            )
+        with self.assertRaisesRegex(CapabilityError, "non-allowlisted keys"):
+            context.run_validator(
+                "scripts/validate_design_search_run.py",
+                env={"TOKEN": "secret"},
+            )
+
+    def test_context_factory_moves_agent_review_regressions_to_delivery(self):
+        delivery_fixture = context_for_layer(
+            layer="delivery_governance_layer",
+            root=ROOT,
+            mode="local",
+            section="agent_review_regressions",
+        )
+        wrong_owner = context_for_layer(
+            layer="design_governance_layer",
+            root=ROOT,
+            mode="local",
+            section="agent_review_regressions",
+        )
+
+        self.assertIsInstance(delivery_fixture, FixtureContext)
+        self.assertIsInstance(wrong_owner, ReadOnlyContext)
+        self.assertNotIsInstance(wrong_owner, FixtureContext)
 
     def test_runtime_smoke_layer_rejects_runnable_harness_section(self):
         with self.section_module("pass\n") as path:
@@ -129,14 +232,15 @@ class HarnessModuleBoundaryTests(unittest.TestCase):
         self.assertTrue(any("cannot have decorators" in item for item in violations))
         self.assertTrue(any("decorators and defaults are forbidden" in item for item in violations))
 
-    def test_read_only_context_exposes_no_command_or_temporary_capability(self):
+    def test_read_only_context_exposes_no_command_fixture_or_temp_capability(self):
         context = ReadOnlyContext(root=ROOT, mode="local", section="truth_mirrors")
 
         self.assertFalse(hasattr(context, "run_command"))
+        self.assertFalse(hasattr(context, "run_validator"))
         self.assertFalse(hasattr(context, "temporary_directory"))
         self.assertFalse(hasattr(context, "mark_remote_guard_executed"))
 
-    def test_exec_call_exists_only_in_legacy_adapter(self):
+    def test_exec_call_does_not_exist_in_harness_runtime(self):
         calls = []
         harness_dir = ROOT / "scripts" / "harness_validator"
         for path in harness_dir.rglob("*.py"):
@@ -146,7 +250,7 @@ class HarnessModuleBoundaryTests(unittest.TestCase):
                     if node.func.id == "exec":
                         calls.append(path.relative_to(ROOT).as_posix())
 
-        self.assertEqual(calls, ["scripts/harness_validator/legacy.py"])
+        self.assertEqual(calls, [])
 
     @staticmethod
     def section_module(body: str):

@@ -424,9 +424,10 @@
         "isolated_section_workers",
         "read_only_context_capability_enforcement",
         "section_timeout_isolation",
-        "transitional_design_legacy_adapter"
+        "fixture_context_capability_enforcement",
+        "zero_legacy_exec_paths"
       ],
-      "stop_when": "each non-legacy harness section exposes validate(context), runs in an isolated bounded worker, has exactly one layer owner, and side effects are confined to its explicit context capability or delegated CI job; only the declared design adapter may remain legacy",
+      "stop_when": "every harness section exposes validate(context), runs in an isolated bounded worker, has exactly one layer owner, confines side effects to its explicit context capability or delegated CI job, and no legacy exec adapter remains",
       "blocked_when": "a validator change adds remote, runtime, generated, dependency, or temporary-fixture behavior to a pure truth or workspace layer"
     },
     "agent_run_record": {

@@ -40,11 +40,22 @@ HARNESS_LAYERS = (
     },
     {
         "id": "delivery_governance_layer",
-        "sections": ("governance_contracts", "agent_run_record", "delivery_runtime"),
+        "sections": (
+            "governance_contracts",
+            "agent_run_record",
+            "agent_review_regressions",
+            "delivery_runtime",
+        ),
     },
     {
         "id": "design_governance_layer",
-        "sections": ("design_governance",),
+        "sections": (
+            "design_contracts",
+            "mobile_metadata_regressions",
+            "design_metadata_regressions",
+            "design_search_regressions",
+            "pr_design_gate_regressions",
+        ),
     },
     {
         "id": "runtime_smoke_layer",
@@ -57,6 +68,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SECTION_WORKER = Path(__file__).resolve().parent / "section_worker.py"
 DEFAULT_SECTION_TIMEOUT_SECONDS = 30.0
 SECTION_DEPENDENCIES = {
+    "agent_review_regressions": ("governance_contracts",),
     "delivery_runtime": ("governance_contracts",),
 }
 

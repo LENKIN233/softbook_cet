@@ -12,7 +12,6 @@ sys.dont_write_bytecode = True
 os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
 
 from context import context_for_layer
-from legacy import validate_legacy_design
 
 
 def parse_args():
@@ -50,10 +49,7 @@ def main() -> int:
     )
     exception = None
     try:
-        if args.section == "design_governance":
-            validate_legacy_design(context, section_path)
-        else:
-            load_validate(section_path, args.section)(context)
+        load_validate(section_path, args.section)(context)
     except (Exception, SystemExit) as exc:
         exception = {
             "type": type(exc).__name__,
