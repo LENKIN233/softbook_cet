@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import signal
+import subprocess
 import sys
 import time
 from dataclasses import dataclass
@@ -10,14 +12,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Sequence
 
+from .capability_ast import validate_section_module
+
 sys.dont_write_bytecode = True
 os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
 
 RESULT_SCHEMA_VERSION = "harness-result.v1"
 CATALOG_SCHEMA_VERSION = "harness-catalog.v1"
 
-# Sections still run in one shared environment to preserve the legacy top-level
-# validator semantics. Explicit validate(context) modules replace this in PR 2.
 HARNESS_LAYERS = (
     {
         "id": "bootstrap_layer",
@@ -51,6 +53,9 @@ HARNESS_LAYERS = (
 )
 
 SECTION_DIR = Path(__file__).resolve().parent / "sections"
+ROOT = Path(__file__).resolve().parents[2]
+SECTION_WORKER = Path(__file__).resolve().parent / "section_worker.py"
+DEFAULT_SECTION_TIMEOUT_SECONDS = 30.0
 SECTION_DEPENDENCIES = {
     "delivery_runtime": ("governance_contracts",),
 }
@@ -189,17 +194,6 @@ def resolve_sections(
     return tuple(section for section in canonical if section in selected)
 
 
-def _execute_section(
-    section: str,
-    env: dict[str, object],
-    *,
-    section_dir: Path = SECTION_DIR,
-) -> None:
-    section_path = section_dir / f"{section}.py"
-    code = compile(section_path.read_text(encoding="utf-8"), str(section_path), "exec")
-    exec(code, env)
-
-
 def _finding(
     *,
     layer: str,
@@ -222,94 +216,157 @@ def _finding(
 def _run_section(
     section: str,
     layer: str,
-    env: dict[str, object],
     *,
+    mode: str,
     section_dir: Path,
+    section_timeout_seconds: float,
+    worker_path: Path,
     clock=time.perf_counter,
 ) -> dict[str, object]:
-    existing_errors = env.get("errors")
-    before_errors = list(existing_errors) if isinstance(existing_errors, list) else []
-    before_count = len(before_errors)
     findings: list[dict[str, object]] = []
     started = clock()
-
-    try:
-        _execute_section(section, env, section_dir=section_dir)
-    except (Exception, SystemExit) as exc:
+    section_path = section_dir / f"{section}.py"
+    boundary_errors = validate_section_module(
+        section_path,
+        section=section,
+        layer=layer,
+    )
+    for message in boundary_errors:
         findings.append(
             _finding(
                 layer=layer,
                 section=section,
-                finding_type="exception",
+                finding_type="capability_violation",
+                message=message,
+            )
+        )
+
+    remote_guard_executed = False
+    if boundary_errors:
+        duration_ms = round((clock() - started) * 1000, 3)
+        return {
+            "layer": layer,
+            "section": section,
+            "status": "failed",
+            "duration_ms": duration_ms,
+            "findings": findings,
+            "_remote_guard_executed": False,
+        }
+
+    command = [
+        sys.executable,
+        str(worker_path),
+        "--root",
+        str(ROOT),
+        "--section-dir",
+        str(section_dir),
+        "--section",
+        section,
+        "--layer",
+        layer,
+        "--mode",
+        mode,
+    ]
+    try:
+        process = subprocess.Popen(
+            command,
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            start_new_session=True,
+        )
+    except OSError as exc:
+        findings.append(
+            _finding(
+                layer=layer,
+                section=section,
+                finding_type="worker_start_error",
                 message=str(exc) or type(exc).__name__,
                 exception_type=type(exc).__name__,
             )
         )
-
-    duration_ms = round((clock() - started) * 1000, 3)
-    current_errors = env.get("errors")
-    if isinstance(current_errors, list):
-        current_snapshot = list(current_errors)
-        collection_invalid = (
-            section != "prelude"
-            and (
-                not isinstance(existing_errors, list)
-                or current_errors is not existing_errors
-                or current_snapshot[:before_count] != before_errors
-            )
-        )
-        if collection_invalid:
-            findings.append(
-                _finding(
-                    layer=layer,
-                    section=section,
-                    finding_type="invalid_error_collection",
-                    message="section must preserve the shared errors list as append-only",
-                )
-            )
-            if current_snapshot[:before_count] == before_errors:
-                section_errors = current_snapshot[before_count:]
-            else:
-                section_errors = current_snapshot
-
-            if isinstance(existing_errors, list):
-                existing_errors[:] = [*before_errors, *section_errors]
-                env["errors"] = existing_errors
-            else:
-                env["errors"] = list(section_errors)
-        else:
-            section_errors = current_snapshot[before_count:]
-
-        for error in section_errors:
-            findings.append(
-                _finding(
-                    layer=layer,
-                    section=section,
-                    finding_type="check_failure",
-                    message=str(error),
-                )
-            )
-    else:
+        return {
+            "layer": layer,
+            "section": section,
+            "status": "failed",
+            "duration_ms": round((clock() - started) * 1000, 3),
+            "findings": findings,
+            "_remote_guard_executed": False,
+        }
+    try:
+        stdout, stderr = process.communicate(timeout=section_timeout_seconds)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        stdout, stderr = process.communicate()
         findings.append(
             _finding(
                 layer=layer,
                 section=section,
-                finding_type="invalid_error_collection",
-                message="section must preserve the shared errors list",
+                finding_type="timeout",
+                message=f"section exceeded {section_timeout_seconds:g}s timeout",
+                exception_type="TimeoutExpired",
             )
         )
-        if isinstance(existing_errors, list):
-            existing_errors[:] = before_errors
-            env["errors"] = existing_errors
+    else:
+        if process.returncode != 0:
+            findings.append(
+                _finding(
+                    layer=layer,
+                    section=section,
+                    finding_type="worker_error",
+                    message=(stderr.strip() or f"section worker exited {process.returncode}"),
+                )
+            )
         else:
-            env["errors"] = []
+            try:
+                payload = json.loads(stdout)
+                errors = payload["errors"]
+                exception = payload["exception"]
+                remote_guard_executed = bool(payload["remote_guard_executed"])
+                if not isinstance(errors, list):
+                    raise TypeError("worker errors field must be a list")
+                if exception is not None:
+                    findings.append(
+                        _finding(
+                            layer=layer,
+                            section=section,
+                            finding_type="exception",
+                            message=str(exception["message"]),
+                            exception_type=str(exception["type"]),
+                        )
+                    )
+                for error in errors:
+                    findings.append(
+                        _finding(
+                            layer=layer,
+                            section=section,
+                            finding_type="check_failure",
+                            message=str(error),
+                        )
+                    )
+            except (json.JSONDecodeError, KeyError, TypeError) as exc:
+                findings.append(
+                    _finding(
+                        layer=layer,
+                        section=section,
+                        finding_type="worker_protocol_error",
+                        message=f"invalid section worker result: {exc}",
+                        exception_type=type(exc).__name__,
+                    )
+                )
 
+    duration_ms = round((clock() - started) * 1000, 3)
     return {
         "layer": layer,
         "section": section,
         "status": "failed" if findings else "passed",
         "duration_ms": duration_ms,
         "findings": findings,
+        "_remote_guard_executed": remote_guard_executed,
     }
 
 
@@ -318,6 +375,8 @@ def run_harness(
     *,
     layers=HARNESS_LAYERS,
     section_dir: Path = SECTION_DIR,
+    section_timeout_seconds: float = DEFAULT_SECTION_TIMEOUT_SECONDS,
+    worker_path: Path = SECTION_WORKER,
     clock=time.perf_counter,
 ) -> dict[str, object]:
     started_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -326,16 +385,9 @@ def run_harness(
     selected = resolve_sections(options, layers=layers)
     selected_set = set(selected)
     owners = _section_owners(layers)
-    env: dict[str, object] = {
-        "__file__": str(Path(__file__).resolve().parents[1] / "validate_harness.py"),
-        "__name__": "__validate_harness_runtime__",
-        "errors": [],
-        "HARNESS_SKIP_REMOTE_GUARD": options.mode == "local",
-        "HARNESS_REMOTE_GUARD_EXECUTED": False,
-    }
-
     section_results: list[dict[str, object]] = []
     findings: list[dict[str, object]] = []
+    remote_guard_executed = False
     for section in canonical:
         layer = owners[section]
         if section not in selected_set:
@@ -353,15 +405,18 @@ def run_harness(
         result = _run_section(
             section,
             layer,
-            env,
+            mode=options.mode,
             section_dir=section_dir,
+            section_timeout_seconds=section_timeout_seconds,
+            worker_path=worker_path,
             clock=clock,
         )
+        section_remote_guard_executed = bool(result.pop("_remote_guard_executed"))
+        remote_guard_executed = remote_guard_executed or section_remote_guard_executed
         section_results.append(result)
         findings.extend(result["findings"])
 
     all_sections_selected = selected == canonical
-    remote_guard_executed = bool(env.get("HARNESS_REMOTE_GUARD_EXECUTED", False))
     complete = all_sections_selected and remote_guard_executed
     status = "failed" if findings else "passed"
     duration_ms = round((clock() - started) * 1000, 3)

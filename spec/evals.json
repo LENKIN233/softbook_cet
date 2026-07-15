@@ -369,10 +369,14 @@
         "workspace_hygiene_layer_is_pure",
         "delivery_governance_layer_may_read_git_and_github",
         "design_governance_layer_uses_local_fixtures_no_remote",
-        "runtime_smoke_layer_delegated_to_backend_contract_and_mobile_quality",
-        "no_argument_runner_executes_full_remote_validation",
-        "local_or_selected_runner_reports_partial_completeness",
-        "section_exception_does_not_suppress_later_diagnostics"
+      "runtime_smoke_layer_delegated_to_backend_contract_and_mobile_quality",
+      "no_argument_runner_executes_full_remote_validation",
+      "local_or_selected_runner_reports_partial_completeness",
+      "section_exception_does_not_suppress_later_diagnostics",
+      "non_legacy_sections_export_validate_context",
+      "each_selected_section_runs_in_an_isolated_worker",
+      "section_timeout_is_attributed_and_does_not_suppress_later_diagnostics",
+      "design_governance_is_the_only_declared_transitional_legacy_adapter"
       ]
     },
     {
@@ -381,8 +385,9 @@
       "fail_signal": "adds_check_to_any_section_without_layer_owner_or_puts_side_effects_in_truth_workspace_layer",
       "must_hit": [
         "choose_layer_before_implementation",
-        "pure_layers_no_subprocess_or_remote_reads",
-        "delivery_governance_for_branch_pr_ci_wiring",
+      "pure_layers_no_subprocess_or_remote_reads",
+      "read_only_context_and_ast_capability_enforcement",
+      "delivery_governance_for_branch_pr_ci_wiring",
         "design_governance_for_design_artifact_regressions",
         "runtime_tests_stay_in_ci_jobs"
       ]
@@ -713,9 +718,14 @@
         "pure_local_file_checks",
         "runtime_smoke_delegated_to_backend_contract_and_mobile_quality",
         "structured_runner_interface",
-        "harness_result_v1",
-        "partial_result_cannot_satisfy_full_validation",
-        "section_exception_isolated_with_remaining_diagnostics"
+      "harness_result_v1",
+      "partial_result_cannot_satisfy_full_validation",
+      "section_exception_isolated_with_remaining_diagnostics",
+      "explicit_validate_context_modules",
+      "isolated_section_worker_processes",
+      "section_timeout_isolated_with_remaining_diagnostics",
+      "ast_enforced_read_only_capability_boundary",
+      "declared_transitional_design_legacy_adapter"
       ]
     },
     {

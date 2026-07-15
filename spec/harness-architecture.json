@@ -1,5 +1,5 @@
 {
-  "version": "vnext-2",
+  "version": "vnext-3",
   "layer": "repo_governance_truth",
   "purpose": "Define the architecture of scripts/validate_harness.py so harness checks are separated into explicit layers instead of an accident-prone linear pile of regressions.",
   "authority_note": "This file owns validator layer boundaries, section ownership, and side-effect policy. It does not own product truth, UI design truth, workspace classification, or PR delivery policy; those remain in their owner specs.",
@@ -28,11 +28,62 @@
       "--layer",
       "--section"
     ],
-    "selection_dependency_policy": "shared_environment_prerequisites_are_added_and_reported_in_selected_sections",
+    "selection_dependency_policy": "declared_logical_prerequisites_are_added_and_reported_in_selected_sections",
     "section_dependencies": {
       "delivery_runtime": [
         "governance_contracts"
       ]
+    },
+    "section_interface": "def validate(context) -> None",
+    "execution_model": {
+      "isolation": "one_python_worker_process_per_selected_section",
+      "default_timeout_seconds": 30,
+      "timeout_behavior": "terminate_worker_process_group_record_timeout_finding_and_continue",
+      "worker_protocol": "json_errors_exception_and_remote_guard_execution"
+    },
+    "context_profiles": {
+      "read_only": {
+        "sections": [
+          "prelude",
+          "truth_mirrors",
+          "harness_architecture",
+          "product_contract_mirrors",
+          "visual_language",
+          "workspace_boundary",
+          "governance_contracts",
+          "agent_run_record"
+        ],
+        "capabilities": [
+          "read_repository_files",
+          "load_specs",
+          "record_findings"
+        ]
+      },
+      "delivery": {
+        "sections": [
+          "delivery_runtime"
+        ],
+        "capabilities": [
+          "allowlisted_git_reads",
+          "github_api_get",
+          "allowlisted_local_validator",
+          "isolated_temporary_directory"
+        ]
+      }
+    },
+    "capability_enforcement": {
+      "implementation": "scripts/harness_validator/capability_ast.py",
+      "read_only_profile_forbidden_imports_and_calls": true,
+      "legacy_design_remote_commands_forbidden": true,
+      "runtime_smoke_sections_forbidden": true,
+      "executable_top_level_statements_forbidden": true,
+      "validate_context_signature_required": true
+    },
+    "transitional_legacy_adapter": {
+      "section": "design_governance",
+      "implementation": "scripts/harness_validator/legacy.py",
+      "only_allowed_exec_path": true,
+      "removal_gate": "split_design_governance_modules_and_migrate_agent_review_regressions"
     },
     "formats": [
       "text",
@@ -79,18 +130,21 @@
         "partial"
       ],
       "partial_pass_is_not_full_validation": true,
-      "section_exception_isolated": true
+      "section_exception_isolated": true,
+      "section_timeout_isolated": true,
+      "capability_violation_is_finding": true
     },
-    "unit_test_command": "python3 scripts/test_validate_harness_runner.py"
+    "unit_test_command": "python3 scripts/test_validate_harness_runner.py",
+    "boundary_test_command": "python3 scripts/test_harness_module_boundaries.py"
   },
   "layers": [
     {
       "id": "bootstrap_layer",
-      "name": "Bootstrap shared runtime",
+      "name": "Bootstrap spec readability",
       "sections": [
         "prelude"
       ],
-      "responsibility": "Create the shared validation environment and load active specs.",
+      "responsibility": "Verify that required active specs are independently readable without creating shared section state.",
       "side_effect_policy": "local_read_and_environment_setup_only",
       "allowed_operations": [
         "read_local_specs",
@@ -224,6 +278,7 @@
     "design_governance"
   ],
   "pure_sections": [
+    "prelude",
     "truth_mirrors",
     "harness_architecture",
     "product_contract_mirrors",
@@ -231,7 +286,6 @@
     "workspace_boundary"
   ],
   "sections_allowed_subprocess_or_tempfiles": [
-    "governance_contracts",
     "delivery_runtime",
     "design_governance"
   ],
@@ -258,6 +312,11 @@
       "id": "HA-AP-04",
       "name": "treat_partial_or_local_harness_result_as_complete",
       "correction": "require_full_mode_all_sections_and_remote_guard_before_claiming_complete_harness_validation"
+    },
+    {
+      "id": "HA-AP-05",
+      "name": "share_mutable_section_globals_or_use_exec_outside_the_declared_legacy_adapter",
+      "correction": "run_each_section_as_validate_context_in_an_isolated_worker_and_restrict_exec_to_the_temporary_design_governance_adapter_until_its_split"
     }
   ]
 }

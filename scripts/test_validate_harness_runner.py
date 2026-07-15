@@ -8,8 +8,10 @@ import os
 import subprocess
 import sys
 import tempfile
+import textwrap
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from harness_validator.runner import (
     RESULT_SCHEMA_VERSION,
@@ -58,7 +60,7 @@ class HarnessRunnerTests(unittest.TestCase):
 
     def test_section_selection_adds_prelude_and_marks_other_sections_skipped(self):
         with self.section_directory(
-            prelude="errors = []\n",
+            prelude="pass\n",
             alpha="errors.append('alpha must not run')\n",
             beta="marker = 'beta-ran'\n",
         ) as section_dir:
@@ -78,7 +80,7 @@ class HarnessRunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no runnable Harness sections"):
             resolve_sections(options, layers=TEST_LAYERS)
 
-    def test_section_selection_expands_declared_shared_environment_dependencies(self):
+    def test_section_selection_expands_declared_logical_prerequisites(self):
         options = RunnerOptions(sections=("delivery_runtime",))
         selected = resolve_sections(options)
 
@@ -89,7 +91,7 @@ class HarnessRunnerTests(unittest.TestCase):
 
     def test_section_exception_does_not_hide_later_diagnostics(self):
         with self.section_directory(
-            prelude="errors = []\n",
+            prelude="pass\n",
             alpha="errors.append('alpha finding')\nraise RuntimeError('alpha exploded')\n",
             beta="errors.append('beta finding')\n",
         ) as section_dir:
@@ -109,9 +111,9 @@ class HarnessRunnerTests(unittest.TestCase):
         self.assertIn("exception", finding_types)
         self.assertEqual(result["sections"][2]["status"], "failed")
 
-    def test_multiple_legacy_errors_are_attributed_to_their_section(self):
+    def test_multiple_module_errors_are_attributed_to_their_section(self):
         with self.section_directory(
-            prelude="errors = []\n",
+            prelude="pass\n",
             alpha="errors.extend(['first', 'second'])\n",
             beta="pass\n",
         ) as section_dir:
@@ -130,39 +132,33 @@ class HarnessRunnerTests(unittest.TestCase):
             all(finding["section"] == "alpha" for finding in alpha_findings)
         )
 
-    def test_replaced_or_mutated_error_collection_cannot_hide_findings(self):
-        replacement_layers = (
+    def test_section_error_lists_are_isolated(self):
+        isolated_layers = (
             {"id": "bootstrap_layer", "sections": ("prelude",)},
-            {"id": "test_layer", "sections": ("alpha", "beta", "gamma", "delta")},
+            {"id": "test_layer", "sections": ("alpha", "beta")},
         )
         with self.section_directory(
-            prelude="errors = []\n",
-            alpha="errors.extend(['prior one', 'prior two'])\n",
-            beta="errors = ['replacement finding']\n",
-            gamma="errors.clear()\nerrors.append('in-place finding')\n",
-            delta="errors.append('later finding')\n",
+            prelude="pass\n",
+            alpha="errors.append('alpha only')\n",
+            beta=(
+                "if errors:\n"
+                "    raise RuntimeError('beta inherited another section errors')\n"
+                "errors.append('beta only')\n"
+            ),
         ) as section_dir:
             result = run_harness(
                 RunnerOptions(),
-                layers=replacement_layers,
+                layers=isolated_layers,
                 section_dir=section_dir,
             )
 
-        beta_findings = result["sections"][2]["findings"]
         self.assertEqual(
-            [finding["type"] for finding in beta_findings],
-            ["invalid_error_collection", "check_failure"],
+            [finding["message"] for finding in result["sections"][1]["findings"]],
+            ["alpha only"],
         )
-        self.assertEqual(beta_findings[1]["message"], "replacement finding")
-        gamma_findings = result["sections"][3]["findings"]
         self.assertEqual(
-            [finding["type"] for finding in gamma_findings],
-            ["invalid_error_collection", "check_failure"],
-        )
-        self.assertEqual(gamma_findings[1]["message"], "in-place finding")
-        self.assertEqual(
-            [finding["message"] for finding in result["sections"][4]["findings"]],
-            ["later finding"],
+            [finding["message"] for finding in result["sections"][2]["findings"]],
+            ["beta only"],
         )
 
     def test_local_mode_is_injected_without_remote_guard_access(self):
@@ -171,13 +167,10 @@ class HarnessRunnerTests(unittest.TestCase):
             {"id": "delivery_governance_layer", "sections": ("delivery_runtime",)},
         )
         with self.section_directory(
-            prelude=(
-                "errors = []\n"
-                "SKIP_REMOTE_GUARD = bool(HARNESS_SKIP_REMOTE_GUARD)\n"
-            ),
+            prelude="pass\n",
             delivery_runtime=(
-                "if not SKIP_REMOTE_GUARD:\n"
-                "    HARNESS_REMOTE_GUARD_EXECUTED = True\n"
+                "if context.mode == 'full':\n"
+                "    context.mark_remote_guard_executed()\n"
                 "    errors.append('remote guard attempted')\n"
             ),
         ) as section_dir:
@@ -196,6 +189,70 @@ class HarnessRunnerTests(unittest.TestCase):
         self.assertFalse(local["completeness"]["remote_guard_executed"])
         self.assertEqual(full["status"], "failed")
         self.assertTrue(full["completeness"]["remote_guard_executed"])
+
+    def test_section_timeout_is_attributed_and_later_sections_still_run(self):
+        with self.section_directory(
+            prelude="pass\n",
+            alpha="import time\ntime.sleep(5)\n",
+            beta="errors.append('beta after timeout')\n",
+        ) as section_dir:
+            result = run_harness(
+                RunnerOptions(mode="local"),
+                layers=TEST_LAYERS,
+                section_dir=section_dir,
+                section_timeout_seconds=0.1,
+            )
+
+        self.assertEqual(result["sections"][1]["findings"][0]["type"], "timeout")
+        self.assertEqual(
+            [finding["message"] for finding in result["sections"][2]["findings"]],
+            ["beta after timeout"],
+        )
+
+    def test_worker_start_error_is_attributed_for_every_selected_section(self):
+        with self.section_directory(
+            prelude="pass\n",
+            alpha="pass\n",
+            beta="pass\n",
+        ) as section_dir:
+            with mock.patch(
+                "harness_validator.runner.subprocess.Popen",
+                side_effect=OSError("worker unavailable"),
+            ):
+                result = run_harness(
+                    RunnerOptions(mode="local"),
+                    layers=TEST_LAYERS,
+                    section_dir=section_dir,
+                )
+
+        self.assertEqual(result["summary"]["failed"], 3)
+        self.assertTrue(
+            all(
+                section["findings"][0]["type"] == "worker_start_error"
+                for section in result["sections"]
+            )
+        )
+
+    def test_pure_section_capability_violation_fails_before_execution(self):
+        pure_layers = (
+            {"id": "bootstrap_layer", "sections": ("prelude",)},
+            {"id": "truth_spec_layer", "sections": ("alpha",)},
+        )
+        with self.section_directory(
+            prelude="pass\n",
+            alpha="import subprocess\nsubprocess.run(['false'])\n",
+        ) as section_dir:
+            result = run_harness(
+                RunnerOptions(mode="local"),
+                layers=pure_layers,
+                section_dir=section_dir,
+            )
+
+        alpha = result["sections"][1]
+        self.assertEqual(alpha["status"], "failed")
+        self.assertTrue(
+            all(finding["type"] == "capability_violation" for finding in alpha["findings"])
+        )
 
     def test_local_cli_does_not_invoke_gh_and_full_reports_unavailable_github(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -292,7 +349,7 @@ class HarnessRunnerTests(unittest.TestCase):
 
     def test_json_result_has_stable_schema_and_structured_findings(self):
         with self.section_directory(
-            prelude="errors = []\n",
+            prelude="pass\n",
             alpha="errors.append('structured failure')\n",
             beta="pass\n",
         ) as section_dir:
@@ -324,6 +381,34 @@ class HarnessRunnerTests(unittest.TestCase):
                 for section in rendered["sections"]
             )
         )
+        self.assertTrue(
+            all(not any(key.startswith("_") for key in section) for section in rendered["sections"])
+        )
+
+    def test_remote_guard_aggregation_never_leaks_worker_protocol_fields(self):
+        layers = (
+            {"id": "bootstrap_layer", "sections": ("prelude",)},
+            {
+                "id": "delivery_governance_layer",
+                "sections": ("delivery_runtime", "after_remote_guard"),
+            },
+        )
+        with self.section_directory(
+            prelude="pass\n",
+            delivery_runtime="context.mark_remote_guard_executed()\n",
+            after_remote_guard="pass\n",
+        ) as section_dir:
+            result = run_harness(
+                RunnerOptions(),
+                layers=layers,
+                section_dir=section_dir,
+            )
+
+        self.assertTrue(result["completeness"]["remote_guard_executed"])
+        self.assertTrue(result["completeness"]["complete"])
+        self.assertTrue(
+            all(not any(key.startswith("_") for key in section) for section in result["sections"])
+        )
 
     def test_catalog_and_output_file_are_machine_readable(self):
         catalog = build_catalog(TEST_LAYERS)
@@ -343,7 +428,13 @@ class HarnessRunnerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             section_dir = Path(tmpdir)
             for section, source in sources.items():
-                (section_dir / f"{section}.py").write_text(source, encoding="utf-8")
+                module = (
+                    "from __future__ import annotations\n\n\n"
+                    "def validate(context) -> None:\n"
+                    "    errors = context.errors\n"
+                    f"{textwrap.indent(source, '    ')}"
+                )
+                (section_dir / f"{section}.py").write_text(module, encoding="utf-8")
             yield section_dir
 
     @staticmethod
