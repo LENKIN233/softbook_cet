@@ -4,7 +4,7 @@
 
 - Date: 2026-07-15
 - Branch: `infra/harness-module-boundaries`
-- PR: Pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/415
 - Summary: Replace the shared Harness execution environment for nine non-design sections with explicit `validate(context)` modules, one bounded worker process per section, least-privilege contexts, and AST-enforced capability boundaries. Preserve the existing design-governance checks behind one declared transitional adapter for the next serial PR.
 
 ## Referenced specs
