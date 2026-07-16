@@ -61,6 +61,8 @@
 - `scripts/run_local_gates --profile release --pr 417 --base origin/main` -> complete failed report with 31/34 passed, the same explicit exception/failures, and all five release gates passed: macOS, Bundler, CocoaPods deployment-lock, Release simulator build, and unsigned archive (`ARCHIVE SUCCEEDED`).
 - First GitHub run `29479409013` exposed a shallow-checkout dependency in `test_pr_context_rejects_malformed_remote_fields_and_stale_base`: `HEAD~1` was unavailable on CI. The regression now mocks two distinct valid SHA values and tests stale-base semantics without assuming checkout depth.
 - Final log review found that credential assignment redaction treated the status prefix `PASS: No ...` as a bare `pass` secret and changed diagnostic meaning. Redaction now preserves the narrow uppercase `PASS: No|OK` status form while still redacting bare `pass=<value>`, with both paths covered by the log regression.
+- Latest-head `pr` profile on `f21ce880b29a8cf90f86a934e891a3f702f9de41` -> complete 29-gate collection with 26 passed, one explicit CloudBase dependency exception, and only local strict Node/Ruby plus intentionally Pending Agent review failures; every remote gate passed and diagnostic status text remained intact.
+- GitHub technical run `29480562324` -> all eight technical jobs passed, including Ubuntu local-gate regressions and the 43m32s iOS Release simulator plus unsigned archive job; only the intentionally Pending `agent-review` job failed. Earlier PR runs were cancelled only when replacement commits were pushed, matching the concurrency contract.
 
 ## Validation results
 
@@ -80,9 +82,9 @@
 ## Agent review status
 
 - Reviewer: Codex
-- Status: Pending
-- Blocking findings: Pending fixed GitHub technical round and final required checks.
-- Review summary: Pending.
+- Status: Passed
+- Blocking findings: None.
+- Review summary: Reviewed the complete `origin/main...f21ce880` diff, all three signed commits, real dev/pr/release reports, visible dependency/toolchain exceptions, PR/base/head identity, tracked-worktree integrity, and GitHub run `29480562324`. The shallow-checkout and redaction findings were fixed with regressions; no remaining blocking code or governance finding was identified.
 
 ## User-visible UI impact
 
@@ -101,5 +103,4 @@
 
 ## Follow-up
 
-- Push the shallow-checkout-independent regression fix and require a complete GitHub technical round before changing Agent review from Pending.
-- Require all final checks on a signed review commit before merge.
+- Push this signed review record, require all nine final checks on that exact head, then mark the Draft PR ready and merge only if they remain green.
