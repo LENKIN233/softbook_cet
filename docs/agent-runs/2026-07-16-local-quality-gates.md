@@ -4,7 +4,7 @@
 
 - Date: 2026-07-16
 - Branch: `infra/local-quality-gates`
-- PR: Pending
+- PR: `#417`
 - Summary: Add an independent `dev` / `pr` / `release` local quality entrypoint with structured reports, staged diagnostics, explicit timeouts, OS-enforced offline gates, redacted logs, strict PR context, visible safety exceptions, and tracked-worktree integrity verification.
 
 ## Referenced specs
@@ -57,6 +57,9 @@
 - Dependency policy tests and `node scripts/validate_dependency_security.mjs` -> passed while explicitly reporting 3 high CloudBase `lodash.set` findings under advisory `GHSA-P6MC-M468-83GW`; mobile reported 0 production vulnerabilities.
 - `node scripts/test_report_repo_health.mjs` -> passed oversized historical blob, multi-worktree, stash, and stale-branch negative fixtures.
 - Agent evidence tests -> 4 passed; remote evidence verification passed. `git lfs fsck` -> passed.
+- `scripts/run_local_gates --profile pr --pr 417 --base origin/main` -> complete failed report with 26/29 passed, one visible dependency exception, and only the expected strict Node/Ruby mismatch plus Pending Agent review failures; PR/base/head context, full Harness, strict repo health, LFS, remote evidence, and tracked-worktree integrity passed.
+- `scripts/run_local_gates --profile release --pr 417 --base origin/main` -> complete failed report with 31/34 passed, the same explicit exception/failures, and all five release gates passed: macOS, Bundler, CocoaPods deployment-lock, Release simulator build, and unsigned archive (`ARCHIVE SUCCEEDED`).
+- First GitHub run `29479409013` exposed a shallow-checkout dependency in `test_pr_context_rejects_malformed_remote_fields_and_stale_base`: `HEAD~1` was unavailable on CI. The regression now mocks two distinct valid SHA values and tests stale-base semantics without assuming checkout depth.
 
 ## Validation results
 
@@ -65,6 +68,7 @@
 - Default execution collects every gate. Exceptions and timeouts are attributed and isolated. Diagnostic `--fail-fast` can never create a complete passing report.
 - Logs redact sensitive arguments, environment values, bearer/token patterns, and multiline PR bodies. Raw PR bodies are never persisted.
 - The current local toolchain is Python 3.12.13, Node 25.9.0, and Ruby 2.6.10. `dev` reports the compatible Node drift; `pr` and `release` fail strict Node/Ruby matching until run with Node 22.13.0 and Ruby 3.3.x.
+- Local release commands still ran after the strict preflight finding: CocoaPods completed in 7.111 s, simulator Release build in 245.191 s, and unsigned archive in 176.374 s. The complete release report took 500.235 s and preserved the tracked worktree.
 - GitHub required checks remain authoritative. The local report explicitly sets PR review, content approval, and launch readiness updates to false.
 
 ## Binary evidence
@@ -76,7 +80,7 @@
 
 - Reviewer: Codex
 - Status: Pending
-- Blocking findings: Pending committed-branch PR-profile diagnostics and GitHub required checks.
+- Blocking findings: Pending fixed GitHub technical round and final required checks.
 - Review summary: Pending.
 
 ## User-visible UI impact
@@ -96,5 +100,5 @@
 
 ## Follow-up
 
-- Run full remote Harness, commit and push the signed implementation, open a Draft PR, and run the real PR profile against its current body.
-- Require the first GitHub technical round before changing Agent review from Pending, then require all final checks on a signed review commit before merge.
+- Push the shallow-checkout-independent regression fix and require a complete GitHub technical round before changing Agent review from Pending.
+- Require all final checks on a signed review commit before merge.

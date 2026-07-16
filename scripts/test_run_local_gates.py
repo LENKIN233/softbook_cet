@@ -390,7 +390,7 @@ class LocalGateRunnerTests(unittest.TestCase):
         self.assertEqual(malformed.status, "failed")
         self.assertEqual(malformed.findings[0]["type"], "remote_response_invalid")
 
-        context = self.context(options=self.options(profile="pr", pr=413, base="HEAD~1"))
+        context = self.context(options=self.options(profile="pr", pr=413, base="origin/main"))
         remote = {
             "number": 413,
             "url": "https://github.com/LENKIN233/softbook_cet/pull/413",
@@ -398,11 +398,12 @@ class LocalGateRunnerTests(unittest.TestCase):
             "isDraft": True,
             "body": "",
             "baseRefName": "main",
-            "baseRefOid": context.head,
+            "baseRefOid": "1" * 40,
             "headRefName": context.branch,
             "headRefOid": context.head,
         }
-        stale = resolve_pr_context(context, capture=lambda _arguments: remote)
+        with mock.patch("local_gates.checks.git_output", return_value="2" * 40):
+            stale = resolve_pr_context(context, capture=lambda _arguments: remote)
         self.assertEqual(stale.status, "failed")
         self.assertIn("base_ref_stale", [finding["type"] for finding in stale.findings])
 
