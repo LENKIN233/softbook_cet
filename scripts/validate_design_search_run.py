@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -190,7 +191,10 @@ def check_file_contains(errors: list[str], path: Path, snippets: tuple[str, ...]
 
 
 def rel(path: Path) -> str:
-    return str(path.relative_to(ROOT))
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return f"<fixture>/{path.name}"
 
 
 def reject_template_placeholders(errors: list[str], path: Path, text: str) -> None:
@@ -448,12 +452,29 @@ def discover_run_dirs(explicit_runs: list[str]) -> list[Path]:
     ]
 
 
-def validate_run(errors: list[str], run_dir: Path) -> None:
+def is_system_fixture_run(run_dir: Path) -> bool:
+    temp_root = Path(tempfile.gettempdir()).resolve()
+    resolved = run_dir.resolve()
+    try:
+        relative = resolved.relative_to(temp_root)
+    except ValueError:
+        return False
+    return bool(relative.parts and relative.parts[0].startswith("softbook-"))
+
+
+def validate_run(
+    errors: list[str],
+    run_dir: Path,
+    *,
+    allow_external_fixture: bool = False,
+) -> None:
     try:
         rel_run = run_dir.relative_to(ROOT)
     except ValueError:
-        errors.append(f"search run is outside repository: {run_dir}")
-        return
+        if not allow_external_fixture or not is_system_fixture_run(run_dir):
+            errors.append(f"search run is outside repository: {run_dir}")
+            return
+        rel_run = Path("<fixture>") / run_dir.name
 
     if not run_dir.exists():
         errors.append(f"missing search run: {rel_run}")
@@ -788,11 +809,15 @@ def validate_run(errors: list[str], run_dir: Path) -> None:
                 f"{rel_run}/promotion-record.md must be backed by rendered-proof.html, "
                 "external-prototype.md, screenshots/, or a concrete prototype URL"
             )
-        text_proofs = [
-            str((run_dir / proof_name).relative_to(ROOT))
-            for proof_name in ("rendered-proof.html", "external-prototype.md")
-            if (run_dir / proof_name).exists()
-        ]
+        text_proofs = []
+        for proof_name in ("rendered-proof.html", "external-prototype.md"):
+            proof_path = run_dir / proof_name
+            if not proof_path.exists():
+                continue
+            try:
+                text_proofs.append(str(proof_path.relative_to(ROOT)))
+            except ValueError:
+                text_proofs.append(str(proof_path))
         errors.extend(scan_visual_output_files(text_proofs))
 
         winning_body = section_body(promotion_text or "", "## Winning Candidate")
@@ -835,6 +860,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="validate runs only and skip template checks",
     )
+    parser.add_argument(
+        "--allow-external-fixture",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
     return parser.parse_args()
 
 
@@ -846,7 +876,11 @@ def main() -> int:
         check_templates(errors)
 
     for run_dir in discover_run_dirs(args.run):
-        validate_run(errors, run_dir)
+        validate_run(
+            errors,
+            run_dir,
+            allow_external_fixture=args.allow_external_fixture,
+        )
 
     if errors:
         print("DESIGN SEARCH VALIDATION FAILED")

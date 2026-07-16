@@ -3,7 +3,35 @@
 import fs from 'fs';
 import path from 'path';
 
-const repoRoot = path.resolve(new URL('.', import.meta.url).pathname, '..');
+const defaultRepoRoot = path.resolve(new URL('.', import.meta.url).pathname, '..');
+
+function parseArgs(argv) {
+  let repoRoot = defaultRepoRoot;
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (argument !== '--root') {
+      throw new Error(`unknown argument: ${argument}`);
+    }
+
+    const value = argv[index + 1];
+    if (!value || value.startsWith('--')) {
+      throw new Error('--root requires a path');
+    }
+    repoRoot = path.resolve(value);
+    index += 1;
+  }
+
+  return repoRoot;
+}
+
+let repoRoot;
+try {
+  repoRoot = parseArgs(process.argv.slice(2));
+} catch (error) {
+  console.error(`FAIL: ${error.message}`);
+  process.exit(2);
+}
 
 const scanRoots = [
   'docs/design/directions',
