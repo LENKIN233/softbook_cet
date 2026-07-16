@@ -1,7 +1,7 @@
 {
-  "version": "vnext-4",
+  "version": "vnext-5",
   "layer": "repo_governance_truth",
-  "purpose": "Define the architecture of scripts/validate_harness.py so harness checks are separated into explicit layers instead of an accident-prone linear pile of regressions.",
+  "purpose": "Define the architecture of scripts/validate_harness.py and the independent local quality-gate entrypoint so governance checks stay layered while runtime and release jobs remain delegated and diagnosable.",
   "authority_note": "This file owns validator layer boundaries, section ownership, and side-effect policy. It does not own product truth, UI design truth, workspace classification, or PR delivery policy; those remain in their owner specs.",
   "product_truth": {
     "none": "Harness architecture is repo governance truth, not product truth. It protects product truth by making validator responsibilities explicit."
@@ -158,6 +158,124 @@
     },
     "unit_test_command": "python3 scripts/test_validate_harness_runner.py",
     "boundary_test_command": "python3 scripts/test_harness_module_boundaries.py"
+  },
+  "local_gate_runner_contract": {
+    "entrypoint": "scripts/run_local_gates",
+    "implementation": "scripts/local_gates/runner.py",
+    "supporting_modules": [
+      "scripts/local_gates/model.py",
+      "scripts/local_gates/execution.py",
+      "scripts/local_gates/checks.py",
+      "scripts/local_gates/catalog.py"
+    ],
+    "independent_from_validate_harness": true,
+    "profiles": {
+      "dev": {
+        "network": "forbidden_by_catalog_and_os_enforced_outbound_denial",
+        "includes": [
+          "local_harness_and_harness_regressions",
+          "local_gate_runner_regressions",
+          "launch_readiness_contract",
+          "maestro_selector_contract",
+          "mobile_metadata_lint_typecheck_and_jest",
+          "backend_contract_tests"
+        ]
+      },
+      "pr": {
+        "extends": "dev",
+        "requires_unique_current_pull_request": true,
+        "includes": [
+          "full_remote_harness",
+          "real_pull_request_body_gates",
+          "dependency_security_with_visible_exceptions",
+          "strict_local_and_remote_repository_health",
+          "git_lfs_fsck",
+          "remote_agent_evidence_validation"
+        ]
+      },
+      "release": {
+        "extends": "pr",
+        "platform": "macos_only",
+        "includes": [
+          "ruby_and_bundler_preflight",
+          "cocoapods_deployment_lock",
+          "release_simulator_build",
+          "unsigned_release_archive"
+        ]
+      }
+    },
+    "cli": [
+      "--profile dev|pr|release",
+      "--base <ref>",
+      "--pr <number>",
+      "--output <path>",
+      "--verbose",
+      "--fail-fast"
+    ],
+    "execution": {
+      "collect_all_by_default": true,
+      "dependency_staged_parallelism": true,
+      "fail_fast_is_diagnostic_only": true,
+      "fail_fast_cannot_produce_complete_pass": true,
+      "explicit_timeout_per_gate": true,
+      "timeout_terminates_process_group": true,
+      "gate_exception_isolated": true,
+      "network_false_gate_requires_os_isolation": true,
+      "tracked_worktree_must_be_unchanged": true
+    },
+    "toolchains": {
+      "python": "3.12.x",
+      "node": "22.13.0",
+      "ruby": "3.3.x",
+      "dev_compatible_node_drift": "passed_with_exception",
+      "pr_and_release_drift": "failed"
+    },
+    "output_policy": {
+      "root": "exports/local-gates/",
+      "root_is_ignored": true,
+      "logs_are_redacted": true,
+      "arguments_are_redacted": true,
+      "environment_values_are_redacted": true,
+      "raw_pull_request_body_is_not_persisted": true
+    },
+    "result_contract": {
+      "schema_version": "local-gate-report.v1",
+      "required_top_level_fields": [
+        "schema_version",
+        "profile",
+        "status",
+        "exit_code",
+        "complete",
+        "head",
+        "base",
+        "pull_request",
+        "toolchain",
+        "network_isolation",
+        "workspace",
+        "safe_exceptions",
+        "remote_checks",
+        "summary",
+        "gates",
+        "formal_state_updates"
+      ],
+      "status_values": [
+        "passed",
+        "passed_with_exception",
+        "failed",
+        "skipped",
+        "deferred"
+      ],
+      "deferred_cannot_satisfy_pr_or_release": true,
+      "dependency_exception_must_expose_severity_and_vulnerability_counts": true
+    },
+    "formal_state_boundaries": {
+      "may_update_pull_request_review": false,
+      "may_update_content_approval": false,
+      "may_update_launch_readiness": false,
+      "may_replace_github_required_checks": false
+    },
+    "unit_test_command": "python3 scripts/test_run_local_gates.py",
+    "dev_performance_target": "five_warm_run_median_not_above_15_seconds"
   },
   "layers": [
     {

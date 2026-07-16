@@ -73,6 +73,7 @@ status: active
 - 不要默认读取 `archive/legacy-v3/` 或 `archive/transitional-vnext-prose/` 作为活跃真相源
 - 不要默认把 generated / dependency / cache / machine-local / archive / external workspace 当作 agent 语义上下文；先按 `spec/workspace-boundary.json` 分类，再决定是否读取
 - 不要把 truth/workspace 纯检查、delivery 远端治理、design fixture 回归和 runtime smoke 混在同一 harness 层；按 `spec/harness-architecture.json` 分层
+- 不要把 `scripts/run_local_gates` 的本地报告当作 GitHub required checks、Agent review、正式内容批准或 launch readiness；`dev` / `pr` / `release` profile 与 `local-gate-report.v1` 以 `spec/harness-architecture.json#local_gate_runner_contract` 为准
 - 不要为每个屏幕/每个 agent 各自重造视觉语言；视觉输出必须从 `spec/visual-language.json` 与 `docs/design/visual-reference.html` 继承 token 与剪影
 - 不要直接用 RN 代码、截图或 agent 个人审美定义用户可见设计；任何呈现给用户的 screen / component / state / chrome 都必须先有已接受设计稿或等价设计基准，再进入实现
 - 不要用同一 PR 内新增 / 修改的 design brief、direction 或 decision 为同一 PR 的用户可见 UI 实现背书；同 PR 设计稿只适用于 design-only PR

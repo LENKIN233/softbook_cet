@@ -1,5 +1,5 @@
 {
-  "version": "vnext-10",
+  "version": "vnext-11",
   "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -118,6 +118,21 @@
       "pr_body_field": "Run record",
       "allowed_placeholder_before_review": "N/A",
       "merge_blocker": "PR body must reference a committed docs/agent-runs/*.md record before review/merge."
+    },
+    "local_quality_feedback": {
+      "architecture_owner": "spec/harness-architecture.json#local_gate_runner_contract",
+      "entrypoint": "scripts/run_local_gates",
+      "profiles": [
+        "dev",
+        "pr",
+        "release"
+      ],
+      "pr_profile_requires_unique_current_pull_request": true,
+      "release_profile_requires_macos": true,
+      "deferred_cannot_satisfy_pr_or_release": true,
+      "safe_exceptions_must_remain_visible": true,
+      "may_replace_required_github_checks": false,
+      "may_update_agent_review_or_formal_approval_or_launch_readiness": false
     },
     "post_merge_local_sync_policy": {
       "remote_merge_state_is_authoritative": true,

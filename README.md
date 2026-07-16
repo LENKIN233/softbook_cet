@@ -29,6 +29,7 @@
 - `scripts/validate_maestro_selectors.py`: Maestro smoke selector 校验（禁止用用户可见文案作为 `tapOn` / `assertVisible` 等 selector，并要求 id 有 RN `testID` 背书）
 - `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / agent run record / 视觉 checklist）
 - `scripts/validate_harness.py`: harness 校验脚本（spec owner 一致性 + main 分支治理护栏 + Maestro selector 防回归）
+- `scripts/run_local_gates`: 独立本地质量总入口；`dev` 无远端门禁，`pr` 绑定真实 PR，`release` 追加 macOS Release build，报告只写入忽略的 `exports/local-gates/`
 - `docs/release/` / `scripts/validate_launch_readiness.mjs`: 上线状态合同与失败关闭证据校验；绿色 CI 不等于外部账户、正式内容或上线批准
 - `scripts/bootstrap_mobile_ios.sh`: iOS 依赖重装脚本
 - `spec/visual-language.json` / `docs/design/visual-reference.html` / `docs/design/canon.md`: 用户可见 UI 的设计稿与视觉治理入口
@@ -58,7 +59,9 @@ Learning / core interaction UI 改动还必须引用 interaction-motion artifact
 
 ### 依赖前提
 
-- Node.js `>= 22.11.0`
+- Python `3.12.x`
+- Node.js：`dev` 兼容 Node 22+ 但会显式报告漂移；`pr` / `release` 固定 `22.13.0`
+- Ruby：`pr` / `release` 固定 `3.3.x`
 - Xcode 26+
 - `watchman`
 - `cocoapods`

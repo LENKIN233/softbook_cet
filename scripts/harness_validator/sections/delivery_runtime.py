@@ -172,6 +172,7 @@ def validate(context) -> None:
             "working-directory: infra/cloudbase/functions/softbook-api",
             "./scripts/install_git_hooks.sh",
             "python3 scripts/test_validate_harness_runner.py",
+            "python3 scripts/test_run_local_gates.py",
             "python3 scripts/test_harness_module_boundaries.py",
             "node --test scripts/test_check_design_metadata_leaks.mjs",
             "python3 scripts/validate_harness.py --skip-remote-guard",
@@ -201,12 +202,14 @@ def validate(context) -> None:
             check_contains("PR template heading", pr_template_text, f"## {heading}")
         for snippet in [
             "- [ ] `python3 scripts/test_validate_harness_runner.py`",
+            "- [ ] `python3 scripts/test_run_local_gates.py`",
             "- [ ] `python3 scripts/test_harness_module_boundaries.py`",
             "- [ ] `node --test scripts/test_check_design_metadata_leaks.mjs`",
             "- [ ] `python3 scripts/validate_maestro_selectors.py`",
             "- [ ] `node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs`",
             "- [ ] `node --test scripts/test_validate_agent_run_evidence.mjs && node scripts/validate_agent_run_evidence.mjs --verify-remote`",
             "- [ ] `cd infra/cloudbase/functions/softbook-api && npm test`",
+            "- [ ] `scripts/run_local_gates --profile dev`",
             "## Agent review",
             "- Review status: N/A",
             "agent-review` gate",

@@ -947,6 +947,7 @@ def validate(context) -> None:
         "不要把 task-local design brief 当作 implementation PR 的正式设计权威；它只能作为探索草稿",
         "不要把核心交互 / 小动效当作 UI 完成后的装饰；Learning 或核心交互实现必须先有 interaction/motion artifact 或 storyboard",
         "不要把物理空间当作普通页面 UI；Space 实现必须先有 spatial model / state transition / Learning ↔ Space 连续性 artifact",
+        "不要把 `scripts/run_local_gates` 的本地报告当作 GitHub required checks、Agent review、正式内容批准或 launch readiness",
         "同级外部内容工作区：`/Users/lenkin/programing/card make`（卡片候选内容生产与审批边界；本仓库只消费其导出的卡片 payload）",
         "卡片内容交接：`requirement-memory -> product-core -> card-system -> box-catalog -> runtime-boundaries -> agent-harness -> infra/cloudbase/mobile-runtime-contract.md -> /Users/lenkin/programing/card make`",
         "不要在 `softbook_cet` 内生产候选卡片内容、批准卡片批次或把 dev seed cards 当作正式内容量；候选内容生产和审批发生在同级 `/Users/lenkin/programing/card make`，本仓库只接收其导出的 payload、dry-run/import、audit、runtime smoke 和报告 coverage delta",
@@ -975,7 +976,7 @@ def validate(context) -> None:
         "涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / direction / decision，再做实现；同一 PR 内新增的 brief / direction / decision 只能满足 design-only PR。",
         "Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 和 Space visual proof / refinement / shelf-desk baseline；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
         "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`、`Agent review`、`Agent run record`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。",
-        "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/test_validate_harness_runner.py`、`python3 scripts/test_harness_module_boundaries.py`、`node --test scripts/test_check_design_metadata_leaks.mjs`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_maestro_selectors.py`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。",
+        "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/test_validate_harness_runner.py`、`python3 scripts/test_run_local_gates.py`、`python3 scripts/test_harness_module_boundaries.py`、`node --test scripts/test_check_design_metadata_leaks.mjs`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_maestro_selectors.py`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。",
         "merge 的默认前置条件是：agent review 无 blocking finding，PR body 中 `Agent review` 已记录为 passed，`Agent run record` 已引用 `docs/agent-runs/*.md`，且 required gates 全绿。",
     ]:
         check_contains("branching strategy delivery mirror", branching_text, snippet)

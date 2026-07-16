@@ -118,9 +118,15 @@
         "spec/agent-harness.json",
         "spec/evals.json",
         "scripts/harness_validator/runner.py",
-        "scripts/harness_validator/sections/harness_architecture.py"
+        "scripts/harness_validator/sections/harness_architecture.py",
+        "scripts/run_local_gates",
+        "scripts/local_gates/runner.py",
+        "scripts/local_gates/model.py",
+        "scripts/local_gates/execution.py",
+        "scripts/local_gates/checks.py",
+        "scripts/local_gates/catalog.py"
       ],
-      "notes": "Defines validate_harness.py layer ownership, side-effect boundaries, and runtime-smoke delegation. Individual product and delivery facts remain owned by their existing specs."
+      "notes": "Defines validate_harness.py layer ownership, side-effect boundaries, runtime-smoke delegation, and the independent dev/pr/release local quality-gate runner. Individual product and delivery facts remain owned by their existing specs."
     },
     "agent_run_records": {
       "owner": "spec/agent-run-record.json",

@@ -99,7 +99,7 @@
 ## PR 合同与 CI 门槛
 
 - `.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`、`Agent review`、`Agent run record`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。
-- `.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/test_validate_harness_runner.py`、`python3 scripts/test_harness_module_boundaries.py`、`node --test scripts/test_check_design_metadata_leaks.mjs`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_maestro_selectors.py`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。
+- `.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/test_validate_harness_runner.py`、`python3 scripts/test_run_local_gates.py`、`python3 scripts/test_harness_module_boundaries.py`、`node --test scripts/test_check_design_metadata_leaks.mjs`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_maestro_selectors.py`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。
 - merge 的默认前置条件是：agent review 无 blocking finding，PR body 中 `Agent review` 已记录为 passed，`Agent run record` 已引用 `docs/agent-runs/*.md`，且 required gates 全绿。
 - 本地开 PR 前仍然应该执行完整的 `python3 scripts/validate_harness.py`，不要只依赖 CI 的 `--skip-remote-guard` 版本。
 
@@ -112,6 +112,15 @@
 - 只读 context 不提供命令、网络或临时目录能力；fixture context 只允许 section 专属 validator、系统临时目录、受控复制/删除和 `PR_BODY` 环境覆盖；只有 `delivery_runtime` 获得最小 allowlist 的 Git/GitHub/本地验证与临时目录能力。
 - `scripts/harness_validator/capability_ast.py` 检查禁止的导入、调用、顶层执行、owner 漂移和仓库路径写入；`python3 scripts/test_harness_module_boundaries.py` 与 `node --test scripts/test_check_design_metadata_leaks.mjs` 持续验证 module/context/fixture 边界。
 - 退出码固定为：通过 `0`、检查失败 `1`、参数无效 `2`。单个 section 抛出异常或超时时，runner 记录归属并继续收集后续 section 诊断。
+
+### 本地质量总入口
+
+- `scripts/run_local_gates --profile dev` 只运行本地 Harness、launch/Maestro 合同、元信息扫描、移动端 lint/typecheck/Jest 与后端测试；catalog 不包含远端 gate，所有 `network=false` 命令还必须经过操作系统级出站网络隔离，否则失败关闭。
+- `scripts/run_local_gates --profile pr --pr <number> --base <ref>` 在 `dev` 上增加真实 PR body、完整远端 Harness、依赖审计、严格 repo health、LFS 与远端证据；没有唯一且与本地 HEAD 一致的 PR 时失败关闭。
+- `scripts/run_local_gates --profile release --pr <number> --base <ref>` 仅在 macOS 上运行，并追加 Ruby/CocoaPods 预检、Release simulator build 与 unsigned archive。
+- 默认按依赖阶段并发并收集全部结果；`--fail-fast` 只用于串行诊断，报告永远不能成为完整通过。状态固定为 `passed`、`passed_with_exception`、`failed`、`skipped`、`deferred`，其中 `deferred` 不能满足 `pr` 或 `release`。
+- `local-gate-report.v1`、脱敏日志和构建中间物只允许写入忽略的 `exports/local-gates/`；报告必须显示工具链漂移与依赖安全例外，并验证 tracked worktree 前后不变。
+- 本地报告不会更新 Agent review、正式内容批准或 launch readiness，也不能替代 GitHub required checks。
 
 ## 合并门槛
 
