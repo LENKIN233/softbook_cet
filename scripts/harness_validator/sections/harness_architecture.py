@@ -10,12 +10,13 @@ def validate(context) -> None:
     find_by_id = context.find_by_id
     authority = load("authority-map.json")
     harness = load("agent-harness.json")
+    delivery = load("repo-delivery-contract.json")
     manifest = load("doc-manifest.json")
     evals = load("evals.json")
 
     harness_architecture_spec = load("harness-architecture.json")
 
-    check_equal("harness architecture version", "vnext-4", harness_architecture_spec["version"])
+    check_equal("harness architecture version", "vnext-5", harness_architecture_spec["version"])
     check_equal("harness architecture layer", "repo_governance_truth", harness_architecture_spec["layer"])
 
     runner_contract = harness_architecture_spec["runner_contract"]
@@ -184,6 +185,296 @@ def validate(context) -> None:
         "Harness capability violations are findings",
         True,
         result_contract["capability_violation_is_finding"],
+    )
+
+    local_gate_contract = harness_architecture_spec["local_gate_runner_contract"]
+    check_equal(
+        "local gate entrypoint",
+        "scripts/run_local_gates",
+        local_gate_contract["entrypoint"],
+    )
+    check_equal(
+        "local gate implementation",
+        "scripts/local_gates/runner.py",
+        local_gate_contract["implementation"],
+    )
+    check_equal(
+        "local gate supporting modules",
+        [
+            "scripts/local_gates/model.py",
+            "scripts/local_gates/execution.py",
+            "scripts/local_gates/checks.py",
+            "scripts/local_gates/catalog.py",
+        ],
+        local_gate_contract["supporting_modules"],
+    )
+    check_equal(
+        "local gates remain independent from validate_harness",
+        True,
+        local_gate_contract["independent_from_validate_harness"],
+    )
+    check_equal(
+        "local gate profiles",
+        {
+            "dev": {
+                "network": "forbidden_by_catalog_and_os_enforced_outbound_denial",
+                "includes": [
+                    "local_harness_and_harness_regressions",
+                    "local_gate_runner_regressions",
+                    "launch_readiness_contract",
+                    "maestro_selector_contract",
+                    "mobile_metadata_lint_typecheck_and_jest",
+                    "backend_contract_tests",
+                ],
+            },
+            "pr": {
+                "extends": "dev",
+                "requires_unique_current_pull_request": True,
+                "includes": [
+                    "full_remote_harness",
+                    "real_pull_request_body_gates",
+                    "dependency_security_with_visible_exceptions",
+                    "strict_local_and_remote_repository_health",
+                    "git_lfs_fsck",
+                    "remote_agent_evidence_validation",
+                ],
+            },
+            "release": {
+                "extends": "pr",
+                "platform": "macos_only",
+                "includes": [
+                    "ruby_and_bundler_preflight",
+                    "cocoapods_deployment_lock",
+                    "release_simulator_build",
+                    "unsigned_release_archive",
+                ],
+            },
+        },
+        local_gate_contract["profiles"],
+    )
+    check_equal(
+        "local gate CLI",
+        [
+            "--profile dev|pr|release",
+            "--base <ref>",
+            "--pr <number>",
+            "--output <path>",
+            "--verbose",
+            "--fail-fast",
+        ],
+        local_gate_contract["cli"],
+    )
+    check_equal(
+        "local gate execution contract",
+        {
+            "collect_all_by_default": True,
+            "dependency_staged_parallelism": True,
+            "fail_fast_is_diagnostic_only": True,
+            "fail_fast_cannot_produce_complete_pass": True,
+            "explicit_timeout_per_gate": True,
+            "timeout_terminates_process_group": True,
+            "gate_exception_isolated": True,
+            "network_false_gate_requires_os_isolation": True,
+            "tracked_worktree_must_be_unchanged": True,
+        },
+        local_gate_contract["execution"],
+    )
+    check_equal(
+        "local gate toolchains",
+        {
+            "python": "3.12.x",
+            "node": "22.13.0",
+            "ruby": "3.3.x",
+            "dev_compatible_node_drift": "passed_with_exception",
+            "pr_and_release_drift": "failed",
+        },
+        local_gate_contract["toolchains"],
+    )
+    check_equal(
+        "local gate output policy",
+        {
+            "root": "exports/local-gates/",
+            "root_is_ignored": True,
+            "logs_are_redacted": True,
+            "arguments_are_redacted": True,
+            "environment_values_are_redacted": True,
+            "raw_pull_request_body_is_not_persisted": True,
+        },
+        local_gate_contract["output_policy"],
+    )
+    local_result_contract = local_gate_contract["result_contract"]
+    check_equal(
+        "local gate report schema",
+        "local-gate-report.v1",
+        local_result_contract["schema_version"],
+    )
+    check_equal(
+        "local gate status values",
+        ["passed", "passed_with_exception", "failed", "skipped", "deferred"],
+        local_result_contract["status_values"],
+    )
+    for required_field in [
+        "schema_version",
+        "profile",
+        "status",
+        "exit_code",
+        "complete",
+        "head",
+        "base",
+        "pull_request",
+        "toolchain",
+        "network_isolation",
+        "workspace",
+        "safe_exceptions",
+        "remote_checks",
+        "summary",
+        "gates",
+        "formal_state_updates",
+    ]:
+        if required_field not in local_result_contract["required_top_level_fields"]:
+            errors.append(f"local gate result contract missing top-level field: {required_field}")
+    check_equal(
+        "deferred local gates cannot satisfy PR or release",
+        True,
+        local_result_contract["deferred_cannot_satisfy_pr_or_release"],
+    )
+    check_equal(
+        "dependency exceptions remain visible",
+        True,
+        local_result_contract[
+            "dependency_exception_must_expose_severity_and_vulnerability_counts"
+        ],
+    )
+    check_equal(
+        "local gate formal state boundaries",
+        {
+            "may_update_pull_request_review": False,
+            "may_update_content_approval": False,
+            "may_update_launch_readiness": False,
+            "may_replace_github_required_checks": False,
+        },
+        local_gate_contract["formal_state_boundaries"],
+    )
+
+    local_gate_entrypoint = ROOT / local_gate_contract["entrypoint"]
+    local_gate_implementation_paths = [
+        ROOT / local_gate_contract["implementation"],
+        *(ROOT / path for path in local_gate_contract["supporting_modules"]),
+    ]
+    local_gate_test = ROOT / "scripts/test_run_local_gates.py"
+    for path in [local_gate_entrypoint, *local_gate_implementation_paths, local_gate_test]:
+        if not path.exists():
+            errors.append(f"missing local gate implementation artifact: {path.relative_to(ROOT)}")
+    if local_gate_entrypoint.exists():
+        check_contains(
+            "local gate executable entrypoint",
+            local_gate_entrypoint.read_text(encoding="utf-8"),
+            "from local_gates.runner import main",
+        )
+    if all(path.exists() for path in local_gate_implementation_paths):
+        local_gate_text = "\n".join(
+            path.read_text(encoding="utf-8") for path in local_gate_implementation_paths
+        )
+        for snippet in [
+            'SCHEMA_VERSION = "local-gate-report.v1"',
+            "ThreadPoolExecutor",
+            "network_isolation_prefix",
+            "os.killpg",
+            "resolve_pr_context",
+            "evaluate_dependency_report",
+            "tracked_snapshot",
+            '"formal_state_updates"',
+            "validate_report_contract",
+            "validate_base_ref",
+            'EXPORT_ROOT = ROOT / "exports" / "local-gates"',
+        ]:
+            check_contains("local gate implementation contract", local_gate_text, snippet)
+    if local_gate_test.exists():
+        local_gate_test_text = local_gate_test.read_text(encoding="utf-8")
+        for snippet in [
+            "test_unknown_argument_and_invalid_pr_exit_two",
+            "test_dev_profile_has_no_network_gate",
+            "test_multiple_gate_failures_are_collected_and_schema_is_stable",
+            "test_report_contract_rejects_missing_fields_and_unknown_status",
+            "test_base_ref_rejects_option_and_control_character_injection",
+            "test_fail_fast_flag_never_produces_complete_pass_even_without_failure",
+            "test_gate_exception_is_isolated_from_later_gate",
+            "test_timeout_terminates_the_process_group",
+            "test_supported_network_isolation_blocks_outbound_socket",
+            "test_network_false_gate_defers_when_os_isolation_is_missing",
+            "test_network_isolation_preflight_fails_closed_without_supported_mechanism",
+            "test_logs_redact_sensitive_arguments_environment_and_output",
+            "test_missing_executable_is_a_missing_toolchain_finding",
+            "test_remote_unavailable_is_an_attributed_pr_context_finding",
+            "test_missing_unique_pr_context_fails_closed",
+            "test_pr_context_rejects_malformed_remote_fields_and_stale_base",
+            "test_pending_agent_review_and_missing_pr_body_fail_real_pr_gate",
+            "test_pr_catalog_delegates_oversized_blob_and_untracked_evidence_failures_to_strict_health",
+            "test_dependency_exceptions_remain_visible_in_report_state",
+            "test_tracked_snapshot_detects_and_preserves_user_changes",
+            "test_local_gate_modules_have_bounded_ownership",
+        ]:
+            check_contains("local gate runner unit coverage", local_gate_test_text, snippet)
+
+    architecture_mirrors = authority["domains"]["harness_architecture"]["mirrors"]
+    for mirror in [
+        "scripts/run_local_gates",
+        "scripts/local_gates/runner.py",
+        "scripts/local_gates/model.py",
+        "scripts/local_gates/execution.py",
+        "scripts/local_gates/checks.py",
+        "scripts/local_gates/catalog.py",
+    ]:
+        if mirror not in architecture_mirrors:
+            errors.append(f"harness architecture authority mirrors missing {mirror}")
+
+    for output in [
+        "independent_local_quality_entrypoint",
+        "dev_pr_release_gate_profiles",
+        "local_gate_report_v1",
+        "redacted_ignored_local_gate_outputs",
+        "tracked_worktree_integrity_after_local_gates",
+    ]:
+        if output not in harness["task_briefs"]["harness_architecture"]["outputs"]:
+            errors.append(f"agent harness architecture outputs missing {output}")
+
+    delivery_local_feedback = delivery["pull_request_contract"]["local_quality_feedback"]
+    check_equal(
+        "delivery local gate architecture owner",
+        "spec/harness-architecture.json#local_gate_runner_contract",
+        delivery_local_feedback["architecture_owner"],
+    )
+    check_equal(
+        "local gates cannot replace GitHub checks",
+        False,
+        delivery_local_feedback["may_replace_required_github_checks"],
+    )
+    check_equal(
+        "local gates cannot update formal states",
+        False,
+        delivery_local_feedback[
+            "may_update_agent_review_or_formal_approval_or_launch_readiness"
+        ],
+    )
+
+    gt27 = find_by_id(evals["golden_tasks"], "GT-27")
+    if not gt27:
+        errors.append("evals must define GT-27 local quality entrypoint coverage")
+    else:
+        for marker in [
+            "dev_profile_has_no_remote_gate",
+            "deferred_cannot_satisfy_pr_or_release",
+            "tracked_worktree_unchanged",
+            "github_required_checks_remain_authoritative",
+        ]:
+            if marker not in gt27["must_include"]:
+                errors.append(f"GT-27 missing local quality marker: {marker}")
+
+    workflow_text = (ROOT / ".github/workflows/pr-gates.yml").read_text(encoding="utf-8")
+    check_contains(
+        "CI runs local gate runner tests",
+        workflow_text,
+        "python3 scripts/test_run_local_gates.py",
     )
 
     if "spec/harness-architecture.json" not in manifest["active_specs"]:

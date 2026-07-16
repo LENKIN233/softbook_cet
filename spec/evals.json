@@ -752,6 +752,26 @@
         "do_not_overwrite_dirty_worktree",
         "start_next_pr_from_origin_main"
       ]
+    },
+    {
+      "id": "GT-27",
+      "task": "运行并解释本地质量总入口",
+      "must_include": [
+        "scripts_run_local_gates",
+        "dev_profile_has_no_remote_gate",
+        "network_false_gates_use_os_enforced_outbound_denial",
+        "pr_profile_requires_unique_current_pull_request",
+        "release_profile_is_macos_only",
+        "local_gate_report_v1",
+        "passed_with_exception_keeps_dependency_and_toolchain_exceptions_visible",
+        "deferred_cannot_satisfy_pr_or_release",
+        "fail_fast_is_diagnostic_and_never_complete_pass",
+        "logs_and_json_stay_under_ignored_exports_local_gates",
+        "arguments_environment_and_pr_body_are_redacted",
+        "tracked_worktree_unchanged",
+        "local_report_does_not_update_review_approval_or_launch_readiness",
+        "github_required_checks_remain_authoritative"
+      ]
     }
   ]
 }

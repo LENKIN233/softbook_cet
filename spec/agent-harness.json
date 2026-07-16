@@ -425,10 +425,15 @@
         "read_only_context_capability_enforcement",
         "section_timeout_isolation",
         "fixture_context_capability_enforcement",
-        "zero_legacy_exec_paths"
+        "zero_legacy_exec_paths",
+        "independent_local_quality_entrypoint",
+        "dev_pr_release_gate_profiles",
+        "local_gate_report_v1",
+        "redacted_ignored_local_gate_outputs",
+        "tracked_worktree_integrity_after_local_gates"
       ],
-      "stop_when": "every harness section exposes validate(context), runs in an isolated bounded worker, has exactly one layer owner, confines side effects to its explicit context capability or delegated CI job, and no legacy exec adapter remains",
-      "blocked_when": "a validator change adds remote, runtime, generated, dependency, or temporary-fixture behavior to a pure truth or workspace layer"
+      "stop_when": "every harness section exposes validate(context), runs in an isolated bounded worker, has exactly one layer owner, confines side effects to its explicit context capability or delegated CI job, no legacy exec adapter remains, and the independent local quality runner mirrors dev/pr/release gates without claiming formal approval or GitHub gate equivalence",
+      "blocked_when": "a validator change adds remote, runtime, generated, dependency, or temporary-fixture behavior to a pure truth or workspace layer, or a local gate report hides toolchain drift, dependency exceptions, deferred gates, or tracked worktree mutation"
     },
     "agent_run_record": {
       "inputs": [
