@@ -60,10 +60,11 @@
 - `scripts/run_local_gates --profile pr --pr 417 --base origin/main` -> complete failed report with 26/29 passed, one visible dependency exception, and only the expected strict Node/Ruby mismatch plus Pending Agent review failures; PR/base/head context, full Harness, strict repo health, LFS, remote evidence, and tracked-worktree integrity passed.
 - `scripts/run_local_gates --profile release --pr 417 --base origin/main` -> complete failed report with 31/34 passed, the same explicit exception/failures, and all five release gates passed: macOS, Bundler, CocoaPods deployment-lock, Release simulator build, and unsigned archive (`ARCHIVE SUCCEEDED`).
 - First GitHub run `29479409013` exposed a shallow-checkout dependency in `test_pr_context_rejects_malformed_remote_fields_and_stale_base`: `HEAD~1` was unavailable on CI. The regression now mocks two distinct valid SHA values and tests stale-base semantics without assuming checkout depth.
+- Final log review found that credential assignment redaction treated the status prefix `PASS: No ...` as a bare `pass` secret and changed diagnostic meaning. Redaction now preserves the narrow uppercase `PASS: No|OK` status form while still redacting bare `pass=<value>`, with both paths covered by the log regression.
 
 ## Validation results
 
-- The local gate package is split by owner: model 85 lines, execution 391, checks 390, catalog 406, and runner 537; unit tests enforce upper bounds and owner markers.
+- The local gate package is split by owner: model 85 lines, execution 398, checks 390, catalog 406, and runner 537; unit tests enforce upper bounds and owner markers.
 - Unknown arguments return 2. Gate failures return 1. A complete pass or allowlisted `passed_with_exception` returns 0.
 - Default execution collects every gate. Exceptions and timeouts are attributed and isolated. Diagnostic `--fail-fast` can never create a complete passing report.
 - Logs redact sensitive arguments, environment values, bearer/token patterns, and multiline PR bodies. Raw PR bodies are never persisted.

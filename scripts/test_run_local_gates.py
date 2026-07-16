@@ -338,7 +338,12 @@ class LocalGateRunnerTests(unittest.TestCase):
             log_path = Path(tmpdir) / "redacted.log"
             secret = "github_pat_this-must-not-leak"
             body = "Review status: Passed\nAuthorization: body-secret"
-            code = "import os, sys; print(os.environ['API_TOKEN']); print(os.environ['PR_BODY']); print(sys.argv[-1])"
+            code = (
+                "import os, sys; print(os.environ['API_TOKEN']); "
+                "print(os.environ['PR_BODY']); print(sys.argv[-1]); "
+                "print('PASS: No metadata leaks detected.'); "
+                "print('pass=standalone-pass-secret')"
+            )
             result = execute_command(
                 CommandSpec(
                     (sys.executable, "-c", code, "--token", secret),
@@ -354,7 +359,9 @@ class LocalGateRunnerTests(unittest.TestCase):
             self.assertNotIn(secret, text)
             self.assertNotIn("body-secret", text)
             self.assertNotIn("Review status", text)
+            self.assertNotIn("standalone-pass-secret", text)
             self.assertIn("[REDACTED]", text)
+            self.assertIn("PASS: No metadata leaks detected.", text)
 
     def test_missing_executable_is_a_missing_toolchain_finding(self):
         with tempfile.TemporaryDirectory() as tmpdir:

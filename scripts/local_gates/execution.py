@@ -45,6 +45,13 @@ TOKEN_RE = re.compile(
 )
 
 
+def redact_assignment(match: re.Match[str]) -> str:
+    key, separator, value = match.groups()
+    if key == "PASS" and ":" in separator and value in {"No", "OK"}:
+        return match.group(0)
+    return f"{key}{separator}[REDACTED]"
+
+
 def is_sensitive_key(key: str) -> bool:
     return key.upper() in SENSITIVE_ENV_KEYS or bool(SENSITIVE_KEY_RE.search(key))
 
@@ -67,7 +74,7 @@ class Redactor:
             redacted = redacted.replace(secret, "[REDACTED]")
         redacted = BEARER_RE.sub("Bearer [REDACTED]", redacted)
         redacted = TOKEN_RE.sub("[REDACTED]", redacted)
-        return ASSIGNMENT_RE.sub(r"\1\2[REDACTED]", redacted)
+        return ASSIGNMENT_RE.sub(redact_assignment, redacted)
 
     def arguments(self, arguments: Sequence[str]) -> list[str]:
         safe: list[str] = []
