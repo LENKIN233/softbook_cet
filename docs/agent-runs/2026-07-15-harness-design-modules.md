@@ -4,7 +4,7 @@
 
 - Date: 2026-07-15
 - Branch: `infra/harness-design-modules`
-- PR: Pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/416
 - Summary: Split the 4,179-line legacy design-governance section into six explicit modules, move Agent-review regressions to delivery governance, isolate fixture capabilities in system temporary directories, and remove the final Harness `exec` adapter.
 
 ## Referenced specs
@@ -60,7 +60,9 @@
 - `bundle install` and `bundle exec pod install --project-directory=ios --deployment` -> passed with no tracked lock drift.
 - Release simulator build and unsigned device archive -> `BUILD SUCCEEDED` and `ARCHIVE SUCCEEDED`; outputs are under `/tmp`.
 - `git lfs fsck` -> passed. `git fsck --full` -> no corruption; only existing dangling objects were reported.
-- Strict repository health before commit -> expected failure only for the intentional dirty worktree; clean committed-branch verification remains required before push.
+- Strict repository health before commit -> expected failure only for the intentional dirty worktree.
+- Strict repository health after the signed implementation commit and push -> passed with 1 worktree, 0 dirty worktrees, 0 stashes, 1 active topic branch, 0 missing upstreams, and 0 oversized ordinary Git blobs.
+- GitHub Actions technical baseline on signed commit `d2f0b62a140f5f7d11e7c7aa8de7e17ebde0066e` -> all 8 technical jobs passed in run `29426056666`: design artifact gate, Harness, mobile, backend, dependency security, iOS Release, repository health, and evidence archive. The Agent-review job failed as designed while the PR body still recorded `Pending`.
 
 ## Validation results
 
@@ -69,6 +71,7 @@
 - Fixture paths are outside the repository and are removed on context exit. Tracked repository files are not used as negative-test scratch files.
 - Direct fixture writes must be statically proven to derive from an active fixture root; repository-derived and unknown-provenance paths fail before section execution.
 - Local Python is 3.12.13. Local Node is 25.9.0 and Ruby is 2.6.10; exact Node 22.13.0 and Ruby 3.3 reproduction remains a required GitHub CI result.
+- GitHub CI reproduced the technical checks with the workflow-pinned toolchains, including the Release simulator build and unsigned archive.
 
 ## Binary evidence
 
@@ -78,9 +81,9 @@
 ## Agent review status
 
 - Reviewer: Codex
-- Status: Pending
-- Blocking findings: Pending final diff review and required GitHub checks.
-- Review summary: Pending.
+- Status: Passed
+- Blocking findings: None
+- Review summary: The final governance-only diff, old/new result parity, explicit context and AST boundaries, fixture isolation, local validation, and first-round GitHub technical results were reviewed. No blocking defect or semantic weakening was found.
 
 ## User-visible UI impact
 
@@ -94,9 +97,10 @@
 
 - AST enforcement is a repository policy guard rather than an operating-system sandbox. Worker isolation and least-privilege runtime contexts remain the executable boundary.
 - The design and Agent-review validators keep their existing semantics; this PR changes fixture storage and diagnostic ownership only.
-- Local toolchain versions differ from CI and cannot satisfy the final merge gate without required GitHub runs.
+- Local Node and Ruby versions differ from CI; the first GitHub technical run passed on the workflow-pinned versions.
+- The existing CloudBase dependency exception still contains 3 high-severity `lodash.set` findings. It remains visible and is not represented as zero vulnerabilities.
 
 ## Follow-up
 
-- Complete all CI-equivalent gates, perform final Agent review, update this record and the PR body, then require every GitHub required check on the final signed commit before merge.
+- Require all 9 GitHub jobs, including Agent review, to pass on the final signed review commit before merge.
 - After merge, start the serial local-quality entrypoint PR; do not mix it into this architecture change.
