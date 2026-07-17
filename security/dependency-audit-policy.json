@@ -9,15 +9,7 @@
     {
       "id": "cloudbase-api",
       "path": "infra/cloudbase/functions/softbook-api",
-      "allowed_advisories": [
-        {
-          "id": "GHSA-p6mc-m468-83gw",
-          "package": "lodash.set",
-          "severity": "high",
-          "expires_on": "2026-08-10",
-          "reason": "@cloudbase/database 1.4.3 pins the vulnerable standalone package only for its realtime watch client. This service does not call watch; document and transaction APIs remain covered by backend tests. Remove this exception when CloudBase ships a patched database dependency."
-        }
-      ]
+      "allowed_advisories": []
     }
   ]
 }
