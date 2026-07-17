@@ -39,7 +39,7 @@
 
 ## Files changed
 
-- `infra/cloudbase/functions/softbook-api/package.json` and `package-lock.json`: upgrade `@cloudbase/node-sdk` to 4.0.3 and resolve the dependency graph without `lodash.set`.
+- `infra/cloudbase/functions/softbook-api/package.json` and `package-lock.json`: upgrade `@cloudbase/node-sdk` to 4.0.3, remove the obsolete `lodash.unset` override, and resolve the dependency graph without either standalone package.
 - `infra/cloudbase/functions/softbook-api/test/softbook-api.test.js`: add a no-network compatibility regression for the CloudBase SDK database APIs used by the runtime.
 - `security/dependency-audit-policy.json`: remove the resolved high-severity advisory exception.
 - `docs/agent-runs/2026-07-17-cloudbase-sdk-security.md`: record scope, validation, review, and remaining live-environment risk.
