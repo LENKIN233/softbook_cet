@@ -4,6 +4,7 @@
 
 - Date: 2026-07-17
 - Branch: `infra/cloudbase-sdk-security`
+- PR head: `dependabot/npm_and_yarn/infra/cloudbase/functions/softbook-api/cloudbase/node-sdk-4.0.3` (existing PR reused)
 - PR: `#408`
 - Summary: Refresh the existing CloudBase SDK Dependabot change onto current `main`, remove the temporary `lodash.set` high-severity advisory exception, and pin the backend tests to the CloudBase database surface used by Softbook.
 
@@ -54,20 +55,24 @@
 - `node scripts/validate_dependency_security.mjs` -> passed; mobile and CloudBase API each reported 0 production vulnerabilities and no advisory exceptions.
 - `scripts/run_local_gates --profile dev --output exports/local-gates/cloudbase-sdk-security-dev.json` -> complete `passed_with_exception`; 16/17 gates passed, with only the explicit dev Node 25.9.0 versus 22.13.0 drift, and tracked worktree state remained unchanged.
 - `python3 scripts/validate_harness.py` -> complete remote Harness passed.
+- `scripts/run_local_gates --profile pr --pr 408 --base origin/main --output exports/local-gates/cloudbase-sdk-security-pr-final.json` on `059578ad8054cbb1bd4511284f9b3c36f05b1a1a` -> complete 29-gate collection with 27 passed, zero safety exceptions, and only the expected strict local Node/Ruby mismatch plus intentionally Pending Agent review failures. PR/head/base identity, full Harness, dependency security, strict repo health, LFS, remote evidence, and tracked-worktree integrity passed.
+- GitHub technical run `29562589722` on `059578ad8054cbb1bd4511284f9b3c36f05b1a1a` -> all eight technical jobs passed. The iOS Release simulator build and unsigned archive job passed in 34m54s; only the intentionally Pending `agent-review` job failed.
 
 ## Validation results
 
 - Before this change, the CloudBase target reported 3 high vulnerability instances under `GHSA-P6MC-M468-83GW`, accepted only by a time-limited policy exception.
 - After this change, both audited production targets report zero vulnerabilities and `allowed_advisories` is empty.
 - Existing fake-database tests continue to cover document persistence, legacy space migration, transaction serialization, simultaneous writes, and card-source validation.
+- Complete diff review found that the SDK 4 graph no longer used the old `lodash.unset` override. The stale override was removed and the backend tests, package-lock-only install, and zero-vulnerability audit were rerun successfully.
 - Local quality orchestration did not update PR review, content approval, or launch readiness formal state.
 - Live CloudBase deployment compatibility is not claimed by local tests and remains blocked on verified Tencent Cloud production/staging access.
 
 ## Agent review status
 
 - Reviewer: Codex
-- Status: Pending
-- Blocking findings: Review will be completed after the complete diff and local/remote gates are available.
+- Status: Passed
+- Blocking findings: None.
+- Review summary: Reviewed the complete `origin/main...059578a` diff, all three signed commits, the SDK 4 dependency graph and changelog, the repository's concrete database/transaction usage, local dev/pr reports, zero-exception dependency audit, and GitHub technical run `29562589722`. The stale `lodash.unset` override found during review was removed and revalidated; no remaining blocking code, security-policy, or governance finding was identified. Real CloudBase staging deployment remains an explicit launch blocker rather than a claimed validation result.
 
 ## User-visible UI impact
 
@@ -85,4 +90,4 @@
 
 ## Follow-up
 
-- Run full local Harness and PR gates, complete Agent review, update PR #408, and merge only after all required GitHub checks pass on the reviewed head.
+- Push this signed review record, update PR #408 to Passed review, require all nine checks to pass on the exact final head, then merge and rerun default-branch dependency/health verification.
