@@ -52,6 +52,22 @@ function createTestApi(options = {}) {
   });
 }
 
+test('installed CloudBase SDK preserves the required database surface', () => {
+  const cloudbase = require('@cloudbase/node-sdk');
+  const packageVersion = require('@cloudbase/node-sdk/package.json').version;
+
+  assert.match(packageVersion, /^4\./);
+  assert.equal(typeof cloudbase.init, 'function');
+  assert.equal(typeof cloudbase.SYMBOL_CURRENT_ENV, 'symbol');
+
+  const app = cloudbase.init({env: 'softbook-contract-test'});
+  const database = app.database();
+
+  assert.equal(typeof app.database, 'function');
+  assert.equal(typeof database.collection, 'function');
+  assert.equal(typeof database.runTransaction, 'function');
+});
+
 async function request(api, requestOptions) {
   const response = await api.handleHttpRequest({
     body: requestOptions.body,
