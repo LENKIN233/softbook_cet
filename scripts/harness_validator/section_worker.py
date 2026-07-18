@@ -12,6 +12,7 @@ sys.dont_write_bytecode = True
 os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
 
 from context import context_for_layer
+from runtime_policy import policy_for_context
 
 
 def parse_args():
@@ -49,7 +50,9 @@ def main() -> int:
     )
     exception = None
     try:
-        load_validate(section_path, args.section)(context)
+        validate = load_validate(section_path, args.section)
+        with policy_for_context(context).enforce():
+            validate(context)
     except (Exception, SystemExit) as exc:
         exception = {
             "type": type(exc).__name__,

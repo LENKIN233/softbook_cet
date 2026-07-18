@@ -1,5 +1,5 @@
 {
-  "version": "vnext-16",
+  "version": "vnext-17",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -423,6 +423,7 @@
         "explicit_validate_context_modules",
         "isolated_section_workers",
         "read_only_context_capability_enforcement",
+        "read_only_runtime_capability_enforcement",
         "section_timeout_isolation",
         "fixture_context_capability_enforcement",
         "zero_legacy_exec_paths",
@@ -432,7 +433,7 @@
         "redacted_ignored_local_gate_outputs",
         "tracked_worktree_integrity_after_local_gates"
       ],
-      "stop_when": "every harness section exposes validate(context), runs in an isolated bounded worker, has exactly one layer owner, confines side effects to its explicit context capability or delegated CI job, no legacy exec adapter remains, and the independent local quality runner mirrors dev/pr/release gates without claiming formal approval or GitHub gate equivalence",
+      "stop_when": "every harness section exposes validate(context), runs in an isolated bounded worker, has exactly one layer owner, confines side effects to its explicit context capability or delegated CI job, read-only workers enforce both static and runtime capability boundaries, no legacy exec adapter remains, and the independent local quality runner mirrors dev/pr/release gates without claiming formal approval or GitHub gate equivalence",
       "blocked_when": "a validator change adds remote, runtime, generated, dependency, or temporary-fixture behavior to a pure truth or workspace layer, or a local gate report hides toolchain drift, dependency exceptions, deferred gates, or tracked worktree mutation"
     },
     "agent_run_record": {
@@ -763,6 +764,11 @@
       "id": "AP-41",
       "name": "treat_stale_local_main_or_worktree_lock_as_remote_merge_failure",
       "correction": "verify_github_pr_state_and_origin_main_then_fast_forward_clean_local_main_or_report_dirty_workspace_hygiene_blocker"
+    },
+    {
+      "id": "AP-42",
+      "name": "treat_static_harness_analysis_as_a_complete_runtime_capability_boundary",
+      "correction": "enforce_read_only_sections_with_both_ast_validation_and_worker_runtime_audit_hooks"
     }
   ],
   "compaction_keep": [

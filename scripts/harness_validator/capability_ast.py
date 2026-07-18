@@ -56,6 +56,11 @@ FORBIDDEN_DIRECT_IMPORTS = {
     "tempfile",
     "urllib",
 }
+READ_ONLY_ALLOWED_IMPORTS = {
+    "__future__",
+    "json",
+    "re",
+}
 FORBIDDEN_DYNAMIC_CALLS = {
     "__import__",
     "compile",
@@ -309,7 +314,11 @@ def validate_section_module(path: Path, *, section: str, layer: str) -> list[str
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             for root in _import_roots(node):
-                if root in FORBIDDEN_DIRECT_IMPORTS:
+                if is_read_only and root not in READ_ONLY_ALLOWED_IMPORTS:
+                    errors.append(
+                        f"line {node.lineno}: read-only section imports non-allowlisted module {root}"
+                    )
+                elif root in FORBIDDEN_DIRECT_IMPORTS:
                     errors.append(
                         f"line {node.lineno}: section imports forbidden direct capability {root}"
                     )

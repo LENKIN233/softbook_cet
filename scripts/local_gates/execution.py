@@ -322,14 +322,17 @@ def execute_command(
             process.wait(timeout=timeout_seconds)
         except subprocess.TimeoutExpired:
             timed_out = True
+            process_group = process.pid
             try:
-                os.killpg(process.pid, signal.SIGTERM)
+                os.killpg(process_group, signal.SIGTERM)
                 process.wait(timeout=2)
             except (ProcessLookupError, subprocess.TimeoutExpired):
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
+                pass
+            try:
+                os.killpg(process_group, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            if process.poll() is None:
                 process.wait()
             log.write(f"\ncommand timed out after {timeout_seconds:g} seconds\n")
         reader.join(timeout=5)

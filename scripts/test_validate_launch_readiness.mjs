@@ -41,6 +41,22 @@ test('tracked contracts are structurally valid and honestly not ready', () => {
   assert.equal(accounts.ready, false);
 });
 
+test('formal approval policy cannot be replaced by pull request metadata', () => {
+  const invalid = structuredClone(launchContract);
+  invalid.formal_approval.provider = 'self_declared_record';
+  invalid.formal_approval.environment = 'unprotected';
+  invalid.formal_approval.required_reviewer = 'github:pull-request-author';
+  invalid.formal_approval.administrators_can_bypass = true;
+
+  const result = validateLaunchReadiness(invalid, { now: NOW });
+
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /formal_approval.provider/);
+  assert.match(result.errors.join('\n'), /formal_approval.environment/);
+  assert.match(result.errors.join('\n'), /formal_approval.required_reviewer/);
+  assert.match(result.errors.join('\n'), /formal_approval.administrators_can_bypass/);
+});
+
 test('all fixed product scope, gates, accounts, and capabilities can reach ready', () => {
   const { accounts, launch } = createReadyContracts();
 

@@ -5,6 +5,7 @@ import contextlib
 import io
 import json
 import os
+import socket
 import subprocess
 import sys
 import tempfile
@@ -24,6 +25,7 @@ from harness_validator.runner import (
     resolve_sections,
     run_harness,
 )
+from harness_validator.runtime_policy import ReadOnlyRuntimePolicy, RuntimeCapabilityError
 from validate_agent_review import validate as validate_agent_review
 
 
@@ -253,6 +255,89 @@ class HarnessRunnerTests(unittest.TestCase):
         self.assertTrue(
             all(finding["type"] == "capability_violation" for finding in alpha["findings"])
         )
+
+    def test_read_only_worker_runtime_blocks_obfuscated_file_write(self):
+        pure_layers = (
+            {"id": "bootstrap_layer", "sections": ("prelude",)},
+            {"id": "truth_spec_layer", "sections": ("alpha",)},
+        )
+        marker = ROOT / "exports" / "harness-runtime-policy-escape"
+        marker.unlink(missing_ok=True)
+        source = (
+            "opener = __builtins__['open']\n"
+            "stream = opener(context.root / 'exports/harness-runtime-policy-escape', 'w')\n"
+            "writer = stream.write\n"
+            "writer('escaped')\n"
+        )
+        try:
+            with self.section_directory(prelude="pass\n", alpha=source) as section_dir:
+                result = run_harness(
+                    RunnerOptions(mode="local"),
+                    layers=pure_layers,
+                    section_dir=section_dir,
+                )
+            marker_exists = marker.exists()
+        finally:
+            marker.unlink(missing_ok=True)
+
+        alpha = result["sections"][1]
+        self.assertEqual(alpha["status"], "failed")
+        self.assertTrue(
+            any(
+                finding["type"] == "exception"
+                and "attempted a file write" in finding["message"]
+                for finding in alpha["findings"]
+            ),
+            alpha["findings"],
+        )
+        self.assertFalse(marker_exists)
+
+    def test_read_only_worker_runtime_blocks_obfuscated_process_network_and_dynamic_code(self):
+        pure_layers = (
+            {"id": "bootstrap_layer", "sections": ("prelude",)},
+            {"id": "truth_spec_layer", "sections": ("alpha",)},
+        )
+        cases = {
+            "process execution": (
+                "module = __builtins__['__import__']('subprocess')\n"
+                "module.run(['true'], check=False)\n"
+            ),
+            "non-allowlisted import: socket": (
+                "module = __builtins__['__import__']('socket')\n"
+                "module.socket()\n"
+            ),
+            "dynamic code execution": (
+                "evaluator = __builtins__['eval']\n"
+                "evaluator('1 + 1')\n"
+            ),
+        }
+
+        for expected, source in cases.items():
+            with self.subTest(expected=expected):
+                with self.section_directory(prelude="pass\n", alpha=source) as section_dir:
+                    result = run_harness(
+                        RunnerOptions(mode="local"),
+                        layers=pure_layers,
+                        section_dir=section_dir,
+                    )
+
+                alpha = result["sections"][1]
+                self.assertEqual(alpha["status"], "failed")
+                self.assertTrue(
+                    any(
+                        finding["type"] == "exception"
+                        and expected in finding["message"]
+                        for finding in alpha["findings"]
+                    ),
+                    alpha["findings"],
+                )
+
+    def test_read_only_runtime_policy_blocks_socket_creation(self):
+        policy = ReadOnlyRuntimePolicy()
+
+        with self.assertRaisesRegex(RuntimeCapabilityError, "attempted network access"):
+            with policy.enforce():
+                socket.socket()
 
     def test_local_cli_does_not_invoke_gh_and_full_reports_unavailable_github(self):
         with tempfile.TemporaryDirectory() as tmpdir:

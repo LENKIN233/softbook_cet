@@ -13,6 +13,7 @@
 - [ ] `python3 scripts/test_run_local_gates.py`
 - [ ] `python3 scripts/test_harness_module_boundaries.py`
 - [ ] `node --test scripts/test_check_design_metadata_leaks.mjs`
+- [ ] `node --test scripts/test_classify_formal_approval_scope.mjs`
 - [ ] `node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs`
 - [ ] `node --test scripts/test_validate_agent_run_evidence.mjs && node scripts/validate_agent_run_evidence.mjs --verify-remote`
 - [ ] `python3 scripts/validate_maestro_selectors.py`
