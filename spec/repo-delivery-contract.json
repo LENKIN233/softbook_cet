@@ -1,5 +1,5 @@
 {
-  "version": "vnext-11",
+  "version": "vnext-12",
   "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -148,6 +148,18 @@
   "ci_contract": {
     "workflow_path": ".github/workflows/pr-gates.yml",
     "pull_request_template_path": ".github/pull_request_template.md",
+    "formal_approval_gate": {
+      "workflow_path": ".github/workflows/formal-approval.yml",
+      "scope_classifier_path": "scripts/classify_formal_approval_scope.mjs",
+      "scope_classifier_test_path": "scripts/test_classify_formal_approval_scope.mjs",
+      "trusted_code_source": "pull_request_target_base_sha",
+      "required_status_check": "formal-approval",
+      "environment": "formal-product-owner-approval",
+      "required_reviewer": "github:LENKIN233",
+      "administrators_can_bypass": false,
+      "prevent_self_review": false,
+      "sensitive_scope_policy": "fail_closed"
+    },
     "required_pull_request_gates": [
       {
         "id": "design_artifact_gate",
@@ -200,6 +212,10 @@
       {
         "id": "agent_run_evidence_archive",
         "command": "node --test scripts/test_validate_agent_run_evidence.mjs && node scripts/validate_agent_run_evidence.mjs --verify-remote"
+      },
+      {
+        "id": "formal_product_owner_approval",
+        "command": "trusted default-branch classifier -> protected GitHub Environment -> formal-approval status"
       }
     ]
   }

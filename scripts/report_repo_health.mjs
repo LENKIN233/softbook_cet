@@ -17,7 +17,11 @@ const REQUIRED_CHECKS = [
   'ios-release',
   'repo-health',
   'evidence-archive',
+  'formal-approval',
 ];
+const FORMAL_APPROVAL_ENVIRONMENT = 'formal-product-owner-approval';
+const FORMAL_APPROVAL_REVIEWER = 'LENKIN233';
+const FORMAL_APPROVAL_PREVENT_SELF_REVIEW = false;
 const FORBIDDEN_TRACKED_PREFIXES = [
   'exports/',
   'docs/agent-runs/artifacts/',
@@ -239,6 +243,11 @@ function remoteSnapshot(errors, warnings) {
   for (const check of REQUIRED_CHECKS) {
     if (!checks.includes(check)) errors.push({code: 'required_status_check_missing', check});
   }
+  for (const check of checks) {
+    if (!REQUIRED_CHECKS.includes(check)) {
+      errors.push({code: 'unexpected_required_status_check', check});
+    }
+  }
   const signatures = run('gh', ['api', `repos/${repo}/branches/main/protection/required_signatures`], {allowFailure: true});
   if (!signatures || JSON.parse(signatures).enabled !== true) errors.push({code: 'signed_commits_not_required'});
   const repositoryRaw = run('gh', ['api', `repos/${repo}`], {allowFailure: true});
@@ -248,7 +257,76 @@ function remoteSnapshot(errors, warnings) {
       errors.push({code: 'merge_methods_not_squash_only'});
     }
   }
-  return {repo, protected: true, required_checks: checks};
+
+  const environmentRaw = run(
+    'gh',
+    ['api', `repos/${repo}/environments/${FORMAL_APPROVAL_ENVIRONMENT}`],
+    {allowFailure: true},
+  );
+  let formalApproval = null;
+  if (!environmentRaw) {
+    errors.push({
+      code: 'formal_approval_environment_unavailable',
+      environment: FORMAL_APPROVAL_ENVIRONMENT,
+    });
+  } else {
+    try {
+      const environment = JSON.parse(environmentRaw);
+      const reviewerRules = Array.isArray(environment.protection_rules)
+        ? environment.protection_rules.filter(rule => rule?.type === 'required_reviewers')
+        : [];
+      const reviewerRule = reviewerRules.length === 1 ? reviewerRules[0] : null;
+      const reviewers = reviewerRule
+        ? reviewerRule.reviewers
+          .filter(entry => entry?.type === 'User' && entry.reviewer?.login)
+          .map(entry => entry.reviewer.login)
+          .sort()
+        : [];
+
+      if (environment.name !== FORMAL_APPROVAL_ENVIRONMENT) {
+        errors.push({
+          code: 'formal_approval_environment_name_drift',
+          expected: FORMAL_APPROVAL_ENVIRONMENT,
+          actual: environment.name ?? null,
+        });
+      }
+      if (environment.can_admins_bypass !== false) {
+        errors.push({code: 'formal_approval_admin_bypass_enabled'});
+      }
+      if (!reviewerRule) {
+        errors.push({code: 'formal_approval_reviewer_rule_missing'});
+      } else {
+        if (reviewerRule.prevent_self_review !== FORMAL_APPROVAL_PREVENT_SELF_REVIEW) {
+          errors.push({
+            code: 'formal_approval_prevent_self_review_drift',
+            expected: FORMAL_APPROVAL_PREVENT_SELF_REVIEW,
+            actual: reviewerRule.prevent_self_review ?? null,
+          });
+        }
+        if (reviewers.length !== 1 || reviewers[0] !== FORMAL_APPROVAL_REVIEWER) {
+          errors.push({
+            code: 'formal_approval_reviewer_drift',
+            expected: [FORMAL_APPROVAL_REVIEWER],
+            actual: reviewers,
+          });
+        }
+      }
+      formalApproval = {
+        environment: environment.name ?? null,
+        can_admins_bypass: environment.can_admins_bypass ?? null,
+        prevent_self_review: reviewerRule?.prevent_self_review ?? null,
+        reviewers,
+      };
+    } catch {
+      errors.push({code: 'formal_approval_environment_malformed'});
+    }
+  }
+  return {
+    repo,
+    protected: true,
+    required_checks: checks,
+    formal_approval: formalApproval,
+  };
 }
 
 const strict = process.argv.includes('--strict');

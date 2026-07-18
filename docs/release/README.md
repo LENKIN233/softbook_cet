@@ -16,7 +16,9 @@ approval workflow are classified by trusted default-branch code in
 `formal-product-owner-approval` GitHub Environment before the `formal-approval`
 check can pass. That environment requires `github:LENKIN233` and disables
 administrator bypass. A `verified_by` value inside the pull request is metadata
-only; it is not the authenticated product-owner approval.
+only; it is not the authenticated product-owner approval. Branch protection
+requires the final `formal-approval` status, while the full Harness and weekly
+repository-health run independently verify the Environment configuration.
 
 A gate can be `passed` only when it contains every evidence type defined by the
 validator. Evidence is structured, identifies its verifier and verification

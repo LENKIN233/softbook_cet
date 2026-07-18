@@ -11,6 +11,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-repo-health-'));
 const linkedRoot = `${tempRoot}-linked`;
 const remoteRoot = `${tempRoot}-remote.git`;
+const fakeBin = `${tempRoot}-fake-bin`;
 
 try {
   fs.mkdirSync(path.join(tempRoot, 'scripts'));
@@ -47,6 +48,111 @@ try {
   );
   assert.ok(report.metrics.introduced_blobs > 0);
   console.log('PASS: repository health rejects introduced-and-deleted blobs.');
+
+  fs.mkdirSync(fakeBin);
+  const fakeGh = path.join(fakeBin, 'gh');
+  fs.writeFileSync(
+    fakeGh,
+    `#!/usr/bin/env node
+const args = process.argv.slice(2);
+const checks = [
+  'design-artifact-gate',
+  'validate-harness',
+  'agent-review',
+  'mobile-quality',
+  'backend-contract',
+  'dependency-security',
+  'ios-release',
+  'repo-health',
+  'evidence-archive',
+  'formal-approval',
+];
+if (args[0] === 'repo' && args[1] === 'view') {
+  process.stdout.write('LENKIN233/softbook_cet\\n');
+} else if (args[0] === 'api') {
+  const endpoint = args[1];
+  if (endpoint.endsWith('/branches/main/protection/required_signatures')) {
+    process.stdout.write(JSON.stringify({enabled: true}));
+  } else if (endpoint.endsWith('/branches/main/protection')) {
+    process.stdout.write(JSON.stringify({
+      required_status_checks: {strict: true, contexts: checks},
+      required_pull_request_reviews: {},
+      enforce_admins: {enabled: true},
+      required_conversation_resolution: {enabled: true},
+      required_linear_history: {enabled: true},
+      allow_force_pushes: {enabled: false},
+      allow_deletions: {enabled: false},
+    }));
+  } else if (endpoint.endsWith('/environments/formal-product-owner-approval')) {
+    if (process.env.FORMAL_ENV_MISSING === 'true') process.exit(1);
+    const reviewers = process.env.FORMAL_REVIEWER_MISSING === 'true'
+      ? []
+      : [{type: 'User', reviewer: {login: 'LENKIN233'}}];
+    process.stdout.write(JSON.stringify({
+      name: 'formal-product-owner-approval',
+      can_admins_bypass: process.env.FORMAL_ADMIN_BYPASS === 'true',
+      protection_rules: [{
+        type: 'required_reviewers',
+        prevent_self_review: false,
+        reviewers,
+      }],
+    }));
+  } else if (endpoint === 'repos/LENKIN233/softbook_cet') {
+    process.stdout.write(JSON.stringify({
+      allow_squash_merge: true,
+      allow_merge_commit: false,
+      allow_rebase_merge: false,
+    }));
+  } else {
+    process.exit(1);
+  }
+} else {
+  process.exit(1);
+}
+`,
+  );
+  fs.chmodSync(fakeGh, 0o755);
+
+  const remoteArgs = [
+    'scripts/report_repo_health.mjs',
+    '--full-tree',
+    '--remote',
+    '--strict',
+  ];
+  const remoteEnvironment = overrides => ({
+    ...process.env,
+    PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`,
+    ...overrides,
+  });
+  const healthyRemote = spawnSync(process.execPath, remoteArgs, {
+    cwd: tempRoot,
+    encoding: 'utf8',
+    env: remoteEnvironment({}),
+  });
+  const healthyRemoteReport = JSON.parse(healthyRemote.stdout);
+  assert.equal(
+    healthyRemote.status,
+    0,
+    `${healthyRemote.stderr}\n${healthyRemote.stdout}`,
+  );
+  assert.equal(healthyRemoteReport.ok, true);
+  assert.deepEqual(healthyRemoteReport.remote.formal_approval.reviewers, ['LENKIN233']);
+
+  for (const [environment, expectedCode] of [
+    [{FORMAL_ADMIN_BYPASS: 'true'}, 'formal_approval_admin_bypass_enabled'],
+    [{FORMAL_REVIEWER_MISSING: 'true'}, 'formal_approval_reviewer_drift'],
+    [{FORMAL_ENV_MISSING: 'true'}, 'formal_approval_environment_unavailable'],
+  ]) {
+    const driftResult = spawnSync(process.execPath, remoteArgs, {
+      cwd: tempRoot,
+      encoding: 'utf8',
+      env: remoteEnvironment(environment),
+    });
+    const driftReport = JSON.parse(driftResult.stdout);
+    assert.notEqual(driftResult.status, 0, `${expectedCode} must fail`);
+    assert.ok(driftReport.errors.some(error => error.code === expectedCode));
+  }
+  console.log('PASS: repository health fails closed on formal approval environment drift.');
 
   execFileSync('git', ['init', '--bare', remoteRoot], {stdio: 'ignore'});
   git('remote', 'add', 'origin', remoteRoot);
@@ -95,6 +201,7 @@ try {
 } finally {
   spawnSync('git', ['worktree', 'remove', '--force', linkedRoot], {cwd: tempRoot, stdio: 'ignore'});
   fs.rmSync(linkedRoot, {force: true, recursive: true});
+  fs.rmSync(fakeBin, {force: true, recursive: true});
   fs.rmSync(remoteRoot, {force: true, recursive: true});
   fs.rmSync(tempRoot, {force: true, recursive: true});
 }

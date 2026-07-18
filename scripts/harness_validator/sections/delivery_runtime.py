@@ -20,6 +20,7 @@ def validate(context) -> None:
     remote_guard = harness["governance"]["remote_guard"]
     pull_request_contract = delivery["pull_request_contract"]
     ci_contract = delivery["ci_contract"]
+    formal_approval_gate = ci_contract["formal_approval_gate"]
     evals = context.load("evals.json")
 
     # Governance enforcement must remain wired, not just documented.
@@ -156,6 +157,66 @@ def validate(context) -> None:
                     protection["required_pull_request_reviews"]["required_approving_review_count"],
                 )
 
+        gh_environment = run_command(
+            "gh",
+            "api",
+            f"repos/{remote_guard['repository']}/environments/{formal_approval_gate['environment']}",
+        )
+        if gh_environment is None:
+            pass
+        elif gh_environment.returncode != 0:
+            errors.append(
+                "unable to read protected formal approval environment for "
+                f"{remote_guard['repository']}:{formal_approval_gate['environment']}; "
+                "confirm the environment exists and gh can read repository settings"
+            )
+        else:
+            try:
+                environment = json.loads(gh_environment.stdout)
+            except json.JSONDecodeError:
+                errors.append("formal approval environment returned malformed JSON")
+            else:
+                check_equal(
+                    "formal approval environment name",
+                    formal_approval_gate["environment"],
+                    environment.get("name"),
+                )
+                check_equal(
+                    "formal approval administrator bypass",
+                    formal_approval_gate["administrators_can_bypass"],
+                    environment.get("can_admins_bypass"),
+                )
+                reviewer_rules = [
+                    rule
+                    for rule in environment.get("protection_rules", [])
+                    if rule.get("type") == "required_reviewers"
+                ]
+                if len(reviewer_rules) != 1:
+                    errors.append(
+                        "formal approval environment must have exactly one required_reviewers rule"
+                    )
+                else:
+                    reviewer_rule = reviewer_rules[0]
+                    check_equal(
+                        "formal approval prevent_self_review",
+                        formal_approval_gate["prevent_self_review"],
+                        reviewer_rule.get("prevent_self_review"),
+                    )
+                    reviewer_logins = sorted(
+                        entry.get("reviewer", {}).get("login")
+                        for entry in reviewer_rule.get("reviewers", [])
+                        if entry.get("type") == "User"
+                        and entry.get("reviewer", {}).get("login")
+                    )
+                    expected_login = formal_approval_gate["required_reviewer"].removeprefix(
+                        "github:"
+                    )
+                    check_equal(
+                        "formal approval required reviewers",
+                        [expected_login],
+                        reviewer_logins,
+                    )
+
     workflow_path = ROOT / ci_contract["workflow_path"]
     if not workflow_path.exists():
         errors.append(f"missing CI workflow: {ci_contract['workflow_path']}")
@@ -196,9 +257,9 @@ def validate(context) -> None:
         ]:
             check_contains("PR workflow gate", workflow_text, snippet)
 
-    formal_workflow_path = ROOT / ".github/workflows/formal-approval.yml"
-    formal_classifier_path = ROOT / "scripts/classify_formal_approval_scope.mjs"
-    formal_classifier_test_path = ROOT / "scripts/test_classify_formal_approval_scope.mjs"
+    formal_workflow_path = ROOT / formal_approval_gate["workflow_path"]
+    formal_classifier_path = ROOT / formal_approval_gate["scope_classifier_path"]
+    formal_classifier_test_path = ROOT / formal_approval_gate["scope_classifier_test_path"]
     for path in [formal_workflow_path, formal_classifier_path, formal_classifier_test_path]:
         if not path.exists():
             errors.append(f"missing formal approval artifact: {path.relative_to(ROOT)}")
@@ -245,6 +306,8 @@ def validate(context) -> None:
             "protected_github_environment_approval",
             "formal_approval_required_status_check",
             "sensitive_governance_paths_fail_closed",
+            "environment_configuration_verified_remotely",
+            "administrator_bypass_disabled",
         ]:
             if marker not in formal_approval_regression["must_hit"]:
                 errors.append(f"HR-36 missing formal approval marker: {marker}")

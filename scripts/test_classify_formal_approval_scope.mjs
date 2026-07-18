@@ -28,6 +28,8 @@ test('launch records, evidence, validators, and workflows require approval', () 
     'docs/agent-runs/evidence/run.json',
     'security/reports/penetration-test.json',
     'scripts/validate_launch_readiness.mjs',
+    'scripts/report_repo_health.mjs',
+    'scripts/harness_validator/sections/governance_contracts.py',
     '.github/workflows/fake-formal-approval.yml',
   ];
   const result = classifyFormalApprovalScope(changed);
