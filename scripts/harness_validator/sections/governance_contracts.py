@@ -23,6 +23,7 @@ def validate(context) -> None:
     card_content_handoff_gate = pull_request_contract["card_content_handoff_gate"]
     ci_contract = delivery["ci_contract"]
     formal_approval_gate = ci_contract["formal_approval_gate"]
+    remote_repository_health = ci_contract["remote_repository_health"]
 
     check_equal("main_branch_policy.branch_name", "main", main_branch_policy["branch_name"])
     check_equal(
@@ -434,6 +435,23 @@ def validate(context) -> None:
     )
     if formal_approval_gate["required_status_check"] not in remote_guard["required_status_checks"]:
         errors.append("formal approval status is not required by remote branch protection contract")
+    check_equal(
+        "ci_contract remote_repository_health",
+        {
+            "workflow_job": "repo-health",
+            "triggers": ["schedule", "workflow_dispatch"],
+            "actions_secret": "REPO_HEALTH_TOKEN",
+            "credential_type": "fine_grained_personal_access_token",
+            "repository_scope": "LENKIN233/softbook_cet",
+            "required_repository_permissions": [
+                "Administration: read",
+                "Actions: read",
+            ],
+            "github_token_fallback_allowed": False,
+            "missing_credential_policy": "fail_closed_with_explicit_diagnostic",
+        },
+        remote_repository_health,
+    )
     check_equal(
         "ci_contract required_pull_request_gates",
         [

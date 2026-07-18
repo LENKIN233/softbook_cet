@@ -19,6 +19,9 @@ administrator bypass. A `verified_by` value inside the pull request is metadata
 only; it is not the authenticated product-owner approval. Branch protection
 requires the final `formal-approval` status, while the full Harness and weekly
 repository-health run independently verify the Environment configuration.
+The weekly and manually dispatched remote health run uses the repository secret
+`REPO_HEALTH_TOKEN`, scoped only to this repository with `Administration: read`
+and `Actions: read`; the built-in Actions token cannot read branch protection.
 
 A gate can be `passed` only when it contains every evidence type defined by the
 validator. Evidence is structured, identifies its verifier and verification

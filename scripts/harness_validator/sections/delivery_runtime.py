@@ -21,6 +21,7 @@ def validate(context) -> None:
     pull_request_contract = delivery["pull_request_contract"]
     ci_contract = delivery["ci_contract"]
     formal_approval_gate = ci_contract["formal_approval_gate"]
+    remote_repository_health = ci_contract["remote_repository_health"]
     evals = context.load("evals.json")
 
     # Governance enforcement must remain wired, not just documented.
@@ -245,6 +246,9 @@ def validate(context) -> None:
             "node --test scripts/test_validate_agent_run_evidence.mjs",
             "node scripts/validate_agent_run_evidence.mjs --verify-remote",
             '[ "$EVENT_NAME" = "schedule" ] || [ "$EVENT_NAME" = "workflow_dispatch" ]',
+            "REPO_HEALTH_TOKEN: ${{ secrets.REPO_HEALTH_TOKEN }}",
+            'if [ -z "$REPO_HEALTH_TOKEN" ]; then',
+            'GH_TOKEN="$REPO_HEALTH_TOKEN" node scripts/report_repo_health.mjs --full-tree --remote --strict',
             "python3 scripts/validate_maestro_selectors.py",
             "npm ci",
             "npm run lint -- --quiet",
@@ -257,6 +261,16 @@ def validate(context) -> None:
             'bundler: "Gemfile.lock"',
         ]:
             check_contains("PR workflow gate", workflow_text, snippet)
+        repo_health_job = workflow_text.split("  repo-health:", 1)[-1].split(
+            "  evidence-archive:", 1
+        )[0]
+        if 'GH_TOKEN: ${{ github.token }}' in repo_health_job:
+            errors.append("remote repository health must not fall back to github.token")
+        check_equal(
+            "remote repository health credential",
+            "REPO_HEALTH_TOKEN",
+            remote_repository_health["actions_secret"],
+        )
 
     formal_workflow_path = ROOT / formal_approval_gate["workflow_path"]
     formal_classifier_path = ROOT / formal_approval_gate["scope_classifier_path"]

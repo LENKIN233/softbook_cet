@@ -56,6 +56,7 @@
 - Repository health rejects administrator bypass, a missing required reviewer, and an unavailable formal approval Environment.
 - Remote settings failures remain fail closed but are reported separately from policies that are explicitly disabled.
 - The scheduled remote path is also reachable by manual workflow dispatch for pre-merge credential and API verification.
+- Manual dispatch `29628252198` proved that the built-in Actions token receives HTTP 403 from branch protection; the workflow now requires a repository-scoped `REPO_HEALTH_TOKEN` and forbids that fallback.
 - The trusted classifier includes every enforcement surface changed by this activation PR.
 - Local Harness remains complete for local mode; full mode is intentionally pending until the remote required-status list is atomically activated for this PR.
 - No local or CI result changed formal content approval, Agent review, or launch readiness.
@@ -83,6 +84,7 @@
 ## Risks and open questions
 
 - `prevent_self_review` remains explicitly false because `github:LENKIN233` is both the sole repository owner and the sole protected Environment reviewer. The approval is authenticated and manually recorded, but it is not independent two-person review.
+- `REPO_HEALTH_TOKEN` must be created as a fine-grained token scoped only to `LENKIN233/softbook_cet`, with `Administration: read` and `Actions: read`; the broad local GitHub CLI OAuth token must not be copied into Actions.
 - Enabling the new required status before a PR run emits it would deadlock the transition. Branch protection will be updated only after this PR exists and the trusted default-branch workflow has started.
 
 ## Follow-up

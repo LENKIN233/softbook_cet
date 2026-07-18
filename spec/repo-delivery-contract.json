@@ -160,6 +160,22 @@
       "prevent_self_review": false,
       "sensitive_scope_policy": "fail_closed"
     },
+    "remote_repository_health": {
+      "workflow_job": "repo-health",
+      "triggers": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "actions_secret": "REPO_HEALTH_TOKEN",
+      "credential_type": "fine_grained_personal_access_token",
+      "repository_scope": "LENKIN233/softbook_cet",
+      "required_repository_permissions": [
+        "Administration: read",
+        "Actions: read"
+      ],
+      "github_token_fallback_allowed": false,
+      "missing_credential_policy": "fail_closed_with_explicit_diagnostic"
+    },
     "required_pull_request_gates": [
       {
         "id": "design_artifact_gate",

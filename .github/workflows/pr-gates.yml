@@ -256,11 +256,15 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           EVENT_NAME: ${{ github.event_name }}
-          GH_TOKEN: ${{ github.token }}
+          REPO_HEALTH_TOKEN: ${{ secrets.REPO_HEALTH_TOKEN }}
         run: |
           node scripts/test_report_repo_health.mjs
           if [ "$EVENT_NAME" = "schedule" ] || [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            node scripts/report_repo_health.mjs --full-tree --remote --strict --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams --output "$RUNNER_TEMP/repository-health.json"
+            if [ -z "$REPO_HEALTH_TOKEN" ]; then
+              echo "::error title=Repository health credential missing::REPO_HEALTH_TOKEN must be a repository-scoped fine-grained token with Administration read and Actions read."
+              exit 1
+            fi
+            GH_TOKEN="$REPO_HEALTH_TOKEN" node scripts/report_repo_health.mjs --full-tree --remote --strict --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams --output "$RUNNER_TEMP/repository-health.json"
           elif git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
             node scripts/report_repo_health.mjs --base "$BASE_SHA" --strict --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams --output "$RUNNER_TEMP/repository-health.json"
           else
