@@ -4,7 +4,7 @@
 
 - Date: 2026-07-18
 - Branch: `infra/harden-governance-boundaries`
-- PR: N/A
+- PR: `#418` (https://github.com/LENKIN233/softbook_cet/pull/418)
 - Summary: Close three review findings in formal launch approval, read-only Harness capability enforcement, and local gate timeout cleanup without changing product behavior or launch state.
 
 ## Referenced specs
@@ -49,6 +49,7 @@
 - `node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs` -> 18 tests passed; the tracked baseline is valid and remains `ready=false`.
 - `python3 scripts/validate_harness.py` -> complete remote Harness passed.
 - `scripts/run_local_gates --profile dev --output exports/local-gates/governance-boundary-hardening-dev-final.json` -> complete `passed_with_exception`; 16/17 gates passed with only the explicit dev Node 25.9.0 versus 22.13.0 drift, and tracked files remained unchanged.
+- `scripts/run_local_gates --profile pr --pr 418 --base origin/main --output exports/local-gates/governance-boundary-hardening-pr-reviewed-head.json` on `702c0d2277ca9ae55ac01d0ec51e136e3cf55106` -> complete 29-gate collection with 27 passed; PR identity, full Harness, dependency security, strict remote repo health, LFS, remote evidence, and worktree integrity passed. Only the expected strict local Node/Ruby mismatch and then-Pending Agent review failed.
 - `node scripts/validate_launch_readiness.mjs` -> structurally valid and honestly `ready=false` with five pending and five blocked gates.
 - GitHub Environment API create/update/read -> `formal-product-owner-approval` requires `github:LENKIN233` and reports `can_admins_bypass=false`.
 - Live GitHub pagination probe against PR #408 -> `.changed_files` and the `gh api --paginate --slurp` file count both returned 5.
@@ -69,8 +70,9 @@
 ## Agent review status
 
 - Reviewer: Codex
-- Status: pending
-- Blocking findings: Full final-diff review, final test rerun, PR checks, and protected-environment activation on the default branch remain pending.
+- Status: Passed
+- Blocking findings: None.
+- Review summary: Reviewed the complete `origin/main...702c0d2` diff, trusted-base workflow execution, sensitive-path and rename classification, GitHub 3,000-file API truncation behavior, protected Environment settings, AST/runtime capability enforcement, timeout process-group cleanup, all negative regressions, full Harness, local dev/pr reports, and exact commit signature. The ambiguous 3,000-file boundary found during review was changed to fail closed. No remaining code or governance-contract blocker was identified; required GitHub checks on the final review-record head remain a separate merge condition.
 
 ## User-visible UI impact
 
@@ -88,5 +90,5 @@
 
 ## Follow-up
 
-- Complete final review, commit and merge the bootstrap PR under the existing required checks.
+- Push the signed Passed review record and merge bootstrap PR #418 only after all existing required checks pass on that exact final head.
 - From updated `main`, add `formal-approval` to the required-check authority and remote branch protection, approve the protected environment deployment, and verify a sensitive PR cannot merge without it.
