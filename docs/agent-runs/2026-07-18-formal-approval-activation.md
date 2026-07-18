@@ -39,6 +39,7 @@
 - `scripts/harness_validator/sections/governance_contracts.py` and `delivery_runtime.py`: mirror the contract and verify live Environment settings in full mode.
 - `scripts/report_repo_health.mjs` and its tests: require the exact status set and fail closed on formal approval Environment drift.
 - `scripts/classify_formal_approval_scope.mjs` and its tests: protect the new enforcement surfaces with trusted default-branch classification.
+- `.github/workflows/pr-gates.yml`: make manual dispatch execute the same remote repository-health path as the weekly schedule so its credentials can be proven before merge.
 - `docs/release/README.md`: clarify that branch protection, full Harness, and weekly health independently enforce the gate.
 
 ## Commands run
@@ -54,6 +55,7 @@
 
 - Repository health rejects administrator bypass, a missing required reviewer, and an unavailable formal approval Environment.
 - Remote settings failures remain fail closed but are reported separately from policies that are explicitly disabled.
+- The scheduled remote path is also reachable by manual workflow dispatch for pre-merge credential and API verification.
 - The trusted classifier includes every enforcement surface changed by this activation PR.
 - Local Harness remains complete for local mode; full mode is intentionally pending until the remote required-status list is atomically activated for this PR.
 - No local or CI result changed formal content approval, Agent review, or launch readiness.

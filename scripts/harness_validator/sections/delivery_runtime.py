@@ -244,6 +244,7 @@ def validate(context) -> None:
             "node scripts/validate_launch_readiness.mjs",
             "node --test scripts/test_validate_agent_run_evidence.mjs",
             "node scripts/validate_agent_run_evidence.mjs --verify-remote",
+            '[ "$EVENT_NAME" = "schedule" ] || [ "$EVENT_NAME" = "workflow_dispatch" ]',
             "python3 scripts/validate_maestro_selectors.py",
             "npm ci",
             "npm run lint -- --quiet",

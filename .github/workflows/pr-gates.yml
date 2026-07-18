@@ -259,7 +259,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           node scripts/test_report_repo_health.mjs
-          if [ "$EVENT_NAME" = "schedule" ]; then
+          if [ "$EVENT_NAME" = "schedule" ] || [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             node scripts/report_repo_health.mjs --full-tree --remote --strict --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams --output "$RUNNER_TEMP/repository-health.json"
           elif git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
             node scripts/report_repo_health.mjs --base "$BASE_SHA" --strict --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams --output "$RUNNER_TEMP/repository-health.json"
