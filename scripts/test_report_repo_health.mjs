@@ -75,6 +75,14 @@ if (args[0] === 'repo' && args[1] === 'view') {
     if (process.env.SIGNATURES_MISSING === 'true') process.exit(1);
     process.stdout.write(JSON.stringify({enabled: true}));
   } else if (endpoint.endsWith('/branches/main/protection')) {
+    if (process.env.BRANCH_PROTECTION_FORBIDDEN === 'true') {
+      process.stderr.write('gh: Resource not accessible by integration (HTTP 403)\\n');
+      process.exit(1);
+    }
+    if (process.env.BRANCH_PROTECTION_MISSING === 'true') {
+      process.stderr.write('gh: Branch not protected (HTTP 404)\\n');
+      process.exit(1);
+    }
     process.stdout.write(JSON.stringify({
       required_status_checks: {strict: true, contexts: checks},
       required_pull_request_reviews: {},
@@ -146,6 +154,8 @@ if (args[0] === 'repo' && args[1] === 'view') {
     [{FORMAL_ENV_MISSING: 'true'}, 'formal_approval_environment_unavailable'],
     [{SIGNATURES_MISSING: 'true'}, 'required_signatures_unavailable'],
     [{REPOSITORY_SETTINGS_MISSING: 'true'}, 'remote_repository_settings_unavailable'],
+    [{BRANCH_PROTECTION_FORBIDDEN: 'true'}, 'branch_protection_unavailable'],
+    [{BRANCH_PROTECTION_MISSING: 'true'}, 'main_branch_unprotected'],
   ]) {
     const driftResult = spawnSync(process.execPath, remoteArgs, {
       cwd: tempRoot,
@@ -155,6 +165,14 @@ if (args[0] === 'repo' && args[1] === 'view') {
     const driftReport = JSON.parse(driftResult.stdout);
     assert.notEqual(driftResult.status, 0, `${expectedCode} must fail`);
     assert.ok(driftReport.errors.some(error => error.code === expectedCode));
+    if (expectedCode === 'branch_protection_unavailable') {
+      const finding = driftReport.errors.find(error => error.code === expectedCode);
+      assert.equal(finding.http_status, 403);
+      assert.equal(driftReport.remote.protected, null);
+    }
+    if (expectedCode === 'main_branch_unprotected') {
+      assert.equal(driftReport.remote.protected, false);
+    }
   }
   console.log('PASS: repository health fails closed on formal approval environment drift.');
 

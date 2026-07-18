@@ -55,6 +55,7 @@
 
 - Repository health rejects administrator bypass, a missing required reviewer, and an unavailable formal approval Environment.
 - Remote settings failures remain fail closed but are reported separately from policies that are explicitly disabled.
+- Branch-protection HTTP 403 or transport failures are reported as unavailable; only an explicit HTTP 404 is reported as an unprotected branch.
 - The scheduled remote path is also reachable by manual workflow dispatch for pre-merge credential and API verification.
 - Manual dispatch `29628252198` proved that the built-in Actions token receives HTTP 403 from branch protection; the workflow now requires a repository-scoped `REPO_HEALTH_TOKEN` and forbids that fallback.
 - The trusted classifier includes every enforcement surface changed by this activation PR.

@@ -44,11 +44,32 @@ function integerOption(name) {
 }
 
 function run(command, args, {allowFailure = false, cwd = ROOT} = {}) {
+  const result = runResult(command, args, {cwd});
+  if (result.ok) return result.stdout;
+  if (allowFailure) return '';
+  throw result.error;
+}
+
+function runResult(command, args, {cwd = ROOT} = {}) {
   try {
-    return execFileSync(command, args, {cwd, encoding: 'utf8'}).trim();
+    return {
+      ok: true,
+      stdout: execFileSync(command, args, {
+        cwd,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }).trim(),
+      stderr: '',
+      exitCode: 0,
+    };
   } catch (error) {
-    if (allowFailure) return '';
-    throw error;
+    return {
+      ok: false,
+      stdout: '',
+      stderr: String(error?.stderr ?? '').trim(),
+      exitCode: Number.isInteger(error?.status) ? error.status : null,
+      error,
+    };
   }
 }
 
@@ -227,13 +248,33 @@ function remoteSnapshot(errors, warnings) {
     return null;
   }
 
-  const protectionRaw = run('gh', ['api', `repos/${repo}/branches/main/protection`], {allowFailure: true});
-  if (!protectionRaw) {
-    errors.push({code: 'main_branch_unprotected', repo});
-    return {repo, protected: false};
+  const protectionResult = runResult(
+    'gh',
+    ['api', `repos/${repo}/branches/main/protection`],
+  );
+  if (!protectionResult.ok) {
+    const statusMatch = protectionResult.stderr.match(/\(HTTP (\d{3})\)/);
+    const httpStatus = statusMatch ? Number(statusMatch[1]) : null;
+    if (httpStatus === 404) {
+      errors.push({code: 'main_branch_unprotected', repo});
+      return {repo, protected: false};
+    }
+    errors.push({
+      code: 'branch_protection_unavailable',
+      repo,
+      http_status: httpStatus,
+      exit_code: protectionResult.exitCode,
+    });
+    return {repo, protected: null};
   }
 
-  const protection = JSON.parse(protectionRaw);
+  let protection;
+  try {
+    protection = JSON.parse(protectionResult.stdout);
+  } catch {
+    errors.push({code: 'branch_protection_malformed', repo});
+    return {repo, protected: null};
+  }
   const checks = protection.required_status_checks?.contexts || [];
   if (protection.required_status_checks?.strict !== true) {
     errors.push({code: 'required_checks_not_strict'});
