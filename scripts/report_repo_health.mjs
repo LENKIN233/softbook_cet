@@ -242,10 +242,50 @@ function localBranches() {
 }
 
 function remoteSnapshot(errors, warnings) {
-  const repo = run('gh', ['repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner'], {allowFailure: true});
-  if (!repo) {
-    errors.push({code: 'remote_repository_unavailable'});
+  const repositoryRaw = run(
+    'gh',
+    [
+      'repo',
+      'view',
+      '--json',
+      'nameWithOwner,mergeCommitAllowed,rebaseMergeAllowed,squashMergeAllowed',
+    ],
+    {allowFailure: true},
+  );
+  const repository = parseRemoteJson(
+    repositoryRaw,
+    {
+      unavailableCode: 'remote_repository_unavailable',
+      malformedCode: 'remote_repository_malformed',
+    },
+    errors,
+  );
+  if (!repository || typeof repository.nameWithOwner !== 'string') {
+    if (repository && typeof repository.nameWithOwner !== 'string') {
+      errors.push({code: 'remote_repository_malformed'});
+    }
     return null;
+  }
+  const repo = repository.nameWithOwner;
+  const mergeMethods = {
+    allow_squash_merge: repository.squashMergeAllowed ?? null,
+    allow_merge_commit: repository.mergeCommitAllowed ?? null,
+    allow_rebase_merge: repository.rebaseMergeAllowed ?? null,
+  };
+  if (Object.values(mergeMethods).some(value => typeof value !== 'boolean')) {
+    errors.push({
+      code: 'remote_repository_settings_unavailable',
+      observed: mergeMethods,
+    });
+  } else if (
+    mergeMethods.allow_squash_merge !== true
+    || mergeMethods.allow_merge_commit !== false
+    || mergeMethods.allow_rebase_merge !== false
+  ) {
+    errors.push({
+      code: 'merge_methods_not_squash_only',
+      observed: mergeMethods,
+    });
   }
 
   const protectionResult = runResult(
@@ -314,21 +354,6 @@ function remoteSnapshot(errors, warnings) {
   if (signaturePolicy && signaturePolicy.enabled !== true) {
     errors.push({code: 'signed_commits_not_required'});
   }
-  const repositoryRaw = run('gh', ['api', `repos/${repo}`], {allowFailure: true});
-  const repository = parseRemoteJson(
-    repositoryRaw,
-    {
-      unavailableCode: 'remote_repository_settings_unavailable',
-      malformedCode: 'remote_repository_settings_malformed',
-    },
-    errors,
-  );
-  if (repository) {
-    if (repository.allow_squash_merge !== true || repository.allow_merge_commit !== false || repository.allow_rebase_merge !== false) {
-      errors.push({code: 'merge_methods_not_squash_only'});
-    }
-  }
-
   const environmentRaw = run(
     'gh',
     ['api', `repos/${repo}/environments/${FORMAL_APPROVAL_ENVIRONMENT}`],
@@ -395,6 +420,7 @@ function remoteSnapshot(errors, warnings) {
   return {
     repo,
     protected: true,
+    merge_methods: mergeMethods,
     required_checks: checks,
     formal_approval: formalApproval,
   };

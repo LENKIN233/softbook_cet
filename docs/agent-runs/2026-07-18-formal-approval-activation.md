@@ -4,8 +4,8 @@
 
 - Date: 2026-07-18
 - Branch: `infra/activate-formal-approval-gate`
-- PR: Pending creation
-- Summary: Activate the trusted formal product-owner approval status as a required `main` check and make both the full Harness and repository-health workflow fail closed when the protected GitHub Environment drifts.
+- PR: `#419` (`https://github.com/LENKIN233/softbook_cet/pull/419`)
+- Summary: Activate the trusted formal product-owner approval status as a required `main` check and make both the full Harness and repository-health workflow fail closed when the protected GitHub Environment drifts. Provision the least-privilege remote-health credential and make merge-policy discovery reproducible with that fine-grained token.
 
 ## Referenced specs
 
@@ -37,7 +37,7 @@
 
 - `spec/repo-delivery-contract.json`, `spec/agent-harness.json`, and `spec/evals.json`: make formal approval and remote Environment drift detection explicit contracts.
 - `scripts/harness_validator/sections/governance_contracts.py` and `delivery_runtime.py`: mirror the contract and verify live Environment settings in full mode.
-- `scripts/report_repo_health.mjs` and its tests: require the exact status set and fail closed on formal approval Environment drift.
+- `scripts/report_repo_health.mjs` and its tests: require the exact status set, fail closed on formal approval Environment drift, and read repository identity plus merge methods from one GraphQL snapshot so fine-grained-token responses cannot silently omit REST settings.
 - `scripts/classify_formal_approval_scope.mjs` and its tests: protect the new enforcement surfaces with trusted default-branch classification.
 - `.github/workflows/pr-gates.yml`: make manual dispatch execute the same remote repository-health path as the weekly schedule so its credentials can be proven before merge.
 - `docs/release/README.md`: clarify that branch protection, full Harness, and weekly health independently enforce the gate.
@@ -49,7 +49,10 @@
 - `python3 scripts/test_harness_module_boundaries.py` -> 18 tests passed.
 - `python3 scripts/validate_harness.py --mode local` -> complete local Harness passed with remote guard intentionally omitted.
 - `node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs` -> 18 tests passed; tracked launch state remains valid and `ready=false`.
-- Remaining full local/remote validation and exact PR-head GitHub checks: pending.
+- `node scripts/test_report_repo_health.mjs` after the GraphQL snapshot change -> all repository-health regressions passed, including unavailable settings and merge-method drift.
+- `node scripts/report_repo_health.mjs --full-tree --remote --strict --allow-dirty --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams` -> passed; live merge methods are squash enabled, merge commit disabled, and rebase disabled.
+- `python3 scripts/validate_harness.py --mode local` after the GraphQL snapshot change -> passed with expected local-mode partial completeness.
+- Remaining exact-head remote validation and required PR checks: pending.
 
 ## Validation results
 
@@ -58,6 +61,8 @@
 - Branch-protection HTTP 403 or transport failures are reported as unavailable; only an explicit HTTP 404 is reported as an unprotected branch.
 - The scheduled remote path is also reachable by manual workflow dispatch for pre-merge credential and API verification.
 - Manual dispatch `29628252198` proved that the built-in Actions token receives HTTP 403 from branch protection; the workflow now requires a repository-scoped `REPO_HEALTH_TOKEN` and forbids that fallback.
+- `REPO_HEALTH_TOKEN` was created for only `LENKIN233/softbook_cet`, with `Administration: read`, `Actions: read`, mandatory `Metadata: read`, and expiration `2027-07-18`; its value was copied directly into the repository Actions secret and was never printed or stored locally.
+- Manual dispatch `29638824359` proved that the new secret authenticates and reads branch protection, required checks, signatures, and the protected approval Environment. It also exposed that the REST repository response under the fine-grained token omitted or changed merge-policy fields, causing a false `merge_methods_not_squash_only`; merge-policy discovery now uses the same authenticated GraphQL repository snapshot as repository identity.
 - The trusted classifier includes every enforcement surface changed by this activation PR.
 - Local Harness remains complete for local mode; full mode is intentionally pending until the remote required-status list is atomically activated for this PR.
 - No local or CI result changed formal content approval, Agent review, or launch readiness.
@@ -85,9 +90,9 @@
 ## Risks and open questions
 
 - `prevent_self_review` remains explicitly false because `github:LENKIN233` is both the sole repository owner and the sole protected Environment reviewer. The approval is authenticated and manually recorded, but it is not independent two-person review.
-- `REPO_HEALTH_TOKEN` must be created as a fine-grained token scoped only to `LENKIN233/softbook_cet`, with `Administration: read` and `Actions: read`; the broad local GitHub CLI OAuth token must not be copied into Actions.
-- Enabling the new required status before a PR run emits it would deadlock the transition. Branch protection will be updated only after this PR exists and the trusted default-branch workflow has started.
+- `REPO_HEALTH_TOKEN` expires on `2027-07-18`; it must be rotated before that date with the same single-repository, read-only scope. The broad local GitHub CLI OAuth token was not copied into Actions.
+- `formal-approval` is already required on `main`; the final reviewed PR head must emit and receive the protected Environment approval before merge.
 
 ## Follow-up
 
-- Create the activation PR, add `formal-approval` to remote branch protection, run the full Harness against the live configuration, complete Agent review, and obtain the protected Environment approval on the final reviewed head.
+- Prove the GraphQL merge-policy snapshot through a manually dispatched remote-health run, complete final Agent review on that exact head, run all required PR checks, and obtain the protected Environment approval before merge.

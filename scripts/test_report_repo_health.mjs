@@ -68,7 +68,13 @@ const checks = [
   'formal-approval',
 ];
 if (args[0] === 'repo' && args[1] === 'view') {
-  process.stdout.write('LENKIN233/softbook_cet\\n');
+  const repository = {nameWithOwner: 'LENKIN233/softbook_cet'};
+  if (process.env.REPOSITORY_SETTINGS_MISSING !== 'true') {
+    repository.squashMergeAllowed = process.env.MERGE_METHOD_DRIFT !== 'true';
+    repository.mergeCommitAllowed = process.env.MERGE_METHOD_DRIFT === 'true';
+    repository.rebaseMergeAllowed = false;
+  }
+  process.stdout.write(JSON.stringify(repository));
 } else if (args[0] === 'api') {
   const endpoint = args[1];
   if (endpoint.endsWith('/branches/main/protection/required_signatures')) {
@@ -106,13 +112,6 @@ if (args[0] === 'repo' && args[1] === 'view') {
         reviewers,
       }],
     }));
-  } else if (endpoint === 'repos/LENKIN233/softbook_cet') {
-    if (process.env.REPOSITORY_SETTINGS_MISSING === 'true') process.exit(1);
-    process.stdout.write(JSON.stringify({
-      allow_squash_merge: true,
-      allow_merge_commit: false,
-      allow_rebase_merge: false,
-    }));
   } else {
     process.exit(1);
   }
@@ -147,6 +146,11 @@ if (args[0] === 'repo' && args[1] === 'view') {
   );
   assert.equal(healthyRemoteReport.ok, true);
   assert.deepEqual(healthyRemoteReport.remote.formal_approval.reviewers, ['LENKIN233']);
+  assert.deepEqual(healthyRemoteReport.remote.merge_methods, {
+    allow_squash_merge: true,
+    allow_merge_commit: false,
+    allow_rebase_merge: false,
+  });
 
   for (const [environment, expectedCode] of [
     [{FORMAL_ADMIN_BYPASS: 'true'}, 'formal_approval_admin_bypass_enabled'],
@@ -154,6 +158,7 @@ if (args[0] === 'repo' && args[1] === 'view') {
     [{FORMAL_ENV_MISSING: 'true'}, 'formal_approval_environment_unavailable'],
     [{SIGNATURES_MISSING: 'true'}, 'required_signatures_unavailable'],
     [{REPOSITORY_SETTINGS_MISSING: 'true'}, 'remote_repository_settings_unavailable'],
+    [{MERGE_METHOD_DRIFT: 'true'}, 'merge_methods_not_squash_only'],
     [{BRANCH_PROTECTION_FORBIDDEN: 'true'}, 'branch_protection_unavailable'],
     [{BRANCH_PROTECTION_MISSING: 'true'}, 'main_branch_unprotected'],
   ]) {
@@ -172,6 +177,14 @@ if (args[0] === 'repo' && args[1] === 'view') {
     }
     if (expectedCode === 'main_branch_unprotected') {
       assert.equal(driftReport.remote.protected, false);
+    }
+    if (expectedCode === 'merge_methods_not_squash_only') {
+      const finding = driftReport.errors.find(error => error.code === expectedCode);
+      assert.deepEqual(finding.observed, {
+        allow_squash_merge: false,
+        allow_merge_commit: true,
+        allow_rebase_merge: false,
+      });
     }
   }
   console.log('PASS: repository health fails closed on formal approval environment drift.');
