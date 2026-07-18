@@ -270,9 +270,16 @@ class LocalGateRunnerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
             marker = tmp / "child-survived"
+            child_code = (
+                "import signal, time; from pathlib import Path; "
+                "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+                "time.sleep(0.5); "
+                f"Path({str(marker)!r}).touch()"
+            )
             code = (
                 "import subprocess, sys, time; "
-                f"subprocess.Popen([sys.executable, '-c', \"import time; from pathlib import Path; time.sleep(1); Path({str(marker)!r}).touch()\"]); "
+                f"subprocess.Popen([sys.executable, '-c', {child_code!r}], "
+                "stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); "
                 "time.sleep(5)"
             )
             result = execute_command(
@@ -281,7 +288,7 @@ class LocalGateRunnerTests(unittest.TestCase):
                 log_path=tmp / "timeout.log",
                 verbose=False,
             )
-            time.sleep(1.1)
+            time.sleep(0.7)
 
             self.assertTrue(result.timed_out)
             self.assertEqual(result.returncode, 124)

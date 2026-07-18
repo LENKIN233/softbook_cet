@@ -33,6 +33,14 @@ const REPOSITORY_EVIDENCE_PREFIXES = [
 const PRODUCT_OWNER_VERIFIER = 'github:LENKIN233';
 const EVIDENCE_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
 const MAX_REPOSITORY_EVIDENCE_BYTES = 1024 * 1024;
+const FORMAL_APPROVAL_POLICY = Object.freeze({
+  provider: 'github_environment',
+  environment: 'formal-product-owner-approval',
+  required_reviewer: 'github:LENKIN233',
+  administrators_can_bypass: false,
+  workflow: '.github/workflows/formal-approval.yml',
+  required_check: 'formal-approval',
+});
 
 export const GATE_DEFINITIONS = Object.freeze({
   'production-environments': {
@@ -184,6 +192,7 @@ export function validateLaunchReadiness(contract, { now = new Date() } = {}) {
       'status',
       'current_milestone',
       'quality_policy',
+      'formal_approval',
       'product_scope',
       'external_dependencies',
       'gates',
@@ -210,6 +219,8 @@ export function validateLaunchReadiness(contract, { now = new Date() } = {}) {
   if (!LAUNCH_STATUSES.has(contract.status)) {
     errors.push('status must be not_ready or ready.');
   }
+
+  validateFormalApprovalPolicy(contract.formal_approval, errors);
 
   validateProductScope(contract.product_scope, errors);
 
@@ -512,6 +523,29 @@ function validateProductScope(scope, errors) {
     'product_scope.subscription_products',
     errors,
   );
+}
+
+function validateFormalApprovalPolicy(policy, errors) {
+  if (!isRecord(policy)) {
+    errors.push('formal_approval must be an object.');
+    return;
+  }
+  assertAllowedKeys(
+    policy,
+    [
+      'provider',
+      'environment',
+      'required_reviewer',
+      'administrators_can_bypass',
+      'workflow',
+      'required_check',
+    ],
+    'formal_approval',
+    errors,
+  );
+  for (const [field, expected] of Object.entries(FORMAL_APPROVAL_POLICY)) {
+    assertEqual(policy[field], expected, `formal_approval.${field}`, errors);
+  }
 }
 
 function validateGate(gate, definition, now, errors) {

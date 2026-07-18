@@ -4,6 +4,14 @@
   "status": "not_ready",
   "current_milestone": "launch_governance_baseline",
   "quality_policy": "move_release_date_before_reducing_gate",
+  "formal_approval": {
+    "provider": "github_environment",
+    "environment": "formal-product-owner-approval",
+    "required_reviewer": "github:LENKIN233",
+    "administrators_can_bypass": false,
+    "workflow": ".github/workflows/formal-approval.yml",
+    "required_check": "formal-approval"
+  },
   "product_scope": {
     "tracks": [
       "cet4",

@@ -85,6 +85,10 @@ class ReadOnlyContext:
         return self._section
 
     @property
+    def runtime_profile(self) -> str:
+        return "read_only"
+
+    @property
     def errors(self) -> list[str]:
         return self._errors
 
@@ -132,6 +136,10 @@ class DeliveryContext(ReadOnlyContext):
     @property
     def remote_guard_executed(self) -> bool:
         return self._remote_guard_executed
+
+    @property
+    def runtime_profile(self) -> str:
+        return "delivery"
 
     def mark_remote_guard_executed(self) -> None:
         if self.mode != "full":
@@ -197,6 +205,10 @@ class FixtureContext(ReadOnlyContext):
     def __init__(self, *, root: Path, mode: str, section: str) -> None:
         super().__init__(root=root, mode=mode, section=section)
         self._fixture_roots: set[Path] = set()
+
+    @property
+    def runtime_profile(self) -> str:
+        return "fixture"
 
     @contextmanager
     def temporary_directory(self, *, prefix: str):

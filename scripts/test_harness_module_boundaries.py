@@ -6,7 +6,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness_validator.capability_ast import validate_section_module
+from harness_validator.capability_ast import (
+    READ_ONLY_ALLOWED_IMPORTS as AST_READ_ONLY_ALLOWED_IMPORTS,
+    validate_section_module,
+)
 from harness_validator.context import (
     CapabilityError,
     DeliveryContext,
@@ -15,6 +18,9 @@ from harness_validator.context import (
     context_for_layer,
 )
 from harness_validator.runner import HARNESS_LAYERS, SECTION_DIR
+from harness_validator.runtime_policy import (
+    READ_ONLY_ALLOWED_IMPORTS as RUNTIME_READ_ONLY_ALLOWED_IMPORTS,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,11 +72,43 @@ class HarnessModuleBoundaryTests(unittest.TestCase):
                 self.assertTrue(violations)
                 self.assertTrue(
                     any(
-                        "forbidden" in violation or "mutation" in violation
+                        "forbidden" in violation
+                        or "mutation" in violation
+                        or "non-allowlisted" in violation
                         for violation in violations
                     ),
                     violations,
                 )
+
+    def test_read_only_sections_reject_alternate_file_and_process_imports(self):
+        cases = {
+            "file-io": (
+                "from io import FileIO\n"
+                "FileIO(context.root / 'escaped.txt', 'w').write(b'x')\n"
+            ),
+            "asyncio": (
+                "import asyncio\n"
+                "asyncio.run(asyncio.create_subprocess_exec('git', 'status'))\n"
+            ),
+        }
+        for name, body in cases.items():
+            with self.subTest(case=name), self.section_module(body) as path:
+                violations = validate_section_module(
+                    path,
+                    section="broken_owner_contract",
+                    layer="truth_spec_layer",
+                )
+
+            self.assertTrue(
+                any("non-allowlisted module" in item for item in violations),
+                violations,
+            )
+
+    def test_read_only_static_and_runtime_import_allowlists_match(self):
+        self.assertEqual(
+            frozenset(AST_READ_ONLY_ALLOWED_IMPORTS),
+            RUNTIME_READ_ONLY_ALLOWED_IMPORTS,
+        )
 
     def test_delivery_layer_rejects_mutating_command_capability(self):
         context = DeliveryContext(root=ROOT, mode="full", section="delivery_runtime")

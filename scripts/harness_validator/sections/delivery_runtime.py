@@ -10,6 +10,7 @@ def validate(context) -> None:
     errors = context.errors
     check_equal = context.check_equal
     check_contains = context.check_contains
+    find_by_id = context.find_by_id
     run_command = context.run_command
     SKIP_REMOTE_GUARD = context.mode == "local"
     harness = context.load("agent-harness.json")
@@ -19,6 +20,7 @@ def validate(context) -> None:
     remote_guard = harness["governance"]["remote_guard"]
     pull_request_contract = delivery["pull_request_contract"]
     ci_contract = delivery["ci_contract"]
+    evals = context.load("evals.json")
 
     # Governance enforcement must remain wired, not just documented.
     guard_script = ROOT / local_guard["guard_script"]
@@ -175,6 +177,7 @@ def validate(context) -> None:
             "python3 scripts/test_run_local_gates.py",
             "python3 scripts/test_harness_module_boundaries.py",
             "node --test scripts/test_check_design_metadata_leaks.mjs",
+            "node --test scripts/test_classify_formal_approval_scope.mjs",
             "python3 scripts/validate_harness.py --skip-remote-guard",
             "node --test scripts/test_validate_launch_readiness.mjs",
             "node scripts/validate_launch_readiness.mjs",
@@ -193,6 +196,59 @@ def validate(context) -> None:
         ]:
             check_contains("PR workflow gate", workflow_text, snippet)
 
+    formal_workflow_path = ROOT / ".github/workflows/formal-approval.yml"
+    formal_classifier_path = ROOT / "scripts/classify_formal_approval_scope.mjs"
+    formal_classifier_test_path = ROOT / "scripts/test_classify_formal_approval_scope.mjs"
+    for path in [formal_workflow_path, formal_classifier_path, formal_classifier_test_path]:
+        if not path.exists():
+            errors.append(f"missing formal approval artifact: {path.relative_to(ROOT)}")
+    if formal_workflow_path.exists():
+        formal_workflow_text = formal_workflow_path.read_text(encoding="utf-8")
+        for snippet in [
+            "pull_request_target:",
+            "ref: ${{ github.event.pull_request.base.sha }}",
+            "persist-credentials: false",
+            ".changed_files",
+            "--paginate --slurp",
+            "--expected-count",
+            "name: formal-product-owner-approval",
+            "name: formal-approval",
+        ]:
+            check_contains("formal approval trusted workflow", formal_workflow_text, snippet)
+    if formal_classifier_path.exists():
+        formal_classifier_text = formal_classifier_path.read_text(encoding="utf-8")
+        for snippet in [
+            "formal-approval-scope.v1",
+            "docs/agent-runs/evidence/",
+            "docs/release/",
+            "security/reports/",
+            ".github/workflows/",
+            "changed_paths.length === 0",
+        ]:
+            check_contains("formal approval scope classifier", formal_classifier_text, snippet)
+    if formal_classifier_test_path.exists():
+        formal_classifier_test_text = formal_classifier_test_path.read_text(encoding="utf-8")
+        for snippet in [
+            "empty and malformed changed-file input fails closed",
+            "GitHub file input fails closed when API pagination is truncated",
+            "GitHub file input rejects the API safety limit",
+            "renamed sensitive paths remain sensitive through previous filenames",
+            "approval workflow classifies with trusted base code before protected approval",
+        ]:
+            check_contains("formal approval regression coverage", formal_classifier_test_text, snippet)
+
+    formal_approval_regression = find_by_id(evals["regressions"], "HR-36")
+    if formal_approval_regression:
+        for marker in [
+            "verified_by_is_metadata_only",
+            "trusted_default_branch_scope_classifier",
+            "protected_github_environment_approval",
+            "formal_approval_required_status_check",
+            "sensitive_governance_paths_fail_closed",
+        ]:
+            if marker not in formal_approval_regression["must_hit"]:
+                errors.append(f"HR-36 missing formal approval marker: {marker}")
+
     pr_template_path = ROOT / ci_contract["pull_request_template_path"]
     if not pr_template_path.exists():
         errors.append(f"missing pull request template: {ci_contract['pull_request_template_path']}")
@@ -205,6 +261,7 @@ def validate(context) -> None:
             "- [ ] `python3 scripts/test_run_local_gates.py`",
             "- [ ] `python3 scripts/test_harness_module_boundaries.py`",
             "- [ ] `node --test scripts/test_check_design_metadata_leaks.mjs`",
+            "- [ ] `node --test scripts/test_classify_formal_approval_scope.mjs`",
             "- [ ] `python3 scripts/validate_maestro_selectors.py`",
             "- [ ] `node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs`",
             "- [ ] `node --test scripts/test_validate_agent_run_evidence.mjs && node scripts/validate_agent_run_evidence.mjs --verify-remote`",

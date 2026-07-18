@@ -1,5 +1,5 @@
 {
-  "version": "vnext-5",
+  "version": "vnext-6",
   "layer": "repo_governance_truth",
   "purpose": "Define the architecture of scripts/validate_harness.py and the independent local quality-gate entrypoint so governance checks stay layered while runtime and release jobs remain delegated and diagnosable.",
   "authority_note": "This file owns validator layer boundaries, section ownership, and side-effect policy. It does not own product truth, UI design truth, workspace classification, or PR delivery policy; those remain in their owner specs.",
@@ -94,10 +94,24 @@
     "capability_enforcement": {
       "implementations": [
         "scripts/harness_validator/context.py",
-        "scripts/harness_validator/capability_ast.py"
+        "scripts/harness_validator/capability_ast.py",
+        "scripts/harness_validator/runtime_policy.py"
       ],
       "runtime_context_profiles_enforced": true,
       "read_only_profile_forbidden_imports_and_calls": true,
+      "read_only_ast_import_allowlist": [
+        "__future__",
+        "json",
+        "re"
+      ],
+      "read_only_runtime_audit_blocks": [
+        "file_write",
+        "filesystem_mutation",
+        "process_execution",
+        "network_access",
+        "dynamic_code_execution",
+        "non_allowlisted_import"
+      ],
       "all_sections_explicit_validate_context": true,
       "direct_process_network_and_temp_imports_forbidden": true,
       "repository_derived_fixture_writes_forbidden": true,
@@ -219,6 +233,7 @@
       "fail_fast_cannot_produce_complete_pass": true,
       "explicit_timeout_per_gate": true,
       "timeout_terminates_process_group": true,
+      "timeout_cleanup_sequence": "sigterm_grace_then_unconditional_process_group_sigkill",
       "gate_exception_isolated": true,
       "network_false_gate_requires_os_isolation": true,
       "tracked_worktree_must_be_unchanged": true
@@ -477,6 +492,11 @@
       "id": "HA-AP-06",
       "name": "let_fixture_regressions_write_repository_derived_paths_or_run_arbitrary_validators",
       "correction": "use_the_section_exact_fixture_context_allowlist_and_system_temporary_roots_with_ast_repository_path_guards"
+    },
+    {
+      "id": "HA-AP-07",
+      "name": "treat_static_ast_checks_as_a_complete_read_only_runtime_boundary",
+      "correction": "combine_the_ast_import_and_call_boundary_with_worker_runtime_audit_enforcement_and_obfuscated_write_regressions"
     }
   ]
 }

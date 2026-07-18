@@ -16,7 +16,7 @@ def validate(context) -> None:
 
     harness_architecture_spec = load("harness-architecture.json")
 
-    check_equal("harness architecture version", "vnext-5", harness_architecture_spec["version"])
+    check_equal("harness architecture version", "vnext-6", harness_architecture_spec["version"])
     check_equal("harness architecture layer", "repo_governance_truth", harness_architecture_spec["layer"])
 
     runner_contract = harness_architecture_spec["runner_contract"]
@@ -126,9 +126,19 @@ def validate(context) -> None:
             "implementations": [
                 "scripts/harness_validator/context.py",
                 "scripts/harness_validator/capability_ast.py",
+                "scripts/harness_validator/runtime_policy.py",
             ],
             "runtime_context_profiles_enforced": True,
             "read_only_profile_forbidden_imports_and_calls": True,
+            "read_only_ast_import_allowlist": ["__future__", "json", "re"],
+            "read_only_runtime_audit_blocks": [
+                "file_write",
+                "filesystem_mutation",
+                "process_execution",
+                "network_access",
+                "dynamic_code_execution",
+                "non_allowlisted_import",
+            ],
             "all_sections_explicit_validate_context": True,
             "direct_process_network_and_temp_imports_forbidden": True,
             "repository_derived_fixture_writes_forbidden": True,
@@ -273,6 +283,7 @@ def validate(context) -> None:
             "fail_fast_cannot_produce_complete_pass": True,
             "explicit_timeout_per_gate": True,
             "timeout_terminates_process_group": True,
+            "timeout_cleanup_sequence": "sigterm_grace_then_unconditional_process_group_sigkill",
             "gate_exception_isolated": True,
             "network_false_gate_requires_os_isolation": True,
             "tracked_worktree_must_be_unchanged": True,
@@ -559,6 +570,9 @@ def validate(context) -> None:
             "test_section_timeout_is_attributed_and_later_sections_still_run",
             "test_worker_start_error_is_attributed_for_every_selected_section",
             "test_pure_section_capability_violation_fails_before_execution",
+            "test_read_only_worker_runtime_blocks_obfuscated_file_write",
+            "test_read_only_worker_runtime_blocks_obfuscated_process_network_and_dynamic_code",
+            "test_read_only_runtime_policy_blocks_socket_creation",
             "test_remote_guard_aggregation_never_leaks_worker_protocol_fields",
             "test_section_selection_expands_declared_logical_prerequisites",
             "test_json_result_has_stable_schema_and_structured_findings",
@@ -593,6 +607,7 @@ def validate(context) -> None:
         ],
         "scripts/harness_validator/capability_ast.py": [
             "READ_ONLY_SECTIONS",
+            "READ_ONLY_ALLOWED_IMPORTS",
             "FIXTURE_SECTION_OWNERS",
             "runtime_smoke_layer is delegated to CI",
             "section imports forbidden direct capability",
@@ -601,7 +616,16 @@ def validate(context) -> None:
         ],
         "scripts/harness_validator/section_worker.py": [
             "load_validate",
+            "policy_for_context(context).enforce()",
             '"remote_guard_executed": context.remote_guard_executed',
+        ],
+        "scripts/harness_validator/runtime_policy.py": [
+            "class ReadOnlyRuntimePolicy",
+            "sys.addaudithook",
+            "read-only Harness section attempted a file write",
+            "read-only Harness section attempted process execution",
+            "read-only Harness section attempted network access",
+            "read-only Harness section attempted dynamic code execution",
         ],
     }
     for relative_path, snippets in implementation_snippets.items():
@@ -622,6 +646,8 @@ def validate(context) -> None:
             "test_all_real_sections_have_valid_explicit_module_boundaries",
             "test_each_owned_layer_rejects_a_known_section_from_another_owner",
             "test_each_pure_layer_rejects_a_direct_capability_break",
+            "test_read_only_sections_reject_alternate_file_and_process_imports",
+            "test_read_only_static_and_runtime_import_allowlists_match",
             "test_delivery_layer_rejects_mutating_command_capability",
             "test_delivery_context_rejects_github_access_in_local_mode",
             "test_fixture_section_rejects_direct_remote_or_process_capabilities",
@@ -663,6 +689,7 @@ def validate(context) -> None:
             "explicit_validate_context_modules",
             "isolated_section_workers",
             "read_only_context_capability_enforcement",
+            "read_only_runtime_capability_enforcement",
             "section_timeout_isolation",
             "fixture_context_capability_enforcement",
             "zero_legacy_exec_paths",
@@ -670,7 +697,7 @@ def validate(context) -> None:
             if output not in architecture_task.get("outputs", []):
                 errors.append(f"harness_architecture task brief missing output: {output}")
 
-    for anti_pattern_id in ["AP-37", "AP-38"]:
+    for anti_pattern_id in ["AP-37", "AP-38", "AP-42"]:
         if not find_by_id(harness["anti_patterns"], anti_pattern_id):
             errors.append(f"agent harness missing harness architecture anti-pattern: {anti_pattern_id}")
 
@@ -680,6 +707,8 @@ def validate(context) -> None:
         errors.append("harness architecture missing isolated-module anti-pattern: HA-AP-05")
     if not find_by_id(harness_architecture_spec["anti_patterns"], "HA-AP-06"):
         errors.append("harness architecture missing fixture-boundary anti-pattern: HA-AP-06")
+    if not find_by_id(harness_architecture_spec["anti_patterns"], "HA-AP-07"):
+        errors.append("harness architecture missing runtime-boundary anti-pattern: HA-AP-07")
 
     for regression_id in ["HR-31", "HR-32"]:
         if not find_by_id(evals["regressions"], regression_id):
@@ -698,6 +727,7 @@ def validate(context) -> None:
             "isolated_section_worker_processes",
             "section_timeout_isolated_with_remaining_diagnostics",
             "ast_enforced_read_only_capability_boundary",
+            "runtime_audit_enforced_read_only_capability_boundary",
             "ast_enforced_fixture_capability_boundary",
             "zero_legacy_exec_paths",
         ]:
@@ -724,6 +754,7 @@ def validate(context) -> None:
         for expected in [
             "pure_layers_no_subprocess_or_remote_reads",
             "read_only_context_and_ast_capability_enforcement",
+            "read_only_context_ast_and_runtime_audit_enforcement",
             "fixture_context_exact_validator_and_system_temp_enforcement",
             "runtime_tests_stay_in_ci_jobs",
         ]:

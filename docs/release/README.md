@@ -10,6 +10,14 @@ The tracked contracts start fail-closed:
 - `external-account-readiness.v1.json` records external account capabilities.
 - `scripts/validate_launch_readiness.mjs` derives readiness from those records.
 
+Changes to launch contracts, evidence, readiness validators, or the formal
+approval workflow are classified by trusted default-branch code in
+`.github/workflows/formal-approval.yml`. Those changes require the protected
+`formal-product-owner-approval` GitHub Environment before the `formal-approval`
+check can pass. That environment requires `github:LENKIN233` and disables
+administrator bypass. A `verified_by` value inside the pull request is metadata
+only; it is not the authenticated product-owner approval.
+
 A gate can be `passed` only when it contains every evidence type defined by the
 validator. Evidence is structured, identifies its verifier and verification
 time, and binds a tracked `repo://<path>` artifact to its byte size and SHA-256.

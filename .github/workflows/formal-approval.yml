@@ -1,0 +1,98 @@
+name: formal-product-owner-approval
+
+on:
+  pull_request_target:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: formal-approval-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  classify:
+    name: formal-approval-classify
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sensitive: ${{ steps.scope.outputs.sensitive }}
+    steps:
+      - name: Checkout trusted base revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Read changed paths from GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh api "repos/$GH_REPO/pulls/$PR_NUMBER" --jq .changed_files \
+            > "$RUNNER_TEMP/formal-approval-count.txt"
+          gh api --paginate --slurp \
+            "repos/$GH_REPO/pulls/$PR_NUMBER/files?per_page=100" \
+            > "$RUNNER_TEMP/formal-approval-files.json"
+
+      - name: Classify formal approval scope
+        id: scope
+        run: >-
+          node scripts/classify_formal_approval_scope.mjs
+          --github-files "$RUNNER_TEMP/formal-approval-files.json"
+          --expected-count "$(cat "$RUNNER_TEMP/formal-approval-count.txt")"
+          --github-output "$GITHUB_OUTPUT"
+
+  automatic:
+    name: formal-approval-automatic
+    needs: classify
+    if: needs.classify.outputs.sensitive != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: echo "No formal governance path changed."
+
+  product_owner:
+    name: formal-approval-product-owner
+    needs: classify
+    if: needs.classify.outputs.sensitive == 'true'
+    environment:
+      name: formal-product-owner-approval
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Record protected approval
+        run: echo "Protected product-owner environment approved ${{ github.event.pull_request.head.sha }}."
+
+  result:
+    name: formal-approval
+    if: always()
+    needs:
+      - classify
+      - automatic
+      - product_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require the applicable approval path
+        env:
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          SENSITIVE: ${{ needs.classify.outputs.sensitive }}
+          AUTOMATIC_RESULT: ${{ needs.automatic.result }}
+          PRODUCT_OWNER_RESULT: ${{ needs.product_owner.result }}
+        run: |
+          test "$CLASSIFY_RESULT" = "success"
+          if [ "$SENSITIVE" = "true" ]; then
+            test "$PRODUCT_OWNER_RESULT" = "success"
+          else
+            test "$AUTOMATIC_RESULT" = "success"
+          fi
