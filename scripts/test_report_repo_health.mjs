@@ -72,6 +72,7 @@ if (args[0] === 'repo' && args[1] === 'view') {
 } else if (args[0] === 'api') {
   const endpoint = args[1];
   if (endpoint.endsWith('/branches/main/protection/required_signatures')) {
+    if (process.env.SIGNATURES_MISSING === 'true') process.exit(1);
     process.stdout.write(JSON.stringify({enabled: true}));
   } else if (endpoint.endsWith('/branches/main/protection')) {
     process.stdout.write(JSON.stringify({
@@ -98,6 +99,7 @@ if (args[0] === 'repo' && args[1] === 'view') {
       }],
     }));
   } else if (endpoint === 'repos/LENKIN233/softbook_cet') {
+    if (process.env.REPOSITORY_SETTINGS_MISSING === 'true') process.exit(1);
     process.stdout.write(JSON.stringify({
       allow_squash_merge: true,
       allow_merge_commit: false,
@@ -142,6 +144,8 @@ if (args[0] === 'repo' && args[1] === 'view') {
     [{FORMAL_ADMIN_BYPASS: 'true'}, 'formal_approval_admin_bypass_enabled'],
     [{FORMAL_REVIEWER_MISSING: 'true'}, 'formal_approval_reviewer_drift'],
     [{FORMAL_ENV_MISSING: 'true'}, 'formal_approval_environment_unavailable'],
+    [{SIGNATURES_MISSING: 'true'}, 'required_signatures_unavailable'],
+    [{REPOSITORY_SETTINGS_MISSING: 'true'}, 'remote_repository_settings_unavailable'],
   ]) {
     const driftResult = spawnSync(process.execPath, remoteArgs, {
       cwd: tempRoot,

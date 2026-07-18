@@ -53,6 +53,7 @@
 ## Validation results
 
 - Repository health rejects administrator bypass, a missing required reviewer, and an unavailable formal approval Environment.
+- Remote settings failures remain fail closed but are reported separately from policies that are explicitly disabled.
 - The trusted classifier includes every enforcement surface changed by this activation PR.
 - Local Harness remains complete for local mode; full mode is intentionally pending until the remote required-status list is atomically activated for this PR.
 - No local or CI result changed formal content approval, Agent review, or launch readiness.

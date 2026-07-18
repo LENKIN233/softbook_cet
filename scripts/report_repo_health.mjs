@@ -77,6 +77,19 @@ function lines(value) {
   return value ? value.split('\n').map(line => line.trim()).filter(Boolean) : [];
 }
 
+function parseRemoteJson(raw, {unavailableCode, malformedCode}, errors) {
+  if (!raw) {
+    errors.push({code: unavailableCode});
+    return null;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    errors.push({code: malformedCode});
+    return null;
+  }
+}
+
 function resolvesCommit(ref) {
   return Boolean(ref && succeeds('git', ['cat-file', '-e', `${ref}^{commit}`]));
 }
@@ -249,10 +262,27 @@ function remoteSnapshot(errors, warnings) {
     }
   }
   const signatures = run('gh', ['api', `repos/${repo}/branches/main/protection/required_signatures`], {allowFailure: true});
-  if (!signatures || JSON.parse(signatures).enabled !== true) errors.push({code: 'signed_commits_not_required'});
+  const signaturePolicy = parseRemoteJson(
+    signatures,
+    {
+      unavailableCode: 'required_signatures_unavailable',
+      malformedCode: 'required_signatures_malformed',
+    },
+    errors,
+  );
+  if (signaturePolicy && signaturePolicy.enabled !== true) {
+    errors.push({code: 'signed_commits_not_required'});
+  }
   const repositoryRaw = run('gh', ['api', `repos/${repo}`], {allowFailure: true});
-  if (repositoryRaw) {
-    const repository = JSON.parse(repositoryRaw);
+  const repository = parseRemoteJson(
+    repositoryRaw,
+    {
+      unavailableCode: 'remote_repository_settings_unavailable',
+      malformedCode: 'remote_repository_settings_malformed',
+    },
+    errors,
+  );
+  if (repository) {
     if (repository.allow_squash_merge !== true || repository.allow_merge_commit !== false || repository.allow_rebase_merge !== false) {
       errors.push({code: 'merge_methods_not_squash_only'});
     }
