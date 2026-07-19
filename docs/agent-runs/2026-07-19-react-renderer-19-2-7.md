@@ -51,6 +51,7 @@
 - Exact Node 22.13.0/npm 10.9.2 `npm test -- --runInBand` -> 29 suites and 187 tests passed.
 - Ruby 3.3.12/Bundler `bundle exec pod install --project-directory=ios --deployment` -> passed and left tracked native locks unchanged.
 - Exact Node 22.13.0 and Ruby 3.3.12 `scripts/run_local_gates --profile dev` -> 17/17 gates passed; report written only to ignored `exports/local-gates/`.
+- Exact Node 22.13.0 and Ruby 3.3.12 `scripts/run_local_gates --profile pr --base origin/main --pr 423` -> 29/29 gates passed after the independently recorded evidence timeout correction; report written only to ignored `exports/local-gates/`.
 - Dependabot PR #410 -> closed with the concrete Node/core incompatibility recorded; its remote branch was deleted.
 - Dependabot PR #409 -> closed only after replacement PR #423 existed; the comment records original head `6eb3e5f252f03f1387bdab78aee7b55e92e9f1a8`, the peer mismatch, and the supersession link.
 
@@ -60,7 +61,7 @@
 - Mobile lint, typecheck, Jest, CocoaPods deployment validation, dependency audit, and complete local `dev` gates passed.
 - The React dependency portion contains only the scoped manifest, lock, and this run record.
 - A separate remote-evidence timeout discovered by the strict PR profile is documented independently in `docs/agent-runs/2026-07-19-evidence-archive-verification.md`.
-- GitHub required checks and the clean-runner iOS Release build/archive are pending on the replacement PR.
+- Strict local PR validation passed 29/29; GitHub required checks and the clean-runner iOS Release build/archive remain pending on the replacement PR.
 
 ## Binary evidence
 

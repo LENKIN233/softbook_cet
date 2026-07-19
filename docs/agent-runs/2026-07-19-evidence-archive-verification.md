@@ -54,6 +54,7 @@
 - `node --test scripts/test_validate_agent_run_evidence.mjs` -> 8 tests passed.
 - Anonymous `node scripts/validate_agent_run_evidence.mjs --verify-remote` -> passed in about 0.5 seconds and reported `github_release_asset_digest` for all 162,388,780 bytes.
 - `python3 scripts/test_run_local_gates.py` -> 29 tests passed.
+- Exact Node 22.13.0 and Ruby 3.3.12 `scripts/run_local_gates --profile pr --base origin/main --pr 423` -> 29/29 gates passed; the remote evidence gate used the GitHub asset digest path and the tracked worktree remained unchanged.
 
 ## Validation results
 
@@ -61,7 +62,7 @@
 - Tokens are only attached to the expected `api.github.com/repos/<owner>/<repo>/releases/assets/<id>` path; arbitrary hosts and cross-repository asset paths fail closed.
 - Public repositories work without a token; CI receives the existing read-only repository token to avoid anonymous rate-limit drift.
 - Fallback streaming remains available and its 150-second transfer cap is below the 180-second parent gate timeout.
-- Complete strict PR profile and GitHub required checks are pending on the final PR head.
+- Complete strict PR profile passed 29/29; GitHub required checks remain pending on the final PR head.
 
 ## Binary evidence
 
