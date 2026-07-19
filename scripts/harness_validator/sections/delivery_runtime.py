@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -230,6 +231,30 @@ def validate(context) -> None:
                         [{"type": "User", "login": expected_login, "slug": None}],
                         normalized_reviewers,
                     )
+
+    mobile_gemfile_path = ROOT / "apps/mobile/Gemfile"
+    mobile_gemfile_lock_path = ROOT / "apps/mobile/Gemfile.lock"
+    if not mobile_gemfile_path.exists():
+        errors.append("missing mobile Ruby dependency manifest: apps/mobile/Gemfile")
+    else:
+        mobile_gemfile_text = mobile_gemfile_path.read_text(encoding="utf-8")
+        ruby_contract = re.search(
+            r'^\s*ruby\s+"~> 3\.3\.0"\s*$',
+            mobile_gemfile_text,
+            re.MULTILINE,
+        )
+        if ruby_contract is None:
+            errors.append('mobile Ruby toolchain contract must declare ruby "~> 3.3.0"')
+    if not mobile_gemfile_lock_path.exists():
+        errors.append("missing mobile Ruby dependency lock: apps/mobile/Gemfile.lock")
+    else:
+        mobile_gemfile_lock_text = mobile_gemfile_lock_path.read_text(encoding="utf-8")
+        if re.search(
+            r"^RUBY VERSION\n\s+ruby 3\.3\.\d+(?:p\d+)?$",
+            mobile_gemfile_lock_text,
+            re.MULTILINE,
+        ) is None:
+            errors.append("mobile Ruby lock toolchain must record a Ruby 3.3.x version")
 
     workflow_path = ROOT / ci_contract["workflow_path"]
     if not workflow_path.exists():
