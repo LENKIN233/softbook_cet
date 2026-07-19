@@ -4,7 +4,7 @@
 
 - Date: 2026-07-19
 - Branch: `fix/align-react-renderer-19-2-7`
-- PR: pending creation
+- PR: https://github.com/LENKIN233/softbook_cet/pull/423
 - Supersedes: Dependabot PR #409 as a coordinated peer-compatible update
 - Summary: Upgrade React and `react-test-renderer` together to 19.2.7 so the renderer peer dependency is satisfied without changing React Native or product behavior.
 
@@ -52,6 +52,7 @@
 - Ruby 3.3.12/Bundler `bundle exec pod install --project-directory=ios --deployment` -> passed and left tracked native locks unchanged.
 - Exact Node 22.13.0 and Ruby 3.3.12 `scripts/run_local_gates --profile dev` -> 17/17 gates passed; report written only to ignored `exports/local-gates/`.
 - Dependabot PR #410 -> closed with the concrete Node/core incompatibility recorded; its remote branch was deleted.
+- Dependabot PR #409 -> closed only after replacement PR #423 existed; the comment records original head `6eb3e5f252f03f1387bdab78aee7b55e92e9f1a8`, the peer mismatch, and the supersession link.
 
 ## Validation results
 
@@ -83,9 +84,9 @@
 ## Risks and open questions
 
 - React is an application runtime dependency even for a patch update; clean-runner mobile tests, Release simulator build, and unsigned archive remain mandatory.
-- Dependabot PR #409 must remain open until this replacement PR exists, then be closed with a supersession link rather than merged independently.
+- Dependabot PR #409 was closed with its original head and replacement link recorded; it was not merged independently.
 - PR #410 is intentionally deferred until a separately reviewed Node/Babel 8 migration updates the toolchain contract and all related Babel packages together.
 
 ## Follow-up
 
-- Create the replacement PR, close #409 with the replacement link, run the strict PR profile, require every GitHub check and applicable protected approval, then verify the post-merge `main` run.
+- Run the strict PR profile, require every GitHub check and applicable protected approval, then verify the post-merge `main` run.
