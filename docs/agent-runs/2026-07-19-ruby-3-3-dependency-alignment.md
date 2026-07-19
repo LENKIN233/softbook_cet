@@ -4,7 +4,7 @@
 
 - Date: 2026-07-19
 - Branch: `fix/align-ruby-3-3-dependencies`
-- PR: N/A
+- PR: https://github.com/LENKIN233/softbook_cet/pull/422
 - Supersedes: Dependabot PR #406 and PR #407 as one compatibility unit
 - Summary: Align the mobile Ruby manifest and lock with the required Ruby 3.3 toolchain while upgrading ActiveSupport and concurrent-ruby together so CocoaPods remains executable.
 
@@ -58,14 +58,16 @@
 - `python3 scripts/validate_harness.py --mode full` -> passed, including remote delivery governance.
 - Negative `delivery_runtime` fixture with both Ruby anchors reverted to 2.6 -> exited 1 with separate manifest and lock findings; a commented fake Ruby 3.3 declaration did not bypass the line-level check. Both files were restored and the section then passed.
 - Exact Node 22.13.0 `scripts/run_local_gates --profile dev` -> 17/17 gates passed; report written only to ignored `exports/local-gates/`.
+- Exact Node 22.13.0 and Ruby 3.3.12 `scripts/run_local_gates --profile pr --base origin/main --pr 422` -> 29/29 gates passed; report written only to ignored `exports/local-gates/`.
+- Dependabot PR #406 and #407 -> closed only after replacement PR #422 existed, with comments recording their original head SHAs, evidence, and supersession reason.
 
 ## Validation results
 
 - Ruby dependency resolution is stable under the required local Ruby 3.3 toolchain.
 - ActiveSupport and concurrent-ruby load together, and CocoaPods deployment mode remains valid.
 - Harness detects both manifest and lock toolchain drift.
-- Runner, module-boundary, local-gate-runner, local/full Harness, negative fixture, and `dev` profile validation passed.
-- Strict PR profile and GitHub required checks are pending until the replacement PR exists.
+- Runner, module-boundary, local-gate-runner, local/full Harness, negative fixture, `dev`, and strict PR profile validation passed.
+- GitHub required checks are pending on the replacement PR.
 
 ## Binary evidence
 
@@ -91,8 +93,8 @@
 
 - This is an ActiveSupport major-version update, but its repository use is limited to CocoaPods build tooling; clean-runner simulator build and unsigned archive remain mandatory.
 - The lock records local Ruby 3.3.12 while GitHub may use another 3.3 patch; `bundle install` must leave the lock unchanged on the clean runner.
-- PR #406 and #407 must remain open until the replacement PR is created, then close with an explicit supersession link rather than being merged independently.
+- PR #406 and #407 were closed with explicit supersession links after replacement PR #422 was created; neither was merged independently.
 
 ## Follow-up
 
-- Complete final review, create the replacement PR, run the strict PR profile, and require every GitHub check before merge.
+- Require every GitHub check and applicable protected approval before merge, then verify the post-merge `main` run.
