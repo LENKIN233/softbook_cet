@@ -4,7 +4,7 @@
 
 - Date: 2026-07-19
 - Branch: `fix/update-async-storage-3-1-1`
-- PR: N/A
+- PR: https://github.com/LENKIN233/softbook_cet/pull/420
 - Summary: Upgrade the mobile AsyncStorage dependency from 3.0.2 to 3.1.1 and regenerate both JavaScript and iOS native dependency locks. This supersedes Dependabot PR #411, which omitted the required `Podfile.lock` update and therefore failed the iOS deployment-lock check.
 
 ## Referenced specs
