@@ -4,7 +4,7 @@
 
 - Date: 2026-07-19
 - Branch: `fix/ruby-3-3-lock-reproducibility`
-- PR: N/A
+- PR: https://github.com/LENKIN233/softbook_cet/pull/421
 - Summary: Make the committed Ruby dependency lock reproducible under the required Ruby 3.3 toolchain and fail the iOS CI job when `bundle install` mutates `Gemfile.lock`.
 
 ## Referenced specs
@@ -57,14 +57,16 @@
 - `python3 scripts/validate_harness.py --mode full` -> passed, including remote delivery governance.
 - Negative `delivery_runtime` validation with the lock-verification step temporarily removed -> exited 1 and reported both the missing step name and missing lock-check command; the workflow was restored afterward.
 - `npx --yes --package node@22.13.0 --package npm@10.9.2 -c './scripts/run_local_gates --profile dev'` -> 17/17 gates passed; report written only to ignored `exports/local-gates/`.
+- First strict PR profile run -> 28/29; `agent-review` correctly rejected unchecked validation boxes in the PR body. The boxes were replaced with truthful merge-condition prose rather than being marked as passed.
+- Exact Node 22.13.0 and Ruby 3.3.12 `scripts/run_local_gates --profile pr --base origin/main --pr 421` rerun -> 29/29 gates passed; report written only to ignored `exports/local-gates/`.
 
 ## Validation results
 
 - Ruby 3.3.12 and Bundler 2.4.22 resolve the committed Ruby lock without mutation.
 - CocoaPods deployment mode accepts the existing pod lock under the corrected Ruby lock.
 - Workflow and delivery-contract syntax validation passed.
-- Runner, module-boundary, local-gate-runner, local/full Harness, explicit negative lock-drift, and `dev` profile validation passed.
-- Local PR profile, GitHub required checks, and the PR iOS Release build are pending.
+- Runner, module-boundary, local-gate-runner, local/full Harness, explicit negative lock-drift, `dev`, and strict PR profile validation passed.
+- GitHub required checks and the PR iOS Release build are pending.
 
 ## Binary evidence
 
@@ -93,4 +95,4 @@
 
 ## Follow-up
 
-- Commit, push, open the PR, run the strict PR profile, and require all GitHub checks before merge.
+- Require every GitHub check and protected product-owner approval before merge, then verify the post-merge `main` run.
