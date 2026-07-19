@@ -22,6 +22,8 @@ def validate(context) -> None:
     pull_request_contract = delivery["pull_request_contract"]
     card_content_handoff_gate = pull_request_contract["card_content_handoff_gate"]
     ci_contract = delivery["ci_contract"]
+    formal_approval_gate = ci_contract["formal_approval_gate"]
+    remote_repository_health = ci_contract["remote_repository_health"]
 
     check_equal("main_branch_policy.branch_name", "main", main_branch_policy["branch_name"])
     check_equal(
@@ -416,6 +418,44 @@ def validate(context) -> None:
         ci_contract["pull_request_template_path"],
     )
     check_equal(
+        "ci_contract formal_approval_gate",
+        {
+            "workflow_path": ".github/workflows/formal-approval.yml",
+            "scope_classifier_path": "scripts/classify_formal_approval_scope.mjs",
+            "scope_classifier_test_path": "scripts/test_classify_formal_approval_scope.mjs",
+            "trusted_code_source": "pull_request_target_base_sha",
+            "required_status_check": "formal-approval",
+            "environment": "formal-product-owner-approval",
+            "required_reviewer": "github:LENKIN233",
+            "administrators_can_bypass": False,
+            "prevent_self_review": False,
+            "sensitive_scope_policy": "fail_closed",
+        },
+        formal_approval_gate,
+    )
+    if formal_approval_gate["required_status_check"] not in remote_guard["required_status_checks"]:
+        errors.append("formal approval status is not required by remote branch protection contract")
+    check_equal(
+        "ci_contract remote_repository_health",
+        {
+            "workflow_job": "repo-health",
+            "triggers": ["schedule", "workflow_dispatch"],
+            "actions_secret": "REPO_HEALTH_TOKEN",
+            "credential_type": "fine_grained_personal_access_token",
+            "repository_scope": "LENKIN233/softbook_cet",
+            "trusted_ref": "refs/heads/main",
+            "secret_exposure_policy": "trusted_ref_remote_step_only",
+            "untrusted_remote_ref_policy": "fail_closed_without_secret",
+            "required_repository_permissions": [
+                "Administration: read",
+                "Actions: read",
+            ],
+            "github_token_fallback_allowed": False,
+            "missing_credential_policy": "fail_closed_with_explicit_diagnostic",
+        },
+        remote_repository_health,
+    )
+    check_equal(
         "ci_contract required_pull_request_gates",
         [
             {
@@ -469,6 +509,10 @@ def validate(context) -> None:
             {
                 "id": "agent_run_evidence_archive",
                 "command": "node --test scripts/test_validate_agent_run_evidence.mjs && node scripts/validate_agent_run_evidence.mjs --verify-remote",
+            },
+            {
+                "id": "formal_product_owner_approval",
+                "command": "trusted default-branch classifier -> protected GitHub Environment -> formal-approval status",
             },
         ],
         ci_contract["required_pull_request_gates"],

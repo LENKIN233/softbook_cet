@@ -20,6 +20,8 @@ def validate(context) -> None:
     remote_guard = harness["governance"]["remote_guard"]
     pull_request_contract = delivery["pull_request_contract"]
     ci_contract = delivery["ci_contract"]
+    formal_approval_gate = ci_contract["formal_approval_gate"]
+    remote_repository_health = ci_contract["remote_repository_health"]
     evals = context.load("evals.json")
 
     # Governance enforcement must remain wired, not just documented.
@@ -156,6 +158,79 @@ def validate(context) -> None:
                     protection["required_pull_request_reviews"]["required_approving_review_count"],
                 )
 
+        gh_environment = run_command(
+            "gh",
+            "api",
+            f"repos/{remote_guard['repository']}/environments/{formal_approval_gate['environment']}",
+        )
+        if gh_environment is None:
+            pass
+        elif gh_environment.returncode != 0:
+            errors.append(
+                "unable to read protected formal approval environment for "
+                f"{remote_guard['repository']}:{formal_approval_gate['environment']}; "
+                "confirm the environment exists and gh can read repository settings"
+            )
+        else:
+            try:
+                environment = json.loads(gh_environment.stdout)
+            except json.JSONDecodeError:
+                errors.append("formal approval environment returned malformed JSON")
+            else:
+                check_equal(
+                    "formal approval environment name",
+                    formal_approval_gate["environment"],
+                    environment.get("name"),
+                )
+                check_equal(
+                    "formal approval administrator bypass",
+                    formal_approval_gate["administrators_can_bypass"],
+                    environment.get("can_admins_bypass"),
+                )
+                reviewer_rules = [
+                    rule
+                    for rule in environment.get("protection_rules", [])
+                    if rule.get("type") == "required_reviewers"
+                ]
+                if len(reviewer_rules) != 1:
+                    errors.append(
+                        "formal approval environment must have exactly one required_reviewers rule"
+                    )
+                else:
+                    reviewer_rule = reviewer_rules[0]
+                    check_equal(
+                        "formal approval prevent_self_review",
+                        formal_approval_gate["prevent_self_review"],
+                        reviewer_rule.get("prevent_self_review"),
+                    )
+                    reviewer_entries = reviewer_rule.get("reviewers", [])
+                    if not isinstance(reviewer_entries, list):
+                        reviewer_entries = []
+                    normalized_reviewers = [
+                        {
+                            "type": entry.get("type") if isinstance(entry, dict) else None,
+                            "login": (
+                                (entry.get("reviewer") or {}).get("login")
+                                if isinstance(entry, dict)
+                                else None
+                            ),
+                            "slug": (
+                                (entry.get("reviewer") or {}).get("slug")
+                                if isinstance(entry, dict)
+                                else None
+                            ),
+                        }
+                        for entry in reviewer_entries
+                    ]
+                    expected_login = formal_approval_gate["required_reviewer"].removeprefix(
+                        "github:"
+                    )
+                    check_equal(
+                        "formal approval required reviewer entries",
+                        [{"type": "User", "login": expected_login, "slug": None}],
+                        normalized_reviewers,
+                    )
+
     workflow_path = ROOT / ci_contract["workflow_path"]
     if not workflow_path.exists():
         errors.append(f"missing CI workflow: {ci_contract['workflow_path']}")
@@ -183,6 +258,15 @@ def validate(context) -> None:
             "node scripts/validate_launch_readiness.mjs",
             "node --test scripts/test_validate_agent_run_evidence.mjs",
             "node scripts/validate_agent_run_evidence.mjs --verify-remote",
+            "- name: Test repository health validator",
+            "- name: Reject untrusted remote health ref",
+            "- name: Validate trusted remote repository health",
+            "- name: Validate changed repository health",
+            "github.ref != 'refs/heads/main'",
+            "github.ref == 'refs/heads/main'",
+            "REPO_HEALTH_TOKEN: ${{ secrets.REPO_HEALTH_TOKEN }}",
+            'if [ -z "$REPO_HEALTH_TOKEN" ]; then',
+            'GH_TOKEN="$REPO_HEALTH_TOKEN" node scripts/report_repo_health.mjs --full-tree --remote --strict',
             "python3 scripts/validate_maestro_selectors.py",
             "npm ci",
             "npm run lint -- --quiet",
@@ -195,10 +279,90 @@ def validate(context) -> None:
             'bundler: "Gemfile.lock"',
         ]:
             check_contains("PR workflow gate", workflow_text, snippet)
+        repo_health_job = workflow_text.split("  repo-health:", 1)[-1].split(
+            "  evidence-archive:", 1
+        )[0]
+        if 'GH_TOKEN: ${{ github.token }}' in repo_health_job:
+            errors.append("remote repository health must not fall back to github.token")
+        secret_expression = "REPO_HEALTH_TOKEN: ${{ secrets.REPO_HEALTH_TOKEN }}"
+        if repo_health_job.count(secret_expression) != 1:
+            errors.append(
+                "remote repository health secret must appear exactly once in repo-health"
+            )
+        trusted_step_marker = "      - name: Validate trusted remote repository health"
+        if repo_health_job.count(trusted_step_marker) != 1:
+            errors.append("repo-health must have exactly one trusted remote validation step")
+        else:
+            trusted_step_tail = repo_health_job.split(trusted_step_marker, 1)[1]
+            trusted_step = trusted_step_marker + trusted_step_tail.split(
+                "\n      - name:", 1
+            )[0]
+            if secret_expression not in trusted_step:
+                errors.append("remote repository health secret escaped the trusted step")
+            without_trusted_step = repo_health_job.replace(trusted_step, "", 1)
+            if "REPO_HEALTH_TOKEN" in without_trusted_step:
+                errors.append("untrusted repo-health step can reference REPO_HEALTH_TOKEN")
+            if "${{ secrets." in without_trusted_step:
+                errors.append("untrusted repo-health step can access a repository secret")
+            for snippet in [
+                "github.event_name == 'schedule'",
+                "github.event_name == 'workflow_dispatch'",
+                f"github.ref == '{remote_repository_health['trusted_ref']}'",
+            ]:
+                check_contains("trusted remote repository health step", trusted_step, snippet)
+        reject_step_marker = "      - name: Reject untrusted remote health ref"
+        if repo_health_job.count(reject_step_marker) != 1:
+            errors.append("repo-health must have exactly one untrusted-ref rejection step")
+        else:
+            reject_step_tail = repo_health_job.split(reject_step_marker, 1)[1]
+            reject_step = reject_step_marker + reject_step_tail.split(
+                "\n      - name:", 1
+            )[0]
+            for snippet in [
+                "github.event_name == 'schedule'",
+                "github.event_name == 'workflow_dispatch'",
+                f"github.ref != '{remote_repository_health['trusted_ref']}'",
+                "exit 1",
+            ]:
+                check_contains("untrusted remote health rejection step", reject_step, snippet)
+        changed_step_marker = "      - name: Validate changed repository health"
+        if repo_health_job.count(changed_step_marker) != 1:
+            errors.append("repo-health must have exactly one uncredentialed changed-tree step")
+        else:
+            changed_step_tail = repo_health_job.split(changed_step_marker, 1)[1]
+            changed_step = changed_step_marker + changed_step_tail.split(
+                "\n      - name:", 1
+            )[0]
+            for snippet in [
+                "github.event_name != 'schedule'",
+                "github.event_name != 'workflow_dispatch'",
+                "node scripts/report_repo_health.mjs --base",
+            ]:
+                check_contains("changed repository health step", changed_step, snippet)
+        check_equal(
+            "remote repository health credential",
+            "REPO_HEALTH_TOKEN",
+            remote_repository_health["actions_secret"],
+        )
+        check_equal(
+            "remote repository health trusted ref",
+            "refs/heads/main",
+            remote_repository_health["trusted_ref"],
+        )
+        check_equal(
+            "remote repository health secret exposure",
+            "trusted_ref_remote_step_only",
+            remote_repository_health["secret_exposure_policy"],
+        )
+        check_equal(
+            "remote repository health untrusted ref policy",
+            "fail_closed_without_secret",
+            remote_repository_health["untrusted_remote_ref_policy"],
+        )
 
-    formal_workflow_path = ROOT / ".github/workflows/formal-approval.yml"
-    formal_classifier_path = ROOT / "scripts/classify_formal_approval_scope.mjs"
-    formal_classifier_test_path = ROOT / "scripts/test_classify_formal_approval_scope.mjs"
+    formal_workflow_path = ROOT / formal_approval_gate["workflow_path"]
+    formal_classifier_path = ROOT / formal_approval_gate["scope_classifier_path"]
+    formal_classifier_test_path = ROOT / formal_approval_gate["scope_classifier_test_path"]
     for path in [formal_workflow_path, formal_classifier_path, formal_classifier_test_path]:
         if not path.exists():
             errors.append(f"missing formal approval artifact: {path.relative_to(ROOT)}")
@@ -245,6 +409,9 @@ def validate(context) -> None:
             "protected_github_environment_approval",
             "formal_approval_required_status_check",
             "sensitive_governance_paths_fail_closed",
+            "environment_configuration_verified_remotely",
+            "administrator_bypass_disabled",
+            "remote_health_secret_trusted_ref_only",
         ]:
             if marker not in formal_approval_regression["must_hit"]:
                 errors.append(f"HR-36 missing formal approval marker: {marker}")

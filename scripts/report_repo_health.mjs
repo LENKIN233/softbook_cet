@@ -17,7 +17,11 @@ const REQUIRED_CHECKS = [
   'ios-release',
   'repo-health',
   'evidence-archive',
+  'formal-approval',
 ];
+const FORMAL_APPROVAL_ENVIRONMENT = 'formal-product-owner-approval';
+const FORMAL_APPROVAL_REVIEWER = 'LENKIN233';
+const FORMAL_APPROVAL_PREVENT_SELF_REVIEW = false;
 const FORBIDDEN_TRACKED_PREFIXES = [
   'exports/',
   'docs/agent-runs/artifacts/',
@@ -40,11 +44,32 @@ function integerOption(name) {
 }
 
 function run(command, args, {allowFailure = false, cwd = ROOT} = {}) {
+  const result = runResult(command, args, {cwd});
+  if (result.ok) return result.stdout;
+  if (allowFailure) return '';
+  throw result.error;
+}
+
+function runResult(command, args, {cwd = ROOT} = {}) {
   try {
-    return execFileSync(command, args, {cwd, encoding: 'utf8'}).trim();
+    return {
+      ok: true,
+      stdout: execFileSync(command, args, {
+        cwd,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }).trim(),
+      stderr: '',
+      exitCode: 0,
+    };
   } catch (error) {
-    if (allowFailure) return '';
-    throw error;
+    return {
+      ok: false,
+      stdout: '',
+      stderr: String(error?.stderr ?? '').trim(),
+      exitCode: Number.isInteger(error?.status) ? error.status : null,
+      error,
+    };
   }
 }
 
@@ -71,6 +96,19 @@ function succeeds(command, args) {
 
 function lines(value) {
   return value ? value.split('\n').map(line => line.trim()).filter(Boolean) : [];
+}
+
+function parseRemoteJson(raw, {unavailableCode, malformedCode}, errors) {
+  if (!raw) {
+    errors.push({code: unavailableCode});
+    return null;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    errors.push({code: malformedCode});
+    return null;
+  }
 }
 
 function resolvesCommit(ref) {
@@ -204,19 +242,79 @@ function localBranches() {
 }
 
 function remoteSnapshot(errors, warnings) {
-  const repo = run('gh', ['repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner'], {allowFailure: true});
-  if (!repo) {
-    errors.push({code: 'remote_repository_unavailable'});
+  const repositoryRaw = run(
+    'gh',
+    [
+      'repo',
+      'view',
+      '--json',
+      'nameWithOwner,mergeCommitAllowed,rebaseMergeAllowed,squashMergeAllowed',
+    ],
+    {allowFailure: true},
+  );
+  const repository = parseRemoteJson(
+    repositoryRaw,
+    {
+      unavailableCode: 'remote_repository_unavailable',
+      malformedCode: 'remote_repository_malformed',
+    },
+    errors,
+  );
+  if (!repository || typeof repository.nameWithOwner !== 'string') {
+    if (repository && typeof repository.nameWithOwner !== 'string') {
+      errors.push({code: 'remote_repository_malformed'});
+    }
     return null;
   }
-
-  const protectionRaw = run('gh', ['api', `repos/${repo}/branches/main/protection`], {allowFailure: true});
-  if (!protectionRaw) {
-    errors.push({code: 'main_branch_unprotected', repo});
-    return {repo, protected: false};
+  const repo = repository.nameWithOwner;
+  const mergeMethods = {
+    allow_squash_merge: repository.squashMergeAllowed ?? null,
+    allow_merge_commit: repository.mergeCommitAllowed ?? null,
+    allow_rebase_merge: repository.rebaseMergeAllowed ?? null,
+  };
+  if (Object.values(mergeMethods).some(value => typeof value !== 'boolean')) {
+    errors.push({
+      code: 'remote_repository_settings_unavailable',
+      observed: mergeMethods,
+    });
+  } else if (
+    mergeMethods.allow_squash_merge !== true
+    || mergeMethods.allow_merge_commit !== false
+    || mergeMethods.allow_rebase_merge !== false
+  ) {
+    errors.push({
+      code: 'merge_methods_not_squash_only',
+      observed: mergeMethods,
+    });
   }
 
-  const protection = JSON.parse(protectionRaw);
+  const protectionResult = runResult(
+    'gh',
+    ['api', `repos/${repo}/branches/main/protection`],
+  );
+  if (!protectionResult.ok) {
+    const statusMatch = protectionResult.stderr.match(/\(HTTP (\d{3})\)/);
+    const httpStatus = statusMatch ? Number(statusMatch[1]) : null;
+    if (httpStatus === 404) {
+      errors.push({code: 'main_branch_unprotected', repo});
+      return {repo, protected: false};
+    }
+    errors.push({
+      code: 'branch_protection_unavailable',
+      repo,
+      http_status: httpStatus,
+      exit_code: protectionResult.exitCode,
+    });
+    return {repo, protected: null};
+  }
+
+  let protection;
+  try {
+    protection = JSON.parse(protectionResult.stdout);
+  } catch {
+    errors.push({code: 'branch_protection_malformed', repo});
+    return {repo, protected: null};
+  }
   const checks = protection.required_status_checks?.contexts || [];
   if (protection.required_status_checks?.strict !== true) {
     errors.push({code: 'required_checks_not_strict'});
@@ -239,16 +337,108 @@ function remoteSnapshot(errors, warnings) {
   for (const check of REQUIRED_CHECKS) {
     if (!checks.includes(check)) errors.push({code: 'required_status_check_missing', check});
   }
-  const signatures = run('gh', ['api', `repos/${repo}/branches/main/protection/required_signatures`], {allowFailure: true});
-  if (!signatures || JSON.parse(signatures).enabled !== true) errors.push({code: 'signed_commits_not_required'});
-  const repositoryRaw = run('gh', ['api', `repos/${repo}`], {allowFailure: true});
-  if (repositoryRaw) {
-    const repository = JSON.parse(repositoryRaw);
-    if (repository.allow_squash_merge !== true || repository.allow_merge_commit !== false || repository.allow_rebase_merge !== false) {
-      errors.push({code: 'merge_methods_not_squash_only'});
+  for (const check of checks) {
+    if (!REQUIRED_CHECKS.includes(check)) {
+      errors.push({code: 'unexpected_required_status_check', check});
     }
   }
-  return {repo, protected: true, required_checks: checks};
+  const signatures = run('gh', ['api', `repos/${repo}/branches/main/protection/required_signatures`], {allowFailure: true});
+  const signaturePolicy = parseRemoteJson(
+    signatures,
+    {
+      unavailableCode: 'required_signatures_unavailable',
+      malformedCode: 'required_signatures_malformed',
+    },
+    errors,
+  );
+  if (signaturePolicy && signaturePolicy.enabled !== true) {
+    errors.push({code: 'signed_commits_not_required'});
+  }
+  const environmentRaw = run(
+    'gh',
+    ['api', `repos/${repo}/environments/${FORMAL_APPROVAL_ENVIRONMENT}`],
+    {allowFailure: true},
+  );
+  let formalApproval = null;
+  if (!environmentRaw) {
+    errors.push({
+      code: 'formal_approval_environment_unavailable',
+      environment: FORMAL_APPROVAL_ENVIRONMENT,
+    });
+  } else {
+    try {
+      const environment = JSON.parse(environmentRaw);
+      const reviewerRules = Array.isArray(environment.protection_rules)
+        ? environment.protection_rules.filter(rule => rule?.type === 'required_reviewers')
+        : [];
+      const reviewerRule = reviewerRules.length === 1 ? reviewerRules[0] : null;
+      const reviewerEntries = reviewerRule && Array.isArray(reviewerRule.reviewers)
+        ? reviewerRule.reviewers
+        : [];
+      const normalizedReviewers = reviewerEntries.map(entry => ({
+        type: entry?.type ?? null,
+        login: entry?.reviewer?.login ?? null,
+        slug: entry?.reviewer?.slug ?? null,
+      }));
+      const reviewers = normalizedReviewers
+        .filter(entry => entry.type === 'User' && entry.login)
+        .map(entry => entry.login)
+        .sort();
+
+      if (environment.name !== FORMAL_APPROVAL_ENVIRONMENT) {
+        errors.push({
+          code: 'formal_approval_environment_name_drift',
+          expected: FORMAL_APPROVAL_ENVIRONMENT,
+          actual: environment.name ?? null,
+        });
+      }
+      if (environment.can_admins_bypass !== false) {
+        errors.push({code: 'formal_approval_admin_bypass_enabled'});
+      }
+      if (!reviewerRule) {
+        errors.push({code: 'formal_approval_reviewer_rule_missing'});
+      } else {
+        if (reviewerRule.prevent_self_review !== FORMAL_APPROVAL_PREVENT_SELF_REVIEW) {
+          errors.push({
+            code: 'formal_approval_prevent_self_review_drift',
+            expected: FORMAL_APPROVAL_PREVENT_SELF_REVIEW,
+            actual: reviewerRule.prevent_self_review ?? null,
+          });
+        }
+        if (
+          normalizedReviewers.length !== 1
+          || normalizedReviewers[0].type !== 'User'
+          || normalizedReviewers[0].login !== FORMAL_APPROVAL_REVIEWER
+        ) {
+          errors.push({
+            code: 'formal_approval_reviewer_drift',
+            expected: [{
+              type: 'User',
+              login: FORMAL_APPROVAL_REVIEWER,
+              slug: null,
+            }],
+            actual: normalizedReviewers,
+          });
+        }
+      }
+      formalApproval = {
+        environment: environment.name ?? null,
+        can_admins_bypass: environment.can_admins_bypass ?? null,
+        prevent_self_review: reviewerRule?.prevent_self_review ?? null,
+        reviewers,
+        reviewer_entries: normalizedReviewers,
+      };
+    } catch {
+      errors.push({code: 'formal_approval_environment_malformed'});
+    }
+  }
+  return {
+    repo,
+    protected: true,
+    merge_methods: mergeMethods,
+    required_checks: checks,
+    formal_approval: formalApproval,
+  };
 }
 
 const strict = process.argv.includes('--strict');

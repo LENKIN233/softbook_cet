@@ -1,5 +1,5 @@
 {
-  "version": "vnext-17",
+  "version": "vnext-18",
   "regressions": [
     {
       "id": "HR-01",
@@ -430,7 +430,10 @@
         "trusted_default_branch_scope_classifier",
         "protected_github_environment_approval",
         "formal_approval_required_status_check",
-        "sensitive_governance_paths_fail_closed"
+        "sensitive_governance_paths_fail_closed",
+        "environment_configuration_verified_remotely",
+        "administrator_bypass_disabled",
+        "remote_health_secret_trusted_ref_only"
       ]
     }
   ],

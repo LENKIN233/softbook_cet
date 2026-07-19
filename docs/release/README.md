@@ -16,7 +16,15 @@ approval workflow are classified by trusted default-branch code in
 `formal-product-owner-approval` GitHub Environment before the `formal-approval`
 check can pass. That environment requires `github:LENKIN233` and disables
 administrator bypass. A `verified_by` value inside the pull request is metadata
-only; it is not the authenticated product-owner approval.
+only; it is not the authenticated product-owner approval. Branch protection
+requires the final `formal-approval` status, while the full Harness and weekly
+repository-health run independently verify the Environment configuration.
+The weekly and manually dispatched remote health run uses the repository secret
+`REPO_HEALTH_TOKEN`, scoped only to this repository with `Administration: read`
+and `Actions: read`; the built-in Actions token cannot read branch protection.
+The secret is injected only when the scheduled or manually dispatched workflow
+runs trusted `refs/heads/main` code. Pull requests, pushes, and dispatches from
+any other ref cannot access it; untrusted remote dispatches fail closed.
 
 A gate can be `passed` only when it contains every evidence type defined by the
 validator. Evidence is structured, identifies its verifier and verification

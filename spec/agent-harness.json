@@ -1,5 +1,5 @@
 {
-  "version": "vnext-17",
+  "version": "vnext-18",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -524,7 +524,8 @@
         "dependency-security",
         "ios-release",
         "repo-health",
-        "evidence-archive"
+        "evidence-archive",
+        "formal-approval"
       ],
       "require_strict_status_checks": true,
       "allow_force_pushes": false,
