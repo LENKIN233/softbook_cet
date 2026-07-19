@@ -1,5 +1,5 @@
 PODS:
-  - AsyncStorage (3.0.2):
+  - AsyncStorage (3.1.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -2837,7 +2837,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  AsyncStorage: ea4b678b971cd8b6fb60b8f106246e0afaf25f7a
+  AsyncStorage: 4a557eaa43c335314ddd24550537574ca4ef94eb
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   fast_float: b32c788ed9c6a8c584d114d0047beda9664e7cc6
