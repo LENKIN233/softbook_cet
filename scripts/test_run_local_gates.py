@@ -147,6 +147,10 @@ class LocalGateRunnerTests(unittest.TestCase):
         self.assertTrue(pr < release)
         self.assertIn("repo-health-strict", pr)
         self.assertIn("evidence-remote", pr)
+        evidence_remote = next(
+            gate for gate in selected_gates("pr") if gate.id == "evidence-remote"
+        )
+        self.assertEqual(evidence_remote.timeout_seconds, 180)
         self.assertIn("ios-release-simulator", release)
         self.assertIn("ios-unsigned-archive", release)
 

@@ -11,6 +11,7 @@ const EVIDENCE_DIR = path.join(ROOT, 'docs', 'agent-runs', 'evidence');
 const PRE_CUTOVER_INDEX = path.join(ROOT, 'docs', 'archive', 'pre-cutover-evidence-index.json');
 const SHA256_RE = /^[0-9a-f]{64}$/;
 const SHA40_RE = /^[0-9a-f]{40}$/;
+export const REMOTE_ARCHIVE_MAX_SECONDS = 150;
 
 function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -95,17 +96,16 @@ export async function resolveRemoteArchiveRequest(
   {token = process.env.GITHUB_TOKEN, fetchImpl = fetch} = {},
 ) {
   const unauthenticatedRequest = {url: archive.url, headers: {}};
-  if (!token) return unauthenticatedRequest;
   const match = archive.url.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/releases\/download\/([^/]+)\/([^/]+)$/);
   if (!match) return unauthenticatedRequest;
-  if (!/^[A-Za-z0-9_.-]+$/.test(token)) {
+  if (token && !/^[A-Za-z0-9_.-]+$/.test(token)) {
     throw new Error('GitHub token contains unsupported characters');
   }
   const [, owner, repo, tag, assetName] = match;
   const apiHeaders = {
-    Authorization: `Bearer ${token}`,
     Accept: 'application/vnd.github+json',
   };
+  if (token) apiHeaders.Authorization = `Bearer ${token}`;
   const releaseResponse = await fetchImpl(
     `https://api.github.com/repos/${owner}/${repo}/releases/tags/${encodeURIComponent(tag)}`,
     {
@@ -117,21 +117,42 @@ export async function resolveRemoteArchiveRequest(
   const release = await releaseResponse.json();
   const asset = (release.assets || []).find(entry => entry.name === decodeURIComponent(assetName));
   if (!asset?.url) throw new Error(`release asset ${assetName} is missing`);
+  if (asset.state !== 'uploaded') throw new Error(`release asset ${assetName} is not uploaded`);
   const assetUrl = new URL(asset.url);
+  const assetPath = assetUrl.pathname.split('/');
   if (
     assetUrl.protocol !== 'https:' ||
     assetUrl.hostname !== 'api.github.com' ||
-    !/^\/repos\/[^/]+\/[^/]+\/releases\/assets\/\d+$/.test(assetUrl.pathname)
+    assetPath.length !== 7 ||
+    assetPath[1] !== 'repos' ||
+    assetPath[2] !== owner ||
+    assetPath[3] !== repo ||
+    assetPath[4] !== 'releases' ||
+    assetPath[5] !== 'assets' ||
+    !/^\d+$/.test(assetPath[6])
   ) {
     throw new Error('release asset API URL is untrusted');
   }
-  return {
+  const request = {
     url: assetUrl.toString(),
     headers: {
-      Authorization: `Bearer ${token}`,
       Accept: 'application/octet-stream',
     },
   };
+  if (token) request.headers.Authorization = `Bearer ${token}`;
+  if (asset.digest != null) {
+    const digest = String(asset.digest).match(/^sha256:([0-9a-f]{64})$/);
+    if (!digest) throw new Error('release asset digest is not a valid SHA-256');
+    if (!Number.isInteger(asset.size) || asset.size <= 0) {
+      throw new Error('release asset size is invalid');
+    }
+    request.assetMetadata = {
+      sha256: digest[1],
+      sizeBytes: asset.size,
+      source: 'github_release_asset_digest',
+    };
+  }
+  return request;
 }
 
 function escapeCurlConfigValue(value) {
@@ -161,12 +182,7 @@ async function streamRemoteArchive(url, headers, expectedSizeBytes) {
     '--connect-timeout',
     '20',
     '--max-time',
-    '300',
-    '--retry',
-    '2',
-    '--retry-delay',
-    '1',
-    '--retry-all-errors',
+    String(REMOTE_ARCHIVE_MAX_SECONDS),
     '--proto',
     '=https',
     '--proto-redir',
@@ -241,6 +257,7 @@ async function main() {
   const errors = [];
   const manifests = [];
   const remoteArchives = [];
+  const remoteVerifications = [];
 
   for (const file of files) {
     const relative = path.join('docs', 'agent-runs', 'evidence', file);
@@ -271,13 +288,19 @@ async function main() {
       if (!archive?.url || !SHA256_RE.test(String(archive?.sha256 || ''))) continue;
       try {
         const request = await resolveRemoteArchiveRequest(archive);
-        const remote = await streamRemoteArchive(
-          request.url,
-          request.headers,
-          archive.size_bytes,
-        );
+        const remote = request.assetMetadata ||
+          await streamRemoteArchive(
+            request.url,
+            request.headers,
+            archive.size_bytes,
+          );
         if (remote.sha256 !== archive.sha256) errors.push({file, message: 'remote archive SHA-256 mismatch'});
         if (remote.sizeBytes !== archive.size_bytes) errors.push({file, message: 'remote archive byte size mismatch'});
+        remoteVerifications.push({
+          file,
+          method: request.assetMetadata?.source || 'streamed_sha256',
+          size_bytes: remote.sizeBytes,
+        });
       } catch (error) {
         errors.push({file, message: `remote archive unavailable: ${error.message}`});
       }
@@ -289,6 +312,7 @@ async function main() {
     ok: errors.length === 0,
     manifests: files.length,
     pre_cutover_index_files: preCutoverIndex?.file_count || 0,
+    remote_verifications: remoteVerifications,
     errors,
   };
   console.log(JSON.stringify(result, null, 2));
