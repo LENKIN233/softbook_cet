@@ -58,7 +58,8 @@
 
 - The npm install graph contains one compatible React 19.2.7 instance for React Native and renderer consumers.
 - Mobile lint, typecheck, Jest, CocoaPods deployment validation, dependency audit, and complete local `dev` gates passed.
-- The tracked worktree contains only the scoped manifest, lock, and this run record.
+- The React dependency portion contains only the scoped manifest, lock, and this run record.
+- A separate remote-evidence timeout discovered by the strict PR profile is documented independently in `docs/agent-runs/2026-07-19-evidence-archive-verification.md`.
 - GitHub required checks and the clean-runner iOS Release build/archive are pending on the replacement PR.
 
 ## Binary evidence
