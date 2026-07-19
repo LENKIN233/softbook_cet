@@ -500,7 +500,7 @@ def validate(context) -> None:
             },
             {
                 "id": "ios_release",
-                "command": "cd apps/mobile && bundle exec pod install --project-directory=ios --deployment && xcodebuild Release simulator build and unsigned archive",
+                "command": "cd apps/mobile && bundle install && git diff --exit-code -- Gemfile.lock && bundle exec pod install --project-directory=ios --deployment && xcodebuild Release simulator build and unsigned archive",
             },
             {
                 "id": "repository_health",
