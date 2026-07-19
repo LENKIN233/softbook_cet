@@ -210,6 +210,9 @@ jobs:
           BUNDLE_RETRY: "3"
         run: bundle install
 
+      - name: Verify Ruby dependency lock
+        run: git diff --exit-code -- Gemfile.lock
+
       - name: Install native build tools
         run: brew install cmake
 

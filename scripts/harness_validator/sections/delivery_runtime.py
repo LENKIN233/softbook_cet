@@ -277,6 +277,8 @@ def validate(context) -> None:
             "uses: ruby/setup-ruby@",
             'ruby-version: "3.3"',
             'bundler: "Gemfile.lock"',
+            "- name: Verify Ruby dependency lock",
+            "git diff --exit-code -- Gemfile.lock",
         ]:
             check_contains("PR workflow gate", workflow_text, snippet)
         repo_health_job = workflow_text.split("  repo-health:", 1)[-1].split(
