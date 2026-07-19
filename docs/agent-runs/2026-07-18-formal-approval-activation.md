@@ -25,6 +25,7 @@
 - `formal-approval` becomes an explicit required pull-request status in the delivery contract and GitHub branch protection.
 - The full delivery Harness reads the protected Environment and verifies its fixed reviewer, administrator bypass policy, and self-review policy.
 - Weekly remote repository health verifies the same Environment and exact required-status set, with negative tests for unavailable or weakened settings.
+- The remote-health credential is available only to scheduled or manually dispatched trusted `refs/heads/main` code; PR, push, and non-main dispatch code never receives the secret.
 - The trusted-base sensitive-path classifier protects the repository-health implementation and governance contract validator from unapproved weakening.
 
 ## Workspace boundary and read scope
@@ -39,7 +40,7 @@
 - `scripts/harness_validator/sections/governance_contracts.py` and `delivery_runtime.py`: mirror the contract and verify live Environment settings in full mode.
 - `scripts/report_repo_health.mjs` and its tests: require the exact status set, fail closed on formal approval Environment drift, and read repository identity plus merge methods from one GraphQL snapshot so fine-grained-token responses cannot silently omit REST settings.
 - `scripts/classify_formal_approval_scope.mjs` and its tests: protect the new enforcement surfaces with trusted default-branch classification.
-- `.github/workflows/pr-gates.yml`: make manual dispatch execute the same remote repository-health path as the weekly schedule so its credentials can be proven before merge.
+- `.github/workflows/pr-gates.yml`: separate uncredentialed PR/push validation from remote health, inject the credential only on trusted `main`, and fail non-main remote dispatches without exposing the secret.
 - `docs/release/README.md`: clarify that branch protection, full Harness, and weekly health independently enforce the gate.
 
 ## Commands run
@@ -52,20 +53,28 @@
 - `node scripts/test_report_repo_health.mjs` after the GraphQL snapshot change -> all repository-health regressions passed, including unavailable settings and merge-method drift.
 - `node scripts/report_repo_health.mjs --full-tree --remote --strict --allow-dirty --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams` -> passed; live merge methods are squash enabled, merge commit disabled, and rebase disabled.
 - `python3 scripts/validate_harness.py --mode local` after the GraphQL snapshot change -> passed with expected local-mode partial completeness.
-- Remaining exact-head remote validation and required PR checks: pending.
+- `python3 scripts/test_harness_module_boundaries.py` -> 18 tests passed after exact reviewer-entry validation was added.
+- `python3 scripts/validate_harness.py --mode full` -> complete Harness passed against live branch protection and the protected approval Environment.
+- Manual dispatch `29638976203` on `f1acb0616c6b964cad62a5ae9feba9f3833c8e04` -> complete workflow passed, including authenticated `repo-health`.
+- `ruby -e "require 'yaml'; YAML.load_file('.github/workflows/pr-gates.yml')"` -> workflow YAML parsed after trusted-ref secret isolation.
+- `python3 scripts/test_validate_harness_runner.py` -> 20 runner tests passed after the trusted-step static contract was added.
+- Local and full Harness both passed after trusted-ref secret isolation was added.
+- Remaining final-head required PR checks and protected Environment approval: pending independently on GitHub.
 
 ## Validation results
 
 - Repository health rejects administrator bypass, a missing required reviewer, and an unavailable formal approval Environment.
 - Remote settings failures remain fail closed but are reported separately from policies that are explicitly disabled.
 - Branch-protection HTTP 403 or transport failures are reported as unavailable; only an explicit HTTP 404 is reported as an unprotected branch.
-- The scheduled remote path is also reachable by manual workflow dispatch for pre-merge credential and API verification.
+- Scheduled and manually dispatched remote health both fail unless the workflow ref is trusted `refs/heads/main`; pull-request and push paths run only uncredentialed local checks.
 - Manual dispatch `29628252198` proved that the built-in Actions token receives HTTP 403 from branch protection; the workflow now requires a repository-scoped `REPO_HEALTH_TOKEN` and forbids that fallback.
 - `REPO_HEALTH_TOKEN` was created for only `LENKIN233/softbook_cet`, with `Administration: read`, `Actions: read`, mandatory `Metadata: read`, and expiration `2027-07-18`; its value was copied directly into the repository Actions secret and was never printed or stored locally.
 - Manual dispatch `29638824359` proved that the new secret authenticates and reads branch protection, required checks, signatures, and the protected approval Environment. It also exposed that the REST repository response under the fine-grained token omitted or changed merge-policy fields, causing a false `merge_methods_not_squash_only`; merge-policy discovery now uses the same authenticated GraphQL repository snapshot as repository identity.
+- Final review found and fixed a reviewer-cardinality gap: both live validators now reject additional Team reviewers, malformed reviewer entries, missing reviewers, or any reviewer other than the single required `User` entry for `LENKIN233`.
+- Final review also found and fixed secret exposure in the original shared `repo-health` step. The secret expression now appears exactly once inside the trusted-main remote step, and the Harness enforces that boundary. The successful feature-branch dispatch above was bootstrap evidence produced before this hardening and is not an allowed steady-state path.
 - The trusted classifier includes every enforcement surface changed by this activation PR.
-- Local Harness remains complete for local mode; full mode is intentionally pending until the remote required-status list is atomically activated for this PR.
-- No local or CI result changed formal content approval, Agent review, or launch readiness.
+- Local and full Harness validation pass against the activated remote required-status list.
+- No local or CI result changed formal content approval or launch readiness; Agent review status derives from explicit diff review, not green automation.
 
 ## Binary evidence
 
@@ -75,9 +84,9 @@
 ## Agent review status
 
 - Reviewer: Codex
-- Status: Pending
-- Blocking findings: Review and exact-head required checks are not complete.
-- Review summary: Pending final diff review after remote gate activation.
+- Status: Passed
+- Blocking findings: None after the exact-reviewer cardinality and secret-exposure fixes.
+- Review summary: Reviewed the complete `origin/main...HEAD` diff, trusted-scope classifier, workflow secret boundary, contract mirrors, live Environment parsing, repository-health failure modes, and negative regressions. GitHub required checks and the authenticated product-owner Environment approval remain separate merge gates.
 
 ## User-visible UI impact
 
@@ -95,4 +104,4 @@
 
 ## Follow-up
 
-- Prove the GraphQL merge-policy snapshot through a manually dispatched remote-health run, complete final Agent review on that exact head, run all required PR checks, and obtain the protected Environment approval before merge.
+- Push the reviewed head, let all required PR checks complete, obtain the protected Environment approval, and merge only if every required status is green.

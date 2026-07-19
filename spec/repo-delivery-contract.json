@@ -169,6 +169,9 @@
       "actions_secret": "REPO_HEALTH_TOKEN",
       "credential_type": "fine_grained_personal_access_token",
       "repository_scope": "LENKIN233/softbook_cet",
+      "trusted_ref": "refs/heads/main",
+      "secret_exposure_policy": "trusted_ref_remote_step_only",
+      "untrusted_remote_ref_policy": "fail_closed_without_secret",
       "required_repository_permissions": [
         "Administration: read",
         "Actions: read"

@@ -372,12 +372,18 @@ function remoteSnapshot(errors, warnings) {
         ? environment.protection_rules.filter(rule => rule?.type === 'required_reviewers')
         : [];
       const reviewerRule = reviewerRules.length === 1 ? reviewerRules[0] : null;
-      const reviewers = reviewerRule
+      const reviewerEntries = reviewerRule && Array.isArray(reviewerRule.reviewers)
         ? reviewerRule.reviewers
-          .filter(entry => entry?.type === 'User' && entry.reviewer?.login)
-          .map(entry => entry.reviewer.login)
-          .sort()
         : [];
+      const normalizedReviewers = reviewerEntries.map(entry => ({
+        type: entry?.type ?? null,
+        login: entry?.reviewer?.login ?? null,
+        slug: entry?.reviewer?.slug ?? null,
+      }));
+      const reviewers = normalizedReviewers
+        .filter(entry => entry.type === 'User' && entry.login)
+        .map(entry => entry.login)
+        .sort();
 
       if (environment.name !== FORMAL_APPROVAL_ENVIRONMENT) {
         errors.push({
@@ -399,11 +405,19 @@ function remoteSnapshot(errors, warnings) {
             actual: reviewerRule.prevent_self_review ?? null,
           });
         }
-        if (reviewers.length !== 1 || reviewers[0] !== FORMAL_APPROVAL_REVIEWER) {
+        if (
+          normalizedReviewers.length !== 1
+          || normalizedReviewers[0].type !== 'User'
+          || normalizedReviewers[0].login !== FORMAL_APPROVAL_REVIEWER
+        ) {
           errors.push({
             code: 'formal_approval_reviewer_drift',
-            expected: [FORMAL_APPROVAL_REVIEWER],
-            actual: reviewers,
+            expected: [{
+              type: 'User',
+              login: FORMAL_APPROVAL_REVIEWER,
+              slug: null,
+            }],
+            actual: normalizedReviewers,
           });
         }
       }
@@ -412,6 +426,7 @@ function remoteSnapshot(errors, warnings) {
         can_admins_bypass: environment.can_admins_bypass ?? null,
         prevent_self_review: reviewerRule?.prevent_self_review ?? null,
         reviewers,
+        reviewer_entries: normalizedReviewers,
       };
     } catch {
       errors.push({code: 'formal_approval_environment_malformed'});

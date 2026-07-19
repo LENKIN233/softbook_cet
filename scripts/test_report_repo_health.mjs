@@ -103,6 +103,9 @@ if (args[0] === 'repo' && args[1] === 'view') {
     const reviewers = process.env.FORMAL_REVIEWER_MISSING === 'true'
       ? []
       : [{type: 'User', reviewer: {login: 'LENKIN233'}}];
+    if (process.env.FORMAL_EXTRA_TEAM === 'true') {
+      reviewers.push({type: 'Team', reviewer: {slug: 'release-reviewers'}});
+    }
     process.stdout.write(JSON.stringify({
       name: 'formal-product-owner-approval',
       can_admins_bypass: process.env.FORMAL_ADMIN_BYPASS === 'true',
@@ -146,6 +149,11 @@ if (args[0] === 'repo' && args[1] === 'view') {
   );
   assert.equal(healthyRemoteReport.ok, true);
   assert.deepEqual(healthyRemoteReport.remote.formal_approval.reviewers, ['LENKIN233']);
+  assert.deepEqual(healthyRemoteReport.remote.formal_approval.reviewer_entries, [{
+    type: 'User',
+    login: 'LENKIN233',
+    slug: null,
+  }]);
   assert.deepEqual(healthyRemoteReport.remote.merge_methods, {
     allow_squash_merge: true,
     allow_merge_commit: false,
@@ -155,6 +163,7 @@ if (args[0] === 'repo' && args[1] === 'view') {
   for (const [environment, expectedCode] of [
     [{FORMAL_ADMIN_BYPASS: 'true'}, 'formal_approval_admin_bypass_enabled'],
     [{FORMAL_REVIEWER_MISSING: 'true'}, 'formal_approval_reviewer_drift'],
+    [{FORMAL_EXTRA_TEAM: 'true'}, 'formal_approval_reviewer_drift'],
     [{FORMAL_ENV_MISSING: 'true'}, 'formal_approval_environment_unavailable'],
     [{SIGNATURES_MISSING: 'true'}, 'required_signatures_unavailable'],
     [{REPOSITORY_SETTINGS_MISSING: 'true'}, 'remote_repository_settings_unavailable'],
@@ -185,6 +194,13 @@ if (args[0] === 'repo' && args[1] === 'view') {
         allow_merge_commit: true,
         allow_rebase_merge: false,
       });
+    }
+    if (environment.FORMAL_EXTRA_TEAM === 'true') {
+      const finding = driftReport.errors.find(error => error.code === expectedCode);
+      assert.deepEqual(finding.actual, [
+        {type: 'User', login: 'LENKIN233', slug: null},
+        {type: 'Team', login: null, slug: 'release-reviewers'},
+      ]);
     }
   }
   console.log('PASS: repository health fails closed on formal approval environment drift.');
