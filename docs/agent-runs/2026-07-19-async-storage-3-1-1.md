@@ -52,6 +52,11 @@
 - `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`.
 - `./scripts/run_local_gates --profile dev` -> complete `passed_with_exception`; 16/17 gates passed and the only safe exception was system Node 25.9.0 versus expected Node 22.13.0.
 - `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API audits passed with 0 known vulnerabilities.
+- `brew install ruby@3.3` -> installed Ruby 3.3.12 for strict local PR/release toolchain parity.
+- `PATH=... gem install bundler -v 2.4.22 --no-document` -> installed the lockfile-compatible Bundler version for Ruby 3.3.
+- First strict `pr` local-gate run -> correctly failed on Ruby 2.6.10 and a stale cutover `origin.fetch` mapping; no exception was granted.
+- Updated the machine-local fetch mapping to track the current sole topic branch and fetched its remote-tracking ref.
+- `PATH=<Node 22.13.0 and Ruby 3.3.12> ./scripts/run_local_gates --profile pr --base origin/main --pr 420` -> complete `passed`; 29/29 gates passed.
 
 ## Validation results
 
@@ -61,6 +66,7 @@
 - Full Harness passed.
 - The complete `dev` local-gate report is `passed_with_exception`; its only exception is the documented dev-only system Node drift. Focused dependency installation and all mobile checks used exact Node 22.13.0/npm 10.9.2.
 - Dependency security passed for both audited workspaces with 0 known vulnerabilities.
+- The unique PR-bound local profile passed 29/29 with exact Node 22.13.0 and Ruby 3.3.12; remote protection, PR body, strict repository health, LFS, and evidence checks all passed.
 - GitHub required checks and Release build are pending.
 
 ## Binary evidence
@@ -86,8 +92,10 @@
 
 - The workstation default Ruby is 2.6.10 while CI is pinned to Ruby 3.3. Local CocoaPods 1.15.2 deployment validation passed, but the GitHub iOS Release job remains authoritative for Ruby 3.3 and Xcode validation.
 - Dependabot PR #411 must remain unmerged because its missing native lock deterministically fails `pod install --deployment`; it should be closed only after the replacement PR is accepted.
+- Ruby 3.3 dependency installation exposed an existing, unrelated lock drift: `CFPropertyList 3.0.9` requires Ruby `<3.2`, so Bundler resolves 3.0.8 and mutates `Gemfile.lock`. That mutation was excluded from this AsyncStorage PR and must be fixed in a separate toolchain-lock PR that also makes CI fail on unexpected lock changes.
 
 ## Follow-up
 
-- Commit, push, and open the replacement PR; run the PR-bound profile once a unique PR context exists and require all GitHub checks before merge.
+- Require all GitHub checks, including the Ruby 3.3/Xcode Release job, before merge.
 - Close Dependabot PR #411 as superseded after the replacement PR merges.
+- Repair the Ruby 3.3 `CFPropertyList` lock compatibility and add a no-lock-drift CI assertion in the next isolated tooling PR.
