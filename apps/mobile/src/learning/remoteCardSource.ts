@@ -3,9 +3,10 @@ import {
   LearningCardRecord,
   normalizeLearningCardRecords,
 } from './sourceContract';
-import {RemoteHttpError} from '../runtime/remoteHttpError';
+import { RemoteHttpError } from '../runtime/remoteHttpError';
 
 export type LearningCardSourceResponse = {
+  contentVersion: string | null;
   sourceId: string;
   sourceLabel: string;
   track: LearningTrack;
@@ -32,6 +33,7 @@ export type SoftbookRemoteLearningCardSourcePayload = {
     };
     track: LearningTrack;
     card_records: LearningCardRecord[];
+    content_version: string;
   };
 };
 
@@ -67,6 +69,8 @@ export type FetchLike = (
     headers?: Record<string, string>;
   },
 ) => Promise<FetchLikeResponse>;
+
+const CONTENT_VERSION_PATTERN = /^sha256:[0-9a-f]{64}$/;
 
 export async function loadRemoteLearningCardSource(
   context: RemoteLearningCardSourceContext,
@@ -156,6 +160,7 @@ export function parseRemoteLearningCardSourcePayload(
   }
 
   return {
+    contentVersion: null,
     sourceId: source_id,
     sourceLabel: source_label,
     track,
@@ -168,50 +173,59 @@ export function parseSoftbookRemoteLearningCardSourcePayload(
   expectedTrack?: LearningTrack,
 ): LearningCardSourceResponse {
   if (!isObject(payload)) {
-    throw new Error('Remote learning bootstrap payload must be an object.');
+    throw new Error('Remote learning card-source payload must be an object.');
   }
 
   if (!isObject(payload.data)) {
     throw new Error(
-      'Remote learning bootstrap payload.data must be an object.',
+      'Remote learning card-source payload.data must be an object.',
     );
   }
 
-  const { source, track, card_records } = payload.data;
+  const { source, track, card_records, content_version } = payload.data;
 
   if (!isObject(source)) {
     throw new Error(
-      'Remote learning bootstrap payload.data.source must be an object.',
+      'Remote learning card-source payload.data.source must be an object.',
     );
   }
 
   if (typeof source.id !== 'string' || source.id.trim().length === 0) {
     throw new Error(
-      'Remote learning bootstrap payload.data.source.id is required.',
+      'Remote learning card-source payload.data.source.id is required.',
     );
   }
 
   if (typeof source.label !== 'string' || source.label.trim().length === 0) {
     throw new Error(
-      'Remote learning bootstrap payload.data.source.label is required.',
+      'Remote learning card-source payload.data.source.label is required.',
     );
   }
 
   if (track !== 'cet4' && track !== 'cet6') {
     throw new Error(
-      'Remote learning bootstrap payload.data.track must be cet4 or cet6.',
+      'Remote learning card-source payload.data.track must be cet4 or cet6.',
     );
   }
 
   if (expectedTrack !== undefined && track !== expectedTrack) {
     throw new Error(
-      `Remote learning bootstrap payload.data.track must match requested track ${expectedTrack}.`,
+      `Remote learning card-source payload.data.track must match requested track ${expectedTrack}.`,
     );
   }
 
   if (!Array.isArray(card_records)) {
     throw new Error(
-      'Remote learning bootstrap payload.data.card_records must be an array.',
+      'Remote learning card-source payload.data.card_records must be an array.',
+    );
+  }
+
+  if (
+    typeof content_version !== 'string' ||
+    !CONTENT_VERSION_PATTERN.test(content_version)
+  ) {
+    throw new Error(
+      'Remote learning card-source payload.data.content_version must be a SHA-256 identifier.',
     );
   }
 
@@ -226,6 +240,7 @@ export function parseSoftbookRemoteLearningCardSourcePayload(
   }
 
   return {
+    contentVersion: content_version,
     sourceId: source.id,
     sourceLabel: source.label,
     track,
@@ -273,7 +288,7 @@ function buildRemoteLearningCardSourceHeaders(
     Accept: 'application/json',
     Authorization: `Bearer ${context.authToken}`,
     ...config.headers,
-    ...(config.apiKey ? {[apiKeyHeader]: config.apiKey} : {}),
+    ...(config.apiKey ? { [apiKeyHeader]: config.apiKey } : {}),
   };
 }
 

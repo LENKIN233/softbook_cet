@@ -1,32 +1,34 @@
-import {resolveAuthRepositoryConfig} from '../src/auth/authRuntimeConfig';
+import { resolveAuthRepositoryConfig } from '../src/auth/authRuntimeConfig';
+import { resolveAccountBootstrapRepositoryConfig } from '../src/bootstrap/accountBootstrapRuntimeConfig';
 import {
   resolveLearningSessionRepositoryConfig,
   resolveLearningTrack,
 } from '../src/learning/learningRuntimeConfig';
-import {resolveMembershipRepositoryConfig} from '../src/membership/membershipRuntimeConfig';
+import { resolveMembershipRepositoryConfig } from '../src/membership/membershipRuntimeConfig';
 import {
   SOFTBOOK_APP_RUNTIME_CONFIG,
   createSoftbookRemoteRuntimeConfig,
   readRemoteRuntimeProfileFromEnv,
   resolveSoftbookAppRuntimeConfig,
 } from '../src/runtime/appRuntimeConfig';
-import {resolveSpaceStateRepositoryConfig} from '../src/space/spaceStateRuntimeConfig';
-import {resolveLearningStateRepositoryConfig} from '../src/sync/learningStateRuntimeConfig';
-import {resolveProgressSyncRepositoryConfig} from '../src/sync/progressSyncRuntimeConfig';
+import { resolveSpaceStateRepositoryConfig } from '../src/space/spaceStateRuntimeConfig';
+import { resolveLearningStateRepositoryConfig } from '../src/sync/learningStateRuntimeConfig';
+import { resolveProgressSyncRepositoryConfig } from '../src/sync/progressSyncRuntimeConfig';
 
 test('tracked app runtime config stays on the local safe baseline', () => {
   expect(SOFTBOOK_APP_RUNTIME_CONFIG).toMatchObject({
-    auth: {mode: 'local'},
-    learningSource: {mode: 'local'},
-    learningState: {mode: 'local'},
-    membership: {mode: 'local'},
-    progressSync: {mode: 'local'},
-    spaceState: {mode: 'local'},
+    accountBootstrap: { mode: 'local' },
+    auth: { mode: 'local' },
+    learningSource: { mode: 'local' },
+    learningState: { mode: 'local' },
+    membership: { mode: 'local' },
+    progressSync: { mode: 'local' },
+    spaceState: { mode: 'local' },
   });
 });
 
 test('runtime config resolver keeps the tracked local baseline without a remote profile', () => {
-  expect(resolveSoftbookAppRuntimeConfig({env: {}})).toEqual(
+  expect(resolveSoftbookAppRuntimeConfig({ env: {} })).toEqual(
     SOFTBOOK_APP_RUNTIME_CONFIG,
   );
 });
@@ -35,13 +37,15 @@ test('runtime config resolver can build a remote profile from environment values
   const config = resolveSoftbookAppRuntimeConfig({
     env: {
       SOFTBOOK_CET_LEARNING_TRACK: 'cet6',
-      SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES: 'learningSource, spaceState',
+      SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES:
+        'accountBootstrap, learningSource, spaceState',
       SOFTBOOK_CET_REMOTE_API_KEY: 'env-key',
       SOFTBOOK_CET_REMOTE_BASE_URL: ' https://api.softbook.example/ ',
     },
   });
 
   expect(resolveLearningTrack(config)).toBe('cet6');
+  expect(resolveAccountBootstrapRepositoryConfig(config).mode).toBe('local');
   expect(resolveAuthRepositoryConfig(config).remoteConfig).toMatchObject({
     requestCodeEndpoint: 'https://api.softbook.example/v2/auth/request-code',
     headers: {
@@ -82,6 +86,15 @@ test('remote runtime profile switches every remote-capable surface to one base u
     },
   });
   expect(
+    resolveAccountBootstrapRepositoryConfig(config).remoteConfig,
+  ).toMatchObject({
+    endpoint: 'https://api.softbook.example/v2/bootstrap',
+    headers: {
+      'x-api-key': 'dev-key',
+      'x-softbook-client': 'mobile',
+    },
+  });
+  expect(
     resolveLearningSessionRepositoryConfig(config).remoteConfig,
   ).toMatchObject({
     endpoint: 'https://api.softbook.example/v1/learning/card-source',
@@ -90,21 +103,27 @@ test('remote runtime profile switches every remote-capable surface to one base u
     },
   });
   expect(resolveMembershipRepositoryConfig(config).remoteConfig).toMatchObject({
-    entitlementEndpoint: 'https://api.softbook.example/v1/membership/entitlement',
+    entitlementEndpoint:
+      'https://api.softbook.example/v1/membership/entitlement',
     purchaseEndpoint: 'https://api.softbook.example/v1/membership/purchase',
-    startTrialEndpoint: 'https://api.softbook.example/v1/membership/start-trial',
+    startTrialEndpoint:
+      'https://api.softbook.example/v1/membership/start-trial',
     headers: {
       'x-api-key': 'dev-key',
       'x-softbook-client': 'mobile',
     },
   });
-  expect(resolveProgressSyncRepositoryConfig(config).remoteConfig).toMatchObject({
+  expect(
+    resolveProgressSyncRepositoryConfig(config).remoteConfig,
+  ).toMatchObject({
     endpoint: 'https://api.softbook.example/v1/progress/daily-sync',
   });
   expect(resolveSpaceStateRepositoryConfig(config).remoteConfig).toMatchObject({
     endpoint: 'https://api.softbook.example/v1/space/state-sync',
   });
-  expect(resolveLearningStateRepositoryConfig(config).remoteConfig).toMatchObject({
+  expect(
+    resolveLearningStateRepositoryConfig(config).remoteConfig,
+  ).toMatchObject({
     endpoint: 'https://api.softbook.example/v1/learning/state-sync',
   });
 });
@@ -122,7 +141,9 @@ test('remote runtime profile normalizes the shared base url', () => {
   expect(config.membership?.remote?.baseUrl).toBe(
     'https://api.softbook.example',
   );
-  expect(resolveProgressSyncRepositoryConfig(config).remoteConfig).toMatchObject({
+  expect(
+    resolveProgressSyncRepositoryConfig(config).remoteConfig,
+  ).toMatchObject({
     endpoint: 'https://api.softbook.example/v1/progress/daily-sync',
   });
 });
@@ -135,16 +156,31 @@ test('remote runtime profile rejects a blank base url', () => {
   ).toThrow('Remote runtime profile requires baseUrl.');
 });
 
+test('remote canonical bootstrap rejects an unversioned local card source', () => {
+  expect(() =>
+    createSoftbookRemoteRuntimeConfig({
+      baseUrl: 'https://api.softbook.example',
+      featureModes: {
+        learningSource: 'local',
+      },
+    }),
+  ).toThrow(
+    'Remote account bootstrap requires learningSource to also be remote.',
+  );
+});
+
 test('remote runtime profile can keep one surface local for staged smoke tests', () => {
   const config = createSoftbookRemoteRuntimeConfig({
     baseUrl: 'https://api.softbook.example',
     featureModes: {
+      accountBootstrap: 'local',
       learningSource: 'local',
       spaceState: 'local',
     },
   });
 
   expect(resolveAuthRepositoryConfig(config).mode).toBe('remote');
+  expect(resolveAccountBootstrapRepositoryConfig(config).mode).toBe('local');
   expect(resolveLearningSessionRepositoryConfig(config).mode).toBe('local');
   expect(resolveMembershipRepositoryConfig(config).mode).toBe('remote');
   expect(resolveProgressSyncRepositoryConfig(config).mode).toBe('remote');

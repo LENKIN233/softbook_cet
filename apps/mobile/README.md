@@ -13,7 +13,7 @@
 
 - `apps/mobile` 是 React Native 0.85.x 的 iOS 优先工程。
 - 当前已覆盖手机号验证码登录门槛、学习主流、review flow、空间知识地图、统计签到、我的页、会员试用 / 付费墙。
-- 当前分支把 `auth / membership / learningSource / progressSync / spaceState / learningState` 都统一到 runtime 配置下，默认仍走本地安全实现。
+- 当前分支把 `auth / accountBootstrap / membership / learningSource / progressSync / spaceState / learningState` 都统一到 runtime 配置下，默认仍走本地安全实现。
 
 ## 环境前提
 
@@ -75,6 +75,9 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
   auth: {
     mode: 'local',
   },
+  accountBootstrap: {
+    mode: 'local',
+  },
   learningSource: {
     mode: 'local',
   },
@@ -93,7 +96,7 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
 };
 ```
 
-如果要临时切到远端认证 / 学习卡源 / entitlement / 日级同步 / 空间状态 / learning state，优先用 profile factory，避免手写六份重复 `baseUrl`：
+如果要临时切到远端认证 / canonical bootstrap / 学习卡源 / entitlement / 日级同步 / 空间状态 / learning state，优先用 profile factory，避免手写重复 `baseUrl`：
 
 ```ts
 export const SOFTBOOK_APP_RUNTIME_CONFIG = createSoftbookRemoteRuntimeConfig({
@@ -109,6 +112,7 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = createSoftbookRemoteRuntimeConfig({
 export const SOFTBOOK_APP_RUNTIME_CONFIG = createSoftbookRemoteRuntimeConfig({
   baseUrl: 'https://your-api.example.com',
   featureModes: {
+    accountBootstrap: 'local',
     learningSource: 'local',
     spaceState: 'local',
   },
@@ -126,9 +130,11 @@ SOFTBOOK_CET_LEARNING_TRACK=cet4 \
 npm start
 ```
 
-分段 smoke 时，用 `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES=learningSource,spaceState` 让指定 surface 暂时留在本地，其它远端能力仍由同一个 `baseUrl` 派生。
+分段 smoke 时，用 `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES=accountBootstrap,learningSource,spaceState` 让指定 surface 暂时留在本地，其它远端能力仍由同一个 `baseUrl` 派生。
+`accountBootstrap` 为远端时，`learningSource` 也必须为远端，客户端才能把实际卡源的 `content_version` 与 canonical content version 绑定；若要本地卡源，必须把这两个 feature 一起留在本地。
 
 - `auth`：手机号验证码请求 / 校验仓储
+- `accountBootstrap`：登录或会话恢复后的服务端权威账户读取；远端模式要求 `auth.mode` 也为 `remote`，完成一致性校验前阻止学习及产品状态写入
 - `learningSource`：学习卡源仓储；远端模式要求登录上下文，且 `auth.mode` 也必须是 `remote`
 - `membership`：entitlement 读取、开始试用、开通会员、恢复购买提醒状态更新；远端模式要求 `auth.mode` 也必须是 `remote`
 - `progressSync`：日级进展同步仓储；远端模式要求登录上下文，且 `auth.mode` 也必须是 `remote`
@@ -143,3 +149,5 @@ npm start
 - “我的”页承接试用状态、开通会员和恢复购买提醒
 
 这些是默认本地实现，用于验证产品合同；切到远端 runtime 后，真实计费与 entitlement 会由服务端合同回填。
+
+完整远端 profile 会先读取 `/v2/bootstrap`，再恢复会员、当日进度、学习游标和物理空间。请求只携带活动 session、track 与 day key，不发送手机号。若首次 canonical read 失败且没有已验证缓存，客户端保留仍有效的登录会话以便重试，但学习和所有产品状态写入均失败关闭；不会以本地状态或开发卡片冒充服务端真相。

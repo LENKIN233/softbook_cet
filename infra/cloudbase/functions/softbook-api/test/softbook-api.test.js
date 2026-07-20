@@ -167,6 +167,7 @@ test('learning card source requires auth and covers each core interaction', asyn
     assert.equal(response.statusCode, 200);
     assert.equal(response.body.data.source.id, 'cloudbase-dev-card-source');
     assert.equal(response.body.data.track, track);
+    assert.match(response.body.data.content_version, /^sha256:[a-f0-9]{64}$/);
     assert.ok(
       response.body.data.card_records.length >= CORE_INTERACTIONS.length,
     );
@@ -300,13 +301,24 @@ test('v2 bootstrap returns explicit empty canonical state without identity leaka
     path: '/v2/bootstrap',
     query: {day_key: '2026-04-30', track: 'cet4'},
   });
+  const cardSourceResponse = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v1/learning/card-source',
+    query: {track: 'cet4'},
+  });
 
   assert.equal(response.statusCode, 200);
+  assert.equal(cardSourceResponse.statusCode, 200);
   assert.equal(response.body.data.schema_version, 'bootstrap.v2');
   assert.equal(response.body.data.generated_at, fixedNow.toISOString());
   assert.equal(response.body.data.day_key, '2026-04-30');
   assert.equal(response.body.data.track, 'cet4');
   assert.match(response.body.data.content.version, /^sha256:[a-f0-9]{64}$/);
+  assert.equal(
+    cardSourceResponse.body.data.content_version,
+    response.body.data.content.version,
+  );
   assert.equal(response.body.data.content.release_id, null);
   assert.equal(response.body.data.content.card_count, 5);
   assert.equal(response.body.data.membership.acknowledged_at, null);

@@ -13,6 +13,8 @@ import {
   USER_STATE_STORAGE_KEY,
 } from '../src/persistence/userStateStore';
 
+const TEST_CONTENT_VERSION = `sha256:${'b'.repeat(64)}`;
+
 jest.mock('react-native-safe-area-context', () => {
   const mockReact = require('react');
   const { View } = require('react-native');
@@ -125,6 +127,92 @@ function createRemoteSessionFixture() {
   };
 }
 
+function createCanonicalBootstrapPayload() {
+  const session = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: TEST_CONTENT_VERSION,
+  };
+  const firstCard = session.catalogCards[0];
+  const cursorCard = session.cards[1];
+  const dayKey = new Date().toISOString().slice(0, 10);
+
+  return {
+    cursorCard,
+    payload: {
+      data: {
+        schema_version: 'bootstrap.v2',
+        generated_at: new Date().toISOString(),
+        day_key: dayKey,
+        track: 'cet4',
+        content: {
+          card_count: session.catalogCards.length,
+          release_id: null,
+          minimum_client_version: null,
+          parent_release_id: null,
+          published_at: null,
+          source: { id: session.sourceId, label: session.sourceLabel },
+          version: TEST_CONTENT_VERSION,
+        },
+        learning: {
+          acknowledged_at: new Date().toISOString(),
+          card_states: [
+            {
+              card_id: firstCard.card_id,
+              completed_at: new Date().toISOString(),
+              interaction_id: firstCard.interaction_id,
+              is_favorited: true,
+              outcome:
+                firstCard.interaction_id === 'flip' ? 'confident' : 'correct',
+              phase: 'learning',
+              used_hint: false,
+              used_peek: false,
+            },
+          ],
+          cursor: {
+            card_id: cursorCard.card_id,
+            source_id: session.sourceId,
+            track: 'cet4',
+          },
+          source: { id: session.sourceId, label: session.sourceLabel },
+        },
+        membership: {
+          acknowledged_at: new Date().toISOString(),
+          counted_entry_count: 3,
+          last_experience_ended_by: null,
+          recovery_prompt_visible: false,
+          stage: 'premium',
+          trial_duration_days: 5,
+          trial_started_at_entry_count: 1,
+        },
+        progress: {
+          acknowledged_at: new Date().toISOString(),
+          checked_in_today: false,
+          day_key: dayKey,
+          favorite_count: 1,
+          learning_completed_count: 1,
+          pending_review_count: 0,
+          review_completed_count: 0,
+          sleeping_count: 0,
+          total_completed_count: 1,
+        },
+        space: {
+          acknowledged_at: new Date().toISOString(),
+          day_key: dayKey,
+          states: [
+            {
+              card_id: firstCard.card_id,
+              is_favorited: true,
+              is_sleeping: false,
+              last_modified_at: '2026-07-20T11:00:00.000Z',
+            },
+          ],
+        },
+      },
+    },
+    session,
+  };
+}
+
 test('persists a successful login and restores it after relaunch', async () => {
   let firstTree: ReactTestRenderer.ReactTestRenderer;
 
@@ -193,6 +281,216 @@ test('restores check-in, learning cursor, favorite, and sleep state', async () =
   ).toBe('1');
 });
 
+test('restores remote account state from canonical bootstrap before local use', async () => {
+  const originalFetch = globalThis.fetch;
+  const canonical = createCanonicalBootstrapPayload();
+  const fetchMock = jest.fn(
+    async (
+      input: string,
+      _init?: {
+        headers?: ConstructorParameters<typeof Headers>[0];
+        method?: string;
+      },
+    ) => {
+      if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+        return {
+          json: async () => canonical.payload,
+          ok: true,
+          status: 200,
+        };
+      }
+
+      if (
+        input.startsWith(
+          'https://api.softbook.example/v1/learning/card-source?',
+        )
+      ) {
+        return {
+          json: async () => ({
+            data: {
+              card_records: canonical.session.catalogCards,
+              content_version: canonical.session.contentVersion,
+              source: {
+                id: canonical.session.sourceId,
+                label: canonical.session.sourceLabel,
+              },
+              track: canonical.session.track,
+            },
+          }),
+          ok: true,
+          status: 200,
+        };
+      }
+
+      throw new Error(`Unexpected fetch call: ${input}`);
+    },
+  );
+  Object.defineProperty(globalThis, 'fetch', {
+    configurable: true,
+    value: fetchMock,
+    writable: true,
+  });
+  let tree: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  try {
+    await createAuthSessionStore().save(createRemoteSession());
+    await createUserStateStore().save('13800138000', {
+      checkedInDayKey: new Date().toISOString().slice(0, 10),
+      learningCursor: null,
+      spaceCardStateById: {},
+    });
+
+    tree = await renderAppAndWaitForLearning(
+      <App
+        softbookRemoteRuntimeProfile={{
+          apiKey: 'runtime-key',
+          baseUrl: 'https://api.softbook.example/',
+          featureModes: {
+            learningState: 'local',
+            membership: 'local',
+            progressSync: 'local',
+            spaceState: 'local',
+          },
+        }}
+      />,
+    );
+
+    expect(JSON.stringify(tree.toJSON())).toContain(
+      canonical.cursorCard.front.prompt,
+    );
+    await openRoute(tree.root, 'mine');
+    expect(
+      tree.root.findByProps({ testID: 'mine-membership-stage' }).props.children,
+    ).toBe('当前是会员态');
+    expect(
+      tree.root.findByProps({ testID: 'mine-metric-favorites-value' }).props
+        .children,
+    ).toBe('1');
+    await openRoute(tree.root, 'statistics');
+    expect(
+      tree.root.findAllByProps({ testID: 'statistics-checkin-complete-label' }),
+    ).toHaveLength(0);
+
+    const bootstrapCall = fetchMock.mock.calls.find(([input]) =>
+      input.startsWith('https://api.softbook.example/v2/bootstrap?'),
+    );
+    expect(bootstrapCall?.[0]).not.toContain('phone');
+    expect(new Headers(bootstrapCall?.[1]?.headers).get('authorization')).toBe(
+      'Bearer secure-access-token',
+    );
+    expect(
+      fetchMock.mock.calls.some(([, init]) => init?.method === 'POST'),
+    ).toBe(false);
+  } finally {
+    if (tree) {
+      await ReactTestRenderer.act(() => {
+        tree?.unmount();
+      });
+    }
+    globalThis.__SOFTBOOK_CET_RUNTIME_CONFIG__ = undefined;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: originalFetch,
+      writable: true,
+    });
+  }
+});
+
+test('does not persist canonical state before content version validation', async () => {
+  const originalFetch = globalThis.fetch;
+  const canonical = createCanonicalBootstrapPayload();
+  const dayKey = new Date().toISOString().slice(0, 10);
+  const fetchMock = jest.fn(async (input: string) => {
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return {
+        json: async () => canonical.payload,
+        ok: true,
+        status: 200,
+      };
+    }
+
+    if (
+      input.startsWith('https://api.softbook.example/v1/learning/card-source?')
+    ) {
+      return {
+        json: async () => ({
+          data: {
+            card_records: canonical.session.catalogCards,
+            content_version: `sha256:${'c'.repeat(64)}`,
+            source: {
+              id: canonical.session.sourceId,
+              label: canonical.session.sourceLabel,
+            },
+            track: canonical.session.track,
+          },
+        }),
+        ok: true,
+        status: 200,
+      };
+    }
+
+    throw new Error(`Unexpected fetch call: ${input}`);
+  });
+  Object.defineProperty(globalThis, 'fetch', {
+    configurable: true,
+    value: fetchMock,
+    writable: true,
+  });
+  let tree: ReactTestRenderer.ReactTestRenderer | null = null;
+  const originalUserState = {
+    checkedInDayKey: dayKey,
+    learningCursor: null,
+    spaceCardStateById: {},
+  };
+
+  try {
+    await createAuthSessionStore().save(createRemoteSession());
+    await createUserStateStore().save('13800138000', originalUserState);
+    await ReactTestRenderer.act(async () => {
+      tree = ReactTestRenderer.create(
+        <App
+          softbookRemoteRuntimeProfile={{
+            baseUrl: 'https://api.softbook.example/',
+            featureModes: {
+              learningState: 'local',
+              membership: 'local',
+              progressSync: 'local',
+              spaceState: 'local',
+            },
+          }}
+        />,
+      );
+      await flushAsyncEffects();
+    });
+
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      await ReactTestRenderer.act(async () => {
+        await flushAsyncEffects();
+      });
+    }
+
+    expect(
+      tree!.root.findAllByProps({ testID: 'learning-bootstrap-retry-button' })
+        .length,
+    ).toBeGreaterThan(0);
+    await expect(createUserStateStore().load('13800138000')).resolves.toEqual(
+      originalUserState,
+    );
+  } finally {
+    if (tree) {
+      await ReactTestRenderer.act(() => {
+        tree?.unmount();
+      });
+    }
+    globalThis.__SOFTBOOK_CET_RUNTIME_CONFIG__ = undefined;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: originalFetch,
+      writable: true,
+    });
+  }
+});
+
 test('degrades corrupt user state and clears persistence on logout', async () => {
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
@@ -248,6 +546,7 @@ test('remote logout clears local persistence when server revocation is unavailab
         softbookRemoteRuntimeProfile={{
           baseUrl: 'https://api.softbook.example/',
           featureModes: {
+            accountBootstrap: 'local',
             learningSource: 'local',
             learningState: 'local',
             membership: 'local',
@@ -258,7 +557,9 @@ test('remote logout clears local persistence when server revocation is unavailab
       />,
     );
     await openRoute(tree.root, 'mine');
-    const mineSurface = tree.root.findByProps({testID: 'mine-surface'}).parent;
+    const mineSurface = tree.root.findByProps({
+      testID: 'mine-surface',
+    }).parent;
 
     await ReactTestRenderer.act(async () => {
       await mineSurface!.props.handlers.onLogout();
@@ -267,10 +568,10 @@ test('remote logout clears local persistence when server revocation is unavailab
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.softbook.example/v2/auth/logout',
-      expect.objectContaining({method: 'POST'}),
+      expect.objectContaining({ method: 'POST' }),
     );
     await expect(createAuthSessionStore().load()).resolves.toBeNull();
-    expect(tree.root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+    expect(tree.root.findByProps({ testID: 'auth-phone-input' })).toBeTruthy();
   } finally {
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
@@ -291,24 +592,24 @@ test('reloads remote membership authority when restoring an auth session', async
         method?: string;
       },
     ) => {
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
-      return {
-        json: async () => ({
-          data: {
-            entitlement: {
-              counted_entry_count: 3,
-              last_experience_ended_by: null,
-              recovery_prompt_visible: false,
-              stage: 'premium',
-              trial_duration_days: 5,
-              trial_started_at_entry_count: 1,
+      if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+        return {
+          json: async () => ({
+            data: {
+              entitlement: {
+                counted_entry_count: 3,
+                last_experience_ended_by: null,
+                recovery_prompt_visible: false,
+                stage: 'premium',
+                trial_duration_days: 5,
+                trial_started_at_entry_count: 1,
+              },
             },
-          },
-        }),
-        ok: true,
-        status: 200,
-      };
-    }
+          }),
+          ok: true,
+          status: 200,
+        };
+      }
 
       throw new Error(`Unexpected fetch call: ${input}`);
     },
@@ -328,6 +629,7 @@ test('reloads remote membership authority when restoring an auth session', async
           apiKey: 'runtime-key',
           baseUrl: 'https://api.softbook.example/',
           featureModes: {
+            accountBootstrap: 'local',
             learningSource: 'local',
             learningState: 'local',
             membership: 'remote',
@@ -344,7 +646,7 @@ test('reloads remote membership authority when restoring an auth session', async
     ).toBe('当前是会员态');
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.softbook.example/v1/membership/entitlement',
-      expect.objectContaining({method: 'GET'}),
+      expect.objectContaining({ method: 'GET' }),
     );
     const requestHeaders = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
     expect(requestHeaders.get('authorization')).toBe(
@@ -380,7 +682,11 @@ test('loads server canonical space state before pushing restored local state', a
   const fetchMock = jest.fn(
     async (
       _input: string,
-      _init?: {body?: string; headers?: Record<string, string>; method?: string},
+      _init?: {
+        body?: string;
+        headers?: Record<string, string>;
+        method?: string;
+      },
     ) => ({
       json: async () => canonicalPayload,
       ok: true,
@@ -412,6 +718,7 @@ test('loads server canonical space state before pushing restored local state', a
         softbookRemoteRuntimeProfile={{
           baseUrl: 'https://api.softbook.example/',
           featureModes: {
+            accountBootstrap: 'local',
             learningSource: 'local',
             learningState: 'local',
             membership: 'local',
@@ -424,12 +731,15 @@ test('loads server canonical space state before pushing restored local state', a
     await openRoute(tree.root, 'mine');
 
     expect(
-      tree.root.findByProps({testID: 'mine-metric-favorites-value'}).props
+      tree.root.findByProps({ testID: 'mine-metric-favorites-value' }).props
         .children,
     ).toBe('1');
-    const calls = fetchMock.mock.calls.map(([input, init]) => ({input, init}));
+    const calls = fetchMock.mock.calls.map(([input, init]) => ({
+      input,
+      init,
+    }));
     expect(calls[0].input).toContain('/v1/space/state-sync?day_key=');
-    expect(calls[0].init).toMatchObject({method: 'GET'});
+    expect(calls[0].init).toMatchObject({ method: 'GET' });
     const postCall = calls.find(call => call.init?.method === 'POST');
     expect(JSON.parse(String(postCall?.init?.body))).toMatchObject({
       states: [
@@ -452,7 +762,7 @@ test('loads server canonical space state before pushing restored local state', a
 test('expired restored session clears account state instead of authenticating offline', async () => {
   const originalFetch = globalThis.fetch;
   const fetchMock = jest.fn(async () => ({
-    json: async () => ({error: {code: 'expired_auth_token'}}),
+    json: async () => ({ error: { code: 'expired_auth_token' } }),
     ok: false,
     status: 401,
   }));
@@ -498,6 +808,7 @@ test('expired restored session clears account state instead of authenticating of
           softbookRemoteRuntimeProfile={{
             baseUrl: 'https://api.softbook.example/',
             featureModes: {
+              accountBootstrap: 'local',
               learningSource: 'local',
               learningState: 'local',
               membership: 'remote',
@@ -511,9 +822,11 @@ test('expired restored session clears account state instead of authenticating of
       await flushAsyncEffects();
     });
 
-    expect(tree!.root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+    expect(tree!.root.findByProps({ testID: 'auth-phone-input' })).toBeTruthy();
     await expect(createAuthSessionStore().load()).resolves.toBeNull();
-    await expect(AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).resolves.toBeNull();
+    await expect(
+      AsyncStorage.getItem(USER_STATE_STORAGE_KEY),
+    ).resolves.toBeNull();
     await expect(
       AsyncStorage.getItem('__softbook_mutation_queue'),
     ).resolves.toBe('[]');

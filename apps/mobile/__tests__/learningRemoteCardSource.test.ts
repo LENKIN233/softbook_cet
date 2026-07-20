@@ -6,6 +6,8 @@ import {
   parseSoftbookRemoteLearningCardSourcePayload,
 } from '../src/learning/remoteCardSource';
 
+const CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
+
 const authenticatedContext = {
   authToken: 'user-token',
   phoneNumber: '13800138000',
@@ -45,6 +47,7 @@ test('remote learning card source loads and normalizes a valid payload', async (
     },
   );
   expect(result.sourceId).toBe('remote-learning-cards');
+  expect(result.contentVersion).toBeNull();
   expect(result.sourceLabel).toBe('远端卡源');
   expect(result.track).toBe('cet4');
   expect(result.cards).toHaveLength(localLearningCardRecords.length);
@@ -115,6 +118,7 @@ test('softbook remote learning config maps runtime baseUrl and payload envelope'
         },
         track: 'cet4',
         card_records: localLearningCardRecords,
+        content_version: CONTENT_VERSION,
       },
     }),
   });
@@ -142,6 +146,7 @@ test('softbook remote learning config maps runtime baseUrl and payload envelope'
     },
   );
   expect(result.sourceId).toBe('softbook-remote-source');
+  expect(result.contentVersion).toBe(CONTENT_VERSION);
   expect(result.sourceLabel).toBe('正式远端卡源');
   expect(result.cards).toHaveLength(localLearningCardRecords.length);
 });
@@ -157,12 +162,33 @@ test('softbook remote learning payload parser rejects missing envelope data', ()
           },
           track: 'cet4',
           card_records: 'not-an-array',
+          content_version: CONTENT_VERSION,
         },
       },
       'cet4',
     ),
   ).toThrow(
-    'Remote learning bootstrap payload.data.card_records must be an array.',
+    'Remote learning card-source payload.data.card_records must be an array.',
+  );
+});
+
+test('softbook remote learning payload requires a content version', () => {
+  expect(() =>
+    parseSoftbookRemoteLearningCardSourcePayload(
+      {
+        data: {
+          source: {
+            id: 'softbook-remote-source',
+            label: '正式远端卡源',
+          },
+          track: 'cet4',
+          card_records: localLearningCardRecords,
+        },
+      },
+      'cet4',
+    ),
+  ).toThrow(
+    'Remote learning card-source payload.data.content_version must be a SHA-256 identifier.',
   );
 });
 

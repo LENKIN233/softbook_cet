@@ -26,13 +26,23 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { createAuthRepository } from './src/auth/authRepository';
-import {createAuthenticatedFetch} from './src/auth/authenticatedFetch';
+import { createAuthenticatedFetch } from './src/auth/authenticatedFetch';
 import { resolveAuthRepositoryConfig } from './src/auth/authRuntimeConfig';
-import {createAuthSessionCoordinator} from './src/auth/authSessionCoordinator';
+import { createAuthSessionCoordinator } from './src/auth/authSessionCoordinator';
 import {
   getAuthAccessToken,
   type AuthChallenge,
+  type AuthSession,
 } from './src/auth/authSession';
+import {
+  reconcileAccountBootstrap,
+  resolveAccountBootstrapLearningState,
+} from './src/bootstrap/accountBootstrapHydration';
+import {
+  createAccountBootstrapRepository,
+  type AccountBootstrapSnapshot,
+} from './src/bootstrap/accountBootstrapRepository';
+import { resolveAccountBootstrapRepositoryConfig } from './src/bootstrap/accountBootstrapRuntimeConfig';
 import {
   LearningResultDetailSurface,
   LearningSurface,
@@ -67,6 +77,7 @@ import {
   createUserStateStore,
   LEGACY_SPACE_STATE_TIMESTAMP,
   type PersistedLearningCursor,
+  type PersistedUserState,
 } from './src/persistence/userStateStore';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
 import {
@@ -106,7 +117,7 @@ import {
   createProgressSyncRepository,
 } from './src/sync/progressSyncRepository';
 import { resolveProgressSyncRepositoryConfig } from './src/sync/progressSyncRuntimeConfig';
-import {isRemoteAuthorizationError} from './src/runtime/remoteHttpError';
+import { isRemoteAuthorizationError } from './src/runtime/remoteHttpError';
 import { hexToRgba } from './src/visual/tokens';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
@@ -213,6 +224,18 @@ type SpaceStateSyncState = SyncStatusState;
 
 type LearningBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
 type LearningPhase = 'learning' | 'review';
+type AccountBootstrapStatus = 'not_required' | 'pending' | 'ready' | 'deferred';
+
+type AuthenticatedRuntimeHydration = {
+  accountBootstrap: AccountBootstrapSnapshot | null;
+  accountBootstrapStatus: AccountBootstrapStatus;
+  membershipErrorMessage: string | null;
+  membershipRefreshSucceeded: boolean;
+  membershipState: MembershipState;
+  persistedUserState: PersistedUserState;
+  progressSyncKey: string | null;
+  spaceStateSyncKey: string | null;
+};
 
 type SpaceCardState = SpaceCardStateValue;
 
@@ -390,79 +413,76 @@ function AppShell({
     [authRepository, authSessionStore],
   );
   const authenticatedFetch = useMemo(
-    () => createAuthenticatedFetch({authSessionCoordinator}),
+    () => createAuthenticatedFetch({ authSessionCoordinator }),
     [authSessionCoordinator],
   );
   const runtimeAuthRepositoryMode = authRepositoryConfig.mode;
-  const learningSessionRepositoryConfig = useMemo(
-    () => {
-      const resolved = resolveLearningSessionRepositoryConfig(runtimeConfig);
+  const accountBootstrapRepositoryConfig = useMemo(() => {
+    const resolved = resolveAccountBootstrapRepositoryConfig(runtimeConfig);
 
-      return resolved.mode === 'remote'
-        ? {...resolved, fetchImpl: authenticatedFetch}
-        : resolved;
-    },
-    [authenticatedFetch, runtimeConfig],
+    return resolved.mode === 'remote'
+      ? { ...resolved, fetchImpl: authenticatedFetch }
+      : resolved;
+  }, [authenticatedFetch, runtimeConfig]);
+  const accountBootstrapRepository = useMemo(
+    () => createAccountBootstrapRepository(accountBootstrapRepositoryConfig),
+    [accountBootstrapRepositoryConfig],
   );
+  const runtimeAccountBootstrapMode = accountBootstrapRepositoryConfig.mode;
+  const learningSessionRepositoryConfig = useMemo(() => {
+    const resolved = resolveLearningSessionRepositoryConfig(runtimeConfig);
+
+    return resolved.mode === 'remote'
+      ? { ...resolved, fetchImpl: authenticatedFetch }
+      : resolved;
+  }, [authenticatedFetch, runtimeConfig]);
   const learningSessionRepository = useMemo(
     () => createLearningSessionRepository(learningSessionRepositoryConfig),
     [learningSessionRepositoryConfig],
   );
-  const membershipRepositoryConfig = useMemo(
-    () => {
-      const resolved = resolveMembershipRepositoryConfig(runtimeConfig);
+  const membershipRepositoryConfig = useMemo(() => {
+    const resolved = resolveMembershipRepositoryConfig(runtimeConfig);
 
-      return resolved.mode === 'remote'
-        ? {...resolved, fetchImpl: authenticatedFetch}
-        : resolved;
-    },
-    [authenticatedFetch, runtimeConfig],
-  );
+    return resolved.mode === 'remote'
+      ? { ...resolved, fetchImpl: authenticatedFetch }
+      : resolved;
+  }, [authenticatedFetch, runtimeConfig]);
   const membershipRepository = useMemo(
     () => createMembershipRepository(membershipRepositoryConfig),
     [membershipRepositoryConfig],
   );
   const runtimeMembershipRepositoryMode = membershipRepositoryConfig.mode;
-  const progressSyncRepositoryConfig = useMemo(
-    () => {
-      const resolved = resolveProgressSyncRepositoryConfig(runtimeConfig);
+  const progressSyncRepositoryConfig = useMemo(() => {
+    const resolved = resolveProgressSyncRepositoryConfig(runtimeConfig);
 
-      return resolved.mode === 'remote'
-        ? {...resolved, fetchImpl: authenticatedFetch}
-        : resolved;
-    },
-    [authenticatedFetch, runtimeConfig],
-  );
+    return resolved.mode === 'remote'
+      ? { ...resolved, fetchImpl: authenticatedFetch }
+      : resolved;
+  }, [authenticatedFetch, runtimeConfig]);
   const progressSyncRepository = useMemo(
     () => createProgressSyncRepository(progressSyncRepositoryConfig),
     [progressSyncRepositoryConfig],
   );
   const runtimeProgressSyncMode = progressSyncRepositoryConfig.mode;
-  const learningStateRepositoryConfig = useMemo(
-    () => {
-      const resolved = resolveLearningStateRepositoryConfig(runtimeConfig);
+  const learningStateRepositoryConfig = useMemo(() => {
+    const resolved = resolveLearningStateRepositoryConfig(runtimeConfig);
 
-      return resolved.mode === 'remote'
-        ? {...resolved, fetchImpl: authenticatedFetch}
-        : resolved;
-    },
-    [authenticatedFetch, runtimeConfig],
-  );
+    return resolved.mode === 'remote'
+      ? { ...resolved, fetchImpl: authenticatedFetch }
+      : resolved;
+  }, [authenticatedFetch, runtimeConfig]);
   const learningStateRepository = useMemo(
     () => createLearningStateRepository(learningStateRepositoryConfig),
     [learningStateRepositoryConfig],
   );
   const runtimeLearningStateMode = learningStateRepositoryConfig.mode;
-  const spaceStateRepositoryConfig = useMemo(
-    () => {
-      const resolved = resolveSpaceStateRepositoryConfig(runtimeConfig ?? {});
+  const spaceStateRepositoryConfig = useMemo(() => {
+    const resolved = resolveSpaceStateRepositoryConfig(runtimeConfig ?? {});
 
-      return resolved.mode === 'remote'
-        ? {...resolved, fetchImpl: authenticatedFetch}
-        : resolved;
-    },
-    [authenticatedFetch, runtimeConfig],
-  );
+    return resolved.mode === 'remote'
+      ? { ...resolved, fetchImpl: authenticatedFetch }
+      : resolved;
+  }, [authenticatedFetch, runtimeConfig]);
   const spaceStateRepository = useMemo(
     () => createSpaceStateRepository(spaceStateRepositoryConfig),
     [spaceStateRepositoryConfig],
@@ -491,6 +511,18 @@ function AppShell({
     useState<SpaceSurfaceScreen>('overview');
   const [persistenceHydrated, setPersistenceHydrated] = useState(false);
   const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
+  const [accountBootstrapStatus, setAccountBootstrapStatus] =
+    useState<AccountBootstrapStatus>(
+      runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required',
+    );
+  const [accountBootstrapSnapshot, setAccountBootstrapSnapshot] =
+    useState<AccountBootstrapSnapshot | null>(null);
+  const [mappedAccountBootstrapSnapshot, setMappedAccountBootstrapSnapshot] =
+    useState<AccountBootstrapSnapshot | null>(null);
+  const [
+    accountBootstrapHydrationSettled,
+    setAccountBootstrapHydrationSettled,
+  ] = useState(runtimeAccountBootstrapMode !== 'remote');
   const [learningSession, setLearningSession] =
     useState<LearningSession | null>(null);
   const [learningBootstrapStatus, setLearningBootstrapStatus] =
@@ -549,33 +581,57 @@ function AppShell({
   const lastMembershipRefreshKey = useRef<string | null>(null);
   const pendingMembershipRefreshKey = useRef<string | null>(null);
   const persistedLearningCursor = useRef<PersistedLearningCursor | null>(null);
+  const accountBootstrapStatusRef = useRef(accountBootstrapStatus);
+  const accountBootstrapSnapshotRef = useRef<AccountBootstrapSnapshot | null>(
+    null,
+  );
+  const accountBootstrapHydrationSettledRef = useRef(
+    runtimeAccountBootstrapMode !== 'remote',
+  );
+  const accountBootstrapRetryInFlight = useRef<Promise<boolean> | null>(null);
+  const accountBootstrapRefreshRequired = useRef(false);
   const logoutInFlight = useRef<Promise<void> | null>(null);
-  const resetRuntimeAfterLogout = useCallback((error: string | null = null) => {
-    lastMembershipRefreshKey.current = null;
-    pendingMembershipRefreshKey.current = null;
-    persistedLearningCursor.current = null;
-    setAuthState({...INITIAL_AUTH_STATE, error});
-    setLearningPhase('learning');
-    setReviewSessionCards([]);
-    setReviewCompletedResults([]);
-    setMembershipError(null);
-    setMembershipPendingAction(null);
-    setMembershipGate(null);
-    setMembershipState(createInitialMembershipState());
-    setSpaceCardStateById({});
-    setCheckedInDayKey(null);
-    setLastSyncedProgressKey(null);
-    setLastSyncedLearningStateKey(null);
-    setLastSyncedSpaceStateKey(null);
-    setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
-    setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
-    setSpaceStateSyncState(INITIAL_SPACE_STATE_SYNC_STATE);
-    startTransition(() => {
-      setActiveRoute('mine');
-      setLearningScreen('practice');
-      setSpaceScreen('overview');
-    });
-  }, []);
+  const resetRuntimeAfterLogout = useCallback(
+    (error: string | null = null) => {
+      lastMembershipRefreshKey.current = null;
+      pendingMembershipRefreshKey.current = null;
+      persistedLearningCursor.current = null;
+      accountBootstrapStatusRef.current =
+        runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required';
+      accountBootstrapRefreshRequired.current = false;
+      accountBootstrapSnapshotRef.current = null;
+      accountBootstrapHydrationSettledRef.current =
+        runtimeAccountBootstrapMode !== 'remote';
+      setAccountBootstrapStatus(accountBootstrapStatusRef.current);
+      setAccountBootstrapSnapshot(null);
+      setMappedAccountBootstrapSnapshot(null);
+      setAccountBootstrapHydrationSettled(
+        accountBootstrapHydrationSettledRef.current,
+      );
+      setAuthState({ ...INITIAL_AUTH_STATE, error });
+      setLearningPhase('learning');
+      setReviewSessionCards([]);
+      setReviewCompletedResults([]);
+      setMembershipError(null);
+      setMembershipPendingAction(null);
+      setMembershipGate(null);
+      setMembershipState(createInitialMembershipState());
+      setSpaceCardStateById({});
+      setCheckedInDayKey(null);
+      setLastSyncedProgressKey(null);
+      setLastSyncedLearningStateKey(null);
+      setLastSyncedSpaceStateKey(null);
+      setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
+      setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
+      setSpaceStateSyncState(INITIAL_SPACE_STATE_SYNC_STATE);
+      startTransition(() => {
+        setActiveRoute('mine');
+        setLearningScreen('practice');
+        setSpaceScreen('overview');
+      });
+    },
+    [runtimeAccountBootstrapMode],
+  );
   const clearAuthenticatedSession = useCallback(
     (error: string | null = null, revokeRemote = false) => {
       if (logoutInFlight.current) {
@@ -725,7 +781,7 @@ function AppShell({
   ).length;
   const todayKey = getTodayKey();
   const loadCanonicalSpaceState = useCallback(
-    async (context: {authToken?: string; phoneNumber: string}) => {
+    async (context: { authToken?: string; phoneNumber: string }) => {
       if (runtimeSpaceStateMode === 'local') {
         return null;
       }
@@ -746,6 +802,162 @@ function AppShell({
     },
     [runtimeSpaceStateMode, spaceStateRepository, todayKey],
   );
+  const loadAuthenticatedRuntimeHydration = useCallback(
+    async (session: AuthSession): Promise<AuthenticatedRuntimeHydration> => {
+      const context = {
+        authToken: getAuthAccessToken(session),
+        phoneNumber: session.phoneNumber,
+      };
+      const persistedUserState = await userStateStore.load(session.phoneNumber);
+
+      if (runtimeAccountBootstrapMode === 'remote') {
+        try {
+          const accountBootstrap = await accountBootstrapRepository.load(
+            learningTrack,
+            todayKey,
+          );
+
+          if (accountBootstrap === null) {
+            throw new Error('Remote account bootstrap returned no state.');
+          }
+
+          const reconciliation = reconcileAccountBootstrap(
+            persistedUserState,
+            accountBootstrap,
+          );
+
+          return {
+            accountBootstrap,
+            accountBootstrapStatus: 'ready',
+            membershipErrorMessage: null,
+            membershipRefreshSucceeded: true,
+            membershipState: accountBootstrap.membership.state,
+            persistedUserState: reconciliation.persistedUserState,
+            progressSyncKey: reconciliation.progressSyncKey,
+            spaceStateSyncKey: reconciliation.spaceStateSyncKey,
+          };
+        } catch (error) {
+          if (isRemoteAuthorizationError(error)) {
+            throw error;
+          }
+
+          console.warn(
+            '[AccountBootstrap] Canonical account state is temporarily unavailable.',
+            error,
+          );
+          return {
+            accountBootstrap: null,
+            accountBootstrapStatus: 'deferred',
+            membershipErrorMessage: `${getUserFacingErrorMessage(
+              error,
+              '账户状态暂时无法读取。',
+            )} 已保留登录；服务恢复前不会上传本地状态。`,
+            membershipRefreshSucceeded: false,
+            membershipState: createEntitlementPendingMembershipState(),
+            persistedUserState,
+            progressSyncKey: null,
+            spaceStateSyncKey: null,
+          };
+        }
+      }
+
+      const [membershipResolution, canonicalSpaceState] = await Promise.all([
+        membershipRepository
+          .loadState(context)
+          .then(state => ({
+            errorMessage: null,
+            refreshSucceeded: true,
+            state,
+          }))
+          .catch((error: unknown) => {
+            if (isRemoteAuthorizationError(error)) {
+              throw error;
+            }
+
+            if (runtimeMembershipRepositoryMode === 'remote') {
+              mutationQueueRepository
+                .enqueueMutation(
+                  'refresh_membership',
+                  { context },
+                  'membership:hydrate',
+                )
+                .catch(() => undefined);
+            }
+
+            return {
+              errorMessage: `${getUserFacingErrorMessage(
+                error,
+                '会员状态暂时无法读取。',
+              )} 已恢复登录；网络恢复后会重新读取服务端权益。`,
+              refreshSucceeded: false,
+              state: createEntitlementPendingMembershipState(),
+            };
+          }),
+        loadCanonicalSpaceState(context),
+      ]);
+
+      return {
+        accountBootstrap: null,
+        accountBootstrapStatus: 'not_required',
+        membershipErrorMessage: membershipResolution.errorMessage,
+        membershipRefreshSucceeded: membershipResolution.refreshSucceeded,
+        membershipState: membershipResolution.state,
+        persistedUserState: {
+          ...persistedUserState,
+          spaceCardStateById: canonicalSpaceState
+            ? mergeSpaceStateMaps(
+                persistedUserState.spaceCardStateById,
+                canonicalSpaceState,
+              )
+            : persistedUserState.spaceCardStateById,
+        },
+        progressSyncKey: null,
+        spaceStateSyncKey: null,
+      };
+    },
+    [
+      accountBootstrapRepository,
+      learningTrack,
+      loadCanonicalSpaceState,
+      membershipRepository,
+      mutationQueueRepository,
+      runtimeAccountBootstrapMode,
+      runtimeMembershipRepositoryMode,
+      todayKey,
+      userStateStore,
+    ],
+  );
+  const applyAuthenticatedRuntimeHydration = useCallback(
+    (hydration: AuthenticatedRuntimeHydration) => {
+      accountBootstrapStatusRef.current = hydration.accountBootstrapStatus;
+      accountBootstrapSnapshotRef.current = hydration.accountBootstrap;
+      setAccountBootstrapStatus(hydration.accountBootstrapStatus);
+      setAccountBootstrapSnapshot(hydration.accountBootstrap);
+      setMappedAccountBootstrapSnapshot(null);
+      accountBootstrapHydrationSettledRef.current =
+        hydration.accountBootstrapStatus === 'not_required';
+      setAccountBootstrapHydrationSettled(
+        accountBootstrapHydrationSettledRef.current,
+      );
+      setLastSyncedProgressKey(hydration.progressSyncKey);
+      setLastSyncedLearningStateKey(null);
+      setLastSyncedSpaceStateKey(hydration.spaceStateSyncKey);
+      previousMembershipStage.current = hydration.membershipState.stage;
+      setMembershipState(hydration.membershipState);
+      setMembershipError(hydration.membershipErrorMessage);
+      setMembershipGate(null);
+      persistedLearningCursor.current =
+        hydration.persistedUserState.learningCursor;
+      setCheckedInDayKey(hydration.persistedUserState.checkedInDayKey);
+      setSpaceCardStateById(hydration.persistedUserState.spaceCardStateById);
+    },
+    [],
+  );
+  const isAccountStateReconciled =
+    runtimeAccountBootstrapMode !== 'remote' ||
+    accountBootstrapSnapshot !== null;
+  const canWriteAccountState =
+    isAccountStateReconciled && accountBootstrapHydrationSettled;
   const hasCheckedInToday = checkedInDayKey === todayKey;
   const canCheckInToday =
     !hasCheckedInToday &&
@@ -817,8 +1029,92 @@ function AppShell({
         : null,
     [authState.authToken, authState.phoneNumber, authState.stage],
   );
+  const retryCanonicalAccountBootstrap = useCallback(async () => {
+    if (runtimeAccountBootstrapMode !== 'remote') {
+      return true;
+    }
+
+    if (accountBootstrapRetryInFlight.current) {
+      return accountBootstrapRetryInFlight.current;
+    }
+
+    const session = authSessionCoordinator.getCurrentSession();
+
+    if (!session || authenticatedRuntimeContext === null) {
+      return false;
+    }
+
+    accountBootstrapStatusRef.current = 'pending';
+    setAccountBootstrapStatus('pending');
+
+    const retryTask = (async () => {
+      try {
+        const hydration = await loadAuthenticatedRuntimeHydration(session);
+        const currentSession = authSessionCoordinator.getCurrentSession();
+
+        if (
+          currentSession === null ||
+          currentSession.phoneNumber !== session.phoneNumber
+        ) {
+          return false;
+        }
+
+        if (
+          hydration.accountBootstrapStatus === 'deferred' &&
+          accountBootstrapSnapshotRef.current !== null
+        ) {
+          accountBootstrapStatusRef.current = 'deferred';
+          setAccountBootstrapStatus('deferred');
+          setMembershipError(hydration.membershipErrorMessage);
+          return false;
+        }
+
+        applyAuthenticatedRuntimeHydration(hydration);
+        if (
+          hydration.accountBootstrapStatus === 'ready' &&
+          learningSession === null
+        ) {
+          setLearningBootstrapStatus('idle');
+          setLearningBootstrapError(null);
+        }
+        return hydration.accountBootstrapStatus === 'ready';
+      } catch (error) {
+        if (isRemoteAuthorizationError(error)) {
+          await clearAuthenticatedSession('登录已失效，请重新验证手机号。');
+          return false;
+        }
+
+        throw error;
+      }
+    })();
+
+    accountBootstrapRetryInFlight.current = retryTask;
+
+    try {
+      return await retryTask;
+    } finally {
+      if (accountBootstrapRetryInFlight.current === retryTask) {
+        accountBootstrapRetryInFlight.current = null;
+      }
+    }
+  }, [
+    applyAuthenticatedRuntimeHydration,
+    authSessionCoordinator,
+    authenticatedRuntimeContext,
+    clearAuthenticatedSession,
+    learningSession,
+    loadAuthenticatedRuntimeHydration,
+    runtimeAccountBootstrapMode,
+  ]);
   const activeMembershipRefreshKey =
+    runtimeAccountBootstrapMode !== 'remote' &&
     runtimeMembershipRepositoryMode === 'remote' &&
+    authenticatedRuntimeContext !== null &&
+    activeRoute === 'mine'
+      ? activeRoute
+      : null;
+  const activeAccountBootstrapRefreshKey =
+    runtimeAccountBootstrapMode === 'remote' &&
     authenticatedRuntimeContext !== null &&
     activeRoute === 'mine'
       ? activeRoute
@@ -832,6 +1128,21 @@ function AppShell({
       return;
     }
 
+    if (
+      runtimeAccountBootstrapMode === 'remote' &&
+      accountBootstrapStatusRef.current !== 'ready' &&
+      !(await retryCanonicalAccountBootstrap())
+    ) {
+      return;
+    }
+
+    if (
+      runtimeAccountBootstrapMode === 'remote' &&
+      !accountBootstrapHydrationSettledRef.current
+    ) {
+      return;
+    }
+
     let replayedResults;
 
     try {
@@ -840,9 +1151,7 @@ function AppShell({
       );
     } catch (error) {
       if (isRemoteAuthorizationError(error)) {
-        await clearAuthenticatedSession(
-          '登录已失效，请重新验证手机号。',
-        );
+        await clearAuthenticatedSession('登录已失效，请重新验证手机号。');
         return;
       }
 
@@ -926,6 +1235,17 @@ function AppShell({
         );
       }
     });
+
+    if (
+      replayedResults.length > 0 &&
+      runtimeAccountBootstrapMode === 'remote'
+    ) {
+      accountBootstrapStatusRef.current = 'pending';
+      setAccountBootstrapStatus('pending');
+      accountBootstrapHydrationSettledRef.current = false;
+      setAccountBootstrapHydrationSettled(false);
+      await retryCanonicalAccountBootstrap();
+    }
   }, [
     authenticatedRuntimeContext,
     clearAuthenticatedSession,
@@ -933,6 +1253,8 @@ function AppShell({
     isAuthenticated,
     learningStateSyncKey,
     mutationQueueRepository,
+    retryCanonicalAccountBootstrap,
+    runtimeAccountBootstrapMode,
     spaceStateSyncKey,
   ]);
 
@@ -1040,62 +1362,13 @@ function AppShell({
         return;
       }
 
-      const membershipContext = {
-        authToken: getAuthAccessToken(session),
-        phoneNumber: session.phoneNumber,
-      };
-      const [
-        persistedUserState,
-        membershipResolution,
-        canonicalSpaceState,
-      ] = await Promise.all([
-        userStateStore.load(session.phoneNumber),
-        membershipRepository
-          .loadState(membershipContext)
-          .then(state => ({ errorMessage: null, state }))
-          .catch((error: unknown) => {
-            if (isRemoteAuthorizationError(error)) {
-              throw error;
-            }
-
-            if (runtimeMembershipRepositoryMode === 'remote') {
-              mutationQueueRepository
-                .enqueueMutation(
-                  'refresh_membership',
-                  { context: membershipContext },
-                  'membership:restore',
-                )
-                .catch(() => undefined);
-            }
-
-            return {
-              errorMessage: `${getUserFacingErrorMessage(
-                error,
-                '会员状态暂时无法读取。',
-              )} 已恢复登录；网络恢复后会重新读取服务端权益。`,
-              state: createEntitlementPendingMembershipState(),
-            };
-          }),
-        loadCanonicalSpaceState(membershipContext),
-      ]);
+      const hydration = await loadAuthenticatedRuntimeHydration(session);
 
       if (isCancelled) {
         return;
       }
 
-      persistedLearningCursor.current = persistedUserState.learningCursor;
-      previousMembershipStage.current = membershipResolution.state.stage;
-      setCheckedInDayKey(persistedUserState.checkedInDayKey);
-      setSpaceCardStateById(
-        canonicalSpaceState
-          ? mergeSpaceStateMaps(
-              persistedUserState.spaceCardStateById,
-              canonicalSpaceState,
-            )
-          : persistedUserState.spaceCardStateById,
-      );
-      setMembershipState(membershipResolution.state);
-      setMembershipError(membershipResolution.errorMessage);
+      applyAuthenticatedRuntimeHydration(hydration);
       setAuthState({
         ...INITIAL_AUTH_STATE,
         authToken: getAuthAccessToken(session) ?? null,
@@ -1107,9 +1380,7 @@ function AppShell({
     hydratePersistence()
       .catch(async (error: unknown) => {
         if (isRemoteAuthorizationError(error)) {
-          await clearAuthenticatedSession(
-            '登录已失效，请重新验证手机号。',
-          );
+          await clearAuthenticatedSession('登录已失效，请重新验证手机号。');
           return;
         }
 
@@ -1125,17 +1396,14 @@ function AppShell({
       isCancelled = true;
     };
   }, [
+    applyAuthenticatedRuntimeHydration,
     authSessionCoordinator,
     clearAuthenticatedSession,
-    loadCanonicalSpaceState,
-    membershipRepository,
-    mutationQueueRepository,
-    runtimeMembershipRepositoryMode,
-    userStateStore,
+    loadAuthenticatedRuntimeHydration,
   ]);
 
   useEffect(() => {
-    if (!persistenceHydrated || !isAuthenticated) {
+    if (!persistenceHydrated || !isAuthenticated || !canWriteAccountState) {
       return;
     }
 
@@ -1162,6 +1430,7 @@ function AppShell({
       });
   }, [
     authState.phoneNumber,
+    canWriteAccountState,
     checkedInDayKey,
     currentLearningCard,
     isAuthenticated,
@@ -1203,13 +1472,30 @@ function AppShell({
       return;
     }
 
+    if (!isAccountStateReconciled) {
+      if (learningBootstrapStatus !== 'error') {
+        setLearningSession(null);
+        setLearningCardState(null);
+        setLearningBootstrapStatus('error');
+        setLearningBootstrapError(
+          '账户状态暂时无法读取，服务恢复后再加载本轮卡片。',
+        );
+      }
+      return;
+    }
+
     if (learningBootstrapStatus !== 'idle') {
       return;
     }
 
     setLearningBootstrapStatus('loading');
     setLearningBootstrapError(null);
-  }, [isAuthenticated, learningBootstrapStatus, persistenceHydrated]);
+  }, [
+    isAccountStateReconciled,
+    isAuthenticated,
+    learningBootstrapStatus,
+    persistenceHydrated,
+  ]);
 
   useEffect(() => {
     if (activeRoute === 'mine') {
@@ -1222,6 +1508,61 @@ function AppShell({
   useEffect(() => {
     if (
       !isAuthenticated ||
+      activeAccountBootstrapRefreshKey === null ||
+      membershipPendingAction !== null ||
+      lastMembershipRefreshKey.current === activeAccountBootstrapRefreshKey ||
+      pendingMembershipRefreshKey.current === activeAccountBootstrapRefreshKey
+    ) {
+      return;
+    }
+
+    let isCancelled = false;
+    pendingMembershipRefreshKey.current = activeAccountBootstrapRefreshKey;
+    accountBootstrapStatusRef.current = 'pending';
+    setAccountBootstrapStatus('pending');
+
+    retryCanonicalAccountBootstrap()
+      .then(succeeded => {
+        if (isCancelled) {
+          return;
+        }
+
+        pendingMembershipRefreshKey.current = null;
+        lastMembershipRefreshKey.current = succeeded
+          ? activeAccountBootstrapRefreshKey
+          : null;
+      })
+      .catch((error: unknown) => {
+        if (isCancelled) {
+          return;
+        }
+
+        pendingMembershipRefreshKey.current = null;
+        setMembershipError(
+          getUserFacingErrorMessage(error, '账户状态刷新失败。'),
+        );
+      });
+
+    return () => {
+      isCancelled = true;
+
+      if (
+        pendingMembershipRefreshKey.current === activeAccountBootstrapRefreshKey
+      ) {
+        pendingMembershipRefreshKey.current = null;
+      }
+    };
+  }, [
+    activeAccountBootstrapRefreshKey,
+    isAuthenticated,
+    membershipPendingAction,
+    retryCanonicalAccountBootstrap,
+  ]);
+
+  useEffect(() => {
+    if (
+      !isAuthenticated ||
+      !canWriteAccountState ||
       runtimeMembershipRepositoryMode !== 'remote' ||
       authenticatedRuntimeContext === null ||
       activeMembershipRefreshKey === null ||
@@ -1263,9 +1604,9 @@ function AppShell({
         }
 
         if (isRemoteAuthorizationError(error)) {
-          clearAuthenticatedSession(
-            '登录已失效，请重新验证手机号。',
-          ).catch(() => undefined);
+          clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
+            () => undefined,
+          );
           return;
         }
 
@@ -1298,6 +1639,7 @@ function AppShell({
     activeMembershipRefreshKey,
     authenticatedRuntimeContext,
     clearAuthenticatedSession,
+    canWriteAccountState,
     isAuthenticated,
     membershipPendingAction,
     membershipRepository,
@@ -1306,12 +1648,18 @@ function AppShell({
   ]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || learningBootstrapStatus !== 'ready') {
       return;
     }
 
     startMutationReplay().catch(() => undefined);
-  }, [activeRoute, isAuthenticated, startMutationReplay]);
+  }, [
+    activeRoute,
+    accountBootstrapHydrationSettled,
+    isAuthenticated,
+    learningBootstrapStatus,
+    startMutationReplay,
+  ]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -1319,25 +1667,52 @@ function AppShell({
     }
 
     const unsubscribeNetInfo = NetInfo.addEventListener(state => {
-      if (state.isConnected && state.isInternetReachable !== false) {
-        startMutationReplay().catch(() => undefined);
+      if (!state.isConnected || state.isInternetReachable === false) {
+        accountBootstrapRefreshRequired.current = true;
+        return;
       }
+
+      if (
+        runtimeAccountBootstrapMode === 'remote' &&
+        accountBootstrapRefreshRequired.current
+      ) {
+        accountBootstrapRefreshRequired.current = false;
+        accountBootstrapStatusRef.current = 'pending';
+        setAccountBootstrapStatus('pending');
+      }
+
+      startMutationReplay().catch(() => undefined);
     });
 
     const subscription = AppState.addEventListener('change', nextState => {
       if (nextState === 'active') {
+        if (
+          runtimeAccountBootstrapMode === 'remote' &&
+          accountBootstrapRefreshRequired.current
+        ) {
+          accountBootstrapRefreshRequired.current = false;
+          accountBootstrapStatusRef.current = 'pending';
+          setAccountBootstrapStatus('pending');
+        }
         startMutationReplay().catch(() => undefined);
+        return;
       }
+
+      accountBootstrapRefreshRequired.current = true;
     });
 
     return () => {
       unsubscribeNetInfo();
       subscription.remove();
     };
-  }, [isAuthenticated, startMutationReplay]);
+  }, [isAuthenticated, runtimeAccountBootstrapMode, startMutationReplay]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (
+      !isAuthenticated ||
+      !canWriteAccountState ||
+      learningBootstrapStatus !== 'ready'
+    ) {
       return;
     }
 
@@ -1406,9 +1781,9 @@ function AppShell({
         }
 
         if (isRemoteAuthorizationError(error)) {
-          clearAuthenticatedSession(
-            '登录已失效，请重新验证手机号。',
-          ).catch(() => undefined);
+          clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
+            () => undefined,
+          );
           return;
         }
 
@@ -1440,8 +1815,10 @@ function AppShell({
     clearAuthenticatedSession,
     dailyProgressKey,
     dailyProgressSnapshot,
+    canWriteAccountState,
     isAuthenticated,
     lastSyncedProgressKey,
+    learningBootstrapStatus,
     mutationQueueRepository,
     progressSyncRepository,
     runtimeProgressSyncMode,
@@ -1451,6 +1828,7 @@ function AppShell({
   useEffect(() => {
     if (
       !isAuthenticated ||
+      !canWriteAccountState ||
       learningBootstrapStatus !== 'ready' ||
       learningStateSnapshot === null ||
       learningStateSnapshot.events.length === 0 ||
@@ -1511,9 +1889,9 @@ function AppShell({
         }
 
         if (isRemoteAuthorizationError(error)) {
-          clearAuthenticatedSession(
-            '登录已失效，请重新验证手机号。',
-          ).catch(() => undefined);
+          clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
+            () => undefined,
+          );
           return;
         }
 
@@ -1543,6 +1921,7 @@ function AppShell({
   }, [
     authenticatedRuntimeContext,
     clearAuthenticatedSession,
+    canWriteAccountState,
     isAuthenticated,
     lastSyncedLearningStateKey,
     learningBootstrapStatus,
@@ -1555,7 +1934,11 @@ function AppShell({
   ]);
 
   useEffect(() => {
-    if (!isAuthenticated || Object.keys(spaceCardStateById).length === 0) {
+    if (
+      !isAuthenticated ||
+      !canWriteAccountState ||
+      Object.keys(spaceCardStateById).length === 0
+    ) {
       return;
     }
 
@@ -1620,9 +2003,9 @@ function AppShell({
         }
 
         if (isRemoteAuthorizationError(error)) {
-          clearAuthenticatedSession(
-            '登录已失效，请重新验证手机号。',
-          ).catch(() => undefined);
+          clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
+            () => undefined,
+          );
           return;
         }
 
@@ -1652,6 +2035,7 @@ function AppShell({
   }, [
     authenticatedRuntimeContext,
     clearAuthenticatedSession,
+    canWriteAccountState,
     isAuthenticated,
     lastSyncedSpaceStateKey,
     mutationQueueRepository,
@@ -1685,12 +2069,28 @@ function AppShell({
           return;
         }
 
+        const canonicalLearningState = accountBootstrapSnapshot
+          ? resolveAccountBootstrapLearningState(
+              accountBootstrapSnapshot,
+              session,
+            )
+          : {
+              learningResults: [],
+              learningStateSyncKey: null,
+              reviewResults: [],
+            };
+
+        setMappedAccountBootstrapSnapshot(accountBootstrapSnapshot);
+
         setLearningSession(session);
         setLearningCurrentResult(null);
-        setLearningCompletedResults([]);
+        setLearningCompletedResults(canonicalLearningState.learningResults);
         setLearningPhase('learning');
         setReviewSessionCards([]);
-        setReviewCompletedResults([]);
+        setReviewCompletedResults(canonicalLearningState.reviewResults);
+        setLastSyncedLearningStateKey(
+          canonicalLearningState.learningStateSyncKey,
+        );
         const accessibleCardCount = resolveAccessibleLearningCardCount(
           session.cards.length,
           membershipState,
@@ -1723,9 +2123,9 @@ function AppShell({
         }
 
         if (isRemoteAuthorizationError(error)) {
-          clearAuthenticatedSession(
-            '登录已失效，请重新验证手机号。',
-          ).catch(() => undefined);
+          clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
+            () => undefined,
+          );
           return;
         }
 
@@ -1735,12 +2135,20 @@ function AppShell({
         setLearningBootstrapError(
           getUserFacingErrorMessage(error, '本轮卡片加载失败。'),
         );
+        if (
+          runtimeAccountBootstrapMode === 'remote' &&
+          accountBootstrapSnapshot !== null
+        ) {
+          accountBootstrapStatusRef.current = 'deferred';
+          setAccountBootstrapStatus('deferred');
+        }
       });
 
     return () => {
       isCancelled = true;
     };
   }, [
+    accountBootstrapSnapshot,
     createTrackedLearningCardState,
     authenticatedRuntimeContext,
     clearAuthenticatedSession,
@@ -1750,6 +2158,102 @@ function AppShell({
     learningSessionRepository,
     membershipState,
     readSpaceCardState,
+    runtimeAccountBootstrapMode,
+  ]);
+
+  useEffect(() => {
+    if (
+      accountBootstrapSnapshot === null ||
+      learningSession === null ||
+      learningBootstrapStatus !== 'ready' ||
+      mappedAccountBootstrapSnapshot === accountBootstrapSnapshot
+    ) {
+      return;
+    }
+
+    try {
+      const canonicalLearningState = resolveAccountBootstrapLearningState(
+        accountBootstrapSnapshot,
+        learningSession,
+      );
+      setMappedAccountBootstrapSnapshot(accountBootstrapSnapshot);
+      setLearningCompletedResults(canonicalLearningState.learningResults);
+      setReviewCompletedResults(canonicalLearningState.reviewResults);
+      setLastSyncedLearningStateKey(
+        canonicalLearningState.learningStateSyncKey,
+      );
+      setLearningCurrentResult(null);
+      setLearningPhase('learning');
+      setReviewSessionCards([]);
+
+      const nextVisibleCards = resolveVisibleLearningCards(
+        learningSession,
+        spaceCardStateById,
+        membershipState,
+      );
+      const restoredCursor = accountBootstrapSnapshot.learning.cursor;
+      const restoredIndex = restoredCursor
+        ? nextVisibleCards.findIndex(
+            card => card.card_id === restoredCursor.cardId,
+          )
+        : -1;
+      const nextIndex = restoredIndex >= 0 ? restoredIndex : 0;
+
+      setLearningIndex(nextIndex);
+      setLearningCardState(
+        nextVisibleCards[nextIndex]
+          ? createTrackedLearningCardState(
+              nextVisibleCards[nextIndex],
+              spaceCardStateById,
+            )
+          : null,
+      );
+    } catch (error) {
+      accountBootstrapStatusRef.current = 'deferred';
+      setAccountBootstrapStatus('deferred');
+      setLearningSession(null);
+      setLearningCardState(null);
+      setLearningBootstrapStatus('error');
+      setLearningBootstrapError(
+        getUserFacingErrorMessage(error, '本轮卡片加载失败。'),
+      );
+    }
+  }, [
+    accountBootstrapSnapshot,
+    createTrackedLearningCardState,
+    learningBootstrapStatus,
+    learningSession,
+    mappedAccountBootstrapSnapshot,
+    membershipState,
+    resolveVisibleLearningCards,
+    spaceCardStateById,
+  ]);
+
+  useEffect(() => {
+    if (
+      runtimeAccountBootstrapMode !== 'remote' ||
+      accountBootstrapStatus !== 'ready' ||
+      accountBootstrapSnapshot === null ||
+      mappedAccountBootstrapSnapshot !== accountBootstrapSnapshot ||
+      learningBootstrapStatus !== 'ready' ||
+      accountBootstrapHydrationSettled
+    ) {
+      return;
+    }
+
+    accountBootstrapHydrationSettledRef.current = true;
+    setLastSyncedProgressKey(dailyProgressKey);
+    setLastSyncedLearningStateKey(learningStateSyncKey);
+    setAccountBootstrapHydrationSettled(true);
+  }, [
+    accountBootstrapHydrationSettled,
+    accountBootstrapSnapshot,
+    accountBootstrapStatus,
+    dailyProgressKey,
+    learningBootstrapStatus,
+    learningStateSyncKey,
+    mappedAccountBootstrapSnapshot,
+    runtimeAccountBootstrapMode,
   ]);
 
   useEffect(() => {
@@ -1821,6 +2325,15 @@ function AppShell({
       return;
     }
 
+    if (
+      runtimeMembershipRepositoryMode === 'remote' &&
+      !canWriteAccountState
+    ) {
+      setMembershipError('账户状态确认中，请稍后重试。');
+      retryCanonicalAccountBootstrap().catch(() => undefined);
+      return;
+    }
+
     setMembershipError(null);
     setMembershipGate(nextGate);
 
@@ -1838,9 +2351,9 @@ function AppShell({
       })
       .catch((error: unknown) => {
         if (isRemoteAuthorizationError(error)) {
-          clearAuthenticatedSession(
-            '登录已失效，请重新验证手机号。',
-          ).catch(() => undefined);
+          clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
+            () => undefined,
+          );
           return;
         }
 
@@ -1859,13 +2372,9 @@ function AppShell({
             `${getUserFacingErrorMessage(
               error,
               '试用开通暂时失败。',
-            )} 已先放行本次完整试用；网络恢复后会自动再试。`,
+            )} 请求已记录；网络恢复并由服务端确认后会自动更新。`,
           );
           setMembershipPendingAction(null);
-          completeMembershipUnlock(
-            startMembershipTrial(membershipState),
-            nextGate,
-          );
           return;
         }
 
@@ -1904,7 +2413,8 @@ function AppShell({
         phoneNumber,
         smsCode: current.phoneNumber === phoneNumber ? current.smsCode : '',
         stage:
-          current.phoneNumber === phoneNumber || current.stage === 'authenticated'
+          current.phoneNumber === phoneNumber ||
+          current.stage === 'authenticated'
             ? current.stage
             : 'logged_out',
       }));
@@ -2015,101 +2525,34 @@ function AppShell({
         await authSessionCoordinator.establish(session);
         sessionEstablished = true;
 
-        const membershipContext = {
-          authToken: getAuthAccessToken(session),
-          phoneNumber: session.phoneNumber,
-        };
-        const membershipResolution = await membershipRepository
-          .loadState(membershipContext)
-          .then(nextMembershipState => ({
-            membershipErrorMessage: null,
-            membershipRefreshSucceeded: true,
-            membershipState: nextMembershipState,
-          }))
-          .catch((error: unknown) => {
-            if (isRemoteAuthorizationError(error)) {
-              throw error;
-            }
-
-            if (runtimeMembershipRepositoryMode !== 'remote') {
-              throw error;
-            }
-
-            return mutationQueueRepository
-              .enqueueMutation(
-                'refresh_membership',
-                {
-                  context: membershipContext,
-                },
-                'membership:login',
-              )
-              .catch(() => undefined)
-              .then(() => ({
-                membershipErrorMessage: `${getUserFacingErrorMessage(
-                  error,
-                  '会员状态暂时无法读取。',
-                )} 已保留登录态；网络恢复后会自动再试。`,
-                membershipRefreshSucceeded: false,
-                membershipState: createEntitlementPendingMembershipState(),
-              }));
-          });
-
-        const [persistedUserState, canonicalSpaceState] = await Promise.all([
-          userStateStore.load(session.phoneNumber),
-          loadCanonicalSpaceState(membershipContext),
-        ]);
+        const hydration = await loadAuthenticatedRuntimeHydration(session);
 
         return {
-          ...membershipResolution,
-          persistedUserState: {
-            ...persistedUserState,
-            spaceCardStateById: canonicalSpaceState
-              ? mergeSpaceStateMaps(
-                  persistedUserState.spaceCardStateById,
-                  canonicalSpaceState,
-                )
-              : persistedUserState.spaceCardStateById,
-          },
+          hydration,
           session,
         };
       })()
-        .then(
-          ({
-            membershipErrorMessage,
-            membershipRefreshSucceeded,
-            membershipState: nextMembershipState,
-            persistedUserState,
-            session,
-          }) => {
-            if (runtimeMembershipRepositoryMode === 'remote') {
-              lastMembershipRefreshKey.current = membershipRefreshSucceeded
-                ? activeRoute
-                : null;
-              pendingMembershipRefreshKey.current = null;
-            }
-            setMembershipState(nextMembershipState);
-            setMembershipError(membershipErrorMessage);
-            setMembershipGate(null);
-            persistedLearningCursor.current = persistedUserState.learningCursor;
-            setCheckedInDayKey(persistedUserState.checkedInDayKey);
-            setSpaceCardStateById(persistedUserState.spaceCardStateById);
-            setAuthState(current => ({
-              ...current,
-              authToken: getAuthAccessToken(session) ?? null,
-              challenge: null,
-              error: null,
-              pendingAction: null,
-              phoneNumber: session.phoneNumber,
-              smsCode: '',
-              stage: 'authenticated',
-            }));
-          },
-        )
+        .then(({ hydration, session }) => {
+          if (runtimeMembershipRepositoryMode === 'remote') {
+            lastMembershipRefreshKey.current =
+              hydration.membershipRefreshSucceeded ? activeRoute : null;
+            pendingMembershipRefreshKey.current = null;
+          }
+          applyAuthenticatedRuntimeHydration(hydration);
+          setAuthState(current => ({
+            ...current,
+            authToken: getAuthAccessToken(session) ?? null,
+            challenge: null,
+            error: null,
+            pendingAction: null,
+            phoneNumber: session.phoneNumber,
+            smsCode: '',
+            stage: 'authenticated',
+          }));
+        })
         .catch(async (error: unknown) => {
           if (sessionEstablished && isRemoteAuthorizationError(error)) {
-            await clearAuthenticatedSession(
-              '登录已失效，请重新验证手机号。',
-            );
+            await clearAuthenticatedSession('登录已失效，请重新验证手机号。');
             return;
           }
 
@@ -2148,6 +2591,15 @@ function AppShell({
         return;
       }
 
+      if (
+        runtimeMembershipRepositoryMode === 'remote' &&
+        !canWriteAccountState
+      ) {
+        setMembershipError('账户状态确认中，请稍后重试。');
+        retryCanonicalAccountBootstrap().catch(() => undefined);
+        return;
+      }
+
       setMembershipError(null);
       if (runtimeMembershipRepositoryMode === 'local') {
         completeMembershipUnlock(purchaseMembership(membershipState));
@@ -2163,9 +2615,9 @@ function AppShell({
         })
         .catch((error: unknown) => {
           if (isRemoteAuthorizationError(error)) {
-            clearAuthenticatedSession(
-              '登录已失效，请重新验证手机号。',
-            ).catch(() => undefined);
+            clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
+              () => undefined,
+            );
             return;
           }
 
@@ -2199,6 +2651,15 @@ function AppShell({
         return;
       }
 
+      if (
+        runtimeMembershipRepositoryMode === 'remote' &&
+        !canWriteAccountState
+      ) {
+        setMembershipError('账户状态确认中，请稍后重试。');
+        retryCanonicalAccountBootstrap().catch(() => undefined);
+        return;
+      }
+
       setMembershipError(null);
       if (runtimeMembershipRepositoryMode === 'local') {
         setMembershipState(current => dismissMembershipRecovery(current));
@@ -2215,9 +2676,9 @@ function AppShell({
         })
         .catch((error: unknown) => {
           if (isRemoteAuthorizationError(error)) {
-            clearAuthenticatedSession(
-              '登录已失效，请重新验证手机号。',
-            ).catch(() => undefined);
+            clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
+              () => undefined,
+            );
             return;
           }
 
@@ -2447,6 +2908,21 @@ function AppShell({
     }
   };
   const retryLearningBootstrap = () => {
+    if (
+      runtimeAccountBootstrapMode === 'remote' &&
+      accountBootstrapStatusRef.current !== 'ready'
+    ) {
+      retryCanonicalAccountBootstrap()
+        .then(succeeded => {
+          if (succeeded) {
+            setLearningBootstrapStatus('idle');
+            setLearningBootstrapError(null);
+          }
+        })
+        .catch(() => undefined);
+      return;
+    }
+
     setLearningBootstrapStatus('idle');
     setLearningBootstrapError(null);
   };
@@ -5441,7 +5917,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 const INTERNAL_ERROR_COPY_PATTERN =
-  /\b(Remote|payload|source_id|source_label|card_records|remoteConfig|authToken|accessToken|refreshToken|challengeId|sessionId|endpoint|repository|card_id|knowledge_ref|box_ref|space_metadata|MutationQueue|runtime|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC)\b|JSON Parse error|Unexpected character|SyntaxError|parse failed|data\.|卡源|离线队列|离线重试|本机缓存|当前设备|会员矩阵|占位|快照|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
+  /\b(Remote|Bootstrap|Canonical|payload|source_id|source_label|card_records|remoteConfig|authToken|accessToken|refreshToken|challengeId|sessionId|endpoint|repository|card_id|knowledge_ref|box_ref|space_metadata|MutationQueue|runtime|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC)\b|JSON Parse error|Unexpected character|SyntaxError|parse failed|data\.|卡源|离线队列|离线重试|本机缓存|当前设备|会员矩阵|占位|快照|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
 function getUserFacingErrorMessage(error: unknown, fallback: string) {
   const message = getErrorMessage(error, fallback);

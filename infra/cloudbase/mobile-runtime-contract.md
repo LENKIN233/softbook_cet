@@ -22,8 +22,8 @@ Current boundary:
   them requires updating the mobile repositories and tests.
 - The server-side `/v2` auth/session foundation is documented separately in
   `infra/cloudbase/auth-v2-runtime-contract.md`. Mobile authentication now uses
-  that contract. The backend canonical account read is available at
-  `/v2/bootstrap`, but mobile adoption is a separate change. Card payload and
+  that contract. Mobile login and restored sessions now reconcile through
+  `/v2/bootstrap` before learning or product-state writes. Card payload and
   product mutations remain on `/v1` only as a development migration bridge;
   production continues to reject every `/v1` route.
 
@@ -38,7 +38,7 @@ Environment:
 - `SOFTBOOK_CET_LEARNING_TRACK`: optional, `cet4` or `cet6`; default `cet4`.
 - `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES`: optional comma-separated features to
   keep local while auth remains remote. Allowed values:
-  `learningSource,membership,progressSync,spaceState,learningState`.
+  `accountBootstrap,learningSource,membership,progressSync,spaceState,learningState`.
 
 If `SOFTBOOK_CET_REMOTE_BASE_URL` is present, auth is remote. By default all
 remote-capable features are also remote.
@@ -136,7 +136,7 @@ also contain no credentials; hydration rewrites identifiers created by the old
 token/phone-based membership retry format. `auth-session.v1` is invalidated
 because it cannot be upgraded without refresh credentials.
 
-### Canonical Bootstrap (backend available, mobile adoption pending)
+### Canonical Bootstrap
 
 ```http
 GET /v2/bootstrap?track=cet4&day_key=2026-07-20
@@ -153,9 +153,29 @@ for missing account/day/track documents. The full response and production
 content-release boundary are defined in
 `infra/cloudbase/bootstrap-v2-runtime-contract.md`.
 
-The React Native client does not consume this endpoint in the current change.
-Until that separate adoption lands, its existing membership/space hydration and
-card-source calls remain the documented development bridge.
+The React Native client calls this endpoint after login and restored-session
+authentication, before replaying queued mutations or enabling product-state
+writes. It validates the response schema and request scope, then uses server
+membership, daily progress, learning cursor/card state, and physical space as
+the reconciliation baseline. The loaded card source must match bootstrap track,
+card count, card IDs, interactions, and content SHA-256 before stored learning
+state can hydrate the surface. The reconciled snapshot is not written to local
+persistence, pushed remotely, or used to replay queued mutations until that
+content check completes.
+
+The request never contains `phone_number`. A transient bootstrap failure keeps
+an otherwise valid auth session available for retry, but the client fails closed
+when there is no previously validated canonical state and required content: it
+does not open learning, replay queued mutations, push restored snapshots, grant
+a local trial, or substitute bundled development cards. A successful reconnect
+re-runs bootstrap before mutation replay and refreshes canonical state again
+after replay.
+
+Staged development smoke may explicitly keep `accountBootstrap` local. The
+remaining `/v1` card source and product mutations are still a development
+migration bridge, not a production contract. Remote membership canonical reads
+come from bootstrap; the legacy entitlement read is no longer used by the full
+remote mobile profile.
 
 ### Learning Card Source
 
@@ -177,12 +197,17 @@ Response:
       "label": "Remote CET4 Source"
     },
     "track": "cet4",
+    "content_version": "sha256:<64 lowercase hex characters>",
     "card_records": []
   }
 }
 ```
 
 `track` must be `cet4` or `cet6` and must match the query.
+`content_version` is computed by the backend from the normalized ordered source
+and must match `/v2/bootstrap` before canonical learning state can hydrate the
+loaded cards. A mismatch fails closed because it indicates that the two reads
+observed different content revisions.
 
 CloudBase development backend note: when `SOFTBOOK_STORE_MODE=cloudbase`, this
 endpoint reads the `softbook_card_sources` collection by track (`cet4` or
@@ -389,7 +414,8 @@ Failure: non-2xx queues `sync_space_state` for replay.
 6. Writes performed through the migration endpoints are visible in a later
    bootstrap read for the same account and absent for another account.
 7. `/v1/learning/card-source?track=<track>` returns non-empty valid
-   `card_records`.
+   `card_records` and a `content_version` equal to the preceding bootstrap
+   content version.
 8. At least one card for each core interaction is available in the remote card
    source before full visual QA: `flip`, `multiple_choice`, `lock`,
    `elimination`, `swipe`.
@@ -452,6 +478,9 @@ Expected high-level output:
 
 - `apps/mobile/src/runtime/appRuntimeConfig.ts`
 - `apps/mobile/src/auth/authRepository.ts`
+- `apps/mobile/src/bootstrap/accountBootstrapRepository.ts`
+- `apps/mobile/src/bootstrap/accountBootstrapHydration.ts`
+- `apps/mobile/src/bootstrap/accountBootstrapRuntimeConfig.ts`
 - `apps/mobile/src/learning/remoteCardSource.ts`
 - `apps/mobile/src/learning/sourceContract.ts`
 - `apps/mobile/src/membership/membershipRepository.ts`
