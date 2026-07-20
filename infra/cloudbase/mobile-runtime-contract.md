@@ -20,6 +20,9 @@ Current boundary:
 - Implementation hypothesis: the concrete REST endpoints and payload names below
   are the current mobile runtime shape. They can be changed later, but changing
   them requires updating the mobile repositories and tests.
+- The server-side `/v2` auth/session foundation is documented separately in
+  `infra/cloudbase/auth-v2-runtime-contract.md`. The mobile client has not
+  migrated to it yet and continues to use the `/v1` contract below.
 
 ## Runtime Activation
 

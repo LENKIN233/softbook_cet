@@ -4,6 +4,10 @@ import {spawnSync} from 'node:child_process';
 
 const envId = process.env.CLOUDBASE_ENV_ID || 'test-d2gzcyxr9f7e80972';
 const collections = [
+  'softbook_account_deletions',
+  'softbook_auth_challenges',
+  'softbook_auth_rate_limits',
+  'softbook_auth_sessions',
   'softbook_card_sources',
   'softbook_memberships',
   'softbook_daily_progress',

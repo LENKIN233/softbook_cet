@@ -48,6 +48,12 @@ POST /v1/membership/dismiss-recovery
 POST /v1/progress/daily-sync
 POST /v1/learning/state-sync
 POST /v1/space/state-sync
+
+POST /v2/auth/request-code
+POST /v2/auth/verify-code
+POST /v2/auth/refresh
+POST /v2/auth/logout
+POST /v2/account/deletion
 ```
 
 For the development environment, SMS should use a whitelist/fixed-code adapter first. Real SMS provider integration should remain an adapter and must not change the mobile REST contract.
@@ -56,10 +62,15 @@ For the development environment, SMS should use a whitelist/fixed-code adapter f
 
 The first function is implemented at `infra/cloudbase/functions/softbook-api`.
 
-It intentionally keeps the external mobile contract as `/v1/*` REST:
+It keeps the current external mobile contract as `/v1/*` REST while exposing a
+server-only `/v2` authentication migration foundation:
 
 - Auth uses a development fixed-code adapter. Default code: `2468`.
 - Verified auth returns a signed bearer token that all non-auth endpoints require.
+- Auth v2 adds persisted one-time SMS challenges, per-phone and per-IP rate
+  limits, 15-minute access tokens, rotating 30-day refresh tokens, session
+  revocation, and queued account deletion. See
+  `infra/cloudbase/auth-v2-runtime-contract.md`.
 - Card source, membership state, daily progress, learning state, and space state persist to CloudBase NoSQL when `SOFTBOOK_STORE_MODE=cloudbase`; local tests still default to the in-memory adapter.
 - Card source reads `softbook_card_sources` by track and seeds the development CET4/CET6 records into that collection when a track document is missing. The response envelope remains the same one parsed by the mobile app.
 - The router uses classic event-style `exports.main` so it can be bound to CloudBase HTTP access service paths such as `/softbook-api`.
@@ -72,7 +83,7 @@ node provision-softbook-nosql.mjs
 ./deploy-softbook-api.sh
 ```
 
-The default HTTP access path is `/softbook-api`, so the mobile runtime `SOFTBOOK_CET_REMOTE_BASE_URL` should point to that access root. The handler normalizes either `/v1/*` or `/softbook-api/v1/*`.
+The default HTTP access path is `/softbook-api`, so the mobile runtime `SOFTBOOK_CET_REMOTE_BASE_URL` should point to that access root. The handler normalizes versioned paths with or without that prefix.
 
 Expected CloudBase shape: function detail should show `Handler: index.main` and `Type: Event`. The public REST route is provided by the HTTP access service, not by CloudBase Web Function mode.
 
@@ -82,6 +93,7 @@ Recommended development environment variables:
 export SOFTBOOK_STORE_MODE=cloudbase
 export SOFTBOOK_SMS_DEV_CODE=2468
 export SOFTBOOK_AUTH_TOKEN_SECRET="<dev-only-random-secret>"
+export SOFTBOOK_AUTH_INDEX_SECRET="<stable-dev-index-secret>"
 export SOFTBOOK_API_KEY="<optional-shared-dev-api-key>"
 ```
 

@@ -1,9 +1,18 @@
 const crypto = require('node:crypto');
+const {createAuthV2Service} = require('./auth-v2');
+const {
+  createCloudBaseAuthStateStore,
+  createMemoryAuthStateStore,
+} = require('./auth-v2-store');
 
 const DEFAULT_SMS_CODE = '2468';
 const DEFAULT_TRIAL_DURATION_DAYS = 5;
 const DEFAULT_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 const CLOUDBASE_COLLECTIONS = {
+  accountDeletions: 'softbook_account_deletions',
+  authChallenges: 'softbook_auth_challenges',
+  authRateLimits: 'softbook_auth_rate_limits',
+  authSessions: 'softbook_auth_sessions',
   cardSources: 'softbook_card_sources',
   dailyProgress: 'softbook_daily_progress',
   learningStates: 'softbook_learning_states',
@@ -30,18 +39,45 @@ function getDefaultApi() {
 }
 
 function createSoftbookApi(options = {}) {
+  const runtimeMode =
+    options.runtimeMode ?? process.env.SOFTBOOK_RUNTIME_MODE ?? 'development';
+  const store = options.store ?? createDefaultStore();
+  const tokenSecret =
+    options.tokenSecret ??
+    process.env.SOFTBOOK_AUTH_TOKEN_SECRET ??
+    'softbook-cloudbase-dev-secret';
   const config = {
+    allowLegacyV1:
+      runtimeMode === 'production' ? false : options.allowLegacyV1 ?? true,
     apiKey: options.apiKey ?? process.env.SOFTBOOK_API_KEY,
     now: options.now ?? (() => new Date()),
+    runtimeMode,
     smsCode:
       options.smsCode ?? process.env.SOFTBOOK_SMS_DEV_CODE ?? DEFAULT_SMS_CODE,
-    store: options.store ?? createDefaultStore(),
-    tokenSecret:
-      options.tokenSecret ??
-      process.env.SOFTBOOK_AUTH_TOKEN_SECRET ??
-      'softbook-cloudbase-dev-secret',
+    store,
+    tokenSecret,
     tokenTtlSeconds: resolveTokenTtlSeconds(options.tokenTtlSeconds),
   };
+  config.authV2 = createAuthV2Service({
+    accessTokenTtlSeconds: options.authV2AccessTokenTtlSeconds,
+    challengeTtlSeconds: options.authV2ChallengeTtlSeconds,
+    codeGenerator: options.authV2CodeGenerator,
+    developmentSmsCode: config.smsCode,
+    ipRequestLimit: options.authV2IpRequestLimit,
+    indexSecret:
+      options.authV2IndexSecret ?? process.env.SOFTBOOK_AUTH_INDEX_SECRET,
+    now: config.now,
+    phoneRequestLimit: options.authV2PhoneRequestLimit,
+    randomBytes: options.authV2RandomBytes,
+    rateLimitWindowSeconds: options.authV2RateLimitWindowSeconds,
+    refreshTokenTtlSeconds: options.authV2RefreshTokenTtlSeconds,
+    requireClientIp: options.authV2RequireClientIp,
+    runtimeMode,
+    smsProvider: options.smsProvider,
+    store,
+    tokenSecret,
+    verifyAttemptLimit: options.authV2VerifyAttemptLimit,
+  });
 
   return {
     handleCloudBaseEvent: async event => {
@@ -75,7 +111,7 @@ async function handleHttpRequest(config, request) {
     return jsonResponse(204, null);
   }
 
-  if (!path.startsWith('/v1/')) {
+  if (!path.startsWith('/v1/') && !path.startsWith('/v2/')) {
     return jsonResponse(404, {
       error: {
         code: 'not_found',
@@ -94,6 +130,53 @@ async function handleHttpRequest(config, request) {
   }
 
   try {
+    if (path.startsWith('/v1/') && !config.allowLegacyV1) {
+      return jsonResponse(410, {
+        error: {
+          code: 'legacy_api_disabled',
+          message: 'Legacy v1 API is disabled in this runtime.',
+        },
+      });
+    }
+
+    if (method === 'POST' && path === '/v2/auth/request-code') {
+      return jsonResponse(200, {
+        data: await config.authV2.requestCode(request),
+      });
+    }
+
+    if (method === 'POST' && path === '/v2/auth/verify-code') {
+      return jsonResponse(200, {
+        data: await config.authV2.verifyCode(request),
+      });
+    }
+
+    if (method === 'POST' && path === '/v2/auth/refresh') {
+      return jsonResponse(200, {
+        data: await config.authV2.refresh(request),
+      });
+    }
+
+    if (method === 'POST' && path === '/v2/auth/logout') {
+      await config.authV2.logout(request);
+      return jsonResponse(204, null);
+    }
+
+    if (method === 'POST' && path === '/v2/account/deletion') {
+      return jsonResponse(202, {
+        data: await config.authV2.requestAccountDeletion(request),
+      });
+    }
+
+    if (path.startsWith('/v2/')) {
+      return jsonResponse(404, {
+        error: {
+          code: 'not_found',
+          message: 'Unsupported Softbook API route.',
+        },
+      });
+    }
+
     if (method === 'POST' && path === '/v1/auth/request-code') {
       return handleRequestCode(request);
     }
@@ -402,6 +485,7 @@ function createDefaultStore() {
 }
 
 function createMemoryStore() {
+  const authStateStore = createMemoryAuthStateStore();
   const cardSources = new Map();
   const memberships = new Map();
   const dailyProgress = new Map();
@@ -409,6 +493,7 @@ function createMemoryStore() {
   const spaceStates = new Map();
 
   return {
+    ...authStateStore,
     getCardSource: track => {
       if (!cardSources.has(track)) {
         cardSources.set(track, createDefaultCardSource(track));
@@ -513,6 +598,7 @@ function createMemoryStore() {
       return cloneSpaceState(canonicalState);
     },
     snapshot: () => ({
+      ...authStateStore.snapshotAuth(),
       cardSources,
       dailyProgress,
       learningStates,
@@ -524,6 +610,10 @@ function createMemoryStore() {
 
 function createCloudBaseStore(options = {}) {
   const db = options.db ?? createCloudBaseDatabase();
+  const authStateStore = createCloudBaseAuthStateStore(
+    db,
+    CLOUDBASE_COLLECTIONS,
+  );
   const cardSources = db.collection(CLOUDBASE_COLLECTIONS.cardSources);
   const memberships = db.collection(CLOUDBASE_COLLECTIONS.memberships);
   const dailyProgress = db.collection(CLOUDBASE_COLLECTIONS.dailyProgress);
@@ -531,6 +621,7 @@ function createCloudBaseStore(options = {}) {
   const spaceStates = db.collection(CLOUDBASE_COLLECTIONS.spaceStates);
 
   return {
+    ...authStateStore,
     getCardSource: async track => {
       const existing = await getCloudBaseDocument(cardSources, track);
 
@@ -1228,6 +1319,10 @@ function parseCloudBaseEvent(event = {}) {
 
   return {
     body: parseEventBody(event.body, event.isBase64Encoded),
+    clientIp:
+      event.requestContext?.http?.sourceIp ??
+      event.requestContext?.identity?.sourceIp ??
+      event.requestContext?.sourceIp,
     headers,
     method,
     path,
@@ -1253,10 +1348,10 @@ function parseEventBody(body, isBase64Encoded = false) {
 
 function normalizeApiPath(path) {
   const pathname = String(path).split('?')[0] || '/';
-  const v1Index = pathname.indexOf('/v1/');
+  const versionedPath = pathname.match(/\/v[12]\/.*$/);
 
-  if (v1Index >= 0) {
-    return pathname.slice(v1Index);
+  if (versionedPath) {
+    return versionedPath[0];
   }
 
   return pathname.startsWith('/') ? pathname : `/${pathname}`;
