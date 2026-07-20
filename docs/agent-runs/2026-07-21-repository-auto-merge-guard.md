@@ -4,7 +4,7 @@
 
 - Date: 2026-07-21
 - Branch: `infra/guard-auto-merge-setting`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/433
 - Summary: Codify the GitHub repository settings required by the automatic
   delivery path after PR #432 exposed that branch protection required
   auto-merge while the repository-level feature was disabled.
@@ -85,6 +85,16 @@
 - `PATH="/Users/lenkin/.nvm/versions/node/v22.13.0/bin:/opt/homebrew/opt/ruby@3.3/bin:$PATH"
   ./scripts/run_local_gates --profile dev` -> 17/17 passed with Python 3.12.13,
   Node 22.13.0, Ruby 3.3.12, and no safe exceptions.
+- `node --test scripts/test_classify_formal_approval_scope.mjs` -> 10/10
+  tests passed.
+- `node --test scripts/test_validate_agent_run_evidence.mjs && node
+  scripts/validate_agent_run_evidence.mjs --verify-remote` -> 8/8 tests and
+  the pre-cutover GitHub Release asset digest verification passed.
+- `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API
+  both reported zero vulnerabilities.
+- `cd apps/mobile && bundle exec pod install --project-directory=ios
+  --deployment` -> completed with 83 dependencies and 82 pods; no tracked
+  files changed.
 
 ## Validation results
 
