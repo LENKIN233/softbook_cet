@@ -24,6 +24,14 @@ def validate(context) -> None:
     ci_contract = delivery["ci_contract"]
     formal_approval_gate = ci_contract["formal_approval_gate"]
     remote_repository_health = ci_contract["remote_repository_health"]
+    required_repository_settings = {
+        "default_branch": "main",
+        "allow_auto_merge": True,
+        "delete_branch_on_merge": True,
+        "allow_squash_merge": True,
+        "allow_merge_commit": False,
+        "allow_rebase_merge": False,
+    }
 
     check_equal("main_branch_policy.branch_name", "main", main_branch_policy["branch_name"])
     check_equal(
@@ -35,6 +43,11 @@ def validate(context) -> None:
         "main_branch_policy.allowed_topic_branch_prefixes",
         ["infra/", "shell/", "module/", "cross/", "fix/"],
         main_branch_policy["allowed_topic_branch_prefixes"],
+    )
+    check_equal(
+        "remote_guard repository_settings",
+        required_repository_settings,
+        remote_guard["repository_settings"],
     )
     check_equal(
         "repo_delivery_or_pull_request read path",
@@ -450,6 +463,7 @@ def validate(context) -> None:
                 "Administration: read",
                 "Actions: read",
             ],
+            "required_repository_settings": required_repository_settings,
             "github_token_fallback_allowed": False,
             "missing_credential_policy": "fail_closed_with_explicit_diagnostic",
         },
@@ -696,6 +710,7 @@ def validate(context) -> None:
                 "agent_review_before_merge",
                 "agent_review_record_gate_before_merge",
                 "auto_merge_after_clean_review_and_green_gates",
+                "repository_auto_merge_setting_guarded",
             ],
             hr23["must_hit"],
         )
@@ -712,6 +727,7 @@ def validate(context) -> None:
                 "agent_review_before_merge",
                 "agent_review_record_checked_by_required_gate",
                 "merge_only_blocks_on_review_gate_or_permission_failure",
+                "repository_auto_merge_must_be_enabled",
             ],
             gt17["must_include"],
         )
@@ -1015,6 +1031,7 @@ def validate(context) -> None:
         "会持久化 repo 改动的任务默认走 `topic branch -> commit -> PR(main)`。",
         "若用户明确要求只做本地修改，才允许停在本地 handoff，不开 PR。",
         "PR 创建后，默认在 agent review 通过、PR body 留下可校验 review 记录与 `docs/agent-runs/*.md` 运行记录引用、且 required gates 全绿时自动合并到 `main`。",
+        "GitHub 仓库必须启用 auto-merge，并在合并后自动删除 topic branch；远端健康检查与完整 Harness 都会失败关闭配置漂移。",
         "只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。",
         "如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。",
         "涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / direction / decision，再做实现；同一 PR 内新增的 brief / direction / decision 只能满足 design-only PR。",

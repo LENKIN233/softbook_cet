@@ -578,6 +578,7 @@ def validate(context) -> None:
             "test_json_result_has_stable_schema_and_structured_findings",
             "test_local_mode_is_injected_without_remote_guard_access",
             "test_local_cli_does_not_invoke_gh_and_full_reports_unavailable_github",
+            "test_full_cli_rejects_disabled_repository_auto_merge",
             "test_partial_cli_commands_cannot_satisfy_full_pr_validation",
         ]:
             check_contains("Harness runner unit coverage", runner_test_text, snippet)

@@ -22,6 +22,14 @@ const REQUIRED_CHECKS = [
 const FORMAL_APPROVAL_ENVIRONMENT = 'formal-product-owner-approval';
 const FORMAL_APPROVAL_REVIEWER = 'LENKIN233';
 const FORMAL_APPROVAL_PREVENT_SELF_REVIEW = false;
+const REQUIRED_REPOSITORY_SETTINGS = Object.freeze({
+  default_branch: 'main',
+  allow_auto_merge: true,
+  delete_branch_on_merge: true,
+  allow_squash_merge: true,
+  allow_merge_commit: false,
+  allow_rebase_merge: false,
+});
 const FORBIDDEN_TRACKED_PREFIXES = [
   'exports/',
   'docs/agent-runs/artifacts/',
@@ -104,7 +112,12 @@ function parseRemoteJson(raw, {unavailableCode, malformedCode}, errors) {
     return null;
   }
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      errors.push({code: malformedCode});
+      return null;
+    }
+    return parsed;
   } catch {
     errors.push({code: malformedCode});
     return null;
@@ -248,7 +261,7 @@ function remoteSnapshot(errors, warnings) {
       'repo',
       'view',
       '--json',
-      'nameWithOwner,mergeCommitAllowed,rebaseMergeAllowed,squashMergeAllowed',
+      'nameWithOwner',
     ],
     {allowFailure: true},
   );
@@ -267,25 +280,71 @@ function remoteSnapshot(errors, warnings) {
     return null;
   }
   const repo = repository.nameWithOwner;
-  const mergeMethods = {
-    allow_squash_merge: repository.squashMergeAllowed ?? null,
-    allow_merge_commit: repository.mergeCommitAllowed ?? null,
-    allow_rebase_merge: repository.rebaseMergeAllowed ?? null,
-  };
-  if (Object.values(mergeMethods).some(value => typeof value !== 'boolean')) {
+  const repositorySettingsRaw = run(
+    'gh',
+    ['api', `repos/${repo}`],
+    {allowFailure: true},
+  );
+  const repositorySettingsPayload = parseRemoteJson(
+    repositorySettingsRaw,
+    {
+      unavailableCode: 'remote_repository_settings_unavailable',
+      malformedCode: 'remote_repository_settings_malformed',
+    },
+    errors,
+  );
+  const repositorySettings = repositorySettingsPayload
+    ? Object.fromEntries(
+      Object.keys(REQUIRED_REPOSITORY_SETTINGS).map(key => [
+        key,
+        repositorySettingsPayload[key] ?? null,
+      ]),
+    )
+    : null;
+  const mergeMethods = repositorySettings
+    ? {
+      allow_squash_merge: repositorySettings.allow_squash_merge,
+      allow_merge_commit: repositorySettings.allow_merge_commit,
+      allow_rebase_merge: repositorySettings.allow_rebase_merge,
+    }
+    : null;
+  const repositorySettingsComplete = repositorySettings
+    && Object.entries(REQUIRED_REPOSITORY_SETTINGS).every(
+      ([key, expected]) => typeof repositorySettings[key] === typeof expected,
+    );
+
+  if (repositorySettings && !repositorySettingsComplete) {
     errors.push({
       code: 'remote_repository_settings_unavailable',
-      observed: mergeMethods,
+      observed: repositorySettings,
     });
-  } else if (
-    mergeMethods.allow_squash_merge !== true
-    || mergeMethods.allow_merge_commit !== false
-    || mergeMethods.allow_rebase_merge !== false
-  ) {
-    errors.push({
-      code: 'merge_methods_not_squash_only',
-      observed: mergeMethods,
-    });
+  } else if (repositorySettingsComplete) {
+    if (
+      repositorySettings.default_branch
+      !== REQUIRED_REPOSITORY_SETTINGS.default_branch
+    ) {
+      errors.push({
+        code: 'default_branch_not_main',
+        expected: REQUIRED_REPOSITORY_SETTINGS.default_branch,
+        actual: repositorySettings.default_branch,
+      });
+    }
+    if (repositorySettings.allow_auto_merge !== true) {
+      errors.push({code: 'auto_merge_disabled'});
+    }
+    if (repositorySettings.delete_branch_on_merge !== true) {
+      errors.push({code: 'merged_branch_auto_delete_disabled'});
+    }
+    if (
+      repositorySettings.allow_squash_merge !== true
+      || repositorySettings.allow_merge_commit !== false
+      || repositorySettings.allow_rebase_merge !== false
+    ) {
+      errors.push({
+        code: 'merge_methods_not_squash_only',
+        observed: mergeMethods,
+      });
+    }
   }
 
   const protectionResult = runResult(
@@ -297,7 +356,12 @@ function remoteSnapshot(errors, warnings) {
     const httpStatus = statusMatch ? Number(statusMatch[1]) : null;
     if (httpStatus === 404) {
       errors.push({code: 'main_branch_unprotected', repo});
-      return {repo, protected: false};
+      return {
+        repo,
+        protected: false,
+        repository_settings: repositorySettings,
+        merge_methods: mergeMethods,
+      };
     }
     errors.push({
       code: 'branch_protection_unavailable',
@@ -305,7 +369,12 @@ function remoteSnapshot(errors, warnings) {
       http_status: httpStatus,
       exit_code: protectionResult.exitCode,
     });
-    return {repo, protected: null};
+    return {
+      repo,
+      protected: null,
+      repository_settings: repositorySettings,
+      merge_methods: mergeMethods,
+    };
   }
 
   let protection;
@@ -313,7 +382,12 @@ function remoteSnapshot(errors, warnings) {
     protection = JSON.parse(protectionResult.stdout);
   } catch {
     errors.push({code: 'branch_protection_malformed', repo});
-    return {repo, protected: null};
+    return {
+      repo,
+      protected: null,
+      repository_settings: repositorySettings,
+      merge_methods: mergeMethods,
+    };
   }
   const checks = protection.required_status_checks?.contexts || [];
   if (protection.required_status_checks?.strict !== true) {
@@ -435,6 +509,7 @@ function remoteSnapshot(errors, warnings) {
   return {
     repo,
     protected: true,
+    repository_settings: repositorySettings,
     merge_methods: mergeMethods,
     required_checks: checks,
     formal_approval: formalApproval,

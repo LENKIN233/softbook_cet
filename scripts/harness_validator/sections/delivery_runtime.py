@@ -107,6 +107,35 @@ def validate(context) -> None:
 
     if not SKIP_REMOTE_GUARD:
         context.mark_remote_guard_executed()
+        gh_repository = run_command(
+            "gh",
+            "api",
+            f"repos/{remote_guard['repository']}",
+        )
+        if gh_repository is None:
+            pass
+        elif gh_repository.returncode != 0:
+            errors.append(
+                "unable to read GitHub repository settings for "
+                f"{remote_guard['repository']}; run gh auth login and confirm "
+                "Administration read access"
+            )
+        else:
+            try:
+                repository = json.loads(gh_repository.stdout)
+            except json.JSONDecodeError:
+                errors.append("GitHub repository settings returned malformed JSON")
+            else:
+                if not isinstance(repository, dict):
+                    errors.append("GitHub repository settings must be a JSON object")
+                else:
+                    for setting, expected in remote_guard["repository_settings"].items():
+                        check_equal(
+                            f"remote repository setting {setting}",
+                            expected,
+                            repository.get(setting),
+                        )
+
         gh_protection = run_command(
             "gh",
             "api",

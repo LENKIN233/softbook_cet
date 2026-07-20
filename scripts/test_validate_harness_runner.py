@@ -392,6 +392,101 @@ class HarnessRunnerTests(unittest.TestCase):
                 )
             )
 
+    def test_full_cli_rejects_disabled_repository_auto_merge(self):
+        checks = [
+            "agent-review",
+            "backend-contract",
+            "design-artifact-gate",
+            "validate-harness",
+            "mobile-quality",
+            "dependency-security",
+            "ios-release",
+            "repo-health",
+            "evidence-archive",
+            "formal-approval",
+        ]
+        responses = {
+            "repos/LENKIN233/softbook_cet": {
+                "default_branch": "main",
+                "allow_auto_merge": False,
+                "delete_branch_on_merge": True,
+                "allow_squash_merge": True,
+                "allow_merge_commit": False,
+                "allow_rebase_merge": False,
+            },
+            "repos/LENKIN233/softbook_cet/branches/main/protection": {
+                "allow_force_pushes": {"enabled": False},
+                "allow_deletions": {"enabled": False},
+                "required_status_checks": {"strict": True, "contexts": checks},
+                "required_pull_request_reviews": {
+                    "required_approving_review_count": 0,
+                },
+            },
+            "repos/LENKIN233/softbook_cet/environments/formal-product-owner-approval": {
+                "name": "formal-product-owner-approval",
+                "can_admins_bypass": False,
+                "protection_rules": [
+                    {
+                        "type": "required_reviewers",
+                        "prevent_self_review": False,
+                        "reviewers": [
+                            {
+                                "type": "User",
+                                "reviewer": {"login": "LENKIN233"},
+                            }
+                        ],
+                    }
+                ],
+            },
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            fake_gh = tmp / "gh"
+            fake_gh.write_text(
+                "#!/usr/bin/env python3\n"
+                "import json\n"
+                "import sys\n"
+                f"responses = {responses!r}\n"
+                "response = responses.get(sys.argv[2])\n"
+                "if response is None:\n"
+                "    raise SystemExit(1)\n"
+                "print(json.dumps(response))\n",
+                encoding="utf-8",
+            )
+            fake_gh.chmod(0o755)
+            env = {**os.environ, "PATH": f"{tmp}{os.pathsep}{os.environ['PATH']}"}
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ENTRYPOINT),
+                    "--mode",
+                    "full",
+                    "--section",
+                    "delivery_runtime",
+                    "--format",
+                    "json",
+                ],
+                cwd=ROOT,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        full_result = json.loads(result.stdout)
+        self.assertTrue(
+            any(
+                finding["section"] == "delivery_runtime"
+                and "remote repository setting allow_auto_merge" in finding["message"]
+                and "expected True, got False" in finding["message"]
+                for finding in full_result["findings"]
+            ),
+            full_result["findings"],
+        )
+
     def test_partial_cli_commands_cannot_satisfy_full_pr_validation(self):
         partial_commands = (
             "python3 scripts/validate_harness.py --skip-remote-guard",
