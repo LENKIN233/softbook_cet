@@ -1,5 +1,5 @@
 {
-  "version": "vnext-12",
+  "version": "vnext-13",
   "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -176,6 +176,14 @@
         "Administration: read",
         "Actions: read"
       ],
+      "required_repository_settings": {
+        "default_branch": "main",
+        "allow_auto_merge": true,
+        "delete_branch_on_merge": true,
+        "allow_squash_merge": true,
+        "allow_merge_commit": false,
+        "allow_rebase_merge": false
+      },
       "github_token_fallback_allowed": false,
       "missing_credential_policy": "fail_closed_with_explicit_diagnostic"
     },

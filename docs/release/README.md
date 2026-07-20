@@ -19,6 +19,9 @@ administrator bypass. A `verified_by` value inside the pull request is metadata
 only; it is not the authenticated product-owner approval. Branch protection
 requires the final `formal-approval` status, while the full Harness and weekly
 repository-health run independently verify the Environment configuration.
+Those remote checks also require `main` as the default branch, enabled
+auto-merge, automatic deletion of merged topic branches, and squash-only merge
+methods. A mismatch fails closed instead of relying on an administrator merge.
 The weekly and manually dispatched remote health run uses the repository secret
 `REPO_HEALTH_TOKEN`, scoped only to this repository with `Administration: read`
 and `Actions: read`; the built-in Actions token cannot read branch protection.

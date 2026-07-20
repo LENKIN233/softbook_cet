@@ -1,5 +1,5 @@
 {
-  "version": "vnext-18",
+  "version": "vnext-19",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -513,6 +513,14 @@
       "provider": "github",
       "repository": "LENKIN233/softbook_cet",
       "protected_branch": "main",
+      "repository_settings": {
+        "default_branch": "main",
+        "allow_auto_merge": true,
+        "delete_branch_on_merge": true,
+        "allow_squash_merge": true,
+        "allow_merge_commit": false,
+        "allow_rebase_merge": false
+      },
       "require_pull_request": true,
       "required_approving_review_count": 0,
       "required_status_checks": [

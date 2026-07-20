@@ -68,16 +68,27 @@ const checks = [
   'formal-approval',
 ];
 if (args[0] === 'repo' && args[1] === 'view') {
-  const repository = {nameWithOwner: 'LENKIN233/softbook_cet'};
-  if (process.env.REPOSITORY_SETTINGS_MISSING !== 'true') {
-    repository.squashMergeAllowed = process.env.MERGE_METHOD_DRIFT !== 'true';
-    repository.mergeCommitAllowed = process.env.MERGE_METHOD_DRIFT === 'true';
-    repository.rebaseMergeAllowed = false;
-  }
-  process.stdout.write(JSON.stringify(repository));
+  process.stdout.write(JSON.stringify({nameWithOwner: 'LENKIN233/softbook_cet'}));
 } else if (args[0] === 'api') {
   const endpoint = args[1];
-  if (endpoint.endsWith('/branches/main/protection/required_signatures')) {
+  if (endpoint === 'repos/LENKIN233/softbook_cet') {
+    if (process.env.REPOSITORY_SETTINGS_MALFORMED === 'true') {
+      process.stdout.write('null');
+    } else {
+      const repository = {};
+      if (process.env.REPOSITORY_SETTINGS_MISSING !== 'true') {
+        repository.default_branch = process.env.DEFAULT_BRANCH_DRIFT === 'true'
+          ? 'develop'
+          : 'main';
+        repository.allow_auto_merge = process.env.AUTO_MERGE_DISABLED !== 'true';
+        repository.delete_branch_on_merge = process.env.DELETE_BRANCH_DISABLED !== 'true';
+        repository.allow_squash_merge = process.env.MERGE_METHOD_DRIFT !== 'true';
+        repository.allow_merge_commit = process.env.MERGE_METHOD_DRIFT === 'true';
+        repository.allow_rebase_merge = false;
+      }
+      process.stdout.write(JSON.stringify(repository));
+    }
+  } else if (endpoint.endsWith('/branches/main/protection/required_signatures')) {
     if (process.env.SIGNATURES_MISSING === 'true') process.exit(1);
     process.stdout.write(JSON.stringify({enabled: true}));
   } else if (endpoint.endsWith('/branches/main/protection')) {
@@ -159,6 +170,14 @@ if (args[0] === 'repo' && args[1] === 'view') {
     allow_merge_commit: false,
     allow_rebase_merge: false,
   });
+  assert.deepEqual(healthyRemoteReport.remote.repository_settings, {
+    default_branch: 'main',
+    allow_auto_merge: true,
+    delete_branch_on_merge: true,
+    allow_squash_merge: true,
+    allow_merge_commit: false,
+    allow_rebase_merge: false,
+  });
 
   for (const [environment, expectedCode] of [
     [{FORMAL_ADMIN_BYPASS: 'true'}, 'formal_approval_admin_bypass_enabled'],
@@ -167,6 +186,10 @@ if (args[0] === 'repo' && args[1] === 'view') {
     [{FORMAL_ENV_MISSING: 'true'}, 'formal_approval_environment_unavailable'],
     [{SIGNATURES_MISSING: 'true'}, 'required_signatures_unavailable'],
     [{REPOSITORY_SETTINGS_MISSING: 'true'}, 'remote_repository_settings_unavailable'],
+    [{REPOSITORY_SETTINGS_MALFORMED: 'true'}, 'remote_repository_settings_malformed'],
+    [{DEFAULT_BRANCH_DRIFT: 'true'}, 'default_branch_not_main'],
+    [{AUTO_MERGE_DISABLED: 'true'}, 'auto_merge_disabled'],
+    [{DELETE_BRANCH_DISABLED: 'true'}, 'merged_branch_auto_delete_disabled'],
     [{MERGE_METHOD_DRIFT: 'true'}, 'merge_methods_not_squash_only'],
     [{BRANCH_PROTECTION_FORBIDDEN: 'true'}, 'branch_protection_unavailable'],
     [{BRANCH_PROTECTION_MISSING: 'true'}, 'main_branch_unprotected'],
@@ -203,7 +226,7 @@ if (args[0] === 'repo' && args[1] === 'view') {
       ]);
     }
   }
-  console.log('PASS: repository health fails closed on formal approval environment drift.');
+  console.log('PASS: repository health fails closed on repository and approval drift.');
 
   execFileSync('git', ['init', '--bare', remoteRoot], {stdio: 'ignore'});
   git('remote', 'add', 'origin', remoteRoot);

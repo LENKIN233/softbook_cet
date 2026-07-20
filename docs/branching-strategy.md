@@ -91,6 +91,7 @@
 - 会持久化 repo 改动的任务默认走 `topic branch -> commit -> PR(main)`。
 - 若用户明确要求只做本地修改，才允许停在本地 handoff，不开 PR。
 - PR 创建后，默认在 agent review 通过、PR body 留下可校验 review 记录与 `docs/agent-runs/*.md` 运行记录引用、且 required gates 全绿时自动合并到 `main`。
+- GitHub 仓库必须启用 auto-merge，并在合并后自动删除 topic branch；远端健康检查与完整 Harness 都会失败关闭配置漂移。
 - 只有当 agent review 有 blocking 结论、required gates 未通过，或权限 / 环境阻止 merge 时，才停在 PR handoff。
 - 如果权限或环境阻止创建 PR，至少要明确交付 branch、commit、验证结果与阻塞原因。
 - 涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / direction / decision，再做实现；同一 PR 内新增的 brief / direction / decision 只能满足 design-only PR。
@@ -138,6 +139,7 @@
   - `pre-push`：阻止把本地 `main` 直接推到远端 `main`
   - `post-checkout`：当你切到带脏工作区的 `main` 时直接报错，干净切到 `main` 时也会提醒它是只读集成分支
 - `python3 scripts/validate_harness.py` 会同时检查 hooksPath、hook wrapper 分发、以及 GitHub 上 `main` 的 branch protection 是否仍然符合 harness 合同。
+- 完整 Harness 还会读取仓库级设置，确认默认分支、auto-merge、合并后删除 topic branch 与 squash-only 策略没有漂移。
 - 只有在紧急修复且你明确知道自己在做什么时，才允许临时设置 `SOFTBOOK_ALLOW_MAIN_BYPASS=1` 绕过保护。
 
 ## 当前分支建议
