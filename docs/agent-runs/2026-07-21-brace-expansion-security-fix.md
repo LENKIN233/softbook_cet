@@ -59,8 +59,16 @@
   ./scripts/run_local_gates --profile dev` -> 18/18 passed with no safe
   exceptions; report:
   `exports/local-gates/20260720T214911Z-124dcefc-dev-7456/report.json`.
-- Strict PR profile results will be recorded after the Draft PR provides a
-  unique remote context.
+- `PATH=/Users/lenkin/.nvm/versions/node/v22.13.0/bin:/opt/homebrew/opt/ruby@3.3/bin:$PATH
+  ./scripts/run_local_gates --profile pr --base origin/main --pr 435` -> first
+  run passed 29/30 and failed only `repo-health-strict` because this
+  single-branch clone had no local remote-tracking ref for the already-pushed
+  topic branch. This report is retained and is not treated as a pass:
+  `exports/local-gates/20260720T215042Z-f7c0e3e0-pr-10152/report.json`.
+- Added the exact temporary topic fetch refspec and fetched
+  `origin/fix/brace-expansion-audit`; the unchanged strict PR profile then
+  passed 30/30 with no safe exceptions:
+  `exports/local-gates/20260720T215155Z-f7c0e3e0-pr-14482/report.json`.
 
 ## Agent review status
 
