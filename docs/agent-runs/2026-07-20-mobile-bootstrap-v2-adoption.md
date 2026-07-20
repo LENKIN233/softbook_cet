@@ -108,6 +108,14 @@
   as a product failure or passing report.
 - Exact Python 3.12.13 `scripts/validate_harness.py --profile` -> all 15
   selected sections passed.
+- Exact Python 3.12.13
+  `scripts/run_local_gates --profile pr --base origin/main --pr 432` -> first
+  run collected 26/29 and exposed missing machine-readable design evidence,
+  unchecked validation boxes, and an unmaterialized topic upstream; the second
+  run collected 27/29 and exposed the canonical full-Harness command spelling
+  plus the missing topic fetch refspec; after correcting PR metadata and local
+  tracking configuration, the strict profile passed 29/29. A final-SHA rerun
+  remains required after this record-only commit.
 - `git diff --check` -> passed after review fixes.
 
 ## Validation results
@@ -120,7 +128,7 @@
   state, replay queued mutations, or allow remote membership writes.
 - Backend integration proves the card-source and bootstrap versions are equal
   for the same normalized source.
-- Full harness, local dev gate, and final self-review passed. Strict PR gate and
+- Full harness, local dev gate, strict PR gate, and final self-review passed.
   GitHub required checks remain pending and are not implied by the local result.
 
 ## Binary evidence
@@ -176,7 +184,8 @@
 
 ## Follow-up
 
-- Complete strict PR gate and GitHub required checks before merge.
+- Rerun the strict PR gate on the final record commit, then require every GitHub
+  required check to pass before changing the PR from draft or merging.
 - After merge, replace legacy snapshot writes with idempotent learning events
   and server-derived scheduling before implementing persisted signed content
   packs and cold-start offline use.
