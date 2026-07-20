@@ -4,7 +4,7 @@
 
 - Date: 2026-07-20
 - Branch: `module/production-auth-v2-foundation`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/429
 - Trigger: Continue the product launch path after repository and Harness health
   work; the active backend still used a fixed SMS code and a 30-day stateless
   development token.
