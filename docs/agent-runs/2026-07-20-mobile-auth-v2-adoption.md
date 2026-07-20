@@ -4,7 +4,7 @@
 
 - Date: 2026-07-20
 - Branch: `cross/mobile-auth-v2-adoption`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/430
 - Trigger: Continue the production launch path after the server-backed v2 auth
   foundation merged in PR #429.
 - Summary: Migrate the mobile runtime from the legacy `/v1` auth token to the
