@@ -99,12 +99,9 @@
   backend suite was separately rerun on exact Node 22.13.0.
 - Exact Node 22.13.0 and Ruby 3.3.12
   `scripts/run_local_gates --profile pr --base origin/main --pr 429` -> 29/29
-  passed on head `a713460` after correcting the PR validation wording and
-  adding the current topic-only remote-tracking ref required by strict
-  repository health. Final-head rerun is required after the subsequent
+  passed on the final implementation head `1b3a8cf` after the subsequent
   fail-closed review corrections.
-- GitHub required checks -> superseded by the subsequent review corrections;
-  the final head must run them again.
+- GitHub required checks -> pending on the final PR head.
 
 ## Validation results
 
@@ -119,10 +116,10 @@
   resulting session through shared persistent state.
 - Production construction and request handling fail closed for the tested
   unsafe configurations.
-- Strict PR validation passed all 29 gates on `a713460`, including the full
-  remote Harness, real PR body, branch protection, dependency audit, repository
-  health, Git LFS, and remote evidence archive integrity. The final head must
-  reproduce that result.
+- Strict PR validation passed all 29 gates on the final implementation head,
+  including the full remote Harness, real PR body, branch protection,
+  dependency audit, repository health, Git LFS, and remote evidence archive
+  integrity.
 
 ## Binary evidence
 
