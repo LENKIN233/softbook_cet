@@ -23,9 +23,11 @@ Referenced active specs:
 
 - The `/v2` paths, payload field names, token lifetimes, collection names, and
   CloudBase persistence below are the current backend migration contract.
-- The mobile runtime consumes `/v2` auth and keeps product-data calls on `/v1`
-  only through the development migration bridge. This does not make the current
-  backend production-ready because production rejects all `/v1` routes.
+- The mobile runtime consumes `/v2` auth. The backend now exposes the protected
+  `/v2/bootstrap` canonical read, while the mobile client, card payload, and
+  product mutations still use `/v1` through the development migration bridge.
+  This does not make the backend production-ready because production rejects
+  every remaining `/v1` dependency.
 - An account deletion request creates a durable queued task. Actual user-data
   erasure, retention policy enforcement, and deletion-provider orchestration
   remain separate production work.

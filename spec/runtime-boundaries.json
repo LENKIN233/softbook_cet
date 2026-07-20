@@ -1,5 +1,5 @@
 {
-  "version": "vnext-7",
+  "version": "vnext-8",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -62,6 +62,10 @@
     "CloudBase physical-space canonical state uses database transactions so concurrent function instances retry read-merge-write conflicts",
     "mobile remote authentication uses challenge-bound SMS verification, short-lived access tokens, rotating refresh tokens, and revocable server sessions",
     "mobile refresh is demand-driven before protected requests and serialized per session so one refresh token is never submitted concurrently",
+    "an authenticated v2 bootstrap read derives account identity from the active session and returns membership, daily progress, learning card state, nullable scheduler cursor, physical space, and content version without accepting phone_number input",
+    "missing bootstrap components return explicit empty server state and never import device-local state; CloudBase response freshness is explicit and does not claim a cross-collection transaction",
+    "bootstrap content version is derived from normalized ordered content; production fails closed without a matching published content-release.v1 descriptor while development may expose a null release id",
+    "bootstrap does not make legacy snapshot writes, server scheduling, idempotent learning events, signed content manifests, or the CommonJS CloudBase function production-ready",
     "development-only v1 product routes can accept an active v2 session during migration while production continues to reject every v1 route",
     "remote content failures fail closed and never substitute bundled development cards"
   ],

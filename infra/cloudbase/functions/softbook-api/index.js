@@ -4,6 +4,12 @@ const {
   createCloudBaseAuthStateStore,
   createMemoryAuthStateStore,
 } = require('./auth-v2-store');
+const {
+  contentReleaseUnavailableError,
+  createBootstrapV2Service,
+  createContentVersion,
+  normalizeContentRelease,
+} = require('./bootstrap-v2');
 
 const DEFAULT_SMS_CODE = '2468';
 const DEFAULT_TRIAL_DURATION_DAYS = 5;
@@ -77,6 +83,11 @@ function createSoftbookApi(options = {}) {
     store,
     tokenSecret,
     verifyAttemptLimit: options.authV2VerifyAttemptLimit,
+  });
+  config.bootstrapV2 = createBootstrapV2Service({
+    now: config.now,
+    runtimeMode,
+    store,
   });
 
   return {
@@ -168,6 +179,21 @@ async function handleHttpRequest(config, request) {
       });
     }
 
+    if (method === 'GET' && path === '/v2/bootstrap') {
+      const session = await config.authV2.requireActiveSession(request);
+      assertBootstrapIdentityComesFromSession(request);
+      const track = requireTrack(request.query.track);
+      const dayKey = requireDayKey(request.query.day_key);
+
+      return jsonResponse(200, {
+        data: await config.bootstrapV2.read({
+          dayKey,
+          phoneNumber: session.phoneNumber,
+          track,
+        }),
+      });
+    }
+
     if (path.startsWith('/v2/')) {
       return jsonResponse(404, {
         error: {
@@ -206,7 +232,10 @@ async function handleHttpRequest(config, request) {
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
-            await config.store.startTrial(session.phoneNumber),
+            await config.store.startTrial(
+              session.phoneNumber,
+              config.now().toISOString(),
+            ),
           ),
         },
       });
@@ -217,7 +246,10 @@ async function handleHttpRequest(config, request) {
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
-            await config.store.purchase(session.phoneNumber),
+            await config.store.purchase(
+              session.phoneNumber,
+              config.now().toISOString(),
+            ),
           ),
         },
       });
@@ -228,7 +260,10 @@ async function handleHttpRequest(config, request) {
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
-            await config.store.dismissRecovery(session.phoneNumber),
+            await config.store.dismissRecovery(
+              session.phoneNumber,
+              config.now().toISOString(),
+            ),
           ),
         },
       });
@@ -470,6 +505,19 @@ function spaceStateResponse(snapshot, acknowledgedAt) {
   });
 }
 
+function assertBootstrapIdentityComesFromSession(request) {
+  if (
+    request.query.phone_number !== undefined ||
+    request.body !== undefined
+  ) {
+    throw httpError(
+      400,
+      'bootstrap_identity_input_forbidden',
+      'Bootstrap account identity comes from the active session.',
+    );
+  }
+}
+
 function createDefaultStore() {
   const storeMode = process.env.SOFTBOOK_STORE_MODE ?? 'memory';
 
@@ -494,23 +542,42 @@ function createMemoryStore() {
 
   return {
     ...authStateStore,
-    getCardSource: track => {
+    getCardSource: (track, options = {}) => {
       if (!cardSources.has(track)) {
+        if (options.allowDevelopmentDefault === false) {
+          throw contentReleaseUnavailableError(
+            `No published content source exists for ${track}.`,
+          );
+        }
+
         cardSources.set(track, createDefaultCardSource(track));
       }
 
       return cloneCardSource(cardSources.get(track));
     },
+    getDailyProgress: (phoneNumber, dayKey) =>
+      cloneJson(
+        dailyProgress.get(`${phoneNumber}:${dayKey}`) ??
+          createEmptyDailyProgress(dayKey),
+      ),
+    getLearningState: (phoneNumber, dayKey, track) =>
+      cloneJson(
+        learningStates.get(`${phoneNumber}:${dayKey}:${track}`) ??
+          createEmptyLearningState(dayKey, track),
+      ),
     getMembership: phoneNumber => {
-      if (!memberships.has(phoneNumber)) {
-        memberships.set(phoneNumber, createInitialMembership());
-      }
+      const document = memberships.get(phoneNumber);
 
-      return memberships.get(phoneNumber);
+      return {
+        acknowledged_at: document?.updated_at ?? null,
+        ...cloneMembership(
+          document?.entitlement ?? createInitialMembership(),
+        ),
+      };
     },
-    startTrial: phoneNumber => {
+    startTrial: (phoneNumber, acknowledgedAt) => {
       const current = cloneMembership(
-        memberships.get(phoneNumber) ?? createInitialMembership(),
+        memberships.get(phoneNumber)?.entitlement ?? createInitialMembership(),
       );
 
       if (current.stage === 'trial_available') {
@@ -521,25 +588,34 @@ function createMemoryStore() {
         current.trial_started_at_entry_count = current.counted_entry_count;
       }
 
-      memberships.set(phoneNumber, current);
+      memberships.set(phoneNumber, {
+        entitlement: current,
+        updated_at: acknowledgedAt,
+      });
       return current;
     },
-    purchase: phoneNumber => {
+    purchase: (phoneNumber, acknowledgedAt) => {
       const current = cloneMembership(
-        memberships.get(phoneNumber) ?? createInitialMembership(),
+        memberships.get(phoneNumber)?.entitlement ?? createInitialMembership(),
       );
       current.last_experience_ended_by = null;
       current.recovery_prompt_visible = false;
       current.stage = 'premium';
-      memberships.set(phoneNumber, current);
+      memberships.set(phoneNumber, {
+        entitlement: current,
+        updated_at: acknowledgedAt,
+      });
       return current;
     },
-    dismissRecovery: phoneNumber => {
+    dismissRecovery: (phoneNumber, acknowledgedAt) => {
       const current = cloneMembership(
-        memberships.get(phoneNumber) ?? createInitialMembership(),
+        memberships.get(phoneNumber)?.entitlement ?? createInitialMembership(),
       );
       current.recovery_prompt_visible = false;
-      memberships.set(phoneNumber, current);
+      memberships.set(phoneNumber, {
+        entitlement: current,
+        updated_at: acknowledgedAt,
+      });
       return current;
     },
     saveDailyProgress: (phoneNumber, snapshot, acknowledgedAt) => {
@@ -622,11 +698,17 @@ function createCloudBaseStore(options = {}) {
 
   return {
     ...authStateStore,
-    getCardSource: async track => {
+    getCardSource: async (track, options = {}) => {
       const existing = await getCloudBaseDocument(cardSources, track);
 
       if (existing) {
         return normalizeCardSource(existing, track);
+      }
+
+      if (options.allowDevelopmentDefault === false) {
+        throw contentReleaseUnavailableError(
+          `No published content source exists for ${track}.`,
+        );
       }
 
       const defaultCardSource = createDefaultCardSource(track);
@@ -637,23 +719,36 @@ function createCloudBaseStore(options = {}) {
 
       return defaultCardSource;
     },
+    getDailyProgress: async (phoneNumber, dayKey) => {
+      const documentId = createCloudBaseDocumentId(`${phoneNumber}:${dayKey}`);
+      const existing = await getCloudBaseDocument(dailyProgress, documentId);
+
+      return existing ?? createEmptyDailyProgress(dayKey);
+    },
+    getLearningState: async (phoneNumber, dayKey, track) => {
+      const documentId = createCloudBaseDocumentId(
+        `${phoneNumber}:${dayKey}:${track}`,
+      );
+      const existing = await getCloudBaseDocument(learningStates, documentId);
+
+      return existing ?? createEmptyLearningState(dayKey, track);
+    },
     getMembership: async phoneNumber => {
       const existing = await getCloudBaseDocument(memberships, phoneNumber);
 
       if (existing) {
-        return deserializeMembershipDocument(existing);
+        return {
+          acknowledged_at: existing.updated_at ?? null,
+          ...deserializeMembershipDocument(existing),
+        };
       }
 
-      const membership = createInitialMembership();
-      await setCloudBaseDocument(memberships, phoneNumber, {
-        entitlement: membership,
-        phone_number: phoneNumber,
-        updated_at: new Date().toISOString(),
-      });
-
-      return membership;
+      return {
+        acknowledged_at: null,
+        ...createInitialMembership(),
+      };
     },
-    startTrial: async phoneNumber => {
+    startTrial: async (phoneNumber, acknowledgedAt) => {
       const current = cloneMembership(
         await getCloudBaseMembership(memberships, phoneNumber),
       );
@@ -666,25 +761,40 @@ function createCloudBaseStore(options = {}) {
         current.trial_started_at_entry_count = current.counted_entry_count;
       }
 
-      await saveCloudBaseMembership(memberships, phoneNumber, current);
+      await saveCloudBaseMembership(
+        memberships,
+        phoneNumber,
+        current,
+        acknowledgedAt,
+      );
       return current;
     },
-    purchase: async phoneNumber => {
+    purchase: async (phoneNumber, acknowledgedAt) => {
       const current = cloneMembership(
         await getCloudBaseMembership(memberships, phoneNumber),
       );
       current.last_experience_ended_by = null;
       current.recovery_prompt_visible = false;
       current.stage = 'premium';
-      await saveCloudBaseMembership(memberships, phoneNumber, current);
+      await saveCloudBaseMembership(
+        memberships,
+        phoneNumber,
+        current,
+        acknowledgedAt,
+      );
       return current;
     },
-    dismissRecovery: async phoneNumber => {
+    dismissRecovery: async (phoneNumber, acknowledgedAt) => {
       const current = cloneMembership(
         await getCloudBaseMembership(memberships, phoneNumber),
       );
       current.recovery_prompt_visible = false;
-      await saveCloudBaseMembership(memberships, phoneNumber, current);
+      await saveCloudBaseMembership(
+        memberships,
+        phoneNumber,
+        current,
+        acknowledgedAt,
+      );
       return current;
     },
     saveDailyProgress: async (phoneNumber, snapshot, acknowledgedAt) => {
@@ -778,6 +888,32 @@ function createCloudBaseStore(options = {}) {
   };
 }
 
+function createEmptyDailyProgress(dayKey) {
+  return {
+    acknowledged_at: null,
+    checked_in_today: false,
+    day_key: dayKey,
+    favorite_count: 0,
+    learning_completed_count: 0,
+    pending_review_count: 0,
+    review_completed_count: 0,
+    sleeping_count: 0,
+    total_completed_count: 0,
+  };
+}
+
+function createEmptyLearningState(dayKey, track) {
+  return {
+    acknowledged_at: null,
+    cursor: null,
+    day_key: dayKey,
+    events_by_card_id: {},
+    source_id: null,
+    source_label: null,
+    track,
+  };
+}
+
 function createEmptySpaceState(dayKey) {
   return {
     day_key: dayKey,
@@ -867,11 +1003,16 @@ async function getCloudBaseMembership(collection, phoneNumber) {
   return existing ? deserializeMembershipDocument(existing) : createInitialMembership();
 }
 
-async function saveCloudBaseMembership(collection, phoneNumber, membership) {
+async function saveCloudBaseMembership(
+  collection,
+  phoneNumber,
+  membership,
+  acknowledgedAt,
+) {
   await setCloudBaseDocument(collection, phoneNumber, {
     entitlement: membership,
     phone_number: phoneNumber,
-    updated_at: new Date().toISOString(),
+    updated_at: acknowledgedAt,
   });
 }
 
@@ -913,16 +1054,22 @@ function createCloudBaseDocumentId(value) {
 }
 
 function createDefaultCardSource(track) {
-  return cloneCardSource({
-    card_records: getCardRecordsForTrack(track),
-    source: DEFAULT_CARD_SOURCE,
+  return normalizeCardSource(
+    {
+      card_records: getCardRecordsForTrack(track),
+      release: null,
+      source: DEFAULT_CARD_SOURCE,
+      track,
+    },
     track,
-  });
+  );
 }
 
 function cloneCardSource(cardSource) {
   return {
     card_records: cloneJson(cardSource.card_records),
+    content_version: cardSource.content_version,
+    release: cardSource.release ? cloneJson(cardSource.release) : null,
     source: {
       id: cardSource.source.id,
       label: cardSource.source.label,
@@ -932,7 +1079,16 @@ function cloneCardSource(cardSource) {
 }
 
 function serializeCardSourceResponse(cardSource, expectedTrack) {
-  return cloneCardSource(normalizeCardSource(cardSource, expectedTrack));
+  const normalized = normalizeCardSource(cardSource, expectedTrack);
+
+  return {
+    card_records: cloneJson(normalized.card_records),
+    source: {
+      id: normalized.source.id,
+      label: normalized.source.label,
+    },
+    track: normalized.track,
+  };
 }
 
 function validateCardSourceForImport(cardSource, expectedTrack) {
@@ -961,15 +1117,60 @@ function normalizeCardSource(cardSource, expectedTrack) {
   ).map((record, index) =>
     normalizeCardRecord(record, track, `card source.card_records[${index}]`),
   );
-
-  return {
+  assertUniqueNonEmptyCardRecords(cardRecords);
+  const contentVersion = createContentVersion({
     card_records: cardRecords,
     source: {
       id: sourceId,
       label: sourceLabel,
     },
     track,
+  });
+
+  if (
+    payload.content_version !== undefined &&
+    requireCardSourceString(
+      payload.content_version,
+      'card source.content_version',
+    ) !== contentVersion
+  ) {
+    throw cardSourceError(
+      'card source.content_version must match normalized content.',
+    );
+  }
+
+  return {
+    card_records: cardRecords,
+    content_version: contentVersion,
+    release: normalizeContentRelease(
+      payload.release,
+      contentVersion,
+      track,
+    ),
+    source: {
+      id: sourceId,
+      label: sourceLabel,
+    },
+    track,
   };
+}
+
+function assertUniqueNonEmptyCardRecords(cardRecords) {
+  if (cardRecords.length === 0) {
+    throw cardSourceError('card source.card_records must not be empty.');
+  }
+
+  const seenCardIds = new Set();
+
+  for (const card of cardRecords) {
+    if (seenCardIds.has(card.card_id)) {
+      throw cardSourceError(
+        `card source.card_records contains duplicate card_id ${card.card_id}.`,
+      );
+    }
+
+    seenCardIds.add(card.card_id);
+  }
 }
 
 function normalizeCardRecord(record, expectedTrack, label) {
@@ -1487,11 +1688,31 @@ function requireNonEmptyString(value, fieldName) {
 function requireDayKey(value) {
   const dayKey = requireNonEmptyString(value, 'day_key');
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) {
-    throw httpError(400, 'invalid_request', 'day_key must use YYYY-MM-DD.');
+  if (!isValidDayKey(dayKey)) {
+    throw httpError(
+      400,
+      'invalid_request',
+      'day_key must be a valid YYYY-MM-DD calendar date.',
+    );
   }
 
   return dayKey;
+}
+
+function isValidDayKey(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return (
+    !Number.isNaN(date.getTime()) &&
+    date.toISOString().slice(0, 10) === value
+  );
+}
+
+function requireTrack(value) {
+  return requireEnum(value, ['cet4', 'cet6'], 'track');
 }
 
 function requireBoolean(value, fieldName) {

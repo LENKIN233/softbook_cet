@@ -1,6 +1,6 @@
 {
-  "version": "vnext-2",
-  "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, default sync strategy, and offline behavior.",
+  "version": "vnext-3",
+  "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, canonical account reads, default sync strategy, and offline behavior.",
   "source_anchors": {
     "login_gate": "必须登入",
     "primary_login_method": "手机号+验证码",
@@ -37,6 +37,31 @@
     "physical_space_snapshot_reconciliation": "clients preserve each explicit action timestamp, read account-level server canonical state before restored-state push, and accept the canonical merged response; day_key is batch metadata rather than the canonical partition key",
     "physical_space_write_atomicity": "CloudBase account-level canonical reads, legacy migration, merge, and write-back run inside one database transaction with conflict retry",
     "membership_rule": "server_entitlement_wins"
+  },
+  "canonical_read": {
+    "classification": "implementation_hypothesis",
+    "bootstrap_endpoint": "/v2/bootstrap",
+    "request_context": [
+      "active_v2_session",
+      "track",
+      "day_key"
+    ],
+    "response_scope": [
+      "membership_entitlement",
+      "daily_progress",
+      "learning_card_state",
+      "nullable_learning_cursor",
+      "physical_space_state",
+      "content_version"
+    ],
+    "identity_rule": "derive the account only from the active v2 session; bootstrap never accepts phone_number in its query or body",
+    "missing_state_rule": "return explicit empty canonical state for a valid account/day/track; never copy device-local state into a canonical read",
+    "cursor_rule": "return null when the service has no stored scheduler cursor; do not infer exact cross-device position from device-local state or claim exact resume",
+    "consistency_rule": "generated_at binds one response and each mutable component exposes acknowledged_at freshness; the current CloudBase multi-collection adapter does not claim a serializable cross-collection transaction",
+    "content_rule": "content version is the SHA-256 of the normalized ordered source; production requires a matching published content-release.v1 descriptor while development may return release_id null",
+    "release_publication_rule": "the development importer rejects non-null release descriptors; a separate publication pipeline must verify formal content approval before writing content-release.v1",
+    "client_rule": "an authenticated client may use validated cached state while offline, but must reconcile with this server read before pushing restored state",
+    "known_gap": "legacy v1 learning and daily snapshots remain migration inputs until idempotent learning-events.v2 and server-derived scheduling replace them"
   },
   "offline_policy": {
     "classification": "implementation_hypothesis",

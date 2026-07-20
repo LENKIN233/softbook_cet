@@ -146,9 +146,10 @@ function main() {
       );
       const interactions = interactionSummary(cardSource.card_records);
       const updatedAt = document.updated_at ?? 'unknown';
+      const releaseId = cardSource.release?.release_id ?? 'none';
 
       console.log(
-        `[ok] ${track}: ${cardSource.card_records.length} cards from ${cardSource.source.id}; interactions=${interactions.join(',')}; updated_at=${updatedAt}`,
+        `[ok] ${track}: ${cardSource.card_records.length} cards from ${cardSource.source.id}; interactions=${interactions.join(',')}; version=${cardSource.content_version}; release_id=${releaseId}; updated_at=${updatedAt}`,
       );
     }
 
