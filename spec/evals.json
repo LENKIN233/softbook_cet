@@ -1,5 +1,5 @@
 {
-  "version": "vnext-19",
+  "version": "vnext-20",
   "regressions": [
     {
       "id": "HR-01",
@@ -436,6 +436,27 @@
         "administrator_bypass_disabled",
         "remote_health_secret_trusted_ref_only"
       ]
+    },
+    {
+      "id": "HR-37",
+      "prompt": "重放学习事件时复用 event_id 但修改 outcome，或直接上传客户端学习计数器",
+      "fail_signal": "accepts_mutated_replay_partial_batch_write_or_client_authored_canonical_learning_state",
+      "must_hit": [
+        "account_sync_contract_is_learning_events_owner",
+        "active_v2_session_is_only_account_identity",
+        "stable_event_id_generated_before_durable_enqueue",
+        "exact_replay_returns_duplicate_without_projection_mutation",
+        "changed_payload_for_same_event_id_rejects_entire_request_with_409",
+        "device_cursor_fork_rejects_entire_request_with_409",
+        "new_events_sequences_and_projections_commit_atomically",
+        "server_sequence_is_canonical_ordering",
+        "client_learning_snapshots_and_counters_are_forbidden",
+        "two_answer_grades_map_deterministically_from_existing_outcomes",
+        "content_version_and_card_interaction_are_validated",
+        "bootstrap_runs_again_after_replay",
+        "exact_same_card_cross_device_resume_is_not_promised",
+        "contract_green_does_not_claim_endpoint_scheduler_or_launch_readiness"
+      ]
     }
   ],
   "golden_tasks": [
@@ -790,6 +811,30 @@
         "tracked_worktree_unchanged",
         "local_report_does_not_update_review_approval_or_launch_readiness",
         "github_required_checks_remain_authoritative"
+      ]
+    },
+    {
+      "id": "GT-28",
+      "task": "定义 learning-events.v2 幂等同步边界",
+      "must_include": [
+        "account_sync_contract_owner",
+        "learning_events_v2_request_and_ack_schemas",
+        "active_v2_session_identity_only",
+        "immutable_event_ledger",
+        "stable_event_id_and_device_cursor_before_enqueue",
+        "exact_duplicate_returns_original_server_sequence",
+        "event_id_payload_conflict_is_atomic_409",
+        "device_cursor_fork_is_atomic_409",
+        "mixed_duplicate_and_new_batch_has_per_event_results",
+        "server_derived_learning_state_and_counts",
+        "passed_and_review_needed_only",
+        "outcome_grade_and_interaction_validation",
+        "retained_content_version_validation_for_offline_replay",
+        "client_time_is_not_canonical_ordering_authority",
+        "post_replay_bootstrap_reconciliation",
+        "legacy_v1_snapshots_are_migration_only",
+        "scheduler_is_a_separate_future_gate",
+        "contract_status_is_defined_not_implemented"
       ]
     }
   ]

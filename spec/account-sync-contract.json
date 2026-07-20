@@ -1,6 +1,6 @@
 {
-  "version": "vnext-3",
-  "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, canonical account reads, default sync strategy, and offline behavior.",
+  "version": "vnext-4",
+  "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, canonical account reads, idempotent learning events, default sync strategy, and offline behavior.",
   "source_anchors": {
     "login_gate": "必须登入",
     "primary_login_method": "手机号+验证码",
@@ -29,10 +29,9 @@
     "classification": "implementation_hypothesis",
     "server_is_source_of_truth": true,
     "ordering_basis": [
-      "server_received_at",
-      "client_sequence_if_same_batch"
+      "account_scoped_server_sequence"
     ],
-    "learning_state_rule": "latest_valid_learning_event_wins_per_card; aggregate progress and counters are derived on the server from accepted events",
+    "learning_state_rule": "latest_valid_learning_event_wins_per_card; learning and review completion aggregates plus per-card learning state are derived from accepted events while physical-space and check-in state keep separate authority",
     "physical_space_rule": "latest_valid_explicit_space_action_wins unless it violates box knowledge ownership or contract constraints; invalid actions are rejected and client refreshes from server canonical state",
     "physical_space_snapshot_reconciliation": "clients preserve each explicit action timestamp, read account-level server canonical state before restored-state push, and accept the canonical merged response; day_key is batch metadata rather than the canonical partition key",
     "physical_space_write_atomicity": "CloudBase account-level canonical reads, legacy migration, merge, and write-back run inside one database transaction with conflict retry",
@@ -61,7 +60,194 @@
     "content_rule": "content version is the SHA-256 of the normalized ordered source; production requires a matching published content-release.v1 descriptor while development may return release_id null",
     "release_publication_rule": "the development importer rejects non-null release descriptors; a separate publication pipeline must verify formal content approval before writing content-release.v1",
     "client_rule": "an authenticated client may use validated cached state while offline, but must reconcile with this server read before pushing restored state; without previously validated canonical state and required content, mobile keeps a valid session retryable but blocks learning, local persistence of the reconciled snapshot, mutation replay, and product-state writes until bootstrap succeeds and the loaded card-source content version matches",
-    "known_gap": "legacy v1 learning and daily snapshots remain migration inputs until idempotent learning-events.v2 and server-derived scheduling replace them"
+    "known_gap": "legacy v1 learning and daily snapshots remain migration inputs; learning-events.v2 is contract-defined but its endpoint, client adoption, server projections, and scheduler are not implemented"
+  },
+  "learning_events_v2": {
+    "classification": "implementation_hypothesis",
+    "contract_status": "defined_not_implemented",
+    "runtime_contract": "infra/cloudbase/learning-events-v2-runtime-contract.md",
+    "endpoint": {
+      "method": "POST",
+      "path": "/v2/learning/events",
+      "authentication": "active_v2_session",
+      "identity_rule": "derive the account only from the active v2 session; reject phone_number or any client-supplied account identity",
+      "request_schema": "learning-events.v2",
+      "response_schema": "learning-events-ack.v2"
+    },
+    "product_alignment": {
+      "progress_unit": "accepted_card_completion_event",
+      "minimum_cross_surface_consistency": "daily_level",
+      "exact_same_card_cross_device_resume_required": false,
+      "server_is_source_of_truth": true,
+      "aggregate_rule": "learning and review completion counts plus per-card learning state are derived from accepted immutable events; clients never submit canonical counters or learning snapshots"
+    },
+    "request_contract": {
+      "required_top_level_fields": [
+        "schema_version",
+        "track",
+        "events"
+      ],
+      "track_values": [
+        "cet4",
+        "cet6"
+      ],
+      "batch_rule": "one track per request; require one or more events up to a server-configured bound; preserve input order in the acknowledgement",
+      "schema_rule": "reject unknown fields at the request, event, and device_cursor levels"
+    },
+    "event_contract": {
+      "required_fields": [
+        "event_id",
+        "card_id",
+        "interaction_id",
+        "phase",
+        "outcome",
+        "answer_grade",
+        "used_hint",
+        "used_peek",
+        "client_occurred_at",
+        "content_version",
+        "device_cursor"
+      ],
+      "interaction_id_values": [
+        "flip",
+        "multiple_choice",
+        "lock",
+        "elimination",
+        "swipe"
+      ],
+      "phase_values": [
+        "learning",
+        "review"
+      ],
+      "outcome_values": [
+        "correct",
+        "incorrect",
+        "confident",
+        "review"
+      ],
+      "answer_grade_values": [
+        "passed",
+        "review_needed"
+      ],
+      "answer_grade_mapping": {
+        "correct": "passed",
+        "incorrect": "review_needed",
+        "confident": "passed",
+        "review": "review_needed"
+      },
+      "interaction_outcome_rule": {
+        "flip": [
+          "confident",
+          "review"
+        ],
+        "multiple_choice": [
+          "correct",
+          "incorrect"
+        ],
+        "lock": [
+          "correct",
+          "incorrect"
+        ],
+        "elimination": [
+          "correct",
+          "incorrect"
+        ],
+        "swipe": [
+          "correct",
+          "incorrect"
+        ]
+      },
+      "event_id_rule": "generate one opaque stable event_id before durable local enqueue and reuse it unchanged for every retry",
+      "content_version_rule": "bind every event to the exact SHA-256 content version used for the answer; the server validates the track, card, interaction, and retained published release in production",
+      "client_time_rule": "preserve a valid RFC3339 client_occurred_at for bounded activity-day attribution, but never use the client clock as membership, entitlement, idempotency, or canonical ordering authority",
+      "device_cursor": {
+        "required_fields": [
+          "device_id",
+          "sequence"
+        ],
+        "device_id_rule": "use a pseudonymous installation identifier that contains no account or credential material",
+        "sequence_rule": "use a positive monotonically increasing safe integer allocated before durable enqueue; gaps and out-of-order replay are valid",
+        "authority_rule": "device_cursor proves replay provenance and detects forks; it is not the scheduler cursor and does not promise exact cross-device resume"
+      },
+      "forbidden_fields": [
+        "phone_number",
+        "auth_token",
+        "access_token",
+        "refresh_token",
+        "day_key",
+        "source_id",
+        "source_label",
+        "is_favorited",
+        "checked_in_today",
+        "favorite_count",
+        "learning_completed_count",
+        "pending_review_count",
+        "review_completed_count",
+        "sleeping_count",
+        "total_completed_count",
+        "membership_entitlement",
+        "scheduler_cursor",
+        "fsrs_rating",
+        "stability",
+        "difficulty",
+        "due",
+        "front",
+        "analysis",
+        "selected_answer",
+        "correct_answer",
+        "transcript"
+      ]
+    },
+    "idempotency_and_atomicity": {
+      "event_key": "account_id + event_id",
+      "exact_replay": "return duplicate with the original server_sequence and do not mutate projections",
+      "event_id_conflict": "the same event key with a different canonical payload rejects the entire request with HTTP 409",
+      "device_cursor_key": "account_id + device_id + sequence",
+      "device_cursor_conflict": "the same device cursor bound to a different event_id rejects the entire request with HTTP 409",
+      "mixed_batch_rule": "exact duplicates and unseen valid events may commit together and each receives an explicit result",
+      "validation_atomicity": "any malformed, unauthorized, unknown-content, or conflicting event rejects the entire request before writes",
+      "transaction_atomicity": "new immutable events, account server sequences, and derived learning projections commit in one transaction; failure leaves no partial acceptance"
+    },
+    "server_authority": {
+      "server_sequence_rule": "assign one stable monotonically increasing account-scoped server_sequence to each newly accepted event",
+      "duplicate_sequence_rule": "an exact duplicate returns the previously assigned server_sequence",
+      "canonical_ordering_rule": "server_sequence is canonical ordering; client time and device sequence never override it",
+      "per_card_state_rule": "the highest valid server_sequence for a card is the canonical latest learning event",
+      "activity_day_rule": "derive the China product activity day from validated client_occurred_at within configured retention and future-skew bounds; otherwise reject the event rather than trust an arbitrary day_key",
+      "entitlement_rule": "event acceptance never grants membership or content access; access remains server-authoritative and content delivery remains independently gated"
+    },
+    "acknowledgement_contract": {
+      "required_fields": [
+        "schema_version",
+        "acknowledged_at",
+        "track",
+        "results"
+      ],
+      "result_fields": [
+        "event_id",
+        "status",
+        "server_sequence"
+      ],
+      "status_values": [
+        "accepted",
+        "duplicate"
+      ],
+      "retry_rule": "a missing or ambiguous response must be retried with byte-equivalent canonical event payloads and the same event IDs",
+      "queue_removal_rule": "remove an event from the local queue only after an accepted or duplicate result for that event_id",
+      "canonical_refresh_rule": "after replay, read /v2/bootstrap again before presenting reconciled server state or sending dependent mutations"
+    },
+    "migration_boundary": {
+      "legacy_v1_role": "development-only migration input; v1 daily and learning snapshots are never accepted as learning-events.v2 payloads",
+      "production_rule": "production continues to reject all v1 routes",
+      "implementation_order": [
+        "owner_contract_and_negative_gates",
+        "transactional_backend_event_ledger_and_projections",
+        "mobile_durable_event_generation_and_replay",
+        "disable_legacy_snapshot_writes",
+        "server_scheduler_and_scheduler_cursor"
+      ],
+      "launch_claim_rule": "a green contract PR does not satisfy canonical-bootstrap-and-idempotent-events, server-scheduler, formal content approval, or launch readiness"
+    }
   },
   "offline_policy": {
     "classification": "implementation_hypothesis",

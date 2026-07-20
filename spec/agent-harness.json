@@ -1,5 +1,5 @@
 {
-  "version": "vnext-19",
+  "version": "vnext-20",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -12,6 +12,18 @@
       "spec/account-sync-contract.json",
       "spec/membership.json",
       "spec/runtime-boundaries.json"
+    ],
+    "learning_events_runtime": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/account-sync-contract.json",
+      "spec/runtime-boundaries.json",
+      "infra/cloudbase/learning-events-v2-runtime-contract.md",
+      "spec/harness-architecture.json",
+      "spec/agent-harness.json",
+      "spec/repo-delivery-contract.json",
+      "spec/agent-run-record.json",
+      "spec/evals.json"
     ],
     "platform_or_multisurface": [
       "spec/requirement-memory.json",
