@@ -4,7 +4,7 @@ Referenced specs: `spec/account-sync-contract.json`, `spec/membership.json`, `sp
 
 `product_truth`: remote learning must still enforce phone-code login before learning, shared membership entitlement, daily-level progress sync, and physical-space state sync.
 
-`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication uses `/v2`; product-data routes remain `/v1` only as a development migration bridge. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to Docker + PostgreSQL on the formal work server.
+`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication and the backend canonical bootstrap read use `/v2`; the mobile bootstrap adoption, card payload, and product mutations still rely on `/v1` only as a development migration bridge. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to TypeScript CloudBase Run + PostgreSQL on the formal work server.
 
 ## Current Environment
 
@@ -43,6 +43,7 @@ POST /v2/auth/verify-code
 POST /v2/auth/refresh
 POST /v2/auth/logout
 POST /v2/account/deletion
+GET  /v2/bootstrap?track=cet4|cet6&day_key=YYYY-MM-DD
 
 GET  /v1/learning/card-source?track=cet4|cet6
 GET  /v1/membership/entitlement
@@ -61,8 +62,8 @@ For the development environment, SMS should use a whitelist/fixed-code adapter f
 
 The first function is implemented at `infra/cloudbase/functions/softbook-api`.
 
-It keeps product-data routes as development-only `/v1/*` REST while mobile uses
-the `/v2` authentication foundation:
+It keeps card payload and mutation routes as development-only `/v1/*` REST
+while `/v2` owns authentication and the canonical bootstrap read:
 
 - Auth uses a development fixed-code adapter. Default code: `2468`.
 - Verified v2 auth returns a short-lived signed bearer token backed by a
@@ -72,8 +73,11 @@ the `/v2` authentication foundation:
   limits, 15-minute access tokens, rotating 30-day refresh tokens, session
   revocation, and queued account deletion. See
   `infra/cloudbase/auth-v2-runtime-contract.md`.
+- Bootstrap v2 reads server-side membership, progress, learning, physical
+  space, and content-version state without accepting a phone number. See
+  `infra/cloudbase/bootstrap-v2-runtime-contract.md`.
 - Card source, membership state, daily progress, learning state, and space state persist to CloudBase NoSQL when `SOFTBOOK_STORE_MODE=cloudbase`; local tests still default to the in-memory adapter.
-- Card source reads `softbook_card_sources` by track and seeds the development CET4/CET6 records into that collection when a track document is missing. The response envelope remains the same one parsed by the mobile app.
+- Card source reads `softbook_card_sources` by track. Development mode seeds the CET4/CET6 records when a track document is missing; production bootstrap never seeds development content and fails closed. The legacy card-source response envelope remains the same one parsed by the mobile app.
 - The router uses classic event-style `exports.main` so it can be bound to CloudBase HTTP access service paths such as `/softbook-api`.
 
 Deploy from this folder:
@@ -120,8 +124,11 @@ node infra/cloudbase/import-card-source.mjs --file path/to/card-source.json --tr
 The first command is a dry-run and performs no CloudBase write. The `--apply`
 form upserts `softbook_card_sources.<track>` in the current
 `CLOUDBASE_ENV_ID`, defaulting to `test-d2gzcyxr9f7e80972` when the variable is
-not set. The JSON payload must use the deployed response shape:
-`source`, `track`, and `card_records`.
+not set. The JSON payload must contain `source`, `track`, and `card_records`.
+Validation computes and persists a deterministic `content_version`; a candidate
+without final approval persists `release: null`. This development importer
+rejects any non-null release descriptor. Only a separate pipeline that verifies
+formal approval evidence may add a matching `content-release.v1` descriptor.
 
 Audit the current CloudBase documents without writing:
 
@@ -134,7 +141,11 @@ The audit command reads `softbook_card_sources` with `FIND`, reuses the same
 runtime validator, and checks `spec/box-catalog.json` prefix/path alignment, so
 it is safe to run after manual imports or deploys.
 
-Known SDK risk: `npm audit --omit=dev` currently reports transitive vulnerabilities from `@cloudbase/node-sdk`. Version `3.0.0` reduced part of the audit surface locally but failed real CloudBase DB reads in this environment, so the deployed dev function stays on the latest verified working `3.18.1`. Reassess the SDK or replace the persistence adapter before treating this as a production backend.
+Known SDK risk: `npm audit --omit=dev` currently reports transitive
+vulnerabilities from `@cloudbase/node-sdk`. The function is pinned by its lock
+file to the currently verified `4.0.3`; reassess the SDK and migrate the service
+to the production TypeScript/CloudBase Run architecture before treating this
+development adapter as a production backend.
 
 ## Runtime Contract Smoke
 

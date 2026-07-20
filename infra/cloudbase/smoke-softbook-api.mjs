@@ -83,15 +83,31 @@ const remoteHeaders = {
   Authorization: `Bearer ${authToken}`,
 };
 
+const initialBootstrap = await loadBootstrap('bootstrap');
 const entitlement = await loadMembershipEntitlement();
 assertExpectedStage(entitlement, expectedInitialStage, 'membership entitlement');
+
+if (initialBootstrap.membership.stage !== entitlement.stage) {
+  fail(
+    `bootstrap membership mismatch: ${initialBootstrap.membership.stage} != ${entitlement.stage}`,
+  );
+}
+
 const cardSource = await loadLearningCardSource();
 const firstCard = cardSource.card_records[0];
+
+if (
+  initialBootstrap.content.card_count !== cardSource.card_records.length ||
+  initialBootstrap.content.source.id !== cardSource.source.id
+) {
+  fail('bootstrap content metadata does not match the active card source.');
+}
 
 if (enableWrites) {
   await syncDailyProgress();
   await syncLearningState(cardSource, firstCard);
   await syncSpaceState(firstCard);
+  await assertBootstrapWrites(firstCard);
 } else {
   skip('write sync endpoints', 'set SOFTBOOK_CET_SMOKE_WRITE=1 to enable');
 }
@@ -99,7 +115,8 @@ if (enableWrites) {
 if (enableMembershipMutations) {
   await startMembershipTrial();
   await purchaseMembership();
-  await dismissMembershipRecovery();
+  const finalEntitlement = await dismissMembershipRecovery();
+  await assertBootstrapMembership(finalEntitlement);
 } else {
   skip(
     'membership mutations',
@@ -197,6 +214,93 @@ async function loadMembershipEntitlement() {
 
   ok('membership entitlement', entitlement.stage);
   return entitlement;
+}
+
+async function loadBootstrap(label) {
+  const response = await get(
+    `/v2/bootstrap?track=${track}&day_key=${todayKey()}`,
+  );
+
+  assertOk(response, label);
+  const payload = await response.json();
+  const data = assertObject(payload.data, `${label} data`);
+
+  if (data.schema_version !== 'bootstrap.v2') {
+    fail(`${label} schema_version must be bootstrap.v2.`);
+  }
+
+  if (data.track !== track || data.day_key !== todayKey()) {
+    fail(`${label} scope does not match requested track/day.`);
+  }
+
+  assertIsoTimestamp(data.generated_at, `${label}.generated_at`);
+  const content = assertObject(data.content, `${label}.content`);
+  const contentVersion = assertString(
+    content.version,
+    `${label}.content.version`,
+  );
+
+  if (!/^sha256:[a-f0-9]{64}$/.test(contentVersion)) {
+    fail(`${label}.content.version must be a SHA-256 identifier.`);
+  }
+
+  const source = assertObject(content.source, `${label}.content.source`);
+  const membership = assertObject(data.membership, `${label}.membership`);
+  const progress = assertObject(data.progress, `${label}.progress`);
+  const learning = assertObject(data.learning, `${label}.learning`);
+  const space = assertObject(data.space, `${label}.space`);
+
+  if (!Array.isArray(learning.card_states) || !Array.isArray(space.states)) {
+    fail(`${label} learning.card_states and space.states must be arrays.`);
+  }
+
+  if (membership.acknowledged_at !== null) {
+    assertIsoTimestamp(
+      membership.acknowledged_at,
+      `${label}.membership.acknowledged_at`,
+    );
+  }
+
+  ok(label, `${contentVersion}; release=${content.release_id ?? 'none'}`);
+  return {
+    content: {
+      card_count: content.card_count,
+      source: {
+        id: assertString(source.id, `${label}.content.source.id`),
+      },
+    },
+    learning,
+    membership,
+    progress,
+    space,
+  };
+}
+
+async function assertBootstrapWrites(firstCard) {
+  const bootstrap = await loadBootstrap('bootstrap after writes');
+
+  if (
+    bootstrap.progress.checked_in_today !== true ||
+    bootstrap.progress.total_completed_count !== 1
+  ) {
+    fail('bootstrap did not restore the daily progress write.');
+  }
+
+  if (
+    !bootstrap.learning.card_states.some(
+      state => state.card_id === firstCard.card_id,
+    )
+  ) {
+    fail('bootstrap did not restore the learning-state write.');
+  }
+
+  if (
+    !bootstrap.space.states.some(
+      state => state.card_id === firstCard.card_id && state.is_favorited,
+    )
+  ) {
+    fail('bootstrap did not restore the physical-space write.');
+  }
 }
 
 async function loadLearningCardSource() {
@@ -330,6 +434,22 @@ async function dismissMembershipRecovery() {
   );
 
   ok('membership dismiss-recovery', entitlement.stage);
+  return entitlement;
+}
+
+async function assertBootstrapMembership(expectedEntitlement) {
+  const bootstrap = await loadBootstrap('bootstrap after membership mutations');
+
+  if (bootstrap.membership.stage !== expectedEntitlement.stage) {
+    fail(
+      `bootstrap membership stage mismatch: ${bootstrap.membership.stage} != ${expectedEntitlement.stage}`,
+    );
+  }
+
+  assertIsoTimestamp(
+    bootstrap.membership.acknowledged_at,
+    'bootstrap membership acknowledged_at',
+  );
 }
 
 async function runMembershipMutation(path) {
@@ -513,6 +633,16 @@ function assertString(value, label) {
   }
 
   return value;
+}
+
+function assertIsoTimestamp(value, label) {
+  const timestamp = assertString(value, label);
+
+  if (Number.isNaN(Date.parse(timestamp))) {
+    fail(`${label} must be an ISO timestamp.`);
+  }
+
+  return timestamp;
 }
 
 function assertPattern(value, pattern, label) {

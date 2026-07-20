@@ -5,6 +5,7 @@ import {resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {validateCardSourceCatalogMapping} from './card-source-catalog.mjs';
+import {assertDevelopmentCardSourceImport} from './card-source-import-policy.mjs';
 
 const require = createRequire(import.meta.url);
 const {validateCardSourceForImport} = require('./functions/softbook-api');
@@ -96,7 +97,9 @@ function createImportCommand(cardSource, updatedAt) {
             u: {
               $set: {
                 card_records: cardSource.card_records,
+                content_version: cardSource.content_version,
                 imported_via: 'infra/cloudbase/import-card-source.mjs',
+                release: cardSource.release,
                 source: cardSource.source,
                 track: cardSource.track,
                 updated_at: updatedAt,
@@ -162,10 +165,14 @@ function main() {
     const cardSource = validateCardSourceCatalogMapping(
       validateCardSourceForImport(payload, track),
     );
+    assertDevelopmentCardSourceImport(cardSource);
     const interactions = interactionSummary(cardSource.card_records);
 
     console.log(
       `[validated] ${cardSource.track}: ${cardSource.card_records.length} cards from ${cardSource.source.id}`,
+    );
+    console.log(
+      `[validated] content_version=${cardSource.content_version}; release_id=${cardSource.release?.release_id ?? 'none'}`,
     );
     console.log(`[validated] interactions: ${interactions.join(', ')}`);
 

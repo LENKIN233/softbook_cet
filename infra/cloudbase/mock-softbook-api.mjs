@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 
 import http from 'node:http';
+import {createHash} from 'node:crypto';
 
 const port = Number(process.env.PORT || 48731);
 const host = process.env.HOST || '127.0.0.1';
 const smsCode = process.env.SOFTBOOK_CET_TEST_CODE || '123456';
 const challenges = new Map();
 const sessions = new Map();
+const dailyProgress = new Map();
+const learningStates = new Map();
+const memberships = new Map();
+const spaceStates = new Map();
 let sequence = 0;
 
 const server = http.createServer(async (request, response) => {
@@ -102,7 +107,36 @@ async function route(request, response) {
     return;
   }
 
-  requireBearerToken(request);
+  const session = requireBearerToken(request);
+
+  if (method === 'GET' && path === '/v2/bootstrap') {
+    const track = url.searchParams.get('track');
+    const dayKey = url.searchParams.get('day_key');
+
+    if (track !== 'cet4' && track !== 'cet6') {
+      sendJson(response, 400, {error: {code: 'invalid_track'}});
+      return;
+    }
+
+    if (!isValidDayKey(dayKey)) {
+      sendJson(response, 400, {error: {code: 'invalid_day_key'}});
+      return;
+    }
+
+    if (url.searchParams.has('phone_number')) {
+      sendJson(response, 400, {
+        error: {code: 'bootstrap_identity_input_forbidden'},
+      });
+      return;
+    }
+
+    sendJson(
+      response,
+      200,
+      bootstrapPayload(session.phoneNumber, track, dayKey),
+    );
+    return;
+  }
 
   if (method === 'GET' && path === '/v1/learning/card-source') {
     const track = url.searchParams.get('track') || 'cet4';
@@ -126,36 +160,101 @@ async function route(request, response) {
   }
 
   if (method === 'GET' && path === '/v1/membership/entitlement') {
-    sendJson(response, 200, entitlementPayload('trial_available'));
+    sendJson(response, 200, entitlementPayload(getMembership(session.phoneNumber)));
     return;
   }
 
   if (method === 'POST' && path === '/v1/membership/start-trial') {
-    await readJson(request);
-    sendJson(response, 200, entitlementPayload('trial'));
+    const body = await readJson(request);
+    assertSessionPhone(body, session);
+    const membership = createMembership('trial');
+    memberships.set(session.phoneNumber, {
+      acknowledged_at: new Date().toISOString(),
+      entitlement: membership,
+    });
+    sendJson(response, 200, entitlementPayload(membership));
     return;
   }
 
   if (method === 'POST' && path === '/v1/membership/purchase') {
-    await readJson(request);
-    sendJson(response, 200, entitlementPayload('premium'));
+    const body = await readJson(request);
+    assertSessionPhone(body, session);
+    const membership = createMembership('premium');
+    memberships.set(session.phoneNumber, {
+      acknowledged_at: new Date().toISOString(),
+      entitlement: membership,
+    });
+    sendJson(response, 200, entitlementPayload(membership));
     return;
   }
 
   if (method === 'POST' && path === '/v1/membership/dismiss-recovery') {
-    await readJson(request);
-    sendJson(response, 200, entitlementPayload('free', false, 'trial'));
+    const body = await readJson(request);
+    assertSessionPhone(body, session);
+    const membership = createMembership('free', false, 'trial');
+    memberships.set(session.phoneNumber, {
+      acknowledged_at: new Date().toISOString(),
+      entitlement: membership,
+    });
+    sendJson(response, 200, entitlementPayload(membership));
     return;
   }
 
-  if (
-    method === 'POST' &&
-    (path === '/v1/progress/daily-sync' ||
-      path === '/v1/learning/state-sync' ||
-      path === '/v1/space/state-sync')
-  ) {
-    await readJson(request);
-    sendJson(response, 200, {data: {acknowledged_at: new Date().toISOString()}});
+  if (method === 'POST' && path === '/v1/progress/daily-sync') {
+    const body = await readJson(request);
+    assertSessionPhone(body, session);
+    const acknowledgedAt = new Date().toISOString();
+    dailyProgress.set(`${session.phoneNumber}:${body.day_key}`, {
+      ...body,
+      acknowledged_at: acknowledgedAt,
+    });
+    sendJson(response, 200, {data: {acknowledged_at: acknowledgedAt}});
+    return;
+  }
+
+  if (method === 'POST' && path === '/v1/learning/state-sync') {
+    const body = await readJson(request);
+    assertSessionPhone(body, session);
+    const acknowledgedAt = new Date().toISOString();
+    const key = `${session.phoneNumber}:${body.day_key}:${body.track}`;
+    const existing = learningStates.get(key) ?? {events_by_card_id: {}};
+    const eventsByCardId = {...existing.events_by_card_id};
+
+    for (const event of body.events ?? []) {
+      eventsByCardId[event.card_id] = {...event};
+    }
+
+    learningStates.set(key, {
+      acknowledged_at: acknowledgedAt,
+      day_key: body.day_key,
+      events_by_card_id: eventsByCardId,
+      source_id: body.source_id,
+      source_label: body.source_label,
+      track: body.track,
+    });
+    sendJson(response, 200, {data: {acknowledged_at: acknowledgedAt}});
+    return;
+  }
+
+  if (method === 'POST' && path === '/v1/space/state-sync') {
+    const body = await readJson(request);
+    assertSessionPhone(body, session);
+    const acknowledgedAt = new Date().toISOString();
+    const existing = spaceStates.get(session.phoneNumber) ?? {
+      states_by_card_id: {},
+    };
+    const statesByCardId = {...existing.states_by_card_id};
+
+    for (const state of body.states ?? []) {
+      statesByCardId[state.card_id] = {...state};
+    }
+
+    spaceStates.set(session.phoneNumber, {
+      acknowledged_at: acknowledgedAt,
+      day_key: body.day_key,
+      states_by_card_id: statesByCardId,
+    });
+    sendJson(response, 200, {data: {acknowledged_at: acknowledgedAt}});
     return;
   }
 
@@ -208,24 +307,149 @@ function sessionPayload(session) {
   };
 }
 
-function entitlementPayload(
+function createMembership(
   stage,
   recoveryPromptVisible = false,
   lastExperienceEndedBy = null,
 ) {
   return {
+    stage,
+    counted_entry_count: stage === 'trial_available' ? 0 : 1,
+    last_experience_ended_by: lastExperienceEndedBy,
+    recovery_prompt_visible: recoveryPromptVisible,
+    trial_duration_days: 5,
+    trial_started_at_entry_count:
+      stage === 'trial' || stage === 'premium' ? 1 : null,
+  };
+}
+
+function getMembership(phoneNumber) {
+  return (
+    memberships.get(phoneNumber)?.entitlement ??
+    createMembership('trial_available')
+  );
+}
+
+function entitlementPayload(membership) {
+  return {
     data: {
-      entitlement: {
-        stage,
-        counted_entry_count: stage === 'trial_available' ? 0 : 1,
-        last_experience_ended_by: lastExperienceEndedBy,
-        recovery_prompt_visible: recoveryPromptVisible,
-        trial_duration_days: 5,
-        trial_started_at_entry_count:
-          stage === 'trial' || stage === 'premium' ? 1 : null,
+      entitlement: {...membership},
+    },
+  };
+}
+
+function bootstrapPayload(phoneNumber, track, dayKey) {
+  const cards = createCardRecords(track);
+  const source = {
+    id: `mock-${track}-source`,
+    label: `Mock ${track.toUpperCase()} Source`,
+  };
+  const progress = dailyProgress.get(`${phoneNumber}:${dayKey}`);
+  const learning = learningStates.get(`${phoneNumber}:${dayKey}:${track}`);
+  const space = spaceStates.get(phoneNumber);
+
+  return {
+    data: {
+      schema_version: 'bootstrap.v2',
+      generated_at: new Date().toISOString(),
+      day_key: dayKey,
+      track,
+      content: {
+        card_count: cards.length,
+        release_id: null,
+        minimum_client_version: null,
+        parent_release_id: null,
+        published_at: null,
+        source,
+        version: createContentVersion({card_records: cards, source, track}),
+      },
+      learning: {
+        acknowledged_at: learning?.acknowledged_at ?? null,
+        card_states: Object.values(learning?.events_by_card_id ?? {}).sort(
+          (left, right) => left.card_id.localeCompare(right.card_id),
+        ),
+        cursor: null,
+        source: learning
+          ? {id: learning.source_id, label: learning.source_label}
+          : null,
+      },
+      membership: {
+        acknowledged_at:
+          memberships.get(phoneNumber)?.acknowledged_at ?? null,
+        ...getMembership(phoneNumber),
+      },
+      progress: progress
+        ? omitPhoneNumber(progress)
+        : createEmptyProgress(dayKey),
+      space: {
+        acknowledged_at: space?.acknowledged_at ?? null,
+        day_key: dayKey,
+        states: Object.values(space?.states_by_card_id ?? {}).sort(
+          (left, right) => left.card_id.localeCompare(right.card_id),
+        ),
       },
     },
   };
+}
+
+function createEmptyProgress(dayKey) {
+  return {
+    acknowledged_at: null,
+    checked_in_today: false,
+    day_key: dayKey,
+    favorite_count: 0,
+    learning_completed_count: 0,
+    pending_review_count: 0,
+    review_completed_count: 0,
+    sleeping_count: 0,
+    total_completed_count: 0,
+  };
+}
+
+function omitPhoneNumber(value) {
+  const {phone_number: _phoneNumber, ...rest} = value;
+  return rest;
+}
+
+function assertSessionPhone(body, session) {
+  if (body.phone_number !== session.phoneNumber) {
+    const error = new Error('phone_number must match active session.');
+    error.status = 403;
+    throw error;
+  }
+}
+
+function createContentVersion(value) {
+  return `sha256:${createHash('sha256')
+    .update(stableJsonStringify(value))
+    .digest('hex')}`;
+}
+
+function stableJsonStringify(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(item => stableJsonStringify(item)).join(',')}]`;
+  }
+
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value)
+      .sort()
+      .map(key => `${JSON.stringify(key)}:${stableJsonStringify(value[key])}`)
+      .join(',')}}`;
+  }
+
+  return JSON.stringify(value);
+}
+
+function isValidDayKey(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) {
+    return false;
+  }
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return (
+    !Number.isNaN(date.getTime()) &&
+    date.toISOString().slice(0, 10) === value
+  );
 }
 
 function createCardRecords(track) {

@@ -22,8 +22,10 @@ Current boundary:
   them requires updating the mobile repositories and tests.
 - The server-side `/v2` auth/session foundation is documented separately in
   `infra/cloudbase/auth-v2-runtime-contract.md`. Mobile authentication now uses
-  that contract. Product-data routes remain on `/v1` only as a development
-  migration bridge; production continues to reject every `/v1` route.
+  that contract. The backend canonical account read is available at
+  `/v2/bootstrap`, but mobile adoption is a separate change. Card payload and
+  product mutations remain on `/v1` only as a development migration bridge;
+  production continues to reject every `/v1` route.
 
 ## Runtime Activation
 
@@ -133,6 +135,27 @@ current access token is injected in memory during replay. Mutation identifiers
 also contain no credentials; hydration rewrites identifiers created by the old
 token/phone-based membership retry format. `auth-session.v1` is invalidated
 because it cannot be upgraded without refresh credentials.
+
+### Canonical Bootstrap (backend available, mobile adoption pending)
+
+```http
+GET /v2/bootstrap?track=cet4&day_key=2026-07-20
+Authorization: Bearer <access_token>
+Accept: application/json
+x-softbook-client: mobile
+x-api-key: <optional>
+```
+
+The response returns `bootstrap.v2` content-version metadata, membership,
+daily progress, learning card state, nullable scheduler cursor, and physical
+space. It never accepts a phone number and returns explicit empty server state
+for missing account/day/track documents. The full response and production
+content-release boundary are defined in
+`infra/cloudbase/bootstrap-v2-runtime-contract.md`.
+
+The React Native client does not consume this endpoint in the current change.
+Until that separate adoption lands, its existing membership/space hydration and
+card-source calls remain the documented development bridge.
 
 ### Learning Card Source
 
@@ -361,22 +384,26 @@ Failure: non-2xx queues `sync_space_state` for replay.
 2. Learning, space, and statistics are blocked by auth gate before login.
 3. `/v2/auth/request-code` returns a challenge.
 4. `/v2/auth/verify-code` returns a rotating session and matching phone number.
-5. `/v1/learning/card-source?track=<track>` returns non-empty valid
+5. `/v2/bootstrap?track=<track>&day_key=<YYYY-MM-DD>` returns matching scope,
+   content SHA-256, membership, progress, learning, and physical-space state.
+6. Writes performed through the migration endpoints are visible in a later
+   bootstrap read for the same account and absent for another account.
+7. `/v1/learning/card-source?track=<track>` returns non-empty valid
    `card_records`.
-6. At least one card for each core interaction is available in the remote card
+8. At least one card for each core interaction is available in the remote card
    source before full visual QA: `flip`, `multiple_choice`, `lock`,
    `elimination`, `swipe`.
-7. `/v1/membership/entitlement` returns a valid entitlement.
-8. Space gate can trigger `/v1/membership/start-trial`.
-9. Membership purchase and dismiss recovery return valid entitlement payloads.
-10. Completing a card can POST `/v1/progress/daily-sync`.
-11. Completing a learning/review card can POST `/v1/learning/state-sync`.
-12. Favorite/sleep changes can POST `/v1/space/state-sync`.
-13. Temporary 503 on membership/progress/learning-state/space-state queues the
+9. `/v1/membership/entitlement` returns a valid entitlement.
+10. Space gate can trigger `/v1/membership/start-trial`.
+11. Membership purchase and dismiss recovery return valid entitlement payloads.
+12. Completing a card can POST `/v1/progress/daily-sync`.
+13. Completing a learning/review card can POST `/v1/learning/state-sync`.
+14. Favorite/sleep changes can POST `/v1/space/state-sync`.
+15. Temporary 503 on membership/progress/learning-state/space-state queues the
     mutation; returning to 2xx replays it.
-14. Expiring access credentials refresh once under concurrent requests; a
+16. Expiring access credentials refresh once under concurrent requests; a
     rejected refresh or repeated 401 clears account-bound persistence.
-15. Remote card-source failure renders retry state without bundled-card fallback.
+17. Remote card-source failure renders retry state without bundled-card fallback.
 
 ## Local Mock Validation
 
@@ -408,14 +435,17 @@ Expected high-level output:
 ```text
 [ok] request-code: 200
 [ok] verify-code: token received
+[ok] bootstrap: sha256:<digest>; release=none
 [ok] membership entitlement: trial_available
 [ok] learning card-source: 5 cards from mock-cet4-source
 [ok] daily progress sync: 200
 [ok] learning state sync: 200
 [ok] space state sync: 200
+[ok] bootstrap after writes: sha256:<digest>; release=none
 [ok] membership start-trial: trial
 [ok] membership purchase: premium
 [ok] membership dismiss-recovery: free
+[ok] bootstrap after membership mutations: sha256:<digest>; release=none
 ```
 
 ## Current Frontend Code Pointers
