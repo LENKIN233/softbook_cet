@@ -58,6 +58,27 @@ function createMemoryAuthStateStore() {
     },
     getAuthSession: async sessionId =>
       clone(authSessions.get(sessionId) ?? null),
+    getActiveAuthSession: async (sessionId, checkedAt) => {
+      const session = authSessions.get(sessionId);
+
+      if (!session || session.status !== 'active') {
+        return null;
+      }
+
+      if (accountDeletions.has(session.account_key)) {
+        authSessions.set(
+          sessionId,
+          revokeSessionRecord(
+            session,
+            checkedAt,
+            'account_deletion_requested',
+          ),
+        );
+        return null;
+      }
+
+      return clone(session);
+    },
     rotateAuthSession: async input => {
       const session = authSessions.get(input.sessionId);
 
@@ -207,6 +228,35 @@ function createCloudBaseAuthStateStore(db, collections) {
       }),
     getAuthSession: sessionId =>
       getDocument(db.collection(names.authSessions), sessionId),
+    getActiveAuthSession: (sessionId, checkedAt) =>
+      db.runTransaction(async transaction => {
+        const collection = transaction.collection(names.authSessions);
+        const session = await getDocument(collection, sessionId);
+
+        if (!session || session.status !== 'active') {
+          return null;
+        }
+
+        const deletion = await getDocument(
+          transaction.collection(names.accountDeletions),
+          session.account_key,
+        );
+
+        if (!deletion) {
+          return session;
+        }
+
+        await setDocument(
+          collection,
+          sessionId,
+          revokeSessionRecord(
+            session,
+            checkedAt,
+            'account_deletion_requested',
+          ),
+        );
+        return null;
+      }),
     rotateAuthSession: input =>
       db.runTransaction(async transaction => {
         const collection = transaction.collection(names.authSessions);

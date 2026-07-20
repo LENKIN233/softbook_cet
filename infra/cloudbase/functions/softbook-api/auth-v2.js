@@ -298,7 +298,10 @@ async function requestAccountDeletion(config, request) {
 
 async function requireActiveSession(config, request) {
   const access = readSignedAccessToken(config, request);
-  const session = await config.store.getAuthSession(access.session_id);
+  const session = await config.store.getActiveAuthSession(
+    access.session_id,
+    config.now().toISOString(),
+  );
 
   if (
     !session ||
@@ -546,6 +549,7 @@ function validateServiceConfig(config) {
     'verifyAuthChallenge',
     'createAuthSession',
     'getAuthSession',
+    'getActiveAuthSession',
     'rotateAuthSession',
     'revokeAuthSession',
     'revokeAuthSessionsByAccount',

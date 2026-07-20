@@ -7,6 +7,7 @@ const {
   createMemoryStore,
   createSoftbookApi,
 } = require('../index');
+const {createAuthV2Service} = require('../auth-v2');
 
 const PHONE_NUMBER = '13800138000';
 const SMS_CODE = '654321';
@@ -375,6 +376,55 @@ test('v2 deletion task blocks refresh even when account-wide revocation is inter
   );
 });
 
+test('v2 active-session guard denies access when a deletion task exists', async () => {
+  const clock = createClock();
+  const sms = createSmsProvider();
+  const store = createMemoryStore();
+  const service = createAuthV2Service({
+    codeGenerator: () => SMS_CODE,
+    developmentSmsCode: SMS_CODE,
+    now: clock.now,
+    smsProvider: sms.provider,
+    store,
+    tokenSecret: TOKEN_SECRET,
+  });
+  const challenge = await service.requestCode({
+    body: {phone_number: PHONE_NUMBER},
+    clientIp: '203.0.113.30',
+    headers: {},
+  });
+  const session = await service.verifyCode({
+    body: {
+      challenge_id: challenge.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    headers: {},
+  });
+  const persistedSession = store
+    .snapshot()
+    .authSessions.get(session.session_id);
+  await store.getOrCreateAccountDeletionTask({
+    account_key: persistedSession.account_key,
+    deletion_id: 'delete_active_guard_test',
+    phone_number: PHONE_NUMBER,
+    requested_at: clock.now().toISOString(),
+    status: 'queued',
+  });
+
+  await assert.rejects(
+    () =>
+      service.requireActiveSession({
+        headers: {authorization: `Bearer ${session.access_token}`},
+      }),
+    error => error.code === 'revoked_auth_session',
+  );
+  assert.equal(
+    store.snapshot().authSessions.get(session.session_id).revoked_reason,
+    'account_deletion_requested',
+  );
+});
+
 test('v2 rejects expired challenges, access tokens, and refresh tokens', async () => {
   const clock = createClock();
   const {api} = createV2TestApi({clock});
@@ -443,6 +493,11 @@ test('v2 auth state survives separate CloudBase function instances', async () =>
     false,
   );
 
+  const siblingSession = await issueSession(second.api, {
+    clientIp: '203.0.113.31',
+    deviceId: 'cloudbase-refresh-boundary',
+  });
+
   const persistedSession = db
     .snapshot()
     .get('softbook_auth_sessions')
@@ -454,8 +509,15 @@ test('v2 auth state survives separate CloudBase function instances', async () =>
     requested_at: '2026-07-20T08:00:00.000Z',
     status: 'queued',
   });
+  assert.equal(
+    await first.store.getActiveAuthSession(
+      verified.body.data.session_id,
+      '2026-07-20T08:00:01.000Z',
+    ),
+    null,
+  );
   const blockedRefresh = await request(second.api, {
-    body: {refresh_token: refreshed.body.data.refresh_token},
+    body: {refresh_token: siblingSession.refresh_token},
     path: '/v2/auth/refresh',
   });
   assert.equal(blockedRefresh.statusCode, 401);
@@ -464,7 +526,7 @@ test('v2 auth state survives separate CloudBase function instances', async () =>
     db
       .snapshot()
       .get('softbook_auth_sessions')
-      .get(verified.body.data.session_id).revoked_reason,
+      .get(siblingSession.session_id).revoked_reason,
     'account_deletion_requested',
   );
 });

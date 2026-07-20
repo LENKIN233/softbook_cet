@@ -136,8 +136,10 @@ The route creates or returns one queued deletion task for the account, revokes
 all of that phone number's sessions, and returns `202`. Retrying with the same
 still-valid signed access token returns the same task. Session creation checks
 the durable deletion task in the same persistence transaction and rejects new
-login with `account_deletion_pending`; refresh rotation independently checks the
-same task, so an interrupted account-wide revocation cannot restore access.
+login with `account_deletion_pending`; refresh rotation and the shared active
+session guard independently check the same task. Every future protected `/v2`
+route must use that guard, so an interrupted account-wide revocation cannot
+restore either token rotation or API access.
 
 ## Persistent records
 
@@ -148,9 +150,10 @@ CloudBase currently uses:
 - `softbook_auth_sessions`
 - `softbook_account_deletions`
 
-Challenge verification, rate-counter increments, refresh rotation, and
-single-session revocation run inside CloudBase transactions. Account-wide
-revocation enumerates the phone's sessions after the deletion task is durable.
+Challenge verification, rate-counter increments, active-session reads, refresh
+rotation, and single-session revocation run inside CloudBase transactions.
+Account-wide revocation enumerates the phone's sessions after the deletion task
+is durable.
 
 Before production deployment, infrastructure work must add collection TTL
 policies for expired rate-limit and challenge records, least-privilege access,
@@ -190,7 +193,8 @@ This contract does not satisfy the launch gate. Remaining blockers include:
 - production Web origin allowlisting and gateway abuse-control review;
 - device-list and remote-device-revocation surfaces;
 - deletion worker, retention rules, provider cleanup, and completed deletion
-  drill;
+  drill, including an explicit post-deletion re-registration and tombstone
+  policy;
 - mobile secure refresh-token storage, automatic refresh, logout cleanup, and
   `/v2` migration;
 - abuse, concurrency, penetration, backup, and production observability
