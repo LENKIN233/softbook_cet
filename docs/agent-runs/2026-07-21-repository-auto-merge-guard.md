@@ -95,6 +95,10 @@
 - `cd apps/mobile && bundle exec pod install --project-directory=ios
   --deployment` -> completed with 83 dependencies and 82 pods; no tracked
   files changed.
+- `PATH="/Users/lenkin/.nvm/versions/node/v22.13.0/bin:/opt/homebrew/opt/ruby@3.3/bin:$PATH"
+  ./scripts/run_local_gates --profile pr --base origin/main --pr 433` -> 29/29
+  passed on `395aed7bc166ad4e7d692ad463bf59f28a37e0da` with no safe
+  exceptions or deferred gates.
 
 ## Validation results
 
@@ -104,7 +108,9 @@
 - Exact-toolchain dev gates passed 17/17; report:
   `exports/local-gates/20260720T183545Z-ea6c3b4a-dev-90974/report.json`.
 - Full Harness passed all 15 sections with the live remote guard executed.
-- GitHub required checks: pending PR creation.
+- Strict PR gates passed 29/29; report:
+  `exports/local-gates/20260720T184044Z-395aed7b-pr-98445/report.json`.
+- GitHub required checks: pending on the final pushed commit.
 
 ## Binary evidence
 
