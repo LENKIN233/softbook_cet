@@ -97,7 +97,11 @@
   `passed_with_exception`, 16/17 passed and 0 failed. The only exception is the
   allowed development-only Node 25.9.0 drift from CI Node 22.13.0; the focused
   backend suite was separately rerun on exact Node 22.13.0.
-- Strict PR profile and GitHub required checks -> pending PR creation.
+- Exact Node 22.13.0 and Ruby 3.3.12
+  `scripts/run_local_gates --profile pr --base origin/main --pr 429` -> 29/29
+  passed after correcting the PR validation wording and adding the current
+  topic-only remote-tracking ref required by strict repository health.
+- GitHub required checks -> pending on the final PR head.
 
 ## Validation results
 
@@ -112,6 +116,9 @@
   resulting session through shared persistent state.
 - Production construction and request handling fail closed for the tested
   unsafe configurations.
+- Strict PR validation passed all 29 gates, including the full remote Harness,
+  real PR body, branch protection, dependency audit, repository health, Git
+  LFS, and remote evidence archive integrity.
 
 ## Binary evidence
 
@@ -157,8 +164,7 @@
 
 ## Follow-up
 
-- Run the complete local `dev` profile, create the PR, run the strict `pr`
-  profile and required GitHub checks, then merge only after all delivery gates
-  pass.
+- Require all GitHub checks on the final PR head, then merge only after every
+  delivery gate passes.
 - Next product PR: migrate mobile auth persistence and repositories to the v2
   challenge/session contract without enabling production fallback.
