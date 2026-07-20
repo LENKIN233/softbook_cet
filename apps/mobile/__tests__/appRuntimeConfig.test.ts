@@ -43,7 +43,7 @@ test('runtime config resolver can build a remote profile from environment values
 
   expect(resolveLearningTrack(config)).toBe('cet6');
   expect(resolveAuthRepositoryConfig(config).remoteConfig).toMatchObject({
-    requestCodeEndpoint: 'https://api.softbook.example/v1/auth/request-code',
+    requestCodeEndpoint: 'https://api.softbook.example/v2/auth/request-code',
     headers: {
       'x-api-key': 'env-key',
     },
@@ -74,8 +74,8 @@ test('remote runtime profile switches every remote-capable surface to one base u
 
   expect(resolveLearningTrack(config)).toBe('cet6');
   expect(resolveAuthRepositoryConfig(config).remoteConfig).toMatchObject({
-    requestCodeEndpoint: 'https://api.softbook.example/v1/auth/request-code',
-    verifyCodeEndpoint: 'https://api.softbook.example/v1/auth/verify-code',
+    requestCodeEndpoint: 'https://api.softbook.example/v2/auth/request-code',
+    verifyCodeEndpoint: 'https://api.softbook.example/v2/auth/verify-code',
     headers: {
       'x-api-key': 'dev-key',
       'x-softbook-client': 'mobile',

@@ -23,8 +23,9 @@ Referenced active specs:
 
 - The `/v2` paths, payload field names, token lifetimes, collection names, and
   CloudBase persistence below are the current backend migration contract.
-- The mobile runtime still consumes `/v1`; no production client is switched by
-  this contract alone.
+- The mobile runtime consumes `/v2` auth and keeps product-data calls on `/v1`
+  only through the development migration bridge. This does not make the current
+  backend production-ready because production rejects all `/v1` routes.
 - An account deletion request creates a durable queued task. Actual user-data
   erasure, retention policy enforcement, and deletion-provider orchestration
   remain separate production work.
@@ -48,6 +49,12 @@ There is intentionally no environment-only switch that silently turns the
 development SMS adapter into a production provider. Internal constructor
 overrides also cannot re-enable v1 or disable the trusted-client-IP requirement
 in production.
+
+In development only, protected `/v1` product routes accept either a valid legacy
+token or an active server-backed v2 access token. The v2 path uses the same
+session revocation/deletion guard as protected v2 routes. This bridge exists only
+until product-data endpoints move to v2 and is evaluated after the production
+v1 rejection, so it cannot expose v1 in production.
 
 ## Endpoints
 

@@ -1,23 +1,38 @@
+import {RemoteHttpError} from '../runtime/remoteHttpError';
+
+import type {
+  AuthChallenge,
+  AuthSession,
+  RemoteAuthChallenge,
+  RemoteAuthSession,
+} from './authSession';
+
 export type AuthRepositoryMode = 'local' | 'remote';
 
-export type AuthSession = {
-  authToken?: string;
-  phoneNumber: string;
-};
-
 export type VerifySmsCodeInput = {
+  challenge: AuthChallenge;
   phoneNumber: string;
   smsCode: string;
 };
 
-export type AuthVerifyPayloadParser = (
+export type AuthRequestCodePayloadParser = (
   payload: unknown,
   expectedPhoneNumber: string,
-) => AuthSession;
+) => RemoteAuthChallenge;
+
+export type AuthSessionPayloadParser = (
+  payload: unknown,
+  expectedPhoneNumber: string,
+  now: Date,
+  expectedSessionId?: string,
+) => RemoteAuthSession;
 
 export type AuthRemoteConfig = {
   headers?: Record<string, string>;
-  parseVerifyPayload?: AuthVerifyPayloadParser;
+  logoutEndpoint: string;
+  parseRequestCodePayload?: AuthRequestCodePayloadParser;
+  parseSessionPayload?: AuthSessionPayloadParser;
+  refreshEndpoint: string;
   requestCodeEndpoint: string;
   verifyCodeEndpoint: string;
 };
@@ -38,13 +53,16 @@ export type FetchLike = (
 ) => Promise<FetchLikeResponse>;
 
 export type AuthRepository = {
-  requestSmsCode: (phoneNumber: string) => Promise<void>;
+  logout: (session: AuthSession) => Promise<void>;
+  refreshSession: (session: RemoteAuthSession) => Promise<RemoteAuthSession>;
+  requestSmsCode: (phoneNumber: string) => Promise<AuthChallenge>;
   verifySmsCode: (input: VerifySmsCodeInput) => Promise<AuthSession>;
 };
 
 export type AuthRepositoryConfig = {
   fetchImpl?: FetchLike;
   mode: AuthRepositoryMode;
+  now?: () => Date;
   remoteConfig?: AuthRemoteConfig;
 };
 
@@ -56,66 +74,119 @@ export type SoftbookRemoteAuthRuntimeConfig = {
 export function createAuthRepository(
   config: AuthRepositoryConfig,
 ): AuthRepository {
-  return {
-    requestSmsCode: async phoneNumber => {
-      if (config.mode === 'remote') {
-        if (!config.remoteConfig) {
-          throw new Error('Remote auth repository requires remoteConfig.');
-        }
+  const now = config.now ?? (() => new Date());
 
-        const fetchImpl = config.fetchImpl ?? fetch;
-        const response = await fetchImpl(config.remoteConfig.requestCodeEndpoint, {
+  return {
+    async requestSmsCode(phoneNumber) {
+      if (config.mode === 'local') {
+        return {
+          mode: 'local',
+          phoneNumber,
+        };
+      }
+
+      const remoteConfig = requireRemoteConfig(config.remoteConfig);
+      const response = await (config.fetchImpl ?? fetch)(
+        remoteConfig.requestCodeEndpoint,
+        {
           body: JSON.stringify({
             phone_number: phoneNumber,
           }),
-          headers: {
-            'content-type': 'application/json',
-            ...config.remoteConfig.headers,
-          },
+          headers: createHeaders(remoteConfig),
           method: 'POST',
-        });
+        },
+      );
 
-        if (!response.ok) {
-          throw new Error(
-            `Remote auth request-code failed with ${response.status}.`,
-          );
-        }
-      }
+      assertRemoteResponse(response, 'request-code');
+
+      return (
+        remoteConfig.parseRequestCodePayload ??
+        parseSoftbookRemoteAuthRequestCodePayload
+      )(await response.json(), phoneNumber);
     },
-    verifySmsCode: async input => {
-      if (config.mode === 'remote') {
-        if (!config.remoteConfig) {
-          throw new Error('Remote auth repository requires remoteConfig.');
+
+    async verifySmsCode(input) {
+      assertChallengeMatchesInput(input.challenge, input.phoneNumber);
+
+      if (config.mode === 'local') {
+        if (input.challenge.mode !== 'local') {
+          throw new Error('Local auth requires a local SMS challenge.');
         }
 
-        const fetchImpl = config.fetchImpl ?? fetch;
-        const response = await fetchImpl(config.remoteConfig.verifyCodeEndpoint, {
+        return {
+          mode: 'local',
+          phoneNumber: input.phoneNumber,
+        };
+      }
+
+      if (input.challenge.mode !== 'remote') {
+        throw new Error('Remote auth requires a server SMS challenge.');
+      }
+
+      const remoteConfig = requireRemoteConfig(config.remoteConfig);
+      const response = await (config.fetchImpl ?? fetch)(
+        remoteConfig.verifyCodeEndpoint,
+        {
           body: JSON.stringify({
+            challenge_id: input.challenge.challengeId,
             phone_number: input.phoneNumber,
             sms_code: input.smsCode,
           }),
-          headers: {
-            'content-type': 'application/json',
-            ...config.remoteConfig.headers,
-          },
+          headers: createHeaders(remoteConfig),
           method: 'POST',
-        });
+        },
+      );
 
-        if (!response.ok) {
-          throw new Error(`Remote auth verify-code failed with ${response.status}.`);
-        }
+      assertRemoteResponse(response, 'verify-code');
 
-        const payload = await response.json();
-        const parseVerifyPayload =
-          config.remoteConfig.parseVerifyPayload ??
-          parseSoftbookRemoteAuthVerifyPayload;
+      return (
+        remoteConfig.parseSessionPayload ?? parseSoftbookRemoteAuthSession
+      )(await response.json(), input.phoneNumber, now());
+    },
 
-        return parseVerifyPayload(payload, input.phoneNumber);
+    async refreshSession(session) {
+      if (config.mode !== 'remote') {
+        throw new Error('Local auth sessions cannot be refreshed remotely.');
       }
 
-      return {
-        phoneNumber: input.phoneNumber,
-      };
+      const remoteConfig = requireRemoteConfig(config.remoteConfig);
+      const requestBody = JSON.stringify({
+        refresh_token: session.refreshToken,
+      });
+      const response = await (config.fetchImpl ?? fetch)(
+        remoteConfig.refreshEndpoint,
+        {
+          body: requestBody,
+          headers: createHeaders(remoteConfig),
+          method: 'POST',
+        },
+      );
+
+      assertRemoteResponse(response, 'refresh');
+
+      return (
+        remoteConfig.parseSessionPayload ?? parseSoftbookRemoteAuthSession
+      )(await response.json(), session.phoneNumber, now(), session.sessionId);
+    },
+
+    async logout(session) {
+      if (config.mode === 'local' || session.mode === 'local') {
+        return;
+      }
+
+      const remoteConfig = requireRemoteConfig(config.remoteConfig);
+      const response = await (config.fetchImpl ?? fetch)(
+        remoteConfig.logoutEndpoint,
+        {
+          headers: {
+            ...createHeaders(remoteConfig),
+            Authorization: `${session.tokenType} ${session.accessToken}`,
+          },
+          method: 'POST',
+        },
+      );
+
+      assertRemoteResponse(response, 'logout');
     },
   };
 }
@@ -123,56 +194,183 @@ export function createAuthRepository(
 export function createSoftbookRemoteAuthConfig(
   config: SoftbookRemoteAuthRuntimeConfig,
 ): AuthRemoteConfig {
+  const baseUrl = trimTrailingSlash(config.baseUrl);
+
   return {
     headers: {
       'x-softbook-client': 'mobile',
       ...(config.apiKey ? {'x-api-key': config.apiKey} : {}),
     },
-    requestCodeEndpoint: `${trimTrailingSlash(config.baseUrl)}/v1/auth/request-code`,
-    verifyCodeEndpoint: `${trimTrailingSlash(config.baseUrl)}/v1/auth/verify-code`,
+    logoutEndpoint: `${baseUrl}/v2/auth/logout`,
+    refreshEndpoint: `${baseUrl}/v2/auth/refresh`,
+    requestCodeEndpoint: `${baseUrl}/v2/auth/request-code`,
+    verifyCodeEndpoint: `${baseUrl}/v2/auth/verify-code`,
   };
 }
 
-export function parseSoftbookRemoteAuthVerifyPayload(
+export function parseSoftbookRemoteAuthRequestCodePayload(
   payload: unknown,
   expectedPhoneNumber: string,
-): AuthSession {
-  if (!isObject(payload)) {
-    throw new Error('Remote auth verify payload must be an object.');
-  }
+): RemoteAuthChallenge {
+  const data = requirePayloadData(payload, 'request-code');
+  const challengeId = readRequiredString(data.challenge_id, 'challenge_id');
+  const expiresAt = readIsoTimestamp(data.expires_at, 'expires_at');
+  const retryAfterSeconds = readNonNegativeInteger(
+    data.retry_after_seconds,
+    'retry_after_seconds',
+  );
 
-  if (!isObject(payload.data)) {
-    throw new Error('Remote auth verify payload.data must be an object.');
-  }
+  return {
+    challengeId,
+    expiresAt,
+    mode: 'remote',
+    phoneNumber: expectedPhoneNumber,
+    retryAfterSeconds,
+  };
+}
 
-  const {auth_token, phone_number} = payload.data;
+export function parseSoftbookRemoteAuthSession(
+  payload: unknown,
+  expectedPhoneNumber: string,
+  now: Date,
+  expectedSessionId?: string,
+): RemoteAuthSession {
+  const data = requirePayloadData(payload, 'session');
+  const accessToken = readRequiredString(data.access_token, 'access_token');
+  const expiresIn = readPositiveInteger(data.expires_in, 'expires_in');
+  const phoneNumber = readRequiredString(data.phone_number, 'phone_number');
+  const refreshExpiresAt = readIsoTimestamp(
+    data.refresh_expires_at,
+    'refresh_expires_at',
+  );
+  const refreshToken = readRequiredString(data.refresh_token, 'refresh_token');
+  const sessionId = readRequiredString(data.session_id, 'session_id');
+  const tokenType = readRequiredString(data.token_type, 'token_type');
 
-  if (typeof phone_number !== 'string' || phone_number.trim().length === 0) {
+  if (phoneNumber !== expectedPhoneNumber) {
     throw new Error(
-      'Remote auth verify payload.data.phone_number is required.',
+      `Remote auth session phone_number must match requested phone number ${expectedPhoneNumber}.`,
     );
   }
 
-  if (phone_number !== expectedPhoneNumber) {
+  if (expectedSessionId !== undefined && sessionId !== expectedSessionId) {
     throw new Error(
-      `Remote auth verify payload.data.phone_number must match requested phone number ${expectedPhoneNumber}.`,
+      'Remote auth refresh changed the server session identifier.',
     );
   }
 
-  if (typeof auth_token !== 'string' || auth_token.trim().length === 0) {
+  if (tokenType !== 'Bearer') {
+    throw new Error('Remote auth session token_type must be Bearer.');
+  }
+
+  if (Date.parse(refreshExpiresAt) <= now.getTime()) {
     throw new Error(
-      'Remote auth verify payload.data.auth_token is required.',
+      'Remote auth session refresh_expires_at must be in the future.',
     );
   }
 
   return {
-    authToken: auth_token,
-    phoneNumber: phone_number,
+    accessToken,
+    accessTokenExpiresAt: new Date(
+      now.getTime() + expiresIn * 1000,
+    ).toISOString(),
+    mode: 'remote',
+    phoneNumber,
+    refreshExpiresAt,
+    refreshToken,
+    sessionId,
+    tokenType: 'Bearer',
   };
 }
 
+function assertChallengeMatchesInput(
+  challenge: AuthChallenge,
+  phoneNumber: string,
+) {
+  if (challenge.phoneNumber !== phoneNumber) {
+    throw new Error('SMS challenge does not match the submitted phone number.');
+  }
+}
+
+function assertRemoteResponse(response: FetchLikeResponse, operation: string) {
+  if (!response.ok) {
+    throw new RemoteHttpError(
+      `Remote auth ${operation} failed with ${response.status}.`,
+      response.status,
+    );
+  }
+}
+
+function createHeaders(config: AuthRemoteConfig) {
+  return {
+    'content-type': 'application/json',
+    ...config.headers,
+  };
+}
+
+function requireRemoteConfig(
+  remoteConfig: AuthRemoteConfig | undefined,
+): AuthRemoteConfig {
+  if (!remoteConfig) {
+    throw new Error('Remote auth repository requires remoteConfig.');
+  }
+
+  return remoteConfig;
+}
+
+function requirePayloadData(
+  payload: unknown,
+  operation: string,
+): Record<string, unknown> {
+  if (!isObject(payload) || !isObject(payload.data)) {
+    throw new Error(`Remote auth ${operation} payload.data must be an object.`);
+  }
+
+  return payload.data;
+}
+
+function readRequiredString(value: unknown, field: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(`Remote auth payload.data.${field} is required.`);
+  }
+
+  return value;
+}
+
+function readIsoTimestamp(value: unknown, field: string): string {
+  const timestamp = readRequiredString(value, field);
+
+  if (!Number.isFinite(Date.parse(timestamp))) {
+    throw new Error(
+      `Remote auth payload.data.${field} must be an ISO timestamp.`,
+    );
+  }
+
+  return timestamp;
+}
+
+function readNonNegativeInteger(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+    throw new Error(
+      `Remote auth payload.data.${field} must be a non-negative integer.`,
+    );
+  }
+
+  return value;
+}
+
+function readPositiveInteger(value: unknown, field: string): number {
+  const integer = readNonNegativeInteger(value, field);
+
+  if (integer === 0) {
+    throw new Error(`Remote auth payload.data.${field} must be positive.`);
+  }
+
+  return integer;
+}
+
 function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function trimTrailingSlash(value: string) {

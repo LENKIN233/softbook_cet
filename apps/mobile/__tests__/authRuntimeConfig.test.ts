@@ -24,8 +24,10 @@ test('auth runtime config can switch repository mode to remote', () => {
         'x-api-key': 'auth-key',
         'x-softbook-client': 'mobile',
       },
-      requestCodeEndpoint: 'https://api.softbook.example/v1/auth/request-code',
-      verifyCodeEndpoint: 'https://api.softbook.example/v1/auth/verify-code',
+      logoutEndpoint: 'https://api.softbook.example/v2/auth/logout',
+      refreshEndpoint: 'https://api.softbook.example/v2/auth/refresh',
+      requestCodeEndpoint: 'https://api.softbook.example/v2/auth/request-code',
+      verifyCodeEndpoint: 'https://api.softbook.example/v2/auth/verify-code',
     },
   });
 });

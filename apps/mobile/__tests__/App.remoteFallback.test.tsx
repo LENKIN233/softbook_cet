@@ -75,8 +75,9 @@ async function authenticateIntoLearningBootstrap(
       .props.onChangeText('13800138000');
   });
 
-  await ReactTestRenderer.act(() => {
+  await ReactTestRenderer.act(async () => {
     root.findByProps({ testID: 'auth-request-code-button' }).props.onPress();
+    await flushAsyncEffects();
   });
 
   await ReactTestRenderer.act(() => {
@@ -97,7 +98,7 @@ async function flushAsyncEffects() {
   });
 }
 
-async function waitForLearningSurface(
+async function waitForLearningFailure(
   root: ReactTestRenderer.ReactTestInstance,
 ) {
   for (let attempt = 0; attempt < 10; attempt += 1) {
@@ -106,33 +107,31 @@ async function waitForLearningSurface(
     });
 
     if (
-      root.findAllByProps({ testID: 'learning-favorite-button' }).length > 0
+      root.findAllByProps({ testID: 'learning-bootstrap-retry-button' }).length >
+      0
     ) {
       return;
     }
   }
 
-  throw new Error('Learning surface bootstrap did not finish in time.');
+  throw new Error('Learning failure state did not finish in time.');
 }
 
-test('falls back to local learning cards when remote runtime source fails', async () => {
+test('fails closed when the remote runtime source is unavailable', async () => {
   const fetchMock = jest
     .fn()
-    .mockImplementation(async (input: string) => {
-      if (input === 'https://api.softbook.example/v1/auth/request-code') {
-        return {
-          json: async () => ({}),
-          ok: true,
-          status: 200,
-        };
-      }
-
-      if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+    .mockImplementation(
+      async (
+        input: string,
+        _init?: {headers?: ConstructorParameters<typeof Headers>[0]},
+      ) => {
+      if (input === 'https://api.softbook.example/v2/auth/request-code') {
         return {
           json: async () => ({
             data: {
-              auth_token: 'remote-auth-token',
-              phone_number: '13800138000',
+              challenge_id: 'challenge-123',
+              expires_at: '2099-07-20T00:05:00.000Z',
+              retry_after_seconds: 60,
             },
           }),
           ok: true,
@@ -140,8 +139,27 @@ test('falls back to local learning cards when remote runtime source fails', asyn
         };
       }
 
-      return REMOTE_FAILURE;
-    });
+      if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+        return {
+          json: async () => ({
+            data: {
+              access_token: 'remote-auth-token',
+              expires_in: 900,
+              phone_number: '13800138000',
+              refresh_expires_at: '2099-08-19T00:00:00.000Z',
+              refresh_token: 'remote-refresh-token',
+              session_id: 'session-123',
+              token_type: 'Bearer',
+            },
+          }),
+          ok: true,
+          status: 200,
+        };
+      }
+
+        return REMOTE_FAILURE;
+      },
+    );
   Object.defineProperty(globalThis, 'fetch', {
     configurable: true,
     value: fetchMock as typeof fetch,
@@ -156,23 +174,22 @@ test('falls back to local learning cards when remote runtime source fails', asyn
 
   const root = tree!.root;
   await authenticateIntoLearningBootstrap(root);
-  await waitForLearningSurface(root);
+  await waitForLearningFailure(root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本轮学习卡');
-  expect(output).toContain('however');
-  expect(output).not.toContain('CET4');
-  expect(output).not.toContain('学习卡源暂时不可用');
+  expect(output).toContain('本轮学习暂时不可用');
+  expect(output).toContain('重新加载本轮卡片');
+  expect(output).not.toContain('however');
   expect(fetchMock).toHaveBeenCalledWith(
     'https://api.softbook.example/v1/learning/card-source?track=cet4',
-    {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: 'Bearer remote-auth-token',
-        'x-softbook-client': 'mobile',
-        'x-api-key': 'runtime-key',
-      },
-    },
+    expect.objectContaining({method: 'GET'}),
+  );
+  const cardSourceCall = fetchMock.mock.calls.find(
+    ([input]) =>
+      input ===
+      'https://api.softbook.example/v1/learning/card-source?track=cet4',
+  );
+  expect(new Headers(cardSourceCall?.[1]?.headers).get('authorization')).toBe(
+    'Bearer remote-auth-token',
   );
 });

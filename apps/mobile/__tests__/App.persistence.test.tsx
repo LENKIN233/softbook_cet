@@ -103,6 +103,28 @@ async function login(root: ReactTestRenderer.ReactTestInstance) {
   });
 }
 
+function createRemoteSession(
+  overrides: Partial<ReturnType<typeof createRemoteSessionFixture>> = {},
+) {
+  return {
+    ...createRemoteSessionFixture(),
+    ...overrides,
+  };
+}
+
+function createRemoteSessionFixture() {
+  return {
+    accessToken: 'secure-access-token',
+    accessTokenExpiresAt: '2099-07-20T00:15:00.000Z',
+    mode: 'remote' as const,
+    phoneNumber: '13800138000',
+    refreshExpiresAt: '2099-08-19T00:00:00.000Z',
+    refreshToken: 'secure-refresh-token',
+    sessionId: 'session-123',
+    tokenType: 'Bearer' as const,
+  };
+}
+
 test('persists a successful login and restores it after relaunch', async () => {
   let firstTree: ReactTestRenderer.ReactTestRenderer;
 
@@ -113,7 +135,7 @@ test('persists a successful login and restores it after relaunch', async () => {
   await login(firstTree!.root);
 
   await expect(createAuthSessionStore().load()).resolves.toEqual({
-    authToken: null,
+    mode: 'local',
     phoneNumber: '13800138000',
   });
 
@@ -133,7 +155,7 @@ test('restores check-in, learning cursor, favorite, and sleep state', async () =
   const cursorCard = session.cards[1];
 
   await createAuthSessionStore().save({
-    authToken: null,
+    mode: 'local',
     phoneNumber: '13800138000',
   });
   await createUserStateStore().save('13800138000', {
@@ -175,7 +197,7 @@ test('degrades corrupt user state and clears persistence on logout', async () =>
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
   await createAuthSessionStore().save({
-    authToken: 'secure-token',
+    mode: 'local',
     phoneNumber: '13800138000',
   });
   await AsyncStorage.setItem(USER_STATE_STORAGE_KEY, '{not-json');
@@ -205,9 +227,70 @@ test('degrades corrupt user state and clears persistence on logout', async () =>
   warn.mockRestore();
 });
 
+test('remote logout clears local persistence when server revocation is unavailable', async () => {
+  const originalFetch = globalThis.fetch;
+  const fetchMock = jest.fn(async () => ({
+    json: async () => ({}),
+    ok: false,
+    status: 503,
+  }));
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+  Object.defineProperty(globalThis, 'fetch', {
+    configurable: true,
+    value: fetchMock,
+    writable: true,
+  });
+
+  try {
+    await createAuthSessionStore().save(createRemoteSession());
+    const tree = await renderAppAndWaitForLearning(
+      <App
+        softbookRemoteRuntimeProfile={{
+          baseUrl: 'https://api.softbook.example/',
+          featureModes: {
+            learningSource: 'local',
+            learningState: 'local',
+            membership: 'local',
+            progressSync: 'local',
+            spaceState: 'local',
+          },
+        }}
+      />,
+    );
+    await openRoute(tree.root, 'mine');
+    const mineSurface = tree.root.findByProps({testID: 'mine-surface'}).parent;
+
+    await ReactTestRenderer.act(async () => {
+      await mineSurface!.props.handlers.onLogout();
+      await flushAsyncEffects();
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.softbook.example/v2/auth/logout',
+      expect.objectContaining({method: 'POST'}),
+    );
+    await expect(createAuthSessionStore().load()).resolves.toBeNull();
+    expect(tree.root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+  } finally {
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: originalFetch,
+      writable: true,
+    });
+    warn.mockRestore();
+  }
+});
+
 test('reloads remote membership authority when restoring an auth session', async () => {
   const originalFetch = globalThis.fetch;
-  const fetchMock = jest.fn(async (input: string) => {
+  const fetchMock = jest.fn(
+    async (
+      input: string,
+      _init?: {
+        headers?: ConstructorParameters<typeof Headers>[0];
+        method?: string;
+      },
+    ) => {
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
       return {
         json: async () => ({
@@ -227,8 +310,9 @@ test('reloads remote membership authority when restoring an auth session', async
       };
     }
 
-    throw new Error(`Unexpected fetch call: ${input}`);
-  });
+      throw new Error(`Unexpected fetch call: ${input}`);
+    },
+  );
   Object.defineProperty(globalThis, 'fetch', {
     configurable: true,
     value: fetchMock,
@@ -236,10 +320,7 @@ test('reloads remote membership authority when restoring an auth session', async
   });
 
   try {
-    await createAuthSessionStore().save({
-      authToken: 'secure-token',
-      phoneNumber: '13800138000',
-    });
+    await createAuthSessionStore().save(createRemoteSession());
 
     const tree = await renderAppAndWaitForLearning(
       <App
@@ -263,16 +344,13 @@ test('reloads remote membership authority when restoring an auth session', async
     ).toBe('当前是会员态');
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.softbook.example/v1/membership/entitlement',
-      {
-        headers: {
-          Authorization: 'Bearer secure-token',
-          'content-type': 'application/json',
-          'x-api-key': 'runtime-key',
-          'x-softbook-client': 'mobile',
-        },
-        method: 'GET',
-      },
+      expect.objectContaining({method: 'GET'}),
     );
+    const requestHeaders = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+    expect(requestHeaders.get('authorization')).toBe(
+      'Bearer secure-access-token',
+    );
+    expect(requestHeaders.get('x-api-key')).toBe('runtime-key');
   } finally {
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
@@ -316,10 +394,7 @@ test('loads server canonical space state before pushing restored local state', a
   });
 
   try {
-    await createAuthSessionStore().save({
-      authToken: 'secure-token',
-      phoneNumber: '13800138000',
-    });
+    await createAuthSessionStore().save(createRemoteSession());
     await createUserStateStore().save('13800138000', {
       checkedInDayKey: null,
       learningCursor: null,
@@ -388,10 +463,12 @@ test('expired restored session clears account state instead of authenticating of
   });
 
   try {
-    await createAuthSessionStore().save({
-      authToken: 'expired-token',
-      phoneNumber: '13800138000',
-    });
+    await createAuthSessionStore().save(
+      createRemoteSession({
+        accessToken: 'expired-token',
+        accessTokenExpiresAt: '2020-07-20T00:15:00.000Z',
+      }),
+    );
     await createUserStateStore().save(
       '13800138000',
       createUserStateStoreFixture(),

@@ -1,16 +1,13 @@
-import * as Keychain from 'react-native-keychain';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Keychain from 'react-native-keychain';
 
-export type PersistedAuthSession = {
-  authToken: string | null;
-  phoneNumber: string;
-};
+import type {AuthSession, RemoteAuthSession} from '../auth/authSession';
+
+export type PersistedAuthSession = AuthSession;
 
 export type AuthSessionSecureStorage = {
   clearCredentials: () => Promise<boolean>;
-  loadCredentials: () => Promise<
-    false | { password: string; username: string }
-  >;
+  loadCredentials: () => Promise<false | {password: string; username: string}>;
   saveCredentials: (username: string, password: string) => Promise<boolean>;
 };
 
@@ -26,15 +23,22 @@ export type AuthSessionStore = {
   save: (session: PersistedAuthSession) => Promise<void>;
 };
 
-const AUTH_SESSION_SCHEMA_VERSION = 1;
-const AUTH_SESSION_SERVICE = 'com.softbook.cet.auth-session.v1';
+const AUTH_SESSION_SCHEMA_VERSION = 2;
+const AUTH_SESSION_SERVICE = 'com.softbook.cet.auth-session.v2';
+const LEGACY_AUTH_SESSION_SERVICE = 'com.softbook.cet.auth-session.v1';
 export const AUTH_SESSION_REVOCATION_KEY =
   'softbook-cet/auth-session/revoked.v1';
 
-type AuthSessionPayload = {
-  authToken: string | null;
+type LocalAuthSessionPayload = {
+  mode: 'local';
   version: typeof AUTH_SESSION_SCHEMA_VERSION;
 };
+
+type RemoteAuthSessionPayload = Omit<RemoteAuthSession, 'phoneNumber'> & {
+  version: typeof AUTH_SESSION_SCHEMA_VERSION;
+};
+
+type AuthSessionPayload = LocalAuthSessionPayload | RemoteAuthSessionPayload;
 
 export function createAuthSessionStore(
   storage: AuthSessionSecureStorage = createReactNativeAuthSessionSecureStorage(),
@@ -42,14 +46,32 @@ export function createAuthSessionStore(
 ): AuthSessionStore {
   return {
     async clear() {
-      await revocationStorage.setItem(AUTH_SESSION_REVOCATION_KEY, 'revoked');
+      let markerPersisted = false;
+      let credentialsCleanupCompleted = false;
+
+      try {
+        await revocationStorage.setItem(AUTH_SESSION_REVOCATION_KEY, 'revoked');
+        markerPersisted = true;
+      } catch {
+        console.warn(
+          '[AuthSessionStore] Failed to persist the auth revocation marker.',
+        );
+      }
 
       try {
         await storage.clearCredentials();
-      } catch (error) {
+        credentialsCleanupCompleted = true;
+      } catch {
         console.warn(
-          '[AuthSessionStore] Secure credentials remain covered by the revocation marker.',
-          error,
+          markerPersisted
+            ? '[AuthSessionStore] Secure credentials remain covered by the revocation marker.'
+            : '[AuthSessionStore] Failed to clear secure credentials.',
+        );
+      }
+
+      if (!markerPersisted && !credentialsCleanupCompleted) {
+        throw new Error(
+          'Auth session cleanup could not persist revocation or clear credentials.',
         );
       }
     },
@@ -122,12 +144,7 @@ export function createAuthSessionStore(
 
     async save(session) {
       assertPhoneNumber(session.phoneNumber);
-      assertAuthToken(session.authToken);
-
-      const payload: AuthSessionPayload = {
-        authToken: session.authToken,
-        version: AUTH_SESSION_SCHEMA_VERSION,
-      };
+      const payload = createAuthSessionPayload(session);
       const saved = await storage.saveCredentials(
         session.phoneNumber,
         JSON.stringify(payload),
@@ -157,11 +174,31 @@ export function createAuthSessionStore(
 
 export function createReactNativeAuthSessionSecureStorage(): AuthSessionSecureStorage {
   return {
-    clearCredentials: () =>
-      Keychain.resetGenericPassword({ service: AUTH_SESSION_SERVICE }),
-    loadCredentials: () =>
-      Keychain.getGenericPassword({ service: AUTH_SESSION_SERVICE }),
+    async clearCredentials() {
+      const [current, legacy] = await Promise.all([
+        Keychain.resetGenericPassword({service: AUTH_SESSION_SERVICE}),
+        Keychain.resetGenericPassword({service: LEGACY_AUTH_SESSION_SERVICE}),
+      ]);
+
+      return current !== false && legacy !== false;
+    },
+    async loadCredentials() {
+      const current = await Keychain.getGenericPassword({
+        service: AUTH_SESSION_SERVICE,
+      });
+
+      if (current) {
+        return current;
+      }
+
+      return Keychain.getGenericPassword({
+        service: LEGACY_AUTH_SESSION_SERVICE,
+      });
+    },
     async saveCredentials(username, password) {
+      await Keychain.resetGenericPassword({
+        service: LEGACY_AUTH_SESSION_SERVICE,
+      });
       const result = await Keychain.setGenericPassword(username, password, {
         accessible: Keychain.ACCESSIBLE.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
         service: AUTH_SESSION_SERVICE,
@@ -169,6 +206,28 @@ export function createReactNativeAuthSessionSecureStorage(): AuthSessionSecureSt
 
       return result !== false;
     },
+  };
+}
+
+function createAuthSessionPayload(session: AuthSession): AuthSessionPayload {
+  if (session.mode === 'local') {
+    return {
+      mode: 'local',
+      version: AUTH_SESSION_SCHEMA_VERSION,
+    };
+  }
+
+  assertRemoteAuthSession(session);
+
+  return {
+    accessToken: session.accessToken,
+    accessTokenExpiresAt: session.accessTokenExpiresAt,
+    mode: 'remote',
+    refreshExpiresAt: session.refreshExpiresAt,
+    refreshToken: session.refreshToken,
+    sessionId: session.sessionId,
+    tokenType: session.tokenType,
+    version: AUTH_SESSION_SCHEMA_VERSION,
   };
 }
 
@@ -184,12 +243,26 @@ function parseAuthSession(
     throw new Error('Auth session payload version is invalid.');
   }
 
-  assertAuthToken(payload.authToken);
+  if (payload.mode === 'local') {
+    return {
+      mode: 'local',
+      phoneNumber,
+    };
+  }
 
-  return {
-    authToken: payload.authToken,
+  const session: RemoteAuthSession = {
+    accessToken: payload.accessToken as string,
+    accessTokenExpiresAt: payload.accessTokenExpiresAt as string,
+    mode: payload.mode as 'remote',
     phoneNumber,
+    refreshExpiresAt: payload.refreshExpiresAt as string,
+    refreshToken: payload.refreshToken as string,
+    sessionId: payload.sessionId as string,
+    tokenType: payload.tokenType as 'Bearer',
   };
+  assertRemoteAuthSession(session);
+
+  return session;
 }
 
 function assertPhoneNumber(value: unknown): asserts value is string {
@@ -198,12 +271,35 @@ function assertPhoneNumber(value: unknown): asserts value is string {
   }
 }
 
-function assertAuthToken(value: unknown): asserts value is string | null {
-  if (
-    value !== null &&
-    (typeof value !== 'string' || value.trim().length === 0)
-  ) {
-    throw new Error('Auth session token must be a non-empty string or null.');
+function assertRemoteAuthSession(
+  session: RemoteAuthSession,
+): asserts session is RemoteAuthSession {
+  if (session.mode !== 'remote') {
+    throw new Error('Remote auth session mode is invalid.');
+  }
+
+  assertNonEmptyString(session.accessToken, 'accessToken');
+  assertIsoTimestamp(session.accessTokenExpiresAt, 'accessTokenExpiresAt');
+  assertIsoTimestamp(session.refreshExpiresAt, 'refreshExpiresAt');
+  assertNonEmptyString(session.refreshToken, 'refreshToken');
+  assertNonEmptyString(session.sessionId, 'sessionId');
+
+  if (session.tokenType !== 'Bearer') {
+    throw new Error('Auth session tokenType must be Bearer.');
+  }
+}
+
+function assertNonEmptyString(value: unknown, field: string) {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(`Auth session ${field} must be a non-empty string.`);
+  }
+}
+
+function assertIsoTimestamp(value: unknown, field: string) {
+  assertNonEmptyString(value, field);
+
+  if (!Number.isFinite(Date.parse(value as string))) {
+    throw new Error(`Auth session ${field} must be an ISO timestamp.`);
   }
 }
 

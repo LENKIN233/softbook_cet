@@ -153,6 +153,33 @@ test('v2 SMS challenge stores only a digest and issues a server-backed session',
   );
 });
 
+test('development v1 product routes accept only active v2 sessions', async () => {
+  const {api} = createV2TestApi();
+  const session = await issueSession(api);
+  const headers = {authorization: `Bearer ${session.access_token}`};
+
+  const activeResponse = await request(api, {
+    headers,
+    method: 'GET',
+    path: '/v1/membership/entitlement',
+  });
+  assert.equal(activeResponse.statusCode, 200);
+
+  const deletionResponse = await request(api, {
+    headers,
+    path: '/v2/account/deletion',
+  });
+  assert.equal(deletionResponse.statusCode, 202);
+
+  const revokedResponse = await request(api, {
+    headers,
+    method: 'GET',
+    path: '/v1/membership/entitlement',
+  });
+  assert.equal(revokedResponse.statusCode, 401);
+  assert.equal(revokedResponse.body.error.code, 'revoked_auth_session');
+});
+
 test('v2 SMS challenges are one-time and lock after the configured attempt limit', async () => {
   const {api} = createV2TestApi({verifyAttemptLimit: 2});
   const lockedChallenge = await issueChallenge(api);

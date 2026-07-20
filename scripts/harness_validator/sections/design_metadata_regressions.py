@@ -20,6 +20,14 @@ def validate(context) -> None:
         "usedPeek",
         "auth_token",
         "authToken",
+        "access_token",
+        "accessToken",
+        "refresh_token",
+        "refreshToken",
+        "challenge_id",
+        "challengeId",
+        "session_id",
+        "sessionId",
         "sms_code",
         "phone_number",
         "day_key",
@@ -431,7 +439,7 @@ def validate(context) -> None:
         )
         fixture_sync_payload_metadata_html = tmp_dir / "sync-payload-metadata-visible-leak.html"
         fixture_sync_payload_metadata_html.write_text(
-            "<!doctype html><html><body><p>auth_token, sms_code, phone_number, day_key, completed_at, used_hint, used_peek, is_favorited, is_sleeping, last_modified_at, checked_in_today, favorite_count, learning_completed_count, pending_review_count, review_completed_count, sleeping_count, and total_completed_count are visible.</p></body></html>\n",
+            "<!doctype html><html><body><p>auth_token, access_token, refresh_token, challenge_id, session_id, sms_code, phone_number, day_key, completed_at, used_hint, used_peek, is_favorited, is_sleeping, last_modified_at, checked_in_today, favorite_count, learning_completed_count, pending_review_count, review_completed_count, sleeping_count, and total_completed_count are visible.</p></body></html>\n",
             encoding="utf-8",
         )
         fixture_membership_payload_metadata_html = tmp_dir / "membership-payload-metadata-visible-leak.html"
@@ -441,7 +449,7 @@ def validate(context) -> None:
         )
         fixture_camel_runtime_bookkeeping_metadata_html = tmp_dir / "camel-runtime-bookkeeping-metadata-visible-leak.html"
         fixture_camel_runtime_bookkeeping_metadata_html.write_text(
-            "<!doctype html><html><body><p>authToken, acknowledgedAt, lastModifiedAt, countedEntryCount, recoveryPromptVisible, and trialStartedAtEntryCount are visible.</p></body></html>\n",
+            "<!doctype html><html><body><p>authToken, accessToken, refreshToken, challengeId, sessionId, acknowledgedAt, lastModifiedAt, countedEntryCount, recoveryPromptVisible, and trialStartedAtEntryCount are visible.</p></body></html>\n",
             encoding="utf-8",
         )
         fixture_mutation_queue_metadata_html = tmp_dir / "mutation-queue-metadata-visible-leak.html"

@@ -17,7 +17,7 @@ const mockFetch = jest.fn();
 
 type MockFetchInit = {
   body?: string;
-  headers?: Record<string, string>;
+  headers?: ConstructorParameters<typeof Headers>[0];
   method?: string;
 };
 
@@ -33,7 +33,7 @@ type TestRendererNode =
   | null;
 
 const USER_VISIBLE_METADATA_PATTERN =
-  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|remoteConfig|authToken|endpoint|MutationQueue|mutation|JSON Parse error|Unexpected character|SyntaxError|parse failed|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|当前卡组|本组第|本轮卡组|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|已登录\s+138|第\s+\d+\s+张\s+\/\s+共\s+\d+\s+张|馆\s+\d|组\s+\d|盒\s+\d|当前地址|当前学习卡位于|空间地址架|当前盒位|当前空间路径|收藏标签\s+\d|休眠区\s+\d|0\s+张可展示|（[1-5]\d{2}）|\([1-5]\d{2}\)|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
+  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|remoteConfig|authToken|accessToken|refreshToken|challengeId|sessionId|endpoint|MutationQueue|mutation|JSON Parse error|Unexpected character|SyntaxError|parse failed|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|当前卡组|本组第|本轮卡组|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|已登录\s+138|第\s+\d+\s+张\s+\/\s+共\s+\d+\s+张|馆\s+\d|组\s+\d|盒\s+\d|当前地址|当前学习卡位于|空间地址架|当前盒位|当前空间路径|收藏标签\s+\d|休眠区\s+\d|0\s+张可展示|（[1-5]\d{2}）|\([1-5]\d{2}\)|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
 function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   if (node === null) {
@@ -68,6 +68,7 @@ test('metadata leakage guard catches internal remote error vocabulary', () => {
     'Remote membership mutation failed with 503.',
     'Remote learning source payload.data.source_id is required.',
     'MutationQueue replay failed for authToken endpoint remoteConfig.',
+    'accessToken refreshToken challengeId sessionId',
     'JSON Parse error: Unexpected character: c',
     'space_metadata.box_ref leaked through a status card.',
     '顶层切换留在壳层，页面内部只承接该模块最小必要信息。',
@@ -355,6 +356,36 @@ function createJsonResponse(payload: unknown, status = 200) {
     ok: status >= 200 && status < 300,
     status,
   };
+}
+
+function normalizeMockHeaders(
+  headers: MockFetchInit['headers'],
+): Record<string, string> {
+  return Object.fromEntries(new Headers(headers).entries());
+}
+
+function createRemoteAuthChallengeResponse() {
+  return createJsonResponse({
+    data: {
+      challenge_id: 'challenge-123',
+      expires_at: '2099-07-20T00:05:00.000Z',
+      retry_after_seconds: 60,
+    },
+  });
+}
+
+function createRemoteAuthSessionResponse() {
+  return createJsonResponse({
+    data: {
+      access_token: 'remote-auth-token',
+      expires_in: 900,
+      phone_number: '13800138000',
+      refresh_expires_at: '2099-08-19T00:00:00.000Z',
+      refresh_token: 'remote-refresh-token',
+      session_id: 'session-123',
+      token_type: 'Bearer',
+    },
+  });
 }
 
 function createRemoteMembershipPayload(
@@ -734,7 +765,7 @@ test('shows remote request-code failure inside the auth gate', async () => {
   };
 
   mockFetch.mockImplementation(async input => {
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
       return createJsonResponse({}, 503);
     }
 
@@ -786,11 +817,11 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   };
 
   mockFetch.mockImplementation(async input => {
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
       return createJsonResponse({}, 401);
     }
 
@@ -873,11 +904,11 @@ test('sanitizes remote verify-code parser failures inside the auth gate', async 
   };
 
   mockFetch.mockImplementation(async input => {
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
       return {
         json: async () => {
           throw new Error('JSON Parse error: Unexpected character: c');
@@ -948,17 +979,12 @@ test('keeps verified remote auth when entitlement bootstrap is unavailable', asy
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     fetchCalls.push({ init, input });
 
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -1009,17 +1035,12 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     fetchCalls.push({ init, input });
 
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -1073,7 +1094,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   const repositoryConfig =
     mockCreateLearningSessionRepository.mock.calls[0]?.[0];
   expect(repositoryConfig).toMatchObject({
-    fallbackToLocalOnRemoteError: true,
+    fallbackToLocalOnRemoteError: false,
     mode: 'remote',
     remoteConfig: {
       apiKey: 'profile-key',
@@ -1127,8 +1148,8 @@ test('wires remote auth, learning source config, membership, progress sync, and 
     call =>
       call.input === 'https://api.softbook.example/v1/membership/entitlement',
   );
-  expect(membershipRequest?.init?.headers).toMatchObject({
-    Authorization: 'Bearer remote-auth-token',
+  expect(normalizeMockHeaders(membershipRequest?.init?.headers)).toMatchObject({
+    authorization: 'Bearer remote-auth-token',
     'x-api-key': 'profile-key',
   });
 
@@ -1136,8 +1157,8 @@ test('wires remote auth, learning source config, membership, progress sync, and 
     call =>
       call.input === 'https://api.softbook.example/v1/progress/daily-sync',
   );
-  expect(progressSyncRequest?.init?.headers).toMatchObject({
-    Authorization: 'Bearer remote-auth-token',
+  expect(normalizeMockHeaders(progressSyncRequest?.init?.headers)).toMatchObject({
+    authorization: 'Bearer remote-auth-token',
     'content-type': 'application/json',
     'x-api-key': 'profile-key',
   });
@@ -1150,8 +1171,8 @@ test('wires remote auth, learning source config, membership, progress sync, and 
     call =>
       call.input === 'https://api.softbook.example/v1/learning/state-sync',
   );
-  expect(learningStateRequest?.init?.headers).toMatchObject({
-    Authorization: 'Bearer remote-auth-token',
+  expect(normalizeMockHeaders(learningStateRequest?.init?.headers)).toMatchObject({
+    authorization: 'Bearer remote-auth-token',
     'content-type': 'application/json',
     'x-api-key': 'profile-key',
   });
@@ -1162,8 +1183,8 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   const spaceSyncRequest = fetchCalls.find(
     call => call.input === 'https://api.softbook.example/v1/space/state-sync',
   );
-  expect(spaceSyncRequest?.init?.headers).toMatchObject({
-    Authorization: 'Bearer remote-auth-token',
+  expect(normalizeMockHeaders(spaceSyncRequest?.init?.headers)).toMatchObject({
+    authorization: 'Bearer remote-auth-token',
     'content-type': 'application/json',
     'x-api-key': 'profile-key',
   });
@@ -1222,17 +1243,12 @@ test('queues failed remote daily progress sync for later replay', async () => {
   };
 
   mockFetch.mockImplementation(async (input: string) => {
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -1310,17 +1326,12 @@ test('queues failed remote learning state sync for later replay', async () => {
   };
 
   mockFetch.mockImplementation(async (input: string) => {
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -1405,17 +1416,12 @@ test('replays queued daily progress after network reconnect', async () => {
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     fetchCalls.push({ init, input });
 
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -1517,17 +1523,12 @@ test('replays queued learning state after network reconnect', async () => {
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     fetchCalls.push({ init, input });
 
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -1628,17 +1629,12 @@ test('replays queued space state after network reconnect', async () => {
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     fetchCalls.push({ init, input });
 
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -1746,17 +1742,12 @@ test('replays queued membership refresh after network reconnect', async () => {
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     fetchCalls.push({ init, input });
 
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -1829,17 +1820,12 @@ test('requires explicit remote trial start from protected space', async () => {
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     fetchCalls.push({ init, input });
 
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -1891,8 +1877,8 @@ test('requires explicit remote trial start from protected space', async () => {
     call =>
       call.input === 'https://api.softbook.example/v1/membership/start-trial',
   );
-  expect(startTrialRequest?.init?.headers).toMatchObject({
-    Authorization: 'Bearer remote-auth-token',
+  expect(normalizeMockHeaders(startTrialRequest?.init?.headers)).toMatchObject({
+    authorization: 'Bearer remote-auth-token',
   });
 
   const unlockedSpaceText = JSON.stringify(tree!.toJSON());
@@ -1923,17 +1909,12 @@ test('falls back to local trial unlock and replays remote trial start later', as
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     fetchCalls.push({ init, input });
 
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -2049,17 +2030,12 @@ test('can unlock gated space after remote purchase', async () => {
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     fetchCalls.push({ init, input });
 
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -2115,8 +2091,8 @@ test('can unlock gated space after remote purchase', async () => {
     call =>
       call.input === 'https://api.softbook.example/v1/membership/purchase',
   );
-  expect(purchaseRequest?.init?.headers).toMatchObject({
-    Authorization: 'Bearer remote-auth-token',
+  expect(normalizeMockHeaders(purchaseRequest?.init?.headers)).toMatchObject({
+    authorization: 'Bearer remote-auth-token',
   });
 });
 
@@ -2137,17 +2113,12 @@ test('keeps remote purchase failure copy user-facing', async () => {
   };
 
   mockFetch.mockImplementation(async (input: string) => {
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -2204,17 +2175,12 @@ test('can dismiss remote recovery reminder from mine', async () => {
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     fetchCalls.push({ init, input });
 
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -2276,8 +2242,10 @@ test('can dismiss remote recovery reminder from mine', async () => {
       call.input ===
       'https://api.softbook.example/v1/membership/dismiss-recovery',
   );
-  expect(dismissRecoveryRequest?.init?.headers).toMatchObject({
-    Authorization: 'Bearer remote-auth-token',
+  expect(
+    normalizeMockHeaders(dismissRecoveryRequest?.init?.headers),
+  ).toMatchObject({
+    authorization: 'Bearer remote-auth-token',
   });
 });
 
@@ -2298,17 +2266,12 @@ test('keeps remote recovery-dismiss failure copy user-facing', async () => {
   };
 
   mockFetch.mockImplementation(async (input: string) => {
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -2375,17 +2338,12 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     fetchCalls.push({ init, input });
 
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -2455,17 +2413,12 @@ test('refreshes remote entitlement again after leaving mine and reopening it', a
   };
 
   mockFetch.mockImplementation(async (input: string) => {
-    if (input === 'https://api.softbook.example/v1/auth/request-code') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/auth/verify-code') {
-      return createJsonResponse({
-        data: {
-          auth_token: 'remote-auth-token',
-          phone_number: '13800138000',
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {

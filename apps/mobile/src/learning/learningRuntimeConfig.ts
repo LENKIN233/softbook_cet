@@ -144,7 +144,7 @@ export function resolveLearningSessionRepositoryConfig(
     }
 
     return {
-      fallbackToLocalOnRemoteError: true,
+      fallbackToLocalOnRemoteError: false,
       mode: 'remote',
       remoteConfig: createSoftbookRemoteLearningCardSourceConfig(
         learningSource.remote,

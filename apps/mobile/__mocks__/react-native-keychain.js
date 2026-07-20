@@ -1,6 +1,10 @@
 /* eslint-env jest */
 
-let credentials = false;
+let credentialsByService = new Map();
+
+function resolveService(options = {}) {
+  return options.service ?? '__default__';
+}
 
 const keychain = {
   ACCESSIBLE: {
@@ -8,22 +12,26 @@ const keychain = {
       'AccessibleAfterFirstUnlockThisDeviceOnly',
   },
   __reset: jest.fn(() => {
-    credentials = false;
+    credentialsByService = new Map();
   }),
   __setCredentials: jest.fn(value => {
-    credentials = value;
+    const service = value && value.service ? value.service : '__default__';
+    credentialsByService.set(service, value);
   }),
-  getGenericPassword: jest.fn(async () => credentials),
-  resetGenericPassword: jest.fn(async () => {
-    credentials = false;
+  getGenericPassword: jest.fn(async options => {
+    return credentialsByService.get(resolveService(options)) ?? false;
+  }),
+  resetGenericPassword: jest.fn(async options => {
+    credentialsByService.delete(resolveService(options));
     return true;
   }),
   setGenericPassword: jest.fn(async (username, password, options = {}) => {
-    credentials = {
+    const credentials = {
       password,
       service: options.service,
       username,
     };
+    credentialsByService.set(resolveService(options), credentials);
 
     return {
       service: options.service,

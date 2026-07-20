@@ -4,7 +4,7 @@ Referenced specs: `spec/account-sync-contract.json`, `spec/membership.json`, `sp
 
 `product_truth`: remote learning must still enforce phone-code login before learning, shared membership entitlement, daily-level progress sync, and physical-space state sync.
 
-`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Keep the public mobile contract as standard REST under `/v1/*`, isolate CloudBase NoSQL/function details behind a service adapter, and preserve a future migration path to Docker + PostgreSQL on the formal work server.
+`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication uses `/v2`; product-data routes remain `/v1` only as a development migration bridge. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to Docker + PostgreSQL on the formal work server.
 
 ## Current Environment
 
@@ -38,8 +38,12 @@ infra/cloudbase/check-dev.sh
 Deploy one CloudBase function through an HTTP access service that exposes the existing mobile remote contract:
 
 ```text
-POST /v1/auth/request-code
-POST /v1/auth/verify-code
+POST /v2/auth/request-code
+POST /v2/auth/verify-code
+POST /v2/auth/refresh
+POST /v2/auth/logout
+POST /v2/account/deletion
+
 GET  /v1/learning/card-source?track=cet4|cet6
 GET  /v1/membership/entitlement
 POST /v1/membership/start-trial
@@ -49,11 +53,6 @@ POST /v1/progress/daily-sync
 POST /v1/learning/state-sync
 POST /v1/space/state-sync
 
-POST /v2/auth/request-code
-POST /v2/auth/verify-code
-POST /v2/auth/refresh
-POST /v2/auth/logout
-POST /v2/account/deletion
 ```
 
 For the development environment, SMS should use a whitelist/fixed-code adapter first. Real SMS provider integration should remain an adapter and must not change the mobile REST contract.
@@ -62,11 +61,13 @@ For the development environment, SMS should use a whitelist/fixed-code adapter f
 
 The first function is implemented at `infra/cloudbase/functions/softbook-api`.
 
-It keeps the current external mobile contract as `/v1/*` REST while exposing a
-server-only `/v2` authentication migration foundation:
+It keeps product-data routes as development-only `/v1/*` REST while mobile uses
+the `/v2` authentication foundation:
 
 - Auth uses a development fixed-code adapter. Default code: `2468`.
-- Verified auth returns a signed bearer token that all non-auth endpoints require.
+- Verified v2 auth returns a short-lived signed bearer token backed by a
+  revocable server session. Development v1 product routes accept that active
+  session; production rejects every v1 route.
 - Auth v2 adds persisted one-time SMS challenges, per-phone and per-IP rate
   limits, 15-minute access tokens, rotating 30-day refresh tokens, session
   revocation, and queued account deletion. See
