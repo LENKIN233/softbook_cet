@@ -60,7 +60,16 @@ export type MutationQueueRuntimeConfig = {
   mode?: 'local' | 'remote';
 };
 
+export type AccountBootstrapRuntimeConfig = {
+  mode?: 'local' | 'remote';
+  remote?: {
+    apiKey?: string;
+    baseUrl: string;
+  };
+};
+
 export type SoftbookAppRuntimeConfig = {
+  accountBootstrap?: AccountBootstrapRuntimeConfig;
   auth?: AuthRuntimeConfig;
   learningTrack?: LearningTrack;
   learningSource?: LearningSourceRuntimeConfig;
@@ -72,6 +81,7 @@ export type SoftbookAppRuntimeConfig = {
 };
 
 type RemoteRuntimeFeature =
+  | 'accountBootstrap'
   | 'learningSource'
   | 'membership'
   | 'progressSync'
@@ -100,6 +110,7 @@ export function assertRemoteRuntimeUsesRemoteAuth(
   }
 
   const labelByFeature: Record<RemoteRuntimeFeature, string> = {
+    accountBootstrap: 'Remote account bootstrap mode',
     learningSource: 'Remote learning source mode',
     learningState: 'Remote learning state mode',
     membership: 'Remote membership mode',
@@ -119,17 +130,21 @@ export function readSoftbookAppRuntimeConfig():
 }
 
 export function resolveLearningTrack(
-  runtimeConfig: SoftbookAppRuntimeConfig | undefined =
-    readSoftbookAppRuntimeConfig(),
+  runtimeConfig:
+    | SoftbookAppRuntimeConfig
+    | undefined = readSoftbookAppRuntimeConfig(),
 ): LearningTrack {
   return (
-    runtimeConfig?.learningTrack ?? runtimeConfig?.learningSource?.track ?? 'cet4'
+    runtimeConfig?.learningTrack ??
+    runtimeConfig?.learningSource?.track ??
+    'cet4'
   );
 }
 
 export function resolveLearningSessionRepositoryConfig(
-  runtimeConfig: SoftbookAppRuntimeConfig | undefined =
-    readSoftbookAppRuntimeConfig(),
+  runtimeConfig:
+    | SoftbookAppRuntimeConfig
+    | undefined = readSoftbookAppRuntimeConfig(),
 ): LearningSessionRepositoryConfig {
   const learningSource = runtimeConfig?.learningSource;
   const mode = learningSource?.mode ?? 'local';

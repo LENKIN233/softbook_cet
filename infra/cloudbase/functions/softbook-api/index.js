@@ -1083,6 +1083,7 @@ function serializeCardSourceResponse(cardSource, expectedTrack) {
 
   return {
     card_records: cloneJson(normalized.card_records),
+    content_version: normalized.content_version,
     source: {
       id: normalized.source.id,
       label: normalized.source.label,

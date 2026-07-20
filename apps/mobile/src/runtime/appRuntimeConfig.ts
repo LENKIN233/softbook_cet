@@ -2,6 +2,7 @@ import type { LearningTrack } from '../learning/model';
 import type { SoftbookAppRuntimeConfig } from '../learning/learningRuntimeConfig';
 
 export type SoftbookRemoteRuntimeFeature =
+  | 'accountBootstrap'
   | 'learningSource'
   | 'membership'
   | 'progressSync'
@@ -11,7 +12,9 @@ export type SoftbookRemoteRuntimeFeature =
 export type SoftbookRemoteRuntimeProfile = {
   apiKey?: string;
   baseUrl: string;
-  featureModes?: Partial<Record<SoftbookRemoteRuntimeFeature, 'local' | 'remote'>>;
+  featureModes?: Partial<
+    Record<SoftbookRemoteRuntimeFeature, 'local' | 'remote'>
+  >;
   learningTrack?: LearningTrack;
 };
 
@@ -30,6 +33,9 @@ type SoftbookRuntimeGlobalThis = typeof globalThis & {
 
 // This tracked default keeps local learning as the safe baseline for development.
 export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
+  accountBootstrap: {
+    mode: 'local',
+  },
   auth: {
     mode: 'local',
   },
@@ -72,18 +78,35 @@ export function createSoftbookRemoteRuntimeConfig(
   const baseUrl = normalizeRemoteBaseUrl(profile.baseUrl);
   const remote = {
     baseUrl,
-    ...(profile.apiKey ? {apiKey: profile.apiKey} : {}),
+    ...(profile.apiKey ? { apiKey: profile.apiKey } : {}),
   };
   const learningTrack = profile.learningTrack ?? 'cet4';
+  const accountBootstrapMode = resolveFeatureMode(profile, 'accountBootstrap');
+  const learningSourceMode = resolveFeatureMode(profile, 'learningSource');
+
+  if (accountBootstrapMode === 'remote' && learningSourceMode === 'local') {
+    throw new Error(
+      'Remote account bootstrap requires learningSource to also be remote.',
+    );
+  }
 
   return {
+    accountBootstrap:
+      accountBootstrapMode === 'remote'
+        ? {
+            mode: 'remote',
+            remote,
+          }
+        : {
+            mode: 'local',
+          },
     auth: {
       mode: 'remote',
       remote,
     },
     learningTrack,
     learningSource:
-      resolveFeatureMode(profile, 'learningSource') === 'remote'
+      learningSourceMode === 'remote'
         ? {
             mode: 'remote',
             remote,
@@ -149,12 +172,12 @@ export function readRemoteRuntimeProfileFromEnv(
   return {
     baseUrl,
     ...(env?.SOFTBOOK_CET_REMOTE_API_KEY
-      ? {apiKey: env.SOFTBOOK_CET_REMOTE_API_KEY}
+      ? { apiKey: env.SOFTBOOK_CET_REMOTE_API_KEY }
       : {}),
     ...(localFeatures.length > 0
-      ? {featureModes: createLocalFeatureModes(localFeatures)}
+      ? { featureModes: createLocalFeatureModes(localFeatures) }
       : {}),
-    ...(learningTrack ? {learningTrack} : {}),
+    ...(learningTrack ? { learningTrack } : {}),
   };
 }
 
@@ -232,6 +255,7 @@ function isSoftbookRemoteRuntimeFeature(
   value: string,
 ): value is SoftbookRemoteRuntimeFeature {
   return (
+    value === 'accountBootstrap' ||
     value === 'learningSource' ||
     value === 'membership' ||
     value === 'progressSync' ||

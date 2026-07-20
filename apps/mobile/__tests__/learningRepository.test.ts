@@ -14,6 +14,7 @@ test('local learning session repository loads a usable session', async () => {
   const session = await repository.loadSession(authenticatedContext, 'cet4');
 
   expect(session.track).toBe('cet4');
+  expect(session.contentVersion).toBeNull();
   expect(session.cards).toHaveLength(5);
   expect(session.cards.map(card => card.interaction_id)).toEqual([
     'flip',
@@ -34,9 +35,9 @@ test('learning session repository rejects empty sessions', async () => {
     },
   });
 
-  await expect(repository.loadSession(authenticatedContext, 'cet4')).rejects.toThrow(
-    'Learning session repository returned an empty session.',
-  );
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).rejects.toThrow('Learning session repository returned an empty session.');
 });
 
 test('remote learning session repository delegates to remote source loading', async () => {
@@ -62,6 +63,7 @@ test('remote learning session repository delegates to remote source loading', as
   const session = await repository.loadSession(authenticatedContext, 'cet4');
 
   expect(session.sourceId).toBe('remote-learning-cards');
+  expect(session.contentVersion).toBeNull();
   expect(session.catalogCards).toHaveLength(localLearningCardRecords.length);
   expect(session.cards).toHaveLength(5);
   expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -107,7 +109,7 @@ test('remote learning session repository never hides authorization failure behin
 
   await expect(
     repository.loadSession(authenticatedContext, 'cet4'),
-  ).rejects.toMatchObject({status: 401});
+  ).rejects.toMatchObject({ status: 401 });
 });
 
 test('remote learning session repository still surfaces remote failures when fallback is disabled', async () => {
@@ -126,7 +128,9 @@ test('remote learning session repository still surfaces remote failures when fal
     fetchImpl: fetchMock,
   });
 
-  await expect(repository.loadSession(authenticatedContext, 'cet4')).rejects.toThrow(
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).rejects.toThrow(
     'Remote learning card source request failed with status 503.',
   );
 });

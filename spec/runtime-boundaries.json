@@ -65,6 +65,8 @@
     "an authenticated v2 bootstrap read derives account identity from the active session and returns membership, daily progress, learning card state, nullable scheduler cursor, physical space, and content version without accepting phone_number input",
     "missing bootstrap components return explicit empty server state and never import device-local state; CloudBase response freshness is explicit and does not claim a cross-collection transaction",
     "bootstrap content version is derived from normalized ordered content; production fails closed without a matching published content-release.v1 descriptor while development may expose a null release id",
+    "mobile remote login and restored sessions validate bootstrap scope before hydrating its canonical baseline, then validate the loaded card-source identity and content version before enabling learning, persisting reconciled state, replaying mutations, or pushing product-state writes",
+    "mobile keeps a still-valid authenticated session retryable after transient bootstrap failure but fails closed without previously validated canonical state and required content; reconnect reads canonical state before replay and again after replay",
     "bootstrap does not make legacy snapshot writes, server scheduling, idempotent learning events, signed content manifests, or the CommonJS CloudBase function production-ready",
     "development-only v1 product routes can accept an active v2 session during migration while production continues to reject every v1 route",
     "remote content failures fail closed and never substitute bundled development cards"

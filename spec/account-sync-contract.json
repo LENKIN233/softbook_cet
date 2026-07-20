@@ -60,7 +60,7 @@
     "consistency_rule": "generated_at binds one response and each mutable component exposes acknowledged_at freshness; the current CloudBase multi-collection adapter does not claim a serializable cross-collection transaction",
     "content_rule": "content version is the SHA-256 of the normalized ordered source; production requires a matching published content-release.v1 descriptor while development may return release_id null",
     "release_publication_rule": "the development importer rejects non-null release descriptors; a separate publication pipeline must verify formal content approval before writing content-release.v1",
-    "client_rule": "an authenticated client may use validated cached state while offline, but must reconcile with this server read before pushing restored state",
+    "client_rule": "an authenticated client may use validated cached state while offline, but must reconcile with this server read before pushing restored state; without previously validated canonical state and required content, mobile keeps a valid session retryable but blocks learning, local persistence of the reconciled snapshot, mutation replay, and product-state writes until bootstrap succeeds and the loaded card-source content version matches",
     "known_gap": "legacy v1 learning and daily snapshots remain migration inputs until idempotent learning-events.v2 and server-derived scheduling replace them"
   },
   "offline_policy": {

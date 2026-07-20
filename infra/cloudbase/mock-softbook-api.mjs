@@ -146,14 +146,22 @@ async function route(request, response) {
       return;
     }
 
+    const cardRecords = createCardRecords(track);
+    const source = {
+      id: `mock-${track}-source`,
+      label: `Mock ${track.toUpperCase()} Source`,
+    };
+
     sendJson(response, 200, {
       data: {
-        source: {
-          id: `mock-${track}-source`,
-          label: `Mock ${track.toUpperCase()} Source`,
-        },
+        source,
         track,
-        card_records: createCardRecords(track),
+        card_records: cardRecords,
+        content_version: createContentVersion({
+          card_records: cardRecords,
+          source,
+          track,
+        }),
       },
     });
     return;

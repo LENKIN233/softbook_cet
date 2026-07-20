@@ -98,7 +98,8 @@ const firstCard = cardSource.card_records[0];
 
 if (
   initialBootstrap.content.card_count !== cardSource.card_records.length ||
-  initialBootstrap.content.source.id !== cardSource.source.id
+  initialBootstrap.content.source.id !== cardSource.source.id ||
+  initialBootstrap.content.version !== cardSource.content_version
 ) {
   fail('bootstrap content metadata does not match the active card source.');
 }
@@ -268,6 +269,7 @@ async function loadBootstrap(label) {
       source: {
         id: assertString(source.id, `${label}.content.source.id`),
       },
+      version: contentVersion,
     },
     learning,
     membership,
@@ -313,6 +315,14 @@ async function loadLearningCardSource() {
   const sourceId = assertString(source.id, 'data.source.id');
   const sourceLabel = assertString(source.label, 'data.source.label');
   const returnedTrack = assertString(data.track, 'data.track');
+  const contentVersion = assertString(
+    data.content_version,
+    'data.content_version',
+  );
+
+  if (!/^sha256:[a-f0-9]{64}$/.test(contentVersion)) {
+    fail('data.content_version must be a SHA-256 identifier.');
+  }
 
   if (returnedTrack !== track) {
     fail(`card-source track mismatch: expected ${track}, got ${returnedTrack}`);
@@ -333,6 +343,7 @@ async function loadLearningCardSource() {
   );
   return {
     card_records: data.card_records,
+    content_version: contentVersion,
     source: {id: sourceId, label: sourceLabel},
     track: returnedTrack,
   };

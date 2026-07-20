@@ -17,11 +17,13 @@ export function createLearningSession(
   sourceLabel: string,
   availableCards: LearningCard[],
   cardCount: number = DEFAULT_LEARNING_SESSION_CARD_COUNT,
+  contentVersion: string | null = null,
 ): LearningSession {
   const orderedCards = orderLearningCards(availableCards);
 
   return {
     catalogCards: orderedCards,
+    contentVersion,
     sourceId,
     sourceLabel,
     track,
@@ -242,7 +244,9 @@ export function selectReviewCards(
 ) {
   const reviewCardIds = new Set(
     results
-      .filter(result => result.outcome === 'incorrect' || result.outcome === 'review')
+      .filter(
+        result => result.outcome === 'incorrect' || result.outcome === 'review',
+      )
       .map(result => result.cardId),
   );
 

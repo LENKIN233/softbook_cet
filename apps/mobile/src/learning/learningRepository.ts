@@ -9,7 +9,7 @@ import {
   createLearningSession,
 } from './session';
 import { LearningCardSource, localLearningCardSource } from './localCardSource';
-import {isRemoteAuthorizationError} from '../runtime/remoteHttpError';
+import { isRemoteAuthorizationError } from '../runtime/remoteHttpError';
 
 export type LearningRepositoryMode = 'local' | 'remote';
 
@@ -73,6 +73,7 @@ export function createLearningSessionRepository(
               sourceResponse.sourceLabel,
               sourceResponse.cards,
               cardCount,
+              sourceResponse.contentVersion,
             ),
           );
         } catch (error) {
