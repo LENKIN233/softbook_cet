@@ -87,11 +87,11 @@
 ## Commands run
 
 - `node --check auth-v2.js && node --check index.js` -> passed.
-- `cd infra/cloudbase/functions/softbook-api && npm test` -> 27/27 tests
+- `cd infra/cloudbase/functions/softbook-api && npm test` -> 28/28 tests
   passed after the final security corrections; the original 15 `/v1` tests
   remain green.
-- `npx --yes node@22.13.0 --test test/*.test.js` in the backend function ->
-  27/27 passed on the exact CI Node version.
+- `npm exec --yes --package=node@22.13.0 -- npm test` in the backend function ->
+  28/28 passed on the exact CI Node version.
 - `git diff --check` -> passed.
 - `scripts/run_local_gates --profile dev --verbose` ->
   `passed_with_exception`, 16/17 passed and 0 failed. The only exception is the
@@ -99,7 +99,7 @@
   backend suite was separately rerun on exact Node 22.13.0.
 - Exact Node 22.13.0 and Ruby 3.3.12
   `scripts/run_local_gates --profile pr --base origin/main --pr 429` -> 29/29
-  passed on the final implementation head `1b3a8cf` after the subsequent
+  passed on the final implementation head `a299cac` after the subsequent
   fail-closed review corrections.
 - GitHub required checks -> pending on the final PR head.
 
@@ -111,7 +111,8 @@
 - A saturated IP no longer consumes a victim phone's request quota.
 - HMAC-keyed rate/account indexes do not expose enumerable bare phone hashes.
 - Account deletion is idempotent, revokes all account sessions, and blocks new
-  session creation in the same persistence boundary.
+  session creation, refresh rotation, and active-session reads at the durable
+  deletion boundary.
 - Separate CloudBase function instances can verify a challenge and rotate the
   resulting session through shared persistent state.
 - Production construction and request handling fail closed for the tested
@@ -135,10 +136,11 @@
 - Review summary: Initial review found and fixed phone-quota consumption after
   IP rejection, enumerable account/rate indexes, signing-key coupling for
   durable account indexes, a deletion/login race, production option bypasses,
-  shared token/index secrets, and refresh after an interrupted account-wide
-  revocation. Focused memory and CloudBase regressions now cover each corrected
-  boundary. Remaining production dependencies are explicitly blocked rather
-  than represented as completed.
+  shared token/index secrets, refresh after an interrupted account-wide
+  revocation, and active access after a durable deletion task. Focused memory
+  and CloudBase regressions independently cover each corrected boundary.
+  Remaining production dependencies are explicitly blocked rather than
+  represented as completed.
 
 ## User-visible UI impact
 
@@ -157,7 +159,8 @@
   secret invalidates existing sessions even though durable account indexes
   remain stable.
 - CloudBase TTL policies, least-privilege collection rules, deletion worker,
-  provider cleanup, and deletion completion evidence remain outstanding.
+  provider cleanup, deletion completion evidence, and post-deletion
+  re-registration/tombstone policy remain outstanding.
 - Device metadata is stored, but device-list and remote-device-revocation APIs
   are not implemented.
 - Mobile still stores and consumes the `/v1` auth token. Secure refresh-token
