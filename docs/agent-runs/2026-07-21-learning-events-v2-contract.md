@@ -4,7 +4,7 @@
 
 - Date: 2026-07-21
 - Branch: `infra/learning-events-v2-contract`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/434
 - Summary: Define the authoritative `learning-events.v2` event,
   idempotency, acknowledgement, ordering, projection, offline replay, and
   migration boundary before implementing a backend ledger or replacing mobile
