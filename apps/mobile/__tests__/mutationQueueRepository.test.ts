@@ -168,7 +168,7 @@ describe('MutationQueueRepository', () => {
     const payload = createProgressPayload();
 
     await repository.enqueueMutation('sync_daily_progress', payload);
-    await expect(repository.startReplay()).resolves.toMatchObject([
+    await expect(repository.startReplay(payload.context)).resolves.toMatchObject([
       {
         entry: {
           type: 'sync_daily_progress',
@@ -193,7 +193,7 @@ describe('MutationQueueRepository', () => {
     const payload = createSpacePayload();
 
     await repository.enqueueMutation('sync_space_state', payload);
-    await expect(repository.startReplay()).resolves.toMatchObject([
+    await expect(repository.startReplay(payload.context)).resolves.toMatchObject([
       {
         entry: {
           type: 'sync_space_state',
@@ -219,7 +219,7 @@ describe('MutationQueueRepository', () => {
     const payload = createLearningStatePayload();
 
     await repository.enqueueMutation('sync_learning_state', payload);
-    await expect(repository.startReplay()).resolves.toMatchObject([
+    await expect(repository.startReplay(payload.context)).resolves.toMatchObject([
       {
         entry: {
           type: 'sync_learning_state',
@@ -249,7 +249,7 @@ describe('MutationQueueRepository', () => {
     };
 
     await repository.enqueueMutation('refresh_membership', payload);
-    await expect(repository.startReplay()).resolves.toMatchObject([
+    await expect(repository.startReplay(payload.context)).resolves.toMatchObject([
       {
         entry: {
           type: 'refresh_membership',
@@ -290,7 +290,7 @@ describe('MutationQueueRepository', () => {
     };
 
     await repository.enqueueMutation('start_membership_trial', payload);
-    await expect(repository.startReplay()).resolves.toMatchObject([
+    await expect(repository.startReplay(payload.context)).resolves.toMatchObject([
       {
         entry: {
           type: 'start_membership_trial',

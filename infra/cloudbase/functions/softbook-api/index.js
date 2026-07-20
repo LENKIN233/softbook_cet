@@ -185,7 +185,7 @@ async function handleHttpRequest(config, request) {
       return handleVerifyCode(config, request);
     }
 
-    const session = requireAuthSession(config, request);
+    const session = await requireCompatibleV1Session(config, request);
 
     if (method === 'GET' && path === '/v1/learning/card-source') {
       return await handleLearningCardSource(config, request);
@@ -1250,6 +1250,16 @@ function requireAuthSession(config, request) {
   return {
     phoneNumber: payload.phone_number,
   };
+}
+
+async function requireCompatibleV1Session(config, request) {
+  const authorization = getHeader(request.headers, 'authorization');
+
+  if (authorization?.startsWith('Bearer softbook_v2.')) {
+    return config.authV2.requireActiveSession(request);
+  }
+
+  return requireAuthSession(config, request);
 }
 
 function verifyAuthToken(config, token) {

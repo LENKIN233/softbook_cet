@@ -55,6 +55,14 @@ def validate(context) -> None:
         "cardRecords",
         "auth_token",
         "authToken",
+        "access_token",
+        "accessToken",
+        "refresh_token",
+        "refreshToken",
+        "challenge_id",
+        "challengeId",
+        "session_id",
+        "sessionId",
         "sms_code",
         "phone_number",
         "day_key",
@@ -630,7 +638,7 @@ def validate(context) -> None:
         )
         (tmp_app_root / "src/learning/SyncPayloadMetadataTextLeak.tsx").write_text(
             "export function SyncPayloadMetadataTextLeak({ payload }) {\n"
-            "  return <Text>{payload.auth_token}{payload.phone_number}{payload.completed_at}{payload.used_hint}</Text>;\n"
+            "  return <Text>{payload.auth_token}{payload.access_token}{payload.refresh_token}{payload.challenge_id}{payload.session_id}{payload.phone_number}{payload.completed_at}{payload.used_hint}</Text>;\n"
             "}\n",
             encoding="utf-8",
         )
@@ -666,7 +674,7 @@ def validate(context) -> None:
         )
         (tmp_app_root / "src/learning/CamelRuntimeBookkeepingMetadataTextLeak.tsx").write_text(
             "export function CamelRuntimeBookkeepingMetadataTextLeak({ session, snapshot }) {\n"
-            "  return <Text>{session.authToken}{snapshot.acknowledgedAt}</Text>;\n"
+            "  return <Text>{session.authToken}{session.accessToken}{session.refreshToken}{session.challengeId}{session.sessionId}{snapshot.acknowledgedAt}</Text>;\n"
             "}\n",
             encoding="utf-8",
         )

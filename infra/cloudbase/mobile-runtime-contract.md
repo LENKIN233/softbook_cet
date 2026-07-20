@@ -21,8 +21,9 @@ Current boundary:
   are the current mobile runtime shape. They can be changed later, but changing
   them requires updating the mobile repositories and tests.
 - The server-side `/v2` auth/session foundation is documented separately in
-  `infra/cloudbase/auth-v2-runtime-contract.md`. The mobile client has not
-  migrated to it yet and continues to use the `/v1` contract below.
+  `infra/cloudbase/auth-v2-runtime-contract.md`. Mobile authentication now uses
+  that contract. Product-data routes remain on `/v1` only as a development
+  migration bridge; production continues to reject every `/v1` route.
 
 ## Runtime Activation
 
@@ -43,7 +44,7 @@ remote-capable features are also remote.
 All remote feature requests after auth require:
 
 ```http
-Authorization: Bearer <auth_token>
+Authorization: Bearer <access_token>
 x-softbook-client: mobile
 x-api-key: <api key, optional>
 ```
@@ -53,7 +54,7 @@ x-api-key: <api key, optional>
 ### Request SMS Code
 
 ```http
-POST /v1/auth/request-code
+POST /v2/auth/request-code
 content-type: application/json
 x-softbook-client: mobile
 x-api-key: <optional>
@@ -63,19 +64,22 @@ x-api-key: <optional>
 }
 ```
 
-Success: any 2xx. The mobile app does not read the response body.
+Success returns `challenge_id`, `expires_at`, and `retry_after_seconds`. The
+challenge is bound to the submitted phone number and must be supplied during
+verification.
 
 Failure: non-2xx renders `Remote auth request-code failed with <status>.`.
 
 ### Verify SMS Code
 
 ```http
-POST /v1/auth/verify-code
+POST /v2/auth/verify-code
 content-type: application/json
 x-softbook-client: mobile
 x-api-key: <optional>
 
 {
+  "challenge_id": "opaque-id",
   "phone_number": "13800138000",
   "sms_code": "123456"
 }
@@ -86,19 +90,55 @@ Response:
 ```json
 {
   "data": {
-    "auth_token": "token",
-    "phone_number": "13800138000"
+    "access_token": "softbook_v2...",
+    "expires_in": 900,
+    "phone_number": "13800138000",
+    "refresh_expires_at": "2026-08-19T08:00:00.000Z",
+    "refresh_token": "softbook_refresh...",
+    "session_id": "opaque-id",
+    "token_type": "Bearer"
   }
 }
 ```
 
-`data.phone_number` must match the requested phone number.
+`data.phone_number` must match the requested phone number. A refreshed response
+must also preserve `session_id`.
+
+### Refresh and Logout
+
+```http
+POST /v2/auth/refresh
+content-type: application/json
+
+{"refresh_token":"softbook_refresh..."}
+```
+
+The mobile coordinator refreshes on restore and before protected requests when
+the access token has at most 60 seconds remaining. Concurrent demand shares one
+refresh operation. The complete rotated credential pair is written to Keychain
+or Keystore before it becomes current in memory.
+
+```http
+POST /v2/auth/logout
+Authorization: Bearer <access_token>
+```
+
+Logout first attempts server revocation, then always writes the local revocation
+tombstone and clears secure credentials, user state, and account-bound queued
+mutations. A network failure cannot keep the device logged in.
+
+Both access and refresh tokens use `auth-session.v2` secure storage. Neither may
+enter AsyncStorage. Persisted mutation context contains only `phone_number`; the
+current access token is injected in memory during replay. Mutation identifiers
+also contain no credentials; hydration rewrites identifiers created by the old
+token/phone-based membership retry format. `auth-session.v1` is invalidated
+because it cannot be upgraded without refresh credentials.
 
 ### Learning Card Source
 
 ```http
 GET /v1/learning/card-source?track=cet4
-Authorization: Bearer <auth_token>
+Authorization: Bearer <access_token>
 Accept: application/json
 x-softbook-client: mobile
 x-api-key: <optional>
@@ -133,6 +173,9 @@ Use `node infra/cloudbase/audit-card-sources.mjs` for read-only validation of
 the deployed CET4/CET6 documents after imports or deploys, including active
 `spec/box-catalog.json` prefix and path alignment.
 
+Remote card-source failure is fail-closed. The app renders the existing retry
+state and never substitutes bundled development cards in remote mode.
+
 Every card record must satisfy:
 
 - `card_id`: 6 digits.
@@ -166,7 +209,7 @@ Supported `interaction_id` values:
 
 ```http
 GET /v1/membership/entitlement
-Authorization: Bearer <auth_token>
+Authorization: Bearer <access_token>
 content-type: application/json
 x-softbook-client: mobile
 x-api-key: <optional>
@@ -204,7 +247,7 @@ Field rules:
 POST /v1/membership/start-trial
 POST /v1/membership/purchase
 POST /v1/membership/dismiss-recovery
-Authorization: Bearer <auth_token>
+Authorization: Bearer <access_token>
 content-type: application/json
 x-softbook-client: mobile
 x-api-key: <optional>
@@ -223,7 +266,7 @@ the mutation for replay.
 
 ```http
 POST /v1/progress/daily-sync
-Authorization: Bearer <auth_token>
+Authorization: Bearer <access_token>
 content-type: application/json
 x-softbook-client: mobile
 x-api-key: <optional>
@@ -249,7 +292,7 @@ Failure: non-2xx queues `sync_daily_progress` for replay.
 
 ```http
 POST /v1/learning/state-sync
-Authorization: Bearer <auth_token>
+Authorization: Bearer <access_token>
 content-type: application/json
 x-softbook-client: mobile
 x-api-key: <optional>
@@ -289,7 +332,7 @@ Allowed values:
 
 ```http
 POST /v1/space/state-sync
-Authorization: Bearer <auth_token>
+Authorization: Bearer <access_token>
 content-type: application/json
 x-softbook-client: mobile
 x-api-key: <optional>
@@ -316,8 +359,8 @@ Failure: non-2xx queues `sync_space_state` for replay.
 
 1. Remote runtime starts with `SOFTBOOK_CET_REMOTE_BASE_URL`.
 2. Learning, space, and statistics are blocked by auth gate before login.
-3. `/v1/auth/request-code` returns 2xx.
-4. `/v1/auth/verify-code` returns a token and matching phone number.
+3. `/v2/auth/request-code` returns a challenge.
+4. `/v2/auth/verify-code` returns a rotating session and matching phone number.
 5. `/v1/learning/card-source?track=<track>` returns non-empty valid
    `card_records`.
 6. At least one card for each core interaction is available in the remote card
@@ -331,6 +374,9 @@ Failure: non-2xx queues `sync_space_state` for replay.
 12. Favorite/sleep changes can POST `/v1/space/state-sync`.
 13. Temporary 503 on membership/progress/learning-state/space-state queues the
     mutation; returning to 2xx replays it.
+14. Expiring access credentials refresh once under concurrent requests; a
+    rejected refresh or repeated 401 clears account-bound persistence.
+15. Remote card-source failure renders retry state without bundled-card fallback.
 
 ## Local Mock Validation
 

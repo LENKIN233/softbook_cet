@@ -112,17 +112,27 @@ async function loadCurrentCards() {
     store: createMemoryStore(),
     tokenSecret: 'content-gap-report-secret',
   });
+  const challenge = await api.handleHttpRequest({
+    body: {phone_number: '13800138000'},
+    clientIp: '127.0.0.1',
+    headers: {},
+    method: 'POST',
+    path: '/v2/auth/request-code',
+    query: {},
+  });
   const auth = await api.handleHttpRequest({
     body: {
+      challenge_id: challenge.body.data.challenge_id,
       phone_number: '13800138000',
       sms_code: '2468',
     },
+    clientIp: '127.0.0.1',
     headers: {},
     method: 'POST',
-    path: '/v1/auth/verify-code',
+    path: '/v2/auth/verify-code',
     query: {},
   });
-  const authorization = `Bearer ${auth.body.data.auth_token}`;
+  const authorization = `Bearer ${auth.body.data.access_token}`;
   const cardsByTrack = {};
 
   for (const track of TRACKS) {

@@ -56,6 +56,7 @@ const authHeaders = {
 };
 
 let authToken = authTokenFromEnv;
+let createdAuthSession;
 
 if (authToken) {
   ok('auth', 'using SOFTBOOK_CET_AUTH_TOKEN');
@@ -64,7 +65,7 @@ if (authToken) {
     ok('auth', `using isolated generated phone ${phoneNumber}`);
   }
 
-  await requestSmsCode();
+  const challengeId = await requestSmsCode();
 
   if (!smsCode) {
     fail(
@@ -72,7 +73,9 @@ if (authToken) {
     );
   }
 
-  authToken = await verifySmsCode();
+  createdAuthSession = await verifySmsCode(challengeId);
+  createdAuthSession = await refreshAuthSession(createdAuthSession);
+  authToken = createdAuthSession.accessToken;
 }
 
 const remoteHeaders = {
@@ -104,19 +107,29 @@ if (enableMembershipMutations) {
   );
 }
 
+if (createdAuthSession) {
+  await logoutAuthSession();
+}
+
 ok('done', `baseUrl=${baseUrl}, track=${track}, stage=${entitlement.stage}`);
 
 async function requestSmsCode() {
-  const response = await postJson('/v1/auth/request-code', {
+  const response = await postJson('/v2/auth/request-code', {
     phone_number: phoneNumber,
   });
 
   assertOk(response, 'request-code');
+  const payload = await response.json();
+  const data = assertObject(payload.data, 'request-code data');
+  const challengeId = assertString(data.challenge_id, 'data.challenge_id');
+  assertString(data.expires_at, 'data.expires_at');
   ok('request-code', response.status);
+  return challengeId;
 }
 
-async function verifySmsCode() {
-  const response = await postJson('/v1/auth/verify-code', {
+async function verifySmsCode(challengeId) {
+  const response = await postJson('/v2/auth/verify-code', {
+    challenge_id: challengeId,
     phone_number: phoneNumber,
     sms_code: smsCode,
   });
@@ -124,15 +137,55 @@ async function verifySmsCode() {
   assertOk(response, 'verify-code');
   const payload = await response.json();
   const data = assertObject(payload.data, 'verify-code data');
-  const token = assertString(data.auth_token, 'data.auth_token');
+  const session = parseAuthSession(data, 'verify-code data');
   const returnedPhoneNumber = assertString(data.phone_number, 'data.phone_number');
 
   if (returnedPhoneNumber !== phoneNumber) {
     fail(`verify-code phone mismatch: expected ${phoneNumber}, got ${returnedPhoneNumber}`);
   }
 
-  ok('verify-code', 'token received');
-  return token;
+  ok('verify-code', 'rotating session received');
+  return session;
+}
+
+async function refreshAuthSession(session) {
+  const response = await postJson('/v2/auth/refresh', {
+    refresh_token: session.refreshToken,
+  });
+  assertOk(response, 'auth refresh');
+  const payload = await response.json();
+  const refreshed = parseAuthSession(
+    assertObject(payload.data, 'auth refresh data'),
+    'auth refresh data',
+  );
+
+  if (refreshed.sessionId !== session.sessionId) {
+    fail('auth refresh changed session_id.');
+  }
+
+  if (refreshed.refreshToken === session.refreshToken) {
+    fail('auth refresh did not rotate refresh_token.');
+  }
+
+  ok('auth refresh', 'credential pair rotated');
+  return refreshed;
+}
+
+async function logoutAuthSession() {
+  const response = await fetch(`${baseUrl}/v2/auth/logout`, {
+    headers: remoteHeaders,
+    method: 'POST',
+  });
+  assertOk(response, 'auth logout');
+  ok('auth logout', response.status);
+}
+
+function parseAuthSession(data, label) {
+  return {
+    accessToken: assertString(data.access_token, `${label}.access_token`),
+    refreshToken: assertString(data.refresh_token, `${label}.refresh_token`),
+    sessionId: assertString(data.session_id, `${label}.session_id`),
+  };
 }
 
 async function loadMembershipEntitlement() {

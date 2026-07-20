@@ -4,7 +4,10 @@ import http from 'node:http';
 
 const port = Number(process.env.PORT || 48731);
 const host = process.env.HOST || '127.0.0.1';
-const authToken = 'mock-softbook-token';
+const smsCode = process.env.SOFTBOOK_CET_TEST_CODE || '123456';
+const challenges = new Map();
+const sessions = new Map();
+let sequence = 0;
 
 const server = http.createServer(async (request, response) => {
   try {
@@ -31,23 +34,71 @@ async function route(request, response) {
   const path = url.pathname;
   const method = request.method || 'GET';
 
-  if (method === 'POST' && path === '/v1/auth/request-code') {
+  if (method === 'POST' && path === '/v2/auth/request-code') {
     const body = await readJson(request);
-    requireString(body.phone_number, 'phone_number');
-    sendJson(response, 200, {data: {sent: true}});
+    const phoneNumber = requireString(body.phone_number, 'phone_number');
+    const challengeId = `mock-challenge-${++sequence}`;
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    challenges.set(challengeId, {expiresAt, phoneNumber});
+    sendJson(response, 200, {
+      data: {
+        challenge_id: challengeId,
+        delivery: 'mock_sms',
+        expires_at: expiresAt,
+        retry_after_seconds: 60,
+      },
+    });
     return;
   }
 
-  if (method === 'POST' && path === '/v1/auth/verify-code') {
+  if (method === 'POST' && path === '/v2/auth/verify-code') {
     const body = await readJson(request);
+    const challengeId = requireString(body.challenge_id, 'challenge_id');
     const phoneNumber = requireString(body.phone_number, 'phone_number');
-    requireString(body.sms_code, 'sms_code');
-    sendJson(response, 200, {
-      data: {
-        auth_token: authToken,
-        phone_number: phoneNumber,
-      },
-    });
+    const submittedCode = requireString(body.sms_code, 'sms_code');
+    const challenge = challenges.get(challengeId);
+
+    if (
+      !challenge ||
+      challenge.phoneNumber !== phoneNumber ||
+      Date.parse(challenge.expiresAt) <= Date.now() ||
+      submittedCode !== smsCode
+    ) {
+      sendJson(response, 401, {error: {code: 'invalid_sms_challenge'}});
+      return;
+    }
+
+    challenges.delete(challengeId);
+    const session = createSession(phoneNumber);
+    sessions.set(session.sessionId, session);
+    sendJson(response, 200, {data: sessionPayload(session)});
+    return;
+  }
+
+  if (method === 'POST' && path === '/v2/auth/refresh') {
+    const body = await readJson(request);
+    const refreshToken = requireString(body.refresh_token, 'refresh_token');
+    const session = [...sessions.values()].find(
+      candidate => candidate.refreshToken === refreshToken && candidate.active,
+    );
+
+    if (!session) {
+      sendJson(response, 401, {error: {code: 'invalid_refresh_token'}});
+      return;
+    }
+
+    session.rotation += 1;
+    session.accessToken = `softbook_v2.mock.${session.sessionId}.${session.rotation}`;
+    session.refreshToken = `softbook_refresh.mock.${session.sessionId}.${session.rotation}`;
+    sendJson(response, 200, {data: sessionPayload(session)});
+    return;
+  }
+
+  if (method === 'POST' && path === '/v2/auth/logout') {
+    const session = requireBearerToken(request);
+    session.active = false;
+    response.writeHead(204);
+    response.end();
     return;
   }
 
@@ -113,12 +164,48 @@ async function route(request, response) {
 
 function requireBearerToken(request) {
   const authorization = request.headers.authorization || '';
+  const accessToken = authorization.startsWith('Bearer ')
+    ? authorization.slice('Bearer '.length)
+    : '';
+  const session = [...sessions.values()].find(
+    candidate => candidate.accessToken === accessToken && candidate.active,
+  );
 
-  if (authorization !== `Bearer ${authToken}`) {
+  if (!session) {
     const error = new Error('Missing or invalid Authorization bearer token.');
     error.status = 401;
     throw error;
   }
+
+  return session;
+}
+
+function createSession(phoneNumber) {
+  const sessionId = `mock-session-${++sequence}`;
+
+  return {
+    accessToken: `softbook_v2.mock.${sessionId}.0`,
+    active: true,
+    phoneNumber,
+    refreshExpiresAt: new Date(
+      Date.now() + 30 * 24 * 60 * 60 * 1000,
+    ).toISOString(),
+    refreshToken: `softbook_refresh.mock.${sessionId}.0`,
+    rotation: 0,
+    sessionId,
+  };
+}
+
+function sessionPayload(session) {
+  return {
+    access_token: session.accessToken,
+    expires_in: 900,
+    phone_number: session.phoneNumber,
+    refresh_expires_at: session.refreshExpiresAt,
+    refresh_token: session.refreshToken,
+    session_id: session.sessionId,
+    token_type: 'Bearer',
+  };
 }
 
 function entitlementPayload(

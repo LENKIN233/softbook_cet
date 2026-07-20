@@ -62,12 +62,123 @@ describe('MutationQueueManager', () => {
     await expect(restoredManager.dequeue()).resolves.toMatchObject({
       id: 'progress-1',
     });
+    expect(JSON.stringify(sharedStore)).not.toContain('token-1');
+    expect(JSON.stringify(sharedStore)).not.toContain('token-2');
+    await expect(restoredManager.peek()).resolves.toMatchObject({
+      payload: {
+        context: {phoneNumber: '13800138001'},
+      },
+    });
+  });
+
+  it('strips legacy credentials while hydrating persisted entries', async () => {
+    const sharedStore = {
+      __softbook_mutation_queue: JSON.stringify([
+        {
+          id: 'legacy-entry',
+          payload: {
+            context: {
+              accessToken: 'legacy-access',
+              authToken: 'legacy-auth',
+              phoneNumber: '13800138000',
+              refreshToken: 'legacy-refresh',
+            },
+            snapshot: createProgressPayload().snapshot,
+          },
+          retryCount: 0,
+          timestamp: '2026-07-20T00:00:00.000Z',
+          type: 'sync_daily_progress',
+        },
+        {
+          id: 'membership:softbook.legacy-token.signature:restore',
+          payload: {
+            context: {
+              authToken: 'softbook.legacy-token.signature',
+              phoneNumber: '13800138000',
+            },
+          },
+          retryCount: 0,
+          timestamp: '2026-07-20T00:00:00.000Z',
+          type: 'refresh_membership',
+        },
+        {
+          id: 'membership-trial:13800138000',
+          payload: {
+            context: {phoneNumber: '13800138000'},
+            currentState: {stage: 'trial_available'},
+          },
+          retryCount: 0,
+          timestamp: '2026-07-20T00:00:00.000Z',
+          type: 'start_membership_trial',
+        },
+      ]),
+    };
+    const manager = new MutationQueueManager({
+      storage: createInMemoryMutationQueueStorage(sharedStore),
+    });
+
+    await manager.hydrate();
+
+    expect(sharedStore.__softbook_mutation_queue).not.toMatch(
+      /legacy-(?:access|auth|refresh)/,
+    );
+    expect(sharedStore.__softbook_mutation_queue).not.toContain(
+      'softbook.legacy-token.signature',
+    );
+    expect(
+      JSON.parse(sharedStore.__softbook_mutation_queue).map(
+        (entry: {id: string}) => entry.id,
+      ),
+    ).toEqual([
+      'legacy-entry',
+      'membership:replay',
+      'membership-trial:replay',
+    ]);
+    await expect(manager.peek()).resolves.toMatchObject({
+      payload: {context: {phoneNumber: '13800138000'}},
+    });
+    await manager.dequeue();
+    await expect(manager.dequeue()).resolves.toMatchObject({
+      id: 'membership:replay',
+    });
+    await expect(manager.dequeue()).resolves.toMatchObject({
+      id: 'membership-trial:replay',
+    });
+  });
+
+  it('does not retain caller-owned payload objects after enqueue', async () => {
+    const sharedStore: Record<string, string> = {};
+    const manager = new MutationQueueManager({
+      storage: createInMemoryMutationQueueStorage(sharedStore),
+    });
+    const payload = createProgressPayload();
+
+    await manager.enqueue('sync_daily_progress', payload, 'detached-entry');
+    Object.assign(payload.snapshot, {accessToken: 'late-injected-token'});
+    await manager.incrementRetry('detached-entry');
+
+    expect(JSON.stringify(sharedStore)).not.toContain('late-injected-token');
+  });
+
+  it('rejects credential fields outside the account context', async () => {
+    const manager = new MutationQueueManager();
+    const payload = createProgressPayload();
+    Object.assign(payload.snapshot, {refreshToken: 'nested-secret'});
+
+    await expect(
+      manager.enqueue('sync_daily_progress', payload),
+    ).rejects.toThrow('forbidden credential field');
+    await expect(manager.size()).resolves.toBe(0);
   });
 
   it('persists entries through the default AsyncStorage adapter', async () => {
     const manager = new MutationQueueManager();
 
-    await manager.enqueue('sync_daily_progress', createProgressPayload(), 'persisted');
+    await manager.enqueue(
+      'sync_daily_progress',
+      createProgressPayload(),
+      'persisted',
+    );
 
     const restoredManager = new MutationQueueManager();
 
@@ -81,7 +192,11 @@ describe('MutationQueueManager', () => {
   it('replaces entries with the same id', async () => {
     const manager = new MutationQueueManager();
 
-    await manager.enqueue('sync_daily_progress', createProgressPayload(), 'dup');
+    await manager.enqueue(
+      'sync_daily_progress',
+      createProgressPayload(),
+      'dup',
+    );
     await manager.enqueue(
       'refresh_membership',
       {

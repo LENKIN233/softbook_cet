@@ -26,7 +26,13 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { createAuthRepository } from './src/auth/authRepository';
+import {createAuthenticatedFetch} from './src/auth/authenticatedFetch';
 import { resolveAuthRepositoryConfig } from './src/auth/authRuntimeConfig';
+import {createAuthSessionCoordinator} from './src/auth/authSessionCoordinator';
+import {
+  getAuthAccessToken,
+  type AuthChallenge,
+} from './src/auth/authSession';
 import {
   LearningResultDetailSurface,
   LearningSurface,
@@ -187,6 +193,7 @@ function getAuthStatusCopy(authState: AuthState): AuthStatusCopy {
 
 type AuthState = {
   authToken: string | null;
+  challenge: AuthChallenge | null;
   stage: AuthStage;
   phoneNumber: string;
   pendingAction: 'request_code' | 'verify_code' | null;
@@ -301,6 +308,7 @@ const SMS_CODE_CELL_COUNT = 6;
 
 const INITIAL_AUTH_STATE: AuthState = {
   authToken: null,
+  challenge: null,
   stage: 'logged_out',
   phoneNumber: '',
   pendingAction: null,
@@ -372,18 +380,43 @@ function AppShell({
     () => createAuthRepository(authRepositoryConfig),
     [authRepositoryConfig],
   );
+  const authSessionStore = useMemo(() => createAuthSessionStore(), []);
+  const authSessionCoordinator = useMemo(
+    () =>
+      createAuthSessionCoordinator({
+        authRepository,
+        authSessionStore,
+      }),
+    [authRepository, authSessionStore],
+  );
+  const authenticatedFetch = useMemo(
+    () => createAuthenticatedFetch({authSessionCoordinator}),
+    [authSessionCoordinator],
+  );
   const runtimeAuthRepositoryMode = authRepositoryConfig.mode;
   const learningSessionRepositoryConfig = useMemo(
-    () => resolveLearningSessionRepositoryConfig(runtimeConfig),
-    [runtimeConfig],
+    () => {
+      const resolved = resolveLearningSessionRepositoryConfig(runtimeConfig);
+
+      return resolved.mode === 'remote'
+        ? {...resolved, fetchImpl: authenticatedFetch}
+        : resolved;
+    },
+    [authenticatedFetch, runtimeConfig],
   );
   const learningSessionRepository = useMemo(
     () => createLearningSessionRepository(learningSessionRepositoryConfig),
     [learningSessionRepositoryConfig],
   );
   const membershipRepositoryConfig = useMemo(
-    () => resolveMembershipRepositoryConfig(runtimeConfig),
-    [runtimeConfig],
+    () => {
+      const resolved = resolveMembershipRepositoryConfig(runtimeConfig);
+
+      return resolved.mode === 'remote'
+        ? {...resolved, fetchImpl: authenticatedFetch}
+        : resolved;
+    },
+    [authenticatedFetch, runtimeConfig],
   );
   const membershipRepository = useMemo(
     () => createMembershipRepository(membershipRepositoryConfig),
@@ -391,8 +424,14 @@ function AppShell({
   );
   const runtimeMembershipRepositoryMode = membershipRepositoryConfig.mode;
   const progressSyncRepositoryConfig = useMemo(
-    () => resolveProgressSyncRepositoryConfig(runtimeConfig),
-    [runtimeConfig],
+    () => {
+      const resolved = resolveProgressSyncRepositoryConfig(runtimeConfig);
+
+      return resolved.mode === 'remote'
+        ? {...resolved, fetchImpl: authenticatedFetch}
+        : resolved;
+    },
+    [authenticatedFetch, runtimeConfig],
   );
   const progressSyncRepository = useMemo(
     () => createProgressSyncRepository(progressSyncRepositoryConfig),
@@ -400,8 +439,14 @@ function AppShell({
   );
   const runtimeProgressSyncMode = progressSyncRepositoryConfig.mode;
   const learningStateRepositoryConfig = useMemo(
-    () => resolveLearningStateRepositoryConfig(runtimeConfig),
-    [runtimeConfig],
+    () => {
+      const resolved = resolveLearningStateRepositoryConfig(runtimeConfig);
+
+      return resolved.mode === 'remote'
+        ? {...resolved, fetchImpl: authenticatedFetch}
+        : resolved;
+    },
+    [authenticatedFetch, runtimeConfig],
   );
   const learningStateRepository = useMemo(
     () => createLearningStateRepository(learningStateRepositoryConfig),
@@ -409,8 +454,14 @@ function AppShell({
   );
   const runtimeLearningStateMode = learningStateRepositoryConfig.mode;
   const spaceStateRepositoryConfig = useMemo(
-    () => resolveSpaceStateRepositoryConfig(runtimeConfig ?? {}),
-    [runtimeConfig],
+    () => {
+      const resolved = resolveSpaceStateRepositoryConfig(runtimeConfig ?? {});
+
+      return resolved.mode === 'remote'
+        ? {...resolved, fetchImpl: authenticatedFetch}
+        : resolved;
+    },
+    [authenticatedFetch, runtimeConfig],
   );
   const spaceStateRepository = useMemo(
     () => createSpaceStateRepository(spaceStateRepositoryConfig),
@@ -432,7 +483,6 @@ function AppShell({
       spaceStateRepository,
     ],
   );
-  const authSessionStore = useMemo(() => createAuthSessionStore(), []);
   const userStateStore = useMemo(() => createUserStateStore(), []);
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
   const [learningScreen, setLearningScreen] =
@@ -527,24 +577,25 @@ function AppShell({
     });
   }, []);
   const clearAuthenticatedSession = useCallback(
-    (error: string | null = null) => {
+    (error: string | null = null, revokeRemote = false) => {
       if (logoutInFlight.current) {
         return logoutInFlight.current;
       }
 
       const logoutTask = (async () => {
+        let authCleanupFailed = false;
+
         try {
-          await authSessionStore.clear();
-        } catch (clearError) {
+          if (revokeRemote) {
+            await authSessionCoordinator.logout();
+          } else {
+            await authSessionCoordinator.invalidate();
+          }
+        } catch {
+          authCleanupFailed = true;
           console.warn(
             '[AppPersistence] Failed to persist auth session revocation.',
-            clearError,
           );
-          setAuthState(current => ({
-            ...current,
-            error: '退出登录暂时失败，请稍后重试。',
-          }));
-          return;
         }
 
         const cleanupResults = await Promise.allSettled([
@@ -560,7 +611,12 @@ function AppShell({
             );
           }
         });
-        resetRuntimeAfterLogout(error);
+        resetRuntimeAfterLogout(
+          error ??
+            (authCleanupFailed
+              ? '本地登录凭证未能完全清理，请重启应用后重新验证手机号。'
+              : null),
+        );
       })();
 
       logoutInFlight.current = logoutTask;
@@ -572,7 +628,7 @@ function AppShell({
       return logoutTask;
     },
     [
-      authSessionStore,
+      authSessionCoordinator,
       mutationQueueRepository,
       resetRuntimeAfterLogout,
       userStateStore,
@@ -765,7 +821,7 @@ function AppShell({
     runtimeMembershipRepositoryMode === 'remote' &&
     authenticatedRuntimeContext !== null &&
     activeRoute === 'mine'
-      ? `${authenticatedRuntimeContext.authToken ?? ''}:${activeRoute}`
+      ? activeRoute
       : null;
   const startMutationReplay = useCallback(async () => {
     if (!isAuthenticated) {
@@ -978,14 +1034,14 @@ function AppShell({
     let isCancelled = false;
 
     const hydratePersistence = async () => {
-      const session = await authSessionStore.load();
+      const session = await authSessionCoordinator.restore();
 
       if (isCancelled || session === null) {
         return;
       }
 
       const membershipContext = {
-        authToken: session.authToken ?? undefined,
+        authToken: getAuthAccessToken(session),
         phoneNumber: session.phoneNumber,
       };
       const [
@@ -1007,9 +1063,7 @@ function AppShell({
                 .enqueueMutation(
                   'refresh_membership',
                   { context: membershipContext },
-                  `membership:${
-                    session.authToken ?? session.phoneNumber
-                  }:restore`,
+                  'membership:restore',
                 )
                 .catch(() => undefined);
             }
@@ -1044,7 +1098,7 @@ function AppShell({
       setMembershipError(membershipResolution.errorMessage);
       setAuthState({
         ...INITIAL_AUTH_STATE,
-        authToken: session.authToken,
+        authToken: getAuthAccessToken(session) ?? null,
         phoneNumber: session.phoneNumber,
         stage: 'authenticated',
       });
@@ -1071,7 +1125,7 @@ function AppShell({
       isCancelled = true;
     };
   }, [
-    authSessionStore,
+    authSessionCoordinator,
     clearAuthenticatedSession,
     loadCanonicalSpaceState,
     membershipRepository,
@@ -1798,7 +1852,7 @@ function AppShell({
                 context: authenticatedRuntimeContext,
                 currentState: membershipState,
               },
-              `membership-trial:${authenticatedRuntimeContext.phoneNumber}`,
+              'membership-trial:start',
             )
             .catch(() => undefined);
           setMembershipError(
@@ -1840,10 +1894,19 @@ function AppShell({
 
   const authHandlers: AuthHandlers = {
     onChangePhone: value => {
+      const phoneNumber = value.replace(/[^\d]/g, '').slice(0, 11);
+
       setAuthState(current => ({
         ...current,
-        phoneNumber: value.replace(/[^\d]/g, '').slice(0, 11),
+        challenge:
+          current.phoneNumber === phoneNumber ? current.challenge : null,
         error: null,
+        phoneNumber,
+        smsCode: current.phoneNumber === phoneNumber ? current.smsCode : '',
+        stage:
+          current.phoneNumber === phoneNumber || current.stage === 'authenticated'
+            ? current.stage
+            : 'logged_out',
       }));
     },
     onChangeCode: value => {
@@ -1875,14 +1938,22 @@ function AppShell({
 
       authRepository
         .requestSmsCode(phoneNumber)
-        .then(() => {
-          setAuthState(current => ({
-            ...current,
-            error: null,
-            pendingAction: null,
-            smsCode: '',
-            stage: 'code_sent',
-          }));
+        .then(challenge => {
+          setAuthState(current =>
+            current.phoneNumber === phoneNumber
+              ? {
+                  ...current,
+                  challenge,
+                  error: null,
+                  pendingAction: null,
+                  smsCode: '',
+                  stage: 'code_sent',
+                }
+              : {
+                  ...current,
+                  pendingAction: null,
+                },
+          );
         })
         .catch((error: unknown) => {
           setAuthState(current => ({
@@ -1905,6 +1976,15 @@ function AppShell({
         return;
       }
 
+      if (authState.challenge === null) {
+        setAuthState(current => ({
+          ...current,
+          error: '验证码请求已失效，请重新获取。',
+          stage: 'logged_out',
+        }));
+        return;
+      }
+
       if (!isSmsCodeReady(authState.smsCode)) {
         setAuthState(current => ({
           ...current,
@@ -1915,6 +1995,7 @@ function AppShell({
 
       const phoneNumber = authState.phoneNumber;
       const smsCode = authState.smsCode;
+      const challenge = authState.challenge;
       setAuthState(current => ({
         ...current,
         error: null,
@@ -1923,83 +2004,75 @@ function AppShell({
       setMembershipError(null);
       setMembershipPendingAction(null);
 
-      authRepository
-        .verifySmsCode({
+      let sessionEstablished = false;
+
+      (async () => {
+        const session = await authRepository.verifySmsCode({
+          challenge,
           phoneNumber,
           smsCode,
-        })
-        .then(session => {
-          const membershipContext = {
-            authToken: session.authToken,
-            phoneNumber: session.phoneNumber,
-          };
+        });
+        await authSessionCoordinator.establish(session);
+        sessionEstablished = true;
 
-          return membershipRepository
-            .loadState(membershipContext)
-            .then(nextMembershipState => ({
-              membershipErrorMessage: null,
-              membershipRefreshSucceeded: true,
-              membershipState: nextMembershipState,
-              session,
-            }))
-            .catch((error: unknown) => {
-              if (isRemoteAuthorizationError(error)) {
-                throw error;
-              }
+        const membershipContext = {
+          authToken: getAuthAccessToken(session),
+          phoneNumber: session.phoneNumber,
+        };
+        const membershipResolution = await membershipRepository
+          .loadState(membershipContext)
+          .then(nextMembershipState => ({
+            membershipErrorMessage: null,
+            membershipRefreshSucceeded: true,
+            membershipState: nextMembershipState,
+          }))
+          .catch((error: unknown) => {
+            if (isRemoteAuthorizationError(error)) {
+              throw error;
+            }
 
-              if (runtimeMembershipRepositoryMode !== 'remote') {
-                throw error;
-              }
+            if (runtimeMembershipRepositoryMode !== 'remote') {
+              throw error;
+            }
 
-              return mutationQueueRepository
-                .enqueueMutation(
-                  'refresh_membership',
-                  {
-                    context: membershipContext,
-                  },
-                  `membership:${
-                    session.authToken ?? session.phoneNumber
-                  }:login`,
-                )
-                .catch(() => undefined)
-                .then(() => ({
-                  membershipErrorMessage: `${getUserFacingErrorMessage(
-                    error,
-                    '会员状态暂时无法读取。',
-                  )} 已保留登录态；网络恢复后会自动再试。`,
-                  membershipRefreshSucceeded: false,
-                  membershipState: createEntitlementPendingMembershipState(),
-                  session,
-                }));
-            });
-        })
-        .then(async result => {
-          const [persistedUserState, canonicalSpaceState] = await Promise.all([
-            userStateStore.load(result.session.phoneNumber),
-            loadCanonicalSpaceState({
-              authToken: result.session.authToken,
-              phoneNumber: result.session.phoneNumber,
-            }),
-          ]);
-
-          await authSessionStore.save({
-            authToken: result.session.authToken ?? null,
-            phoneNumber: result.session.phoneNumber,
+            return mutationQueueRepository
+              .enqueueMutation(
+                'refresh_membership',
+                {
+                  context: membershipContext,
+                },
+                'membership:login',
+              )
+              .catch(() => undefined)
+              .then(() => ({
+                membershipErrorMessage: `${getUserFacingErrorMessage(
+                  error,
+                  '会员状态暂时无法读取。',
+                )} 已保留登录态；网络恢复后会自动再试。`,
+                membershipRefreshSucceeded: false,
+                membershipState: createEntitlementPendingMembershipState(),
+              }));
           });
 
-          return {
-            ...result,
-            persistedUserState: {
-              ...persistedUserState,
-              spaceCardStateById: canonicalSpaceState
-                ? mergeSpaceStateMaps(
-                    persistedUserState.spaceCardStateById,
-                    canonicalSpaceState,
-                  )
-                : persistedUserState.spaceCardStateById,
-            },
-          };
-        })
+        const [persistedUserState, canonicalSpaceState] = await Promise.all([
+          userStateStore.load(session.phoneNumber),
+          loadCanonicalSpaceState(membershipContext),
+        ]);
+
+        return {
+          ...membershipResolution,
+          persistedUserState: {
+            ...persistedUserState,
+            spaceCardStateById: canonicalSpaceState
+              ? mergeSpaceStateMaps(
+                  persistedUserState.spaceCardStateById,
+                  canonicalSpaceState,
+                )
+              : persistedUserState.spaceCardStateById,
+          },
+          session,
+        };
+      })()
         .then(
           ({
             membershipErrorMessage,
@@ -2010,7 +2083,7 @@ function AppShell({
           }) => {
             if (runtimeMembershipRepositoryMode === 'remote') {
               lastMembershipRefreshKey.current = membershipRefreshSucceeded
-                ? `${session.authToken ?? ''}:${activeRoute}`
+                ? activeRoute
                 : null;
               pendingMembershipRefreshKey.current = null;
             }
@@ -2022,7 +2095,8 @@ function AppShell({
             setSpaceCardStateById(persistedUserState.spaceCardStateById);
             setAuthState(current => ({
               ...current,
-              authToken: session.authToken ?? null,
+              authToken: getAuthAccessToken(session) ?? null,
+              challenge: null,
               error: null,
               pendingAction: null,
               phoneNumber: session.phoneNumber,
@@ -2031,12 +2105,23 @@ function AppShell({
             }));
           },
         )
-        .catch((error: unknown) => {
-          if (isRemoteAuthorizationError(error)) {
-            clearAuthenticatedSession(
+        .catch(async (error: unknown) => {
+          if (sessionEstablished && isRemoteAuthorizationError(error)) {
+            await clearAuthenticatedSession(
               '登录已失效，请重新验证手机号。',
-            ).catch(() => undefined);
+            );
             return;
+          }
+
+          if (sessionEstablished) {
+            try {
+              await authSessionCoordinator.invalidate();
+            } catch (clearError) {
+              console.warn(
+                '[AppPersistence] Failed to roll back incomplete login.',
+                clearError,
+              );
+            }
           }
 
           setAuthState(current => ({
@@ -2047,7 +2132,7 @@ function AppShell({
         });
     },
     onLogout: () => {
-      return clearAuthenticatedSession();
+      return clearAuthenticatedSession(null, true);
     },
   };
 
@@ -5356,7 +5441,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 const INTERNAL_ERROR_COPY_PATTERN =
-  /\b(Remote|payload|source_id|source_label|card_records|remoteConfig|authToken|endpoint|repository|card_id|knowledge_ref|box_ref|space_metadata|MutationQueue|runtime|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC)\b|JSON Parse error|Unexpected character|SyntaxError|parse failed|data\.|卡源|离线队列|离线重试|本机缓存|当前设备|会员矩阵|占位|快照|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
+  /\b(Remote|payload|source_id|source_label|card_records|remoteConfig|authToken|accessToken|refreshToken|challengeId|sessionId|endpoint|repository|card_id|knowledge_ref|box_ref|space_metadata|MutationQueue|runtime|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC)\b|JSON Parse error|Unexpected character|SyntaxError|parse failed|data\.|卡源|离线队列|离线重试|本机缓存|当前设备|会员矩阵|占位|快照|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
 function getUserFacingErrorMessage(error: unknown, fallback: string) {
   const message = getErrorMessage(error, fallback);

@@ -59,17 +59,23 @@
     "exact_same_card_cross_device_resume_is_not_required_if_daily_progress_sync_and_some_progress_inheritance_exist",
     "offline_use_can_be_allowed_for_authenticated_users_with_cached_state_and_content_only",
     "sync_conflict_resolution_can_use_server_authoritative_event_merging",
-    "CloudBase physical-space canonical state uses database transactions so concurrent function instances retry read-merge-write conflicts"
+    "CloudBase physical-space canonical state uses database transactions so concurrent function instances retry read-merge-write conflicts",
+    "mobile remote authentication uses challenge-bound SMS verification, short-lived access tokens, rotating refresh tokens, and revocable server sessions",
+    "mobile refresh is demand-driven before protected requests and serialized per session so one refresh token is never submitted concurrently",
+    "development-only v1 product routes can accept an active v2 session during migration while production continues to reject every v1 route",
+    "remote content failures fail closed and never substitute bundled development cards"
   ],
   "local_persistence": {
     "classification": "implementation_hypothesis",
     "auth_session_store": {
-      "sensitive_value": "auth_token",
+      "sensitive_values": ["access_token", "refresh_token"],
       "storage": "platform_keychain_or_keystore",
-      "schema": "auth-session.v1",
+      "schema": "auth-session.v2",
       "must_not_use": "AsyncStorage",
       "non_sensitive_revocation_marker": "versioned_AsyncStorage tombstone is written before secure credential cleanup and blocks restoration until a new secure session is saved",
-      "authorization_rejection": "HTTP 401 or 403 during restored-session authority reads clears account-bound persistence and returns to login"
+      "legacy_migration": "auth-session.v1 cannot be upgraded without refresh credentials and is invalidated instead of restored",
+      "refresh_policy": "refresh within 60 seconds of access expiry, serialize concurrent refresh demand, persist the complete rotated pair before exposing it, and never retry a rejected refresh token",
+      "authorization_rejection": "refresh rejection, repeated HTTP 401, or HTTP 403 clears account-bound persistence and returns to login"
     },
     "user_state_store": {
       "storage": "versioned_AsyncStorage",
@@ -86,8 +92,8 @@
       "space_state_timestamp": "preserve the timestamp of each explicit favorite or sleep action"
     },
     "membership_state": "reload_from_server_authority_after_auth_session_restore",
-    "mutation_queue": "persisted_under_an_independent_key_and_not_embedded_in_user_state",
-    "logout": "persist auth revocation first, then clear auth session, user state, and account-bound mutation queue before presenting logged-out runtime state"
+    "mutation_queue": "persisted_under_an_independent_key_and_not_embedded_in_user_state; persisted mutation payloads and identifiers contain no credentials, context contains phone_number only, legacy credential-bearing membership identifiers are normalized during hydration, and the current access token is injected in memory during replay",
+    "logout": "attempt server session revocation first, then write the local auth revocation marker and clear secure auth, user state, and account-bound mutation queue before presenting logged-out runtime state; local cleanup still completes when the server is unavailable"
   },
   "decision_rule": {
     "if_runtime_conflicts_with_experience": [
