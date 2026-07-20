@@ -32,6 +32,7 @@ status: active
 - `spec/box-catalog.json`
 - `spec/membership.json`
 - `spec/runtime-boundaries.json`
+- `infra/cloudbase/learning-events-v2-runtime-contract.md`（仅在 learning events 合同或实现任务中读取；当前为已定义、未实现的 runtime 边界）
 - `spec/repo-delivery-contract.json`
 - `spec/agent-harness.json`
 - `spec/agent-run-record.json`
@@ -45,7 +46,7 @@ status: active
 - 原始需求校准：`requirement-memory`
 - 权威定位：`authority-map`
 - 产品/范围：`requirement-memory -> product-core`
-- 认证/同步/购买：`requirement-memory -> account-sync-contract -> membership -> runtime-boundaries`
+- 认证/同步/购买：`requirement-memory -> account-sync-contract -> membership -> runtime-boundaries`（实现 learning events 时追加 `infra/cloudbase/learning-events-v2-runtime-contract.md`）
 - 多端/端形态：`requirement-memory -> product-core -> platform-contract -> runtime-boundaries`
 - 卡片/交互：`requirement-memory -> product-core -> action-surface -> card-system -> interactions`
 - 卡片内容交接：`requirement-memory -> product-core -> card-system -> box-catalog -> runtime-boundaries -> agent-harness -> infra/cloudbase/mobile-runtime-contract.md -> /Users/lenkin/programing/card make`

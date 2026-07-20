@@ -1,5 +1,5 @@
 {
-  "version": "vnext-8",
+  "version": "vnext-9",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -68,9 +68,26 @@
     "mobile remote login and restored sessions validate bootstrap scope before hydrating its canonical baseline, then validate the loaded card-source identity and content version before enabling learning, persisting reconciled state, replaying mutations, or pushing product-state writes",
     "mobile keeps a still-valid authenticated session retryable after transient bootstrap failure but fails closed without previously validated canonical state and required content; reconnect reads canonical state before replay and again after replay",
     "bootstrap does not make legacy snapshot writes, server scheduling, idempotent learning events, signed content manifests, or the CommonJS CloudBase function production-ready",
+    "learning-events.v2 is contract-defined as an active-session-authenticated immutable event ledger with per-event idempotency, device-cursor fork detection, atomic server projections, server-derived learning aggregates, and post-replay bootstrap reconciliation; the endpoint, client adoption, and scheduler remain unimplemented",
     "development-only v1 product routes can accept an active v2 session during migration while production continues to reject every v1 route",
     "remote content failures fail closed and never substitute bundled development cards"
   ],
+  "learning_event_runtime": {
+    "classification": "implementation_hypothesis",
+    "owner": "spec/account-sync-contract.json#learning_events_v2",
+    "runtime_contract": "infra/cloudbase/learning-events-v2-runtime-contract.md",
+    "request_schema": "learning-events.v2",
+    "response_schema": "learning-events-ack.v2",
+    "endpoint": "POST /v2/learning/events",
+    "implementation_status": "contract_defined_endpoint_backend_and_client_not_implemented",
+    "account_identity": "active_v2_session_only",
+    "server_source_of_truth": true,
+    "canonical_ordering": "account_scoped_server_sequence",
+    "client_snapshot_counters_forbidden": true,
+    "exact_same_card_cross_device_resume_required": false,
+    "scheduler_status": "separate_future_gate",
+    "launch_gate_status": "pending"
+  },
   "local_persistence": {
     "classification": "implementation_hypothesis",
     "auth_session_store": {

@@ -26,6 +26,11 @@ Current boundary:
   `/v2/bootstrap` before learning or product-state writes. Card payload and
   product mutations remain on `/v1` only as a development migration bridge;
   production continues to reject every `/v1` route.
+- The replacement learning mutation boundary is contract-defined in
+  `infra/cloudbase/learning-events-v2-runtime-contract.md`, but the current
+  mobile repositories and backend do not implement it. This file continues to
+  document the actually active v1 mutation shape until that separate adoption
+  work passes.
 
 ## Runtime Activation
 

@@ -4,7 +4,7 @@ Referenced specs: `spec/account-sync-contract.json`, `spec/membership.json`, `sp
 
 `product_truth`: remote learning must still enforce phone-code login before learning, shared membership entitlement, daily-level progress sync, and physical-space state sync.
 
-`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication and the backend canonical bootstrap read use `/v2`; the mobile bootstrap adoption, card payload, and product mutations still rely on `/v1` only as a development migration bridge. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to TypeScript CloudBase Run + PostgreSQL on the formal work server.
+`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication and the backend canonical bootstrap read use `/v2`; card payload and product mutations still rely on `/v1` only as a development migration bridge. `learning-events.v2` is now contract-defined, but its endpoint, transactional event ledger, projections, and mobile producer are not implemented. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to TypeScript CloudBase Run + PostgreSQL on the formal work server.
 
 ## Current Environment
 
@@ -57,6 +57,21 @@ POST /v1/space/state-sync
 ```
 
 For the development environment, SMS should use a whitelist/fixed-code adapter first. Real SMS provider integration should remain an adapter and must not change the mobile REST contract.
+
+## Contracted Next Backend Slice (Not Implemented)
+
+The next serial runtime boundary is:
+
+```text
+POST /v2/learning/events
+```
+
+Its immutable event, per-event idempotency, device-cursor conflict, atomic
+projection, acknowledgement, and migration semantics are defined in
+`infra/cloudbase/learning-events-v2-runtime-contract.md`. Listing the endpoint
+here does not mean the current function or mobile app implements it. Legacy
+daily and learning snapshots stay development-only until the backend event
+ledger and mobile producer land in separate reviewed PRs.
 
 ## Minimal HTTP Function
 

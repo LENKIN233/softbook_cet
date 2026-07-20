@@ -11,6 +11,12 @@ def validate(context) -> None:
     delivery = context.load("repo-delivery-contract.json")
     evals = context.load("evals.json")
     perturbation_audit = context.load("perturbation-audit.json")
+    workflow_text = (ROOT / ".github/workflows/pr-gates.yml").read_text(
+        encoding="utf-8"
+    )
+    local_gate_catalog_text = (
+        ROOT / "scripts/local_gates/catalog.py"
+    ).read_text(encoding="utf-8")
 
     # Governance contract must stay explicit across harness, evals, drift guards, and active agent docs.
     main_branch_policy = harness["governance"]["main_branch_policy"]
@@ -481,6 +487,10 @@ def validate(context) -> None:
                 "command": "python3 scripts/validate_harness.py --skip-remote-guard",
             },
             {
+                "id": "learning_events_contract_regressions",
+                "command": "python3 scripts/test_learning_events_contract.py",
+            },
+            {
                 "id": "launch_readiness_governance",
                 "command": "node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs",
             },
@@ -530,6 +540,16 @@ def validate(context) -> None:
             },
         ],
         ci_contract["required_pull_request_gates"],
+    )
+    check_contains(
+        "learning-events contract GitHub gate",
+        workflow_text,
+        "python3 scripts/test_learning_events_contract.py",
+    )
+    check_contains(
+        "learning-events contract local gate",
+        local_gate_catalog_text,
+        '"learning-events-contract-tests"',
     )
 
     ap20 = find_by_id(harness["anti_patterns"], "AP-20")
@@ -1037,7 +1057,7 @@ def validate(context) -> None:
         "涉及用户可见 UI 的分支，必须先引用已接受设计稿 / reference / design brief / direction / decision，再做实现；同一 PR 内新增的 brief / direction / decision 只能满足 design-only PR。",
         "Learning / core interaction UI 分支必须引用 interaction-motion artifact 或 storyboard；Space UI 分支必须引用 physical-space artifact 和 Space visual proof / refinement / shelf-desk baseline；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。",
         "`.github/pull_request_template.md` 要求 PR 描述包含：`当前任务引用的 spec`、`变更摘要`、`验证`、`Agent review`、`Agent run record`；若涉及用户可见 UI，必须补 `设计稿来源（用户可见 UI 如适用）`、interaction/motion 或 physical-space artifact（如适用）、实现映射、未实现 gap，并回答 `design_review_checklist（如适用）`。",
-        "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/test_validate_harness_runner.py`、`python3 scripts/test_run_local_gates.py`、`python3 scripts/test_harness_module_boundaries.py`、`node --test scripts/test_check_design_metadata_leaks.mjs`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_maestro_selectors.py`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。",
+        "`.github/workflows/pr-gates.yml` 会在指向 `main` 的 PR 上运行 `python3 scripts/validate_pr_design_gate.py --base <base_sha> --head <head_sha>`、`python3 scripts/test_validate_harness_runner.py`、`python3 scripts/test_learning_events_contract.py`、`python3 scripts/test_run_local_gates.py`、`python3 scripts/test_harness_module_boundaries.py`、`node --test scripts/test_check_design_metadata_leaks.mjs`、`python3 scripts/validate_harness.py --skip-remote-guard`、`python3 scripts/validate_maestro_selectors.py`、`python3 scripts/validate_agent_review.py`、`cd apps/mobile && npm run lint -- --quiet`、`cd apps/mobile && npm run typecheck`、`cd apps/mobile && npm test -- --runInBand --watchAll=false`、`cd infra/cloudbase/functions/softbook-api && npm test`。",
         "merge 的默认前置条件是：agent review 无 blocking finding，PR body 中 `Agent review` 已记录为 passed，`Agent run record` 已引用 `docs/agent-runs/*.md`，且 required gates 全绿。",
     ]:
         check_contains("branching strategy delivery mirror", branching_text, snippet)
@@ -1056,7 +1076,7 @@ def validate(context) -> None:
     for snippet in [
         "- `spec/repo-delivery-contract.json`",
         "- `spec/visual-language.json`",
-        "- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness 校验 + Maestro selector guard + agent review / agent run record 记录 + mobile quality + backend contract）",
+        "- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness/learning-events contract 回归 + Maestro selector guard + agent review / agent run record 记录 + mobile quality + backend contract）",
         "- `scripts/validate_agent_review.py`: PR body agent review 与 agent run record 记录校验（merge 前必须记录 passed review、无阻塞问题，并引用 `docs/agent-runs/*.md`）",
         "- `scripts/validate_maestro_selectors.py`: Maestro smoke selector 校验（禁止用用户可见文案作为 `tapOn` / `assertVisible` 等 selector，并要求 id 有 RN `testID` 背书）",
         "- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / agent run record / 视觉 checklist）",

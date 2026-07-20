@@ -61,6 +61,9 @@ jobs:
       - name: Test Harness runner
         run: python3 scripts/test_validate_harness_runner.py
 
+      - name: Test learning-events contract regressions
+        run: python3 scripts/test_learning_events_contract.py
+
       - name: Test local quality-gate runner
         run: python3 scripts/test_run_local_gates.py
 
