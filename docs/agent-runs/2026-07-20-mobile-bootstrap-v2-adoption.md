@@ -4,7 +4,7 @@
 
 - Date: 2026-07-20
 - Branch: `cross/mobile-bootstrap-v2-adoption`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/432
 - Trigger: Continue the production launch path after the backend canonical
   bootstrap merged in PR #431.
 - Summary: Make authenticated mobile login and session restore reconcile through
