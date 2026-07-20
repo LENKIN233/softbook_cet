@@ -59,10 +59,19 @@ function createMemoryAuthStateStore() {
     getAuthSession: async sessionId =>
       clone(authSessions.get(sessionId) ?? null),
     rotateAuthSession: async input => {
-      const result = rotateSessionRecord(
-        authSessions.get(input.sessionId),
-        input,
-      );
+      const session = authSessions.get(input.sessionId);
+
+      if (session && accountDeletions.has(session.account_key)) {
+        const revoked = revokeSessionRecord(
+          session,
+          input.now,
+          'account_deletion_requested',
+        );
+        authSessions.set(input.sessionId, revoked);
+        return {session: clone(revoked), status: 'revoked'};
+      }
+
+      const result = rotateSessionRecord(session, input);
 
       if (result.session) {
         authSessions.set(input.sessionId, result.session);
@@ -202,6 +211,24 @@ function createCloudBaseAuthStateStore(db, collections) {
       db.runTransaction(async transaction => {
         const collection = transaction.collection(names.authSessions);
         const session = await getDocument(collection, input.sessionId);
+
+        if (session) {
+          const deletion = await getDocument(
+            transaction.collection(names.accountDeletions),
+            session.account_key,
+          );
+
+          if (deletion) {
+            const revoked = revokeSessionRecord(
+              session,
+              input.now,
+              'account_deletion_requested',
+            );
+            await setDocument(collection, input.sessionId, revoked);
+            return {session: revoked, status: 'revoked'};
+          }
+        }
+
         const result = rotateSessionRecord(session, input);
 
         if (result.session) {

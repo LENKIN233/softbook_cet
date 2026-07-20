@@ -47,7 +47,8 @@ function createSoftbookApi(options = {}) {
     process.env.SOFTBOOK_AUTH_TOKEN_SECRET ??
     'softbook-cloudbase-dev-secret';
   const config = {
-    allowLegacyV1: options.allowLegacyV1 ?? runtimeMode !== 'production',
+    allowLegacyV1:
+      runtimeMode === 'production' ? false : options.allowLegacyV1 ?? true,
     apiKey: options.apiKey ?? process.env.SOFTBOOK_API_KEY,
     now: options.now ?? (() => new Date()),
     runtimeMode,

@@ -604,6 +604,16 @@ function validateServiceConfig(config) {
     throw new Error('Production auth requires a 32+ character index secret.');
   }
 
+  if (config.indexSecret === config.tokenSecret) {
+    throw new Error(
+      'Production auth requires separate token and index secrets.',
+    );
+  }
+
+  if (!config.requireClientIp) {
+    throw new Error('Production auth requires a trusted client IP.');
+  }
+
   if (
     typeof config.store.kind !== 'string' ||
     config.store.kind.trim() === '' ||

@@ -87,11 +87,11 @@
 ## Commands run
 
 - `node --check auth-v2.js && node --check index.js` -> passed.
-- `cd infra/cloudbase/functions/softbook-api && npm test` -> 26/26 tests
+- `cd infra/cloudbase/functions/softbook-api && npm test` -> 27/27 tests
   passed after the final security corrections; the original 15 `/v1` tests
   remain green.
 - `npx --yes node@22.13.0 --test test/*.test.js` in the backend function ->
-  26/26 passed on the exact CI Node version.
+  27/27 passed on the exact CI Node version.
 - `git diff --check` -> passed.
 - `scripts/run_local_gates --profile dev --verbose` ->
   `passed_with_exception`, 16/17 passed and 0 failed. The only exception is the
@@ -99,9 +99,12 @@
   backend suite was separately rerun on exact Node 22.13.0.
 - Exact Node 22.13.0 and Ruby 3.3.12
   `scripts/run_local_gates --profile pr --base origin/main --pr 429` -> 29/29
-  passed after correcting the PR validation wording and adding the current
-  topic-only remote-tracking ref required by strict repository health.
-- GitHub required checks -> pending on the final PR head.
+  passed on head `a713460` after correcting the PR validation wording and
+  adding the current topic-only remote-tracking ref required by strict
+  repository health. Final-head rerun is required after the subsequent
+  fail-closed review corrections.
+- GitHub required checks -> superseded by the subsequent review corrections;
+  the final head must run them again.
 
 ## Validation results
 
@@ -116,9 +119,10 @@
   resulting session through shared persistent state.
 - Production construction and request handling fail closed for the tested
   unsafe configurations.
-- Strict PR validation passed all 29 gates, including the full remote Harness,
-  real PR body, branch protection, dependency audit, repository health, Git
-  LFS, and remote evidence archive integrity.
+- Strict PR validation passed all 29 gates on `a713460`, including the full
+  remote Harness, real PR body, branch protection, dependency audit, repository
+  health, Git LFS, and remote evidence archive integrity. The final head must
+  reproduce that result.
 
 ## Binary evidence
 
@@ -133,9 +137,11 @@
 - Blocking findings: None after correction.
 - Review summary: Initial review found and fixed phone-quota consumption after
   IP rejection, enumerable account/rate indexes, signing-key coupling for
-  durable account indexes, and a deletion/login race. Focused regression tests
-  now cover each corrected boundary. Remaining production dependencies are
-  explicitly blocked rather than represented as completed.
+  durable account indexes, a deletion/login race, production option bypasses,
+  shared token/index secrets, and refresh after an interrupted account-wide
+  revocation. Focused memory and CloudBase regressions now cover each corrected
+  boundary. Remaining production dependencies are explicitly blocked rather
+  than represented as completed.
 
 ## User-visible UI impact
 

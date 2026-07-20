@@ -38,14 +38,16 @@ adapter when no SMS provider is injected. Production mode fails closed unless:
 
 - `SOFTBOOK_AUTH_TOKEN_SECRET` is a non-default value of at least 32 characters;
 - `SOFTBOOK_AUTH_INDEX_SECRET` is an explicit stable value of at least 32
-  characters, independent of signing-key rotation;
+  characters and differs from the token-signing secret;
 - the store declares a persistent, non-memory implementation;
 - a non-development SMS provider is injected; and
 - request-code receives a trusted client IP from the CloudBase gateway context.
 
 Production mode disables all `/v1` routes with `410 legacy_api_disabled`.
 There is intentionally no environment-only switch that silently turns the
-development SMS adapter into a production provider.
+development SMS adapter into a production provider. Internal constructor
+overrides also cannot re-enable v1 or disable the trusted-client-IP requirement
+in production.
 
 ## Endpoints
 
@@ -134,7 +136,8 @@ The route creates or returns one queued deletion task for the account, revokes
 all of that phone number's sessions, and returns `202`. Retrying with the same
 still-valid signed access token returns the same task. Session creation checks
 the durable deletion task in the same persistence transaction and rejects new
-login with `account_deletion_pending`.
+login with `account_deletion_pending`; refresh rotation independently checks the
+same task, so an interrupted account-wide revocation cannot restore access.
 
 ## Persistent records
 
@@ -184,6 +187,7 @@ This contract does not satisfy the launch gate. Remaining blockers include:
   delivery smoke evidence;
 - production secret injection, signing-key key-ring rotation, and stable index
   secret custody;
+- production Web origin allowlisting and gateway abuse-control review;
 - device-list and remote-device-revocation surfaces;
 - deletion worker, retention rules, provider cleanup, and completed deletion
   drill;

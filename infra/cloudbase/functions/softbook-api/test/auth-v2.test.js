@@ -344,6 +344,37 @@ test('v2 logout is idempotent and account deletion queues once then revokes all 
   );
 });
 
+test('v2 deletion task blocks refresh even when account-wide revocation is interrupted', async () => {
+  const store = createMemoryStore();
+  const {api} = createV2TestApi({store});
+  const session = await issueSession(api);
+  store.revokeAuthSessionsByAccount = async () => {
+    throw new Error('simulated revocation interruption');
+  };
+
+  const deletion = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    path: '/v2/account/deletion',
+  });
+  assert.equal(deletion.statusCode, 500);
+  assert.equal(store.snapshot().accountDeletions.size, 1);
+  assert.equal(
+    store.snapshot().authSessions.get(session.session_id).status,
+    'active',
+  );
+
+  const refresh = await request(api, {
+    body: {refresh_token: session.refresh_token},
+    path: '/v2/auth/refresh',
+  });
+  assert.equal(refresh.statusCode, 401);
+  assert.equal(refresh.body.error.code, 'revoked_auth_session');
+  assert.equal(
+    store.snapshot().authSessions.get(session.session_id).revoked_reason,
+    'account_deletion_requested',
+  );
+});
+
 test('v2 rejects expired challenges, access tokens, and refresh tokens', async () => {
   const clock = createClock();
   const {api} = createV2TestApi({clock});
@@ -411,6 +442,31 @@ test('v2 auth state survives separate CloudBase function instances', async () =>
     ).includes(refreshed.body.data.refresh_token),
     false,
   );
+
+  const persistedSession = db
+    .snapshot()
+    .get('softbook_auth_sessions')
+    .get(verified.body.data.session_id);
+  await first.store.getOrCreateAccountDeletionTask({
+    account_key: persistedSession.account_key,
+    deletion_id: 'delete_cloudbase_test',
+    phone_number: PHONE_NUMBER,
+    requested_at: '2026-07-20T08:00:00.000Z',
+    status: 'queued',
+  });
+  const blockedRefresh = await request(second.api, {
+    body: {refresh_token: refreshed.body.data.refresh_token},
+    path: '/v2/auth/refresh',
+  });
+  assert.equal(blockedRefresh.statusCode, 401);
+  assert.equal(blockedRefresh.body.error.code, 'revoked_auth_session');
+  assert.equal(
+    db
+      .snapshot()
+      .get('softbook_auth_sessions')
+      .get(verified.body.data.session_id).revoked_reason,
+    'account_deletion_requested',
+  );
 });
 
 test('production auth fails closed on weak configuration and missing trusted client IP', async () => {
@@ -455,7 +511,31 @@ test('production auth fails closed on weak configuration and missing trusted cli
   );
 
   const sms = createSmsProvider();
+  assert.throws(
+    () =>
+      createSoftbookApi({
+        authV2IndexSecret: 'a'.repeat(32),
+        runtimeMode: 'production',
+        smsProvider: sms.provider,
+        store: persistentStore,
+        tokenSecret: 'a'.repeat(32),
+      }),
+    /separate token and index secrets/,
+  );
+  assert.throws(
+    () =>
+      createSoftbookApi({
+        authV2IndexSecret: 'b'.repeat(32),
+        authV2RequireClientIp: false,
+        runtimeMode: 'production',
+        smsProvider: sms.provider,
+        store: persistentStore,
+        tokenSecret: 'a'.repeat(32),
+      }),
+    /trusted client IP/,
+  );
   const api = createSoftbookApi({
+    allowLegacyV1: true,
     authV2CodeGenerator: () => SMS_CODE,
     authV2IndexSecret: 'b'.repeat(32),
     runtimeMode: 'production',
