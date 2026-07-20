@@ -116,8 +116,16 @@
   protected reads/writes, membership mutations, and logout all passed.
 - Exact Node 22.13.0 and Ruby 3.3.12
   `scripts/run_local_gates --profile dev` -> 17/17 passed.
+- Exact Node 22.13.0 and Ruby 3.3.12
+  `scripts/run_local_gates --profile pr --base origin/main --pr 430` -> 29/29
+  passed against the real PR context after binding the active topic branch to
+  its exact remote-tracking ref.
+- `python3 scripts/validate_harness.py` -> passed in full remote mode.
 - `git diff --check` -> passed.
-- Strict PR profile and GitHub required checks -> pending PR creation.
+- First-round GitHub `validate-harness`, `mobile-quality`, `backend-contract`,
+  `repo-health`, `evidence-archive`, `dependency-security`, and
+  `formal-approval` -> passed. Final required checks remain an independent
+  merge gate on the final commit.
 
 ## Validation results
 
@@ -147,13 +155,15 @@
 ## Agent review status
 
 - Reviewer: Codex
-- Status: Pending final PR gates
-- Blocking findings: None open locally.
+- Status: Passed
+- Blocking findings: None.
 - Review summary: Review found and corrected two session-replacement races, a
   split UI/memory logout state after storage failure, and legacy mutation IDs
   that could retain or log a token or phone number. Focused regressions cover
-  each correction. Final status remains pending until strict PR validation and
-  GitHub required checks run on the published head.
+  each correction. The exact-toolchain dev and strict PR profiles, full remote
+  Harness, backend/mobile suites, and first-round completed remote jobs show no
+  remaining blocking finding. GitHub required checks still must pass on the
+  final commit before merge and are not replaced by this review.
 
 ## User-visible UI impact
 
@@ -175,14 +185,13 @@
   deletion completion workers, and provider cleanup remain unimplemented.
 - The current client has no account-deletion UI integration and no production
   payment entitlement flow.
-- The strict PR remote profile still needs to run against the real PR context
-  before merge.
+- Final GitHub required checks must pass on the final commit before merge.
 - This change does not alter formal card approval, audio QC, content completeness,
   or launch-readiness state.
 
 ## Follow-up
 
-- Publish the branch, run strict PR gates against the real PR context, complete
-  Agent review, and merge only after all required GitHub checks pass.
+- Publish this final run-record update and merge only after all required GitHub
+  checks pass on the resulting commit.
 - Next product slice: replace the development v1 data bridge with a canonical
   `/v2/bootstrap` and server-authoritative product read contract.
