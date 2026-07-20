@@ -117,6 +117,17 @@
 - The same exact-toolchain `dev` command was rerun after the final staged
   contract, Harness-layer, documentation, and run-record changes -> 18/18
   passed again with no exceptions.
+- `PATH=/Users/lenkin/.nvm/versions/node/v22.13.0/bin:/opt/homebrew/opt/ruby@3.3/bin:$PATH
+  ./scripts/run_local_gates --profile pr --base origin/main --pr 434` -> first
+  run passed 29/30 and failed only `repo-health-strict` because the single-branch
+  clone had an upstream name but no topic remote-tracking ref. This result is
+  retained and is not treated as a pass.
+- `git config --add remote.origin.fetch
+  '+refs/heads/infra/learning-events-v2-contract:refs/remotes/origin/infra/learning-events-v2-contract'`
+  plus `git fetch origin infra/learning-events-v2-contract` -> restored the
+  exact temporary topic tracking ref required by strict repository health.
+- The strict `pr` profile was then rerun unchanged -> 30/30 passed with no safe
+  exceptions or deferred gates.
 
 ## Validation results
 
@@ -128,7 +139,10 @@
 - Interactive-shell drift report retained at:
   `exports/local-gates/20260720T203853Z-fa954197-dev-62135/report.json`.
 - Full Harness: passed all 15 sections with the remote guard executed.
-- Strict PR profile: pending final commit and pull-request context.
+- Failed strict PR audit retained at:
+  `exports/local-gates/20260720T204823Z-d04f6737-pr-74772/report.json`.
+- Strict PR profile: 30/30 passed on `d04f6737f0b662e808c59de2eace284db2dfe7c5`;
+  report: `exports/local-gates/20260720T204926Z-d04f6737-pr-78997/report.json`.
 - GitHub required checks: pending final pushed commit.
 
 ## Binary evidence
