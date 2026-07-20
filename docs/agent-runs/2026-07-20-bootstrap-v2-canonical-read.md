@@ -4,7 +4,7 @@
 
 - Date: 2026-07-20
 - Branch: `module/bootstrap-v2-canonical-read`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/431
 - Trigger: Continue the production launch path after mobile v2 authentication
   adoption merged in PR #430.
 - Summary: Add an authenticated `/v2/bootstrap` read for server canonical
@@ -104,7 +104,15 @@
 - Exact Node 22.13.0, Python 3.12.13, and Ruby 3.3.12
   `scripts/run_local_gates --profile dev` -> 17/17 passed; report remained in
   ignored `exports/local-gates/`.
-- Strict PR profile, full remote Harness, and GitHub required checks -> pending.
+- `python3 scripts/validate_harness.py` -> passed in full remote mode.
+- Exact Node 22.13.0, Python 3.12.13, and Ruby 3.3.12
+  `scripts/run_local_gates --profile pr --base origin/main --pr 431` -> first
+  run collected 28/29 with only the intentionally Pending Agent review; after
+  review completion, the strict profile passed 29/29.
+- First-round GitHub `validate-harness`, `mobile-quality`,
+  `backend-contract`, `dependency-security`, `repo-health`,
+  `evidence-archive`, design-artifact, and formal-approval jobs -> passed.
+  Final required checks remain an independent merge gate on the final commit.
 
 ## Validation results
 
@@ -132,9 +140,16 @@
 ## Agent review status
 
 - Reviewer: Codex
-- Status: Pending
-- Blocking findings: Review and complete local/remote gates are not finished.
-- Review summary: Pending final diff review and exact-toolchain gates.
+- Status: Passed
+- Blocking findings: None.
+- Review summary: Review found and corrected missing membership freshness, a
+  development importer path that could accept technically valid but unapproved
+  release metadata, empty/duplicate card sources that could receive a content
+  hash, and impossible date keys. Focused regressions cover each correction.
+  The exact-toolchain dev and strict PR profiles, full remote Harness, backend
+  suite, HTTP smoke, and first-round remote jobs show no remaining blocking
+  finding. Final GitHub required checks still must pass on the final commit
+  before merge and are not replaced by this review.
 
 ## User-visible UI impact
 
@@ -163,8 +178,8 @@
 
 ## Follow-up
 
-- Complete exact-toolchain local gates and independent review, then publish a
-  PR and require every GitHub check to run on the final commit before merge.
+- Require every GitHub check to run and pass on the final review-record commit
+  before changing the PR from draft or merging.
 - Next serial product slice after merge: adopt `/v2/bootstrap` in the mobile
   runtime before replacing snapshot writes with idempotent learning events and
   server scheduling.
