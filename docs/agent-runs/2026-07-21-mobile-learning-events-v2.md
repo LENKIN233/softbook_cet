@@ -102,6 +102,8 @@
 - `python3 scripts/test_learning_events_contract.py` -> 12/12 passed.
 - `python3 scripts/validate_harness.py --mode local` -> all 15 selected local
   sections passed with expected partial completeness.
+- Exact Python 3.12.13 `python3 scripts/validate_harness.py` in PR #437 context
+  -> full Harness and live remote delivery guard passed.
 - Python compilation and Node syntax checks for changed contract, Harness,
   mock, and smoke files -> passed.
 - Local mock API plus write-enabled smoke -> accepted one v2 event, returned the
@@ -114,6 +116,14 @@
   `./scripts/run_local_gates --profile dev --output
   exports/local-gates/mobile-learning-events-v2-dev.json` -> 18/18 passed with
   no exception or deferred result and unchanged tracked worktree state.
+- The first strict PR profile passed 27/30 and exposed only delivery metadata:
+  checklist labels did not match the parser's exact Q1-Q6/AP-22/AP-23 fields,
+  the PR body had not yet recorded the full remote Harness, and the single-branch
+  clone lacked its topic remote-tracking ref. None is treated as a pass.
+- After correcting the PR body and fetching the exact topic ref, exact-toolchain
+  `./scripts/run_local_gates --profile pr --base origin/main --pr 437 --output
+  exports/local-gates/mobile-learning-events-v2-pr.json` -> 30/30 passed with no
+  safe exception or deferred gate.
 - `git diff --check` -> passed after the final local gate run.
 
 ## Validation results
@@ -122,7 +132,10 @@
 - Exact-toolchain dev report:
   `exports/local-gates/mobile-learning-events-v2-dev.json`; complete, 18/18
   passed, no safe exceptions.
-- GitHub required checks: pending pushed commit and PR.
+- Exact-toolchain PR report:
+  `exports/local-gates/mobile-learning-events-v2-pr.json`; complete, 30/30
+  passed, no safe exceptions.
+- GitHub required checks: pending final pushed commit.
 
 ## Binary evidence
 
