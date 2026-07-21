@@ -12,7 +12,7 @@ import {
   resolveSoftbookAppRuntimeConfig,
 } from '../src/runtime/appRuntimeConfig';
 import { resolveSpaceStateRepositoryConfig } from '../src/space/spaceStateRuntimeConfig';
-import { resolveLearningStateRepositoryConfig } from '../src/sync/learningStateRuntimeConfig';
+import { resolveLearningEventsRepositoryConfig } from '../src/sync/learningEventsRuntimeConfig';
 import { resolveProgressSyncRepositoryConfig } from '../src/sync/progressSyncRuntimeConfig';
 
 test('tracked app runtime config stays on the local safe baseline', () => {
@@ -38,7 +38,7 @@ test('runtime config resolver can build a remote profile from environment values
     env: {
       SOFTBOOK_CET_LEARNING_TRACK: 'cet6',
       SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES:
-        'accountBootstrap, learningSource, spaceState',
+        'accountBootstrap, learningSource, learningState, spaceState',
       SOFTBOOK_CET_REMOTE_API_KEY: 'env-key',
       SOFTBOOK_CET_REMOTE_BASE_URL: ' https://api.softbook.example/ ',
     },
@@ -55,7 +55,7 @@ test('runtime config resolver can build a remote profile from environment values
   expect(resolveLearningSessionRepositoryConfig(config).mode).toBe('local');
   expect(resolveMembershipRepositoryConfig(config).mode).toBe('remote');
   expect(resolveSpaceStateRepositoryConfig(config).mode).toBe('local');
-  expect(resolveLearningStateRepositoryConfig(config).mode).toBe('remote');
+  expect(resolveLearningEventsRepositoryConfig(config).mode).toBe('local');
 });
 
 test('remote runtime env profile rejects invalid staged feature names', () => {
@@ -122,9 +122,9 @@ test('remote runtime profile switches every remote-capable surface to one base u
     endpoint: 'https://api.softbook.example/v1/space/state-sync',
   });
   expect(
-    resolveLearningStateRepositoryConfig(config).remoteConfig,
+    resolveLearningEventsRepositoryConfig(config).remoteConfig,
   ).toMatchObject({
-    endpoint: 'https://api.softbook.example/v1/learning/state-sync',
+    endpoint: 'https://api.softbook.example/v2/learning/events',
   });
 });
 
@@ -175,6 +175,7 @@ test('remote runtime profile can keep one surface local for staged smoke tests',
     featureModes: {
       accountBootstrap: 'local',
       learningSource: 'local',
+      learningState: 'local',
       spaceState: 'local',
     },
   });
@@ -185,5 +186,5 @@ test('remote runtime profile can keep one surface local for staged smoke tests',
   expect(resolveMembershipRepositoryConfig(config).mode).toBe('remote');
   expect(resolveProgressSyncRepositoryConfig(config).mode).toBe('remote');
   expect(resolveSpaceStateRepositoryConfig(config).mode).toBe('local');
-  expect(resolveLearningStateRepositoryConfig(config).mode).toBe('remote');
+  expect(resolveLearningEventsRepositoryConfig(config).mode).toBe('local');
 });

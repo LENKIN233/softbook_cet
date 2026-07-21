@@ -35,6 +35,14 @@ async function flushAsyncEffects() {
   });
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(nextResolve => {
+    resolve = nextResolve;
+  });
+  return { promise, resolve };
+}
+
 async function renderAppAndWaitForLearning(
   element: React.ReactElement = <App />,
 ) {
@@ -213,6 +221,14 @@ function createCanonicalBootstrapPayload() {
   };
 }
 
+function createTestJsonResponse(payload: unknown, status = 200) {
+  return {
+    json: async () => payload,
+    ok: status >= 200 && status < 300,
+    status,
+  };
+}
+
 test('persists a successful login and restores it after relaunch', async () => {
   let firstTree: ReactTestRenderer.ReactTestRenderer;
 
@@ -381,6 +397,218 @@ test('restores remote account state from canonical bootstrap before local use', 
     expect(
       fetchMock.mock.calls.some(([, init]) => init?.method === 'POST'),
     ).toBe(false);
+  } finally {
+    if (tree) {
+      await ReactTestRenderer.act(() => {
+        tree?.unmount();
+      });
+    }
+    globalThis.__SOFTBOOK_CET_RUNTIME_CONFIG__ = undefined;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: originalFetch,
+      writable: true,
+    });
+  }
+});
+
+test('replays a restored learning event before allowing the stale card to advance again', async () => {
+  const originalFetch = globalThis.fetch;
+  const canonical = createCanonicalBootstrapPayload();
+  const staleBootstrap = JSON.parse(JSON.stringify(canonical.payload));
+  const firstCard = canonical.session.catalogCards[0];
+  staleBootstrap.data.learning.card_states = [];
+  staleBootstrap.data.learning.cursor = {
+    card_id: firstCard.card_id,
+    source_id: canonical.session.sourceId,
+    track: canonical.session.track,
+  };
+  staleBootstrap.data.progress.favorite_count = 0;
+  staleBootstrap.data.progress.learning_completed_count = 0;
+  staleBootstrap.data.progress.total_completed_count = 0;
+  let bootstrapRequestCount = 0;
+  let learningEventsWriteCount = 0;
+  let postedEventId: string | null = null;
+  const pendingLearningEventsResponse = createDeferred<{
+    json: () => Promise<unknown>;
+    ok: boolean;
+    status: number;
+  }>();
+  const fetchMock = jest.fn(
+    async (
+      input: string,
+      init?: {
+        body?: string;
+        headers?: ConstructorParameters<typeof Headers>[0];
+        method?: string;
+      },
+    ) => {
+      if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+        bootstrapRequestCount += 1;
+        return createTestJsonResponse(
+          bootstrapRequestCount === 1 ? staleBootstrap : canonical.payload,
+        );
+      }
+
+      if (
+        input.startsWith(
+          'https://api.softbook.example/v1/learning/card-source?',
+        )
+      ) {
+        return createTestJsonResponse({
+          data: {
+            card_records: canonical.session.catalogCards,
+            content_version: canonical.session.contentVersion,
+            source: {
+              id: canonical.session.sourceId,
+              label: canonical.session.sourceLabel,
+            },
+            track: canonical.session.track,
+          },
+        });
+      }
+
+      if (input === 'https://api.softbook.example/v2/learning/events') {
+        const body = JSON.parse(String(init?.body)) as {
+          events: Array<{ event_id: string }>;
+        };
+        learningEventsWriteCount += 1;
+        postedEventId = body.events[0].event_id;
+        return pendingLearningEventsResponse.promise;
+      }
+
+      throw new Error(`Unexpected fetch call: ${input}`);
+    },
+  );
+  Object.defineProperty(globalThis, 'fetch', {
+    configurable: true,
+    value: fetchMock,
+    writable: true,
+  });
+  let tree: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  try {
+    await createAuthSessionStore().save(createRemoteSession());
+    await AsyncStorage.setItem(
+      '__softbook_learning_event_outbox_v1',
+      JSON.stringify({
+        schemaVersion: 'learning-event-outbox.v1',
+        deviceId: 'install_restore_device',
+        nextSequence: 2,
+        entries: [
+          {
+            accountPhoneNumber: '13800138000',
+            enqueuedAt: '2026-07-21T08:00:01.000Z',
+            event: {
+              event_id: 'event_install_restore_device_1',
+              card_id: firstCard.card_id,
+              interaction_id: firstCard.interaction_id,
+              phase: 'learning',
+              outcome:
+                firstCard.interaction_id === 'flip' ? 'confident' : 'correct',
+              answer_grade: 'passed',
+              used_hint: false,
+              used_peek: false,
+              client_occurred_at: '2026-07-21T08:00:00.000Z',
+              content_version: TEST_CONTENT_VERSION,
+              device_cursor: {
+                device_id: 'install_restore_device',
+                sequence: 1,
+              },
+            },
+            retryCount: 0,
+            track: 'cet4',
+          },
+        ],
+      }),
+    );
+
+    tree = await renderAppAndWaitForLearning(
+      <App
+        softbookRemoteRuntimeProfile={{
+          baseUrl: 'https://api.softbook.example/',
+          featureModes: {
+            membership: 'local',
+            progressSync: 'local',
+            spaceState: 'local',
+          },
+        }}
+      />,
+    );
+
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      await ReactTestRenderer.act(async () => {
+        await flushAsyncEffects();
+      });
+      if (learningEventsWriteCount === 1) {
+        break;
+      }
+    }
+    expect(learningEventsWriteCount).toBe(1);
+
+    await ReactTestRenderer.act(() => {
+      tree!.root
+        .findByProps({ testID: 'learning-flip-button' })
+        .props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      tree!.root
+        .findByProps({ testID: 'learning-flip-confident-button' })
+        .props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      tree!.root
+        .findByProps({ testID: 'learning-next-button' })
+        .props.onPress();
+    });
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+
+    const stillPending = JSON.parse(
+      String(await AsyncStorage.getItem('__softbook_learning_event_outbox_v1')),
+    );
+    expect(stillPending.entries).toHaveLength(1);
+    expect(learningEventsWriteCount).toBe(1);
+
+    pendingLearningEventsResponse.resolve(
+      createTestJsonResponse({
+        data: {
+          schema_version: 'learning-events-ack.v2',
+          acknowledged_at: '2026-07-21T08:00:02.000Z',
+          track: 'cet4',
+          results: [
+            {
+              event_id: postedEventId,
+              status: 'accepted',
+              server_sequence: 1,
+            },
+          ],
+        },
+      }),
+    );
+
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      await ReactTestRenderer.act(async () => {
+        await flushAsyncEffects();
+      });
+      if (
+        JSON.stringify(tree.toJSON()).includes(
+          canonical.cursorCard.front.prompt,
+        )
+      ) {
+        break;
+      }
+    }
+
+    const reconciledOutbox = JSON.parse(
+      String(await AsyncStorage.getItem('__softbook_learning_event_outbox_v1')),
+    );
+    expect(reconciledOutbox.entries).toEqual([]);
+    expect(JSON.stringify(tree.toJSON())).toContain(
+      canonical.cursorCard.front.prompt,
+    );
+    expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
   } finally {
     if (tree) {
       await ReactTestRenderer.act(() => {

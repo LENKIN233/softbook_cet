@@ -60,11 +60,11 @@
     "content_rule": "content version is the SHA-256 of the normalized ordered source; production requires a matching published content-release.v1 descriptor while development may return release_id null",
     "release_publication_rule": "the development importer rejects non-null release descriptors; a separate publication pipeline must verify formal content approval before writing content-release.v1",
     "client_rule": "an authenticated client may use validated cached state while offline, but must reconcile with this server read before pushing restored state; without previously validated canonical state and required content, mobile keeps a valid session retryable but blocks learning, local persistence of the reconciled snapshot, mutation replay, and product-state writes until bootstrap succeeds and the loaded card-source content version matches",
-    "known_gap": "the repository-local CloudBase learning-events.v2 endpoint, transactional ledger, projections, and bootstrap reads are implemented but not deployed; mobile durable event production and replay, legacy v1 snapshot-write removal, the server scheduler, and production publication remain unimplemented"
+    "known_gap": "the repository-local CloudBase learning-events.v2 backend and React Native durable producer/replay are implemented but not deployed; global legacy v1 snapshot-write removal, the server scheduler, and production publication remain unimplemented"
   },
   "learning_events_v2": {
     "classification": "implementation_hypothesis",
-    "contract_status": "cloudbase_backend_implemented_locally_client_not_adopted",
+    "contract_status": "cloudbase_backend_and_mobile_client_implemented_locally_not_deployed",
     "runtime_contract": "infra/cloudbase/learning-events-v2-runtime-contract.md",
     "implementation_progress": {
       "cloudbase_backend": "implemented_locally_not_deployed",
@@ -78,7 +78,8 @@
       "cloudbase_transaction_boundary": "doc_only_with_at_most_100_operations",
       "legacy_migration_consistency": "bounded_outside_transaction_snapshot_with_transactional_revision_fence",
       "legacy_all_track_projection_migration": true,
-      "mobile_durable_event_producer": false,
+      "mobile_durable_event_producer": true,
+      "mobile_active_v1_learning_snapshot_writes_disabled": true,
       "legacy_v1_snapshot_writes_disabled": false,
       "migrated_account_v1_learning_writes": "learning_state_rejected_daily_progress_check_in_only_after_first_accepted_v2_event",
       "server_scheduler": false,
@@ -257,6 +258,21 @@
       "queue_removal_rule": "remove an event from the local queue only after an accepted or duplicate result for that event_id",
       "canonical_refresh_rule": "after replay, read /v2/bootstrap again before presenting reconciled server state or sending dependent mutations"
     },
+    "mobile_client_contract": {
+      "outbox_schema": "learning-event-outbox.v1",
+      "storage_rule": "persist the outbox under an independent versioned AsyncStorage key; persist the immutable event and allocated installation cursor before advancing the card UI",
+      "identity_rule": "store the account owner only for local queue isolation; never include phone_number or credential material in the learning-events.v2 request body or event payload",
+      "cursor_rule": "reuse one pseudonymous installation ID and monotonically allocate a positive safe-integer sequence; repair a stale persisted next sequence without reusing an existing cursor",
+      "batch_rule": "submit at most 9 events for one account and one track per request without compacting, rewriting, or reordering immutable payloads; end a batch at the first track boundary",
+      "ack_rule": "remove events only after a strict ordered accepted-or-duplicate acknowledgement with matching event IDs and positive unique server sequences",
+      "retry_rule": "retain byte-equivalent events after ambiguous or failed requests; pause automatic retry after a transient failure until network recovery, app foreground, or a newly durably enqueued event",
+      "concurrency_rule": "serialize replay per originating session; if a durable event arrives or a dependent mutation finishes queueing after an in-flight pass has read its queue, schedule one follow-up pass instead of running concurrently or waiting for an unrelated trigger",
+      "recovery_rule": "hydrate the account outbox count with authenticated bootstrap; a restored pending event blocks duplicate card advance until strict acknowledgement and post-acknowledgement bootstrap mapping, while events enqueued in the current validated session may continue batching without a routine canonical refresh overwriting local intent",
+      "reconciliation_rule": "replay only after validated bootstrap and content hydration; while events are pending, queue dependent daily-progress and space-state mutations and suppress routine canonical refreshes that would overwrite local intent; after any acknowledgement, keep dependent mutations blocked until another bootstrap is fetched and mapped",
+      "logout_rule": "clear only the signed-out account's queued events while preserving the installation identity and next sequence",
+      "account_switch_rule": "scope replay, bootstrap, and authenticated HTTP authorization handling to the originating session identity rather than phone number alone; a stale response from a signed-out or replaced session must not refresh, invalidate, clear, hydrate, or change sync state for the current session, including same-phone reauthentication",
+      "legacy_queue_rule": "discard persisted generic sync_learning_state mutations during hydration and never route active mobile learning completion through /v1/learning/state-sync"
+    },
     "migration_boundary": {
       "legacy_v1_role": "development-only migration input; v1 daily and learning snapshots are never accepted as learning-events.v2 payloads, while the migrated daily endpoint temporarily carries check-in compatibility only",
       "migrated_account_write_rule": "the first accepted v2 event transaction preserves valid legacy sequence-zero learning baselines for both tracks before closing account migration; later v1 learning-state snapshots fail with HTTP 409; v1 daily-progress remains a development bridge that can only merge monotonic checked_in_today, cannot overwrite server-derived learning counts, and cannot supply favorite or sleeping counts because bootstrap derives them from canonical physical space; unmigrated development accounts may still provide the migration baseline",
@@ -268,7 +284,7 @@
         "disable_legacy_snapshot_writes",
         "server_scheduler_and_scheduler_cursor"
       ],
-      "launch_claim_rule": "a green backend implementation PR does not satisfy mobile event adoption, legacy snapshot-write removal, server scheduling, formal content approval, production deployment, or launch readiness"
+      "launch_claim_rule": "green repository-local backend and mobile client tests do not satisfy global legacy snapshot-write removal, server scheduling, formal content approval, production deployment, or launch readiness"
     }
   },
   "offline_policy": {

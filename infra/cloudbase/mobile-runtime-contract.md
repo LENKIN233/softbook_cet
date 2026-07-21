@@ -24,20 +24,21 @@ Current boundary:
   `infra/cloudbase/auth-v2-runtime-contract.md`. Mobile authentication now uses
   that contract. Mobile login and restored sessions now reconcile through
   `/v2/bootstrap` before learning or product-state writes. Card payload and
-  product mutations remain on `/v1` only as a development migration bridge;
-  production continues to reject every `/v1` route.
+  non-learning product mutations remain on `/v1` only as a development
+  migration bridge; production continues to reject every `/v1` route.
 - The replacement learning mutation boundary is contract-defined in
   `infra/cloudbase/learning-events-v2-runtime-contract.md`. The repository-local
-  CloudBase backend implements it, but the current mobile runtime does not emit,
-  durably queue, or replay v2 events. This file continues to document the
-  actually active v1 mobile mutation shape until that separate adoption work
-  passes. After an account accepts a v2 event, legacy learning-state writes are
-  rejected while daily progress becomes a check-in-only compatibility bridge;
-  submitted learning and space counters no longer have authority. Client
-  adoption must therefore switch durable event replay before it submits that
-  account's first v2 event. Replay batches must contain at most 9 events for
-  this CloudBase adapter and preserve each event unchanged across smaller
-  retries.
+  CloudBase backend and current mobile runtime implement it locally. The client
+  persists an immutable event and pseudonymous device cursor before advancing
+  the card, replays at most 9 unchanged events per one-track batch, removes only
+  strict acknowledged events, and refreshes bootstrap before dependent writes.
+  While an event is pending, daily and space writes are queued instead of
+  overtaking it, and a routine Mine/foreground refresh cannot replace local
+  intent with a pre-acknowledgement bootstrap snapshot.
+  After an account accepts a v2 event, legacy learning-state writes are rejected
+  while daily progress becomes a check-in-only compatibility bridge; submitted
+  learning and space counters no longer have authority. Neither backend nor
+  mobile release deployment is implied by this repository-local implementation.
 
 ## Runtime Activation
 
@@ -148,6 +149,12 @@ also contain no credentials; hydration rewrites identifiers created by the old
 token/phone-based membership retry format. `auth-session.v1` is invalidated
 because it cannot be upgraded without refresh credentials.
 
+Generic mutation queue operations are serialized and use candidate persistence:
+memory changes only after AsyncStorage succeeds, and storage failures reject the
+caller. A remote result removes or increments retry state only when the queue
+head is byte-equivalent to the entry that was actually sent; an updated same-ID
+entry survives a late result and is replayed separately.
+
 ### Canonical Bootstrap
 
 ```http
@@ -180,8 +187,18 @@ an otherwise valid auth session available for retry, but the client fails closed
 when there is no previously validated canonical state and required content: it
 does not open learning, replay queued mutations, push restored snapshots, grant
 a local trial, or substitute bundled development cards. A successful reconnect
-re-runs bootstrap before mutation replay and refreshes canonical state again
-after replay.
+with no pending learning event re-runs bootstrap before generic mutation replay.
+When an immutable learning event is already pending against a previously
+validated bootstrap/content pair, reconnect preserves the local completion,
+re-reads bootstrap only to validate that the content identity is still current
+without mapping its pre-acknowledgement projections, then replays the event and
+refreshes canonical state immediately after acknowledgement before dependent
+daily or space mutations.
+
+Replay, bootstrap, and authenticated HTTP authorization handling are scoped to
+the originating auth session ID, not phone number alone. A late 401/403 from a
+signed-out or replaced session cannot refresh or invalidate the current
+session, including when the same phone number authenticated again.
 
 Staged development smoke may explicitly keep `accountBootstrap` local. The
 remaining `/v1` card source and product mutations are still a development
@@ -354,45 +371,54 @@ only merges monotonic `checked_in_today`. Learning/review/pending/total values
 cannot overwrite v2 projections, and favorite/sleeping counts are derived from
 canonical space during bootstrap. Production rejects all `/v1` routes.
 
-### Learning State Sync
+### Learning Events v2
 
 ```http
-POST /v1/learning/state-sync
+POST /v2/learning/events
 Authorization: Bearer <access_token>
 content-type: application/json
 x-softbook-client: mobile
 x-api-key: <optional>
 
 {
-  "day_key": "2026-04-30",
+  "schema_version": "learning-events.v2",
+  "track": "cet4",
   "events": [
     {
+      "event_id": "event_install_example_1",
       "card_id": "100101",
-      "completed_at": "2026-04-30T10:00:00.000Z",
       "interaction_id": "flip",
-      "is_favorited": false,
-      "outcome": "confident",
       "phase": "learning",
+      "outcome": "confident",
+      "answer_grade": "passed",
       "used_hint": false,
-      "used_peek": true
+      "used_peek": true,
+      "client_occurred_at": "2026-04-30T10:00:00.000Z",
+      "content_version": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "device_cursor": {
+        "device_id": "install_example",
+        "sequence": 1
+      }
     }
-  ],
-  "phone_number": "13800138000",
-  "source_id": "remote-cet4-source",
-  "source_label": "Remote CET4 Source",
-  "track": "cet4"
+  ]
 }
 ```
 
-Success: any 2xx. Body is ignored.
+The body contains no phone number or credential. The response must be a strict
+ordered `learning-events-ack.v2`; only matching `accepted` or `duplicate`
+results remove events. Failure retains the byte-equivalent event and pauses
+automatic retries until an explicit connectivity/app/new-event trigger. See
+`infra/cloudbase/learning-events-v2-runtime-contract.md` for the complete
+contract. Daily-progress and space-state changes made while an event is pending
+enter the persisted generic mutation queue; they are not sent until event
+acknowledgement and canonical bootstrap reconciliation complete.
 
-Failure: non-2xx queues `sync_learning_state` for replay.
-
-Allowed values:
-
-- `interaction_id`: `flip`, `multiple_choice`, `lock`, `elimination`, `swipe`.
-- `outcome`: `correct`, `incorrect`, `confident`, `review`.
-- `phase`: `learning`, `review`.
+Authenticated startup reads the account outbox count alongside bootstrap. If a
+pending event survived a process restart, the stale card may render for content
+validation but cannot advance again; exact replay, strict acknowledgement, and
+post-acknowledgement bootstrap mapping must finish first. This recovery guard
+does not prevent multiple events created during the same already-validated
+offline session from batching.
 
 ### Space State Sync
 
@@ -440,14 +466,18 @@ Failure: non-2xx queues `sync_space_state` for replay.
 9. `/v1/membership/entitlement` returns a valid entitlement.
 10. Space gate can trigger `/v1/membership/start-trial`.
 11. Membership purchase and dismiss recovery return valid entitlement payloads.
-12. Completing a card can POST `/v1/progress/daily-sync`.
-13. Completing a learning/review card can POST `/v1/learning/state-sync`.
-14. Favorite/sleep changes can POST `/v1/space/state-sync`.
-15. Temporary 503 on membership/progress/learning-state/space-state queues the
-    mutation; returning to 2xx replays it.
-16. Expiring access credentials refresh once under concurrent requests; a
+12. Completing a learning/review card persists `learning-event-outbox.v1`
+    before UI advance and POSTs `/v2/learning/events` without identity fields.
+13. A strict event acknowledgement removes the event, then `/v2/bootstrap`
+    returns the derived learning and daily state before dependent writes.
+14. Explicit check-in can POST `/v1/progress/daily-sync`; card completion does
+    not duplicate its v2-derived counts through that route.
+15. Favorite/sleep changes can POST `/v1/space/state-sync`.
+16. Temporary 503 retains the exact event or queued compatibility mutation;
+    returning to 2xx replays it without changing event ID or payload.
+17. Expiring access credentials refresh once under concurrent requests; a
     rejected refresh or repeated 401 clears account-bound persistence.
-17. Remote card-source failure renders retry state without bundled-card fallback.
+18. Remote card-source failure renders retry state without bundled-card fallback.
 
 ## Local Mock Validation
 
@@ -483,7 +513,7 @@ Expected high-level output:
 [ok] membership entitlement: trial_available
 [ok] learning card-source: 5 cards from mock-cet4-source
 [ok] daily progress sync: 200
-[ok] learning state sync: 200
+[ok] learning-events v2: accepted then duplicate at server_sequence=1
 [ok] space state sync: 200
 [ok] bootstrap after writes: sha256:<digest>; release=none
 [ok] membership start-trial: trial
@@ -503,6 +533,8 @@ Expected high-level output:
 - `apps/mobile/src/learning/sourceContract.ts`
 - `apps/mobile/src/membership/membershipRepository.ts`
 - `apps/mobile/src/sync/progressSyncRepository.ts`
-- `apps/mobile/src/sync/learningStateRepository.ts`
+- `apps/mobile/src/sync/learningEventOutbox.ts`
+- `apps/mobile/src/sync/learningEventsRepository.ts`
+- `apps/mobile/src/sync/learningEventSyncRepository.ts`
 - `apps/mobile/src/space/spaceStateRepository.ts`
 - `apps/mobile/src/sync/mutationQueueRepository.ts`

@@ -10,15 +10,9 @@ import type {
   DailyProgressSnapshot,
   ProgressSyncContext,
 } from './progressSyncRepository';
-import type {
-  LearningStateContext,
-  LearningStateSnapshot,
-} from './learningStateRepository';
-
 export type MutationType =
   | 'sync_daily_progress'
   | 'sync_space_state'
-  | 'sync_learning_state'
   | 'start_membership_trial'
   | 'refresh_membership';
 
@@ -37,10 +31,6 @@ export type MutationPayloadByType = {
   sync_space_state: {
     context: SpaceStateContext;
     snapshot: SpaceStateSnapshot;
-  };
-  sync_learning_state: {
-    context: LearningStateContext;
-    snapshot: LearningStateSnapshot;
   };
 };
 
@@ -88,7 +78,7 @@ export class MutationQueueManager {
   private readonly storage: MutationQueueStorage;
   private entries: MutationQueueEntry[] = [];
   private readonly hydrationPromise: Promise<void>;
-  private persistPromise: Promise<void> = Promise.resolve();
+  private operationTail: Promise<void> = Promise.resolve();
 
   constructor(
     options: {
@@ -118,101 +108,150 @@ export class MutationQueueManager {
     }
   }
 
-  private async save(): Promise<void> {
-    this.persistPromise = this.persistPromise
-      .then(() => this.storage.setItem(this.key, JSON.stringify(this.entries)))
-      .catch(error => {
-        console.warn('[MutationQueue] Failed to persist entries.', error);
-      });
-
-    await this.persistPromise;
-  }
-
   async hydrate(): Promise<void> {
     await this.hydrationPromise;
   }
 
-  async enqueue<Type extends MutationType>(
+  enqueue<Type extends MutationType>(
     type: Type,
     payload: MutationPayloadByType[Type],
     id?: string,
   ): Promise<MutationQueueEntry> {
-    await this.hydrate();
-
-    const entry = {
-      id: id ?? `${type}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      payload: sanitizeMutationPayload(type, payload),
-      retryCount: 0,
-      timestamp: this.now(),
-      type,
-    } as MutationQueueEntry;
-
-    const existingIndex = this.entries.findIndex(
-      currentEntry => currentEntry.id === entry.id,
-    );
-
-    if (existingIndex >= 0) {
-      this.entries[existingIndex] = entry;
-    } else {
-      this.entries.push(entry);
-    }
-
-    await this.save();
-    return cloneMutationEntry(entry);
-  }
-
-  async dequeue(): Promise<MutationQueueEntry | undefined> {
-    await this.hydrate();
-    const entry = this.entries[0];
-
-    if (entry) {
-      this.entries.shift();
-      await this.save();
-    }
-
-    return entry ? cloneMutationEntry(entry) : undefined;
-  }
-
-  async peek(): Promise<MutationQueueEntry | undefined> {
-    await this.hydrate();
-    const entry = this.entries[0];
-    return entry ? cloneMutationEntry(entry) : undefined;
-  }
-
-  async incrementRetry(id: string): Promise<void> {
-    await this.hydrate();
-    const entry = this.entries.find(currentEntry => currentEntry.id === id);
-
-    if (!entry) {
-      return;
-    }
-
-    entry.retryCount += 1;
-
-    if (entry.retryCount === MAX_MUTATION_RETRIES) {
-      console.warn(
-        `[MutationQueue] Mutation ${id} reached retry threshold; keeping it queued until remote ack.`,
+    return this.runExclusive(async () => {
+      const entry = {
+        id:
+          id ?? `${type}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        payload: sanitizeMutationPayload(type, payload),
+        retryCount: 0,
+        timestamp: this.now(),
+        type,
+      } as MutationQueueEntry;
+      const candidate = this.entries.map(cloneMutationEntry);
+      const existingIndex = candidate.findIndex(
+        currentEntry => currentEntry.id === entry.id,
       );
-    }
 
-    await this.save();
+      if (existingIndex >= 0) {
+        candidate[existingIndex] = entry;
+      } else {
+        candidate.push(entry);
+      }
+
+      await this.persistCandidate(candidate);
+      return cloneMutationEntry(entry);
+    });
   }
 
-  async clear(): Promise<void> {
-    await this.hydrate();
-    this.entries = [];
-    await this.save();
+  dequeue(): Promise<MutationQueueEntry | undefined> {
+    return this.runExclusive(async () => {
+      const entry = this.entries[0];
+
+      if (entry) {
+        await this.persistCandidate(this.entries.slice(1));
+      }
+
+      return entry ? cloneMutationEntry(entry) : undefined;
+    });
   }
 
-  async size(): Promise<number> {
-    await this.hydrate();
-    return this.entries.length;
+  removeIfUnchanged(expected: MutationQueueEntry): Promise<boolean> {
+    return this.runExclusive(async () => {
+      const entry = this.entries[0];
+
+      if (!entry || !areMutationEntriesEqual(entry, expected)) {
+        return false;
+      }
+
+      await this.persistCandidate(this.entries.slice(1));
+      return true;
+    });
   }
 
-  async getAll(): Promise<MutationQueueEntry[]> {
-    await this.hydrate();
-    return this.entries.map(cloneMutationEntry);
+  peek(): Promise<MutationQueueEntry | undefined> {
+    return this.runExclusive(async () => {
+      const entry = this.entries[0];
+      return entry ? cloneMutationEntry(entry) : undefined;
+    });
   }
+
+  incrementRetry(id: string): Promise<void> {
+    return this.runExclusive(async () => {
+      const candidate = this.entries.map(cloneMutationEntry);
+      const entry = candidate.find(currentEntry => currentEntry.id === id);
+
+      if (!entry) {
+        return;
+      }
+
+      entry.retryCount += 1;
+      await this.persistCandidate(candidate);
+
+      if (entry.retryCount === MAX_MUTATION_RETRIES) {
+        console.warn(
+          `[MutationQueue] Mutation ${id} reached retry threshold; keeping it queued until remote ack.`,
+        );
+      }
+    });
+  }
+
+  incrementRetryIfUnchanged(expected: MutationQueueEntry): Promise<boolean> {
+    return this.runExclusive(async () => {
+      const entry = this.entries[0];
+
+      if (!entry || !areMutationEntriesEqual(entry, expected)) {
+        return false;
+      }
+
+      const candidate = this.entries.map(cloneMutationEntry);
+      candidate[0].retryCount += 1;
+      await this.persistCandidate(candidate);
+
+      if (candidate[0].retryCount === MAX_MUTATION_RETRIES) {
+        console.warn(
+          `[MutationQueue] Mutation ${candidate[0].id} reached retry threshold; keeping it queued until remote ack.`,
+        );
+      }
+      return true;
+    });
+  }
+
+  clear(): Promise<void> {
+    return this.runExclusive(() => this.persistCandidate([]));
+  }
+
+  size(): Promise<number> {
+    return this.runExclusive(async () => this.entries.length);
+  }
+
+  getAll(): Promise<MutationQueueEntry[]> {
+    return this.runExclusive(async () => this.entries.map(cloneMutationEntry));
+  }
+
+  private runExclusive<Result>(
+    operation: () => Promise<Result>,
+  ): Promise<Result> {
+    const result = this.operationTail
+      .then(() => this.hydrationPromise)
+      .then(operation);
+
+    this.operationTail = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  }
+
+  private async persistCandidate(candidate: MutationQueueEntry[]) {
+    await this.storage.setItem(this.key, JSON.stringify(candidate));
+    this.entries = candidate;
+  }
+}
+
+function areMutationEntriesEqual(
+  left: MutationQueueEntry,
+  right: MutationQueueEntry,
+) {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function sanitizeMutationEntries(value: unknown): MutationQueueEntry[] {
@@ -260,9 +299,7 @@ function sanitizePersistedMutationId(type: MutationType, id: string): string {
   }
 
   if (type === 'start_membership_trial') {
-    return id === 'membership-trial:start'
-      ? id
-      : 'membership-trial:replay';
+    return id === 'membership-trial:start' ? id : 'membership-trial:replay';
   }
 
   return id;
@@ -297,7 +334,6 @@ function sanitizeMutationPayload<Type extends MutationType>(
         currentState: cloneCredentialFreeObject(payload.currentState),
       } as MutationPayloadByType[Type];
     case 'sync_daily_progress':
-    case 'sync_learning_state':
     case 'sync_space_state':
       if (!isObject(payload.snapshot)) {
         throw new Error(`Mutation ${type} requires a snapshot.`);
@@ -360,7 +396,6 @@ function isMutationType(value: unknown): value is MutationType {
     value === 'refresh_membership' ||
     value === 'start_membership_trial' ||
     value === 'sync_daily_progress' ||
-    value === 'sync_learning_state' ||
     value === 'sync_space_state'
   );
 }

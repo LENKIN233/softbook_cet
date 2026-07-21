@@ -105,7 +105,7 @@ def learning_events_contract_findings(
         (
             "status",
             ("learning_events_v2", "contract_status"),
-            "cloudbase_backend_implemented_locally_client_not_adopted",
+            "cloudbase_backend_and_mobile_client_implemented_locally_not_deployed",
         ),
         (
             "backend implementation",
@@ -182,7 +182,16 @@ def learning_events_contract_findings(
                 "implementation_progress",
                 "mobile_durable_event_producer",
             ),
-            False,
+            True,
+        ),
+        (
+            "mobile active v1 learning write boundary",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "mobile_active_v1_learning_snapshot_writes_disabled",
+            ),
+            True,
         ),
         (
             "legacy write boundary",
@@ -361,9 +370,73 @@ def learning_events_contract_findings(
             "after replay, read /v2/bootstrap again before presenting reconciled server state or sending dependent mutations",
         ),
         (
+            "mobile outbox owner contract",
+            ("learning_events_v2", "mobile_client_contract", "outbox_schema"),
+            "learning-event-outbox.v1",
+        ),
+        (
+            "mobile durable storage owner contract",
+            ("learning_events_v2", "mobile_client_contract", "storage_rule"),
+            "persist the outbox under an independent versioned AsyncStorage key; persist the immutable event and allocated installation cursor before advancing the card UI",
+        ),
+        (
+            "mobile identity owner contract",
+            ("learning_events_v2", "mobile_client_contract", "identity_rule"),
+            "store the account owner only for local queue isolation; never include phone_number or credential material in the learning-events.v2 request body or event payload",
+        ),
+        (
+            "mobile strict acknowledgement owner contract",
+            ("learning_events_v2", "mobile_client_contract", "ack_rule"),
+            "remove events only after a strict ordered accepted-or-duplicate acknowledgement with matching event IDs and positive unique server sequences",
+        ),
+        (
+            "mobile batch ordering owner contract",
+            ("learning_events_v2", "mobile_client_contract", "batch_rule"),
+            "submit at most 9 events for one account and one track per request without compacting, rewriting, or reordering immutable payloads; end a batch at the first track boundary",
+        ),
+        (
+            "mobile retry owner contract",
+            ("learning_events_v2", "mobile_client_contract", "retry_rule"),
+            "retain byte-equivalent events after ambiguous or failed requests; pause automatic retry after a transient failure until network recovery, app foreground, or a newly durably enqueued event",
+        ),
+        (
+            "mobile replay concurrency owner contract",
+            ("learning_events_v2", "mobile_client_contract", "concurrency_rule"),
+            "serialize replay per originating session; if a durable event arrives or a dependent mutation finishes queueing after an in-flight pass has read its queue, schedule one follow-up pass instead of running concurrently or waiting for an unrelated trigger",
+        ),
+        (
+            "mobile restored outbox owner contract",
+            ("learning_events_v2", "mobile_client_contract", "recovery_rule"),
+            "hydrate the account outbox count with authenticated bootstrap; a restored pending event blocks duplicate card advance until strict acknowledgement and post-acknowledgement bootstrap mapping, while events enqueued in the current validated session may continue batching without a routine canonical refresh overwriting local intent",
+        ),
+        (
+            "mobile reconciliation owner contract",
+            (
+                "learning_events_v2",
+                "mobile_client_contract",
+                "reconciliation_rule",
+            ),
+            "replay only after validated bootstrap and content hydration; while events are pending, queue dependent daily-progress and space-state mutations and suppress routine canonical refreshes that would overwrite local intent; after any acknowledgement, keep dependent mutations blocked until another bootstrap is fetched and mapped",
+        ),
+        (
+            "mobile logout owner contract",
+            ("learning_events_v2", "mobile_client_contract", "logout_rule"),
+            "clear only the signed-out account's queued events while preserving the installation identity and next sequence",
+        ),
+        (
+            "mobile account switch owner contract",
+            ("learning_events_v2", "mobile_client_contract", "account_switch_rule"),
+            "scope replay, bootstrap, and authenticated HTTP authorization handling to the originating session identity rather than phone number alone; a stale response from a signed-out or replaced session must not refresh, invalidate, clear, hydrate, or change sync state for the current session, including same-phone reauthentication",
+        ),
+        (
+            "mobile legacy queue owner contract",
+            ("learning_events_v2", "mobile_client_contract", "legacy_queue_rule"),
+            "discard persisted generic sync_learning_state mutations during hydration and never route active mobile learning completion through /v1/learning/state-sync",
+        ),
+        (
             "launch non-claim",
             ("learning_events_v2", "migration_boundary", "launch_claim_rule"),
-            "a green backend implementation PR does not satisfy mobile event adoption, legacy snapshot-write removal, server scheduling, formal content approval, production deployment, or launch readiness",
+            "green repository-local backend and mobile client tests do not satisfy global legacy snapshot-write removal, server scheduling, formal content approval, production deployment, or launch readiness",
         ),
         (
             "migrated account write rule",
@@ -383,7 +456,7 @@ def learning_events_contract_findings(
         (
             "runtime status",
             ("learning_event_runtime", "implementation_status"),
-            "cloudbase_backend_implemented_locally_not_deployed_mobile_and_scheduler_pending",
+            "cloudbase_backend_and_mobile_producer_implemented_locally_not_deployed_scheduler_pending",
         ),
         (
             "runtime backend storage",
@@ -428,7 +501,37 @@ def learning_events_contract_findings(
         (
             "runtime mobile boundary",
             ("learning_event_runtime", "mobile_producer_status"),
-            "not_implemented",
+            "implemented_locally_not_deployed",
+        ),
+        (
+            "runtime mobile outbox schema",
+            ("learning_event_runtime", "mobile_outbox_schema"),
+            "learning-event-outbox.v1",
+        ),
+        (
+            "runtime mobile durability boundary",
+            ("learning_event_runtime", "mobile_durability_boundary"),
+            "immutable_event_and_device_cursor_persist_before_card_ui_advance",
+        ),
+        (
+            "runtime mobile replay boundary",
+            ("learning_event_runtime", "mobile_replay_boundary"),
+            "validated_bootstrap_then_exact_event_replay_then_bootstrap_refresh_before_dependent_mutations",
+        ),
+        (
+            "runtime mobile restore boundary",
+            ("learning_event_runtime", "mobile_restore_boundary"),
+            "restored_pending_event_blocks_duplicate_card_advance_until_ack_and_post_ack_bootstrap_mapping",
+        ),
+        (
+            "runtime mobile account switch boundary",
+            ("learning_event_runtime", "mobile_account_switch_boundary"),
+            "originating_session_scoped_stale_replaced_session_responses_cannot_refresh_invalidate_clear_hydrate_or_mutate_current_session",
+        ),
+        (
+            "runtime mobile active v1 learning writes",
+            ("learning_event_runtime", "mobile_active_v1_learning_snapshot_writes"),
+            False,
         ),
         (
             "runtime legacy write boundary",
@@ -501,7 +604,7 @@ def learning_events_contract_findings(
     hr38 = _entry_by_id(evals.get("regressions", []), "HR-38")
     expected_hr38 = [
         "cloudbase_backend_is_repository_local_and_not_deployed",
-        "mobile_durable_event_producer_is_not_implemented",
+        "mobile_durable_event_producer_is_repository_local_and_not_production_deployed",
         "legacy_v1_learning_snapshot_bridge_remains_only_for_unmigrated_development_accounts",
         "migrated_v1_daily_progress_is_check_in_only",
         "server_scheduler_remains_a_separate_future_gate",
@@ -572,9 +675,39 @@ def learning_events_contract_findings(
     elif gt29.get("must_include") != expected_gt29:
         findings.append("learning-events contract evals: GT-29 must_include drift")
 
+    gt30 = _entry_by_id(evals.get("golden_tasks", []), "GT-30")
+    expected_gt30 = [
+        "event_and_device_cursor_persist_before_ui_advance",
+        "pseudonymous_installation_id_and_monotonic_safe_sequence",
+        "credential_free_strict_event_body",
+        "content_version_and_existing_two_grade_mapping",
+        "independent_versioned_asyncstorage_outbox",
+        "one_account_and_track_per_batch_with_limit_nine",
+        "interleaved_track_enqueue_order_is_preserved",
+        "strict_ordered_ack_before_removal",
+        "byte_equivalent_retry_with_same_event_id",
+        "transient_failure_pauses_until_explicit_retry_trigger",
+        "event_or_dependent_mutation_enqueued_during_inflight_pass_triggers_one_serial_followup_replay",
+        "restored_pending_event_blocks_duplicate_advance_until_reconciled",
+        "validated_bootstrap_before_replay_and_refresh_after_ack",
+        "dependent_daily_and_space_mutations_wait_for_event_reconciliation",
+        "dependent_mutation_persistence_failure_does_not_report_success_or_mutate_memory",
+        "late_generic_result_cannot_consume_same_id_replacement",
+        "logout_clears_account_events_but_preserves_installation_cursor",
+        "stale_replaced_session_response_cannot_affect_current_session_including_same_phone_reauthentication",
+        "persisted_v1_learning_mutations_are_discarded",
+        "active_mobile_v1_learning_snapshot_writes_are_removed",
+        "storage_failure_does_not_advance_the_card",
+        "mobile_green_does_not_claim_backend_deployment_scheduler_content_approval_or_launch_readiness",
+    ]
+    if not gt30:
+        findings.append("learning-events contract evals: missing GT-30")
+    elif gt30.get("must_include") != expected_gt30:
+        findings.append("learning-events contract evals: GT-30 must_include drift")
+
     required_runtime_snippets = [
         "repository-local CommonJS CloudBase function now implements",
-        "does not deploy it",
+        "This repository change deploys neither backend nor mobile release artifacts;",
         "softbook_learning_events",
         "softbook_learning_migration_revisions",
         "softbook_card_source_versions",
@@ -589,10 +722,21 @@ def learning_events_contract_findings(
         "not the scheduler cursor and not a",
         "does not accept a client-authored",
         "reads `/v2/bootstrap` again",
+        "learning-event-outbox.v1",
+        "ends a batch at the first track boundary",
+        "advancing the card UI. A failed durable write leaves the current result in",
+        "A transient failure pauses automatic replay until network recovery,",
+        "Replay is serialized per originating session.",
+        "Authenticated startup hydrates the account's outbox count with bootstrap.",
+        "Generic mutation queue operations are serialized and use candidate persistence:",
+        "daily-progress and space-state",
+        "active mobile completion no longer calls",
+        "Late replay, authorization, or bootstrap responses",
+        "including same-phone reauthentication.",
         "Legacy `/v1/learning/state-sync` remains",
         "only `checked_in_today` is merged",
         "409 legacy_learning_write_disabled",
-        "The local backend implementation does not prove",
+        "The repository-local backend and mobile implementation do not prove",
     ]
     for snippet in required_runtime_snippets:
         if snippet not in runtime_text:

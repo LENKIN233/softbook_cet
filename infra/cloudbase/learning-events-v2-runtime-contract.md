@@ -28,9 +28,11 @@ Referenced active specs:
 - The repository-local CommonJS CloudBase function now implements the endpoint,
   transactional ledger, server sequence, daily aggregates, per-card learning
   projection, retained content lookup, and bootstrap projection read.
-- The implementation has local memory and CloudBase-adapter tests. This
-  repository change does not deploy it, and the mobile producer, legacy v1
-  write removal, and scheduler remain unimplemented.
+- The implementation has local memory and CloudBase-adapter tests. The React
+  Native client also implements durable event allocation, exact replay, strict
+  acknowledgement removal, and post-ack bootstrap reconciliation.
+- This repository change deploys neither backend nor mobile release artifacts;
+  global legacy v1 write removal and the scheduler remain unimplemented.
 - The launch gate `canonical-bootstrap-and-idempotent-events` remains pending
   until backend deployment and client behavior pass the acceptance cases in
   this document.
@@ -311,11 +313,55 @@ Errors must not echo credentials, phone numbers, card content, or answer text.
 
 ## Offline producer and replay
 
-The mobile implementation must durably allocate the event ID and device cursor
-with the event payload before considering it queued. Persisted queue entries
-contain no access or refresh token; replay injects the current access token in
-memory. Queue compaction must not merge distinct event IDs or rewrite accepted
-history.
+The React Native implementation uses `learning-event-outbox.v1` under an
+independent AsyncStorage key. It atomically persists the immutable event, the
+pseudonymous installation ID, and the allocated positive device sequence before
+advancing the card UI. A failed durable write leaves the current result in
+place. Persisted entries contain no access or refresh token; replay injects the
+current access token in memory.
+
+The outbox sends at most 9 events for one account and one track per request. It
+ends a batch at the first track boundary, so interleaved CET4/CET6 entries keep
+their original enqueue order. It does not compact distinct IDs, mutate retry
+payloads, or remove an entry for an ambiguous response. A strict acknowledgement
+must preserve event order and IDs, use only `accepted` or `duplicate`, and
+provide positive unique server sequences. A transient failure pauses automatic replay until network recovery,
+app foreground, or a newly durably enqueued event, preventing render-driven
+request loops while preserving exact retry bytes.
+
+Replay is serialized per originating session. If an event is durably enqueued
+or a dependent mutation finishes queueing after an in-flight pass has observed
+its queue, the client records one follow-up pass and starts it when the current
+pass settles; it neither sends concurrently nor waits for an unrelated future
+connectivity trigger.
+
+Authenticated startup hydrates the account's outbox count with bootstrap. A
+pending event restored from an earlier process blocks another advance from the
+stale card until strict acknowledgement and post-acknowledgement bootstrap
+mapping complete. Events created in the current validated session may continue
+to batch while offline because routine refreshes cannot overwrite their local
+intent.
+
+While any learning event remains pending, daily-progress and space-state
+changes enter the persisted generic mutation queue instead of overtaking the
+event. Mine, foreground, and connectivity refreshes may re-read bootstrap to
+validate content identity, but do not map pre-acknowledgement projections over
+optimistic local intent. After strict event acknowledgement, the client
+refreshes and maps bootstrap before replaying those dependent mutations.
+
+Generic mutation queue operations are serialized and use candidate persistence:
+memory changes only after storage succeeds. A late remote result removes or
+increments retry state only for the exact unchanged head entry, so a same-ID
+replacement cannot be consumed by an older request.
+
+Logout removes only the signed-out account's entries and preserves the
+installation ID and next sequence. Generic queue hydration discards legacy
+`sync_learning_state` entries; active mobile completion no longer calls
+`/v1/learning/state-sync`.
+Late replay, authorization, or bootstrap responses are scoped to the originating
+session identity, not phone number alone. A response for a signed-out or
+replaced session cannot refresh, invalidate, clear, hydrate, or change sync
+state for the current session, including same-phone reauthentication.
 
 Reconnect order remains:
 
@@ -327,10 +373,11 @@ Reconnect order remains:
 
 ## Migration boundary
 
-Legacy `/v1/learning/state-sync` remains a development-only migration input for
-accounts without an accepted v2 event until mobile adoption and global
-legacy-write removal land. `/v1/progress/daily-sync` has the same baseline role
-before migration and becomes a check-in-only compatibility bridge afterward.
+Legacy `/v1/learning/state-sync` remains a backend development-only migration
+input for accounts without an accepted v2 event until global legacy-write
+removal lands; the active React Native client no longer writes it.
+`/v1/progress/daily-sync` has the same baseline role before migration and
+becomes a check-in-only compatibility bridge afterward.
 Neither route is a valid `learning-events.v2` payload. Production continues to
 reject every v1 route.
 
@@ -379,16 +426,33 @@ The repository-local backend tests currently prove:
 - reconnect performs bootstrap before and after replay;
 - tracked worktree state and formal approval records remain unchanged by tests.
 
-The future mobile adoption change must separately prove durable allocation,
-offline persistence, authenticated replay, queue removal, and bootstrap both
-before and after replay.
+The React Native tests additionally prove:
+
+- event ID and device cursor are persisted before card UI advance;
+- a failed persistent write does not advance the card;
+- content version, two-grade mapping, and credential-free request bodies are
+  preserved;
+- restart keeps installation identity and monotonic sequence allocation;
+- stale cursors are repaired without reuse and malformed event IDs are dropped;
+- transient failure preserves byte-equivalent event payloads and pauses
+  render-driven retries;
+- reconnect replays the exact event, removes it only after strict acknowledgement,
+  then refreshes bootstrap before dependent mutations;
+- queues larger than 9 split into server-safe one-track batches;
+- interleaved track entries retain their global enqueue order;
+- account-scoped concurrent replay is isolated;
+- a signed-out or replaced session's late 401 cannot refresh, invalidate,
+  clear, or mutate the current session, including same-phone reauthentication;
+- logout clears account entries without reusing the installation cursor;
+- persisted generic v1 learning mutations are discarded during migration;
+- metadata scanning rejects learning-event internals in visible UI copy.
 
 ## Explicit non-claims
 
-The local backend implementation does not prove:
+The repository-local backend and mobile implementation do not prove:
 
 - that `/v2/learning/events` is deployed in CloudBase or production;
-- that the React Native client emits or replays v2 events;
+- that the React Native client has been shipped against a deployed v2 endpoint;
 - that legacy learning snapshots and the daily check-in bridge are globally
   disabled;
 - that FSRS or any other scheduler is implemented;

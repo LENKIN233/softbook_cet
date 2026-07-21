@@ -4,7 +4,6 @@ import type {
   SpaceStateRepository,
   SpaceStateSnapshot,
 } from '../space/spaceStateRepository';
-import type {LearningStateRepository} from './learningStateRepository';
 import {
   MutationQueueManager,
   MutationPayloadByType,
@@ -57,7 +56,6 @@ export interface MutationQueueRepository {
 }
 
 export function createMutationQueueRepository(options: {
-  learningStateRepository: LearningStateRepository;
   membershipRepository: MembershipRepository;
   progressSyncRepository: ProgressSyncRepository;
   queueManager?: MutationQueueManager;
@@ -87,12 +85,6 @@ export function createMutationQueueRepository(options: {
               )
             ).snapshot,
           };
-        case 'sync_learning_state':
-          await options.learningStateRepository.syncLearningState(
-            entry.payload.context,
-            entry.payload.snapshot,
-          );
-          return {entry};
         case 'refresh_membership':
           return {
             entry,
@@ -156,7 +148,7 @@ export function createMutationQueueRepository(options: {
             console.warn(
               `[MutationQueue] Dropping stale queued mutation ${entry.id} for a different auth context.`,
             );
-            await queue.dequeue();
+            await queue.removeIfUnchanged(entry);
             continue;
           }
 
@@ -166,14 +158,13 @@ export function createMutationQueueRepository(options: {
           const replayResult = await replayMutation(replayEntry);
 
           if (replayResult) {
-            replayedResults.push(replayResult);
-            await queue.dequeue();
+            if (await queue.removeIfUnchanged(entry)) {
+              replayedResults.push(replayResult);
+            }
             continue;
           }
 
-          await queue.incrementRetry(entry.id);
-
-          if ((await queue.peek())?.id === entry.id) {
+          if (await queue.incrementRetryIfUnchanged(entry)) {
             break;
           }
         }

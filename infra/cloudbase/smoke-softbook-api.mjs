@@ -85,7 +85,11 @@ const remoteHeaders = {
 
 const initialBootstrap = await loadBootstrap('bootstrap');
 const entitlement = await loadMembershipEntitlement();
-assertExpectedStage(entitlement, expectedInitialStage, 'membership entitlement');
+assertExpectedStage(
+  entitlement,
+  expectedInitialStage,
+  'membership entitlement',
+);
 
 if (initialBootstrap.membership.stage !== entitlement.stage) {
   fail(
@@ -105,10 +109,10 @@ if (
 }
 
 if (enableWrites) {
-  await syncDailyProgress();
-  await syncLearningState(cardSource, firstCard);
+  await syncDailyProgress(initialBootstrap.progress);
+  const learningEvent = await syncLearningEvents(cardSource, firstCard);
   await syncSpaceState(firstCard);
-  await assertBootstrapWrites(firstCard);
+  await assertBootstrapWrites(initialBootstrap, firstCard, learningEvent);
 } else {
   skip('write sync endpoints', 'set SOFTBOOK_CET_SMOKE_WRITE=1 to enable');
 }
@@ -156,10 +160,15 @@ async function verifySmsCode(challengeId) {
   const payload = await response.json();
   const data = assertObject(payload.data, 'verify-code data');
   const session = parseAuthSession(data, 'verify-code data');
-  const returnedPhoneNumber = assertString(data.phone_number, 'data.phone_number');
+  const returnedPhoneNumber = assertString(
+    data.phone_number,
+    'data.phone_number',
+  );
 
   if (returnedPhoneNumber !== phoneNumber) {
-    fail(`verify-code phone mismatch: expected ${phoneNumber}, got ${returnedPhoneNumber}`);
+    fail(
+      `verify-code phone mismatch: expected ${phoneNumber}, got ${returnedPhoneNumber}`,
+    );
   }
 
   ok('verify-code', 'rotating session received');
@@ -278,22 +287,35 @@ async function loadBootstrap(label) {
   };
 }
 
-async function assertBootstrapWrites(firstCard) {
+async function assertBootstrapWrites(
+  initialBootstrap,
+  firstCard,
+  learningEvent,
+) {
   const bootstrap = await loadBootstrap('bootstrap after writes');
+  const expectedCompletedCount =
+    initialBootstrap.progress.total_completed_count + 1;
 
   if (
     bootstrap.progress.checked_in_today !== true ||
-    bootstrap.progress.total_completed_count !== 1
+    bootstrap.progress.total_completed_count !== expectedCompletedCount
   ) {
-    fail('bootstrap did not restore the daily progress write.');
+    fail(
+      `bootstrap did not restore exactly one learning-event completion: expected ${expectedCompletedCount}, got ${bootstrap.progress.total_completed_count}.`,
+    );
   }
 
+  const restoredLearningState = bootstrap.learning.card_states.find(
+    state => state.card_id === firstCard.card_id,
+  );
+
   if (
-    !bootstrap.learning.card_states.some(
-      state => state.card_id === firstCard.card_id,
-    )
+    restoredLearningState?.event_id !== learningEvent.event.event_id ||
+    restoredLearningState?.server_sequence !== learningEvent.serverSequence
   ) {
-    fail('bootstrap did not restore the learning-state write.');
+    fail(
+      'bootstrap did not restore the accepted learning-events.v2 projection.',
+    );
   }
 
   if (
@@ -339,7 +361,9 @@ async function loadLearningCardSource() {
   assertCoreInteractionCoverage(data.card_records, 'data.card_records');
   ok(
     'learning card-source',
-    `${data.card_records.length} cards from ${sourceId} covering ${REQUIRED_CORE_INTERACTIONS.join(',')}`,
+    `${
+      data.card_records.length
+    } cards from ${sourceId} covering ${REQUIRED_CORE_INTERACTIONS.join(',')}`,
   );
   return {
     card_records: data.card_records,
@@ -349,19 +373,19 @@ async function loadLearningCardSource() {
   };
 }
 
-async function syncDailyProgress() {
+async function syncDailyProgress(progress) {
   const response = await postJson(
     '/v1/progress/daily-sync',
     {
       checked_in_today: true,
       day_key: todayKey(),
-      favorite_count: 1,
-      learning_completed_count: 1,
-      pending_review_count: 0,
+      favorite_count: progress.favorite_count,
+      learning_completed_count: progress.learning_completed_count,
+      pending_review_count: progress.pending_review_count,
       phone_number: phoneNumber,
-      review_completed_count: 0,
-      sleeping_count: 0,
-      total_completed_count: 1,
+      review_completed_count: progress.review_completed_count,
+      sleeping_count: progress.sleeping_count,
+      total_completed_count: progress.total_completed_count,
     },
     remoteHeaders,
   );
@@ -370,33 +394,113 @@ async function syncDailyProgress() {
   ok('daily progress sync', response.status);
 }
 
-async function syncLearningState(cardSource, card) {
-  const response = await postJson(
-    '/v1/learning/state-sync',
-    {
-      day_key: todayKey(),
-      events: [
-        {
-          card_id: card.card_id,
-          completed_at: new Date().toISOString(),
-          interaction_id: card.interaction_id,
-          is_favorited: false,
-          outcome: card.interaction_id === 'flip' ? 'confident' : 'correct',
-          phase: 'learning',
-          used_hint: Boolean(card.hint_layer),
-          used_peek: true,
-        },
-      ],
-      phone_number: phoneNumber,
-      source_id: cardSource.source.id,
-      source_label: cardSource.source.label,
-      track: cardSource.track,
+async function syncLearningEvents(cardSource, card) {
+  const runId = `${Date.now().toString(36)}_${process.pid.toString(36)}`;
+  const outcome = card.interaction_id === 'flip' ? 'confident' : 'correct';
+  const event = {
+    event_id: `smoke_event_${runId}`,
+    card_id: card.card_id,
+    interaction_id: card.interaction_id,
+    phase: 'learning',
+    outcome,
+    answer_grade: 'passed',
+    used_hint: false,
+    used_peek: false,
+    client_occurred_at: new Date().toISOString(),
+    content_version: cardSource.content_version,
+    device_cursor: {
+      device_id: `smoke_installation_${runId}`,
+      sequence: 1,
     },
+  };
+  const body = {
+    schema_version: 'learning-events.v2',
+    track: cardSource.track,
+    events: [event],
+  };
+  const acceptedResponse = await postJson(
+    '/v2/learning/events',
+    body,
     remoteHeaders,
   );
 
-  assertOk(response, 'learning state sync');
-  ok('learning state sync', response.status);
+  assertOk(acceptedResponse, 'learning-events accepted');
+  const accepted = parseLearningEventAck(
+    await acceptedResponse.json(),
+    'learning-events accepted',
+    event.event_id,
+    'accepted',
+  );
+  const duplicateResponse = await postJson(
+    '/v2/learning/events',
+    body,
+    remoteHeaders,
+  );
+
+  assertOk(duplicateResponse, 'learning-events duplicate');
+  const duplicate = parseLearningEventAck(
+    await duplicateResponse.json(),
+    'learning-events duplicate',
+    event.event_id,
+    'duplicate',
+  );
+
+  if (duplicate.serverSequence !== accepted.serverSequence) {
+    fail('learning-events exact replay changed server_sequence.');
+  }
+
+  ok(
+    'learning-events v2',
+    `accepted then duplicate at server_sequence=${accepted.serverSequence}`,
+  );
+  return {event, serverSequence: accepted.serverSequence};
+}
+
+function parseLearningEventAck(
+  payload,
+  label,
+  expectedEventId,
+  expectedStatus,
+) {
+  assertExactKeys(payload, ['data'], label);
+  const data = assertObject(payload.data, `${label}.data`);
+  assertExactKeys(
+    data,
+    ['acknowledged_at', 'results', 'schema_version', 'track'],
+    `${label}.data`,
+  );
+
+  if (data.schema_version !== 'learning-events-ack.v2') {
+    fail(`${label}.data.schema_version must be learning-events-ack.v2.`);
+  }
+
+  if (data.track !== track) {
+    fail(`${label}.data.track must match ${track}.`);
+  }
+
+  assertIsoTimestamp(data.acknowledged_at, `${label}.data.acknowledged_at`);
+
+  if (!Array.isArray(data.results) || data.results.length !== 1) {
+    fail(`${label}.data.results must contain exactly one result.`);
+  }
+
+  const result = assertObject(data.results[0], `${label}.data.results[0]`);
+  assertExactKeys(
+    result,
+    ['event_id', 'server_sequence', 'status'],
+    `${label}.data.results[0]`,
+  );
+
+  if (
+    result.event_id !== expectedEventId ||
+    result.status !== expectedStatus ||
+    !Number.isSafeInteger(result.server_sequence) ||
+    result.server_sequence <= 0
+  ) {
+    fail(`${label}.data.results[0] does not match the strict ACK contract.`);
+  }
+
+  return {serverSequence: result.server_sequence};
 }
 
 async function syncSpaceState(card) {
@@ -435,7 +539,11 @@ async function startMembershipTrial() {
 async function purchaseMembership() {
   const entitlement = await runMembershipMutation('/v1/membership/purchase');
 
-  assertExpectedStage(entitlement, expectedPurchaseStage, 'membership purchase');
+  assertExpectedStage(
+    entitlement,
+    expectedPurchaseStage,
+    'membership purchase',
+  );
   ok('membership purchase', entitlement.stage);
 }
 
@@ -493,10 +601,16 @@ function validateCardRecord(card, label) {
   assertString(record.analysis?.title, `${label}.analysis.title`);
   assertString(record.analysis?.summary, `${label}.analysis.summary`);
   assertString(record.analysis?.exam_tip, `${label}.analysis.exam_tip`);
-  assertString(record.space_metadata?.library, `${label}.space_metadata.library`);
+  assertString(
+    record.space_metadata?.library,
+    `${label}.space_metadata.library`,
+  );
   assertString(record.space_metadata?.group, `${label}.space_metadata.group`);
   assertString(record.space_metadata?.box, `${label}.space_metadata.box`);
-  assertString(record.space_metadata?.box_ref, `${label}.space_metadata.box_ref`);
+  assertString(
+    record.space_metadata?.box_ref,
+    `${label}.space_metadata.box_ref`,
+  );
 
   if (record.space_metadata.box_ref !== record.knowledge_ref) {
     fail(`${label}.space_metadata.box_ref must match knowledge_ref.`);
@@ -518,40 +632,70 @@ function validateCardRecord(card, label) {
       break;
     case 'multiple_choice':
       assertArrayLength(record.options, 4, `${label}.options`);
-      assertString(record.answer_key?.correct_option, `${label}.answer_key.correct_option`);
-      if (!record.options.some(option => option.id === record.answer_key.correct_option)) {
+      assertString(
+        record.answer_key?.correct_option,
+        `${label}.answer_key.correct_option`,
+      );
+      if (
+        !record.options.some(
+          option => option.id === record.answer_key.correct_option,
+        )
+      ) {
         fail(`${label}.answer_key.correct_option must exist in options.`);
       }
       break;
     case 'lock':
       assertNonEmptyArray(record.lock_slots, `${label}.lock_slots`);
-      assertNonEmptyArray(record.answer_key?.lock_pattern, `${label}.answer_key.lock_pattern`);
+      assertNonEmptyArray(
+        record.answer_key?.lock_pattern,
+        `${label}.answer_key.lock_pattern`,
+      );
       if (record.lock_slots.length !== record.answer_key.lock_pattern.length) {
         fail(`${label}.lock_pattern must align with lock_slots.`);
       }
       record.lock_slots.forEach((slot, index) => {
         const selectedValue = record.answer_key.lock_pattern[index];
 
-        if (!Array.isArray(slot.options) || !slot.options.includes(selectedValue)) {
+        if (
+          !Array.isArray(slot.options) ||
+          !slot.options.includes(selectedValue)
+        ) {
           fail(`${label}.lock_pattern must select values from each slot.`);
         }
       });
       break;
     case 'elimination':
-      assertNonEmptyArray(record.elimination_items, `${label}.elimination_items`);
-      assertNonEmptyArray(record.answer_key?.correct_items, `${label}.answer_key.correct_items`);
+      assertNonEmptyArray(
+        record.elimination_items,
+        `${label}.elimination_items`,
+      );
+      assertNonEmptyArray(
+        record.answer_key?.correct_items,
+        `${label}.answer_key.correct_items`,
+      );
       {
         const itemIds = new Set(record.elimination_items.map(item => item.id));
 
-        if (!record.answer_key.correct_items.every(itemId => itemIds.has(itemId))) {
-          fail(`${label}.answer_key.correct_items must exist in elimination_items.`);
+        if (
+          !record.answer_key.correct_items.every(itemId => itemIds.has(itemId))
+        ) {
+          fail(
+            `${label}.answer_key.correct_items must exist in elimination_items.`,
+          );
         }
       }
       break;
     case 'swipe':
       assertArrayLength(record.swipe_states, 2, `${label}.swipe_states`);
-      assertString(record.answer_key?.correct_state, `${label}.answer_key.correct_state`);
-      if (!record.swipe_states.some(state => state.id === record.answer_key.correct_state)) {
+      assertString(
+        record.answer_key?.correct_state,
+        `${label}.answer_key.correct_state`,
+      );
+      if (
+        !record.swipe_states.some(
+          state => state.id === record.answer_key.correct_state,
+        )
+      ) {
         fail(`${label}.answer_key.correct_state must exist in swipe_states.`);
       }
       break;
@@ -568,22 +712,33 @@ function assertCoreInteractionCoverage(records, label) {
 
   if (missingInteractions.length > 0) {
     fail(
-      `${label} must cover core interactions before full visual QA: ${missingInteractions.join(',')}.`,
+      `${label} must cover core interactions before full visual QA: ${missingInteractions.join(
+        ',',
+      )}.`,
     );
   }
 }
 
 function parseEntitlement(payload, label) {
   const data = assertObject(payload.data, `${label}.data`);
-  const entitlement = assertObject(data.entitlement, `${label}.data.entitlement`);
+  const entitlement = assertObject(
+    data.entitlement,
+    `${label}.data.entitlement`,
+  );
   const stage = assertString(entitlement.stage, `${label}.stage`);
 
   if (!['trial_available', 'trial', 'free', 'premium'].includes(stage)) {
     fail(`${label}.stage is invalid: ${stage}`);
   }
 
-  assertNonNegativeInteger(entitlement.counted_entry_count, `${label}.counted_entry_count`);
-  assertPositiveInteger(entitlement.trial_duration_days, `${label}.trial_duration_days`);
+  assertNonNegativeInteger(
+    entitlement.counted_entry_count,
+    `${label}.counted_entry_count`,
+  );
+  assertPositiveInteger(
+    entitlement.trial_duration_days,
+    `${label}.trial_duration_days`,
+  );
 
   if (
     entitlement.trial_started_at_entry_count !== null &&
@@ -636,6 +791,22 @@ function assertObject(value, label) {
   }
 
   return value;
+}
+
+function assertExactKeys(value, expectedKeys, label) {
+  const object = assertObject(value, label);
+  const actualKeys = Object.keys(object).sort();
+  const sortedExpectedKeys = [...expectedKeys].sort();
+
+  if (JSON.stringify(actualKeys) !== JSON.stringify(sortedExpectedKeys)) {
+    fail(
+      `${label} keys must be ${sortedExpectedKeys.join(
+        ',',
+      )}; got ${actualKeys.join(',')}.`,
+    );
+  }
+
+  return object;
 }
 
 function assertString(value, label) {
@@ -705,7 +876,19 @@ function normalizeBaseUrl(value) {
 }
 
 function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+  })
+    .formatToParts(new Date())
+    .reduce((result, part) => {
+      result[part.type] = part.value;
+      return result;
+    }, {});
+
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 function assertExpectedStage(entitlement, expectedStage, label) {

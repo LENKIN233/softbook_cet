@@ -31,6 +31,7 @@ import { resolveAuthRepositoryConfig } from './src/auth/authRuntimeConfig';
 import { createAuthSessionCoordinator } from './src/auth/authSessionCoordinator';
 import {
   getAuthAccessToken,
+  getAuthSessionScopeKey,
   type AuthChallenge,
   type AuthSession,
 } from './src/auth/authSession';
@@ -107,11 +108,9 @@ import {
 import { StatisticsSurface } from './src/statistics/StatisticsSurface';
 import { formatLearningSessionDisplayLabel } from './src/shared/uiMetadata/displayMetadata';
 import { createMutationQueueRepository } from './src/sync/mutationQueueRepository';
-import {
-  createLearningStateRepository,
-  createLearningStateSnapshot,
-} from './src/sync/learningStateRepository';
-import { resolveLearningStateRepositoryConfig } from './src/sync/learningStateRuntimeConfig';
+import { createLearningEventSyncRepository } from './src/sync/learningEventSyncRepository';
+import { createLearningEventsRepository } from './src/sync/learningEventsRepository';
+import { resolveLearningEventsRepositoryConfig } from './src/sync/learningEventsRuntimeConfig';
 import {
   createDailyProgressSnapshot,
   createProgressSyncRepository,
@@ -229,6 +228,7 @@ type AccountBootstrapStatus = 'not_required' | 'pending' | 'ready' | 'deferred';
 type AuthenticatedRuntimeHydration = {
   accountBootstrap: AccountBootstrapSnapshot | null;
   accountBootstrapStatus: AccountBootstrapStatus;
+  pendingLearningEventCount: number;
   membershipErrorMessage: string | null;
   membershipRefreshSucceeded: boolean;
   membershipState: MembershipState;
@@ -464,18 +464,25 @@ function AppShell({
     [progressSyncRepositoryConfig],
   );
   const runtimeProgressSyncMode = progressSyncRepositoryConfig.mode;
-  const learningStateRepositoryConfig = useMemo(() => {
-    const resolved = resolveLearningStateRepositoryConfig(runtimeConfig);
+  const learningEventsRepositoryConfig = useMemo(() => {
+    const resolved = resolveLearningEventsRepositoryConfig(runtimeConfig);
 
     return resolved.mode === 'remote'
       ? { ...resolved, fetchImpl: authenticatedFetch }
       : resolved;
   }, [authenticatedFetch, runtimeConfig]);
-  const learningStateRepository = useMemo(
-    () => createLearningStateRepository(learningStateRepositoryConfig),
-    [learningStateRepositoryConfig],
+  const learningEventsRepository = useMemo(
+    () => createLearningEventsRepository(learningEventsRepositoryConfig),
+    [learningEventsRepositoryConfig],
   );
-  const runtimeLearningStateMode = learningStateRepositoryConfig.mode;
+  const learningEventSyncRepository = useMemo(
+    () =>
+      createLearningEventSyncRepository({
+        eventsRepository: learningEventsRepository,
+      }),
+    [learningEventsRepository],
+  );
+  const runtimeLearningEventsMode = learningEventsRepositoryConfig.mode;
   const spaceStateRepositoryConfig = useMemo(() => {
     const resolved = resolveSpaceStateRepositoryConfig(runtimeConfig ?? {});
 
@@ -491,17 +498,11 @@ function AppShell({
   const mutationQueueRepository = useMemo(
     () =>
       createMutationQueueRepository({
-        learningStateRepository,
         membershipRepository,
         progressSyncRepository,
         spaceStateRepository,
       }),
-    [
-      learningStateRepository,
-      membershipRepository,
-      progressSyncRepository,
-      spaceStateRepository,
-    ],
+    [membershipRepository, progressSyncRepository, spaceStateRepository],
   );
   const userStateStore = useMemo(() => createUserStateStore(), []);
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
@@ -556,9 +557,10 @@ function AppShell({
   const [lastSyncedProgressKey, setLastSyncedProgressKey] = useState<
     string | null
   >(null);
-  const [lastSyncedLearningStateKey, setLastSyncedLearningStateKey] = useState<
-    string | null
-  >(null);
+  const [pendingLearningEventCount, setPendingLearningEventCount] = useState(0);
+  const pendingLearningEventCountRef = useRef(0);
+  const [learningEventRecoveryPending, setLearningEventRecoveryPending] =
+    useState(false);
   const [lastSyncedSpaceStateKey, setLastSyncedSpaceStateKey] = useState<
     string | null
   >(null);
@@ -588,9 +590,22 @@ function AppShell({
   const accountBootstrapHydrationSettledRef = useRef(
     runtimeAccountBootstrapMode !== 'remote',
   );
-  const accountBootstrapRetryInFlight = useRef<Promise<boolean> | null>(null);
+  const accountBootstrapRetryInFlight = useRef<{
+    preserveLocalState: boolean;
+    sessionScopeKey: string;
+    task: Promise<boolean>;
+  } | null>(null);
   const accountBootstrapRefreshRequired = useRef(false);
   const logoutInFlight = useRef<Promise<void> | null>(null);
+  const learningEventEnqueueInFlight = useRef<{
+    sessionScopeKey: string;
+  } | null>(null);
+  const learningEventReplayPaused = useRef(false);
+  const mutationReplayInFlight = useRef<{
+    sessionScopeKey: string;
+    task: Promise<void>;
+  } | null>(null);
+  const mutationReplayRequestedAfterCurrent = useRef<string | null>(null);
   const resetRuntimeAfterLogout = useCallback(
     (error: string | null = null) => {
       lastMembershipRefreshKey.current = null;
@@ -600,6 +615,9 @@ function AppShell({
         runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required';
       accountBootstrapRefreshRequired.current = false;
       accountBootstrapSnapshotRef.current = null;
+      learningEventEnqueueInFlight.current = null;
+      learningEventReplayPaused.current = false;
+      mutationReplayRequestedAfterCurrent.current = null;
       accountBootstrapHydrationSettledRef.current =
         runtimeAccountBootstrapMode !== 'remote';
       setAccountBootstrapStatus(accountBootstrapStatusRef.current);
@@ -619,7 +637,9 @@ function AppShell({
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
       setLastSyncedProgressKey(null);
-      setLastSyncedLearningStateKey(null);
+      pendingLearningEventCountRef.current = 0;
+      setPendingLearningEventCount(0);
+      setLearningEventRecoveryPending(false);
       setLastSyncedSpaceStateKey(null);
       setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
       setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
@@ -640,6 +660,8 @@ function AppShell({
 
       const logoutTask = (async () => {
         let authCleanupFailed = false;
+        const accountPhoneNumber =
+          authSessionCoordinator.getCurrentSession()?.phoneNumber ?? null;
 
         try {
           if (revokeRemote) {
@@ -657,6 +679,9 @@ function AppShell({
         const cleanupResults = await Promise.allSettled([
           userStateStore.clear(),
           mutationQueueRepository.clear(),
+          ...(accountPhoneNumber
+            ? [learningEventSyncRepository.clearAccount(accountPhoneNumber)]
+            : []),
         ]);
 
         cleanupResults.forEach(result => {
@@ -685,6 +710,7 @@ function AppShell({
     },
     [
       authSessionCoordinator,
+      learningEventSyncRepository,
       mutationQueueRepository,
       resetRuntimeAfterLogout,
       userStateStore,
@@ -812,10 +838,15 @@ function AppShell({
 
       if (runtimeAccountBootstrapMode === 'remote') {
         try {
-          const accountBootstrap = await accountBootstrapRepository.load(
-            learningTrack,
-            todayKey,
-          );
+          const [accountBootstrap, hydratedPendingLearningEventCount] =
+            await Promise.all([
+              accountBootstrapRepository.load(learningTrack, todayKey),
+              runtimeLearningEventsMode === 'remote'
+                ? learningEventSyncRepository.getPendingCount(
+                    session.phoneNumber,
+                  )
+                : Promise.resolve(0),
+            ]);
 
           if (accountBootstrap === null) {
             throw new Error('Remote account bootstrap returned no state.');
@@ -829,6 +860,7 @@ function AppShell({
           return {
             accountBootstrap,
             accountBootstrapStatus: 'ready',
+            pendingLearningEventCount: hydratedPendingLearningEventCount,
             membershipErrorMessage: null,
             membershipRefreshSucceeded: true,
             membershipState: accountBootstrap.membership.state,
@@ -848,6 +880,7 @@ function AppShell({
           return {
             accountBootstrap: null,
             accountBootstrapStatus: 'deferred',
+            pendingLearningEventCount: 0,
             membershipErrorMessage: `${getUserFacingErrorMessage(
               error,
               '账户状态暂时无法读取。',
@@ -899,6 +932,7 @@ function AppShell({
       return {
         accountBootstrap: null,
         accountBootstrapStatus: 'not_required',
+        pendingLearningEventCount: 0,
         membershipErrorMessage: membershipResolution.errorMessage,
         membershipRefreshSucceeded: membershipResolution.refreshSucceeded,
         membershipState: membershipResolution.state,
@@ -919,9 +953,11 @@ function AppShell({
       accountBootstrapRepository,
       learningTrack,
       loadCanonicalSpaceState,
+      learningEventSyncRepository,
       membershipRepository,
       mutationQueueRepository,
       runtimeAccountBootstrapMode,
+      runtimeLearningEventsMode,
       runtimeMembershipRepositoryMode,
       todayKey,
       userStateStore,
@@ -940,8 +976,11 @@ function AppShell({
         accountBootstrapHydrationSettledRef.current,
       );
       setLastSyncedProgressKey(hydration.progressSyncKey);
-      setLastSyncedLearningStateKey(null);
       setLastSyncedSpaceStateKey(hydration.spaceStateSyncKey);
+      pendingLearningEventCountRef.current =
+        hydration.pendingLearningEventCount;
+      setPendingLearningEventCount(hydration.pendingLearningEventCount);
+      setLearningEventRecoveryPending(hydration.pendingLearningEventCount > 0);
       previousMembershipStage.current = hydration.membershipState.stage;
       setMembershipState(hydration.membershipState);
       setMembershipError(hydration.membershipErrorMessage);
@@ -999,26 +1038,6 @@ function AppShell({
     [spaceCardStateById, todayKey],
   );
   const spaceStateSyncKey = JSON.stringify(spaceStateSnapshot);
-  const learningStateSnapshot = useMemo(
-    () =>
-      learningSession
-        ? createLearningStateSnapshot({
-            dayKey: todayKey,
-            learningResults: learningCompletedResults,
-            learningSession,
-            reviewResults: reviewCompletedResults,
-          })
-        : null,
-    [
-      learningCompletedResults,
-      learningSession,
-      reviewCompletedResults,
-      todayKey,
-    ],
-  );
-  const learningStateSyncKey = learningStateSnapshot
-    ? JSON.stringify(learningStateSnapshot)
-    : null;
   const authenticatedRuntimeContext = useMemo(
     () =>
       authState.stage === 'authenticated'
@@ -1029,83 +1048,142 @@ function AppShell({
         : null,
     [authState.authToken, authState.phoneNumber, authState.stage],
   );
-  const retryCanonicalAccountBootstrap = useCallback(async () => {
-    if (runtimeAccountBootstrapMode !== 'remote') {
-      return true;
-    }
+  const retryCanonicalAccountBootstrap = useCallback(
+    async (
+      options: { preserveLocalState?: boolean } = {},
+    ): Promise<boolean> => {
+      if (runtimeAccountBootstrapMode !== 'remote') {
+        return true;
+      }
 
-    if (accountBootstrapRetryInFlight.current) {
-      return accountBootstrapRetryInFlight.current;
-    }
+      const preserveLocalState = options.preserveLocalState === true;
 
-    const session = authSessionCoordinator.getCurrentSession();
+      const session = authSessionCoordinator.getCurrentSession();
 
-    if (!session || authenticatedRuntimeContext === null) {
-      return false;
-    }
+      if (
+        !session ||
+        authenticatedRuntimeContext === null ||
+        authenticatedRuntimeContext.phoneNumber !== session.phoneNumber
+      ) {
+        return false;
+      }
 
-    accountBootstrapStatusRef.current = 'pending';
-    setAccountBootstrapStatus('pending');
+      const sessionScopeKey = getAuthSessionScopeKey(session);
 
-    const retryTask = (async () => {
+      if (sessionScopeKey === null) {
+        return false;
+      }
+
+      const existingRetry = accountBootstrapRetryInFlight.current;
+
+      if (
+        existingRetry?.sessionScopeKey === sessionScopeKey &&
+        existingRetry.preserveLocalState === preserveLocalState
+      ) {
+        return existingRetry.task;
+      }
+
+      const isCurrentSession = () =>
+        getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) ===
+        sessionScopeKey;
+
+      accountBootstrapStatusRef.current = 'pending';
+      setAccountBootstrapStatus('pending');
+
+      const retryTask = (async () => {
+        try {
+          const hydration = await loadAuthenticatedRuntimeHydration(session);
+          const currentSession = authSessionCoordinator.getCurrentSession();
+
+          if (
+            currentSession === null ||
+            getAuthSessionScopeKey(currentSession) !== sessionScopeKey
+          ) {
+            return false;
+          }
+
+          if (
+            hydration.accountBootstrapStatus === 'deferred' &&
+            accountBootstrapSnapshotRef.current !== null
+          ) {
+            accountBootstrapStatusRef.current = 'deferred';
+            setAccountBootstrapStatus('deferred');
+            setMembershipError(hydration.membershipErrorMessage);
+            return false;
+          }
+
+          if (
+            preserveLocalState ||
+            (runtimeLearningEventsMode === 'remote' &&
+              pendingLearningEventCountRef.current > 0)
+          ) {
+            if (
+              hydration.accountBootstrap === null ||
+              learningSession === null
+            ) {
+              throw new Error(
+                'Pending learning events require validated account content.',
+              );
+            }
+
+            resolveAccountBootstrapLearningState(
+              hydration.accountBootstrap,
+              learningSession,
+            );
+            accountBootstrapStatusRef.current = 'ready';
+            setAccountBootstrapStatus('ready');
+            return hydration.accountBootstrapStatus === 'ready';
+          }
+
+          applyAuthenticatedRuntimeHydration(hydration);
+          if (
+            hydration.accountBootstrapStatus === 'ready' &&
+            learningSession === null
+          ) {
+            setLearningBootstrapStatus('idle');
+            setLearningBootstrapError(null);
+          }
+          return hydration.accountBootstrapStatus === 'ready';
+        } catch (error) {
+          if (!isCurrentSession()) {
+            return false;
+          }
+
+          if (isRemoteAuthorizationError(error)) {
+            await clearAuthenticatedSession('登录已失效，请重新验证手机号。');
+            return false;
+          }
+
+          throw error;
+        }
+      })();
+      const scopedRetry = {
+        preserveLocalState,
+        sessionScopeKey,
+        task: retryTask,
+      };
+
+      accountBootstrapRetryInFlight.current = scopedRetry;
+
       try {
-        const hydration = await loadAuthenticatedRuntimeHydration(session);
-        const currentSession = authSessionCoordinator.getCurrentSession();
-
-        if (
-          currentSession === null ||
-          currentSession.phoneNumber !== session.phoneNumber
-        ) {
-          return false;
+        return await retryTask;
+      } finally {
+        if (accountBootstrapRetryInFlight.current === scopedRetry) {
+          accountBootstrapRetryInFlight.current = null;
         }
-
-        if (
-          hydration.accountBootstrapStatus === 'deferred' &&
-          accountBootstrapSnapshotRef.current !== null
-        ) {
-          accountBootstrapStatusRef.current = 'deferred';
-          setAccountBootstrapStatus('deferred');
-          setMembershipError(hydration.membershipErrorMessage);
-          return false;
-        }
-
-        applyAuthenticatedRuntimeHydration(hydration);
-        if (
-          hydration.accountBootstrapStatus === 'ready' &&
-          learningSession === null
-        ) {
-          setLearningBootstrapStatus('idle');
-          setLearningBootstrapError(null);
-        }
-        return hydration.accountBootstrapStatus === 'ready';
-      } catch (error) {
-        if (isRemoteAuthorizationError(error)) {
-          await clearAuthenticatedSession('登录已失效，请重新验证手机号。');
-          return false;
-        }
-
-        throw error;
       }
-    })();
-
-    accountBootstrapRetryInFlight.current = retryTask;
-
-    try {
-      return await retryTask;
-    } finally {
-      if (accountBootstrapRetryInFlight.current === retryTask) {
-        accountBootstrapRetryInFlight.current = null;
-      }
-    }
-  }, [
-    applyAuthenticatedRuntimeHydration,
-    authSessionCoordinator,
-    authenticatedRuntimeContext,
-    clearAuthenticatedSession,
-    learningSession,
-    loadAuthenticatedRuntimeHydration,
-    runtimeAccountBootstrapMode,
-  ]);
+    },
+    [
+      applyAuthenticatedRuntimeHydration,
+      authSessionCoordinator,
+      authenticatedRuntimeContext,
+      clearAuthenticatedSession,
+      learningSession,
+      loadAuthenticatedRuntimeHydration,
+      runtimeAccountBootstrapMode,
+      runtimeLearningEventsMode,
+    ],
+  );
   const activeMembershipRefreshKey =
     runtimeAccountBootstrapMode !== 'remote' &&
     runtimeMembershipRepositoryMode === 'remote' &&
@@ -1119,142 +1197,407 @@ function AppShell({
     activeRoute === 'mine'
       ? activeRoute
       : null;
-  const startMutationReplay = useCallback(async () => {
-    if (!isAuthenticated) {
-      return;
+  const startMutationReplay = useCallback(() => {
+    if (!isAuthenticated || authenticatedRuntimeContext === null) {
+      return Promise.resolve();
     }
 
-    if (authenticatedRuntimeContext === null) {
-      return;
-    }
+    const replayContext = authenticatedRuntimeContext;
+    const replayPhoneNumber = replayContext.phoneNumber;
+    const replaySession = authSessionCoordinator.getCurrentSession();
+    const replaySessionScopeKey = getAuthSessionScopeKey(replaySession);
 
     if (
-      runtimeAccountBootstrapMode === 'remote' &&
-      accountBootstrapStatusRef.current !== 'ready' &&
-      !(await retryCanonicalAccountBootstrap())
+      replaySession === null ||
+      replaySession.phoneNumber !== replayPhoneNumber ||
+      replaySessionScopeKey === null
     ) {
-      return;
+      return Promise.resolve();
     }
 
-    if (
-      runtimeAccountBootstrapMode === 'remote' &&
-      !accountBootstrapHydrationSettledRef.current
-    ) {
-      return;
+    const existingReplay = mutationReplayInFlight.current;
+
+    if (existingReplay?.sessionScopeKey === replaySessionScopeKey) {
+      mutationReplayRequestedAfterCurrent.current = replaySessionScopeKey;
+      return existingReplay.task;
     }
 
-    let replayedResults;
+    const precedingReplay = existingReplay?.task;
+    const isReplayAccountCurrent = () =>
+      getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) ===
+      replaySessionScopeKey;
+    const replayTask = (async () => {
+      if (precedingReplay) {
+        await precedingReplay.catch(() => undefined);
+      }
 
-    try {
-      replayedResults = await mutationQueueRepository.startReplay(
-        authenticatedRuntimeContext,
-      );
-    } catch (error) {
-      if (isRemoteAuthorizationError(error)) {
-        await clearAuthenticatedSession('登录已失效，请重新验证手机号。');
+      if (!isReplayAccountCurrent()) {
         return;
       }
 
-      throw error;
-    }
+      let queuedLearningEventCount = 0;
 
-    replayedResults.forEach(result => {
-      if (result.entry.type === 'sync_daily_progress') {
-        const replayedProgressKey = JSON.stringify(
-          result.entry.payload.snapshot,
-        );
+      if (runtimeLearningEventsMode === 'remote') {
+        try {
+          queuedLearningEventCount =
+            await learningEventSyncRepository.getPendingCount(
+              replayPhoneNumber,
+            );
 
-        setLastSyncedProgressKey(replayedProgressKey);
+          if (!isReplayAccountCurrent()) {
+            return;
+          }
 
-        if (replayedProgressKey === dailyProgressKey) {
-          setProgressSyncState({
-            detail: '网络恢复后，今天的学习进展已同步。',
-            label: '已同步',
-            state: 'synced',
+          pendingLearningEventCountRef.current = queuedLearningEventCount;
+          setPendingLearningEventCount(queuedLearningEventCount);
+        } catch (error) {
+          if (!isReplayAccountCurrent()) {
+            return;
+          }
+
+          setLearningStateSyncState({
+            detail: getUserFacingErrorMessage(
+              error,
+              '本地答题记录暂时无法读取。',
+            ),
+            label: '同步受阻',
+            state: 'error',
           });
+          return;
         }
-
-        return;
       }
 
-      if (result.entry.type === 'sync_space_state') {
-        if (!('spaceStateSnapshot' in result)) {
+      if (
+        runtimeAccountBootstrapMode === 'remote' &&
+        queuedLearningEventCount > 0 &&
+        accountBootstrapRefreshRequired.current
+      ) {
+        try {
+          const contentStillValid = await retryCanonicalAccountBootstrap({
+            preserveLocalState: true,
+          });
+
+          if (!isReplayAccountCurrent()) {
+            return;
+          }
+
+          if (!contentStillValid) {
+            setLearningSession(null);
+            setLearningCardState(null);
+            setLearningBootstrapStatus('error');
+            setLearningBootstrapError(
+              '内容版本暂时无法重新确认，已保留答题记录且尚未上传。',
+            );
+            return;
+          }
+
+          accountBootstrapRefreshRequired.current = false;
+        } catch (error) {
+          if (!isReplayAccountCurrent()) {
+            return;
+          }
+
+          setLearningSession(null);
+          setLearningCardState(null);
+          setLearningBootstrapStatus('error');
+          setLearningBootstrapError(
+            getUserFacingErrorMessage(
+              error,
+              '内容版本重新验证失败，已保留答题记录且尚未上传。',
+            ),
+          );
+          return;
+        }
+      }
+
+      if (
+        runtimeAccountBootstrapMode === 'remote' &&
+        accountBootstrapStatusRef.current !== 'ready' &&
+        !(await retryCanonicalAccountBootstrap())
+      ) {
+        if (!isReplayAccountCurrent()) {
           return;
         }
 
-        const replayedSpaceState = result.spaceStateSnapshot;
-        const replayedSpaceStateKey = JSON.stringify(replayedSpaceState);
-
-        setLastSyncedSpaceStateKey(replayedSpaceStateKey);
-
-        if (replayedSpaceStateKey !== spaceStateSyncKey) {
-          setSpaceCardStateById(spaceStateSnapshotToMap(replayedSpaceState));
+        if (queuedLearningEventCount > 0) {
+          setLearningStateSyncState({
+            detail: '答题记录已安全保存在本机，账户状态恢复后会继续同步。',
+            label: '待重试',
+            state: 'error',
+          });
         }
-        setSpaceStateSyncState({
-          detail: '网络恢复后，空间收藏和休眠状态已同步。',
-          label: '已同步',
-          state: 'synced',
-        });
-
         return;
       }
 
-      if (result.entry.type === 'sync_learning_state') {
-        const replayedLearningStateKey = JSON.stringify(
-          result.entry.payload.snapshot,
-        );
+      if (!isReplayAccountCurrent()) {
+        return;
+      }
 
-        setLastSyncedLearningStateKey(replayedLearningStateKey);
+      if (
+        runtimeAccountBootstrapMode === 'remote' &&
+        !accountBootstrapHydrationSettledRef.current
+      ) {
+        return;
+      }
 
-        if (replayedLearningStateKey === learningStateSyncKey) {
+      if (
+        runtimeLearningEventsMode === 'remote' &&
+        queuedLearningEventCount > 0
+      ) {
+        if (learningEventReplayPaused.current) {
+          return;
+        }
+
+        setLearningStateSyncState({
+          detail: '正在提交本机安全保存的答题记录。',
+          label: '同步中',
+          state: 'syncing',
+        });
+
+        try {
+          const replay = await learningEventSyncRepository.startReplay(
+            replayContext,
+          );
+
+          if (!isReplayAccountCurrent()) {
+            return;
+          }
+
+          learningEventReplayPaused.current = false;
+          pendingLearningEventCountRef.current = replay.pendingCount;
+          setPendingLearningEventCount(replay.pendingCount);
+
+          if (replay.acknowledgedEntries.length > 0) {
+            if (runtimeAccountBootstrapMode === 'remote') {
+              accountBootstrapRefreshRequired.current = false;
+              accountBootstrapStatusRef.current = 'pending';
+              setAccountBootstrapStatus('pending');
+              accountBootstrapHydrationSettledRef.current = false;
+              setAccountBootstrapHydrationSettled(false);
+              setLearningStateSyncState({
+                detail: '答题记录已由服务端确认，正在刷新账户学习状态。',
+                label: '同步中',
+                state: 'syncing',
+              });
+
+              try {
+                const bootstrapRefreshed =
+                  await retryCanonicalAccountBootstrap();
+
+                if (!isReplayAccountCurrent()) {
+                  return;
+                }
+
+                if (!bootstrapRefreshed) {
+                  setLearningStateSyncState({
+                    detail:
+                      '答题记录已由服务端确认，账户状态将在服务恢复后刷新。',
+                    label: '待刷新',
+                    state: 'error',
+                  });
+                }
+              } catch (error) {
+                if (!isReplayAccountCurrent()) {
+                  return;
+                }
+
+                setLearningStateSyncState({
+                  detail: `${getUserFacingErrorMessage(
+                    error,
+                    '账户学习状态刷新失败。',
+                  )} 服务恢复后会自动再试。`,
+                  label: '待刷新',
+                  state: 'error',
+                });
+              }
+              return;
+            }
+
+            setLearningStateSyncState({
+              detail: '当前答题记录已同步。',
+              label: '已同步',
+              state: 'synced',
+            });
+          }
+        } catch (error) {
+          if (!isReplayAccountCurrent()) {
+            return;
+          }
+
+          if (isRemoteAuthorizationError(error)) {
+            await clearAuthenticatedSession('登录已失效，请重新验证手机号。');
+            return;
+          }
+
+          learningEventReplayPaused.current = true;
+          try {
+            const pendingCount =
+              await learningEventSyncRepository.getPendingCount(
+                replayPhoneNumber,
+              );
+
+            if (!isReplayAccountCurrent()) {
+              return;
+            }
+
+            pendingLearningEventCountRef.current = pendingCount;
+            setPendingLearningEventCount(pendingCount);
+          } catch {
+            // The primary sync error remains the user-facing diagnosis.
+          }
+
+          if (!isReplayAccountCurrent()) {
+            return;
+          }
+
           setLearningStateSyncState({
-            detail: '网络恢复后，当前答题记录已同步。',
+            detail: `${getUserFacingErrorMessage(
+              error,
+              '学习状态同步失败。',
+            )} 答题记录已保存在本机，网络恢复后会自动再试。`,
+            label: '待重试',
+            state: 'error',
+          });
+          return;
+        }
+      }
+
+      let replayedResults;
+
+      try {
+        replayedResults = await mutationQueueRepository.startReplay(
+          replayContext,
+        );
+      } catch (error) {
+        if (!isReplayAccountCurrent()) {
+          return;
+        }
+
+        if (isRemoteAuthorizationError(error)) {
+          await clearAuthenticatedSession('登录已失效，请重新验证手机号。');
+          return;
+        }
+
+        throw error;
+      }
+
+      if (!isReplayAccountCurrent()) {
+        return;
+      }
+
+      replayedResults.forEach(result => {
+        if (result.entry.type === 'sync_daily_progress') {
+          const replayedProgressKey = JSON.stringify(
+            result.entry.payload.snapshot,
+          );
+
+          setLastSyncedProgressKey(replayedProgressKey);
+
+          if (replayedProgressKey === dailyProgressKey) {
+            setProgressSyncState({
+              detail: '网络恢复后，今天的学习进展已同步。',
+              label: '已同步',
+              state: 'synced',
+            });
+          }
+
+          return;
+        }
+
+        if (result.entry.type === 'sync_space_state') {
+          if (!('spaceStateSnapshot' in result)) {
+            return;
+          }
+
+          const replayedSpaceState = result.spaceStateSnapshot;
+          const replayedSpaceStateKey = JSON.stringify(replayedSpaceState);
+
+          setLastSyncedSpaceStateKey(replayedSpaceStateKey);
+
+          if (replayedSpaceStateKey !== spaceStateSyncKey) {
+            setSpaceCardStateById(spaceStateSnapshotToMap(replayedSpaceState));
+          }
+          setSpaceStateSyncState({
+            detail: '网络恢复后，空间收藏和休眠状态已同步。',
             label: '已同步',
             state: 'synced',
           });
+
+          return;
         }
 
-        return;
+        if (result.entry.type === 'refresh_membership') {
+          pendingMembershipRefreshKey.current = null;
+          lastMembershipRefreshKey.current = result.entry.id.replace(
+            /^membership:/,
+            '',
+          );
+        }
+
+        if ('membershipState' in result) {
+          setMembershipError(null);
+          setMembershipState(result.membershipState);
+          setMembershipGate(currentGate =>
+            shouldClearMembershipGate(currentGate, result.membershipState)
+              ? null
+              : currentGate,
+          );
+        }
+      });
+
+      if (
+        replayedResults.length > 0 &&
+        runtimeAccountBootstrapMode === 'remote'
+      ) {
+        accountBootstrapStatusRef.current = 'pending';
+        setAccountBootstrapStatus('pending');
+        accountBootstrapHydrationSettledRef.current = false;
+        setAccountBootstrapHydrationSettled(false);
+        await retryCanonicalAccountBootstrap();
+      }
+    })();
+
+    const scopedReplay = {
+      sessionScopeKey: replaySessionScopeKey,
+      task: replayTask,
+    };
+
+    mutationReplayInFlight.current = scopedReplay;
+    const finishReplay = () => {
+      if (mutationReplayInFlight.current === scopedReplay) {
+        mutationReplayInFlight.current = null;
       }
 
-      if (result.entry.type === 'refresh_membership') {
-        pendingMembershipRefreshKey.current = null;
-        lastMembershipRefreshKey.current = result.entry.id.replace(
-          /^membership:/,
-          '',
-        );
+      const shouldReplayAgain =
+        mutationReplayRequestedAfterCurrent.current === replaySessionScopeKey &&
+        getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) ===
+          replaySessionScopeKey &&
+        !learningEventReplayPaused.current;
+
+      if (
+        mutationReplayRequestedAfterCurrent.current === replaySessionScopeKey
+      ) {
+        mutationReplayRequestedAfterCurrent.current = null;
       }
 
-      if ('membershipState' in result) {
-        setMembershipError(null);
-        setMembershipState(result.membershipState);
-        setMembershipGate(currentGate =>
-          shouldClearMembershipGate(currentGate, result.membershipState)
-            ? null
-            : currentGate,
-        );
+      if (shouldReplayAgain) {
+        startMutationReplay().catch(() => undefined);
       }
-    });
+    };
 
-    if (
-      replayedResults.length > 0 &&
-      runtimeAccountBootstrapMode === 'remote'
-    ) {
-      accountBootstrapStatusRef.current = 'pending';
-      setAccountBootstrapStatus('pending');
-      accountBootstrapHydrationSettledRef.current = false;
-      setAccountBootstrapHydrationSettled(false);
-      await retryCanonicalAccountBootstrap();
-    }
+    replayTask.then(finishReplay, finishReplay);
+    return replayTask;
   }, [
     authenticatedRuntimeContext,
+    authSessionCoordinator,
     clearAuthenticatedSession,
     dailyProgressKey,
     isAuthenticated,
-    learningStateSyncKey,
+    learningEventSyncRepository,
     mutationQueueRepository,
     retryCanonicalAccountBootstrap,
     runtimeAccountBootstrapMode,
+    runtimeLearningEventsMode,
     spaceStateSyncKey,
   ]);
 
@@ -1464,7 +1807,9 @@ function AppShell({
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
       setLastSyncedProgressKey(null);
-      setLastSyncedLearningStateKey(null);
+      pendingLearningEventCountRef.current = 0;
+      setPendingLearningEventCount(0);
+      setLearningEventRecoveryPending(false);
       setLastSyncedSpaceStateKey(null);
       setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
       setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
@@ -1509,6 +1854,7 @@ function AppShell({
     if (
       !isAuthenticated ||
       activeAccountBootstrapRefreshKey === null ||
+      pendingLearningEventCount > 0 ||
       membershipPendingAction !== null ||
       lastMembershipRefreshKey.current === activeAccountBootstrapRefreshKey ||
       pendingMembershipRefreshKey.current === activeAccountBootstrapRefreshKey
@@ -1556,6 +1902,7 @@ function AppShell({
     activeAccountBootstrapRefreshKey,
     isAuthenticated,
     membershipPendingAction,
+    pendingLearningEventCount,
     retryCanonicalAccountBootstrap,
   ]);
 
@@ -1674,21 +2021,25 @@ function AppShell({
 
       if (
         runtimeAccountBootstrapMode === 'remote' &&
-        accountBootstrapRefreshRequired.current
+        accountBootstrapRefreshRequired.current &&
+        pendingLearningEventCount === 0
       ) {
         accountBootstrapRefreshRequired.current = false;
         accountBootstrapStatusRef.current = 'pending';
         setAccountBootstrapStatus('pending');
       }
 
+      learningEventReplayPaused.current = false;
       startMutationReplay().catch(() => undefined);
     });
 
     const subscription = AppState.addEventListener('change', nextState => {
       if (nextState === 'active') {
+        learningEventReplayPaused.current = false;
         if (
           runtimeAccountBootstrapMode === 'remote' &&
-          accountBootstrapRefreshRequired.current
+          accountBootstrapRefreshRequired.current &&
+          pendingLearningEventCount === 0
         ) {
           accountBootstrapRefreshRequired.current = false;
           accountBootstrapStatusRef.current = 'pending';
@@ -1705,7 +2056,12 @@ function AppShell({
       unsubscribeNetInfo();
       subscription.remove();
     };
-  }, [isAuthenticated, runtimeAccountBootstrapMode, startMutationReplay]);
+  }, [
+    isAuthenticated,
+    pendingLearningEventCount,
+    runtimeAccountBootstrapMode,
+    startMutationReplay,
+  ]);
 
   useEffect(() => {
     if (
@@ -1754,6 +2110,49 @@ function AppShell({
         state: 'error',
       });
       return;
+    }
+
+    if (pendingLearningEventCount > 0) {
+      setProgressSyncState({
+        detail: '答题记录确认后再同步今天的学习进展。',
+        label: '已排队',
+        state: 'syncing',
+      });
+      mutationQueueRepository
+        .enqueueMutation(
+          'sync_daily_progress',
+          {
+            context: authenticatedRuntimeContext,
+            snapshot: dailyProgressSnapshot,
+          },
+          `progress:${dailyProgressKey}`,
+        )
+        .then(() => {
+          if (
+            !isCancelled &&
+            pendingLearningEventCountRef.current === 0
+          ) {
+            startMutationReplay().catch(() => undefined);
+          }
+        })
+        .catch((error: unknown) => {
+          if (isCancelled) {
+            return;
+          }
+
+          setProgressSyncState({
+            detail: getUserFacingErrorMessage(
+              error,
+              '今天的学习进展暂时无法安全排队。',
+            ),
+            label: '排队失败',
+            state: 'error',
+          });
+        });
+
+      return () => {
+        isCancelled = true;
+      };
     }
 
     startMutationReplay().catch(() => undefined);
@@ -1820,116 +2219,9 @@ function AppShell({
     lastSyncedProgressKey,
     learningBootstrapStatus,
     mutationQueueRepository,
+    pendingLearningEventCount,
     progressSyncRepository,
     runtimeProgressSyncMode,
-    startMutationReplay,
-  ]);
-
-  useEffect(() => {
-    if (
-      !isAuthenticated ||
-      !canWriteAccountState ||
-      learningBootstrapStatus !== 'ready' ||
-      learningStateSnapshot === null ||
-      learningStateSnapshot.events.length === 0 ||
-      learningStateSyncKey === null
-    ) {
-      return;
-    }
-
-    if (lastSyncedLearningStateKey === learningStateSyncKey) {
-      return;
-    }
-
-    if (runtimeLearningStateMode === 'local') {
-      setLastSyncedLearningStateKey(learningStateSyncKey);
-      setLearningStateSyncState({
-        detail: '当前答题记录已记录。',
-        label: '已记录',
-        state: 'idle',
-      });
-      return;
-    }
-
-    if (authenticatedRuntimeContext === null) {
-      setLearningStateSyncState({
-        detail: '当前缺少可用的登录上下文，学习状态无法同步。',
-        label: '同步受阻',
-        state: 'error',
-      });
-      return;
-    }
-
-    let isCancelled = false;
-
-    setLearningStateSyncState({
-      detail: '当前正在同步学习作答状态。',
-      label: '同步中',
-      state: 'syncing',
-    });
-    startMutationReplay().catch(() => undefined);
-
-    learningStateRepository
-      .syncLearningState(authenticatedRuntimeContext, learningStateSnapshot)
-      .then(() => {
-        if (isCancelled) {
-          return;
-        }
-
-        setLastSyncedLearningStateKey(learningStateSyncKey);
-        setLearningStateSyncState({
-          detail: '当前答题记录已同步。',
-          label: '已同步',
-          state: 'synced',
-        });
-      })
-      .catch((error: unknown) => {
-        if (isCancelled) {
-          return;
-        }
-
-        if (isRemoteAuthorizationError(error)) {
-          clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
-            () => undefined,
-          );
-          return;
-        }
-
-        mutationQueueRepository
-          .enqueueMutation(
-            'sync_learning_state',
-            {
-              context: authenticatedRuntimeContext,
-              snapshot: learningStateSnapshot,
-            },
-            `learning:${learningStateSyncKey}`,
-          )
-          .catch(() => undefined);
-        setLearningStateSyncState({
-          detail: `${getUserFacingErrorMessage(
-            error,
-            '学习状态同步失败。',
-          )} 网络恢复后会自动再试。`,
-          label: '待重试',
-          state: 'error',
-        });
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [
-    authenticatedRuntimeContext,
-    clearAuthenticatedSession,
-    canWriteAccountState,
-    isAuthenticated,
-    lastSyncedLearningStateKey,
-    learningBootstrapStatus,
-    learningStateRepository,
-    learningStateSnapshot,
-    learningStateSyncKey,
-    mutationQueueRepository,
-    runtimeLearningStateMode,
     startMutationReplay,
   ]);
 
@@ -1966,6 +2258,49 @@ function AppShell({
     }
 
     let isCancelled = false;
+
+    if (pendingLearningEventCount > 0) {
+      setSpaceStateSyncState({
+        detail: '答题记录确认后再同步空间里的收藏和休眠状态。',
+        label: '已排队',
+        state: 'syncing',
+      });
+      mutationQueueRepository
+        .enqueueMutation(
+          'sync_space_state',
+          {
+            context: authenticatedRuntimeContext,
+            snapshot: spaceStateSnapshot,
+          },
+          `space:${spaceStateSyncKey}`,
+        )
+        .then(() => {
+          if (
+            !isCancelled &&
+            pendingLearningEventCountRef.current === 0
+          ) {
+            startMutationReplay().catch(() => undefined);
+          }
+        })
+        .catch((error: unknown) => {
+          if (isCancelled) {
+            return;
+          }
+
+          setSpaceStateSyncState({
+            detail: getUserFacingErrorMessage(
+              error,
+              '空间变更暂时无法安全排队。',
+            ),
+            label: '排队失败',
+            state: 'error',
+          });
+        });
+
+      return () => {
+        isCancelled = true;
+      };
+    }
 
     setSpaceStateSyncState({
       detail:
@@ -2039,6 +2374,7 @@ function AppShell({
     isAuthenticated,
     lastSyncedSpaceStateKey,
     mutationQueueRepository,
+    pendingLearningEventCount,
     runtimeSpaceStateMode,
     spaceCardStateById,
     spaceStateRepository,
@@ -2076,7 +2412,6 @@ function AppShell({
             )
           : {
               learningResults: [],
-              learningStateSyncKey: null,
               reviewResults: [],
             };
 
@@ -2088,9 +2423,6 @@ function AppShell({
         setLearningPhase('learning');
         setReviewSessionCards([]);
         setReviewCompletedResults(canonicalLearningState.reviewResults);
-        setLastSyncedLearningStateKey(
-          canonicalLearningState.learningStateSyncKey,
-        );
         const accessibleCardCount = resolveAccessibleLearningCardCount(
           session.cards.length,
           membershipState,
@@ -2179,9 +2511,6 @@ function AppShell({
       setMappedAccountBootstrapSnapshot(accountBootstrapSnapshot);
       setLearningCompletedResults(canonicalLearningState.learningResults);
       setReviewCompletedResults(canonicalLearningState.reviewResults);
-      setLastSyncedLearningStateKey(
-        canonicalLearningState.learningStateSyncKey,
-      );
       setLearningCurrentResult(null);
       setLearningPhase('learning');
       setReviewSessionCards([]);
@@ -2243,17 +2572,44 @@ function AppShell({
 
     accountBootstrapHydrationSettledRef.current = true;
     setLastSyncedProgressKey(dailyProgressKey);
-    setLastSyncedLearningStateKey(learningStateSyncKey);
+    if (
+      dailyProgressSnapshot.checkedInToday ||
+      dailyProgressSnapshot.totalCompletedCount > 0
+    ) {
+      setProgressSyncState({
+        detail: '今天的学习进展已从服务端恢复。',
+        label: '已同步',
+        state: 'synced',
+      });
+    }
+    if (
+      runtimeLearningEventsMode === 'remote' &&
+      pendingLearningEventCount === 0
+    ) {
+      setLearningEventRecoveryPending(false);
+      setLearningStateSyncState(current =>
+        current.label === '记录失败'
+          ? current
+          : {
+              detail: '服务端学习状态已恢复。',
+              label: '已同步',
+              state: 'synced',
+            },
+      );
+    }
     setAccountBootstrapHydrationSettled(true);
   }, [
     accountBootstrapHydrationSettled,
     accountBootstrapSnapshot,
     accountBootstrapStatus,
     dailyProgressKey,
+    dailyProgressSnapshot.checkedInToday,
+    dailyProgressSnapshot.totalCompletedCount,
     learningBootstrapStatus,
-    learningStateSyncKey,
     mappedAccountBootstrapSnapshot,
+    pendingLearningEventCount,
     runtimeAccountBootstrapMode,
+    runtimeLearningEventsMode,
   ]);
 
   useEffect(() => {
@@ -2325,10 +2681,7 @@ function AppShell({
       return;
     }
 
-    if (
-      runtimeMembershipRepositoryMode === 'remote' &&
-      !canWriteAccountState
-    ) {
+    if (runtimeMembershipRepositoryMode === 'remote' && !canWriteAccountState) {
       setMembershipError('账户状态确认中，请稍后重试。');
       retryCanonicalAccountBootstrap().catch(() => undefined);
       return;
@@ -2690,6 +3043,29 @@ function AppShell({
     },
   };
 
+  const commitLearningCardAdvance = (completedResult: LearningCardResult) => {
+    const nextResults = [...activeCompletedResults, completedResult];
+    const nextIndex = learningIndex + 1;
+
+    if (learningPhase === 'review') {
+      setReviewCompletedResults(nextResults);
+    } else {
+      setLearningCompletedResults(nextResults);
+    }
+    setLearningCurrentResult(null);
+    setLearningScreen('practice');
+
+    if (nextIndex >= activeSessionCards.length) {
+      setLearningIndex(nextIndex);
+      setLearningCardState(null);
+      return;
+    }
+
+    const nextCard = activeSessionCards[nextIndex];
+    setLearningIndex(nextIndex);
+    setLearningCardState(createTrackedLearningCardState(nextCard));
+  };
+
   const learningHandlers = {
     onTogglePeek: () => {
       patchLearningCardState(current => ({
@@ -2786,30 +3162,143 @@ function AppShell({
       setLearningScreen('practice');
     },
     onAdvanceCard: () => {
-      if (learningCurrentResult === null) {
+      if (
+        learningCurrentResult === null ||
+        learningEventEnqueueInFlight.current !== null
+      ) {
         return;
       }
 
-      const nextResults = [...activeCompletedResults, learningCurrentResult];
-      const nextIndex = learningIndex + 1;
+      const completedResult = learningCurrentResult;
 
-      if (learningPhase === 'review') {
-        setReviewCompletedResults(nextResults);
-      } else {
-        setLearningCompletedResults(nextResults);
-      }
-      setLearningCurrentResult(null);
-      setLearningScreen('practice');
-
-      if (nextIndex >= activeSessionCards.length) {
-        setLearningIndex(nextIndex);
-        setLearningCardState(null);
+      if (runtimeLearningEventsMode === 'local') {
+        commitLearningCardAdvance(completedResult);
+        setLearningStateSyncState({
+          detail: '当前答题记录已记录。',
+          label: '已记录',
+          state: 'idle',
+        });
         return;
       }
 
-      const nextCard = activeSessionCards[nextIndex];
-      setLearningIndex(nextIndex);
-      setLearningCardState(createTrackedLearningCardState(nextCard));
+      const completionSession = authSessionCoordinator.getCurrentSession();
+      const completionSessionScopeKey =
+        getAuthSessionScopeKey(completionSession);
+
+      if (
+        authenticatedRuntimeContext === null ||
+        completionSession === null ||
+        completionSessionScopeKey === null ||
+        completionSession.phoneNumber !==
+          authenticatedRuntimeContext.phoneNumber ||
+        learningSession === null ||
+        learningSession.contentVersion === null ||
+        learningEventRecoveryPending ||
+        !canWriteAccountState
+      ) {
+        setLearningStateSyncState({
+          detail: learningEventRecoveryPending
+            ? '正在恢复上次安全保存的答题记录，确认完成后再继续。'
+            : learningSession?.contentVersion === null
+            ? '当前内容版本无法验证，本次答题未记录。'
+            : '账户状态确认中，本次答题尚未记录，请稍后重试。',
+          label: '记录受阻',
+          state: 'error',
+        });
+        if (learningEventRecoveryPending) {
+          startMutationReplay().catch(() => undefined);
+        } else {
+          retryCanonicalAccountBootstrap().catch(() => undefined);
+        }
+        return;
+      }
+
+      const accountPhoneNumber = authenticatedRuntimeContext.phoneNumber;
+      const contentVersion = learningSession.contentVersion;
+      const completedPhase = learningPhase;
+      const completedTrack = learningSession.track;
+      const enqueueOperation = {
+        sessionScopeKey: completionSessionScopeKey,
+      };
+
+      learningEventEnqueueInFlight.current = enqueueOperation;
+      setLearningStateSyncState({
+        detail: '正在安全保存本次答题记录。',
+        label: '记录中',
+        state: 'syncing',
+      });
+
+      (async () => {
+        try {
+          await learningEventSyncRepository.enqueueCompletion({
+            accountPhoneNumber,
+            contentVersion,
+            phase: completedPhase,
+            result: completedResult,
+            track: completedTrack,
+          });
+
+          if (
+            getAuthSessionScopeKey(
+              authSessionCoordinator.getCurrentSession(),
+            ) !== completionSessionScopeKey
+          ) {
+            return;
+          }
+
+          learningEventReplayPaused.current = false;
+          pendingLearningEventCountRef.current += 1;
+          setPendingLearningEventCount(pendingLearningEventCountRef.current);
+
+          try {
+            const pendingCount =
+              await learningEventSyncRepository.getPendingCount(
+                accountPhoneNumber,
+              );
+            pendingLearningEventCountRef.current = pendingCount;
+            setPendingLearningEventCount(pendingCount);
+          } catch {
+            // Keep the conservative increment when the exact count is unavailable.
+          }
+
+          if (
+            getAuthSessionScopeKey(
+              authSessionCoordinator.getCurrentSession(),
+            ) !== completionSessionScopeKey
+          ) {
+            return;
+          }
+
+          commitLearningCardAdvance(completedResult);
+          setLearningStateSyncState({
+            detail: '答题记录已安全保存在本机，正在等待服务端确认。',
+            label: '待同步',
+            state: 'syncing',
+          });
+          startMutationReplay().catch(() => undefined);
+        } catch (error) {
+          if (
+            getAuthSessionScopeKey(
+              authSessionCoordinator.getCurrentSession(),
+            ) !== completionSessionScopeKey
+          ) {
+            return;
+          }
+
+          setLearningStateSyncState({
+            detail: getUserFacingErrorMessage(
+              error,
+              '本次答题记录无法安全保存，请重试。',
+            ),
+            label: '记录失败',
+            state: 'error',
+          });
+        } finally {
+          if (learningEventEnqueueInFlight.current === enqueueOperation) {
+            learningEventEnqueueInFlight.current = null;
+          }
+        }
+      })();
     },
     onStartReview: () => {
       if (reviewCandidateCards.length === 0) {
