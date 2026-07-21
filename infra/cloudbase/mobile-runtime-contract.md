@@ -27,10 +27,17 @@ Current boundary:
   product mutations remain on `/v1` only as a development migration bridge;
   production continues to reject every `/v1` route.
 - The replacement learning mutation boundary is contract-defined in
-  `infra/cloudbase/learning-events-v2-runtime-contract.md`, but the current
-  mobile repositories and backend do not implement it. This file continues to
-  document the actually active v1 mutation shape until that separate adoption
-  work passes.
+  `infra/cloudbase/learning-events-v2-runtime-contract.md`. The repository-local
+  CloudBase backend implements it, but the current mobile runtime does not emit,
+  durably queue, or replay v2 events. This file continues to document the
+  actually active v1 mobile mutation shape until that separate adoption work
+  passes. After an account accepts a v2 event, legacy learning-state writes are
+  rejected while daily progress becomes a check-in-only compatibility bridge;
+  submitted learning and space counters no longer have authority. Client
+  adoption must therefore switch durable event replay before it submits that
+  account's first v2 event. Replay batches must contain at most 9 events for
+  this CloudBase adapter and preserve each event unchanged across smaller
+  retries.
 
 ## Runtime Activation
 
@@ -340,6 +347,12 @@ x-api-key: <optional>
 Success: any 2xx. Body is ignored.
 
 Failure: non-2xx queues `sync_daily_progress` for replay.
+
+For an unmigrated development account, this snapshot may seed the first v2
+migration baseline. After the first accepted v2 learning event, the endpoint
+only merges monotonic `checked_in_today`. Learning/review/pending/total values
+cannot overwrite v2 projections, and favorite/sleeping counts are derived from
+canonical space during bootstrap. Production rejects all `/v1` routes.
 
 ### Learning State Sync
 

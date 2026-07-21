@@ -4,7 +4,7 @@ Referenced specs: `spec/account-sync-contract.json`, `spec/membership.json`, `sp
 
 `product_truth`: remote learning must still enforce phone-code login before learning, shared membership entitlement, daily-level progress sync, and physical-space state sync.
 
-`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication and the backend canonical bootstrap read use `/v2`; card payload and product mutations still rely on `/v1` only as a development migration bridge. `learning-events.v2` is now contract-defined, but its endpoint, transactional event ledger, projections, and mobile producer are not implemented. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to TypeScript CloudBase Run + PostgreSQL on the formal work server.
+`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication and the backend canonical bootstrap read use `/v2`; the repository-local backend also implements `POST /v2/learning/events` with a transactional event ledger and projections. The mobile producer is not adopted, so card payload and active mobile product mutations still rely on `/v1` only as a development migration bridge. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to TypeScript CloudBase Run + PostgreSQL on the formal work server.
 
 ## Current Environment
 
@@ -44,6 +44,7 @@ POST /v2/auth/refresh
 POST /v2/auth/logout
 POST /v2/account/deletion
 GET  /v2/bootstrap?track=cet4|cet6&day_key=YYYY-MM-DD
+POST /v2/learning/events
 
 GET  /v1/learning/card-source?track=cet4|cet6
 GET  /v1/membership/entitlement
@@ -58,7 +59,7 @@ POST /v1/space/state-sync
 
 For the development environment, SMS should use a whitelist/fixed-code adapter first. Real SMS provider integration should remain an adapter and must not change the mobile REST contract.
 
-## Contracted Next Backend Slice (Not Implemented)
+## Learning Events Backend Slice
 
 The next serial runtime boundary is:
 
@@ -68,10 +69,15 @@ POST /v2/learning/events
 
 Its immutable event, per-event idempotency, device-cursor conflict, atomic
 projection, acknowledgement, and migration semantics are defined in
-`infra/cloudbase/learning-events-v2-runtime-contract.md`. Listing the endpoint
-here does not mean the current function or mobile app implements it. Legacy
-daily and learning snapshots stay development-only until the backend event
-ledger and mobile producer land in separate reviewed PRs.
+`infra/cloudbase/learning-events-v2-runtime-contract.md`. The repository-local
+function implements this endpoint with memory and CloudBase transaction tests.
+It is not deployed by the repository change, the mobile app does not produce or
+replay these events, and legacy daily/learning snapshot writes remain a
+development-only bridge for unmigrated accounts until mobile adoption lands.
+After an account accepts its first v2 event, later v1 learning-state writes for
+that account return `409 legacy_learning_write_disabled`; v1 daily progress is
+restricted to monotonic check-in compatibility and cannot overwrite v2
+learning counts or canonical space counts.
 
 ## Minimal HTTP Function
 
@@ -91,6 +97,16 @@ while `/v2` owns authentication and the canonical bootstrap read:
 - Bootstrap v2 reads server-side membership, progress, learning, physical
   space, and content-version state without accepting a phone number. See
   `infra/cloudbase/bootstrap-v2-runtime-contract.md`.
+- Learning events v2 derives account identity from the active session and
+  commits immutable events, cursor bindings, server sequences, daily progress,
+  and per-card learning projections in one CloudBase transaction. Exact replay
+  returns the original sequence without another projection write.
+- The CloudBase adapter hard-caps an atomic event request at 9; the tested
+  worst-case all-track migration uses 91 of the platform's 100 allowed
+  transaction operations. Its
+  transactions use deterministic document operations only; bounded legacy
+  learning and space queries run before the transaction, with an account
+  revision fence protecting first-event migration from concurrent v1 writes.
 - Card source, membership state, daily progress, learning state, and space state persist to CloudBase NoSQL when `SOFTBOOK_STORE_MODE=cloudbase`; local tests still default to the in-memory adapter.
 - Card source reads `softbook_card_sources` by track. Development mode seeds the CET4/CET6 records when a track document is missing; production bootstrap never seeds development content and fails closed. The legacy card-source response envelope remains the same one parsed by the mobile app.
 - The router uses classic event-style `exports.main` so it can be bound to CloudBase HTTP access service paths such as `/softbook-api`.
@@ -115,6 +131,9 @@ export SOFTBOOK_SMS_DEV_CODE=2468
 export SOFTBOOK_AUTH_TOKEN_SECRET="<dev-only-random-secret>"
 export SOFTBOOK_AUTH_INDEX_SECRET="<stable-dev-index-secret>"
 export SOFTBOOK_API_KEY="<optional-shared-dev-api-key>"
+export SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT=9
+export SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS=90
+export SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS=300
 ```
 
 Local function tests:
@@ -137,7 +156,9 @@ node infra/cloudbase/import-card-source.mjs --file path/to/card-source.json --tr
 ```
 
 The first command is a dry-run and performs no CloudBase write. The `--apply`
-form upserts `softbook_card_sources.<track>` in the current
+form first reads and validates the existing current source, archives a replaced
+version in `softbook_card_source_versions`, registers the new version as
+`active`, and upserts `softbook_card_sources.<track>` in the current
 `CLOUDBASE_ENV_ID`, defaulting to `test-d2gzcyxr9f7e80972` when the variable is
 not set. The JSON payload must contain `source`, `track`, and `card_records`.
 Validation computes and persists a deterministic `content_version`; a candidate
@@ -152,15 +173,16 @@ node infra/cloudbase/audit-card-sources.mjs
 node infra/cloudbase/audit-card-sources.mjs --track cet4
 ```
 
-The audit command reads `softbook_card_sources` with `FIND`, reuses the same
+The audit command reads `softbook_card_sources` with `QUERY`, reuses the same
 runtime validator, and checks `spec/box-catalog.json` prefix/path alignment, so
 it is safe to run after manual imports or deploys.
 
-Known SDK risk: `npm audit --omit=dev` currently reports transitive
-vulnerabilities from `@cloudbase/node-sdk`. The function is pinned by its lock
-file to the currently verified `4.0.3`; reassess the SDK and migrate the service
-to the production TypeScript/CloudBase Run architecture before treating this
-development adapter as a production backend.
+Dependency audit status: the current lockfile returns zero known findings from
+`npm audit --omit=dev`. This is a point-in-time dependency result, not production
+readiness. The function remains pinned by its lockfile to the currently verified
+CloudBase SDK and must still move to the production TypeScript/CloudBase Run
+architecture before this development adapter can be treated as a production
+backend.
 
 ## Runtime Contract Smoke
 

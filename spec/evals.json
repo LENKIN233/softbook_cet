@@ -1,5 +1,5 @@
 {
-  "version": "vnext-20",
+  "version": "vnext-23",
   "regressions": [
     {
       "id": "HR-01",
@@ -455,7 +455,21 @@
         "content_version_and_card_interaction_are_validated",
         "bootstrap_runs_again_after_replay",
         "exact_same_card_cross_device_resume_is_not_promised",
-        "contract_green_does_not_claim_endpoint_scheduler_or_launch_readiness"
+        "backend_green_does_not_claim_mobile_scheduler_deployment_or_launch_readiness"
+      ]
+    },
+    {
+      "id": "HR-38",
+      "prompt": "learning-events.v2 后端测试已经全绿，因此声称移动端同步、调度器、生产部署和上线门禁都已完成",
+      "fail_signal": "promotes_repository_local_backend_tests_to_client_deployment_scheduler_or_launch_completion",
+      "must_hit": [
+        "cloudbase_backend_is_repository_local_and_not_deployed",
+        "mobile_durable_event_producer_is_not_implemented",
+        "legacy_v1_learning_snapshot_bridge_remains_only_for_unmigrated_development_accounts",
+        "migrated_v1_daily_progress_is_check_in_only",
+        "server_scheduler_remains_a_separate_future_gate",
+        "formal_content_approval_and_production_publication_remain_pending",
+        "backend_green_is_not_launch_readiness"
       ]
     }
   ],
@@ -832,9 +846,40 @@
         "retained_content_version_validation_for_offline_replay",
         "client_time_is_not_canonical_ordering_authority",
         "post_replay_bootstrap_reconciliation",
-        "legacy_v1_snapshots_are_migration_only",
+        "legacy_v1_learning_snapshots_are_migration_only",
         "scheduler_is_a_separate_future_gate",
-        "contract_status_is_defined_not_implemented"
+        "backend_status_is_implemented_locally_not_deployed"
+      ]
+    },
+    {
+      "id": "GT-29",
+      "task": "实现 learning-events.v2 CloudBase 后端事件账本",
+      "must_include": [
+        "active_v2_session_account_identity",
+        "active_session_account_key_is_rederived",
+        "strict_learning_events_v2_schema",
+        "cloudbase_atomic_batch_is_capped_at_nine",
+        "cloudbase_transaction_uses_doc_only_operations",
+        "track_is_part_of_canonical_event_digest",
+        "account_scoped_immutable_event_and_cursor_keys",
+        "stored_immutable_event_payload_digest_is_revalidated",
+        "exact_duplicate_bypasses_mutable_retention_revalidation",
+        "event_and_cursor_conflicts_are_atomic_409",
+        "account_scoped_server_sequence_is_transactional",
+        "daily_counts_and_latest_per_card_projection_are_server_derived",
+        "favorite_and_check_in_authority_remain_separate",
+        "retained_content_versions_survive_card_source_replacement",
+        "legacy_v1_state_migrates_as_sequence_zero_baseline",
+        "legacy_v1_migration_reads_all_bounded_pages",
+        "legacy_migration_snapshot_uses_transactional_revision_fence",
+        "legacy_v1_migration_preserves_both_track_baselines",
+        "migrated_account_rejects_later_v1_learning_snapshot_writes",
+        "migrated_daily_progress_cannot_override_v2_learning_or_space_counts",
+        "cloudbase_and_memory_adapters_share_transaction_algorithm",
+        "stored_learning_daily_and_legacy_projection_invariants_fail_closed",
+        "concurrent_and_injected_failure_tests",
+        "bootstrap_reads_account_keyed_v2_projection",
+        "mobile_scheduler_deployment_and_launch_non_claims"
       ]
     }
   ]

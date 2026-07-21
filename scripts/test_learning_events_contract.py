@@ -140,14 +140,101 @@ class LearningEventsContractTests(unittest.TestCase):
             "HR-37 must_hit drift",
         )
 
-    def test_runtime_document_cannot_hide_contract_only_status(self):
+        missing_implementation_eval = copy.deepcopy(self.evals)
+        missing_implementation_eval["regressions"] = [
+            item
+            for item in missing_implementation_eval["regressions"]
+            if item["id"] != "HR-38"
+        ]
+        self.assert_finding(
+            self.findings(evals=missing_implementation_eval),
+            "missing HR-38",
+        )
+
+    def test_runtime_document_cannot_hide_backend_non_claims(self):
         weakened = self.runtime_text.replace(
-            "This contract-only artifact does not prove",
-            "This contract proves",
+            "The local backend implementation does not prove",
+            "The local backend implementation proves",
         )
         self.assert_finding(
             self.findings(text=weakened),
             "runtime contract missing exact snippet",
+        )
+
+    def test_backend_status_cannot_be_reverted_or_promoted_to_deployed(self):
+        reverted = copy.deepcopy(self.auth)
+        reverted["learning_events_v2"]["contract_status"] = (
+            "defined_not_implemented"
+        )
+        promoted = copy.deepcopy(self.runtime)
+        promoted["learning_event_runtime"]["deployment_status"] = "deployed"
+
+        self.assert_finding(self.findings(auth=reverted), "status")
+        self.assert_finding(
+            self.findings(runtime=promoted),
+            "runtime deployment boundary",
+        )
+
+    def test_migrated_daily_bridge_cannot_regain_learning_authority(self):
+        weakened = copy.deepcopy(self.auth)
+        weakened["learning_events_v2"]["migration_boundary"][
+            "migrated_account_write_rule"
+        ] = "accept every v1 progress counter after migration"
+        missing_eval = copy.deepcopy(self.evals)
+        gt29 = next(
+            item for item in missing_eval["golden_tasks"] if item["id"] == "GT-29"
+        )
+        gt29["must_include"].remove(
+            "migrated_daily_progress_cannot_override_v2_learning_or_space_counts"
+        )
+
+        self.assert_finding(
+            self.findings(auth=weakened),
+            "migrated account write rule",
+        )
+        self.assert_finding(
+            self.findings(evals=missing_eval),
+            "GT-29 must_include drift",
+        )
+
+    def test_cloudbase_transaction_limits_and_migration_fence_are_required(self):
+        unsafe_batch = copy.deepcopy(self.auth)
+        unsafe_batch["learning_events_v2"]["implementation_progress"][
+            "cloudbase_atomic_batch_limit"
+        ] = 100
+        unsafe_transaction = copy.deepcopy(self.runtime)
+        unsafe_transaction["learning_event_runtime"][
+            "cloudbase_transaction_boundary"
+        ] = "where_queries_allowed"
+        missing_fence_eval = copy.deepcopy(self.evals)
+        missing_all_track_migration = copy.deepcopy(self.auth)
+        del missing_all_track_migration["learning_events_v2"][
+            "implementation_progress"
+        ]["legacy_all_track_projection_migration"]
+        gt29 = next(
+            item
+            for item in missing_fence_eval["golden_tasks"]
+            if item["id"] == "GT-29"
+        )
+        gt29["must_include"].remove(
+            "legacy_migration_snapshot_uses_transactional_revision_fence"
+        )
+
+        self.assert_finding(
+            self.findings(auth=unsafe_batch),
+            "CloudBase atomic batch limit",
+        )
+        self.assert_finding(
+            self.findings(runtime=unsafe_transaction),
+            "runtime CloudBase transaction boundary",
+        )
+        self.assert_finding(
+            self.findings(evals=missing_fence_eval),
+            "GT-29 must_include drift",
+        )
+        self.assert_finding(
+            self.findings(auth=missing_all_track_migration),
+            "all-track legacy projection migration",
         )
 
     def test_agent_entry_must_keep_runtime_contract_discoverable(self):

@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { spawnSync } = require('node:child_process');
+const {spawnSync} = require('node:child_process');
 const test = require('node:test');
 
 const boxCatalog = require('../../../../../spec/box-catalog.json');
@@ -501,8 +501,7 @@ test('content version is canonical and published releases must match it', () => 
   assert.notEqual(ordered.content_version, reversed.content_version);
 
   assert.throws(
-    () =>
-      validateCardSourceForImport({...source, card_records: []}, 'cet4'),
+    () => validateCardSourceForImport({...source, card_records: []}, 'cet4'),
     /card source.card_records must not be empty/,
   );
   assert.throws(
@@ -580,10 +579,7 @@ test('production bootstrap fails closed without a matching published release', a
 
   assert.equal(available.statusCode, 200);
   assert.equal(available.body.data.content.release_id, 'cet4-test-release');
-  assert.equal(
-    available.body.data.content.minimum_client_version,
-    '1.0.0',
-  );
+  assert.equal(available.body.data.content.minimum_client_version, '1.0.0');
 });
 
 test('CloudBase bootstrap state survives separate function instances', async () => {
@@ -640,6 +636,9 @@ test('bootstrap rejects corrupted persisted canonical state', async () => {
       total_completed_count: 0,
     },
     'not-an-iso-timestamp',
+    {
+      accountKey: [...store.snapshot().authSessions.values()][0].account_key,
+    },
   );
   const response = await request(api, {
     headers,
@@ -842,8 +841,7 @@ test('CloudBase event adapter returns stringified HTTP response bodies', async (
 
   assert.equal(response.statusCode, 200);
   assert.equal(JSON.parse(response.body).data.phone_number, '13800138000');
-}
-);
+});
 
 test('CloudBase store keeps membership and sync state outside function memory', async () => {
   const db = createFakeCloudBaseDb();
@@ -907,18 +905,21 @@ test('CloudBase store keeps membership and sync state outside function memory', 
 
 test('CloudBase space state migrates legacy daily documents into account canonical state', async () => {
   const db = createFakeCloudBaseDb();
-  await db.collection('softbook_space_states').doc('legacy-daily-document').set({
-    day_key: '2026-04-29',
-    phone_number: '13800138000',
-    states_by_card_id: {
-      '002001': {
-        card_id: '002001',
-        is_favorited: true,
-        is_sleeping: false,
-        last_modified_at: '2026-04-29T12:00:00.000Z',
+  await db
+    .collection('softbook_space_states')
+    .doc('legacy-daily-document')
+    .set({
+      day_key: '2026-04-29',
+      phone_number: '13800138000',
+      states_by_card_id: {
+        '002001': {
+          card_id: '002001',
+          is_favorited: true,
+          is_sleeping: false,
+          last_modified_at: '2026-04-29T12:00:00.000Z',
+        },
       },
-    },
-  });
+    });
   const api = createTestApi({store: createCloudBaseStore({db})});
   const token = await authenticatedToken(api);
   const response = await request(api, {
@@ -963,16 +964,13 @@ test('CloudBase space transactions preserve simultaneous writes from separate fu
     write(secondStore, '002002', '2026-04-30T12:00:01.000Z'),
   ]);
 
-  const canonical = await firstStore.getSpaceState(
-    '13800138000',
-    '2026-04-30',
-  );
+  const canonical = await firstStore.getSpaceState('13800138000', '2026-04-30');
 
   assert.deepEqual(Object.keys(canonical.states_by_card_id).sort(), [
     '002001',
     '002002',
   ]);
-  assert.equal(db.transactionCount(), 3);
+  assert.equal(db.transactionCount(), 2);
 });
 
 test('CloudBase store reads and seeds card source documents', async () => {
@@ -1091,7 +1089,7 @@ function createFakeCloudBaseDb() {
   let transactionCount = 0;
   let transactionTail = Promise.resolve();
 
-  const collection = name => {
+  const collection = (name, transactional = false) => {
     if (!collections.has(name)) {
       collections.set(name, new Map());
     }
@@ -1100,16 +1098,17 @@ function createFakeCloudBaseDb() {
 
     return {
       doc: documentId => ({
-        get: async () => ({
-          data: documents.has(documentId)
-            ? [
-                {
-                  _id: documentId,
-                  ...cloneJson(documents.get(documentId)),
-                },
-              ]
-            : [],
-        }),
+        get: async () => {
+          const document = documents.has(documentId)
+            ? {
+                _id: documentId,
+                ...cloneJson(documents.get(documentId)),
+              }
+            : null;
+          return {
+            data: transactional ? document : document ? [document] : [],
+          };
+        },
         set: async data => {
           documents.set(documentId, cloneJson(data));
 
@@ -1118,20 +1117,52 @@ function createFakeCloudBaseDb() {
           };
         },
       }),
-      where: query => ({
-        get: async () => ({
-          data: [...documents.entries()]
-            .filter(([, document]) =>
+      where: query => {
+        if (transactional) {
+          throw new Error('CloudBase transactions do not support where().');
+        }
+
+        const options = {limit: 100, offset: 0, order: null};
+        const builder = {
+          get: async () => {
+            let entries = [...documents.entries()].filter(([, document]) =>
               Object.entries(query).every(
                 ([key, value]) => document[key] === value,
               ),
-            )
-            .map(([documentId, document]) => ({
-              _id: documentId,
-              ...cloneJson(document),
-            })),
-        }),
-      }),
+            );
+
+            if (options.order) {
+              entries.sort(([leftId], [rightId]) =>
+                options.order === 'desc'
+                  ? rightId.localeCompare(leftId)
+                  : leftId.localeCompare(rightId),
+              );
+            }
+
+            return {
+              data: entries
+                .slice(options.offset, options.offset + options.limit)
+                .map(([documentId, document]) => ({
+                  _id: documentId,
+                  ...cloneJson(document),
+                })),
+            };
+          },
+          limit: value => {
+            options.limit = value;
+            return builder;
+          },
+          orderBy: (_field, direction) => {
+            options.order = direction;
+            return builder;
+          },
+          skip: value => {
+            options.offset = value;
+            return builder;
+          },
+        };
+        return builder;
+      },
     };
   };
 
@@ -1140,7 +1171,7 @@ function createFakeCloudBaseDb() {
     runTransaction: callback => {
       const run = transactionTail.then(async () => {
         transactionCount += 1;
-        return callback({collection});
+        return callback({collection: name => collection(name, true)});
       });
       transactionTail = run.then(
         () => undefined,
@@ -1172,7 +1203,8 @@ function createPersistedCardSource(track) {
         interaction_id: 'multiple_choice',
         front: {
           eyebrow: '词汇 | 阅读高频词',
-          prompt: 'The committee postponed the vote because details were still ____.',
+          prompt:
+            'The committee postponed the vote because details were still ____.',
           support: '选出最符合句意的词。',
           context: '投票被推迟，说明关键信息还没有清楚。',
         },

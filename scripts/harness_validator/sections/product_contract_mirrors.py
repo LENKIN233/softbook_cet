@@ -102,7 +102,115 @@ def learning_events_contract_findings(
             ("default_sync_strategy", "learning_state_rule"),
             "latest_valid_learning_event_wins_per_card; learning and review completion aggregates plus per-card learning state are derived from accepted events while physical-space and check-in state keep separate authority",
         ),
-        ("status", ("learning_events_v2", "contract_status"), "defined_not_implemented"),
+        (
+            "status",
+            ("learning_events_v2", "contract_status"),
+            "cloudbase_backend_implemented_locally_client_not_adopted",
+        ),
+        (
+            "backend implementation",
+            ("learning_events_v2", "implementation_progress", "cloudbase_backend"),
+            "implemented_locally_not_deployed",
+        ),
+        (
+            "transactional ledger implementation",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "transactional_event_ledger",
+            ),
+            True,
+        ),
+        (
+            "active session account-key integrity",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "active_session_account_key_integrity",
+            ),
+            True,
+        ),
+        (
+            "stored projection integrity",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "stored_projection_integrity_validation",
+            ),
+            True,
+        ),
+        (
+            "CloudBase atomic batch limit",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "cloudbase_atomic_batch_limit",
+            ),
+            9,
+        ),
+        (
+            "CloudBase transaction boundary",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "cloudbase_transaction_boundary",
+            ),
+            "doc_only_with_at_most_100_operations",
+        ),
+        (
+            "legacy migration consistency",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "legacy_migration_consistency",
+            ),
+            "bounded_outside_transaction_snapshot_with_transactional_revision_fence",
+        ),
+        (
+            "all-track legacy projection migration",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "legacy_all_track_projection_migration",
+            ),
+            True,
+        ),
+        (
+            "mobile producer boundary",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "mobile_durable_event_producer",
+            ),
+            False,
+        ),
+        (
+            "legacy write boundary",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "legacy_v1_snapshot_writes_disabled",
+            ),
+            False,
+        ),
+        (
+            "migrated account legacy write boundary",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "migrated_account_v1_learning_writes",
+            ),
+            "learning_state_rejected_daily_progress_check_in_only_after_first_accepted_v2_event",
+        ),
+        (
+            "production deployment boundary",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "production_deployment",
+            ),
+            False,
+        ),
         (
             "runtime document",
             ("learning_events_v2", "runtime_contract"),
@@ -188,7 +296,16 @@ def learning_events_contract_findings(
         (
             "exact replay",
             ("learning_events_v2", "idempotency_and_atomicity", "exact_replay"),
-            "return duplicate with the original server_sequence and do not mutate projections",
+            "return duplicate with the original server_sequence and do not mutate projections; an already accepted byte-equivalent canonical event remains a duplicate when mutable time or content-retention windows later change",
+        ),
+        (
+            "stored event integrity",
+            (
+                "learning_events_v2",
+                "idempotency_and_atomicity",
+                "stored_event_integrity",
+            ),
+            "before returning duplicate, recompute the canonical digest from the stored immutable payload and track; any mismatch fails closed without acknowledgement or writes",
         ),
         (
             "event conflict",
@@ -211,6 +328,24 @@ def learning_events_contract_findings(
             "new immutable events, account server sequences, and derived learning projections commit in one transaction; failure leaves no partial acceptance",
         ),
         (
+            "CloudBase atomic batch rule",
+            (
+                "learning_events_v2",
+                "idempotency_and_atomicity",
+                "cloudbase_atomic_batch_rule",
+            ),
+            "the repository-local CloudBase adapter accepts at most 9 events so worst-case immutable-event, retained-content, all-track migration, projection, and daily work uses at most 91 of the platform limit of 100 operations per transaction",
+        ),
+        (
+            "CloudBase transaction query rule",
+            (
+                "learning_events_v2",
+                "idempotency_and_atomicity",
+                "cloudbase_transaction_query_rule",
+            ),
+            "CloudBase transactions use deterministic document reads and writes only; bounded legacy learning queries run before the transaction and a transactionally written account revision fence forces a retry when a v1 write changes that snapshot",
+        ),
+        (
             "canonical ordering",
             ("learning_events_v2", "server_authority", "canonical_ordering_rule"),
             "server_sequence is canonical ordering; client time and device sequence never override it",
@@ -228,7 +363,12 @@ def learning_events_contract_findings(
         (
             "launch non-claim",
             ("learning_events_v2", "migration_boundary", "launch_claim_rule"),
-            "a green contract PR does not satisfy canonical-bootstrap-and-idempotent-events, server-scheduler, formal content approval, or launch readiness",
+            "a green backend implementation PR does not satisfy mobile event adoption, legacy snapshot-write removal, server scheduling, formal content approval, production deployment, or launch readiness",
+        ),
+        (
+            "migrated account write rule",
+            ("learning_events_v2", "migration_boundary", "migrated_account_write_rule"),
+            "the first accepted v2 event transaction preserves valid legacy sequence-zero learning baselines for both tracks before closing account migration; later v1 learning-state snapshots fail with HTTP 409; v1 daily-progress remains a development bridge that can only merge monotonic checked_in_today, cannot overwrite server-derived learning counts, and cannot supply favorite or sleeping counts because bootstrap derives them from canonical physical space; unmigrated development accounts may still provide the migration baseline",
         ),
     ]
     for label, keys, expected in owner_expectations:
@@ -243,7 +383,57 @@ def learning_events_contract_findings(
         (
             "runtime status",
             ("learning_event_runtime", "implementation_status"),
-            "contract_defined_endpoint_backend_and_client_not_implemented",
+            "cloudbase_backend_implemented_locally_not_deployed_mobile_and_scheduler_pending",
+        ),
+        (
+            "runtime backend storage",
+            ("learning_event_runtime", "backend_storage"),
+            "cloudbase_nosql_transaction_with_memory_test_adapter",
+        ),
+        (
+            "runtime account-key integrity",
+            ("learning_event_runtime", "active_session_account_key_integrity"),
+            "server_rederives_and_matches_the_account_key_from_the_signed_session_phone",
+        ),
+        (
+            "runtime stored projection integrity",
+            ("learning_event_runtime", "stored_projection_integrity"),
+            "full_v2_learning_daily_and_migrated_v1_projection_invariants_fail_closed",
+        ),
+        (
+            "runtime CloudBase atomic batch limit",
+            ("learning_event_runtime", "cloudbase_atomic_batch_limit"),
+            9,
+        ),
+        (
+            "runtime CloudBase transaction boundary",
+            ("learning_event_runtime", "cloudbase_transaction_boundary"),
+            "doc_only_with_at_most_100_operations",
+        ),
+        (
+            "runtime legacy migration consistency",
+            ("learning_event_runtime", "legacy_migration_consistency"),
+            "bounded_outside_transaction_snapshot_with_transactional_revision_fence",
+        ),
+        (
+            "runtime all-track legacy projection migration",
+            ("learning_event_runtime", "legacy_all_track_projection_migration"),
+            True,
+        ),
+        (
+            "runtime deployment boundary",
+            ("learning_event_runtime", "deployment_status"),
+            "not_deployed_by_repository_change",
+        ),
+        (
+            "runtime mobile boundary",
+            ("learning_event_runtime", "mobile_producer_status"),
+            "not_implemented",
+        ),
+        (
+            "runtime legacy write boundary",
+            ("learning_event_runtime", "legacy_v1_write_status"),
+            "development_bridge_learning_state_rejected_daily_progress_check_in_only_after_first_v2_event",
         ),
         (
             "runtime server authority",
@@ -301,12 +491,27 @@ def learning_events_contract_findings(
         "content_version_and_card_interaction_are_validated",
         "bootstrap_runs_again_after_replay",
         "exact_same_card_cross_device_resume_is_not_promised",
-        "contract_green_does_not_claim_endpoint_scheduler_or_launch_readiness",
+        "backend_green_does_not_claim_mobile_scheduler_deployment_or_launch_readiness",
     ]
     if not hr37:
         findings.append("learning-events contract evals: missing HR-37")
     elif hr37.get("must_hit") != expected_hr37:
         findings.append("learning-events contract evals: HR-37 must_hit drift")
+
+    hr38 = _entry_by_id(evals.get("regressions", []), "HR-38")
+    expected_hr38 = [
+        "cloudbase_backend_is_repository_local_and_not_deployed",
+        "mobile_durable_event_producer_is_not_implemented",
+        "legacy_v1_learning_snapshot_bridge_remains_only_for_unmigrated_development_accounts",
+        "migrated_v1_daily_progress_is_check_in_only",
+        "server_scheduler_remains_a_separate_future_gate",
+        "formal_content_approval_and_production_publication_remain_pending",
+        "backend_green_is_not_launch_readiness",
+    ]
+    if not hr38:
+        findings.append("learning-events contract evals: missing HR-38")
+    elif hr38.get("must_hit") != expected_hr38:
+        findings.append("learning-events contract evals: HR-38 must_hit drift")
 
     gt28 = _entry_by_id(evals.get("golden_tasks", []), "GT-28")
     expected_gt28 = [
@@ -325,17 +530,58 @@ def learning_events_contract_findings(
         "retained_content_version_validation_for_offline_replay",
         "client_time_is_not_canonical_ordering_authority",
         "post_replay_bootstrap_reconciliation",
-        "legacy_v1_snapshots_are_migration_only",
+        "legacy_v1_learning_snapshots_are_migration_only",
         "scheduler_is_a_separate_future_gate",
-        "contract_status_is_defined_not_implemented",
+        "backend_status_is_implemented_locally_not_deployed",
     ]
     if not gt28:
         findings.append("learning-events contract evals: missing GT-28")
     elif gt28.get("must_include") != expected_gt28:
         findings.append("learning-events contract evals: GT-28 must_include drift")
 
+    gt29 = _entry_by_id(evals.get("golden_tasks", []), "GT-29")
+    expected_gt29 = [
+        "active_v2_session_account_identity",
+        "active_session_account_key_is_rederived",
+        "strict_learning_events_v2_schema",
+        "cloudbase_atomic_batch_is_capped_at_nine",
+        "cloudbase_transaction_uses_doc_only_operations",
+        "track_is_part_of_canonical_event_digest",
+        "account_scoped_immutable_event_and_cursor_keys",
+        "stored_immutable_event_payload_digest_is_revalidated",
+        "exact_duplicate_bypasses_mutable_retention_revalidation",
+        "event_and_cursor_conflicts_are_atomic_409",
+        "account_scoped_server_sequence_is_transactional",
+        "daily_counts_and_latest_per_card_projection_are_server_derived",
+        "favorite_and_check_in_authority_remain_separate",
+        "retained_content_versions_survive_card_source_replacement",
+        "legacy_v1_state_migrates_as_sequence_zero_baseline",
+        "legacy_v1_migration_reads_all_bounded_pages",
+        "legacy_migration_snapshot_uses_transactional_revision_fence",
+        "legacy_v1_migration_preserves_both_track_baselines",
+        "migrated_account_rejects_later_v1_learning_snapshot_writes",
+        "migrated_daily_progress_cannot_override_v2_learning_or_space_counts",
+        "cloudbase_and_memory_adapters_share_transaction_algorithm",
+        "stored_learning_daily_and_legacy_projection_invariants_fail_closed",
+        "concurrent_and_injected_failure_tests",
+        "bootstrap_reads_account_keyed_v2_projection",
+        "mobile_scheduler_deployment_and_launch_non_claims",
+    ]
+    if not gt29:
+        findings.append("learning-events contract evals: missing GT-29")
+    elif gt29.get("must_include") != expected_gt29:
+        findings.append("learning-events contract evals: GT-29 must_include drift")
+
     required_runtime_snippets = [
-        "not implemented by",
+        "repository-local CommonJS CloudBase function now implements",
+        "does not deploy it",
+        "softbook_learning_events",
+        "softbook_learning_migration_revisions",
+        "softbook_card_source_versions",
+        "at most 9 events",
+        "both CET4 and CET6 legacy learning baselines",
+        "outside the transaction",
+        "revision fence",
         "The primary idempotency key is `(account_id, event_id)`.",
         "An exact replay returns `duplicate`, the original `server_sequence`, and no",
         "Binding the same cursor to another event also returns `409`",
@@ -343,8 +589,10 @@ def learning_events_contract_findings(
         "not the scheduler cursor and not a",
         "does not accept a client-authored",
         "reads `/v2/bootstrap` again",
-        "Legacy `/v1/progress/daily-sync` and `/v1/learning/state-sync` remain",
-        "This contract-only artifact does not prove",
+        "Legacy `/v1/learning/state-sync` remains",
+        "only `checked_in_today` is merged",
+        "409 legacy_learning_write_disabled",
+        "The local backend implementation does not prove",
     ]
     for snippet in required_runtime_snippets:
         if snippet not in runtime_text:

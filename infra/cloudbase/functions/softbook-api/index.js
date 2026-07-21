@@ -10,17 +10,36 @@ const {
   createContentVersion,
   normalizeContentRelease,
 } = require('./bootstrap-v2');
+const {createLearningEventsV2Service} = require('./learning-events-v2');
+const {
+  createAccountDailyProgressId,
+  createAccountDailyProgressKey,
+  createAccountLearningStateId,
+  createAccountLearningStateKey,
+  createCloudBaseLearningEventsCommitter,
+  createLearningEventSequenceId,
+  createLearningMigrationRevisionId,
+  createMemoryLearningEventsCommitter,
+  createSerializedTransactionRunner,
+} = require('./learning-events-v2-store');
 
 const DEFAULT_SMS_CODE = '2468';
 const DEFAULT_TRIAL_DURATION_DAYS = 5;
 const DEFAULT_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
+const LEGACY_SPACE_QUERY_PAGE_SIZE = 100;
+const LEGACY_SPACE_QUERY_MAX_DOCUMENTS = 5000;
 const CLOUDBASE_COLLECTIONS = {
   accountDeletions: 'softbook_account_deletions',
   authChallenges: 'softbook_auth_challenges',
   authRateLimits: 'softbook_auth_rate_limits',
   authSessions: 'softbook_auth_sessions',
+  cardSourceVersions: 'softbook_card_source_versions',
   cardSources: 'softbook_card_sources',
   dailyProgress: 'softbook_daily_progress',
+  learningEventCursors: 'softbook_learning_event_cursors',
+  learningEvents: 'softbook_learning_events',
+  learningEventSequences: 'softbook_learning_event_sequences',
+  learningMigrationRevisions: 'softbook_learning_migration_revisions',
   learningStates: 'softbook_learning_states',
   memberships: 'softbook_memberships',
   spaceStates: 'softbook_space_states',
@@ -89,6 +108,22 @@ function createSoftbookApi(options = {}) {
     runtimeMode,
     store,
   });
+  config.learningEventsV2 = createLearningEventsV2Service({
+    batchLimit:
+      options.learningEventsBatchLimit ??
+      optionalPositiveIntegerEnv('SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT'),
+    futureSkewSeconds:
+      options.learningEventsFutureSkewSeconds ??
+      optionalPositiveIntegerEnv(
+        'SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS',
+      ),
+    now: config.now,
+    retentionDays:
+      options.learningEventsRetentionDays ??
+      optionalPositiveIntegerEnv('SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS'),
+    runtimeMode,
+    store,
+  });
 
   return {
     handleCloudBaseEvent: async event => {
@@ -112,6 +147,14 @@ function resolveTokenTtlSeconds(overrideValue) {
   }
 
   return DEFAULT_TOKEN_TTL_SECONDS;
+}
+
+function optionalPositiveIntegerEnv(name) {
+  if (process.env[name] === undefined) {
+    return undefined;
+  }
+
+  return Number(process.env[name]);
 }
 
 async function handleHttpRequest(config, request) {
@@ -179,6 +222,14 @@ async function handleHttpRequest(config, request) {
       });
     }
 
+    if (method === 'POST' && path === '/v2/learning/events') {
+      const session = await config.authV2.requireActiveSession(request);
+
+      return jsonResponse(200, {
+        data: await config.learningEventsV2.submit({request, session}),
+      });
+    }
+
     if (method === 'GET' && path === '/v2/bootstrap') {
       const session = await config.authV2.requireActiveSession(request);
       assertBootstrapIdentityComesFromSession(request);
@@ -187,6 +238,7 @@ async function handleHttpRequest(config, request) {
 
       return jsonResponse(200, {
         data: await config.bootstrapV2.read({
+          accountKey: session.accountKey,
           dayKey,
           phoneNumber: session.phoneNumber,
           track,
@@ -277,6 +329,7 @@ async function handleHttpRequest(config, request) {
         session.phoneNumber,
         snapshot,
         acknowledgedAt,
+        {accountKey: session.accountKey},
       );
       return acknowledgedResponse(acknowledgedAt);
     }
@@ -289,6 +342,7 @@ async function handleHttpRequest(config, request) {
         session.phoneNumber,
         snapshot,
         acknowledgedAt,
+        {accountKey: session.accountKey},
       );
       return acknowledgedResponse(acknowledgedAt);
     }
@@ -375,7 +429,10 @@ function parseDailyProgressSnapshot(body) {
   const payload = requireObjectBody(body);
 
   return {
-    checked_in_today: requireBoolean(payload.checked_in_today, 'checked_in_today'),
+    checked_in_today: requireBoolean(
+      payload.checked_in_today,
+      'checked_in_today',
+    ),
     day_key: requireDayKey(payload.day_key),
     favorite_count: requireNonNegativeInteger(
       payload.favorite_count,
@@ -410,7 +467,10 @@ function parseLearningStateSnapshot(body) {
     const eventObject = requireObject(event, `events[${index}]`);
 
     return {
-      card_id: requireNonEmptyString(eventObject.card_id, `events[${index}].card_id`),
+      card_id: requireNonEmptyString(
+        eventObject.card_id,
+        `events[${index}].card_id`,
+      ),
       completed_at: requireIsoTimestamp(
         eventObject.completed_at,
         `events[${index}].completed_at`,
@@ -458,7 +518,10 @@ function parseSpaceStateSnapshot(body) {
     const stateObject = requireObject(state, `states[${index}]`);
 
     return {
-      card_id: requireNonEmptyString(stateObject.card_id, `states[${index}].card_id`),
+      card_id: requireNonEmptyString(
+        stateObject.card_id,
+        `states[${index}].card_id`,
+      ),
       is_favorited: requireBoolean(
         stateObject.is_favorited,
         `states[${index}].is_favorited`,
@@ -506,10 +569,7 @@ function spaceStateResponse(snapshot, acknowledgedAt) {
 }
 
 function assertBootstrapIdentityComesFromSession(request) {
-  if (
-    request.query.phone_number !== undefined ||
-    request.body !== undefined
-  ) {
+  if (request.query.phone_number !== undefined || request.body !== undefined) {
     throw httpError(
       400,
       'bootstrap_identity_input_forbidden',
@@ -535,10 +595,31 @@ function createDefaultStore() {
 function createMemoryStore() {
   const authStateStore = createMemoryAuthStateStore();
   const cardSources = new Map();
+  const cardSourceVersions = new Map();
   const memberships = new Map();
   const dailyProgress = new Map();
+  const learningEventCursors = new Map();
+  const learningEvents = new Map();
+  const learningEventSequences = new Map();
+  const learningMigrationRevisions = new Map();
   const learningStates = new Map();
   const spaceStates = new Map();
+  const runLearningTransaction = createSerializedTransactionRunner();
+  const commitLearningEvents = createMemoryLearningEventsCommitter({
+    createDefaultCardSource,
+    normalizeCardSource,
+    state: {
+      cardSources,
+      cardSourceVersions,
+      dailyProgress,
+      learningEventCursors,
+      learningEvents,
+      learningEventSequences,
+      learningMigrationRevisions,
+      learningStates,
+    },
+    runTransaction: runLearningTransaction,
+  });
 
   return {
     ...authStateStore,
@@ -555,24 +636,86 @@ function createMemoryStore() {
 
       return cloneCardSource(cardSources.get(track));
     },
-    getDailyProgress: (phoneNumber, dayKey) =>
-      cloneJson(
-        dailyProgress.get(`${phoneNumber}:${dayKey}`) ??
+    getDailyProgress: (phoneNumber, dayKey, options = {}) => {
+      const accountProgress = options.accountKey
+        ? dailyProgress.get(
+            createAccountDailyProgressKey(options.accountKey, dayKey),
+          )
+        : null;
+      assertLearningProjectionMetadata(
+        accountProgress,
+        options.accountKey,
+        'daily progress',
+      );
+      const progress = cloneJson(
+        accountProgress ??
+          dailyProgress.get(`${phoneNumber}:${dayKey}`) ??
           createEmptyDailyProgress(dayKey),
-      ),
-    getLearningState: (phoneNumber, dayKey, track) =>
-      cloneJson(
-        learningStates.get(`${phoneNumber}:${dayKey}:${track}`) ??
+      );
+      const sequence = options.accountKey
+        ? learningEventSequences.get(
+            createLearningEventSequenceId(options.accountKey),
+          )
+        : null;
+
+      if (!sequence) {
+        assertNoOrphanedLearningProjection(accountProgress, options.accountKey);
+      }
+
+      applyLearningSequencePendingReview(
+        progress,
+        sequence,
+        options.accountKey,
+      );
+
+      return progress;
+    },
+    getLearningState: (phoneNumber, dayKey, track, options = {}) => {
+      const accountState = options.accountKey
+        ? learningStates.get(
+            createAccountLearningStateKey(options.accountKey, track),
+          )
+        : null;
+      const state = cloneJson(
+        accountState ??
+          learningStates.get(`${phoneNumber}:${dayKey}:${track}`) ??
           createEmptyLearningState(dayKey, track),
-      ),
+      );
+      assertLearningProjectionMetadata(
+        accountState,
+        options.accountKey,
+        'learning state',
+      );
+
+      const sequence = options.accountKey
+        ? learningEventSequences.get(
+            createLearningEventSequenceId(options.accountKey),
+          )
+        : null;
+
+      if (!sequence) {
+        assertNoOrphanedLearningProjection(
+          accountState,
+          options.accountKey,
+          'learning state',
+        );
+      } else {
+        assertLearningProjectionSequence(
+          accountState,
+          sequence,
+          options.accountKey,
+          track,
+        );
+      }
+
+      return {...state, day_key: dayKey, track};
+    },
     getMembership: phoneNumber => {
       const document = memberships.get(phoneNumber);
 
       return {
         acknowledged_at: document?.updated_at ?? null,
-        ...cloneMembership(
-          document?.entitlement ?? createInitialMembership(),
-        ),
+        ...cloneMembership(document?.entitlement ?? createInitialMembership()),
       };
     },
     startTrial: (phoneNumber, acknowledgedAt) => {
@@ -618,34 +761,86 @@ function createMemoryStore() {
       });
       return current;
     },
-    saveDailyProgress: (phoneNumber, snapshot, acknowledgedAt) => {
-      dailyProgress.set(`${phoneNumber}:${snapshot.day_key}`, {
-        acknowledged_at: acknowledgedAt,
-        ...snapshot,
-      });
-    },
-    saveLearningState: (phoneNumber, snapshot, acknowledgedAt) => {
-      const key = `${phoneNumber}:${snapshot.day_key}:${snapshot.track}`;
-      const existing = learningStates.get(key) ?? {
-        events_by_card_id: {},
-      };
+    saveDailyProgress: (phoneNumber, snapshot, acknowledgedAt, options = {}) =>
+      runLearningTransaction(async () => {
+        assertLearningWriteAccountKey(options.accountKey);
+        const sequence = learningEventSequences.get(
+          createLearningEventSequenceId(options.accountKey),
+        );
 
-      snapshot.events.forEach((event, index) => {
-        existing.events_by_card_id[event.card_id] = {
-          ...event,
-          server_sequence: index,
+        if (sequence) {
+          const accountProgressKey = createAccountDailyProgressKey(
+            options.accountKey,
+            snapshot.day_key,
+          );
+          const accountProgress = dailyProgress.get(accountProgressKey);
+          const legacyProgress = accountProgress
+            ? null
+            : dailyProgress.get(`${phoneNumber}:${snapshot.day_key}`);
+          dailyProgress.set(
+            accountProgressKey,
+            mergeLegacyDailyProgressAfterV2({
+              accountKey: options.accountKey,
+              accountProgress,
+              acknowledgedAt,
+              legacyProgress,
+              sequence,
+              snapshot,
+            }),
+          );
+          return;
+        }
+
+        assertNoOrphanedLearningProjection(
+          dailyProgress.get(
+            createAccountDailyProgressKey(options.accountKey, snapshot.day_key),
+          ),
+          options.accountKey,
+        );
+        dailyProgress.set(`${phoneNumber}:${snapshot.day_key}`, {
+          acknowledged_at: acknowledgedAt,
+          ...snapshot,
+        });
+      }),
+    saveLearningState: (phoneNumber, snapshot, acknowledgedAt, options = {}) =>
+      runLearningTransaction(async () => {
+        assertLegacyLearningWriteAllowed(
+          learningEventSequences.get(
+            createLearningEventSequenceId(options.accountKey),
+          ),
+          options.accountKey,
+        );
+        const revisionId = createLearningMigrationRevisionId(
+          options.accountKey,
+        );
+        const nextRevision = nextLearningMigrationRevision(
+          learningMigrationRevisions.get(revisionId) ?? null,
+          options.accountKey,
+          acknowledgedAt,
+        );
+        const key = `${phoneNumber}:${snapshot.day_key}:${snapshot.track}`;
+        const existing = learningStates.get(key) ?? {
+          events_by_card_id: {},
         };
-      });
 
-      learningStates.set(key, {
-        ...existing,
-        acknowledged_at: acknowledgedAt,
-        day_key: snapshot.day_key,
-        source_id: snapshot.source_id,
-        source_label: snapshot.source_label,
-        track: snapshot.track,
-      });
-    },
+        snapshot.events.forEach((event, index) => {
+          existing.events_by_card_id[event.card_id] = {
+            ...event,
+            server_sequence: index,
+          };
+        });
+
+        learningStates.set(key, {
+          ...existing,
+          acknowledged_at: acknowledgedAt,
+          day_key: snapshot.day_key,
+          source_id: snapshot.source_id,
+          source_label: snapshot.source_label,
+          track: snapshot.track,
+        });
+        learningMigrationRevisions.set(revisionId, nextRevision);
+      }),
+    commitLearningEvents,
     getSpaceState: (phoneNumber, dayKey) => {
       const existing = cloneSpaceState(
         spaceStates.get(phoneNumber) ?? createEmptySpaceState(dayKey),
@@ -675,8 +870,13 @@ function createMemoryStore() {
     },
     snapshot: () => ({
       ...authStateStore.snapshotAuth(),
+      cardSourceVersions,
       cardSources,
       dailyProgress,
+      learningEventCursors,
+      learningEvents,
+      learningEventSequences,
+      learningMigrationRevisions,
       learningStates,
       memberships,
       spaceStates,
@@ -693,8 +893,17 @@ function createCloudBaseStore(options = {}) {
   const cardSources = db.collection(CLOUDBASE_COLLECTIONS.cardSources);
   const memberships = db.collection(CLOUDBASE_COLLECTIONS.memberships);
   const dailyProgress = db.collection(CLOUDBASE_COLLECTIONS.dailyProgress);
+  const learningEventSequences = db.collection(
+    CLOUDBASE_COLLECTIONS.learningEventSequences,
+  );
   const learningStates = db.collection(CLOUDBASE_COLLECTIONS.learningStates);
   const spaceStates = db.collection(CLOUDBASE_COLLECTIONS.spaceStates);
+  const commitLearningEvents = createCloudBaseLearningEventsCommitter({
+    collections: CLOUDBASE_COLLECTIONS,
+    createDefaultCardSource,
+    db,
+    normalizeCardSource,
+  });
 
   return {
     ...authStateStore,
@@ -719,19 +928,88 @@ function createCloudBaseStore(options = {}) {
 
       return defaultCardSource;
     },
-    getDailyProgress: async (phoneNumber, dayKey) => {
-      const documentId = createCloudBaseDocumentId(`${phoneNumber}:${dayKey}`);
-      const existing = await getCloudBaseDocument(dailyProgress, documentId);
-
-      return existing ?? createEmptyDailyProgress(dayKey);
-    },
-    getLearningState: async (phoneNumber, dayKey, track) => {
-      const documentId = createCloudBaseDocumentId(
-        `${phoneNumber}:${dayKey}:${track}`,
+    getDailyProgress: async (phoneNumber, dayKey, options = {}) => {
+      const accountProgress = options.accountKey
+        ? await getCloudBaseDocument(
+            dailyProgress,
+            createAccountDailyProgressId(options.accountKey, dayKey),
+          )
+        : null;
+      assertLearningProjectionMetadata(
+        accountProgress,
+        options.accountKey,
+        'daily progress',
       );
-      const existing = await getCloudBaseDocument(learningStates, documentId);
+      const legacyProgress = accountProgress
+        ? null
+        : await getCloudBaseDocument(
+            dailyProgress,
+            createCloudBaseDocumentId(`${phoneNumber}:${dayKey}`),
+          );
+      const progress =
+        accountProgress ?? legacyProgress ?? createEmptyDailyProgress(dayKey);
+      const sequence = options.accountKey
+        ? await getCloudBaseDocument(
+            learningEventSequences,
+            createLearningEventSequenceId(options.accountKey),
+          )
+        : null;
 
-      return existing ?? createEmptyLearningState(dayKey, track);
+      if (!sequence) {
+        assertNoOrphanedLearningProjection(accountProgress, options.accountKey);
+      }
+
+      applyLearningSequencePendingReview(
+        progress,
+        sequence,
+        options.accountKey,
+      );
+
+      return progress;
+    },
+    getLearningState: async (phoneNumber, dayKey, track, options = {}) => {
+      const accountState = options.accountKey
+        ? await getCloudBaseDocument(
+            learningStates,
+            createAccountLearningStateId(options.accountKey, track),
+          )
+        : null;
+      assertLearningProjectionMetadata(
+        accountState,
+        options.accountKey,
+        'learning state',
+      );
+      const sequence = options.accountKey
+        ? await getCloudBaseDocument(
+            learningEventSequences,
+            createLearningEventSequenceId(options.accountKey),
+          )
+        : null;
+
+      if (!sequence) {
+        assertNoOrphanedLearningProjection(
+          accountState,
+          options.accountKey,
+          'learning state',
+        );
+      } else {
+        assertLearningProjectionSequence(
+          accountState,
+          sequence,
+          options.accountKey,
+          track,
+        );
+      }
+      const legacyState = accountState
+        ? null
+        : await getCloudBaseDocument(
+            learningStates,
+            createCloudBaseDocumentId(`${phoneNumber}:${dayKey}:${track}`),
+          );
+      const state =
+        accountState ?? legacyState ?? createEmptyLearningState(dayKey, track);
+
+      return {...state, day_key: dayKey, track};
     },
     getMembership: async phoneNumber => {
       const existing = await getCloudBaseDocument(memberships, phoneNumber);
@@ -797,58 +1075,164 @@ function createCloudBaseStore(options = {}) {
       );
       return current;
     },
-    saveDailyProgress: async (phoneNumber, snapshot, acknowledgedAt) => {
-      await setCloudBaseDocument(
-        dailyProgress,
-        createCloudBaseDocumentId(`${phoneNumber}:${snapshot.day_key}`),
-        {
-          acknowledged_at: acknowledgedAt,
-          phone_number: phoneNumber,
-          ...snapshot,
-        },
-      );
-    },
-    saveLearningState: async (phoneNumber, snapshot, acknowledgedAt) => {
-      const documentId = createCloudBaseDocumentId(
-        `${phoneNumber}:${snapshot.day_key}:${snapshot.track}`,
-      );
-      const existing = (await getCloudBaseDocument(learningStates, documentId)) ?? {
-        events_by_card_id: {},
-      };
-      const eventsByCardId = {
-        ...(existing.events_by_card_id ?? {}),
-      };
+    saveDailyProgress: async (
+      phoneNumber,
+      snapshot,
+      acknowledgedAt,
+      options = {},
+    ) =>
+      db.runTransaction(async transaction => {
+        assertLearningWriteAccountKey(options.accountKey);
+        const transactionSequences = transaction.collection(
+          CLOUDBASE_COLLECTIONS.learningEventSequences,
+        );
+        const sequence = await getCloudBaseDocument(
+          transactionSequences,
+          createLearningEventSequenceId(options.accountKey),
+        );
+        const transactionProgress = transaction.collection(
+          CLOUDBASE_COLLECTIONS.dailyProgress,
+        );
+        const accountProgressId = createAccountDailyProgressId(
+          options.accountKey,
+          snapshot.day_key,
+        );
+        const accountProgress = await getCloudBaseDocument(
+          transactionProgress,
+          accountProgressId,
+        );
 
-      snapshot.events.forEach((event, index) => {
-        eventsByCardId[event.card_id] = {
-          ...event,
-          server_sequence: index,
+        if (sequence) {
+          const legacyProgress = accountProgress
+            ? null
+            : await getCloudBaseDocument(
+                transactionProgress,
+                createCloudBaseDocumentId(`${phoneNumber}:${snapshot.day_key}`),
+              );
+          await setCloudBaseDocument(
+            transactionProgress,
+            accountProgressId,
+            mergeLegacyDailyProgressAfterV2({
+              accountKey: options.accountKey,
+              accountProgress,
+              acknowledgedAt,
+              legacyProgress,
+              sequence,
+              snapshot,
+            }),
+          );
+          return;
+        }
+
+        assertNoOrphanedLearningProjection(accountProgress, options.accountKey);
+        await setCloudBaseDocument(
+          transactionProgress,
+          createCloudBaseDocumentId(`${phoneNumber}:${snapshot.day_key}`),
+          {
+            acknowledged_at: acknowledgedAt,
+            phone_number: phoneNumber,
+            ...snapshot,
+          },
+        );
+      }),
+    saveLearningState: async (
+      phoneNumber,
+      snapshot,
+      acknowledgedAt,
+      options = {},
+    ) =>
+      db.runTransaction(async transaction => {
+        const transactionSequences = transaction.collection(
+          CLOUDBASE_COLLECTIONS.learningEventSequences,
+        );
+        const sequence = await getCloudBaseDocument(
+          transactionSequences,
+          createLearningEventSequenceId(options.accountKey),
+        );
+        assertLegacyLearningWriteAllowed(sequence, options.accountKey);
+        const transactionMigrationRevisions = transaction.collection(
+          CLOUDBASE_COLLECTIONS.learningMigrationRevisions,
+        );
+        const revisionId = createLearningMigrationRevisionId(
+          options.accountKey,
+        );
+        const nextRevision = nextLearningMigrationRevision(
+          await getCloudBaseDocument(transactionMigrationRevisions, revisionId),
+          options.accountKey,
+          acknowledgedAt,
+        );
+        const transactionLearningStates = transaction.collection(
+          CLOUDBASE_COLLECTIONS.learningStates,
+        );
+        const documentId = createCloudBaseDocumentId(
+          `${phoneNumber}:${snapshot.day_key}:${snapshot.track}`,
+        );
+        const existing = (await getCloudBaseDocument(
+          transactionLearningStates,
+          documentId,
+        )) ?? {events_by_card_id: {}};
+        const eventsByCardId = {
+          ...(existing.events_by_card_id ?? {}),
         };
-      });
 
-      await setCloudBaseDocument(learningStates, documentId, {
-        acknowledged_at: acknowledgedAt,
-        day_key: snapshot.day_key,
-        events_by_card_id: eventsByCardId,
-        phone_number: phoneNumber,
-        source_id: snapshot.source_id,
-        source_label: snapshot.source_label,
-        track: snapshot.track,
-      });
-    },
+        snapshot.events.forEach((event, index) => {
+          eventsByCardId[event.card_id] = {
+            ...event,
+            server_sequence: index,
+          };
+        });
+
+        await setCloudBaseDocument(transactionLearningStates, documentId, {
+          acknowledged_at: acknowledgedAt,
+          day_key: snapshot.day_key,
+          events_by_card_id: eventsByCardId,
+          phone_number: phoneNumber,
+          source_id: snapshot.source_id,
+          source_label: snapshot.source_label,
+          track: snapshot.track,
+        });
+        await setCloudBaseDocument(
+          transactionMigrationRevisions,
+          revisionId,
+          nextRevision,
+        );
+      }),
+    commitLearningEvents,
     getSpaceState: async (phoneNumber, dayKey) => {
       const documentId = createCloudBaseDocumentId(phoneNumber);
+      const existing = await getCloudBaseDocument(spaceStates, documentId);
+
+      if (existing) {
+        return {...cloneSpaceState(existing), day_key: dayKey};
+      }
+
+      const legacyDocuments = await listCloudBaseDocumentsByQuery(
+        spaceStates,
+        {phone_number: phoneNumber},
+        LEGACY_SPACE_QUERY_PAGE_SIZE,
+        LEGACY_SPACE_QUERY_MAX_DOCUMENTS,
+      );
       return db.runTransaction(async transaction =>
         getCloudBaseCanonicalSpaceState(
           transaction.collection(CLOUDBASE_COLLECTIONS.spaceStates),
           documentId,
           phoneNumber,
           dayKey,
+          legacyDocuments,
         ),
       );
     },
     saveSpaceState: async (phoneNumber, snapshot, acknowledgedAt) => {
       const documentId = createCloudBaseDocumentId(phoneNumber);
+      const canonical = await getCloudBaseDocument(spaceStates, documentId);
+      const legacyDocuments = canonical
+        ? []
+        : await listCloudBaseDocumentsByQuery(
+            spaceStates,
+            {phone_number: phoneNumber},
+            LEGACY_SPACE_QUERY_PAGE_SIZE,
+            LEGACY_SPACE_QUERY_MAX_DOCUMENTS,
+          );
       return db.runTransaction(async transaction => {
         const transactionSpaceStates = transaction.collection(
           CLOUDBASE_COLLECTIONS.spaceStates,
@@ -858,6 +1242,7 @@ function createCloudBaseStore(options = {}) {
           documentId,
           phoneNumber,
           snapshot.day_key,
+          legacyDocuments,
         );
         const statesByCardId = {
           ...(existing.states_by_card_id ?? {}),
@@ -902,6 +1287,294 @@ function createEmptyDailyProgress(dayKey) {
   };
 }
 
+function mergeLegacyDailyProgressAfterV2({
+  accountKey,
+  accountProgress,
+  acknowledgedAt,
+  legacyProgress,
+  sequence,
+  snapshot,
+}) {
+  const progress = normalizeStoredDailyProgress(
+    accountProgress ?? legacyProgress,
+    snapshot.day_key,
+    accountProgress ? accountKey : null,
+  );
+  assertLearningSequenceMetadata(sequence, accountKey);
+
+  return {
+    ...progress,
+    acknowledged_at: acknowledgedAt,
+    account_key: accountKey,
+    checked_in_today: progress.checked_in_today || snapshot.checked_in_today,
+    pending_review_count: sequence.pending_review_count,
+    projection_version: 'learning-events.v2',
+  };
+}
+
+function normalizeStoredDailyProgress(
+  value,
+  expectedDayKey,
+  expectedAccountKey,
+) {
+  if (value === null || value === undefined) {
+    return createEmptyDailyProgress(expectedDayKey);
+  }
+
+  if (
+    !isObject(value) ||
+    value.day_key !== expectedDayKey ||
+    typeof value.checked_in_today !== 'boolean' ||
+    (value.acknowledged_at !== null &&
+      value.acknowledged_at !== undefined &&
+      (typeof value.acknowledged_at !== 'string' ||
+        !Number.isFinite(Date.parse(value.acknowledged_at)))) ||
+    (expectedAccountKey !== null &&
+      (value.account_key !== expectedAccountKey ||
+        value.projection_version !== 'learning-events.v2'))
+  ) {
+    throw learningProjectionInvalidError(
+      'The account daily progress projection is invalid.',
+    );
+  }
+
+  for (const field of [
+    'favorite_count',
+    'learning_completed_count',
+    'pending_review_count',
+    'review_completed_count',
+    'sleeping_count',
+    'total_completed_count',
+  ]) {
+    if (!Number.isSafeInteger(value[field]) || value[field] < 0) {
+      throw learningProjectionInvalidError(
+        'The account daily progress projection is invalid.',
+      );
+    }
+  }
+
+  const derivedTotal =
+    value.learning_completed_count + value.review_completed_count;
+
+  if (
+    !Number.isSafeInteger(derivedTotal) ||
+    (expectedAccountKey !== null &&
+      value.total_completed_count !== derivedTotal)
+  ) {
+    throw learningProjectionInvalidError(
+      'The account daily progress projection is invalid.',
+    );
+  }
+
+  return {
+    acknowledged_at: value.acknowledged_at ?? null,
+    checked_in_today: value.checked_in_today,
+    day_key: value.day_key,
+    favorite_count: value.favorite_count,
+    learning_completed_count: value.learning_completed_count,
+    pending_review_count: value.pending_review_count,
+    review_completed_count: value.review_completed_count,
+    sleeping_count: value.sleeping_count,
+    total_completed_count: derivedTotal,
+  };
+}
+
+function assertNoOrphanedLearningProjection(
+  projection,
+  expectedAccountKey,
+  label = 'daily progress',
+) {
+  if (projection !== null && projection !== undefined) {
+    assertLearningProjectionMetadata(projection, expectedAccountKey, label);
+    throw learningProjectionInvalidError(
+      `An account ${label} projection is missing its event sequence.`,
+    );
+  }
+}
+
+function assertLearningProjectionMetadata(
+  projection,
+  expectedAccountKey,
+  label,
+) {
+  if (projection === null || projection === undefined) {
+    return;
+  }
+
+  if (
+    typeof expectedAccountKey !== 'string' ||
+    projection.account_key !== expectedAccountKey ||
+    projection.projection_version !== 'learning-events.v2'
+  ) {
+    throw httpError(
+      500,
+      'learning_events_projection_invalid',
+      `The account ${label} projection is invalid.`,
+    );
+  }
+}
+
+function applyLearningSequencePendingReview(
+  progress,
+  sequence,
+  expectedAccountKey,
+) {
+  if (sequence === null || sequence === undefined) {
+    return;
+  }
+
+  assertLearningSequenceMetadata(sequence, expectedAccountKey);
+  progress.pending_review_count = sequence.pending_review_count;
+}
+
+function assertLearningProjectionSequence(
+  projection,
+  sequence,
+  expectedAccountKey,
+  expectedTrack,
+) {
+  assertLearningSequenceMetadata(sequence, expectedAccountKey);
+
+  if (projection === null || projection === undefined) {
+    return;
+  }
+
+  assertLearningProjectionMetadata(
+    projection,
+    expectedAccountKey,
+    'learning state',
+  );
+
+  if (
+    projection.track !== expectedTrack ||
+    projection.cursor !== null ||
+    typeof projection.legacy_baseline_migrated !== 'boolean' ||
+    !isObject(projection.events_by_card_id) ||
+    Object.keys(projection.events_by_card_id).length === 0
+  ) {
+    throw learningProjectionInvalidError(
+      'The account learning projection is invalid.',
+    );
+  }
+
+  const acceptedSequences = new Set();
+  let migratedEventCount = 0;
+
+  for (const event of Object.values(projection.events_by_card_id)) {
+    if (
+      !isObject(event) ||
+      !Number.isSafeInteger(event.server_sequence) ||
+      event.server_sequence < 0 ||
+      event.server_sequence > sequence.last_server_sequence
+    ) {
+      throw learningProjectionInvalidError(
+        'The account learning projection sequence is invalid.',
+      );
+    }
+
+    if (event.server_sequence > 0) {
+      if (acceptedSequences.has(event.server_sequence)) {
+        throw learningProjectionInvalidError(
+          'The account learning projection sequence is duplicated.',
+        );
+      }
+      acceptedSequences.add(event.server_sequence);
+    } else {
+      migratedEventCount += 1;
+    }
+  }
+
+  if (
+    (migratedEventCount > 0 && !projection.legacy_baseline_migrated) ||
+    (acceptedSequences.size === 0 && !projection.legacy_baseline_migrated)
+  ) {
+    throw learningProjectionInvalidError(
+      'The account learning projection has invalid migration authority.',
+    );
+  }
+}
+
+function assertLearningSequenceMetadata(sequence, expectedAccountKey) {
+  if (
+    typeof expectedAccountKey !== 'string' ||
+    sequence.account_key !== expectedAccountKey ||
+    !Number.isSafeInteger(sequence.last_server_sequence) ||
+    sequence.last_server_sequence <= 0 ||
+    !Number.isSafeInteger(sequence.pending_review_count) ||
+    sequence.pending_review_count < 0
+  ) {
+    throw learningProjectionInvalidError(
+      'The account learning-event sequence is invalid.',
+    );
+  }
+}
+
+function assertLegacyLearningWriteAllowed(sequence, expectedAccountKey) {
+  assertLearningWriteAccountKey(expectedAccountKey);
+
+  if (sequence !== null && sequence !== undefined) {
+    assertLearningSequenceMetadata(sequence, expectedAccountKey);
+    throw httpError(
+      409,
+      'legacy_learning_write_disabled',
+      'Legacy learning snapshots are disabled after v2 event migration.',
+    );
+  }
+}
+
+function nextLearningMigrationRevision(
+  current,
+  expectedAccountKey,
+  acknowledgedAt,
+) {
+  assertLearningWriteAccountKey(expectedAccountKey);
+  let revision = 0;
+
+  if (current !== null && current !== undefined) {
+    if (
+      !isObject(current) ||
+      current.account_key !== expectedAccountKey ||
+      !Number.isSafeInteger(current.revision) ||
+      current.revision < 0 ||
+      current.status !== 'open' ||
+      typeof current.updated_at !== 'string' ||
+      !Number.isFinite(Date.parse(current.updated_at))
+    ) {
+      throw learningProjectionInvalidError(
+        'The legacy learning migration revision is invalid.',
+      );
+    }
+    revision = current.revision;
+  }
+
+  if (revision === Number.MAX_SAFE_INTEGER) {
+    throw learningProjectionInvalidError(
+      'The legacy learning migration revision is exhausted.',
+    );
+  }
+
+  return {
+    account_key: expectedAccountKey,
+    revision: revision + 1,
+    status: 'open',
+    updated_at: acknowledgedAt,
+  };
+}
+
+function assertLearningWriteAccountKey(accountKey) {
+  if (typeof accountKey !== 'string' || accountKey.length === 0) {
+    throw httpError(
+      401,
+      'invalid_auth_session',
+      'An account-bound session is required for learning writes.',
+    );
+  }
+}
+
+function learningProjectionInvalidError(message) {
+  return httpError(500, 'learning_events_projection_invalid', message);
+}
+
 function createEmptyLearningState(dayKey, track) {
   return {
     acknowledged_at: null,
@@ -925,10 +1598,9 @@ function cloneSpaceState(snapshot) {
   return {
     ...snapshot,
     states_by_card_id: Object.fromEntries(
-      Object.entries(snapshot.states_by_card_id ?? {}).map(([cardId, state]) => [
-        cardId,
-        {...state},
-      ]),
+      Object.entries(snapshot.states_by_card_id ?? {}).map(
+        ([cardId, state]) => [cardId, {...state}],
+      ),
     ),
   };
 }
@@ -951,6 +1623,7 @@ async function getCloudBaseCanonicalSpaceState(
   documentId,
   phoneNumber,
   dayKey,
+  legacyDocuments,
 ) {
   const existing = await getCloudBaseDocument(collection, documentId);
 
@@ -958,12 +1631,6 @@ async function getCloudBaseCanonicalSpaceState(
     return {...cloneSpaceState(existing), day_key: dayKey};
   }
 
-  const legacyResult = await collection.where({phone_number: phoneNumber}).get();
-  const legacyDocuments = Array.isArray(legacyResult.data)
-    ? legacyResult.data
-    : legacyResult.data
-      ? [legacyResult.data]
-      : [];
   const migrated = createEmptySpaceState(dayKey);
 
   for (const document of legacyDocuments) {
@@ -985,6 +1652,42 @@ async function getCloudBaseCanonicalSpaceState(
   return migrated;
 }
 
+async function listCloudBaseDocumentsByQuery(
+  collection,
+  query,
+  pageSize,
+  maximumCount,
+) {
+  const documents = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const result = await collection
+      .where(query)
+      .orderBy('_id', 'asc')
+      .skip(offset)
+      .limit(pageSize)
+      .get();
+    const page = Array.isArray(result.data)
+      ? result.data
+      : result.data
+      ? [result.data]
+      : [];
+    documents.push(...page);
+
+    if (documents.length > maximumCount) {
+      throw httpError(
+        500,
+        'invalid_canonical_state',
+        'Legacy physical-space migration exceeds the supported bound.',
+      );
+    }
+
+    if (page.length < pageSize) {
+      return documents;
+    }
+  }
+}
+
 function createCloudBaseDatabase() {
   const cloudbase = require('@cloudbase/node-sdk');
   const env =
@@ -1000,7 +1703,9 @@ function createCloudBaseDatabase() {
 async function getCloudBaseMembership(collection, phoneNumber) {
   const existing = await getCloudBaseDocument(collection, phoneNumber);
 
-  return existing ? deserializeMembershipDocument(existing) : createInitialMembership();
+  return existing
+    ? deserializeMembershipDocument(existing)
+    : createInitialMembership();
 }
 
 async function saveCloudBaseMembership(
@@ -1143,11 +1848,7 @@ function normalizeCardSource(cardSource, expectedTrack) {
   return {
     card_records: cardRecords,
     content_version: contentVersion,
-    release: normalizeContentRelease(
-      payload.release,
-      contentVersion,
-      track,
-    ),
+    release: normalizeContentRelease(payload.release, contentVersion, track),
     source: {
       id: sourceId,
       label: sourceLabel,
@@ -1176,7 +1877,11 @@ function assertUniqueNonEmptyCardRecords(cardRecords) {
 
 function normalizeCardRecord(record, expectedTrack, label) {
   const card = requireCardSourceObject(record, label);
-  const cardId = requireCardSourcePattern(card.card_id, /^\d{6}$/, `${label}.card_id`);
+  const cardId = requireCardSourcePattern(
+    card.card_id,
+    /^\d{6}$/,
+    `${label}.card_id`,
+  );
   const knowledgeRef = requireCardSourcePattern(
     card.knowledge_ref,
     /^\d{4}$/,
@@ -1220,11 +1925,16 @@ function normalizeCardRecord(record, expectedTrack, label) {
   requireCardSourceString(spaceMetadata.box, `${label}.space_metadata.box`);
 
   if (boxRef !== knowledgeRef) {
-    throw cardSourceError(`${label}.space_metadata.box_ref must match knowledge_ref.`);
+    throw cardSourceError(
+      `${label}.space_metadata.box_ref must match knowledge_ref.`,
+    );
   }
 
   if (card.hint_layer !== undefined) {
-    const hintLayer = requireCardSourceObject(card.hint_layer, `${label}.hint_layer`);
+    const hintLayer = requireCardSourceObject(
+      card.hint_layer,
+      `${label}.hint_layer`,
+    );
     requireCardSourceString(hintLayer.content, `${label}.hint_layer.content`);
 
     if (hintLayer.reveal_gesture !== '下滑') {
@@ -1237,7 +1947,9 @@ function normalizeCardRecord(record, expectedTrack, label) {
       requireCardSourceString(card.back_text, `${label}.back_text`);
 
       if (card.auto_scoring === true) {
-        throw cardSourceError(`${label}.flip must not claim auto_scoring true.`);
+        throw cardSourceError(
+          `${label}.flip must not claim auto_scoring true.`,
+        );
       }
 
       return cloneJson(card);
@@ -1259,13 +1971,18 @@ function normalizeCardRecord(record, expectedTrack, label) {
       );
 
       if (!optionIds.has(correctOption)) {
-        throw cardSourceError(`${label}.answer_key.correct_option must exist in options.`);
+        throw cardSourceError(
+          `${label}.answer_key.correct_option must exist in options.`,
+        );
       }
 
       return cloneJson(card);
     }
     case 'lock': {
-      const lockSlots = requireCardSourceArray(card.lock_slots, `${label}.lock_slots`);
+      const lockSlots = requireCardSourceArray(
+        card.lock_slots,
+        `${label}.lock_slots`,
+      );
 
       if (lockSlots.length === 0) {
         throw cardSourceError(`${label}.lock_slots must not be empty.`);
@@ -1277,7 +1994,9 @@ function normalizeCardRecord(record, expectedTrack, label) {
       );
 
       if (lockPattern.length !== lockSlots.length) {
-        throw cardSourceError(`${label}.lock_pattern must align with lock_slots.`);
+        throw cardSourceError(
+          `${label}.lock_pattern must align with lock_slots.`,
+        );
       }
 
       lockSlots.forEach((slot, index) => {
@@ -1287,7 +2006,9 @@ function normalizeCardRecord(record, expectedTrack, label) {
         );
 
         if (!options.includes(lockPattern[index])) {
-          throw cardSourceError(`${label}.lock_pattern must select values from each slot.`);
+          throw cardSourceError(
+            `${label}.lock_pattern must select values from each slot.`,
+          );
         }
       });
 
@@ -1304,7 +2025,9 @@ function normalizeCardRecord(record, expectedTrack, label) {
       );
 
       if (correctItems.length === 0) {
-        throw cardSourceError(`${label}.answer_key.correct_items must not be empty.`);
+        throw cardSourceError(
+          `${label}.answer_key.correct_items must not be empty.`,
+        );
       }
 
       const itemIds = new Set(
@@ -1317,16 +2040,23 @@ function normalizeCardRecord(record, expectedTrack, label) {
       );
 
       if (!correctItems.every(itemId => itemIds.has(itemId))) {
-        throw cardSourceError(`${label}.answer_key.correct_items must exist in elimination_items.`);
+        throw cardSourceError(
+          `${label}.answer_key.correct_items must exist in elimination_items.`,
+        );
       }
 
       return cloneJson(card);
     }
     case 'swipe': {
-      const swipeStates = requireCardSourceArray(card.swipe_states, `${label}.swipe_states`);
+      const swipeStates = requireCardSourceArray(
+        card.swipe_states,
+        `${label}.swipe_states`,
+      );
 
       if (swipeStates.length !== 2) {
-        throw cardSourceError(`${label}.swipe_states must contain exactly 2 items.`);
+        throw cardSourceError(
+          `${label}.swipe_states must contain exactly 2 items.`,
+        );
       }
 
       const correctState = requireCardSourceString(
@@ -1335,7 +2065,9 @@ function normalizeCardRecord(record, expectedTrack, label) {
       );
 
       if (!swipeStates.some(state => state?.id === correctState)) {
-        throw cardSourceError(`${label}.answer_key.correct_state must exist in swipe_states.`);
+        throw cardSourceError(
+          `${label}.answer_key.correct_state must exist in swipe_states.`,
+        );
       }
 
       return cloneJson(card);
@@ -1443,7 +2175,11 @@ function requireAuthSession(config, request) {
   const authorization = getHeader(request.headers, 'authorization');
 
   if (!authorization || !authorization.startsWith('Bearer ')) {
-    throw httpError(401, 'missing_auth_token', 'Authorization bearer token is required.');
+    throw httpError(
+      401,
+      'missing_auth_token',
+      'Authorization bearer token is required.',
+    );
   }
 
   const token = authorization.slice('Bearer '.length).trim();
@@ -1461,7 +2197,11 @@ async function requireCompatibleV1Session(config, request) {
     return config.authV2.requireActiveSession(request);
   }
 
-  return requireAuthSession(config, request);
+  const session = requireAuthSession(config, request);
+  return {
+    ...session,
+    accountKey: config.authV2.deriveAccountKey(session.phoneNumber),
+  };
 }
 
 function verifyAuthToken(config, token) {
@@ -1472,13 +2212,19 @@ function verifyAuthToken(config, token) {
   }
 
   const [, encodedPayload, signature] = parts;
-  const expectedSignature = signTokenPayload(config.tokenSecret, encodedPayload);
+  const expectedSignature = signTokenPayload(
+    config.tokenSecret,
+    encodedPayload,
+  );
 
   if (!safeEqual(signature, expectedSignature)) {
     throw httpError(401, 'invalid_auth_token', 'Invalid authorization token.');
   }
 
-  const payload = parseJson(base64UrlDecode(encodedPayload), 'auth token payload');
+  const payload = parseJson(
+    base64UrlDecode(encodedPayload),
+    'auth token payload',
+  );
 
   if (!isObject(payload)) {
     throw httpError(401, 'invalid_auth_token', 'Invalid authorization token.');
@@ -1492,7 +2238,11 @@ function verifyAuthToken(config, token) {
   }
 
   if (Math.floor(config.now().getTime() / 1000) >= exp) {
-    throw httpError(401, 'expired_auth_token', 'Authorization token has expired.');
+    throw httpError(
+      401,
+      'expired_auth_token',
+      'Authorization token has expired.',
+    );
   }
 
   return {
@@ -1505,7 +2255,11 @@ function assertBodyPhoneMatchesSession(body, session) {
   const phoneNumber = requirePhoneNumber(payload.phone_number);
 
   if (phoneNumber !== session.phoneNumber) {
-    throw httpError(403, 'phone_number_mismatch', 'phone_number must match auth token.');
+    throw httpError(
+      403,
+      'phone_number_mismatch',
+      'phone_number must match auth token.',
+    );
   }
 }
 
@@ -1672,7 +2426,11 @@ function requirePhoneNumber(value) {
   const phoneNumber = requireNonEmptyString(value, 'phone_number');
 
   if (!/^1\d{10}$/.test(phoneNumber)) {
-    throw httpError(400, 'invalid_request', 'phone_number must be a valid mainland China mobile number.');
+    throw httpError(
+      400,
+      'invalid_request',
+      'phone_number must be a valid mainland China mobile number.',
+    );
   }
 
   return phoneNumber;
@@ -1707,8 +2465,7 @@ function isValidDayKey(value) {
 
   const date = new Date(`${value}T00:00:00.000Z`);
   return (
-    !Number.isNaN(date.getTime()) &&
-    date.toISOString().slice(0, 10) === value
+    !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
   );
 }
 
@@ -1740,7 +2497,11 @@ function requireIsoTimestamp(value, fieldName) {
   const timestamp = requireNonEmptyString(value, fieldName);
 
   if (Number.isNaN(new Date(timestamp).getTime())) {
-    throw httpError(400, 'invalid_request', `${fieldName} must be ISO timestamp.`);
+    throw httpError(
+      400,
+      'invalid_request',
+      `${fieldName} must be ISO timestamp.`,
+    );
   }
 
   return timestamp;
@@ -1830,8 +2591,7 @@ const CET4_CARD_RECORDS = [
     back_text: '优先盯转折后的半句，再回头核对前面让步或铺垫的信息。',
     analysis: {
       title: '先抓态度转向，再判断答案',
-      summary:
-        '听力里的 however 往往不是装饰词，而是把说话人真正结论往后推。',
+      summary: '听力里的 however 往往不是装饰词，而是把说话人真正结论往后推。',
       exam_tip: '听到转折词时先记“后半句优先”，再看选项有没有只复述前半句。',
     },
     hint_layer: {
@@ -1903,15 +2663,16 @@ const CET4_CARD_RECORDS = [
     interaction_id: 'multiple_choice',
     front: {
       eyebrow: '词汇 | 阅读高频词',
-      prompt: 'The committee postponed the vote because several details were still ____.',
+      prompt:
+        'The committee postponed the vote because several details were still ____.',
       support: '选出最符合句意的词。',
       context: '投票被推迟，说明关键信息还没有清楚。',
     },
     options: [
-      { id: 'urgent', label: 'A', text: 'urgent' },
-      { id: 'unclear', label: 'B', text: 'unclear' },
-      { id: 'formal', label: 'C', text: 'formal' },
-      { id: 'similar', label: 'D', text: 'similar' },
+      {id: 'urgent', label: 'A', text: 'urgent'},
+      {id: 'unclear', label: 'B', text: 'unclear'},
+      {id: 'formal', label: 'C', text: 'formal'},
+      {id: 'similar', label: 'D', text: 'similar'},
     ],
     answer_key: {
       correct_option: 'unclear',
@@ -1943,10 +2704,10 @@ const CET4_CARD_RECORDS = [
       context: '先把修饰成分剥掉，再回到主谓宾。',
     },
     elimination_items: [
-      { id: 'relative_clause', text: 'who review in short bursts' },
-      { id: 'adverb', text: 'usually' },
-      { id: 'object', text: 'the pattern' },
-      { id: 'time_phrase', text: 'before the test' },
+      {id: 'relative_clause', text: 'who review in short bursts'},
+      {id: 'adverb', text: 'usually'},
+      {id: 'object', text: 'the pattern'},
+      {id: 'time_phrase', text: 'before the test'},
     ],
     answer_key: {
       correct_items: ['relative_clause', 'adverb', 'time_phrase'],
@@ -2058,12 +2819,20 @@ const CET6_CARD_RECORDS = [
       {
         id: 'subject',
         label: '主语',
-        options: ['The limited evidence', 'shaped', 'the preliminary conclusion'],
+        options: [
+          'The limited evidence',
+          'shaped',
+          'the preliminary conclusion',
+        ],
       },
       {
         id: 'verb',
         label: '谓语',
-        options: ['the preliminary conclusion', 'The limited evidence', 'shaped'],
+        options: [
+          'the preliminary conclusion',
+          'The limited evidence',
+          'shaped',
+        ],
       },
       {
         id: 'object',
@@ -2099,15 +2868,16 @@ const CET6_CARD_RECORDS = [
     interaction_id: 'multiple_choice',
     front: {
       eyebrow: '词汇 | 高频词',
-      prompt: 'The findings should be treated with ____ because the sample was small.',
+      prompt:
+        'The findings should be treated with ____ because the sample was small.',
       support: '选出最符合学术语境的词。',
       context: '样本小意味着结论需要谨慎处理。',
     },
     options: [
-      { id: 'caution', label: 'A', text: 'caution' },
-      { id: 'frequency', label: 'B', text: 'frequency' },
-      { id: 'comfort', label: 'C', text: 'comfort' },
-      { id: 'volume', label: 'D', text: 'volume' },
+      {id: 'caution', label: 'A', text: 'caution'},
+      {id: 'frequency', label: 'B', text: 'frequency'},
+      {id: 'comfort', label: 'C', text: 'comfort'},
+      {id: 'volume', label: 'D', text: 'volume'},
     ],
     answer_key: {
       correct_option: 'caution',
@@ -2115,8 +2885,7 @@ const CET6_CARD_RECORDS = [
     auto_scoring: true,
     analysis: {
       title: '小样本对应谨慎解释',
-      summary:
-        'with caution 是学术阅读高频搭配，表示结论不能被过度推广。',
+      summary: 'with caution 是学术阅读高频搭配，表示结论不能被过度推广。',
       exam_tip: '遇到 sample / evidence limited，优先寻找谨慎、限制类表达。',
     },
     space_metadata: {
@@ -2139,10 +2908,10 @@ const CET6_CARD_RECORDS = [
       context: 'CET6 阅读更常考限定语和结论强度，不要把修饰误当主结论。',
     },
     elimination_items: [
-      { id: 'relative_clause', text: 'who relied on a narrow sample' },
-      { id: 'adverb', text: 'cautiously' },
-      { id: 'verb', text: 'framed' },
-      { id: 'complement', text: 'the result as preliminary' },
+      {id: 'relative_clause', text: 'who relied on a narrow sample'},
+      {id: 'adverb', text: 'cautiously'},
+      {id: 'verb', text: 'framed'},
+      {id: 'complement', text: 'the result as preliminary'},
     ],
     answer_key: {
       correct_items: ['relative_clause', 'adverb'],
@@ -2152,7 +2921,8 @@ const CET6_CARD_RECORDS = [
       title: '先保住研究者做出的核心判断',
       summary:
         '这句主线是 Researchers framed the result as preliminary。样本限制和 cautiously 是重要限定，但先剥离它们能帮助你看清主干。',
-      exam_tip: 'CET6 长句里，限定语常影响态度强度；先拆主干，再把限定语补回判断。',
+      exam_tip:
+        'CET6 长句里，限定语常影响态度强度；先拆主干，再把限定语补回判断。',
     },
     hint_layer: {
       label: '提示层',

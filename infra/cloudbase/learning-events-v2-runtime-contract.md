@@ -25,11 +25,62 @@ Referenced active specs:
   event, idempotency, acknowledgement, and migration semantics below.
 - `POST /v2/learning/events` uses `learning-events.v2` and returns
   `learning-events-ack.v2`.
-- This document defines the next runtime boundary. The endpoint, transactional
-  ledger, projections, mobile producer, and scheduler are not implemented by
-  the contract-only change that introduced this file.
+- The repository-local CommonJS CloudBase function now implements the endpoint,
+  transactional ledger, server sequence, daily aggregates, per-card learning
+  projection, retained content lookup, and bootstrap projection read.
+- The implementation has local memory and CloudBase-adapter tests. This
+  repository change does not deploy it, and the mobile producer, legacy v1
+  write removal, and scheduler remain unimplemented.
 - The launch gate `canonical-bootstrap-and-idempotent-events` remains pending
-  until backend and client behavior pass the acceptance cases in this document.
+  until backend deployment and client behavior pass the acceptance cases in
+  this document.
+
+## Repository-local backend
+
+The route is wired in `infra/cloudbase/functions/softbook-api/index.js`. Request
+validation lives in `learning-events-v2.js`; the memory and CloudBase adapters
+share the transaction algorithm in `learning-events-v2-store.js`.
+
+CloudBase uses one database transaction across these account-scoped records:
+
+- `softbook_learning_events`: immutable event payload and canonical digest;
+- `softbook_learning_event_cursors`: one event binding for each device cursor;
+- `softbook_learning_event_sequences`: next account sequence and global pending
+  review count;
+- `softbook_learning_migration_revisions`: one account revision fence that
+  closes the race between a bounded legacy snapshot and the first v2 event;
+- `softbook_learning_states`: latest accepted event per card and track;
+- `softbook_daily_progress`: server-derived learning and review counts by China
+  product day;
+- `softbook_card_source_versions`: current and retained versioned card sources.
+
+Document IDs are SHA-256 keys over internal account keys and opaque event or
+cursor identifiers; phone numbers are not event-ledger keys. The in-memory
+adapter serializes copy-on-write transactions so the same algorithm can prove
+rollback and concurrency behavior without claiming that memory is a production
+store.
+
+CloudBase transactions use deterministic `doc` operations only. Legacy learning
+documents are read in bounded pages outside the transaction; the transaction
+then reads and writes the account revision fence together with the first event.
+If a v1 write changes the revision after preflight, the complete snapshot is
+read again before retrying. Legacy physical-space discovery follows the same
+doc-only boundary: its query is outside the transaction and the canonical merge
+is transactionally written to one deterministic account document.
+
+The CloudBase adapter accepts at most 9 events per request. That hard limit
+keeps the tested worst case at 91 operations, below CloudBase's 100-operation
+transaction ceiling, even when every event has a distinct retained content
+version and China activity day and migration preserves both tracks. Defaults
+are therefore 9 events, 90 days of past-event retention, and five minutes of
+future clock skew. Development operators may lower the batch limit
+and may set
+`SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT`,
+`SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS`, and
+`SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS` to positive integers; a batch
+limit above 9 fails configuration instead of creating a false atomicity claim.
+Production still requires published content and continues to reject every v1
+route.
 
 ## Request
 
@@ -141,7 +192,12 @@ audio transcript, or other content text.
 The primary idempotency key is `(account_id, event_id)`.
 
 - An exact replay returns `duplicate`, the original `server_sequence`, and no
-  projection mutation.
+  projection mutation. Once accepted, the byte-equivalent canonical event does
+  not become invalid when a mutable time or content-retention window later
+  changes.
+- Before acknowledging a duplicate, the server recomputes the canonical digest
+  from the stored immutable payload and track. A mismatch is storage corruption
+  and fails closed without acknowledgement or writes.
 - Reusing the event key with any different canonical event field returns HTTP
   `409` and rejects the entire request.
 - `(account_id, device_id, sequence)` must map to exactly one `event_id`.
@@ -172,6 +228,39 @@ aggregates from accepted immutable events. It does not accept a client-authored
 learning snapshot or progress counters. Favorite and sleeping state remain
 owned by the physical-space canonical state, and check-in remains a separate
 product action.
+
+Bootstrap reads the account-keyed v2 learning projection for the requested
+track regardless of requested day, reads the requested day's completion
+aggregate, and overlays favorite state from canonical physical space. A first
+v2 write preserves both CET4 and CET6 legacy learning baselines as
+sequence-zero projections in the same transaction before closing migration,
+and may seed that day's completion counts from the v1 daily snapshot. Newly
+accepted events start at server sequence one; v1 snapshots are never accepted
+as v2 event payloads.
+
+The development bridge is one-way per account. Before the first accepted v2
+event, valid v1 daily and learning snapshots may supply the migration baseline.
+After that sequence exists, later `/v1/learning/state-sync` writes for the
+account fail with `409 legacy_learning_write_disabled`. The guard and legacy
+write share the same memory coordinator or CloudBase transaction as the
+sequence boundary, so a late v1 learning snapshot cannot race behind the first
+v2 acceptance.
+
+CloudBase obtains the bounded legacy page snapshot outside the transaction
+because that runtime does not support `where` inside a transaction. Every v1
+learning write increments the deterministic account revision in its own
+transaction. First-event migration validates and marks the same revision fence
+as migrated in the event transaction, so a concurrent v1 write either wins
+before a fresh preflight or conflicts and retries behind the v2 sequence.
+
+`/v1/progress/daily-sync` remains temporarily available to migrated development
+clients because it also carries the separate check-in action. In the same
+transaction as the account sequence read, only `checked_in_today` is merged,
+and it is monotonic for the product day. Submitted learning, review, pending,
+and total counters cannot overwrite event-derived projections. Submitted
+favorite and sleeping counters are ignored; bootstrap derives both counts from
+canonical physical-space state. Physical-space writes keep their separate
+authority and are not blocked by this learning migration.
 
 For daily attribution, the service may derive the China product day from
 `client_occurred_at` only within configured retention and future-skew bounds.
@@ -238,10 +327,12 @@ Reconnect order remains:
 
 ## Migration boundary
 
-Legacy `/v1/progress/daily-sync` and `/v1/learning/state-sync` remain
-development-only migration inputs until separate backend and mobile adoption
-changes land. They are not valid `learning-events.v2` payloads. Production
-continues to reject every v1 route.
+Legacy `/v1/learning/state-sync` remains a development-only migration input for
+accounts without an accepted v2 event until mobile adoption and global
+legacy-write removal land. `/v1/progress/daily-sync` has the same baseline role
+before migration and becomes a check-in-only compatibility bridge afterward.
+Neither route is a valid `learning-events.v2` payload. Production continues to
+reject every v1 route.
 
 Implementation order is intentionally serial:
 
@@ -253,7 +344,7 @@ Implementation order is intentionally serial:
 
 ## Required implementation tests
 
-The backend and mobile PRs cannot claim this contract without proving:
+The repository-local backend tests currently prove:
 
 - exact replay returns duplicate and does not change any projection;
 - the same event ID with changed payload fails with `409` and writes nothing;
@@ -264,6 +355,23 @@ The backend and mobile PRs cannot claim this contract without proving:
 - concurrent exact submissions converge on one event;
 - device sequence gaps and out-of-order replay remain accepted;
 - account isolation holds for event IDs and device cursors;
+- top-level track changes are part of an event-ID payload conflict;
+- the active session account key is rederived from the signed session phone;
+- an atomic batch above 9 is rejected before storage work;
+- the maximum nine-event, all-track migration fixture uses 91 transaction
+  operations and therefore retains headroom below the platform ceiling;
+- transaction test doubles reject `where`, matching CloudBase's doc-only rule;
+- stored immutable event payloads are rehashed before duplicate acknowledgement;
+- stored v2 learning/daily projections and migrated v1 events are fully
+  revalidated before another acceptance;
+- device cursor gaps and out-of-order replay preserve account server order;
+- legacy learning-state migration reads every bounded query page;
+- a changed migration revision forces a complete preflight retry;
+- first-event migration preserves valid sequence-zero baselines for both
+  tracks, including the track not present in the event request;
+- migrated accounts reject later v1 learning snapshot writes;
+- migrated daily progress can merge check-in but cannot override v2 learning
+  counts or canonical physical-space counts;
 - unknown or mismatched content/card/interaction is rejected;
 - identity, credential, snapshot, counter, and content-text fields are rejected;
 - server sequences are stable and monotonic per account;
@@ -271,13 +379,18 @@ The backend and mobile PRs cannot claim this contract without proving:
 - reconnect performs bootstrap before and after replay;
 - tracked worktree state and formal approval records remain unchanged by tests.
 
+The future mobile adoption change must separately prove durable allocation,
+offline persistence, authenticated replay, queue removal, and bootstrap both
+before and after replay.
+
 ## Explicit non-claims
 
-This contract-only artifact does not prove:
+The local backend implementation does not prove:
 
-- that `/v2/learning/events` is deployed or callable;
+- that `/v2/learning/events` is deployed in CloudBase or production;
 - that the React Native client emits or replays v2 events;
-- that legacy snapshot writes are disabled;
+- that legacy learning snapshots and the daily check-in bridge are globally
+  disabled;
 - that FSRS or any other scheduler is implemented;
 - exact same-card cross-device resume;
 - signed content packs, approved production content, payments, or launch

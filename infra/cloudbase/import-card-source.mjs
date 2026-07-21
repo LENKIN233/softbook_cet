@@ -6,12 +6,20 @@ import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {validateCardSourceCatalogMapping} from './card-source-catalog.mjs';
 import {assertDevelopmentCardSourceImport} from './card-source-import-policy.mjs';
+import {
+  CARD_SOURCE_COLLECTION,
+  CARD_SOURCE_VERSION_COLLECTION,
+  createCardSourceImportCommand,
+  createQueryCurrentCardSourceCommand,
+  parseQueryCurrentCardSourceResult,
+} from './card-source-import-commands.mjs';
 
 const require = createRequire(import.meta.url);
 const {validateCardSourceForImport} = require('./functions/softbook-api');
 
 const DEFAULT_ENV_ID = 'test-d2gzcyxr9f7e80972';
-const COLLECTION_NAME = 'softbook_card_sources';
+const APPLY_TIMEOUT_MILLISECONDS = 60_000;
+const QUERY_TIMEOUT_MILLISECONDS = 30_000;
 
 function printUsage() {
   console.log(`Usage: node infra/cloudbase/import-card-source.mjs --file <card-source.json> [--track cet4|cet6] [--env <env-id>] [--apply]
@@ -84,38 +92,57 @@ function interactionSummary(cardRecords) {
   return [...new Set(cardRecords.map(card => card.interaction_id))].sort();
 }
 
-function createImportCommand(cardSource, updatedAt) {
-  return JSON.stringify([
+function readCurrentCardSource(options, track) {
+  const result = spawnSync(
+    'tcb',
+    [
+      'db',
+      'nosql',
+      'execute',
+      '-e',
+      options.envId,
+      '--command',
+      createQueryCurrentCardSourceCommand(track),
+      '--json',
+    ],
     {
-      TableName: COLLECTION_NAME,
-      CommandType: 'UPDATE',
-      Command: JSON.stringify({
-        update: COLLECTION_NAME,
-        updates: [
-          {
-            q: {_id: cardSource.track},
-            u: {
-              $set: {
-                card_records: cardSource.card_records,
-                content_version: cardSource.content_version,
-                imported_via: 'infra/cloudbase/import-card-source.mjs',
-                release: cardSource.release,
-                source: cardSource.source,
-                track: cardSource.track,
-                updated_at: updatedAt,
-              },
-            },
-            upsert: true,
-          },
-        ],
-      }),
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+      timeout: QUERY_TIMEOUT_MILLISECONDS,
     },
-  ]);
+  );
+
+  if (result.error) {
+    throw new Error(
+      `Failed to query the current card source: ${result.error.message}`,
+    );
+  }
+
+  if (result.status !== 0) {
+    throw new Error(
+      `tcb query failed for ${track}: ${result.stderr || result.stdout}`.trim(),
+    );
+  }
+
+  const document = parseQueryCurrentCardSourceResult(result.stdout, track);
+
+  if (!document) {
+    return null;
+  }
+
+  return validateCardSourceCatalogMapping(
+    validateCardSourceForImport(document, track),
+  );
 }
 
 function applyImport(options, cardSource) {
   const updatedAt = new Date().toISOString();
-  const command = createImportCommand(cardSource, updatedAt);
+  const previousCardSource = readCurrentCardSource(options, cardSource.track);
+  const command = createCardSourceImportCommand({
+    cardSource,
+    previousCardSource,
+    updatedAt,
+  });
   const result = spawnSync(
     'tcb',
     [
@@ -130,6 +157,7 @@ function applyImport(options, cardSource) {
     ],
     {
       stdio: 'inherit',
+      timeout: APPLY_TIMEOUT_MILLISECONDS,
     },
   );
 
@@ -142,7 +170,7 @@ function applyImport(options, cardSource) {
   }
 
   console.log(
-    `[applied] ${COLLECTION_NAME}.${cardSource.track} in ${options.envId} at ${updatedAt}`,
+    `[applied] ${CARD_SOURCE_COLLECTION}.${cardSource.track} and ${CARD_SOURCE_VERSION_COLLECTION} in ${options.envId} at ${updatedAt}`,
   );
 }
 
@@ -178,7 +206,7 @@ function main() {
 
     if (!options.apply) {
       console.log(
-        `[dry-run] no CloudBase write. Re-run with --apply to upsert ${COLLECTION_NAME}.${cardSource.track} in ${options.envId}.`,
+        `[dry-run] no CloudBase write. Re-run with --apply to archive the current version and upsert ${CARD_SOURCE_COLLECTION}.${cardSource.track} in ${options.envId}.`,
       );
       return;
     }

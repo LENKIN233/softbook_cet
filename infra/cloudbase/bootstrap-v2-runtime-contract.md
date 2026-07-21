@@ -27,8 +27,25 @@ Referenced active specs:
 - A scheduler cursor is nullable until a server scheduler has persisted one.
   The service does not infer an exact cursor from device-local state.
 - Legacy `/v1` daily and learning snapshots can be read during migration, but
-  they are not a substitute for idempotent `learning-events.v2` or the final
-  server scheduler.
+  the account-keyed `learning-events.v2` projections take priority after the
+  first accepted v2 event. Legacy snapshots are not the final server scheduler.
+- That first accepted event preserves valid legacy baselines for both tracks as
+  sequence-zero projections, so migrating through CET4 cannot discard CET6
+  history or vice versa.
+- The v2 learning projection is track-scoped and survives a requested-day
+  change. Daily completion aggregates remain keyed by the requested China
+  product day. Pending review count is account-wide and derived from the latest
+  accepted event per card.
+- Favorite and sleeping state remain owned by physical space. Bootstrap
+  overlays canonical space favorites onto learning card states and derives the
+  progress `favorite_count` and `sleeping_count` from the same space snapshot
+  rather than trusting legacy progress counters.
+- Stored account learning sequences, v2 learning events, and server-derived
+  daily totals are revalidated before bootstrap returns them. Corrupt sequence
+  authority, missing accepted-event fields, or inconsistent totals fail closed.
+- CloudBase legacy physical-space discovery is paged outside the transaction;
+  the deterministic account document is re-read and merged with that snapshot
+  using doc-only transaction operations.
 
 ## Request
 
@@ -124,7 +141,9 @@ normalized payload. This endpoint returns release metadata, not card records,
 signed manifests, pack URLs, or audio URLs.
 
 The current `import-card-source.mjs` is a development importer and rejects
-non-null release descriptors. A separate publication pipeline must prove formal
+non-null release descriptors. On apply it validates and archives a replaced
+current source in `softbook_card_source_versions`, then registers the new
+current version as active. A separate publication pipeline must prove formal
 content approval before it can persist `content-release.v1`; that pipeline is
 not implemented by this change.
 
@@ -134,7 +153,7 @@ This contract does not prove:
 
 - TypeScript or CloudBase Run production deployment;
 - real SMS provider readiness;
-- idempotent `learning-events.v2`;
+- mobile durable `learning-events.v2` production and replay;
 - FSRS scheduling or a persisted server cursor;
 - signed content manifests, complete approved content, or audio QC;
 - payment entitlement, deletion completion, or launch readiness.
