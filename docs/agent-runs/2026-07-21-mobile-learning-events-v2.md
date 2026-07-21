@@ -4,7 +4,7 @@
 
 - Date: 2026-07-21
 - Branch: `module/mobile-learning-events-v2`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/437
 - Summary: Adopt the repository-local `learning-events.v2` contract in the
   React Native runtime with a durable credential-free outbox, strict
   acknowledgement removal, canonical bootstrap reconciliation, and removal of
