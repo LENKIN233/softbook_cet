@@ -128,6 +128,11 @@
   exports/local-gates/learning-events-v2-dev.json` -> 18/18 passed, including
   mobile lint/typecheck/Jest, backend tests, Maestro and launch contracts,
   metadata scans, and tracked-worktree integrity.
+- Exact Node 22.13.0, Python 3.12.13, and Ruby 3.3
+  `scripts/run_local_gates --profile pr --base origin/main --pr 436 --output
+  exports/local-gates/learning-events-v2-pr.json` -> 30/30 passed, including
+  the real PR body, full remote Harness, dependency security, strict repository
+  health, LFS, protection rules, and remote evidence verification.
 - Exact Node 22.13.0 `npm audit --omit=dev` in both mobile and backend -> zero
   known findings after rebuilding the stale local backend dependency tree.
 - CloudBase CLI 3.2.2 help plus the official RunCommands contract -> confirmed
@@ -205,7 +210,6 @@
 
 ## Follow-up
 
-- Complete final staged review, strict PR profile, GitHub required checks, and
-  merge without bypass.
+- Complete GitHub required checks and merge without bypass.
 - After this backend slice merges, adopt durable `learning-events.v2`
   production/replay in the mobile runtime before starting the server scheduler.
