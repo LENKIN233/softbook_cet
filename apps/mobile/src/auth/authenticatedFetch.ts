@@ -1,4 +1,5 @@
 import type {AuthSessionCoordinator} from './authSessionCoordinator';
+import {getAuthSessionScopeKey} from './authSession';
 
 export function createAuthenticatedFetch(options: {
   authSessionCoordinator: AuthSessionCoordinator;
@@ -7,12 +8,24 @@ export function createAuthenticatedFetch(options: {
   const fetchImpl = options.fetchImpl ?? fetch;
 
   return async (input, init) => {
+    const requestSessionScopeKey = getAuthSessionScopeKey(
+      options.authSessionCoordinator.getCurrentSession(),
+    );
+    const isRequestSessionCurrent = () =>
+      getAuthSessionScopeKey(
+        options.authSessionCoordinator.getCurrentSession(),
+      ) === requestSessionScopeKey;
     const firstResponse = await fetchWithCurrentAccessToken(
       input,
       init,
       options.authSessionCoordinator,
       fetchImpl,
+      requestSessionScopeKey,
     );
+
+    if (!isRequestSessionCurrent()) {
+      return firstResponse;
+    }
 
     if (firstResponse.status === 403) {
       await options.authSessionCoordinator.invalidate();
@@ -24,14 +37,23 @@ export function createAuthenticatedFetch(options: {
     }
 
     await options.authSessionCoordinator.forceRefresh();
+
+    if (!isRequestSessionCurrent()) {
+      return firstResponse;
+    }
+
     const retryResponse = await fetchWithCurrentAccessToken(
       input,
       init,
       options.authSessionCoordinator,
       fetchImpl,
+      requestSessionScopeKey,
     );
 
-    if (retryResponse.status === 401 || retryResponse.status === 403) {
+    if (
+      isRequestSessionCurrent() &&
+      (retryResponse.status === 401 || retryResponse.status === 403)
+    ) {
       await options.authSessionCoordinator.invalidate();
     }
 
@@ -44,8 +66,17 @@ async function fetchWithCurrentAccessToken(
   init: Parameters<typeof fetch>[1],
   authSessionCoordinator: AuthSessionCoordinator,
   fetchImpl: typeof fetch,
+  expectedSessionScopeKey: string | null,
 ) {
   const accessToken = await authSessionCoordinator.getAccessToken();
+
+  if (
+    getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !==
+    expectedSessionScopeKey
+  ) {
+    throw new Error('Authenticated request was superseded by a newer session.');
+  }
+
   const headers = new Headers(init?.headers);
 
   if (accessToken) {

@@ -71,6 +71,41 @@ describe('MutationQueueManager', () => {
     });
   });
 
+  it('does not report success or mutate memory when persistence fails', async () => {
+    let shouldFail = true;
+    const values: Record<string, string> = {};
+    const manager = new MutationQueueManager({
+      storage: {
+        getItem: async key => values[key] ?? null,
+        setItem: async (key, value) => {
+          if (shouldFail) {
+            throw new Error('storage unavailable');
+          }
+          values[key] = value;
+        },
+      },
+    });
+
+    await expect(
+      manager.enqueue(
+        'sync_daily_progress',
+        createProgressPayload(),
+        'progress-failure',
+      ),
+    ).rejects.toThrow('storage unavailable');
+    await expect(manager.size()).resolves.toBe(0);
+
+    shouldFail = false;
+    await expect(
+      manager.enqueue(
+        'sync_daily_progress',
+        createProgressPayload(),
+        'progress-failure',
+      ),
+    ).resolves.toMatchObject({id: 'progress-failure'});
+    await expect(manager.size()).resolves.toBe(1);
+  });
+
   it('strips legacy credentials while hydrating persisted entries', async () => {
     const sharedStore = {
       __softbook_mutation_queue: JSON.stringify([
@@ -129,11 +164,7 @@ describe('MutationQueueManager', () => {
       JSON.parse(sharedStore.__softbook_mutation_queue).map(
         (entry: {id: string}) => entry.id,
       ),
-    ).toEqual([
-      'legacy-entry',
-      'membership:replay',
-      'membership-trial:replay',
-    ]);
+    ).toEqual(['legacy-entry', 'membership:replay', 'membership-trial:replay']);
     await expect(manager.peek()).resolves.toMatchObject({
       payload: {context: {phoneNumber: '13800138000'}},
     });
@@ -144,6 +175,49 @@ describe('MutationQueueManager', () => {
     await expect(manager.dequeue()).resolves.toMatchObject({
       id: 'membership-trial:replay',
     });
+  });
+
+  it('drops persisted v1 learning snapshot mutations during migration', async () => {
+    const sharedStore = {
+      __softbook_mutation_queue: JSON.stringify([
+        {
+          id: 'learning:legacy-snapshot',
+          payload: {
+            context: {phoneNumber: '13800138000'},
+            snapshot: {
+              dayKey: '2026-07-20',
+              events: [],
+              sourceId: 'legacy-source',
+              track: 'cet4',
+            },
+          },
+          retryCount: 2,
+          timestamp: '2026-07-20T00:00:00.000Z',
+          type: 'sync_learning_state',
+        },
+        {
+          id: 'progress:current',
+          payload: createProgressPayload(),
+          retryCount: 0,
+          timestamp: '2026-07-20T00:01:00.000Z',
+          type: 'sync_daily_progress',
+        },
+      ]),
+    };
+    const manager = new MutationQueueManager({
+      storage: createInMemoryMutationQueueStorage(sharedStore),
+    });
+
+    await manager.hydrate();
+
+    await expect(manager.size()).resolves.toBe(1);
+    await expect(manager.peek()).resolves.toMatchObject({
+      id: 'progress:current',
+      type: 'sync_daily_progress',
+    });
+    expect(sharedStore.__softbook_mutation_queue).not.toContain(
+      'sync_learning_state',
+    );
   });
 
   it('does not retain caller-owned payload objects after enqueue', async () => {
@@ -207,6 +281,35 @@ describe('MutationQueueManager', () => {
 
     await expect(manager.size()).resolves.toBe(1);
     await expect(manager.peek()).resolves.toMatchObject({
+      type: 'refresh_membership',
+    });
+  });
+
+  it('does not let an old replay result consume or retry a replacement entry', async () => {
+    const manager = new MutationQueueManager({
+      now: () => '2026-07-21T00:00:00.000Z',
+    });
+    await manager.enqueue(
+      'sync_daily_progress',
+      createProgressPayload(),
+      'shared-id',
+    );
+    const replayedEntry = await manager.peek();
+
+    await manager.enqueue(
+      'refresh_membership',
+      {context: {phoneNumber: '13800138000'}},
+      'shared-id',
+    );
+
+    await expect(manager.removeIfUnchanged(replayedEntry!)).resolves.toBe(
+      false,
+    );
+    await expect(
+      manager.incrementRetryIfUnchanged(replayedEntry!),
+    ).resolves.toBe(false);
+    await expect(manager.peek()).resolves.toMatchObject({
+      retryCount: 0,
       type: 'refresh_membership',
     });
   });

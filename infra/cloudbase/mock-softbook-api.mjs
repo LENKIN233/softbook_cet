@@ -2,16 +2,30 @@
 
 import http from 'node:http';
 import {createHash} from 'node:crypto';
+import {createRequire} from 'node:module';
+
+const require = createRequire(import.meta.url);
+const {
+  createMemoryStore,
+  validateCardSourceForImport,
+} = require('./functions/softbook-api/index.js');
+const {
+  createLearningEventsV2Service,
+} = require('./functions/softbook-api/learning-events-v2.js');
 
 const port = Number(process.env.PORT || 48731);
 const host = process.env.HOST || '127.0.0.1';
 const smsCode = process.env.SOFTBOOK_CET_TEST_CODE || '123456';
 const challenges = new Map();
 const sessions = new Map();
-const dailyProgress = new Map();
-const learningStates = new Map();
 const memberships = new Map();
 const spaceStates = new Map();
+const learningEventsStore = createMemoryStore();
+const learningEventsService = createLearningEventsV2Service({
+  now: () => new Date(),
+  runtimeMode: 'development',
+  store: learningEventsStore,
+});
 let sequence = 0;
 
 const server = http.createServer(async (request, response) => {
@@ -19,7 +33,10 @@ const server = http.createServer(async (request, response) => {
     await route(request, response);
   } catch (error) {
     sendJson(response, statusFromError(error), {
-      error: error instanceof Error ? error.message : String(error),
+      error: {
+        code: error?.code ?? 'mock_request_failed',
+        message: error instanceof Error ? error.message : String(error),
+      },
     });
   }
 });
@@ -109,6 +126,19 @@ async function route(request, response) {
 
   const session = requireBearerToken(request);
 
+  if (method === 'POST' && path === '/v2/learning/events') {
+    const body = await readJson(request);
+    const data = await learningEventsService.submit({
+      request: {
+        body,
+        query: Object.fromEntries(url.searchParams.entries()),
+      },
+      session,
+    });
+    sendJson(response, 200, {data});
+    return;
+  }
+
   if (method === 'GET' && path === '/v2/bootstrap') {
     const track = url.searchParams.get('track');
     const dayKey = url.searchParams.get('day_key');
@@ -146,29 +176,25 @@ async function route(request, response) {
       return;
     }
 
-    const cardRecords = createCardRecords(track);
-    const source = {
-      id: `mock-${track}-source`,
-      label: `Mock ${track.toUpperCase()} Source`,
-    };
+    const cardSource = getMockCardSource(track);
 
     sendJson(response, 200, {
       data: {
-        source,
+        source: cardSource.source,
         track,
-        card_records: cardRecords,
-        content_version: createContentVersion({
-          card_records: cardRecords,
-          source,
-          track,
-        }),
+        card_records: cardSource.card_records,
+        content_version: cardSource.content_version,
       },
     });
     return;
   }
 
   if (method === 'GET' && path === '/v1/membership/entitlement') {
-    sendJson(response, 200, entitlementPayload(getMembership(session.phoneNumber)));
+    sendJson(
+      response,
+      200,
+      entitlementPayload(getMembership(session.phoneNumber)),
+    );
     return;
   }
 
@@ -212,10 +238,12 @@ async function route(request, response) {
     const body = await readJson(request);
     assertSessionPhone(body, session);
     const acknowledgedAt = new Date().toISOString();
-    dailyProgress.set(`${session.phoneNumber}:${body.day_key}`, {
-      ...body,
-      acknowledged_at: acknowledgedAt,
-    });
+    await learningEventsStore.saveDailyProgress(
+      session.phoneNumber,
+      omitPhoneNumber(body),
+      acknowledgedAt,
+      {accountKey: session.accountKey},
+    );
     sendJson(response, 200, {data: {acknowledged_at: acknowledgedAt}});
     return;
   }
@@ -224,22 +252,12 @@ async function route(request, response) {
     const body = await readJson(request);
     assertSessionPhone(body, session);
     const acknowledgedAt = new Date().toISOString();
-    const key = `${session.phoneNumber}:${body.day_key}:${body.track}`;
-    const existing = learningStates.get(key) ?? {events_by_card_id: {}};
-    const eventsByCardId = {...existing.events_by_card_id};
-
-    for (const event of body.events ?? []) {
-      eventsByCardId[event.card_id] = {...event};
-    }
-
-    learningStates.set(key, {
-      acknowledged_at: acknowledgedAt,
-      day_key: body.day_key,
-      events_by_card_id: eventsByCardId,
-      source_id: body.source_id,
-      source_label: body.source_label,
-      track: body.track,
-    });
+    await learningEventsStore.saveLearningState(
+      session.phoneNumber,
+      omitPhoneNumber(body),
+      acknowledgedAt,
+      {accountKey: session.accountKey},
+    );
     sendJson(response, 200, {data: {acknowledged_at: acknowledgedAt}});
     return;
   }
@@ -291,6 +309,9 @@ function createSession(phoneNumber) {
   const sessionId = `mock-session-${++sequence}`;
 
   return {
+    accountKey: createHash('sha256')
+      .update(`mock-account:${phoneNumber}`)
+      .digest('hex'),
     accessToken: `softbook_v2.mock.${sessionId}.0`,
     active: true,
     phoneNumber,
@@ -347,13 +368,17 @@ function entitlementPayload(membership) {
 }
 
 function bootstrapPayload(phoneNumber, track, dayKey) {
-  const cards = createCardRecords(track);
-  const source = {
-    id: `mock-${track}-source`,
-    label: `Mock ${track.toUpperCase()} Source`,
-  };
-  const progress = dailyProgress.get(`${phoneNumber}:${dayKey}`);
-  const learning = learningStates.get(`${phoneNumber}:${dayKey}:${track}`);
+  const accountKey = accountKeyForPhone(phoneNumber);
+  const cardSource = getMockCardSource(track);
+  const progress = learningEventsStore.getDailyProgress(phoneNumber, dayKey, {
+    accountKey,
+  });
+  const learning = learningEventsStore.getLearningState(
+    phoneNumber,
+    dayKey,
+    track,
+    {accountKey},
+  );
   const space = spaceStates.get(phoneNumber);
 
   return {
@@ -363,32 +388,29 @@ function bootstrapPayload(phoneNumber, track, dayKey) {
       day_key: dayKey,
       track,
       content: {
-        card_count: cards.length,
+        card_count: cardSource.card_records.length,
         release_id: null,
         minimum_client_version: null,
         parent_release_id: null,
         published_at: null,
-        source,
-        version: createContentVersion({card_records: cards, source, track}),
+        source: cardSource.source,
+        version: cardSource.content_version,
       },
       learning: {
-        acknowledged_at: learning?.acknowledged_at ?? null,
-        card_states: Object.values(learning?.events_by_card_id ?? {}).sort(
+        acknowledged_at: learning.acknowledged_at ?? null,
+        card_states: Object.values(learning.events_by_card_id ?? {}).sort(
           (left, right) => left.card_id.localeCompare(right.card_id),
         ),
-        cursor: null,
-        source: learning
+        cursor: learning.cursor ?? null,
+        source: learning.source_id
           ? {id: learning.source_id, label: learning.source_label}
           : null,
       },
       membership: {
-        acknowledged_at:
-          memberships.get(phoneNumber)?.acknowledged_at ?? null,
+        acknowledged_at: memberships.get(phoneNumber)?.acknowledged_at ?? null,
         ...getMembership(phoneNumber),
       },
-      progress: progress
-        ? omitPhoneNumber(progress)
-        : createEmptyProgress(dayKey),
+      progress,
       space: {
         acknowledged_at: space?.acknowledged_at ?? null,
         day_key: dayKey,
@@ -400,18 +422,34 @@ function bootstrapPayload(phoneNumber, track, dayKey) {
   };
 }
 
-function createEmptyProgress(dayKey) {
-  return {
-    acknowledged_at: null,
-    checked_in_today: false,
-    day_key: dayKey,
-    favorite_count: 0,
-    learning_completed_count: 0,
-    pending_review_count: 0,
-    review_completed_count: 0,
-    sleeping_count: 0,
-    total_completed_count: 0,
-  };
+function accountKeyForPhone(phoneNumber) {
+  return createHash('sha256')
+    .update(`mock-account:${phoneNumber}`)
+    .digest('hex');
+}
+
+function getMockCardSource(track) {
+  const cardSources = learningEventsStore.snapshot().cardSources;
+
+  if (!cardSources.has(track)) {
+    cardSources.set(
+      track,
+      validateCardSourceForImport(
+        {
+          card_records: createCardRecords(track),
+          release: null,
+          source: {
+            id: `mock-${track}-source`,
+            label: `Mock ${track.toUpperCase()} Source`,
+          },
+          track,
+        },
+        track,
+      ),
+    );
+  }
+
+  return cardSources.get(track);
 }
 
 function omitPhoneNumber(value) {
@@ -427,27 +465,6 @@ function assertSessionPhone(body, session) {
   }
 }
 
-function createContentVersion(value) {
-  return `sha256:${createHash('sha256')
-    .update(stableJsonStringify(value))
-    .digest('hex')}`;
-}
-
-function stableJsonStringify(value) {
-  if (Array.isArray(value)) {
-    return `[${value.map(item => stableJsonStringify(item)).join(',')}]`;
-  }
-
-  if (value && typeof value === 'object') {
-    return `{${Object.keys(value)
-      .sort()
-      .map(key => `${JSON.stringify(key)}:${stableJsonStringify(value[key])}`)
-      .join(',')}}`;
-  }
-
-  return JSON.stringify(value);
-}
-
 function isValidDayKey(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) {
     return false;
@@ -455,8 +472,7 @@ function isValidDayKey(value) {
 
   const date = new Date(`${value}T00:00:00.000Z`);
   return (
-    !Number.isNaN(date.getTime()) &&
-    date.toISOString().slice(0, 10) === value
+    !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
   );
 }
 
@@ -556,7 +572,11 @@ function createCardRecords(track) {
       lock_slots: [
         {id: 'marker', label: '连接词', options: ['Although', 'Because']},
         {id: 'relation', label: '关系', options: ['让步', '因果']},
-        {id: 'main', label: '主句', options: ['it remained effective', 'the policy was unpopular']},
+        {
+          id: 'main',
+          label: '主句',
+          options: ['it remained effective', 'the policy was unpopular'],
+        },
       ],
       answer_key: {
         lock_pattern: ['Although', '让步', 'it remained effective'],
@@ -570,7 +590,8 @@ function createCardRecords(track) {
       front: {
         eyebrow: 'CET cloze elimination',
         prompt: 'Remove the words that do not fit the register.',
-        support: 'The committee reached a ____ decision after reviewing evidence.',
+        support:
+          'The committee reached a ____ decision after reviewing evidence.',
         context: '排除语体不适合正式语境的词。',
       },
       analysis: {
@@ -662,10 +683,9 @@ function statusFromError(error) {
   if (
     error &&
     typeof error === 'object' &&
-    'status' in error &&
-    Number.isInteger(error.status)
+    (Number.isInteger(error.status) || Number.isInteger(error.statusCode))
   ) {
-    return error.status;
+    return error.status ?? error.statusCode;
   }
 
   return 500;

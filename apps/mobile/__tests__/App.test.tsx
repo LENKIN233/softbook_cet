@@ -5,6 +5,7 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import { ScrollView, StyleSheet, Text } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
 import { LearningCard, LearningSession } from '../src/learning/model';
 import { createLocalLearningSession } from '../src/learning/session';
@@ -27,6 +28,29 @@ type MockFetchCall = {
   input: string;
 };
 
+type MockLearningEvent = {
+  answer_grade: 'passed' | 'review_needed';
+  card_id: string;
+  client_occurred_at: string;
+  content_version: string;
+  device_cursor: {
+    device_id: string;
+    sequence: number;
+  };
+  event_id: string;
+  interaction_id: LearningCard['interaction_id'];
+  outcome: 'correct' | 'incorrect' | 'confident' | 'review';
+  phase: 'learning' | 'review';
+  used_hint: boolean;
+  used_peek: boolean;
+};
+
+type MockLearningEventsRequest = {
+  events: MockLearningEvent[];
+  schema_version: 'learning-events.v2';
+  track: 'cet4' | 'cet6';
+};
+
 type TestRendererNode =
   | ReactTestRenderer.ReactTestRendererJSON
   | ReactTestRenderer.ReactTestRendererJSON[]
@@ -34,7 +58,7 @@ type TestRendererNode =
   | null;
 
 const USER_VISIBLE_METADATA_PATTERN =
-  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|Bootstrap|Canonical|remoteConfig|authToken|accessToken|refreshToken|challengeId|sessionId|endpoint|MutationQueue|mutation|JSON Parse error|Unexpected character|SyntaxError|parse failed|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|当前卡组|本组第|本轮卡组|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|已登录\s+138|第\s+\d+\s+张\s+\/\s+共\s+\d+\s+张|馆\s+\d|组\s+\d|盒\s+\d|当前地址|当前学习卡位于|空间地址架|当前盒位|当前空间路径|收藏标签\s+\d|休眠区\s+\d|0\s+张可展示|（[1-5]\d{2}）|\([1-5]\d{2}\)|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
+  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|event_id|answer_grade|client_occurred_at|content_version|device_cursor|device_id|server_sequence|learning-events(?:-ack)?\.v2|__softbook_learning_event_outbox_v1|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|Bootstrap|Canonical|remoteConfig|authToken|accessToken|refreshToken|challengeId|sessionId|endpoint|MutationQueue|mutation|JSON Parse error|Unexpected character|SyntaxError|parse failed|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|当前卡组|本组第|本轮卡组|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|已登录\s+138|第\s+\d+\s+张\s+\/\s+共\s+\d+\s+张|馆\s+\d|组\s+\d|盒\s+\d|当前地址|当前学习卡位于|空间地址架|当前盒位|当前空间路径|收藏标签\s+\d|休眠区\s+\d|0\s+张可展示|（[1-5]\d{2}）|\([1-5]\d{2}\)|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
 function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   if (node === null) {
@@ -71,6 +95,7 @@ test('metadata leakage guard catches internal remote error vocabulary', () => {
     'Canonical account state does not match loaded content.',
     'Remote learning source payload.data.source_id is required.',
     'MutationQueue replay failed for authToken endpoint remoteConfig.',
+    'learning-events.v2 event_id device_cursor content_version server_sequence',
     'accessToken refreshToken challengeId sessionId',
     'JSON Parse error: Unexpected character: c',
     'space_metadata.box_ref leaked through a status card.',
@@ -155,11 +180,12 @@ afterEach(() => {
 
 async function authenticateIntoLearningBootstrap(
   root: ReactTestRenderer.ReactTestInstance,
+  phoneNumber = '13800138000',
 ) {
   await ReactTestRenderer.act(() => {
     root
       .findByProps({ testID: 'auth-phone-input' })
-      .props.onChangeText('13800138000');
+      .props.onChangeText(phoneNumber);
   });
   expect(
     findPressableByTestId(root, 'auth-request-code-button').props.disabled,
@@ -364,6 +390,39 @@ function createJsonResponse(payload: unknown, status = 200) {
   };
 }
 
+function readLearningEventsRequest(
+  init: MockFetchInit | undefined,
+): MockLearningEventsRequest {
+  const body = JSON.parse(String(init?.body)) as MockLearningEventsRequest;
+
+  if (
+    body.schema_version !== 'learning-events.v2' ||
+    !Array.isArray(body.events) ||
+    (body.track !== 'cet4' && body.track !== 'cet6')
+  ) {
+    throw new Error('Test received an invalid learning-events.v2 request.');
+  }
+
+  return body;
+}
+
+function createLearningEventsAckResponse(init: MockFetchInit | undefined) {
+  const request = readLearningEventsRequest(init);
+
+  return createJsonResponse({
+    data: {
+      schema_version: 'learning-events-ack.v2',
+      acknowledged_at: new Date().toISOString(),
+      track: request.track,
+      results: request.events.map((event, index) => ({
+        event_id: event.event_id,
+        status: 'accepted',
+        server_sequence: index + 1,
+      })),
+    },
+  });
+}
+
 function normalizeMockHeaders(
   headers: MockFetchInit['headers'],
 ): Record<string, string> {
@@ -380,15 +439,22 @@ function createRemoteAuthChallengeResponse() {
   });
 }
 
-function createRemoteAuthSessionResponse() {
+function createRemoteAuthSessionResponse(
+  phoneNumber = '13800138000',
+  sessionSuffix: string | null = null,
+) {
   return createJsonResponse({
     data: {
-      access_token: 'remote-auth-token',
+      access_token: sessionSuffix
+        ? `remote-auth-token-${sessionSuffix}`
+        : 'remote-auth-token',
       expires_in: 900,
-      phone_number: '13800138000',
+      phone_number: phoneNumber,
       refresh_expires_at: '2099-08-19T00:00:00.000Z',
-      refresh_token: 'remote-refresh-token',
-      session_id: 'session-123',
+      refresh_token: sessionSuffix
+        ? `remote-refresh-token-${sessionSuffix}`
+        : 'remote-refresh-token',
+      session_id: sessionSuffix ? `session-${sessionSuffix}` : 'session-123',
       token_type: 'Bearer',
     },
   });
@@ -422,8 +488,15 @@ function createRemoteMembershipPayload(
 function createAccountBootstrapPayload(
   session: LearningSession = createLocalLearningSession('cet4'),
   stage: 'trial_available' | 'trial' | 'free' | 'premium' = 'free',
+  learningEvents: MockLearningEvent[] = [],
 ) {
   const dayKey = new Date().toISOString().slice(0, 10);
+  const learningCompletedCount = learningEvents.filter(
+    event => event.phase === 'learning',
+  ).length;
+  const reviewCompletedCount = learningEvents.filter(
+    event => event.phase === 'review',
+  ).length;
 
   return {
     data: {
@@ -444,10 +517,26 @@ function createAccountBootstrapPayload(
         version: session.contentVersion ?? TEST_CONTENT_VERSION,
       },
       learning: {
-        acknowledged_at: null,
-        card_states: [],
+        acknowledged_at:
+          learningEvents.length > 0 ? new Date().toISOString() : null,
+        card_states: learningEvents.map(event => ({
+          card_id: event.card_id,
+          completed_at: event.client_occurred_at,
+          interaction_id: event.interaction_id,
+          is_favorited: false,
+          outcome: event.outcome,
+          phase: event.phase,
+          used_hint: event.used_hint,
+          used_peek: event.used_peek,
+        })),
         cursor: null,
-        source: null,
+        source:
+          learningEvents.length > 0
+            ? {
+                id: session.sourceId,
+                label: session.sourceLabel,
+              }
+            : null,
       },
       membership: {
         acknowledged_at: new Date().toISOString(),
@@ -463,11 +552,13 @@ function createAccountBootstrapPayload(
         checked_in_today: false,
         day_key: dayKey,
         favorite_count: 0,
-        learning_completed_count: 0,
-        pending_review_count: 0,
-        review_completed_count: 0,
+        learning_completed_count: learningCompletedCount,
+        pending_review_count: learningEvents.filter(
+          event => event.answer_grade === 'review_needed',
+        ).length,
+        review_completed_count: reviewCompletedCount,
         sleeping_count: 0,
-        total_completed_count: 0,
+        total_completed_count: learningCompletedCount + reviewCompletedCount,
       },
       space: {
         acknowledged_at: null,
@@ -1092,6 +1183,7 @@ test('keeps verified remote auth when entitlement bootstrap is unavailable', asy
 
 test('wires remote auth, learning source config, membership, progress sync, and space sync through App', async () => {
   const fetchCalls: MockFetchCall[] = [];
+  const acceptedLearningEvents: MockLearningEvent[] = [];
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
     apiKey: 'profile-key',
@@ -1110,7 +1202,13 @@ test('wires remote auth, learning source config, membership, progress sync, and 
     }
 
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
-      return createJsonResponse(createAccountBootstrapPayload());
+      return createJsonResponse(
+        createAccountBootstrapPayload(
+          createLocalLearningSession('cet4'),
+          'free',
+          acceptedLearningEvents,
+        ),
+      );
     }
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
@@ -1121,8 +1219,9 @@ test('wires remote auth, learning source config, membership, progress sync, and 
       return createJsonResponse({});
     }
 
-    if (input === 'https://api.softbook.example/v1/learning/state-sync') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/learning/events') {
+      acceptedLearningEvents.push(...readLearningEventsRequest(init).events);
+      return createLearningEventsAckResponse(init);
     }
 
     if (
@@ -1206,7 +1305,30 @@ test('wires remote auth, learning source config, membership, progress sync, and 
 
   await openRoute(root, 'statistics');
 
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+
+    if (
+      JSON.stringify(tree!.toJSON()).includes('今天的学习进展已从服务端恢复。')
+    ) {
+      break;
+    }
+  }
+
+  expect(JSON.stringify(tree!.toJSON())).toContain(
+    '今天的学习进展已从服务端恢复。',
+  );
+  expect(
+    fetchCalls.some(
+      call =>
+        call.input === 'https://api.softbook.example/v1/progress/daily-sync',
+    ),
+  ).toBe(false);
+
   await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
     await flushAsyncEffects();
   });
 
@@ -1247,20 +1369,41 @@ test('wires remote auth, learning source config, membership, progress sync, and 
     '"learning_completed_count":1',
   );
 
-  const learningStateRequest = fetchCalls.find(
-    call =>
-      call.input === 'https://api.softbook.example/v1/learning/state-sync',
+  const learningEventsRequest = fetchCalls.find(
+    call => call.input === 'https://api.softbook.example/v2/learning/events',
   );
   expect(
-    normalizeMockHeaders(learningStateRequest?.init?.headers),
+    normalizeMockHeaders(learningEventsRequest?.init?.headers),
   ).toMatchObject({
     authorization: 'Bearer remote-auth-token',
     'content-type': 'application/json',
     'x-api-key': 'profile-key',
   });
-  expect(learningStateRequest?.init?.body).toContain('"events"');
-  expect(learningStateRequest?.init?.body).toContain('"phase":"learning"');
-  expect(learningStateRequest?.init?.body).toContain('"completed_at"');
+  const learningEventsBody = readLearningEventsRequest(
+    learningEventsRequest?.init,
+  );
+  expect(learningEventsBody).toMatchObject({
+    schema_version: 'learning-events.v2',
+    track: 'cet4',
+    events: [
+      {
+        answer_grade: 'passed',
+        content_version: TEST_CONTENT_VERSION,
+        interaction_id: 'flip',
+        outcome: 'confident',
+        phase: 'learning',
+      },
+    ],
+  });
+  expect(learningEventsRequest?.init?.body).not.toMatch(
+    /phone|authToken|access_token|refresh_token|remote-auth-token/,
+  );
+  expect(
+    fetchCalls.some(
+      call =>
+        call.input === 'https://api.softbook.example/v1/learning/state-sync',
+    ),
+  ).toBe(false);
 
   const spaceSyncRequest = fetchCalls.find(
     call => call.input === 'https://api.softbook.example/v1/space/state-sync',
@@ -1279,6 +1422,7 @@ test('blocks product state writes until canonical bootstrap succeeds on reconnec
     '@react-native-community/netinfo',
   );
   const fetchCalls: MockFetchCall[] = [];
+  const acceptedLearningEvents: MockLearningEvent[] = [];
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
   let bootstrapAvailable = false;
 
@@ -1296,14 +1440,21 @@ test('blocks product state writes until canonical bootstrap succeeds on reconnec
     }
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
       return bootstrapAvailable
-        ? createJsonResponse(createAccountBootstrapPayload())
+        ? createJsonResponse(
+            createAccountBootstrapPayload(
+              createLocalLearningSession('cet4'),
+              'free',
+              acceptedLearningEvents,
+            ),
+          )
         : createJsonResponse({}, 503);
     }
-    if (
-      input === 'https://api.softbook.example/v1/progress/daily-sync' ||
-      input === 'https://api.softbook.example/v1/learning/state-sync'
-    ) {
+    if (input === 'https://api.softbook.example/v1/progress/daily-sync') {
       return createJsonResponse({});
+    }
+    if (input === 'https://api.softbook.example/v2/learning/events') {
+      acceptedLearningEvents.push(...readLearningEventsRequest(init).events);
+      return createLearningEventsAckResponse(init);
     }
     if (input === 'https://api.softbook.example/v1/space/state-sync') {
       const body = JSON.parse(String(init?.body));
@@ -1326,6 +1477,7 @@ test('blocks product state writes until canonical bootstrap succeeds on reconnec
     const root = tree!.root;
     await authenticateIntoLearningBootstrap(root);
     await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
       await flushAsyncEffects();
     });
 
@@ -1376,9 +1528,15 @@ test('blocks product state writes until canonical bootstrap succeeds on reconnec
     expect(
       fetchCalls.some(
         call =>
-          call.input === 'https://api.softbook.example/v1/learning/state-sync',
+          call.input === 'https://api.softbook.example/v2/learning/events',
       ),
     ).toBe(true);
+    expect(
+      fetchCalls.some(
+        call =>
+          call.input === 'https://api.softbook.example/v1/learning/state-sync',
+      ),
+    ).toBe(false);
     expect(
       fetchCalls.some(
         call =>
@@ -1443,13 +1601,11 @@ test('keeps validated account state usable when a later bootstrap refresh fails'
   }
 });
 
-test('does not replay queued mutations before refreshed content is validated', async () => {
-  const { emitNetInfoState } = jest.requireMock(
-    '@react-native-community/netinfo',
-  );
-  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+test('does not map a pre-ack bootstrap response that started before event enqueue', async () => {
+  const delayedBootstrapRefresh =
+    createDeferred<ReturnType<typeof createJsonResponse>>();
   let bootstrapRequestCount = 0;
-  let learningStateWriteCount = 0;
+  let learningEventsWriteCount = 0;
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
     baseUrl: 'https://api.softbook.example',
@@ -1468,6 +1624,90 @@ test('does not replay queued mutations before refreshed content is validated', a
     }
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
       bootstrapRequestCount += 1;
+      return bootstrapRequestCount === 1
+        ? createJsonResponse(createAccountBootstrapPayload())
+        : delayedBootstrapRefresh.promise;
+    }
+    if (input === 'https://api.softbook.example/v2/learning/events') {
+      learningEventsWriteCount += 1;
+      return createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+  expect(bootstrapRequestCount).toBe(2);
+
+  await openRoute(root, 'learning');
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'learning-flip-confident-button' })
+      .props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+  expect(
+    await AsyncStorage.getItem('__softbook_learning_event_outbox_v1'),
+  ).toContain('event_id');
+
+  delayedBootstrapRefresh.resolve(
+    createJsonResponse(createAccountBootstrapPayload()),
+  );
+  await ReactTestRenderer.act(async () => {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await flushAsyncEffects();
+    }
+  });
+  expect(learningEventsWriteCount).toBe(1);
+
+  await openRoute(root, 'statistics');
+  expect(
+    findPressableByTestId(root, 'statistics-checkin-button').props.disabled,
+  ).toBe(false);
+});
+
+test('does not replay queued learning events before refreshed content is validated', async () => {
+  const { emitNetInfoState } = jest.requireMock(
+    '@react-native-community/netinfo',
+  );
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+  let bootstrapRequestCount = 0;
+  let learningEventsWriteCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
       const payload = createAccountBootstrapPayload();
 
       if (bootstrapRequestCount > 1) {
@@ -1476,11 +1716,12 @@ test('does not replay queued mutations before refreshed content is validated', a
 
       return createJsonResponse(payload);
     }
-    if (input === 'https://api.softbook.example/v1/learning/state-sync') {
-      learningStateWriteCount += 1;
-      return learningStateWriteCount === 1
+    if (input === 'https://api.softbook.example/v2/learning/events') {
+      readLearningEventsRequest(init);
+      learningEventsWriteCount += 1;
+      return learningEventsWriteCount === 1
         ? createJsonResponse({}, 503)
-        : createJsonResponse({});
+        : createLearningEventsAckResponse(init);
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -1508,7 +1749,7 @@ test('does not replay queued mutations before refreshed content is validated', a
     await ReactTestRenderer.act(async () => {
       await flushAsyncEffects();
     });
-    expect(learningStateWriteCount).toBe(1);
+    expect(learningEventsWriteCount).toBe(1);
 
     await ReactTestRenderer.act(async () => {
       emitNetInfoState({ isConnected: false, isInternetReachable: false });
@@ -1517,7 +1758,13 @@ test('does not replay queued mutations before refreshed content is validated', a
     });
 
     expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
-    expect(learningStateWriteCount).toBe(1);
+    expect(learningEventsWriteCount).toBe(1);
+    expect(
+      mockFetch.mock.calls.some(
+        ([input]) =>
+          input === 'https://api.softbook.example/v1/learning/state-sync',
+      ),
+    ).toBe(false);
     expect(
       root.findAllByProps({ testID: 'learning-bootstrap-retry-button' }).length,
     ).toBeGreaterThan(0);
@@ -1703,35 +1950,19 @@ test('queues failed remote daily progress sync for later replay', async () => {
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
-test('queues failed remote learning state sync for later replay', async () => {
-  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
-    auth: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    learningSource: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    membership: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    learningState: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-  };
+test('queues a failed remote learning event for exact later replay', async () => {
+  const learningEventRequests: MockLearningEventsRequest[] = [];
+  const dependentLegacyRequests: string[] = [];
+  let bootstrapRequestCount = 0;
 
-  mockFetch.mockImplementation(async (input: string) => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+    },
+  });
+
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     if (input === 'https://api.softbook.example/v2/auth/request-code') {
       return createRemoteAuthChallengeResponse();
     }
@@ -1740,12 +1971,26 @@ test('queues failed remote learning state sync for later replay', async () => {
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
-      return createJsonResponse(createRemoteMembershipPayload('free'));
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      return createJsonResponse(createAccountBootstrapPayload());
     }
 
-    if (input === 'https://api.softbook.example/v1/learning/state-sync') {
+    if (input === 'https://api.softbook.example/v2/learning/events') {
+      learningEventRequests.push(readLearningEventsRequest(init));
       return createJsonResponse({}, 503);
+    }
+
+    if (
+      input === 'https://api.softbook.example/v1/progress/daily-sync' ||
+      input === 'https://api.softbook.example/v1/space/state-sync'
+    ) {
+      dependentLegacyRequests.push(input);
+      return createJsonResponse({
+        data: {
+          acknowledged_at: '2026-07-21T00:00:00.000Z',
+        },
+      });
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -1759,6 +2004,7 @@ test('queues failed remote learning state sync for later replay', async () => {
 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
+  const bootstrapCountBeforeEvent = bootstrapRequestCount;
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
@@ -1774,16 +2020,226 @@ test('queues failed remote learning state sync for later replay', async () => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
 
-  await openRoute(root, 'mine');
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
 
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-favorite-button' }).props.onPress();
+  });
+  await openRoute(root, 'statistics');
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+  });
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  expect(dependentLegacyRequests).toEqual([]);
+  const queuedMutations = await AsyncStorage.getItem(
+    '__softbook_mutation_queue',
+  );
+  expect(queuedMutations).toContain('sync_daily_progress');
+  expect(queuedMutations).toContain('sync_space_state');
+
+  await openRoute(root, 'mine');
   await ReactTestRenderer.act(async () => {
     await flushAsyncEffects();
   });
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('记录待重试');
+  expect(bootstrapRequestCount).toBe(bootstrapCountBeforeEvent);
+  expect(learningEventRequests).toHaveLength(1);
+  expect(learningEventRequests[0].events).toHaveLength(1);
+  expect(JSON.stringify(learningEventRequests[0])).not.toMatch(
+    /phone|authToken|access_token|refresh_token|remote-auth-token/,
+  );
   expectNoUserVisibleMetadataLeakage(tree!);
 });
+
+test('does not advance the card when durable learning event storage fails', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(createAccountBootstrapPayload());
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'learning-flip-confident-button' })
+      .props.onPress();
+  });
+
+  const setItemMock = jest.mocked(AsyncStorage.setItem);
+  const originalSetItem = setItemMock.getMockImplementation();
+  setItemMock.mockImplementation((key, value) => {
+    if (key === '__softbook_learning_event_outbox_v1') {
+      return Promise.reject(new Error('durable storage unavailable'));
+    }
+
+    return originalSetItem!(key, value);
+  });
+
+  try {
+    await ReactTestRenderer.act(async () => {
+      root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+      await flushAsyncEffects();
+    });
+
+    expect(findPressableByTestId(root, 'learning-next-button')).toBeTruthy();
+    expect(
+      mockFetch.mock.calls.some(
+        ([input]) =>
+          input === 'https://api.softbook.example/v2/learning/events',
+      ),
+    ).toBe(false);
+    await openRoute(root, 'mine');
+    expect(JSON.stringify(tree!.toJSON())).toContain('记录待重试');
+  } finally {
+    setItemMock.mockImplementation(originalSetItem!);
+  }
+});
+
+test.each([
+  {
+    expectedMaskedPhone: '139****9000',
+    replacementPhone: '13900139000',
+    scenario: 'another account logs in',
+  },
+  {
+    expectedMaskedPhone: '138****8000',
+    replacementPhone: '13800138000',
+    scenario: 'the same account establishes a replacement session',
+  },
+])(
+  'ignores a signed-out session replay failure after $scenario',
+  async ({ expectedMaskedPhone, replacementPhone }) => {
+    let verifiedSessionCount = 0;
+    const delayedFirstReplay =
+      createDeferred<ReturnType<typeof createJsonResponse>>();
+    let markFirstReplayStarted: (() => void) | undefined;
+    const firstReplayStarted = new Promise<void>(resolve => {
+      markFirstReplayStarted = resolve;
+    });
+
+    global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+      baseUrl: 'https://api.softbook.example',
+      featureModes: {
+        membership: 'local',
+        progressSync: 'local',
+        spaceState: 'local',
+      },
+    });
+    mockFetch.mockImplementation(
+      async (input: string, init?: MockFetchInit) => {
+        if (input === 'https://api.softbook.example/v2/auth/request-code') {
+          return createRemoteAuthChallengeResponse();
+        }
+
+        if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+          const body = JSON.parse(String(init?.body)) as {
+            phone_number: string;
+          };
+          verifiedSessionCount += 1;
+          return createRemoteAuthSessionResponse(
+            body.phone_number,
+            verifiedSessionCount === 1 ? 'account-a' : 'account-b',
+          );
+        }
+
+        if (input === 'https://api.softbook.example/v2/auth/logout') {
+          return createJsonResponse(null, 204);
+        }
+
+        if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+          return createJsonResponse(createAccountBootstrapPayload());
+        }
+
+        if (input === 'https://api.softbook.example/v2/learning/events') {
+          const headers = normalizeMockHeaders(init?.headers);
+
+          if (headers.authorization === 'Bearer remote-auth-token-account-a') {
+            markFirstReplayStarted?.();
+            return delayedFirstReplay.promise;
+          }
+
+          return createLearningEventsAckResponse(init);
+        }
+
+        throw new Error(`Unexpected remote fetch: ${input}`);
+      },
+    );
+
+    let tree: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(() => {
+      tree = ReactTestRenderer.create(<App />);
+    });
+    const root = tree!.root;
+    await loginIntoLearningFlow(root);
+    await ReactTestRenderer.act(() => {
+      root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      root
+        .findByProps({ testID: 'learning-flip-confident-button' })
+        .props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+    });
+    await firstReplayStarted;
+
+    await openRoute(root, 'mine');
+    await ReactTestRenderer.act(async () => {
+      const mineSurface = root.find(
+        node =>
+          typeof node.type === 'function' && node.type.name === 'MineSurface',
+      );
+      await mineSurface.props.handlers.onLogout();
+      await flushAsyncEffects();
+    });
+    await authenticateIntoLearningBootstrap(root, replacementPhone);
+    await openRoute(root, 'learning');
+    await waitForLearningSurface(root);
+
+    await ReactTestRenderer.act(async () => {
+      delayedFirstReplay.resolve(createJsonResponse({}, 401));
+      await flushAsyncEffects();
+    });
+    await openRoute(root, 'mine');
+
+    const output = JSON.stringify(tree!.toJSON());
+    expect(output).toContain(expectedMaskedPhone);
+    expect(output).not.toContain('登录已失效');
+    expect(root.findAllByProps({ testID: 'auth-phone-input' })).toHaveLength(0);
+  },
+);
 
 test('replays queued daily progress after network reconnect', async () => {
   const { emitNetInfoState } = jest.requireMock(
@@ -1892,39 +2348,23 @@ test('replays queued daily progress after network reconnect', async () => {
   ).toBeGreaterThanOrEqual(2);
 });
 
-test('replays queued learning state after network reconnect', async () => {
+test('replays the exact queued learning event after network reconnect', async () => {
   const { emitNetInfoState } = jest.requireMock(
     '@react-native-community/netinfo',
   );
-  let shouldFailLearningStateSync = true;
+  let shouldFailLearningEventsSync = true;
   const fetchCalls: MockFetchCall[] = [];
+  const acceptedLearningEvents: MockLearningEvent[] = [];
+  const learningEventBodies: string[] = [];
 
-  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
-    auth: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
     },
-    learningSource: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    membership: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    learningState: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-  };
+  });
 
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     fetchCalls.push({ init, input });
@@ -1937,14 +2377,25 @@ test('replays queued learning state after network reconnect', async () => {
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
-      return createJsonResponse(createRemoteMembershipPayload('free'));
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(
+          createLocalLearningSession('cet4'),
+          'free',
+          acceptedLearningEvents,
+        ),
+      );
     }
 
-    if (input === 'https://api.softbook.example/v1/learning/state-sync') {
-      return shouldFailLearningStateSync
-        ? createJsonResponse({}, 503)
-        : createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/learning/events') {
+      learningEventBodies.push(String(init?.body));
+
+      if (shouldFailLearningEventsSync) {
+        return createJsonResponse({}, 503);
+      }
+
+      acceptedLearningEvents.push(...readLearningEventsRequest(init).events);
+      return createLearningEventsAckResponse(init);
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -1981,21 +2432,30 @@ test('replays queued learning state after network reconnect', async () => {
 
   expect(JSON.stringify(tree!.toJSON())).toContain('记录待重试');
 
-  shouldFailLearningStateSync = false;
+  shouldFailLearningEventsSync = false;
 
   await ReactTestRenderer.act(async () => {
     emitNetInfoState({ isConnected: true, isInternetReachable: true });
+    await flushAsyncEffects();
+    await flushAsyncEffects();
     await flushAsyncEffects();
   });
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('记录已保存');
+  expect(learningEventBodies).toHaveLength(2);
+  expect(learningEventBodies[1]).toBe(learningEventBodies[0]);
   expect(
-    fetchCalls.filter(
-      call =>
-        call.input === 'https://api.softbook.example/v1/learning/state-sync',
+    fetchCalls.filter(call =>
+      call.input.startsWith('https://api.softbook.example/v2/bootstrap?'),
     ).length,
   ).toBeGreaterThanOrEqual(2);
+  expect(
+    fetchCalls.some(
+      call =>
+        call.input === 'https://api.softbook.example/v1/learning/state-sync',
+    ),
+  ).toBe(false);
 });
 
 test('replays queued space state after network reconnect', async () => {

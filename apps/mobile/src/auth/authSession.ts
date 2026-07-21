@@ -31,6 +31,18 @@ export type RemoteAuthSession = {
 
 export type AuthSession = LocalAuthSession | RemoteAuthSession;
 
+export function getAuthSessionScopeKey(
+  session: AuthSession | null,
+): string | null {
+  if (session === null) {
+    return null;
+  }
+
+  return session.mode === 'remote'
+    ? `remote:${session.phoneNumber}:${session.sessionId}`
+    : `local:${session.phoneNumber}`;
+}
+
 export function getAuthAccessToken(session: AuthSession): string | undefined {
   return session.mode === 'remote' ? session.accessToken : undefined;
 }

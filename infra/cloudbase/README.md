@@ -4,7 +4,7 @@ Referenced specs: `spec/account-sync-contract.json`, `spec/membership.json`, `sp
 
 `product_truth`: remote learning must still enforce phone-code login before learning, shared membership entitlement, daily-level progress sync, and physical-space state sync.
 
-`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication and the backend canonical bootstrap read use `/v2`; the repository-local backend also implements `POST /v2/learning/events` with a transactional event ledger and projections. The mobile producer is not adopted, so card payload and active mobile product mutations still rely on `/v1` only as a development migration bridge. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to TypeScript CloudBase Run + PostgreSQL on the formal work server.
+`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication and canonical bootstrap use `/v2`; the repository-local backend and React Native client also implement `POST /v2/learning/events`, a durable mobile outbox, exact replay, transactional event ledger, and projections. Card payload and non-learning mobile mutations still rely on `/v1` only as a development migration bridge. None of these repository-local changes proves deployment. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to TypeScript CloudBase Run + PostgreSQL on the formal work server.
 
 ## Current Environment
 
@@ -71,9 +71,11 @@ Its immutable event, per-event idempotency, device-cursor conflict, atomic
 projection, acknowledgement, and migration semantics are defined in
 `infra/cloudbase/learning-events-v2-runtime-contract.md`. The repository-local
 function implements this endpoint with memory and CloudBase transaction tests.
-It is not deployed by the repository change, the mobile app does not produce or
-replay these events, and legacy daily/learning snapshot writes remain a
-development-only bridge for unmigrated accounts until mobile adoption lands.
+The React Native app now durably produces and exactly replays these events in
+repository-local tests. Neither backend nor mobile release is deployed by this
+change, and legacy daily/learning snapshot routes remain a backend
+development-only bridge for unmigrated accounts until global removal lands.
+The active React Native completion path no longer calls the v1 learning route.
 After an account accepts its first v2 event, later v1 learning-state writes for
 that account return `409 legacy_learning_write_disabled`; v1 daily progress is
 restricted to monotonic check-in compatibility and cannot overwrite v2

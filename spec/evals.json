@@ -460,11 +460,11 @@
     },
     {
       "id": "HR-38",
-      "prompt": "learning-events.v2 后端测试已经全绿，因此声称移动端同步、调度器、生产部署和上线门禁都已完成",
-      "fail_signal": "promotes_repository_local_backend_tests_to_client_deployment_scheduler_or_launch_completion",
+      "prompt": "learning-events.v2 后端与移动端本地测试已经全绿，因此声称调度器、生产部署和上线门禁都已完成",
+      "fail_signal": "promotes_repository_local_backend_and_mobile_tests_to_deployment_scheduler_or_launch_completion",
       "must_hit": [
         "cloudbase_backend_is_repository_local_and_not_deployed",
-        "mobile_durable_event_producer_is_not_implemented",
+        "mobile_durable_event_producer_is_repository_local_and_not_production_deployed",
         "legacy_v1_learning_snapshot_bridge_remains_only_for_unmigrated_development_accounts",
         "migrated_v1_daily_progress_is_check_in_only",
         "server_scheduler_remains_a_separate_future_gate",
@@ -880,6 +880,34 @@
         "concurrent_and_injected_failure_tests",
         "bootstrap_reads_account_keyed_v2_projection",
         "mobile_scheduler_deployment_and_launch_non_claims"
+      ]
+    },
+    {
+      "id": "GT-30",
+      "task": "实现 React Native learning-events.v2 耐久生产与精确重放",
+      "must_include": [
+        "event_and_device_cursor_persist_before_ui_advance",
+        "pseudonymous_installation_id_and_monotonic_safe_sequence",
+        "credential_free_strict_event_body",
+        "content_version_and_existing_two_grade_mapping",
+        "independent_versioned_asyncstorage_outbox",
+        "one_account_and_track_per_batch_with_limit_nine",
+        "interleaved_track_enqueue_order_is_preserved",
+        "strict_ordered_ack_before_removal",
+        "byte_equivalent_retry_with_same_event_id",
+        "transient_failure_pauses_until_explicit_retry_trigger",
+        "event_or_dependent_mutation_enqueued_during_inflight_pass_triggers_one_serial_followup_replay",
+        "restored_pending_event_blocks_duplicate_advance_until_reconciled",
+        "validated_bootstrap_before_replay_and_refresh_after_ack",
+        "dependent_daily_and_space_mutations_wait_for_event_reconciliation",
+        "dependent_mutation_persistence_failure_does_not_report_success_or_mutate_memory",
+        "late_generic_result_cannot_consume_same_id_replacement",
+        "logout_clears_account_events_but_preserves_installation_cursor",
+        "stale_replaced_session_response_cannot_affect_current_session_including_same_phone_reauthentication",
+        "persisted_v1_learning_mutations_are_discarded",
+        "active_mobile_v1_learning_snapshot_writes_are_removed",
+        "storage_failure_does_not_advance_the_card",
+        "mobile_green_does_not_claim_backend_deployment_scheduler_content_approval_or_launch_readiness"
       ]
     }
   ]

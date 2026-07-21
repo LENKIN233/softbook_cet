@@ -137,7 +137,7 @@ SOFTBOOK_CET_LEARNING_TRACK=cet4 \
 npm start
 ```
 
-如果要分段 smoke，可用逗号分隔的 `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES` 暂时把某些 surface 留在本地，例如 `learningSource,spaceState`。
+如果要分段 smoke，可用逗号分隔的 `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES` 暂时把某些 surface 留在本地，例如 `spaceState`。若把卡源留在本地，必须同时选择 `accountBootstrap,learningSource,learningState`，避免远端事件引用未经 canonical bootstrap 验证的本地内容版本。
 
 - `auth`：手机号验证码请求 / 校验仓储
 - `learningSource`：学习卡源仓储

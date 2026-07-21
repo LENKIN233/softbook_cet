@@ -89,12 +89,28 @@ def validate(context) -> None:
         "trial_started_at_entry_count",
         "trialStartedAtEntryCount",
         "acknowledgedAt",
+        "schema_version",
+        "schemaVersion",
+        "event_id",
+        "eventId",
+        "answer_grade",
+        "answerGrade",
+        "client_occurred_at",
+        "clientOccurredAt",
+        "content_version",
+        "contentVersion",
+        "device_cursor",
+        "deviceCursor",
+        "device_id",
+        "deviceId",
+        "serverSequence",
         "sync_daily_progress",
         "sync_space_state",
         "sync_learning_state",
         "start_membership_trial",
         "refresh_membership",
         "__softbook_mutation_queue",
+        "__softbook_learning_event_outbox_v1",
         "retryCount",
         "apiKey",
         "apiKeyHeader",
@@ -687,6 +703,24 @@ def validate(context) -> None:
         (tmp_app_root / "src/learning/CamelRuntimeBookkeepingMetadataRenderedPropLeak.tsx").write_text(
             "export function CamelRuntimeBookkeepingMetadataRenderedPropLeak({ session, state }) {\n"
             "  return <View testID={`${session.authToken}-${state.lastModifiedAt}`} />;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        (tmp_app_root / "src/learning/LearningEventMetadataTextLeak.tsx").write_text(
+            "export function LearningEventMetadataTextLeak({ event }) {\n"
+            "  return <Text>{event.event_id}{event.answer_grade}{event.client_occurred_at}{event.content_version}</Text>;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        (tmp_app_root / "src/learning/LearningEventMetadataPropLeak.tsx").write_text(
+            "export function LearningEventMetadataPropLeak({ event, ack }) {\n"
+            "  return <Pressable accessibilityHint={event.device_cursor.device_id} accessibilityLabel={ack.serverSequence} />;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        (tmp_app_root / "src/learning/LearningEventMetadataRenderedPropLeak.tsx").write_text(
+            "export function LearningEventMetadataRenderedPropLeak() {\n"
+            "  return <View testID=\"__softbook_learning_event_outbox_v1-schema_version-deviceCursor\" />;\n"
             "}\n",
             encoding="utf-8",
         )
@@ -1790,6 +1824,9 @@ def validate(context) -> None:
             "src/learning/CamelRuntimeBookkeepingMetadataTextLeak.tsx",
             "src/learning/CamelRuntimeBookkeepingMetadataPropLeak.tsx",
             "src/learning/CamelRuntimeBookkeepingMetadataRenderedPropLeak.tsx",
+            "src/learning/LearningEventMetadataTextLeak.tsx",
+            "src/learning/LearningEventMetadataPropLeak.tsx",
+            "src/learning/LearningEventMetadataRenderedPropLeak.tsx",
             "src/learning/MutationQueueMetadataTextLeak.tsx",
             "src/learning/MutationQueueMetadataPropLeak.tsx",
             "src/learning/MutationQueueMetadataRenderedPropLeak.tsx",

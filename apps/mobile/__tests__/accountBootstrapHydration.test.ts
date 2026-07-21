@@ -171,9 +171,6 @@ test('restores canonical learning results against matching content', () => {
 
   expect(result.learningResults).toHaveLength(1);
   expect(result.reviewResults).toHaveLength(0);
-  expect(result.learningStateSyncKey).toContain(
-    bootstrap.learning.cardStates[0].cardId,
-  );
 });
 
 test.each([

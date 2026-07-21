@@ -4,13 +4,10 @@ import {
   mergeSpaceStateMaps,
   spaceStateSnapshotToMap,
 } from '../space/spaceStateRepository';
-import { createLearningStateSnapshot } from '../sync/learningStateRepository';
-
 import type { AccountBootstrapSnapshot } from './accountBootstrapRepository';
 
 export type AccountBootstrapHydration = {
   learningResults: LearningCardResult[];
-  learningStateSyncKey: string | null;
   persistedUserState: PersistedUserState;
   progressSyncKey: string;
   reviewResults: LearningCardResult[];
@@ -55,10 +52,7 @@ export function reconcileAccountBootstrap(
 export function resolveAccountBootstrapLearningState(
   bootstrap: AccountBootstrapSnapshot,
   learningSession: LearningSession,
-): Pick<
-  AccountBootstrapHydration,
-  'learningResults' | 'learningStateSyncKey' | 'reviewResults'
-> {
+): Pick<AccountBootstrapHydration, 'learningResults' | 'reviewResults'> {
   if (
     bootstrap.track !== learningSession.track ||
     bootstrap.content.source.id !== learningSession.sourceId ||
@@ -117,21 +111,8 @@ export function resolveAccountBootstrapLearningState(
   const reviewResults = bootstrap.learning.cardStates
     .filter(state => state.phase === 'review')
     .map(stripPhase);
-  const learningStateSyncKey =
-    learningResults.length + reviewResults.length === 0
-      ? null
-      : JSON.stringify(
-          createLearningStateSnapshot({
-            dayKey: bootstrap.dayKey,
-            learningResults,
-            learningSession,
-            reviewResults,
-          }),
-        );
-
   return {
     learningResults,
-    learningStateSyncKey,
     reviewResults,
   };
 }

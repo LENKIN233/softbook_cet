@@ -151,10 +151,10 @@ class LearningEventsContractTests(unittest.TestCase):
             "missing HR-38",
         )
 
-    def test_runtime_document_cannot_hide_backend_non_claims(self):
+    def test_runtime_document_cannot_hide_repository_local_non_claims(self):
         weakened = self.runtime_text.replace(
-            "The local backend implementation does not prove",
-            "The local backend implementation proves",
+            "The repository-local backend and mobile implementation do not prove",
+            "The repository-local backend and mobile implementation prove",
         )
         self.assert_finding(
             self.findings(text=weakened),
@@ -173,6 +173,106 @@ class LearningEventsContractTests(unittest.TestCase):
         self.assert_finding(
             self.findings(runtime=promoted),
             "runtime deployment boundary",
+        )
+
+    def test_mobile_producer_and_v1_write_boundaries_cannot_regress(self):
+        missing_producer = copy.deepcopy(self.auth)
+        missing_producer["learning_events_v2"]["implementation_progress"][
+            "mobile_durable_event_producer"
+        ] = False
+        active_v1_write = copy.deepcopy(self.auth)
+        active_v1_write["learning_events_v2"]["implementation_progress"][
+            "mobile_active_v1_learning_snapshot_writes_disabled"
+        ] = False
+        unsafe_durability = copy.deepcopy(self.auth)
+        unsafe_durability["learning_events_v2"]["mobile_client_contract"][
+            "storage_rule"
+        ] = "advance the card before best-effort persistence"
+        missing_outbox = copy.deepcopy(self.runtime)
+        missing_outbox["learning_event_runtime"]["mobile_outbox_schema"] = (
+            "generic-mutation-queue.v1"
+        )
+        unsafe_replay = copy.deepcopy(self.runtime)
+        unsafe_replay["learning_event_runtime"]["mobile_replay_boundary"] = (
+            "replay_without_bootstrap_reconciliation"
+        )
+        unsafe_account_switch = copy.deepcopy(self.auth)
+        unsafe_account_switch["learning_events_v2"]["mobile_client_contract"][
+            "account_switch_rule"
+        ] = "apply every late response to the current UI"
+        unsafe_restore = copy.deepcopy(self.auth)
+        unsafe_restore["learning_events_v2"]["mobile_client_contract"][
+            "recovery_rule"
+        ] = "allow the restored stale card to enqueue another completion"
+        runtime_v1_write = copy.deepcopy(self.runtime)
+        runtime_v1_write["learning_event_runtime"][
+            "mobile_active_v1_learning_snapshot_writes"
+        ] = True
+        unsafe_runtime_restore = copy.deepcopy(self.runtime)
+        unsafe_runtime_restore["learning_event_runtime"][
+            "mobile_restore_boundary"
+        ] = "restored_outbox_does_not_gate_card_advance"
+
+        self.assert_finding(
+            self.findings(auth=missing_producer),
+            "mobile producer boundary",
+        )
+        self.assert_finding(
+            self.findings(auth=active_v1_write),
+            "mobile active v1 learning write boundary",
+        )
+        self.assert_finding(
+            self.findings(auth=unsafe_durability),
+            "mobile durable storage owner contract",
+        )
+        self.assert_finding(
+            self.findings(runtime=missing_outbox),
+            "runtime mobile outbox schema",
+        )
+        self.assert_finding(
+            self.findings(runtime=unsafe_replay),
+            "runtime mobile replay boundary",
+        )
+        self.assert_finding(
+            self.findings(auth=unsafe_account_switch),
+            "mobile account switch owner contract",
+        )
+        self.assert_finding(
+            self.findings(auth=unsafe_restore),
+            "mobile restored outbox owner contract",
+        )
+        self.assert_finding(
+            self.findings(runtime=runtime_v1_write),
+            "runtime mobile active v1 learning writes",
+        )
+        self.assert_finding(
+            self.findings(runtime=unsafe_runtime_restore),
+            "runtime mobile restore boundary",
+        )
+
+    def test_mobile_golden_task_and_durable_runtime_proof_are_required(self):
+        missing_gt30 = copy.deepcopy(self.evals)
+        missing_gt30["golden_tasks"] = [
+            item for item in missing_gt30["golden_tasks"] if item["id"] != "GT-30"
+        ]
+        weakened_gt30 = copy.deepcopy(self.evals)
+        gt30 = next(
+            item for item in weakened_gt30["golden_tasks"] if item["id"] == "GT-30"
+        )
+        gt30["must_include"].remove("storage_failure_does_not_advance_the_card")
+        hidden_durability = self.runtime_text.replace(
+            "advancing the card UI. A failed durable write leaves the current result in",
+            "advancing the card UI even when durable storage fails",
+        )
+
+        self.assert_finding(self.findings(evals=missing_gt30), "missing GT-30")
+        self.assert_finding(
+            self.findings(evals=weakened_gt30),
+            "GT-30 must_include drift",
+        )
+        self.assert_finding(
+            self.findings(text=hidden_durability),
+            "runtime contract missing exact snippet",
         )
 
     def test_migrated_daily_bridge_cannot_regain_learning_authority(self):

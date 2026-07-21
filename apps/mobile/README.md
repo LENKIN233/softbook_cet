@@ -13,7 +13,8 @@
 
 - `apps/mobile` 是 React Native 0.85.x 的 iOS 优先工程。
 - 当前已覆盖手机号验证码登录门槛、学习主流、review flow、空间知识地图、统计签到、我的页、会员试用 / 付费墙。
-- 当前分支把 `auth / accountBootstrap / membership / learningSource / progressSync / spaceState / learningState` 都统一到 runtime 配置下，默认仍走本地安全实现。
+- `auth / accountBootstrap / membership / learningSource / progressSync / spaceState / learningState` 都统一到 runtime 配置下，默认仍走本地安全实现。
+- 远端 `learningState` 现表示 `learning-events.v2`：卡片推进前写入独立耐久 outbox，使用严格 ACK 删除并在成功后重读 canonical bootstrap；待确认期间的日级/空间变更先排队，旧 session 的迟到响应不能影响替代 session；不再发出 `/v1/learning/state-sync`。
 
 ## 环境前提
 
@@ -96,7 +97,7 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = {
 };
 ```
 
-如果要临时切到远端认证 / canonical bootstrap / 学习卡源 / entitlement / 日级同步 / 空间状态 / learning state，优先用 profile factory，避免手写重复 `baseUrl`：
+如果要临时切到远端认证 / canonical bootstrap / 学习卡源 / entitlement / 日级同步 / 空间状态 / learning events，优先用 profile factory，避免手写重复 `baseUrl`：
 
 ```ts
 export const SOFTBOOK_APP_RUNTIME_CONFIG = createSoftbookRemoteRuntimeConfig({
@@ -114,6 +115,7 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = createSoftbookRemoteRuntimeConfig({
   featureModes: {
     accountBootstrap: 'local',
     learningSource: 'local',
+    learningState: 'local',
     spaceState: 'local',
   },
 });
@@ -130,8 +132,8 @@ SOFTBOOK_CET_LEARNING_TRACK=cet4 \
 npm start
 ```
 
-分段 smoke 时，用 `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES=accountBootstrap,learningSource,spaceState` 让指定 surface 暂时留在本地，其它远端能力仍由同一个 `baseUrl` 派生。
-`accountBootstrap` 为远端时，`learningSource` 也必须为远端，客户端才能把实际卡源的 `content_version` 与 canonical content version 绑定；若要本地卡源，必须把这两个 feature 一起留在本地。
+分段 smoke 时，用 `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES=accountBootstrap,learningSource,learningState,spaceState` 让指定 surface 暂时留在本地，其它远端能力仍由同一个 `baseUrl` 派生。
+`learningState` 为远端时，`accountBootstrap` 与 `learningSource` 也必须为远端，客户端才能把实际卡源的 `content_version` 与 canonical content version 绑定；若要本地卡源，必须把这三个 feature 一起留在本地。
 
 - `auth`：手机号验证码请求 / 校验仓储
 - `accountBootstrap`：登录或会话恢复后的服务端权威账户读取；远端模式要求 `auth.mode` 也为 `remote`，完成一致性校验前阻止学习及产品状态写入
@@ -139,7 +141,7 @@ npm start
 - `membership`：entitlement 读取、开始试用、开通会员、恢复购买提醒状态更新；远端模式要求 `auth.mode` 也必须是 `remote`
 - `progressSync`：日级进展同步仓储；远端模式要求登录上下文，且 `auth.mode` 也必须是 `remote`
 - `spaceState`：收藏/休眠等空间状态同步仓储；远端模式要求登录上下文，且 `auth.mode` 也必须是 `remote`
-- `learningState`：逐卡学习作答状态同步仓储；远端模式要求登录上下文，且 `auth.mode` 也必须是 `remote`
+- `learningState`：兼容配置名，远端模式启用 `learning-events.v2` 耐久事件 outbox 与精确重放；要求远端 auth、canonical bootstrap 和版本化学习卡源
 
 ## 默认本地会员宿主
 
