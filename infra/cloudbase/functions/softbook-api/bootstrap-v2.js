@@ -3,6 +3,20 @@ const crypto = require('node:crypto');
 const BOOTSTRAP_SCHEMA_VERSION = 'bootstrap.v2';
 const CONTENT_RELEASE_SCHEMA_VERSION = 'content-release.v1';
 const TRACKS = ['cet4', 'cet6'];
+const CHINA_OFFSET_MILLISECONDS = 8 * 60 * 60 * 1000;
+const OUTCOMES_BY_INTERACTION = {
+  flip: ['confident', 'review'],
+  multiple_choice: ['correct', 'incorrect'],
+  lock: ['correct', 'incorrect'],
+  elimination: ['correct', 'incorrect'],
+  swipe: ['correct', 'incorrect'],
+};
+const ANSWER_GRADE_BY_OUTCOME = {
+  correct: 'passed',
+  incorrect: 'review_needed',
+  confident: 'passed',
+  review: 'review_needed',
+};
 
 function createBootstrapV2Service(options) {
   const config = {
@@ -33,14 +47,26 @@ async function readBootstrap(config, input) {
 
   const [membership, progress, learning, space] = await Promise.all([
     config.store.getMembership(input.phoneNumber),
-    config.store.getDailyProgress(input.phoneNumber, input.dayKey),
+    config.store.getDailyProgress(input.phoneNumber, input.dayKey, {
+      accountKey: input.accountKey,
+    }),
     config.store.getLearningState(
       input.phoneNumber,
       input.dayKey,
       input.track,
+      {accountKey: input.accountKey},
     ),
     config.store.getSpaceState(input.phoneNumber, input.dayKey),
   ]);
+  const normalizedSpace = normalizeSpaceState(space, input.dayKey);
+  const normalizedLearning = applySpaceFavorites(
+    normalizeLearningState(learning, input.dayKey, input.track),
+    normalizedSpace,
+  );
+  const normalizedProgress = applySpaceCounts(
+    normalizeDailyProgress(progress, input.dayKey),
+    normalizedSpace,
+  );
 
   return {
     schema_version: BOOTSTRAP_SCHEMA_VERSION,
@@ -48,14 +74,10 @@ async function readBootstrap(config, input) {
     day_key: input.dayKey,
     track: input.track,
     content: serializeContent(cardSource),
-    learning: normalizeLearningState(
-      learning,
-      input.dayKey,
-      input.track,
-    ),
+    learning: normalizedLearning,
     membership: normalizeMembership(membership),
-    progress: normalizeDailyProgress(progress, input.dayKey),
-    space: normalizeSpaceState(space, input.dayKey),
+    progress: normalizedProgress,
+    space: normalizedSpace,
   };
 }
 
@@ -80,12 +102,17 @@ function normalizeDailyProgress(snapshot, expectedDayKey) {
   return readCanonicalState('daily progress', () => {
     const progress = requireObject(snapshot, 'daily progress');
     const dayKey = requireDayKey(progress.day_key, 'daily progress.day_key');
+    const isV2Projection = progress.projection_version === 'learning-events.v2';
+
+    if (progress.projection_version !== undefined && !isV2Projection) {
+      throw new Error('daily progress projection version is invalid.');
+    }
 
     if (dayKey !== expectedDayKey) {
       throw new Error('day_key does not match the requested day.');
     }
 
-    return {
+    const normalized = {
       acknowledged_at: optionalIsoTimestamp(
         progress.acknowledged_at,
         'daily progress.acknowledged_at',
@@ -120,6 +147,16 @@ function normalizeDailyProgress(snapshot, expectedDayKey) {
         'daily progress.total_completed_count',
       ),
     };
+
+    if (
+      isV2Projection &&
+      normalized.total_completed_count !==
+        normalized.learning_completed_count + normalized.review_completed_count
+    ) {
+      throw new Error('daily progress total is not server-derived.');
+    }
+
+    return normalized;
   });
 }
 
@@ -128,6 +165,15 @@ function normalizeLearningState(snapshot, expectedDayKey, expectedTrack) {
     const state = requireObject(snapshot, 'learning state');
     const dayKey = requireDayKey(state.day_key, 'learning state.day_key');
     const track = requireTrack(state.track, 'learning state.track');
+    const isV2Projection = state.projection_version === 'learning-events.v2';
+
+    if (state.projection_version !== undefined && !isV2Projection) {
+      throw new Error('learning state projection version is invalid.');
+    }
+
+    if (isV2Projection && typeof state.legacy_baseline_migrated !== 'boolean') {
+      throw new Error('learning state migration authority is invalid.');
+    }
 
     if (dayKey !== expectedDayKey || track !== expectedTrack) {
       throw new Error('learning state scope does not match the request.');
@@ -143,6 +189,7 @@ function normalizeLearningState(snapshot, expectedDayKey, expectedTrack) {
         const parsed = normalizeLearningEvent(
           event,
           `learning state.events[${index}]`,
+          isV2Projection,
         );
 
         if (parsed.card_id !== storedCardId) {
@@ -167,10 +214,9 @@ function normalizeLearningState(snapshot, expectedDayKey, expectedTrack) {
   });
 }
 
-function normalizeLearningEvent(value, label) {
+function normalizeLearningEvent(value, label, isV2Projection) {
   const event = requireObject(value, label);
-
-  return {
+  const normalized = {
     card_id: requireCardId(event.card_id, `${label}.card_id`),
     completed_at: requireIsoTimestamp(
       event.completed_at,
@@ -181,22 +227,110 @@ function normalizeLearningEvent(value, label) {
       ['flip', 'multiple_choice', 'lock', 'elimination', 'swipe'],
       `${label}.interaction_id`,
     ),
-    is_favorited: requireBoolean(
-      event.is_favorited,
-      `${label}.is_favorited`,
-    ),
     outcome: requireEnum(
       event.outcome,
       ['correct', 'incorrect', 'confident', 'review'],
       `${label}.outcome`,
     ),
-    phase: requireEnum(
-      event.phase,
-      ['learning', 'review'],
-      `${label}.phase`,
-    ),
+    phase: requireEnum(event.phase, ['learning', 'review'], `${label}.phase`),
     used_hint: requireBoolean(event.used_hint, `${label}.used_hint`),
     used_peek: requireBoolean(event.used_peek, `${label}.used_peek`),
+  };
+
+  if (!isV2Projection) {
+    return {
+      ...normalized,
+      is_favorited: requireBoolean(event.is_favorited, `${label}.is_favorited`),
+    };
+  }
+
+  const answerGrade = requireEnum(
+    event.answer_grade,
+    ['passed', 'review_needed'],
+    `${label}.answer_grade`,
+  );
+  const serverSequence = requireNonNegativeSafeInteger(
+    event.server_sequence,
+    `${label}.server_sequence`,
+  );
+
+  if (ANSWER_GRADE_BY_OUTCOME[normalized.outcome] !== answerGrade) {
+    throw new Error(`${label}.answer_grade does not match outcome.`);
+  }
+
+  if (
+    !OUTCOMES_BY_INTERACTION[normalized.interaction_id].includes(
+      normalized.outcome,
+    )
+  ) {
+    throw new Error(`${label}.outcome does not match interaction_id.`);
+  }
+
+  if (serverSequence > 0) {
+    const eventId = requireString(event.event_id, `${label}.event_id`);
+
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{7,127}$/.test(eventId)) {
+      throw new Error(`${label}.event_id is invalid.`);
+    }
+
+    if (event.is_favorited !== undefined) {
+      throw new Error(`${label}.is_favorited has invalid event authority.`);
+    }
+
+    normalized.event_id = eventId;
+    normalized.answer_grade = answerGrade;
+    normalized.content_version = requireContentVersion(
+      event.content_version,
+      `${label}.content_version`,
+    );
+    normalized.server_sequence = serverSequence;
+    const activityDay = requireDayKey(
+      event.activity_day,
+      `${label}.activity_day`,
+    );
+
+    if (activityDay !== chinaActivityDay(Date.parse(event.completed_at))) {
+      throw new Error(`${label}.activity_day does not match completed_at.`);
+    }
+  } else {
+    if (
+      event.event_id !== undefined ||
+      event.content_version !== undefined ||
+      event.activity_day !== undefined
+    ) {
+      throw new Error(`${label} has invalid migrated-event authority.`);
+    }
+
+    normalized.is_favorited = requireBoolean(
+      event.is_favorited,
+      `${label}.is_favorited`,
+    );
+    normalized.answer_grade = answerGrade;
+    normalized.server_sequence = serverSequence;
+  }
+
+  return normalized;
+}
+
+function applySpaceFavorites(learning, space) {
+  const favoriteByCardId = new Map(
+    space.states.map(state => [state.card_id, state.is_favorited]),
+  );
+
+  return {
+    ...learning,
+    card_states: learning.card_states.map(state => ({
+      ...state,
+      is_favorited: favoriteByCardId.get(state.card_id) ?? false,
+    })),
+  };
+}
+
+function applySpaceCounts(progress, space) {
+  return {
+    ...progress,
+    favorite_count: space.states.filter(state => state.is_favorited).length,
+    sleeping_count: space.states.filter(state => state.is_sleeping).length,
   };
 }
 
@@ -307,10 +441,7 @@ function normalizeSpaceState(snapshot, expectedDayKey) {
             item.is_favorited,
             `${label}.is_favorited`,
           ),
-          is_sleeping: requireBoolean(
-            item.is_sleeping,
-            `${label}.is_sleeping`,
-          ),
+          is_sleeping: requireBoolean(item.is_sleeping, `${label}.is_sleeping`),
           last_modified_at: requireIsoTimestamp(
             item.last_modified_at,
             `${label}.last_modified_at`,
@@ -389,7 +520,9 @@ function normalizeContentRelease(value, contentVersion, expectedTrack) {
   }
 
   if (track !== expectedTrack) {
-    throw cardSourceError('card source.release.track must match card source track.');
+    throw cardSourceError(
+      'card source.release.track must match card source track.',
+    );
   }
 
   if (declaredContentVersion !== contentVersion) {
@@ -401,7 +534,9 @@ function normalizeContentRelease(value, contentVersion, expectedTrack) {
   const publishedAtTime = Date.parse(publishedAt);
 
   if (Number.isNaN(publishedAtTime)) {
-    throw cardSourceError('card source.release.published_at must be ISO timestamp.');
+    throw cardSourceError(
+      'card source.release.published_at must be ISO timestamp.',
+    );
   }
 
   if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(minimumClientVersion)) {
@@ -435,10 +570,7 @@ function stableJsonStringify(value) {
   if (isObject(value)) {
     return `{${Object.keys(value)
       .sort()
-      .map(
-        key =>
-          `${JSON.stringify(key)}:${stableJsonStringify(value[key])}`,
-      )
+      .map(key => `${JSON.stringify(key)}:${stableJsonStringify(value[key])}`)
       .join(',')}}`;
   }
 
@@ -447,7 +579,9 @@ function stableJsonStringify(value) {
 
 function validateConfig(config) {
   if (!['development', 'production'].includes(config.runtimeMode)) {
-    throw new Error(`Unsupported bootstrap runtime mode: ${config.runtimeMode}`);
+    throw new Error(
+      `Unsupported bootstrap runtime mode: ${config.runtimeMode}`,
+    );
   }
 
   if (typeof config.now !== 'function') {
@@ -521,6 +655,24 @@ function requirePositiveInteger(value, fieldName) {
   return value;
 }
 
+function requireNonNegativeSafeInteger(value, fieldName) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`${fieldName} must be a non-negative safe integer.`);
+  }
+
+  return value;
+}
+
+function requireContentVersion(value, fieldName) {
+  const contentVersion = requireString(value, fieldName);
+
+  if (!/^sha256:[a-f0-9]{64}$/.test(contentVersion)) {
+    throw new Error(`${fieldName} must be a lowercase SHA-256 identifier.`);
+  }
+
+  return contentVersion;
+}
+
 function requireEnum(value, allowed, fieldName) {
   if (!allowed.includes(value)) {
     throw new Error(`${fieldName} is invalid.`);
@@ -546,9 +698,14 @@ function isValidDayKey(value) {
 
   const date = new Date(`${value}T00:00:00.000Z`);
   return (
-    !Number.isNaN(date.getTime()) &&
-    date.toISOString().slice(0, 10) === value
+    !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
   );
+}
+
+function chinaActivityDay(timestamp) {
+  return new Date(timestamp + CHINA_OFFSET_MILLISECONDS)
+    .toISOString()
+    .slice(0, 10);
 }
 
 function requireTrack(value, fieldName) {

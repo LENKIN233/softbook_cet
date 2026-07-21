@@ -1,5 +1,5 @@
 {
-  "version": "vnext-4",
+  "version": "vnext-7",
   "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, canonical account reads, idempotent learning events, default sync strategy, and offline behavior.",
   "source_anchors": {
     "login_gate": "必须登入",
@@ -60,12 +60,30 @@
     "content_rule": "content version is the SHA-256 of the normalized ordered source; production requires a matching published content-release.v1 descriptor while development may return release_id null",
     "release_publication_rule": "the development importer rejects non-null release descriptors; a separate publication pipeline must verify formal content approval before writing content-release.v1",
     "client_rule": "an authenticated client may use validated cached state while offline, but must reconcile with this server read before pushing restored state; without previously validated canonical state and required content, mobile keeps a valid session retryable but blocks learning, local persistence of the reconciled snapshot, mutation replay, and product-state writes until bootstrap succeeds and the loaded card-source content version matches",
-    "known_gap": "legacy v1 learning and daily snapshots remain migration inputs; learning-events.v2 is contract-defined but its endpoint, client adoption, server projections, and scheduler are not implemented"
+    "known_gap": "the repository-local CloudBase learning-events.v2 endpoint, transactional ledger, projections, and bootstrap reads are implemented but not deployed; mobile durable event production and replay, legacy v1 snapshot-write removal, the server scheduler, and production publication remain unimplemented"
   },
   "learning_events_v2": {
     "classification": "implementation_hypothesis",
-    "contract_status": "defined_not_implemented",
+    "contract_status": "cloudbase_backend_implemented_locally_client_not_adopted",
     "runtime_contract": "infra/cloudbase/learning-events-v2-runtime-contract.md",
+    "implementation_progress": {
+      "cloudbase_backend": "implemented_locally_not_deployed",
+      "transactional_event_ledger": true,
+      "server_learning_projections": true,
+      "bootstrap_projection_read": true,
+      "retained_content_version_registry": true,
+      "active_session_account_key_integrity": true,
+      "stored_projection_integrity_validation": true,
+      "cloudbase_atomic_batch_limit": 9,
+      "cloudbase_transaction_boundary": "doc_only_with_at_most_100_operations",
+      "legacy_migration_consistency": "bounded_outside_transaction_snapshot_with_transactional_revision_fence",
+      "legacy_all_track_projection_migration": true,
+      "mobile_durable_event_producer": false,
+      "legacy_v1_snapshot_writes_disabled": false,
+      "migrated_account_v1_learning_writes": "learning_state_rejected_daily_progress_check_in_only_after_first_accepted_v2_event",
+      "server_scheduler": false,
+      "production_deployment": false
+    },
     "endpoint": {
       "method": "POST",
       "path": "/v2/learning/events",
@@ -200,13 +218,16 @@
     },
     "idempotency_and_atomicity": {
       "event_key": "account_id + event_id",
-      "exact_replay": "return duplicate with the original server_sequence and do not mutate projections",
+      "exact_replay": "return duplicate with the original server_sequence and do not mutate projections; an already accepted byte-equivalent canonical event remains a duplicate when mutable time or content-retention windows later change",
+      "stored_event_integrity": "before returning duplicate, recompute the canonical digest from the stored immutable payload and track; any mismatch fails closed without acknowledgement or writes",
       "event_id_conflict": "the same event key with a different canonical payload rejects the entire request with HTTP 409",
       "device_cursor_key": "account_id + device_id + sequence",
       "device_cursor_conflict": "the same device cursor bound to a different event_id rejects the entire request with HTTP 409",
       "mixed_batch_rule": "exact duplicates and unseen valid events may commit together and each receives an explicit result",
       "validation_atomicity": "any malformed, unauthorized, unknown-content, or conflicting event rejects the entire request before writes",
-      "transaction_atomicity": "new immutable events, account server sequences, and derived learning projections commit in one transaction; failure leaves no partial acceptance"
+      "transaction_atomicity": "new immutable events, account server sequences, and derived learning projections commit in one transaction; failure leaves no partial acceptance",
+      "cloudbase_atomic_batch_rule": "the repository-local CloudBase adapter accepts at most 9 events so worst-case immutable-event, retained-content, all-track migration, projection, and daily work uses at most 91 of the platform limit of 100 operations per transaction",
+      "cloudbase_transaction_query_rule": "CloudBase transactions use deterministic document reads and writes only; bounded legacy learning queries run before the transaction and a transactionally written account revision fence forces a retry when a v1 write changes that snapshot"
     },
     "server_authority": {
       "server_sequence_rule": "assign one stable monotonically increasing account-scoped server_sequence to each newly accepted event",
@@ -237,7 +258,8 @@
       "canonical_refresh_rule": "after replay, read /v2/bootstrap again before presenting reconciled server state or sending dependent mutations"
     },
     "migration_boundary": {
-      "legacy_v1_role": "development-only migration input; v1 daily and learning snapshots are never accepted as learning-events.v2 payloads",
+      "legacy_v1_role": "development-only migration input; v1 daily and learning snapshots are never accepted as learning-events.v2 payloads, while the migrated daily endpoint temporarily carries check-in compatibility only",
+      "migrated_account_write_rule": "the first accepted v2 event transaction preserves valid legacy sequence-zero learning baselines for both tracks before closing account migration; later v1 learning-state snapshots fail with HTTP 409; v1 daily-progress remains a development bridge that can only merge monotonic checked_in_today, cannot overwrite server-derived learning counts, and cannot supply favorite or sleeping counts because bootstrap derives them from canonical physical space; unmigrated development accounts may still provide the migration baseline",
       "production_rule": "production continues to reject all v1 routes",
       "implementation_order": [
         "owner_contract_and_negative_gates",
@@ -246,7 +268,7 @@
         "disable_legacy_snapshot_writes",
         "server_scheduler_and_scheduler_cursor"
       ],
-      "launch_claim_rule": "a green contract PR does not satisfy canonical-bootstrap-and-idempotent-events, server-scheduler, formal content approval, or launch readiness"
+      "launch_claim_rule": "a green backend implementation PR does not satisfy mobile event adoption, legacy snapshot-write removal, server scheduling, formal content approval, production deployment, or launch readiness"
     }
   },
   "offline_policy": {

@@ -26,8 +26,7 @@ function createAuthV2Service(options) {
   const config = {
     accessTokenTtlSeconds:
       options.accessTokenTtlSeconds ?? ACCESS_TOKEN_TTL_SECONDS,
-    challengeTtlSeconds:
-      options.challengeTtlSeconds ?? CHALLENGE_TTL_SECONDS,
+    challengeTtlSeconds: options.challengeTtlSeconds ?? CHALLENGE_TTL_SECONDS,
     codeGenerator,
     indexSecret,
     ipRequestLimit: options.ipRequestLimit ?? IP_REQUEST_LIMIT,
@@ -43,17 +42,17 @@ function createAuthV2Service(options) {
     smsProvider,
     store,
     tokenSecret,
-    verifyAttemptLimit:
-      options.verifyAttemptLimit ?? VERIFY_ATTEMPT_LIMIT,
+    verifyAttemptLimit: options.verifyAttemptLimit ?? VERIFY_ATTEMPT_LIMIT,
   };
 
   validateServiceConfig(config);
 
   return {
+    deriveAccountKey: phoneNumber =>
+      keyedHash(config.indexSecret, 'account', phoneNumber),
     logout: request => logout(config, request),
     refresh: request => refresh(config, request),
-    requestAccountDeletion: request =>
-      requestAccountDeletion(config, request),
+    requestAccountDeletion: request => requestAccountDeletion(config, request),
     requestCode: request => requestCode(config, request),
     requireActiveSession: request => requireActiveSession(config, request),
     verifyCode: request => verifyCode(config, request),
@@ -86,11 +85,7 @@ async function requestCode(config, request) {
     windowStartedAt,
   });
   await consumeRateLimit(config, {
-    key: `phone:${keyedHash(
-      config.indexSecret,
-      'rate-phone',
-      phoneNumber,
-    )}`,
+    key: `phone:${keyedHash(config.indexSecret, 'rate-phone', phoneNumber)}`,
     limit: config.phoneRequestLimit,
     requestedAt,
     windowStartedAt,
@@ -261,6 +256,7 @@ async function requestAccountDeletion(config, request) {
   if (
     !persistedSession ||
     persistedSession.phone_number !== access.phone_number ||
+    !hasCanonicalAccountKey(config, persistedSession) ||
     (persistedSession.status !== 'active' &&
       persistedSession.revoked_reason !== 'account_deletion_requested')
   ) {
@@ -306,7 +302,8 @@ async function requireActiveSession(config, request) {
   if (
     !session ||
     session.status !== 'active' ||
-    session.phone_number !== access.phone_number
+    session.phone_number !== access.phone_number ||
+    !hasCanonicalAccountKey(config, session)
   ) {
     throw authError(401, 'revoked_auth_session', 'Auth session is not active.');
   }
@@ -321,9 +318,25 @@ async function requireActiveSession(config, request) {
   }
 
   return {
+    accountKey: session.account_key,
     phoneNumber: session.phone_number,
     sessionId: session.session_id,
   };
+}
+
+function hasCanonicalAccountKey(config, session) {
+  if (
+    typeof session?.account_key !== 'string' ||
+    session.account_key.length === 0 ||
+    typeof session.phone_number !== 'string'
+  ) {
+    return false;
+  }
+
+  return safeEqual(
+    session.account_key,
+    keyedHash(config.indexSecret, 'account', session.phone_number),
+  );
 }
 
 function readSignedAccessToken(config, request) {
@@ -393,7 +406,11 @@ function verifyAccessToken(config, token) {
   const sessionId = requireOpaqueIdAsAuth(payload.session_id);
 
   if (Math.floor(config.now().getTime() / 1000) >= payload.exp) {
-    throw authError(401, 'expired_auth_token', 'Authorization token has expired.');
+    throw authError(
+      401,
+      'expired_auth_token',
+      'Authorization token has expired.',
+    );
   }
 
   return {
@@ -482,13 +499,21 @@ async function consumeRateLimit(
   });
 
   if (!accepted) {
-    throw authError(429, 'sms_rate_limited', 'SMS request rate limit exceeded.');
+    throw authError(
+      429,
+      'sms_rate_limited',
+      'SMS request rate limit exceeded.',
+    );
   }
 }
 
 function assertChallengeVerified(status) {
   const errors = {
-    consumed: [409, 'sms_challenge_consumed', 'SMS challenge was already used.'],
+    consumed: [
+      409,
+      'sms_challenge_consumed',
+      'SMS challenge was already used.',
+    ],
     expired: [401, 'expired_sms_challenge', 'SMS challenge has expired.'],
     invalid: [401, 'invalid_sms_code', 'Invalid SMS challenge or code.'],
     locked: [
@@ -508,9 +533,11 @@ function assertChallengeVerified(status) {
     return;
   }
 
-  const [statusCode, code, message] =
-    errors[status] ??
-    [500, 'auth_store_error', 'Auth store returned an invalid state.'];
+  const [statusCode, code, message] = errors[status] ?? [
+    500,
+    'auth_store_error',
+    'Auth store returned an invalid state.',
+  ];
   throw authError(statusCode, code, message);
 }
 
@@ -527,9 +554,11 @@ function assertRefreshRotated(status) {
     return;
   }
 
-  const [statusCode, code, message] =
-    errors[status] ??
-    [500, 'auth_store_error', 'Auth store returned an invalid state.'];
+  const [statusCode, code, message] = errors[status] ?? [
+    500,
+    'auth_store_error',
+    'Auth store returned an invalid state.',
+  ];
   throw authError(statusCode, code, message);
 }
 
@@ -601,7 +630,9 @@ function validateServiceConfig(config) {
     config.tokenSecret.length < 32 ||
     config.tokenSecret === 'softbook-cloudbase-dev-secret'
   ) {
-    throw new Error('Production auth requires a non-default 32+ character secret.');
+    throw new Error(
+      'Production auth requires a non-default 32+ character secret.',
+    );
   }
 
   if (config.indexSecret.length < 32) {

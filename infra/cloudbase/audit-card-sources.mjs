@@ -3,13 +3,18 @@
 import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {validateCardSourceCatalogMapping} from './card-source-catalog.mjs';
+import {
+  CARD_SOURCE_COLLECTION,
+  createQueryCurrentCardSourceCommand,
+  parseQueryCurrentCardSourceResult,
+} from './card-source-import-commands.mjs';
 
 const require = createRequire(import.meta.url);
 const {validateCardSourceForImport} = require('./functions/softbook-api');
 
 const DEFAULT_ENV_ID = 'test-d2gzcyxr9f7e80972';
-const COLLECTION_NAME = 'softbook_card_sources';
 const DEFAULT_TRACKS = ['cet4', 'cet6'];
+const QUERY_TIMEOUT_MILLISECONDS = 30_000;
 
 function printUsage() {
   console.log(`Usage: node infra/cloudbase/audit-card-sources.mjs [--env <env-id>] [--track cet4|cet6]
@@ -69,21 +74,7 @@ function requireTrack(value) {
   return value;
 }
 
-function createFindCommand(track) {
-  return JSON.stringify([
-    {
-      TableName: COLLECTION_NAME,
-      CommandType: 'FIND',
-      Command: JSON.stringify({
-        find: COLLECTION_NAME,
-        filter: {_id: track},
-        limit: 1,
-      }),
-    },
-  ]);
-}
-
-function runFind(options, track) {
+function runQuery(options, track) {
   const result = spawnSync(
     'tcb',
     [
@@ -93,11 +84,13 @@ function runFind(options, track) {
       '-e',
       options.envId,
       '--command',
-      createFindCommand(track),
+      createQueryCurrentCardSourceCommand(track),
       '--json',
     ],
     {
       encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+      timeout: QUERY_TIMEOUT_MILLISECONDS,
     },
   );
 
@@ -111,24 +104,13 @@ function runFind(options, track) {
     );
   }
 
-  return parseCloudBaseFindResult(result.stdout, track);
-}
+  const document = parseQueryCurrentCardSourceResult(result.stdout, track);
 
-function parseCloudBaseFindResult(output, track) {
-  const jsonStart = output.indexOf('{');
-
-  if (jsonStart === -1) {
-    throw new Error(`tcb query for ${track} did not return JSON.`);
+  if (!document) {
+    throw new Error(`${CARD_SOURCE_COLLECTION}.${track} is missing.`);
   }
 
-  const payload = JSON.parse(output.slice(jsonStart));
-  const results = payload?.data?.results?.[0];
-
-  if (!Array.isArray(results) || results.length === 0) {
-    throw new Error(`${COLLECTION_NAME}.${track} is missing.`);
-  }
-
-  return results[0];
+  return document;
 }
 
 function interactionSummary(cardRecords) {
@@ -140,7 +122,7 @@ function main() {
     const options = parseArgs(process.argv.slice(2));
 
     for (const track of options.tracks) {
-      const document = runFind(options, track);
+      const document = runQuery(options, track);
       const cardSource = validateCardSourceCatalogMapping(
         validateCardSourceForImport(document, track),
       );
