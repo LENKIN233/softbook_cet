@@ -4,7 +4,7 @@
 
 - Date: 2026-07-21
 - Branch: `infra/learning-events-v2-ledger`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/436
 - Summary: Implement the repository-local CloudBase `learning-events.v2`
   endpoint, immutable account-scoped event ledger, cursor fork detection,
   transactional server sequence and projections, retained content lookup, v1
