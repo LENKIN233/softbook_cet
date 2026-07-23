@@ -133,16 +133,29 @@
   `npm ci --ignore-scripts` completed, and the repository dependency-security
   validator then reported zero known vulnerabilities in both audited targets.
   The temporary topic mapping must be removed with the branch after merge.
+- A strict PR run before pushing the corrective commit passed 27/30. It
+  correctly failed `pr-context` because local HEAD was not yet the PR head and
+  deferred the two PR-body checks that depend on that identity. It is retained
+  as non-passing evidence at
+  `exports/local-gates/mobile-auth-request-deadlines-pr-final-tree.json`.
+- After push, the next strict PR run passed 29/30; only
+  `repo-health-strict` failed because its GitHub repository read transiently
+  returned `remote_repository_unavailable`. A direct strict remote health
+  rerun then passed with the expected protection and branch metrics.
+- The complete exact-toolchain strict PR profile rerun on pushed code commit
+  `e66a443ade3e29518028ac3ad9e32aac1da74681` passed 30/30 with no exception,
+  skipped, or deferred result. Its ignored report is
+  `exports/local-gates/mobile-auth-request-deadlines-pr-final-pushed-rerun.json`.
 
 ## Validation results
 
 - Focused and full mobile validation listed above passed.
 - Full local Harness and exact-toolchain dev profile passed as listed above.
-- Strict PR profile: first complete run failed 2/30 for the two corrected
-  delivery/dependency findings above; final-tree rerun is pending the corrective
-  commit.
+- Strict PR profile: passed 30/30 on the pushed code commit after the recorded
+  non-passing attempts above. A final PR-head rerun remains required after this
+  run-record-only commit.
 - GitHub required checks: the initial pushed run is not passing evidence;
-  final-commit rerun is pending.
+  final PR-head rerun remains pending.
 
 ## Binary evidence
 
