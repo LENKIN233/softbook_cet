@@ -3,6 +3,7 @@ import {createAuthSessionCoordinator} from '../src/auth/authSessionCoordinator';
 import type {RemoteAuthSession} from '../src/auth/authSession';
 import type {AuthSessionStore} from '../src/persistence/authSessionStore';
 import {RemoteHttpError} from '../src/runtime/remoteHttpError';
+import {RemoteRequestLifecycleError} from '../src/runtime/remoteRequest';
 
 const NOW = new Date('2026-07-20T00:00:00.000Z');
 
@@ -240,4 +241,69 @@ test('logout clears local state even when server revocation is unavailable', asy
   expect(coordinator.getCurrentSession()).toBeNull();
 
   warn.mockRestore();
+});
+
+test('publishes only logical session-scope changes', async () => {
+  const session = createSession();
+  const rotated = createSession({
+    accessToken: 'access-1',
+    accessTokenExpiresAt: '2026-07-20T00:00:30.000Z',
+    refreshToken: 'refresh-1',
+  });
+  const {authRepository, coordinator} = createHarness();
+  jest.mocked(authRepository.refreshSession).mockResolvedValue(rotated);
+  const listener = jest.fn();
+  const unsubscribe = coordinator.subscribeSessionScope(listener);
+
+  await coordinator.establish(
+    createSession({accessTokenExpiresAt: '2026-07-20T00:00:30.000Z'}),
+  );
+  await coordinator.getAccessToken();
+  await coordinator.invalidate();
+  unsubscribe();
+  await coordinator.establish(session);
+
+  expect(listener.mock.calls).toEqual([
+    ['remote:13800138000:session-123'],
+    [null],
+  ]);
+});
+
+test('replacing a session aborts its pending refresh request', async () => {
+  const session = createSession({
+    accessTokenExpiresAt: '2026-07-20T00:00:30.000Z',
+  });
+  const replacement = createSession({
+    accessToken: 'replacement-access',
+    phoneNumber: '13900139000',
+    refreshToken: 'replacement-refresh',
+    sessionId: 'replacement-session',
+  });
+  const {authRepository, coordinator} = createHarness();
+  let refreshSignal: AbortSignal | undefined;
+  jest.mocked(authRepository.refreshSession).mockImplementation(
+    (_currentSession, requestOptions) =>
+      new Promise((_, reject) => {
+        refreshSignal = requestOptions?.signal;
+        requestOptions?.signal?.addEventListener(
+          'abort',
+          () =>
+            reject(
+              new RemoteRequestLifecycleError('session_superseded'),
+            ),
+          {once: true},
+        );
+      }),
+  );
+  await coordinator.establish(session);
+  const pendingAccess = coordinator.getAccessToken();
+
+  await coordinator.establish(replacement);
+
+  await expect(pendingAccess).rejects.toMatchObject({
+    reason: 'session_superseded',
+    retryable: false,
+  });
+  expect(refreshSignal?.aborted).toBe(true);
+  expect(coordinator.getCurrentSession()).toEqual(replacement);
 });

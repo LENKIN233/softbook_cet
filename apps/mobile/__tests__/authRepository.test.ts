@@ -5,8 +5,13 @@ import {
 } from '../src/auth/authRepository';
 import type {RemoteAuthSession} from '../src/auth/authSession';
 import {RemoteHttpError} from '../src/runtime/remoteHttpError';
+import {RemoteRequestLifecycleError} from '../src/runtime/remoteRequest';
 
 const NOW = new Date('2026-07-20T00:00:00.000Z');
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 function createSessionPayload(overrides: Record<string, unknown> = {}) {
   return {
@@ -217,4 +222,90 @@ test('refresh requires a remote session', async () => {
   await expect(
     repository.refreshSession({} as RemoteAuthSession),
   ).rejects.toThrow('cannot be refreshed remotely');
+});
+
+test('remote auth timeout bounds a fetch that never returns headers', async () => {
+  jest.useFakeTimers();
+  let requestSignal: AbortSignal | undefined;
+  const repository = createAuthRepository({
+    fetchImpl: jest.fn(
+      (_input, init) =>
+        new Promise(() => {
+          requestSignal = init?.signal;
+        }),
+    ),
+    mode: 'remote',
+    remoteConfig: createSoftbookRemoteAuthConfig({
+      baseUrl: 'https://api.softbook.example',
+    }),
+    requestTimeoutMs: 20,
+  });
+
+  const request = repository.requestSmsCode('13800138000');
+  const outcome = request.catch(error => error);
+  jest.advanceTimersByTime(20);
+
+  await expect(outcome).resolves.toEqual(
+    expect.objectContaining<Partial<RemoteRequestLifecycleError>>({
+      reason: 'timeout',
+      retryable: true,
+    }),
+  );
+  expect(requestSignal?.aborted).toBe(true);
+});
+
+test('remote auth timeout includes response parsing', async () => {
+  jest.useFakeTimers();
+  const repository = createAuthRepository({
+    fetchImpl: jest.fn(async () => ({
+      json: () => new Promise(() => undefined),
+      ok: true,
+      status: 200,
+    })),
+    mode: 'remote',
+    remoteConfig: createSoftbookRemoteAuthConfig({
+      baseUrl: 'https://api.softbook.example',
+    }),
+    requestTimeoutMs: 20,
+  });
+
+  const request = repository.requestSmsCode('13800138000');
+  const outcome = request.catch(error => error);
+  jest.advanceTimersByTime(20);
+
+  await expect(outcome).resolves.toMatchObject({reason: 'timeout'});
+});
+
+test('session cancellation aborts a pending refresh without becoming authorization failure', async () => {
+  const session = parseSoftbookRemoteAuthSession(
+    createSessionPayload(),
+    '13800138000',
+    NOW,
+  );
+  const cancellation = new AbortController();
+  let requestSignal: AbortSignal | undefined;
+  const repository = createAuthRepository({
+    fetchImpl: jest.fn(
+      (_input, init) =>
+        new Promise(() => {
+          requestSignal = init?.signal;
+        }),
+    ),
+    mode: 'remote',
+    remoteConfig: createSoftbookRemoteAuthConfig({
+      baseUrl: 'https://api.softbook.example',
+    }),
+  });
+
+  const request = repository.refreshSession(session, {
+    cancellationReason: 'session_superseded',
+    signal: cancellation.signal,
+  });
+  cancellation.abort();
+
+  await expect(request).rejects.toMatchObject({
+    reason: 'session_superseded',
+    retryable: false,
+  });
+  expect(requestSignal?.aborted).toBe(true);
 });

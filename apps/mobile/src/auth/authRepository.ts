@@ -1,4 +1,9 @@
 import {RemoteHttpError} from '../runtime/remoteHttpError';
+import {
+  DEFAULT_REMOTE_REQUEST_TIMEOUT_MS,
+  runBoundedRemoteRequest,
+  type RemoteRequestLifecycleReason,
+} from '../runtime/remoteRequest';
 
 import type {
   AuthChallenge,
@@ -49,12 +54,24 @@ export type FetchLike = (
     body?: string;
     headers?: Record<string, string>;
     method?: string;
+    signal?: AbortSignal;
   },
 ) => Promise<FetchLikeResponse>;
 
+export type AuthRepositoryRequestOptions = {
+  cancellationReason?: Exclude<RemoteRequestLifecycleReason, 'timeout'>;
+  signal?: AbortSignal;
+};
+
 export type AuthRepository = {
-  logout: (session: AuthSession) => Promise<void>;
-  refreshSession: (session: RemoteAuthSession) => Promise<RemoteAuthSession>;
+  logout: (
+    session: AuthSession,
+    options?: AuthRepositoryRequestOptions,
+  ) => Promise<void>;
+  refreshSession: (
+    session: RemoteAuthSession,
+    options?: AuthRepositoryRequestOptions,
+  ) => Promise<RemoteAuthSession>;
   requestSmsCode: (phoneNumber: string) => Promise<AuthChallenge>;
   verifySmsCode: (input: VerifySmsCodeInput) => Promise<AuthSession>;
 };
@@ -63,6 +80,7 @@ export type AuthRepositoryConfig = {
   fetchImpl?: FetchLike;
   mode: AuthRepositoryMode;
   now?: () => Date;
+  requestTimeoutMs?: number;
   remoteConfig?: AuthRemoteConfig;
 };
 
@@ -75,6 +93,25 @@ export function createAuthRepository(
   config: AuthRepositoryConfig,
 ): AuthRepository {
   const now = config.now ?? (() => new Date());
+  const requestTimeoutMs =
+    config.requestTimeoutMs ?? DEFAULT_REMOTE_REQUEST_TIMEOUT_MS;
+  const runRemoteAuthRequest = <Result>(
+    operation: (signal: AbortSignal) => Promise<Result>,
+    requestOptions?: AuthRepositoryRequestOptions,
+  ) =>
+    runBoundedRemoteRequest({
+      cancellationSources: requestOptions?.signal
+        ? [
+            {
+              reason:
+                requestOptions.cancellationReason ?? 'caller_cancelled',
+              signal: requestOptions.signal,
+            },
+          ]
+        : [],
+      operation,
+      timeoutMs: requestTimeoutMs,
+    });
 
   return {
     async requestSmsCode(phoneNumber) {
@@ -86,23 +123,26 @@ export function createAuthRepository(
       }
 
       const remoteConfig = requireRemoteConfig(config.remoteConfig);
-      const response = await (config.fetchImpl ?? fetch)(
-        remoteConfig.requestCodeEndpoint,
-        {
-          body: JSON.stringify({
-            phone_number: phoneNumber,
-          }),
-          headers: createHeaders(remoteConfig),
-          method: 'POST',
-        },
-      );
+      return runRemoteAuthRequest(async signal => {
+        const response = await (config.fetchImpl ?? fetch)(
+          remoteConfig.requestCodeEndpoint,
+          {
+            body: JSON.stringify({
+              phone_number: phoneNumber,
+            }),
+            headers: createHeaders(remoteConfig),
+            method: 'POST',
+            signal,
+          },
+        );
 
-      assertRemoteResponse(response, 'request-code');
+        assertRemoteResponse(response, 'request-code');
 
-      return (
-        remoteConfig.parseRequestCodePayload ??
-        parseSoftbookRemoteAuthRequestCodePayload
-      )(await response.json(), phoneNumber);
+        return (
+          remoteConfig.parseRequestCodePayload ??
+          parseSoftbookRemoteAuthRequestCodePayload
+        )(await response.json(), phoneNumber);
+      });
     },
 
     async verifySmsCode(input) {
@@ -123,28 +163,32 @@ export function createAuthRepository(
         throw new Error('Remote auth requires a server SMS challenge.');
       }
 
+      const remoteChallenge = input.challenge;
       const remoteConfig = requireRemoteConfig(config.remoteConfig);
-      const response = await (config.fetchImpl ?? fetch)(
-        remoteConfig.verifyCodeEndpoint,
-        {
-          body: JSON.stringify({
-            challenge_id: input.challenge.challengeId,
-            phone_number: input.phoneNumber,
-            sms_code: input.smsCode,
-          }),
-          headers: createHeaders(remoteConfig),
-          method: 'POST',
-        },
-      );
+      return runRemoteAuthRequest(async signal => {
+        const response = await (config.fetchImpl ?? fetch)(
+          remoteConfig.verifyCodeEndpoint,
+          {
+            body: JSON.stringify({
+              challenge_id: remoteChallenge.challengeId,
+              phone_number: input.phoneNumber,
+              sms_code: input.smsCode,
+            }),
+            headers: createHeaders(remoteConfig),
+            method: 'POST',
+            signal,
+          },
+        );
 
-      assertRemoteResponse(response, 'verify-code');
+        assertRemoteResponse(response, 'verify-code');
 
-      return (
-        remoteConfig.parseSessionPayload ?? parseSoftbookRemoteAuthSession
-      )(await response.json(), input.phoneNumber, now());
+        return (
+          remoteConfig.parseSessionPayload ?? parseSoftbookRemoteAuthSession
+        )(await response.json(), input.phoneNumber, now());
+      });
     },
 
-    async refreshSession(session) {
+    async refreshSession(session, requestOptions) {
       if (config.mode !== 'remote') {
         throw new Error('Local auth sessions cannot be refreshed remotely.');
       }
@@ -153,40 +197,51 @@ export function createAuthRepository(
       const requestBody = JSON.stringify({
         refresh_token: session.refreshToken,
       });
-      const response = await (config.fetchImpl ?? fetch)(
-        remoteConfig.refreshEndpoint,
-        {
-          body: requestBody,
-          headers: createHeaders(remoteConfig),
-          method: 'POST',
-        },
-      );
+      return runRemoteAuthRequest(async signal => {
+        const response = await (config.fetchImpl ?? fetch)(
+          remoteConfig.refreshEndpoint,
+          {
+            body: requestBody,
+            headers: createHeaders(remoteConfig),
+            method: 'POST',
+            signal,
+          },
+        );
 
-      assertRemoteResponse(response, 'refresh');
+        assertRemoteResponse(response, 'refresh');
 
-      return (
-        remoteConfig.parseSessionPayload ?? parseSoftbookRemoteAuthSession
-      )(await response.json(), session.phoneNumber, now(), session.sessionId);
+        return (
+          remoteConfig.parseSessionPayload ?? parseSoftbookRemoteAuthSession
+        )(
+          await response.json(),
+          session.phoneNumber,
+          now(),
+          session.sessionId,
+        );
+      }, requestOptions);
     },
 
-    async logout(session) {
+    async logout(session, requestOptions) {
       if (config.mode === 'local' || session.mode === 'local') {
         return;
       }
 
       const remoteConfig = requireRemoteConfig(config.remoteConfig);
-      const response = await (config.fetchImpl ?? fetch)(
-        remoteConfig.logoutEndpoint,
-        {
-          headers: {
-            ...createHeaders(remoteConfig),
-            Authorization: `${session.tokenType} ${session.accessToken}`,
+      await runRemoteAuthRequest(async signal => {
+        const response = await (config.fetchImpl ?? fetch)(
+          remoteConfig.logoutEndpoint,
+          {
+            headers: {
+              ...createHeaders(remoteConfig),
+              Authorization: `${session.tokenType} ${session.accessToken}`,
+            },
+            method: 'POST',
+            signal,
           },
-          method: 'POST',
-        },
-      );
+        );
 
-      assertRemoteResponse(response, 'logout');
+        assertRemoteResponse(response, 'logout');
+      }, requestOptions);
     },
   };
 }

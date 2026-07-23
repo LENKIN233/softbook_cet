@@ -21,6 +21,7 @@ type MockFetchInit = {
   body?: string;
   headers?: ConstructorParameters<typeof Headers>[0];
   method?: string;
+  signal?: AbortSignal;
 };
 
 type MockFetchCall = {
@@ -2138,11 +2139,10 @@ test.each([
     scenario: 'the same account establishes a replacement session',
   },
 ])(
-  'ignores a signed-out session replay failure after $scenario',
+  'cancels a permanently hung signed-out replay before $scenario',
   async ({ expectedMaskedPhone, replacementPhone }) => {
     let verifiedSessionCount = 0;
-    const delayedFirstReplay =
-      createDeferred<ReturnType<typeof createJsonResponse>>();
+    let firstReplaySignal: AbortSignal | undefined;
     let markFirstReplayStarted: (() => void) | undefined;
     const firstReplayStarted = new Promise<void>(resolve => {
       markFirstReplayStarted = resolve;
@@ -2186,7 +2186,8 @@ test.each([
 
           if (headers.authorization === 'Bearer remote-auth-token-account-a') {
             markFirstReplayStarted?.();
-            return delayedFirstReplay.promise;
+            firstReplaySignal = init?.signal;
+            return new Promise(() => undefined);
           }
 
           return createLearningEventsAckResponse(init);
@@ -2228,10 +2229,7 @@ test.each([
     await openRoute(root, 'learning');
     await waitForLearningSurface(root);
 
-    await ReactTestRenderer.act(async () => {
-      delayedFirstReplay.resolve(createJsonResponse({}, 401));
-      await flushAsyncEffects();
-    });
+    expect(firstReplaySignal?.aborted).toBe(true);
     await openRoute(root, 'mine');
 
     const output = JSON.stringify(tree!.toJSON());

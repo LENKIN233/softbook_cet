@@ -1,4 +1,5 @@
 import {isRemoteAuthorizationError} from '../runtime/remoteHttpError';
+import {isRemoteRequestCancellationError} from '../runtime/remoteRequest';
 import {
   LearningEventOutbox,
   type EnqueueLearningCompletionInput,
@@ -64,7 +65,10 @@ export function createLearningEventSyncRepository(options: {
         acknowledgedEntries.push(...batch);
         acknowledgements.push(acknowledgement);
       } catch (error) {
-        if (!isRemoteAuthorizationError(error)) {
+        if (
+          !isRemoteAuthorizationError(error) &&
+          !isRemoteRequestCancellationError(error)
+        ) {
           await outbox.incrementRetry(
             context.phoneNumber,
             batch.map(entry => entry.event.event_id),

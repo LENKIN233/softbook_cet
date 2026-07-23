@@ -93,6 +93,16 @@ def learning_events_contract_findings(
 
     owner_expectations = [
         (
+            "remote auth request timeout",
+            ("authentication", "remote_request_timeout_ms"),
+            15000,
+        ),
+        (
+            "authenticated request lifecycle",
+            ("authentication", "authenticated_request_rule"),
+            "access-token acquisition, the first protected fetch, at most one forced refresh, and one retry share one bounded deadline; caller cancellation or a changed originating session cancels the request, and cancellation itself cannot trigger refresh, invalidate, or mutate a replacement session",
+        ),
+        (
             "default ordering basis",
             ("default_sync_strategy", "ordering_basis"),
             ["account_scoped_server_sequence"],
@@ -181,6 +191,15 @@ def learning_events_contract_findings(
                 "learning_events_v2",
                 "implementation_progress",
                 "mobile_durable_event_producer",
+            ),
+            True,
+        ),
+        (
+            "mobile bounded authenticated request boundary",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "mobile_bounded_authenticated_requests",
             ),
             True,
         ),
@@ -429,6 +448,15 @@ def learning_events_contract_findings(
             "scope replay, bootstrap, and authenticated HTTP authorization handling to the originating session identity rather than phone number alone; a stale response from a signed-out or replaced session must not refresh, invalidate, clear, hydrate, or change sync state for the current session, including same-phone reauthentication",
         ),
         (
+            "mobile request lifecycle owner contract",
+            (
+                "learning_events_v2",
+                "mobile_client_contract",
+                "request_lifecycle_rule",
+            ),
+            "bound token acquisition and each authenticated fetch pipeline to 15000 milliseconds; timeout retains byte-equivalent events and advances retry state, while caller cancellation or originating-session replacement cancels immediately without acknowledging, removing, rewriting, or incrementing retry state for queued events",
+        ),
+        (
             "mobile legacy queue owner contract",
             ("learning_events_v2", "mobile_client_contract", "legacy_queue_rule"),
             "discard persisted generic sync_learning_state mutations during hydration and never route active mobile learning completion through /v1/learning/state-sync",
@@ -529,6 +557,16 @@ def learning_events_contract_findings(
             "originating_session_scoped_stale_replaced_session_responses_cannot_refresh_invalidate_clear_hydrate_or_mutate_current_session",
         ),
         (
+            "runtime mobile authenticated request timeout",
+            ("learning_event_runtime", "mobile_authenticated_request_timeout_ms"),
+            15000,
+        ),
+        (
+            "runtime mobile request lifecycle boundary",
+            ("learning_event_runtime", "mobile_request_lifecycle_boundary"),
+            "timeout_retains_exact_events_and_increments_retry_while_caller_or_session_cancellation_keeps_retry_state_unchanged",
+        ),
+        (
             "runtime mobile active v1 learning writes",
             ("learning_event_runtime", "mobile_active_v1_learning_snapshot_writes"),
             False,
@@ -616,6 +654,20 @@ def learning_events_contract_findings(
     elif hr38.get("must_hit") != expected_hr38:
         findings.append("learning-events contract evals: HR-38 must_hit drift")
 
+    hr39 = _entry_by_id(evals.get("regressions", []), "HR-39")
+    expected_hr39 = [
+        "remote_auth_and_authenticated_fetch_deadline_is_15000ms",
+        "token_acquisition_first_fetch_refresh_and_retry_share_one_deadline",
+        "session_replacement_aborts_stale_protected_request_and_refresh",
+        "timeout_retains_exact_event_and_advances_retry_state",
+        "caller_or_session_cancellation_retains_event_without_retry_increment",
+        "transport_cancellation_never_invalidates_or_mutates_replacement_session",
+    ]
+    if not hr39:
+        findings.append("learning-events contract evals: missing HR-39")
+    elif hr39.get("must_hit") != expected_hr39:
+        findings.append("learning-events contract evals: HR-39 must_hit drift")
+
     gt28 = _entry_by_id(evals.get("golden_tasks", []), "GT-28")
     expected_gt28 = [
         "account_sync_contract_owner",
@@ -695,6 +747,9 @@ def learning_events_contract_findings(
         "late_generic_result_cannot_consume_same_id_replacement",
         "logout_clears_account_events_but_preserves_installation_cursor",
         "stale_replaced_session_response_cannot_affect_current_session_including_same_phone_reauthentication",
+        "bounded_authenticated_request_deadline_includes_token_refresh_and_retry",
+        "timeout_retains_exact_event_and_advances_retry_state",
+        "caller_or_session_cancellation_keeps_event_retry_state_unchanged",
         "persisted_v1_learning_mutations_are_discarded",
         "active_mobile_v1_learning_snapshot_writes_are_removed",
         "storage_failure_does_not_advance_the_card",
@@ -733,6 +788,8 @@ def learning_events_contract_findings(
         "active mobile completion no longer calls",
         "Late replay, authorization, or bootstrap responses",
         "including same-phone reauthentication.",
+        "Every remote authentication call has a 15-second deadline",
+        "Explicit caller cancellation or session replacement leaves the queued event and retry",
         "Legacy `/v1/learning/state-sync` remains",
         "only `checked_in_today` is merged",
         "409 legacy_learning_write_disabled",

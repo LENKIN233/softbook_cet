@@ -9,7 +9,10 @@
   "authentication": {
     "login_is_required_before_learning": true,
     "guest_learning_before_authentication": false,
-    "primary_login_method": "phone_sms_code"
+    "primary_login_method": "phone_sms_code",
+    "remote_request_timeout_ms": 15000,
+    "remote_auth_request_rule": "request-code, verify-code, refresh, and logout each use one bounded deadline that includes response validation and parsing; timeout and cancellation are transport outcomes rather than authorization rejection",
+    "authenticated_request_rule": "access-token acquisition, the first protected fetch, at most one forced refresh, and one retry share one bounded deadline; caller cancellation or a changed originating session cancels the request, and cancellation itself cannot trigger refresh, invalidate, or mutate a replacement session"
   },
   "trial_and_purchase": {
     "trial_starts_when": "first_entry_counted_as_membership_trial",
@@ -79,6 +82,7 @@
       "legacy_migration_consistency": "bounded_outside_transaction_snapshot_with_transactional_revision_fence",
       "legacy_all_track_projection_migration": true,
       "mobile_durable_event_producer": true,
+      "mobile_bounded_authenticated_requests": true,
       "mobile_active_v1_learning_snapshot_writes_disabled": true,
       "legacy_v1_snapshot_writes_disabled": false,
       "migrated_account_v1_learning_writes": "learning_state_rejected_daily_progress_check_in_only_after_first_accepted_v2_event",
@@ -270,8 +274,9 @@
       "recovery_rule": "hydrate the account outbox count with authenticated bootstrap; a restored pending event blocks duplicate card advance until strict acknowledgement and post-acknowledgement bootstrap mapping, while events enqueued in the current validated session may continue batching without a routine canonical refresh overwriting local intent",
       "reconciliation_rule": "replay only after validated bootstrap and content hydration; while events are pending, queue dependent daily-progress and space-state mutations and suppress routine canonical refreshes that would overwrite local intent; after any acknowledgement, keep dependent mutations blocked until another bootstrap is fetched and mapped",
       "logout_rule": "clear only the signed-out account's queued events while preserving the installation identity and next sequence",
-      "account_switch_rule": "scope replay, bootstrap, and authenticated HTTP authorization handling to the originating session identity rather than phone number alone; a stale response from a signed-out or replaced session must not refresh, invalidate, clear, hydrate, or change sync state for the current session, including same-phone reauthentication",
-      "legacy_queue_rule": "discard persisted generic sync_learning_state mutations during hydration and never route active mobile learning completion through /v1/learning/state-sync"
+    "account_switch_rule": "scope replay, bootstrap, and authenticated HTTP authorization handling to the originating session identity rather than phone number alone; a stale response from a signed-out or replaced session must not refresh, invalidate, clear, hydrate, or change sync state for the current session, including same-phone reauthentication",
+    "request_lifecycle_rule": "bound token acquisition and each authenticated fetch pipeline to 15000 milliseconds; timeout retains byte-equivalent events and advances retry state, while caller cancellation or originating-session replacement cancels immediately without acknowledging, removing, rewriting, or incrementing retry state for queued events",
+    "legacy_queue_rule": "discard persisted generic sync_learning_state mutations during hydration and never route active mobile learning completion through /v1/learning/state-sync"
     },
     "migration_boundary": {
       "legacy_v1_role": "development-only migration input; v1 daily and learning snapshots are never accepted as learning-events.v2 payloads, while the migrated daily endpoint temporarily carries check-in compatibility only",

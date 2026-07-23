@@ -471,6 +471,19 @@
         "formal_content_approval_and_production_publication_remain_pending",
         "backend_green_is_not_launch_readiness"
       ]
+    },
+    {
+      "id": "HR-39",
+      "prompt": "学习事件请求永久悬挂，换号或同手机号重新登录后继续等待旧会话，或把取消记成失败重试",
+      "fail_signal": "unbounded_authenticated_request_or_stale_session_blocks_replacement_or_mutates_retry_state",
+      "must_hit": [
+        "remote_auth_and_authenticated_fetch_deadline_is_15000ms",
+        "token_acquisition_first_fetch_refresh_and_retry_share_one_deadline",
+        "session_replacement_aborts_stale_protected_request_and_refresh",
+        "timeout_retains_exact_event_and_advances_retry_state",
+        "caller_or_session_cancellation_retains_event_without_retry_increment",
+        "transport_cancellation_never_invalidates_or_mutates_replacement_session"
+      ]
     }
   ],
   "golden_tasks": [
@@ -904,6 +917,9 @@
         "late_generic_result_cannot_consume_same_id_replacement",
         "logout_clears_account_events_but_preserves_installation_cursor",
         "stale_replaced_session_response_cannot_affect_current_session_including_same_phone_reauthentication",
+        "bounded_authenticated_request_deadline_includes_token_refresh_and_retry",
+        "timeout_retains_exact_event_and_advances_retry_state",
+        "caller_or_session_cancellation_keeps_event_retry_state_unchanged",
         "persisted_v1_learning_mutations_are_discarded",
         "active_mobile_v1_learning_snapshot_writes_are_removed",
         "storage_failure_does_not_advance_the_card",

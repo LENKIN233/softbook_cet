@@ -212,6 +212,14 @@ class LearningEventsContractTests(unittest.TestCase):
         unsafe_runtime_restore["learning_event_runtime"][
             "mobile_restore_boundary"
         ] = "restored_outbox_does_not_gate_card_advance"
+        unsafe_request_lifecycle = copy.deepcopy(self.auth)
+        unsafe_request_lifecycle["learning_events_v2"]["mobile_client_contract"][
+            "request_lifecycle_rule"
+        ] = "wait forever and increment retry after session replacement"
+        unbounded_runtime = copy.deepcopy(self.runtime)
+        unbounded_runtime["learning_event_runtime"][
+            "mobile_authenticated_request_timeout_ms"
+        ] = None
 
         self.assert_finding(
             self.findings(auth=missing_producer),
@@ -249,6 +257,14 @@ class LearningEventsContractTests(unittest.TestCase):
             self.findings(runtime=unsafe_runtime_restore),
             "runtime mobile restore boundary",
         )
+        self.assert_finding(
+            self.findings(auth=unsafe_request_lifecycle),
+            "mobile request lifecycle owner contract",
+        )
+        self.assert_finding(
+            self.findings(runtime=unbounded_runtime),
+            "runtime mobile authenticated request timeout",
+        )
 
     def test_mobile_golden_task_and_durable_runtime_proof_are_required(self):
         missing_gt30 = copy.deepcopy(self.evals)
@@ -272,6 +288,33 @@ class LearningEventsContractTests(unittest.TestCase):
         )
         self.assert_finding(
             self.findings(text=hidden_durability),
+            "runtime contract missing exact snippet",
+        )
+
+    def test_request_deadline_regression_and_runtime_proof_are_required(self):
+        missing_hr39 = copy.deepcopy(self.evals)
+        missing_hr39["regressions"] = [
+            item for item in missing_hr39["regressions"] if item["id"] != "HR-39"
+        ]
+        weakened_gt30 = copy.deepcopy(self.evals)
+        gt30 = next(
+            item for item in weakened_gt30["golden_tasks"] if item["id"] == "GT-30"
+        )
+        gt30["must_include"].remove(
+            "caller_or_session_cancellation_keeps_event_retry_state_unchanged"
+        )
+        hidden_deadline = self.runtime_text.replace(
+            "Every remote authentication call has a 15-second deadline",
+            "Remote authentication may wait without a deadline",
+        )
+
+        self.assert_finding(self.findings(evals=missing_hr39), "missing HR-39")
+        self.assert_finding(
+            self.findings(evals=weakened_gt30),
+            "GT-30 must_include drift",
+        )
+        self.assert_finding(
+            self.findings(text=hidden_deadline),
             "runtime contract missing exact snippet",
         )
 
