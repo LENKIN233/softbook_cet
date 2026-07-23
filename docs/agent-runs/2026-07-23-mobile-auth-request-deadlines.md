@@ -4,7 +4,7 @@
 
 - Date: 2026-07-23
 - Branch: `module/mobile-auth-request-deadlines`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/438
 - Summary: Bound mobile remote authentication and authenticated protected
   fetch pipelines to 15 seconds, cancel requests and refreshes from replaced
   sessions, and preserve distinct retry semantics for timeout versus explicit
@@ -83,6 +83,9 @@
   and App logout/relogin while the old fetch never settles.
 - Owner contracts, runtime mirror, evals, Harness mirror, and contract tests:
   make the deadline and cancellation behavior machine-verifiable.
+- `apps/mobile/package-lock.json`: advance the React Native CLI's compatible
+  `fast-xml-parser` resolution from 5.9.3 to 5.10.1 after the first pushed PR
+  audit exposed GHSA-8r6m-32jq-jx6q; no direct product dependency was added.
 - `docs/agent-runs/2026-07-23-mobile-auth-request-deadlines.md`: this record.
 
 ## Commands run
@@ -118,13 +121,28 @@
   `./scripts/run_local_gates --profile dev --output
   exports/local-gates/mobile-auth-request-deadlines-dev-final.json` passed 18/18
   with no exception, skipped or deferred result and unchanged tracked state.
+- Full remote Harness passed against pushed PR #438 with no finding.
+- The first exact-toolchain strict PR profile completed 30 gates and failed
+  2/30: `dependency-security` found GHSA-8r6m-32jq-jx6q in the locked
+  `fast-xml-parser` 5.9.3, and `repo-health-strict` found that the pushed topic
+  branch lacked a configured fetch/upstream mapping. This run is retained as
+  non-passing evidence at
+  `exports/local-gates/mobile-auth-request-deadlines-pr-pre-record.json`.
+- The topic branch now has an explicit temporary upstream mapping. The mobile
+  lock resolution was advanced to `fast-xml-parser` 5.10.1, exact Node 22.13.0
+  `npm ci --ignore-scripts` completed, and the repository dependency-security
+  validator then reported zero known vulnerabilities in both audited targets.
+  The temporary topic mapping must be removed with the branch after merge.
 
 ## Validation results
 
 - Focused and full mobile validation listed above passed.
 - Full local Harness and exact-toolchain dev profile passed as listed above.
-- Strict PR profile: pending unique pushed PR context.
-- GitHub required checks: pending commit and PR.
+- Strict PR profile: first complete run failed 2/30 for the two corrected
+  delivery/dependency findings above; final-tree rerun is pending the corrective
+  commit.
+- GitHub required checks: the initial pushed run is not passing evidence;
+  final-commit rerun is pending.
 
 ## Binary evidence
 
@@ -135,7 +153,8 @@
 ## Agent review status
 
 - Reviewer: Codex
-- Status: Passed for local implementation review; GitHub Agent review pending
+- Status: Passed for local implementation review; final-commit GitHub Agent
+  review pending
 - Blocking findings: none open. Review found and fixed a terminal-authorization
   self-cancellation race, cleanup-outcome masking risk, and a contract claim
   that was too broad for a refresh shared by same-session callers.
@@ -165,7 +184,8 @@
 
 ## Follow-up
 
-- Complete full Harness, exact-toolchain dev/PR gates, Agent review, and GitHub
-  required checks before merge.
+- Complete final-commit full Harness, exact-toolchain PR gates, Agent review,
+  formal product-owner environment approval, and GitHub required checks before
+  merge.
 - After merge, start the server scheduler/FSRS boundary only from the new clean
   `origin/main`; do not treat this request policy as scheduler completion.
