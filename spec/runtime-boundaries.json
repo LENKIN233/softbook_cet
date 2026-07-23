@@ -1,5 +1,5 @@
 {
-  "version": "vnext-13",
+  "version": "vnext-14",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -62,6 +62,7 @@
     "CloudBase physical-space canonical state uses database transactions so concurrent function instances retry read-merge-write conflicts",
     "mobile remote authentication uses challenge-bound SMS verification, short-lived access tokens, rotating refresh tokens, and revocable server sessions",
     "mobile refresh is demand-driven before protected requests and serialized per session so one refresh token is never submitted concurrently",
+    "mobile remote auth calls and authenticated fetch pipelines have a 15000 millisecond deadline; session replacement aborts stale requests, timeout remains retryable, and cancellation cannot become authorization rejection or mutate replacement-session state",
     "an authenticated v2 bootstrap read derives account identity from the active session and returns membership, daily progress, learning card state, nullable scheduler cursor, physical space, and content version without accepting phone_number input",
     "missing bootstrap components return explicit empty server state and never import device-local state; CloudBase response freshness is explicit and does not claim a cross-collection transaction",
     "bootstrap content version is derived from normalized ordered content; production fails closed without a matching published content-release.v1 descriptor while development may expose a null release id",
@@ -94,6 +95,8 @@
     "mobile_replay_boundary": "validated_bootstrap_then_exact_event_replay_then_bootstrap_refresh_before_dependent_mutations",
     "mobile_restore_boundary": "restored_pending_event_blocks_duplicate_card_advance_until_ack_and_post_ack_bootstrap_mapping",
     "mobile_account_switch_boundary": "originating_session_scoped_stale_replaced_session_responses_cannot_refresh_invalidate_clear_hydrate_or_mutate_current_session",
+    "mobile_authenticated_request_timeout_ms": 15000,
+    "mobile_request_lifecycle_boundary": "timeout_retains_exact_events_and_increments_retry_while_caller_or_session_cancellation_keeps_retry_state_unchanged",
     "mobile_active_v1_learning_snapshot_writes": false,
     "legacy_v1_write_status": "development_bridge_learning_state_rejected_daily_progress_check_in_only_after_first_v2_event",
     "account_identity": "active_v2_session_only",
@@ -117,6 +120,8 @@
       "non_sensitive_revocation_marker": "versioned_AsyncStorage tombstone is written before secure credential cleanup and blocks restoration until a new secure session is saved",
       "legacy_migration": "auth-session.v1 cannot be upgraded without refresh credentials and is invalidated instead of restored",
       "refresh_policy": "refresh within 60 seconds of access expiry, serialize concurrent refresh demand, persist the complete rotated pair before exposing it, and never retry a rejected refresh token",
+      "remote_request_timeout_ms": 15000,
+      "request_cancellation": "abort an in-flight refresh when its originating session is invalidated or replaced; timeout and cancellation do not invalidate an otherwise valid session",
       "authorization_rejection": "refresh rejection, repeated HTTP 401, or HTTP 403 clears account-bound persistence and returns to login"
     },
     "user_state_store": {

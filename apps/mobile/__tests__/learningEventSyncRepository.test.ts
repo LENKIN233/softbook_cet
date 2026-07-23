@@ -1,4 +1,5 @@
 import {RemoteHttpError} from '../src/runtime/remoteHttpError';
+import {RemoteRequestLifecycleError} from '../src/runtime/remoteRequest';
 import {
   createInMemoryLearningEventOutboxStorage,
   LearningEventOutbox,
@@ -118,6 +119,51 @@ describe('learningEventSyncRepository', () => {
     ).rejects.toMatchObject({status: 401});
     await expect(outbox.getAll()).resolves.toEqual([original]);
   });
+
+  it('retains the exact event and increments retry state after timeout', async () => {
+    const outbox = createOutbox();
+    const submitEvents = jest
+      .fn()
+      .mockRejectedValue(
+        new RemoteRequestLifecycleError('timeout'),
+      ) as jest.MockedFunction<LearningEventsRepository['submitEvents']>;
+    const repository = createLearningEventSyncRepository({
+      eventsRepository: {submitEvents},
+      outbox,
+    });
+    const original = await repository.enqueueCompletion(createInput());
+
+    await expect(
+      repository.startReplay({authToken: 'token', phoneNumber: PHONE}),
+    ).rejects.toMatchObject({reason: 'timeout', retryable: true});
+
+    const [retained] = await outbox.getAll();
+    expect(retained.event).toEqual(original.event);
+    expect(retained.retryCount).toBe(1);
+  });
+
+  it.each(['caller_cancelled', 'session_superseded'] as const)(
+    'keeps retry state unchanged after %s cancellation',
+    async reason => {
+      const outbox = createOutbox();
+      const submitEvents = jest
+        .fn()
+        .mockRejectedValue(
+          new RemoteRequestLifecycleError(reason),
+        ) as jest.MockedFunction<LearningEventsRepository['submitEvents']>;
+      const repository = createLearningEventSyncRepository({
+        eventsRepository: {submitEvents},
+        outbox,
+      });
+      const original = await repository.enqueueCompletion(createInput());
+
+      await expect(
+        repository.startReplay({authToken: 'token', phoneNumber: PHONE}),
+      ).rejects.toMatchObject({reason, retryable: false});
+
+      await expect(outbox.getAll()).resolves.toEqual([original]);
+    },
+  );
 
   it('shares one in-flight replay instead of submitting a duplicate request', async () => {
     const outbox = createOutbox();

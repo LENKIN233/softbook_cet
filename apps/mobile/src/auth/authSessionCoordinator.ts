@@ -6,6 +6,7 @@ import type {AuthSessionStore} from '../persistence/authSessionStore';
 
 import type {AuthRepository} from './authRepository';
 import {
+  getAuthSessionScopeKey,
   isRemoteAuthSession,
   type AuthSession,
   type RemoteAuthSession,
@@ -23,6 +24,9 @@ export type AuthSessionCoordinator = {
   invalidate: () => Promise<void>;
   logout: () => Promise<AuthSessionLogoutResult>;
   restore: () => Promise<AuthSession | null>;
+  subscribeSessionScope: (
+    listener: (sessionScopeKey: string | null) => void,
+  ) => () => void;
 };
 
 const DEFAULT_REFRESH_LEEWAY_MS = 60_000;
@@ -37,12 +41,40 @@ export function createAuthSessionCoordinator(options: {
   const refreshLeewayMs = options.refreshLeewayMs ?? DEFAULT_REFRESH_LEEWAY_MS;
   let currentSession: AuthSession | null = null;
   let refreshInFlight: {
+    abortController: AbortController;
     promise: Promise<RemoteAuthSession>;
     revision: number;
     session: RemoteAuthSession;
   } | null = null;
   let sessionRevision = 0;
   let storageTransition: Promise<void> = Promise.resolve();
+  const sessionScopeListeners = new Set<
+    (sessionScopeKey: string | null) => void
+  >();
+
+  const setCurrentSession = (session: AuthSession | null) => {
+    const previousScopeKey = getAuthSessionScopeKey(currentSession);
+    const nextScopeKey = getAuthSessionScopeKey(session);
+    currentSession = session;
+
+    if (previousScopeKey === nextScopeKey) {
+      return;
+    }
+
+    for (const listener of sessionScopeListeners) {
+      try {
+        listener(nextScopeKey);
+      } catch {
+        console.warn(
+          '[AuthSessionCoordinator] Session-scope listener failed.',
+        );
+      }
+    }
+  };
+
+  const abortRefreshInFlight = () => {
+    refreshInFlight?.abortController.abort();
+  };
 
   const runStorageTransition = <Result>(
     operation: () => Promise<Result>,
@@ -57,7 +89,8 @@ export function createAuthSessionCoordinator(options: {
 
   const invalidate = async () => {
     sessionRevision += 1;
-    currentSession = null;
+    setCurrentSession(null);
+    abortRefreshInFlight();
     await runStorageTransition(() => options.authSessionStore.clear());
   };
 
@@ -92,13 +125,17 @@ export function createAuthSessionCoordinator(options: {
     }
 
     const refreshRevision = sessionRevision;
+    const refreshAbortController = new AbortController();
     const isCurrentRefresh = () =>
       sessionRevision === refreshRevision && currentSession === session;
     const refreshTask = (async () => {
       let refreshedSession: RemoteAuthSession;
 
       try {
-        refreshedSession = await options.authRepository.refreshSession(session);
+        refreshedSession = await options.authRepository.refreshSession(session, {
+          cancellationReason: 'session_superseded',
+          signal: refreshAbortController.signal,
+        });
       } catch (error) {
         if (isRemoteAuthorizationError(error) && isCurrentRefresh()) {
           await invalidateWithoutMasking(error);
@@ -128,11 +165,12 @@ export function createAuthSessionCoordinator(options: {
       }
 
       sessionRevision += 1;
-      currentSession = refreshedSession;
+      setCurrentSession(refreshedSession);
       return refreshedSession;
     })();
 
     refreshInFlight = {
+      abortController: refreshAbortController,
       promise: refreshTask,
       revision: refreshRevision,
       session,
@@ -177,7 +215,8 @@ export function createAuthSessionCoordinator(options: {
     async establish(session) {
       const establishRevision = sessionRevision + 1;
       sessionRevision = establishRevision;
-      currentSession = null;
+      setCurrentSession(null);
+      abortRefreshInFlight();
 
       try {
         await runStorageTransition(async () => {
@@ -203,7 +242,7 @@ export function createAuthSessionCoordinator(options: {
         throw error;
       }
 
-      currentSession = session;
+      setCurrentSession(session);
     },
 
     forceRefresh() {
@@ -243,7 +282,8 @@ export function createAuthSessionCoordinator(options: {
     async restore() {
       const restoreRevision = sessionRevision + 1;
       sessionRevision = restoreRevision;
-      currentSession = null;
+      setCurrentSession(null);
+      abortRefreshInFlight();
       const restoredSession = await runStorageTransition(() =>
         options.authSessionStore.load(),
       );
@@ -264,7 +304,7 @@ export function createAuthSessionCoordinator(options: {
         return null;
       }
 
-      currentSession = restoredSession;
+      setCurrentSession(restoredSession);
 
       if (!isRemoteAuthSession(restoredSession)) {
         return restoredSession;
@@ -279,6 +319,13 @@ export function createAuthSessionCoordinator(options: {
 
         return currentSession;
       }
+    },
+
+    subscribeSessionScope(listener) {
+      sessionScopeListeners.add(listener);
+      return () => {
+        sessionScopeListeners.delete(listener);
+      };
     },
   };
 }

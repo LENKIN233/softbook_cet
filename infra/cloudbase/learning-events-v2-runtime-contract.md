@@ -363,6 +363,16 @@ session identity, not phone number alone. A response for a signed-out or
 replaced session cannot refresh, invalidate, clear, hydrate, or change sync
 state for the current session, including same-phone reauthentication.
 
+Every remote authentication call has a 15-second deadline that includes
+response validation and parsing. Access-token acquisition, the first protected
+fetch, at most one forced refresh, and one retry also share one 15-second
+deadline. Replacing or invalidating the originating session aborts its pending
+refresh and protected requests. A timeout is an ambiguous retryable transport
+failure: the exact event stays queued and its retry state advances.
+Explicit caller cancellation or session replacement leaves the queued event and retry
+state unchanged. None of these transport outcomes is an authorization rejection
+or may invalidate or mutate a replacement session.
+
 Reconnect order remains:
 
 1. authenticate or refresh the v2 session;

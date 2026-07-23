@@ -5,6 +5,7 @@ import {
 import type {MembershipState} from '../src/membership/localMembership';
 import {createMutationQueueRepository} from '../src/sync/mutationQueueRepository';
 import {RemoteHttpError} from '../src/runtime/remoteHttpError';
+import {RemoteRequestLifecycleError} from '../src/runtime/remoteRequest';
 
 const createProgressPayload = () => ({
   context: {
@@ -292,6 +293,29 @@ describe('MutationQueueRepository', () => {
       status: 401,
     });
     await expect(repository.getQueueSize()).resolves.toBe(1);
+  });
+
+  it('surfaces session cancellation without incrementing generic queue retry state', async () => {
+    const queueManager = new MutationQueueManager();
+    const repository = createMutationQueueRepository({
+      membershipRepository: mockMembershipRepository as never,
+      progressSyncRepository: mockProgressSyncRepository as never,
+      queueManager,
+      spaceStateRepository: mockSpaceStateRepository as never,
+    });
+    mockProgressSyncRepository.syncDailyProgress.mockRejectedValue(
+      new RemoteRequestLifecycleError('session_superseded'),
+    );
+    const entry = await repository.enqueueMutation(
+      'sync_daily_progress',
+      createProgressPayload(),
+    );
+
+    await expect(repository.startReplay()).rejects.toMatchObject({
+      reason: 'session_superseded',
+    });
+
+    await expect(queueManager.getAll()).resolves.toEqual([entry]);
   });
 
   it('drops stale entries for a different auth context before replaying current user mutations', async () => {

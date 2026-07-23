@@ -12,6 +12,7 @@ import {
 } from './mutationQueue';
 import type {ProgressSyncRepository} from './progressSyncRepository';
 import {isRemoteAuthorizationError} from '../runtime/remoteHttpError';
+import {isRemoteRequestCancellationError} from '../runtime/remoteRequest';
 
 export type MutationReplayResult =
   | {
@@ -104,7 +105,10 @@ export function createMutationQueueRepository(options: {
           };
       }
     } catch (error) {
-      if (isRemoteAuthorizationError(error)) {
+      if (
+        isRemoteAuthorizationError(error) ||
+        isRemoteRequestCancellationError(error)
+      ) {
         throw error;
       }
 
