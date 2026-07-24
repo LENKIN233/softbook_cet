@@ -4,7 +4,7 @@
 
 - Date: 2026-07-24
 - Branch: `module/server-scheduler-fsrs-v1`
-- PR: pending
+- PR: `#439`
 - Summary: Implement the repository-local server learning-session boundary, exact versioned FSRS projection, canonical card selection, revisioned cursor persistence, and negative governance coverage without claiming mobile integration or deployment.
 
 ## Referenced specs
@@ -72,6 +72,9 @@
 - `python scripts/validate_harness.py --mode local` -> passed all 15 selected local sections; completeness correctly reported partial for local mode.
 - `python scripts/validate_harness.py --mode full` -> passed the complete local and remote-semantics Harness.
 - `./scripts/run_local_gates --profile dev` with Python 3.12.13 and Node 22.13.0 -> 18/18 checks passed with no exception, skip, or deferred result; report at ignored path `exports/local-gates/20260724T015323Z-9794caab-dev-14046/report.json`.
+- Initial `./scripts/run_local_gates --profile pr --base origin/main --pr 439` -> 28/30 checks passed; the only failures were the intentionally pending Agent review and a missing local topic-branch fetch mapping. The exact branch mapping was restored before the final PR-profile rerun.
+- `node --test scripts/test_classify_formal_approval_scope.mjs` -> 10 tests passed.
+- `npm ci` followed by `bundle exec pod install --project-directory=ios --deployment` with Node 22.13.0 and Ruby 3.3.12 -> passed; no tracked file changed.
 - `git diff --check` -> passed.
 
 ## Validation results
@@ -94,9 +97,10 @@
 
 ## Agent review status
 
-- Reviewer: pending
-- Status: pending
-- Blocking findings: independent final review has not yet completed.
+- Reviewer: Codex
+- Status: Passed
+- Blocking findings: none.
+- Review summary: final path-by-path review found and resolved stale sibling-track migration watermarks, accountless legacy cursor overlay, duplicate/new-event stale-session acknowledgement, equal-millisecond timestamp collisions, missing production card-source handling, non-transactional membership downgrade races, future-client-time legacy deferral, and unconfirmed empty-session responses. Each fix has a focused regression, and the final review found no remaining blocker in this repository-local slice.
 
 ## User-visible UI impact
 
@@ -116,5 +120,5 @@
 
 ## Follow-up
 
-- Complete repository `dev` and strict PR gates, independent Agent review, required GitHub checks, formal approval, merge, and post-merge `main` verification.
+- Complete the final strict PR rerun, required GitHub checks, formal approval, merge, and post-merge `main` verification.
 - Implement mobile learning-session consumption and selection binding in a separate reviewed slice.
