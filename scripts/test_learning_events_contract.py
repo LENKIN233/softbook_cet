@@ -153,8 +153,8 @@ class LearningEventsContractTests(unittest.TestCase):
 
     def test_runtime_document_cannot_hide_repository_local_non_claims(self):
         weakened = self.runtime_text.replace(
-            "The repository-local backend, scheduler, and mobile implementation do not prove",
-            "The repository-local backend, scheduler, and mobile implementation prove",
+            "The repository-local backend, scheduler, and mobile binding do not prove",
+            "The repository-local backend, scheduler, and mobile binding prove",
         )
         self.assert_finding(
             self.findings(text=weakened),
@@ -277,8 +277,8 @@ class LearningEventsContractTests(unittest.TestCase):
         )
         gt30["must_include"].remove("storage_failure_does_not_advance_the_card")
         hidden_durability = self.runtime_text.replace(
-            "advancing the card UI. A failed durable write leaves the current result in",
-            "advancing the card UI even when durable storage fails",
+            "positive device sequence before advancing the card UI.",
+            "positive device sequence after advancing the card UI.",
         )
 
         self.assert_finding(self.findings(evals=missing_gt30), "missing GT-30")
@@ -290,6 +290,40 @@ class LearningEventsContractTests(unittest.TestCase):
             self.findings(text=hidden_durability),
             "runtime contract missing exact snippet",
         )
+
+    def test_selection_binding_owner_runtime_and_evals_are_required(self):
+        missing_selection = copy.deepcopy(self.auth)
+        missing_selection["learning_events_v2"]["event_contract"][
+            "required_fields"
+        ].remove("selection_id")
+        unsafe_batch = copy.deepcopy(self.auth)
+        unsafe_batch["learning_events_v2"]["idempotency_and_atomicity"][
+            "mixed_batch_rule"
+        ] = "accept any number of unseen client-selected events"
+        stale_runtime = copy.deepcopy(self.runtime)
+        stale_runtime["learning_event_runtime"][
+            "selection_binding"
+        ] = "match card_id only"
+        missing_hr41 = copy.deepcopy(self.evals)
+        missing_hr41["regressions"] = [
+            item for item in missing_hr41["regressions"] if item["id"] != "HR-41"
+        ]
+        missing_gt32 = copy.deepcopy(self.evals)
+        missing_gt32["golden_tasks"] = [
+            item for item in missing_gt32["golden_tasks"] if item["id"] != "GT-32"
+        ]
+
+        self.assert_finding(self.findings(auth=missing_selection), "event fields")
+        self.assert_finding(
+            self.findings(auth=unsafe_batch),
+            "selection-bound mixed batch",
+        )
+        self.assert_finding(
+            self.findings(runtime=stale_runtime),
+            "runtime selection binding",
+        )
+        self.assert_finding(self.findings(evals=missing_hr41), "missing HR-41")
+        self.assert_finding(self.findings(evals=missing_gt32), "missing GT-32")
 
     def test_request_deadline_regression_and_runtime_proof_are_required(self):
         missing_hr39 = copy.deepcopy(self.evals)

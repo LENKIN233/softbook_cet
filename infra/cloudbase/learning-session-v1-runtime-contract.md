@@ -29,8 +29,10 @@ Referenced active specs:
   `softbook-fsrs.v1`, with library defaults and fuzz disabled.
 - Scheduler state is an integrity-checked projection of accepted immutable
   `learning-events.v2` events. It is not accepted from a client.
-- This backend is not deployed, and the mobile client does not yet bind
-  completions to a returned selection ID.
+- This backend and the mobile binding are repository-local and not deployed.
+  Mobile accepts only a session/card-source pair with matching track, source,
+  and content version, renders only the returned card, and copies the opaque
+  selection ID into the immutable completion event.
 
 ## Request
 
@@ -97,10 +99,11 @@ The scheduler applies events in canonical `server_sequence` order at the
 server's `acknowledged_at` acceptance time. `client_occurred_at` remains a
 bounded activity-day input and cannot move scheduler time or order backward.
 
-New immutable events, cursor bindings, account sequence, latest learning
-projection, FSRS projection, session projection-watermark update, matching
-selected-cursor clearing, and daily progress commit in one storage transaction.
-Every newly accepted event advances the account-and-track session revision,
+Current selection validation, one new immutable event, its device cursor
+binding, account sequence, latest learning projection, FSRS projection, session
+projection-watermark update, exact selected-cursor clearing, and daily progress
+commit in one storage transaction. Every newly accepted event advances the
+account-and-track session revision,
 updates the timestamp watermark component, and advances the sequence component
 even when it does not clear a selected cursor. An exact duplicate returns its
 original acknowledgement and never advances FSRS state, due time, cursor,
@@ -150,10 +153,13 @@ dismissal cannot overwrite a premium purchase. This storage guarantee does not
 turn the development purchase route into production payment entitlement.
 
 The selected card is persisted as an opaque cursor. Re-reading while it remains
-eligible returns the same selection ID with reason `persisted_cursor`. The
-first newly accepted event for that card and content version clears the cursor
-atomically. A stale cursor caused by content, access, or sleep drift is replaced
-or cleared on the next session read. A new selection uses revision
+eligible returns the same selection ID with reason `persisted_cursor`. Exactly
+one newly accepted event carrying that selection ID and matching card, phase,
+and content version clears the cursor atomically. A stale, missing,
+cross-account, or mismatched selection fails with `409`; an exact duplicate
+remains replayable after the cursor is cleared. A stale cursor caused by
+content, access, or sleep drift is replaced or cleared on the next session read.
+A new selection uses revision
 compare-and-swap; projection-watermark mismatch or failed resumed-cursor
 confirmation retries the complete canonical read. A `selection: null` response
 and its `next_due_at` receive the same transactional watermark and revision
@@ -199,12 +205,34 @@ output.
 cursor preserves its original phase and due time but reports
 `persisted_cursor`.
 
+The response membership stage is `trial`, `free`, or `premium`;
+`trial_available` must be activated before a successful response. `free`
+requires `free_subset` access, while `trial` and `premium` require `full`.
+
+## Mobile binding
+
+Remote mobile learning fetches `learning-session.v1` and the canonical card
+source under the same authenticated session. It requires exact track,
+`source_id`, and `content_version` agreement, resolves only the returned
+`card_id`, and never reorders cards or reapplies client membership, sleep, or
+review policy. `selection: null` is valid and never triggers bundled-card
+fallback.
+
+Completion persists `selection_id`, selected card, server phase, exact content
+version, event ID, and installation cursor before leaving the result state. A
+pending unseen event blocks a second completion. Only after strict
+acknowledgement, canonical bootstrap reconciliation, and a fresh session read
+may mobile render another server-selected card. A previously validated cached
+selection may be completed once offline; mobile does not choose a second card
+offline.
+
 ## Failure behavior
 
 - `400`: malformed or authority-bearing request input;
 - `401`: missing, expired, or revoked active session;
 - `409`: the learning projection changed while a cursor write was attempted
-  and bounded retry could not converge;
+  and bounded retry could not converge, or an unseen completion did not match
+  the current selection;
 - `500`: a stored learning, scheduler, or learning-session projection violates
   its integrity contract;
 - `503`: canonical content, space, or storage is unavailable or invalid.
@@ -217,7 +245,7 @@ another track, or unvalidated scheduler state.
 This contract does not prove:
 
 - production CloudBase deployment or CloudBase Run migration;
-- mobile consumption of learning sessions or selection-ID event binding;
+- deployed mobile/backend integration or release validation;
 - production membership expiry, StoreKit, WeChat Pay, or Alipay entitlement;
 - complete approved card content, signed packs, or audio QC;
 - global legacy v1 snapshot-write removal;

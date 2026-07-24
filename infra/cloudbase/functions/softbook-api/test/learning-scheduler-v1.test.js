@@ -19,6 +19,7 @@ const {Rating} = require('ts-fsrs');
 const START_TIME = new Date('2026-04-30T12:00:00.000Z');
 const DAY_KEY = '2026-04-30';
 const PHONE = '13800138000';
+const CURRENT_SELECTION_ID = 'sel_current_selection_pending';
 
 function createClock() {
   let value = new Date(START_TIME);
@@ -119,6 +120,21 @@ async function learningSession(api, session, extra = {}) {
 }
 
 async function submit(api, session, source, events) {
+  if (events.some(event => event.selection_id === CURRENT_SELECTION_ID)) {
+    const selected = await learningSession(api, session);
+    assert.equal(
+      selected.statusCode,
+      200,
+      `selection preflight: ${JSON.stringify(selected.body)}`,
+    );
+    assert.notEqual(selected.body.data.selection, null);
+    events.forEach(event => {
+      if (event.selection_id === CURRENT_SELECTION_ID) {
+        event.selection_id = selected.body.data.selection.selection_id;
+      }
+    });
+  }
+
   return request(api, {
     body: {
       schema_version: 'learning-events.v2',
@@ -137,6 +153,7 @@ function eventFor(source, index, overrides = {}) {
 
   return {
     event_id: `scheduler_event_${String(index + 1).padStart(4, '0')}`,
+    selection_id: CURRENT_SELECTION_ID,
     card_id: card.card_id,
     interaction_id: card.interaction_id,
     phase: 'learning',
@@ -361,22 +378,27 @@ test('free access uses the canonical half-prefix and sleeping cards never enter 
     source.card_records[1].card_id,
   );
 
-  const completedAccessibleCards = [
+  const firstAccepted = await submit(api, session, source, [
     eventFor(source, 1),
+  ]);
+  const secondAccepted = await submit(api, session, source, [
     eventFor(source, 2, {
       device_cursor: {
         device_id: 'scheduler_device_0001',
         sequence: 3,
       },
     }),
-  ];
-  const accepted = await submit(
-    api,
-    session,
-    source,
-    completedAccessibleCards,
+  ]);
+  assert.equal(
+    firstAccepted.statusCode,
+    200,
+    JSON.stringify(firstAccepted.body),
   );
-  assert.equal(accepted.statusCode, 200, JSON.stringify(accepted.body));
+  assert.equal(
+    secondAccepted.statusCode,
+    200,
+    JSON.stringify(secondAccepted.body),
+  );
 
   const exhausted = await learningSession(api, session);
   assert.equal(exhausted.statusCode, 200);
@@ -476,13 +498,16 @@ test('a concurrent first event cannot be overwritten by a stale new-card selecti
   const {api} = createTestApi({store});
   const session = await authenticatedSession(api, '127.0.0.13');
   const source = await cardSource(api, session);
+  const initial = await learningSession(api, session);
+  assert.equal(initial.statusCode, 200);
+  const event = eventFor(source, 0, {
+    selection_id: initial.body.data.selection.selection_id,
+  });
   blockSchedulerRead = true;
 
   const pendingSelection = learningSession(api, session);
   await learningReadCaptured.promise;
-  const accepted = await submit(api, session, source, [
-    eventFor(source, 0),
-  ]);
+  const accepted = await submit(api, session, source, [event]);
   assert.equal(accepted.statusCode, 200, JSON.stringify(accepted.body));
   releaseLearningRead.resolve();
   const selected = await pendingSelection;
@@ -493,7 +518,7 @@ test('a concurrent first event cannot be overwritten by a stale new-card selecti
     source.card_records[1].card_id,
   );
   const sessionState = [...baseStore.snapshot().learningSessions.values()][0];
-  assert.equal(sessionState.revision, 2);
+  assert.equal(sessionState.revision, 3);
   assert.equal(
     sessionState.learning_acknowledged_at,
     START_TIME.toISOString(),
@@ -536,6 +561,11 @@ test('server-sequence watermark rejects an equal-time split projection read', as
     eventFor(source, 0),
   ]);
   assert.equal(firstAccepted.statusCode, 200);
+  const nextSelection = await learningSession(api, session);
+  assert.equal(nextSelection.statusCode, 200);
+  const secondEvent = eventFor(source, 1, {
+    selection_id: nextSelection.body.data.selection.selection_id,
+  });
   gate = {
     learningCaptured: learningReadCaptured,
     releaseSession: releaseSessionRead,
@@ -543,9 +573,7 @@ test('server-sequence watermark rejects an equal-time split projection read', as
 
   const pendingSelection = learningSession(api, session);
   await learningReadCaptured.promise;
-  const secondAccepted = await submit(api, session, source, [
-    eventFor(source, 1),
-  ]);
+  const secondAccepted = await submit(api, session, source, [secondEvent]);
   assert.equal(secondAccepted.statusCode, 200);
   releaseSessionRead.resolve();
   const selected = await pendingSelection;
@@ -558,10 +586,10 @@ test('server-sequence watermark rejects an equal-time split projection read', as
   const sessionState = [...baseStore.snapshot().learningSessions.values()][0];
   assert.equal(sessionState.learning_acknowledged_at, START_TIME.toISOString());
   assert.equal(sessionState.learning_server_sequence, 2);
-  assert.equal(sessionState.revision, 3);
+  assert.equal(sessionState.revision, 5);
 });
 
-test('an empty selection is transactionally confirmed before response', async () => {
+test('an empty selection remains transactionally consistent during duplicate replay', async () => {
   const baseStore = createMemoryStore();
   let gate = null;
   const store = {
@@ -586,34 +614,24 @@ test('an empty selection is transactionally confirmed before response', async ()
     entitlement: {...entitlement, stage: 'free'},
     updated_at: START_TIME.toISOString(),
   });
-  const accepted = await submit(api, session, source, [
+  const completedEvents = [
     eventFor(source, 0),
     eventFor(source, 1),
     eventFor(source, 2),
-  ]);
-  assert.equal(accepted.statusCode, 200, JSON.stringify(accepted.body));
+  ];
+  for (const event of completedEvents) {
+    const accepted = await submit(api, session, source, [event]);
+    assert.equal(accepted.statusCode, 200, JSON.stringify(accepted.body));
+  }
   const captured = createDeferred();
   const release = createDeferred();
   gate = {captured, release};
 
   const pendingEmptySelection = learningSession(api, session);
   await captured.promise;
-  const repeated = await submit(api, session, source, [
-    eventFor(source, 0, {
-      answer_grade: 'review_needed',
-      device_cursor: {
-        device_id: 'scheduler_device_0001',
-        sequence: 4,
-      },
-      event_id: 'scheduler_event_repeat_0001',
-      outcome:
-        source.card_records[0].interaction_id === 'flip'
-          ? 'review'
-          : 'incorrect',
-      phase: 'review',
-    }),
-  ]);
+  const repeated = await submit(api, session, source, [completedEvents[0]]);
   assert.equal(repeated.statusCode, 200, JSON.stringify(repeated.body));
+  assert.equal(repeated.body.data.results[0].status, 'duplicate');
   release.resolve();
   const emptySelection = await pendingEmptySelection;
   const snapshot = baseStore.snapshot();
@@ -632,7 +650,7 @@ test('an empty selection is transactionally confirmed before response', async ()
     projection.scheduler_by_card_id[source.card_records[0].card_id].card.due,
   );
   const sessionState = [...snapshot.learningSessions.values()][0];
-  assert.equal(sessionState.learning_server_sequence, 4);
+  assert.equal(sessionState.learning_server_sequence, 3);
 });
 
 test('a concurrent completion cannot return a stale resumed cursor', async () => {
@@ -657,15 +675,16 @@ test('a concurrent completion cannot return a stale resumed cursor', async () =>
   const session = await authenticatedSession(api, '127.0.0.14');
   const source = await cardSource(api, session);
   const first = await learningSession(api, session);
+  const completedEvent = eventFor(source, 0, {
+    selection_id: first.body.data.selection.selection_id,
+  });
   const captured = createDeferred();
   const release = createDeferred();
   gate = {captured, release};
 
   const pendingResume = learningSession(api, session);
   await captured.promise;
-  const accepted = await submit(api, session, source, [
-    eventFor(source, 0),
-  ]);
+  const accepted = await submit(api, session, source, [completedEvent]);
   assert.equal(accepted.statusCode, 200, JSON.stringify(accepted.body));
   release.resolve();
   const replacement = await pendingResume;
@@ -931,9 +950,8 @@ test('learning-session projection sequence watermark drift fails closed', async 
   const {api} = createTestApi({store});
   const session = await authenticatedSession(api, '127.0.0.15');
   const source = await cardSource(api, session);
-  const accepted = await submit(api, session, source, [
-    eventFor(source, 0),
-  ]);
+  const completedEvent = eventFor(source, 0);
+  const accepted = await submit(api, session, source, [completedEvent]);
   assert.equal(accepted.statusCode, 200, JSON.stringify(accepted.body));
   const sessionState = [...store.snapshot().learningSessions.values()][0];
   sessionState.learning_server_sequence = 0;
@@ -945,9 +963,7 @@ test('learning-session projection sequence watermark drift fails closed', async 
     query: {day_key: DAY_KEY, track: 'cet4'},
   });
   const schedulerRead = await learningSession(api, session);
-  const duplicateEvent = await submit(api, session, source, [
-    eventFor(source, 0),
-  ]);
+  const duplicateEvent = await submit(api, session, source, [completedEvent]);
   const newEvent = await submit(api, session, source, [
     eventFor(source, 1, {
       device_cursor: {
@@ -955,6 +971,7 @@ test('learning-session projection sequence watermark drift fails closed', async 
         sequence: 2,
       },
       event_id: 'scheduler_event_0002',
+      selection_id: 'sel_stale_projection_pending',
     }),
   ]);
   const membership = await store.getMembership(PHONE);
@@ -974,5 +991,5 @@ test('learning-session projection sequence watermark drift fails closed', async 
   assert.equal(newEvent.statusCode, 503);
   assert.equal(newEvent.body.error.code, 'learning_events_projection_invalid');
   assert.equal(store.snapshot().learningEvents.size, 1);
-  assert.equal(membership.stage, 'trial_available');
+  assert.equal(membership.stage, 'trial');
 });

@@ -30,14 +30,15 @@ Referenced active specs:
   projection, retained content lookup, transactional FSRS projection, matching
   learning-session cursor clearing, and bootstrap projection read.
 - The implementation has local memory and CloudBase-adapter tests. The React
-  Native client also implements durable event allocation, exact replay, strict
-  acknowledgement removal, and post-ack bootstrap reconciliation.
+  Native client also consumes the authenticated server session, resolves only
+  its selected card, durably binds the selection to an event, replays exactly,
+  removes only strict acknowledgements, and reconciles bootstrap before reading
+  the next session.
 - This repository change deploys neither backend nor mobile release artifacts;
-  global legacy v1 write removal and mobile learning-session consumption remain
-  unimplemented.
+  global legacy v1 write removal remains unimplemented.
 - The launch gate `canonical-bootstrap-and-idempotent-events` remains pending
-  until backend deployment, mobile scheduler-session binding, and client
-  behavior pass the acceptance cases in this document.
+  until backend and mobile deployment plus end-to-end client behavior pass the
+  acceptance cases in this document.
 
 ## Repository-local backend
 
@@ -74,13 +75,13 @@ read again before retrying. Legacy physical-space discovery follows the same
 doc-only boundary: its query is outside the transaction and the canonical merge
 is transactionally written to one deterministic account document.
 
-The CloudBase adapter accepts at most 9 events per request. That hard limit
-keeps the tested worst case at 95 operations, below CloudBase's 100-operation
-transaction ceiling, even when every event has a distinct retained content
-version and China activity day, migration preserves both tracks and their
-learning-session projection watermarks, and a matching input-track cursor is
-read and cleared. Defaults are therefore 9 events, 90 days of past-event
-retention, and five minutes of future clock skew.
+The CloudBase adapter accepts at most 9 input events per request, but at most
+one may be unseen. The maximum successful fixture of 8 distinct exact
+duplicates plus one current-selection event uses 29 operations. The first-event
+all-track migration fixture also stays at or below 29, leaving substantial
+headroom below CloudBase's 100-operation transaction ceiling. Defaults are
+therefore 9 input events, 90 days of past-event retention, and five minutes of
+future clock skew.
 Development operators may lower the batch limit and may set
 `SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT`,
 `SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS`, and
@@ -106,6 +107,7 @@ x-api-key: <optional>
   "events": [
     {
       "event_id": "evt_01J0EXAMPLE",
+      "selection_id": "sel_01J0EXAMPLESELECTION",
       "card_id": "100101",
       "interaction_id": "flip",
       "phase": "learning",
@@ -130,8 +132,9 @@ client-chosen `day_key`, or scheduler-owned fields.
 
 One request contains one track and one or more events up to a bounded server
 limit. The acknowledgement preserves request order. A client may combine exact
-duplicates and unseen events in one retry batch. The request, event, and
-`device_cursor` objects are strict schemas; unknown fields are rejected.
+duplicates with at most one unseen event. More than one unseen event cannot
+consume one server selection and is rejected atomically. The request, event,
+and `device_cursor` objects are strict schemas; unknown fields are rejected.
 
 ## Event semantics
 
@@ -139,6 +142,9 @@ Every event is one immutable card completion. Required fields are:
 
 - `event_id`: opaque and stable. Generate it before durable local enqueue and
   reuse it unchanged for every retry.
+- `selection_id`: the opaque ID copied from the current authenticated
+  `learning-session.v1` selection. It identifies the server choice being
+  completed; it does not let the client choose or alter scheduling state.
 - `card_id`: the card answered by the user.
 - `interaction_id`: `flip`, `multiple_choice`, `lock`, `elimination`, or
   `swipe`.
@@ -176,6 +182,13 @@ The device sequence may arrive with gaps or out of order after offline use. It
 is replay provenance and a fork detector, not the scheduler cursor and not a
 promise of exact cross-device resume.
 
+For every unseen event, the transaction reads the current account-and-track
+learning-session cursor and requires an exact match on `selection_id`,
+`card_id`, `phase`, and `content_version`. A missing, stale, cross-account,
+cross-track, or mismatched selection returns `409` before any write. Exact
+duplicate replay is classified from the stored immutable event first, so it
+remains valid after its original selection cursor has been cleared.
+
 ## Content validation
 
 The server validates that:
@@ -211,16 +224,20 @@ The primary idempotency key is `(account_id, event_id)`.
 - `(account_id, device_id, sequence)` must map to exactly one `event_id`.
   Binding the same cursor to another event also returns `409` and rejects the
   entire request.
+- One transaction may contain exact duplicates plus one unseen event. Two or
+  more unseen events return `409` because one current selection cannot authorize
+  multiple completions.
 - IDs and cursors are account-scoped. The same opaque values in another account
   do not expose or alias the first account's event.
 - A correction is a new event with a new event ID and device sequence. Accepted
   events are never updated in place.
 
-The service validates the complete request before writing. New events, the
-account-scoped server sequence allocation, derived learning and FSRS
-projections, learning-session projection-watermark update, matching cursor
-clearing, and daily progress commit in one transaction. A validation, conflict,
-storage, or transaction failure leaves no partial acceptance. Concurrent exact
+The service validates the complete request before writing. Current selection
+validation, the one new event, account-scoped server sequence allocation,
+derived learning and FSRS projections, learning-session projection-watermark
+update, exact selection clearing, and daily progress commit in one transaction.
+A validation, conflict, storage, or transaction failure leaves no partial
+acceptance. Concurrent exact
 submissions converge on one accepted event plus duplicate acknowledgements;
 they never increment a counter or scheduler state twice.
 
@@ -301,8 +318,8 @@ canonical `day_key`.
 
 Accepting an event does not grant trial, membership, content access, or select
 the next card. Those authorities remain independent server decisions. It may
-clear only the matching account-and-track cursor for the completed card and
-content version; selection itself is owned by
+clear only the current account-and-track cursor matched by selection ID, card,
+phase, and content version; selection itself is owned by
 `infra/cloudbase/learning-session-v1-runtime-contract.md`.
 
 ## Acknowledgement
@@ -338,7 +355,8 @@ Expected error classes:
 - `400`: malformed schema, invalid enum or grade mapping, forbidden field, or
   invalid client time/cursor;
 - `401` or `403`: missing, expired, revoked, or unauthorized v2 session;
-- `409`: event-ID payload conflict or device-cursor fork;
+- `409`: event-ID payload conflict, device-cursor fork, absent or mismatched
+  current selection, or more than one unseen event;
 - `422`: unknown content version, card, track, or interaction mismatch;
 - `503`: event ledger or transaction unavailable, including stored event,
   learning, scheduler, daily, or session projection integrity failure.
@@ -347,17 +365,20 @@ Errors must not echo credentials, phone numbers, card content, or answer text.
 
 ## Offline producer and replay
 
-The React Native implementation uses `learning-event-outbox.v1` under an
-independent AsyncStorage key. It atomically persists the immutable event, the
-pseudonymous installation ID, and the allocated positive device sequence before
-advancing the card UI. A failed durable write leaves the current result in
-place. Persisted entries contain no access or refresh token; replay injects the
-current access token in memory.
+The React Native implementation uses `learning-event-outbox.v2` under an
+independent AsyncStorage key. It atomically persists the immutable
+selection-bound event, the pseudonymous installation ID, and the allocated
+positive device sequence before advancing the card UI. A failed durable write
+leaves the current result in place. Persisted entries contain no access or
+refresh token; replay injects the current access token in memory. The old
+unbound v1 key is removed without replay because those entries cannot prove a
+server selection.
 
-The outbox sends at most 9 events for one account and one track per request. It
-ends a batch at the first track boundary, so interleaved CET4/CET6 entries keep
-their original enqueue order. It does not compact distinct IDs, mutate retry
-payloads, or remove an entry for an ambiguous response. A strict acknowledgement
+The outbox sends exact duplicates plus at most one unseen selection-bound event
+for one account and one track. It ends a batch at the first track boundary, so
+interleaved CET4/CET6 entries keep their original enqueue order. It does not
+compact distinct IDs, mutate retry payloads, or remove an entry for an ambiguous
+response. A strict acknowledgement
 must preserve event order and IDs, use only `accepted` or `duplicate`, and
 provide positive unique server sequences. A transient failure pauses automatic replay until network recovery,
 app foreground, or a newly durably enqueued event, preventing render-driven
@@ -369,12 +390,12 @@ its queue, the client records one follow-up pass and starts it when the current
 pass settles; it neither sends concurrently nor waits for an unrelated future
 connectivity trigger.
 
-Authenticated startup hydrates the account's outbox count with bootstrap. A
-pending event restored from an earlier process blocks another advance from the
-stale card until strict acknowledgement and post-acknowledgement bootstrap
-mapping complete. Events created in the current validated session may continue
-to batch while offline because routine refreshes cannot overwrite their local
-intent.
+Authenticated startup hydrates the account's outbox count with bootstrap. Any
+pending event blocks another completion until strict acknowledgement,
+post-acknowledgement bootstrap mapping, and a fresh learning-session read. A
+previously validated cached selection and matching content may be answered once
+offline. The client cannot locally choose or enqueue a second card while
+offline.
 
 While any learning event remains pending, daily-progress and space-state
 changes enter the persisted generic mutation queue instead of overtaking the
@@ -413,7 +434,8 @@ Reconnect order remains:
 2. read canonical bootstrap state and validate content identity;
 3. replay exact queued events;
 4. read bootstrap again;
-5. enable dependent product-state writes from the reconciled baseline.
+5. read the next authenticated learning session;
+6. enable dependent product-state writes from the reconciled baseline.
 
 ## Migration boundary
 
@@ -431,7 +453,8 @@ Implementation order is intentionally serial:
 2. transactional backend ledger, idempotency indexes, and projections;
 3. mobile durable event generation and exact replay;
 4. server scheduler and scheduler cursor;
-5. disable global legacy snapshot writes.
+5. mobile scheduler-session consumption and selection binding;
+6. disable global legacy snapshot writes.
 
 ## Required implementation tests
 
@@ -442,6 +465,10 @@ The repository-local backend tests currently prove:
 - the same device cursor with another event ID fails with `409`;
 - mixed duplicate/new batches return one result per input and commit only new
   events;
+- every unseen event must match the current account-and-track selection ID,
+  card, phase, and content version inside the transaction;
+- more than one unseen event, a stale selection, or a cross-account selection
+  fails atomically with `409`;
 - one invalid event prevents all writes in the request;
 - concurrent exact submissions converge on one event;
 - device sequence gaps and out-of-order replay remain accepted;
@@ -449,8 +476,9 @@ The repository-local backend tests currently prove:
 - top-level track changes are part of an event-ID payload conflict;
 - the active session account key is rederived from the signed session phone;
 - an atomic batch above 9 is rejected before storage work;
-- the maximum nine-event, all-track migration fixture uses 95 transaction
-  operations and therefore retains headroom below the platform ceiling;
+- the maximum successful nine-input replay fixture, containing 8 distinct
+  exact duplicates and one current-selection event, uses 29 transaction
+  operations, while first-event all-track migration also stays at or below 29;
 - transaction test doubles reject `where`, matching CloudBase's doc-only rule;
 - stored immutable event payloads are rehashed before duplicate acknowledgement;
 - stored v2 learning/daily projections and migrated v1 events are fully
@@ -485,6 +513,8 @@ The repository-local backend tests currently prove:
 The React Native tests additionally prove:
 
 - event ID and device cursor are persisted before card UI advance;
+- selection ID, card, phase, and content version are persisted together before
+  card UI advance;
 - a failed persistent write does not advance the card;
 - content version, two-grade mapping, and credential-free request bodies are
   preserved;
@@ -494,7 +524,8 @@ The React Native tests additionally prove:
   render-driven retries;
 - reconnect replays the exact event, removes it only after strict acknowledgement,
   then refreshes bootstrap before dependent mutations;
-- queues larger than 9 split into server-safe one-track batches;
+- one pending unseen selection blocks a second card until acknowledgement,
+  bootstrap reconciliation, and a fresh session read;
 - interleaved track entries retain their global enqueue order;
 - account-scoped concurrent replay is isolated;
 - a signed-out or replaced session's late 401 cannot refresh, invalidate,
@@ -505,14 +536,12 @@ The React Native tests additionally prove:
 
 ## Explicit non-claims
 
-The repository-local backend, scheduler, and mobile implementation do not prove:
+The repository-local backend, scheduler, and mobile binding do not prove:
 
 - that `/v2/learning/events` is deployed in CloudBase or production;
 - that the React Native client has been shipped against a deployed v2 endpoint;
 - that legacy learning snapshots and the daily check-in bridge are globally
   disabled;
-- that the mobile client consumes `/v2/learning/session` or binds completion to
-  a selected cursor;
 - exact same-card cross-device resume;
 - signed content packs, approved production content, payments, or launch
   readiness;

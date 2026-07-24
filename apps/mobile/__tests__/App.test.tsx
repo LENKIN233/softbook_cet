@@ -42,6 +42,7 @@ type MockLearningEvent = {
   interaction_id: LearningCard['interaction_id'];
   outcome: 'correct' | 'incorrect' | 'confident' | 'review';
   phase: 'learning' | 'review';
+  selection_id: string;
   used_hint: boolean;
   used_peek: boolean;
 };
@@ -59,7 +60,7 @@ type TestRendererNode =
   | null;
 
 const USER_VISIBLE_METADATA_PATTERN =
-  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|event_id|answer_grade|client_occurred_at|content_version|device_cursor|device_id|server_sequence|learning-events(?:-ack)?\.v2|__softbook_learning_event_outbox_v1|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|Bootstrap|Canonical|remoteConfig|authToken|accessToken|refreshToken|challengeId|sessionId|endpoint|MutationQueue|mutation|JSON Parse error|Unexpected character|SyntaxError|parse failed|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|当前卡组|本组第|本轮卡组|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|已登录\s+138|第\s+\d+\s+张\s+\/\s+共\s+\d+\s+张|馆\s+\d|组\s+\d|盒\s+\d|当前地址|当前学习卡位于|空间地址架|当前盒位|当前空间路径|收藏标签\s+\d|休眠区\s+\d|0\s+张可展示|（[1-5]\d{2}）|\([1-5]\d{2}\)|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
+  /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|event_id|selection_id|answer_grade|client_occurred_at|content_version|device_cursor|device_id|server_sequence|learning-events(?:-ack)?\.v2|__softbook_learning_event_outbox_v[12]|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|Bootstrap|Canonical|remoteConfig|authToken|accessToken|refreshToken|challengeId|sessionId|endpoint|MutationQueue|mutation|JSON Parse error|Unexpected character|SyntaxError|parse failed|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|当前卡组|本组第|本轮卡组|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|已登录\s+138|第\s+\d+\s+张\s+\/\s+共\s+\d+\s+张|馆\s+\d|组\s+\d|盒\s+\d|当前地址|当前学习卡位于|空间地址架|当前盒位|当前空间路径|收藏标签\s+\d|休眠区\s+\d|0\s+张可展示|（[1-5]\d{2}）|\([1-5]\d{2}\)|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
 function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   if (node === null) {
@@ -147,6 +148,8 @@ type Deferred<T> = {
 };
 
 let pendingSession: Deferred<LearningSession>;
+let resolvedSession: LearningSession | null;
+let serverSelectionCounter: number;
 let originalFetch: typeof global.fetch | undefined;
 
 const globalWithFetch = global as Omit<typeof global, 'fetch'> & {
@@ -159,6 +162,8 @@ declare global {
 
 beforeEach(() => {
   pendingSession = createDeferred<LearningSession>();
+  resolvedSession = null;
+  serverSelectionCounter = 0;
   mockCreateLearningSessionRepository.mockReset();
   mockLoadSession.mockReset();
   mockLoadSession.mockImplementation(() => pendingSession.promise);
@@ -273,13 +278,67 @@ async function openSpaceCardList(root: ReactTestRenderer.ReactTestInstance) {
 async function resolveLearningBootstrap(
   session: LearningSession = createLocalLearningSession('cet4'),
 ) {
+  resolvedSession = {
+    ...session,
+    contentVersion: session.contentVersion ?? TEST_CONTENT_VERSION,
+  };
+  const initialSession = resolveSessionForRuntime(resolvedSession);
+
   await ReactTestRenderer.act(async () => {
-    pendingSession.resolve({
-      ...session,
-      contentVersion: session.contentVersion ?? TEST_CONTENT_VERSION,
+    pendingSession.resolve(initialSession);
+    mockLoadSession.mockImplementation(async () => {
+      if (resolvedSession === null) {
+        throw new Error('Resolved learning session is unavailable.');
+      }
+      return resolveSessionForRuntime(resolvedSession);
     });
     await flushAsyncEffects();
   });
+}
+
+function resolveSessionForRuntime(session: LearningSession): LearningSession {
+  if (
+    global.__SOFTBOOK_CET_RUNTIME_CONFIG__?.learningSource?.mode !== 'remote'
+  ) {
+    return session;
+  }
+
+  if (session.schedulingMode === 'server' && session.serverSelection === null) {
+    return session;
+  }
+
+  const selectedCard = session.cards[0] ?? session.catalogCards[0];
+
+  if (!selectedCard) {
+    return {
+      ...session,
+      cards: [],
+      schedulingMode: 'server',
+      serverSelection: null,
+    };
+  }
+
+  serverSelectionCounter += 1;
+  const phase =
+    session.schedulingMode === 'server' && session.serverSelection
+      ? session.serverSelection.phase
+      : 'learning';
+
+  return {
+    ...session,
+    cards: [selectedCard],
+    nextDueAt: null,
+    schedulingMode: 'server',
+    serverSelection: {
+      cardId: selectedCard.card_id,
+      dueAt: phase === 'review' ? '2026-07-24T00:00:00.000Z' : null,
+      phase,
+      reason: phase === 'review' ? 'due_review' : 'catalog_new',
+      selectionId: `sel_app_session_selection_${String(
+        serverSelectionCounter,
+      ).padStart(4, '0')}`,
+    },
+  };
 }
 
 async function waitForLearningSurface(
@@ -592,6 +651,15 @@ function createRemoteCatalogSession(): LearningSession {
     catalogCards: [remoteCard],
     cards: [remoteCard],
     contentVersion: TEST_CONTENT_VERSION,
+    nextDueAt: null,
+    schedulingMode: 'server',
+    serverSelection: {
+      cardId: remoteCard.card_id,
+      dueAt: null,
+      phase: 'learning',
+      reason: 'catalog_new',
+      selectionId: 'sel_remote_catalog_0001',
+    },
     sourceId: 'remote-catalog-source',
     sourceLabel: '远端 catalog 卡源',
     track: 'cet4',
@@ -1264,11 +1332,17 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   const repositoryConfig =
     mockCreateLearningSessionRepository.mock.calls[0]?.[0];
   expect(repositoryConfig).toMatchObject({
-    fallbackToLocalOnRemoteError: false,
     mode: 'remote',
     remoteConfig: {
       apiKey: 'profile-key',
       endpoint: 'https://api.softbook.example/v1/learning/card-source',
+      headers: {
+        'x-softbook-client': 'mobile',
+      },
+    },
+    remoteSessionConfig: {
+      apiKey: 'profile-key',
+      endpoint: 'https://api.softbook.example/v2/learning/session',
       headers: {
         'x-softbook-client': 'mobile',
       },
@@ -1393,6 +1467,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
         interaction_id: 'flip',
         outcome: 'confident',
         phase: 'learning',
+        selection_id: 'sel_app_session_selection_0001',
       },
     ],
   });
@@ -1416,6 +1491,160 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   });
   expect(spaceSyncRequest?.init?.body).toContain('"states"');
   expect(spaceSyncRequest?.init?.body).toContain('"is_favorited":true');
+  expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
+});
+
+test('submits the server review phase with the exact active selection', async () => {
+  const learningEventRequests: MockLearningEventsRequest[] = [];
+  const baseSession = createLocalLearningSession('cet4');
+  const selectedCard = baseSession.catalogCards[0];
+  const reviewSession: LearningSession = {
+    ...baseSession,
+    cards: [selectedCard],
+    contentVersion: TEST_CONTENT_VERSION,
+    nextDueAt: null,
+    schedulingMode: 'server',
+    serverSelection: {
+      cardId: selectedCard.card_id,
+      dueAt: '2026-07-24T00:00:00.000Z',
+      phase: 'review',
+      reason: 'due_review',
+      selectionId: 'sel_server_review_fixture_0001',
+    },
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(reviewSession, 'premium'),
+      );
+    }
+    if (input === 'https://api.softbook.example/v2/learning/events') {
+      learningEventRequests.push(readLearningEventsRequest(init));
+      return createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root, reviewSession);
+
+  expect(
+    root.findByProps({ testID: 'learning-progress-label' }).props.children,
+  ).toBe('本轮回看');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'learning-flip-confident-button' })
+      .props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  expect(learningEventRequests).toHaveLength(1);
+  expect(learningEventRequests[0].events).toEqual([
+    expect.objectContaining({
+      card_id: selectedCard.card_id,
+      phase: 'review',
+      selection_id: 'sel_app_session_selection_0001',
+    }),
+  ]);
+});
+
+test('keeps a remote null selection empty without local card or sleep fallback', async () => {
+  const baseSession = createLocalLearningSession('cet4');
+  const emptyServerSession: LearningSession = {
+    ...baseSession,
+    cards: [],
+    contentVersion: TEST_CONTENT_VERSION,
+    nextDueAt: '2026-07-25T08:00:00.000Z',
+    schedulingMode: 'server',
+    serverSelection: null,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(emptyServerSession, 'premium'),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(emptyServerSession);
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+
+  expect(
+    root.findAllByProps({ testID: 'learning-complete-summary' }).length,
+  ).toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'learning-flip-button' })).toHaveLength(
+    0,
+  );
+  expect(
+    root.findAllByProps({ testID: 'learning-recover-sleeping-card-button' }),
+  ).toHaveLength(0);
+  expect(
+    root.findAllByProps({ testID: 'learning-go-space-button' }),
+  ).toHaveLength(0);
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'learning-restart-button').props.onPress();
+  });
+  expect(root.findAllByProps({ testID: 'learning-flip-button' })).toHaveLength(
+    0,
+  );
 });
 
 test('blocks product state writes until canonical bootstrap succeeds on reconnect', async () => {
@@ -1665,7 +1894,7 @@ test('does not map a pre-ack bootstrap response that started before event enqueu
     await flushAsyncEffects();
   });
   expect(
-    await AsyncStorage.getItem('__softbook_learning_event_outbox_v1'),
+    await AsyncStorage.getItem('__softbook_learning_event_outbox_v2'),
   ).toContain('event_id');
 
   delayedBootstrapRefresh.resolve(
@@ -2025,9 +2254,6 @@ test('queues a failed remote learning event for exact later replay', async () =>
     await flushAsyncEffects();
   });
 
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-favorite-button' }).props.onPress();
-  });
   await openRoute(root, 'statistics');
   await ReactTestRenderer.act(() => {
     findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
@@ -2041,7 +2267,6 @@ test('queues a failed remote learning event for exact later replay', async () =>
     '__softbook_mutation_queue',
   );
   expect(queuedMutations).toContain('sync_daily_progress');
-  expect(queuedMutations).toContain('sync_space_state');
 
   await openRoute(root, 'mine');
   await ReactTestRenderer.act(async () => {
@@ -2100,7 +2325,7 @@ test('does not advance the card when durable learning event storage fails', asyn
   const setItemMock = jest.mocked(AsyncStorage.setItem);
   const originalSetItem = setItemMock.getMockImplementation();
   setItemMock.mockImplementation((key, value) => {
-    if (key === '__softbook_learning_event_outbox_v1') {
+    if (key === '__softbook_learning_event_outbox_v2') {
       return Promise.reject(new Error('durable storage unavailable'));
     }
 
@@ -2454,6 +2679,132 @@ test('replays the exact queued learning event after network reconnect', async ()
         call.input === 'https://api.softbook.example/v1/learning/state-sync',
     ),
   ).toBe(false);
+});
+
+test('invalidates an acknowledged selection until post-ack bootstrap recovery loads a fresh session', async () => {
+  const acceptedLearningEvents: MockLearningEvent[] = [];
+  const learningEventRequests: MockLearningEventsRequest[] = [];
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+  let failNextBootstrap = false;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      if (failNextBootstrap) {
+        failNextBootstrap = false;
+        return createJsonResponse({}, 503);
+      }
+
+      return createJsonResponse(
+        createAccountBootstrapPayload(
+          createLocalLearningSession('cet4'),
+          'premium',
+          acceptedLearningEvents,
+        ),
+      );
+    }
+    if (input === 'https://api.softbook.example/v2/learning/events') {
+      const request = readLearningEventsRequest(init);
+      learningEventRequests.push(request);
+      acceptedLearningEvents.push(...request.events);
+      return createLearningEventsAckResponse(init);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  expect(mockLoadSession).toHaveBeenCalledTimes(1);
+
+  failNextBootstrap = true;
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'learning-flip-confident-button' })
+      .props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    if (
+      root.findAllByProps({ testID: 'learning-bootstrap-retry-button' })
+        .length > 0
+    ) {
+      break;
+    }
+  }
+
+  expect(learningEventRequests[0].events[0].selection_id).toBe(
+    'sel_app_session_selection_0001',
+  );
+  expect(mockLoadSession).toHaveBeenCalledTimes(1);
+  expect(root.findAllByProps({ testID: 'learning-flip-button' })).toHaveLength(
+    0,
+  );
+
+  const nextSession = createLocalLearningSession('cet4');
+  resolvedSession = {
+    ...nextSession,
+    cards: nextSession.cards.slice(1),
+    contentVersion: TEST_CONTENT_VERSION,
+  };
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(
+      root,
+      'learning-bootstrap-retry-button',
+    ).props.onPress();
+    await flushAsyncEffects();
+  });
+  await waitForLearningSurface(root);
+
+  expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
+  });
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  expect(learningEventRequests).toHaveLength(2);
+  expect(learningEventRequests[1].events[0].selection_id).toBe(
+    'sel_app_session_selection_0002',
+  );
+  expect(learningEventRequests[1].events[0].card_id).not.toBe(
+    learningEventRequests[0].events[0].card_id,
+  );
+  warn.mockRestore();
 });
 
 test('replays queued space state after network reconnect', async () => {

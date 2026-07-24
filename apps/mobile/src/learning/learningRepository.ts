@@ -5,11 +5,14 @@ import {
   loadRemoteLearningCardSource,
 } from './remoteCardSource';
 import {
+  RemoteLearningSessionConfig,
+  loadRemoteLearningSession,
+} from './remoteLearningSession';
+import {
   DEFAULT_LEARNING_SESSION_CARD_COUNT,
   createLearningSession,
 } from './session';
 import { LearningCardSource, localLearningCardSource } from './localCardSource';
-import { isRemoteAuthorizationError } from '../runtime/remoteHttpError';
 
 export type LearningRepositoryMode = 'local' | 'remote';
 
@@ -27,11 +30,11 @@ export type LearningSessionRepository = {
 
 export type LearningSessionRepositoryConfig = {
   cardCount?: number;
-  fallbackToLocalOnRemoteError?: boolean;
   fetchImpl?: FetchLike;
   localSource?: LearningCardSource;
   mode: LearningRepositoryMode;
   remoteConfig?: RemoteLearningCardSourceConfig;
+  remoteSessionConfig?: RemoteLearningSessionConfig;
 };
 
 export function createLearningSessionRepository(
@@ -53,39 +56,66 @@ export function createLearningSessionRepository(
   return {
     loadSession: async (context, track) => {
       if (config.mode === 'remote') {
-        if (!config.remoteConfig) {
-          throw new Error('Remote learning repository requires remoteConfig.');
+        if (!config.remoteConfig || !config.remoteSessionConfig) {
+          throw new Error(
+            'Remote learning repository requires card-source and session configs.',
+          );
         }
 
-        try {
-          const fetchImpl = config.fetchImpl ?? fetch;
-          const sourceResponse = await loadRemoteLearningCardSource(
-            context,
-            track,
-            config.remoteConfig,
-            fetchImpl,
-          );
+        const fetchImpl = config.fetchImpl ?? fetch;
+        const source = await loadRemoteLearningCardSource(
+          context,
+          track,
+          config.remoteConfig,
+          fetchImpl,
+        );
+        const scheduled = await loadRemoteLearningSession(
+          context,
+          track,
+          config.remoteSessionConfig,
+          fetchImpl,
+        );
 
-          return assertNonEmptySession(
-            createLearningSession(
-              sourceResponse.track,
-              sourceResponse.sourceId,
-              sourceResponse.sourceLabel,
-              sourceResponse.cards,
-              cardCount,
-              sourceResponse.contentVersion,
-            ),
+        if (
+          source.track !== scheduled.track ||
+          source.sourceId !== scheduled.sourceId ||
+          source.contentVersion === null ||
+          source.contentVersion !== scheduled.contentVersion ||
+          source.cards.length !== scheduled.access.totalCardCount
+        ) {
+          throw new Error(
+            'Remote learning session does not match canonical card-source content.',
           );
-        } catch (error) {
-          if (
-            isRemoteAuthorizationError(error) ||
-            !config.fallbackToLocalOnRemoteError
-          ) {
-            throw error;
-          }
-
-          return createLocalSession(track);
         }
+
+        const selectedCardIndex =
+          scheduled.selection === null
+            ? -1
+            : source.cards.findIndex(
+                card => card.card_id === scheduled.selection?.cardId,
+              );
+
+        if (
+          scheduled.selection !== null &&
+          (selectedCardIndex < 0 ||
+            selectedCardIndex >= scheduled.access.accessibleCardCount)
+        ) {
+          throw new Error(
+            'Remote learning selection is outside canonical accessible content.',
+          );
+        }
+
+        return {
+          cards: selectedCardIndex < 0 ? [] : [source.cards[selectedCardIndex]],
+          catalogCards: source.cards,
+          contentVersion: scheduled.contentVersion,
+          nextDueAt: scheduled.nextDueAt,
+          schedulingMode: 'server',
+          serverSelection: scheduled.selection,
+          sourceId: source.sourceId,
+          sourceLabel: source.sourceLabel,
+          track: source.track,
+        };
       }
 
       return createLocalSession(track);

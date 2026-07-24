@@ -1,10 +1,10 @@
-import {RemoteHttpError} from '../src/runtime/remoteHttpError';
-import {RemoteRequestLifecycleError} from '../src/runtime/remoteRequest';
+import { RemoteHttpError } from '../src/runtime/remoteHttpError';
+import { RemoteRequestLifecycleError } from '../src/runtime/remoteRequest';
 import {
   createInMemoryLearningEventOutboxStorage,
   LearningEventOutbox,
 } from '../src/sync/learningEventOutbox';
-import {createLearningEventSyncRepository} from '../src/sync/learningEventSyncRepository';
+import { createLearningEventSyncRepository } from '../src/sync/learningEventSyncRepository';
 import type {
   LearningEventsRepository,
   LearningEventV2,
@@ -12,6 +12,7 @@ import type {
 
 const PHONE = '13800138000';
 const CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
+const SELECTION_ID = 'sel_1234567890abcdef';
 
 function createInput(cardId = '100101') {
   return {
@@ -27,6 +28,7 @@ function createInput(cardId = '100101') {
       usedHint: false,
       usedPeek: false,
     },
+    selectionId: SELECTION_ID,
     track: 'cet4' as const,
   };
 }
@@ -39,7 +41,7 @@ function createOutbox() {
 }
 
 describe('learningEventSyncRepository', () => {
-  it('removes events only after accepted or duplicate acknowledgement', async () => {
+  it('removes one selection-bound event only after acknowledgement', async () => {
     const outbox = createOutbox();
     const submitEvents = jest.fn<
       ReturnType<LearningEventsRepository['submitEvents']>,
@@ -49,27 +51,26 @@ describe('learningEventSyncRepository', () => {
       results: events.map((event, index) => ({
         eventId: event.event_id,
         serverSequence: index + 1,
-        status: index === 0 ? ('accepted' as const) : ('duplicate' as const),
+        status: 'accepted' as const,
       })),
       track,
     }));
-    const eventsRepository: LearningEventsRepository = {submitEvents};
+    const eventsRepository: LearningEventsRepository = { submitEvents };
     const repository = createLearningEventSyncRepository({
       eventsRepository,
       outbox,
     });
     await repository.enqueueCompletion(createInput('100101'));
-    await repository.enqueueCompletion(createInput('100102'));
 
     const result = await repository.startReplay({
       authToken: 'fresh-token',
       phoneNumber: PHONE,
     });
 
-    expect(result.acknowledgedEntries).toHaveLength(2);
+    expect(result.acknowledgedEntries).toHaveLength(1);
     expect(result.pendingCount).toBe(0);
     expect(submitEvents).toHaveBeenCalledWith(
-      {authToken: 'fresh-token', phoneNumber: PHONE},
+      { authToken: 'fresh-token', phoneNumber: PHONE },
       'cet4',
       expect.any(Array),
     );
@@ -84,7 +85,7 @@ describe('learningEventSyncRepository', () => {
         Parameters<LearningEventsRepository['submitEvents']>
       >()
       .mockRejectedValue(new Error('network failed'));
-    const eventsRepository: LearningEventsRepository = {submitEvents};
+    const eventsRepository: LearningEventsRepository = { submitEvents };
     const repository = createLearningEventSyncRepository({
       eventsRepository,
       outbox,
@@ -92,7 +93,7 @@ describe('learningEventSyncRepository', () => {
     const original = await repository.enqueueCompletion(createInput());
 
     await expect(
-      repository.startReplay({authToken: 'token', phoneNumber: PHONE}),
+      repository.startReplay({ authToken: 'token', phoneNumber: PHONE }),
     ).rejects.toThrow('network failed');
 
     const [retained] = await outbox.getAll();
@@ -107,7 +108,7 @@ describe('learningEventSyncRepository', () => {
       .mockRejectedValue(
         new RemoteHttpError('Unauthorized', 401),
       ) as jest.MockedFunction<LearningEventsRepository['submitEvents']>;
-    const eventsRepository: LearningEventsRepository = {submitEvents};
+    const eventsRepository: LearningEventsRepository = { submitEvents };
     const repository = createLearningEventSyncRepository({
       eventsRepository,
       outbox,
@@ -115,8 +116,8 @@ describe('learningEventSyncRepository', () => {
     const original = await repository.enqueueCompletion(createInput());
 
     await expect(
-      repository.startReplay({authToken: 'expired', phoneNumber: PHONE}),
-    ).rejects.toMatchObject({status: 401});
+      repository.startReplay({ authToken: 'expired', phoneNumber: PHONE }),
+    ).rejects.toMatchObject({ status: 401 });
     await expect(outbox.getAll()).resolves.toEqual([original]);
   });
 
@@ -128,14 +129,14 @@ describe('learningEventSyncRepository', () => {
         new RemoteRequestLifecycleError('timeout'),
       ) as jest.MockedFunction<LearningEventsRepository['submitEvents']>;
     const repository = createLearningEventSyncRepository({
-      eventsRepository: {submitEvents},
+      eventsRepository: { submitEvents },
       outbox,
     });
     const original = await repository.enqueueCompletion(createInput());
 
     await expect(
-      repository.startReplay({authToken: 'token', phoneNumber: PHONE}),
-    ).rejects.toMatchObject({reason: 'timeout', retryable: true});
+      repository.startReplay({ authToken: 'token', phoneNumber: PHONE }),
+    ).rejects.toMatchObject({ reason: 'timeout', retryable: true });
 
     const [retained] = await outbox.getAll();
     expect(retained.event).toEqual(original.event);
@@ -152,14 +153,14 @@ describe('learningEventSyncRepository', () => {
           new RemoteRequestLifecycleError(reason),
         ) as jest.MockedFunction<LearningEventsRepository['submitEvents']>;
       const repository = createLearningEventSyncRepository({
-        eventsRepository: {submitEvents},
+        eventsRepository: { submitEvents },
         outbox,
       });
       const original = await repository.enqueueCompletion(createInput());
 
       await expect(
-        repository.startReplay({authToken: 'token', phoneNumber: PHONE}),
-      ).rejects.toMatchObject({reason, retryable: false});
+        repository.startReplay({ authToken: 'token', phoneNumber: PHONE }),
+      ).rejects.toMatchObject({ reason, retryable: false });
 
       await expect(outbox.getAll()).resolves.toEqual([original]);
     },
@@ -203,13 +204,13 @@ describe('learningEventSyncRepository', () => {
             });
         }),
     );
-    const eventsRepository: LearningEventsRepository = {submitEvents};
+    const eventsRepository: LearningEventsRepository = { submitEvents };
     const repository = createLearningEventSyncRepository({
       eventsRepository,
       outbox,
     });
     await repository.enqueueCompletion(createInput());
-    const context = {authToken: 'token', phoneNumber: PHONE};
+    const context = { authToken: 'token', phoneNumber: PHONE };
     const first = repository.startReplay(context);
     const second = repository.startReplay(context);
 
@@ -252,7 +253,7 @@ describe('learningEventSyncRepository', () => {
       return Promise.resolve(acknowledgement);
     });
     const repository = createLearningEventSyncRepository({
-      eventsRepository: {submitEvents},
+      eventsRepository: { submitEvents },
       outbox,
     });
     await repository.enqueueCompletion(createInput('100101'));
@@ -271,41 +272,41 @@ describe('learningEventSyncRepository', () => {
       phoneNumber: secondPhone,
     });
 
-    await expect(secondReplay).resolves.toMatchObject({pendingCount: 0});
+    await expect(secondReplay).resolves.toMatchObject({ pendingCount: 0 });
     releaseFirst?.();
-    await expect(firstReplay).resolves.toMatchObject({pendingCount: 0});
+    await expect(firstReplay).resolves.toMatchObject({ pendingCount: 0 });
     expect(submitEvents).toHaveBeenCalledTimes(2);
   });
 
-  it('splits larger queues into server-safe batches of nine', async () => {
+  it('never submits a second unseen completion while one is pending', async () => {
     const outbox = createOutbox();
-    const batchSizes: number[] = [];
     const submitEvents = jest.fn<
       ReturnType<LearningEventsRepository['submitEvents']>,
       Parameters<LearningEventsRepository['submitEvents']>
     >(async (_context, track, events: LearningEventV2[]) => {
-      batchSizes.push(events.length);
       return {
         acknowledgedAt: '2026-07-21T08:00:01.000Z',
         results: events.map((event, index) => ({
           eventId: event.event_id,
-          serverSequence: batchSizes.length * 100 + index,
+          serverSequence: index + 1,
           status: 'accepted' as const,
         })),
         track,
       };
     });
-    const eventsRepository: LearningEventsRepository = {submitEvents};
+    const eventsRepository: LearningEventsRepository = { submitEvents };
     const repository = createLearningEventSyncRepository({
       eventsRepository,
       outbox,
     });
 
-    for (let index = 0; index < 11; index += 1) {
-      await repository.enqueueCompletion(createInput(String(100101 + index)));
-    }
+    await repository.enqueueCompletion(createInput('100101'));
+    await expect(
+      repository.enqueueCompletion(createInput('100102')),
+    ).rejects.toThrow('must be acknowledged');
 
-    await repository.startReplay({authToken: 'token', phoneNumber: PHONE});
-    expect(batchSizes).toEqual([9, 2]);
+    await repository.startReplay({ authToken: 'token', phoneNumber: PHONE });
+    expect(submitEvents).toHaveBeenCalledTimes(1);
+    expect(submitEvents.mock.calls[0][2]).toHaveLength(1);
   });
 });

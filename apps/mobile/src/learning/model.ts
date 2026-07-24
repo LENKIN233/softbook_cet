@@ -147,9 +147,20 @@ export type LearningCardResult = {
   completedAt: string;
 };
 
+export type LearningServerSelection = {
+  cardId: string;
+  dueAt: string | null;
+  phase: 'learning' | 'review';
+  reason: 'persisted_cursor' | 'due_review' | 'catalog_new';
+  selectionId: string;
+};
+
 export type LearningSession = {
   catalogCards: LearningCard[];
   contentVersion: string | null;
+  nextDueAt: string | null;
+  schedulingMode: 'local' | 'server';
+  serverSelection: LearningServerSelection | null;
   sourceId: string;
   sourceLabel: string;
   track: LearningTrack;

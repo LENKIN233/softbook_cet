@@ -289,6 +289,12 @@ async function commitLearningEventsTransaction(adapter, input) {
     return orderedResults(input.events, classificationByEventId);
   }
 
+  if (newEntries.length > 1) {
+    throw selectionConflict(
+      'One current learning selection cannot authorize multiple new events.',
+    );
+  }
+
   const validatedEntries = await input.validateNewEvents(newEntries, query =>
     adapter.readContentVersion(query),
   );
@@ -337,6 +343,7 @@ async function commitLearningEventsTransaction(adapter, input) {
     sessionState,
     storedProjection === null ? null : projection,
   );
+  assertCurrentSelectionBinding(sessionState, validatedEntries[0]);
   const migratedProjectionWrites = [];
   const migratedSessionWrites = [];
 
@@ -505,10 +512,8 @@ async function commitLearningEventsTransaction(adapter, input) {
   }
   const clearsSelectedCursor =
     sessionState.cursor !== null &&
-    acceptedEntries.some(
-      entry =>
-        entry.payload.card_id === sessionState.cursor.card_id &&
-        entry.payload.content_version === sessionState.cursor.content_version,
+    acceptedEntries.some(entry =>
+      matchesCurrentSelection(sessionState.cursor, entry),
     );
 
   await adapter.setLearningSession(input.track, {
@@ -1719,6 +1724,36 @@ function cursorConflict() {
     409,
     'learning_event_cursor_conflict',
     'A device cursor is already bound to a different event.',
+  );
+}
+
+function assertCurrentSelectionBinding(sessionState, entry) {
+  if (
+    sessionState.cursor === null ||
+    !matchesCurrentSelection(sessionState.cursor, entry)
+  ) {
+    throw selectionConflict(
+      'The learning event does not match the current server selection.',
+    );
+  }
+}
+
+function matchesCurrentSelection(cursor, entry) {
+  return (
+    entry.track === cursor.track &&
+    entry.sourceId === cursor.source_id &&
+    entry.payload.selection_id === cursor.selection_id &&
+    entry.payload.card_id === cursor.card_id &&
+    entry.payload.phase === cursor.phase &&
+    entry.payload.content_version === cursor.content_version
+  );
+}
+
+function selectionConflict(message) {
+  return createLearningEventsError(
+    409,
+    'learning_event_selection_conflict',
+    message,
   );
 }
 

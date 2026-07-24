@@ -751,6 +751,10 @@ function AppShell({
       stateMap: Record<string, SpaceCardState> = spaceCardStateById,
       nextMembershipState: MembershipState = membershipState,
     ) => {
+      if (nextSession?.schedulingMode === 'server') {
+        return nextSession.cards;
+      }
+
       const accessibleCardCount = nextSession
         ? resolveAccessibleLearningCardCount(
             nextSession.cards.length,
@@ -772,6 +776,10 @@ function AppShell({
       stateMap: Record<string, SpaceCardState> = spaceCardStateById,
       nextMembershipState: MembershipState = membershipState,
     ) => {
+      if (nextSession?.schedulingMode === 'server') {
+        return [];
+      }
+
       const accessibleCardCount = nextSession
         ? resolveAccessibleLearningCardCount(
             nextSession.cards.length,
@@ -797,10 +805,10 @@ function AppShell({
       ? reviewCompletedResults
       : learningCompletedResults;
   const currentLearningCard = activeSessionCards[learningIndex] ?? null;
-  const reviewCandidateCards = selectReviewCards(
-    visibleLearningCards,
-    learningCompletedResults,
-  );
+  const reviewCandidateCards =
+    learningSession?.schedulingMode === 'server'
+      ? []
+      : selectReviewCards(visibleLearningCards, learningCompletedResults);
   const pendingReviewCount = reviewCandidateCards.filter(
     card =>
       !reviewCompletedResults.some(result => result.cardId === card.card_id),
@@ -1369,6 +1377,9 @@ function AppShell({
 
           if (replay.acknowledgedEntries.length > 0) {
             if (runtimeAccountBootstrapMode === 'remote') {
+              setLearningSession(null);
+              setLearningCardState(null);
+              setMappedAccountBootstrapSnapshot(null);
               accountBootstrapRefreshRequired.current = false;
               accountBootstrapStatusRef.current = 'pending';
               setAccountBootstrapStatus('pending');
@@ -1389,18 +1400,31 @@ function AppShell({
                 }
 
                 if (!bootstrapRefreshed) {
+                  setLearningBootstrapStatus('error');
+                  setLearningBootstrapError(
+                    '账户学习状态尚未刷新，重新确认后再继续下一张。',
+                  );
                   setLearningStateSyncState({
                     detail:
                       '答题记录已由服务端确认，账户状态将在服务恢复后刷新。',
                     label: '待刷新',
                     state: 'error',
                   });
+                } else {
+                  setLearningSession(null);
+                  setLearningCardState(null);
+                  setLearningBootstrapStatus('idle');
+                  setLearningBootstrapError(null);
                 }
               } catch (error) {
                 if (!isReplayAccountCurrent()) {
                   return;
                 }
 
+                setLearningBootstrapStatus('error');
+                setLearningBootstrapError(
+                  '账户学习状态刷新失败，重新确认后再继续下一张。',
+                );
                 setLearningStateSyncState({
                   detail: `${getUserFacingErrorMessage(
                     error,
@@ -2128,10 +2152,7 @@ function AppShell({
           `progress:${dailyProgressKey}`,
         )
         .then(() => {
-          if (
-            !isCancelled &&
-            pendingLearningEventCountRef.current === 0
-          ) {
+          if (!isCancelled && pendingLearningEventCountRef.current === 0) {
             startMutationReplay().catch(() => undefined);
           }
         })
@@ -2275,10 +2296,7 @@ function AppShell({
           `space:${spaceStateSyncKey}`,
         )
         .then(() => {
-          if (
-            !isCancelled &&
-            pendingLearningEventCountRef.current === 0
-          ) {
+          if (!isCancelled && pendingLearningEventCountRef.current === 0) {
             startMutationReplay().catch(() => undefined);
           }
         })
@@ -2420,18 +2438,29 @@ function AppShell({
         setLearningSession(session);
         setLearningCurrentResult(null);
         setLearningCompletedResults(canonicalLearningState.learningResults);
-        setLearningPhase('learning');
-        setReviewSessionCards([]);
+        const scheduledPhase =
+          session.schedulingMode === 'server' &&
+          session.serverSelection?.phase === 'review'
+            ? 'review'
+            : 'learning';
+        setLearningPhase(scheduledPhase);
+        setReviewSessionCards(scheduledPhase === 'review' ? session.cards : []);
         setReviewCompletedResults(canonicalLearningState.reviewResults);
-        const accessibleCardCount = resolveAccessibleLearningCardCount(
-          session.cards.length,
-          membershipState,
-        );
-        const nextVisibleCards = session.cards
-          .slice(0, accessibleCardCount)
-          .filter(card => !readSpaceCardState(card.card_id).isSleeping);
+        const nextVisibleCards =
+          session.schedulingMode === 'server'
+            ? session.cards
+            : session.cards
+                .slice(
+                  0,
+                  resolveAccessibleLearningCardCount(
+                    session.cards.length,
+                    membershipState,
+                  ),
+                )
+                .filter(card => !readSpaceCardState(card.card_id).isSleeping);
         const restoredCursor = persistedLearningCursor.current;
         const restoredIndex =
+          session.schedulingMode === 'local' &&
           restoredCursor !== null &&
           restoredCursor.sourceId === session.sourceId &&
           restoredCursor.track === session.track
@@ -2512,8 +2541,15 @@ function AppShell({
       setLearningCompletedResults(canonicalLearningState.learningResults);
       setReviewCompletedResults(canonicalLearningState.reviewResults);
       setLearningCurrentResult(null);
-      setLearningPhase('learning');
-      setReviewSessionCards([]);
+      const scheduledPhase =
+        learningSession.schedulingMode === 'server' &&
+        learningSession.serverSelection?.phase === 'review'
+          ? 'review'
+          : 'learning';
+      setLearningPhase(scheduledPhase);
+      setReviewSessionCards(
+        scheduledPhase === 'review' ? learningSession.cards : [],
+      );
 
       const nextVisibleCards = resolveVisibleLearningCards(
         learningSession,
@@ -2521,11 +2557,12 @@ function AppShell({
         membershipState,
       );
       const restoredCursor = accountBootstrapSnapshot.learning.cursor;
-      const restoredIndex = restoredCursor
-        ? nextVisibleCards.findIndex(
-            card => card.card_id === restoredCursor.cardId,
-          )
-        : -1;
+      const restoredIndex =
+        restoredCursor && learningSession.schedulingMode === 'local'
+          ? nextVisibleCards.findIndex(
+              card => card.card_id === restoredCursor.cardId,
+            )
+          : -1;
       const nextIndex = restoredIndex >= 0 ? restoredIndex : 0;
 
       setLearningIndex(nextIndex);
@@ -3164,7 +3201,9 @@ function AppShell({
     onAdvanceCard: () => {
       if (
         learningCurrentResult === null ||
-        learningEventEnqueueInFlight.current !== null
+        learningEventEnqueueInFlight.current !== null ||
+        (runtimeLearningEventsMode === 'remote' &&
+          pendingLearningEventCountRef.current > 0)
       ) {
         return;
       }
@@ -3193,6 +3232,9 @@ function AppShell({
           authenticatedRuntimeContext.phoneNumber ||
         learningSession === null ||
         learningSession.contentVersion === null ||
+        learningSession.schedulingMode !== 'server' ||
+        learningSession.serverSelection === null ||
+        learningSession.serverSelection.cardId !== completedResult.cardId ||
         learningEventRecoveryPending ||
         !canWriteAccountState
       ) {
@@ -3215,7 +3257,8 @@ function AppShell({
 
       const accountPhoneNumber = authenticatedRuntimeContext.phoneNumber;
       const contentVersion = learningSession.contentVersion;
-      const completedPhase = learningPhase;
+      const completedPhase = learningSession.serverSelection.phase;
+      const completedSelectionId = learningSession.serverSelection.selectionId;
       const completedTrack = learningSession.track;
       const enqueueOperation = {
         sessionScopeKey: completionSessionScopeKey,
@@ -3235,6 +3278,7 @@ function AppShell({
             contentVersion,
             phase: completedPhase,
             result: completedResult,
+            selectionId: completedSelectionId,
             track: completedTrack,
           });
 
@@ -3249,6 +3293,7 @@ function AppShell({
           learningEventReplayPaused.current = false;
           pendingLearningEventCountRef.current += 1;
           setPendingLearningEventCount(pendingLearningEventCountRef.current);
+          setLearningEventRecoveryPending(true);
 
           try {
             const pendingCount =
@@ -3569,7 +3614,8 @@ function AppShell({
     />
   ) : route.key === 'learning' &&
     learningPhase === 'learning' &&
-    visibleLearningCards.length === 0 ? (
+    visibleLearningCards.length === 0 &&
+    learningSession?.schedulingMode !== 'server' ? (
     <LearningSleepSurface
       canOpenSpace={membershipAccess.completePhysicalSpace}
       onGoToSpace={() => {

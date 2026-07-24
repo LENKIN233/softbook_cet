@@ -20,6 +20,7 @@ const START_TIME = new Date('2026-04-30T12:00:00.000Z');
 const DAY_KEY = '2026-04-30';
 const PHONE_ONE = '13800138000';
 const PHONE_TWO = '13900139000';
+const CURRENT_SELECTION_ID = 'sel_current_selection_pending';
 
 function createClock() {
   let value = new Date(START_TIME);
@@ -97,6 +98,10 @@ async function cardSource(api, session, track = 'cet4') {
 }
 
 async function submit(api, session, events, track = 'cet4', extra = {}) {
+  if (events.some(event => event.selection_id === CURRENT_SELECTION_ID)) {
+    await bindEventsToCurrentSelection(api, session, events, track);
+  }
+
   return request(api, {
     body: {
       schema_version: 'learning-events.v2',
@@ -111,12 +116,41 @@ async function submit(api, session, events, track = 'cet4', extra = {}) {
   });
 }
 
+async function bindEventsToCurrentSelection(
+  api,
+  session,
+  events,
+  track = 'cet4',
+) {
+  const selected = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v2/learning/session',
+    query: {track},
+  });
+  assert.equal(
+    selected.statusCode,
+    200,
+    `selection preflight: ${JSON.stringify(selected.body)}`,
+  );
+  assert.notEqual(selected.body.data.selection, null);
+
+  events.forEach(event => {
+    if (event.selection_id === CURRENT_SELECTION_ID) {
+      event.selection_id = selected.body.data.selection.selection_id;
+    }
+  });
+
+  return selected.body.data.selection;
+}
+
 function eventFor(source, index = 0, overrides = {}) {
   const card = source.card_records[index];
   const outcome = card.interaction_id === 'flip' ? 'confident' : 'correct';
 
   return {
     event_id: `event_${String(index + 1).padStart(4, '0')}`,
+    selection_id: CURRENT_SELECTION_ID,
     card_id: card.card_id,
     interaction_id: card.interaction_id,
     phase: 'learning',
@@ -213,6 +247,8 @@ test('learning-events v2 rejects identity input and strict-schema drift', async 
   const session = await authenticatedSession(api);
   const source = await cardSource(api, session);
   const valid = eventFor(source);
+  const missingSelection = {...valid};
+  delete missingSelection.selection_id;
   const cases = [
     {
       body: {phone_number: PHONE_TWO},
@@ -231,6 +267,10 @@ test('learning-events v2 rejects identity input and strict-schema drift', async 
     },
     {
       event: {...valid, answer_grade: 'good'},
+      expectedCode: 'invalid_learning_events_request',
+    },
+    {
+      event: missingSelection,
       expectedCode: 'invalid_learning_events_request',
     },
     {
@@ -266,6 +306,101 @@ test('learning-events v2 rejects identity input and strict-schema drift', async 
   assert.equal(store.snapshot().learningEvents.size, 0);
 });
 
+test('unseen events require one exact current selection and fail atomically', async () => {
+  const store = createMemoryStore();
+  const {api} = createTestApi({store});
+  const session = await authenticatedSession(api);
+  const source = await cardSource(api, session);
+  const valid = eventFor(source, 0);
+  const selection = await bindEventsToCurrentSelection(api, session, [valid]);
+  const snapshot = store.snapshot();
+  const initialCursor = clone(
+    [...snapshot.learningSessions.values()][0].cursor,
+  );
+  const retainedSource = {
+    ...clone(source),
+    release: null,
+    retained_until: null,
+    retention_status: 'retained',
+  };
+  snapshot.cardSourceVersions.set(
+    createCardSourceVersionId('cet4', source.content_version),
+    retainedSource,
+  );
+  const nextSource = validateCardSourceForImport(
+    {
+      card_records: clone(source.card_records),
+      release: null,
+      source: {
+        ...source.source,
+        label: `${source.source.label} next`,
+      },
+      track: 'cet4',
+    },
+    'cet4',
+  );
+  snapshot.cardSources.set('cet4', nextSource);
+
+  const staleSelection = {
+    ...valid,
+    event_id: 'event_stale_selection_0001',
+    selection_id: 'sel_stale_selection_pending',
+  };
+  const wrongCard = eventFor(source, 1, {
+    device_cursor: {device_id: 'device_installation_0001', sequence: 2},
+    event_id: 'event_wrong_card_0002',
+    selection_id: selection.selection_id,
+  });
+  const wrongPhase = {
+    ...valid,
+    device_cursor: {device_id: 'device_installation_0001', sequence: 3},
+    event_id: 'event_wrong_phase_0003',
+    phase: 'review',
+  };
+  const wrongContentVersion = eventFor(nextSource, 0, {
+    device_cursor: {device_id: 'device_installation_0001', sequence: 4},
+    event_id: 'event_wrong_content_0004',
+    selection_id: selection.selection_id,
+  });
+  const secondUnseen = eventFor(source, 1, {
+    device_cursor: {device_id: 'device_installation_0001', sequence: 5},
+    event_id: 'event_second_unseen_0005',
+    selection_id: selection.selection_id,
+  });
+
+  for (const events of [
+    [staleSelection],
+    [wrongCard],
+    [wrongPhase],
+    [wrongContentVersion],
+    [valid, secondUnseen],
+  ]) {
+    const rejected = await submit(api, session, events);
+    assert.equal(rejected.statusCode, 409, JSON.stringify(rejected.body));
+    assert.equal(
+      rejected.body.error.code,
+      'learning_event_selection_conflict',
+    );
+    assert.deepEqual(
+      [...snapshot.learningSessions.values()][0].cursor,
+      initialCursor,
+    );
+    assert.equal(snapshot.learningEvents.size, 0);
+    assert.equal(snapshot.learningEventSequences.size, 0);
+    assert.equal(snapshot.learningStates.size, 0);
+  }
+
+  const accepted = await submit(api, session, [valid]);
+  assert.equal(accepted.statusCode, 200, JSON.stringify(accepted.body));
+  assert.equal(accepted.body.data.results[0].status, 'accepted');
+  assert.equal([...snapshot.learningSessions.values()][0].cursor, null);
+
+  const replayed = await submit(api, session, [valid]);
+  assert.equal(replayed.statusCode, 200, JSON.stringify(replayed.body));
+  assert.equal(replayed.body.data.results[0].status, 'duplicate');
+  assert.equal(snapshot.learningEvents.size, 1);
+});
+
 test('learning-events v2 requires an active session and enforces the configured batch bound', async () => {
   assert.throws(
     () => createTestApi({learningEventsBatchLimit: 10}),
@@ -299,7 +434,7 @@ test('learning-events v2 requires an active session and enforces the configured 
   assert.equal(store.snapshot().learningEvents.size, 0);
 });
 
-test('maximum CloudBase batch retains transaction-operation headroom', async () => {
+test('selection-bound CloudBase commit retains transaction-operation headroom', async () => {
   const baseStore = createMemoryStore();
   const {api: baseApi} = createTestApi({store: baseStore});
   const baseSession = await authenticatedSession(
@@ -390,23 +525,91 @@ test('maximum CloudBase batch retains transaction-operation headroom', async () 
   });
   assert.equal(legacySibling.statusCode, 200);
 
-  const events = historicalSources.map((source, index) =>
-    eventFor(source, index % source.card_records.length, {
-      client_occurred_at: new Date(
-        START_TIME.getTime() - index * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-      device_cursor: {
-        device_id: 'device_operation_budget_0001',
-        sequence: index + 1,
-      },
-      event_id: `event_operation_budget_${String(index + 1).padStart(4, '0')}`,
-    }),
-  );
-  const response = await submit(api, session, events);
+  const event = eventFor(historicalSources[0], 0, {
+    device_cursor: {
+      device_id: 'device_operation_budget_0001',
+      sequence: 1,
+    },
+    event_id: 'event_operation_budget_0001',
+    selection_id: 'sel_operation_budget_0001',
+  });
+  const response = await submit(api, session, [event]);
 
   assert.equal(response.statusCode, 200, JSON.stringify(response.body));
-  assert.equal(response.body.data.results.length, 9);
-  assert.equal(db.lastTransactionOperations(), 95);
+  assert.equal(response.body.data.results.length, 1);
+  assert.ok(db.lastTransactionOperations() <= 29);
+});
+
+test('maximum replay batch with one unseen selection retains CloudBase headroom', async () => {
+  const db = createFakeCloudBaseDb();
+  const {api} = createTestApi({store: createCloudBaseStore({db})});
+  const session = await authenticatedSession(api, PHONE_ONE, '127.0.0.31');
+  const source = await cardSource(api, session);
+  const acceptedEvents = [];
+
+  for (let index = 0; index < 8; index += 1) {
+    const selected = await request(api, {
+      headers: {authorization: `Bearer ${session.access_token}`},
+      method: 'GET',
+      path: '/v2/learning/session',
+      query: {track: 'cet4'},
+    });
+    assert.equal(selected.statusCode, 200, JSON.stringify(selected.body));
+    const selection = selected.body.data.selection;
+    assert.notEqual(selection, null);
+    const cardIndex = source.card_records.findIndex(
+      card => card.card_id === selection.card_id,
+    );
+    assert.notEqual(cardIndex, -1);
+    const event = eventFor(source, cardIndex, {
+      device_cursor: {
+        device_id: 'device_operation_replay_0001',
+        sequence: index + 1,
+      },
+      event_id: `event_operation_replay_${String(index + 1).padStart(4, '0')}`,
+      phase: selection.phase,
+      selection_id: selection.selection_id,
+    });
+    const accepted = await submit(api, session, [event]);
+    assert.equal(accepted.statusCode, 200, JSON.stringify(accepted.body));
+    acceptedEvents.push(event);
+
+    const projection = [
+      ...db.snapshot().get('softbook_learning_states').values(),
+    ].find(value => value.projection_version === 'learning-events.v2');
+    projection.scheduler_by_card_id[event.card_id].card.due =
+      START_TIME.toISOString();
+  }
+
+  const selected = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v2/learning/session',
+    query: {track: 'cet4'},
+  });
+  assert.equal(selected.statusCode, 200, JSON.stringify(selected.body));
+  const selection = selected.body.data.selection;
+  const cardIndex = source.card_records.findIndex(
+    card => card.card_id === selection.card_id,
+  );
+  const unseen = eventFor(source, cardIndex, {
+    device_cursor: {
+      device_id: 'device_operation_replay_0001',
+      sequence: 9,
+    },
+    event_id: 'event_operation_replay_0009',
+    phase: selection.phase,
+    selection_id: selection.selection_id,
+  });
+
+  const response = await submit(api, session, [...acceptedEvents, unseen]);
+
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  assert.deepEqual(
+    response.body.data.results.map(result => result.status),
+    [...Array(8).fill('duplicate'), 'accepted'],
+  );
+  assert.equal(db.lastTransactionOperations(), 29);
 });
 
 test('learning-events v2 rejects a stored session whose account key no longer matches its phone', async () => {
@@ -414,10 +617,12 @@ test('learning-events v2 rejects a stored session whose account key no longer ma
   const {api} = createTestApi({store});
   const session = await authenticatedSession(api);
   const source = await cardSource(api, session);
+  const event = eventFor(source);
+  await bindEventsToCurrentSelection(api, session, [event]);
   store.snapshot().authSessions.get(session.session_id).account_key =
     '0'.repeat(64);
 
-  const response = await submit(api, session, [eventFor(source)]);
+  const response = await submit(api, session, [event]);
 
   assert.equal(response.statusCode, 401);
   assert.equal(response.body.error.code, 'revoked_auth_session');
@@ -541,7 +746,13 @@ test('device cursor gaps and out-of-order replay keep account-scoped server orde
 
 test('latest accepted event owns per-card review state without changing completion history', async () => {
   const store = createMemoryStore();
-  const {api} = createTestApi({store});
+  const clock = createClock();
+  const {api} = createTestApi({
+    authV2AccessTokenTtlSeconds: 2 * 24 * 60 * 60,
+    authV2RefreshTokenTtlSeconds: 2 * 24 * 60 * 60,
+    clock,
+    store,
+  });
   const session = await authenticatedSession(api);
   const source = await cardSource(api, session);
   const card = source.card_records[0];
@@ -569,6 +780,7 @@ test('latest accepted event owns per-card review state without changing completi
   });
   assert.equal(pending.body.data.progress.pending_review_count, 1);
 
+  clock.advanceDays(1);
   await submit(api, session, [passed]);
   const reconciled = await request(api, {
     headers: {authorization: `Bearer ${session.access_token}`},
@@ -627,7 +839,7 @@ test('new events enforce time bounds and exact content identity atomically', asy
   assert.equal(lateReplay.body.data.results[0].server_sequence, 1);
 });
 
-test('one invalid new event rejects every otherwise valid event before writes', async () => {
+test('one invalid unseen event rejects a mixed duplicate batch before writes', async () => {
   const store = createMemoryStore();
   const {api} = createTestApi({store});
   const session = await authenticatedSession(api);
@@ -638,16 +850,16 @@ test('one invalid new event rejects every otherwise valid event before writes', 
     event_id: 'event_unknown_card_0002',
     device_cursor: {device_id: 'device_installation_0001', sequence: 2},
   });
+  const accepted = await submit(api, session, [valid]);
+  assert.equal(accepted.statusCode, 200);
 
   const response = await submit(api, session, [valid, unknown]);
   assert.equal(response.statusCode, 422);
-  assert.equal(store.snapshot().learningEvents.size, 0);
-  assert.equal(store.snapshot().learningEventSequences.size, 0);
+  assert.equal(store.snapshot().learningEvents.size, 1);
   assert.equal(
-    [...store.snapshot().dailyProgress.keys()].some(key =>
-      key.startsWith('account:'),
-    ),
-    false,
+    [...store.snapshot().learningEventSequences.values()][0]
+      .last_server_sequence,
+    1,
   );
 });
 
@@ -666,8 +878,10 @@ test('activity day is derived in China time and never accepted from the client',
     event_id: 'event_china_day_0002',
     device_cursor: {device_id: 'device_installation_0001', sequence: 2},
   });
-  const accepted = await submit(api, session, [beforeMidnight, afterMidnight]);
-  assert.equal(accepted.statusCode, 200);
+  const acceptedBeforeMidnight = await submit(api, session, [beforeMidnight]);
+  const acceptedAfterMidnight = await submit(api, session, [afterMidnight]);
+  assert.equal(acceptedBeforeMidnight.statusCode, 200);
+  assert.equal(acceptedAfterMidnight.statusCode, 200);
 
   for (const [dayKey, expectedCount] of [
     ['2026-04-30', 1],
@@ -700,6 +914,10 @@ test('retained content supports offline replay and expired versions fail closed'
   const {api} = createTestApi({store});
   const session = await authenticatedSession(api);
   const oldSource = await cardSource(api, session);
+  const retainedEvent = eventFor(oldSource, 0, {
+    event_id: 'event_retained_0001',
+  });
+  await bindEventsToCurrentSelection(api, session, [retainedEvent]);
   const snapshot = store.snapshot();
   snapshot.cardSourceVersions.set(
     createCardSourceVersionId('cet4', oldSource.content_version),
@@ -721,9 +939,6 @@ test('retained content supports offline replay and expired versions fail closed'
   );
   snapshot.cardSources.set('cet4', nextSource);
 
-  const retainedEvent = eventFor(oldSource, 0, {
-    event_id: 'event_retained_0001',
-  });
   const retained = await submit(api, session, [retainedEvent]);
   assert.equal(retained.statusCode, 200);
 
@@ -863,11 +1078,12 @@ test('event and cursor identities are isolated by account', async () => {
     '127.0.0.21',
   );
   const source = await cardSource(api, firstSession);
-  const event = eventFor(source);
+  const firstEvent = eventFor(source);
+  const secondEvent = clone(firstEvent);
 
   const [first, second] = await Promise.all([
-    submit(api, firstSession, [event]),
-    submit(api, secondSession, [event]),
+    submit(api, firstSession, [firstEvent]),
+    submit(api, secondSession, [secondEvent]),
   ]);
 
   assert.equal(first.body.data.results[0].status, 'accepted');
@@ -1033,7 +1249,7 @@ test('first v2 event migrates v1 learning and progress baselines without favorit
         {
           card_id: legacyCard.card_id,
           is_favorited: true,
-          is_sleeping: false,
+          is_sleeping: true,
           last_modified_at: START_TIME.toISOString(),
         },
       ],
@@ -1138,9 +1354,10 @@ test('first v2 event preserves the legacy baseline for both tracks', async () =>
     });
     assert.equal(scheduledCet6.statusCode, 200, name);
 
-    const first = eventFor(cet4Source, 1, {
+    const first = eventFor(cet4Source, 0, {
       device_cursor: {device_id: 'device_cross_track_0001', sequence: 1},
       event_id: 'event_cross_track_cet4_0001',
+      phase: 'review',
     });
     const firstAccepted = await submit(api, session, [first], 'cet4');
     assert.equal(firstAccepted.statusCode, 200, name);
@@ -1171,9 +1388,10 @@ test('first v2 event preserves the legacy baseline for both tracks', async () =>
       name,
     );
 
-    const second = eventFor(cet6Source, 1, {
+    const second = eventFor(cet6Source, 0, {
       device_cursor: {device_id: 'device_cross_track_0001', sequence: 2},
       event_id: 'event_cross_track_cet6_0002',
+      phase: 'review',
     });
     const secondAccepted = await submit(api, session, [second], 'cet6');
     assert.equal(secondAccepted.statusCode, 200, name);
@@ -1186,7 +1404,12 @@ test('first v2 event preserves the legacy baseline for both tracks', async () =>
       query: {day_key: DAY_KEY, track: 'cet6'},
     });
     assert.equal(reconciledCet6.statusCode, 200, name);
-    assert.equal(reconciledCet6.body.data.learning.card_states.length, 2, name);
+    assert.equal(reconciledCet6.body.data.learning.card_states.length, 1, name);
+    assert.equal(
+      reconciledCet6.body.data.learning.card_states[0].server_sequence,
+      2,
+      name,
+    );
   }
 });
 
@@ -1389,6 +1612,25 @@ test('CloudBase migration reads every legacy learning-state page', async () => {
     });
   }
 
+  const sleeping = await request(api, {
+    body: {
+      day_key: DAY_KEY,
+      phone_number: PHONE_ONE,
+      states: [
+        {
+          card_id: legacyCard.card_id,
+          is_favorited: false,
+          is_sleeping: true,
+          last_modified_at: START_TIME.toISOString(),
+        },
+      ],
+    },
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'POST',
+    path: '/v1/space/state-sync',
+  });
+  assert.equal(sleeping.statusCode, 200);
+
   const next = eventFor(source, 1, {
     event_id: 'event_after_paged_legacy_0001',
     card_id: nextCard.card_id,
@@ -1492,6 +1734,11 @@ test('corrupted v2 learning and daily projections fail closed on read and append
     state => state.projection_version === 'learning-events.v2',
   );
   const projectedEvent = Object.values(projection.events_by_card_id)[0];
+  const second = eventFor(source, 1, {
+    event_id: 'event_after_corrupt_projection_0002',
+    device_cursor: {device_id: 'device_installation_0001', sequence: 2},
+  });
+  await bindEventsToCurrentSelection(api, session, [second]);
   projectedEvent.server_sequence = 2;
 
   const corruptSequenceRead = await request(api, {
@@ -1506,10 +1753,6 @@ test('corrupted v2 learning and daily projections fail closed on read and append
     'learning_events_projection_invalid',
   );
 
-  const second = eventFor(source, 1, {
-    event_id: 'event_after_corrupt_projection_0002',
-    device_cursor: {device_id: 'device_installation_0001', sequence: 2},
-  });
   const corruptSequenceAppend = await submit(api, session, [second]);
   assert.equal(corruptSequenceAppend.statusCode, 503);
   assert.equal(
@@ -1601,6 +1844,11 @@ test('an accepted event without its account sequence fails closed on replay and 
   const source = await cardSource(api, session);
   const first = eventFor(source, 0);
   await submit(api, session, [first]);
+  const next = eventFor(source, 1, {
+    event_id: 'event_after_missing_sequence_0002',
+    device_cursor: {device_id: 'device_installation_0001', sequence: 2},
+  });
+  await bindEventsToCurrentSelection(api, session, [next]);
   store.snapshot().learningEventSequences.clear();
 
   const replay = await submit(api, session, [first]);
@@ -1616,10 +1864,6 @@ test('an accepted event without its account sequence fails closed on replay and 
   assert.equal(bootstrap.statusCode, 500);
   assert.equal(bootstrap.body.error.code, 'learning_events_projection_invalid');
 
-  const next = eventFor(source, 1, {
-    event_id: 'event_after_missing_sequence_0002',
-    device_cursor: {device_id: 'device_installation_0001', sequence: 2},
-  });
   const append = await submit(api, session, [first, next]);
   assert.equal(append.statusCode, 503);
   assert.equal(append.body.error.code, 'learning_events_projection_invalid');

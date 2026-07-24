@@ -158,7 +158,7 @@ This contract does not prove:
 
 - TypeScript or CloudBase Run production deployment;
 - real SMS provider readiness;
-- shipment of mobile durable `learning-events.v2` replay;
-- mobile consumption of `/v2/learning/session` or selection-ID binding;
+- production shipment of the repository-local mobile durable
+  `learning-events.v2` replay and `/v2/learning/session` selection binding;
 - signed content manifests, complete approved content, or audio QC;
 - payment entitlement, deletion completion, or launch readiness.

@@ -13,6 +13,7 @@ function createEvent(
 ): LearningEventV2 {
   return {
     event_id: eventId,
+    selection_id: 'sel_1234567890abcdef',
     card_id: '100101',
     interaction_id: 'flip',
     phase: 'learning',
@@ -70,12 +71,12 @@ describe('learningEventsRepository', () => {
 
     await expect(
       repository.submitEvents(
-        {authToken: 'current-token', phoneNumber: '13800138000'},
+        { authToken: 'current-token', phoneNumber: '13800138000' },
         'cet4',
         events,
       ),
     ).resolves.toMatchObject({
-      results: [{eventId: events[0].event_id, status: 'accepted'}],
+      results: [{ eventId: events[0].event_id, status: 'accepted' }],
       track: 'cet4',
     });
 
@@ -107,10 +108,10 @@ describe('learningEventsRepository', () => {
     });
 
     await expect(
-      repository.submitEvents({phoneNumber: '13800138000'}, 'cet4', [
+      repository.submitEvents({ phoneNumber: '13800138000' }, 'cet4', [
         createEvent(),
       ]),
-    ).rejects.toMatchObject({status: 401});
+    ).rejects.toMatchObject({ status: 401 });
   });
 
   it('rejects non-success HTTP responses without parsing an acknowledgement', async () => {
@@ -130,11 +131,11 @@ describe('learningEventsRepository', () => {
 
     await expect(
       repository.submitEvents(
-        {authToken: 'token', phoneNumber: '13800138000'},
+        { authToken: 'token', phoneNumber: '13800138000' },
         'cet4',
         [createEvent()],
       ),
-    ).rejects.toMatchObject({status: 409});
+    ).rejects.toMatchObject({ status: 409 });
   });
 
   it.each([
@@ -171,7 +172,7 @@ describe('learningEventsRepository', () => {
     },
   ])(
     'rejects ambiguous acknowledgement: $label',
-    ({mutate, events = [createEvent()]}) => {
+    ({ mutate, events = [createEvent()] }) => {
       const payload = createAck(events);
       mutate(payload);
 

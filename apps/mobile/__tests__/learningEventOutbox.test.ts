@@ -1,11 +1,14 @@
-import type {LearningCardResult} from '../src/learning/model';
+import type { LearningCardResult } from '../src/learning/model';
 import {
   createInMemoryLearningEventOutboxStorage,
+  LEARNING_EVENT_OUTBOX_STORAGE_KEY,
+  LEGACY_LEARNING_EVENT_OUTBOX_STORAGE_KEY,
   LearningEventOutbox,
 } from '../src/sync/learningEventOutbox';
 
 const CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
 const PHONE = '13800138000';
+const SELECTION_ID = 'sel_1234567890abcdef';
 
 function createResult(
   cardId = '100101',
@@ -28,6 +31,7 @@ function createInput(cardId = '100101') {
     contentVersion: CONTENT_VERSION,
     phase: 'learning' as const,
     result: createResult(cardId),
+    selectionId: SELECTION_ID,
     track: 'cet4' as const,
   };
 }
@@ -56,6 +60,7 @@ describe('LearningEventOutbox', () => {
           sequence: 1,
         },
         phase: 'learning',
+        selection_id: SELECTION_ID,
       },
       retryCount: 0,
       track: 'cet4',
@@ -79,16 +84,18 @@ describe('LearningEventOutbox', () => {
       createDeviceId: () => 'install_should_not_replace',
       storage,
     });
+    const [persisted] = await restored.getAll();
+    await restored.acknowledge(PHONE, [persisted.event.event_id]);
     const second = await restored.enqueueCompletion(createInput('100102'));
     const entries = await restored.getAll();
 
     expect(entries.map(entry => entry.event.device_cursor.sequence)).toEqual([
-      1, 2,
+      2,
     ]);
     expect(second.event.device_cursor.device_id).toBe(
       'install_original_device',
     );
-    expect(entries[0].event).toEqual((await first.getAll())[0].event);
+    expect(persisted.event).toEqual((await first.getAll())[0].event);
   });
 
   it('repairs a stale persisted cursor and drops non-canonical event IDs', async () => {
@@ -116,13 +123,15 @@ describe('LearningEventOutbox', () => {
       createDeviceId: () => 'install_should_not_replace',
       storage,
     });
+    const [retained] = await restored.getAll();
+    await restored.acknowledge(PHONE, [retained.event.event_id]);
     const second = await restored.enqueueCompletion(createInput('100102'));
 
     expect(second.event.device_cursor).toEqual({
       device_id: 'install_repair_device',
       sequence: 2,
     });
-    await expect(restored.getAll()).resolves.toHaveLength(2);
+    await expect(restored.getAll()).resolves.toEqual([second]);
   });
 
   it('does not consume a cursor or mutate memory when persistence fails', async () => {
@@ -132,6 +141,9 @@ describe('LearningEventOutbox', () => {
       createDeviceId: () => 'install_failure_device',
       storage: {
         getItem: async key => values[key] ?? null,
+        removeItem: async key => {
+          delete values[key];
+        },
         setItem: async (key, value) => {
           if (shouldFail) {
             throw new Error('disk unavailable');
@@ -167,68 +179,65 @@ describe('LearningEventOutbox', () => {
     await expect(
       outbox.enqueueCompletion(createInput('card id with spaces')),
     ).rejects.toThrow('completion result is invalid');
+    await expect(
+      outbox.enqueueCompletion({
+        ...createInput(),
+        selectionId: 'sel_short',
+      }),
+    ).rejects.toThrow('selection ID is invalid');
   });
 
-  it('serializes concurrent allocations without duplicate cursors', async () => {
+  it('serializes concurrent completion attempts and persists only one', async () => {
     const outbox = new LearningEventOutbox({
       createDeviceId: () => 'install_concurrent_device',
       storage: createInMemoryLearningEventOutboxStorage(),
     });
-    const entries = await Promise.all(
-      Array.from({length: 12}, (_, index) =>
+    const results = await Promise.allSettled(
+      Array.from({ length: 12 }, (_, index) =>
         outbox.enqueueCompletion(createInput(String(100101 + index))),
       ),
     );
 
-    expect(entries.map(entry => entry.event.device_cursor.sequence)).toEqual(
-      Array.from({length: 12}, (_, index) => index + 1),
+    expect(
+      results.filter(result => result.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(results.filter(result => result.status === 'rejected')).toHaveLength(
+      11,
     );
-    expect(new Set(entries.map(entry => entry.event.event_id)).size).toBe(12);
+    await expect(outbox.getAll()).resolves.toHaveLength(1);
   });
 
-  it('batches at most nine events for one track without compaction', async () => {
+  it('blocks another completion for the same account until acknowledgement', async () => {
     const outbox = new LearningEventOutbox({
       createDeviceId: () => 'install_batch_device',
       storage: createInMemoryLearningEventOutboxStorage(),
     });
+    const first = await outbox.enqueueCompletion(createInput('100101'));
 
-    for (let index = 0; index < 11; index += 1) {
-      await outbox.enqueueCompletion(createInput(String(100101 + index)));
-    }
-    await outbox.enqueueCompletion({
-      ...createInput('200101'),
-      track: 'cet6',
-    });
-
-    const first = await outbox.getBatch(PHONE);
-    expect(first).toHaveLength(9);
-    expect(first.every(entry => entry.track === 'cet4')).toBe(true);
-
-    await outbox.acknowledge(
-      PHONE,
-      first.map(entry => entry.event.event_id),
-    );
-    expect(await outbox.getBatch(PHONE)).toHaveLength(2);
-    expect(await outbox.getPendingCount(PHONE)).toBe(3);
+    await expect(
+      outbox.enqueueCompletion(createInput('100102')),
+    ).rejects.toThrow('must be acknowledged');
+    await expect(outbox.getBatch(PHONE)).resolves.toEqual([first]);
+    await outbox.acknowledge(PHONE, [first.event.event_id]);
+    const second = await outbox.enqueueCompletion(createInput('100102'));
+    expect(second.event.device_cursor.sequence).toBe(2);
   });
 
-  it('preserves enqueue order when tracks are interleaved', async () => {
+  it('keeps one pending completion per account without cross-account mixing', async () => {
     const outbox = new LearningEventOutbox({
       createDeviceId: () => 'install_track_order_device',
       storage: createInMemoryLearningEventOutboxStorage(),
     });
+    const secondPhone = '13900139000';
     const first = await outbox.enqueueCompletion(createInput('100101'));
     const second = await outbox.enqueueCompletion({
       ...createInput('200101'),
+      accountPhoneNumber: secondPhone,
       track: 'cet6',
     });
-    const third = await outbox.enqueueCompletion(createInput('100102'));
 
     await expect(outbox.getBatch(PHONE)).resolves.toEqual([first]);
-    await outbox.acknowledge(PHONE, [first.event.event_id]);
-    await expect(outbox.getBatch(PHONE)).resolves.toEqual([second]);
-    await outbox.acknowledge(PHONE, [second.event.event_id]);
-    await expect(outbox.getBatch(PHONE)).resolves.toEqual([third]);
+    await expect(outbox.getBatch(secondPhone)).resolves.toEqual([second]);
   });
 
   it('rejects unknown acknowledgements and keeps every event', async () => {
@@ -276,14 +285,35 @@ describe('LearningEventOutbox', () => {
     expect(JSON.stringify(entry.event)).not.toMatch(/again|hard|good|easy/);
   });
 
-  it('does not echo unreadable persisted content into logs', async () => {
+  it('removes the unbound v1 outbox without replay or logging its payload', async () => {
+    const warn = jest
+      .spyOn(console, 'warn')
+      .mockImplementation(() => undefined);
+    const seed = {
+      [LEGACY_LEARNING_EVENT_OUTBOX_STORAGE_KEY]:
+        '{"phone_number":"13800138000","access_token":"secret"',
+    };
+    const outbox = new LearningEventOutbox({
+      createDeviceId: () => 'install_migration_device',
+      storage: createInMemoryLearningEventOutboxStorage(seed),
+    });
+
+    await outbox.hydrate();
+
+    expect(seed).not.toHaveProperty(LEGACY_LEARNING_EVENT_OUTBOX_STORAGE_KEY);
+    await expect(outbox.getAll()).resolves.toEqual([]);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('does not echo unreadable v2 persisted content into logs', async () => {
     const warn = jest
       .spyOn(console, 'warn')
       .mockImplementation(() => undefined);
     const outbox = new LearningEventOutbox({
       createDeviceId: () => 'install_corrupt_device',
       storage: createInMemoryLearningEventOutboxStorage({
-        __softbook_learning_event_outbox_v1:
+        [LEARNING_EVENT_OUTBOX_STORAGE_KEY]:
           '{"phone_number":"13800138000","access_token":"secret"',
       }),
     });

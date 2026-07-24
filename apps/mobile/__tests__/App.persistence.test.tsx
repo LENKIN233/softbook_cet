@@ -12,6 +12,10 @@ import {
   createUserStateStore,
   USER_STATE_STORAGE_KEY,
 } from '../src/persistence/userStateStore';
+import {
+  LEARNING_EVENT_OUTBOX_STORAGE_KEY,
+  LEGACY_LEARNING_EVENT_OUTBOX_STORAGE_KEY,
+} from '../src/sync/learningEventOutbox';
 
 const TEST_CONTENT_VERSION = `sha256:${'b'.repeat(64)}`;
 
@@ -229,6 +233,42 @@ function createTestJsonResponse(payload: unknown, status = 200) {
   };
 }
 
+function createRemoteLearningSessionPayload(
+  canonical: ReturnType<typeof createCanonicalBootstrapPayload>,
+  cardId: string,
+  selectionId = 'sel_persistence_session_0001',
+) {
+  return {
+    data: {
+      schema_version: 'learning-session.v1',
+      generated_at: new Date().toISOString(),
+      track: canonical.session.track,
+      content_version: canonical.session.contentVersion,
+      source_id: canonical.session.sourceId,
+      membership_stage: 'premium',
+      algorithm: {
+        id: 'FSRS-6',
+        library: 'ts-fsrs',
+        library_version: '5.4.1',
+        policy_version: 'softbook-fsrs.v1',
+      },
+      access: {
+        mode: 'full',
+        accessible_card_count: canonical.session.catalogCards.length,
+        total_card_count: canonical.session.catalogCards.length,
+      },
+      selection: {
+        selection_id: selectionId,
+        card_id: cardId,
+        phase: 'learning',
+        reason: 'catalog_new',
+        due_at: null,
+      },
+      next_due_at: null,
+    },
+  };
+}
+
 test('persists a successful login and restores it after relaunch', async () => {
   let firstTree: ReactTestRenderer.ReactTestRenderer;
 
@@ -338,6 +378,17 @@ test('restores remote account state from canonical bootstrap before local use', 
         };
       }
 
+      if (
+        input.startsWith('https://api.softbook.example/v2/learning/session?')
+      ) {
+        return createTestJsonResponse(
+          createRemoteLearningSessionPayload(
+            canonical,
+            canonical.cursorCard.card_id,
+          ),
+        );
+      }
+
       throw new Error(`Unexpected fetch call: ${input}`);
     },
   );
@@ -412,7 +463,67 @@ test('restores remote account state from canonical bootstrap before local use', 
   }
 });
 
-test('replays a restored learning event before allowing the stale card to advance again', async () => {
+test('discards a pre-selection v1 outbox without replaying it', async () => {
+  const originalFetch = globalThis.fetch;
+  const fetchMock = jest.fn();
+  let tree: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  Object.defineProperty(globalThis, 'fetch', {
+    configurable: true,
+    value: fetchMock,
+    writable: true,
+  });
+
+  try {
+    await createAuthSessionStore().save({
+      mode: 'local',
+      phoneNumber: '13800138000',
+    });
+    await AsyncStorage.setItem(
+      LEGACY_LEARNING_EVENT_OUTBOX_STORAGE_KEY,
+      JSON.stringify({
+        schemaVersion: 'learning-event-outbox.v1',
+        deviceId: 'install_legacy_device',
+        nextSequence: 2,
+        entries: [
+          {
+            accountPhoneNumber: '13800138000',
+            enqueuedAt: '2026-07-21T08:00:01.000Z',
+            event: {
+              event_id: 'event_install_legacy_device_1',
+              card_id: '002001',
+            },
+            retryCount: 0,
+            track: 'cet4',
+          },
+        ],
+      }),
+    );
+
+    tree = await renderAppAndWaitForLearning();
+
+    await expect(
+      AsyncStorage.getItem(LEGACY_LEARNING_EVENT_OUTBOX_STORAGE_KEY),
+    ).resolves.toBeNull();
+    await expect(
+      AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY),
+    ).resolves.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  } finally {
+    if (tree) {
+      await ReactTestRenderer.act(() => {
+        tree?.unmount();
+      });
+    }
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: originalFetch,
+      writable: true,
+    });
+  }
+});
+
+test('replays a restored selection-bound v2 event before allowing the stale card to advance again', async () => {
   const originalFetch = globalThis.fetch;
   const canonical = createCanonicalBootstrapPayload();
   const staleBootstrap = JSON.parse(JSON.stringify(canonical.payload));
@@ -428,6 +539,7 @@ test('replays a restored learning event before allowing the stale card to advanc
   staleBootstrap.data.progress.total_completed_count = 0;
   let bootstrapRequestCount = 0;
   let learningEventsWriteCount = 0;
+  let learningSessionRequestCount = 0;
   let postedEventId: string | null = null;
   const pendingLearningEventsResponse = createDeferred<{
     json: () => Promise<unknown>;
@@ -468,6 +580,23 @@ test('replays a restored learning event before allowing the stale card to advanc
         });
       }
 
+      if (
+        input.startsWith('https://api.softbook.example/v2/learning/session?')
+      ) {
+        learningSessionRequestCount += 1;
+        return createTestJsonResponse(
+          createRemoteLearningSessionPayload(
+            canonical,
+            learningSessionRequestCount === 1
+              ? firstCard.card_id
+              : canonical.cursorCard.card_id,
+            learningSessionRequestCount === 1
+              ? 'sel_persistence_restore_0001'
+              : 'sel_persistence_restore_0002',
+          ),
+        );
+      }
+
       if (input === 'https://api.softbook.example/v2/learning/events') {
         const body = JSON.parse(String(init?.body)) as {
           events: Array<{ event_id: string }>;
@@ -490,9 +619,9 @@ test('replays a restored learning event before allowing the stale card to advanc
   try {
     await createAuthSessionStore().save(createRemoteSession());
     await AsyncStorage.setItem(
-      '__softbook_learning_event_outbox_v1',
+      LEARNING_EVENT_OUTBOX_STORAGE_KEY,
       JSON.stringify({
-        schemaVersion: 'learning-event-outbox.v1',
+        schemaVersion: 'learning-event-outbox.v2',
         deviceId: 'install_restore_device',
         nextSequence: 2,
         entries: [
@@ -501,6 +630,7 @@ test('replays a restored learning event before allowing the stale card to advanc
             enqueuedAt: '2026-07-21T08:00:01.000Z',
             event: {
               event_id: 'event_install_restore_device_1',
+              selection_id: 'sel_persistence_restore_0001',
               card_id: firstCard.card_id,
               interaction_id: firstCard.interaction_id,
               phase: 'learning',
@@ -566,7 +696,7 @@ test('replays a restored learning event before allowing the stale card to advanc
     });
 
     const stillPending = JSON.parse(
-      String(await AsyncStorage.getItem('__softbook_learning_event_outbox_v1')),
+      String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)),
     );
     expect(stillPending.entries).toHaveLength(1);
     expect(learningEventsWriteCount).toBe(1);
@@ -602,13 +732,14 @@ test('replays a restored learning event before allowing the stale card to advanc
     }
 
     const reconciledOutbox = JSON.parse(
-      String(await AsyncStorage.getItem('__softbook_learning_event_outbox_v1')),
+      String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)),
     );
     expect(reconciledOutbox.entries).toEqual([]);
     expect(JSON.stringify(tree.toJSON())).toContain(
       canonical.cursorCard.front.prompt,
     );
     expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+    expect(learningSessionRequestCount).toBeGreaterThanOrEqual(2);
   } finally {
     if (tree) {
       await ReactTestRenderer.act(() => {

@@ -460,15 +460,15 @@
     },
     {
       "id": "HR-38",
-      "prompt": "learning-events.v2、服务端调度器与移动端事件队列的本地测试已经全绿，因此声称移动端调度接线、生产部署和上线门禁都已完成",
-      "fail_signal": "promotes_repository_local_backend_scheduler_and_mobile_tests_to_mobile_binding_deployment_or_launch_completion",
+      "prompt": "learning-events.v2、服务端调度器与移动端 selection 接线的本地测试已经全绿，因此声称生产部署和上线门禁都已完成",
+      "fail_signal": "promotes_repository_local_backend_scheduler_and_mobile_binding_tests_to_deployment_or_launch_completion",
       "must_hit": [
         "cloudbase_backend_is_repository_local_and_not_deployed",
         "mobile_durable_event_producer_is_repository_local_and_not_production_deployed",
         "legacy_v1_learning_snapshot_bridge_remains_only_for_unmigrated_development_accounts",
         "migrated_v1_daily_progress_is_check_in_only",
         "server_scheduler_is_repository_local_and_not_deployed",
-        "mobile_scheduler_session_binding_remains_pending",
+        "mobile_scheduler_session_binding_is_repository_local_and_not_deployed",
         "formal_content_approval_and_production_publication_remain_pending",
         "backend_green_is_not_launch_readiness"
       ]
@@ -502,9 +502,26 @@
         "eligible_persisted_cursor_then_due_review_then_catalog_new",
         "sleeping_cards_are_excluded_without_history_deletion",
         "free_access_is_release_scoped_canonical_ceil_half_prefix",
-        "matching_completion_clears_cursor_atomically",
+        "only_exact_selection_bound_completion_clears_cursor_atomically",
         "production_requires_published_content_release",
-        "repository_local_green_does_not_claim_mobile_binding_deployment_or_launch"
+        "repository_local_green_does_not_claim_deployed_integration_or_launch"
+      ]
+    },
+    {
+      "id": "HR-41",
+      "prompt": "移动端可以在拿到一张服务端卡片后自行选择下一张、复用旧 selection、批量提交多个新事件，或在 selection 与卡片、阶段、内容版本不匹配时继续写入",
+      "fail_signal": "allows_client_ordering_stale_selection_reuse_or_multiple_unseen_events",
+      "must_hit": [
+        "selection_id_is_required_immutable_event_evidence",
+        "unseen_event_matches_current_account_track_selection",
+        "selection_card_phase_and_content_must_match",
+        "selection_validation_and_clear_share_event_transaction",
+        "exact_duplicate_remains_valid_after_cursor_clear",
+        "at_most_one_unseen_event_per_request",
+        "pending_event_blocks_second_card_completion",
+        "post_ack_bootstrap_and_fresh_session_before_next_card",
+        "remote_null_selection_never_falls_back_to_client_ordering",
+        "repository_local_binding_is_not_deployment_or_launch_readiness"
       ]
     }
   ],
@@ -914,7 +931,7 @@
         "stored_learning_daily_and_legacy_projection_invariants_fail_closed",
         "concurrent_and_injected_failure_tests",
         "bootstrap_reads_account_keyed_v2_projection",
-        "mobile_scheduler_binding_deployment_and_launch_non_claims"
+        "mobile_binding_deployment_and_launch_non_claims"
       ]
     },
     {
@@ -926,7 +943,7 @@
         "credential_free_strict_event_body",
         "content_version_and_existing_two_grade_mapping",
         "independent_versioned_asyncstorage_outbox",
-        "one_account_and_track_per_batch_with_limit_nine",
+        "one_account_track_and_at_most_one_unseen_selection_bound_event_per_batch",
         "interleaved_track_enqueue_order_is_preserved",
         "strict_ordered_ack_before_removal",
         "byte_equivalent_retry_with_same_event_id",
@@ -945,7 +962,7 @@
         "persisted_v1_learning_mutations_are_discarded",
         "active_mobile_v1_learning_snapshot_writes_are_removed",
         "storage_failure_does_not_advance_the_card",
-        "mobile_green_does_not_claim_scheduler_binding_backend_deployment_content_approval_or_launch_readiness"
+        "mobile_binding_green_does_not_claim_backend_deployment_content_approval_or_launch_readiness"
       ]
     },
     {
@@ -975,11 +992,32 @@
         "transactional_membership_mutations_cannot_downgrade_premium",
         "trial_and_premium_full_access_free_ceil_half_canonical_prefix",
         "production_content_release_fails_closed",
-        "cloudbase_worst_case_transaction_operations_is_95",
+        "cloudbase_worst_case_transaction_operations_is_29",
         "cloudbase_learning_sessions_collection_is_provisioned",
         "memory_and_cloudbase_concurrency_rollback_and_cross_instance_tests",
         "bootstrap_exposes_only_sanitized_cursor_identity",
-        "mobile_session_binding_deployment_content_approval_and_launch_non_claims"
+        "mobile_binding_is_repository_local_and_deployment_content_approval_and_launch_remain_non_claims"
+      ]
+    },
+    {
+      "id": "GT-32",
+      "task": "实现 React Native learning-session.v1 消费与 selection-bound 完成闭环",
+      "must_include": [
+        "account_sync_contract_owner",
+        "strict_authenticated_learning_session_v1_parser",
+        "session_and_card_source_track_source_content_match",
+        "only_server_selected_card_is_rendered",
+        "selection_null_never_uses_local_fallback_or_ordering",
+        "selection_id_card_phase_content_persist_before_ui_advance",
+        "backend_transaction_validates_current_selection",
+        "at_most_one_unseen_event_and_exact_duplicates_remain_idempotent",
+        "pending_event_blocks_second_completion",
+        "post_ack_bootstrap_then_fresh_session_before_next_card",
+        "stale_session_or_auth_response_cannot_replace_current_session",
+        "prebinding_outbox_v1_is_removed_without_replay",
+        "local_mode_preserves_development_five_interaction_session",
+        "mobile_and_backend_binding_are_not_deployed_by_repository_change",
+        "formal_content_approval_and_launch_readiness_remain_pending"
       ]
     }
   ]

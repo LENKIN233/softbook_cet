@@ -150,6 +150,10 @@ class LearningSchedulerContractTests(unittest.TestCase):
         empty_selection["server_scheduler_v1"]["selection_contract"][
             "future_rule"
         ] = "return stale selection null without confirmation"
+        response_membership = copy.deepcopy(self.auth)
+        response_membership["server_scheduler_v1"]["response_contract"][
+            "membership_stage_values"
+        ].append("trial_available")
 
         self.assert_finding(self.findings(auth=due), "scheduler due order")
         self.assert_finding(
@@ -164,8 +168,12 @@ class LearningSchedulerContractTests(unittest.TestCase):
             self.findings(auth=empty_selection),
             "scheduler empty-selection consistency",
         )
+        self.assert_finding(
+            self.findings(auth=response_membership),
+            "scheduler response membership stages",
+        )
 
-    def test_runtime_cannot_claim_mobile_binding_deployment_or_launch(self):
+    def test_runtime_cannot_promote_binding_to_shipped_deployment_or_launch(self):
         mobile = copy.deepcopy(self.runtime)
         mobile["scheduler_runtime"]["mobile_session_binding_status"] = "shipped"
         deployed = copy.deepcopy(self.runtime)
@@ -228,8 +236,8 @@ class LearningSchedulerContractTests(unittest.TestCase):
             "",
         )
         promoted = self.runtime_text.replace(
-            "This backend is not deployed, and the mobile client does not yet bind",
-            "This backend is deployed, and the mobile client binds",
+            "This backend and the mobile binding are repository-local and not deployed.",
+            "This backend and the mobile binding are deployed.",
         )
         non_atomic_membership = self.runtime_text.replace(
             "dismissal cannot overwrite a premium purchase.",
@@ -259,6 +267,33 @@ class LearningSchedulerContractTests(unittest.TestCase):
         self.assert_finding(
             self.findings(text=stale_empty_selection),
             "runtime contract missing exact snippet",
+        )
+
+    def test_mobile_selection_binding_cannot_be_weakened(self):
+        card_choice = copy.deepcopy(self.auth)
+        card_choice["server_scheduler_v1"]["mobile_binding_contract"][
+            "session_read_rule"
+        ] = "mobile chooses any local card"
+        early_advance = copy.deepcopy(self.auth)
+        early_advance["server_scheduler_v1"]["mobile_binding_contract"][
+            "advance_rule"
+        ] = "choose the next local card before acknowledgement"
+        unbound_runtime = copy.deepcopy(self.runtime)
+        unbound_runtime["scheduler_runtime"][
+            "mobile_session_binding"
+        ] = "card_id_only"
+
+        self.assert_finding(
+            self.findings(auth=card_choice),
+            "mobile session read binding",
+        )
+        self.assert_finding(
+            self.findings(auth=early_advance),
+            "mobile next-card binding",
+        )
+        self.assert_finding(
+            self.findings(runtime=unbound_runtime),
+            "scheduler runtime mobile binding behavior",
         )
 
     def test_agent_entry_must_keep_scheduler_contract_discoverable(self):

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-8",
+  "version": "vnext-9",
   "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, canonical account reads, idempotent learning events, server scheduling, default sync strategy, and offline behavior.",
   "source_anchors": {
     "login_gate": "必须登入",
@@ -63,11 +63,11 @@
     "content_rule": "content version is the SHA-256 of the normalized ordered source; production requires a matching published content-release.v1 descriptor while development may return release_id null",
     "release_publication_rule": "the development importer rejects non-null release descriptors; a separate publication pipeline must verify formal content approval before writing content-release.v1",
     "client_rule": "an authenticated client may use validated cached state while offline, but must reconcile with this server read before pushing restored state; without previously validated canonical state and required content, mobile keeps a valid session retryable but blocks learning, local persistence of the reconciled snapshot, mutation replay, and product-state writes until bootstrap succeeds and the loaded card-source content version matches",
-    "known_gap": "the repository-local CloudBase learning-events.v2 backend, React Native durable producer/replay, and server scheduler are implemented but not deployed; global legacy v1 snapshot-write removal, mobile scheduler-session binding, and production publication remain unimplemented"
+    "known_gap": "the repository-local CloudBase learning-events.v2 backend, React Native durable producer/replay, server scheduler, and mobile scheduler-session binding are implemented but not deployed; global legacy v1 snapshot-write removal and production publication remain unimplemented"
   },
   "learning_events_v2": {
     "classification": "implementation_hypothesis",
-    "contract_status": "cloudbase_backend_and_mobile_client_implemented_locally_not_deployed",
+    "contract_status": "cloudbase_backend_mobile_client_and_scheduler_binding_implemented_locally_not_deployed",
     "runtime_contract": "infra/cloudbase/learning-events-v2-runtime-contract.md",
     "implementation_progress": {
       "cloudbase_backend": "implemented_locally_not_deployed",
@@ -88,7 +88,8 @@
       "migrated_account_v1_learning_writes": "learning_state_rejected_daily_progress_check_in_only_after_first_accepted_v2_event",
       "server_scheduler": true,
       "server_scheduler_status": "repository_local_backend_implemented_not_deployed",
-      "mobile_scheduler_session_binding": false,
+      "selection_bound_events": true,
+      "mobile_scheduler_session_binding": true,
       "production_deployment": false
     },
     "endpoint": {
@@ -122,6 +123,7 @@
     "event_contract": {
       "required_fields": [
         "event_id",
+        "selection_id",
         "card_id",
         "interaction_id",
         "phase",
@@ -133,6 +135,7 @@
         "content_version",
         "device_cursor"
       ],
+      "selection_id_rule": "copy the opaque selection_id from the current learning-session.v1 selection into the immutable event; for each unseen event the server transaction requires the current account-and-track cursor to match selection_id, card_id, phase, and content_version exactly, while an already accepted exact replay remains valid after that cursor is cleared",
       "interaction_id_values": [
         "flip",
         "multiple_choice",
@@ -230,10 +233,11 @@
       "event_id_conflict": "the same event key with a different canonical payload rejects the entire request with HTTP 409",
       "device_cursor_key": "account_id + device_id + sequence",
       "device_cursor_conflict": "the same device cursor bound to a different event_id rejects the entire request with HTTP 409",
-      "mixed_batch_rule": "exact duplicates and unseen valid events may commit together and each receives an explicit result",
+      "mixed_batch_rule": "exact duplicates and at most one unseen event may commit together and each receives an explicit result; the unseen event must consume the current selection and a request with multiple unseen events is rejected atomically",
+      "selection_conflict_rule": "a missing, stale, cross-account, cross-track, or mismatched selection binding rejects the entire request with HTTP 409 before writes",
       "validation_atomicity": "any malformed, unauthorized, unknown-content, or conflicting event rejects the entire request before writes",
-      "transaction_atomicity": "new immutable events, account server sequences, derived learning and FSRS projections, all migrated-track learning-session projection watermarks, matching input-track cursor clearing, and daily progress commit in one transaction; failure leaves no partial acceptance",
-      "cloudbase_atomic_batch_rule": "the repository-local CloudBase adapter accepts at most 9 events so worst-case immutable-event, retained-content, all-track migration, learning and FSRS projection, all migrated-track session watermarks, cursor, and daily work uses at most 95 of the platform limit of 100 operations per transaction",
+      "transaction_atomicity": "current selection validation, one new immutable event, account server sequence, derived learning and FSRS projections, all migrated-track learning-session projection watermarks, exact input-track selection clearing, and daily progress commit in one transaction; failure leaves no partial acceptance",
+      "cloudbase_atomic_batch_rule": "the repository-local CloudBase adapter accepts at most 9 input events but at most one may be unseen; the maximum successful fixture of 8 distinct exact duplicates plus one current-selection event uses 29 operations, and the first-event all-track migration fixture uses no more than 29, below the platform limit of 100 operations per transaction",
       "cloudbase_transaction_query_rule": "CloudBase transactions use deterministic document reads and writes only; bounded legacy learning queries run before the transaction and a transactionally written account revision fence forces a retry when a v1 write changes that snapshot"
     },
     "server_authority": {
@@ -265,20 +269,20 @@
       "canonical_refresh_rule": "after replay, read /v2/bootstrap again before presenting reconciled server state or sending dependent mutations"
     },
     "mobile_client_contract": {
-      "outbox_schema": "learning-event-outbox.v1",
-      "storage_rule": "persist the outbox under an independent versioned AsyncStorage key; persist the immutable event and allocated installation cursor before advancing the card UI",
+      "outbox_schema": "learning-event-outbox.v2",
+      "storage_rule": "persist the outbox under an independent versioned AsyncStorage key; persist the immutable selection-bound event and allocated installation cursor before advancing the card UI",
       "identity_rule": "store the account owner only for local queue isolation; never include phone_number or credential material in the learning-events.v2 request body or event payload",
       "cursor_rule": "reuse one pseudonymous installation ID and monotonically allocate a positive safe-integer sequence; repair a stale persisted next sequence without reusing an existing cursor",
-      "batch_rule": "submit at most 9 events for one account and one track per request without compacting, rewriting, or reordering immutable payloads; end a batch at the first track boundary",
+      "batch_rule": "submit exact duplicates plus at most one unseen selection-bound event for one account and one track without compacting, rewriting, or reordering immutable payloads; end a batch at the first track boundary and never answer a second card before the first acknowledgement, bootstrap reconciliation, and next session read",
       "ack_rule": "remove events only after a strict ordered accepted-or-duplicate acknowledgement with matching event IDs and positive unique server sequences",
       "retry_rule": "retain byte-equivalent events after ambiguous or failed requests; pause automatic retry after a transient failure until network recovery, app foreground, or a newly durably enqueued event",
       "concurrency_rule": "serialize replay per originating session; if a durable event arrives or a dependent mutation finishes queueing after an in-flight pass has read its queue, schedule one follow-up pass instead of running concurrently or waiting for an unrelated trigger",
-      "recovery_rule": "hydrate the account outbox count with authenticated bootstrap; a restored pending event blocks duplicate card advance until strict acknowledgement and post-acknowledgement bootstrap mapping, while events enqueued in the current validated session may continue batching without a routine canonical refresh overwriting local intent",
+      "recovery_rule": "hydrate the account outbox count with authenticated bootstrap; any pending selection-bound event blocks another card completion until strict acknowledgement, post-acknowledgement bootstrap mapping, and a fresh learning-session read; a cached selected card may be answered offline once, but the client cannot choose or enqueue a second card offline",
       "reconciliation_rule": "replay only after validated bootstrap and content hydration; while events are pending, queue dependent daily-progress and space-state mutations and suppress routine canonical refreshes that would overwrite local intent; after any acknowledgement, keep dependent mutations blocked until another bootstrap is fetched and mapped",
       "logout_rule": "clear only the signed-out account's queued events while preserving the installation identity and next sequence",
     "account_switch_rule": "scope replay, bootstrap, and authenticated HTTP authorization handling to the originating session identity rather than phone number alone; a stale response from a signed-out or replaced session must not refresh, invalidate, clear, hydrate, or change sync state for the current session, including same-phone reauthentication",
     "request_lifecycle_rule": "bound token acquisition and each authenticated fetch pipeline to 15000 milliseconds; timeout retains byte-equivalent events and advances retry state, while caller cancellation or originating-session replacement cancels immediately without acknowledging, removing, rewriting, or incrementing retry state for queued events",
-    "legacy_queue_rule": "discard persisted generic sync_learning_state mutations during hydration and never route active mobile learning completion through /v1/learning/state-sync"
+      "legacy_queue_rule": "discard persisted generic sync_learning_state mutations during hydration, remove the pre-binding learning-event-outbox.v1 key without replaying its unbound entries, and never route active mobile learning completion through /v1/learning/state-sync"
     },
     "migration_boundary": {
       "legacy_v1_role": "development-only migration input; v1 daily and learning snapshots are never accepted as learning-events.v2 payloads, while the migrated daily endpoint temporarily carries check-in compatibility only",
@@ -289,14 +293,15 @@
         "transactional_backend_event_ledger_and_projections",
         "mobile_durable_event_generation_and_replay",
         "server_scheduler_and_scheduler_cursor",
+        "mobile_scheduler_session_consumption_and_selection_binding",
         "disable_global_legacy_snapshot_writes"
       ],
-      "launch_claim_rule": "green repository-local backend, scheduler, and mobile event tests do not satisfy global legacy snapshot-write removal, mobile scheduler-session binding, formal content approval, production deployment, or launch readiness"
+      "launch_claim_rule": "green repository-local backend, scheduler, and mobile binding tests do not satisfy global legacy snapshot-write removal, formal content approval, production deployment, or launch readiness"
     }
   },
   "server_scheduler_v1": {
     "classification": "implementation_hypothesis",
-    "contract_status": "repository_local_cloudbase_backend_implemented_not_deployed",
+    "contract_status": "repository_local_backend_and_mobile_binding_implemented_not_deployed",
     "runtime_contract": "infra/cloudbase/learning-session-v1-runtime-contract.md",
     "endpoint": {
       "method": "GET",
@@ -325,11 +330,11 @@
     },
     "projection_contract": {
       "storage": "account_and_track_scoped_scheduler_by_card_id_inside_the_learning_events_v2_projection",
-      "atomicity": "new immutable events, account server sequence, learning projection, FSRS scheduler projection, learning-session projection watermark update and matching cursor clearing, and daily progress commit in the same transaction",
+      "atomicity": "current selection validation, one new immutable event, account server sequence, learning projection, FSRS scheduler projection, learning-session projection watermark update and exact selection clearing, and daily progress commit in the same transaction",
       "integrity": "every positive-sequence latest card projection has exactly one matching validated scheduler state and no orphan scheduler state is accepted",
       "duplicate_rule": "exact event replay does not advance FSRS state, due time, cursor, sequence, or counters",
       "legacy_rule": "sequence-zero migrated cards have no invented FSRS history and remain immediately review-eligible until their first accepted v2 event",
-      "cursor_rule": "a selected card persists in the independent account-and-track softbook_learning_sessions record as an opaque revisioned server cursor with an acknowledged-at plus latest-positive-server-sequence projection watermark; every newly accepted event for the track updates the timestamp component and advances the sequence component, first-event all-track migration synchronizes every migrated track while preserving valid sibling cursors, a completion for the same card and content version clears the cursor atomically, and a session read requires the complete matching watermark plus transactional revision confirmation before returning a resumed cursor"
+      "cursor_rule": "a selected card persists in the independent account-and-track softbook_learning_sessions record as an opaque revisioned server cursor with an acknowledged-at plus latest-positive-server-sequence projection watermark; every newly accepted event for the track updates the timestamp component and advances the sequence component, first-event all-track migration synchronizes every migrated track while preserving valid sibling cursors, only one unseen completion carrying the exact current selection_id, card_id, phase, and content_version clears the cursor atomically, exact duplicate replay remains valid after clearing, and a session read requires the complete matching watermark plus transactional revision confirmation before returning a resumed cursor"
     },
     "selection_contract": {
       "single_card_rule": "return at most one selection and never return card body content",
@@ -340,6 +345,13 @@
       "sleep_rule": "canonical physical-space sleeping state removes a card from resume, due, new, and next-due selection without deleting its learning or FSRS state",
       "membership_rule": "the first authenticated learning-session entry starts an available trial exactly once only after canonical context validation, selection generation, and required cursor persistence succeed; trial and premium may schedule the full library, while free schedules a stable release-scoped prefix of ceil(card_count * 0.5) in canonical card-source order",
       "content_rule": "selection binds to the exact normalized content_version and source; production still requires a matching published content-release.v1 descriptor"
+    },
+    "mobile_binding_contract": {
+      "session_read_rule": "remote mobile learning reads authenticated learning-session.v1 and the canonical card source, requires matching track, source_id, and content_version, and resolves only the returned card_id; it never applies client membership, sleep, review, or catalog ordering to replace the server selection",
+      "completion_rule": "the mobile completion event copies the returned selection_id and phase and must match the selected card and exact content version before durable enqueue",
+      "advance_rule": "after durable enqueue the completed card may leave the interaction surface, but no next card is selected until strict event acknowledgement, bootstrap reconciliation, and a fresh learning-session.v1 read",
+      "offline_rule": "a previously validated cached selection and matching content may be answered once offline; without that pair learning stays blocked, and no second card may be selected locally",
+      "empty_rule": "selection null is a valid server result and does not trigger bundled-card fallback or client ordering"
     },
     "response_contract": {
       "required_fields": [
@@ -365,16 +377,20 @@
         "persisted_cursor",
         "due_review",
         "catalog_new"
+      ],
+      "membership_stage_values": [
+        "trial",
+        "free",
+        "premium"
       ]
     },
     "known_gaps": [
-      "mobile_learning_session_consumption_and_selection_binding",
       "production_deployment",
       "global_legacy_v1_snapshot_write_removal",
       "production_membership_expiry_and_payment_entitlement",
       "formal_content_publication"
     ],
-    "launch_claim_rule": "a green repository-local scheduler does not prove mobile integration, production entitlement, deployment, formal content approval, or launch readiness"
+    "launch_claim_rule": "a green repository-local scheduler and mobile binding do not prove deployed integration, production entitlement, formal content approval, or launch readiness"
   },
   "offline_policy": {
     "classification": "implementation_hypothesis",
