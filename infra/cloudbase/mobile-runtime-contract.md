@@ -24,8 +24,8 @@ Current boundary:
   `infra/cloudbase/auth-v2-runtime-contract.md`. Mobile authentication now uses
   that contract. Mobile login and restored sessions now reconcile through
   `/v2/bootstrap` before learning or product-state writes. Card payload and
-  non-learning product mutations remain on `/v1` only as a development
-  migration bridge; production continues to reject every `/v1` route.
+  membership mutations remain on `/v1` only as a development migration bridge;
+  production continues to reject every `/v1` route.
 - The replacement learning mutation boundary is contract-defined in
   `infra/cloudbase/learning-events-v2-runtime-contract.md`. The repository-local
   CloudBase backend and current mobile runtime implement it locally. The client
@@ -37,10 +37,11 @@ Current boundary:
   While an event is pending, check-in and space writes are queued instead of
   overtaking it, and a routine Mine/foreground refresh cannot replace local
   intent with a pre-acknowledgement bootstrap snapshot.
-  Both legacy daily and learning snapshot-write routes are globally disabled.
-  Explicit check-in uses the counter-free v2 command; learning and space counts
-  retain their separate server authorities. Neither backend nor mobile release
-  deployment is implied by this repository-local implementation.
+  Legacy daily/learning snapshot writes and both legacy physical-space snapshot
+  methods are globally disabled. Explicit check-in and physical-space changes
+  use strict v2 commands; learning and space counts retain their separate server
+  authorities. Neither backend nor mobile release deployment is implied by this
+  repository-local implementation.
 
 ## Runtime Activation
 
@@ -57,6 +58,11 @@ Environment:
 
 If `SOFTBOOK_CET_REMOTE_BASE_URL` is present, auth is remote. By default all
 remote-capable features are also remote.
+
+`spaceState` can be remote only when `accountBootstrap` is also remote. The
+action queue requires a validated canonical content version before replay and
+canonical bootstrap reconciliation after acknowledgement, so this dependency
+fails during runtime configuration rather than on the first user action.
 
 All remote feature requests after auth require:
 
@@ -203,7 +209,7 @@ signed-out or replaced session cannot refresh or invalidate the current
 session, including when the same phone number authenticated again.
 
 Staged development smoke may explicitly keep `accountBootstrap` local. The
-remaining `/v1` card source and product mutations are still a development
+remaining `/v1` card source and membership mutations are still a development
 migration bridge, not a production contract. Remote membership canonical reads
 come from bootstrap; the legacy entitlement read is no longer used by the full
 remote mobile profile.
@@ -464,32 +470,53 @@ post-acknowledgement bootstrap mapping must finish first. This recovery guard
 allows exact duplicate replay plus at most one unseen selection-bound event; the
 mobile client never creates multiple unseen events during one offline session.
 
-### Space State Sync
+### Physical-Space Actions v2
 
 ```http
-POST /v1/space/state-sync
+POST /v2/space/actions
 Authorization: Bearer <access_token>
 content-type: application/json
 x-softbook-client: mobile
 x-api-key: <optional>
 
 {
-  "day_key": "2026-04-30",
-  "phone_number": "13800138000",
-  "states": [
+  "schema_version": "space-actions.v2",
+  "track": "cet4",
+  "content_version": "sha256:<64-lowercase-hex>",
+  "actions": [
     {
+      "action_id": "space_installation_01_42",
       "card_id": "100101",
-      "is_favorited": true,
-      "is_sleeping": false,
-      "last_modified_at": "2026-04-30T10:00:00.000Z"
+      "dimension": "favorite",
+      "value": true,
+      "client_occurred_at": "2026-07-24T10:00:00.000Z"
     }
   ]
 }
 ```
 
-Success: any 2xx. Body is ignored.
+The body is exact and contains no phone number, day key, counters, credentials,
+or complete space snapshot. A batch contains 1-20 immutable actions. `favorite`
+and `sleep` merge independently by client timestamp and then action ID, so
+changing one dimension cannot erase the other. Track, content version, and card
+IDs must match the current normalized card source.
 
-Failure: non-2xx queues `sync_space_state` for replay.
+The client persists a credential-free `apply_space_action` command before
+applying optimistic UI. Only a strict ordered `space-actions-ack.v2` result with
+`applied`, `stale`, or `duplicate`, plus a matching canonical `space-state.v2`
+projection, removes that action. A transient failure retains the exact action
+for replay with the current in-memory credential. The immutable action fields
+and ID remain unchanged; a same-track content update rebinds only the request
+envelope to the currently validated version, while cross-track rebinding is
+forbidden. Startup uses canonical bootstrap as the base and overlays only
+same-account, same-track durable pending actions; unqueued local state cannot
+overwrite the server.
+
+Exact action-ID replay returns `duplicate`; reusing an action ID with different
+content rejects the complete batch. `GET /v1/space/state-sync` and
+`POST /v1/space/state-sync` always return 410. The full storage, migration,
+ordering, and acknowledgement contract is in
+`infra/cloudbase/space-actions-v2-runtime-contract.md`.
 
 ## Integration Smoke Checklist
 
@@ -499,7 +526,7 @@ Failure: non-2xx queues `sync_space_state` for replay.
 4. `/v2/auth/verify-code` returns a rotating session and matching phone number.
 5. `/v2/bootstrap?track=<track>&day_key=<YYYY-MM-DD>` returns matching scope,
    content SHA-256, membership, progress, learning, and physical-space state.
-6. Writes performed through the migration endpoints are visible in a later
+6. Writes performed through the active v2 endpoints are visible in a later
    bootstrap read for the same account and absent for another account.
 7. `/v1/learning/card-source?track=<track>` returns non-empty valid
    `card_records` and a `content_version` equal to the preceding bootstrap
@@ -523,13 +550,19 @@ Failure: non-2xx queues `sync_space_state` for replay.
     completion never uploads a daily snapshot. Restart recovery preserves the
     queued presentation only for an exact active-account/day command, and
     event-derived progress never confirms check-in.
-16. Favorite/sleep changes can POST `/v1/space/state-sync`.
-17. Temporary 503 retains the exact event or queued compatibility mutation;
-    returning to 2xx replays it without changing event ID or payload.
+16. Favorite/sleep changes persist an immutable action before optimistic UI,
+    POST exact `space-actions.v2`, validate the strict acknowledgement, and
+    reconcile through bootstrap.
+17. Temporary 503 retains the exact event and immutable space action. Returning
+    to 2xx never changes their IDs or immutable fields; only a same-track space
+    request envelope may bind the action to the currently validated content
+    version.
 18. Expiring access credentials refresh once under concurrent requests; a
     rejected refresh or repeated 401 clears account-bound persistence.
 19. Remote card-source or session failure renders retry state without
     bundled-card fallback.
+20. Both methods on `/v1/space/state-sync` and both former daily/learning
+    snapshot writes remain globally disabled with 410.
 
 ## Local Mock Validation
 
@@ -566,9 +599,9 @@ Expected high-level output:
 [ok] learning card-source: 5 cards from mock-cet4-source
 [ok] learning session: learning:100101
 [ok] daily check-in: 200
-[ok] legacy snapshot writes: 410
+[ok] legacy snapshot APIs: 410
 [ok] learning-events v2: accepted then duplicate at server_sequence=1
-[ok] space state sync: 200
+[ok] space-actions v2: applied then duplicate
 [ok] bootstrap after writes: sha256:<digest>; release=none
 [ok] membership start-trial: trial
 [ok] membership purchase: premium

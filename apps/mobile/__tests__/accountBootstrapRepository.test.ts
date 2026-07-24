@@ -73,7 +73,8 @@ function createBootstrapPayload(): any {
       },
       space: {
         acknowledged_at: '2026-07-20T09:10:00.000Z',
-        day_key: DAY_KEY,
+        content_version: CONTENT_VERSION,
+        schema_version: 'space-state.v2',
         states: [
           {
             card_id: '002001',
@@ -82,6 +83,7 @@ function createBootstrapPayload(): any {
             last_modified_at: '2026-07-20T08:30:00.000Z',
           },
         ],
+        track: 'cet4',
       },
     },
   };

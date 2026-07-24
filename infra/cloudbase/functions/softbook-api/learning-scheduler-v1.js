@@ -89,7 +89,10 @@ async function readLearningSession(config, input) {
           {accountKey: input.accountKey, includeSchedulerState: true},
         ),
         config.store.getMembership(input.phoneNumber),
-        config.store.getSpaceState(input.phoneNumber, dayKey),
+        config.store.getSpaceState(input.phoneNumber, dayKey, {
+          accountKey: input.accountKey,
+          acknowledgedAt: generatedAtIso,
+        }),
         config.store.getLearningSessionCursor(input.accountKey, track),
       ]);
 

@@ -66,8 +66,12 @@ def validate(context) -> None:
         "trial_started_at_entry_count",
         "trialStartedAtEntryCount",
         "acknowledgedAt",
+        "action_id",
+        "actionId",
         "sync_daily_progress",
         "sync_space_state",
+        "apply_space_action",
+        "applySpaceAction",
         "sync_learning_state",
         "start_membership_trial",
         "refresh_membership",
@@ -200,6 +204,7 @@ def validate(context) -> None:
         "learningStates",
         "learningSessions",
         "memberships",
+        "spaceActions",
         "spaceStates",
         "softbook_card_sources",
         "softbook_daily_check_ins",
@@ -207,9 +212,11 @@ def validate(context) -> None:
         "softbook_learning_states",
         "softbook_learning_sessions",
         "softbook_memberships",
+        "softbook_space_actions",
         "softbook_space_states",
         "getCardSource",
         "getMembership",
+        "commitSpaceActions",
         "checkInDailyProgress",
         "assertLegacySnapshotWritesDisabled",
         "startTrial",
@@ -303,6 +310,8 @@ def validate(context) -> None:
         "syncDailyProgress",
         "syncLearningState",
         "syncSpaceState",
+        "applySpaceAction",
+        "parseSpaceActionAck",
         "postJson",
         "REQUIRED_CORE_INTERACTIONS",
         "missingInteractions",
@@ -457,7 +466,7 @@ def validate(context) -> None:
         )
         fixture_sync_payload_metadata_html = tmp_dir / "sync-payload-metadata-visible-leak.html"
         fixture_sync_payload_metadata_html.write_text(
-            "<!doctype html><html><body><p>auth_token, access_token, refresh_token, challenge_id, session_id, sms_code, phone_number, day_key, completed_at, used_hint, used_peek, is_favorited, is_sleeping, last_modified_at, checked_in_today, favorite_count, learning_completed_count, pending_review_count, review_completed_count, sleeping_count, and total_completed_count are visible.</p></body></html>\n",
+            "<!doctype html><html><body><p>auth_token, access_token, refresh_token, challenge_id, session_id, action_id, actionId, sms_code, phone_number, day_key, completed_at, used_hint, used_peek, is_favorited, is_sleeping, last_modified_at, checked_in_today, favorite_count, learning_completed_count, pending_review_count, review_completed_count, sleeping_count, and total_completed_count are visible.</p></body></html>\n",
             encoding="utf-8",
         )
         fixture_scheduler_metadata_html = (
@@ -479,7 +488,7 @@ def validate(context) -> None:
         )
         fixture_mutation_queue_metadata_html = tmp_dir / "mutation-queue-metadata-visible-leak.html"
         fixture_mutation_queue_metadata_html.write_text(
-            "<!doctype html><html><body><p>sync_daily_progress, sync_space_state, sync_learning_state, start_membership_trial, refresh_membership, __softbook_mutation_queue, and retryCount are visible.</p></body></html>\n",
+            "<!doctype html><html><body><p>sync_daily_progress, sync_space_state, apply_space_action, applySpaceAction, sync_learning_state, start_membership_trial, refresh_membership, __softbook_mutation_queue, and retryCount are visible.</p></body></html>\n",
             encoding="utf-8",
         )
         fixture_runtime_config_metadata_html = tmp_dir / "runtime-config-metadata-visible-leak.html"
@@ -535,14 +544,14 @@ def validate(context) -> None:
             tmp_dir / "backend-collection-metadata-visible-leak.html"
         )
         fixture_backend_collection_metadata_html.write_text(
-            "<!doctype html><html><body><p>cardSources, dailyCheckIns, dailyProgress, learningStates, memberships, spaceStates, softbook_card_sources, softbook_daily_check_ins, softbook_daily_progress, softbook_learning_states, softbook_memberships, and softbook_space_states are visible.</p></body></html>\n",
+            "<!doctype html><html><body><p>cardSources, dailyCheckIns, dailyProgress, learningStates, memberships, spaceActions, spaceStates, softbook_card_sources, softbook_daily_check_ins, softbook_daily_progress, softbook_learning_states, softbook_memberships, softbook_space_actions, and softbook_space_states are visible.</p></body></html>\n",
             encoding="utf-8",
         )
         fixture_backend_store_method_metadata_html = (
             tmp_dir / "backend-store-method-metadata-visible-leak.html"
         )
         fixture_backend_store_method_metadata_html.write_text(
-            "<!doctype html><html><body><p>getCardSource, getMembership, checkInDailyProgress, assertLegacySnapshotWritesDisabled, startTrial, dismissRecovery, saveDailyProgress, saveLearningState, and saveSpaceState are visible.</p></body></html>\n",
+            "<!doctype html><html><body><p>getCardSource, getMembership, commitSpaceActions, checkInDailyProgress, assertLegacySnapshotWritesDisabled, startTrial, dismissRecovery, saveDailyProgress, saveLearningState, and saveSpaceState are visible.</p></body></html>\n",
             encoding="utf-8",
         )
         fixture_backend_document_field_metadata_html = (
@@ -780,7 +789,7 @@ def validate(context) -> None:
             tmp_dir / "smoke-action-helper-metadata-visible-leak.html"
         )
         fixture_smoke_action_helper_metadata_html.write_text(
-            "<!doctype html><html><body><p>requestSmsCode, verifySmsCode, syncDailyProgress, syncLearningState, syncSpaceState, and postJson are visible.</p></body></html>\n",
+            "<!doctype html><html><body><p>requestSmsCode, verifySmsCode, syncDailyProgress, syncLearningState, syncSpaceState, applySpaceAction, parseSpaceActionAck, and postJson are visible.</p></body></html>\n",
             encoding="utf-8",
         )
         fixture_svg = tmp_dir / "visible-process-leak.svg"

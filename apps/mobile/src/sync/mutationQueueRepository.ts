@@ -1,8 +1,9 @@
-import type {MembershipRepository} from '../membership/membershipRepository';
-import type {MembershipState} from '../membership/localMembership';
+import type { MembershipRepository } from '../membership/membershipRepository';
+import type { MembershipState } from '../membership/localMembership';
 import type {
+  SpaceAction,
+  SpaceActionAck,
   SpaceStateRepository,
-  SpaceStateSnapshot,
 } from '../space/spaceStateRepository';
 import {
   MutationQueueManager,
@@ -10,9 +11,9 @@ import {
   MutationQueueEntry,
   MutationType,
 } from './mutationQueue';
-import type {ProgressSyncRepository} from './progressSyncRepository';
-import {isRemoteAuthorizationError} from '../runtime/remoteHttpError';
-import {isRemoteRequestCancellationError} from '../runtime/remoteRequest';
+import type { ProgressSyncRepository } from './progressSyncRepository';
+import { isRemoteAuthorizationError } from '../runtime/remoteHttpError';
+import { isRemoteRequestCancellationError } from '../runtime/remoteRequest';
 
 export type MutationReplayResult =
   | {
@@ -22,25 +23,28 @@ export type MutationReplayResult =
           type:
             | 'refresh_membership'
             | 'start_membership_trial'
-            | 'sync_space_state';
+            | 'apply_space_action';
         }
       >;
     }
   | {
-      entry: Extract<MutationQueueEntry, {type: 'sync_space_state'}>;
-      spaceStateSnapshot: SpaceStateSnapshot;
+      entry: Extract<MutationQueueEntry, { type: 'apply_space_action' }>;
+      spaceActionAck: SpaceActionAck;
     }
   | {
       entry: Extract<
         MutationQueueEntry,
-        {type: 'refresh_membership' | 'start_membership_trial'}
+        { type: 'refresh_membership' | 'start_membership_trial' }
       >;
       membershipState: MembershipState;
     };
 
 export type MutationReplayContext = {
   authToken?: string;
+  contentVersion?: string;
+  dayKey?: string;
   phoneNumber: string;
+  track?: 'cet4' | 'cet6';
 };
 
 export interface MutationQueueRepository {
@@ -54,6 +58,10 @@ export interface MutationQueueRepository {
   isReplaying(): boolean;
   getQueueSize(): Promise<number>;
   hasPendingCheckIn(phoneNumber: string, dayKey: string): Promise<boolean>;
+  getPendingSpaceActions(
+    phoneNumber: string,
+    scope?: { contentVersion: string; track: 'cet4' | 'cet6' },
+  ): Promise<SpaceAction[]>;
   clear(): Promise<void>;
 }
 
@@ -76,16 +84,29 @@ export function createMutationQueueRepository(options: {
             entry.payload.context,
             entry.payload.dayKey,
           );
-          return {entry};
-        case 'sync_space_state':
+          return { entry };
+        case 'apply_space_action':
+          if (
+            entry.payload.contentVersion === null ||
+            entry.payload.track === null ||
+            !entry.payload.context.authToken
+          ) {
+            throw new Error(
+              'Space action replay requires authenticated content scope.',
+            );
+          }
+
           return {
             entry,
-            spaceStateSnapshot: (
-              await options.spaceStateRepository.syncSpaceState(
-                entry.payload.context,
-                entry.payload.snapshot,
-              )
-            ).snapshot,
+            spaceActionAck: await options.spaceStateRepository.applyActions(
+              entry.payload.context,
+              {
+                actions: [entry.payload.action],
+                contentVersion: entry.payload.contentVersion,
+                track: entry.payload.track,
+              },
+              requireReplayDayKey(entry),
+            ),
           };
         case 'refresh_membership':
           return {
@@ -200,6 +221,25 @@ export function createMutationQueueRepository(options: {
       );
     },
 
+    async getPendingSpaceActions(phoneNumber, scope) {
+      await queue.hydrate();
+      const entries = await queue.getAll();
+
+      return entries.flatMap(entry => {
+        if (
+          entry.type !== 'apply_space_action' ||
+          entry.payload.context.phoneNumber !== phoneNumber ||
+          (scope !== undefined &&
+            entry.payload.track !== null &&
+            entry.payload.track !== scope.track)
+        ) {
+          return [];
+        }
+
+        return [entry.payload.action];
+      });
+    },
+
     clear() {
       return queue.clear();
     },
@@ -219,6 +259,31 @@ function withReplayContext(
   entry: MutationQueueEntry,
   context: MutationReplayContext,
 ): MutationQueueEntry {
+  if (entry.type === 'apply_space_action') {
+    const replayingCurrentTrack =
+      entry.payload.track === null || entry.payload.track === context.track;
+
+    return {
+      ...entry,
+      payload: {
+        ...entry.payload,
+        contentVersion:
+          replayingCurrentTrack && context.contentVersion !== undefined
+            ? context.contentVersion
+            : entry.payload.contentVersion,
+        context: {
+          authToken: context.authToken,
+          dayKey: context.dayKey,
+          phoneNumber: context.phoneNumber,
+        },
+        track:
+          replayingCurrentTrack && context.track !== undefined
+            ? context.track
+            : entry.payload.track,
+      },
+    };
+  }
+
   return {
     ...entry,
     payload: {
@@ -226,4 +291,16 @@ function withReplayContext(
       context,
     },
   } as MutationQueueEntry;
+}
+
+function requireReplayDayKey(
+  entry: Extract<MutationQueueEntry, { type: 'apply_space_action' }>,
+) {
+  const dayKey = entry.payload.context.dayKey;
+
+  if (typeof dayKey !== 'string') {
+    throw new Error('Space action replay requires a current day key.');
+  }
+
+  return dayKey;
 }

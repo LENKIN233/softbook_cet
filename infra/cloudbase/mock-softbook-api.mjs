@@ -18,6 +18,10 @@ const {
 const {
   createLearningSchedulerV1Service,
 } = require('./functions/softbook-api/learning-scheduler-v1.js');
+const {
+  createSpaceActionsV2Service,
+  serializeSpaceState,
+} = require('./functions/softbook-api/space-actions-v2.js');
 
 const port = Number(process.env.PORT || 48731);
 const host = process.env.HOST || '127.0.0.1';
@@ -25,7 +29,6 @@ const smsCode = process.env.SOFTBOOK_CET_TEST_CODE || '123456';
 const challenges = new Map();
 const sessions = new Map();
 const memberships = new Map();
-const spaceStates = new Map();
 const learningEventsStore = createMemoryStore();
 const dailyCheckInService = createDailyCheckInV2Service({
   now: () => new Date(),
@@ -37,6 +40,11 @@ const learningEventsService = createLearningEventsV2Service({
   store: learningEventsStore,
 });
 const learningSchedulerService = createLearningSchedulerV1Service({
+  now: () => new Date(),
+  runtimeMode: 'development',
+  store: learningEventsStore,
+});
+const spaceActionsService = createSpaceActionsV2Service({
   now: () => new Date(),
   runtimeMode: 'development',
   store: learningEventsStore,
@@ -153,6 +161,16 @@ async function route(request, response) {
     return;
   }
 
+  if (path === '/v1/space/state-sync') {
+    sendJson(response, 410, {
+      error: {
+        code: 'legacy_space_snapshot_disabled',
+        message: 'Legacy physical-space snapshot APIs are disabled.',
+      },
+    });
+    return;
+  }
+
   const session = requireBearerToken(request);
 
   if (method === 'POST' && path === '/v2/progress/check-in') {
@@ -172,6 +190,16 @@ async function route(request, response) {
         body,
         query: Object.fromEntries(url.searchParams.entries()),
       },
+      session,
+    });
+    sendJson(response, 200, {data});
+    return;
+  }
+
+  if (method === 'POST' && path === '/v2/space/actions') {
+    const body = await readJson(request);
+    const data = await spaceActionsService.submit({
+      request: {body},
       session,
     });
     sendJson(response, 200, {data});
@@ -226,7 +254,7 @@ async function route(request, response) {
     sendJson(
       response,
       200,
-      bootstrapPayload(session.phoneNumber, track, dayKey),
+      await bootstrapPayload(session.phoneNumber, track, dayKey),
     );
     return;
   }
@@ -294,28 +322,6 @@ async function route(request, response) {
       entitlement: membership,
     });
     sendJson(response, 200, entitlementPayload(membership));
-    return;
-  }
-
-  if (method === 'POST' && path === '/v1/space/state-sync') {
-    const body = await readJson(request);
-    assertSessionPhone(body, session);
-    const acknowledgedAt = new Date().toISOString();
-    const existing = spaceStates.get(session.phoneNumber) ?? {
-      states_by_card_id: {},
-    };
-    const statesByCardId = {...existing.states_by_card_id};
-
-    for (const state of body.states ?? []) {
-      statesByCardId[state.card_id] = {...state};
-    }
-
-    spaceStates.set(session.phoneNumber, {
-      acknowledged_at: acknowledgedAt,
-      day_key: body.day_key,
-      states_by_card_id: statesByCardId,
-    });
-    sendJson(response, 200, {data: {acknowledged_at: acknowledgedAt}});
     return;
   }
 
@@ -402,7 +408,7 @@ function entitlementPayload(membership) {
   };
 }
 
-function bootstrapPayload(phoneNumber, track, dayKey) {
+async function bootstrapPayload(phoneNumber, track, dayKey) {
   const accountKey = accountKeyForPhone(phoneNumber);
   const cardSource = getMockCardSource(track);
   const progress = learningEventsStore.getDailyProgress(phoneNumber, dayKey, {
@@ -414,7 +420,14 @@ function bootstrapPayload(phoneNumber, track, dayKey) {
     track,
     {accountKey},
   );
-  const space = spaceStates.get(phoneNumber);
+  const space = await learningEventsStore.getSpaceState(
+    phoneNumber,
+    dayKey,
+    {
+      accountKey,
+      acknowledgedAt: new Date().toISOString(),
+    },
+  );
 
   return {
     data: {
@@ -446,13 +459,14 @@ function bootstrapPayload(phoneNumber, track, dayKey) {
         ...getMembership(phoneNumber),
       },
       progress,
-      space: {
-        acknowledged_at: space?.acknowledged_at ?? null,
-        day_key: dayKey,
-        states: Object.values(space?.states_by_card_id ?? {}).sort(
-          (left, right) => left.card_id.localeCompare(right.card_id),
+      space: serializeSpaceState(space, {
+        accountKey,
+        cardIds: new Set(
+          cardSource.card_records.map(card => card.card_id),
         ),
-      },
+        contentVersion: cardSource.content_version,
+        track,
+      }),
     },
   };
 }

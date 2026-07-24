@@ -1,5 +1,5 @@
 {
-  "version": "vnext-21",
+  "version": "vnext-22",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -34,6 +34,22 @@
       "spec/runtime-boundaries.json",
       "infra/cloudbase/learning-events-v2-runtime-contract.md",
       "infra/cloudbase/learning-session-v1-runtime-contract.md",
+      "spec/harness-architecture.json",
+      "spec/agent-harness.json",
+      "spec/repo-delivery-contract.json",
+      "spec/agent-run-record.json",
+      "spec/evals.json"
+    ],
+    "physical_space_actions_runtime": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/account-sync-contract.json",
+      "spec/knowledge-map.json",
+      "spec/space-operations.json",
+      "spec/box-catalog.json",
+      "spec/runtime-boundaries.json",
+      "infra/cloudbase/space-actions-v2-runtime-contract.md",
       "spec/harness-architecture.json",
       "spec/agent-harness.json",
       "spec/repo-delivery-contract.json",

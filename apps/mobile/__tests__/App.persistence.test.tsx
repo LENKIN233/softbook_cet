@@ -209,7 +209,8 @@ function createCanonicalBootstrapPayload() {
         },
         space: {
           acknowledged_at: new Date().toISOString(),
-          day_key: dayKey,
+          content_version: TEST_CONTENT_VERSION,
+          schema_version: 'space-state.v2',
           states: [
             {
               card_id: firstCard.card_id,
@@ -218,6 +219,7 @@ function createCanonicalBootstrapPayload() {
               last_modified_at: '2026-07-20T11:00:00.000Z',
             },
           ],
+          track: 'cet4',
         },
       },
     },
@@ -574,9 +576,7 @@ test('restores an exact queued check-in without treating event-derived progress 
     expect(
       tree.root
         .findAllByProps({ testID: 'statistics-sync-detail' })
-        .some(node =>
-          String(node.props.children).includes('等待服务端确认'),
-        ),
+        .some(node => String(node.props.children).includes('等待服务端确认')),
     ).toBe(true);
     expect(
       tree.root.findByProps({
@@ -1182,42 +1182,61 @@ test('reloads remote membership authority when restoring an auth session', async
   }
 });
 
-test('loads server canonical space state before pushing restored local state', async () => {
+test('uses bootstrap canonical space state without pushing unqueued restored state', async () => {
   const originalFetch = globalThis.fetch;
-  const canonicalPayload = {
-    data: {
-      space_state: {
-        day_key: new Date().toISOString().slice(0, 10),
-        states: [
-          {
-            card_id: '002001',
-            is_favorited: true,
-            is_sleeping: false,
-            last_modified_at: '2026-07-10T11:00:00.000Z',
-          },
-        ],
-      },
-    },
-  };
+  const canonical = createCanonicalBootstrapPayload();
+  const canonicalSpaceCard = canonical.session.catalogCards[0];
   const fetchMock = jest.fn(
     async (
-      _input: string,
+      input: string,
       _init?: {
         body?: string;
-        headers?: Record<string, string>;
+        headers?: ConstructorParameters<typeof Headers>[0];
         method?: string;
       },
-    ) => ({
-      json: async () => canonicalPayload,
-      ok: true,
-      status: 200,
-    }),
+    ) => {
+      if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+        return createTestJsonResponse(canonical.payload);
+      }
+
+      if (
+        input.startsWith(
+          'https://api.softbook.example/v1/learning/card-source?',
+        )
+      ) {
+        return createTestJsonResponse({
+          data: {
+            card_records: canonical.session.catalogCards,
+            content_version: canonical.session.contentVersion,
+            source: {
+              id: canonical.session.sourceId,
+              label: canonical.session.sourceLabel,
+            },
+            track: canonical.session.track,
+          },
+        });
+      }
+
+      if (
+        input.startsWith('https://api.softbook.example/v2/learning/session?')
+      ) {
+        return createTestJsonResponse(
+          createRemoteLearningSessionPayload(
+            canonical,
+            canonical.cursorCard.card_id,
+          ),
+        );
+      }
+
+      throw new Error(`Unexpected fetch call: ${input}`);
+    },
   );
   Object.defineProperty(globalThis, 'fetch', {
     configurable: true,
     value: fetchMock,
     writable: true,
   });
+  let tree: ReactTestRenderer.ReactTestRenderer | null = null;
 
   try {
     await createAuthSessionStore().save(createRemoteSession());
@@ -1225,7 +1244,7 @@ test('loads server canonical space state before pushing restored local state', a
       checkedInDayKey: null,
       learningCursor: null,
       spaceCardStateById: {
-        '002001': {
+        [canonicalSpaceCard.card_id]: {
           isFavorited: false,
           isSleeping: false,
           lastModifiedAt: '2026-07-10T10:00:00.000Z',
@@ -1233,17 +1252,16 @@ test('loads server canonical space state before pushing restored local state', a
       },
     });
 
-    const tree = await renderAppAndWaitForLearning(
+    tree = await renderAppAndWaitForLearning(
       <App
         softbookRemoteRuntimeProfile={{
+          apiKey: 'runtime-key',
           baseUrl: 'https://api.softbook.example/',
           featureModes: {
-            accountBootstrap: 'local',
-            learningSource: 'local',
             learningState: 'local',
             membership: 'local',
             progressSync: 'local',
-            spaceState: 'remote',
+            spaceState: 'local',
           },
         }}
       />,
@@ -1254,23 +1272,22 @@ test('loads server canonical space state before pushing restored local state', a
       tree.root.findByProps({ testID: 'mine-metric-favorites-value' }).props
         .children,
     ).toBe('1');
-    const calls = fetchMock.mock.calls.map(([input, init]) => ({
-      input,
-      init,
-    }));
-    expect(calls[0].input).toContain('/v1/space/state-sync?day_key=');
-    expect(calls[0].init).toMatchObject({ method: 'GET' });
-    const postCall = calls.find(call => call.init?.method === 'POST');
-    expect(JSON.parse(String(postCall?.init?.body))).toMatchObject({
-      states: [
-        {
-          card_id: '002001',
-          is_favorited: true,
-          last_modified_at: '2026-07-10T11:00:00.000Z',
-        },
-      ],
-    });
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        input.includes('/v1/space/state-sync'),
+      ),
+    ).toBe(false);
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        input.includes('/v2/space/actions'),
+      ),
+    ).toBe(false);
   } finally {
+    if (tree) {
+      await ReactTestRenderer.act(() => {
+        tree?.unmount();
+      });
+    }
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       value: originalFetch,

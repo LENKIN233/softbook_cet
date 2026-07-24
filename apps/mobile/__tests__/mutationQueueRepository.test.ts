@@ -2,10 +2,10 @@ import {
   MAX_MUTATION_RETRIES,
   MutationQueueManager,
 } from '../src/sync/mutationQueue';
-import type {MembershipState} from '../src/membership/localMembership';
-import {createMutationQueueRepository} from '../src/sync/mutationQueueRepository';
-import {RemoteHttpError} from '../src/runtime/remoteHttpError';
-import {RemoteRequestLifecycleError} from '../src/runtime/remoteRequest';
+import type { MembershipState } from '../src/membership/localMembership';
+import { createMutationQueueRepository } from '../src/sync/mutationQueueRepository';
+import { RemoteHttpError } from '../src/runtime/remoteHttpError';
+import { RemoteRequestLifecycleError } from '../src/runtime/remoteRequest';
 
 const createCheckInPayload = () => ({
   context: {
@@ -16,21 +16,27 @@ const createCheckInPayload = () => ({
 });
 
 const createSpacePayload = () => ({
+  action: {
+    actionId: 'space_action_0001',
+    cardId: 'c1',
+    clientOccurredAt: '2026-04-27T00:00:00.000Z',
+    dimension: 'favorite' as const,
+    value: true,
+  },
+  contentVersion: `sha256:${'a'.repeat(64)}`,
   context: {
     authToken: 'token-space',
     phoneNumber: '13800138001',
   },
-  snapshot: {
-    dayKey: '2026-04-27',
-    states: [
-      {
-        cardId: 'c1',
-        isFavorited: true,
-        isSleeping: false,
-        lastModifiedAt: '2026-04-27T00:00:00.000Z',
-      },
-    ],
-  },
+  track: 'cet4' as const,
+});
+
+const createSpaceReplayContext = () => ({
+  authToken: 'token-space',
+  contentVersion: `sha256:${'a'.repeat(64)}`,
+  dayKey: '2026-04-27',
+  phoneNumber: '13800138001',
+  track: 'cet4' as const,
 });
 
 describe('MutationQueueRepository', () => {
@@ -38,7 +44,7 @@ describe('MutationQueueRepository', () => {
     checkIn: jest.fn<Promise<unknown>, [unknown, string]>(),
   };
   const mockSpaceStateRepository = {
-    syncSpaceState: jest.fn<Promise<unknown>, [unknown, unknown]>(),
+    applyActions: jest.fn<Promise<unknown>, [unknown, unknown, string]>(),
   };
   const mockMembershipRepository = {
     loadState: jest.fn<Promise<unknown>, [unknown]>(),
@@ -53,10 +59,22 @@ describe('MutationQueueRepository', () => {
       dayKey: '2026-04-27',
       mode: 'remote',
     });
-    mockSpaceStateRepository.syncSpaceState.mockResolvedValue({
+    mockSpaceStateRepository.applyActions.mockResolvedValue({
       acknowledgedAt: '2026-04-27T00:00:00.000Z',
-      mode: 'remote',
-      snapshot: createSpacePayload().snapshot,
+      contentVersion: `sha256:${'a'.repeat(64)}`,
+      results: [{ actionId: 'space_action_0001', status: 'applied' }],
+      snapshot: {
+        dayKey: '2026-04-27',
+        states: [
+          {
+            cardId: 'c1',
+            isFavorited: true,
+            isSleeping: false,
+            lastModifiedAt: '2026-04-27T00:00:00.000Z',
+          },
+        ],
+      },
+      track: 'cet4',
     });
     mockMembershipRepository.loadState.mockResolvedValue({
       countedEntryCount: 2,
@@ -134,6 +152,39 @@ describe('MutationQueueRepository', () => {
     ).resolves.toBe(false);
   });
 
+  it('returns pending space actions for the matching account and track across a content update', async () => {
+    const repository = createMutationQueueRepository({
+      membershipRepository: mockMembershipRepository as never,
+      progressSyncRepository: mockProgressSyncRepository as never,
+      spaceStateRepository: mockSpaceStateRepository as never,
+    });
+    const payload = createSpacePayload();
+
+    await repository.enqueueMutation('apply_space_action', payload);
+
+    await expect(
+      repository.getPendingSpaceActions('13800138001', {
+        contentVersion: payload.contentVersion,
+        track: payload.track,
+      }),
+    ).resolves.toEqual([payload.action]);
+    await expect(
+      repository.getPendingSpaceActions('13800138000'),
+    ).resolves.toEqual([]);
+    await expect(
+      repository.getPendingSpaceActions('13800138001', {
+        contentVersion: `sha256:${'b'.repeat(64)}`,
+        track: 'cet4',
+      }),
+    ).resolves.toEqual([payload.action]);
+    await expect(
+      repository.getPendingSpaceActions('13800138001', {
+        contentVersion: payload.contentVersion,
+        track: 'cet6',
+      }),
+    ).resolves.toEqual([]);
+  });
+
   it('replays explicit daily check-ins without counters', async () => {
     const repository = createMutationQueueRepository({
       membershipRepository: mockMembershipRepository as never,
@@ -160,7 +211,7 @@ describe('MutationQueueRepository', () => {
     await expect(repository.getQueueSize()).resolves.toBe(0);
   });
 
-  it('replays space state snapshots', async () => {
+  it('replays one immutable space action with current auth and day context', async () => {
     const repository = createMutationQueueRepository({
       membershipRepository: mockMembershipRepository as never,
       progressSyncRepository: mockProgressSyncRepository as never,
@@ -168,21 +219,62 @@ describe('MutationQueueRepository', () => {
     });
     const payload = createSpacePayload();
 
-    await repository.enqueueMutation('sync_space_state', payload);
+    await repository.enqueueMutation('apply_space_action', payload);
     await expect(
-      repository.startReplay(payload.context),
+      repository.startReplay(createSpaceReplayContext()),
     ).resolves.toMatchObject([
       {
         entry: {
-          type: 'sync_space_state',
+          type: 'apply_space_action',
         },
-        spaceStateSnapshot: payload.snapshot,
+        spaceActionAck: {
+          results: [{ actionId: 'space_action_0001', status: 'applied' }],
+        },
       },
     ]);
 
-    expect(mockSpaceStateRepository.syncSpaceState).toHaveBeenCalledWith(
-      payload.context,
-      payload.snapshot,
+    expect(mockSpaceStateRepository.applyActions).toHaveBeenCalledWith(
+      {
+        authToken: 'token-space',
+        dayKey: '2026-04-27',
+        phoneNumber: '13800138001',
+      },
+      {
+        actions: [payload.action],
+        contentVersion: payload.contentVersion,
+        track: payload.track,
+      },
+      '2026-04-27',
+    );
+    await expect(repository.getQueueSize()).resolves.toBe(0);
+  });
+
+  it('rebinds a same-track pending action to the current content version', async () => {
+    const repository = createMutationQueueRepository({
+      membershipRepository: mockMembershipRepository as never,
+      progressSyncRepository: mockProgressSyncRepository as never,
+      spaceStateRepository: mockSpaceStateRepository as never,
+    });
+    const payload = createSpacePayload();
+    const currentContentVersion = `sha256:${'b'.repeat(64)}`;
+
+    await repository.enqueueMutation('apply_space_action', payload);
+    await repository.startReplay({
+      ...createSpaceReplayContext(),
+      contentVersion: currentContentVersion,
+    });
+
+    expect(mockSpaceStateRepository.applyActions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authToken: 'token-space',
+        phoneNumber: '13800138001',
+      }),
+      {
+        actions: [payload.action],
+        contentVersion: currentContentVersion,
+        track: 'cet4',
+      },
+      '2026-04-27',
     );
     await expect(repository.getQueueSize()).resolves.toBe(0);
   });
@@ -416,14 +508,19 @@ describe('MutationQueueRepository', () => {
     const replayStarted = new Promise<void>(resolve => {
       markReplayStarted = resolve;
     });
-    mockSpaceStateRepository.syncSpaceState.mockImplementation(
+    mockSpaceStateRepository.applyActions.mockImplementation(
       () =>
         new Promise(resolve => {
           resolveReplay = () =>
             resolve({
               acknowledgedAt: '2026-04-27T00:00:00.000Z',
-              mode: 'remote',
-              snapshot: createSpacePayload().snapshot,
+              contentVersion: `sha256:${'a'.repeat(64)}`,
+              results: [{ actionId: 'space_action_0001', status: 'applied' }],
+              snapshot: {
+                dayKey: '2026-04-27',
+                states: [],
+              },
+              track: 'cet4',
             });
           markReplayStarted?.();
         }),
@@ -435,16 +532,19 @@ describe('MutationQueueRepository', () => {
       spaceStateRepository: mockSpaceStateRepository as never,
     });
 
-    await repository.enqueueMutation('sync_space_state', createSpacePayload());
+    await repository.enqueueMutation(
+      'apply_space_action',
+      createSpacePayload(),
+    );
 
-    const firstReplay = repository.startReplay();
+    const firstReplay = repository.startReplay(createSpaceReplayContext());
     await replayStarted;
-    const secondReplay = repository.startReplay();
+    const secondReplay = repository.startReplay(createSpaceReplayContext());
 
     resolveReplay?.();
     await Promise.all([firstReplay, secondReplay]);
 
-    expect(mockSpaceStateRepository.syncSpaceState).toHaveBeenCalledTimes(1);
+    expect(mockSpaceStateRepository.applyActions).toHaveBeenCalledTimes(1);
   });
 
   it('can clear the queue', async () => {
@@ -458,7 +558,10 @@ describe('MutationQueueRepository', () => {
       'check_in_daily_progress',
       createCheckInPayload(),
     );
-    await repository.enqueueMutation('sync_space_state', createSpacePayload());
+    await repository.enqueueMutation(
+      'apply_space_action',
+      createSpacePayload(),
+    );
 
     await repository.clear();
 

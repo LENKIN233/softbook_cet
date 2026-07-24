@@ -19,6 +19,7 @@ const collections = [
   'softbook_learning_migration_revisions',
   'softbook_learning_sessions',
   'softbook_learning_states',
+  'softbook_space_actions',
   'softbook_space_states',
 ];
 const now = new Date().toISOString();

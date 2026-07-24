@@ -32,6 +32,15 @@ const {
   createMemoryLearningEventsCommitter,
   createSerializedTransactionRunner,
 } = require('./learning-events-v2-store');
+const {
+  cloneSpaceState,
+  createSpaceActionLedgerId,
+  createSpaceActionsV2Service,
+  createSpaceStateId,
+  migrateLegacySpaceDocuments,
+  normalizeStoredSpaceState,
+  prepareSpaceActionCommit,
+} = require('./space-actions-v2');
 
 const DEFAULT_SMS_CODE = '2468';
 const DEFAULT_TRIAL_DURATION_DAYS = 5;
@@ -40,6 +49,7 @@ const LEGACY_SNAPSHOT_WRITE_PATHS = new Set([
   '/v1/learning/state-sync',
   '/v1/progress/daily-sync',
 ]);
+const LEGACY_SPACE_SNAPSHOT_PATH = '/v1/space/state-sync';
 const DAILY_CHECK_IN_DOCUMENT_KEYS = [
   'account_key',
   'acknowledged_at',
@@ -65,6 +75,7 @@ const CLOUDBASE_COLLECTIONS = {
   learningSessions: 'softbook_learning_sessions',
   learningStates: 'softbook_learning_states',
   memberships: 'softbook_memberships',
+  spaceActions: 'softbook_space_actions',
   spaceStates: 'softbook_space_states',
 };
 const DEFAULT_CARD_SOURCE = {
@@ -149,6 +160,11 @@ function createSoftbookApi(options = {}) {
   });
   config.dailyCheckInV2 = createDailyCheckInV2Service({
     now: config.now,
+    store,
+  });
+  config.spaceActionsV2 = createSpaceActionsV2Service({
+    now: config.now,
+    runtimeMode,
     store,
   });
   config.learningSchedulerV1 = createLearningSchedulerV1Service({
@@ -238,6 +254,15 @@ async function handleHttpRequest(config, request) {
       });
     }
 
+    if (path === LEGACY_SPACE_SNAPSHOT_PATH) {
+      return jsonResponse(410, {
+        error: {
+          code: 'legacy_space_snapshot_disabled',
+          message: 'Legacy physical-space snapshot APIs are disabled.',
+        },
+      });
+    }
+
     if (method === 'POST' && path === '/v2/auth/request-code') {
       return jsonResponse(200, {
         data: await config.authV2.requestCode(request),
@@ -280,6 +305,14 @@ async function handleHttpRequest(config, request) {
 
       return jsonResponse(200, {
         data: await config.dailyCheckInV2.checkIn({request, session}),
+      });
+    }
+
+    if (method === 'POST' && path === '/v2/space/actions') {
+      const session = await config.authV2.requireActiveSession(request);
+
+      return jsonResponse(200, {
+        data: await config.spaceActionsV2.submit({request, session}),
       });
     }
 
@@ -388,28 +421,6 @@ async function handleHttpRequest(config, request) {
       });
     }
 
-    if (method === 'GET' && path === '/v1/space/state-sync') {
-      const dayKey = requireDayKey(request.query.day_key);
-      const canonicalState = await config.store.getSpaceState(
-        session.phoneNumber,
-        dayKey,
-      );
-
-      return spaceStateResponse(canonicalState);
-    }
-
-    if (method === 'POST' && path === '/v1/space/state-sync') {
-      assertBodyPhoneMatchesSession(request.body, session);
-      const snapshot = parseSpaceStateSnapshot(request.body);
-      const acknowledgedAt = config.now().toISOString();
-      const canonicalState = await config.store.saveSpaceState(
-        session.phoneNumber,
-        snapshot,
-        acknowledgedAt,
-      );
-      return spaceStateResponse(canonicalState, acknowledgedAt);
-    }
-
     return jsonResponse(404, {
       error: {
         code: 'not_found',
@@ -466,58 +477,11 @@ async function handleLearningCardSource(config, request) {
   });
 }
 
-function parseSpaceStateSnapshot(body) {
-  const payload = requireObjectBody(body);
-  const states = requireArray(payload.states, 'states').map((state, index) => {
-    const stateObject = requireObject(state, `states[${index}]`);
-
-    return {
-      card_id: requireNonEmptyString(
-        stateObject.card_id,
-        `states[${index}].card_id`,
-      ),
-      is_favorited: requireBoolean(
-        stateObject.is_favorited,
-        `states[${index}].is_favorited`,
-      ),
-      is_sleeping: requireBoolean(
-        stateObject.is_sleeping,
-        `states[${index}].is_sleeping`,
-      ),
-      last_modified_at: requireIsoTimestamp(
-        stateObject.last_modified_at,
-        `states[${index}].last_modified_at`,
-      ),
-    };
-  });
-
-  return {
-    day_key: requireDayKey(payload.day_key),
-    states,
-  };
-}
-
 function acknowledgedResponse(acknowledgedAt) {
   return jsonResponse(200, {
     data: {
       acknowledged_at: acknowledgedAt,
       mode: 'remote',
-    },
-  });
-}
-
-function spaceStateResponse(snapshot, acknowledgedAt) {
-  return jsonResponse(200, {
-    data: {
-      ...(acknowledgedAt
-        ? {acknowledged_at: acknowledgedAt, mode: 'remote'}
-        : {}),
-      space_state: {
-        day_key: snapshot.day_key,
-        states: Object.values(snapshot.states_by_card_id).sort((left, right) =>
-          left.card_id.localeCompare(right.card_id),
-        ),
-      },
     },
   });
 }
@@ -574,8 +538,10 @@ function createMemoryStore() {
   const learningMigrationRevisions = new Map();
   const learningSessions = new Map();
   const learningStates = new Map();
+  const spaceActions = new Map();
   const spaceStates = new Map();
   const runLearningTransaction = createSerializedTransactionRunner();
+  const runSpaceTransaction = createSerializedTransactionRunner();
   const commitLearningEvents = createMemoryLearningEventsCommitter({
     createDefaultCardSource,
     normalizeCardSource,
@@ -884,33 +850,97 @@ function createMemoryStore() {
         return true;
       }),
     commitLearningEvents,
-    getSpaceState: (phoneNumber, dayKey) => {
-      const existing = cloneSpaceState(
-        spaceStates.get(phoneNumber) ?? createEmptySpaceState(dayKey),
-      );
-      return {...existing, day_key: dayKey};
-    },
-    saveSpaceState: (phoneNumber, snapshot, acknowledgedAt) => {
-      const existing = cloneSpaceState(
-        spaceStates.get(phoneNumber) ?? createEmptySpaceState(snapshot.day_key),
-      );
+    getSpaceState: (phoneNumber, dayKey, options = {}) =>
+      runSpaceTransaction(async () => {
+        assertLearningWriteAccountKey(options.accountKey);
+        const stateKey = createSpaceStateId(options.accountKey);
+        const stored = spaceStates.get(stateKey);
+        let canonical;
 
-      snapshot.states.forEach(state => {
-        const current = existing.states_by_card_id[state.card_id];
+        if (stored) {
+          canonical = normalizeStoredSpaceState(stored, options.accountKey);
+        } else {
+          const legacy = spaceStates.get(phoneNumber);
+          canonical = migrateLegacySpaceDocuments(
+            legacy ? [legacy] : [],
+            options.accountKey,
+            options.acknowledgedAt ?? new Date().toISOString(),
+          );
 
-        if (shouldReplaceSpaceState(current, state)) {
-          existing.states_by_card_id[state.card_id] = {...state};
+          if (Object.keys(canonical.states_by_card_id).length > 0) {
+            spaceStates.set(stateKey, canonical);
+          }
         }
-      });
 
-      const canonicalState = {
-        ...existing,
-        acknowledged_at: acknowledgedAt,
-        day_key: snapshot.day_key,
-      };
-      spaceStates.set(phoneNumber, canonicalState);
-      return cloneSpaceState(canonicalState);
-    },
+        return cloneSpaceState(canonical);
+      }),
+    commitSpaceActions: input =>
+      runSpaceTransaction(async () => {
+        assertLearningWriteAccountKey(input.accountKey);
+        const stateKey = createSpaceStateId(input.accountKey);
+        const stored = spaceStates.get(stateKey);
+        const state =
+          stored ??
+          migrateLegacySpaceDocuments(
+            spaceStates.has(input.phoneNumber)
+              ? [spaceStates.get(input.phoneNumber)]
+              : [],
+            input.accountKey,
+            input.acknowledgedAt,
+          );
+        const ledgerByActionId = new Map(
+          input.actions.map(action => [
+            action.action_id,
+            spaceActions.get(
+              createSpaceActionLedgerId(
+                input.accountKey,
+                action.action_id,
+              ),
+            ) ?? null,
+          ]),
+        );
+        const prepared = prepareSpaceActionCommit({
+          acknowledgedAt: input.acknowledgedAt,
+          accountKey: input.accountKey,
+          actions: input.actions,
+          ledgerByActionId,
+          state,
+        });
+
+        prepared.ledgers.forEach(ledger => {
+          spaceActions.set(
+            createSpaceActionLedgerId(
+              input.accountKey,
+              ledger.action_id,
+            ),
+            ledger,
+          );
+        });
+
+        if (prepared.ledgers.length > 0) {
+          spaceStates.set(stateKey, prepared.state);
+        }
+
+        return {
+          results: cloneJson(prepared.results),
+          state: cloneSpaceState(prepared.state),
+        };
+      }),
+    seedLegacySpaceStateForMigrationTest: (
+      phoneNumber,
+      snapshot,
+      acknowledgedAt,
+    ) =>
+      runSpaceTransaction(async () => {
+        spaceStates.set(phoneNumber, {
+          acknowledged_at: acknowledgedAt,
+          day_key: snapshot.day_key,
+          phone_number: phoneNumber,
+          states_by_card_id: Object.fromEntries(
+            snapshot.states.map(state => [state.card_id, {...state}]),
+          ),
+        });
+      }),
     snapshot: () => ({
       ...authStateStore.snapshotAuth(),
       cardSourceVersions,
@@ -924,6 +954,7 @@ function createMemoryStore() {
       learningSessions,
       learningStates,
       memberships,
+      spaceActions,
       spaceStates,
     }),
   };
@@ -944,6 +975,7 @@ function createCloudBaseStore(options = {}) {
   );
   const learningSessions = db.collection(CLOUDBASE_COLLECTIONS.learningSessions);
   const learningStates = db.collection(CLOUDBASE_COLLECTIONS.learningStates);
+  const spaceActions = db.collection(CLOUDBASE_COLLECTIONS.spaceActions);
   const spaceStates = db.collection(CLOUDBASE_COLLECTIONS.spaceStates);
   const commitLearningEvents = createCloudBaseLearningEventsCommitter({
     collections: CLOUDBASE_COLLECTIONS,
@@ -1334,12 +1366,15 @@ function createCloudBaseStore(options = {}) {
         return true;
       }),
     commitLearningEvents,
-    getSpaceState: async (phoneNumber, dayKey) => {
-      const documentId = createCloudBaseDocumentId(phoneNumber);
+    getSpaceState: async (phoneNumber, dayKey, options = {}) => {
+      assertLearningWriteAccountKey(options.accountKey);
+      const documentId = createSpaceStateId(options.accountKey);
       const existing = await getCloudBaseDocument(spaceStates, documentId);
 
       if (existing) {
-        return {...cloneSpaceState(existing), day_key: dayKey};
+        return cloneSpaceState(
+          normalizeStoredSpaceState(existing, options.accountKey),
+        );
       }
 
       const legacyDocuments = await listCloudBaseDocumentsByQuery(
@@ -1348,64 +1383,137 @@ function createCloudBaseStore(options = {}) {
         LEGACY_SPACE_QUERY_PAGE_SIZE,
         LEGACY_SPACE_QUERY_MAX_DOCUMENTS,
       );
-      return db.runTransaction(async transaction =>
-        getCloudBaseCanonicalSpaceState(
-          transaction.collection(CLOUDBASE_COLLECTIONS.spaceStates),
-          documentId,
-          phoneNumber,
-          dayKey,
-          legacyDocuments,
-        ),
-      );
-    },
-    saveSpaceState: async (phoneNumber, snapshot, acknowledgedAt) => {
-      const documentId = createCloudBaseDocumentId(phoneNumber);
-      const canonical = await getCloudBaseDocument(spaceStates, documentId);
-      const legacyDocuments = canonical
-        ? []
-        : await listCloudBaseDocumentsByQuery(
-            spaceStates,
-            {phone_number: phoneNumber},
-            LEGACY_SPACE_QUERY_PAGE_SIZE,
-            LEGACY_SPACE_QUERY_MAX_DOCUMENTS,
-          );
       return db.runTransaction(async transaction => {
         const transactionSpaceStates = transaction.collection(
           CLOUDBASE_COLLECTIONS.spaceStates,
         );
-        const existing = await getCloudBaseCanonicalSpaceState(
+        const transactionExisting = await getCloudBaseDocument(
           transactionSpaceStates,
           documentId,
-          phoneNumber,
-          snapshot.day_key,
-          legacyDocuments,
         );
-        const statesByCardId = {
-          ...(existing.states_by_card_id ?? {}),
-        };
+        const canonical = transactionExisting
+          ? normalizeStoredSpaceState(
+              transactionExisting,
+              options.accountKey,
+            )
+          : migrateLegacySpaceDocuments(
+              legacyDocuments,
+              options.accountKey,
+              options.acknowledgedAt ?? new Date().toISOString(),
+            );
 
-        snapshot.states.forEach(state => {
-          const current = statesByCardId[state.card_id];
+        if (
+          !transactionExisting &&
+          Object.keys(canonical.states_by_card_id).length > 0
+        ) {
+          await setCloudBaseDocument(
+            transactionSpaceStates,
+            documentId,
+            canonical,
+          );
+        }
 
-          if (shouldReplaceSpaceState(current, state)) {
-            statesByCardId[state.card_id] = {...state};
-          }
+        return cloneSpaceState(canonical);
+      });
+    },
+    commitSpaceActions: async input => {
+      assertLearningWriteAccountKey(input.accountKey);
+      const stateId = createSpaceStateId(input.accountKey);
+      const canonical = await getCloudBaseDocument(spaceStates, stateId);
+      const legacyDocuments = canonical
+        ? []
+        : await listCloudBaseDocumentsByQuery(
+            spaceStates,
+            {phone_number: input.phoneNumber},
+            LEGACY_SPACE_QUERY_PAGE_SIZE,
+            LEGACY_SPACE_QUERY_MAX_DOCUMENTS,
+          );
+
+      return db.runTransaction(async transaction => {
+        const transactionSpaceActions = transaction.collection(
+          CLOUDBASE_COLLECTIONS.spaceActions,
+        );
+        const transactionSpaceStates = transaction.collection(
+          CLOUDBASE_COLLECTIONS.spaceStates,
+        );
+        const storedState = await getCloudBaseDocument(
+          transactionSpaceStates,
+          stateId,
+        );
+        const state =
+          storedState ??
+          migrateLegacySpaceDocuments(
+            legacyDocuments,
+            input.accountKey,
+            input.acknowledgedAt,
+          );
+        const ledgerByActionId = new Map();
+
+        for (const action of input.actions) {
+          ledgerByActionId.set(
+            action.action_id,
+            await getCloudBaseDocument(
+              transactionSpaceActions,
+              createSpaceActionLedgerId(
+                input.accountKey,
+                action.action_id,
+              ),
+            ),
+          );
+        }
+
+        const prepared = prepareSpaceActionCommit({
+          acknowledgedAt: input.acknowledgedAt,
+          accountKey: input.accountKey,
+          actions: input.actions,
+          ledgerByActionId,
+          state,
         });
 
-        const canonicalState = {
+        for (const ledger of prepared.ledgers) {
+          await setCloudBaseDocument(
+            transactionSpaceActions,
+            createSpaceActionLedgerId(
+              input.accountKey,
+              ledger.action_id,
+            ),
+            ledger,
+          );
+        }
+
+        if (prepared.ledgers.length > 0) {
+          await setCloudBaseDocument(
+            transactionSpaceStates,
+            stateId,
+            prepared.state,
+          );
+        }
+
+        return {
+          results: cloneJson(prepared.results),
+          state: cloneSpaceState(prepared.state),
+        };
+      });
+    },
+    seedLegacySpaceStateForMigrationTest: (
+      phoneNumber,
+      snapshot,
+      acknowledgedAt,
+    ) =>
+      setCloudBaseDocument(
+        spaceStates,
+        createCloudBaseDocumentId(
+          `${phoneNumber}:${snapshot.day_key}`,
+        ),
+        {
           acknowledged_at: acknowledgedAt,
           day_key: snapshot.day_key,
           phone_number: phoneNumber,
-          states_by_card_id: statesByCardId,
-        };
-        await setCloudBaseDocument(
-          transactionSpaceStates,
-          documentId,
-          canonicalState,
-        );
-        return cloneSpaceState(canonicalState);
-      });
-    },
+          states_by_card_id: Object.fromEntries(
+            snapshot.states.map(state => [state.card_id, {...state}]),
+          ),
+        },
+      ),
   };
 }
 
@@ -1799,71 +1907,6 @@ function createEmptyLearningState(dayKey, track) {
     source_label: null,
     track,
   };
-}
-
-function createEmptySpaceState(dayKey) {
-  return {
-    day_key: dayKey,
-    states_by_card_id: {},
-  };
-}
-
-function cloneSpaceState(snapshot) {
-  return {
-    ...snapshot,
-    states_by_card_id: Object.fromEntries(
-      Object.entries(snapshot.states_by_card_id ?? {}).map(
-        ([cardId, state]) => [cardId, {...state}],
-      ),
-    ),
-  };
-}
-
-function shouldReplaceSpaceState(current, incoming) {
-  if (!current) {
-    return true;
-  }
-
-  const currentTimestamp = new Date(current.last_modified_at).getTime();
-
-  return (
-    Number.isNaN(currentTimestamp) ||
-    new Date(incoming.last_modified_at).getTime() > currentTimestamp
-  );
-}
-
-async function getCloudBaseCanonicalSpaceState(
-  collection,
-  documentId,
-  phoneNumber,
-  dayKey,
-  legacyDocuments,
-) {
-  const existing = await getCloudBaseDocument(collection, documentId);
-
-  if (existing) {
-    return {...cloneSpaceState(existing), day_key: dayKey};
-  }
-
-  const migrated = createEmptySpaceState(dayKey);
-
-  for (const document of legacyDocuments) {
-    for (const state of Object.values(document.states_by_card_id ?? {})) {
-      const current = migrated.states_by_card_id[state.card_id];
-      if (shouldReplaceSpaceState(current, state)) {
-        migrated.states_by_card_id[state.card_id] = {...state};
-      }
-    }
-  }
-
-  if (legacyDocuments.length > 0) {
-    await setCloudBaseDocument(collection, documentId, {
-      ...migrated,
-      phone_number: phoneNumber,
-    });
-  }
-
-  return migrated;
 }
 
 async function listCloudBaseDocumentsByQuery(
