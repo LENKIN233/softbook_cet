@@ -27,15 +27,17 @@ Referenced active specs:
   `learning-events-ack.v2`.
 - The repository-local CommonJS CloudBase function now implements the endpoint,
   transactional ledger, server sequence, daily aggregates, per-card learning
-  projection, retained content lookup, and bootstrap projection read.
+  projection, retained content lookup, transactional FSRS projection, matching
+  learning-session cursor clearing, and bootstrap projection read.
 - The implementation has local memory and CloudBase-adapter tests. The React
   Native client also implements durable event allocation, exact replay, strict
   acknowledgement removal, and post-ack bootstrap reconciliation.
 - This repository change deploys neither backend nor mobile release artifacts;
-  global legacy v1 write removal and the scheduler remain unimplemented.
+  global legacy v1 write removal and mobile learning-session consumption remain
+  unimplemented.
 - The launch gate `canonical-bootstrap-and-idempotent-events` remains pending
-  until backend deployment and client behavior pass the acceptance cases in
-  this document.
+  until backend deployment, mobile scheduler-session binding, and client
+  behavior pass the acceptance cases in this document.
 
 ## Repository-local backend
 
@@ -51,6 +53,8 @@ CloudBase uses one database transaction across these account-scoped records:
   review count;
 - `softbook_learning_migration_revisions`: one account revision fence that
   closes the race between a bounded legacy snapshot and the first v2 event;
+- `softbook_learning_sessions`: one revisioned opaque selected-card cursor and
+  learning-projection watermark per account and track;
 - `softbook_learning_states`: latest accepted event per card and track;
 - `softbook_daily_progress`: server-derived learning and review counts by China
   product day;
@@ -71,12 +75,13 @@ doc-only boundary: its query is outside the transaction and the canonical merge
 is transactionally written to one deterministic account document.
 
 The CloudBase adapter accepts at most 9 events per request. That hard limit
-keeps the tested worst case at 91 operations, below CloudBase's 100-operation
+keeps the tested worst case at 95 operations, below CloudBase's 100-operation
 transaction ceiling, even when every event has a distinct retained content
-version and China activity day and migration preserves both tracks. Defaults
-are therefore 9 events, 90 days of past-event retention, and five minutes of
-future clock skew. Development operators may lower the batch limit
-and may set
+version and China activity day, migration preserves both tracks and their
+learning-session projection watermarks, and a matching input-track cursor is
+read and cleared. Defaults are therefore 9 events, 90 days of past-event
+retention, and five minutes of future clock skew.
+Development operators may lower the batch limit and may set
 `SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT`,
 `SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS`, and
 `SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS` to positive integers; a batch
@@ -160,11 +165,12 @@ The grade is deterministic rather than a second client opinion:
 only `correct` or `incorrect`. A mismatched interaction, outcome, or grade
 invalidates the request.
 
-A future scheduler may translate the two-state grade and objective outcome into
-versioned algorithm input on the server. The client does not submit a raw FSRS
-rating, stability, difficulty, due date, or other scheduler-owned state, and no
-algorithm adapter may expand the visible two-state self-assessment into four
-choices.
+The server translates the two-state grade and assistance evidence into the
+versioned `softbook-fsrs.v1` policy: `review_needed` becomes `Again`, assisted
+`passed` becomes `Hard`, and unassisted `passed` becomes `Good`; `Easy` is
+unused. The client does not submit a raw FSRS rating, stability, difficulty,
+due date, selected card, or other scheduler-owned state, and the adapter does
+not expand the visible two-state self-assessment into four choices.
 
 The device sequence may arrive with gaps or out of order after offline use. It
 is replay provenance and a fork detector, not the scheduler cursor and not a
@@ -211,11 +217,28 @@ The primary idempotency key is `(account_id, event_id)`.
   events are never updated in place.
 
 The service validates the complete request before writing. New events, the
-account-scoped server sequence allocation, and derived learning projections
-commit in one transaction. A validation, conflict, storage, or transaction
-failure leaves no partial acceptance. Concurrent exact submissions converge on
-one accepted event plus duplicate acknowledgements; they never increment a
-counter twice.
+account-scoped server sequence allocation, derived learning and FSRS
+projections, learning-session projection-watermark update, matching cursor
+clearing, and daily progress commit in one transaction. A validation, conflict,
+storage, or transaction failure leaves no partial acceptance. Concurrent exact
+submissions converge on one accepted event plus duplicate acknowledgements;
+they never increment a counter or scheduler state twice.
+
+Every transaction containing a newly accepted event also advances the
+account-and-track learning-session revision, updates the
+`learning_acknowledged_at` component, and advances the
+`learning_server_sequence` component, even when the event does not clear its
+cursor. The latest positive server-sequence component disambiguates event
+transactions accepted in the same clock millisecond. Session selection requires
+both components to match the learning projection and transactionally confirms a
+resumed cursor revision, preventing mixed old/new reads from returning or
+overwriting a stale selection.
+
+When the first v2 event migrates legacy baselines for both tracks, the same
+transaction advances every migrated track's session watermark and preserves any
+valid sibling-track cursor. A pre-existing session/projection watermark mismatch
+fails duplicate replay and new acceptance closed instead of being silently
+repaired.
 
 ## Server authority and projections
 
@@ -230,6 +253,13 @@ aggregates from accepted immutable events. It does not accept a client-authored
 learning snapshot or progress counters. Favorite and sleeping state remain
 owned by the physical-space canonical state, and check-in remains a separate
 product action.
+
+For every positive-sequence latest card event, the same projection contains one
+integrity-checked FSRS state under `softbook-fsrs.v1` and exact
+`ts-fsrs@5.4.1`. Newly accepted events advance it at server acceptance time.
+Sequence-zero migrated cards intentionally have no invented scheduler history
+and remain immediately review-eligible. Exact duplicate replay validates the
+stored projection but does not advance it.
 
 Bootstrap reads the account-keyed v2 learning projection for the requested
 track regardless of requested day, reads the requested day's completion
@@ -269,8 +299,11 @@ For daily attribution, the service may derive the China product day from
 Outside those bounds it rejects the event. It never accepts a client-selected
 canonical `day_key`.
 
-Accepting an event does not grant trial, membership, content access, or a
-scheduler position. Those authorities remain independent server decisions.
+Accepting an event does not grant trial, membership, content access, or select
+the next card. Those authorities remain independent server decisions. It may
+clear only the matching account-and-track cursor for the completed card and
+content version; selection itself is owned by
+`infra/cloudbase/learning-session-v1-runtime-contract.md`.
 
 ## Acknowledgement
 
@@ -307,7 +340,8 @@ Expected error classes:
 - `401` or `403`: missing, expired, revoked, or unauthorized v2 session;
 - `409`: event-ID payload conflict or device-cursor fork;
 - `422`: unknown content version, card, track, or interaction mismatch;
-- `503`: event ledger or projection transaction unavailable.
+- `503`: event ledger or transaction unavailable, including stored event,
+  learning, scheduler, daily, or session projection integrity failure.
 
 Errors must not echo credentials, phone numbers, card content, or answer text.
 
@@ -396,8 +430,8 @@ Implementation order is intentionally serial:
 1. owner contract and negative Harness gates;
 2. transactional backend ledger, idempotency indexes, and projections;
 3. mobile durable event generation and exact replay;
-4. disable legacy snapshot writes;
-5. server scheduler and scheduler cursor.
+4. server scheduler and scheduler cursor;
+5. disable global legacy snapshot writes.
 
 ## Required implementation tests
 
@@ -415,7 +449,7 @@ The repository-local backend tests currently prove:
 - top-level track changes are part of an event-ID payload conflict;
 - the active session account key is rederived from the signed session phone;
 - an atomic batch above 9 is rejected before storage work;
-- the maximum nine-event, all-track migration fixture uses 91 transaction
+- the maximum nine-event, all-track migration fixture uses 95 transaction
   operations and therefore retains headroom below the platform ceiling;
 - transaction test doubles reject `where`, matching CloudBase's doc-only rule;
 - stored immutable event payloads are rehashed before duplicate acknowledgement;
@@ -433,6 +467,18 @@ The repository-local backend tests currently prove:
 - identity, credential, snapshot, counter, and content-text fields are rejected;
 - server sequences are stable and monotonic per account;
 - duplicate replay never increments learning or review counts twice;
+- accepted events advance exact versioned FSRS state at server acceptance time;
+- assisted and unassisted passes map to `Hard` and `Good`, while
+  `review_needed` maps to `Again` and `Easy` remains unused;
+- an accepted matching completion clears the revisioned learning-session cursor
+  in the same transaction, while transaction failure preserves it;
+- every newly accepted event advances the learning-session projection watermark
+  so concurrent selection retries instead of overwriting a newer projection;
+- resumed cursors are transactionally revision-confirmed before response;
+- exact duplicate replay never advances FSRS state or clears a newly selected
+  cursor;
+- sequence-zero legacy cards have no invented FSRS history and are immediately
+  review-eligible;
 - reconnect performs bootstrap before and after replay;
 - tracked worktree state and formal approval records remain unchanged by tests.
 
@@ -459,13 +505,14 @@ The React Native tests additionally prove:
 
 ## Explicit non-claims
 
-The repository-local backend and mobile implementation do not prove:
+The repository-local backend, scheduler, and mobile implementation do not prove:
 
 - that `/v2/learning/events` is deployed in CloudBase or production;
 - that the React Native client has been shipped against a deployed v2 endpoint;
 - that legacy learning snapshots and the daily check-in bridge are globally
   disabled;
-- that FSRS or any other scheduler is implemented;
+- that the mobile client consumes `/v2/learning/session` or binds completion to
+  a selected cursor;
 - exact same-card cross-device resume;
 - signed content packs, approved production content, payments, or launch
   readiness;

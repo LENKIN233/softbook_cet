@@ -9,6 +9,9 @@ const {
 } = require('../index');
 const {createLearningEventsV2Service} = require('../learning-events-v2');
 const {
+  createAccountLearningSessionId,
+} = require('../learning-scheduler-v1');
+const {
   createCardSourceVersionId,
   createLearningMigrationRevisionId,
 } = require('../learning-events-v2-store');
@@ -334,6 +337,31 @@ test('maximum CloudBase batch retains transaction-operation headroom', async () 
 
   const {api} = createTestApi({store: createCloudBaseStore({db})});
   const session = await authenticatedSession(api, PHONE_ONE, '127.0.0.30');
+  const storedAuthSession = [
+    ...db.snapshot().get('softbook_auth_sessions').values(),
+  ].find(value => value.session_id === session.session_id);
+  await db
+    .collection('softbook_learning_sessions')
+    .doc(createAccountLearningSessionId(storedAuthSession.account_key, 'cet4'))
+    .set({
+      account_key: storedAuthSession.account_key,
+      cursor: {
+        card_id: historicalSources[0].card_records[0].card_id,
+        content_version: historicalSources[0].content_version,
+        due_at: null,
+        phase: 'learning',
+        reason: 'catalog_new',
+        selected_at: START_TIME.toISOString(),
+        selection_id: 'sel_operation_budget_0001',
+        source_id: historicalSources[0].source.id,
+        track: 'cet4',
+      },
+      learning_acknowledged_at: null,
+      learning_server_sequence: 0,
+      revision: 1,
+      track: 'cet4',
+      updated_at: START_TIME.toISOString(),
+    });
   const cet6Source = await cardSource(api, session, 'cet6');
   const cet6Card = cet6Source.card_records[0];
   const legacySibling = await request(api, {
@@ -378,7 +406,7 @@ test('maximum CloudBase batch retains transaction-operation headroom', async () 
 
   assert.equal(response.statusCode, 200, JSON.stringify(response.body));
   assert.equal(response.body.data.results.length, 9);
-  assert.equal(db.lastTransactionOperations(), 91);
+  assert.equal(db.lastTransactionOperations(), 95);
 });
 
 test('learning-events v2 rejects a stored session whose account key no longer matches its phone', async () => {
@@ -903,6 +931,16 @@ test('CloudBase transaction failure leaves no partial event, cursor, or projecti
   const session = await authenticatedSession(api, PHONE_ONE, '127.0.0.40');
   const source = await cardSource(api, session);
   const event = eventFor(source);
+  const selected = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v2/learning/session',
+    query: {track: 'cet4'},
+  });
+  assert.equal(selected.statusCode, 200);
+  const selectedCursor = clone(
+    [...db.snapshot().get('softbook_learning_sessions').values()][0].cursor,
+  );
   db.failNextSetFor('softbook_learning_event_cursors');
 
   const failed = await submit(api, session, [event]);
@@ -919,10 +957,18 @@ test('CloudBase transaction failure leaves no partial event, cursor, or projecti
   ]) {
     assert.equal(db.snapshot().get(collectionName)?.size ?? 0, 0);
   }
+  assert.deepEqual(
+    [...db.snapshot().get('softbook_learning_sessions').values()][0].cursor,
+    selectedCursor,
+  );
 
   const retried = await submit(api, session, [event]);
   assert.equal(retried.statusCode, 200);
   assert.equal(retried.body.data.results[0].server_sequence, 1);
+  assert.equal(
+    [...db.snapshot().get('softbook_learning_sessions').values()][0].cursor,
+    null,
+  );
 });
 
 test('first v2 event migrates v1 learning and progress baselines without favorite authority', async () => {
@@ -1084,6 +1130,14 @@ test('first v2 event preserves the legacy baseline for both tracks', async () =>
       assert.equal(legacyWrite.statusCode, 200, name);
     }
 
+    const scheduledCet6 = await request(api, {
+      headers,
+      method: 'GET',
+      path: '/v2/learning/session',
+      query: {track: 'cet6'},
+    });
+    assert.equal(scheduledCet6.statusCode, 200, name);
+
     const first = eventFor(cet4Source, 1, {
       device_cursor: {device_id: 'device_cross_track_0001', sequence: 1},
       event_id: 'event_cross_track_cet4_0001',
@@ -1102,6 +1156,18 @@ test('first v2 event preserves the legacy baseline for both tracks', async () =>
     assert.equal(
       migratedCet6.body.data.learning.card_states[0].server_sequence,
       0,
+      name,
+    );
+    const resumedCet6 = await request(api, {
+      headers,
+      method: 'GET',
+      path: '/v2/learning/session',
+      query: {track: 'cet6'},
+    });
+    assert.equal(resumedCet6.statusCode, 200, name);
+    assert.equal(
+      resumedCet6.body.data.selection.selection_id,
+      scheduledCet6.body.data.selection.selection_id,
       name,
     );
 
@@ -1461,7 +1527,10 @@ test('corrupted v2 learning and daily projections fail closed on read and append
     query: {day_key: DAY_KEY, track: 'cet4'},
   });
   assert.equal(missingAuthorityRead.statusCode, 500);
-  assert.equal(missingAuthorityRead.body.error.code, 'invalid_canonical_state');
+  assert.equal(
+    missingAuthorityRead.body.error.code,
+    'learning_events_projection_invalid',
+  );
 
   projectedEvent.event_id = first.event_id;
   const progress = [...store.snapshot().dailyProgress.values()].find(

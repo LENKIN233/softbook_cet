@@ -153,8 +153,8 @@ class LearningEventsContractTests(unittest.TestCase):
 
     def test_runtime_document_cannot_hide_repository_local_non_claims(self):
         weakened = self.runtime_text.replace(
-            "The repository-local backend and mobile implementation do not prove",
-            "The repository-local backend and mobile implementation prove",
+            "The repository-local backend, scheduler, and mobile implementation do not prove",
+            "The repository-local backend, scheduler, and mobile implementation prove",
         )
         self.assert_finding(
             self.findings(text=weakened),

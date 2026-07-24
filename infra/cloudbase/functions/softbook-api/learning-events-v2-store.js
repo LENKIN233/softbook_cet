@@ -1,4 +1,13 @@
 const crypto = require('node:crypto');
+const {
+  SCHEDULER_POLICY_VERSION,
+  advanceSchedulerEntry,
+  createAccountLearningSessionId,
+  createAccountLearningSessionKey,
+  maximumLearningServerSequence,
+  normalizeLearningSessionState,
+  normalizeSchedulerProjection,
+} = require('./learning-scheduler-v1');
 
 const LEARNING_EVENTS_ERROR = Symbol('learning-events-error');
 const LEGACY_MIGRATION_RETRY = Symbol('legacy-migration-retry');
@@ -253,12 +262,30 @@ async function commitLearningEventsTransaction(adapter, input) {
 
   if (newEntries.length === 0) {
     const storedSequence = await adapter.getSequence();
-    normalizeSequenceState(
+    const sequenceState = normalizeSequenceState(
       storedSequence,
       [],
       input.accountKey,
       maximumExistingServerSequence,
     );
+    const storedProjection = await adapter.getLearningProjection(input.track);
+
+    if (storedProjection === null) {
+      throw invalidStoredState(
+        'An accepted event is missing its learning projection.',
+      );
+    }
+    const projection = normalizeLearningProjection(
+      storedProjection,
+      input.track,
+      input.accountKey,
+      sequenceState.lastServerSequence,
+    );
+    const sessionState = normalizeStoredLearningSession(
+      await adapter.getLearningSession(input.track),
+      input,
+    );
+    assertLearningSessionProjectionWatermark(sessionState, projection);
     return orderedResults(input.events, classificationByEventId);
   }
 
@@ -302,7 +329,16 @@ async function commitLearningEventsTransaction(adapter, input) {
         sequenceState.lastServerSequence,
       )
     : migrateLegacyLearningProjection(legacyStates, input.track);
+  const sessionState = normalizeStoredLearningSession(
+    await adapter.getLearningSession(input.track),
+    input,
+  );
+  assertLearningSessionProjectionWatermark(
+    sessionState,
+    storedProjection === null ? null : projection,
+  );
   const migratedProjectionWrites = [];
+  const migratedSessionWrites = [];
 
   if (initializesSequence) {
     for (const track of TRACKS) {
@@ -326,7 +362,17 @@ async function commitLearningEventsTransaction(adapter, input) {
       );
 
       if (migratedSiblingProjection.legacy_baseline_migrated) {
+        const migratedSession = normalizeStoredLearningSession(
+          await adapter.getLearningSession(track),
+          {...input, track},
+        );
+        assertLearningSessionProjectionWatermark(migratedSession, null);
         migratedProjectionWrites.push([track, migratedSiblingProjection]);
+        migratedSessionWrites.push([
+          track,
+          migratedSession,
+          migratedSiblingProjection,
+        ]);
       }
     }
   }
@@ -350,6 +396,21 @@ async function commitLearningEventsTransaction(adapter, input) {
 
     const projectionEvent = createProjectionEvent(entry, serverSequence);
     projection.events_by_card_id[entry.payload.card_id] = projectionEvent;
+    try {
+      projection.scheduler_by_card_id[entry.payload.card_id] =
+        advanceSchedulerEntry(
+          projection.scheduler_by_card_id[entry.payload.card_id] ?? null,
+          {
+            acceptedAt: input.acknowledgedAt,
+            event: entry.payload,
+            serverSequence,
+          },
+        );
+    } catch (error) {
+      throw invalidStoredState(
+        `The scheduler projection could not advance: ${error.message}`,
+      );
+    }
     projection.acknowledged_at = input.acknowledgedAt;
     projection.source_id = entry.sourceId;
     projection.source_label = entry.sourceLabel;
@@ -435,11 +496,55 @@ async function commitLearningEventsTransaction(adapter, input) {
     projection_version: 'learning-events.v2',
   });
 
+  if (
+    [sessionState, ...migratedSessionWrites.map(([, state]) => state)].some(
+      state => state.revision === Number.MAX_SAFE_INTEGER,
+    )
+  ) {
+    throw invalidStoredState('The learning session revision is exhausted.');
+  }
+  const clearsSelectedCursor =
+    sessionState.cursor !== null &&
+    acceptedEntries.some(
+      entry =>
+        entry.payload.card_id === sessionState.cursor.card_id &&
+        entry.payload.content_version === sessionState.cursor.content_version,
+    );
+
+  await adapter.setLearningSession(input.track, {
+    account_key: input.accountKey,
+    cursor: clearsSelectedCursor ? null : sessionState.cursor,
+    learning_acknowledged_at: input.acknowledgedAt,
+    learning_server_sequence: maximumLearningServerSequence(
+      projection.events_by_card_id,
+    ),
+    revision: sessionState.revision + 1,
+    track: input.track,
+    updated_at: input.acknowledgedAt,
+  });
+
   for (const [track, migratedProjection] of migratedProjectionWrites) {
     await adapter.setLearningProjection(track, {
       ...migratedProjection,
       account_key: input.accountKey,
       projection_version: 'learning-events.v2',
+    });
+  }
+  for (const [
+    track,
+    migratedSession,
+    migratedProjection,
+  ] of migratedSessionWrites) {
+    await adapter.setLearningSession(track, {
+      account_key: input.accountKey,
+      cursor: migratedSession.cursor,
+      learning_acknowledged_at: input.acknowledgedAt,
+      learning_server_sequence: maximumLearningServerSequence(
+        migratedProjection.events_by_card_id,
+      ),
+      revision: migratedSession.revision + 1,
+      track,
+      updated_at: input.acknowledgedAt,
     });
   }
 
@@ -478,6 +583,12 @@ function createMemoryAdapter(options, staged, input) {
       cloneJson(
         staged.learningStates.get(
           createAccountLearningStateKey(input.accountKey, track),
+        ) ?? null,
+      ),
+    getLearningSession: track =>
+      cloneJson(
+        staged.learningSessions.get(
+          createAccountLearningSessionKey(input.accountKey, track),
         ) ?? null,
       ),
     getLegacyDailyProgress: dayKey =>
@@ -544,6 +655,12 @@ function createMemoryAdapter(options, staged, input) {
     setLearningProjection: (track, value) => {
       staged.learningStates.set(
         createAccountLearningStateKey(input.accountKey, track),
+        cloneJson(value),
+      );
+    },
+    setLearningSession: (track, value) => {
+      staged.learningSessions.set(
+        createAccountLearningSessionKey(input.accountKey, track),
         cloneJson(value),
       );
     },
@@ -616,6 +733,7 @@ function createCloudBaseAdapter(options, transaction, input, legacyMigration) {
   const learningEventSequences = transaction.collection(
     collections.learningEventSequences,
   );
+  const learningSessions = transaction.collection(collections.learningSessions);
   const learningStates = transaction.collection(collections.learningStates);
 
   return {
@@ -638,6 +756,11 @@ function createCloudBaseAdapter(options, transaction, input, legacyMigration) {
       getDocument(
         learningStates,
         createAccountLearningStateId(input.accountKey, track),
+      ),
+    getLearningSession: track =>
+      getDocument(
+        learningSessions,
+        createAccountLearningSessionId(input.accountKey, track),
       ),
     getLegacyDailyProgress: dayKey =>
       getDocument(
@@ -717,6 +840,12 @@ function createCloudBaseAdapter(options, transaction, input, legacyMigration) {
       setDocument(
         learningStates,
         createAccountLearningStateId(input.accountKey, track),
+        value,
+      ),
+    setLearningSession: (track, value) =>
+      setDocument(
+        learningSessions,
+        createAccountLearningSessionId(input.accountKey, track),
         value,
       ),
     setSequence: value =>
@@ -986,6 +1115,8 @@ function normalizeLearningProjection(
     value.projection_version !== 'learning-events.v2' ||
     value.track !== expectedTrack ||
     value.cursor !== null ||
+    value.scheduler_version !== SCHEDULER_POLICY_VERSION ||
+    !isObject(value.scheduler_by_card_id) ||
     typeof value.legacy_baseline_migrated !== 'boolean' ||
     !isObject(value.events_by_card_id) ||
     Object.keys(value.events_by_card_id).length === 0 ||
@@ -1031,7 +1162,46 @@ function normalizeLearningProjection(
     );
   }
 
+  try {
+    normalizeSchedulerProjection(value);
+  } catch (error) {
+    throw invalidStoredState(
+      `The account scheduler projection is invalid: ${error.message}`,
+    );
+  }
+
   return cloneJson(value);
+}
+
+function normalizeStoredLearningSession(value, input) {
+  try {
+    return normalizeLearningSessionState(value, {
+      accountKey: input.accountKey,
+      track: input.track,
+    });
+  } catch (error) {
+    throw invalidStoredState(
+      `The account learning session is invalid: ${error.message}`,
+    );
+  }
+}
+
+function assertLearningSessionProjectionWatermark(sessionState, projection) {
+  const expectedAcknowledgedAt =
+    projection === null ? null : projection.acknowledged_at;
+  const expectedServerSequence =
+    projection === null
+      ? 0
+      : maximumLearningServerSequence(projection.events_by_card_id);
+
+  if (
+    sessionState.learning_acknowledged_at !== expectedAcknowledgedAt ||
+    sessionState.learning_server_sequence !== expectedServerSequence
+  ) {
+    throw invalidStoredState(
+      'The account learning session projection watermark is stale.',
+    );
+  }
 }
 
 function validateProjectionEvent(event, cardId, maximumServerSequence) {
@@ -1093,6 +1263,8 @@ function migrateLegacyLearningProjection(states, track) {
     cursor: null,
     events_by_card_id: {},
     legacy_baseline_migrated: latestByCard.size > 0,
+    scheduler_by_card_id: {},
+    scheduler_version: SCHEDULER_POLICY_VERSION,
     track,
   };
 

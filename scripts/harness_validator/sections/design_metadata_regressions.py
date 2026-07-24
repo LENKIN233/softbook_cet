@@ -28,6 +28,18 @@ def validate(context) -> None:
         "challengeId",
         "session_id",
         "sessionId",
+        "selection_id",
+        "selectionId",
+        "scheduler_version",
+        "schedulerVersion",
+        "scheduler_by_card_id",
+        "schedulerByCardId",
+        "next_due_at",
+        "nextDueAt",
+        "learning_acknowledged_at",
+        "learningAcknowledgedAt",
+        "learning_server_sequence",
+        "learningServerSequence",
         "sms_code",
         "phone_number",
         "day_key",
@@ -185,11 +197,13 @@ def validate(context) -> None:
         "cardSources",
         "dailyProgress",
         "learningStates",
+        "learningSessions",
         "memberships",
         "spaceStates",
         "softbook_card_sources",
         "softbook_daily_progress",
         "softbook_learning_states",
+        "softbook_learning_sessions",
         "softbook_memberships",
         "softbook_space_states",
         "getCardSource",
@@ -440,6 +454,13 @@ def validate(context) -> None:
         fixture_sync_payload_metadata_html = tmp_dir / "sync-payload-metadata-visible-leak.html"
         fixture_sync_payload_metadata_html.write_text(
             "<!doctype html><html><body><p>auth_token, access_token, refresh_token, challenge_id, session_id, sms_code, phone_number, day_key, completed_at, used_hint, used_peek, is_favorited, is_sleeping, last_modified_at, checked_in_today, favorite_count, learning_completed_count, pending_review_count, review_completed_count, sleeping_count, and total_completed_count are visible.</p></body></html>\n",
+            encoding="utf-8",
+        )
+        fixture_scheduler_metadata_html = (
+            tmp_dir / "scheduler-metadata-visible-leak.html"
+        )
+        fixture_scheduler_metadata_html.write_text(
+            "<!doctype html><html><body><p>selection_id, selectionId, scheduler_version, schedulerVersion, scheduler_by_card_id, schedulerByCardId, next_due_at, nextDueAt, learning_acknowledged_at, learningAcknowledgedAt, learning_server_sequence, learningServerSequence, learningSessions, and softbook_learning_sessions are visible.</p></body></html>\n",
             encoding="utf-8",
         )
         fixture_membership_payload_metadata_html = tmp_dir / "membership-payload-metadata-visible-leak.html"
@@ -850,6 +871,7 @@ def validate(context) -> None:
             "card-source-records-metadata-visible-leak.html",
             "interaction-state-metadata-visible-leak.html",
             "sync-payload-metadata-visible-leak.html",
+            "scheduler-metadata-visible-leak.html",
             "membership-payload-metadata-visible-leak.html",
             "camel-runtime-bookkeeping-metadata-visible-leak.html",
             "mutation-queue-metadata-visible-leak.html",

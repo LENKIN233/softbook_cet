@@ -12,6 +12,16 @@ const {
 } = require('./bootstrap-v2');
 const {createLearningEventsV2Service} = require('./learning-events-v2');
 const {
+  SCHEDULER_POLICY_VERSION,
+  createAccountLearningSessionId,
+  createAccountLearningSessionKey,
+  createLearningSchedulerV1Service,
+  maximumLearningServerSequence,
+  normalizeLearningSessionState,
+  normalizeSchedulerProjection,
+  toBootstrapLearningCursor,
+} = require('./learning-scheduler-v1');
+const {
   createAccountDailyProgressId,
   createAccountDailyProgressKey,
   createAccountLearningStateId,
@@ -40,6 +50,7 @@ const CLOUDBASE_COLLECTIONS = {
   learningEvents: 'softbook_learning_events',
   learningEventSequences: 'softbook_learning_event_sequences',
   learningMigrationRevisions: 'softbook_learning_migration_revisions',
+  learningSessions: 'softbook_learning_sessions',
   learningStates: 'softbook_learning_states',
   memberships: 'softbook_memberships',
   spaceStates: 'softbook_space_states',
@@ -121,6 +132,12 @@ function createSoftbookApi(options = {}) {
     retentionDays:
       options.learningEventsRetentionDays ??
       optionalPositiveIntegerEnv('SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS'),
+    runtimeMode,
+    store,
+  });
+  config.learningSchedulerV1 = createLearningSchedulerV1Service({
+    now: config.now,
+    randomBytes: options.learningSchedulerRandomBytes,
     runtimeMode,
     store,
   });
@@ -227,6 +244,20 @@ async function handleHttpRequest(config, request) {
 
       return jsonResponse(200, {
         data: await config.learningEventsV2.submit({request, session}),
+      });
+    }
+
+    if (method === 'GET' && path === '/v2/learning/session') {
+      const session = await config.authV2.requireActiveSession(request);
+      assertLearningSessionIdentityComesFromSession(request);
+      const track = requireTrack(request.query.track);
+
+      return jsonResponse(200, {
+        data: await config.learningSchedulerV1.read({
+          accountKey: session.accountKey,
+          phoneNumber: session.phoneNumber,
+          track,
+        }),
       });
     }
 
@@ -578,6 +609,21 @@ function assertBootstrapIdentityComesFromSession(request) {
   }
 }
 
+function assertLearningSessionIdentityComesFromSession(request) {
+  const allowedQueryFields = new Set(['track']);
+  const hasForbiddenQuery = Object.keys(request.query).some(
+    field => !allowedQueryFields.has(field),
+  );
+
+  if (hasForbiddenQuery || request.body !== undefined) {
+    throw httpError(
+      400,
+      'learning_session_authority_input_forbidden',
+      'Learning session authority comes from the active session and server.',
+    );
+  }
+}
+
 function createDefaultStore() {
   const storeMode = process.env.SOFTBOOK_STORE_MODE ?? 'memory';
 
@@ -602,6 +648,7 @@ function createMemoryStore() {
   const learningEvents = new Map();
   const learningEventSequences = new Map();
   const learningMigrationRevisions = new Map();
+  const learningSessions = new Map();
   const learningStates = new Map();
   const spaceStates = new Map();
   const runLearningTransaction = createSerializedTransactionRunner();
@@ -616,6 +663,7 @@ function createMemoryStore() {
       learningEvents,
       learningEventSequences,
       learningMigrationRevisions,
+      learningSessions,
       learningStates,
     },
     runTransaction: runLearningTransaction,
@@ -708,8 +756,54 @@ function createMemoryStore() {
         );
       }
 
-      return {...state, day_key: dayKey, track};
+      const sessionState =
+        options.includeSchedulerState === true || !options.accountKey
+          ? null
+          : normalizeStoreLearningSession(
+              learningSessions.get(
+                createAccountLearningSessionKey(options.accountKey, track),
+              ) ?? null,
+              options.accountKey,
+              track,
+            );
+      assertLearningSessionProjectionWatermark(sessionState, accountState);
+
+      return {
+        ...state,
+        cursor:
+          sessionState === null
+            ? state.cursor ?? null
+            : toBootstrapLearningCursor(sessionState),
+        day_key: dayKey,
+        track,
+      };
     },
+    getLearningSessionCursor: (accountKey, track) =>
+      cloneJson(
+        learningSessions.get(
+          createAccountLearningSessionKey(accountKey, track),
+        ) ?? null,
+      ),
+    confirmLearningSessionCursor: input =>
+      runLearningTransaction(async () => {
+        const key = createAccountLearningSessionKey(
+          input.accountKey,
+          input.track,
+        );
+        const current = normalizeStoreLearningSession(
+          learningSessions.get(key) ?? null,
+          input.accountKey,
+          input.track,
+        );
+
+        return (
+          current.revision === input.expectedRevision &&
+          current.learning_acknowledged_at ===
+            input.expectedLearningAcknowledgedAt &&
+          current.learning_server_sequence ===
+            input.expectedLearningServerSequence
+        );
+      }),
     getMembership: phoneNumber => {
       const document = memberships.get(phoneNumber);
 
@@ -840,6 +934,33 @@ function createMemoryStore() {
         });
         learningMigrationRevisions.set(revisionId, nextRevision);
       }),
+    saveLearningSessionCursor: input =>
+      runLearningTransaction(async () => {
+        const key = createAccountLearningSessionKey(
+          input.accountKey,
+          input.track,
+        );
+        const current = normalizeStoreLearningSession(
+          learningSessions.get(key) ?? null,
+          input.accountKey,
+          input.track,
+        );
+
+        if (
+          current.revision !== input.expectedRevision ||
+          current.learning_acknowledged_at !==
+            input.learningAcknowledgedAt ||
+          current.learning_server_sequence !== input.learningServerSequence
+        ) {
+          return false;
+        }
+
+        learningSessions.set(
+          key,
+          createNextLearningSessionState(current, input),
+        );
+        return true;
+      }),
     commitLearningEvents,
     getSpaceState: (phoneNumber, dayKey) => {
       const existing = cloneSpaceState(
@@ -877,6 +998,7 @@ function createMemoryStore() {
       learningEvents,
       learningEventSequences,
       learningMigrationRevisions,
+      learningSessions,
       learningStates,
       memberships,
       spaceStates,
@@ -896,6 +1018,7 @@ function createCloudBaseStore(options = {}) {
   const learningEventSequences = db.collection(
     CLOUDBASE_COLLECTIONS.learningEventSequences,
   );
+  const learningSessions = db.collection(CLOUDBASE_COLLECTIONS.learningSessions);
   const learningStates = db.collection(CLOUDBASE_COLLECTIONS.learningStates);
   const spaceStates = db.collection(CLOUDBASE_COLLECTIONS.spaceStates);
   const commitLearningEvents = createCloudBaseLearningEventsCommitter({
@@ -1008,9 +1131,79 @@ function createCloudBaseStore(options = {}) {
           );
       const state =
         accountState ?? legacyState ?? createEmptyLearningState(dayKey, track);
+      const sessionDocument =
+        options.includeSchedulerState !== true && options.accountKey
+        ? await getCloudBaseDocument(
+            learningSessions,
+            createAccountLearningSessionId(options.accountKey, track),
+          )
+        : null;
+      const sessionState =
+        options.includeSchedulerState === true || !options.accountKey
+          ? null
+          : normalizeStoreLearningSession(
+              sessionDocument,
+              options.accountKey,
+              track,
+            );
+      assertLearningSessionProjectionWatermark(sessionState, accountState);
 
-      return {...state, day_key: dayKey, track};
+      return {
+        ...state,
+        cursor:
+          sessionState === null
+            ? state.cursor ?? null
+            : toBootstrapLearningCursor(sessionState),
+        day_key: dayKey,
+        track,
+      };
     },
+    getLearningSessionCursor: async (accountKey, track) => {
+      const document = await getCloudBaseDocument(
+        learningSessions,
+        createAccountLearningSessionId(accountKey, track),
+      );
+
+      if (!isObject(document) || !Object.hasOwn(document, '_id')) {
+        return document;
+      }
+
+      const value = {...document};
+      delete value._id;
+      return value;
+    },
+    confirmLearningSessionCursor: input =>
+      db.runTransaction(async transaction => {
+        const transactionSessions = transaction.collection(
+          CLOUDBASE_COLLECTIONS.learningSessions,
+        );
+        const documentId = createAccountLearningSessionId(
+          input.accountKey,
+          input.track,
+        );
+        const current = normalizeStoreLearningSession(
+          await getCloudBaseDocument(transactionSessions, documentId),
+          input.accountKey,
+          input.track,
+        );
+
+        if (
+          current.revision !== input.expectedRevision ||
+          current.learning_acknowledged_at !==
+            input.expectedLearningAcknowledgedAt ||
+          current.learning_server_sequence !==
+            input.expectedLearningServerSequence
+        ) {
+          return false;
+        }
+
+        await setCloudBaseDocument(
+          transactionSessions,
+          documentId,
+          current,
+        );
+        return true;
+      }),
     getMembership: async phoneNumber => {
       const existing = await getCloudBaseDocument(memberships, phoneNumber);
 
@@ -1026,55 +1219,67 @@ function createCloudBaseStore(options = {}) {
         ...createInitialMembership(),
       };
     },
-    startTrial: async (phoneNumber, acknowledgedAt) => {
-      const current = cloneMembership(
-        await getCloudBaseMembership(memberships, phoneNumber),
-      );
+    startTrial: (phoneNumber, acknowledgedAt) =>
+      db.runTransaction(async transaction => {
+        const transactionMemberships = transaction.collection(
+          CLOUDBASE_COLLECTIONS.memberships,
+        );
+        const current = cloneMembership(
+          await getCloudBaseMembership(transactionMemberships, phoneNumber),
+        );
 
-      if (current.stage === 'trial_available') {
-        current.counted_entry_count += 1;
+        if (current.stage === 'trial_available') {
+          current.counted_entry_count += 1;
+          current.last_experience_ended_by = null;
+          current.recovery_prompt_visible = false;
+          current.stage = 'trial';
+          current.trial_started_at_entry_count = current.counted_entry_count;
+        }
+
+        await saveCloudBaseMembership(
+          transactionMemberships,
+          phoneNumber,
+          current,
+          acknowledgedAt,
+        );
+        return current;
+      }),
+    purchase: (phoneNumber, acknowledgedAt) =>
+      db.runTransaction(async transaction => {
+        const transactionMemberships = transaction.collection(
+          CLOUDBASE_COLLECTIONS.memberships,
+        );
+        const current = cloneMembership(
+          await getCloudBaseMembership(transactionMemberships, phoneNumber),
+        );
         current.last_experience_ended_by = null;
         current.recovery_prompt_visible = false;
-        current.stage = 'trial';
-        current.trial_started_at_entry_count = current.counted_entry_count;
-      }
-
-      await saveCloudBaseMembership(
-        memberships,
-        phoneNumber,
-        current,
-        acknowledgedAt,
-      );
-      return current;
-    },
-    purchase: async (phoneNumber, acknowledgedAt) => {
-      const current = cloneMembership(
-        await getCloudBaseMembership(memberships, phoneNumber),
-      );
-      current.last_experience_ended_by = null;
-      current.recovery_prompt_visible = false;
-      current.stage = 'premium';
-      await saveCloudBaseMembership(
-        memberships,
-        phoneNumber,
-        current,
-        acknowledgedAt,
-      );
-      return current;
-    },
-    dismissRecovery: async (phoneNumber, acknowledgedAt) => {
-      const current = cloneMembership(
-        await getCloudBaseMembership(memberships, phoneNumber),
-      );
-      current.recovery_prompt_visible = false;
-      await saveCloudBaseMembership(
-        memberships,
-        phoneNumber,
-        current,
-        acknowledgedAt,
-      );
-      return current;
-    },
+        current.stage = 'premium';
+        await saveCloudBaseMembership(
+          transactionMemberships,
+          phoneNumber,
+          current,
+          acknowledgedAt,
+        );
+        return current;
+      }),
+    dismissRecovery: (phoneNumber, acknowledgedAt) =>
+      db.runTransaction(async transaction => {
+        const transactionMemberships = transaction.collection(
+          CLOUDBASE_COLLECTIONS.memberships,
+        );
+        const current = cloneMembership(
+          await getCloudBaseMembership(transactionMemberships, phoneNumber),
+        );
+        current.recovery_prompt_visible = false;
+        await saveCloudBaseMembership(
+          transactionMemberships,
+          phoneNumber,
+          current,
+          acknowledgedAt,
+        );
+        return current;
+      }),
     saveDailyProgress: async (
       phoneNumber,
       snapshot,
@@ -1196,6 +1401,37 @@ function createCloudBaseStore(options = {}) {
           revisionId,
           nextRevision,
         );
+      }),
+    saveLearningSessionCursor: input =>
+      db.runTransaction(async transaction => {
+        const transactionSessions = transaction.collection(
+          CLOUDBASE_COLLECTIONS.learningSessions,
+        );
+        const documentId = createAccountLearningSessionId(
+          input.accountKey,
+          input.track,
+        );
+        const current = normalizeStoreLearningSession(
+          await getCloudBaseDocument(transactionSessions, documentId),
+          input.accountKey,
+          input.track,
+        );
+
+        if (
+          current.revision !== input.expectedRevision ||
+          current.learning_acknowledged_at !==
+            input.learningAcknowledgedAt ||
+          current.learning_server_sequence !== input.learningServerSequence
+        ) {
+          return false;
+        }
+
+        await setCloudBaseDocument(
+          transactionSessions,
+          documentId,
+          createNextLearningSessionState(current, input),
+        );
+        return true;
       }),
     commitLearningEvents,
     getSpaceState: async (phoneNumber, dayKey) => {
@@ -1448,6 +1684,8 @@ function assertLearningProjectionSequence(
   if (
     projection.track !== expectedTrack ||
     projection.cursor !== null ||
+    projection.scheduler_version !== SCHEDULER_POLICY_VERSION ||
+    !isObject(projection.scheduler_by_card_id) ||
     typeof projection.legacy_baseline_migrated !== 'boolean' ||
     !isObject(projection.events_by_card_id) ||
     Object.keys(projection.events_by_card_id).length === 0
@@ -1492,6 +1730,14 @@ function assertLearningProjectionSequence(
       'The account learning projection has invalid migration authority.',
     );
   }
+
+  try {
+    normalizeSchedulerProjection(projection);
+  } catch (error) {
+    throw learningProjectionInvalidError(
+      `The account scheduler projection is invalid: ${error.message}`,
+    );
+  }
 }
 
 function assertLearningSequenceMetadata(sequence, expectedAccountKey) {
@@ -1507,6 +1753,72 @@ function assertLearningSequenceMetadata(sequence, expectedAccountKey) {
       'The account learning-event sequence is invalid.',
     );
   }
+}
+
+function normalizeStoreLearningSession(value, accountKey, track) {
+  try {
+    let storedValue = value;
+
+    if (isObject(value) && Object.hasOwn(value, '_id')) {
+      storedValue = {...value};
+      delete storedValue._id;
+    }
+
+    return normalizeLearningSessionState(storedValue, {accountKey, track});
+  } catch (error) {
+    throw learningProjectionInvalidError(
+      `The account learning session is invalid: ${error.message}`,
+    );
+  }
+}
+
+function assertLearningSessionProjectionWatermark(
+  sessionState,
+  learningProjection,
+) {
+  if (sessionState === null) {
+    return;
+  }
+
+  const expectedAcknowledgedAt =
+    learningProjection?.projection_version === 'learning-events.v2'
+      ? learningProjection.acknowledged_at
+      : null;
+  const expectedServerSequence =
+    learningProjection?.projection_version === 'learning-events.v2'
+      ? maximumLearningServerSequence(learningProjection.events_by_card_id)
+      : 0;
+
+  if (
+    sessionState.learning_acknowledged_at !== expectedAcknowledgedAt ||
+    sessionState.learning_server_sequence !== expectedServerSequence
+  ) {
+    throw learningProjectionInvalidError(
+      'The account learning session projection watermark is stale.',
+    );
+  }
+}
+
+function createNextLearningSessionState(current, input) {
+  if (current.revision === Number.MAX_SAFE_INTEGER) {
+    throw learningProjectionInvalidError(
+      'The account learning session revision is exhausted.',
+    );
+  }
+
+  return normalizeStoreLearningSession(
+    {
+      account_key: input.accountKey,
+      cursor: input.cursor === null ? null : cloneJson(input.cursor),
+      learning_acknowledged_at: input.learningAcknowledgedAt,
+      learning_server_sequence: input.learningServerSequence,
+      revision: current.revision + 1,
+      track: input.track,
+      updated_at: input.updatedAt,
+    },
+    input.accountKey,
+    input.track,
+  );
 }
 
 function assertLegacyLearningWriteAllowed(sequence, expectedAccountKey) {

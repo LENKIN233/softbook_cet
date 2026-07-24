@@ -16,6 +16,7 @@ const collections = [
   'softbook_learning_events',
   'softbook_learning_event_sequences',
   'softbook_learning_migration_revisions',
+  'softbook_learning_sessions',
   'softbook_learning_states',
   'softbook_space_states',
 ];
