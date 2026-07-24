@@ -4,7 +4,7 @@
 
 - Date: 2026-07-24
 - Branch: `cross/v2-space-state-cutover`
-- PR: pending at initial commit
+- PR: `#442` (`https://github.com/LENKIN233/softbook_cet/pull/442`)
 - Product-owner decision: the user explicitly approved this repository-local
   physical-space cutover slice. This is not formal card-content approval,
   deployment approval, or launch approval.
@@ -219,8 +219,7 @@
 
 ## Follow-up
 
-- Commit and push the reviewed branch, create the PR, replace the pending PR
-  reference in this record, and run the strict real-PR local profile.
+- Run the strict real-PR local profile against PR `#442`.
 - Record passed review in the PR only for the reviewed HEAD.
 - Merge only after every required GitHub check passes, then verify the protected
   `main` result and keep deployment/launch readiness pending.
