@@ -37,7 +37,6 @@ test('learning runtime config can switch repository mode to remote', () => {
     },
   });
 
-  expect(config.fallbackToLocalOnRemoteError).toBe(false);
   expect(config.mode).toBe('remote');
   expect(config.remoteConfig?.endpoint).toBe(
     'https://api.softbook.example/v1/learning/card-source',
@@ -45,6 +44,9 @@ test('learning runtime config can switch repository mode to remote', () => {
   expect(config.remoteConfig?.headers).toEqual({
     'x-softbook-client': 'mobile',
   });
+  expect(config.remoteSessionConfig?.endpoint).toBe(
+    'https://api.softbook.example/v2/learning/session',
+  );
 });
 
 test('learning runtime config reads global runtime overrides', () => {

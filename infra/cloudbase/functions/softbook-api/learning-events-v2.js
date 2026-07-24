@@ -39,6 +39,7 @@ const ANSWER_GRADE_BY_OUTCOME = {
 const REQUEST_FIELDS = ['schema_version', 'track', 'events'];
 const EVENT_FIELDS = [
   'event_id',
+  'selection_id',
   'card_id',
   'interaction_id',
   'phase',
@@ -152,6 +153,10 @@ function parseEvent(value, index, session, track) {
   const label = `events[${index}]`;
   const event = requireExactObject(value, EVENT_FIELDS, label);
   const eventId = requireOpaqueId(event.event_id, `${label}.event_id`);
+  const selectionId = requireSelectionId(
+    event.selection_id,
+    `${label}.selection_id`,
+  );
   const cardId = requireCardId(event.card_id, `${label}.card_id`);
   const interactionId = requireEnum(
     event.interaction_id,
@@ -195,6 +200,7 @@ function parseEvent(value, index, session, track) {
   );
   const payload = {
     event_id: eventId,
+    selection_id: selectionId,
     card_id: cardId,
     interaction_id: interactionId,
     phase: requireEnum(event.phase, PHASES, `${label}.phase`),
@@ -383,6 +389,17 @@ function requireOpaqueId(value, label) {
     !/^[A-Za-z0-9][A-Za-z0-9_-]{7,127}$/.test(value)
   ) {
     throw invalidRequest(`${label} must be an opaque identifier.`);
+  }
+
+  return value;
+}
+
+function requireSelectionId(value, label) {
+  if (
+    typeof value !== 'string' ||
+    !/^sel_[A-Za-z0-9_-]{16,128}$/.test(value)
+  ) {
+    throw invalidRequest(`${label} must be a learning-session selection ID.`);
   }
 
   return value;

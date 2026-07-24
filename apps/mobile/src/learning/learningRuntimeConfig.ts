@@ -4,6 +4,7 @@ import type {
   LearningSessionRepositoryConfig,
 } from './learningRepository';
 import { createSoftbookRemoteLearningCardSourceConfig } from './remoteCardSource';
+import { createSoftbookRemoteLearningSessionConfig } from './remoteLearningSession';
 
 export type LearningRemoteRuntimeConfig = {
   apiKey?: string;
@@ -159,9 +160,11 @@ export function resolveLearningSessionRepositoryConfig(
     }
 
     return {
-      fallbackToLocalOnRemoteError: false,
       mode: 'remote',
       remoteConfig: createSoftbookRemoteLearningCardSourceConfig(
+        learningSource.remote,
+      ),
+      remoteSessionConfig: createSoftbookRemoteLearningSessionConfig(
         learningSource.remote,
       ),
     };

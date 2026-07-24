@@ -15,6 +15,7 @@ export type LearningEventPhase = 'learning' | 'review';
 
 export type LearningEventV2 = {
   event_id: string;
+  selection_id: string;
   card_id: string;
   interaction_id: LearningInteractionId;
   phase: LearningEventPhase;

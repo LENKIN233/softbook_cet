@@ -1,18 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type {LearningCardResult, LearningTrack} from '../learning/model';
+import type { LearningCardResult, LearningTrack } from '../learning/model';
 import type {
   LearningEventPhase,
   LearningEventV2,
 } from './learningEventsRepository';
-import {MAX_LEARNING_EVENT_BATCH_SIZE} from './learningEventsRepository';
+import { MAX_LEARNING_EVENT_BATCH_SIZE } from './learningEventsRepository';
 
-const OUTBOX_SCHEMA_VERSION = 'learning-event-outbox.v1' as const;
-const OUTBOX_STORAGE_KEY = '__softbook_learning_event_outbox_v1';
+const OUTBOX_SCHEMA_VERSION = 'learning-event-outbox.v2' as const;
+export const LEARNING_EVENT_OUTBOX_STORAGE_KEY =
+  '__softbook_learning_event_outbox_v2';
+export const LEGACY_LEARNING_EVENT_OUTBOX_STORAGE_KEY =
+  '__softbook_learning_event_outbox_v1';
 const CARD_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const CONTENT_VERSION_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const DEVICE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/;
 const OPAQUE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{7,127}$/;
+const SELECTION_ID_PATTERN = /^sel_[A-Za-z0-9_-]{16,128}$/;
 
 export type LearningEventOutboxEntry = {
   accountPhoneNumber: string;
@@ -31,6 +35,7 @@ type LearningEventOutboxState = {
 
 export type LearningEventOutboxStorage = {
   getItem: (key: string) => Promise<string | null>;
+  removeItem: (key: string) => Promise<void>;
   setItem: (key: string, value: string) => Promise<void>;
 };
 
@@ -39,6 +44,7 @@ export type EnqueueLearningCompletionInput = {
   contentVersion: string;
   phase: LearningEventPhase;
   result: LearningCardResult;
+  selectionId: string;
   track: LearningTrack;
 };
 
@@ -47,6 +53,9 @@ export function createInMemoryLearningEventOutboxStorage(
 ): LearningEventOutboxStorage {
   return {
     getItem: async key => seed[key] ?? null,
+    removeItem: async key => {
+      delete seed[key];
+    },
     setItem: async (key, value) => {
       seed[key] = value;
     },
@@ -56,6 +65,7 @@ export function createInMemoryLearningEventOutboxStorage(
 export function createReactNativeLearningEventOutboxStorage(): LearningEventOutboxStorage {
   return {
     getItem: key => AsyncStorage.getItem(key),
+    removeItem: key => AsyncStorage.removeItem(key),
     setItem: (key, value) => AsyncStorage.setItem(key, value),
   };
 }
@@ -64,6 +74,7 @@ export class LearningEventOutbox {
   private readonly createDeviceId: () => string;
   private readonly hydrationPromise: Promise<void>;
   private readonly key: string;
+  private readonly legacyKey: string | null;
   private readonly now: () => string;
   private operationTail: Promise<void> = Promise.resolve();
   private state: LearningEventOutboxState | null = null;
@@ -73,12 +84,17 @@ export class LearningEventOutbox {
     options: {
       createDeviceId?: () => string;
       key?: string;
+      legacyKey?: string | null;
       now?: () => string;
       storage?: LearningEventOutboxStorage;
     } = {},
   ) {
     this.createDeviceId = options.createDeviceId ?? createDefaultDeviceId;
-    this.key = options.key ?? OUTBOX_STORAGE_KEY;
+    this.key = options.key ?? LEARNING_EVENT_OUTBOX_STORAGE_KEY;
+    this.legacyKey =
+      options.legacyKey === undefined
+        ? LEGACY_LEARNING_EVENT_OUTBOX_STORAGE_KEY
+        : options.legacyKey;
     this.now = options.now ?? (() => new Date().toISOString());
     this.storage =
       options.storage ?? createReactNativeLearningEventOutboxStorage();
@@ -95,6 +111,16 @@ export class LearningEventOutbox {
     return this.runExclusive(async () => {
       const state = this.requireState();
       validateCompletionInput(input);
+
+      if (
+        state.entries.some(
+          entry => entry.accountPhoneNumber === input.accountPhoneNumber,
+        )
+      ) {
+        throw new Error(
+          'A pending learning event must be acknowledged before another completion.',
+        );
+      }
 
       if (
         !Number.isSafeInteger(state.nextSequence) ||
@@ -116,6 +142,7 @@ export class LearningEventOutbox {
         enqueuedAt,
         event: {
           event_id: eventId,
+          selection_id: input.selectionId,
           card_id: input.result.cardId,
           interaction_id: input.result.interactionId,
           phase: input.phase,
@@ -272,6 +299,10 @@ export class LearningEventOutbox {
   }
 
   private async load(): Promise<void> {
+    if (this.legacyKey !== null && this.legacyKey !== this.key) {
+      await this.storage.removeItem(this.legacyKey);
+    }
+
     const stored = await this.storage.getItem(this.key);
 
     if (!stored) {
@@ -350,6 +381,7 @@ function sanitizeState(
 
   const seenCursorKeys = new Set<string>();
   const seenEventIds = new Set<string>();
+  const seenAccounts = new Set<string>();
   const entries = Array.isArray(candidate.entries)
     ? candidate.entries.flatMap(entry => {
         try {
@@ -363,13 +395,15 @@ function sanitizeState(
                 sanitized.event.device_cursor.sequence,
               ) ||
             seenCursorKeys.has(cursorKey) ||
-            seenEventIds.has(sanitized.event.event_id)
+            seenEventIds.has(sanitized.event.event_id) ||
+            seenAccounts.has(sanitized.accountPhoneNumber)
           ) {
             return [];
           }
 
           seenCursorKeys.add(cursorKey);
           seenEventIds.add(sanitized.event.event_id);
+          seenAccounts.add(sanitized.accountPhoneNumber);
           return [sanitized];
         } catch {
           return [];
@@ -443,6 +477,7 @@ function sanitizeEvent(
   if (
     !isExactObject(candidate, [
       'event_id',
+      'selection_id',
       'card_id',
       'interaction_id',
       'phase',
@@ -465,6 +500,8 @@ function sanitizeEvent(
   if (
     typeof event.event_id !== 'string' ||
     !OPAQUE_ID_PATTERN.test(event.event_id) ||
+    typeof event.selection_id !== 'string' ||
+    !SELECTION_ID_PATTERN.test(event.selection_id) ||
     typeof event.card_id !== 'string' ||
     !CARD_ID_PATTERN.test(event.card_id) ||
     !isInteraction(event.interaction_id) ||
@@ -493,6 +530,10 @@ function validateCompletionInput(input: EnqueueLearningCompletionInput) {
 
   if (input.phase !== 'learning' && input.phase !== 'review') {
     throw new Error('Learning completion phase is invalid.');
+  }
+
+  if (!SELECTION_ID_PATTERN.test(input.selectionId)) {
+    throw new Error('Learning completion selection ID is invalid.');
   }
 
   if (

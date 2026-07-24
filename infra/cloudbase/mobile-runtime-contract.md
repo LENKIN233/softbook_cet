@@ -29,9 +29,11 @@ Current boundary:
 - The replacement learning mutation boundary is contract-defined in
   `infra/cloudbase/learning-events-v2-runtime-contract.md`. The repository-local
   CloudBase backend and current mobile runtime implement it locally. The client
-  persists an immutable event and pseudonymous device cursor before advancing
-  the card, replays at most 9 unchanged events per one-track batch, removes only
-  strict acknowledged events, and refreshes bootstrap before dependent writes.
+  reads `learning-session.v1`, resolves only its selected card from the matching
+  source, and persists an immutable selection-bound event plus pseudonymous
+  device cursor before advancing the card. It removes only strict acknowledged
+  events, refreshes bootstrap, and reads a fresh session before the next card or
+  dependent writes.
   While an event is pending, daily and space writes are queued instead of
   overtaking it, and a routine Mine/foreground refresh cannot replace local
   intent with a pre-acknowledgement bootstrap snapshot.
@@ -205,6 +207,35 @@ remaining `/v1` card source and product mutations are still a development
 migration bridge, not a production contract. Remote membership canonical reads
 come from bootstrap; the legacy entitlement read is no longer used by the full
 remote mobile profile.
+
+### Learning Session
+
+```http
+GET /v2/learning/session?track=cet4
+Authorization: Bearer <access_token>
+Accept: application/json
+x-softbook-client: mobile
+x-api-key: <optional>
+```
+
+The strict `learning-session.v1` payload is defined in
+`infra/cloudbase/learning-session-v1-runtime-contract.md`. Remote learning
+requires it and the card-source response to match on track, source ID, and
+content SHA-256. The client renders only the returned `selection.card_id`; it
+does not choose another card by local membership, sleep, review, interaction,
+or catalog order. `selection: null` is a valid server result and cannot trigger
+local-card fallback.
+
+When the response membership stage differs from the bootstrap snapshot, such as
+the first session changing `trial_available` to `trial`, mobile refreshes and
+verifies canonical bootstrap before presenting the session. It does not
+synthesize entitlement details from the session response.
+
+The opaque `selection_id`, server phase, selected card, and content version are
+persisted in `learning-event-outbox.v2` before the completed card leaves its
+result state. One pending unseen event blocks another completion. After a strict
+event acknowledgement, the client refreshes bootstrap and reads a fresh session
+before showing another card.
 
 ### Learning Card Source
 
@@ -386,6 +417,7 @@ x-api-key: <optional>
   "events": [
     {
       "event_id": "event_install_example_1",
+      "selection_id": "sel_01J0EXAMPLESELECTION",
       "card_id": "100101",
       "interaction_id": "flip",
       "phase": "learning",
@@ -417,8 +449,8 @@ Authenticated startup reads the account outbox count alongside bootstrap. If a
 pending event survived a process restart, the stale card may render for content
 validation but cannot advance again; exact replay, strict acknowledgement, and
 post-acknowledgement bootstrap mapping must finish first. This recovery guard
-does not prevent multiple events created during the same already-validated
-offline session from batching.
+allows exact duplicate replay plus at most one unseen selection-bound event; the
+mobile client never creates multiple unseen events during one offline session.
 
 ### Space State Sync
 
@@ -466,18 +498,23 @@ Failure: non-2xx queues `sync_space_state` for replay.
 9. `/v1/membership/entitlement` returns a valid entitlement.
 10. Space gate can trigger `/v1/membership/start-trial`.
 11. Membership purchase and dismiss recovery return valid entitlement payloads.
-12. Completing a learning/review card persists `learning-event-outbox.v1`
-    before UI advance and POSTs `/v2/learning/events` without identity fields.
-13. A strict event acknowledgement removes the event, then `/v2/bootstrap`
-    returns the derived learning and daily state before dependent writes.
-14. Explicit check-in can POST `/v1/progress/daily-sync`; card completion does
+12. `/v2/learning/session?track=<track>` returns a strict selection whose track,
+    source, and content version match the loaded card source.
+13. Completing that selected card persists `learning-event-outbox.v2` with the
+    exact selection ID before UI advance and POSTs `/v2/learning/events`
+    without identity fields.
+14. A strict event acknowledgement removes the event, then `/v2/bootstrap`
+    returns the derived learning and daily state and a fresh
+    `/v2/learning/session` read chooses the next card before dependent writes.
+15. Explicit check-in can POST `/v1/progress/daily-sync`; card completion does
     not duplicate its v2-derived counts through that route.
-15. Favorite/sleep changes can POST `/v1/space/state-sync`.
-16. Temporary 503 retains the exact event or queued compatibility mutation;
+16. Favorite/sleep changes can POST `/v1/space/state-sync`.
+17. Temporary 503 retains the exact event or queued compatibility mutation;
     returning to 2xx replays it without changing event ID or payload.
-17. Expiring access credentials refresh once under concurrent requests; a
+18. Expiring access credentials refresh once under concurrent requests; a
     rejected refresh or repeated 401 clears account-bound persistence.
-18. Remote card-source failure renders retry state without bundled-card fallback.
+19. Remote card-source or session failure renders retry state without
+    bundled-card fallback.
 
 ## Local Mock Validation
 

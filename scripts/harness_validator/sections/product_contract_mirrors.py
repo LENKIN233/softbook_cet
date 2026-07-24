@@ -38,6 +38,7 @@ def learning_events_contract_findings(
     findings = []
     required_event_fields = [
         "event_id",
+        "selection_id",
         "card_id",
         "interaction_id",
         "phase",
@@ -115,7 +116,12 @@ def learning_events_contract_findings(
         (
             "status",
             ("learning_events_v2", "contract_status"),
-            "cloudbase_backend_and_mobile_client_implemented_locally_not_deployed",
+            "cloudbase_backend_mobile_client_and_scheduler_binding_implemented_locally_not_deployed",
+        ),
+        (
+            "bootstrap known gap",
+            ("canonical_read", "known_gap"),
+            "the repository-local CloudBase learning-events.v2 backend, React Native durable producer/replay, server scheduler, and mobile scheduler-session binding are implemented but not deployed; global legacy v1 snapshot-write removal and production publication remain unimplemented",
         ),
         (
             "backend implementation",
@@ -231,6 +237,24 @@ def learning_events_contract_findings(
             "learning_state_rejected_daily_progress_check_in_only_after_first_accepted_v2_event",
         ),
         (
+            "selection-bound event implementation",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "selection_bound_events",
+            ),
+            True,
+        ),
+        (
+            "mobile scheduler binding implementation",
+            (
+                "learning_events_v2",
+                "implementation_progress",
+                "mobile_scheduler_session_binding",
+            ),
+            True,
+        ),
+        (
             "production deployment boundary",
             (
                 "learning_events_v2",
@@ -292,6 +316,11 @@ def learning_events_contract_findings(
             required_event_fields,
         ),
         (
+            "selection ID rule",
+            ("learning_events_v2", "event_contract", "selection_id_rule"),
+            "copy the opaque selection_id from the current learning-session.v1 selection into the immutable event; for each unseen event the server transaction requires the current account-and-track cursor to match selection_id, card_id, phase, and content_version exactly, while an already accepted exact replay remains valid after that cursor is cleared",
+        ),
+        (
             "answer grades",
             ("learning_events_v2", "event_contract", "answer_grade_values"),
             ["passed", "review_needed"],
@@ -351,9 +380,27 @@ def learning_events_contract_findings(
             "the same device cursor bound to a different event_id rejects the entire request with HTTP 409",
         ),
         (
+            "selection-bound mixed batch",
+            (
+                "learning_events_v2",
+                "idempotency_and_atomicity",
+                "mixed_batch_rule",
+            ),
+            "exact duplicates and at most one unseen event may commit together and each receives an explicit result; the unseen event must consume the current selection and a request with multiple unseen events is rejected atomically",
+        ),
+        (
+            "selection conflict",
+            (
+                "learning_events_v2",
+                "idempotency_and_atomicity",
+                "selection_conflict_rule",
+            ),
+            "a missing, stale, cross-account, cross-track, or mismatched selection binding rejects the entire request with HTTP 409 before writes",
+        ),
+        (
             "atomic transaction",
             ("learning_events_v2", "idempotency_and_atomicity", "transaction_atomicity"),
-            "new immutable events, account server sequences, derived learning and FSRS projections, all migrated-track learning-session projection watermarks, matching input-track cursor clearing, and daily progress commit in one transaction; failure leaves no partial acceptance",
+            "current selection validation, one new immutable event, account server sequence, derived learning and FSRS projections, all migrated-track learning-session projection watermarks, exact input-track selection clearing, and daily progress commit in one transaction; failure leaves no partial acceptance",
         ),
         (
             "CloudBase atomic batch rule",
@@ -362,7 +409,7 @@ def learning_events_contract_findings(
                 "idempotency_and_atomicity",
                 "cloudbase_atomic_batch_rule",
             ),
-            "the repository-local CloudBase adapter accepts at most 9 events so worst-case immutable-event, retained-content, all-track migration, learning and FSRS projection, all migrated-track session watermarks, cursor, and daily work uses at most 95 of the platform limit of 100 operations per transaction",
+            "the repository-local CloudBase adapter accepts at most 9 input events but at most one may be unseen; the maximum successful fixture of 8 distinct exact duplicates plus one current-selection event uses 29 operations, and the first-event all-track migration fixture uses no more than 29, below the platform limit of 100 operations per transaction",
         ),
         (
             "CloudBase transaction query rule",
@@ -391,12 +438,12 @@ def learning_events_contract_findings(
         (
             "mobile outbox owner contract",
             ("learning_events_v2", "mobile_client_contract", "outbox_schema"),
-            "learning-event-outbox.v1",
+            "learning-event-outbox.v2",
         ),
         (
             "mobile durable storage owner contract",
             ("learning_events_v2", "mobile_client_contract", "storage_rule"),
-            "persist the outbox under an independent versioned AsyncStorage key; persist the immutable event and allocated installation cursor before advancing the card UI",
+            "persist the outbox under an independent versioned AsyncStorage key; persist the immutable selection-bound event and allocated installation cursor before advancing the card UI",
         ),
         (
             "mobile identity owner contract",
@@ -411,7 +458,7 @@ def learning_events_contract_findings(
         (
             "mobile batch ordering owner contract",
             ("learning_events_v2", "mobile_client_contract", "batch_rule"),
-            "submit at most 9 events for one account and one track per request without compacting, rewriting, or reordering immutable payloads; end a batch at the first track boundary",
+            "submit exact duplicates plus at most one unseen selection-bound event for one account and one track without compacting, rewriting, or reordering immutable payloads; end a batch at the first track boundary and never answer a second card before the first acknowledgement, bootstrap reconciliation, and next session read",
         ),
         (
             "mobile retry owner contract",
@@ -426,7 +473,7 @@ def learning_events_contract_findings(
         (
             "mobile restored outbox owner contract",
             ("learning_events_v2", "mobile_client_contract", "recovery_rule"),
-            "hydrate the account outbox count with authenticated bootstrap; a restored pending event blocks duplicate card advance until strict acknowledgement and post-acknowledgement bootstrap mapping, while events enqueued in the current validated session may continue batching without a routine canonical refresh overwriting local intent",
+            "hydrate the account outbox count with authenticated bootstrap; any pending selection-bound event blocks another card completion until strict acknowledgement, post-acknowledgement bootstrap mapping, and a fresh learning-session read; a cached selected card may be answered offline once, but the client cannot choose or enqueue a second card offline",
         ),
         (
             "mobile reconciliation owner contract",
@@ -459,12 +506,12 @@ def learning_events_contract_findings(
         (
             "mobile legacy queue owner contract",
             ("learning_events_v2", "mobile_client_contract", "legacy_queue_rule"),
-            "discard persisted generic sync_learning_state mutations during hydration and never route active mobile learning completion through /v1/learning/state-sync",
+            "discard persisted generic sync_learning_state mutations during hydration, remove the pre-binding learning-event-outbox.v1 key without replaying its unbound entries, and never route active mobile learning completion through /v1/learning/state-sync",
         ),
         (
             "launch non-claim",
             ("learning_events_v2", "migration_boundary", "launch_claim_rule"),
-            "green repository-local backend, scheduler, and mobile event tests do not satisfy global legacy snapshot-write removal, mobile scheduler-session binding, formal content approval, production deployment, or launch readiness",
+            "green repository-local backend, scheduler, and mobile binding tests do not satisfy global legacy snapshot-write removal, formal content approval, production deployment, or launch readiness",
         ),
         (
             "migrated account write rule",
@@ -484,7 +531,7 @@ def learning_events_contract_findings(
         (
             "runtime status",
             ("learning_event_runtime", "implementation_status"),
-            "cloudbase_backend_mobile_producer_and_server_scheduler_implemented_locally_not_deployed",
+            "cloudbase_backend_mobile_producer_server_scheduler_and_selection_binding_implemented_locally_not_deployed",
         ),
         (
             "runtime backend storage",
@@ -514,7 +561,7 @@ def learning_events_contract_findings(
         (
             "runtime CloudBase worst-case operations",
             ("learning_event_runtime", "cloudbase_worst_case_transaction_operations"),
-            95,
+            29,
         ),
         (
             "runtime legacy migration consistency",
@@ -539,22 +586,22 @@ def learning_events_contract_findings(
         (
             "runtime mobile outbox schema",
             ("learning_event_runtime", "mobile_outbox_schema"),
-            "learning-event-outbox.v1",
+            "learning-event-outbox.v2",
         ),
         (
             "runtime mobile durability boundary",
             ("learning_event_runtime", "mobile_durability_boundary"),
-            "immutable_event_and_device_cursor_persist_before_card_ui_advance",
+            "immutable_selection_bound_event_and_device_cursor_persist_before_card_ui_advance",
         ),
         (
             "runtime mobile replay boundary",
             ("learning_event_runtime", "mobile_replay_boundary"),
-            "validated_bootstrap_then_exact_event_replay_then_bootstrap_refresh_before_dependent_mutations",
+            "validated_bootstrap_then_exact_selection_bound_event_replay_then_bootstrap_refresh_and_fresh_session_read_before_dependent_mutations_or_next_card",
         ),
         (
             "runtime mobile restore boundary",
             ("learning_event_runtime", "mobile_restore_boundary"),
-            "restored_pending_event_blocks_duplicate_card_advance_until_ack_and_post_ack_bootstrap_mapping",
+            "pending_event_blocks_another_card_completion_until_ack_post_ack_bootstrap_mapping_and_fresh_session_read",
         ),
         (
             "runtime mobile account switch boundary",
@@ -604,7 +651,17 @@ def learning_events_contract_findings(
         (
             "runtime scheduler boundary",
             ("learning_event_runtime", "scheduler_status"),
-            "repository_local_backend_implemented_not_deployed",
+            "repository_local_backend_and_mobile_binding_implemented_not_deployed",
+        ),
+        (
+            "runtime selection binding",
+            ("learning_event_runtime", "selection_binding"),
+            "unseen_event_must_match_current_account_track_selection_id_card_phase_and_content_inside_the_commit_transaction",
+        ),
+        (
+            "runtime mobile scheduler binding",
+            ("learning_event_runtime", "mobile_scheduler_session_binding"),
+            True,
         ),
         (
             "runtime launch status",
@@ -651,7 +708,7 @@ def learning_events_contract_findings(
         "legacy_v1_learning_snapshot_bridge_remains_only_for_unmigrated_development_accounts",
         "migrated_v1_daily_progress_is_check_in_only",
         "server_scheduler_is_repository_local_and_not_deployed",
-        "mobile_scheduler_session_binding_remains_pending",
+        "mobile_scheduler_session_binding_is_repository_local_and_not_deployed",
         "formal_content_approval_and_production_publication_remain_pending",
         "backend_green_is_not_launch_readiness",
     ]
@@ -726,7 +783,7 @@ def learning_events_contract_findings(
         "stored_learning_daily_and_legacy_projection_invariants_fail_closed",
         "concurrent_and_injected_failure_tests",
         "bootstrap_reads_account_keyed_v2_projection",
-        "mobile_scheduler_binding_deployment_and_launch_non_claims",
+        "mobile_binding_deployment_and_launch_non_claims",
     ]
     if not gt29:
         findings.append("learning-events contract evals: missing GT-29")
@@ -740,7 +797,7 @@ def learning_events_contract_findings(
         "credential_free_strict_event_body",
         "content_version_and_existing_two_grade_mapping",
         "independent_versioned_asyncstorage_outbox",
-        "one_account_and_track_per_batch_with_limit_nine",
+        "one_account_track_and_at_most_one_unseen_selection_bound_event_per_batch",
         "interleaved_track_enqueue_order_is_preserved",
         "strict_ordered_ack_before_removal",
         "byte_equivalent_retry_with_same_event_id",
@@ -759,12 +816,55 @@ def learning_events_contract_findings(
         "persisted_v1_learning_mutations_are_discarded",
         "active_mobile_v1_learning_snapshot_writes_are_removed",
         "storage_failure_does_not_advance_the_card",
-        "mobile_green_does_not_claim_scheduler_binding_backend_deployment_content_approval_or_launch_readiness",
+        "mobile_binding_green_does_not_claim_backend_deployment_content_approval_or_launch_readiness",
     ]
     if not gt30:
         findings.append("learning-events contract evals: missing GT-30")
     elif gt30.get("must_include") != expected_gt30:
         findings.append("learning-events contract evals: GT-30 must_include drift")
+
+    hr41 = _entry_by_id(evals.get("regressions", []), "HR-41")
+    expected_hr41 = [
+        "selection_id_is_required_immutable_event_evidence",
+        "unseen_event_matches_current_account_track_selection",
+        "selection_card_phase_and_content_must_match",
+        "selection_validation_and_clear_share_event_transaction",
+        "exact_duplicate_remains_valid_after_cursor_clear",
+        "at_most_one_unseen_event_per_request",
+        "pending_event_blocks_second_card_completion",
+        "post_ack_bootstrap_and_fresh_session_before_next_card",
+        "learning_session_membership_stage_drift_requires_canonical_bootstrap_refresh",
+        "remote_null_selection_never_falls_back_to_client_ordering",
+        "repository_local_binding_is_not_deployment_or_launch_readiness",
+    ]
+    if not hr41:
+        findings.append("learning-events contract evals: missing HR-41")
+    elif hr41.get("must_hit") != expected_hr41:
+        findings.append("learning-events contract evals: HR-41 must_hit drift")
+
+    gt32 = _entry_by_id(evals.get("golden_tasks", []), "GT-32")
+    expected_gt32 = [
+        "account_sync_contract_owner",
+        "strict_authenticated_learning_session_v1_parser",
+        "session_and_card_source_track_source_content_match",
+        "only_server_selected_card_is_rendered",
+        "selection_null_never_uses_local_fallback_or_ordering",
+        "selection_id_card_phase_content_persist_before_ui_advance",
+        "backend_transaction_validates_current_selection",
+        "at_most_one_unseen_event_and_exact_duplicates_remain_idempotent",
+        "pending_event_blocks_second_completion",
+        "post_ack_bootstrap_then_fresh_session_before_next_card",
+        "learning_session_membership_stage_drift_requires_canonical_bootstrap_refresh",
+        "stale_session_or_auth_response_cannot_replace_current_session",
+        "prebinding_outbox_v1_is_removed_without_replay",
+        "local_mode_preserves_development_five_interaction_session",
+        "mobile_and_backend_binding_are_not_deployed_by_repository_change",
+        "formal_content_approval_and_launch_readiness_remain_pending",
+    ]
+    if not gt32:
+        findings.append("learning-events contract evals: missing GT-32")
+    elif gt32.get("must_include") != expected_gt32:
+        findings.append("learning-events contract evals: GT-32 must_include drift")
 
     required_runtime_snippets = [
         "repository-local CommonJS CloudBase function now implements",
@@ -773,8 +873,8 @@ def learning_events_contract_findings(
         "softbook_learning_migration_revisions",
         "softbook_learning_sessions",
         "softbook_card_source_versions",
-        "at most 9 events",
-        "95 operations",
+        "at most 9 input events",
+        "29 operations",
         "both CET4 and CET6 legacy learning baselines",
         "outside the transaction",
         "revision fence",
@@ -785,9 +885,14 @@ def learning_events_contract_findings(
         "not the scheduler cursor and not a",
         "does not accept a client-authored",
         "reads `/v2/bootstrap` again",
-        "learning-event-outbox.v1",
+        "learning-event-outbox.v2",
+        "`selection_id`: the opaque ID copied from the current authenticated",
+        "exact match on `selection_id`,",
+        "at most one unseen event",
+        "fresh learning-session read",
         "ends a batch at the first track boundary",
-        "advancing the card UI. A failed durable write leaves the current result in",
+        "positive device sequence before advancing the card UI.",
+        "leaves the current result in place.",
         "A transient failure pauses automatic replay until network recovery,",
         "Replay is serialized per originating session.",
         "Authenticated startup hydrates the account's outbox count with bootstrap.",
@@ -801,7 +906,7 @@ def learning_events_contract_findings(
         "Legacy `/v1/learning/state-sync` remains",
         "only `checked_in_today` is merged",
         "409 legacy_learning_write_disabled",
-        "The repository-local backend, scheduler, and mobile implementation do not prove",
+        "The repository-local backend, scheduler, and mobile binding do not prove",
     ]
     for snippet in required_runtime_snippets:
         if snippet not in runtime_text:
@@ -843,7 +948,7 @@ def learning_scheduler_contract_findings(
         (
             "scheduler status",
             ("server_scheduler_v1", "contract_status"),
-            "repository_local_cloudbase_backend_implemented_not_deployed",
+            "repository_local_backend_and_mobile_binding_implemented_not_deployed",
         ),
         (
             "scheduler runtime document",
@@ -874,6 +979,11 @@ def learning_scheduler_contract_findings(
             "scheduler response schema",
             ("server_scheduler_v1", "endpoint", "response_schema"),
             "learning-session.v1",
+        ),
+        (
+            "scheduler response membership stages",
+            ("server_scheduler_v1", "response_contract", "membership_stage_values"),
+            ["trial", "free", "premium"],
         ),
         (
             "scheduler algorithm",
@@ -927,7 +1037,7 @@ def learning_scheduler_contract_findings(
         (
             "scheduler projection atomicity",
             ("server_scheduler_v1", "projection_contract", "atomicity"),
-            "new immutable events, account server sequence, learning projection, FSRS scheduler projection, learning-session projection watermark update and matching cursor clearing, and daily progress commit in the same transaction",
+            "current selection validation, one new immutable event, account server sequence, learning projection, FSRS scheduler projection, learning-session projection watermark update and exact selection clearing, and daily progress commit in the same transaction",
         ),
         (
             "scheduler projection integrity",
@@ -947,7 +1057,7 @@ def learning_scheduler_contract_findings(
         (
             "scheduler cursor rule",
             ("server_scheduler_v1", "projection_contract", "cursor_rule"),
-            "a selected card persists in the independent account-and-track softbook_learning_sessions record as an opaque revisioned server cursor with an acknowledged-at plus latest-positive-server-sequence projection watermark; every newly accepted event for the track updates the timestamp component and advances the sequence component, first-event all-track migration synchronizes every migrated track while preserving valid sibling cursors, a completion for the same card and content version clears the cursor atomically, and a session read requires the complete matching watermark plus transactional revision confirmation before returning a resumed cursor",
+            "a selected card persists in the independent account-and-track softbook_learning_sessions record as an opaque revisioned server cursor with an acknowledged-at plus latest-positive-server-sequence projection watermark; every newly accepted event for the track updates the timestamp component and advances the sequence component, first-event all-track migration synchronizes every migrated track while preserving valid sibling cursors, only one unseen completion carrying the exact current selection_id, card_id, phase, and content_version clears the cursor atomically, exact duplicate replay remains valid after clearing, and a session read requires the complete matching watermark plus transactional revision confirmation before returning a resumed cursor",
         ),
         (
             "scheduler single-card rule",
@@ -990,6 +1100,60 @@ def learning_scheduler_contract_findings(
             "selection binds to the exact normalized content_version and source; production still requires a matching published content-release.v1 descriptor",
         ),
         (
+            "mobile session read binding",
+            (
+                "server_scheduler_v1",
+                "mobile_binding_contract",
+                "session_read_rule",
+            ),
+            "remote mobile learning reads authenticated learning-session.v1 and the canonical card source, requires matching track, source_id, and content_version, and resolves only the returned card_id; it never applies client membership, sleep, review, or catalog ordering to replace the server selection",
+        ),
+        (
+            "mobile completion binding",
+            (
+                "server_scheduler_v1",
+                "mobile_binding_contract",
+                "completion_rule",
+            ),
+            "the mobile completion event copies the returned selection_id and phase and must match the selected card and exact content version before durable enqueue",
+        ),
+        (
+            "mobile membership reconciliation",
+            (
+                "server_scheduler_v1",
+                "mobile_binding_contract",
+                "membership_reconciliation_rule",
+            ),
+            "when learning-session.v1 membership_stage differs from the bootstrap snapshot, remote mobile refreshes canonical bootstrap and requires the exact stage before presenting the selection; it never synthesizes entitlement counters or dates from the session response",
+        ),
+        (
+            "mobile next-card binding",
+            (
+                "server_scheduler_v1",
+                "mobile_binding_contract",
+                "advance_rule",
+            ),
+            "after durable enqueue the completed card may leave the interaction surface, but no next card is selected until strict event acknowledgement, bootstrap reconciliation, and a fresh learning-session.v1 read",
+        ),
+        (
+            "mobile offline binding",
+            (
+                "server_scheduler_v1",
+                "mobile_binding_contract",
+                "offline_rule",
+            ),
+            "a previously validated cached selection and matching content may be answered once offline; without that pair learning stays blocked, and no second card may be selected locally",
+        ),
+        (
+            "mobile empty selection binding",
+            (
+                "server_scheduler_v1",
+                "mobile_binding_contract",
+                "empty_rule",
+            ),
+            "selection null is a valid server result and does not trigger bundled-card fallback or client ordering",
+        ),
+        (
             "scheduler response reasons",
             (
                 "server_scheduler_v1",
@@ -1002,7 +1166,6 @@ def learning_scheduler_contract_findings(
             "scheduler known gaps",
             ("server_scheduler_v1", "known_gaps"),
             [
-                "mobile_learning_session_consumption_and_selection_binding",
                 "production_deployment",
                 "global_legacy_v1_snapshot_write_removal",
                 "production_membership_expiry_and_payment_entitlement",
@@ -1012,7 +1175,7 @@ def learning_scheduler_contract_findings(
         (
             "scheduler launch non-claim",
             ("server_scheduler_v1", "launch_claim_rule"),
-            "a green repository-local scheduler does not prove mobile integration, production entitlement, deployment, formal content approval, or launch readiness",
+            "a green repository-local scheduler and mobile binding do not prove deployed integration, production entitlement, formal content approval, or launch readiness",
         ),
     ]
     for label, keys, expected in owner_expectations:
@@ -1062,7 +1225,7 @@ def learning_scheduler_contract_findings(
         (
             "scheduler runtime atomicity",
             ("scheduler_runtime", "projection_atomicity"),
-            "event_sequence_learning_fsrs_session_watermark_matching_cursor_clear_and_daily_progress_commit_together",
+            "selection_validation_event_sequence_learning_fsrs_session_watermark_exact_cursor_clear_and_daily_progress_commit_together",
         ),
         (
             "scheduler runtime cursor storage",
@@ -1107,7 +1270,17 @@ def learning_scheduler_contract_findings(
         (
             "scheduler runtime mobile binding",
             ("scheduler_runtime", "mobile_session_binding_status"),
-            "pending",
+            "implemented_locally_not_deployed",
+        ),
+        (
+            "scheduler runtime mobile binding behavior",
+            ("scheduler_runtime", "mobile_session_binding"),
+            "authenticated_session_and_card_source_must_match_track_source_and_content_then_only_server_selected_card_is_rendered_and_selection_id_is_durably_submitted",
+        ),
+        (
+            "scheduler runtime mobile membership reconciliation",
+            ("scheduler_runtime", "mobile_membership_reconciliation"),
+            "session_stage_drift_requires_verified_canonical_bootstrap_refresh_before_presenting_selection",
         ),
         (
             "scheduler runtime deployment",
@@ -1146,9 +1319,9 @@ def learning_scheduler_contract_findings(
         "eligible_persisted_cursor_then_due_review_then_catalog_new",
         "sleeping_cards_are_excluded_without_history_deletion",
         "free_access_is_release_scoped_canonical_ceil_half_prefix",
-        "matching_completion_clears_cursor_atomically",
+        "only_exact_selection_bound_completion_clears_cursor_atomically",
         "production_requires_published_content_release",
-        "repository_local_green_does_not_claim_mobile_binding_deployment_or_launch",
+        "repository_local_green_does_not_claim_deployed_integration_or_launch",
     ]
     hr40 = _entry_by_id(evals.get("regressions", []), "HR-40")
     if not hr40:
@@ -1180,11 +1353,11 @@ def learning_scheduler_contract_findings(
         "transactional_membership_mutations_cannot_downgrade_premium",
         "trial_and_premium_full_access_free_ceil_half_canonical_prefix",
         "production_content_release_fails_closed",
-        "cloudbase_worst_case_transaction_operations_is_95",
+        "cloudbase_worst_case_transaction_operations_is_29",
         "cloudbase_learning_sessions_collection_is_provisioned",
         "memory_and_cloudbase_concurrency_rollback_and_cross_instance_tests",
         "bootstrap_exposes_only_sanitized_cursor_identity",
-        "mobile_session_binding_deployment_content_approval_and_launch_non_claims",
+        "mobile_binding_is_repository_local_and_deployment_content_approval_and_launch_remain_non_claims",
     ]
     gt31 = _entry_by_id(evals.get("golden_tasks", []), "GT-31")
     if not gt31:
@@ -1198,17 +1371,20 @@ def learning_scheduler_contract_findings(
         "`softbook_learning_sessions`",
         "`Easy` is unused.",
         "The scheduler applies events in canonical `server_sequence` order",
-        "New immutable events, cursor bindings, account sequence, latest learning",
+        "Current selection validation, one new immutable event, its device cursor",
         "`learning_server_sequence`, a two-part projection watermark",
         "Resume a persisted cursor only while its account, track, content version,",
         "Free schedules the stable release-scoped prefix of",
         "Canonical context validation, selection ID generation, and required cursor",
         "dismissal cannot overwrite a premium purchase.",
-        "first newly accepted event for that card and content version clears the",
+        "one newly accepted event carrying that selection ID and matching card, phase,",
         "and its `next_due_at` receive the same transactional watermark",
-        "This backend is not deployed, and the mobile client does not yet bind",
+        "This backend and the mobile binding are repository-local and not deployed.",
+        "Remote mobile learning fetches `learning-session.v1`",
+        "requires the canonical stage to match before presenting the session.",
+        "pending unseen event blocks a second completion.",
         "This contract does not prove:",
-        "mobile consumption of learning sessions or selection-ID event binding",
+        "deployed mobile/backend integration or release validation",
     ]
     for snippet in required_runtime_snippets:
         if snippet not in runtime_text:
