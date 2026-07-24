@@ -93,10 +93,11 @@ import {
 } from './src/runtime/appRuntimeConfig';
 import { installSoftbookAppRuntimeConfig } from './src/runtime/installRuntimeConfig';
 import {
+  applySpaceActionToMap,
+  createSpaceAction,
   createSpaceStateRepository,
-  createSpaceStateSnapshot,
-  mergeSpaceStateMaps,
-  spaceStateSnapshotToMap,
+  type SpaceAction,
+  type SpaceActionDimension,
   type SpaceCardStateValue,
 } from './src/space/spaceStateRepository';
 import { resolveSpaceStateRepositoryConfig } from './src/space/spaceStateRuntimeConfig';
@@ -234,7 +235,6 @@ type AuthenticatedRuntimeHydration = {
   membershipRefreshSucceeded: boolean;
   membershipState: MembershipState;
   persistedUserState: PersistedUserState;
-  spaceStateSyncKey: string | null;
 };
 
 type SpaceCardState = SpaceCardStateValue;
@@ -560,9 +560,6 @@ function AppShell({
   const confirmedCheckInDayKeyRef = useRef<string | null>(null);
   const [learningEventRecoveryPending, setLearningEventRecoveryPending] =
     useState(false);
-  const [lastSyncedSpaceStateKey, setLastSyncedSpaceStateKey] = useState<
-    string | null
-  >(null);
   const [membershipState, setMembershipState] = useState<MembershipState>(
     createInitialMembershipState,
   );
@@ -576,6 +573,10 @@ function AppShell({
   const [spaceCardStateById, setSpaceCardStateById] = useState<
     Record<string, SpaceCardState>
   >({});
+  const spaceCardStateByIdRef = useRef(spaceCardStateById);
+  spaceCardStateByIdRef.current = spaceCardStateById;
+  const spaceActionPersistenceInFlight = useRef(new Set<string>());
+  const currentLearningCardIdRef = useRef<string | null>(null);
   const previousMembershipStage = useRef<MembershipStage>(
     membershipState.stage,
   );
@@ -640,7 +641,6 @@ function AppShell({
       pendingLearningEventCountRef.current = 0;
       setPendingLearningEventCount(0);
       setLearningEventRecoveryPending(false);
-      setLastSyncedSpaceStateKey(null);
       setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
       setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
       setSpaceStateSyncState(INITIAL_SPACE_STATE_SYNC_STATE);
@@ -728,11 +728,13 @@ function AppShell({
       cardId: string,
       stateMap: Record<string, SpaceCardState> = spaceCardStateById,
     ): SpaceCardState =>
-      stateMap[cardId] ?? {
-        isFavorited: false,
-        isSleeping: false,
-        lastModifiedAt: LEGACY_SPACE_STATE_TIMESTAMP,
-      },
+      Object.hasOwn(stateMap, cardId)
+        ? stateMap[cardId]
+        : {
+            isFavorited: false,
+            isSleeping: false,
+            lastModifiedAt: LEGACY_SPACE_STATE_TIMESTAMP,
+          },
     [spaceCardStateById],
   );
   const createTrackedLearningCardState = useCallback(
@@ -805,6 +807,7 @@ function AppShell({
       ? reviewCompletedResults
       : learningCompletedResults;
   const currentLearningCard = activeSessionCards[learningIndex] ?? null;
+  currentLearningCardIdRef.current = currentLearningCard?.card_id ?? null;
   const reviewCandidateCards =
     learningSession?.schedulingMode === 'server'
       ? []
@@ -814,28 +817,6 @@ function AppShell({
       !reviewCompletedResults.some(result => result.cardId === card.card_id),
   ).length;
   const todayKey = getTodayKey();
-  const loadCanonicalSpaceState = useCallback(
-    async (context: { authToken?: string; phoneNumber: string }) => {
-      if (runtimeSpaceStateMode === 'local') {
-        return null;
-      }
-
-      try {
-        return await spaceStateRepository.loadSpaceState(context, todayKey);
-      } catch (error) {
-        if (isRemoteAuthorizationError(error)) {
-          throw error;
-        }
-
-        console.warn(
-          '[AppPersistence] Failed to load canonical space state.',
-          error,
-        );
-        return null;
-      }
-    },
-    [runtimeSpaceStateMode, spaceStateRepository, todayKey],
-  );
   const loadAuthenticatedRuntimeHydration = useCallback(
     async (session: AuthSession): Promise<AuthenticatedRuntimeHydration> => {
       const context = {
@@ -868,10 +849,18 @@ function AppShell({
             throw new Error('Remote account bootstrap returned no state.');
           }
 
+          const pendingSpaceActions =
+            await mutationQueueRepository.getPendingSpaceActions(
+              session.phoneNumber,
+              {
+                contentVersion: accountBootstrap.content.version,
+                track: accountBootstrap.track,
+              },
+            );
           const reconciliation = reconcileAccountBootstrap(
             persistedUserState,
             accountBootstrap,
-            {pendingCheckInDayKey},
+            { pendingCheckInDayKey, pendingSpaceActions },
           );
           const unresolvedCheckInDayKey =
             pendingCheckInDayKey !== null &&
@@ -888,7 +877,6 @@ function AppShell({
             membershipRefreshSucceeded: true,
             membershipState: accountBootstrap.membership.state,
             persistedUserState: reconciliation.persistedUserState,
-            spaceStateSyncKey: reconciliation.spaceStateSyncKey,
           };
         } catch (error) {
           if (isRemoteAuthorizationError(error)) {
@@ -917,45 +905,41 @@ function AppShell({
                     ...persistedUserState,
                     checkedInDayKey: pendingCheckInDayKey,
                   },
-            spaceStateSyncKey: null,
           };
         }
       }
 
-      const [membershipResolution, canonicalSpaceState] = await Promise.all([
-        membershipRepository
-          .loadState(context)
-          .then(state => ({
-            errorMessage: null,
-            refreshSucceeded: true,
-            state,
-          }))
-          .catch((error: unknown) => {
-            if (isRemoteAuthorizationError(error)) {
-              throw error;
-            }
+      const membershipResolution = await membershipRepository
+        .loadState(context)
+        .then(state => ({
+          errorMessage: null,
+          refreshSucceeded: true,
+          state,
+        }))
+        .catch((error: unknown) => {
+          if (isRemoteAuthorizationError(error)) {
+            throw error;
+          }
 
-            if (runtimeMembershipRepositoryMode === 'remote') {
-              mutationQueueRepository
-                .enqueueMutation(
-                  'refresh_membership',
-                  { context },
-                  'membership:hydrate',
-                )
-                .catch(() => undefined);
-            }
+          if (runtimeMembershipRepositoryMode === 'remote') {
+            mutationQueueRepository
+              .enqueueMutation(
+                'refresh_membership',
+                { context },
+                'membership:hydrate',
+              )
+              .catch(() => undefined);
+          }
 
-            return {
-              errorMessage: `${getUserFacingErrorMessage(
-                error,
-                '会员状态暂时无法读取。',
-              )} 已恢复登录；网络恢复后会重新读取服务端权益。`,
-              refreshSucceeded: false,
-              state: createEntitlementPendingMembershipState(),
-            };
-          }),
-        loadCanonicalSpaceState(context),
-      ]);
+          return {
+            errorMessage: `${getUserFacingErrorMessage(
+              error,
+              '会员状态暂时无法读取。',
+            )} 已恢复登录；网络恢复后会重新读取服务端权益。`,
+            refreshSucceeded: false,
+            state: createEntitlementPendingMembershipState(),
+          };
+        });
 
       return {
         accountBootstrap: null,
@@ -965,22 +949,12 @@ function AppShell({
         membershipErrorMessage: membershipResolution.errorMessage,
         membershipRefreshSucceeded: membershipResolution.refreshSucceeded,
         membershipState: membershipResolution.state,
-        persistedUserState: {
-          ...persistedUserState,
-          spaceCardStateById: canonicalSpaceState
-            ? mergeSpaceStateMaps(
-                persistedUserState.spaceCardStateById,
-                canonicalSpaceState,
-              )
-            : persistedUserState.spaceCardStateById,
-        },
-        spaceStateSyncKey: null,
+        persistedUserState,
       };
     },
     [
       accountBootstrapRepository,
       learningTrack,
-      loadCanonicalSpaceState,
       learningEventSyncRepository,
       membershipRepository,
       mutationQueueRepository,
@@ -1004,7 +978,6 @@ function AppShell({
       setAccountBootstrapHydrationSettled(
         accountBootstrapHydrationSettledRef.current,
       );
-      setLastSyncedSpaceStateKey(hydration.spaceStateSyncKey);
       pendingLearningEventCountRef.current =
         hydration.pendingLearningEventCount;
       setPendingLearningEventCount(hydration.pendingLearningEventCount);
@@ -1065,15 +1038,6 @@ function AppShell({
       todayKey,
     ],
   );
-  const spaceStateSnapshot = useMemo(
-    () =>
-      createSpaceStateSnapshot({
-        dayKey: todayKey,
-        spaceCardStateById,
-      }),
-    [spaceCardStateById, todayKey],
-  );
-  const spaceStateSyncKey = JSON.stringify(spaceStateSnapshot);
   const authenticatedRuntimeContext = useMemo(
     () =>
       authState.stage === 'authenticated'
@@ -1238,7 +1202,13 @@ function AppShell({
       return Promise.resolve();
     }
 
-    const replayContext = authenticatedRuntimeContext;
+    const replayContext = {
+      ...authenticatedRuntimeContext,
+      contentVersion:
+        accountBootstrapSnapshotRef.current?.content.version ?? undefined,
+      dayKey: todayKey,
+      track: learningTrack,
+    };
     const replayPhoneNumber = replayContext.phoneNumber;
     const replaySession = authSessionCoordinator.getCurrentSession();
     const replaySessionScopeKey = getAuthSessionScopeKey(replaySession);
@@ -1538,6 +1508,7 @@ function AppShell({
       }
 
       let replayedCheckInDayKey: string | null = null;
+      let replayedSpaceAction = false;
 
       replayedResults.forEach(result => {
         if (result.entry.type === 'check_in_daily_progress') {
@@ -1552,23 +1523,12 @@ function AppShell({
           return;
         }
 
-        if (result.entry.type === 'sync_space_state') {
-          if (!('spaceStateSnapshot' in result)) {
-            return;
-          }
-
-          const replayedSpaceState = result.spaceStateSnapshot;
-          const replayedSpaceStateKey = JSON.stringify(replayedSpaceState);
-
-          setLastSyncedSpaceStateKey(replayedSpaceStateKey);
-
-          if (replayedSpaceStateKey !== spaceStateSyncKey) {
-            setSpaceCardStateById(spaceStateSnapshotToMap(replayedSpaceState));
-          }
+        if (result.entry.type === 'apply_space_action') {
+          replayedSpaceAction = true;
           setSpaceStateSyncState({
-            detail: '网络恢复后，空间收藏和休眠状态已同步。',
-            label: '已同步',
-            state: 'synced',
+            detail: '空间操作已提交，正在读取服务端确认状态。',
+            label: '确认中',
+            state: 'syncing',
           });
 
           return;
@@ -1593,6 +1553,29 @@ function AppShell({
         }
       });
 
+      const replayBootstrap = accountBootstrapSnapshotRef.current;
+
+      if (
+        !replayedSpaceAction &&
+        replayBootstrap !== null &&
+        (
+          await mutationQueueRepository.getPendingSpaceActions(
+            replayPhoneNumber,
+            {
+              contentVersion: replayBootstrap.content.version,
+              track: replayBootstrap.track,
+            },
+          )
+        ).length > 0
+      ) {
+        setSpaceStateSyncState({
+          detail:
+            '空间操作已安全保存在本机，网络恢复后会自动再试，当前空间仍可继续使用。',
+          label: '待重试',
+          state: 'error',
+        });
+      }
+
       if (
         replayedResults.length > 0 &&
         runtimeAccountBootstrapMode === 'remote'
@@ -1602,6 +1585,22 @@ function AppShell({
         accountBootstrapHydrationSettledRef.current = false;
         setAccountBootstrapHydrationSettled(false);
         const bootstrapRefreshed = await retryCanonicalAccountBootstrap();
+
+        if (replayedSpaceAction) {
+          setSpaceStateSyncState(
+            bootstrapRefreshed
+              ? {
+                  detail: '空间收藏和休眠状态已由服务端确认。',
+                  label: '已同步',
+                  state: 'synced',
+                }
+              : {
+                  detail: '空间操作已提交，等待重新读取服务端状态。',
+                  label: '待确认',
+                  state: 'error',
+                },
+          );
+        }
 
         if (replayedCheckInDayKey !== null) {
           const canonicalProgress =
@@ -1674,7 +1673,7 @@ function AppShell({
     retryCanonicalAccountBootstrap,
     runtimeAccountBootstrapMode,
     runtimeLearningEventsMode,
-    spaceStateSyncKey,
+    learningTrack,
     todayKey,
   ]);
 
@@ -1888,7 +1887,6 @@ function AppShell({
       pendingLearningEventCountRef.current = 0;
       setPendingLearningEventCount(0);
       setLearningEventRecoveryPending(false);
-      setLastSyncedSpaceStateKey(null);
       setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
       setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
       setSpaceStateSyncState(INITIAL_SPACE_STATE_SYNC_STATE);
@@ -2138,161 +2136,6 @@ function AppShell({
     isAuthenticated,
     pendingLearningEventCount,
     runtimeAccountBootstrapMode,
-    startMutationReplay,
-  ]);
-
-  useEffect(() => {
-    if (
-      !isAuthenticated ||
-      !canWriteAccountState ||
-      Object.keys(spaceCardStateById).length === 0
-    ) {
-      return;
-    }
-
-    if (lastSyncedSpaceStateKey === spaceStateSyncKey) {
-      return;
-    }
-
-    if (runtimeSpaceStateMode === 'local') {
-      setLastSyncedSpaceStateKey(spaceStateSyncKey);
-      setSpaceStateSyncState({
-        detail: '空间收藏和休眠状态已记录。',
-        label: '已记录',
-        state: 'synced',
-      });
-      return;
-    }
-
-    if (authenticatedRuntimeContext === null) {
-      setSpaceStateSyncState({
-        detail: '当前缺少可用的登录上下文，空间状态无法同步。',
-        label: '同步受阻',
-        state: 'error',
-      });
-      return;
-    }
-
-    let isCancelled = false;
-
-    if (pendingLearningEventCount > 0) {
-      setSpaceStateSyncState({
-        detail: '答题记录确认后再同步空间里的收藏和休眠状态。',
-        label: '已排队',
-        state: 'syncing',
-      });
-      mutationQueueRepository
-        .enqueueMutation(
-          'sync_space_state',
-          {
-            context: authenticatedRuntimeContext,
-            snapshot: spaceStateSnapshot,
-          },
-          `space:${spaceStateSyncKey}`,
-        )
-        .then(() => {
-          if (!isCancelled && pendingLearningEventCountRef.current === 0) {
-            startMutationReplay().catch(() => undefined);
-          }
-        })
-        .catch((error: unknown) => {
-          if (isCancelled) {
-            return;
-          }
-
-          setSpaceStateSyncState({
-            detail: getUserFacingErrorMessage(
-              error,
-              '空间变更暂时无法安全排队。',
-            ),
-            label: '排队失败',
-            state: 'error',
-          });
-        });
-
-      return () => {
-        isCancelled = true;
-      };
-    }
-
-    setSpaceStateSyncState({
-      detail:
-        '正在同步空间里的收藏和休眠状态；当前位置和卡片列表仍可继续浏览。',
-      label: '同步中',
-      state: 'syncing',
-    });
-    startMutationReplay().catch(() => undefined);
-
-    spaceStateRepository
-      .syncSpaceState(authenticatedRuntimeContext, spaceStateSnapshot)
-      .then(result => {
-        if (isCancelled) {
-          return;
-        }
-
-        const canonicalSpaceStateKey = JSON.stringify(result.snapshot);
-
-        setLastSyncedSpaceStateKey(canonicalSpaceStateKey);
-        if (
-          result.mode === 'remote' &&
-          canonicalSpaceStateKey !== spaceStateSyncKey
-        ) {
-          setSpaceCardStateById(spaceStateSnapshotToMap(result.snapshot));
-        }
-        setSpaceStateSyncState({
-          detail: '空间收藏和休眠状态已同步。',
-          label: '已同步',
-          state: 'synced',
-        });
-      })
-      .catch((error: unknown) => {
-        if (isCancelled) {
-          return;
-        }
-
-        if (isRemoteAuthorizationError(error)) {
-          clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
-            () => undefined,
-          );
-          return;
-        }
-
-        mutationQueueRepository
-          .enqueueMutation(
-            'sync_space_state',
-            {
-              context: authenticatedRuntimeContext,
-              snapshot: spaceStateSnapshot,
-            },
-            `space:${spaceStateSyncKey}`,
-          )
-          .catch(() => undefined);
-        setSpaceStateSyncState({
-          detail: `${getUserFacingErrorMessage(
-            error,
-            '空间状态同步失败。',
-          )} 网络恢复后会自动再试，当前空间仍可继续使用。`,
-          label: '待重试',
-          state: 'error',
-        });
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [
-    authenticatedRuntimeContext,
-    clearAuthenticatedSession,
-    canWriteAccountState,
-    isAuthenticated,
-    lastSyncedSpaceStateKey,
-    mutationQueueRepository,
-    pendingLearningEventCount,
-    runtimeSpaceStateMode,
-    spaceCardStateById,
-    spaceStateRepository,
-    spaceStateSnapshot,
-    spaceStateSyncKey,
     startMutationReplay,
   ]);
 
@@ -3041,6 +2884,144 @@ function AppShell({
     setLearningCardState(createTrackedLearningCardState(nextCard));
   };
 
+  const applyDurableSpaceAction = useCallback((action: SpaceAction) => {
+    const nextStateMap = applySpaceActionToMap(
+      spaceCardStateByIdRef.current,
+      action,
+    );
+    spaceCardStateByIdRef.current = nextStateMap;
+    setSpaceCardStateById(nextStateMap);
+    return nextStateMap;
+  }, []);
+
+  const persistSpaceAction = useCallback(
+    (
+      cardId: string,
+      dimension: SpaceActionDimension,
+      value: boolean,
+      applyAfterDurableWrite: (action: SpaceAction) => void,
+    ) => {
+      if (!canWriteAccountState) {
+        setSpaceStateSyncState({
+          detail: '账户状态尚未完成服务端校准，空间操作暂时不可用。',
+          label: '暂不可用',
+          state: 'error',
+        });
+        return;
+      }
+
+      const actionKey = `${dimension}:${cardId}`;
+
+      if (spaceActionPersistenceInFlight.current.has(actionKey)) {
+        return;
+      }
+
+      const action = createSpaceAction({ cardId, dimension, value });
+
+      if (runtimeSpaceStateMode === 'local') {
+        applyAfterDurableWrite(action);
+        setSpaceStateSyncState({
+          detail: '空间收藏和休眠状态已记录。',
+          label: '已记录',
+          state: 'synced',
+        });
+        return;
+      }
+
+      const bootstrap = accountBootstrapSnapshotRef.current;
+
+      if (
+        authenticatedRuntimeContext === null ||
+        bootstrap === null ||
+        bootstrap.track !== learningTrack
+      ) {
+        setSpaceStateSyncState({
+          detail: '当前缺少已校准的登录或内容上下文，空间操作未保存。',
+          label: '保存失败',
+          state: 'error',
+        });
+        return;
+      }
+
+      const persistenceSession = authSessionCoordinator.getCurrentSession();
+      const persistenceSessionScopeKey =
+        getAuthSessionScopeKey(persistenceSession);
+
+      if (
+        persistenceSession === null ||
+        persistenceSessionScopeKey === null ||
+        persistenceSession.phoneNumber !==
+          authenticatedRuntimeContext.phoneNumber
+      ) {
+        setSpaceStateSyncState({
+          detail: '当前登录会话不可用，空间操作未保存。',
+          label: '保存失败',
+          state: 'error',
+        });
+        return;
+      }
+
+      const isPersistenceSessionCurrent = () =>
+        getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) ===
+        persistenceSessionScopeKey;
+
+      spaceActionPersistenceInFlight.current.add(actionKey);
+      mutationQueueRepository
+        .enqueueMutation(
+          'apply_space_action',
+          {
+            action,
+            contentVersion: bootstrap.content.version,
+            context: authenticatedRuntimeContext,
+            track: learningTrack,
+          },
+          action.actionId,
+        )
+        .then(() => {
+          if (!isPersistenceSessionCurrent()) {
+            return;
+          }
+
+          applyAfterDurableWrite(action);
+          setSpaceStateSyncState({
+            detail: '空间操作已安全保存，等待服务端确认。',
+            label: '已排队',
+            state: 'syncing',
+          });
+
+          if (pendingLearningEventCountRef.current === 0) {
+            startMutationReplay().catch(() => undefined);
+          }
+        })
+        .catch((error: unknown) => {
+          if (!isPersistenceSessionCurrent()) {
+            return;
+          }
+
+          setSpaceStateSyncState({
+            detail: getUserFacingErrorMessage(
+              error,
+              '空间操作暂时无法安全保存。',
+            ),
+            label: '保存失败',
+            state: 'error',
+          });
+        })
+        .finally(() => {
+          spaceActionPersistenceInFlight.current.delete(actionKey);
+        });
+    },
+    [
+      authenticatedRuntimeContext,
+      authSessionCoordinator,
+      canWriteAccountState,
+      learningTrack,
+      mutationQueueRepository,
+      runtimeSpaceStateMode,
+      startMutationReplay,
+    ],
+  );
+
   const learningHandlers = {
     onTogglePeek: () => {
       patchLearningCardState(current => ({
@@ -3053,20 +3034,20 @@ function AppShell({
         return;
       }
 
+      const cardId = currentLearningCard.card_id;
       const nextFavorited = !learningCardState.isFavorited;
 
-      setLearningCardState({
-        ...learningCardState,
-        isFavorited: nextFavorited,
+      persistSpaceAction(cardId, 'favorite', nextFavorited, action => {
+        applyDurableSpaceAction(action);
+
+        if (currentLearningCardIdRef.current === cardId) {
+          setLearningCardState(current =>
+            current === null
+              ? null
+              : { ...current, isFavorited: nextFavorited },
+          );
+        }
       });
-      setSpaceCardStateById(current => ({
-        ...current,
-        [currentLearningCard.card_id]: {
-          ...readSpaceCardState(currentLearningCard.card_id, current),
-          isFavorited: nextFavorited,
-          lastModifiedAt: new Date().toISOString(),
-        },
-      }));
     },
     onToggleHint: () => {
       patchLearningCardState(current => ({
@@ -3316,38 +3297,26 @@ function AppShell({
       const currentState = readSpaceCardState(cardId);
       const nextFavorited = !currentState.isFavorited;
 
-      setSpaceCardStateById(current => ({
-        ...current,
-        [cardId]: {
-          ...readSpaceCardState(cardId, current),
-          isFavorited: nextFavorited,
-          lastModifiedAt: new Date().toISOString(),
-        },
-      }));
+      persistSpaceAction(cardId, 'favorite', nextFavorited, action => {
+        applyDurableSpaceAction(action);
 
-      if (
-        currentLearningCard?.card_id === cardId &&
-        learningCardState !== null
-      ) {
-        setLearningCardState({
-          ...learningCardState,
-          isFavorited: nextFavorited,
-        });
-      }
+        if (currentLearningCardIdRef.current === cardId) {
+          setLearningCardState(current =>
+            current === null
+              ? null
+              : { ...current, isFavorited: nextFavorited },
+          );
+        }
+      });
     },
     onToggleSleepState: (cardId: string) => {
       const currentState = readSpaceCardState(cardId);
-      const nextStateMap = {
-        ...spaceCardStateById,
-        [cardId]: {
-          ...currentState,
-          isSleeping: !currentState.isSleeping,
-          lastModifiedAt: new Date().toISOString(),
-        },
-      };
+      const nextSleeping = !currentState.isSleeping;
 
-      setSpaceCardStateById(nextStateMap);
-      reconcileLearningDeckState(nextStateMap);
+      persistSpaceAction(cardId, 'sleep', nextSleeping, action => {
+        const nextStateMap = applyDurableSpaceAction(action);
+        reconcileLearningDeckState(nextStateMap);
+      });
     },
   };
 

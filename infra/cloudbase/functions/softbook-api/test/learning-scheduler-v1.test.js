@@ -109,6 +109,28 @@ async function cardSource(api, session, track = 'cet4') {
   return response.body.data;
 }
 
+async function submitSpaceActions(
+  api,
+  session,
+  source,
+  actions,
+  track = 'cet4',
+) {
+  const response = await request(api, {
+    body: {
+      actions,
+      content_version: source.content_version,
+      schema_version: 'space-actions.v2',
+      track,
+    },
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'POST',
+    path: '/v2/space/actions',
+  });
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  return response.body.data;
+}
+
 async function learningSession(api, session, extra = {}) {
   return request(api, {
     body: extra.body,
@@ -350,21 +372,15 @@ test('free access uses the canonical half-prefix and sleeping cards never enter 
     entitlement: {...entitlement, stage: 'free'},
     updated_at: START_TIME.toISOString(),
   });
-  await store.saveSpaceState(
-    PHONE,
+  await submitSpaceActions(api, session, source, [
     {
-      day_key: DAY_KEY,
-      states: [
-        {
-          card_id: source.card_records[0].card_id,
-          is_favorited: false,
-          is_sleeping: true,
-          last_modified_at: START_TIME.toISOString(),
-        },
-      ],
+      action_id: 'space_free_sleep_0001',
+      card_id: source.card_records[0].card_id,
+      client_occurred_at: START_TIME.toISOString(),
+      dimension: 'sleep',
+      value: true,
     },
-    START_TIME.toISOString(),
-  );
+  ]);
 
   const first = await learningSession(api, session);
   assert.equal(first.statusCode, 200, JSON.stringify(first.body));
@@ -418,18 +434,17 @@ test('an initial empty selection persists a valid revision before confirmation',
   const {api} = createTestApi({store});
   const session = await authenticatedSession(api, '127.0.0.18');
   const source = await cardSource(api, session);
-  await store.saveSpaceState(
-    PHONE,
-    {
-      day_key: DAY_KEY,
-      states: source.card_records.map(card => ({
-        card_id: card.card_id,
-        is_favorited: false,
-        is_sleeping: true,
-        last_modified_at: START_TIME.toISOString(),
-      })),
-    },
-    START_TIME.toISOString(),
+  await submitSpaceActions(
+    api,
+    session,
+    source,
+    source.card_records.map(card => ({
+      action_id: `space_empty_${card.card_id}`,
+      card_id: card.card_id,
+      client_occurred_at: START_TIME.toISOString(),
+      dimension: 'sleep',
+      value: true,
+    })),
   );
 
   const first = await learningSession(api, session);
@@ -786,21 +801,15 @@ test('canonical sleep drift invalidates an existing cursor without deleting lear
   const session = await authenticatedSession(api, '127.0.0.8');
   const source = await cardSource(api, session);
   const first = await learningSession(api, session);
-  await store.saveSpaceState(
-    PHONE,
+  await submitSpaceActions(api, session, source, [
     {
-      day_key: DAY_KEY,
-      states: [
-        {
-          card_id: first.body.data.selection.card_id,
-          is_favorited: false,
-          is_sleeping: true,
-          last_modified_at: START_TIME.toISOString(),
-        },
-      ],
+      action_id: 'space_cursor_sleep_0001',
+      card_id: first.body.data.selection.card_id,
+      client_occurred_at: START_TIME.toISOString(),
+      dimension: 'sleep',
+      value: true,
     },
-    START_TIME.toISOString(),
-  );
+  ]);
 
   const replacement = await learningSession(api, session);
   const sessionDocument = [...store.snapshot().learningSessions.values()][0];

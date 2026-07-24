@@ -1,5 +1,5 @@
 {
-  "version": "vnext-10",
+  "version": "vnext-11",
   "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, canonical account reads, idempotent learning events, server scheduling, default sync strategy, and offline behavior.",
   "source_anchors": {
     "login_gate": "必须登入",
@@ -36,8 +36,8 @@
     ],
     "learning_state_rule": "latest_valid_learning_event_wins_per_card; learning and review completion aggregates plus per-card learning state are derived from accepted events while physical-space and check-in state keep separate authority",
     "physical_space_rule": "latest_valid_explicit_space_action_wins unless it violates box knowledge ownership or contract constraints; invalid actions are rejected and client refreshes from server canonical state",
-    "physical_space_snapshot_reconciliation": "clients preserve each explicit action timestamp, read account-level server canonical state before restored-state push, and accept the canonical merged response; day_key is batch metadata rather than the canonical partition key",
-    "physical_space_write_atomicity": "CloudBase account-level canonical reads, legacy migration, merge, and write-back run inside one database transaction with conflict retry",
+    "physical_space_snapshot_reconciliation": "clients preserve each explicit action as a durable credential-free command, read account-level server canonical state before replay, overlay only matching queued actions, and accept the canonical merged response; clients never restore or upload a whole physical-space snapshot",
+    "physical_space_write_atomicity": "CloudBase account-level canonical reads, legacy migration, dimension-specific merge, immutable action-ledger insert, and state write-back run inside one database transaction with conflict retry",
     "check_in_rule": "an authenticated explicit v2 check-in command can only move the account-and-day state monotonically to checked in; learning counters remain event-derived and physical-space counters remain space-derived",
     "membership_rule": "server_entitlement_wins"
   },
@@ -64,7 +64,7 @@
     "content_rule": "content version is the SHA-256 of the normalized ordered source; production requires a matching published content-release.v1 descriptor while development may return release_id null",
     "release_publication_rule": "the development importer rejects non-null release descriptors; a separate publication pipeline must verify formal content approval before writing content-release.v1",
     "client_rule": "an authenticated client may use validated cached state while offline, but must reconcile with this server read before pushing restored state; without previously validated canonical state and required content, mobile keeps a valid session retryable but blocks learning, local persistence of the reconciled snapshot, mutation replay, and product-state writes until bootstrap succeeds and the loaded card-source content version matches",
-    "known_gap": "the repository-local CloudBase learning-events.v2 backend, explicit daily check-in, React Native durable producer/replay, server scheduler, and mobile scheduler-session binding are implemented but not deployed; production publication remains unimplemented"
+    "known_gap": "the repository-local CloudBase learning-events.v2 backend, explicit daily check-in, physical-space actions, React Native durable producer/replay, server scheduler, and mobile scheduler-session binding are implemented but not deployed; production publication remains unimplemented"
   },
   "daily_check_in_v2": {
     "classification": "implementation_hypothesis",
@@ -108,7 +108,62 @@
       "development_response": "410 legacy_snapshot_write_disabled",
       "production_response": "410 legacy_api_disabled",
       "scope_rule": "no runtime option, legacy token, active v2 session, or unmigrated account can re-enable either snapshot-write route; retained legacy documents are read-only migration input",
-      "remaining_v1_rule": "card-source, membership, and physical-space v1 routes remain a development migration bridge only and production still rejects every v1 route"
+      "remaining_v1_rule": "card-source and membership v1 routes remain a development migration bridge only and production still rejects every v1 route"
+    }
+  },
+  "physical_space_actions_v2": {
+    "classification": "implementation_hypothesis",
+    "contract_status": "cloudbase_backend_and_mobile_client_implemented_locally_not_deployed",
+    "runtime_contract": "infra/cloudbase/space-actions-v2-runtime-contract.md",
+    "endpoint": {
+      "method": "POST",
+      "path": "/v2/space/actions",
+      "authentication": "active_v2_session",
+      "identity_rule": "derive the account only from the active v2 session; reject phone_number, day_key, snapshot counters, complete space snapshots, and every unknown request field",
+      "request_schema": "space-actions.v2",
+      "response_schema": "space-actions-ack.v2"
+    },
+    "command_contract": {
+      "required_fields": [
+        "schema_version",
+        "track",
+        "content_version",
+        "actions"
+      ],
+      "batch_rule": "require one to twenty immutable actions; each contains exactly action_id, card_id, dimension, value, and client_occurred_at",
+      "action_id_rule": "require a 1-128 character opaque identifier; the same account and action_id with an identical canonical payload returns duplicate while any payload mismatch rejects the complete batch with 409",
+      "dimension_rule": "dimension is exactly favorite or sleep and value is boolean; favorite is a tag while sleep excludes the card from learning without deleting scheduler state",
+      "content_rule": "track, content_version, and every card_id must match the current normalized server card source; production additionally requires its published content-release.v1 descriptor",
+      "time_rule": "client_occurred_at is retained for long-offline ordering but rejected when it is more than five minutes ahead of server time",
+      "merge_rule": "favorite and sleep use independent last-writer-wins clocks with action_id as the deterministic equal-time tie breaker, so an action in one dimension cannot overwrite the other",
+      "transaction_rule": "legacy migration, ledger conflict detection, dimension merge, immutable action records, and canonical account state commit atomically; a rejected batch commits nothing",
+      "response_rule": "return one ordered result for every submitted action plus the requested track's canonical projection and matching content_version"
+    },
+    "storage_contract": {
+      "state_collection": "softbook_space_states",
+      "action_collection": "softbook_space_actions",
+      "state_identity": "hash_of_account_key",
+      "action_identity": "hash_of_account_key_and_action_id",
+      "state_integrity": "stored space-state.v2 business fields and each dimension clock/action pair are validated exactly on every canonical read and write; CloudBase system _id is the only removable adapter field",
+      "action_integrity": "stored ledger payload, canonical digest, result, acknowledgement, and account ownership are validated exactly before duplicate acknowledgement",
+      "legacy_migration": "old phone and phone-day space documents are read-only input; the first account-scoped v2 read or write migrates each legacy card into both dimension clocks using last_modified_at and deterministic synthetic action ids without deleting the source documents"
+    },
+    "mobile_contract": {
+      "durability_rule": "persist an account-scoped credential-free apply_space_action command before optimistic UI authority advances",
+      "request_rule": "replay preserves every immutable action field and action_id, injects the current access token in memory, and for the same track binds the request envelope to the currently validated content version; it never rebinds an action across tracks",
+      "ack_rule": "remove queued actions only after a strict matching space-actions-ack.v2 result of applied, stale, or duplicate and a canonical projection matching track/content",
+      "legacy_queue_rule": "during hydration migrate each valid legacy sync_space_state card snapshot into deterministic favorite and sleep actions, discard phone_number, day_key, counters, tokens, and malformed snapshots, and never replay the original whole snapshot",
+      "recovery_rule": "canonical bootstrap is the base; overlay only same-account, same-track durable pending actions in queue order, including actions awaiting same-track content-version rebinding, so unqueued device state can never overwrite server authority",
+      "reconciliation_rule": "after remote acknowledgement refresh canonical bootstrap before treating space state and scheduler eligibility as reconciled"
+    },
+    "legacy_cutover": {
+      "disabled_routes": [
+        "GET /v1/space/state-sync",
+        "POST /v1/space/state-sync"
+      ],
+      "development_response": "410 legacy_space_snapshot_disabled",
+      "production_response": "410 legacy_api_disabled",
+      "scope_rule": "no runtime option, legacy token, active v2 session, or unmigrated account can re-enable physical-space snapshot reads or writes"
     }
   },
   "learning_events_v2": {
@@ -131,6 +186,7 @@
       "mobile_bounded_authenticated_requests": true,
       "mobile_active_v1_learning_snapshot_writes_disabled": true,
       "mobile_v2_daily_check_in": true,
+      "mobile_v2_physical_space_actions": true,
       "legacy_v1_snapshot_writes_disabled": true,
       "migrated_account_v1_learning_writes": "daily_and_learning_snapshot_routes_disabled_globally_v2_check_in_is_the_only_daily_write",
       "server_scheduler": true,

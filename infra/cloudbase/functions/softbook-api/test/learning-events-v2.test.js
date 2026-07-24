@@ -97,6 +97,28 @@ async function cardSource(api, session, track = 'cet4') {
   return response.body.data;
 }
 
+async function submitSpaceAction(
+  api,
+  session,
+  action,
+  track = 'cet4',
+) {
+  const source = await cardSource(api, session, track);
+  const response = await request(api, {
+    body: {
+      actions: [action],
+      content_version: source.content_version,
+      schema_version: 'space-actions.v2',
+      track,
+    },
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'POST',
+    path: '/v2/space/actions',
+  });
+  assert.equal(response.statusCode, 200);
+  return response.body.data;
+}
+
 async function submit(api, session, events, track = 'cet4', extra = {}) {
   if (events.some(event => event.selection_id === CURRENT_SELECTION_ID)) {
     await bindEventsToCurrentSelection(api, session, events, track);
@@ -1233,24 +1255,20 @@ test('first v2 event migrates v1 learning and progress baselines without favorit
     START_TIME.toISOString(),
   );
 
-  const space = await request(api, {
-    body: {
-      day_key: DAY_KEY,
-      phone_number: PHONE_ONE,
-      states: [
-        {
-          card_id: legacyCard.card_id,
-          is_favorited: true,
-          is_sleeping: true,
-          last_modified_at: START_TIME.toISOString(),
-        },
-      ],
-    },
-    headers,
-    method: 'POST',
-    path: '/v1/space/state-sync',
+  await submitSpaceAction(api, session, {
+    action_id: 'space_legacy_favorite_0001',
+    card_id: legacyCard.card_id,
+    client_occurred_at: START_TIME.toISOString(),
+    dimension: 'favorite',
+    value: true,
   });
-  assert.equal(space.statusCode, 200);
+  await submitSpaceAction(api, session, {
+    action_id: 'space_legacy_sleep_0001',
+    card_id: legacyCard.card_id,
+    client_occurred_at: START_TIME.toISOString(),
+    dimension: 'sleep',
+    value: true,
+  });
 
   const next = eventFor(source, 1, {
     event_id: 'event_after_legacy_0002',
@@ -1410,24 +1428,20 @@ test('migrated accounts accept only v2 check-in without legacy snapshot authorit
   const card = source.card_records[0];
   await submit(api, session, [eventFor(source)]);
 
-  const space = await request(api, {
-    body: {
-      day_key: DAY_KEY,
-      phone_number: PHONE_ONE,
-      states: [
-        {
-          card_id: card.card_id,
-          is_favorited: true,
-          is_sleeping: true,
-          last_modified_at: START_TIME.toISOString(),
-        },
-      ],
-    },
-    headers: {authorization: `Bearer ${session.access_token}`},
-    method: 'POST',
-    path: '/v1/space/state-sync',
+  await submitSpaceAction(api, session, {
+    action_id: 'space_migrated_favorite_0001',
+    card_id: card.card_id,
+    client_occurred_at: START_TIME.toISOString(),
+    dimension: 'favorite',
+    value: true,
   });
-  assert.equal(space.statusCode, 200);
+  await submitSpaceAction(api, session, {
+    action_id: 'space_migrated_sleep_0001',
+    card_id: card.card_id,
+    client_occurred_at: START_TIME.toISOString(),
+    dimension: 'sleep',
+    value: true,
+  });
 
   const progress = await request(api, {
     body: {
@@ -1718,24 +1732,13 @@ test('CloudBase migration reads every legacy learning-state page', async () => {
     });
   }
 
-  const sleeping = await request(api, {
-    body: {
-      day_key: DAY_KEY,
-      phone_number: PHONE_ONE,
-      states: [
-        {
-          card_id: legacyCard.card_id,
-          is_favorited: false,
-          is_sleeping: true,
-          last_modified_at: START_TIME.toISOString(),
-        },
-      ],
-    },
-    headers: {authorization: `Bearer ${session.access_token}`},
-    method: 'POST',
-    path: '/v1/space/state-sync',
+  await submitSpaceAction(api, session, {
+    action_id: 'space_paged_sleep_0001',
+    card_id: legacyCard.card_id,
+    client_occurred_at: START_TIME.toISOString(),
+    dimension: 'sleep',
+    value: true,
   });
-  assert.equal(sleeping.statusCode, 200);
 
   const next = eventFor(source, 1, {
     event_id: 'event_after_paged_legacy_0001',

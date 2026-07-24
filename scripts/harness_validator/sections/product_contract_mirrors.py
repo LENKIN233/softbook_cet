@@ -20,6 +20,16 @@ def _expect_path(findings, label, value, keys, expected):
         )
 
 
+def _expect_contract_path(findings, contract, label, value, keys, expected):
+    found, actual = _read_path(value, keys)
+    if not found:
+        findings.append(f"{contract} contract {label}: missing {'.'.join(keys)}")
+    elif actual != expected:
+        findings.append(
+            f"{contract} contract {label}: expected {expected!r}, got {actual!r}"
+        )
+
+
 def _entry_by_id(entries, entry_id):
     for entry in entries:
         if isinstance(entry, dict) and entry.get("id") == entry_id:
@@ -122,7 +132,7 @@ def learning_events_contract_findings(
         (
             "bootstrap known gap",
             ("canonical_read", "known_gap"),
-            "the repository-local CloudBase learning-events.v2 backend, explicit daily check-in, React Native durable producer/replay, server scheduler, and mobile scheduler-session binding are implemented but not deployed; production publication remains unimplemented",
+            "the repository-local CloudBase learning-events.v2 backend, explicit daily check-in, physical-space actions, React Native durable producer/replay, server scheduler, and mobile scheduler-session binding are implemented but not deployed; production publication remains unimplemented",
         ),
         (
             "backend implementation",
@@ -1090,7 +1100,7 @@ def learning_events_contract_findings(
         "post_ack_canonical_bootstrap_reconciliation",
         "v1_progress_daily_sync_always_returns_410",
         "v1_learning_state_sync_always_returns_410",
-        "development_v1_card_membership_and_space_bridge_is_unchanged",
+        "development_v1_card_and_membership_bridge_is_unchanged",
         "repository_local_cutover_is_not_deployment_content_approval_or_launch_readiness",
     ]
     if not gt33:
@@ -1654,6 +1664,425 @@ def learning_scheduler_contract_findings(
     return findings
 
 
+def space_actions_contract_findings(
+    auth,
+    runtime,
+    agent,
+    evals,
+    runtime_text,
+    agent_entry_text,
+    provision_text,
+):
+    findings = []
+    runtime_path = "infra/cloudbase/space-actions-v2-runtime-contract.md"
+
+    owner_expectations = [
+        (
+            "classification",
+            ("physical_space_actions_v2", "classification"),
+            "implementation_hypothesis",
+        ),
+        (
+            "status",
+            ("physical_space_actions_v2", "contract_status"),
+            "cloudbase_backend_and_mobile_client_implemented_locally_not_deployed",
+        ),
+        (
+            "runtime path",
+            ("physical_space_actions_v2", "runtime_contract"),
+            runtime_path,
+        ),
+        (
+            "method",
+            ("physical_space_actions_v2", "endpoint", "method"),
+            "POST",
+        ),
+        (
+            "path",
+            ("physical_space_actions_v2", "endpoint", "path"),
+            "/v2/space/actions",
+        ),
+        (
+            "authentication",
+            ("physical_space_actions_v2", "endpoint", "authentication"),
+            "active_v2_session",
+        ),
+        (
+            "identity",
+            ("physical_space_actions_v2", "endpoint", "identity_rule"),
+            "derive the account only from the active v2 session; reject phone_number, day_key, snapshot counters, complete space snapshots, and every unknown request field",
+        ),
+        (
+            "request schema",
+            ("physical_space_actions_v2", "endpoint", "request_schema"),
+            "space-actions.v2",
+        ),
+        (
+            "response schema",
+            ("physical_space_actions_v2", "endpoint", "response_schema"),
+            "space-actions-ack.v2",
+        ),
+        (
+            "required request fields",
+            (
+                "physical_space_actions_v2",
+                "command_contract",
+                "required_fields",
+            ),
+            ["schema_version", "track", "content_version", "actions"],
+        ),
+        (
+            "batch",
+            ("physical_space_actions_v2", "command_contract", "batch_rule"),
+            "require one to twenty immutable actions; each contains exactly action_id, card_id, dimension, value, and client_occurred_at",
+        ),
+        (
+            "action identity",
+            ("physical_space_actions_v2", "command_contract", "action_id_rule"),
+            "require a 1-128 character opaque identifier; the same account and action_id with an identical canonical payload returns duplicate while any payload mismatch rejects the complete batch with 409",
+        ),
+        (
+            "dimension semantics",
+            ("physical_space_actions_v2", "command_contract", "dimension_rule"),
+            "dimension is exactly favorite or sleep and value is boolean; favorite is a tag while sleep excludes the card from learning without deleting scheduler state",
+        ),
+        (
+            "content authority",
+            ("physical_space_actions_v2", "command_contract", "content_rule"),
+            "track, content_version, and every card_id must match the current normalized server card source; production additionally requires its published content-release.v1 descriptor",
+        ),
+        (
+            "client time",
+            ("physical_space_actions_v2", "command_contract", "time_rule"),
+            "client_occurred_at is retained for long-offline ordering but rejected when it is more than five minutes ahead of server time",
+        ),
+        (
+            "dimension merge",
+            ("physical_space_actions_v2", "command_contract", "merge_rule"),
+            "favorite and sleep use independent last-writer-wins clocks with action_id as the deterministic equal-time tie breaker, so an action in one dimension cannot overwrite the other",
+        ),
+        (
+            "transaction",
+            (
+                "physical_space_actions_v2",
+                "command_contract",
+                "transaction_rule",
+            ),
+            "legacy migration, ledger conflict detection, dimension merge, immutable action records, and canonical account state commit atomically; a rejected batch commits nothing",
+        ),
+        (
+            "response",
+            ("physical_space_actions_v2", "command_contract", "response_rule"),
+            "return one ordered result for every submitted action plus the requested track's canonical projection and matching content_version",
+        ),
+        (
+            "state collection",
+            (
+                "physical_space_actions_v2",
+                "storage_contract",
+                "state_collection",
+            ),
+            "softbook_space_states",
+        ),
+        (
+            "action collection",
+            (
+                "physical_space_actions_v2",
+                "storage_contract",
+                "action_collection",
+            ),
+            "softbook_space_actions",
+        ),
+        (
+            "state identity",
+            ("physical_space_actions_v2", "storage_contract", "state_identity"),
+            "hash_of_account_key",
+        ),
+        (
+            "action identity storage",
+            ("physical_space_actions_v2", "storage_contract", "action_identity"),
+            "hash_of_account_key_and_action_id",
+        ),
+        (
+            "state integrity",
+            ("physical_space_actions_v2", "storage_contract", "state_integrity"),
+            "stored space-state.v2 business fields and each dimension clock/action pair are validated exactly on every canonical read and write; CloudBase system _id is the only removable adapter field",
+        ),
+        (
+            "action integrity",
+            ("physical_space_actions_v2", "storage_contract", "action_integrity"),
+            "stored ledger payload, canonical digest, result, acknowledgement, and account ownership are validated exactly before duplicate acknowledgement",
+        ),
+        (
+            "legacy migration",
+            ("physical_space_actions_v2", "storage_contract", "legacy_migration"),
+            "old phone and phone-day space documents are read-only input; the first account-scoped v2 read or write migrates each legacy card into both dimension clocks using last_modified_at and deterministic synthetic action ids without deleting the source documents",
+        ),
+        (
+            "mobile durability",
+            ("physical_space_actions_v2", "mobile_contract", "durability_rule"),
+            "persist an account-scoped credential-free apply_space_action command before optimistic UI authority advances",
+        ),
+        (
+            "mobile request",
+            ("physical_space_actions_v2", "mobile_contract", "request_rule"),
+            "replay preserves every immutable action field and action_id, injects the current access token in memory, and for the same track binds the request envelope to the currently validated content version; it never rebinds an action across tracks",
+        ),
+        (
+            "mobile acknowledgement",
+            ("physical_space_actions_v2", "mobile_contract", "ack_rule"),
+            "remove queued actions only after a strict matching space-actions-ack.v2 result of applied, stale, or duplicate and a canonical projection matching track/content",
+        ),
+        (
+            "mobile legacy queue",
+            ("physical_space_actions_v2", "mobile_contract", "legacy_queue_rule"),
+            "during hydration migrate each valid legacy sync_space_state card snapshot into deterministic favorite and sleep actions, discard phone_number, day_key, counters, tokens, and malformed snapshots, and never replay the original whole snapshot",
+        ),
+        (
+            "mobile recovery",
+            ("physical_space_actions_v2", "mobile_contract", "recovery_rule"),
+            "canonical bootstrap is the base; overlay only same-account, same-track durable pending actions in queue order, including actions awaiting same-track content-version rebinding, so unqueued device state can never overwrite server authority",
+        ),
+        (
+            "mobile reconciliation",
+            (
+                "physical_space_actions_v2",
+                "mobile_contract",
+                "reconciliation_rule",
+            ),
+            "after remote acknowledgement refresh canonical bootstrap before treating space state and scheduler eligibility as reconciled",
+        ),
+        (
+            "disabled legacy routes",
+            ("physical_space_actions_v2", "legacy_cutover", "disabled_routes"),
+            ["GET /v1/space/state-sync", "POST /v1/space/state-sync"],
+        ),
+        (
+            "development legacy response",
+            (
+                "physical_space_actions_v2",
+                "legacy_cutover",
+                "development_response",
+            ),
+            "410 legacy_space_snapshot_disabled",
+        ),
+        (
+            "production legacy response",
+            (
+                "physical_space_actions_v2",
+                "legacy_cutover",
+                "production_response",
+            ),
+            "410 legacy_api_disabled",
+        ),
+        (
+            "legacy scope",
+            ("physical_space_actions_v2", "legacy_cutover", "scope_rule"),
+            "no runtime option, legacy token, active v2 session, or unmigrated account can re-enable physical-space snapshot reads or writes",
+        ),
+    ]
+    for label, keys, expected in owner_expectations:
+        _expect_contract_path(
+            findings,
+            "space-actions",
+            label,
+            auth,
+            keys,
+            expected,
+        )
+
+    runtime_expectations = [
+        ("classification", ("classification",), "implementation_hypothesis"),
+        (
+            "owner",
+            ("owner",),
+            "spec/account-sync-contract.json#physical_space_actions_v2",
+        ),
+        ("runtime path", ("runtime_contract",), runtime_path),
+        ("endpoint", ("endpoint",), "POST /v2/space/actions"),
+        ("request schema", ("request_schema",), "space-actions.v2"),
+        ("response schema", ("response_schema",), "space-actions-ack.v2"),
+        (
+            "implementation status",
+            ("implementation_status",),
+            "cloudbase_backend_and_mobile_client_implemented_locally_not_deployed",
+        ),
+        ("account identity", ("account_identity",), "active_v2_session_only"),
+        (
+            "request body",
+            ("request_body",),
+            "strict_track_content_version_and_one_to_twenty_immutable_favorite_or_sleep_actions_without_phone_snapshot_day_or_counters",
+        ),
+        (
+            "storage collections",
+            ("storage_collections",),
+            ["softbook_space_states", "softbook_space_actions"],
+        ),
+        (
+            "merge authority",
+            ("merge_authority",),
+            "independent_favorite_and_sleep_clocks_ordered_by_client_occurred_at_then_action_id",
+        ),
+        (
+            "content authority",
+            ("content_authority",),
+            "current_normalized_track_source_and_content_version_with_published_release_required_in_production",
+        ),
+        (
+            "transaction boundary",
+            ("transaction_boundary",),
+            "legacy_migration_ledger_conflict_detection_dimension_merge_action_insert_and_account_state_commit",
+        ),
+        (
+            "mobile queue",
+            ("mobile_queue",),
+            "credential_free_apply_space_action_persisted_before_optimistic_ui_change",
+        ),
+        (
+            "mobile recovery",
+            ("mobile_recovery",),
+            "canonical_bootstrap_base_plus_same_account_and_track_durable_pending_actions_with_only_same_track_request_envelopes_rebound_to_current_content",
+        ),
+        (
+            "legacy queue migration",
+            ("legacy_queue_migration",),
+            "valid_sync_space_state_cards_become_deterministic_favorite_and_sleep_actions_original_snapshots_are_never_replayed",
+        ),
+        (
+            "legacy routes",
+            ("legacy_snapshot_routes",),
+            "get_and_post_v1_space_state_sync_always_disabled",
+        ),
+        (
+            "scheduler boundary",
+            ("scheduler_boundary",),
+            "sleep_actions_change_eligibility_only_after_canonical_acknowledgement_and_bootstrap_session_reconciliation",
+        ),
+        (
+            "deployment",
+            ("deployment_status",),
+            "not_deployed_by_repository_change",
+        ),
+        ("launch gate", ("launch_gate_status",), "pending"),
+    ]
+    runtime_value = runtime.get("physical_space_action_runtime", {})
+    for label, keys, expected in runtime_expectations:
+        _expect_contract_path(
+            findings,
+            "space-actions runtime",
+            label,
+            runtime_value,
+            keys,
+            expected,
+        )
+
+    expected_read_path = [
+        "spec/requirement-memory.json",
+        "spec/authority-map.json",
+        "spec/product-core.json",
+        "spec/account-sync-contract.json",
+        "spec/knowledge-map.json",
+        "spec/space-operations.json",
+        "spec/box-catalog.json",
+        "spec/runtime-boundaries.json",
+        runtime_path,
+        "spec/harness-architecture.json",
+        "spec/agent-harness.json",
+        "spec/repo-delivery-contract.json",
+        "spec/agent-run-record.json",
+        "spec/evals.json",
+    ]
+    found, actual_read_path = _read_path(
+        agent,
+        ("read_paths", "physical_space_actions_runtime"),
+    )
+    if not found:
+        findings.append(
+            "space-actions contract agent read path: missing "
+            "read_paths.physical_space_actions_runtime"
+        )
+    elif actual_read_path != expected_read_path:
+        findings.append(
+            "space-actions contract agent read path: "
+            "physical_space_actions_runtime drift"
+        )
+
+    expected_gt34 = [
+        "account_sync_contract_owner",
+        "post_v2_space_actions_with_active_session_identity",
+        "strict_space_actions_v2_and_space_actions_ack_v2_schemas",
+        "request_rejects_phone_day_counters_credentials_snapshots_and_unknown_fields",
+        "one_to_twenty_immutable_actions_with_exact_action_fields",
+        "exact_duplicate_returns_duplicate_and_action_id_payload_conflict_is_atomic_409",
+        "favorite_and_sleep_are_independent_dimensions",
+        "client_time_then_action_id_is_the_deterministic_dimension_order",
+        "current_track_content_version_and_card_ids_are_server_validated",
+        "production_requires_matching_published_content_release",
+        "softbook_space_actions_is_an_immutable_account_scoped_ledger",
+        "softbook_space_states_is_account_scoped_canonical_state",
+        "stored_business_schema_and_digest_integrity_fail_closed",
+        "cloudbase_adapter_strips_only_system_id",
+        "memory_and_cloudbase_commits_are_transactional",
+        "maximum_twenty_action_cloudbase_commit_uses_at_most_42_operations",
+        "legacy_phone_and_phone_day_documents_are_read_only_migration_inputs",
+        "legacy_dimension_clocks_use_last_modified_at_and_deterministic_action_ids",
+        "get_and_post_v1_space_state_sync_always_return_410",
+        "mobile_persists_credential_free_apply_space_action_before_optimistic_ui",
+        "legacy_sync_space_state_entries_migrate_to_deterministic_actions_without_replaying_snapshots",
+        "canonical_bootstrap_is_base_and_only_matching_durable_pending_actions_overlay",
+        "same_track_content_update_rebinds_only_the_request_envelope",
+        "cross_track_action_rebinding_is_forbidden",
+        "strict_ordered_applied_stale_or_duplicate_ack_before_queue_removal",
+        "post_ack_bootstrap_and_scheduler_reconciliation",
+        "transient_failure_keeps_exact_action_and_exposes_retryable_diagnosis",
+        "unqueued_local_space_state_never_overwrites_server_authority",
+        "local_mock_smoke_proves_applied_duplicate_bootstrap_and_legacy_410",
+        "repository_local_cutover_is_not_deployment_content_approval_or_launch_readiness",
+    ]
+    gt34 = _entry_by_id(evals.get("golden_tasks", []), "GT-34")
+    if not gt34:
+        findings.append("space-actions contract evals: missing GT-34")
+    elif gt34.get("must_include") != expected_gt34:
+        findings.append("space-actions contract evals: GT-34 must_include drift")
+
+    required_runtime_snippets = [
+        "It does not grant content approval, deployment",
+        "`POST /v2/space/actions` requires an active v2 session.",
+        "`actions`: one to twenty exact action objects",
+        "The action ledger is keyed by account plus action ID.",
+        "Favorite and sleep use separate clocks.",
+        "`client_occurred_at`, then by `action_id` for equal timestamps.",
+        "commits legacy migration, ledger checks, both dimension merges,",
+        "commits nothing.",
+        "`space-actions-ack.v2` response preserves input order",
+        "Scheduler sleep authority reads the same",
+        "credential-free `apply_space_action` entry before optimistic",
+        "The immutable action fields and action ID never change.",
+        "it never rebinds an action across tracks.",
+        "removed only after strict matching acknowledgement",
+        "Hydration starts from canonical bootstrap and overlays only matching durable",
+        "Both `GET /v1/space/state-sync` and `POST /v1/space/state-sync` return 410",
+        "Retained legacy documents remain read-only migration input.",
+    ]
+    for snippet in required_runtime_snippets:
+        if snippet not in runtime_text:
+            findings.append(
+                f"space-actions runtime contract missing exact snippet: {snippet!r}"
+            )
+
+    if runtime_path not in agent_entry_text:
+        findings.append(
+            "space-actions contract Agent entry: missing exact runtime contract path"
+        )
+    for collection in ("softbook_space_states", "softbook_space_actions"):
+        if f"'{collection}'" not in provision_text:
+            findings.append(
+                f"space-actions provisioning: missing {collection}"
+            )
+
+    return findings
+
+
 def validate(context) -> None:
     check_equal = context.check_equal
     req = context.load("requirement-memory.json")
@@ -1679,6 +2108,14 @@ def validate(context) -> None:
     scheduler_runtime_text = (
         scheduler_runtime_contract.read_text(encoding="utf-8")
         if scheduler_runtime_contract.is_file()
+        else ""
+    )
+    space_runtime_contract = (
+        context.root / "infra/cloudbase/space-actions-v2-runtime-contract.md"
+    )
+    space_runtime_text = (
+        space_runtime_contract.read_text(encoding="utf-8")
+        if space_runtime_contract.is_file()
         else ""
     )
     provision_path = context.root / "infra/cloudbase/provision-softbook-nosql.mjs"
@@ -1716,6 +2153,17 @@ def validate(context) -> None:
             agent_entry_text,
             provision_text,
             package_text,
+        )
+    )
+    context.errors.extend(
+        space_actions_contract_findings(
+            auth,
+            runtime,
+            agent,
+            evals,
+            space_runtime_text,
+            agent_entry_text,
+            provision_text,
         )
     )
 

@@ -4,7 +4,7 @@ Referenced specs: `spec/account-sync-contract.json`, `spec/membership.json`, `sp
 
 `product_truth`: remote learning must still enforce phone-code login before learning, shared membership entitlement, daily-level progress sync, and physical-space state sync.
 
-`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication and canonical bootstrap use `/v2`; the repository-local backend and React Native client also implement `POST /v2/learning/events`, `GET /v2/learning/session`, `POST /v2/progress/check-in`, durable mobile queues, exact replay, a transactional event ledger, and projections. Card payload, membership, and physical-space mutations still rely on `/v1` only as a development migration bridge; the former v1 daily and learning snapshot writes are disabled. None of these repository-local changes proves deployment. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to TypeScript CloudBase Run + PostgreSQL on the formal work server.
+`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication and canonical bootstrap use `/v2`; the repository-local backend and React Native client also implement `POST /v2/learning/events`, `GET /v2/learning/session`, `POST /v2/progress/check-in`, `POST /v2/space/actions`, durable mobile queues, exact replay, transactional ledgers, and projections. Card payload and membership mutations still rely on `/v1` only as a development migration bridge; the former v1 daily, learning, and physical-space snapshot APIs are disabled. None of these repository-local changes proves deployment. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to TypeScript CloudBase Run + PostgreSQL on the formal work server.
 
 ## Current Environment
 
@@ -47,16 +47,18 @@ GET  /v2/bootstrap?track=cet4|cet6&day_key=YYYY-MM-DD
 GET  /v2/learning/session?track=cet4|cet6
 POST /v2/learning/events
 POST /v2/progress/check-in
+POST /v2/space/actions
 
 GET  /v1/learning/card-source?track=cet4|cet6
 GET  /v1/membership/entitlement
 POST /v1/membership/start-trial
 POST /v1/membership/purchase
 POST /v1/membership/dismiss-recovery
-POST /v1/space/state-sync
 
 DISABLED (410) POST /v1/progress/daily-sync
 DISABLED (410) POST /v1/learning/state-sync
+DISABLED (410) GET  /v1/space/state-sync
+DISABLED (410) POST /v1/space/state-sync
 ```
 
 For the development environment, SMS should use a whitelist/fixed-code adapter first. Real SMS provider integration should remain an adapter and must not change the mobile REST contract.
@@ -79,6 +81,25 @@ change. Retained daily/learning documents are read-only migration inputs; both
 former snapshot-write routes return `410` for every account. Explicit check-in
 uses strict `POST /v2/progress/check-in`, carries only `day_key`, and cannot
 overwrite event-derived learning counts or canonical space counts.
+
+## Physical-Space Actions Backend Slice
+
+The current physical-space mutation boundary is:
+
+```text
+POST /v2/space/actions
+```
+
+Its immutable action IDs, exact request and acknowledgement schemas,
+dimension-specific favorite/sleep merge, content authority, account-scoped
+canonical projection, read-only legacy migration, and globally disabled v1
+snapshot methods are defined in
+`infra/cloudbase/space-actions-v2-runtime-contract.md`. The repository-local
+function stores canonical state in `softbook_space_states` and immutable
+idempotency records in `softbook_space_actions`. The mobile app durably queues
+credential-free actions before optimistic presentation, replays with current
+session/content context, and reconciles through bootstrap. This implementation
+is locally verified and is not deployed by the repository change.
 
 ## Minimal HTTP Function
 
@@ -110,15 +131,20 @@ while `/v2` owns authentication and the canonical bootstrap read:
   transactional resumed-cursor confirmation so concurrent events force a
   complete reselection; see
   `infra/cloudbase/learning-session-v1-runtime-contract.md`.
+- Physical-space actions v2 validate the active card source and content version,
+  merge favorite and sleep on independent clocks, and commit immutable action
+  records plus account canonical state atomically. A maximum 20-action request
+  uses at most 42 CloudBase transaction operations.
 - The CloudBase adapter hard-caps an atomic event request at 9 and accepts at
   most one unseen selection-bound event in a request. The tested first-event
   all-track migration and the maximum replay batch of 8 exact duplicates plus
   one current-selection event each use at most 29 of the platform's 100 allowed
   transaction operations. Its
-  transactions use deterministic document operations only; bounded legacy
-  learning and space queries run before the transaction, with an account
-  revision fence protecting first-event migration from concurrent v1 writes.
-- Card source, membership state, independent `softbook_daily_check_ins`, event-derived daily progress, learning state, and space state persist to CloudBase NoSQL when `SOFTBOOK_STORE_MODE=cloudbase`; retained legacy daily and learning documents are migration reads only. Local tests still default to the in-memory adapter.
+  transactions use deterministic document operations only. Bounded legacy
+  learning and space queries run before the transaction: learning uses an
+  account revision fence for first-event migration, while legacy space
+  documents are read-only after the global v1 space cutover.
+- Card source, membership state, independent `softbook_daily_check_ins`, event-derived daily progress, learning state, space action ledger, and space state persist to CloudBase NoSQL when `SOFTBOOK_STORE_MODE=cloudbase`; retained legacy daily, learning, and space documents are migration reads only. Local tests still default to the in-memory adapter.
 - Card source reads `softbook_card_sources` by track. Development mode seeds the CET4/CET6 records when a track document is missing; production bootstrap never seeds development content and fails closed. The legacy card-source response envelope remains the same one parsed by the mobile app.
 - The router uses classic event-style `exports.main` so it can be bound to CloudBase HTTP access service paths such as `/softbook-api`.
 

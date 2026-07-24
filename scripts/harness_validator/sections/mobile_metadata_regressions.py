@@ -105,6 +105,8 @@ def validate(context) -> None:
         "schemaVersion",
         "event_id",
         "eventId",
+        "action_id",
+        "actionId",
         "answer_grade",
         "answerGrade",
         "client_occurred_at",
@@ -118,6 +120,8 @@ def validate(context) -> None:
         "serverSequence",
         "sync_daily_progress",
         "sync_space_state",
+        "apply_space_action",
+        "applySpaceAction",
         "sync_learning_state",
         "start_membership_trial",
         "refresh_membership",
@@ -185,6 +189,7 @@ def validate(context) -> None:
         "learningStates",
         "learningSessions",
         "memberships",
+        "spaceActions",
         "spaceStates",
         "softbook_card_sources",
         "softbook_daily_check_ins",
@@ -192,9 +197,11 @@ def validate(context) -> None:
         "softbook_learning_states",
         "softbook_learning_sessions",
         "softbook_memberships",
+        "softbook_space_actions",
         "softbook_space_states",
         "getCardSource",
         "getMembership",
+        "commitSpaceActions",
         "checkInDailyProgress",
         "assertLegacySnapshotWritesDisabled",
         "startTrial",
@@ -363,6 +370,8 @@ def validate(context) -> None:
         "syncDailyProgress",
         "syncLearningState",
         "syncSpaceState",
+        "applySpaceAction",
+        "parseSpaceActionAck",
         "postJson",
         "REQUIRED_CORE_INTERACTIONS",
         "missingInteractions",
@@ -726,7 +735,7 @@ def validate(context) -> None:
         )
         (tmp_app_root / "src/learning/LearningEventMetadataTextLeak.tsx").write_text(
             "export function LearningEventMetadataTextLeak({ event }) {\n"
-            "  return <Text>{event.event_id}{event.answer_grade}{event.client_occurred_at}{event.content_version}</Text>;\n"
+            "  return <Text>{event.event_id}{event.action_id}{event.actionId}{event.answer_grade}{event.client_occurred_at}{event.content_version}</Text>;\n"
             "}\n",
             encoding="utf-8",
         )
@@ -750,7 +759,7 @@ def validate(context) -> None:
         )
         (tmp_app_root / "src/learning/MutationQueueMetadataTextLeak.tsx").write_text(
             "export function MutationQueueMetadataTextLeak() {\n"
-            "  return <Text>sync_daily_progress sync_space_state sync_learning_state</Text>;\n"
+            "  return <Text>sync_daily_progress sync_space_state apply_space_action applySpaceAction sync_learning_state</Text>;\n"
             "}\n",
             encoding="utf-8",
         )
@@ -966,13 +975,13 @@ def validate(context) -> None:
         )
         (tmp_app_root / "src/learning/BackendCollectionMetadataStaticRenderedPropLeak.tsx").write_text(
             "export function BackendCollectionMetadataStaticRenderedPropLeak() {\n"
-            "  return <View testID=\"memberships spaceStates softbook_memberships softbook_space_states\" />;\n"
+            "  return <View testID=\"memberships spaceActions spaceStates softbook_memberships softbook_space_actions softbook_space_states\" />;\n"
             "}\n",
             encoding="utf-8",
         )
         (tmp_app_root / "src/learning/BackendStoreMethodMetadataTextLeak.tsx").write_text(
             "export function BackendStoreMethodMetadataTextLeak() {\n"
-            "  return <Text>getCardSource getMembership checkInDailyProgress assertLegacySnapshotWritesDisabled saveDailyProgress</Text>;\n"
+            "  return <Text>getCardSource getMembership commitSpaceActions checkInDailyProgress assertLegacySnapshotWritesDisabled saveDailyProgress</Text>;\n"
             "}\n",
             encoding="utf-8",
         )
@@ -1608,7 +1617,7 @@ def validate(context) -> None:
         )
         (tmp_app_root / "src/learning/SmokeActionHelperMetadataPropLeak.tsx").write_text(
             "export function SmokeActionHelperMetadataPropLeak() {\n"
-            "  return <Pressable accessibilityLabel=\"postJson syncSpaceState\" />;\n"
+            "  return <Pressable accessibilityLabel=\"postJson syncSpaceState applySpaceAction parseSpaceActionAck\" />;\n"
             "}\n",
             encoding="utf-8",
         )

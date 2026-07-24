@@ -1,7 +1,5 @@
 import type { SoftbookAppRuntimeConfig } from '../learning/learningRuntimeConfig';
-import {
-  assertRemoteRuntimeUsesRemoteAuth,
-} from '../learning/learningRuntimeConfig';
+import { assertRemoteRuntimeUsesRemoteAuth } from '../learning/learningRuntimeConfig';
 import type { SpaceStateRepositoryConfig } from './spaceStateRepository';
 
 export type SoftbookRemoteSpaceStateRuntimeConfig = {
@@ -17,6 +15,12 @@ export function resolveSpaceStateRepositoryConfig(
 
   if (mode === 'remote') {
     assertRemoteRuntimeUsesRemoteAuth(runtimeConfig, 'spaceState');
+
+    if (runtimeConfig.accountBootstrap?.mode !== 'remote') {
+      throw new Error(
+        'Remote space state requires accountBootstrap.mode to also be remote.',
+      );
+    }
 
     if (!spaceState?.remote?.baseUrl) {
       throw new Error(
@@ -41,14 +45,14 @@ export function resolveSpaceStateRepositoryConfig(
 
 export function createSoftbookRemoteSpaceStateConfig(
   config: SoftbookRemoteSpaceStateRuntimeConfig,
-): {endpoint: string; headers: Record<string, string>} {
+): { endpoint: string; headers: Record<string, string> } {
   const baseUrl = trimTrailingSlash(config.baseUrl);
 
   return {
-    endpoint: `${baseUrl}/v1/space/state-sync`,
+    endpoint: `${baseUrl}/v2/space/actions`,
     headers: {
       'x-softbook-client': 'mobile',
-      ...(config.apiKey ? {'x-api-key': config.apiKey} : {}),
+      ...(config.apiKey ? { 'x-api-key': config.apiKey } : {}),
     },
   };
 }

@@ -1,17 +1,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type {MembershipState} from '../membership/localMembership';
-import type {MembershipRepositoryContext} from '../membership/membershipRepository';
+import type { MembershipState } from '../membership/localMembership';
+import type { MembershipRepositoryContext } from '../membership/membershipRepository';
+import type { LearningTrack } from '../learning/model';
 import type {
+  SpaceAction,
   SpaceStateContext,
-  SpaceStateSnapshot,
 } from '../space/spaceStateRepository';
-import type {
-  ProgressSyncContext,
-} from './progressSyncRepository';
+import { isValidRfc3339Timestamp } from '../space/spaceStateRepository';
+import type { ProgressSyncContext } from './progressSyncRepository';
 export type MutationType =
   | 'check_in_daily_progress'
-  | 'sync_space_state'
+  | 'apply_space_action'
   | 'start_membership_trial'
   | 'refresh_membership';
 
@@ -27,9 +27,11 @@ export type MutationPayloadByType = {
     context: ProgressSyncContext;
     dayKey: string;
   };
-  sync_space_state: {
+  apply_space_action: {
+    action: SpaceAction;
+    contentVersion: string | null;
     context: SpaceStateContext;
-    snapshot: SpaceStateSnapshot;
+    track: LearningTrack | null;
   };
 };
 
@@ -135,6 +137,20 @@ export class MutationQueueManager {
       );
 
       if (existingIndex >= 0) {
+        if (type === 'apply_space_action') {
+          const existing = candidate[existingIndex];
+
+          if (
+            JSON.stringify(existing.payload) !== JSON.stringify(entry.payload)
+          ) {
+            throw new Error(
+              'Space action ID cannot be reused with different content.',
+            );
+          }
+
+          return cloneMutationEntry(existing);
+        }
+
         candidate[existingIndex] = entry;
       } else {
         candidate.push(entry);
@@ -280,6 +296,10 @@ function sanitizeMutationEntries(value: unknown): MutationQueueEntry[] {
       return migrated === null ? [] : [migrated];
     }
 
+    if (entry.type === 'sync_space_state') {
+      return migrateLegacySpaceStateEntry(entry);
+    }
+
     if (!isMutationType(entry.type)) {
       return [];
     }
@@ -312,6 +332,12 @@ function sanitizeMutationId(
     return `check-in:${checkInPayload.context.phoneNumber}:${checkInPayload.dayKey}`;
   }
 
+  if (type === 'apply_space_action') {
+    const actionPayload =
+      payload as MutationPayloadByType['apply_space_action'];
+    return `space-action:${actionPayload.context.phoneNumber}:${actionPayload.action.actionId}`;
+  }
+
   if (type === 'refresh_membership') {
     return id === 'membership:restore' ||
       id === 'membership:login' ||
@@ -341,11 +367,11 @@ function sanitizeMutationPayload<Type extends MutationType>(
     throw new Error(`Mutation ${type} requires an 11-digit phone number.`);
   }
 
-  const context = {phoneNumber};
+  const context = { phoneNumber };
 
   switch (type) {
     case 'refresh_membership':
-      return {context} as MutationPayloadByType[Type];
+      return { context } as MutationPayloadByType[Type];
     case 'start_membership_trial':
       if (!isObject(payload.currentState)) {
         throw new Error('Membership trial mutation requires currentState.');
@@ -356,7 +382,10 @@ function sanitizeMutationPayload<Type extends MutationType>(
         currentState: cloneCredentialFreeObject(payload.currentState),
       } as MutationPayloadByType[Type];
     case 'check_in_daily_progress':
-      if (typeof payload.dayKey !== 'string' || !isValidDayKey(payload.dayKey)) {
+      if (
+        typeof payload.dayKey !== 'string' ||
+        !isValidDayKey(payload.dayKey)
+      ) {
         throw new Error(
           'Daily check-in mutation requires a valid YYYY-MM-DD dayKey.',
         );
@@ -366,15 +395,25 @@ function sanitizeMutationPayload<Type extends MutationType>(
         context,
         dayKey: payload.dayKey,
       } as MutationPayloadByType[Type];
-    case 'sync_space_state':
-      if (!isObject(payload.snapshot)) {
-        throw new Error(`Mutation ${type} requires a snapshot.`);
+    case 'apply_space_action': {
+      const track = sanitizeOptionalTrack(payload.track);
+      const contentVersion = sanitizeOptionalContentVersion(
+        payload.contentVersion,
+      );
+
+      if ((track === null) !== (contentVersion === null)) {
+        throw new Error(
+          'Space action mutation scope must be complete or legacy-unbound.',
+        );
       }
 
       return {
+        action: sanitizeSpaceAction(payload.action),
+        contentVersion,
         context,
-        snapshot: cloneCredentialFreeObject(payload.snapshot),
+        track,
       } as MutationPayloadByType[Type];
+    }
   }
 }
 
@@ -426,9 +465,9 @@ function assertNoCredentialFields(value: unknown) {
 function isMutationType(value: unknown): value is MutationType {
   return (
     value === 'check_in_daily_progress' ||
+    value === 'apply_space_action' ||
     value === 'refresh_membership' ||
-    value === 'start_membership_trial' ||
-    value === 'sync_space_state'
+    value === 'start_membership_trial'
   );
 }
 
@@ -451,7 +490,7 @@ function migrateLegacyDailyProgressEntry(
   return {
     id: `check-in:${phoneNumber}:${dayKey}`,
     payload: {
-      context: {phoneNumber},
+      context: { phoneNumber },
       dayKey,
     },
     retryCount: entry.retryCount as number,
@@ -460,9 +499,191 @@ function migrateLegacyDailyProgressEntry(
   };
 }
 
-function isValidLegacyDailyProgressSnapshot(
-  value: unknown,
-): value is Record<string, unknown> & {
+function migrateLegacySpaceStateEntry(
+  entry: Record<string, unknown>,
+): MutationQueueEntry[] {
+  if (
+    !isObject(entry.payload) ||
+    !isObject(entry.payload.context) ||
+    typeof entry.payload.context.phoneNumber !== 'string' ||
+    !/^\d{11}$/.test(entry.payload.context.phoneNumber) ||
+    !isValidLegacySpaceStateSnapshot(entry.payload.snapshot)
+  ) {
+    return [];
+  }
+
+  const phoneNumber = entry.payload.context.phoneNumber;
+  const snapshot = entry.payload.snapshot;
+
+  return snapshot.states.flatMap((state, index) =>
+    (['favorite', 'sleep'] as const).map(dimension => {
+      const actionId = createLegacySpaceActionId({
+        cardId: state.cardId,
+        dimension,
+        entryId: entry.id as string,
+        index,
+        timestamp: state.lastModifiedAt,
+        value: dimension === 'favorite' ? state.isFavorited : state.isSleeping,
+      });
+      const action: SpaceAction = {
+        actionId,
+        cardId: state.cardId,
+        clientOccurredAt: state.lastModifiedAt,
+        dimension,
+        value: dimension === 'favorite' ? state.isFavorited : state.isSleeping,
+      };
+
+      return {
+        id: `space-action:${phoneNumber}:${actionId}`,
+        payload: {
+          action,
+          contentVersion: null,
+          context: { phoneNumber },
+          track: null,
+        },
+        retryCount: entry.retryCount as number,
+        timestamp: entry.timestamp as string,
+        type: 'apply_space_action',
+      };
+    }),
+  );
+}
+
+function isValidLegacySpaceStateSnapshot(value: unknown): value is {
+  dayKey: string;
+  states: Array<{
+    cardId: string;
+    isFavorited: boolean;
+    isSleeping: boolean;
+    lastModifiedAt: string;
+  }>;
+} {
+  if (
+    !isObject(value) ||
+    typeof value.dayKey !== 'string' ||
+    !isValidDayKey(value.dayKey) ||
+    !Array.isArray(value.states)
+  ) {
+    return false;
+  }
+
+  const seenCardIds = new Set<string>();
+
+  return value.states.every(state => {
+    if (
+      !isObject(state) ||
+      typeof state.cardId !== 'string' ||
+      !/^[0-9A-Za-z][0-9A-Za-z._:-]{0,127}$/.test(state.cardId) ||
+      seenCardIds.has(state.cardId) ||
+      typeof state.isFavorited !== 'boolean' ||
+      typeof state.isSleeping !== 'boolean' ||
+      typeof state.lastModifiedAt !== 'string' ||
+      !isValidRfc3339Timestamp(state.lastModifiedAt)
+    ) {
+      return false;
+    }
+
+    seenCardIds.add(state.cardId);
+    return true;
+  });
+}
+
+function createLegacySpaceActionId(input: {
+  cardId: string;
+  dimension: 'favorite' | 'sleep';
+  entryId: string;
+  index: number;
+  timestamp: string;
+  value: boolean;
+}) {
+  const seed = JSON.stringify(input);
+  return `legacy_${stableHash(seed)}_${stableHash(`v2:${seed}`)}`;
+}
+
+function stableHash(value: string) {
+  const modulus = 2 ** 32;
+  let hash = 5381;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 33 + value.charCodeAt(index)) % modulus;
+  }
+
+  return hash.toString(16).padStart(8, '0');
+}
+
+function sanitizeSpaceAction(value: unknown): SpaceAction {
+  if (!isObject(value)) {
+    throw new Error('Space action mutation requires an action object.');
+  }
+
+  const keys = Object.keys(value).sort();
+  const expectedKeys = [
+    'actionId',
+    'cardId',
+    'clientOccurredAt',
+    'dimension',
+    'value',
+  ];
+
+  if (
+    keys.length !== expectedKeys.length ||
+    keys.some((key, index) => key !== expectedKeys[index])
+  ) {
+    throw new Error('Space action mutation has unexpected action fields.');
+  }
+
+  if (
+    typeof value.actionId !== 'string' ||
+    !/^[0-9A-Za-z][0-9A-Za-z._:-]{0,127}$/.test(value.actionId) ||
+    typeof value.cardId !== 'string' ||
+    !/^[0-9A-Za-z][0-9A-Za-z._:-]{0,127}$/.test(value.cardId) ||
+    typeof value.clientOccurredAt !== 'string' ||
+    !isValidRfc3339Timestamp(value.clientOccurredAt) ||
+    (value.dimension !== 'favorite' && value.dimension !== 'sleep') ||
+    typeof value.value !== 'boolean'
+  ) {
+    throw new Error('Space action mutation contains an invalid action.');
+  }
+
+  return {
+    actionId: value.actionId,
+    cardId: value.cardId,
+    clientOccurredAt: new Date(value.clientOccurredAt).toISOString(),
+    dimension: value.dimension,
+    value: value.value,
+  };
+}
+
+function sanitizeOptionalTrack(value: unknown): LearningTrack | null {
+  if (value === null) {
+    return null;
+  }
+
+  if (value !== 'cet4' && value !== 'cet6') {
+    throw new Error('Space action mutation track must be cet4 or cet6.');
+  }
+
+  return value;
+}
+
+function sanitizeOptionalContentVersion(value: unknown): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(value)) {
+    throw new Error(
+      'Space action mutation contentVersion must be a SHA-256 identifier.',
+    );
+  }
+
+  return value;
+}
+
+function isValidLegacyDailyProgressSnapshot(value: unknown): value is Record<
+  string,
+  unknown
+> & {
   checkedInToday: true;
   dayKey: string;
 } {

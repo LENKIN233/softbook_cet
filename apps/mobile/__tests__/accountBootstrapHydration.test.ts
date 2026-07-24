@@ -129,9 +129,6 @@ test('reconciles same-day local state only after canonical read', () => {
       },
     },
   });
-  expect(result.spaceStateSyncKey).toBe(
-    JSON.stringify(bootstrap.space.snapshot),
-  );
 });
 
 test('preserves same-day check-in only when a durable command is pending', () => {
@@ -143,13 +140,13 @@ test('preserves same-day check-in only when a durable command is pending', () =>
       spaceCardStateById: {},
     },
     bootstrap,
-    {pendingCheckInDayKey: bootstrap.dayKey},
+    { pendingCheckInDayKey: bootstrap.dayKey },
   );
 
   expect(result.persistedUserState.checkedInDayKey).toBe(bootstrap.dayKey);
 });
 
-test('preserves a newer local explicit space action for later push', () => {
+test('discards unqueued local space state after a canonical read', () => {
   const bootstrap = createBootstrapFixture();
   const cardId = bootstrap.space.snapshot.states[0].cardId;
   const result = reconcileAccountBootstrap(
@@ -168,12 +165,39 @@ test('preserves a newer local explicit space action for later push', () => {
   );
 
   expect(result.persistedUserState.spaceCardStateById[cardId]).toMatchObject({
-    isFavorited: false,
-    isSleeping: true,
+    isFavorited: true,
+    isSleeping: false,
   });
-  expect(result.spaceStateSyncKey).toBe(
-    JSON.stringify(bootstrap.space.snapshot),
+});
+
+test('overlays only durable pending space actions on canonical state', () => {
+  const bootstrap = createBootstrapFixture();
+  const cardId = bootstrap.space.snapshot.states[0].cardId;
+  const result = reconcileAccountBootstrap(
+    {
+      checkedInDayKey: null,
+      learningCursor: null,
+      spaceCardStateById: {},
+    },
+    bootstrap,
+    {
+      pendingSpaceActions: [
+        {
+          actionId: 'space_pending_0001',
+          cardId,
+          clientOccurredAt: '2026-07-20T10:30:00.000Z',
+          dimension: 'sleep',
+          value: true,
+        },
+      ],
+    },
   );
+
+  expect(result.persistedUserState.spaceCardStateById[cardId]).toMatchObject({
+    isFavorited: true,
+    isSleeping: true,
+    lastModifiedAt: '2026-07-20T10:30:00.000Z',
+  });
 });
 
 test('restores canonical learning results against matching content', () => {

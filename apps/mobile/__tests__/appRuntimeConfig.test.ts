@@ -119,7 +119,7 @@ test('remote runtime profile switches every remote-capable surface to one base u
     endpoint: 'https://api.softbook.example/v2/progress/check-in',
   });
   expect(resolveSpaceStateRepositoryConfig(config).remoteConfig).toMatchObject({
-    endpoint: 'https://api.softbook.example/v1/space/state-sync',
+    endpoint: 'https://api.softbook.example/v2/space/actions',
   });
   expect(
     resolveLearningEventsRepositoryConfig(config).remoteConfig,
@@ -166,6 +166,19 @@ test('remote canonical bootstrap rejects an unversioned local card source', () =
     }),
   ).toThrow(
     'Remote account bootstrap requires learningSource to also be remote.',
+  );
+});
+
+test('remote space state rejects a local canonical bootstrap', () => {
+  expect(() =>
+    createSoftbookRemoteRuntimeConfig({
+      baseUrl: 'https://api.softbook.example',
+      featureModes: {
+        accountBootstrap: 'local',
+      },
+    }),
+  ).toThrow(
+    'Remote space state requires accountBootstrap to also be remote.',
   );
 });
 

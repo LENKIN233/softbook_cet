@@ -496,7 +496,7 @@ function readDailyCheckInRequest(init: MockFetchInit | undefined): {
     throw new Error('Test received an invalid daily-check-in.v2 request.');
   }
 
-  return {day_key: body.day_key};
+  return { day_key: body.day_key };
 }
 
 function createDailyCheckInResponse(init: MockFetchInit | undefined) {
@@ -508,6 +508,56 @@ function createDailyCheckInResponse(init: MockFetchInit | undefined) {
       checked_in_today: true,
       day_key: request.day_key,
       schema_version: 'daily-check-in.v2',
+    },
+  });
+}
+
+function createSpaceActionsAckResponse(init: MockFetchInit | undefined) {
+  const request = JSON.parse(String(init?.body)) as {
+    actions?: Array<{
+      action_id?: string;
+      card_id?: string;
+      client_occurred_at?: string;
+      dimension?: string;
+      value?: boolean;
+    }>;
+    content_version?: string;
+    schema_version?: string;
+    track?: string;
+  };
+
+  if (
+    request.schema_version !== 'space-actions.v2' ||
+    (request.track !== 'cet4' && request.track !== 'cet6') ||
+    typeof request.content_version !== 'string' ||
+    !Array.isArray(request.actions) ||
+    request.actions.length === 0
+  ) {
+    throw new Error('Test received an invalid space-actions.v2 request.');
+  }
+
+  return createJsonResponse({
+    data: {
+      acknowledged_at: new Date().toISOString(),
+      content_version: request.content_version,
+      results: request.actions.map(action => ({
+        action_id: action.action_id,
+        status: 'applied',
+      })),
+      schema_version: 'space-actions-ack.v2',
+      space_state: {
+        acknowledged_at: new Date().toISOString(),
+        content_version: request.content_version,
+        schema_version: 'space-state.v2',
+        states: request.actions.map(action => ({
+          card_id: action.card_id,
+          is_favorited: action.dimension === 'favorite' ? action.value : false,
+          is_sleeping: action.dimension === 'sleep' ? action.value : false,
+          last_modified_at: action.client_occurred_at,
+        })),
+        track: request.track,
+      },
+      track: request.track,
     },
   });
 }
@@ -652,8 +702,10 @@ function createAccountBootstrapPayload(
       },
       space: {
         acknowledged_at: null,
-        day_key: dayKey,
+        content_version: session.contentVersion ?? TEST_CONTENT_VERSION,
+        schema_version: 'space-state.v2',
         states: [],
+        track: session.track,
       },
     },
   };
@@ -1327,31 +1379,8 @@ test('wires remote auth, learning source config, membership, progress sync, and 
       return createLearningEventsAckResponse(init);
     }
 
-    if (
-      input.startsWith(
-        'https://api.softbook.example/v1/space/state-sync?day_key=',
-      )
-    ) {
-      return createJsonResponse({
-        data: {
-          space_state: {
-            day_key: new URL(input).searchParams.get('day_key'),
-            states: [],
-          },
-        },
-      });
-    }
-
-    if (input === 'https://api.softbook.example/v1/space/state-sync') {
-      const body = JSON.parse(String(init?.body));
-      return createJsonResponse({
-        data: {
-          space_state: {
-            day_key: body.day_key,
-            states: body.states,
-          },
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/space/actions') {
+      return createSpaceActionsAckResponse(init);
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -1469,8 +1498,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   ).toBe(false);
 
   const progressSyncRequest = fetchCalls.find(
-    call =>
-      call.input === 'https://api.softbook.example/v2/progress/check-in',
+    call => call.input === 'https://api.softbook.example/v2/progress/check-in',
   );
   expect(
     normalizeMockHeaders(progressSyncRequest?.init?.headers),
@@ -1524,15 +1552,29 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   ).toBe(false);
 
   const spaceSyncRequest = fetchCalls.find(
-    call => call.input === 'https://api.softbook.example/v1/space/state-sync',
+    call => call.input === 'https://api.softbook.example/v2/space/actions',
   );
   expect(normalizeMockHeaders(spaceSyncRequest?.init?.headers)).toMatchObject({
     authorization: 'Bearer remote-auth-token',
     'content-type': 'application/json',
     'x-api-key': 'profile-key',
   });
-  expect(spaceSyncRequest?.init?.body).toContain('"states"');
-  expect(spaceSyncRequest?.init?.body).toContain('"is_favorited":true');
+  const spaceActionBody = JSON.parse(String(spaceSyncRequest?.init?.body));
+  expect(spaceActionBody).toMatchObject({
+    schema_version: 'space-actions.v2',
+    track: 'cet4',
+    content_version: TEST_CONTENT_VERSION,
+    actions: [
+      {
+        card_id: expect.any(String),
+        dimension: 'favorite',
+        value: true,
+      },
+    ],
+  });
+  expect(spaceSyncRequest?.init?.body).not.toMatch(
+    /phone|day_key|states|authToken|access_token/,
+  );
   expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
 });
 
@@ -1637,8 +1679,8 @@ test('fails closed when refreshed bootstrap still disagrees with learning-sessio
       await flushAsyncEffects();
     });
     if (
-      root.findAllByProps({ testID: 'learning-bootstrap-retry-button' }).length >
-      0
+      root.findAllByProps({ testID: 'learning-bootstrap-retry-button' })
+        .length > 0
     ) {
       break;
     }
@@ -1848,13 +1890,8 @@ test('blocks product state writes until canonical bootstrap succeeds on reconnec
       acceptedLearningEvents.push(...readLearningEventsRequest(init).events);
       return createLearningEventsAckResponse(init);
     }
-    if (input === 'https://api.softbook.example/v1/space/state-sync') {
-      const body = JSON.parse(String(init?.body));
-      return createJsonResponse({
-        data: {
-          space_state: { day_key: body.day_key, states: body.states },
-        },
-      });
+    if (input === 'https://api.softbook.example/v2/space/actions') {
+      return createSpaceActionsAckResponse(init);
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -1931,8 +1968,7 @@ test('blocks product state writes until canonical bootstrap succeeds on reconnec
     ).toBe(false);
     expect(
       fetchCalls.some(
-        call =>
-          call.input === 'https://api.softbook.example/v1/space/state-sync',
+        call => call.input === 'https://api.softbook.example/v2/space/actions',
       ),
     ).toBe(true);
   } finally {
@@ -2190,6 +2226,7 @@ test('does not start a remote trial before bootstrap content is validated', asyn
         'trial_available',
       );
       payload.data.content.version = `sha256:${'b'.repeat(64)}`;
+      payload.data.space.content_version = `sha256:${'b'.repeat(64)}`;
       return createJsonResponse(payload);
     }
 
@@ -2803,15 +2840,14 @@ test('replays an explicit queued check-in and confirms it through bootstrap afte
 test('keeps an acknowledged check-in pending when canonical bootstrap does not confirm it', async () => {
   let checkInRequestCount = 0;
 
-  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ =
-    createSoftbookRemoteRuntimeConfig({
-      baseUrl: 'https://api.softbook.example',
-      featureModes: {
-        learningState: 'local',
-        membership: 'local',
-        spaceState: 'local',
-      },
-    });
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      learningState: 'local',
+      membership: 'local',
+      spaceState: 'local',
+    },
+  });
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     if (input === 'https://api.softbook.example/v2/auth/request-code') {
       return createRemoteAuthChallengeResponse();
@@ -2837,15 +2873,15 @@ test('keeps an acknowledged check-in pending when canonical bootstrap does not c
   const root = tree!.root;
   await loginIntoLearningFlow(root);
   await ReactTestRenderer.act(() => {
-    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
   });
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({testID: 'learning-flip-confident-button'})
+      .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
   await ReactTestRenderer.act(() => {
-    root.findByProps({testID: 'learning-next-button'}).props.onPress();
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
   await openRoute(root, 'statistics');
 
@@ -2860,26 +2896,25 @@ test('keeps an acknowledged check-in pending when canonical bootstrap does not c
   expect(output).toContain('待确认');
   expect(output).toContain('等待重新确认');
   expect(
-    root.findByProps({testID: 'statistics-checkin-complete-label'}),
+    root.findByProps({ testID: 'statistics-checkin-complete-label' }),
   ).toBeTruthy();
-  expect(
-    await AsyncStorage.getItem('__softbook_mutation_queue'),
-  ).not.toContain('check_in_daily_progress');
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).not.toContain(
+    'check_in_daily_progress',
+  );
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
 test('does not mark check-in complete when durable mutation storage fails', async () => {
   const checkInRequests: MockFetchCall[] = [];
 
-  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ =
-    createSoftbookRemoteRuntimeConfig({
-      baseUrl: 'https://api.softbook.example',
-      featureModes: {
-        learningState: 'local',
-        membership: 'local',
-        spaceState: 'local',
-      },
-    });
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      learningState: 'local',
+      membership: 'local',
+      spaceState: 'local',
+    },
+  });
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     if (input === 'https://api.softbook.example/v2/auth/request-code') {
       return createRemoteAuthChallengeResponse();
@@ -2891,7 +2926,7 @@ test('does not mark check-in complete when durable mutation storage fails', asyn
       return createJsonResponse(createAccountBootstrapPayload());
     }
     if (input === 'https://api.softbook.example/v2/progress/check-in') {
-      checkInRequests.push({init, input});
+      checkInRequests.push({ init, input });
       return createDailyCheckInResponse(init);
     }
 
@@ -2905,15 +2940,15 @@ test('does not mark check-in complete when durable mutation storage fails', asyn
   const root = tree!.root;
   await loginIntoLearningFlow(root);
   await ReactTestRenderer.act(() => {
-    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+    root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
   });
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({testID: 'learning-flip-confident-button'})
+      .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
   await ReactTestRenderer.act(() => {
-    root.findByProps({testID: 'learning-next-button'}).props.onPress();
+    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
   await openRoute(root, 'statistics');
 
@@ -2940,6 +2975,69 @@ test('does not mark check-in complete when durable mutation storage fails', asyn
       findPressableByTestId(root, 'statistics-checkin-button').props.disabled,
     ).toBe(false);
     expect(checkInRequests).toHaveLength(0);
+  } finally {
+    setItemMock.mockImplementation(originalSetItem!);
+  }
+});
+
+test('does not apply a remote space action when durable mutation storage fails', async () => {
+  const spaceActionRequests: MockFetchCall[] = [];
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      learningState: 'local',
+      membership: 'local',
+      progressSync: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(createAccountBootstrapPayload());
+    }
+    if (input === 'https://api.softbook.example/v2/space/actions') {
+      spaceActionRequests.push({ init, input });
+      return createSpaceActionsAckResponse(init);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  const setItemMock = jest.mocked(AsyncStorage.setItem);
+  const originalSetItem = setItemMock.getMockImplementation();
+  setItemMock.mockImplementation((key, value) => {
+    if (key === '__softbook_mutation_queue') {
+      return Promise.reject(new Error('durable storage unavailable'));
+    }
+
+    return originalSetItem!(key, value);
+  });
+
+  try {
+    await ReactTestRenderer.act(async () => {
+      root.findByProps({ testID: 'learning-favorite-button' }).props.onPress();
+      await flushAsyncEffects();
+    });
+
+    expect(
+      root
+        .findByProps({ testID: 'learning-favorite-button' })
+        .findByType(Text).props.children,
+    ).toBe('收藏');
+    expect(spaceActionRequests).toHaveLength(0);
   } finally {
     setItemMock.mockImplementation(originalSetItem!);
   }
@@ -3181,39 +3279,16 @@ test('invalidates an acknowledged selection until post-ack bootstrap recovery lo
   warn.mockRestore();
 });
 
-test('replays queued space state after network reconnect', async () => {
+test('replays a queued space action after network reconnect', async () => {
   const { emitNetInfoState } = jest.requireMock(
     '@react-native-community/netinfo',
   );
   let shouldFailSpaceSync = true;
   const fetchCalls: MockFetchCall[] = [];
 
-  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
-    auth: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    learningSource: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    membership: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    spaceState: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-  };
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+  });
 
   mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     fetchCalls.push({ init, input });
@@ -3230,32 +3305,14 @@ test('replays queued space state after network reconnect', async () => {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
-    if (
-      input.startsWith(
-        'https://api.softbook.example/v1/space/state-sync?day_key=',
-      )
-    ) {
-      return createJsonResponse({
-        data: {
-          space_state: {
-            day_key: new URL(input).searchParams.get('day_key'),
-            states: [],
-          },
-        },
-      });
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(createAccountBootstrapPayload());
     }
 
-    if (input === 'https://api.softbook.example/v1/space/state-sync') {
+    if (input === 'https://api.softbook.example/v2/space/actions') {
       return shouldFailSpaceSync
         ? createJsonResponse({}, 503)
-        : createJsonResponse({
-            data: {
-              space_state: {
-                day_key: JSON.parse(String(init?.body)).day_key,
-                states: JSON.parse(String(init?.body)).states,
-              },
-            },
-          });
+        : createSpaceActionsAckResponse(init);
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -3297,11 +3354,11 @@ test('replays queued space state after network reconnect', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('空间状态已同步');
-  expect(output).toContain('网络恢复后，空间收藏和休眠状态已同步。');
+  expect(output).toContain('空间收藏和休眠状态已由服务端确认。');
 
   expect(
     fetchCalls.filter(
-      call => call.input === 'https://api.softbook.example/v1/space/state-sync',
+      call => call.input === 'https://api.softbook.example/v2/space/actions',
     ).length,
   ).toBeGreaterThanOrEqual(2);
 });
@@ -5004,6 +5061,32 @@ test('can move a card into sleep zone and remove it from learning flow', async (
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('The committee postponed the vote');
   expect(output).not.toContain('短对话里听到 however');
+});
+
+test('preserves favorite and sleep actions completed in one render turn', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await startTrialFromProtectedEntry(root, 'space');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-favorite-1' }).props.onPress();
+    root.findByProps({ testID: 'space-sleep-1' }).props.onPress();
+  });
+
+  expect(
+    root.findAllByProps({ testID: 'space-favorite-active-1' }).length,
+  ).toBeGreaterThan(0);
+  expect(JSON.stringify(tree!.toJSON())).toContain('移出休眠');
+
+  await openRoute(root, 'mine');
+  expect(readMetricValue(root, 'mine-metric-favorites')).toBe('1');
+  expect(readMetricValue(root, 'mine-metric-sleeping')).toBe('1');
 });
 
 test('keeps completed progress after changing sleep state', async () => {
