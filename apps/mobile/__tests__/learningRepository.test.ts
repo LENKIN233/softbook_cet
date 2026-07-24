@@ -98,6 +98,7 @@ test('local learning session repository loads a usable session', async () => {
 
   expect(session.track).toBe('cet4');
   expect(session.contentVersion).toBeNull();
+  expect(session.membershipStage).toBeNull();
   expect(session.schedulingMode).toBe('local');
   expect(session.serverSelection).toBeNull();
   expect(session.cards).toHaveLength(5);
@@ -144,6 +145,7 @@ test('remote repository renders only the server-selected canonical card', async 
 
   expect(session).toMatchObject({
     contentVersion: CONTENT_VERSION,
+    membershipStage: 'trial',
     nextDueAt: null,
     schedulingMode: 'server',
     serverSelection: {

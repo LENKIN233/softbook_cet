@@ -226,6 +226,11 @@ does not choose another card by local membership, sleep, review, interaction,
 or catalog order. `selection: null` is a valid server result and cannot trigger
 local-card fallback.
 
+When the response membership stage differs from the bootstrap snapshot, such as
+the first session changing `trial_available` to `trial`, mobile refreshes and
+verifies canonical bootstrap before presenting the session. It does not
+synthesize entitlement details from the session response.
+
 The opaque `selection_id`, server phase, selected card, and content version are
 persisted in `learning-event-outbox.v2` before the completed card leaves its
 result state. One pending unseen event blocks another completion. After a strict
@@ -412,6 +417,7 @@ x-api-key: <optional>
   "events": [
     {
       "event_id": "event_install_example_1",
+      "selection_id": "sel_01J0EXAMPLESELECTION",
       "card_id": "100101",
       "interaction_id": "flip",
       "phase": "learning",
@@ -443,8 +449,8 @@ Authenticated startup reads the account outbox count alongside bootstrap. If a
 pending event survived a process restart, the stale card may render for content
 validation but cannot advance again; exact replay, strict acknowledgement, and
 post-acknowledgement bootstrap mapping must finish first. This recovery guard
-does not prevent multiple events created during the same already-validated
-offline session from batching.
+allows exact duplicate replay plus at most one unseen selection-bound event; the
+mobile client never creates multiple unseen events during one offline session.
 
 ### Space State Sync
 

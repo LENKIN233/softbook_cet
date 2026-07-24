@@ -651,6 +651,7 @@ function createRemoteCatalogSession(): LearningSession {
     catalogCards: [remoteCard],
     cards: [remoteCard],
     contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'free',
     nextDueAt: null,
     schedulingMode: 'server',
     serverSelection: {
@@ -1494,6 +1495,124 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
 });
 
+test('refreshes canonical membership when learning-session starts the trial', async () => {
+  let bootstrapRequestCount = 0;
+  const trialSession = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'trial' as const,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      return createJsonResponse(
+        createAccountBootstrapPayload(
+          trialSession,
+          bootstrapRequestCount === 1 ? 'trial_available' : 'trial',
+        ),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(trialSession);
+  await waitForLearningSurface(root);
+
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  await openRoute(root, 'mine');
+  expect(
+    root.findByProps({ testID: 'mine-membership-stage' }).props.children,
+  ).toBe('完整试用进行中');
+  expect(
+    root.findAllByProps({ testID: 'membership-start-trial-button' }),
+  ).toHaveLength(0);
+});
+
+test('fails closed when refreshed bootstrap still disagrees with learning-session membership', async () => {
+  let bootstrapRequestCount = 0;
+  const trialSession = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'trial' as const,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      return createJsonResponse(
+        createAccountBootstrapPayload(trialSession, 'trial_available'),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(trialSession);
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    if (
+      root.findAllByProps({ testID: 'learning-bootstrap-retry-button' }).length >
+      0
+    ) {
+      break;
+    }
+  }
+
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(root.findAllByProps({ testID: 'learning-flip-button' })).toHaveLength(
+    0,
+  );
+  expect(
+    root.findAllByProps({ testID: 'learning-bootstrap-retry-button' }).length,
+  ).toBeGreaterThan(0);
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
 test('submits the server review phase with the exact active selection', async () => {
   const learningEventRequests: MockLearningEventsRequest[] = [];
   const baseSession = createLocalLearningSession('cet4');
@@ -1502,6 +1621,7 @@ test('submits the server review phase with the exact active selection', async ()
     ...baseSession,
     cards: [selectedCard],
     contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'premium',
     nextDueAt: null,
     schedulingMode: 'server',
     serverSelection: {
@@ -1583,6 +1703,7 @@ test('keeps a remote null selection empty without local card or sleep fallback',
     ...baseSession,
     cards: [],
     contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'premium',
     nextDueAt: '2026-07-25T08:00:00.000Z',
     schedulingMode: 'server',
     serverSelection: null,

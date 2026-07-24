@@ -348,6 +348,7 @@
     },
     "mobile_binding_contract": {
       "session_read_rule": "remote mobile learning reads authenticated learning-session.v1 and the canonical card source, requires matching track, source_id, and content_version, and resolves only the returned card_id; it never applies client membership, sleep, review, or catalog ordering to replace the server selection",
+      "membership_reconciliation_rule": "when learning-session.v1 membership_stage differs from the bootstrap snapshot, remote mobile refreshes canonical bootstrap and requires the exact stage before presenting the selection; it never synthesizes entitlement counters or dates from the session response",
       "completion_rule": "the mobile completion event copies the returned selection_id and phase and must match the selected card and exact content version before durable enqueue",
       "advance_rule": "after durable enqueue the completed card may leave the interaction surface, but no next card is selected until strict event acknowledgement, bootstrap reconciliation, and a fresh learning-session.v1 read",
       "offline_rule": "a previously validated cached selection and matching content may be answered once offline; without that pair learning stays blocked, and no second card may be selected locally",

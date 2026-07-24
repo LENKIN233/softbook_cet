@@ -155,9 +155,12 @@ export type LearningServerSelection = {
   selectionId: string;
 };
 
+export type LearningServerMembershipStage = 'trial' | 'free' | 'premium';
+
 export type LearningSession = {
   catalogCards: LearningCard[];
   contentVersion: string | null;
+  membershipStage: LearningServerMembershipStage | null;
   nextDueAt: string | null;
   schedulingMode: 'local' | 'server';
   serverSelection: LearningServerSelection | null;

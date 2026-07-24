@@ -833,6 +833,7 @@ def learning_events_contract_findings(
         "at_most_one_unseen_event_per_request",
         "pending_event_blocks_second_card_completion",
         "post_ack_bootstrap_and_fresh_session_before_next_card",
+        "learning_session_membership_stage_drift_requires_canonical_bootstrap_refresh",
         "remote_null_selection_never_falls_back_to_client_ordering",
         "repository_local_binding_is_not_deployment_or_launch_readiness",
     ]
@@ -853,6 +854,7 @@ def learning_events_contract_findings(
         "at_most_one_unseen_event_and_exact_duplicates_remain_idempotent",
         "pending_event_blocks_second_completion",
         "post_ack_bootstrap_then_fresh_session_before_next_card",
+        "learning_session_membership_stage_drift_requires_canonical_bootstrap_refresh",
         "stale_session_or_auth_response_cannot_replace_current_session",
         "prebinding_outbox_v1_is_removed_without_replay",
         "local_mode_preserves_development_five_interaction_session",
@@ -1116,6 +1118,15 @@ def learning_scheduler_contract_findings(
             "the mobile completion event copies the returned selection_id and phase and must match the selected card and exact content version before durable enqueue",
         ),
         (
+            "mobile membership reconciliation",
+            (
+                "server_scheduler_v1",
+                "mobile_binding_contract",
+                "membership_reconciliation_rule",
+            ),
+            "when learning-session.v1 membership_stage differs from the bootstrap snapshot, remote mobile refreshes canonical bootstrap and requires the exact stage before presenting the selection; it never synthesizes entitlement counters or dates from the session response",
+        ),
+        (
             "mobile next-card binding",
             (
                 "server_scheduler_v1",
@@ -1267,6 +1278,11 @@ def learning_scheduler_contract_findings(
             "authenticated_session_and_card_source_must_match_track_source_and_content_then_only_server_selected_card_is_rendered_and_selection_id_is_durably_submitted",
         ),
         (
+            "scheduler runtime mobile membership reconciliation",
+            ("scheduler_runtime", "mobile_membership_reconciliation"),
+            "session_stage_drift_requires_verified_canonical_bootstrap_refresh_before_presenting_selection",
+        ),
+        (
             "scheduler runtime deployment",
             ("scheduler_runtime", "deployment_status"),
             "not_deployed_by_repository_change",
@@ -1365,6 +1381,7 @@ def learning_scheduler_contract_findings(
         "and its `next_due_at` receive the same transactional watermark",
         "This backend and the mobile binding are repository-local and not deployed.",
         "Remote mobile learning fetches `learning-session.v1`",
+        "requires the canonical stage to match before presenting the session.",
         "pending unseen event blocks a second completion.",
         "This contract does not prove:",
         "deployed mobile/backend integration or release validation",

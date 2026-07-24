@@ -24,6 +24,7 @@ export function createLearningSession(
   return {
     catalogCards: orderedCards,
     contentVersion,
+    membershipStage: null,
     nextDueAt: null,
     schedulingMode: 'local',
     serverSelection: null,

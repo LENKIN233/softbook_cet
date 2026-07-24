@@ -218,6 +218,11 @@ source under the same authenticated session. It requires exact track,
 review policy. `selection: null` is valid and never triggers bundled-card
 fallback.
 
+If `membership_stage` differs from the bootstrap snapshot because the session
+activated or observed a newer entitlement, mobile refreshes bootstrap and
+requires the canonical stage to match before presenting the session. It never
+constructs entitlement counters or dates from the session response.
+
 Completion persists `selection_id`, selected card, server phase, exact content
 version, event ID, and installation cursor before leaving the result state. A
 pending unseen event blocks a second completion. Only after strict

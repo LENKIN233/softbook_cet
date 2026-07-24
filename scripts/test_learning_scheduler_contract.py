@@ -278,6 +278,10 @@ class LearningSchedulerContractTests(unittest.TestCase):
         early_advance["server_scheduler_v1"]["mobile_binding_contract"][
             "advance_rule"
         ] = "choose the next local card before acknowledgement"
+        stale_membership = copy.deepcopy(self.auth)
+        stale_membership["server_scheduler_v1"]["mobile_binding_contract"][
+            "membership_reconciliation_rule"
+        ] = "trust the stale bootstrap or invent local entitlement details"
         unbound_runtime = copy.deepcopy(self.runtime)
         unbound_runtime["scheduler_runtime"][
             "mobile_session_binding"
@@ -290,6 +294,10 @@ class LearningSchedulerContractTests(unittest.TestCase):
         self.assert_finding(
             self.findings(auth=early_advance),
             "mobile next-card binding",
+        )
+        self.assert_finding(
+            self.findings(auth=stale_membership),
+            "mobile membership reconciliation",
         )
         self.assert_finding(
             self.findings(runtime=unbound_runtime),

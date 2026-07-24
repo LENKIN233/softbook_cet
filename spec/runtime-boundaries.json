@@ -133,6 +133,7 @@
     "exact_same_card_cross_device_resume_required": false,
     "mobile_session_binding_status": "implemented_locally_not_deployed",
     "mobile_session_binding": "authenticated_session_and_card_source_must_match_track_source_and_content_then_only_server_selected_card_is_rendered_and_selection_id_is_durably_submitted",
+    "mobile_membership_reconciliation": "session_stage_drift_requires_verified_canonical_bootstrap_refresh_before_presenting_selection",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"
   },

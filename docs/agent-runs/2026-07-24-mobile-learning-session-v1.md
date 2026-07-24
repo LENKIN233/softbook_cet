@@ -4,7 +4,7 @@
 
 - Date: 2026-07-24
 - Branch: `module/mobile-learning-session-v1`
-- PR: pending
+- PR: `#440`
 - Product-owner decision: the user explicitly approved this repository-local learning-session binding slice. This is not formal card-content approval or launch approval.
 - Summary: Complete the repository-local mobile `learning-session.v1` consumer and bind every unseen `learning-events.v2` completion to the exact server selection, while preserving fail-closed recovery and non-deployment boundaries.
 
@@ -42,6 +42,7 @@
 - Replaced the unbound v1 outbox with `learning-event-outbox.v2`; v1 data is removed without replay.
 - Restricted the mobile outbox to one pending unseen completion per account. Acknowledgement, bootstrap reconciliation, and a fresh session read are required before another completion.
 - Invalidated the consumed session immediately after acknowledgement, including when post-ack bootstrap fails, so a later recovery cannot reuse the old selection.
+- Reconciled session-observed membership stage changes through a fresh canonical bootstrap before presenting the selected card; the client never invents entitlement counters or dates from the session response.
 - The backend transaction now accepts at most one unseen event and requires exact current account/track selection ID, source, card, phase, and content version before any write. Exact duplicates remain valid after cursor clearing.
 - Recalculated the maximum tested CloudBase transaction fixture to 29 operations for first-event migration and for 8 exact duplicates plus one unseen selection.
 
@@ -63,11 +64,11 @@
 
 - `npm run typecheck` in `apps/mobile` -> passed.
 - `npm run lint -- --quiet` in `apps/mobile` -> passed with zero errors.
-- `npm test -- --runInBand --watchAll=false --no-watchman` in `apps/mobile` -> 38 suites and 331 tests passed.
+- `npm test -- --runInBand --watchAll=false --no-watchman` in `apps/mobile` -> 38 suites and 333 tests passed.
 - `npm test` in `infra/cloudbase/functions/softbook-api` -> 95 tests passed.
 - `PYTHONPATH=scripts python3 -m unittest scripts.test_learning_events_contract scripts.test_learning_scheduler_contract` -> 23 tests passed.
 - `python3 scripts/validate_harness.py --mode local --profile` -> all 15 selected local sections passed; local-mode completeness correctly remained partial because the remote guard was not executed.
-- `./scripts/run_local_gates --profile dev --output exports/local-gates/mobile-learning-session-v1-final-dev.json` -> complete `passed_with_exception`; 17 checks passed and the only exception was the allowed dev-only Node 25.9.0 versus 22.13.0 drift. The tracked worktree digest was unchanged.
+- `./scripts/run_local_gates --profile dev --output exports/local-gates/mobile-learning-session-v1-review-final-dev.json` -> complete `passed_with_exception`; 17 checks passed and the only exception was the allowed dev-only Node 25.9.0 versus 22.13.0 drift. The tracked worktree digest was unchanged.
 - `git diff --check` -> passed.
 
 ## Validation results
@@ -76,7 +77,9 @@
 - App integration proves learning and review phases copy the exact active selection, `selection: null` never uses local or sleep fallback, storage failure does not advance, and one pending event blocks another completion.
 - Restart recovery proves v1 outbox entries are deleted without network replay and v2 entries replay byte-equivalently.
 - Post-ack recovery proves a failed bootstrap leaves no reusable server selection and a successful retry reads a fresh selection before another completion.
+- Membership reconciliation proves a first session that activates trial refreshes canonical bootstrap before presentation, while persistent session/bootstrap disagreement fails closed.
 - Backend tests prove stale, missing, cross-account, cross-track, wrong-card, wrong-phase, wrong-content, and multiple-unseen requests fail atomically; duplicate replay remains idempotent.
+- Runtime examples now include `selection_id` and explicitly prohibit multiple unseen offline completions, matching the executable contract.
 - Formal card approval and launch-readiness files were not updated.
 
 ## Binary evidence
@@ -86,9 +89,10 @@
 
 ## Agent review status
 
-- Reviewer: pending
-- Status: Pending
-- Blocking findings: review not yet performed against the committed PR diff.
+- Reviewer: Codex
+- Status: Passed locally after full diff inspection, focused and full mobile tests, backend tests, contract regressions, Harness validation, dev gates, and whitespace validation.
+- Blocking findings: none.
+- Findings resolved before pass: post-ack session reuse after bootstrap failure; invalid membership/access combinations; stale transaction-operation and runtime documentation; trial-stage drift between `learning-session.v1` and canonical bootstrap; and obsolete offline batching language.
 
 ## User-visible UI impact
 
@@ -110,6 +114,6 @@
 
 ## Follow-up
 
-- Complete final local Harness and dev-gate reruns.
-- Commit, push, open the PR, perform Agent review, record the passed review and explicit product-owner approval, and run strict PR gates.
-- Merge only after required GitHub checks pass, then fast-forward the clean local `main` and verify post-merge state.
+- Commit and push the final review fixes and this review record.
+- Update PR `#440`, run strict pinned-toolchain PR gates, and approve only its protected formal-approval environment.
+- Merge only after required GitHub checks pass, then fast-forward any clean local `main` worktree and verify post-merge state.

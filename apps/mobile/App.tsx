@@ -2418,8 +2418,39 @@ function AppShell({
 
     learningSessionRepository
       .loadSession(authenticatedRuntimeContext, learningTrack)
-      .then(session => {
+      .then(async session => {
         if (isCancelled) {
+          return;
+        }
+
+        if (
+          runtimeAccountBootstrapMode === 'remote' &&
+          accountBootstrapSnapshot !== null &&
+          session.membershipStage !== null &&
+          accountBootstrapSnapshot.membership.state.stage !==
+            session.membershipStage
+        ) {
+          const bootstrapRefreshed = await retryCanonicalAccountBootstrap();
+
+          if (isCancelled) {
+            return;
+          }
+
+          if (
+            !bootstrapRefreshed ||
+            accountBootstrapSnapshotRef.current?.membership.state.stage !==
+              session.membershipStage
+          ) {
+            throw new Error(
+              'Canonical membership did not reconcile with the learning session.',
+            );
+          }
+
+          setLearningSession(null);
+          setLearningCardState(null);
+          setMappedAccountBootstrapSnapshot(null);
+          setLearningBootstrapStatus('idle');
+          setLearningBootstrapError(null);
           return;
         }
 
@@ -2519,6 +2550,7 @@ function AppShell({
     learningSessionRepository,
     membershipState,
     readSpaceCardState,
+    retryCanonicalAccountBootstrap,
     runtimeAccountBootstrapMode,
   ]);
 

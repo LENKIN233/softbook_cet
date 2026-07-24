@@ -109,6 +109,7 @@ export function createLearningSessionRepository(
           cards: selectedCardIndex < 0 ? [] : [source.cards[selectedCardIndex]],
           catalogCards: source.cards,
           contentVersion: scheduled.contentVersion,
+          membershipStage: scheduled.membershipStage,
           nextDueAt: scheduled.nextDueAt,
           schedulingMode: 'server',
           serverSelection: scheduled.selection,
