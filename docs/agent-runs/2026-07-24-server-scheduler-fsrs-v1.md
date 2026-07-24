@@ -73,6 +73,7 @@
 - `python scripts/validate_harness.py --mode full` -> passed the complete local and remote-semantics Harness.
 - `./scripts/run_local_gates --profile dev` with Python 3.12.13 and Node 22.13.0 -> 18/18 checks passed with no exception, skip, or deferred result; report at ignored path `exports/local-gates/20260724T015323Z-9794caab-dev-14046/report.json`.
 - Initial `./scripts/run_local_gates --profile pr --base origin/main --pr 439` -> 28/30 checks passed; the only failures were the intentionally pending Agent review and a missing local topic-branch fetch mapping. The exact branch mapping was restored before the final PR-profile rerun.
+- Final `./scripts/run_local_gates --profile pr --base origin/main --pr 439` with Python 3.12.13, Node 22.13.0, and Ruby 3.3.12 -> 30/30 checks passed with no exception, skip, or deferred result; report at ignored path `exports/local-gates/20260724T020045Z-f7b1a757-pr-24706/report.json`.
 - `node --test scripts/test_classify_formal_approval_scope.mjs` -> 10 tests passed.
 - `npm ci` followed by `bundle exec pod install --project-directory=ios --deployment` with Node 22.13.0 and Ruby 3.3.12 -> passed; no tracked file changed.
 - `git diff --check` -> passed.
@@ -120,5 +121,5 @@
 
 ## Follow-up
 
-- Complete the final strict PR rerun, required GitHub checks, formal approval, merge, and post-merge `main` verification.
+- Complete required GitHub checks, formal approval, merge, and post-merge `main` verification.
 - Implement mobile learning-session consumption and selection binding in a separate reviewed slice.
