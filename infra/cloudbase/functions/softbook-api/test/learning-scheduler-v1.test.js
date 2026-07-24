@@ -868,8 +868,9 @@ test('a sequence-zero legacy card is immediately review-eligible without invente
   const session = await authenticatedSession(api, '127.0.0.7');
   const source = await cardSource(api, session);
   const card = source.card_records[0];
-  const migrated = await request(api, {
-    body: {
+  await store.seedLegacyLearningStateForMigrationTest(
+    PHONE,
+    {
       day_key: DAY_KEY,
       events: [
         {
@@ -885,16 +886,12 @@ test('a sequence-zero legacy card is immediately review-eligible without invente
           used_peek: false,
         },
       ],
-      phone_number: PHONE,
       source_id: source.source.id,
       source_label: source.source.label,
       track: 'cet4',
     },
-    headers: {authorization: `Bearer ${session.access_token}`},
-    method: 'POST',
-    path: '/v1/learning/state-sync',
-  });
-  assert.equal(migrated.statusCode, 200);
+    START_TIME.toISOString(),
+  );
 
   const selected = await learningSession(api, session);
   assert.equal(selected.statusCode, 200, JSON.stringify(selected.body));

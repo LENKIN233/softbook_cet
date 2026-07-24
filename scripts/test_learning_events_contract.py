@@ -14,6 +14,7 @@ from harness_validator.sections.product_contract_mirrors import (
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = ROOT / "spec"
 RUNTIME_CONTRACT = ROOT / "infra/cloudbase/learning-events-v2-runtime-contract.md"
+PROVISION = ROOT / "infra/cloudbase/provision-softbook-nosql.mjs"
 
 
 def load_json(name: str):
@@ -28,6 +29,7 @@ class LearningEventsContractTests(unittest.TestCase):
         self.evals = load_json("evals.json")
         self.runtime_text = RUNTIME_CONTRACT.read_text(encoding="utf-8")
         self.agent_entry_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        self.provision_text = PROVISION.read_text(encoding="utf-8")
 
     def findings(
         self,
@@ -38,6 +40,7 @@ class LearningEventsContractTests(unittest.TestCase):
         evals=None,
         text=None,
         agent_entry_text=None,
+        provision_text=None,
     ):
         return learning_events_contract_findings(
             auth if auth is not None else self.auth,
@@ -48,6 +51,9 @@ class LearningEventsContractTests(unittest.TestCase):
             agent_entry_text
             if agent_entry_text is not None
             else self.agent_entry_text,
+            provision_text
+            if provision_text is not None
+            else self.provision_text,
         )
 
     def assert_finding(self, findings, marker):
@@ -352,7 +358,7 @@ class LearningEventsContractTests(unittest.TestCase):
             "runtime contract missing exact snippet",
         )
 
-    def test_migrated_daily_bridge_cannot_regain_learning_authority(self):
+    def test_disabled_v1_snapshots_cannot_regain_write_authority(self):
         weakened = copy.deepcopy(self.auth)
         weakened["learning_events_v2"]["migration_boundary"][
             "migrated_account_write_rule"
@@ -362,7 +368,7 @@ class LearningEventsContractTests(unittest.TestCase):
             item for item in missing_eval["golden_tasks"] if item["id"] == "GT-29"
         )
         gt29["must_include"].remove(
-            "migrated_daily_progress_cannot_override_v2_learning_or_space_counts"
+            "v2_check_in_is_monotonic_and_cannot_override_learning_or_space_counts"
         )
 
         self.assert_finding(
@@ -372,6 +378,105 @@ class LearningEventsContractTests(unittest.TestCase):
         self.assert_finding(
             self.findings(evals=missing_eval),
             "GT-29 must_include drift",
+        )
+
+    def test_daily_check_in_owner_runtime_evals_and_document_are_required(self):
+        snapshot_command = copy.deepcopy(self.auth)
+        snapshot_command["daily_check_in_v2"]["command_contract"][
+            "required_fields"
+        ].append("total_completed_count")
+        legacy_runtime = copy.deepcopy(self.runtime)
+        legacy_runtime["daily_check_in_runtime"][
+            "endpoint"
+        ] = "POST /v1/progress/daily-sync"
+        unsafe_storage_adapter = copy.deepcopy(self.auth)
+        unsafe_storage_adapter["daily_check_in_v2"]["command_contract"][
+            "storage_adapter_rule"
+        ] = "accept arbitrary CloudBase metadata"
+        missing_hr42 = copy.deepcopy(self.evals)
+        missing_hr42["regressions"] = [
+            item for item in missing_hr42["regressions"] if item["id"] != "HR-42"
+        ]
+        missing_gt33 = copy.deepcopy(self.evals)
+        missing_gt33["golden_tasks"] = [
+            item for item in missing_gt33["golden_tasks"] if item["id"] != "GT-33"
+        ]
+        hidden_strict_body = self.runtime_text.replace(
+            'the exact body `{"day_key":"YYYY-MM-DD"}`',
+            "a client-authored daily progress snapshot",
+        )
+
+        self.assert_finding(
+            self.findings(auth=snapshot_command),
+            "daily check-in required fields",
+        )
+        self.assert_finding(
+            self.findings(runtime=legacy_runtime),
+            "runtime daily check-in endpoint",
+        )
+        self.assert_finding(
+            self.findings(auth=unsafe_storage_adapter),
+            "daily check-in storage adapter",
+        )
+        self.assert_finding(self.findings(evals=missing_hr42), "missing HR-42")
+        self.assert_finding(self.findings(evals=missing_gt33), "missing GT-33")
+        self.assert_finding(
+            self.findings(text=hidden_strict_body),
+            "runtime contract missing exact snippet",
+        )
+
+    def test_daily_check_in_queue_and_global_cutover_cannot_regress(self):
+        automatic_check_in = copy.deepcopy(self.auth)
+        automatic_check_in["daily_check_in_v2"]["mobile_contract"][
+            "trigger_rule"
+        ] = "upload a progress snapshot after every card"
+        credential_queue = copy.deepcopy(self.auth)
+        credential_queue["daily_check_in_v2"]["mobile_contract"][
+            "offline_rule"
+        ] = "persist the access token and all counters"
+        stale_local_check_in = copy.deepcopy(self.auth)
+        stale_local_check_in["daily_check_in_v2"]["mobile_contract"][
+            "recovery_rule"
+        ] = "treat any local check-in or event count as synchronized"
+        permissive_legacy_queue = copy.deepcopy(self.auth)
+        permissive_legacy_queue["daily_check_in_v2"]["mobile_contract"][
+            "legacy_queue_rule"
+        ] = "migrate any entry with a true flag"
+        active_legacy_route = copy.deepcopy(self.auth)
+        active_legacy_route["daily_check_in_v2"]["legacy_cutover"][
+            "disabled_routes"
+        ].remove("POST /v1/progress/daily-sync")
+
+        self.assert_finding(
+            self.findings(auth=automatic_check_in),
+            "daily check-in mobile trigger",
+        )
+        self.assert_finding(
+            self.findings(auth=credential_queue),
+            "daily check-in offline queue",
+        )
+        self.assert_finding(
+            self.findings(auth=stale_local_check_in),
+            "daily check-in restart recovery",
+        )
+        self.assert_finding(
+            self.findings(auth=permissive_legacy_queue),
+            "daily check-in legacy queue",
+        )
+        self.assert_finding(
+            self.findings(auth=active_legacy_route),
+            "daily check-in disabled routes",
+        )
+
+    def test_daily_check_in_collection_must_be_provisioned(self):
+        missing_collection = self.provision_text.replace(
+            "  'softbook_daily_check_ins',\n",
+            "",
+        )
+
+        self.assert_finding(
+            self.findings(provision_text=missing_collection),
+            "provisioning is missing softbook_daily_check_ins",
         )
 
     def test_cloudbase_transaction_limits_and_migration_fence_are_required(self):

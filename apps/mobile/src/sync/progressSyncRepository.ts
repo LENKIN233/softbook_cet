@@ -15,6 +15,8 @@ export type DailyProgressSnapshot = {
 
 export type ProgressSyncResult = {
   acknowledgedAt: string;
+  checkedInToday: true;
+  dayKey: string;
   mode: ProgressSyncRepositoryMode;
 };
 
@@ -31,9 +33,9 @@ export type ProgressSyncRemoteConfig = {
 export type FetchLike = typeof fetch;
 
 export type ProgressSyncRepository = {
-  syncDailyProgress: (
+  checkIn: (
     context: ProgressSyncContext,
-    snapshot: DailyProgressSnapshot,
+    dayKey: string,
   ) => Promise<ProgressSyncResult>;
 };
 
@@ -62,26 +64,19 @@ export function createProgressSyncRepository(
   config: ProgressSyncRepositoryConfig,
 ): ProgressSyncRepository {
   return {
-    syncDailyProgress: async (context, snapshot) => {
+    checkIn: async (context, dayKey) => {
+      assertDayKey(dayKey, 'check-in dayKey');
       const acknowledgedAt = new Date().toISOString();
 
       if (config.mode === 'remote') {
         if (!config.remoteConfig) {
-          throw new Error('Remote progress sync requires remoteConfig.');
+          throw new Error('Remote daily check-in requires remoteConfig.');
         }
 
         const fetchImpl = config.fetchImpl ?? fetch;
         const response = await fetchImpl(config.remoteConfig.endpoint, {
           body: JSON.stringify({
-            checked_in_today: snapshot.checkedInToday,
-            day_key: snapshot.dayKey,
-            favorite_count: snapshot.favoriteCount,
-            learning_completed_count: snapshot.learningCompletedCount,
-            pending_review_count: snapshot.pendingReviewCount,
-            phone_number: context.phoneNumber,
-            review_completed_count: snapshot.reviewCompletedCount,
-            sleeping_count: snapshot.sleepingCount,
-            total_completed_count: snapshot.totalCompletedCount,
+            day_key: dayKey,
           }),
           headers: buildRemoteProgressSyncHeaders(config.remoteConfig, context),
           method: 'POST',
@@ -89,22 +84,71 @@ export function createProgressSyncRepository(
 
         if (!response.ok) {
           throw new RemoteHttpError(
-            `Remote progress sync failed with ${response.status}.`,
+            `Remote daily check-in failed with ${response.status}.`,
             response.status,
           );
         }
 
-        return {
-          acknowledgedAt,
-          mode: 'remote',
-        };
+        return parseRemoteDailyCheckIn(
+          await response.json(),
+          dayKey,
+          'remote',
+        );
       }
 
       return {
         acknowledgedAt,
+        checkedInToday: true,
+        dayKey,
         mode: 'local',
       };
     },
+  };
+}
+
+export function parseRemoteDailyCheckIn(
+  payload: unknown,
+  expectedDayKey: string,
+  mode: ProgressSyncRepositoryMode = 'remote',
+): ProgressSyncResult {
+  assertDayKey(expectedDayKey, 'expected check-in dayKey');
+  const envelope = requireExactObject(payload, ['data'], 'check-in payload');
+  const data = requireExactObject(
+    envelope.data,
+    ['acknowledged_at', 'checked_in_today', 'day_key', 'schema_version'],
+    'check-in payload.data',
+  );
+
+  if (data.schema_version !== 'daily-check-in.v2') {
+    throw new Error(
+      'Remote check-in payload.data.schema_version must be daily-check-in.v2.',
+    );
+  }
+
+  if (data.day_key !== expectedDayKey) {
+    throw new Error('Remote check-in response day_key must match the request.');
+  }
+
+  if (data.checked_in_today !== true) {
+    throw new Error(
+      'Remote check-in payload.data.checked_in_today must be true.',
+    );
+  }
+
+  if (
+    typeof data.acknowledged_at !== 'string' ||
+    !Number.isFinite(Date.parse(data.acknowledged_at))
+  ) {
+    throw new Error(
+      'Remote check-in payload.data.acknowledged_at must be an ISO timestamp.',
+    );
+  }
+
+  return {
+    acknowledgedAt: data.acknowledged_at,
+    checkedInToday: true,
+    dayKey: expectedDayKey,
+    mode,
   };
 }
 
@@ -113,7 +157,7 @@ function buildRemoteProgressSyncHeaders(
   context: ProgressSyncContext,
 ) {
   if (!context.authToken) {
-    throw new RemoteHttpError('Remote progress sync requires authToken.', 401);
+    throw new RemoteHttpError('Remote daily check-in requires authToken.', 401);
   }
 
   return {
@@ -121,4 +165,47 @@ function buildRemoteProgressSyncHeaders(
     Authorization: `Bearer ${context.authToken}`,
     ...config.headers,
   };
+}
+
+function requireExactObject(
+  value: unknown,
+  expectedKeys: string[],
+  label: string,
+): Record<string, unknown> {
+  if (!isObject(value)) {
+    throw new Error(`${label} must be an object.`);
+  }
+
+  const actualKeys = Object.keys(value).sort();
+  const sortedExpectedKeys = [...expectedKeys].sort();
+
+  if (
+    actualKeys.length !== sortedExpectedKeys.length ||
+    actualKeys.some((key, index) => key !== sortedExpectedKeys[index])
+  ) {
+    throw new Error(
+      `${label} must contain exactly: ${sortedExpectedKeys.join(', ')}.`,
+    );
+  }
+
+  return value;
+}
+
+function assertDayKey(value: string, label: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error(`${label} must use YYYY-MM-DD.`);
+  }
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.toISOString().slice(0, 10) !== value
+  ) {
+    throw new Error(`${label} must be a valid calendar date.`);
+  }
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

@@ -11,6 +11,7 @@ const collections = [
   'softbook_card_source_versions',
   'softbook_card_sources',
   'softbook_memberships',
+  'softbook_daily_check_ins',
   'softbook_daily_progress',
   'softbook_learning_event_cursors',
   'softbook_learning_events',

@@ -7,21 +7,12 @@ import {createMutationQueueRepository} from '../src/sync/mutationQueueRepository
 import {RemoteHttpError} from '../src/runtime/remoteHttpError';
 import {RemoteRequestLifecycleError} from '../src/runtime/remoteRequest';
 
-const createProgressPayload = () => ({
+const createCheckInPayload = () => ({
   context: {
     authToken: 'token-progress',
     phoneNumber: '13800138000',
   },
-  snapshot: {
-    checkedInToday: true,
-    dayKey: '2026-04-27',
-    favoriteCount: 1,
-    learningCompletedCount: 2,
-    pendingReviewCount: 3,
-    reviewCompletedCount: 4,
-    sleepingCount: 1,
-    totalCompletedCount: 6,
-  },
+  dayKey: '2026-04-27',
 });
 
 const createSpacePayload = () => ({
@@ -44,7 +35,7 @@ const createSpacePayload = () => ({
 
 describe('MutationQueueRepository', () => {
   const mockProgressSyncRepository = {
-    syncDailyProgress: jest.fn<Promise<unknown>, [unknown, unknown]>(),
+    checkIn: jest.fn<Promise<unknown>, [unknown, string]>(),
   };
   const mockSpaceStateRepository = {
     syncSpaceState: jest.fn<Promise<unknown>, [unknown, unknown]>(),
@@ -56,8 +47,10 @@ describe('MutationQueueRepository', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockProgressSyncRepository.syncDailyProgress.mockResolvedValue({
+    mockProgressSyncRepository.checkIn.mockResolvedValue({
       acknowledgedAt: '2026-04-27T00:00:00.000Z',
+      checkedInToday: true,
+      dayKey: '2026-04-27',
       mode: 'remote',
     });
     mockSpaceStateRepository.syncSpaceState.mockResolvedValue({
@@ -95,11 +88,11 @@ describe('MutationQueueRepository', () => {
 
     return expect(
       repository.enqueueMutation(
-        'sync_daily_progress',
-        createProgressPayload(),
+        'check_in_daily_progress',
+        createCheckInPayload(),
       ),
     ).resolves.toMatchObject({
-      type: 'sync_daily_progress',
+      type: 'check_in_daily_progress',
     });
   });
 
@@ -111,35 +104,58 @@ describe('MutationQueueRepository', () => {
     });
 
     await repository.enqueueMutation(
-      'sync_daily_progress',
-      createProgressPayload(),
+      'check_in_daily_progress',
+      createCheckInPayload(),
     );
 
     await expect(repository.getQueueSize()).resolves.toBe(1);
   });
 
-  it('replays daily progress snapshots', async () => {
+  it('reports only an exact account-and-day pending check-in', async () => {
     const repository = createMutationQueueRepository({
       membershipRepository: mockMembershipRepository as never,
       progressSyncRepository: mockProgressSyncRepository as never,
       spaceStateRepository: mockSpaceStateRepository as never,
     });
-    const payload = createProgressPayload();
 
-    await repository.enqueueMutation('sync_daily_progress', payload);
+    await repository.enqueueMutation(
+      'check_in_daily_progress',
+      createCheckInPayload(),
+    );
+
+    await expect(
+      repository.hasPendingCheckIn('13800138000', '2026-04-27'),
+    ).resolves.toBe(true);
+    await expect(
+      repository.hasPendingCheckIn('13800138001', '2026-04-27'),
+    ).resolves.toBe(false);
+    await expect(
+      repository.hasPendingCheckIn('13800138000', '2026-04-28'),
+    ).resolves.toBe(false);
+  });
+
+  it('replays explicit daily check-ins without counters', async () => {
+    const repository = createMutationQueueRepository({
+      membershipRepository: mockMembershipRepository as never,
+      progressSyncRepository: mockProgressSyncRepository as never,
+      spaceStateRepository: mockSpaceStateRepository as never,
+    });
+    const payload = createCheckInPayload();
+
+    await repository.enqueueMutation('check_in_daily_progress', payload);
     await expect(
       repository.startReplay(payload.context),
     ).resolves.toMatchObject([
       {
         entry: {
-          type: 'sync_daily_progress',
+          type: 'check_in_daily_progress',
         },
       },
     ]);
 
-    expect(mockProgressSyncRepository.syncDailyProgress).toHaveBeenCalledWith(
+    expect(mockProgressSyncRepository.checkIn).toHaveBeenCalledWith(
       payload.context,
-      payload.snapshot,
+      payload.dayKey,
     );
     await expect(repository.getQueueSize()).resolves.toBe(0);
   });
@@ -254,13 +270,13 @@ describe('MutationQueueRepository', () => {
       spaceStateRepository: mockSpaceStateRepository as never,
     });
 
-    mockProgressSyncRepository.syncDailyProgress.mockRejectedValue(
+    mockProgressSyncRepository.checkIn.mockRejectedValue(
       new Error('Network error'),
     );
 
     await repository.enqueueMutation(
-      'sync_daily_progress',
-      createProgressPayload(),
+      'check_in_daily_progress',
+      createCheckInPayload(),
     );
 
     for (let index = 0; index <= MAX_MUTATION_RETRIES; index += 1) {
@@ -268,7 +284,7 @@ describe('MutationQueueRepository', () => {
       await expect(repository.getQueueSize()).resolves.toBe(1);
     }
 
-    expect(mockProgressSyncRepository.syncDailyProgress).toHaveBeenCalledTimes(
+    expect(mockProgressSyncRepository.checkIn).toHaveBeenCalledTimes(
       MAX_MUTATION_RETRIES + 1,
     );
   });
@@ -303,12 +319,12 @@ describe('MutationQueueRepository', () => {
       queueManager,
       spaceStateRepository: mockSpaceStateRepository as never,
     });
-    mockProgressSyncRepository.syncDailyProgress.mockRejectedValue(
+    mockProgressSyncRepository.checkIn.mockRejectedValue(
       new RemoteRequestLifecycleError('session_superseded'),
     );
     const entry = await repository.enqueueMutation(
-      'sync_daily_progress',
-      createProgressPayload(),
+      'check_in_daily_progress',
+      createCheckInPayload(),
     );
 
     await expect(repository.startReplay()).rejects.toMatchObject({
@@ -324,9 +340,9 @@ describe('MutationQueueRepository', () => {
       progressSyncRepository: mockProgressSyncRepository as never,
       spaceStateRepository: mockSpaceStateRepository as never,
     });
-    const stalePayload = createProgressPayload();
+    const stalePayload = createCheckInPayload();
     const currentPayload = {
-      ...createProgressPayload(),
+      ...createCheckInPayload(),
       context: {
         authToken: 'token-current',
         phoneNumber: '13800138888',
@@ -334,12 +350,12 @@ describe('MutationQueueRepository', () => {
     };
 
     await repository.enqueueMutation(
-      'sync_daily_progress',
+      'check_in_daily_progress',
       stalePayload,
       'stale-progress',
     );
     await repository.enqueueMutation(
-      'sync_daily_progress',
+      'check_in_daily_progress',
       currentPayload,
       'current-progress',
     );
@@ -349,19 +365,20 @@ describe('MutationQueueRepository', () => {
     ).resolves.toMatchObject([
       {
         entry: {
-          id: 'current-progress',
-          type: 'sync_daily_progress',
+          id: 'check-in:13800138888:2026-04-27',
+          type: 'check_in_daily_progress',
         },
       },
     ]);
 
-    expect(mockProgressSyncRepository.syncDailyProgress).toHaveBeenCalledWith(
+    expect(mockProgressSyncRepository.checkIn).toHaveBeenCalledWith(
       currentPayload.context,
-      currentPayload.snapshot,
+      currentPayload.dayKey,
     );
-    expect(
-      mockProgressSyncRepository.syncDailyProgress,
-    ).not.toHaveBeenCalledWith(stalePayload.context, stalePayload.snapshot);
+    expect(mockProgressSyncRepository.checkIn).not.toHaveBeenCalledWith(
+      stalePayload.context,
+      stalePayload.dayKey,
+    );
     await expect(repository.getQueueSize()).resolves.toBe(0);
   });
 
@@ -372,7 +389,7 @@ describe('MutationQueueRepository', () => {
       spaceStateRepository: mockSpaceStateRepository as never,
     });
     const payload = {
-      ...createProgressPayload(),
+      ...createCheckInPayload(),
       context: {
         authToken: 'old-token',
         phoneNumber: '13800138000',
@@ -383,12 +400,12 @@ describe('MutationQueueRepository', () => {
       phoneNumber: '13800138000',
     };
 
-    await repository.enqueueMutation('sync_daily_progress', payload);
+    await repository.enqueueMutation('check_in_daily_progress', payload);
     await repository.startReplay(currentContext);
 
-    expect(mockProgressSyncRepository.syncDailyProgress).toHaveBeenCalledWith(
+    expect(mockProgressSyncRepository.checkIn).toHaveBeenCalledWith(
       currentContext,
-      payload.snapshot,
+      payload.dayKey,
     );
     await expect(repository.getQueueSize()).resolves.toBe(0);
   });
@@ -438,8 +455,8 @@ describe('MutationQueueRepository', () => {
     });
 
     await repository.enqueueMutation(
-      'sync_daily_progress',
-      createProgressPayload(),
+      'check_in_daily_progress',
+      createCheckInPayload(),
     );
     await repository.enqueueMutation('sync_space_state', createSpacePayload());
 
@@ -456,14 +473,12 @@ describe('MutationQueueRepository', () => {
       queueManager,
       spaceStateRepository: mockSpaceStateRepository as never,
     });
-    const payload = createProgressPayload();
+    const payload = createCheckInPayload();
 
-    await repository.enqueueMutation('sync_daily_progress', payload);
+    await repository.enqueueMutation('check_in_daily_progress', payload);
     await repository.startReplay();
 
-    expect(mockProgressSyncRepository.syncDailyProgress).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(mockProgressSyncRepository.checkIn).toHaveBeenCalledTimes(1);
     await expect(queueManager.size()).resolves.toBe(0);
   });
 });

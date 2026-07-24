@@ -228,12 +228,12 @@ type AccountBootstrapStatus = 'not_required' | 'pending' | 'ready' | 'deferred';
 type AuthenticatedRuntimeHydration = {
   accountBootstrap: AccountBootstrapSnapshot | null;
   accountBootstrapStatus: AccountBootstrapStatus;
+  pendingCheckInDayKey: string | null;
   pendingLearningEventCount: number;
   membershipErrorMessage: string | null;
   membershipRefreshSucceeded: boolean;
   membershipState: MembershipState;
   persistedUserState: PersistedUserState;
-  progressSyncKey: string | null;
   spaceStateSyncKey: string | null;
 };
 
@@ -554,11 +554,10 @@ function AppShell({
     useState<LearningStateSyncState>(INITIAL_LEARNING_STATE_SYNC_STATE);
   const [spaceStateSyncState, setSpaceStateSyncState] =
     useState<SpaceStateSyncState>(INITIAL_SPACE_STATE_SYNC_STATE);
-  const [lastSyncedProgressKey, setLastSyncedProgressKey] = useState<
-    string | null
-  >(null);
   const [pendingLearningEventCount, setPendingLearningEventCount] = useState(0);
   const pendingLearningEventCountRef = useRef(0);
+  const unreconciledCheckInDayKeyRef = useRef<string | null>(null);
+  const confirmedCheckInDayKeyRef = useRef<string | null>(null);
   const [learningEventRecoveryPending, setLearningEventRecoveryPending] =
     useState(false);
   const [lastSyncedSpaceStateKey, setLastSyncedSpaceStateKey] = useState<
@@ -636,7 +635,8 @@ function AppShell({
       setMembershipState(createInitialMembershipState());
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
-      setLastSyncedProgressKey(null);
+      unreconciledCheckInDayKeyRef.current = null;
+      confirmedCheckInDayKeyRef.current = null;
       pendingLearningEventCountRef.current = 0;
       setPendingLearningEventCount(0);
       setLearningEventRecoveryPending(false);
@@ -845,6 +845,14 @@ function AppShell({
       const persistedUserState = await userStateStore.load(session.phoneNumber);
 
       if (runtimeAccountBootstrapMode === 'remote') {
+        const hasPendingCheckIn =
+          runtimeProgressSyncMode === 'remote' &&
+          (await mutationQueueRepository.hasPendingCheckIn(
+            session.phoneNumber,
+            todayKey,
+          ));
+        const pendingCheckInDayKey = hasPendingCheckIn ? todayKey : null;
+
         try {
           const [accountBootstrap, hydratedPendingLearningEventCount] =
             await Promise.all([
@@ -863,17 +871,23 @@ function AppShell({
           const reconciliation = reconcileAccountBootstrap(
             persistedUserState,
             accountBootstrap,
+            {pendingCheckInDayKey},
           );
+          const unresolvedCheckInDayKey =
+            pendingCheckInDayKey !== null &&
+            !accountBootstrap.progress.snapshot.checkedInToday
+              ? pendingCheckInDayKey
+              : null;
 
           return {
             accountBootstrap,
             accountBootstrapStatus: 'ready',
+            pendingCheckInDayKey: unresolvedCheckInDayKey,
             pendingLearningEventCount: hydratedPendingLearningEventCount,
             membershipErrorMessage: null,
             membershipRefreshSucceeded: true,
             membershipState: accountBootstrap.membership.state,
             persistedUserState: reconciliation.persistedUserState,
-            progressSyncKey: reconciliation.progressSyncKey,
             spaceStateSyncKey: reconciliation.spaceStateSyncKey,
           };
         } catch (error) {
@@ -888,6 +902,7 @@ function AppShell({
           return {
             accountBootstrap: null,
             accountBootstrapStatus: 'deferred',
+            pendingCheckInDayKey,
             pendingLearningEventCount: 0,
             membershipErrorMessage: `${getUserFacingErrorMessage(
               error,
@@ -895,8 +910,13 @@ function AppShell({
             )} 已保留登录；服务恢复前不会上传本地状态。`,
             membershipRefreshSucceeded: false,
             membershipState: createEntitlementPendingMembershipState(),
-            persistedUserState,
-            progressSyncKey: null,
+            persistedUserState:
+              pendingCheckInDayKey === null
+                ? persistedUserState
+                : {
+                    ...persistedUserState,
+                    checkedInDayKey: pendingCheckInDayKey,
+                  },
             spaceStateSyncKey: null,
           };
         }
@@ -940,6 +960,7 @@ function AppShell({
       return {
         accountBootstrap: null,
         accountBootstrapStatus: 'not_required',
+        pendingCheckInDayKey: null,
         pendingLearningEventCount: 0,
         membershipErrorMessage: membershipResolution.errorMessage,
         membershipRefreshSucceeded: membershipResolution.refreshSucceeded,
@@ -953,7 +974,6 @@ function AppShell({
               )
             : persistedUserState.spaceCardStateById,
         },
-        progressSyncKey: null,
         spaceStateSyncKey: null,
       };
     },
@@ -967,6 +987,7 @@ function AppShell({
       runtimeAccountBootstrapMode,
       runtimeLearningEventsMode,
       runtimeMembershipRepositoryMode,
+      runtimeProgressSyncMode,
       todayKey,
       userStateStore,
     ],
@@ -983,7 +1004,6 @@ function AppShell({
       setAccountBootstrapHydrationSettled(
         accountBootstrapHydrationSettledRef.current,
       );
-      setLastSyncedProgressKey(hydration.progressSyncKey);
       setLastSyncedSpaceStateKey(hydration.spaceStateSyncKey);
       pendingLearningEventCountRef.current =
         hydration.pendingLearningEventCount;
@@ -995,8 +1015,16 @@ function AppShell({
       setMembershipGate(null);
       persistedLearningCursor.current =
         hydration.persistedUserState.learningCursor;
+      unreconciledCheckInDayKeyRef.current = hydration.pendingCheckInDayKey;
       setCheckedInDayKey(hydration.persistedUserState.checkedInDayKey);
       setSpaceCardStateById(hydration.persistedUserState.spaceCardStateById);
+      if (hydration.pendingCheckInDayKey !== null) {
+        setProgressSyncState({
+          detail: '签到已保存，等待服务端确认。',
+          label: '已排队',
+          state: 'syncing',
+        });
+      }
     },
     [],
   );
@@ -1008,6 +1036,7 @@ function AppShell({
   const hasCheckedInToday = checkedInDayKey === todayKey;
   const canCheckInToday =
     !hasCheckedInToday &&
+    progressSyncState.state !== 'syncing' &&
     learningCompletedResults.length + reviewCompletedResults.length > 0;
   const favoriteCount = Object.values(spaceCardStateById).filter(
     state => state.isFavorited,
@@ -1036,7 +1065,6 @@ function AppShell({
       todayKey,
     ],
   );
-  const dailyProgressKey = JSON.stringify(dailyProgressSnapshot);
   const spaceStateSnapshot = useMemo(
     () =>
       createSpaceStateSnapshot({
@@ -1509,22 +1537,18 @@ function AppShell({
         return;
       }
 
+      let replayedCheckInDayKey: string | null = null;
+
       replayedResults.forEach(result => {
-        if (result.entry.type === 'sync_daily_progress') {
-          const replayedProgressKey = JSON.stringify(
-            result.entry.payload.snapshot,
-          );
-
-          setLastSyncedProgressKey(replayedProgressKey);
-
-          if (replayedProgressKey === dailyProgressKey) {
+        if (result.entry.type === 'check_in_daily_progress') {
+          if (result.entry.payload.dayKey === todayKey) {
+            replayedCheckInDayKey = result.entry.payload.dayKey;
             setProgressSyncState({
-              detail: '网络恢复后，今天的学习进展已同步。',
-              label: '已同步',
-              state: 'synced',
+              detail: '签到已提交，正在确认。',
+              label: '确认中',
+              state: 'syncing',
             });
           }
-
           return;
         }
 
@@ -1577,7 +1601,36 @@ function AppShell({
         setAccountBootstrapStatus('pending');
         accountBootstrapHydrationSettledRef.current = false;
         setAccountBootstrapHydrationSettled(false);
-        await retryCanonicalAccountBootstrap();
+        const bootstrapRefreshed = await retryCanonicalAccountBootstrap();
+
+        if (replayedCheckInDayKey !== null) {
+          const canonicalProgress =
+            accountBootstrapSnapshotRef.current?.progress.snapshot;
+
+          if (
+            bootstrapRefreshed &&
+            canonicalProgress?.dayKey === replayedCheckInDayKey &&
+            canonicalProgress.checkedInToday
+          ) {
+            setCheckedInDayKey(replayedCheckInDayKey);
+            unreconciledCheckInDayKeyRef.current = null;
+            confirmedCheckInDayKeyRef.current = replayedCheckInDayKey;
+            setProgressSyncState({
+              detail: '签到已由服务端确认。',
+              label: '已同步',
+              state: 'synced',
+            });
+          } else {
+            setCheckedInDayKey(replayedCheckInDayKey);
+            unreconciledCheckInDayKeyRef.current = replayedCheckInDayKey;
+            confirmedCheckInDayKeyRef.current = null;
+            setProgressSyncState({
+              detail: '签到已提交，等待重新确认。',
+              label: '待确认',
+              state: 'error',
+            });
+          }
+        }
       }
     })();
 
@@ -1615,7 +1668,6 @@ function AppShell({
     authenticatedRuntimeContext,
     authSessionCoordinator,
     clearAuthenticatedSession,
-    dailyProgressKey,
     isAuthenticated,
     learningEventSyncRepository,
     mutationQueueRepository,
@@ -1623,6 +1675,7 @@ function AppShell({
     runtimeAccountBootstrapMode,
     runtimeLearningEventsMode,
     spaceStateSyncKey,
+    todayKey,
   ]);
 
   const countCompletedCards = useCallback(
@@ -1830,7 +1883,8 @@ function AppShell({
       setMembershipPendingAction(null);
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
-      setLastSyncedProgressKey(null);
+      unreconciledCheckInDayKeyRef.current = null;
+      confirmedCheckInDayKeyRef.current = null;
       pendingLearningEventCountRef.current = 0;
       setPendingLearningEventCount(0);
       setLearningEventRecoveryPending(false);
@@ -2084,165 +2138,6 @@ function AppShell({
     isAuthenticated,
     pendingLearningEventCount,
     runtimeAccountBootstrapMode,
-    startMutationReplay,
-  ]);
-
-  useEffect(() => {
-    if (
-      !isAuthenticated ||
-      !canWriteAccountState ||
-      learningBootstrapStatus !== 'ready'
-    ) {
-      return;
-    }
-
-    if (dailyProgressSnapshot.totalCompletedCount === 0) {
-      setProgressSyncState({
-        detail: '先产生今天的学习进展，再同步今日进展。',
-        label: '等待今日进展',
-        state: 'idle',
-      });
-      return;
-    }
-
-    if (lastSyncedProgressKey === dailyProgressKey) {
-      return;
-    }
-
-    if (runtimeProgressSyncMode === 'local') {
-      setLastSyncedProgressKey(dailyProgressKey);
-      setProgressSyncState({
-        detail: '今天的学习进展已记录。',
-        label: '已记录',
-        state: 'synced',
-      });
-      return;
-    }
-
-    let isCancelled = false;
-
-    setProgressSyncState({
-      detail: `正在同步 ${dailyProgressSnapshot.dayKey} 的学习进展。`,
-      label: '同步中',
-      state: 'syncing',
-    });
-
-    if (authenticatedRuntimeContext === null) {
-      setProgressSyncState({
-        detail: '当前缺少可用的登录上下文，暂时不能同步日级进展。',
-        label: '同步失败',
-        state: 'error',
-      });
-      return;
-    }
-
-    if (pendingLearningEventCount > 0) {
-      setProgressSyncState({
-        detail: '答题记录确认后再同步今天的学习进展。',
-        label: '已排队',
-        state: 'syncing',
-      });
-      mutationQueueRepository
-        .enqueueMutation(
-          'sync_daily_progress',
-          {
-            context: authenticatedRuntimeContext,
-            snapshot: dailyProgressSnapshot,
-          },
-          `progress:${dailyProgressKey}`,
-        )
-        .then(() => {
-          if (!isCancelled && pendingLearningEventCountRef.current === 0) {
-            startMutationReplay().catch(() => undefined);
-          }
-        })
-        .catch((error: unknown) => {
-          if (isCancelled) {
-            return;
-          }
-
-          setProgressSyncState({
-            detail: getUserFacingErrorMessage(
-              error,
-              '今天的学习进展暂时无法安全排队。',
-            ),
-            label: '排队失败',
-            state: 'error',
-          });
-        });
-
-      return () => {
-        isCancelled = true;
-      };
-    }
-
-    startMutationReplay().catch(() => undefined);
-
-    progressSyncRepository
-      .syncDailyProgress(authenticatedRuntimeContext, dailyProgressSnapshot)
-      .then(result => {
-        if (isCancelled) {
-          return;
-        }
-
-        setLastSyncedProgressKey(dailyProgressKey);
-        setProgressSyncState({
-          detail:
-            result.mode === 'remote'
-              ? '今天的学习进展已推送到云端。'
-              : '今天的学习进展已记录。',
-          label: result.mode === 'remote' ? '已同步' : '已记录',
-          state: 'synced',
-        });
-      })
-      .catch((error: unknown) => {
-        if (isCancelled) {
-          return;
-        }
-
-        if (isRemoteAuthorizationError(error)) {
-          clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
-            () => undefined,
-          );
-          return;
-        }
-
-        mutationQueueRepository
-          .enqueueMutation(
-            'sync_daily_progress',
-            {
-              context: authenticatedRuntimeContext,
-              snapshot: dailyProgressSnapshot,
-            },
-            `progress:${dailyProgressKey}`,
-          )
-          .catch(() => undefined);
-        setProgressSyncState({
-          detail: `${getUserFacingErrorMessage(
-            error,
-            '日级进展同步失败。',
-          )} 网络恢复后会自动再试。`,
-          label: '待重试',
-          state: 'error',
-        });
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [
-    authenticatedRuntimeContext,
-    clearAuthenticatedSession,
-    dailyProgressKey,
-    dailyProgressSnapshot,
-    canWriteAccountState,
-    isAuthenticated,
-    lastSyncedProgressKey,
-    learningBootstrapStatus,
-    mutationQueueRepository,
-    pendingLearningEventCount,
-    progressSyncRepository,
-    runtimeProgressSyncMode,
     startMutationReplay,
   ]);
 
@@ -2640,16 +2535,27 @@ function AppShell({
     }
 
     accountBootstrapHydrationSettledRef.current = true;
-    setLastSyncedProgressKey(dailyProgressKey);
     if (
       dailyProgressSnapshot.checkedInToday ||
       dailyProgressSnapshot.totalCompletedCount > 0
     ) {
-      setProgressSyncState({
-        detail: '今天的学习进展已从服务端恢复。',
-        label: '已同步',
-        state: 'synced',
-      });
+      const checkInNeedsCanonicalConfirmation =
+        unreconciledCheckInDayKeyRef.current === dailyProgressSnapshot.dayKey;
+      const checkInWasJustConfirmed =
+        dailyProgressSnapshot.checkedInToday &&
+        confirmedCheckInDayKeyRef.current === dailyProgressSnapshot.dayKey;
+      if (!checkInNeedsCanonicalConfirmation) {
+        setProgressSyncState({
+          detail: checkInWasJustConfirmed
+            ? '签到已由服务端确认。'
+            : '今天的学习进展已从服务端恢复。',
+          label: '已同步',
+          state: 'synced',
+        });
+      }
+      if (checkInWasJustConfirmed) {
+        confirmedCheckInDayKeyRef.current = null;
+      }
     }
     if (
       runtimeLearningEventsMode === 'remote' &&
@@ -2671,8 +2577,8 @@ function AppShell({
     accountBootstrapHydrationSettled,
     accountBootstrapSnapshot,
     accountBootstrapStatus,
-    dailyProgressKey,
     dailyProgressSnapshot.checkedInToday,
+    dailyProgressSnapshot.dayKey,
     dailyProgressSnapshot.totalCompletedCount,
     learningBootstrapStatus,
     mappedAccountBootstrapSnapshot,
@@ -3447,11 +3353,98 @@ function AppShell({
 
   const statisticsHandlers = {
     onCheckIn: () => {
-      if (!canCheckInToday) {
+      if (!canCheckInToday || !canWriteAccountState) {
         return;
       }
 
-      setCheckedInDayKey(todayKey);
+      if (runtimeProgressSyncMode === 'local') {
+        unreconciledCheckInDayKeyRef.current = null;
+        setCheckedInDayKey(todayKey);
+        setProgressSyncState({
+          detail: '今天的签到已记录。',
+          label: '已记录',
+          state: 'synced',
+        });
+        return;
+      }
+
+      if (authenticatedRuntimeContext === null) {
+        setProgressSyncState({
+          detail: '当前缺少可用的登录上下文，暂时不能签到。',
+          label: '签到失败',
+          state: 'error',
+        });
+        return;
+      }
+
+      const sessionScopeKey = getAuthSessionScopeKey(
+        authSessionCoordinator.getCurrentSession(),
+      );
+
+      if (sessionScopeKey === null) {
+        setProgressSyncState({
+          detail: '当前登录会话不可用，暂时不能签到。',
+          label: '签到失败',
+          state: 'error',
+        });
+        return;
+      }
+
+      confirmedCheckInDayKeyRef.current = null;
+      setProgressSyncState({
+        detail:
+          pendingLearningEventCount > 0
+            ? '答题记录确认后再提交签到。'
+            : '正在安全保存签到。',
+        label: '保存中',
+        state: 'syncing',
+      });
+
+      mutationQueueRepository
+        .enqueueMutation(
+          'check_in_daily_progress',
+          {
+            context: authenticatedRuntimeContext,
+            dayKey: todayKey,
+          },
+          `check-in:${authenticatedRuntimeContext.phoneNumber}:${todayKey}`,
+        )
+        .then(() => {
+          if (
+            getAuthSessionScopeKey(
+              authSessionCoordinator.getCurrentSession(),
+            ) !== sessionScopeKey
+          ) {
+            return;
+          }
+
+          unreconciledCheckInDayKeyRef.current = todayKey;
+          setCheckedInDayKey(todayKey);
+          setProgressSyncState({
+            detail: '签到已保存，等待服务端确认。',
+            label: '已排队',
+            state: 'syncing',
+          });
+          startMutationReplay().catch(() => undefined);
+        })
+        .catch((error: unknown) => {
+          if (
+            getAuthSessionScopeKey(
+              authSessionCoordinator.getCurrentSession(),
+            ) !== sessionScopeKey
+          ) {
+            return;
+          }
+
+          setProgressSyncState({
+            detail: getUserFacingErrorMessage(
+              error,
+              '今天的签到暂时无法安全保存。',
+            ),
+            label: '保存失败',
+            state: 'error',
+          });
+        });
     },
   };
   const openLearningRoute = () => {

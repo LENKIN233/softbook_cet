@@ -463,6 +463,167 @@ test('restores remote account state from canonical bootstrap before local use', 
   }
 });
 
+test('restores an exact queued check-in without treating event-derived progress as check-in confirmation', async () => {
+  const originalFetch = globalThis.fetch;
+  const canonical = createCanonicalBootstrapPayload();
+  const dayKey = canonical.payload.data.day_key;
+  const checkInRequests: Array<{ body?: string; method?: string }> = [];
+  const fetchMock = jest.fn(
+    async (
+      input: string,
+      init?: {
+        body?: string;
+        headers?: ConstructorParameters<typeof Headers>[0];
+        method?: string;
+      },
+    ) => {
+      if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+        return createTestJsonResponse(canonical.payload);
+      }
+
+      if (
+        input.startsWith(
+          'https://api.softbook.example/v1/learning/card-source?',
+        )
+      ) {
+        return createTestJsonResponse({
+          data: {
+            card_records: canonical.session.catalogCards,
+            content_version: canonical.session.contentVersion,
+            source: {
+              id: canonical.session.sourceId,
+              label: canonical.session.sourceLabel,
+            },
+            track: canonical.session.track,
+          },
+        });
+      }
+
+      if (
+        input.startsWith('https://api.softbook.example/v2/learning/session?')
+      ) {
+        return createTestJsonResponse(
+          createRemoteLearningSessionPayload(
+            canonical,
+            canonical.cursorCard.card_id,
+          ),
+        );
+      }
+
+      if (input === 'https://api.softbook.example/v2/progress/check-in') {
+        checkInRequests.push(init ?? {});
+        return createTestJsonResponse({}, 503);
+      }
+
+      throw new Error(`Unexpected fetch call: ${input}`);
+    },
+  );
+  Object.defineProperty(globalThis, 'fetch', {
+    configurable: true,
+    value: fetchMock,
+    writable: true,
+  });
+  let tree: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  try {
+    await createAuthSessionStore().save(createRemoteSession());
+    await createUserStateStore().save('13800138000', {
+      checkedInDayKey: null,
+      learningCursor: null,
+      spaceCardStateById: {},
+    });
+    await AsyncStorage.setItem(
+      '__softbook_mutation_queue',
+      JSON.stringify([
+        {
+          id: `check-in:13800138000:${dayKey}`,
+          payload: {
+            context: { phoneNumber: '13800138000' },
+            dayKey,
+          },
+          retryCount: 0,
+          timestamp: '2026-07-24T08:00:00.000Z',
+          type: 'check_in_daily_progress',
+        },
+      ]),
+    );
+
+    tree = await renderAppAndWaitForLearning(
+      <App
+        softbookRemoteRuntimeProfile={{
+          baseUrl: 'https://api.softbook.example/',
+          featureModes: {
+            learningState: 'local',
+            membership: 'local',
+            progressSync: 'remote',
+            spaceState: 'local',
+          },
+        }}
+      />,
+    );
+    await openRoute(tree.root, 'statistics');
+
+    expect(
+      tree.root
+        .findAllByProps({ testID: 'statistics-sync-label' })
+        .some(
+          node =>
+            node.props.children === '已排队' || node.props.value === '已排队',
+        ),
+    ).toBe(true);
+    expect(
+      tree.root
+        .findAllByProps({ testID: 'statistics-sync-detail' })
+        .some(node =>
+          String(node.props.children).includes('等待服务端确认'),
+        ),
+    ).toBe(true);
+    expect(
+      tree.root.findByProps({
+        testID: 'statistics-checkin-complete-label',
+      }),
+    ).toBeTruthy();
+    expect(checkInRequests.length).toBeGreaterThanOrEqual(1);
+    checkInRequests.forEach(request => {
+      expect(request.method).toBe('POST');
+      expect(JSON.parse(String(request.body))).toEqual({
+        day_key: dayKey,
+      });
+    });
+
+    const queuedMutations = JSON.parse(
+      String(await AsyncStorage.getItem('__softbook_mutation_queue')),
+    );
+    expect(queuedMutations).toEqual([
+      expect.objectContaining({
+        id: `check-in:13800138000:${dayKey}`,
+        payload: {
+          context: { phoneNumber: '13800138000' },
+          dayKey,
+        },
+        retryCount: expect.any(Number),
+        type: 'check_in_daily_progress',
+      }),
+    ]);
+    expect(queuedMutations[0].retryCount).toBeGreaterThanOrEqual(1);
+    expect(JSON.stringify(queuedMutations)).not.toMatch(
+      /authToken|accessToken|refreshToken|favoriteCount|learningCompletedCount|reviewCompletedCount|totalCompletedCount/,
+    );
+  } finally {
+    if (tree) {
+      await ReactTestRenderer.act(() => {
+        tree?.unmount();
+      });
+    }
+    globalThis.__SOFTBOOK_CET_RUNTIME_CONFIG__ = undefined;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: originalFetch,
+      writable: true,
+    });
+  }
+});
+
 test('discards a pre-selection v1 outbox without replaying it', async () => {
   const originalFetch = globalThis.fetch;
   const fetchMock = jest.fn();

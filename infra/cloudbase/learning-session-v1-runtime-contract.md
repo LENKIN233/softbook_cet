@@ -253,5 +253,4 @@ This contract does not prove:
 - deployed mobile/backend integration or release validation;
 - production membership expiry, StoreKit, WeChat Pay, or Alipay entitlement;
 - complete approved card content, signed packs, or audio QC;
-- global legacy v1 snapshot-write removal;
 - launch readiness.

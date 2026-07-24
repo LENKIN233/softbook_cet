@@ -4,7 +4,7 @@ Referenced specs: `spec/account-sync-contract.json`, `spec/membership.json`, `sp
 
 `product_truth`: remote learning must still enforce phone-code login before learning, shared membership entitlement, daily-level progress sync, and physical-space state sync.
 
-`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication and canonical bootstrap use `/v2`; the repository-local backend and React Native client also implement `POST /v2/learning/events`, a durable mobile outbox, exact replay, transactional event ledger, and projections. Card payload and non-learning mobile mutations still rely on `/v1` only as a development migration bridge. None of these repository-local changes proves deployment. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to TypeScript CloudBase Run + PostgreSQL on the formal work server.
+`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication and canonical bootstrap use `/v2`; the repository-local backend and React Native client also implement `POST /v2/learning/events`, `GET /v2/learning/session`, `POST /v2/progress/check-in`, durable mobile queues, exact replay, a transactional event ledger, and projections. Card payload, membership, and physical-space mutations still rely on `/v1` only as a development migration bridge; the former v1 daily and learning snapshot writes are disabled. None of these repository-local changes proves deployment. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to TypeScript CloudBase Run + PostgreSQL on the formal work server.
 
 ## Current Environment
 
@@ -44,17 +44,19 @@ POST /v2/auth/refresh
 POST /v2/auth/logout
 POST /v2/account/deletion
 GET  /v2/bootstrap?track=cet4|cet6&day_key=YYYY-MM-DD
+GET  /v2/learning/session?track=cet4|cet6
 POST /v2/learning/events
+POST /v2/progress/check-in
 
 GET  /v1/learning/card-source?track=cet4|cet6
 GET  /v1/membership/entitlement
 POST /v1/membership/start-trial
 POST /v1/membership/purchase
 POST /v1/membership/dismiss-recovery
-POST /v1/progress/daily-sync
-POST /v1/learning/state-sync
 POST /v1/space/state-sync
 
+DISABLED (410) POST /v1/progress/daily-sync
+DISABLED (410) POST /v1/learning/state-sync
 ```
 
 For the development environment, SMS should use a whitelist/fixed-code adapter first. Real SMS provider integration should remain an adapter and must not change the mobile REST contract.
@@ -73,13 +75,10 @@ projection, acknowledgement, and migration semantics are defined in
 function implements this endpoint with memory and CloudBase transaction tests.
 The React Native app now durably produces and exactly replays these events in
 repository-local tests. Neither backend nor mobile release is deployed by this
-change, and legacy daily/learning snapshot routes remain a backend
-development-only bridge for unmigrated accounts until global removal lands.
-The active React Native completion path no longer calls the v1 learning route.
-After an account accepts its first v2 event, later v1 learning-state writes for
-that account return `409 legacy_learning_write_disabled`; v1 daily progress is
-restricted to monotonic check-in compatibility and cannot overwrite v2
-learning counts or canonical space counts.
+change. Retained daily/learning documents are read-only migration inputs; both
+former snapshot-write routes return `410` for every account. Explicit check-in
+uses strict `POST /v2/progress/check-in`, carries only `day_key`, and cannot
+overwrite event-derived learning counts or canonical space counts.
 
 ## Minimal HTTP Function
 
@@ -119,7 +118,7 @@ while `/v2` owns authentication and the canonical bootstrap read:
   transactions use deterministic document operations only; bounded legacy
   learning and space queries run before the transaction, with an account
   revision fence protecting first-event migration from concurrent v1 writes.
-- Card source, membership state, daily progress, learning state, and space state persist to CloudBase NoSQL when `SOFTBOOK_STORE_MODE=cloudbase`; local tests still default to the in-memory adapter.
+- Card source, membership state, independent `softbook_daily_check_ins`, event-derived daily progress, learning state, and space state persist to CloudBase NoSQL when `SOFTBOOK_STORE_MODE=cloudbase`; retained legacy daily and learning documents are migration reads only. Local tests still default to the in-memory adapter.
 - Card source reads `softbook_card_sources` by track. Development mode seeds the CET4/CET6 records when a track document is missing; production bootstrap never seeds development content and fails closed. The legacy card-source response envelope remains the same one parsed by the mobile app.
 - The router uses classic event-style `exports.main` so it can be bound to CloudBase HTTP access service paths such as `/softbook-api`.
 
@@ -222,8 +221,9 @@ or `SOFTBOOK_CET_EXPECT_PURCHASE_STAGE`.
 ## iOS Runtime Smoke
 
 `product_truth`: the iOS app must keep authenticated learning, shared membership
-entitlement, daily progress sync, learning-state sync, and physical-space sync
-working together when the remote runtime profile is enabled.
+entitlement, explicit check-in, event-derived learning progress, and
+physical-space sync working together when the remote runtime profile is
+enabled.
 
 `implementation_hypothesis`: `smoke-ios-runtime.sh` is a staging verification
 wrapper for the CloudBase dev environment and the React Native iOS debug app. It
@@ -284,8 +284,8 @@ Manual acceptance after launch:
 - The automated space leg browses the library / group / box hierarchy, inspects
   a box card, applies a favorite tag, moves that card into sleep, then wakes it
   before returning to the learning flow.
-- Completing a card updates statistics and leaves daily progress / learning
-  state / space state without queued retry errors.
+- Completing a card updates event-derived statistics, explicit check-in remains
+  independent, and learning / space state has no queued retry errors.
 
 Manual and automated acceptance run notes live in
 `ios-runtime-acceptance-log.md`.

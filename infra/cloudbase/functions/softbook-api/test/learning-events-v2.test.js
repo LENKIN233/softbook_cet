@@ -470,7 +470,8 @@ test('selection-bound CloudBase commit retains transaction-operation headroom', 
       });
   }
 
-  const {api} = createTestApi({store: createCloudBaseStore({db})});
+  const store = createCloudBaseStore({db});
+  const {api} = createTestApi({store});
   const session = await authenticatedSession(api, PHONE_ONE, '127.0.0.30');
   const storedAuthSession = [
     ...db.snapshot().get('softbook_auth_sessions').values(),
@@ -499,8 +500,9 @@ test('selection-bound CloudBase commit retains transaction-operation headroom', 
     });
   const cet6Source = await cardSource(api, session, 'cet6');
   const cet6Card = cet6Source.card_records[0];
-  const legacySibling = await request(api, {
-    body: {
+  await store.seedLegacyLearningStateForMigrationTest(
+    PHONE_ONE,
+    {
       day_key: DAY_KEY,
       events: [
         {
@@ -514,16 +516,12 @@ test('selection-bound CloudBase commit retains transaction-operation headroom', 
           used_peek: false,
         },
       ],
-      phone_number: PHONE_ONE,
       source_id: cet6Source.source.id,
       source_label: cet6Source.source.label,
       track: 'cet6',
     },
-    headers: {authorization: `Bearer ${session.access_token}`},
-    method: 'POST',
-    path: '/v1/learning/state-sync',
-  });
-  assert.equal(legacySibling.statusCode, 200);
+    START_TIME.toISOString(),
+  );
 
   const event = eventFor(historicalSources[0], 0, {
     device_cursor: {
@@ -1196,26 +1194,24 @@ test('first v2 event migrates v1 learning and progress baselines without favorit
   const legacyCard = source.card_records[0];
   const nextCard = source.card_records[1];
 
-  const progress = await request(api, {
-    body: {
+  await store.seedLegacyDailyProgressForMigrationTest(
+    PHONE_ONE,
+    {
       checked_in_today: true,
       day_key: DAY_KEY,
       favorite_count: 1,
       learning_completed_count: 1,
       pending_review_count: 0,
-      phone_number: PHONE_ONE,
       review_completed_count: 0,
       sleeping_count: 0,
       total_completed_count: 1,
     },
-    headers,
-    method: 'POST',
-    path: '/v1/progress/daily-sync',
-  });
-  assert.equal(progress.statusCode, 200);
+    START_TIME.toISOString(),
+  );
 
-  const legacyLearning = await request(api, {
-    body: {
+  await store.seedLegacyLearningStateForMigrationTest(
+    PHONE_ONE,
+    {
       day_key: DAY_KEY,
       events: [
         {
@@ -1230,16 +1226,12 @@ test('first v2 event migrates v1 learning and progress baselines without favorit
           used_peek: false,
         },
       ],
-      phone_number: PHONE_ONE,
       source_id: source.source.id,
       source_label: source.source.label,
       track: 'cet4',
     },
-    headers,
-    method: 'POST',
-    path: '/v1/learning/state-sync',
-  });
-  assert.equal(legacyLearning.statusCode, 200);
+    START_TIME.toISOString(),
+  );
 
   const space = await request(api, {
     body: {
@@ -1318,8 +1310,9 @@ test('first v2 event preserves the legacy baseline for both tracks', async () =>
       ['cet6', cet6Source],
     ]) {
       const legacyCard = source.card_records[0];
-      const legacyWrite = await request(api, {
-        body: {
+      await store.seedLegacyLearningStateForMigrationTest(
+        PHONE_ONE,
+        {
           day_key: DAY_KEY,
           events: [
             {
@@ -1334,16 +1327,12 @@ test('first v2 event preserves the legacy baseline for both tracks', async () =>
               used_peek: false,
             },
           ],
-          phone_number: PHONE_ONE,
           source_id: source.source.id,
           source_label: source.source.label,
           track,
         },
-        headers,
-        method: 'POST',
-        path: '/v1/learning/state-sync',
-      });
-      assert.equal(legacyWrite.statusCode, 200, name);
+        START_TIME.toISOString(),
+      );
     }
 
     const scheduledCet6 = await request(api, {
@@ -1413,7 +1402,7 @@ test('first v2 event preserves the legacy baseline for both tracks', async () =>
   }
 });
 
-test('migrated accounts merge v1 check-in without accepting legacy learning authority', async () => {
+test('migrated accounts accept only v2 check-in without legacy snapshot authority', async () => {
   const store = createMemoryStore();
   const {api} = createTestApi({store});
   const session = await authenticatedSession(api);
@@ -1442,21 +1431,19 @@ test('migrated accounts merge v1 check-in without accepting legacy learning auth
 
   const progress = await request(api, {
     body: {
-      checked_in_today: true,
       day_key: DAY_KEY,
-      favorite_count: 99,
-      learning_completed_count: 99,
-      pending_review_count: 99,
-      phone_number: PHONE_ONE,
-      review_completed_count: 99,
-      sleeping_count: 99,
-      total_completed_count: 198,
     },
     headers: {authorization: `Bearer ${session.access_token}`},
     method: 'POST',
-    path: '/v1/progress/daily-sync',
+    path: '/v2/progress/check-in',
   });
   assert.equal(progress.statusCode, 200);
+  assert.deepEqual(progress.body.data, {
+    acknowledged_at: START_TIME.toISOString(),
+    checked_in_today: true,
+    day_key: DAY_KEY,
+    schema_version: 'daily-check-in.v2',
+  });
 
   const staleProgress = await request(api, {
     body: {
@@ -1474,7 +1461,11 @@ test('migrated accounts merge v1 check-in without accepting legacy learning auth
     method: 'POST',
     path: '/v1/progress/daily-sync',
   });
-  assert.equal(staleProgress.statusCode, 200);
+  assert.equal(staleProgress.statusCode, 410);
+  assert.equal(
+    staleProgress.body.error.code,
+    'legacy_snapshot_write_disabled',
+  );
 
   await request(api, {
     body: {phone_number: PHONE_ONE},
@@ -1510,8 +1501,8 @@ test('migrated accounts merge v1 check-in without accepting legacy learning auth
     method: 'POST',
     path: '/v1/learning/state-sync',
   });
-  assert.equal(learning.statusCode, 409);
-  assert.equal(learning.body.error.code, 'legacy_learning_write_disabled');
+  assert.equal(learning.statusCode, 410);
+  assert.equal(learning.body.error.code, 'legacy_snapshot_write_disabled');
 
   const bootstrap = await request(api, {
     headers: {authorization: `Bearer ${session.access_token}`},
@@ -1532,7 +1523,7 @@ test('migrated accounts merge v1 check-in without accepting legacy learning auth
   );
 });
 
-test('CloudBase migrated daily merge preserves v2 learning counts transactionally', async () => {
+test('CloudBase check-in stays separate from event-derived daily progress', async () => {
   const db = createFakeCloudBaseDb();
   const {api} = createTestApi({store: createCloudBaseStore({db})});
   const session = await authenticatedSession(api);
@@ -1541,19 +1532,11 @@ test('CloudBase migrated daily merge preserves v2 learning counts transactionall
 
   const response = await request(api, {
     body: {
-      checked_in_today: true,
       day_key: DAY_KEY,
-      favorite_count: 2,
-      learning_completed_count: 99,
-      pending_review_count: 99,
-      phone_number: PHONE_ONE,
-      review_completed_count: 99,
-      sleeping_count: 2,
-      total_completed_count: 198,
     },
     headers: {authorization: `Bearer ${session.access_token}`},
     method: 'POST',
-    path: '/v1/progress/daily-sync',
+    path: '/v2/progress/check-in',
   });
 
   assert.equal(response.statusCode, 200);
@@ -1562,13 +1545,136 @@ test('CloudBase migrated daily merge preserves v2 learning counts transactionall
   ];
   assert.equal(progressDocuments.length, 1);
   assert.equal(progressDocuments[0].projection_version, 'learning-events.v2');
-  assert.equal(progressDocuments[0].checked_in_today, true);
+  assert.equal(progressDocuments[0].checked_in_today, false);
   assert.equal(progressDocuments[0].learning_completed_count, 1);
   assert.equal(progressDocuments[0].review_completed_count, 0);
   assert.equal(progressDocuments[0].pending_review_count, 0);
   assert.equal(progressDocuments[0].favorite_count, 0);
   assert.equal(progressDocuments[0].sleeping_count, 0);
   assert.equal(progressDocuments[0].total_completed_count, 1);
+  const checkInDocuments = [
+    ...db.snapshot().get('softbook_daily_check_ins').values(),
+  ];
+  assert.equal(checkInDocuments.length, 1);
+  assert.deepEqual(Object.keys(checkInDocuments[0]).sort(), [
+    'account_key',
+    'acknowledged_at',
+    'checked_in_today',
+    'day_key',
+    'schema_version',
+  ]);
+  assert.equal(checkInDocuments[0].schema_version, 'daily-check-in.v2');
+  assert.equal(checkInDocuments[0].checked_in_today, true);
+
+  const bootstrap = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v2/bootstrap',
+    query: {day_key: DAY_KEY, track: 'cet4'},
+  });
+  assert.equal(bootstrap.body.data.progress.checked_in_today, true);
+  assert.equal(bootstrap.body.data.progress.learning_completed_count, 1);
+});
+
+test('concurrent first event and check-in preserve both canonical outcomes', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const {api} = createTestApi({store});
+  const session = await authenticatedSession(api, PHONE_ONE, '127.0.0.63');
+  const source = await cardSource(api, session);
+  const event = eventFor(source, 0, {
+    event_id: 'event_concurrent_check_in_0001',
+  });
+  await bindEventsToCurrentSelection(api, session, [event]);
+  const headers = {authorization: `Bearer ${session.access_token}`};
+
+  const [accepted, checkedIn] = await Promise.all([
+    submit(api, session, [event]),
+    request(api, {
+      body: {day_key: DAY_KEY},
+      headers,
+      method: 'POST',
+      path: '/v2/progress/check-in',
+    }),
+  ]);
+
+  assert.equal(accepted.statusCode, 200, JSON.stringify(accepted.body));
+  assert.equal(checkedIn.statusCode, 200, JSON.stringify(checkedIn.body));
+  const bootstrap = await request(api, {
+    headers,
+    method: 'GET',
+    path: '/v2/bootstrap',
+    query: {day_key: DAY_KEY, track: 'cet4'},
+  });
+  assert.equal(bootstrap.statusCode, 200, JSON.stringify(bootstrap.body));
+  assert.equal(bootstrap.body.data.progress.checked_in_today, true);
+  assert.equal(bootstrap.body.data.progress.learning_completed_count, 1);
+  assert.equal(bootstrap.body.data.progress.total_completed_count, 1);
+  assert.equal(bootstrap.body.data.learning.card_states.length, 1);
+
+  const canonicalProgress = [
+    ...db.snapshot().get('softbook_daily_progress').values(),
+  ].filter(value => value.projection_version === 'learning-events.v2');
+  assert.equal(canonicalProgress.length, 1);
+  assert.equal(canonicalProgress[0].checked_in_today, false);
+  assert.equal(canonicalProgress[0].learning_completed_count, 1);
+  const canonicalCheckIns = [
+    ...db.snapshot().get('softbook_daily_check_ins').values(),
+  ];
+  assert.equal(canonicalCheckIns.length, 1);
+  assert.equal(canonicalCheckIns[0].checked_in_today, true);
+  assert.equal(canonicalCheckIns[0].day_key, DAY_KEY);
+});
+
+test('v2 check-in never mutates a retained legacy daily baseline', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const {api} = createTestApi({store});
+  const session = await authenticatedSession(api, PHONE_ONE, '127.0.0.64');
+  await store.seedLegacyDailyProgressForMigrationTest(
+    PHONE_ONE,
+    {
+      checked_in_today: false,
+      day_key: DAY_KEY,
+      favorite_count: 3,
+      learning_completed_count: 2,
+      pending_review_count: 1,
+      review_completed_count: 1,
+      sleeping_count: 2,
+      total_completed_count: 3,
+    },
+    START_TIME.toISOString(),
+  );
+  const legacyBefore = clone(
+    [...db.snapshot().get('softbook_daily_progress').values()][0],
+  );
+  const headers = {authorization: `Bearer ${session.access_token}`};
+  const checkedIn = await request(api, {
+    body: {day_key: DAY_KEY},
+    headers,
+    method: 'POST',
+    path: '/v2/progress/check-in',
+  });
+
+  assert.equal(checkedIn.statusCode, 200, JSON.stringify(checkedIn.body));
+  assert.deepEqual(
+    [...db.snapshot().get('softbook_daily_progress').values()][0],
+    legacyBefore,
+  );
+  assert.equal(db.snapshot().get('softbook_daily_progress').size, 1);
+  assert.equal(db.snapshot().get('softbook_daily_check_ins').size, 1);
+
+  const bootstrap = await request(api, {
+    headers,
+    method: 'GET',
+    path: '/v2/bootstrap',
+    query: {day_key: DAY_KEY, track: 'cet4'},
+  });
+  assert.equal(bootstrap.statusCode, 200, JSON.stringify(bootstrap.body));
+  assert.equal(bootstrap.body.data.progress.checked_in_today, true);
+  assert.equal(bootstrap.body.data.progress.learning_completed_count, 2);
+  assert.equal(bootstrap.body.data.progress.review_completed_count, 1);
+  assert.equal(bootstrap.body.data.progress.total_completed_count, 3);
 });
 
 test('CloudBase migration reads every legacy learning-state page', async () => {
@@ -1795,9 +1901,9 @@ test('corrupted legacy learning state cannot become a v2 migration baseline', as
   const session = await authenticatedSession(api);
   const source = await cardSource(api, session);
   const card = source.card_records[0];
-  const headers = {authorization: `Bearer ${session.access_token}`};
-  const legacyWrite = await request(api, {
-    body: {
+  await store.seedLegacyLearningStateForMigrationTest(
+    PHONE_ONE,
+    {
       day_key: DAY_KEY,
       events: [
         {
@@ -1811,16 +1917,12 @@ test('corrupted legacy learning state cannot become a v2 migration baseline', as
           used_peek: false,
         },
       ],
-      phone_number: PHONE_ONE,
       source_id: source.source.id,
       source_label: source.source.label,
       track: 'cet4',
     },
-    headers,
-    method: 'POST',
-    path: '/v1/learning/state-sync',
-  });
-  assert.equal(legacyWrite.statusCode, 200);
+    START_TIME.toISOString(),
+  );
   const legacyState = [...store.snapshot().learningStates.values()][0];
   Object.values(legacyState.events_by_card_id)[0].used_hint = 'false';
 

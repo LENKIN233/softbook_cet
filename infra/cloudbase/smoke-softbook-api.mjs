@@ -98,7 +98,6 @@ if (initialBootstrap.membership.stage !== entitlement.stage) {
 }
 
 const cardSource = await loadLearningCardSource();
-const firstCard = cardSource.card_records[0];
 
 if (
   initialBootstrap.content.card_count !== cardSource.card_records.length ||
@@ -109,10 +108,30 @@ if (
 }
 
 if (enableWrites) {
-  await syncDailyProgress(initialBootstrap.progress);
-  const learningEvent = await syncLearningEvents(cardSource, firstCard);
-  await syncSpaceState(firstCard);
-  await assertBootstrapWrites(initialBootstrap, firstCard, learningEvent);
+  const learningSelection = await loadLearningSelection(cardSource);
+  const selectedCard = cardSource.card_records.find(
+    card => card.card_id === learningSelection.card_id,
+  );
+
+  if (!selectedCard) {
+    fail(
+      `learning session selected unknown card ${learningSelection.card_id}.`,
+    );
+  }
+
+  await checkInDailyProgress();
+  await assertLegacySnapshotWritesDisabled();
+  const learningEvent = await syncLearningEvents(
+    cardSource,
+    selectedCard,
+    learningSelection,
+  );
+  await syncSpaceState(selectedCard);
+  await assertBootstrapWrites(
+    initialBootstrap,
+    selectedCard,
+    learningEvent,
+  );
 } else {
   skip('write sync endpoints', 'set SOFTBOOK_CET_SMOKE_WRITE=1 to enable');
 }
@@ -289,7 +308,7 @@ async function loadBootstrap(label) {
 
 async function assertBootstrapWrites(
   initialBootstrap,
-  firstCard,
+  selectedCard,
   learningEvent,
 ) {
   const bootstrap = await loadBootstrap('bootstrap after writes');
@@ -306,7 +325,7 @@ async function assertBootstrapWrites(
   }
 
   const restoredLearningState = bootstrap.learning.card_states.find(
-    state => state.card_id === firstCard.card_id,
+    state => state.card_id === selectedCard.card_id,
   );
 
   if (
@@ -320,7 +339,7 @@ async function assertBootstrapWrites(
 
   if (
     !bootstrap.space.states.some(
-      state => state.card_id === firstCard.card_id && state.is_favorited,
+      state => state.card_id === selectedCard.card_id && state.is_favorited,
     )
   ) {
     fail('bootstrap did not restore the physical-space write.');
@@ -373,35 +392,125 @@ async function loadLearningCardSource() {
   };
 }
 
-async function syncDailyProgress(progress) {
+async function loadLearningSelection(cardSource) {
+  const response = await get(`/v2/learning/session?track=${track}`);
+
+  assertOk(response, 'learning session');
+  const payload = await response.json();
+  assertExactKeys(payload, ['data'], 'learning session');
+  const data = assertExactKeys(
+    payload.data,
+    [
+      'access',
+      'algorithm',
+      'content_version',
+      'generated_at',
+      'membership_stage',
+      'next_due_at',
+      'schema_version',
+      'selection',
+      'source_id',
+      'track',
+    ],
+    'learning session.data',
+  );
+
+  if (
+    data.schema_version !== 'learning-session.v1' ||
+    data.track !== cardSource.track ||
+    data.content_version !== cardSource.content_version ||
+    data.source_id !== cardSource.source.id
+  ) {
+    fail('learning session does not match the active canonical card source.');
+  }
+
+  assertIsoTimestamp(data.generated_at, 'learning session.data.generated_at');
+  const selection = assertExactKeys(
+    data.selection,
+    ['card_id', 'due_at', 'phase', 'reason', 'selection_id'],
+    'learning session.data.selection',
+  );
+
+  if (
+    typeof selection.selection_id !== 'string' ||
+    !/^sel_[A-Za-z0-9_-]{16,128}$/.test(selection.selection_id) ||
+    typeof selection.card_id !== 'string' ||
+    !['learning', 'review'].includes(selection.phase)
+  ) {
+    fail('learning session selection does not match learning-session.v1.');
+  }
+
+  ok(
+    'learning session',
+    `${selection.phase}:${selection.card_id}`,
+  );
+  return selection;
+}
+
+async function checkInDailyProgress() {
   const response = await postJson(
-    '/v1/progress/daily-sync',
-    {
-      checked_in_today: true,
-      day_key: todayKey(),
-      favorite_count: progress.favorite_count,
-      learning_completed_count: progress.learning_completed_count,
-      pending_review_count: progress.pending_review_count,
-      phone_number: phoneNumber,
-      review_completed_count: progress.review_completed_count,
-      sleeping_count: progress.sleeping_count,
-      total_completed_count: progress.total_completed_count,
-    },
+    '/v2/progress/check-in',
+    {day_key: todayKey()},
     remoteHeaders,
   );
 
-  assertOk(response, 'daily progress sync');
-  ok('daily progress sync', response.status);
+  assertOk(response, 'daily check-in');
+  const payload = await response.json();
+  assertExactKeys(payload, ['data'], 'daily check-in');
+  const data = assertExactKeys(
+    payload.data,
+    [
+      'acknowledged_at',
+      'checked_in_today',
+      'day_key',
+      'schema_version',
+    ],
+    'daily check-in.data',
+  );
+
+  if (
+    data.schema_version !== 'daily-check-in.v2' ||
+    data.day_key !== todayKey() ||
+    data.checked_in_today !== true
+  ) {
+    fail('daily check-in response does not match the strict v2 contract.');
+  }
+
+  assertIsoTimestamp(data.acknowledged_at, 'daily check-in.acknowledged_at');
+  ok('daily check-in', response.status);
 }
 
-async function syncLearningEvents(cardSource, card) {
+async function assertLegacySnapshotWritesDisabled() {
+  for (const path of [
+    '/v1/progress/daily-sync',
+    '/v1/learning/state-sync',
+  ]) {
+    const response = await postJson(path, {}, authHeaders);
+    const payload = await response.json();
+    const error = assertObject(payload.error, `${path}.error`);
+
+    if (
+      response.status !== 410 ||
+      !['legacy_api_disabled', 'legacy_snapshot_write_disabled'].includes(
+        error.code,
+      )
+    ) {
+      fail(`${path} must remain globally disabled with 410.`);
+    }
+  }
+
+  ok('legacy snapshot writes', 410);
+}
+
+async function syncLearningEvents(cardSource, card, selection) {
   const runId = `${Date.now().toString(36)}_${process.pid.toString(36)}`;
   const outcome = card.interaction_id === 'flip' ? 'confident' : 'correct';
   const event = {
     event_id: `smoke_event_${runId}`,
     card_id: card.card_id,
     interaction_id: card.interaction_id,
-    phase: 'learning',
+    selection_id: selection.selection_id,
+    phase: selection.phase,
     outcome,
     answer_grade: 'passed',
     used_hint: false,

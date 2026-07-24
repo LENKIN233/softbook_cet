@@ -34,6 +34,7 @@ def learning_events_contract_findings(
     evals,
     runtime_text,
     agent_entry_text,
+    provision_text,
 ):
     findings = []
     required_event_fields = [
@@ -121,7 +122,7 @@ def learning_events_contract_findings(
         (
             "bootstrap known gap",
             ("canonical_read", "known_gap"),
-            "the repository-local CloudBase learning-events.v2 backend, React Native durable producer/replay, server scheduler, and mobile scheduler-session binding are implemented but not deployed; global legacy v1 snapshot-write removal and production publication remain unimplemented",
+            "the repository-local CloudBase learning-events.v2 backend, explicit daily check-in, React Native durable producer/replay, server scheduler, and mobile scheduler-session binding are implemented but not deployed; production publication remains unimplemented",
         ),
         (
             "backend implementation",
@@ -225,7 +226,7 @@ def learning_events_contract_findings(
                 "implementation_progress",
                 "legacy_v1_snapshot_writes_disabled",
             ),
-            False,
+            True,
         ),
         (
             "migrated account legacy write boundary",
@@ -234,7 +235,7 @@ def learning_events_contract_findings(
                 "implementation_progress",
                 "migrated_account_v1_learning_writes",
             ),
-            "learning_state_rejected_daily_progress_check_in_only_after_first_accepted_v2_event",
+            "daily_and_learning_snapshot_routes_disabled_globally_v2_check_in_is_the_only_daily_write",
         ),
         (
             "selection-bound event implementation",
@@ -482,7 +483,7 @@ def learning_events_contract_findings(
                 "mobile_client_contract",
                 "reconciliation_rule",
             ),
-            "replay only after validated bootstrap and content hydration; while events are pending, queue dependent daily-progress and space-state mutations and suppress routine canonical refreshes that would overwrite local intent; after any acknowledgement, keep dependent mutations blocked until another bootstrap is fetched and mapped",
+            "replay only after validated bootstrap and content hydration; while events are pending, queue dependent check-in and space-state mutations and suppress routine canonical refreshes that would overwrite local intent; after any acknowledgement, keep dependent mutations blocked until another bootstrap is fetched and mapped",
         ),
         (
             "mobile logout owner contract",
@@ -511,12 +512,110 @@ def learning_events_contract_findings(
         (
             "launch non-claim",
             ("learning_events_v2", "migration_boundary", "launch_claim_rule"),
-            "green repository-local backend, scheduler, and mobile binding tests do not satisfy global legacy snapshot-write removal, formal content approval, production deployment, or launch readiness",
+            "green repository-local backend, explicit check-in, scheduler, and mobile binding tests do not satisfy formal content approval, production deployment, or launch readiness",
         ),
         (
             "migrated account write rule",
             ("learning_events_v2", "migration_boundary", "migrated_account_write_rule"),
-            "the first accepted v2 event transaction preserves valid legacy sequence-zero learning baselines for both tracks before closing account migration; later v1 learning-state snapshots fail with HTTP 409; v1 daily-progress remains a development bridge that can only merge monotonic checked_in_today, cannot overwrite server-derived learning counts, and cannot supply favorite or sleeping counts because bootstrap derives them from canonical physical space; unmigrated development accounts may still provide the migration baseline",
+            "the first accepted v2 event transaction preserves valid retained sequence-zero learning baselines for both tracks before closing migration; both v1 snapshot-write routes always return 410, while v2 check-in can only merge monotonic checked_in_today and cannot overwrite server-derived learning counts or canonical physical-space counts",
+        ),
+        (
+            "daily check-in status",
+            ("daily_check_in_v2", "contract_status"),
+            "cloudbase_backend_and_mobile_client_implemented_locally_not_deployed",
+        ),
+        (
+            "daily check-in endpoint",
+            ("daily_check_in_v2", "endpoint", "path"),
+            "/v2/progress/check-in",
+        ),
+        (
+            "daily check-in authentication",
+            ("daily_check_in_v2", "endpoint", "authentication"),
+            "active_v2_session",
+        ),
+        (
+            "daily check-in identity",
+            ("daily_check_in_v2", "endpoint", "identity_rule"),
+            "derive the account only from the active v2 session; reject phone_number, counters, snapshots, and every request field except day_key",
+        ),
+        (
+            "daily check-in required fields",
+            ("daily_check_in_v2", "command_contract", "required_fields"),
+            ["day_key"],
+        ),
+        (
+            "daily check-in schema",
+            ("daily_check_in_v2", "command_contract", "schema_rule"),
+            "reject unknown fields and any empty, scalar, array, or missing body",
+        ),
+        (
+            "daily check-in monotonic rule",
+            ("daily_check_in_v2", "command_contract", "monotonic_rule"),
+            "the first valid command moves the account-and-day state to checked in; exact repeats return the already-canonical acknowledgement without another state transition",
+        ),
+        (
+            "daily check-in counter rule",
+            ("daily_check_in_v2", "command_contract", "counter_rule"),
+            "never accept learning, review, favorite, sleeping, pending-review, or total counters; learning aggregates are derived from accepted learning-events.v2 and space aggregates are derived from canonical physical space",
+        ),
+        (
+            "daily check-in storage rule",
+            ("daily_check_in_v2", "command_contract", "storage_rule"),
+            "persist only schema_version, account_key, day_key, checked_in_today true, and acknowledged_at in the independent softbook_daily_check_ins collection",
+        ),
+        (
+            "daily check-in storage adapter",
+            ("daily_check_in_v2", "command_contract", "storage_adapter_rule"),
+            "CloudBase may return its system _id; strip only that adapter-owned field before validating the exact five-field business record, and fail closed on every other unknown or malformed field",
+        ),
+        (
+            "daily check-in migration rule",
+            ("daily_check_in_v2", "command_contract", "migration_rule"),
+            "write an independent account-and-day daily-check-in.v2 record and never mutate retained legacy daily documents; first-event migration can still read their unchanged baseline counters while canonical reads overlay the independent check-in",
+        ),
+        (
+            "daily check-in transaction rule",
+            ("daily_check_in_v2", "command_contract", "transaction_rule"),
+            "check-in commits monotonically in its own account-and-day record through the same serialized memory store or CloudBase transaction facility; learning-event transactions never overwrite that record, so a concurrent first event cannot lose the action",
+        ),
+        (
+            "daily check-in mobile trigger",
+            ("daily_check_in_v2", "mobile_contract", "trigger_rule"),
+            "only an explicit user check-in creates the command; learning completion never uploads a daily snapshot because learning-events.v2 owns progress",
+        ),
+        (
+            "daily check-in offline queue",
+            ("daily_check_in_v2", "mobile_contract", "offline_rule"),
+            "persist a credential-free account-scoped check_in_daily_progress command containing only dayKey; replay injects the current access token in memory",
+        ),
+        (
+            "daily check-in legacy queue",
+            ("daily_check_in_v2", "mobile_contract", "legacy_queue_rule"),
+            "during hydration convert a persisted sync_daily_progress entry only when its complete legacy snapshot records checkedInToday true, uses a valid day, contains nonnegative integer counters, and has a consistent total; retain only account context and dayKey and discard every other legacy daily snapshot entry",
+        ),
+        (
+            "daily check-in acknowledgement",
+            ("daily_check_in_v2", "mobile_contract", "ack_rule"),
+            "remove the queued command only after a strict matching daily-check-in.v2 response; a failed, ambiguous, cancelled, or stale-session response keeps the command queued",
+        ),
+        (
+            "daily check-in restart recovery",
+            ("daily_check_in_v2", "mobile_contract", "recovery_rule"),
+            "on restart, preserve a queued local check-in only when an exact persisted command matches the active account and bootstrap day; without that command, canonical checked_in_today false clears stale local state, and event-derived counts never confirm check-in",
+        ),
+        (
+            "daily check-in disabled routes",
+            ("daily_check_in_v2", "legacy_cutover", "disabled_routes"),
+            [
+                "POST /v1/progress/daily-sync",
+                "POST /v1/learning/state-sync",
+            ],
+        ),
+        (
+            "daily check-in legacy scope",
+            ("daily_check_in_v2", "legacy_cutover", "scope_rule"),
+            "no runtime option, legacy token, active v2 session, or unmigrated account can re-enable either snapshot-write route; retained legacy documents are read-only migration input",
         ),
     ]
     for label, keys, expected in owner_expectations:
@@ -626,7 +725,77 @@ def learning_events_contract_findings(
         (
             "runtime legacy write boundary",
             ("learning_event_runtime", "legacy_v1_write_status"),
-            "development_bridge_learning_state_rejected_daily_progress_check_in_only_after_first_v2_event",
+            "daily_and_learning_snapshot_routes_disabled_globally_retained_documents_are_read_only_migration_input",
+        ),
+        (
+            "runtime daily check-in owner",
+            ("daily_check_in_runtime", "owner"),
+            "spec/account-sync-contract.json#daily_check_in_v2",
+        ),
+        (
+            "runtime daily check-in endpoint",
+            ("daily_check_in_runtime", "endpoint"),
+            "POST /v2/progress/check-in",
+        ),
+        (
+            "runtime daily check-in request",
+            ("daily_check_in_runtime", "request_body"),
+            "strict_day_key_only_without_phone_snapshot_or_counters",
+        ),
+        (
+            "runtime daily check-in storage",
+            ("daily_check_in_runtime", "storage_collection"),
+            "softbook_daily_check_ins",
+        ),
+        (
+            "runtime daily check-in stored integrity",
+            ("daily_check_in_runtime", "stored_integrity"),
+            "exact_account_day_schema_is_revalidated_on_write_and_canonical_read_and_corruption_fails_closed",
+        ),
+        (
+            "runtime daily check-in system fields",
+            ("daily_check_in_runtime", "storage_system_fields"),
+            "cloudbase_adapter_strips_only_system_id_before_exact_business_schema_validation",
+        ),
+        (
+            "runtime daily check-in write boundary",
+            ("daily_check_in_runtime", "write_boundary"),
+            "independent_monotonic_idempotent_account_day_record_never_mutates_retained_legacy_documents",
+        ),
+        (
+            "runtime daily check-in transaction",
+            ("daily_check_in_runtime", "transaction_boundary"),
+            "serialized_memory_or_cloudbase_transaction_record_not_overwritten_by_learning_event_migration",
+        ),
+        (
+            "runtime daily check-in trigger",
+            ("daily_check_in_runtime", "mobile_trigger"),
+            "explicit_user_check_in_only_never_learning_completion",
+        ),
+        (
+            "runtime daily check-in queue",
+            ("daily_check_in_runtime", "mobile_queue"),
+            "credential_free_check_in_daily_progress_with_account_context_and_day_key_only",
+        ),
+        (
+            "runtime daily check-in recovery",
+            ("daily_check_in_runtime", "mobile_recovery"),
+            "exact_pending_account_day_command_preserves_queued_check_in_on_restart_without_matching_queue_canonical_false_clears_stale_local_state_and_event_counts_never_confirm_check_in",
+        ),
+        (
+            "runtime daily check-in legacy migration",
+            ("daily_check_in_runtime", "legacy_queue_migration"),
+            "only_complete_consistent_valid_checked_in_sync_daily_progress_becomes_counter_free_check_in_command_all_other_legacy_daily_snapshots_are_discarded",
+        ),
+        (
+            "runtime daily check-in legacy routes",
+            ("daily_check_in_runtime", "legacy_snapshot_routes"),
+            "post_v1_progress_daily_sync_and_post_v1_learning_state_sync_always_disabled",
+        ),
+        (
+            "runtime daily check-in deployment",
+            ("daily_check_in_runtime", "deployment_status"),
+            "not_deployed_by_repository_change",
         ),
         (
             "runtime server authority",
@@ -705,8 +874,9 @@ def learning_events_contract_findings(
     expected_hr38 = [
         "cloudbase_backend_is_repository_local_and_not_deployed",
         "mobile_durable_event_producer_is_repository_local_and_not_production_deployed",
-        "legacy_v1_learning_snapshot_bridge_remains_only_for_unmigrated_development_accounts",
-        "migrated_v1_daily_progress_is_check_in_only",
+        "retained_v1_daily_and_learning_snapshots_are_read_only_migration_input",
+        "v1_daily_and_learning_snapshot_write_routes_are_globally_disabled",
+        "explicit_daily_check_in_v2_is_repository_local_not_deployed",
         "server_scheduler_is_repository_local_and_not_deployed",
         "mobile_scheduler_session_binding_is_repository_local_and_not_deployed",
         "formal_content_approval_and_production_publication_remain_pending",
@@ -748,7 +918,7 @@ def learning_events_contract_findings(
         "retained_content_version_validation_for_offline_replay",
         "client_time_is_not_canonical_ordering_authority",
         "post_replay_bootstrap_reconciliation",
-        "legacy_v1_learning_snapshots_are_migration_only",
+        "retained_v1_snapshots_are_read_only_migration_input",
         "scheduler_is_a_server_owned_separate_contract",
         "backend_status_is_implemented_locally_not_deployed",
     ]
@@ -777,8 +947,8 @@ def learning_events_contract_findings(
         "legacy_v1_migration_reads_all_bounded_pages",
         "legacy_migration_snapshot_uses_transactional_revision_fence",
         "legacy_v1_migration_preserves_both_track_baselines",
-        "migrated_account_rejects_later_v1_learning_snapshot_writes",
-        "migrated_daily_progress_cannot_override_v2_learning_or_space_counts",
+        "v1_daily_and_learning_snapshot_write_routes_always_return_410",
+        "v2_check_in_is_monotonic_and_cannot_override_learning_or_space_counts",
         "cloudbase_and_memory_adapters_share_transaction_algorithm",
         "stored_learning_daily_and_legacy_projection_invariants_fail_closed",
         "concurrent_and_injected_failure_tests",
@@ -842,6 +1012,34 @@ def learning_events_contract_findings(
     elif hr41.get("must_hit") != expected_hr41:
         findings.append("learning-events contract evals: HR-41 must_hit drift")
 
+    hr42 = _entry_by_id(evals.get("regressions", []), "HR-42")
+    expected_hr42 = [
+        "account_sync_contract_is_daily_check_in_owner",
+        "active_v2_session_is_only_account_identity",
+        "strict_day_key_only_daily_check_in_command",
+        "phone_number_snapshots_and_all_counters_are_forbidden",
+        "explicit_check_in_is_monotonic_and_idempotent",
+        "independent_account_day_record_never_mutates_legacy_baseline",
+        "cloudbase_system_id_is_not_a_business_field_and_other_unknown_fields_fail_closed",
+        "learning_counts_remain_learning_event_derived",
+        "favorite_and_sleeping_counts_remain_space_derived",
+        "concurrent_first_event_cannot_lose_check_in",
+        "mobile_learning_completion_never_uploads_daily_snapshot",
+        "credential_free_offline_check_in_command",
+        "restart_preserves_only_exact_pending_account_day_check_in",
+        "event_derived_counts_never_confirm_check_in",
+        "valid_legacy_checked_in_queue_entry_migrates_without_counters",
+        "corrupt_or_inconsistent_legacy_checked_in_snapshots_are_discarded",
+        "other_legacy_daily_snapshot_entries_are_discarded",
+        "v1_daily_and_learning_snapshot_routes_are_globally_disabled",
+        "retained_legacy_documents_are_read_only_migration_input",
+        "repository_local_green_is_not_deployment_or_launch_readiness",
+    ]
+    if not hr42:
+        findings.append("learning-events contract evals: missing HR-42")
+    elif hr42.get("must_hit") != expected_hr42:
+        findings.append("learning-events contract evals: HR-42 must_hit drift")
+
     gt32 = _entry_by_id(evals.get("golden_tasks", []), "GT-32")
     expected_gt32 = [
         "account_sync_contract_owner",
@@ -866,12 +1064,47 @@ def learning_events_contract_findings(
     elif gt32.get("must_include") != expected_gt32:
         findings.append("learning-events contract evals: GT-32 must_include drift")
 
+    gt33 = _entry_by_id(evals.get("golden_tasks", []), "GT-33")
+    expected_gt33 = [
+        "account_sync_contract_owner",
+        "post_v2_progress_check_in_with_active_session_identity",
+        "strict_daily_check_in_command_day_key_only",
+        "strict_matching_daily_check_in_v2_response",
+        "no_phone_number_snapshot_or_counter_fields",
+        "monotonic_idempotent_account_day_state",
+        "softbook_daily_check_ins_is_independent_from_event_derived_progress",
+        "cloudbase_adapter_strips_only_system_id_before_exact_schema_validation",
+        "memory_and_cloudbase_transactional_implementations",
+        "concurrent_first_learning_event_preserves_check_in",
+        "pre_event_legacy_baseline_counters_are_preserved_read_only",
+        "mobile_explicit_check_in_is_the_only_trigger",
+        "mobile_learning_progress_uses_learning_events_not_daily_snapshots",
+        "credential_free_check_in_daily_progress_queue_entry",
+        "restart_recovers_exact_pending_account_day_check_in_as_queued",
+        "canonical_false_without_matching_queue_clears_stale_local_check_in",
+        "event_derived_progress_never_marks_check_in_synced",
+        "legacy_checked_in_queue_migrates_to_day_key_only",
+        "legacy_checked_in_snapshot_requires_complete_consistent_counters_before_migration",
+        "legacy_non_check_in_daily_snapshots_are_discarded",
+        "stale_session_cancellation_cannot_acknowledge_or_remove_command",
+        "post_ack_canonical_bootstrap_reconciliation",
+        "v1_progress_daily_sync_always_returns_410",
+        "v1_learning_state_sync_always_returns_410",
+        "development_v1_card_membership_and_space_bridge_is_unchanged",
+        "repository_local_cutover_is_not_deployment_content_approval_or_launch_readiness",
+    ]
+    if not gt33:
+        findings.append("learning-events contract evals: missing GT-33")
+    elif gt33.get("must_include") != expected_gt33:
+        findings.append("learning-events contract evals: GT-33 must_include drift")
+
     required_runtime_snippets = [
         "repository-local CommonJS CloudBase function now implements",
         "This repository change deploys neither backend nor mobile release artifacts;",
         "softbook_learning_events",
         "softbook_learning_migration_revisions",
         "softbook_learning_sessions",
+        "softbook_daily_check_ins",
         "softbook_card_source_versions",
         "at most 9 input events",
         "29 operations",
@@ -897,15 +1130,23 @@ def learning_events_contract_findings(
         "Replay is serialized per originating session.",
         "Authenticated startup hydrates the account's outbox count with bootstrap.",
         "Generic mutation queue operations are serialized and use candidate persistence:",
-        "daily-progress and space-state",
+        "On restart, only an exact queued check-in command",
+        "event-derived completion counts never mark check-in synchronized.",
+        "check-in and space-state",
         "active mobile completion no longer calls",
         "Late replay, authorization, or bootstrap responses",
         "including same-phone reauthentication.",
         "Every remote authentication call has a 15-second deadline",
         "Explicit caller cancellation or session replacement leaves the queued event and retry",
-        "Legacy `/v1/learning/state-sync` remains",
-        "only `checked_in_today` is merged",
-        "409 legacy_learning_write_disabled",
+        "They are read-only migration",
+        "`410 legacy_snapshot_write_disabled` in development",
+        "Explicit daily check-in uses authenticated `POST /v2/progress/check-in`",
+        'the exact body `{"day_key":"YYYY-MM-DD"}`',
+        "a concurrent first",
+        "former HTTP write routes are",
+        "globally disabled",
+        "CloudBase may materialize its adapter-owned `_id` on read.",
+        "`daily_check_in_projection_invalid`",
         "The repository-local backend, scheduler, and mobile binding do not prove",
     ]
     for snippet in required_runtime_snippets:
@@ -917,6 +1158,12 @@ def learning_events_contract_findings(
     if runtime_path not in agent_entry_text:
         findings.append(
             f"learning-events contract Agent entry runtime path: missing exact snippet {runtime_path!r}"
+        )
+
+    if "'softbook_daily_check_ins'," not in provision_text:
+        findings.append(
+            "learning-events contract daily check-in storage: "
+            "provisioning is missing softbook_daily_check_ins"
         )
 
     return findings
@@ -1167,7 +1414,6 @@ def learning_scheduler_contract_findings(
             ("server_scheduler_v1", "known_gaps"),
             [
                 "production_deployment",
-                "global_legacy_v1_snapshot_write_removal",
                 "production_membership_expiry_and_payment_entitlement",
                 "formal_content_publication",
             ],
@@ -1457,6 +1703,7 @@ def validate(context) -> None:
             evals,
             runtime_text,
             agent_entry_text,
+            provision_text,
         )
     )
     context.errors.extend(

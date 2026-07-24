@@ -7,11 +7,10 @@ import type {
   SpaceStateSnapshot,
 } from '../space/spaceStateRepository';
 import type {
-  DailyProgressSnapshot,
   ProgressSyncContext,
 } from './progressSyncRepository';
 export type MutationType =
-  | 'sync_daily_progress'
+  | 'check_in_daily_progress'
   | 'sync_space_state'
   | 'start_membership_trial'
   | 'refresh_membership';
@@ -24,9 +23,9 @@ export type MutationPayloadByType = {
     context: MembershipRepositoryContext;
     currentState: MembershipState;
   };
-  sync_daily_progress: {
+  check_in_daily_progress: {
     context: ProgressSyncContext;
-    snapshot: DailyProgressSnapshot;
+    dayKey: string;
   };
   sync_space_state: {
     context: SpaceStateContext;
@@ -118,10 +117,14 @@ export class MutationQueueManager {
     id?: string,
   ): Promise<MutationQueueEntry> {
     return this.runExclusive(async () => {
+      const sanitizedPayload = sanitizeMutationPayload(type, payload);
       const entry = {
-        id:
+        id: sanitizeMutationId(
+          type,
           id ?? `${type}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        payload: sanitizeMutationPayload(type, payload),
+          sanitizedPayload,
+        ),
+        payload: sanitizedPayload,
         retryCount: 0,
         timestamp: this.now(),
         type,
@@ -267,17 +270,26 @@ function sanitizeMutationEntries(value: unknown): MutationQueueEntry[] {
       typeof entry.timestamp !== 'string' ||
       !Number.isInteger(entry.retryCount) ||
       (entry.retryCount as number) < 0 ||
-      !isMutationType(entry.type) ||
       !isObject(entry.payload)
     ) {
       return [];
     }
 
+    if (entry.type === 'sync_daily_progress') {
+      const migrated = migrateLegacyDailyProgressEntry(entry);
+      return migrated === null ? [] : [migrated];
+    }
+
+    if (!isMutationType(entry.type)) {
+      return [];
+    }
+
     try {
+      const payload = sanitizeMutationPayload(entry.type, entry.payload);
       return [
         {
-          id: sanitizePersistedMutationId(entry.type, entry.id),
-          payload: sanitizeMutationPayload(entry.type, entry.payload),
+          id: sanitizeMutationId(entry.type, entry.id, payload),
+          payload,
           retryCount: entry.retryCount,
           timestamp: entry.timestamp,
           type: entry.type,
@@ -289,7 +301,17 @@ function sanitizeMutationEntries(value: unknown): MutationQueueEntry[] {
   });
 }
 
-function sanitizePersistedMutationId(type: MutationType, id: string): string {
+function sanitizeMutationId(
+  type: MutationType,
+  id: string,
+  payload: MutationPayloadByType[MutationType],
+): string {
+  if (type === 'check_in_daily_progress') {
+    const checkInPayload =
+      payload as MutationPayloadByType['check_in_daily_progress'];
+    return `check-in:${checkInPayload.context.phoneNumber}:${checkInPayload.dayKey}`;
+  }
+
   if (type === 'refresh_membership') {
     return id === 'membership:restore' ||
       id === 'membership:login' ||
@@ -333,7 +355,17 @@ function sanitizeMutationPayload<Type extends MutationType>(
         context,
         currentState: cloneCredentialFreeObject(payload.currentState),
       } as MutationPayloadByType[Type];
-    case 'sync_daily_progress':
+    case 'check_in_daily_progress':
+      if (typeof payload.dayKey !== 'string' || !isValidDayKey(payload.dayKey)) {
+        throw new Error(
+          'Daily check-in mutation requires a valid YYYY-MM-DD dayKey.',
+        );
+      }
+
+      return {
+        context,
+        dayKey: payload.dayKey,
+      } as MutationPayloadByType[Type];
     case 'sync_space_state':
       if (!isObject(payload.snapshot)) {
         throw new Error(`Mutation ${type} requires a snapshot.`);
@@ -393,10 +425,88 @@ function assertNoCredentialFields(value: unknown) {
 
 function isMutationType(value: unknown): value is MutationType {
   return (
+    value === 'check_in_daily_progress' ||
     value === 'refresh_membership' ||
     value === 'start_membership_trial' ||
-    value === 'sync_daily_progress' ||
     value === 'sync_space_state'
+  );
+}
+
+function migrateLegacyDailyProgressEntry(
+  entry: Record<string, unknown>,
+): MutationQueueEntry | null {
+  if (
+    !isObject(entry.payload) ||
+    !isObject(entry.payload.context) ||
+    typeof entry.payload.context.phoneNumber !== 'string' ||
+    !/^\d{11}$/.test(entry.payload.context.phoneNumber) ||
+    !isValidLegacyDailyProgressSnapshot(entry.payload.snapshot)
+  ) {
+    return null;
+  }
+
+  const phoneNumber = entry.payload.context.phoneNumber;
+  const dayKey = entry.payload.snapshot.dayKey;
+
+  return {
+    id: `check-in:${phoneNumber}:${dayKey}`,
+    payload: {
+      context: {phoneNumber},
+      dayKey,
+    },
+    retryCount: entry.retryCount as number,
+    timestamp: entry.timestamp as string,
+    type: 'check_in_daily_progress',
+  };
+}
+
+function isValidLegacyDailyProgressSnapshot(
+  value: unknown,
+): value is Record<string, unknown> & {
+  checkedInToday: true;
+  dayKey: string;
+} {
+  if (
+    !isObject(value) ||
+    value.checkedInToday !== true ||
+    typeof value.dayKey !== 'string' ||
+    !isValidDayKey(value.dayKey)
+  ) {
+    return false;
+  }
+
+  const counterKeys = [
+    'favoriteCount',
+    'learningCompletedCount',
+    'pendingReviewCount',
+    'reviewCompletedCount',
+    'sleepingCount',
+    'totalCompletedCount',
+  ];
+
+  if (
+    counterKeys.some(
+      key => !Number.isInteger(value[key]) || (value[key] as number) < 0,
+    )
+  ) {
+    return false;
+  }
+
+  return (
+    value.totalCompletedCount ===
+    (value.learningCompletedCount as number) +
+      (value.reviewCompletedCount as number)
+  );
+}
+
+function isValidDayKey(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return (
+    !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
   );
 }
 
