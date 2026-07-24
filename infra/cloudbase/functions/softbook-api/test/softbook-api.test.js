@@ -417,25 +417,24 @@ test('v2 bootstrap restores persisted canonical state and isolates accounts', as
       method: 'POST',
       path: '/v1/membership/start-trial',
     });
-    await request(api, {
-      body: progress,
-      headers: firstHeaders,
-      method: 'POST',
-      path: '/v1/progress/daily-sync',
-    });
-    await request(api, {
-      body: {
+    await store.seedLegacyDailyProgressForMigrationTest(
+      '13800138000',
+      Object.fromEntries(
+        Object.entries(progress).filter(([key]) => key !== 'phone_number'),
+      ),
+      fixedNow.toISOString(),
+    );
+    await store.seedLegacyLearningStateForMigrationTest(
+      '13800138000',
+      {
         day_key: '2026-04-30',
         events: [event],
-        phone_number: '13800138000',
         source_id: 'cloudbase-dev-card-source',
         source_label: 'CloudBase 开发卡源',
         track: 'cet4',
       },
-      headers: firstHeaders,
-      method: 'POST',
-      path: '/v1/learning/state-sync',
-    });
+      fixedNow.toISOString(),
+    );
     await request(api, {
       body: {
         day_key: '2026-04-30',
@@ -590,6 +589,7 @@ test('production bootstrap fails closed without a matching published release', a
   assert.equal(unavailable.statusCode, 503);
   assert.equal(unavailable.body.error.code, 'content_release_unavailable');
   assert.equal(db.snapshot().get('softbook_memberships').size, 0);
+  assert.equal(db.snapshot().get('softbook_daily_check_ins').size, 0);
   assert.equal(db.snapshot().get('softbook_daily_progress').size, 0);
   assert.equal(db.snapshot().get('softbook_learning_states').size, 0);
   assert.equal(db.snapshot().get('softbook_space_states').size, 0);
@@ -658,28 +658,20 @@ test('production learning session fails closed before trial without a published 
   assert.equal(db.snapshot().get('softbook_learning_sessions').size, 1);
 });
 
-test('CloudBase bootstrap state survives separate function instances', async () => {
+test('CloudBase canonical check-in survives separate function instances', async () => {
   const db = createFakeCloudBaseDb();
   const firstApi = createTestApi({store: createCloudBaseStore({db})});
   const secondApi = createTestApi({store: createCloudBaseStore({db})});
   const session = await authenticatedV2Session(firstApi);
   const headers = {authorization: `Bearer ${session.access_token}`};
 
-  await request(firstApi, {
+  const checkedIn = await request(firstApi, {
     body: {
-      checked_in_today: true,
       day_key: '2026-04-30',
-      favorite_count: 0,
-      learning_completed_count: 2,
-      pending_review_count: 1,
-      phone_number: '13800138000',
-      review_completed_count: 0,
-      sleeping_count: 0,
-      total_completed_count: 2,
     },
     headers,
     method: 'POST',
-    path: '/v1/progress/daily-sync',
+    path: '/v2/progress/check-in',
   });
   const restored = await request(secondApi, {
     headers,
@@ -688,9 +680,12 @@ test('CloudBase bootstrap state survives separate function instances', async () 
     query: {day_key: '2026-04-30', track: 'cet4'},
   });
 
+  assert.equal(checkedIn.statusCode, 200);
+  assert.equal(checkedIn.body.data.schema_version, 'daily-check-in.v2');
   assert.equal(restored.statusCode, 200);
-  assert.equal(restored.body.data.progress.total_completed_count, 2);
-  assert.equal(restored.body.data.progress.pending_review_count, 1);
+  assert.equal(restored.body.data.progress.checked_in_today, true);
+  assert.equal(restored.body.data.progress.total_completed_count, 0);
+  assert.equal(restored.body.data.progress.pending_review_count, 0);
 });
 
 test('CloudBase learning-session cursor survives separate function instances', async () => {
@@ -764,7 +759,7 @@ test('bootstrap rejects corrupted persisted canonical state', async () => {
   const session = await authenticatedV2Session(api);
   const headers = {authorization: `Bearer ${session.access_token}`};
 
-  await store.saveDailyProgress(
+  await store.seedLegacyDailyProgressForMigrationTest(
     '13800138000',
     {
       checked_in_today: true,
@@ -777,9 +772,6 @@ test('bootstrap rejects corrupted persisted canonical state', async () => {
       total_completed_count: 0,
     },
     'not-an-iso-timestamp',
-    {
-      accountKey: [...store.snapshot().authSessions.values()][0].account_key,
-    },
   );
   const response = await request(api, {
     headers,
@@ -826,14 +818,70 @@ test('membership entitlement and mutations preserve server-side state by phone',
   assert.equal(premium.body.data.entitlement.stage, 'premium');
 });
 
-test('sync endpoints acknowledge daily progress, learning state, and space state', async () => {
+test('v2 check-in is strict while legacy snapshot writes stay disabled', async () => {
   const api = createTestApi();
-  const token = await authenticatedToken(api);
+  const session = await authenticatedV2Session(api);
   const headers = {
-    authorization: `Bearer ${token}`,
+    authorization: `Bearer ${session.access_token}`,
   };
 
   const daily = await request(api, {
+    body: {
+      day_key: '2026-04-30',
+    },
+    headers,
+    method: 'POST',
+    path: '/v2/progress/check-in',
+  });
+  const invalidDaily = await request(api, {
+    body: {
+      day_key: '2026-04-30',
+      favorite_count: 1,
+      phone_number: '13800138000',
+    },
+    headers,
+    method: 'POST',
+    path: '/v2/progress/check-in',
+  });
+  const invalidDay = await request(api, {
+    body: {
+      day_key: '2026-02-30',
+    },
+    headers,
+    method: 'POST',
+    path: '/v2/progress/check-in',
+  });
+  const invalidShapes = await Promise.all(
+    [undefined, null, [], '2026-04-30', {}, {day_key: 20260430}].map(body =>
+      request(api, {
+        body,
+        headers,
+        method: 'POST',
+        path: '/v2/progress/check-in',
+      }),
+    ),
+  );
+  const missingSession = await request(api, {
+    body: {
+      day_key: '2026-04-30',
+    },
+    method: 'POST',
+    path: '/v2/progress/check-in',
+  });
+  const legacyLearning = await request(api, {
+    body: {
+      day_key: '2026-04-30',
+      events: [],
+      phone_number: '13800138000',
+      source_id: 'cloudbase-dev-card-source',
+      source_label: 'CloudBase 开发卡源',
+      track: 'cet4',
+    },
+    headers,
+    method: 'POST',
+    path: '/v1/learning/state-sync',
+  });
+  const legacyDaily = await request(api, {
     body: {
       checked_in_today: true,
       day_key: '2026-04-30',
@@ -848,30 +896,6 @@ test('sync endpoints acknowledge daily progress, learning state, and space state
     headers,
     method: 'POST',
     path: '/v1/progress/daily-sync',
-  });
-  const learning = await request(api, {
-    body: {
-      day_key: '2026-04-30',
-      events: [
-        {
-          card_id: '002001',
-          completed_at: '2026-04-30T12:00:00.000Z',
-          interaction_id: 'flip',
-          is_favorited: true,
-          outcome: 'confident',
-          phase: 'learning',
-          used_hint: false,
-          used_peek: false,
-        },
-      ],
-      phone_number: '13800138000',
-      source_id: 'cloudbase-dev-card-source',
-      source_label: 'CloudBase 开发卡源',
-      track: 'cet4',
-    },
-    headers,
-    method: 'POST',
-    path: '/v1/learning/state-sync',
   });
   const space = await request(api, {
     body: {
@@ -892,9 +916,147 @@ test('sync endpoints acknowledge daily progress, learning state, and space state
   });
 
   assert.equal(daily.statusCode, 200);
-  assert.equal(learning.statusCode, 200);
+  assert.deepEqual(daily.body.data, {
+    acknowledged_at: fixedNow.toISOString(),
+    checked_in_today: true,
+    day_key: '2026-04-30',
+    schema_version: 'daily-check-in.v2',
+  });
+  assert.equal(invalidDaily.statusCode, 400);
+  assert.equal(invalidDaily.body.error.code, 'invalid_daily_check_in');
+  assert.equal(invalidDay.statusCode, 400);
+  assert.equal(invalidDay.body.error.code, 'invalid_daily_check_in');
+  invalidShapes.forEach(response => {
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.body.error.code, 'invalid_daily_check_in');
+  });
+  assert.equal(missingSession.statusCode, 401);
+  assert.equal(missingSession.body.error.code, 'missing_auth_token');
+  assert.equal(legacyDaily.statusCode, 410);
+  assert.equal(legacyDaily.body.error.code, 'legacy_snapshot_write_disabled');
+  assert.equal(legacyLearning.statusCode, 410);
+  assert.equal(
+    legacyLearning.body.error.code,
+    'legacy_snapshot_write_disabled',
+  );
   assert.equal(space.statusCode, 200);
   assert.equal(space.body.data.acknowledged_at, fixedNow.toISOString());
+});
+
+test('v2 check-in is monotonic and idempotent in memory and CloudBase', async () => {
+  const variants = [
+    ['memory', createMemoryStore()],
+    ['cloudbase', createCloudBaseStore({db: createFakeCloudBaseDb()})],
+  ];
+
+  for (const [name, store] of variants) {
+    let now = new Date('2026-04-30T12:00:00.000Z');
+    const api = createSoftbookApi({
+      now: () => new Date(now),
+      smsCode: '2468',
+      store,
+      tokenSecret: `check-in-idempotence-${name}`,
+    });
+    const session = await authenticatedV2Session(
+      api,
+      '13800138000',
+      name === 'memory' ? '127.0.0.61' : '127.0.0.62',
+    );
+    const requestCheckIn = () =>
+      request(api, {
+        body: {day_key: '2026-04-30'},
+        headers: {authorization: `Bearer ${session.access_token}`},
+        method: 'POST',
+        path: '/v2/progress/check-in',
+      });
+
+    const first = await requestCheckIn();
+    now = new Date('2026-04-30T12:05:00.000Z');
+    const replay = await requestCheckIn();
+
+    assert.equal(first.statusCode, 200, name);
+    assert.equal(replay.statusCode, 200, name);
+    assert.equal(
+      replay.body.data.acknowledged_at,
+      first.body.data.acknowledged_at,
+      name,
+    );
+    assert.equal(replay.body.data.checked_in_today, true, name);
+  }
+});
+
+test('corrupted canonical check-in fails closed on write and bootstrap read', async () => {
+  const store = createMemoryStore();
+  const api = createTestApi({store});
+  const session = await authenticatedV2Session(api);
+  const headers = {authorization: `Bearer ${session.access_token}`};
+  const requestCheckIn = () =>
+    request(api, {
+      body: {day_key: '2026-04-30'},
+      headers,
+      method: 'POST',
+      path: '/v2/progress/check-in',
+    });
+  const first = await requestCheckIn();
+
+  assert.equal(first.statusCode, 200);
+  const persisted = [...store.snapshot().dailyCheckIns.values()][0];
+  persisted.schema_version = 'daily-check-in.corrupt';
+
+  const repeated = await requestCheckIn();
+  assert.equal(repeated.statusCode, 500);
+  assert.equal(
+    repeated.body.error.code,
+    'daily_check_in_projection_invalid',
+  );
+
+  persisted.schema_version = 'daily-check-in.v2';
+  persisted.total_completed_count = 0;
+  const bootstrap = await request(api, {
+    headers,
+    method: 'GET',
+    path: '/v2/bootstrap',
+    query: {day_key: '2026-04-30', track: 'cet4'},
+  });
+  assert.equal(bootstrap.statusCode, 500);
+  assert.equal(
+    bootstrap.body.error.code,
+    'daily_check_in_projection_invalid',
+  );
+});
+
+test('CloudBase check-in accepts only its system id beyond the business schema', async () => {
+  const db = createFakeCloudBaseDb();
+  const api = createTestApi({store: createCloudBaseStore({db})});
+  const session = await authenticatedV2Session(
+    api,
+    '13800138000',
+    '127.0.0.65',
+  );
+  const requestCheckIn = () =>
+    request(api, {
+      body: {day_key: '2026-04-30'},
+      headers: {authorization: `Bearer ${session.access_token}`},
+      method: 'POST',
+      path: '/v2/progress/check-in',
+    });
+
+  const first = await requestCheckIn();
+  const replayWithSystemId = await requestCheckIn();
+  assert.equal(first.statusCode, 200);
+  assert.equal(replayWithSystemId.statusCode, 200);
+
+  const persisted = [
+    ...db.snapshot().get('softbook_daily_check_ins').values(),
+  ][0];
+  persisted.total_completed_count = 0;
+
+  const replayWithUnknownField = await requestCheckIn();
+  assert.equal(replayWithUnknownField.statusCode, 500);
+  assert.equal(
+    replayWithUnknownField.body.error.code,
+    'daily_check_in_projection_invalid',
+  );
 });
 
 test('space state keeps the latest explicit action and returns server canonical state', async () => {
@@ -984,7 +1146,7 @@ test('CloudBase event adapter returns stringified HTTP response bodies', async (
   assert.equal(JSON.parse(response.body).data.phone_number, '13800138000');
 });
 
-test('CloudBase store keeps membership and sync state outside function memory', async () => {
+test('CloudBase store keeps membership and canonical check-in outside function memory', async () => {
   const db = createFakeCloudBaseDb();
   const firstApi = createTestApi({
     store: createCloudBaseStore({db}),
@@ -992,9 +1154,9 @@ test('CloudBase store keeps membership and sync state outside function memory', 
   const secondApi = createTestApi({
     store: createCloudBaseStore({db}),
   });
-  const token = await authenticatedToken(firstApi);
+  const session = await authenticatedV2Session(firstApi);
   const headers = {
-    authorization: `Bearer ${token}`,
+    authorization: `Bearer ${session.access_token}`,
   };
   const body = {
     phone_number: '13800138000',
@@ -1019,29 +1181,23 @@ test('CloudBase store keeps membership and sync state outside function memory', 
   });
   const daily = await request(secondApi, {
     body: {
-      checked_in_today: true,
       day_key: '2026-04-30',
-      favorite_count: 1,
-      learning_completed_count: 1,
-      pending_review_count: 0,
-      phone_number: '13800138000',
-      review_completed_count: 0,
-      sleeping_count: 0,
-      total_completed_count: 1,
     },
     headers,
     method: 'POST',
-    path: '/v1/progress/daily-sync',
+    path: '/v2/progress/check-in',
   });
 
   assert.equal(entitlement.body.data.entitlement.stage, 'premium');
   assert.equal(daily.statusCode, 200);
+  assert.equal(daily.body.data.checked_in_today, true);
   assert.equal(
     db.snapshot().get('softbook_memberships').get('13800138000').entitlement
       .stage,
     'premium',
   );
-  assert.equal(db.snapshot().get('softbook_daily_progress').size, 1);
+  assert.equal(db.snapshot().get('softbook_daily_check_ins').size, 1);
+  assert.equal(db.snapshot().get('softbook_daily_progress')?.size ?? 0, 0);
 });
 
 test('CloudBase space state migrates legacy daily documents into account canonical state', async () => {

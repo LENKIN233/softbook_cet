@@ -53,6 +53,7 @@ export interface MutationQueueRepository {
   startReplay(context?: MutationReplayContext): Promise<MutationReplayResult[]>;
   isReplaying(): boolean;
   getQueueSize(): Promise<number>;
+  hasPendingCheckIn(phoneNumber: string, dayKey: string): Promise<boolean>;
   clear(): Promise<void>;
 }
 
@@ -70,10 +71,10 @@ export function createMutationQueueRepository(options: {
   ): Promise<MutationReplayResult | null> => {
     try {
       switch (entry.type) {
-        case 'sync_daily_progress':
-          await options.progressSyncRepository.syncDailyProgress(
+        case 'check_in_daily_progress':
+          await options.progressSyncRepository.checkIn(
             entry.payload.context,
-            entry.payload.snapshot,
+            entry.payload.dayKey,
           );
           return {entry};
         case 'sync_space_state':
@@ -185,6 +186,18 @@ export function createMutationQueueRepository(options: {
 
     getQueueSize() {
       return queue.size();
+    },
+
+    async hasPendingCheckIn(phoneNumber, dayKey) {
+      await queue.hydrate();
+      const entries = await queue.getAll();
+
+      return entries.some(
+        entry =>
+          entry.type === 'check_in_daily_progress' &&
+          entry.payload.context.phoneNumber === phoneNumber &&
+          entry.payload.dayKey === dayKey,
+      );
     },
 
     clear() {

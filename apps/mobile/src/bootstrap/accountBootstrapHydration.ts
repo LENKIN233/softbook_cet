@@ -9,7 +9,6 @@ import type { AccountBootstrapSnapshot } from './accountBootstrapRepository';
 export type AccountBootstrapHydration = {
   learningResults: LearningCardResult[];
   persistedUserState: PersistedUserState;
-  progressSyncKey: string;
   reviewResults: LearningCardResult[];
   spaceStateSyncKey: string;
 };
@@ -17,9 +16,10 @@ export type AccountBootstrapHydration = {
 export function reconcileAccountBootstrap(
   persistedUserState: PersistedUserState,
   bootstrap: AccountBootstrapSnapshot,
+  options: {pendingCheckInDayKey?: string | null} = {},
 ): Pick<
   AccountBootstrapHydration,
-  'persistedUserState' | 'progressSyncKey' | 'spaceStateSyncKey'
+  'persistedUserState' | 'spaceStateSyncKey'
 > {
   const remoteSpaceStateById = spaceStateSnapshotToMap(
     bootstrap.space.snapshot,
@@ -33,13 +33,14 @@ export function reconcileAccountBootstrap(
     persistedUserState: {
       checkedInDayKey: bootstrap.progress.snapshot.checkedInToday
         ? bootstrap.dayKey
+        : options.pendingCheckInDayKey === bootstrap.dayKey
+        ? bootstrap.dayKey
         : persistedUserState.checkedInDayKey === bootstrap.dayKey
         ? null
         : persistedUserState.checkedInDayKey,
       learningCursor: bootstrap.learning.cursor,
       spaceCardStateById: mergedSpaceStateById,
     },
-    progressSyncKey: JSON.stringify(bootstrap.progress.snapshot),
     spaceStateSyncKey: JSON.stringify({
       dayKey: bootstrap.dayKey,
       states: Object.entries(remoteSpaceStateById)

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-16",
+  "version": "vnext-17",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -68,9 +68,9 @@
     "bootstrap content version is derived from normalized ordered content; production fails closed without a matching published content-release.v1 descriptor while development may expose a null release id",
     "mobile remote login and restored sessions validate bootstrap scope before hydrating its canonical baseline, then validate the loaded card-source identity and content version before enabling learning, persisting reconciled state, replaying mutations, or pushing product-state writes",
     "mobile keeps a still-valid authenticated session retryable after transient bootstrap failure but fails closed without previously validated canonical state and required content; reconnect reads canonical state before replay and again after replay",
-    "bootstrap plus the repository-local learning-events.v2 backend, React Native durable producer, server scheduler, and mobile selection binding do not complete global legacy snapshot-write removal, signed content manifests, production deployment, or CommonJS CloudBase production readiness",
-    "the repository-local CloudBase learning-events.v2 endpoint, React Native event client, server scheduler, and mobile session consumer implement active-session identity, immutable selection-bound account-scoped events, durable event and cursor allocation before UI advance, exact replay, strict acknowledgement removal, retained content validation, transactional FSRS projection, canonical bootstrap reconciliation, server card selection, and v1 mobile learning-write removal; deployment and global v1 write removal remain pending",
-    "development-only v1 product routes can accept an active v2 session during migration while production continues to reject every v1 route",
+    "bootstrap plus the repository-local learning-events.v2 backend, explicit v2 daily check-in, React Native durable producer/replay, server scheduler, and mobile selection binding do not complete signed content manifests, production deployment, or CommonJS CloudBase production readiness",
+    "the repository-local CloudBase learning-events.v2 and daily-check-in.v2 endpoints, React Native event/check-in clients, server scheduler, and mobile session consumer implement active-session identity, immutable selection-bound account-scoped events, explicit counter-free check-in, durable queues before UI authority advances, exact replay, strict acknowledgement removal, retained content validation, transactional FSRS projection, canonical bootstrap reconciliation, server card selection, and global v1 daily/learning snapshot-write removal; deployment remains pending",
+    "development-only v1 card-source, membership, and physical-space routes can accept an active v2 session during migration, the v1 daily and learning snapshot-write routes are always disabled, and production continues to reject every v1 route",
     "remote content failures fail closed and never substitute bundled development cards"
   ],
   "learning_event_runtime": {
@@ -99,7 +99,7 @@
     "mobile_authenticated_request_timeout_ms": 15000,
     "mobile_request_lifecycle_boundary": "timeout_retains_exact_events_and_increments_retry_while_caller_or_session_cancellation_keeps_retry_state_unchanged",
     "mobile_active_v1_learning_snapshot_writes": false,
-    "legacy_v1_write_status": "development_bridge_learning_state_rejected_daily_progress_check_in_only_after_first_v2_event",
+    "legacy_v1_write_status": "daily_and_learning_snapshot_routes_disabled_globally_retained_documents_are_read_only_migration_input",
     "account_identity": "active_v2_session_only",
     "server_source_of_truth": true,
     "canonical_ordering": "account_scoped_server_sequence",
@@ -111,6 +111,27 @@
     "selection_binding": "unseen_event_must_match_current_account_track_selection_id_card_phase_and_content_inside_the_commit_transaction",
     "mobile_scheduler_session_binding": true,
     "launch_gate_status": "pending"
+  },
+  "daily_check_in_runtime": {
+    "classification": "implementation_hypothesis",
+    "owner": "spec/account-sync-contract.json#daily_check_in_v2",
+    "endpoint": "POST /v2/progress/check-in",
+    "request_schema": "daily-check-in-command.v2",
+    "response_schema": "daily-check-in.v2",
+    "implementation_status": "cloudbase_backend_and_mobile_client_implemented_locally_not_deployed",
+    "account_identity": "active_v2_session_only",
+    "request_body": "strict_day_key_only_without_phone_snapshot_or_counters",
+    "storage_collection": "softbook_daily_check_ins",
+    "stored_integrity": "exact_account_day_schema_is_revalidated_on_write_and_canonical_read_and_corruption_fails_closed",
+    "storage_system_fields": "cloudbase_adapter_strips_only_system_id_before_exact_business_schema_validation",
+    "write_boundary": "independent_monotonic_idempotent_account_day_record_never_mutates_retained_legacy_documents",
+    "transaction_boundary": "serialized_memory_or_cloudbase_transaction_record_not_overwritten_by_learning_event_migration",
+    "mobile_trigger": "explicit_user_check_in_only_never_learning_completion",
+    "mobile_queue": "credential_free_check_in_daily_progress_with_account_context_and_day_key_only",
+    "mobile_recovery": "exact_pending_account_day_command_preserves_queued_check_in_on_restart_without_matching_queue_canonical_false_clears_stale_local_state_and_event_counts_never_confirm_check_in",
+    "legacy_queue_migration": "only_complete_consistent_valid_checked_in_sync_daily_progress_becomes_counter_free_check_in_command_all_other_legacy_daily_snapshots_are_discarded",
+    "legacy_snapshot_routes": "post_v1_progress_daily_sync_and_post_v1_learning_state_sync_always_disabled",
+    "deployment_status": "not_deployed_by_repository_change"
   },
   "scheduler_runtime": {
     "classification": "implementation_hypothesis",
@@ -169,7 +190,7 @@
       "space_state_timestamp": "preserve the timestamp of each explicit favorite or sleep action"
     },
     "membership_state": "reload_from_server_authority_after_auth_session_restore",
-    "mutation_queue": "persisted_under_an_independent_key_and_not_embedded_in_user_state; persisted mutation payloads and identifiers contain no credentials, context contains phone_number only, legacy credential-bearing membership identifiers are normalized during hydration, legacy sync_learning_state entries are discarded, serialized candidate persistence changes memory only after storage succeeds, replay results remove or retry only the exact unchanged head entry, and the current access token is injected in memory during replay",
+    "mutation_queue": "persisted_under_an_independent_key_and_not_embedded_in_user_state; persisted mutation payloads and identifiers contain no credentials, context contains phone_number only, legacy credential-bearing membership identifiers are normalized during hydration, legacy sync_learning_state entries are discarded, only complete consistent checked-in sync_daily_progress entries migrate to counter-free check_in_daily_progress commands while all other legacy daily snapshots are discarded, serialized candidate persistence changes memory only after storage succeeds, replay results remove or retry only the exact unchanged head entry, and the current access token is injected in memory during replay",
     "learning_event_outbox": "learning-event-outbox.v2 is persisted under an independent AsyncStorage key; it stores immutable credential-free selection-bound events, account ownership for local isolation, a pseudonymous installation ID, and the next monotonic device sequence; the unbound v1 key is removed without replay, and acknowledgements remove only matching accepted-or-duplicate events",
     "logout": "attempt server session revocation first, then write the local auth revocation marker and clear secure auth, user state, the generic account-bound mutation queue, and the signed-out account's learning event outbox entries before presenting logged-out runtime state; preserve the installation ID and next event sequence, and complete local cleanup when the server is unavailable"
   },

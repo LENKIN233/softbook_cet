@@ -35,7 +35,8 @@ Referenced active specs:
   removes only strict acknowledgements, and reconciles bootstrap before reading
   the next session.
 - This repository change deploys neither backend nor mobile release artifacts;
-  global legacy v1 write removal remains unimplemented.
+  the repository-local global v1 snapshot-write cutover does not imply
+  production deployment.
 - The launch gate `canonical-bootstrap-and-idempotent-events` remains pending
   until backend and mobile deployment plus end-to-end client behavior pass the
   acceptance cases in this document.
@@ -46,7 +47,9 @@ The route is wired in `infra/cloudbase/functions/softbook-api/index.js`. Request
 validation lives in `learning-events-v2.js`; the memory and CloudBase adapters
 share the transaction algorithm in `learning-events-v2-store.js`.
 
-CloudBase uses one database transaction across these account-scoped records:
+CloudBase persists these account-scoped records. Learning-event acceptance uses
+one transaction across its ledger and projections; daily check-in uses a
+separate one-document transaction:
 
 - `softbook_learning_events`: immutable event payload and canonical digest;
 - `softbook_learning_event_cursors`: one event binding for each device cursor;
@@ -57,6 +60,8 @@ CloudBase uses one database transaction across these account-scoped records:
 - `softbook_learning_sessions`: one revisioned opaque selected-card cursor and
   learning-projection watermark per account and track;
 - `softbook_learning_states`: latest accepted event per card and track;
+- `softbook_daily_check_ins`: independent monotonic account-and-day check-in
+  records that learning-event transactions never overwrite;
 - `softbook_daily_progress`: server-derived learning and review counts by China
   product day;
 - `softbook_card_source_versions`: current and retained versioned card sources.
@@ -70,8 +75,8 @@ store.
 CloudBase transactions use deterministic `doc` operations only. Legacy learning
 documents are read in bounded pages outside the transaction; the transaction
 then reads and writes the account revision fence together with the first event.
-If a v1 write changes the revision after preflight, the complete snapshot is
-read again before retrying. Legacy physical-space discovery follows the same
+If a retained snapshot revision changes after preflight, the complete snapshot
+is read again before retrying. Legacy physical-space discovery follows the same
 doc-only boundary: its query is outside the transaction and the canonical merge
 is transactionally written to one deterministic account document.
 
@@ -287,29 +292,32 @@ and may seed that day's completion counts from the v1 daily snapshot. Newly
 accepted events start at server sequence one; v1 snapshots are never accepted
 as v2 event payloads.
 
-The development bridge is one-way per account. Before the first accepted v2
-event, valid v1 daily and learning snapshots may supply the migration baseline.
-After that sequence exists, later `/v1/learning/state-sync` writes for the
-account fail with `409 legacy_learning_write_disabled`. The guard and legacy
-write share the same memory coordinator or CloudBase transaction as the
-sequence boundary, so a late v1 learning snapshot cannot race behind the first
-v2 acceptance.
+Retained valid v1 daily and learning documents may supply the migration
+baseline before the first accepted v2 event. They are read-only migration
+inputs: `POST /v1/progress/daily-sync` and
+`POST /v1/learning/state-sync` always return
+`410 legacy_snapshot_write_disabled` in development, while production's
+broader v1 guard returns `410 legacy_api_disabled`. No account state, active
+session, or runtime option can re-enable either snapshot write.
 
 CloudBase obtains the bounded legacy page snapshot outside the transaction
-because that runtime does not support `where` inside a transaction. Every v1
-learning write increments the deterministic account revision in its own
-transaction. First-event migration validates and marks the same revision fence
-as migrated in the event transaction, so a concurrent v1 write either wins
-before a fresh preflight or conflicts and retries behind the v2 sequence.
+because that runtime does not support `where` inside a transaction. First-event
+migration validates the deterministic account revision fence and marks it
+migrated in the event transaction. A retained snapshot that changes after
+preflight therefore forces a complete retry rather than entering the v2
+projection from a stale read.
 
-`/v1/progress/daily-sync` remains temporarily available to migrated development
-clients because it also carries the separate check-in action. In the same
-transaction as the account sequence read, only `checked_in_today` is merged,
-and it is monotonic for the product day. Submitted learning, review, pending,
-and total counters cannot overwrite event-derived projections. Submitted
-favorite and sleeping counters are ignored; bootstrap derives both counts from
-canonical physical-space state. Physical-space writes keep their separate
-authority and are not blocked by this learning migration.
+Explicit daily check-in uses authenticated `POST /v2/progress/check-in` with
+the exact body `{"day_key":"YYYY-MM-DD"}`. It monotonically writes only an
+independent account-and-day `daily-check-in.v2` record and never mutates the
+retained baseline. Learning-event transactions never overwrite that record, so
+a concurrent first event cannot lose the check-in. Canonical reads overlay the
+record on event-derived learning counts and physical-space-derived favorite and
+sleeping counts.
+
+CloudBase may materialize its adapter-owned `_id` on read. The store adapter
+strips only that system field before validating the exact five business fields;
+every other unknown or malformed field fails closed.
 
 For daily attribution, the service may derive the China product day from
 `client_occurred_at` only within configured retention and future-skew bounds.
@@ -397,7 +405,7 @@ previously validated cached selection and matching content may be answered once
 offline. The client cannot locally choose or enqueue a second card while
 offline.
 
-While any learning event remains pending, daily-progress and space-state
+While any learning event remains pending, check-in and space-state
 changes enter the persisted generic mutation queue instead of overtaking the
 event. Mine, foreground, and connectivity refreshes may re-read bootstrap to
 validate content identity, but do not map pre-acknowledgement projections over
@@ -408,6 +416,11 @@ Generic mutation queue operations are serialized and use candidate persistence:
 memory changes only after storage succeeds. A late remote result removes or
 increments retry state only for the exact unchanged head entry, so a same-ID
 replacement cannot be consumed by an older request.
+
+On restart, only an exact queued check-in command for the active account and
+bootstrap day preserves the local queued presentation. Without that command,
+canonical `checked_in_today: false` clears stale local check-in state, and
+event-derived completion counts never mark check-in synchronized.
 
 Logout removes only the signed-out account's entries and preserves the
 installation ID and next sequence. Generic queue hydration discards legacy
@@ -439,13 +452,11 @@ Reconnect order remains:
 
 ## Migration boundary
 
-Legacy `/v1/learning/state-sync` remains a backend development-only migration
-input for accounts without an accepted v2 event until global legacy-write
-removal lands; the active React Native client no longer writes it.
-`/v1/progress/daily-sync` has the same baseline role before migration and
-becomes a check-in-only compatibility bridge afterward.
-Neither route is a valid `learning-events.v2` payload. Production continues to
-reject every v1 route.
+Legacy daily and learning documents remain backend read-only migration inputs
+for accounts without an accepted v2 event. Their former HTTP write routes are
+globally disabled and are never valid `learning-events.v2` or check-in inputs.
+Explicit check-in uses `daily-check-in.v2`; production continues to reject
+every v1 route.
 
 Implementation order is intentionally serial:
 
@@ -488,9 +499,12 @@ The repository-local backend tests currently prove:
 - a changed migration revision forces a complete preflight retry;
 - first-event migration preserves valid sequence-zero baselines for both
   tracks, including the track not present in the event request;
-- migrated accounts reject later v1 learning snapshot writes;
-- migrated daily progress can merge check-in but cannot override v2 learning
-  counts or canonical physical-space counts;
+- both former v1 snapshot-write routes always return `410`;
+- strict v2 check-in accepts only `day_key`, is monotonic and idempotent, and
+  cannot override v2 learning counts or canonical physical-space counts;
+- stored check-in schema is revalidated on command and bootstrap reads, and
+  corruption fails closed with `daily_check_in_projection_invalid`;
+- a concurrent first event and check-in preserve both canonical outcomes;
 - unknown or mismatched content/card/interaction is rejected;
 - identity, credential, snapshot, counter, and content-text fields are rejected;
 - server sequences are stable and monotonic per account;
@@ -532,6 +546,14 @@ The React Native tests additionally prove:
   clear, or mutate the current session, including same-phone reauthentication;
 - logout clears account entries without reusing the installation cursor;
 - persisted generic v1 learning mutations are discarded during migration;
+- only complete legacy checked-in queue entries with a valid day, nonnegative
+  integer counters, and a consistent total become counter-free v2 check-in
+  commands; all other legacy daily snapshot entries are discarded;
+- explicit check-in is the only mobile trigger and a strict matching
+  `daily-check-in.v2` acknowledgement precedes removal;
+- restart recovery requires an exact active-account/day queued command, while
+  canonical false without that command clears stale local check-in state;
+- event-derived progress never marks check-in synchronized;
 - metadata scanning rejects learning-event internals in visible UI copy.
 
 ## Explicit non-claims
@@ -539,9 +561,8 @@ The React Native tests additionally prove:
 The repository-local backend, scheduler, and mobile binding do not prove:
 
 - that `/v2/learning/events` is deployed in CloudBase or production;
+- that `/v2/progress/check-in` is deployed in CloudBase or production;
 - that the React Native client has been shipped against a deployed v2 endpoint;
-- that legacy learning snapshots and the daily check-in bridge are globally
-  disabled;
 - exact same-card cross-device resume;
 - signed content packs, approved production content, payments, or launch
   readiness;

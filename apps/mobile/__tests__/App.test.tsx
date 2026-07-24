@@ -483,6 +483,35 @@ function createLearningEventsAckResponse(init: MockFetchInit | undefined) {
   });
 }
 
+function readDailyCheckInRequest(init: MockFetchInit | undefined): {
+  day_key: string;
+} {
+  const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+
+  if (
+    Object.keys(body).length !== 1 ||
+    typeof body.day_key !== 'string' ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(body.day_key)
+  ) {
+    throw new Error('Test received an invalid daily-check-in.v2 request.');
+  }
+
+  return {day_key: body.day_key};
+}
+
+function createDailyCheckInResponse(init: MockFetchInit | undefined) {
+  const request = readDailyCheckInRequest(init);
+
+  return createJsonResponse({
+    data: {
+      acknowledged_at: new Date().toISOString(),
+      checked_in_today: true,
+      day_key: request.day_key,
+      schema_version: 'daily-check-in.v2',
+    },
+  });
+}
+
 function normalizeMockHeaders(
   headers: MockFetchInit['headers'],
 ): Record<string, string> {
@@ -549,6 +578,7 @@ function createAccountBootstrapPayload(
   session: LearningSession = createLocalLearningSession('cet4'),
   stage: 'trial_available' | 'trial' | 'free' | 'premium' = 'free',
   learningEvents: MockLearningEvent[] = [],
+  checkedInToday = false,
 ) {
   const dayKey = new Date().toISOString().slice(0, 10);
   const learningCompletedCount = learningEvents.filter(
@@ -608,8 +638,8 @@ function createAccountBootstrapPayload(
         trial_started_at_entry_count: stage === 'trial' ? 1 : null,
       },
       progress: {
-        acknowledged_at: null,
-        checked_in_today: false,
+        acknowledged_at: checkedInToday ? new Date().toISOString() : null,
+        checked_in_today: checkedInToday,
         day_key: dayKey,
         favorite_count: 0,
         learning_completed_count: learningCompletedCount,
@@ -1254,6 +1284,7 @@ test('keeps verified remote auth when entitlement bootstrap is unavailable', asy
 test('wires remote auth, learning source config, membership, progress sync, and space sync through App', async () => {
   const fetchCalls: MockFetchCall[] = [];
   const acceptedLearningEvents: MockLearningEvent[] = [];
+  let checkedInToday = false;
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
     apiKey: 'profile-key',
@@ -1277,6 +1308,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
           createLocalLearningSession('cet4'),
           'free',
           acceptedLearningEvents,
+          checkedInToday,
         ),
       );
     }
@@ -1285,8 +1317,9 @@ test('wires remote auth, learning source config, membership, progress sync, and 
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
-    if (input === 'https://api.softbook.example/v1/progress/daily-sync') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/progress/check-in') {
+      checkedInToday = true;
+      return createDailyCheckInResponse(init);
     }
 
     if (input === 'https://api.softbook.example/v2/learning/events') {
@@ -1399,6 +1432,12 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   expect(
     fetchCalls.some(
       call =>
+        call.input === 'https://api.softbook.example/v2/progress/check-in',
+    ),
+  ).toBe(false);
+  expect(
+    fetchCalls.some(
+      call =>
         call.input === 'https://api.softbook.example/v1/progress/daily-sync',
     ),
   ).toBe(false);
@@ -1410,7 +1449,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('已同步');
-  expect(output).toContain('今天的学习进展已推送到云端。');
+  expect(output).toContain('签到已由服务端确认。');
 
   const accountBootstrapRequest = fetchCalls.find(call =>
     call.input.startsWith('https://api.softbook.example/v2/bootstrap?'),
@@ -1431,7 +1470,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
 
   const progressSyncRequest = fetchCalls.find(
     call =>
-      call.input === 'https://api.softbook.example/v1/progress/daily-sync',
+      call.input === 'https://api.softbook.example/v2/progress/check-in',
   );
   expect(
     normalizeMockHeaders(progressSyncRequest?.init?.headers),
@@ -1440,9 +1479,11 @@ test('wires remote auth, learning source config, membership, progress sync, and 
     'content-type': 'application/json',
     'x-api-key': 'profile-key',
   });
-  expect(progressSyncRequest?.init?.body).toContain('"day_key"');
-  expect(progressSyncRequest?.init?.body).toContain(
-    '"learning_completed_count":1',
+  expect(JSON.parse(String(progressSyncRequest?.init?.body))).toEqual({
+    day_key: new Date().toISOString().slice(0, 10),
+  });
+  expect(progressSyncRequest?.init?.body).not.toMatch(
+    /phone|favorite|learning_completed|review|sleeping|total/,
   );
 
   const learningEventsRequest = fetchCalls.find(
@@ -1800,8 +1841,8 @@ test('blocks product state writes until canonical bootstrap succeeds on reconnec
           )
         : createJsonResponse({}, 503);
     }
-    if (input === 'https://api.softbook.example/v1/progress/daily-sync') {
-      return createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/progress/check-in') {
+      return createDailyCheckInResponse(init);
     }
     if (input === 'https://api.softbook.example/v2/learning/events') {
       acceptedLearningEvents.push(...readLearningEventsRequest(init).events);
@@ -2218,8 +2259,16 @@ test('space map uses the active learning session catalog', async () => {
   expect(renderedText).not.toContain('远端专属盒');
 });
 
-test('queues failed remote daily progress sync for later replay', async () => {
+test('queues a failed explicit remote check-in without uploading progress counters', async () => {
+  const checkInRequests: MockFetchInit[] = [];
+
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    accountBootstrap: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
     auth: {
       mode: 'remote',
       remote: {
@@ -2246,7 +2295,7 @@ test('queues failed remote daily progress sync for later replay', async () => {
     },
   };
 
-  mockFetch.mockImplementation(async (input: string) => {
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     if (input === 'https://api.softbook.example/v2/auth/request-code') {
       return createRemoteAuthChallengeResponse();
     }
@@ -2255,11 +2304,16 @@ test('queues failed remote daily progress sync for later replay', async () => {
       return createRemoteAuthSessionResponse();
     }
 
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(createAccountBootstrapPayload());
+    }
+
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
-    if (input === 'https://api.softbook.example/v1/progress/daily-sync') {
+    if (input === 'https://api.softbook.example/v2/progress/check-in') {
+      checkInRequests.push(init ?? {});
       return createJsonResponse({}, 503);
     }
 
@@ -2295,9 +2349,27 @@ test('queues failed remote daily progress sync for later replay', async () => {
     await flushAsyncEffects();
   });
 
+  expect(checkInRequests).toHaveLength(0);
+
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+    await flushAsyncEffects();
+  });
+
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('待重试');
-  expect(output).toContain('网络恢复后会自动再试');
+  expect(output).toContain('已排队');
+  expect(output).toContain('等待服务端确认');
+  expect(checkInRequests).toHaveLength(1);
+  expect(JSON.parse(String(checkInRequests[0].body))).toEqual({
+    day_key: new Date().toISOString().slice(0, 10),
+  });
+  const queuedMutations = await AsyncStorage.getItem(
+    '__softbook_mutation_queue',
+  );
+  expect(queuedMutations).toContain('check_in_daily_progress');
+  expect(queuedMutations).not.toMatch(
+    /favoriteCount|learningCompletedCount|reviewCompletedCount|totalCompletedCount/,
+  );
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
@@ -2333,7 +2405,7 @@ test('queues a failed remote learning event for exact later replay', async () =>
     }
 
     if (
-      input === 'https://api.softbook.example/v1/progress/daily-sync' ||
+      input === 'https://api.softbook.example/v2/progress/check-in' ||
       input === 'https://api.softbook.example/v1/space/state-sync'
     ) {
       dependentLegacyRequests.push(input);
@@ -2387,7 +2459,10 @@ test('queues a failed remote learning event for exact later replay', async () =>
   const queuedMutations = await AsyncStorage.getItem(
     '__softbook_mutation_queue',
   );
-  expect(queuedMutations).toContain('sync_daily_progress');
+  expect(queuedMutations).toContain('check_in_daily_progress');
+  expect(queuedMutations).not.toMatch(
+    /favoriteCount|learningCompletedCount|reviewCompletedCount|totalCompletedCount/,
+  );
 
   await openRoute(root, 'mine');
   await ReactTestRenderer.act(async () => {
@@ -2585,14 +2660,21 @@ test.each([
   },
 );
 
-test('replays queued daily progress after network reconnect', async () => {
+test('replays an explicit queued check-in and confirms it through bootstrap after reconnect', async () => {
   const { emitNetInfoState } = jest.requireMock(
     '@react-native-community/netinfo',
   );
   let shouldFailProgressSync = true;
+  let checkedInToday = false;
   const fetchCalls: MockFetchCall[] = [];
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    accountBootstrap: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
     auth: {
       mode: 'remote',
       remote: {
@@ -2630,14 +2712,28 @@ test('replays queued daily progress after network reconnect', async () => {
       return createRemoteAuthSessionResponse();
     }
 
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(
+          createLocalLearningSession('cet4'),
+          'free',
+          [],
+          checkedInToday,
+        ),
+      );
+    }
+
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
-    if (input === 'https://api.softbook.example/v1/progress/daily-sync') {
-      return shouldFailProgressSync
-        ? createJsonResponse({}, 503)
-        : createJsonResponse({});
+    if (input === 'https://api.softbook.example/v2/progress/check-in') {
+      if (shouldFailProgressSync) {
+        return createJsonResponse({}, 503);
+      }
+
+      checkedInToday = true;
+      return createDailyCheckInResponse(init);
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -2672,7 +2768,19 @@ test('replays queued daily progress after network reconnect', async () => {
     await flushAsyncEffects();
   });
 
-  expect(JSON.stringify(tree!.toJSON())).toContain('待重试');
+  expect(
+    fetchCalls.filter(
+      call =>
+        call.input === 'https://api.softbook.example/v2/progress/check-in',
+    ),
+  ).toHaveLength(0);
+
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+    await flushAsyncEffects();
+  });
+
+  expect(JSON.stringify(tree!.toJSON())).toContain('已排队');
 
   shouldFailProgressSync = false;
 
@@ -2683,13 +2791,158 @@ test('replays queued daily progress after network reconnect', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('已同步');
-  expect(output).toContain('网络恢复后，今天的学习进展已同步。');
+  expect(output).toContain('签到已由服务端确认。');
   expect(
     fetchCalls.filter(
       call =>
-        call.input === 'https://api.softbook.example/v1/progress/daily-sync',
+        call.input === 'https://api.softbook.example/v2/progress/check-in',
     ).length,
   ).toBeGreaterThanOrEqual(2);
+});
+
+test('keeps an acknowledged check-in pending when canonical bootstrap does not confirm it', async () => {
+  let checkInRequestCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ =
+    createSoftbookRemoteRuntimeConfig({
+      baseUrl: 'https://api.softbook.example',
+      featureModes: {
+        learningState: 'local',
+        membership: 'local',
+        spaceState: 'local',
+      },
+    });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(createAccountBootstrapPayload());
+    }
+    if (input === 'https://api.softbook.example/v2/progress/check-in') {
+      checkInRequestCount += 1;
+      return createDailyCheckInResponse(init);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({testID: 'learning-flip-confident-button'})
+      .props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-next-button'}).props.onPress();
+  });
+  await openRoute(root, 'statistics');
+
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+    await flushAsyncEffects();
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(checkInRequestCount).toBe(1);
+  expect(output).toContain('待确认');
+  expect(output).toContain('等待重新确认');
+  expect(
+    root.findByProps({testID: 'statistics-checkin-complete-label'}),
+  ).toBeTruthy();
+  expect(
+    await AsyncStorage.getItem('__softbook_mutation_queue'),
+  ).not.toContain('check_in_daily_progress');
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('does not mark check-in complete when durable mutation storage fails', async () => {
+  const checkInRequests: MockFetchCall[] = [];
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ =
+    createSoftbookRemoteRuntimeConfig({
+      baseUrl: 'https://api.softbook.example',
+      featureModes: {
+        learningState: 'local',
+        membership: 'local',
+        spaceState: 'local',
+      },
+    });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(createAccountBootstrapPayload());
+    }
+    if (input === 'https://api.softbook.example/v2/progress/check-in') {
+      checkInRequests.push({init, input});
+      return createDailyCheckInResponse(init);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({testID: 'learning-flip-confident-button'})
+      .props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-next-button'}).props.onPress();
+  });
+  await openRoute(root, 'statistics');
+
+  const setItemMock = jest.mocked(AsyncStorage.setItem);
+  const originalSetItem = setItemMock.getMockImplementation();
+  setItemMock.mockImplementation((key, value) => {
+    if (key === '__softbook_mutation_queue') {
+      return Promise.reject(new Error('durable storage unavailable'));
+    }
+
+    return originalSetItem!(key, value);
+  });
+
+  try {
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+      await flushAsyncEffects();
+    });
+
+    const output = JSON.stringify(tree!.toJSON());
+    expect(output).toContain('保存失败');
+    expect(output).not.toContain('今日已签到');
+    expect(
+      findPressableByTestId(root, 'statistics-checkin-button').props.disabled,
+    ).toBe(false);
+    expect(checkInRequests).toHaveLength(0);
+  } finally {
+    setItemMock.mockImplementation(originalSetItem!);
+  }
 });
 
 test('replays the exact queued learning event after network reconnect', async () => {

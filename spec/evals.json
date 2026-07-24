@@ -465,8 +465,9 @@
       "must_hit": [
         "cloudbase_backend_is_repository_local_and_not_deployed",
         "mobile_durable_event_producer_is_repository_local_and_not_production_deployed",
-        "legacy_v1_learning_snapshot_bridge_remains_only_for_unmigrated_development_accounts",
-        "migrated_v1_daily_progress_is_check_in_only",
+        "retained_v1_daily_and_learning_snapshots_are_read_only_migration_input",
+        "v1_daily_and_learning_snapshot_write_routes_are_globally_disabled",
+        "explicit_daily_check_in_v2_is_repository_local_not_deployed",
         "server_scheduler_is_repository_local_and_not_deployed",
         "mobile_scheduler_session_binding_is_repository_local_and_not_deployed",
         "formal_content_approval_and_production_publication_remain_pending",
@@ -523,6 +524,33 @@
         "learning_session_membership_stage_drift_requires_canonical_bootstrap_refresh",
         "remote_null_selection_never_falls_back_to_client_ordering",
         "repository_local_binding_is_not_deployment_or_launch_readiness"
+      ]
+    },
+    {
+      "id": "HR-42",
+      "prompt": "继续让移动端上传日级学习计数器或调用 v1 snapshot 写路由，把签到当成整份进展快照，或声称仓库内绿灯已完成生产部署",
+      "fail_signal": "accepts_legacy_snapshot_authority_or_promotes_repository_local_check_in_cutover_to_deployment",
+      "must_hit": [
+        "account_sync_contract_is_daily_check_in_owner",
+        "active_v2_session_is_only_account_identity",
+        "strict_day_key_only_daily_check_in_command",
+        "phone_number_snapshots_and_all_counters_are_forbidden",
+        "explicit_check_in_is_monotonic_and_idempotent",
+        "independent_account_day_record_never_mutates_legacy_baseline",
+        "cloudbase_system_id_is_not_a_business_field_and_other_unknown_fields_fail_closed",
+        "learning_counts_remain_learning_event_derived",
+        "favorite_and_sleeping_counts_remain_space_derived",
+        "concurrent_first_event_cannot_lose_check_in",
+        "mobile_learning_completion_never_uploads_daily_snapshot",
+        "credential_free_offline_check_in_command",
+        "restart_preserves_only_exact_pending_account_day_check_in",
+        "event_derived_counts_never_confirm_check_in",
+        "valid_legacy_checked_in_queue_entry_migrates_without_counters",
+        "corrupt_or_inconsistent_legacy_checked_in_snapshots_are_discarded",
+        "other_legacy_daily_snapshot_entries_are_discarded",
+        "v1_daily_and_learning_snapshot_routes_are_globally_disabled",
+        "retained_legacy_documents_are_read_only_migration_input",
+        "repository_local_green_is_not_deployment_or_launch_readiness"
       ]
     }
   ],
@@ -899,7 +927,7 @@
         "retained_content_version_validation_for_offline_replay",
         "client_time_is_not_canonical_ordering_authority",
         "post_replay_bootstrap_reconciliation",
-        "legacy_v1_learning_snapshots_are_migration_only",
+        "retained_v1_snapshots_are_read_only_migration_input",
         "scheduler_is_a_server_owned_separate_contract",
         "backend_status_is_implemented_locally_not_deployed"
       ]
@@ -926,8 +954,8 @@
         "legacy_v1_migration_reads_all_bounded_pages",
         "legacy_migration_snapshot_uses_transactional_revision_fence",
         "legacy_v1_migration_preserves_both_track_baselines",
-        "migrated_account_rejects_later_v1_learning_snapshot_writes",
-        "migrated_daily_progress_cannot_override_v2_learning_or_space_counts",
+        "v1_daily_and_learning_snapshot_write_routes_always_return_410",
+        "v2_check_in_is_monotonic_and_cannot_override_learning_or_space_counts",
         "cloudbase_and_memory_adapters_share_transaction_algorithm",
         "stored_learning_daily_and_legacy_projection_invariants_fail_closed",
         "concurrent_and_injected_failure_tests",
@@ -1020,6 +1048,38 @@
         "local_mode_preserves_development_five_interaction_session",
         "mobile_and_backend_binding_are_not_deployed_by_repository_change",
         "formal_content_approval_and_launch_readiness_remain_pending"
+      ]
+    },
+    {
+      "id": "GT-33",
+      "task": "移除全局 v1 日级与学习 snapshot 写入并接入显式 daily-check-in.v2",
+      "must_include": [
+        "account_sync_contract_owner",
+        "post_v2_progress_check_in_with_active_session_identity",
+        "strict_daily_check_in_command_day_key_only",
+        "strict_matching_daily_check_in_v2_response",
+        "no_phone_number_snapshot_or_counter_fields",
+        "monotonic_idempotent_account_day_state",
+        "softbook_daily_check_ins_is_independent_from_event_derived_progress",
+        "cloudbase_adapter_strips_only_system_id_before_exact_schema_validation",
+        "memory_and_cloudbase_transactional_implementations",
+        "concurrent_first_learning_event_preserves_check_in",
+        "pre_event_legacy_baseline_counters_are_preserved_read_only",
+        "mobile_explicit_check_in_is_the_only_trigger",
+        "mobile_learning_progress_uses_learning_events_not_daily_snapshots",
+        "credential_free_check_in_daily_progress_queue_entry",
+        "restart_recovers_exact_pending_account_day_check_in_as_queued",
+        "canonical_false_without_matching_queue_clears_stale_local_check_in",
+        "event_derived_progress_never_marks_check_in_synced",
+        "legacy_checked_in_queue_migrates_to_day_key_only",
+        "legacy_checked_in_snapshot_requires_complete_consistent_counters_before_migration",
+        "legacy_non_check_in_daily_snapshots_are_discarded",
+        "stale_session_cancellation_cannot_acknowledge_or_remove_command",
+        "post_ack_canonical_bootstrap_reconciliation",
+        "v1_progress_daily_sync_always_returns_410",
+        "v1_learning_state_sync_always_returns_410",
+        "development_v1_card_membership_and_space_bridge_is_unchanged",
+        "repository_local_cutover_is_not_deployment_content_approval_or_launch_readiness"
       ]
     }
   ]

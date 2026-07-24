@@ -10,8 +10,14 @@ const {
   validateCardSourceForImport,
 } = require('./functions/softbook-api/index.js');
 const {
+  createDailyCheckInV2Service,
+} = require('./functions/softbook-api/daily-check-in-v2.js');
+const {
   createLearningEventsV2Service,
 } = require('./functions/softbook-api/learning-events-v2.js');
+const {
+  createLearningSchedulerV1Service,
+} = require('./functions/softbook-api/learning-scheduler-v1.js');
 
 const port = Number(process.env.PORT || 48731);
 const host = process.env.HOST || '127.0.0.1';
@@ -21,7 +27,16 @@ const sessions = new Map();
 const memberships = new Map();
 const spaceStates = new Map();
 const learningEventsStore = createMemoryStore();
+const dailyCheckInService = createDailyCheckInV2Service({
+  now: () => new Date(),
+  store: learningEventsStore,
+});
 const learningEventsService = createLearningEventsV2Service({
+  now: () => new Date(),
+  runtimeMode: 'development',
+  store: learningEventsStore,
+});
+const learningSchedulerService = createLearningSchedulerV1Service({
   now: () => new Date(),
   runtimeMode: 'development',
   store: learningEventsStore,
@@ -124,7 +139,31 @@ async function route(request, response) {
     return;
   }
 
+  if (
+    method === 'POST' &&
+    (path === '/v1/progress/daily-sync' ||
+      path === '/v1/learning/state-sync')
+  ) {
+    sendJson(response, 410, {
+      error: {
+        code: 'legacy_snapshot_write_disabled',
+        message: 'Legacy daily and learning snapshot writes are disabled.',
+      },
+    });
+    return;
+  }
+
   const session = requireBearerToken(request);
+
+  if (method === 'POST' && path === '/v2/progress/check-in') {
+    const body = await readJson(request);
+    const data = await dailyCheckInService.checkIn({
+      request: {body},
+      session,
+    });
+    sendJson(response, 200, {data});
+    return;
+  }
 
   if (method === 'POST' && path === '/v2/learning/events') {
     const body = await readJson(request);
@@ -134,6 +173,30 @@ async function route(request, response) {
         query: Object.fromEntries(url.searchParams.entries()),
       },
       session,
+    });
+    sendJson(response, 200, {data});
+    return;
+  }
+
+  if (method === 'GET' && path === '/v2/learning/session') {
+    const track = url.searchParams.get('track');
+
+    if (track !== 'cet4' && track !== 'cet6') {
+      sendJson(response, 400, {error: {code: 'invalid_track'}});
+      return;
+    }
+
+    if (url.searchParams.has('phone_number')) {
+      sendJson(response, 400, {
+        error: {code: 'learning_session_authority_input_forbidden'},
+      });
+      return;
+    }
+
+    const data = await learningSchedulerService.read({
+      accountKey: session.accountKey,
+      phoneNumber: session.phoneNumber,
+      track,
     });
     sendJson(response, 200, {data});
     return;
@@ -231,34 +294,6 @@ async function route(request, response) {
       entitlement: membership,
     });
     sendJson(response, 200, entitlementPayload(membership));
-    return;
-  }
-
-  if (method === 'POST' && path === '/v1/progress/daily-sync') {
-    const body = await readJson(request);
-    assertSessionPhone(body, session);
-    const acknowledgedAt = new Date().toISOString();
-    await learningEventsStore.saveDailyProgress(
-      session.phoneNumber,
-      omitPhoneNumber(body),
-      acknowledgedAt,
-      {accountKey: session.accountKey},
-    );
-    sendJson(response, 200, {data: {acknowledged_at: acknowledgedAt}});
-    return;
-  }
-
-  if (method === 'POST' && path === '/v1/learning/state-sync') {
-    const body = await readJson(request);
-    assertSessionPhone(body, session);
-    const acknowledgedAt = new Date().toISOString();
-    await learningEventsStore.saveLearningState(
-      session.phoneNumber,
-      omitPhoneNumber(body),
-      acknowledgedAt,
-      {accountKey: session.accountKey},
-    );
-    sendJson(response, 200, {data: {acknowledged_at: acknowledgedAt}});
     return;
   }
 
@@ -450,11 +485,6 @@ function getMockCardSource(track) {
   }
 
   return cardSources.get(track);
-}
-
-function omitPhoneNumber(value) {
-  const {phone_number: _phoneNumber, ...rest} = value;
-  return rest;
 }
 
 function assertSessionPhone(body, session) {

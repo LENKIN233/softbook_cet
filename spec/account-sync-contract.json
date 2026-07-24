@@ -1,5 +1,5 @@
 {
-  "version": "vnext-9",
+  "version": "vnext-10",
   "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, canonical account reads, idempotent learning events, server scheduling, default sync strategy, and offline behavior.",
   "source_anchors": {
     "login_gate": "必须登入",
@@ -38,6 +38,7 @@
     "physical_space_rule": "latest_valid_explicit_space_action_wins unless it violates box knowledge ownership or contract constraints; invalid actions are rejected and client refreshes from server canonical state",
     "physical_space_snapshot_reconciliation": "clients preserve each explicit action timestamp, read account-level server canonical state before restored-state push, and accept the canonical merged response; day_key is batch metadata rather than the canonical partition key",
     "physical_space_write_atomicity": "CloudBase account-level canonical reads, legacy migration, merge, and write-back run inside one database transaction with conflict retry",
+    "check_in_rule": "an authenticated explicit v2 check-in command can only move the account-and-day state monotonically to checked in; learning counters remain event-derived and physical-space counters remain space-derived",
     "membership_rule": "server_entitlement_wins"
   },
   "canonical_read": {
@@ -63,7 +64,52 @@
     "content_rule": "content version is the SHA-256 of the normalized ordered source; production requires a matching published content-release.v1 descriptor while development may return release_id null",
     "release_publication_rule": "the development importer rejects non-null release descriptors; a separate publication pipeline must verify formal content approval before writing content-release.v1",
     "client_rule": "an authenticated client may use validated cached state while offline, but must reconcile with this server read before pushing restored state; without previously validated canonical state and required content, mobile keeps a valid session retryable but blocks learning, local persistence of the reconciled snapshot, mutation replay, and product-state writes until bootstrap succeeds and the loaded card-source content version matches",
-    "known_gap": "the repository-local CloudBase learning-events.v2 backend, React Native durable producer/replay, server scheduler, and mobile scheduler-session binding are implemented but not deployed; global legacy v1 snapshot-write removal and production publication remain unimplemented"
+    "known_gap": "the repository-local CloudBase learning-events.v2 backend, explicit daily check-in, React Native durable producer/replay, server scheduler, and mobile scheduler-session binding are implemented but not deployed; production publication remains unimplemented"
+  },
+  "daily_check_in_v2": {
+    "classification": "implementation_hypothesis",
+    "contract_status": "cloudbase_backend_and_mobile_client_implemented_locally_not_deployed",
+    "endpoint": {
+      "method": "POST",
+      "path": "/v2/progress/check-in",
+      "authentication": "active_v2_session",
+      "identity_rule": "derive the account only from the active v2 session; reject phone_number, counters, snapshots, and every request field except day_key",
+      "request_schema": "daily-check-in-command.v2",
+      "response_schema": "daily-check-in.v2"
+    },
+    "command_contract": {
+      "required_fields": [
+        "day_key"
+      ],
+      "day_key_rule": "require YYYY-MM-DD; the client cannot submit checked_in_today because the endpoint itself is the affirmative action",
+      "schema_rule": "reject unknown fields and any empty, scalar, array, or missing body",
+      "monotonic_rule": "the first valid command moves the account-and-day state to checked in; exact repeats return the already-canonical acknowledgement without another state transition",
+      "counter_rule": "never accept learning, review, favorite, sleeping, pending-review, or total counters; learning aggregates are derived from accepted learning-events.v2 and space aggregates are derived from canonical physical space",
+      "storage_rule": "persist only schema_version, account_key, day_key, checked_in_today true, and acknowledged_at in the independent softbook_daily_check_ins collection",
+      "storage_adapter_rule": "CloudBase may return its system _id; strip only that adapter-owned field before validating the exact five-field business record, and fail closed on every other unknown or malformed field",
+      "migration_rule": "write an independent account-and-day daily-check-in.v2 record and never mutate retained legacy daily documents; first-event migration can still read their unchanged baseline counters while canonical reads overlay the independent check-in",
+      "transaction_rule": "check-in commits monotonically in its own account-and-day record through the same serialized memory store or CloudBase transaction facility; learning-event transactions never overwrite that record, so a concurrent first event cannot lose the action",
+      "response_rule": "return schema_version, day_key, checked_in_today true, and the canonical acknowledged_at; response identity must match the request day"
+    },
+    "mobile_contract": {
+      "remote_rule": "remote mobile calls only /v2/progress/check-in and sends day_key without phone_number or counters",
+      "trigger_rule": "only an explicit user check-in creates the command; learning completion never uploads a daily snapshot because learning-events.v2 owns progress",
+      "offline_rule": "persist a credential-free account-scoped check_in_daily_progress command containing only dayKey; replay injects the current access token in memory",
+      "legacy_queue_rule": "during hydration convert a persisted sync_daily_progress entry only when its complete legacy snapshot records checkedInToday true, uses a valid day, contains nonnegative integer counters, and has a consistent total; retain only account context and dayKey and discard every other legacy daily snapshot entry",
+      "ack_rule": "remove the queued command only after a strict matching daily-check-in.v2 response; a failed, ambiguous, cancelled, or stale-session response keeps the command queued",
+      "recovery_rule": "on restart, preserve a queued local check-in only when an exact persisted command matches the active account and bootstrap day; without that command, canonical checked_in_today false clears stale local state, and event-derived counts never confirm check-in",
+      "reconciliation_rule": "after remote acknowledgement refresh canonical bootstrap before treating server progress as reconciled"
+    },
+    "legacy_cutover": {
+      "disabled_routes": [
+        "POST /v1/progress/daily-sync",
+        "POST /v1/learning/state-sync"
+      ],
+      "development_response": "410 legacy_snapshot_write_disabled",
+      "production_response": "410 legacy_api_disabled",
+      "scope_rule": "no runtime option, legacy token, active v2 session, or unmigrated account can re-enable either snapshot-write route; retained legacy documents are read-only migration input",
+      "remaining_v1_rule": "card-source, membership, and physical-space v1 routes remain a development migration bridge only and production still rejects every v1 route"
+    }
   },
   "learning_events_v2": {
     "classification": "implementation_hypothesis",
@@ -84,8 +130,9 @@
       "mobile_durable_event_producer": true,
       "mobile_bounded_authenticated_requests": true,
       "mobile_active_v1_learning_snapshot_writes_disabled": true,
-      "legacy_v1_snapshot_writes_disabled": false,
-      "migrated_account_v1_learning_writes": "learning_state_rejected_daily_progress_check_in_only_after_first_accepted_v2_event",
+      "mobile_v2_daily_check_in": true,
+      "legacy_v1_snapshot_writes_disabled": true,
+      "migrated_account_v1_learning_writes": "daily_and_learning_snapshot_routes_disabled_globally_v2_check_in_is_the_only_daily_write",
       "server_scheduler": true,
       "server_scheduler_status": "repository_local_backend_implemented_not_deployed",
       "selection_bound_events": true,
@@ -278,15 +325,15 @@
       "retry_rule": "retain byte-equivalent events after ambiguous or failed requests; pause automatic retry after a transient failure until network recovery, app foreground, or a newly durably enqueued event",
       "concurrency_rule": "serialize replay per originating session; if a durable event arrives or a dependent mutation finishes queueing after an in-flight pass has read its queue, schedule one follow-up pass instead of running concurrently or waiting for an unrelated trigger",
       "recovery_rule": "hydrate the account outbox count with authenticated bootstrap; any pending selection-bound event blocks another card completion until strict acknowledgement, post-acknowledgement bootstrap mapping, and a fresh learning-session read; a cached selected card may be answered offline once, but the client cannot choose or enqueue a second card offline",
-      "reconciliation_rule": "replay only after validated bootstrap and content hydration; while events are pending, queue dependent daily-progress and space-state mutations and suppress routine canonical refreshes that would overwrite local intent; after any acknowledgement, keep dependent mutations blocked until another bootstrap is fetched and mapped",
+      "reconciliation_rule": "replay only after validated bootstrap and content hydration; while events are pending, queue dependent check-in and space-state mutations and suppress routine canonical refreshes that would overwrite local intent; after any acknowledgement, keep dependent mutations blocked until another bootstrap is fetched and mapped",
       "logout_rule": "clear only the signed-out account's queued events while preserving the installation identity and next sequence",
     "account_switch_rule": "scope replay, bootstrap, and authenticated HTTP authorization handling to the originating session identity rather than phone number alone; a stale response from a signed-out or replaced session must not refresh, invalidate, clear, hydrate, or change sync state for the current session, including same-phone reauthentication",
     "request_lifecycle_rule": "bound token acquisition and each authenticated fetch pipeline to 15000 milliseconds; timeout retains byte-equivalent events and advances retry state, while caller cancellation or originating-session replacement cancels immediately without acknowledging, removing, rewriting, or incrementing retry state for queued events",
       "legacy_queue_rule": "discard persisted generic sync_learning_state mutations during hydration, remove the pre-binding learning-event-outbox.v1 key without replaying its unbound entries, and never route active mobile learning completion through /v1/learning/state-sync"
     },
     "migration_boundary": {
-      "legacy_v1_role": "development-only migration input; v1 daily and learning snapshots are never accepted as learning-events.v2 payloads, while the migrated daily endpoint temporarily carries check-in compatibility only",
-      "migrated_account_write_rule": "the first accepted v2 event transaction preserves valid legacy sequence-zero learning baselines for both tracks before closing account migration; later v1 learning-state snapshots fail with HTTP 409; v1 daily-progress remains a development bridge that can only merge monotonic checked_in_today, cannot overwrite server-derived learning counts, and cannot supply favorite or sleeping counts because bootstrap derives them from canonical physical space; unmigrated development accounts may still provide the migration baseline",
+      "legacy_v1_role": "retained daily and learning snapshots are read-only migration input and are never accepted through HTTP after cutover; explicit daily check-in uses /v2/progress/check-in and is not a snapshot",
+      "migrated_account_write_rule": "the first accepted v2 event transaction preserves valid retained sequence-zero learning baselines for both tracks before closing migration; both v1 snapshot-write routes always return 410, while v2 check-in can only merge monotonic checked_in_today and cannot overwrite server-derived learning counts or canonical physical-space counts",
       "production_rule": "production continues to reject all v1 routes",
       "implementation_order": [
         "owner_contract_and_negative_gates",
@@ -296,7 +343,7 @@
         "mobile_scheduler_session_consumption_and_selection_binding",
         "disable_global_legacy_snapshot_writes"
       ],
-      "launch_claim_rule": "green repository-local backend, scheduler, and mobile binding tests do not satisfy global legacy snapshot-write removal, formal content approval, production deployment, or launch readiness"
+      "launch_claim_rule": "green repository-local backend, explicit check-in, scheduler, and mobile binding tests do not satisfy formal content approval, production deployment, or launch readiness"
     }
   },
   "server_scheduler_v1": {
@@ -387,7 +434,6 @@
     },
     "known_gaps": [
       "production_deployment",
-      "global_legacy_v1_snapshot_write_removal",
       "production_membership_expiry_and_payment_entitlement",
       "formal_content_publication"
     ],

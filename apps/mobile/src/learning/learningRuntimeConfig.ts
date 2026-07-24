@@ -115,7 +115,7 @@ export function assertRemoteRuntimeUsesRemoteAuth(
     learningSource: 'Remote learning source mode',
     learningState: 'Remote learning state mode',
     membership: 'Remote membership mode',
-    progressSync: 'Remote progress sync mode',
+    progressSync: 'Remote daily check-in mode',
     spaceState: 'Remote space state mode',
   };
 

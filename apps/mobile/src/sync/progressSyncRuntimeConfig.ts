@@ -24,16 +24,22 @@ export function resolveProgressSyncRepositoryConfig(
   if (mode === 'remote') {
     assertRemoteRuntimeUsesRemoteAuth(runtimeConfig, 'progressSync');
 
+    if (runtimeConfig?.accountBootstrap?.mode !== 'remote') {
+      throw new Error(
+        'Remote progress check-in requires remote account bootstrap mode.',
+      );
+    }
+
     if (!progressSync?.remote?.baseUrl) {
       throw new Error(
-        'Remote progress sync mode requires progressSync.remote.baseUrl.',
+        'Remote daily check-in mode requires progressSync.remote.baseUrl.',
       );
     }
 
     return {
       mode: 'remote',
       remoteConfig: {
-        endpoint: `${progressSync.remote.baseUrl.replace(/\/$/, '')}/v1/progress/daily-sync`,
+        endpoint: `${progressSync.remote.baseUrl.replace(/\/$/, '')}/v2/progress/check-in`,
         headers: {
           'x-softbook-client': 'mobile',
           ...(progressSync.remote.apiKey

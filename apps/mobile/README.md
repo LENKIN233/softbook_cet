@@ -14,7 +14,8 @@
 - `apps/mobile` 是 React Native 0.85.x 的 iOS 优先工程。
 - 当前已覆盖手机号验证码登录门槛、学习主流、review flow、空间知识地图、统计签到、我的页、会员试用 / 付费墙。
 - `auth / accountBootstrap / membership / learningSource / progressSync / spaceState / learningState` 都统一到 runtime 配置下，默认仍走本地安全实现。
-- 远端 `learningState` 现表示 `learning-events.v2`：卡片推进前写入独立耐久 outbox，使用严格 ACK 删除并在成功后重读 canonical bootstrap；待确认期间的日级/空间变更先排队，旧 session 的迟到响应不能影响替代 session；不再发出 `/v1/learning/state-sync`。
+- 远端 `learningState` 现表示 `learning-events.v2`：卡片推进前写入独立耐久 outbox，使用严格 ACK 删除并在成功后重读 canonical bootstrap；待确认期间的显式签到/空间变更先排队，旧 session 的迟到响应不能影响替代 session。
+- 远端签到只在用户明确操作时发送严格 `{day_key}` 到 `/v2/progress/check-in`；离线队列不持久化凭证或计数器，重启时只有同账户、同日期的精确待处理命令能恢复“已排队”，事件派生计数不能冒充签到确认，确认后必须重读 canonical bootstrap。`/v1/progress/daily-sync` 与 `/v1/learning/state-sync` 均不再作为写入接口。
 
 ## 环境前提
 

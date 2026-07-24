@@ -195,12 +195,14 @@ def validate(context) -> None:
         "cloneJson",
         "CLOUDBASE_COLLECTIONS",
         "cardSources",
+        "dailyCheckIns",
         "dailyProgress",
         "learningStates",
         "learningSessions",
         "memberships",
         "spaceStates",
         "softbook_card_sources",
+        "softbook_daily_check_ins",
         "softbook_daily_progress",
         "softbook_learning_states",
         "softbook_learning_sessions",
@@ -208,6 +210,8 @@ def validate(context) -> None:
         "softbook_space_states",
         "getCardSource",
         "getMembership",
+        "checkInDailyProgress",
+        "assertLegacySnapshotWritesDisabled",
         "startTrial",
         "dismissRecovery",
         "saveDailyProgress",
@@ -531,14 +535,14 @@ def validate(context) -> None:
             tmp_dir / "backend-collection-metadata-visible-leak.html"
         )
         fixture_backend_collection_metadata_html.write_text(
-            "<!doctype html><html><body><p>cardSources, dailyProgress, learningStates, memberships, spaceStates, softbook_card_sources, softbook_daily_progress, softbook_learning_states, softbook_memberships, and softbook_space_states are visible.</p></body></html>\n",
+            "<!doctype html><html><body><p>cardSources, dailyCheckIns, dailyProgress, learningStates, memberships, spaceStates, softbook_card_sources, softbook_daily_check_ins, softbook_daily_progress, softbook_learning_states, softbook_memberships, and softbook_space_states are visible.</p></body></html>\n",
             encoding="utf-8",
         )
         fixture_backend_store_method_metadata_html = (
             tmp_dir / "backend-store-method-metadata-visible-leak.html"
         )
         fixture_backend_store_method_metadata_html.write_text(
-            "<!doctype html><html><body><p>getCardSource, getMembership, startTrial, dismissRecovery, saveDailyProgress, saveLearningState, and saveSpaceState are visible.</p></body></html>\n",
+            "<!doctype html><html><body><p>getCardSource, getMembership, checkInDailyProgress, assertLegacySnapshotWritesDisabled, startTrial, dismissRecovery, saveDailyProgress, saveLearningState, and saveSpaceState are visible.</p></body></html>\n",
             encoding="utf-8",
         )
         fixture_backend_document_field_metadata_html = (

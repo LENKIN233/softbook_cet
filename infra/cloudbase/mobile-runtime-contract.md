@@ -34,13 +34,13 @@ Current boundary:
   device cursor before advancing the card. It removes only strict acknowledged
   events, refreshes bootstrap, and reads a fresh session before the next card or
   dependent writes.
-  While an event is pending, daily and space writes are queued instead of
+  While an event is pending, check-in and space writes are queued instead of
   overtaking it, and a routine Mine/foreground refresh cannot replace local
   intent with a pre-acknowledgement bootstrap snapshot.
-  After an account accepts a v2 event, legacy learning-state writes are rejected
-  while daily progress becomes a check-in-only compatibility bridge; submitted
-  learning and space counters no longer have authority. Neither backend nor
-  mobile release deployment is implied by this repository-local implementation.
+  Both legacy daily and learning snapshot-write routes are globally disabled.
+  Explicit check-in uses the counter-free v2 command; learning and space counts
+  retain their separate server authorities. Neither backend nor mobile release
+  deployment is implied by this repository-local implementation.
 
 ## Runtime Activation
 
@@ -370,37 +370,49 @@ Response: same shape as membership entitlement.
 If `start-trial` fails with a 5xx, the app locally allows the trial and queues
 the mutation for replay.
 
-### Daily Progress Sync
+### Daily Check-In v2
 
 ```http
-POST /v1/progress/daily-sync
+POST /v2/progress/check-in
 Authorization: Bearer <access_token>
 content-type: application/json
 x-softbook-client: mobile
 x-api-key: <optional>
 
 {
-  "checked_in_today": true,
-  "day_key": "2026-04-30",
-  "favorite_count": 1,
-  "learning_completed_count": 1,
-  "pending_review_count": 0,
-  "phone_number": "13800138000",
-  "review_completed_count": 0,
-  "sleeping_count": 0,
-  "total_completed_count": 1
+  "day_key": "2026-04-30"
 }
 ```
 
-Success: any 2xx. Body is ignored.
+The request body is exact: `day_key` is required and every identity, snapshot,
+counter, or unknown field is rejected. Account identity comes only from the
+active v2 session.
 
-Failure: non-2xx queues `sync_daily_progress` for replay.
+Success is a strict `daily-check-in.v2` response containing the matching
+`day_key`, `checked_in_today: true`, and canonical `acknowledged_at`. Repeating
+the command is monotonic and idempotent. A failed, ambiguous, cancelled, or
+stale-session request remains queued as credential-free
+`check_in_daily_progress` account context plus `dayKey`; only a strict matching
+response removes it. The app then re-reads bootstrap before treating progress
+as reconciled. The server stores this command in an independent account-and-day
+record; learning-event migration cannot overwrite it and retained legacy daily
+documents stay unchanged. CloudBase's adapter-owned `_id` is stripped before
+the exact five-field business schema is checked; no other unknown stored field
+is accepted.
 
-For an unmigrated development account, this snapshot may seed the first v2
-migration baseline. After the first accepted v2 learning event, the endpoint
-only merges monotonic `checked_in_today`. Learning/review/pending/total values
-cannot overwrite v2 projections, and favorite/sleeping counts are derived from
-canonical space during bootstrap. Production rejects all `/v1` routes.
+After restart, the app may restore the local queued presentation only when the
+persisted command matches both the active account and bootstrap day. Canonical
+`checked_in_today: false` clears a stale same-day local value when no such
+command exists. Event-derived completion counts never change the check-in
+status to synchronized.
+
+During queue hydration, a legacy `sync_daily_progress` entry migrates only when
+its complete snapshot records an explicit checked-in state, a valid day,
+nonnegative integer counters, and a total consistent with learning plus review;
+all counters are then discarded. Every other legacy daily snapshot entry is
+dropped. Card completion never creates this command. Both former v1 daily and
+learning snapshot-write routes return `410` and retained legacy documents are
+read-only migration input.
 
 ### Learning Events v2
 
@@ -506,8 +518,11 @@ Failure: non-2xx queues `sync_space_state` for replay.
 14. A strict event acknowledgement removes the event, then `/v2/bootstrap`
     returns the derived learning and daily state and a fresh
     `/v2/learning/session` read chooses the next card before dependent writes.
-15. Explicit check-in can POST `/v1/progress/daily-sync`; card completion does
-    not duplicate its v2-derived counts through that route.
+15. Explicit check-in POSTs exact `{day_key}` to `/v2/progress/check-in`, waits
+    for a strict matching acknowledgement, and reconciles bootstrap; card
+    completion never uploads a daily snapshot. Restart recovery preserves the
+    queued presentation only for an exact active-account/day command, and
+    event-derived progress never confirms check-in.
 16. Favorite/sleep changes can POST `/v1/space/state-sync`.
 17. Temporary 503 retains the exact event or queued compatibility mutation;
     returning to 2xx replays it without changing event ID or payload.
@@ -549,7 +564,9 @@ Expected high-level output:
 [ok] bootstrap: sha256:<digest>; release=none
 [ok] membership entitlement: trial_available
 [ok] learning card-source: 5 cards from mock-cet4-source
-[ok] daily progress sync: 200
+[ok] learning session: learning:100101
+[ok] daily check-in: 200
+[ok] legacy snapshot writes: 410
 [ok] learning-events v2: accepted then duplicate at server_sequence=1
 [ok] space state sync: 200
 [ok] bootstrap after writes: sha256:<digest>; release=none

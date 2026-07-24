@@ -116,7 +116,7 @@ test('remote runtime profile switches every remote-capable surface to one base u
   expect(
     resolveProgressSyncRepositoryConfig(config).remoteConfig,
   ).toMatchObject({
-    endpoint: 'https://api.softbook.example/v1/progress/daily-sync',
+    endpoint: 'https://api.softbook.example/v2/progress/check-in',
   });
   expect(resolveSpaceStateRepositoryConfig(config).remoteConfig).toMatchObject({
     endpoint: 'https://api.softbook.example/v1/space/state-sync',
@@ -144,7 +144,7 @@ test('remote runtime profile normalizes the shared base url', () => {
   expect(
     resolveProgressSyncRepositoryConfig(config).remoteConfig,
   ).toMatchObject({
-    endpoint: 'https://api.softbook.example/v1/progress/daily-sync',
+    endpoint: 'https://api.softbook.example/v2/progress/check-in',
   });
 });
 
@@ -176,6 +176,7 @@ test('remote runtime profile can keep one surface local for staged smoke tests',
       accountBootstrap: 'local',
       learningSource: 'local',
       learningState: 'local',
+      progressSync: 'local',
       spaceState: 'local',
     },
   });
@@ -184,7 +185,7 @@ test('remote runtime profile can keep one surface local for staged smoke tests',
   expect(resolveAccountBootstrapRepositoryConfig(config).mode).toBe('local');
   expect(resolveLearningSessionRepositoryConfig(config).mode).toBe('local');
   expect(resolveMembershipRepositoryConfig(config).mode).toBe('remote');
-  expect(resolveProgressSyncRepositoryConfig(config).mode).toBe('remote');
+  expect(resolveProgressSyncRepositoryConfig(config).mode).toBe('local');
   expect(resolveSpaceStateRepositoryConfig(config).mode).toBe('local');
   expect(resolveLearningEventsRepositoryConfig(config).mode).toBe('local');
 });

@@ -10,6 +10,7 @@ const {
   createContentVersion,
   normalizeContentRelease,
 } = require('./bootstrap-v2');
+const {createDailyCheckInV2Service} = require('./daily-check-in-v2');
 const {createLearningEventsV2Service} = require('./learning-events-v2');
 const {
   SCHEDULER_POLICY_VERSION,
@@ -28,7 +29,6 @@ const {
   createAccountLearningStateKey,
   createCloudBaseLearningEventsCommitter,
   createLearningEventSequenceId,
-  createLearningMigrationRevisionId,
   createMemoryLearningEventsCommitter,
   createSerializedTransactionRunner,
 } = require('./learning-events-v2-store');
@@ -36,6 +36,17 @@ const {
 const DEFAULT_SMS_CODE = '2468';
 const DEFAULT_TRIAL_DURATION_DAYS = 5;
 const DEFAULT_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
+const LEGACY_SNAPSHOT_WRITE_PATHS = new Set([
+  '/v1/learning/state-sync',
+  '/v1/progress/daily-sync',
+]);
+const DAILY_CHECK_IN_DOCUMENT_KEYS = [
+  'account_key',
+  'acknowledged_at',
+  'checked_in_today',
+  'day_key',
+  'schema_version',
+];
 const LEGACY_SPACE_QUERY_PAGE_SIZE = 100;
 const LEGACY_SPACE_QUERY_MAX_DOCUMENTS = 5000;
 const CLOUDBASE_COLLECTIONS = {
@@ -45,6 +56,7 @@ const CLOUDBASE_COLLECTIONS = {
   authSessions: 'softbook_auth_sessions',
   cardSourceVersions: 'softbook_card_source_versions',
   cardSources: 'softbook_card_sources',
+  dailyCheckIns: 'softbook_daily_check_ins',
   dailyProgress: 'softbook_daily_progress',
   learningEventCursors: 'softbook_learning_event_cursors',
   learningEvents: 'softbook_learning_events',
@@ -135,6 +147,10 @@ function createSoftbookApi(options = {}) {
     runtimeMode,
     store,
   });
+  config.dailyCheckInV2 = createDailyCheckInV2Service({
+    now: config.now,
+    store,
+  });
   config.learningSchedulerV1 = createLearningSchedulerV1Service({
     now: config.now,
     randomBytes: options.learningSchedulerRandomBytes,
@@ -210,6 +226,18 @@ async function handleHttpRequest(config, request) {
       });
     }
 
+    if (
+      method === 'POST' &&
+      LEGACY_SNAPSHOT_WRITE_PATHS.has(path)
+    ) {
+      return jsonResponse(410, {
+        error: {
+          code: 'legacy_snapshot_write_disabled',
+          message: 'Legacy daily and learning snapshot writes are disabled.',
+        },
+      });
+    }
+
     if (method === 'POST' && path === '/v2/auth/request-code') {
       return jsonResponse(200, {
         data: await config.authV2.requestCode(request),
@@ -244,6 +272,14 @@ async function handleHttpRequest(config, request) {
 
       return jsonResponse(200, {
         data: await config.learningEventsV2.submit({request, session}),
+      });
+    }
+
+    if (method === 'POST' && path === '/v2/progress/check-in') {
+      const session = await config.authV2.requireActiveSession(request);
+
+      return jsonResponse(200, {
+        data: await config.dailyCheckInV2.checkIn({request, session}),
       });
     }
 
@@ -352,32 +388,6 @@ async function handleHttpRequest(config, request) {
       });
     }
 
-    if (method === 'POST' && path === '/v1/progress/daily-sync') {
-      assertBodyPhoneMatchesSession(request.body, session);
-      const snapshot = parseDailyProgressSnapshot(request.body);
-      const acknowledgedAt = config.now().toISOString();
-      await config.store.saveDailyProgress(
-        session.phoneNumber,
-        snapshot,
-        acknowledgedAt,
-        {accountKey: session.accountKey},
-      );
-      return acknowledgedResponse(acknowledgedAt);
-    }
-
-    if (method === 'POST' && path === '/v1/learning/state-sync') {
-      assertBodyPhoneMatchesSession(request.body, session);
-      const snapshot = parseLearningStateSnapshot(request.body);
-      const acknowledgedAt = config.now().toISOString();
-      await config.store.saveLearningState(
-        session.phoneNumber,
-        snapshot,
-        acknowledgedAt,
-        {accountKey: session.accountKey},
-      );
-      return acknowledgedResponse(acknowledgedAt);
-    }
-
     if (method === 'GET' && path === '/v1/space/state-sync') {
       const dayKey = requireDayKey(request.query.day_key);
       const canonicalState = await config.store.getSpaceState(
@@ -454,93 +464,6 @@ async function handleLearningCardSource(config, request) {
   return jsonResponse(200, {
     data: serializeCardSourceResponse(cardSource, track),
   });
-}
-
-function parseDailyProgressSnapshot(body) {
-  const payload = requireObjectBody(body);
-
-  return {
-    checked_in_today: requireBoolean(
-      payload.checked_in_today,
-      'checked_in_today',
-    ),
-    day_key: requireDayKey(payload.day_key),
-    favorite_count: requireNonNegativeInteger(
-      payload.favorite_count,
-      'favorite_count',
-    ),
-    learning_completed_count: requireNonNegativeInteger(
-      payload.learning_completed_count,
-      'learning_completed_count',
-    ),
-    pending_review_count: requireNonNegativeInteger(
-      payload.pending_review_count,
-      'pending_review_count',
-    ),
-    review_completed_count: requireNonNegativeInteger(
-      payload.review_completed_count,
-      'review_completed_count',
-    ),
-    sleeping_count: requireNonNegativeInteger(
-      payload.sleeping_count,
-      'sleeping_count',
-    ),
-    total_completed_count: requireNonNegativeInteger(
-      payload.total_completed_count,
-      'total_completed_count',
-    ),
-  };
-}
-
-function parseLearningStateSnapshot(body) {
-  const payload = requireObjectBody(body);
-  const events = requireArray(payload.events, 'events').map((event, index) => {
-    const eventObject = requireObject(event, `events[${index}]`);
-
-    return {
-      card_id: requireNonEmptyString(
-        eventObject.card_id,
-        `events[${index}].card_id`,
-      ),
-      completed_at: requireIsoTimestamp(
-        eventObject.completed_at,
-        `events[${index}].completed_at`,
-      ),
-      interaction_id: requireInteractionId(
-        eventObject.interaction_id,
-        `events[${index}].interaction_id`,
-      ),
-      is_favorited: requireBoolean(
-        eventObject.is_favorited,
-        `events[${index}].is_favorited`,
-      ),
-      outcome: requireLearningOutcome(
-        eventObject.outcome,
-        `events[${index}].outcome`,
-      ),
-      phase: requireEnum(
-        eventObject.phase,
-        ['learning', 'review'],
-        `events[${index}].phase`,
-      ),
-      used_hint: requireBoolean(
-        eventObject.used_hint,
-        `events[${index}].used_hint`,
-      ),
-      used_peek: requireBoolean(
-        eventObject.used_peek,
-        `events[${index}].used_peek`,
-      ),
-    };
-  });
-
-  return {
-    day_key: requireDayKey(payload.day_key),
-    events,
-    source_id: requireNonEmptyString(payload.source_id, 'source_id'),
-    source_label: requireNonEmptyString(payload.source_label, 'source_label'),
-    track: requireEnum(payload.track, ['cet4', 'cet6'], 'track'),
-  };
 }
 
 function parseSpaceStateSnapshot(body) {
@@ -643,6 +566,7 @@ function createMemoryStore() {
   const cardSources = new Map();
   const cardSourceVersions = new Map();
   const memberships = new Map();
+  const dailyCheckIns = new Map();
   const dailyProgress = new Map();
   const learningEventCursors = new Map();
   const learningEvents = new Map();
@@ -685,6 +609,15 @@ function createMemoryStore() {
       return cloneCardSource(cardSources.get(track));
     },
     getDailyProgress: (phoneNumber, dayKey, options = {}) => {
+      const dailyCheckIn = options.accountKey
+        ? normalizeStoredDailyCheckIn(
+            dailyCheckIns.get(
+              createAccountDailyProgressKey(options.accountKey, dayKey),
+            ) ?? null,
+            options.accountKey,
+            dayKey,
+          )
+        : null;
       const accountProgress = options.accountKey
         ? dailyProgress.get(
             createAccountDailyProgressKey(options.accountKey, dayKey),
@@ -716,7 +649,7 @@ function createMemoryStore() {
         options.accountKey,
       );
 
-      return progress;
+      return overlayDailyCheckIn(progress, dailyCheckIn);
     },
     getLearningState: (phoneNumber, dayKey, track, options = {}) => {
       const accountState = options.accountKey
@@ -855,63 +788,53 @@ function createMemoryStore() {
       });
       return current;
     },
-    saveDailyProgress: (phoneNumber, snapshot, acknowledgedAt, options = {}) =>
+    seedLegacyDailyProgressForMigrationTest: (
+      phoneNumber,
+      snapshot,
+      acknowledgedAt,
+    ) =>
       runLearningTransaction(async () => {
-        assertLearningWriteAccountKey(options.accountKey);
-        const sequence = learningEventSequences.get(
-          createLearningEventSequenceId(options.accountKey),
-        );
-
-        if (sequence) {
-          const accountProgressKey = createAccountDailyProgressKey(
-            options.accountKey,
-            snapshot.day_key,
-          );
-          const accountProgress = dailyProgress.get(accountProgressKey);
-          const legacyProgress = accountProgress
-            ? null
-            : dailyProgress.get(`${phoneNumber}:${snapshot.day_key}`);
-          dailyProgress.set(
-            accountProgressKey,
-            mergeLegacyDailyProgressAfterV2({
-              accountKey: options.accountKey,
-              accountProgress,
-              acknowledgedAt,
-              legacyProgress,
-              sequence,
-              snapshot,
-            }),
-          );
-          return;
-        }
-
-        assertNoOrphanedLearningProjection(
-          dailyProgress.get(
-            createAccountDailyProgressKey(options.accountKey, snapshot.day_key),
-          ),
-          options.accountKey,
-        );
         dailyProgress.set(`${phoneNumber}:${snapshot.day_key}`, {
           acknowledged_at: acknowledgedAt,
-          ...snapshot,
+          ...cloneJson(snapshot),
         });
       }),
-    saveLearningState: (phoneNumber, snapshot, acknowledgedAt, options = {}) =>
+    checkInDailyProgress: (
+      _phoneNumber,
+      dayKey,
+      acknowledgedAt,
+      options = {},
+    ) =>
       runLearningTransaction(async () => {
-        assertLegacyLearningWriteAllowed(
-          learningEventSequences.get(
-            createLearningEventSequenceId(options.accountKey),
-          ),
+        assertLearningWriteAccountKey(options.accountKey);
+        const key = createAccountDailyProgressKey(
           options.accountKey,
+          dayKey,
         );
-        const revisionId = createLearningMigrationRevisionId(
+        const current = normalizeStoredDailyCheckIn(
+          dailyCheckIns.get(key) ?? null,
           options.accountKey,
+          dayKey,
         );
-        const nextRevision = nextLearningMigrationRevision(
-          learningMigrationRevisions.get(revisionId) ?? null,
+
+        if (current) {
+          return current;
+        }
+
+        const canonical = createDailyCheckInRecord(
           options.accountKey,
+          dayKey,
           acknowledgedAt,
         );
+        dailyCheckIns.set(key, canonical);
+        return canonical;
+      }),
+    seedLegacyLearningStateForMigrationTest: (
+      phoneNumber,
+      snapshot,
+      acknowledgedAt,
+    ) =>
+      runLearningTransaction(async () => {
         const key = `${phoneNumber}:${snapshot.day_key}:${snapshot.track}`;
         const existing = learningStates.get(key) ?? {
           events_by_card_id: {},
@@ -932,7 +855,6 @@ function createMemoryStore() {
           source_label: snapshot.source_label,
           track: snapshot.track,
         });
-        learningMigrationRevisions.set(revisionId, nextRevision);
       }),
     saveLearningSessionCursor: input =>
       runLearningTransaction(async () => {
@@ -993,6 +915,7 @@ function createMemoryStore() {
       ...authStateStore.snapshotAuth(),
       cardSourceVersions,
       cardSources,
+      dailyCheckIns,
       dailyProgress,
       learningEventCursors,
       learningEvents,
@@ -1014,6 +937,7 @@ function createCloudBaseStore(options = {}) {
   );
   const cardSources = db.collection(CLOUDBASE_COLLECTIONS.cardSources);
   const memberships = db.collection(CLOUDBASE_COLLECTIONS.memberships);
+  const dailyCheckIns = db.collection(CLOUDBASE_COLLECTIONS.dailyCheckIns);
   const dailyProgress = db.collection(CLOUDBASE_COLLECTIONS.dailyProgress);
   const learningEventSequences = db.collection(
     CLOUDBASE_COLLECTIONS.learningEventSequences,
@@ -1052,6 +976,16 @@ function createCloudBaseStore(options = {}) {
       return defaultCardSource;
     },
     getDailyProgress: async (phoneNumber, dayKey, options = {}) => {
+      const dailyCheckIn = options.accountKey
+        ? normalizeStoredDailyCheckIn(
+            await getCloudBaseDocument(
+              dailyCheckIns,
+              createAccountDailyProgressId(options.accountKey, dayKey),
+            ),
+            options.accountKey,
+            dayKey,
+          )
+        : null;
       const accountProgress = options.accountKey
         ? await getCloudBaseDocument(
             dailyProgress,
@@ -1088,7 +1022,7 @@ function createCloudBaseStore(options = {}) {
         options.accountKey,
       );
 
-      return progress;
+      return overlayDailyCheckIn(progress, dailyCheckIn);
     },
     getLearningState: async (phoneNumber, dayKey, track, options = {}) => {
       const accountState = options.accountKey
@@ -1280,92 +1214,63 @@ function createCloudBaseStore(options = {}) {
         );
         return current;
       }),
-    saveDailyProgress: async (
+    seedLegacyDailyProgressForMigrationTest: (
       phoneNumber,
       snapshot,
+      acknowledgedAt,
+    ) =>
+      setCloudBaseDocument(
+        dailyProgress,
+        createCloudBaseDocumentId(`${phoneNumber}:${snapshot.day_key}`),
+        {
+          acknowledged_at: acknowledgedAt,
+          phone_number: phoneNumber,
+          ...cloneJson(snapshot),
+        },
+      ),
+    checkInDailyProgress: async (
+      _phoneNumber,
+      dayKey,
       acknowledgedAt,
       options = {},
     ) =>
       db.runTransaction(async transaction => {
         assertLearningWriteAccountKey(options.accountKey);
-        const transactionSequences = transaction.collection(
-          CLOUDBASE_COLLECTIONS.learningEventSequences,
+        const transactionCheckIns = transaction.collection(
+          CLOUDBASE_COLLECTIONS.dailyCheckIns,
         );
-        const sequence = await getCloudBaseDocument(
-          transactionSequences,
-          createLearningEventSequenceId(options.accountKey),
-        );
-        const transactionProgress = transaction.collection(
-          CLOUDBASE_COLLECTIONS.dailyProgress,
-        );
-        const accountProgressId = createAccountDailyProgressId(
+        const documentId = createAccountDailyProgressId(
           options.accountKey,
-          snapshot.day_key,
+          dayKey,
         );
-        const accountProgress = await getCloudBaseDocument(
-          transactionProgress,
-          accountProgressId,
+        const current = normalizeStoredDailyCheckIn(
+          await getCloudBaseDocument(transactionCheckIns, documentId),
+          options.accountKey,
+          dayKey,
         );
 
-        if (sequence) {
-          const legacyProgress = accountProgress
-            ? null
-            : await getCloudBaseDocument(
-                transactionProgress,
-                createCloudBaseDocumentId(`${phoneNumber}:${snapshot.day_key}`),
-              );
-          await setCloudBaseDocument(
-            transactionProgress,
-            accountProgressId,
-            mergeLegacyDailyProgressAfterV2({
-              accountKey: options.accountKey,
-              accountProgress,
-              acknowledgedAt,
-              legacyProgress,
-              sequence,
-              snapshot,
-            }),
-          );
-          return;
+        if (current) {
+          return current;
         }
 
-        assertNoOrphanedLearningProjection(accountProgress, options.accountKey);
-        await setCloudBaseDocument(
-          transactionProgress,
-          createCloudBaseDocumentId(`${phoneNumber}:${snapshot.day_key}`),
-          {
-            acknowledged_at: acknowledgedAt,
-            phone_number: phoneNumber,
-            ...snapshot,
-          },
+        const canonical = createDailyCheckInRecord(
+          options.accountKey,
+          dayKey,
+          acknowledgedAt,
         );
+        await setCloudBaseDocument(
+          transactionCheckIns,
+          documentId,
+          canonical,
+        );
+        return canonical;
       }),
-    saveLearningState: async (
+    seedLegacyLearningStateForMigrationTest: async (
       phoneNumber,
       snapshot,
       acknowledgedAt,
-      options = {},
     ) =>
       db.runTransaction(async transaction => {
-        const transactionSequences = transaction.collection(
-          CLOUDBASE_COLLECTIONS.learningEventSequences,
-        );
-        const sequence = await getCloudBaseDocument(
-          transactionSequences,
-          createLearningEventSequenceId(options.accountKey),
-        );
-        assertLegacyLearningWriteAllowed(sequence, options.accountKey);
-        const transactionMigrationRevisions = transaction.collection(
-          CLOUDBASE_COLLECTIONS.learningMigrationRevisions,
-        );
-        const revisionId = createLearningMigrationRevisionId(
-          options.accountKey,
-        );
-        const nextRevision = nextLearningMigrationRevision(
-          await getCloudBaseDocument(transactionMigrationRevisions, revisionId),
-          options.accountKey,
-          acknowledgedAt,
-        );
         const transactionLearningStates = transaction.collection(
           CLOUDBASE_COLLECTIONS.learningStates,
         );
@@ -1396,11 +1301,6 @@ function createCloudBaseStore(options = {}) {
           source_label: snapshot.source_label,
           track: snapshot.track,
         });
-        await setCloudBaseDocument(
-          transactionMigrationRevisions,
-          revisionId,
-          nextRevision,
-        );
       }),
     saveLearningSessionCursor: input =>
       db.runTransaction(async transaction => {
@@ -1523,29 +1423,83 @@ function createEmptyDailyProgress(dayKey) {
   };
 }
 
-function mergeLegacyDailyProgressAfterV2({
-  accountKey,
-  accountProgress,
-  acknowledgedAt,
-  legacyProgress,
-  sequence,
-  snapshot,
-}) {
-  const progress = normalizeStoredDailyProgress(
-    accountProgress ?? legacyProgress,
-    snapshot.day_key,
-    accountProgress ? accountKey : null,
-  );
-  assertLearningSequenceMetadata(sequence, accountKey);
+function createDailyCheckInRecord(accountKey, dayKey, acknowledgedAt) {
+  return {
+    acknowledged_at: requireIsoTimestamp(
+      acknowledgedAt,
+      'daily check-in acknowledged_at',
+    ),
+    account_key: accountKey,
+    checked_in_today: true,
+    day_key: dayKey,
+    schema_version: 'daily-check-in.v2',
+  };
+}
+
+function normalizeStoredDailyCheckIn(value, expectedAccountKey, expectedDayKey) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  let storedValue = value;
+
+  if (isObject(value) && Object.hasOwn(value, '_id')) {
+    storedValue = {...value};
+    delete storedValue._id;
+  }
+
+  const keys = isObject(storedValue)
+    ? Object.keys(storedValue).sort()
+    : [];
+
+  if (
+    !isObject(storedValue) ||
+    keys.length !== DAILY_CHECK_IN_DOCUMENT_KEYS.length ||
+    keys.some(
+      (key, index) => key !== DAILY_CHECK_IN_DOCUMENT_KEYS[index],
+    ) ||
+    storedValue.schema_version !== 'daily-check-in.v2' ||
+    storedValue.account_key !== expectedAccountKey ||
+    storedValue.day_key !== expectedDayKey ||
+    storedValue.checked_in_today !== true ||
+    typeof storedValue.acknowledged_at !== 'string' ||
+    !Number.isFinite(Date.parse(storedValue.acknowledged_at))
+  ) {
+    throw dailyCheckInProjectionInvalidError(
+      'The canonical daily check-in is invalid.',
+    );
+  }
+
+  return {
+    acknowledged_at: storedValue.acknowledged_at,
+    account_key: storedValue.account_key,
+    checked_in_today: true,
+    day_key: storedValue.day_key,
+    schema_version: storedValue.schema_version,
+  };
+}
+
+function overlayDailyCheckIn(progress, dailyCheckIn) {
+  if (dailyCheckIn === null) {
+    return progress;
+  }
+
+  const acknowledgedAt =
+    progress.acknowledged_at === null ||
+    Date.parse(dailyCheckIn.acknowledged_at) >
+      Date.parse(progress.acknowledged_at)
+      ? dailyCheckIn.acknowledged_at
+      : progress.acknowledged_at;
 
   return {
     ...progress,
     acknowledged_at: acknowledgedAt,
-    account_key: accountKey,
-    checked_in_today: progress.checked_in_today || snapshot.checked_in_today,
-    pending_review_count: sequence.pending_review_count,
-    projection_version: 'learning-events.v2',
+    checked_in_today: true,
   };
+}
+
+function dailyCheckInProjectionInvalidError(message) {
+  return httpError(500, 'daily_check_in_projection_invalid', message);
 }
 
 function normalizeStoredDailyProgress(
@@ -1819,58 +1773,6 @@ function createNextLearningSessionState(current, input) {
     input.accountKey,
     input.track,
   );
-}
-
-function assertLegacyLearningWriteAllowed(sequence, expectedAccountKey) {
-  assertLearningWriteAccountKey(expectedAccountKey);
-
-  if (sequence !== null && sequence !== undefined) {
-    assertLearningSequenceMetadata(sequence, expectedAccountKey);
-    throw httpError(
-      409,
-      'legacy_learning_write_disabled',
-      'Legacy learning snapshots are disabled after v2 event migration.',
-    );
-  }
-}
-
-function nextLearningMigrationRevision(
-  current,
-  expectedAccountKey,
-  acknowledgedAt,
-) {
-  assertLearningWriteAccountKey(expectedAccountKey);
-  let revision = 0;
-
-  if (current !== null && current !== undefined) {
-    if (
-      !isObject(current) ||
-      current.account_key !== expectedAccountKey ||
-      !Number.isSafeInteger(current.revision) ||
-      current.revision < 0 ||
-      current.status !== 'open' ||
-      typeof current.updated_at !== 'string' ||
-      !Number.isFinite(Date.parse(current.updated_at))
-    ) {
-      throw learningProjectionInvalidError(
-        'The legacy learning migration revision is invalid.',
-      );
-    }
-    revision = current.revision;
-  }
-
-  if (revision === Number.MAX_SAFE_INTEGER) {
-    throw learningProjectionInvalidError(
-      'The legacy learning migration revision is exhausted.',
-    );
-  }
-
-  return {
-    account_key: expectedAccountKey,
-    revision: revision + 1,
-    status: 'open',
-    updated_at: acknowledgedAt,
-  };
 }
 
 function assertLearningWriteAccountKey(accountKey) {

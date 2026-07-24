@@ -4,34 +4,47 @@ import {
   MutationQueueManager,
 } from '../src/sync/mutationQueue';
 
-const createProgressPayload = () => ({
+const createCheckInPayload = () => ({
+  context: {
+    authToken: 'token-1',
+    phoneNumber: '13800138000',
+  },
+  dayKey: '2026-04-27',
+});
+
+const createSpacePayload = (dayKey = '2026-04-27') => ({
   context: {
     authToken: 'token-1',
     phoneNumber: '13800138000',
   },
   snapshot: {
-    checkedInToday: true,
-    dayKey: '2026-04-27',
-    favoriteCount: 1,
-    learningCompletedCount: 2,
-    pendingReviewCount: 3,
-    reviewCompletedCount: 4,
-    sleepingCount: 0,
-    totalCompletedCount: 6,
+    dayKey,
+    states: [],
   },
+});
+
+const createLegacyProgressSnapshot = (checkedInToday = true) => ({
+  checkedInToday,
+  dayKey: '2026-04-27',
+  favoriteCount: 1,
+  learningCompletedCount: 2,
+  pendingReviewCount: 3,
+  reviewCompletedCount: 4,
+  sleepingCount: 5,
+  totalCompletedCount: 6,
 });
 
 describe('MutationQueueManager', () => {
   it('enqueues and dequeues mutations in FIFO order', async () => {
     const manager = new MutationQueueManager();
 
-    await manager.enqueue('sync_daily_progress', createProgressPayload());
+    await manager.enqueue('check_in_daily_progress', createCheckInPayload());
     await manager.enqueue('refresh_membership', {
       context: {authToken: 'token-2', phoneNumber: '13800138001'},
     });
 
     const first = await manager.dequeue();
-    expect(first?.type).toBe('sync_daily_progress');
+    expect(first?.type).toBe('check_in_daily_progress');
 
     const second = await manager.dequeue();
     expect(second?.type).toBe('refresh_membership');
@@ -39,15 +52,15 @@ describe('MutationQueueManager', () => {
     await expect(manager.dequeue()).resolves.toBeUndefined();
   });
 
-  it('persists entries through the configured storage adapter', async () => {
+  it('persists a counter-free check-in under a deterministic credential-free id', async () => {
     const sharedStore: Record<string, string> = {};
     const storage = createInMemoryMutationQueueStorage(sharedStore);
     const manager = new MutationQueueManager({storage});
 
     await manager.enqueue(
-      'sync_daily_progress',
-      createProgressPayload(),
-      'progress-1',
+      'check_in_daily_progress',
+      createCheckInPayload(),
+      'caller-id-with-token-1',
     );
     await manager.enqueue(
       'refresh_membership',
@@ -59,16 +72,21 @@ describe('MutationQueueManager', () => {
 
     const restoredManager = new MutationQueueManager({storage});
     await expect(restoredManager.size()).resolves.toBe(2);
-    await expect(restoredManager.dequeue()).resolves.toMatchObject({
-      id: 'progress-1',
-    });
+    await expect(restoredManager.dequeue()).resolves.toEqual(
+      expect.objectContaining({
+        id: 'check-in:13800138000:2026-04-27',
+        payload: {
+          context: {phoneNumber: '13800138000'},
+          dayKey: '2026-04-27',
+        },
+        type: 'check_in_daily_progress',
+      }),
+    );
     expect(JSON.stringify(sharedStore)).not.toContain('token-1');
     expect(JSON.stringify(sharedStore)).not.toContain('token-2');
-    await expect(restoredManager.peek()).resolves.toMatchObject({
-      payload: {
-        context: {phoneNumber: '13800138001'},
-      },
-    });
+    expect(JSON.stringify(sharedStore)).not.toMatch(
+      /favoriteCount|learningCompletedCount|totalCompletedCount/,
+    );
   });
 
   it('does not report success or mutate memory when persistence fails', async () => {
@@ -87,30 +105,24 @@ describe('MutationQueueManager', () => {
     });
 
     await expect(
-      manager.enqueue(
-        'sync_daily_progress',
-        createProgressPayload(),
-        'progress-failure',
-      ),
+      manager.enqueue('check_in_daily_progress', createCheckInPayload()),
     ).rejects.toThrow('storage unavailable');
     await expect(manager.size()).resolves.toBe(0);
 
     shouldFail = false;
     await expect(
-      manager.enqueue(
-        'sync_daily_progress',
-        createProgressPayload(),
-        'progress-failure',
-      ),
-    ).resolves.toMatchObject({id: 'progress-failure'});
+      manager.enqueue('check_in_daily_progress', createCheckInPayload()),
+    ).resolves.toMatchObject({
+      id: 'check-in:13800138000:2026-04-27',
+    });
     await expect(manager.size()).resolves.toBe(1);
   });
 
-  it('strips legacy credentials while hydrating persisted entries', async () => {
+  it('migrates only a valid checked-in legacy snapshot and strips counters and credentials', async () => {
     const sharedStore = {
       __softbook_mutation_queue: JSON.stringify([
         {
-          id: 'legacy-entry',
+          id: 'legacy-entry-with-secret',
           payload: {
             context: {
               accessToken: 'legacy-access',
@@ -118,9 +130,9 @@ describe('MutationQueueManager', () => {
               phoneNumber: '13800138000',
               refreshToken: 'legacy-refresh',
             },
-            snapshot: createProgressPayload().snapshot,
+            snapshot: createLegacyProgressSnapshot(true),
           },
-          retryCount: 0,
+          retryCount: 2,
           timestamp: '2026-07-20T00:00:00.000Z',
           type: 'sync_daily_progress',
         },
@@ -154,30 +166,31 @@ describe('MutationQueueManager', () => {
 
     await manager.hydrate();
 
-    expect(sharedStore.__softbook_mutation_queue).not.toMatch(
-      /legacy-(?:access|auth|refresh)/,
-    );
-    expect(sharedStore.__softbook_mutation_queue).not.toContain(
-      'softbook.legacy-token.signature',
+    const serialized = sharedStore.__softbook_mutation_queue;
+    expect(serialized).not.toMatch(/legacy-(?:access|auth|refresh)/);
+    expect(serialized).not.toContain('softbook.legacy-token.signature');
+    expect(serialized).not.toMatch(
+      /favoriteCount|learningCompletedCount|totalCompletedCount/,
     );
     expect(
-      JSON.parse(sharedStore.__softbook_mutation_queue).map(
-        (entry: {id: string}) => entry.id,
-      ),
-    ).toEqual(['legacy-entry', 'membership:replay', 'membership-trial:replay']);
+      JSON.parse(serialized).map((entry: {id: string}) => entry.id),
+    ).toEqual([
+      'check-in:13800138000:2026-04-27',
+      'membership:replay',
+      'membership-trial:replay',
+    ]);
     await expect(manager.peek()).resolves.toMatchObject({
-      payload: {context: {phoneNumber: '13800138000'}},
-    });
-    await manager.dequeue();
-    await expect(manager.dequeue()).resolves.toMatchObject({
-      id: 'membership:replay',
-    });
-    await expect(manager.dequeue()).resolves.toMatchObject({
-      id: 'membership-trial:replay',
+      id: 'check-in:13800138000:2026-04-27',
+      payload: {
+        context: {phoneNumber: '13800138000'},
+        dayKey: '2026-04-27',
+      },
+      retryCount: 2,
+      type: 'check_in_daily_progress',
     });
   });
 
-  it('drops persisted v1 learning snapshot mutations during migration', async () => {
+  it('drops unchecked legacy daily snapshots and v1 learning snapshots', async () => {
     const sharedStore = {
       __softbook_mutation_queue: JSON.stringify([
         {
@@ -196,10 +209,39 @@ describe('MutationQueueManager', () => {
           type: 'sync_learning_state',
         },
         {
-          id: 'progress:current',
-          payload: createProgressPayload(),
+          id: 'progress:unchecked',
+          payload: {
+            context: {phoneNumber: '13800138000'},
+            snapshot: createLegacyProgressSnapshot(false),
+          },
           retryCount: 0,
           timestamp: '2026-07-20T00:01:00.000Z',
+          type: 'sync_daily_progress',
+        },
+        {
+          id: 'progress:partial',
+          payload: {
+            context: {phoneNumber: '13800138000'},
+            snapshot: {
+              checkedInToday: true,
+              dayKey: '2026-04-27',
+            },
+          },
+          retryCount: 0,
+          timestamp: '2026-07-20T00:02:00.000Z',
+          type: 'sync_daily_progress',
+        },
+        {
+          id: 'progress:inconsistent-total',
+          payload: {
+            context: {phoneNumber: '13800138000'},
+            snapshot: {
+              ...createLegacyProgressSnapshot(true),
+              totalCompletedCount: 99,
+            },
+          },
+          retryCount: 0,
+          timestamp: '2026-07-20T00:03:00.000Z',
           type: 'sync_daily_progress',
         },
       ]),
@@ -210,14 +252,41 @@ describe('MutationQueueManager', () => {
 
     await manager.hydrate();
 
-    await expect(manager.size()).resolves.toBe(1);
+    await expect(manager.size()).resolves.toBe(0);
+    expect(sharedStore.__softbook_mutation_queue).toBe('[]');
+  });
+
+  it('normalizes arbitrary persisted check-in ids from sanitized payload data', async () => {
+    const sharedStore = {
+      __softbook_mutation_queue: JSON.stringify([
+        {
+          id: 'check-in:embedded-sensitive-history',
+          payload: {
+            context: {
+              authToken: 'not-persisted',
+              phoneNumber: '13800138000',
+            },
+            dayKey: '2026-04-27',
+          },
+          retryCount: 0,
+          timestamp: '2026-07-20T00:00:00.000Z',
+          type: 'check_in_daily_progress',
+        },
+      ]),
+    };
+    const manager = new MutationQueueManager({
+      storage: createInMemoryMutationQueueStorage(sharedStore),
+    });
+
+    await manager.hydrate();
+
     await expect(manager.peek()).resolves.toMatchObject({
-      id: 'progress:current',
-      type: 'sync_daily_progress',
+      id: 'check-in:13800138000:2026-04-27',
     });
     expect(sharedStore.__softbook_mutation_queue).not.toContain(
-      'sync_learning_state',
+      'embedded-sensitive-history',
     );
+    expect(sharedStore.__softbook_mutation_queue).not.toContain('not-persisted');
   });
 
   it('does not retain caller-owned payload objects after enqueue', async () => {
@@ -225,9 +294,9 @@ describe('MutationQueueManager', () => {
     const manager = new MutationQueueManager({
       storage: createInMemoryMutationQueueStorage(sharedStore),
     });
-    const payload = createProgressPayload();
+    const payload = createSpacePayload();
 
-    await manager.enqueue('sync_daily_progress', payload, 'detached-entry');
+    await manager.enqueue('sync_space_state', payload, 'detached-entry');
     Object.assign(payload.snapshot, {accessToken: 'late-injected-token'});
     await manager.incrementRetry('detached-entry');
 
@@ -236,30 +305,37 @@ describe('MutationQueueManager', () => {
 
   it('rejects credential fields outside the account context', async () => {
     const manager = new MutationQueueManager();
-    const payload = createProgressPayload();
+    const payload = createSpacePayload();
     Object.assign(payload.snapshot, {refreshToken: 'nested-secret'});
 
     await expect(
-      manager.enqueue('sync_daily_progress', payload),
+      manager.enqueue('sync_space_state', payload),
     ).rejects.toThrow('forbidden credential field');
+    await expect(manager.size()).resolves.toBe(0);
+  });
+
+  it('rejects invalid check-in calendar dates', async () => {
+    const manager = new MutationQueueManager();
+
+    await expect(
+      manager.enqueue('check_in_daily_progress', {
+        context: {phoneNumber: '13800138000'},
+        dayKey: '2026-02-30',
+      }),
+    ).rejects.toThrow('valid YYYY-MM-DD dayKey');
     await expect(manager.size()).resolves.toBe(0);
   });
 
   it('persists entries through the default AsyncStorage adapter', async () => {
     const manager = new MutationQueueManager();
 
-    await manager.enqueue(
-      'sync_daily_progress',
-      createProgressPayload(),
-      'persisted',
-    );
-
+    await manager.enqueue('check_in_daily_progress', createCheckInPayload());
     const restoredManager = new MutationQueueManager();
 
     await expect(restoredManager.size()).resolves.toBe(1);
     await expect(restoredManager.peek()).resolves.toMatchObject({
-      id: 'persisted',
-      type: 'sync_daily_progress',
+      id: 'check-in:13800138000:2026-04-27',
+      type: 'check_in_daily_progress',
     });
   });
 
@@ -267,21 +343,20 @@ describe('MutationQueueManager', () => {
     const manager = new MutationQueueManager();
 
     await manager.enqueue(
-      'sync_daily_progress',
-      createProgressPayload(),
-      'dup',
+      'sync_space_state',
+      createSpacePayload('2026-04-27'),
+      'space:current',
     );
     await manager.enqueue(
-      'refresh_membership',
-      {
-        context: {authToken: 'token-3', phoneNumber: '13800138002'},
-      },
-      'dup',
+      'sync_space_state',
+      createSpacePayload('2026-04-28'),
+      'space:current',
     );
 
     await expect(manager.size()).resolves.toBe(1);
     await expect(manager.peek()).resolves.toMatchObject({
-      type: 'refresh_membership',
+      id: 'space:current',
+      payload: {snapshot: {dayKey: '2026-04-28'}},
     });
   });
 
@@ -290,15 +365,15 @@ describe('MutationQueueManager', () => {
       now: () => '2026-07-21T00:00:00.000Z',
     });
     await manager.enqueue(
-      'sync_daily_progress',
-      createProgressPayload(),
+      'sync_space_state',
+      createSpacePayload('2026-04-27'),
       'shared-id',
     );
     const replayedEntry = await manager.peek();
 
     await manager.enqueue(
-      'refresh_membership',
-      {context: {phoneNumber: '13800138000'}},
+      'sync_space_state',
+      createSpacePayload('2026-04-28'),
       'shared-id',
     );
 
@@ -309,8 +384,8 @@ describe('MutationQueueManager', () => {
       manager.incrementRetryIfUnchanged(replayedEntry!),
     ).resolves.toBe(false);
     await expect(manager.peek()).resolves.toMatchObject({
+      payload: {snapshot: {dayKey: '2026-04-28'}},
       retryCount: 0,
-      type: 'refresh_membership',
     });
   });
 
@@ -318,8 +393,8 @@ describe('MutationQueueManager', () => {
     const manager = new MutationQueueManager();
 
     await manager.enqueue(
-      'sync_daily_progress',
-      createProgressPayload(),
+      'sync_space_state',
+      createSpacePayload(),
       'retry-test',
     );
 
@@ -337,11 +412,7 @@ describe('MutationQueueManager', () => {
   it('returns peek without dequeuing', async () => {
     const manager = new MutationQueueManager();
 
-    await manager.enqueue(
-      'sync_daily_progress',
-      createProgressPayload(),
-      'peek-test',
-    );
+    await manager.enqueue('sync_space_state', createSpacePayload(), 'peek-test');
 
     await expect(manager.peek()).resolves.toMatchObject({id: 'peek-test'});
     await expect(manager.peek()).resolves.toMatchObject({id: 'peek-test'});
@@ -351,7 +422,7 @@ describe('MutationQueueManager', () => {
   it('clears all entries', async () => {
     const manager = new MutationQueueManager();
 
-    await manager.enqueue('sync_daily_progress', createProgressPayload());
+    await manager.enqueue('check_in_daily_progress', createCheckInPayload());
     await manager.enqueue('refresh_membership', {
       context: {authToken: 'token-2', phoneNumber: '13800138001'},
     });
@@ -366,7 +437,7 @@ describe('MutationQueueManager', () => {
     const manager = new MutationQueueManager();
     const before = new Date().getTime();
 
-    await manager.enqueue('sync_daily_progress', createProgressPayload());
+    await manager.enqueue('check_in_daily_progress', createCheckInPayload());
 
     const after = new Date().getTime();
     const timestamp = new Date((await manager.peek())!.timestamp).getTime();

@@ -180,12 +180,14 @@ def validate(context) -> None:
         "SCF_NAMESPACE",
         "CLOUDBASE_COLLECTIONS",
         "cardSources",
+        "dailyCheckIns",
         "dailyProgress",
         "learningStates",
         "learningSessions",
         "memberships",
         "spaceStates",
         "softbook_card_sources",
+        "softbook_daily_check_ins",
         "softbook_daily_progress",
         "softbook_learning_states",
         "softbook_learning_sessions",
@@ -193,6 +195,8 @@ def validate(context) -> None:
         "softbook_space_states",
         "getCardSource",
         "getMembership",
+        "checkInDailyProgress",
+        "assertLegacySnapshotWritesDisabled",
         "startTrial",
         "dismissRecovery",
         "saveDailyProgress",
@@ -950,13 +954,13 @@ def validate(context) -> None:
         )
         (tmp_app_root / "src/learning/BackendCollectionMetadataTextLeak.tsx").write_text(
             "export function BackendCollectionMetadataTextLeak() {\n"
-            "  return <Text>cardSources dailyProgress learningStates</Text>;\n"
+            "  return <Text>cardSources dailyCheckIns dailyProgress learningStates</Text>;\n"
             "}\n",
             encoding="utf-8",
         )
         (tmp_app_root / "src/learning/BackendCollectionMetadataPropLeak.tsx").write_text(
             "export function BackendCollectionMetadataPropLeak() {\n"
-            "  return <Pressable accessibilityLabel=\"softbook_card_sources softbook_daily_progress softbook_learning_states\" />;\n"
+            "  return <Pressable accessibilityLabel=\"softbook_card_sources softbook_daily_check_ins softbook_daily_progress softbook_learning_states\" />;\n"
             "}\n",
             encoding="utf-8",
         )
@@ -968,7 +972,7 @@ def validate(context) -> None:
         )
         (tmp_app_root / "src/learning/BackendStoreMethodMetadataTextLeak.tsx").write_text(
             "export function BackendStoreMethodMetadataTextLeak() {\n"
-            "  return <Text>getCardSource getMembership saveDailyProgress</Text>;\n"
+            "  return <Text>getCardSource getMembership checkInDailyProgress assertLegacySnapshotWritesDisabled saveDailyProgress</Text>;\n"
             "}\n",
             encoding="utf-8",
         )

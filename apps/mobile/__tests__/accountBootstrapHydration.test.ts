@@ -129,12 +129,24 @@ test('reconciles same-day local state only after canonical read', () => {
       },
     },
   });
-  expect(result.progressSyncKey).toBe(
-    JSON.stringify(bootstrap.progress.snapshot),
-  );
   expect(result.spaceStateSyncKey).toBe(
     JSON.stringify(bootstrap.space.snapshot),
   );
+});
+
+test('preserves same-day check-in only when a durable command is pending', () => {
+  const bootstrap = createBootstrapFixture();
+  const result = reconcileAccountBootstrap(
+    {
+      checkedInDayKey: bootstrap.dayKey,
+      learningCursor: null,
+      spaceCardStateById: {},
+    },
+    bootstrap,
+    {pendingCheckInDayKey: bootstrap.dayKey},
+  );
+
+  expect(result.persistedUserState.checkedInDayKey).toBe(bootstrap.dayKey);
 });
 
 test('preserves a newer local explicit space action for later push', () => {
