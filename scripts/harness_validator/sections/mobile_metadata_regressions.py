@@ -63,6 +63,18 @@ def validate(context) -> None:
         "challengeId",
         "session_id",
         "sessionId",
+        "selection_id",
+        "selectionId",
+        "scheduler_version",
+        "schedulerVersion",
+        "scheduler_by_card_id",
+        "schedulerByCardId",
+        "next_due_at",
+        "nextDueAt",
+        "learning_acknowledged_at",
+        "learningAcknowledgedAt",
+        "learning_server_sequence",
+        "learningServerSequence",
         "sms_code",
         "phone_number",
         "day_key",
@@ -170,11 +182,13 @@ def validate(context) -> None:
         "cardSources",
         "dailyProgress",
         "learningStates",
+        "learningSessions",
         "memberships",
         "spaceStates",
         "softbook_card_sources",
         "softbook_daily_progress",
         "softbook_learning_states",
+        "softbook_learning_sessions",
         "softbook_memberships",
         "softbook_space_states",
         "getCardSource",
@@ -721,6 +735,12 @@ def validate(context) -> None:
         (tmp_app_root / "src/learning/LearningEventMetadataRenderedPropLeak.tsx").write_text(
             "export function LearningEventMetadataRenderedPropLeak() {\n"
             "  return <View testID=\"__softbook_learning_event_outbox_v1-schema_version-deviceCursor\" />;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        (tmp_app_root / "src/learning/SchedulerMetadataLeak.tsx").write_text(
+            "export function SchedulerMetadataLeak({ session }) {\n"
+            "  return <Text>{session.selection_id}{session.scheduler_version}{session.scheduler_by_card_id}{session.next_due_at}{session.learning_acknowledged_at}{session.learning_server_sequence} learningSessions softbook_learning_sessions</Text>;\n"
             "}\n",
             encoding="utf-8",
         )
@@ -1827,6 +1847,7 @@ def validate(context) -> None:
             "src/learning/LearningEventMetadataTextLeak.tsx",
             "src/learning/LearningEventMetadataPropLeak.tsx",
             "src/learning/LearningEventMetadataRenderedPropLeak.tsx",
+            "src/learning/SchedulerMetadataLeak.tsx",
             "src/learning/MutationQueueMetadataTextLeak.tsx",
             "src/learning/MutationQueueMetadataPropLeak.tsx",
             "src/learning/MutationQueueMetadataRenderedPropLeak.tsx",

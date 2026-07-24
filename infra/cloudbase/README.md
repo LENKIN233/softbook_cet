@@ -101,10 +101,19 @@ while `/v2` owns authentication and the canonical bootstrap read:
   `infra/cloudbase/bootstrap-v2-runtime-contract.md`.
 - Learning events v2 derives account identity from the active session and
   commits immutable events, cursor bindings, server sequences, daily progress,
-  and per-card learning projections in one CloudBase transaction. Exact replay
-  returns the original sequence without another projection write.
+  per-card learning projections, exact `ts-fsrs@5.4.1` scheduler state, and a
+  matching selected-cursor clear in one CloudBase transaction. Exact replay
+  returns the original sequence without another projection or cursor write.
+- Learning session v1 selects at most one server-authoritative card through
+  `GET /v2/learning/session`, using eligible persisted cursor, due review, then
+  canonical new-card order. It stores opaque revisioned cursors in
+  `softbook_learning_sessions`, with a learning-projection watermark and
+  transactional resumed-cursor confirmation so concurrent events force a
+  complete reselection; see
+  `infra/cloudbase/learning-session-v1-runtime-contract.md`.
 - The CloudBase adapter hard-caps an atomic event request at 9; the tested
-  worst-case all-track migration uses 91 of the platform's 100 allowed
+  worst-case all-track migration, migrated-track session watermark update, and
+  matching input-track cursor clear uses 95 of the platform's 100 allowed
   transaction operations. Its
   transactions use deterministic document operations only; bounded legacy
   learning and space queries run before the transaction, with an account

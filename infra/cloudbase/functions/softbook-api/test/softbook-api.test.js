@@ -68,6 +68,29 @@ test('installed CloudBase SDK preserves the required database surface', () => {
   assert.equal(typeof database.runTransaction, 'function');
 });
 
+test('accountless legacy learning reads do not apply a v2 session overlay', () => {
+  const store = createMemoryStore();
+  const legacyCursor = {card_id: '002001', source: 'legacy'};
+
+  store.snapshot().learningStates.set('13800138000:2026-04-30:cet4', {
+    acknowledged_at: fixedNow.toISOString(),
+    cursor: legacyCursor,
+    day_key: '2026-04-30',
+    events_by_card_id: {},
+    source_id: 'legacy-source',
+    source_label: 'Legacy source',
+    track: 'cet4',
+  });
+
+  const state = store.getLearningState(
+    '13800138000',
+    '2026-04-30',
+    'cet4',
+  );
+
+  assert.deepEqual(state.cursor, legacyCursor);
+});
+
 async function request(api, requestOptions) {
   const response = await api.handleHttpRequest({
     body: requestOptions.body,
@@ -582,6 +605,59 @@ test('production bootstrap fails closed without a matching published release', a
   assert.equal(available.body.data.content.minimum_client_version, '1.0.0');
 });
 
+test('production learning session fails closed before trial without a published release', async () => {
+  const db = createFakeCloudBaseDb();
+  const api = createTestApi({
+    authV2CodeGenerator: () => '2468',
+    authV2IndexSecret: 'production-scheduler-index-secret-0000',
+    runtimeMode: 'production',
+    smsProvider: {
+      delivery: 'test_sms',
+      kind: 'test_sms',
+      sendCode: async () => undefined,
+    },
+    store: createCloudBaseStore({db}),
+    tokenSecret: 'production-scheduler-token-secret-0000',
+  });
+  const session = await authenticatedV2Session(api);
+  const requestSession = () =>
+    request(api, {
+      headers: {authorization: `Bearer ${session.access_token}`},
+      method: 'GET',
+      path: '/v2/learning/session',
+      query: {track: 'cet4'},
+    });
+  const missing = await requestSession();
+
+  assert.equal(missing.statusCode, 503);
+  assert.equal(missing.body.error.code, 'content_release_unavailable');
+  assert.equal(db.snapshot().get('softbook_memberships')?.size ?? 0, 0);
+  assert.equal(db.snapshot().get('softbook_learning_sessions')?.size ?? 0, 0);
+
+  await db
+    .collection('softbook_card_sources')
+    .doc('cet4')
+    .set(createPersistedCardSource('cet4'));
+  const unpublished = await requestSession();
+
+  assert.equal(unpublished.statusCode, 503);
+  assert.equal(unpublished.body.error.code, 'content_release_unavailable');
+  assert.equal(db.snapshot().get('softbook_memberships').size, 0);
+  assert.equal(db.snapshot().get('softbook_learning_sessions').size, 0);
+
+  await db
+    .collection('softbook_card_sources')
+    .doc('cet4')
+    .set(createReleasedCardSource('cet4'));
+  const available = await requestSession();
+
+  assert.equal(available.statusCode, 200, JSON.stringify(available.body));
+  assert.equal(available.body.data.membership_stage, 'trial');
+  assert.equal(available.body.data.selection.reason, 'catalog_new');
+  assert.equal(db.snapshot().get('softbook_memberships').size, 1);
+  assert.equal(db.snapshot().get('softbook_learning_sessions').size, 1);
+});
+
 test('CloudBase bootstrap state survives separate function instances', async () => {
   const db = createFakeCloudBaseDb();
   const firstApi = createTestApi({store: createCloudBaseStore({db})});
@@ -615,6 +691,71 @@ test('CloudBase bootstrap state survives separate function instances', async () 
   assert.equal(restored.statusCode, 200);
   assert.equal(restored.body.data.progress.total_completed_count, 2);
   assert.equal(restored.body.data.progress.pending_review_count, 1);
+});
+
+test('CloudBase learning-session cursor survives separate function instances', async () => {
+  const db = createFakeCloudBaseDb();
+  const firstApi = createTestApi({store: createCloudBaseStore({db})});
+  const secondApi = createTestApi({store: createCloudBaseStore({db})});
+  const session = await authenticatedV2Session(
+    firstApi,
+    '13800138001',
+    '127.0.0.20',
+  );
+  const headers = {authorization: `Bearer ${session.access_token}`};
+  const selected = await request(firstApi, {
+    headers,
+    method: 'GET',
+    path: '/v2/learning/session',
+    query: {track: 'cet4'},
+  });
+  const resumed = await request(secondApi, {
+    headers,
+    method: 'GET',
+    path: '/v2/learning/session',
+    query: {track: 'cet4'},
+  });
+  const bootstrap = await request(secondApi, {
+    headers,
+    method: 'GET',
+    path: '/v2/bootstrap',
+    query: {day_key: '2026-04-30', track: 'cet4'},
+  });
+
+  assert.equal(selected.statusCode, 200, JSON.stringify(selected.body));
+  assert.equal(resumed.statusCode, 200, JSON.stringify(resumed.body));
+  assert.equal(resumed.body.data.selection.reason, 'persisted_cursor');
+  assert.equal(
+    resumed.body.data.selection.selection_id,
+    selected.body.data.selection.selection_id,
+  );
+  assert.deepEqual(bootstrap.body.data.learning.cursor, {
+    card_id: selected.body.data.selection.card_id,
+    source_id: selected.body.data.source_id,
+    track: 'cet4',
+  });
+});
+
+test('transactional membership mutations cannot downgrade concurrent purchases', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const acknowledgedAt = fixedNow.toISOString();
+
+  await Promise.all([
+    store.purchase('13800138002', acknowledgedAt),
+    store.startTrial('13800138002', acknowledgedAt),
+  ]);
+
+  const membership = await store.getMembership('13800138002');
+  assert.equal(membership.stage, 'premium');
+
+  await Promise.all([
+    store.purchase('13800138003', acknowledgedAt),
+    store.dismissRecovery('13800138003', acknowledgedAt),
+  ]);
+
+  const dismissed = await store.getMembership('13800138003');
+  assert.equal(dismissed.stage, 'premium');
 });
 
 test('bootstrap rejects corrupted persisted canonical state', async () => {

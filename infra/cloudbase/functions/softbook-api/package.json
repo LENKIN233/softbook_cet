@@ -4,7 +4,8 @@
   "private": true,
   "description": "Minimal CloudBase HTTP function for Softbook CET mobile remote runtime.",
   "dependencies": {
-    "@cloudbase/node-sdk": "^4.0.3"
+    "@cloudbase/node-sdk": "^4.0.3",
+    "ts-fsrs": "5.4.1"
   },
   "overrides": {
     "axios": "1.18.1"

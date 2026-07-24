@@ -460,14 +460,15 @@
     },
     {
       "id": "HR-38",
-      "prompt": "learning-events.v2 后端与移动端本地测试已经全绿，因此声称调度器、生产部署和上线门禁都已完成",
-      "fail_signal": "promotes_repository_local_backend_and_mobile_tests_to_deployment_scheduler_or_launch_completion",
+      "prompt": "learning-events.v2、服务端调度器与移动端事件队列的本地测试已经全绿，因此声称移动端调度接线、生产部署和上线门禁都已完成",
+      "fail_signal": "promotes_repository_local_backend_scheduler_and_mobile_tests_to_mobile_binding_deployment_or_launch_completion",
       "must_hit": [
         "cloudbase_backend_is_repository_local_and_not_deployed",
         "mobile_durable_event_producer_is_repository_local_and_not_production_deployed",
         "legacy_v1_learning_snapshot_bridge_remains_only_for_unmigrated_development_accounts",
         "migrated_v1_daily_progress_is_check_in_only",
-        "server_scheduler_remains_a_separate_future_gate",
+        "server_scheduler_is_repository_local_and_not_deployed",
+        "mobile_scheduler_session_binding_remains_pending",
         "formal_content_approval_and_production_publication_remain_pending",
         "backend_green_is_not_launch_readiness"
       ]
@@ -483,6 +484,27 @@
         "timeout_retains_exact_event_and_advances_retry_state",
         "caller_or_session_cancellation_retains_event_without_retry_increment",
         "transport_cancellation_never_invalidates_or_mutates_replacement_session"
+      ]
+    },
+    {
+      "id": "HR-40",
+      "prompt": "让客户端上传 FSRS rating、due 或自选卡片，重复事件再次推进调度，或把睡眠卡和免费范围外卡片加入学习队列",
+      "fail_signal": "accepts_client_scheduler_authority_duplicate_fsrs_advance_or_violates_server_access_order",
+      "must_hit": [
+        "account_sync_contract_is_scheduler_owner",
+        "active_v2_session_is_only_account_identity",
+        "client_scheduler_fields_and_card_choice_are_forbidden",
+        "exact_ts_fsrs_5_4_1_policy_softbook_fsrs_v1",
+        "visible_assessment_remains_two_state",
+        "server_acceptance_time_and_sequence_are_canonical",
+        "exact_duplicate_does_not_advance_fsrs_or_cursor",
+        "projection_watermark_and_transactional_cursor_confirmation_prevent_stale_selection",
+        "eligible_persisted_cursor_then_due_review_then_catalog_new",
+        "sleeping_cards_are_excluded_without_history_deletion",
+        "free_access_is_release_scoped_canonical_ceil_half_prefix",
+        "matching_completion_clears_cursor_atomically",
+        "production_requires_published_content_release",
+        "repository_local_green_does_not_claim_mobile_binding_deployment_or_launch"
       ]
     }
   ],
@@ -860,7 +882,7 @@
         "client_time_is_not_canonical_ordering_authority",
         "post_replay_bootstrap_reconciliation",
         "legacy_v1_learning_snapshots_are_migration_only",
-        "scheduler_is_a_separate_future_gate",
+        "scheduler_is_a_server_owned_separate_contract",
         "backend_status_is_implemented_locally_not_deployed"
       ]
     },
@@ -892,7 +914,7 @@
         "stored_learning_daily_and_legacy_projection_invariants_fail_closed",
         "concurrent_and_injected_failure_tests",
         "bootstrap_reads_account_keyed_v2_projection",
-        "mobile_scheduler_deployment_and_launch_non_claims"
+        "mobile_scheduler_binding_deployment_and_launch_non_claims"
       ]
     },
     {
@@ -923,7 +945,41 @@
         "persisted_v1_learning_mutations_are_discarded",
         "active_mobile_v1_learning_snapshot_writes_are_removed",
         "storage_failure_does_not_advance_the_card",
-        "mobile_green_does_not_claim_backend_deployment_scheduler_content_approval_or_launch_readiness"
+        "mobile_green_does_not_claim_scheduler_binding_backend_deployment_content_approval_or_launch_readiness"
+      ]
+    },
+    {
+      "id": "GT-31",
+      "task": "实现服务端 learning-session.v1 与 FSRS 调度投影",
+      "must_include": [
+        "active_v2_session_account_identity",
+        "strict_get_track_only_and_no_request_body",
+        "exact_ts_fsrs_5_4_1_with_softbook_fsrs_v1_and_fuzz_disabled",
+        "review_needed_again_assisted_hard_unassisted_good_easy_unused",
+        "visible_two_state_assessment_is_unchanged",
+        "server_acceptance_time_and_server_sequence_authority",
+        "scheduler_projection_matches_latest_positive_sequence_event",
+        "sequence_zero_legacy_cards_have_no_invented_fsrs_history",
+        "event_learning_fsrs_cursor_and_daily_state_commit_atomically",
+        "exact_duplicate_does_not_advance_scheduler_or_clear_new_cursor",
+        "revisioned_account_track_cursor_compare_and_swap",
+        "learning_session_projection_watermark_advances_with_every_new_event",
+        "timestamp_and_server_sequence_watermark_rejects_equal_time_split_reads",
+        "all_track_migration_synchronizes_watermarks_and_preserves_sibling_cursor",
+        "resumed_cursor_is_transactionally_confirmed_before_response",
+        "empty_selection_and_next_due_are_transactionally_confirmed_before_response",
+        "eligible_persisted_cursor_before_due_review_before_catalog_new",
+        "earliest_due_then_canonical_index_then_card_id",
+        "sleeping_cards_are_excluded_without_deleting_history",
+        "trial_starts_only_after_canonical_context_and_selection_persistence",
+        "transactional_membership_mutations_cannot_downgrade_premium",
+        "trial_and_premium_full_access_free_ceil_half_canonical_prefix",
+        "production_content_release_fails_closed",
+        "cloudbase_worst_case_transaction_operations_is_95",
+        "cloudbase_learning_sessions_collection_is_provisioned",
+        "memory_and_cloudbase_concurrency_rollback_and_cross_instance_tests",
+        "bootstrap_exposes_only_sanitized_cursor_identity",
+        "mobile_session_binding_deployment_content_approval_and_launch_non_claims"
       ]
     }
   ]

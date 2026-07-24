@@ -353,7 +353,7 @@ def learning_events_contract_findings(
         (
             "atomic transaction",
             ("learning_events_v2", "idempotency_and_atomicity", "transaction_atomicity"),
-            "new immutable events, account server sequences, and derived learning projections commit in one transaction; failure leaves no partial acceptance",
+            "new immutable events, account server sequences, derived learning and FSRS projections, all migrated-track learning-session projection watermarks, matching input-track cursor clearing, and daily progress commit in one transaction; failure leaves no partial acceptance",
         ),
         (
             "CloudBase atomic batch rule",
@@ -362,7 +362,7 @@ def learning_events_contract_findings(
                 "idempotency_and_atomicity",
                 "cloudbase_atomic_batch_rule",
             ),
-            "the repository-local CloudBase adapter accepts at most 9 events so worst-case immutable-event, retained-content, all-track migration, projection, and daily work uses at most 91 of the platform limit of 100 operations per transaction",
+            "the repository-local CloudBase adapter accepts at most 9 events so worst-case immutable-event, retained-content, all-track migration, learning and FSRS projection, all migrated-track session watermarks, cursor, and daily work uses at most 95 of the platform limit of 100 operations per transaction",
         ),
         (
             "CloudBase transaction query rule",
@@ -464,7 +464,7 @@ def learning_events_contract_findings(
         (
             "launch non-claim",
             ("learning_events_v2", "migration_boundary", "launch_claim_rule"),
-            "green repository-local backend and mobile client tests do not satisfy global legacy snapshot-write removal, server scheduling, formal content approval, production deployment, or launch readiness",
+            "green repository-local backend, scheduler, and mobile event tests do not satisfy global legacy snapshot-write removal, mobile scheduler-session binding, formal content approval, production deployment, or launch readiness",
         ),
         (
             "migrated account write rule",
@@ -484,7 +484,7 @@ def learning_events_contract_findings(
         (
             "runtime status",
             ("learning_event_runtime", "implementation_status"),
-            "cloudbase_backend_and_mobile_producer_implemented_locally_not_deployed_scheduler_pending",
+            "cloudbase_backend_mobile_producer_and_server_scheduler_implemented_locally_not_deployed",
         ),
         (
             "runtime backend storage",
@@ -499,7 +499,7 @@ def learning_events_contract_findings(
         (
             "runtime stored projection integrity",
             ("learning_event_runtime", "stored_projection_integrity"),
-            "full_v2_learning_daily_and_migrated_v1_projection_invariants_fail_closed",
+            "full_v2_learning_daily_scheduler_and_migrated_v1_projection_invariants_fail_closed",
         ),
         (
             "runtime CloudBase atomic batch limit",
@@ -510,6 +510,11 @@ def learning_events_contract_findings(
             "runtime CloudBase transaction boundary",
             ("learning_event_runtime", "cloudbase_transaction_boundary"),
             "doc_only_with_at_most_100_operations",
+        ),
+        (
+            "runtime CloudBase worst-case operations",
+            ("learning_event_runtime", "cloudbase_worst_case_transaction_operations"),
+            95,
         ),
         (
             "runtime legacy migration consistency",
@@ -599,7 +604,7 @@ def learning_events_contract_findings(
         (
             "runtime scheduler boundary",
             ("learning_event_runtime", "scheduler_status"),
-            "separate_future_gate",
+            "repository_local_backend_implemented_not_deployed",
         ),
         (
             "runtime launch status",
@@ -645,7 +650,8 @@ def learning_events_contract_findings(
         "mobile_durable_event_producer_is_repository_local_and_not_production_deployed",
         "legacy_v1_learning_snapshot_bridge_remains_only_for_unmigrated_development_accounts",
         "migrated_v1_daily_progress_is_check_in_only",
-        "server_scheduler_remains_a_separate_future_gate",
+        "server_scheduler_is_repository_local_and_not_deployed",
+        "mobile_scheduler_session_binding_remains_pending",
         "formal_content_approval_and_production_publication_remain_pending",
         "backend_green_is_not_launch_readiness",
     ]
@@ -686,7 +692,7 @@ def learning_events_contract_findings(
         "client_time_is_not_canonical_ordering_authority",
         "post_replay_bootstrap_reconciliation",
         "legacy_v1_learning_snapshots_are_migration_only",
-        "scheduler_is_a_separate_future_gate",
+        "scheduler_is_a_server_owned_separate_contract",
         "backend_status_is_implemented_locally_not_deployed",
     ]
     if not gt28:
@@ -720,7 +726,7 @@ def learning_events_contract_findings(
         "stored_learning_daily_and_legacy_projection_invariants_fail_closed",
         "concurrent_and_injected_failure_tests",
         "bootstrap_reads_account_keyed_v2_projection",
-        "mobile_scheduler_deployment_and_launch_non_claims",
+        "mobile_scheduler_binding_deployment_and_launch_non_claims",
     ]
     if not gt29:
         findings.append("learning-events contract evals: missing GT-29")
@@ -753,7 +759,7 @@ def learning_events_contract_findings(
         "persisted_v1_learning_mutations_are_discarded",
         "active_mobile_v1_learning_snapshot_writes_are_removed",
         "storage_failure_does_not_advance_the_card",
-        "mobile_green_does_not_claim_backend_deployment_scheduler_content_approval_or_launch_readiness",
+        "mobile_green_does_not_claim_scheduler_binding_backend_deployment_content_approval_or_launch_readiness",
     ]
     if not gt30:
         findings.append("learning-events contract evals: missing GT-30")
@@ -765,8 +771,10 @@ def learning_events_contract_findings(
         "This repository change deploys neither backend nor mobile release artifacts;",
         "softbook_learning_events",
         "softbook_learning_migration_revisions",
+        "softbook_learning_sessions",
         "softbook_card_source_versions",
         "at most 9 events",
+        "95 operations",
         "both CET4 and CET6 legacy learning baselines",
         "outside the transaction",
         "revision fence",
@@ -793,7 +801,7 @@ def learning_events_contract_findings(
         "Legacy `/v1/learning/state-sync` remains",
         "only `checked_in_today` is merged",
         "409 legacy_learning_write_disabled",
-        "The repository-local backend and mobile implementation do not prove",
+        "The repository-local backend, scheduler, and mobile implementation do not prove",
     ]
     for snippet in required_runtime_snippets:
         if snippet not in runtime_text:
@@ -804,6 +812,421 @@ def learning_events_contract_findings(
     if runtime_path not in agent_entry_text:
         findings.append(
             f"learning-events contract Agent entry runtime path: missing exact snippet {runtime_path!r}"
+        )
+
+    return findings
+
+
+def learning_scheduler_contract_findings(
+    auth,
+    runtime,
+    agent,
+    evals,
+    runtime_text,
+    agent_entry_text,
+    provision_text,
+    package_text,
+):
+    findings = []
+    rating_mapping = {
+        "review_needed": "Again",
+        "passed_with_used_hint_or_used_peek": "Hard",
+        "passed_without_assistance": "Good",
+        "Easy": "unused",
+    }
+    owner_expectations = [
+        (
+            "scheduler classification",
+            ("server_scheduler_v1", "classification"),
+            "implementation_hypothesis",
+        ),
+        (
+            "scheduler status",
+            ("server_scheduler_v1", "contract_status"),
+            "repository_local_cloudbase_backend_implemented_not_deployed",
+        ),
+        (
+            "scheduler runtime document",
+            ("server_scheduler_v1", "runtime_contract"),
+            "infra/cloudbase/learning-session-v1-runtime-contract.md",
+        ),
+        (
+            "scheduler endpoint method",
+            ("server_scheduler_v1", "endpoint", "method"),
+            "GET",
+        ),
+        (
+            "scheduler endpoint path",
+            ("server_scheduler_v1", "endpoint", "path"),
+            "/v2/learning/session",
+        ),
+        (
+            "scheduler endpoint authentication",
+            ("server_scheduler_v1", "endpoint", "authentication"),
+            "active_v2_session",
+        ),
+        (
+            "scheduler identity authority",
+            ("server_scheduler_v1", "endpoint", "identity_rule"),
+            "derive the account only from the active v2 session; reject every query field except track and reject every request body",
+        ),
+        (
+            "scheduler response schema",
+            ("server_scheduler_v1", "endpoint", "response_schema"),
+            "learning-session.v1",
+        ),
+        (
+            "scheduler algorithm",
+            ("server_scheduler_v1", "algorithm_contract", "algorithm"),
+            "FSRS-6",
+        ),
+        (
+            "scheduler library",
+            ("server_scheduler_v1", "algorithm_contract", "library"),
+            "ts-fsrs",
+        ),
+        (
+            "scheduler library version",
+            ("server_scheduler_v1", "algorithm_contract", "library_version"),
+            "5.4.1",
+        ),
+        (
+            "scheduler policy version",
+            ("server_scheduler_v1", "algorithm_contract", "policy_version"),
+            "softbook-fsrs.v1",
+        ),
+        (
+            "scheduler parameters",
+            ("server_scheduler_v1", "algorithm_contract", "parameters"),
+            "version_locked_library_defaults_with_fuzz_disabled",
+        ),
+        (
+            "scheduler server time",
+            ("server_scheduler_v1", "algorithm_contract", "server_time_rule"),
+            "apply newly accepted events to scheduler state at canonical server acceptance time; client_occurred_at remains bounded activity-day input and never overrides server_sequence ordering",
+        ),
+        (
+            "scheduler rating mapping",
+            ("server_scheduler_v1", "algorithm_contract", "rating_mapping"),
+            rating_mapping,
+        ),
+        (
+            "scheduler visible assessment",
+            (
+                "server_scheduler_v1",
+                "algorithm_contract",
+                "visible_assessment_rule",
+            ),
+            "the server-only mapping never expands the visible two-state self-assessment into four choices",
+        ),
+        (
+            "scheduler projection storage",
+            ("server_scheduler_v1", "projection_contract", "storage"),
+            "account_and_track_scoped_scheduler_by_card_id_inside_the_learning_events_v2_projection",
+        ),
+        (
+            "scheduler projection atomicity",
+            ("server_scheduler_v1", "projection_contract", "atomicity"),
+            "new immutable events, account server sequence, learning projection, FSRS scheduler projection, learning-session projection watermark update and matching cursor clearing, and daily progress commit in the same transaction",
+        ),
+        (
+            "scheduler projection integrity",
+            ("server_scheduler_v1", "projection_contract", "integrity"),
+            "every positive-sequence latest card projection has exactly one matching validated scheduler state and no orphan scheduler state is accepted",
+        ),
+        (
+            "scheduler duplicate rule",
+            ("server_scheduler_v1", "projection_contract", "duplicate_rule"),
+            "exact event replay does not advance FSRS state, due time, cursor, sequence, or counters",
+        ),
+        (
+            "scheduler legacy rule",
+            ("server_scheduler_v1", "projection_contract", "legacy_rule"),
+            "sequence-zero migrated cards have no invented FSRS history and remain immediately review-eligible until their first accepted v2 event",
+        ),
+        (
+            "scheduler cursor rule",
+            ("server_scheduler_v1", "projection_contract", "cursor_rule"),
+            "a selected card persists in the independent account-and-track softbook_learning_sessions record as an opaque revisioned server cursor with an acknowledged-at plus latest-positive-server-sequence projection watermark; every newly accepted event for the track updates the timestamp component and advances the sequence component, first-event all-track migration synchronizes every migrated track while preserving valid sibling cursors, a completion for the same card and content version clears the cursor atomically, and a session read requires the complete matching watermark plus transactional revision confirmation before returning a resumed cursor",
+        ),
+        (
+            "scheduler single-card rule",
+            ("server_scheduler_v1", "selection_contract", "single_card_rule"),
+            "return at most one selection and never return card body content",
+        ),
+        (
+            "scheduler resume order",
+            ("server_scheduler_v1", "selection_contract", "existing_cursor_rule"),
+            "resume an eligible persisted cursor before selecting another card only after its learning-projection watermark matches and its revision is transactionally confirmed",
+        ),
+        (
+            "scheduler due order",
+            ("server_scheduler_v1", "selection_contract", "due_rule"),
+            "select an accessible non-sleeping due review before every new card; order by earliest due time, then canonical card-source index, then card_id",
+        ),
+        (
+            "scheduler new-card order",
+            ("server_scheduler_v1", "selection_contract", "new_card_rule"),
+            "when no review is due, select the first accessible non-sleeping unseen card in normalized ordered card_records",
+        ),
+        (
+            "scheduler empty-selection consistency",
+            ("server_scheduler_v1", "selection_contract", "future_rule"),
+            "when no due review or new card exists, return selection null plus the earliest future next_due_at when one exists only after transactionally confirming the matching learning-projection watermark and session revision",
+        ),
+        (
+            "scheduler sleep authority",
+            ("server_scheduler_v1", "selection_contract", "sleep_rule"),
+            "canonical physical-space sleeping state removes a card from resume, due, new, and next-due selection without deleting its learning or FSRS state",
+        ),
+        (
+            "scheduler membership authority",
+            ("server_scheduler_v1", "selection_contract", "membership_rule"),
+            "the first authenticated learning-session entry starts an available trial exactly once only after canonical context validation, selection generation, and required cursor persistence succeed; trial and premium may schedule the full library, while free schedules a stable release-scoped prefix of ceil(card_count * 0.5) in canonical card-source order",
+        ),
+        (
+            "scheduler content authority",
+            ("server_scheduler_v1", "selection_contract", "content_rule"),
+            "selection binds to the exact normalized content_version and source; production still requires a matching published content-release.v1 descriptor",
+        ),
+        (
+            "scheduler response reasons",
+            (
+                "server_scheduler_v1",
+                "response_contract",
+                "selection_reason_values",
+            ),
+            ["persisted_cursor", "due_review", "catalog_new"],
+        ),
+        (
+            "scheduler known gaps",
+            ("server_scheduler_v1", "known_gaps"),
+            [
+                "mobile_learning_session_consumption_and_selection_binding",
+                "production_deployment",
+                "global_legacy_v1_snapshot_write_removal",
+                "production_membership_expiry_and_payment_entitlement",
+                "formal_content_publication",
+            ],
+        ),
+        (
+            "scheduler launch non-claim",
+            ("server_scheduler_v1", "launch_claim_rule"),
+            "a green repository-local scheduler does not prove mobile integration, production entitlement, deployment, formal content approval, or launch readiness",
+        ),
+    ]
+    for label, keys, expected in owner_expectations:
+        _expect_path(findings, label, auth, keys, expected)
+
+    runtime_expectations = [
+        (
+            "scheduler runtime owner",
+            ("scheduler_runtime", "owner"),
+            "spec/account-sync-contract.json#server_scheduler_v1",
+        ),
+        (
+            "scheduler runtime contract",
+            ("scheduler_runtime", "runtime_contract"),
+            "infra/cloudbase/learning-session-v1-runtime-contract.md",
+        ),
+        (
+            "scheduler runtime endpoint",
+            ("scheduler_runtime", "endpoint"),
+            "GET /v2/learning/session",
+        ),
+        (
+            "scheduler runtime response",
+            ("scheduler_runtime", "response_schema"),
+            "learning-session.v1",
+        ),
+        (
+            "scheduler runtime identity",
+            ("scheduler_runtime", "account_identity"),
+            "active_v2_session_only",
+        ),
+        (
+            "scheduler runtime algorithm",
+            ("scheduler_runtime", "algorithm"),
+            "FSRS-6_via_exact_ts-fsrs_5.4.1",
+        ),
+        (
+            "scheduler runtime rating",
+            ("scheduler_runtime", "rating_mapping"),
+            "review_needed_to_again_passed_with_assistance_to_hard_other_passed_to_good_easy_unused",
+        ),
+        (
+            "scheduler runtime event time",
+            ("scheduler_runtime", "event_time_authority"),
+            "canonical_server_acceptance_time",
+        ),
+        (
+            "scheduler runtime atomicity",
+            ("scheduler_runtime", "projection_atomicity"),
+            "event_sequence_learning_fsrs_session_watermark_matching_cursor_clear_and_daily_progress_commit_together",
+        ),
+        (
+            "scheduler runtime cursor storage",
+            ("scheduler_runtime", "cursor_storage"),
+            "softbook_learning_sessions_revision_compare_and_swap_with_acknowledged_at_and_server_sequence_projection_watermark",
+        ),
+        (
+            "scheduler runtime empty-selection consistency",
+            ("scheduler_runtime", "empty_selection_consistency"),
+            "selection_null_and_next_due_require_transactional_watermark_and_revision_confirmation",
+        ),
+        (
+            "scheduler runtime selection",
+            ("scheduler_runtime", "selection_order"),
+            "eligible_persisted_cursor_then_earliest_due_review_then_canonical_catalog_new_card",
+        ),
+        (
+            "scheduler runtime sleep",
+            ("scheduler_runtime", "sleep_authority"),
+            "canonical_physical_space_excludes_sleeping_cards_without_deleting_scheduler_state",
+        ),
+        (
+            "scheduler runtime membership",
+            ("scheduler_runtime", "membership_authority"),
+            "first_session_starts_available_trial_trial_and_premium_full_free_canonical_prefix_ceil_half",
+        ),
+        (
+            "scheduler runtime membership mutation atomicity",
+            ("scheduler_runtime", "membership_mutation_atomicity"),
+            "cloudbase_single_document_transactions_prevent_trial_or_recovery_from_downgrading_premium",
+        ),
+        (
+            "scheduler runtime content",
+            ("scheduler_runtime", "content_authority"),
+            "exact_normalized_content_version_and_source",
+        ),
+        (
+            "scheduler runtime exact resume",
+            ("scheduler_runtime", "exact_same_card_cross_device_resume_required"),
+            False,
+        ),
+        (
+            "scheduler runtime mobile binding",
+            ("scheduler_runtime", "mobile_session_binding_status"),
+            "pending",
+        ),
+        (
+            "scheduler runtime deployment",
+            ("scheduler_runtime", "deployment_status"),
+            "not_deployed_by_repository_change",
+        ),
+        (
+            "scheduler runtime launch",
+            ("scheduler_runtime", "launch_gate_status"),
+            "pending",
+        ),
+    ]
+    for label, keys, expected in runtime_expectations:
+        _expect_path(findings, label, runtime, keys, expected)
+
+    runtime_path = "infra/cloudbase/learning-session-v1-runtime-contract.md"
+    events_runtime_path = (
+        "infra/cloudbase/learning-events-v2-runtime-contract.md"
+    )
+    found, values = _read_path(agent, ("read_paths", "learning_scheduler_runtime"))
+    if not found or runtime_path not in values or events_runtime_path not in values:
+        findings.append(
+            "learning-scheduler contract agent read path "
+            "learning_scheduler_runtime: missing scheduler or event runtime contract"
+        )
+
+    expected_hr40 = [
+        "account_sync_contract_is_scheduler_owner",
+        "active_v2_session_is_only_account_identity",
+        "client_scheduler_fields_and_card_choice_are_forbidden",
+        "exact_ts_fsrs_5_4_1_policy_softbook_fsrs_v1",
+        "visible_assessment_remains_two_state",
+        "server_acceptance_time_and_sequence_are_canonical",
+        "exact_duplicate_does_not_advance_fsrs_or_cursor",
+        "projection_watermark_and_transactional_cursor_confirmation_prevent_stale_selection",
+        "eligible_persisted_cursor_then_due_review_then_catalog_new",
+        "sleeping_cards_are_excluded_without_history_deletion",
+        "free_access_is_release_scoped_canonical_ceil_half_prefix",
+        "matching_completion_clears_cursor_atomically",
+        "production_requires_published_content_release",
+        "repository_local_green_does_not_claim_mobile_binding_deployment_or_launch",
+    ]
+    hr40 = _entry_by_id(evals.get("regressions", []), "HR-40")
+    if not hr40:
+        findings.append("learning-scheduler contract evals: missing HR-40")
+    elif hr40.get("must_hit") != expected_hr40:
+        findings.append("learning-scheduler contract evals: HR-40 must_hit drift")
+
+    expected_gt31 = [
+        "active_v2_session_account_identity",
+        "strict_get_track_only_and_no_request_body",
+        "exact_ts_fsrs_5_4_1_with_softbook_fsrs_v1_and_fuzz_disabled",
+        "review_needed_again_assisted_hard_unassisted_good_easy_unused",
+        "visible_two_state_assessment_is_unchanged",
+        "server_acceptance_time_and_server_sequence_authority",
+        "scheduler_projection_matches_latest_positive_sequence_event",
+        "sequence_zero_legacy_cards_have_no_invented_fsrs_history",
+        "event_learning_fsrs_cursor_and_daily_state_commit_atomically",
+        "exact_duplicate_does_not_advance_scheduler_or_clear_new_cursor",
+        "revisioned_account_track_cursor_compare_and_swap",
+        "learning_session_projection_watermark_advances_with_every_new_event",
+        "timestamp_and_server_sequence_watermark_rejects_equal_time_split_reads",
+        "all_track_migration_synchronizes_watermarks_and_preserves_sibling_cursor",
+        "resumed_cursor_is_transactionally_confirmed_before_response",
+        "empty_selection_and_next_due_are_transactionally_confirmed_before_response",
+        "eligible_persisted_cursor_before_due_review_before_catalog_new",
+        "earliest_due_then_canonical_index_then_card_id",
+        "sleeping_cards_are_excluded_without_deleting_history",
+        "trial_starts_only_after_canonical_context_and_selection_persistence",
+        "transactional_membership_mutations_cannot_downgrade_premium",
+        "trial_and_premium_full_access_free_ceil_half_canonical_prefix",
+        "production_content_release_fails_closed",
+        "cloudbase_worst_case_transaction_operations_is_95",
+        "cloudbase_learning_sessions_collection_is_provisioned",
+        "memory_and_cloudbase_concurrency_rollback_and_cross_instance_tests",
+        "bootstrap_exposes_only_sanitized_cursor_identity",
+        "mobile_session_binding_deployment_content_approval_and_launch_non_claims",
+    ]
+    gt31 = _entry_by_id(evals.get("golden_tasks", []), "GT-31")
+    if not gt31:
+        findings.append("learning-scheduler contract evals: missing GT-31")
+    elif gt31.get("must_include") != expected_gt31:
+        findings.append("learning-scheduler contract evals: GT-31 must_include drift")
+
+    required_runtime_snippets = [
+        "`GET /v2/learning/session` is the repository-local server selection boundary.",
+        "`ts-fsrs@5.4.1`",
+        "`softbook_learning_sessions`",
+        "`Easy` is unused.",
+        "The scheduler applies events in canonical `server_sequence` order",
+        "New immutable events, cursor bindings, account sequence, latest learning",
+        "`learning_server_sequence`, a two-part projection watermark",
+        "Resume a persisted cursor only while its account, track, content version,",
+        "Free schedules the stable release-scoped prefix of",
+        "Canonical context validation, selection ID generation, and required cursor",
+        "dismissal cannot overwrite a premium purchase.",
+        "first newly accepted event for that card and content version clears the",
+        "and its `next_due_at` receive the same transactional watermark",
+        "This backend is not deployed, and the mobile client does not yet bind",
+        "This contract does not prove:",
+        "mobile consumption of learning sessions or selection-ID event binding",
+    ]
+    for snippet in required_runtime_snippets:
+        if snippet not in runtime_text:
+            findings.append(
+                f"learning-scheduler runtime contract missing exact snippet: {snippet!r}"
+            )
+
+    if "'softbook_learning_sessions'" not in provision_text:
+        findings.append(
+            "learning-scheduler provisioning: missing softbook_learning_sessions"
+        )
+    if '"ts-fsrs": "5.4.1"' not in package_text:
+        findings.append(
+            "learning-scheduler dependency: ts-fsrs must be pinned exactly to 5.4.1"
+        )
+    if runtime_path not in agent_entry_text:
+        findings.append(
+            "learning-scheduler Agent entry: missing exact runtime contract path"
         )
 
     return findings
@@ -828,6 +1251,26 @@ def validate(context) -> None:
         if runtime_contract.is_file()
         else ""
     )
+    scheduler_runtime_contract = (
+        context.root / "infra/cloudbase/learning-session-v1-runtime-contract.md"
+    )
+    scheduler_runtime_text = (
+        scheduler_runtime_contract.read_text(encoding="utf-8")
+        if scheduler_runtime_contract.is_file()
+        else ""
+    )
+    provision_path = context.root / "infra/cloudbase/provision-softbook-nosql.mjs"
+    provision_text = (
+        provision_path.read_text(encoding="utf-8")
+        if provision_path.is_file()
+        else ""
+    )
+    package_path = (
+        context.root / "infra/cloudbase/functions/softbook-api/package.json"
+    )
+    package_text = (
+        package_path.read_text(encoding="utf-8") if package_path.is_file() else ""
+    )
     agent_entry_text = (context.root / "AGENTS.md").read_text(encoding="utf-8")
 
     context.errors.extend(
@@ -838,6 +1281,18 @@ def validate(context) -> None:
             evals,
             runtime_text,
             agent_entry_text,
+        )
+    )
+    context.errors.extend(
+        learning_scheduler_contract_findings(
+            auth,
+            runtime,
+            agent,
+            evals,
+            scheduler_runtime_text,
+            agent_entry_text,
+            provision_text,
+            package_text,
         )
     )
 

@@ -1,6 +1,6 @@
 {
-  "version": "vnext-7",
-  "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, canonical account reads, idempotent learning events, default sync strategy, and offline behavior.",
+  "version": "vnext-8",
+  "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, canonical account reads, idempotent learning events, server scheduling, default sync strategy, and offline behavior.",
   "source_anchors": {
     "login_gate": "必须登入",
     "primary_login_method": "手机号+验证码",
@@ -63,7 +63,7 @@
     "content_rule": "content version is the SHA-256 of the normalized ordered source; production requires a matching published content-release.v1 descriptor while development may return release_id null",
     "release_publication_rule": "the development importer rejects non-null release descriptors; a separate publication pipeline must verify formal content approval before writing content-release.v1",
     "client_rule": "an authenticated client may use validated cached state while offline, but must reconcile with this server read before pushing restored state; without previously validated canonical state and required content, mobile keeps a valid session retryable but blocks learning, local persistence of the reconciled snapshot, mutation replay, and product-state writes until bootstrap succeeds and the loaded card-source content version matches",
-    "known_gap": "the repository-local CloudBase learning-events.v2 backend and React Native durable producer/replay are implemented but not deployed; global legacy v1 snapshot-write removal, the server scheduler, and production publication remain unimplemented"
+    "known_gap": "the repository-local CloudBase learning-events.v2 backend, React Native durable producer/replay, and server scheduler are implemented but not deployed; global legacy v1 snapshot-write removal, mobile scheduler-session binding, and production publication remain unimplemented"
   },
   "learning_events_v2": {
     "classification": "implementation_hypothesis",
@@ -86,7 +86,9 @@
       "mobile_active_v1_learning_snapshot_writes_disabled": true,
       "legacy_v1_snapshot_writes_disabled": false,
       "migrated_account_v1_learning_writes": "learning_state_rejected_daily_progress_check_in_only_after_first_accepted_v2_event",
-      "server_scheduler": false,
+      "server_scheduler": true,
+      "server_scheduler_status": "repository_local_backend_implemented_not_deployed",
+      "mobile_scheduler_session_binding": false,
       "production_deployment": false
     },
     "endpoint": {
@@ -230,8 +232,8 @@
       "device_cursor_conflict": "the same device cursor bound to a different event_id rejects the entire request with HTTP 409",
       "mixed_batch_rule": "exact duplicates and unseen valid events may commit together and each receives an explicit result",
       "validation_atomicity": "any malformed, unauthorized, unknown-content, or conflicting event rejects the entire request before writes",
-      "transaction_atomicity": "new immutable events, account server sequences, and derived learning projections commit in one transaction; failure leaves no partial acceptance",
-      "cloudbase_atomic_batch_rule": "the repository-local CloudBase adapter accepts at most 9 events so worst-case immutable-event, retained-content, all-track migration, projection, and daily work uses at most 91 of the platform limit of 100 operations per transaction",
+      "transaction_atomicity": "new immutable events, account server sequences, derived learning and FSRS projections, all migrated-track learning-session projection watermarks, matching input-track cursor clearing, and daily progress commit in one transaction; failure leaves no partial acceptance",
+      "cloudbase_atomic_batch_rule": "the repository-local CloudBase adapter accepts at most 9 events so worst-case immutable-event, retained-content, all-track migration, learning and FSRS projection, all migrated-track session watermarks, cursor, and daily work uses at most 95 of the platform limit of 100 operations per transaction",
       "cloudbase_transaction_query_rule": "CloudBase transactions use deterministic document reads and writes only; bounded legacy learning queries run before the transaction and a transactionally written account revision fence forces a retry when a v1 write changes that snapshot"
     },
     "server_authority": {
@@ -286,11 +288,93 @@
         "owner_contract_and_negative_gates",
         "transactional_backend_event_ledger_and_projections",
         "mobile_durable_event_generation_and_replay",
-        "disable_legacy_snapshot_writes",
-        "server_scheduler_and_scheduler_cursor"
+        "server_scheduler_and_scheduler_cursor",
+        "disable_global_legacy_snapshot_writes"
       ],
-      "launch_claim_rule": "green repository-local backend and mobile client tests do not satisfy global legacy snapshot-write removal, server scheduling, formal content approval, production deployment, or launch readiness"
+      "launch_claim_rule": "green repository-local backend, scheduler, and mobile event tests do not satisfy global legacy snapshot-write removal, mobile scheduler-session binding, formal content approval, production deployment, or launch readiness"
     }
+  },
+  "server_scheduler_v1": {
+    "classification": "implementation_hypothesis",
+    "contract_status": "repository_local_cloudbase_backend_implemented_not_deployed",
+    "runtime_contract": "infra/cloudbase/learning-session-v1-runtime-contract.md",
+    "endpoint": {
+      "method": "GET",
+      "path": "/v2/learning/session",
+      "authentication": "active_v2_session",
+      "request_context": [
+        "track"
+      ],
+      "identity_rule": "derive the account only from the active v2 session; reject every query field except track and reject every request body",
+      "response_schema": "learning-session.v1"
+    },
+    "algorithm_contract": {
+      "algorithm": "FSRS-6",
+      "library": "ts-fsrs",
+      "library_version": "5.4.1",
+      "policy_version": "softbook-fsrs.v1",
+      "parameters": "version_locked_library_defaults_with_fuzz_disabled",
+      "server_time_rule": "apply newly accepted events to scheduler state at canonical server acceptance time; client_occurred_at remains bounded activity-day input and never overrides server_sequence ordering",
+      "rating_mapping": {
+        "review_needed": "Again",
+        "passed_with_used_hint_or_used_peek": "Hard",
+        "passed_without_assistance": "Good",
+        "Easy": "unused"
+      },
+      "visible_assessment_rule": "the server-only mapping never expands the visible two-state self-assessment into four choices"
+    },
+    "projection_contract": {
+      "storage": "account_and_track_scoped_scheduler_by_card_id_inside_the_learning_events_v2_projection",
+      "atomicity": "new immutable events, account server sequence, learning projection, FSRS scheduler projection, learning-session projection watermark update and matching cursor clearing, and daily progress commit in the same transaction",
+      "integrity": "every positive-sequence latest card projection has exactly one matching validated scheduler state and no orphan scheduler state is accepted",
+      "duplicate_rule": "exact event replay does not advance FSRS state, due time, cursor, sequence, or counters",
+      "legacy_rule": "sequence-zero migrated cards have no invented FSRS history and remain immediately review-eligible until their first accepted v2 event",
+      "cursor_rule": "a selected card persists in the independent account-and-track softbook_learning_sessions record as an opaque revisioned server cursor with an acknowledged-at plus latest-positive-server-sequence projection watermark; every newly accepted event for the track updates the timestamp component and advances the sequence component, first-event all-track migration synchronizes every migrated track while preserving valid sibling cursors, a completion for the same card and content version clears the cursor atomically, and a session read requires the complete matching watermark plus transactional revision confirmation before returning a resumed cursor"
+    },
+    "selection_contract": {
+      "single_card_rule": "return at most one selection and never return card body content",
+      "existing_cursor_rule": "resume an eligible persisted cursor before selecting another card only after its learning-projection watermark matches and its revision is transactionally confirmed",
+      "due_rule": "select an accessible non-sleeping due review before every new card; order by earliest due time, then canonical card-source index, then card_id",
+      "new_card_rule": "when no review is due, select the first accessible non-sleeping unseen card in normalized ordered card_records",
+      "future_rule": "when no due review or new card exists, return selection null plus the earliest future next_due_at when one exists only after transactionally confirming the matching learning-projection watermark and session revision",
+      "sleep_rule": "canonical physical-space sleeping state removes a card from resume, due, new, and next-due selection without deleting its learning or FSRS state",
+      "membership_rule": "the first authenticated learning-session entry starts an available trial exactly once only after canonical context validation, selection generation, and required cursor persistence succeed; trial and premium may schedule the full library, while free schedules a stable release-scoped prefix of ceil(card_count * 0.5) in canonical card-source order",
+      "content_rule": "selection binds to the exact normalized content_version and source; production still requires a matching published content-release.v1 descriptor"
+    },
+    "response_contract": {
+      "required_fields": [
+        "schema_version",
+        "generated_at",
+        "track",
+        "content_version",
+        "source_id",
+        "membership_stage",
+        "algorithm",
+        "access",
+        "selection",
+        "next_due_at"
+      ],
+      "selection_fields": [
+        "selection_id",
+        "card_id",
+        "phase",
+        "reason",
+        "due_at"
+      ],
+      "selection_reason_values": [
+        "persisted_cursor",
+        "due_review",
+        "catalog_new"
+      ]
+    },
+    "known_gaps": [
+      "mobile_learning_session_consumption_and_selection_binding",
+      "production_deployment",
+      "global_legacy_v1_snapshot_write_removal",
+      "production_membership_expiry_and_payment_entitlement",
+      "formal_content_publication"
+    ],
+    "launch_claim_rule": "a green repository-local scheduler does not prove mobile integration, production entitlement, deployment, formal content approval, or launch readiness"
   },
   "offline_policy": {
     "classification": "implementation_hypothesis",

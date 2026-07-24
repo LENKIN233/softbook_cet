@@ -24,8 +24,10 @@ Referenced active specs:
 - The current CloudBase adapter reads several collections for one response. It
   reports one `generated_at` value and per-component freshness, but does not
   claim a serializable cross-collection transaction.
-- A scheduler cursor is nullable until a server scheduler has persisted one.
-  The service does not infer an exact cursor from device-local state.
+- A scheduler cursor is nullable until `/v2/learning/session` persists one in
+  the account-and-track `softbook_learning_sessions` record. Bootstrap overlays
+  only its sanitized card/source/track identity and never infers an exact
+  cursor from device-local state.
 - Legacy `/v1` daily and learning snapshots can be read during migration, but
   the account-keyed `learning-events.v2` projections take priority after the
   first accepted v2 event. Legacy snapshots are not the final server scheduler.
@@ -40,9 +42,11 @@ Referenced active specs:
   overlays canonical space favorites onto learning card states and derives the
   progress `favorite_count` and `sleeping_count` from the same space snapshot
   rather than trusting legacy progress counters.
-- Stored account learning sequences, v2 learning events, and server-derived
-  daily totals are revalidated before bootstrap returns them. Corrupt sequence
-  authority, missing accepted-event fields, or inconsistent totals fail closed.
+- Stored account learning sequences, v2 learning events, server-derived daily
+  totals, FSRS projections, and learning-session cursors are revalidated before
+  bootstrap returns them. Corrupt sequence authority, missing accepted-event
+  fields, stale scheduler state, an invalid cursor scope or projection
+  watermark, or inconsistent totals fail closed.
 - CloudBase legacy physical-space discovery is paged outside the transaction;
   the deterministic account document is re-read and merged with that snapshot
   using doc-only transaction operations.
@@ -125,7 +129,8 @@ Rules:
 Missing account-state documents for a valid account/day/track return explicit
 empty state. They do not cause the server to copy a device snapshot or silently
 use another day or track. `card_states` and `space.states` use deterministic
-card-ID ordering.
+card-ID ordering. A non-null learning cursor contains only `card_id`,
+`source_id`, and `track`; the opaque selection ID remains server-internal.
 
 ## Content release boundary
 
@@ -153,7 +158,7 @@ This contract does not prove:
 
 - TypeScript or CloudBase Run production deployment;
 - real SMS provider readiness;
-- mobile durable `learning-events.v2` production and replay;
-- FSRS scheduling or a persisted server cursor;
+- shipment of mobile durable `learning-events.v2` replay;
+- mobile consumption of `/v2/learning/session` or selection-ID binding;
 - signed content manifests, complete approved content, or audio QC;
 - payment entitlement, deletion completion, or launch readiness.
