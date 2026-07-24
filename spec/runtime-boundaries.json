@@ -1,5 +1,5 @@
 {
-  "version": "vnext-17",
+  "version": "vnext-18",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -68,9 +68,9 @@
     "bootstrap content version is derived from normalized ordered content; production fails closed without a matching published content-release.v1 descriptor while development may expose a null release id",
     "mobile remote login and restored sessions validate bootstrap scope before hydrating its canonical baseline, then validate the loaded card-source identity and content version before enabling learning, persisting reconciled state, replaying mutations, or pushing product-state writes",
     "mobile keeps a still-valid authenticated session retryable after transient bootstrap failure but fails closed without previously validated canonical state and required content; reconnect reads canonical state before replay and again after replay",
-    "bootstrap plus the repository-local learning-events.v2 backend, explicit v2 daily check-in, React Native durable producer/replay, server scheduler, and mobile selection binding do not complete signed content manifests, production deployment, or CommonJS CloudBase production readiness",
-    "the repository-local CloudBase learning-events.v2 and daily-check-in.v2 endpoints, React Native event/check-in clients, server scheduler, and mobile session consumer implement active-session identity, immutable selection-bound account-scoped events, explicit counter-free check-in, durable queues before UI authority advances, exact replay, strict acknowledgement removal, retained content validation, transactional FSRS projection, canonical bootstrap reconciliation, server card selection, and global v1 daily/learning snapshot-write removal; deployment remains pending",
-    "development-only v1 card-source, membership, and physical-space routes can accept an active v2 session during migration, the v1 daily and learning snapshot-write routes are always disabled, and production continues to reject every v1 route",
+    "bootstrap plus the repository-local learning-events.v2 backend, explicit v2 daily check-in, physical-space actions, React Native durable producer/replay, server scheduler, and mobile selection binding do not complete signed content manifests, production deployment, or CommonJS CloudBase production readiness",
+    "the repository-local CloudBase learning-events.v2, daily-check-in.v2, and space-actions.v2 endpoints, React Native event/check-in/space-action clients, server scheduler, and mobile session consumer implement active-session identity, immutable account-scoped commands, durable queues before UI authority advances, exact replay, strict acknowledgement removal, retained content validation, transactional projections, canonical bootstrap reconciliation, server card selection, and global removal of v1 daily/learning/space snapshot APIs; deployment remains pending",
+    "development-only v1 card-source and membership routes can accept an active v2 session during migration, the v1 daily and learning snapshot-write routes plus both v1 physical-space snapshot routes are always disabled, and production continues to reject every v1 route",
     "remote content failures fail closed and never substitute bundled development cards"
   ],
   "learning_event_runtime": {
@@ -133,6 +133,31 @@
     "legacy_snapshot_routes": "post_v1_progress_daily_sync_and_post_v1_learning_state_sync_always_disabled",
     "deployment_status": "not_deployed_by_repository_change"
   },
+  "physical_space_action_runtime": {
+    "classification": "implementation_hypothesis",
+    "owner": "spec/account-sync-contract.json#physical_space_actions_v2",
+    "runtime_contract": "infra/cloudbase/space-actions-v2-runtime-contract.md",
+    "endpoint": "POST /v2/space/actions",
+    "request_schema": "space-actions.v2",
+    "response_schema": "space-actions-ack.v2",
+    "implementation_status": "cloudbase_backend_and_mobile_client_implemented_locally_not_deployed",
+    "account_identity": "active_v2_session_only",
+    "request_body": "strict_track_content_version_and_one_to_twenty_immutable_favorite_or_sleep_actions_without_phone_snapshot_day_or_counters",
+    "storage_collections": [
+      "softbook_space_states",
+      "softbook_space_actions"
+    ],
+    "merge_authority": "independent_favorite_and_sleep_clocks_ordered_by_client_occurred_at_then_action_id",
+    "content_authority": "current_normalized_track_source_and_content_version_with_published_release_required_in_production",
+    "transaction_boundary": "legacy_migration_ledger_conflict_detection_dimension_merge_action_insert_and_account_state_commit",
+    "mobile_queue": "credential_free_apply_space_action_persisted_before_optimistic_ui_change",
+    "mobile_recovery": "canonical_bootstrap_base_plus_same_account_and_track_durable_pending_actions_with_only_same_track_request_envelopes_rebound_to_current_content",
+    "legacy_queue_migration": "valid_sync_space_state_cards_become_deterministic_favorite_and_sleep_actions_original_snapshots_are_never_replayed",
+    "legacy_snapshot_routes": "get_and_post_v1_space_state_sync_always_disabled",
+    "scheduler_boundary": "sleep_actions_change_eligibility_only_after_canonical_acknowledgement_and_bootstrap_session_reconciliation",
+    "deployment_status": "not_deployed_by_repository_change",
+    "launch_gate_status": "pending"
+  },
   "scheduler_runtime": {
     "classification": "implementation_hypothesis",
     "owner": "spec/account-sync-contract.json#server_scheduler_v1",
@@ -190,7 +215,7 @@
       "space_state_timestamp": "preserve the timestamp of each explicit favorite or sleep action"
     },
     "membership_state": "reload_from_server_authority_after_auth_session_restore",
-    "mutation_queue": "persisted_under_an_independent_key_and_not_embedded_in_user_state; persisted mutation payloads and identifiers contain no credentials, context contains phone_number only, legacy credential-bearing membership identifiers are normalized during hydration, legacy sync_learning_state entries are discarded, only complete consistent checked-in sync_daily_progress entries migrate to counter-free check_in_daily_progress commands while all other legacy daily snapshots are discarded, serialized candidate persistence changes memory only after storage succeeds, replay results remove or retry only the exact unchanged head entry, and the current access token is injected in memory during replay",
+    "mutation_queue": "persisted_under_an_independent_key_and_not_embedded_in_user_state; persisted mutation payloads and identifiers contain no credentials, context contains phone_number only, legacy credential-bearing membership identifiers are normalized during hydration, legacy sync_learning_state entries are discarded, only complete consistent checked-in sync_daily_progress entries migrate to counter-free check_in_daily_progress commands, valid sync_space_state cards migrate to deterministic favorite and sleep actions, every original snapshot is discarded, serialized candidate persistence changes memory only after storage succeeds, replay results remove or retry only the exact unchanged head entry, and the current access token is injected in memory during replay",
     "learning_event_outbox": "learning-event-outbox.v2 is persisted under an independent AsyncStorage key; it stores immutable credential-free selection-bound events, account ownership for local isolation, a pseudonymous installation ID, and the next monotonic device sequence; the unbound v1 key is removed without replay, and acknowledgements remove only matching accepted-or-duplicate events",
     "logout": "attempt server session revocation first, then write the local auth revocation marker and clear secure auth, user state, the generic account-bound mutation queue, and the signed-out account's learning event outbox entries before presenting logged-out runtime state; preserve the installation ID and next event sequence, and complete local cleanup when the server is unavailable"
   },

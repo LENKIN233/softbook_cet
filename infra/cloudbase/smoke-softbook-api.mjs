@@ -126,7 +126,7 @@ if (enableWrites) {
     selectedCard,
     learningSelection,
   );
-  await syncSpaceState(selectedCard);
+  await applySpaceAction(cardSource, selectedCard);
   await assertBootstrapWrites(
     initialBootstrap,
     selectedCard,
@@ -481,25 +481,61 @@ async function checkInDailyProgress() {
 }
 
 async function assertLegacySnapshotWritesDisabled() {
-  for (const path of [
-    '/v1/progress/daily-sync',
-    '/v1/learning/state-sync',
-  ]) {
-    const response = await postJson(path, {}, authHeaders);
+  const requests = [
+    {
+      allowedCodes: [
+        'legacy_api_disabled',
+        'legacy_snapshot_write_disabled',
+      ],
+      method: 'POST',
+      path: '/v1/progress/daily-sync',
+    },
+    {
+      allowedCodes: [
+        'legacy_api_disabled',
+        'legacy_snapshot_write_disabled',
+      ],
+      method: 'POST',
+      path: '/v1/learning/state-sync',
+    },
+    {
+      allowedCodes: [
+        'legacy_api_disabled',
+        'legacy_space_snapshot_disabled',
+      ],
+      method: 'GET',
+      path: '/v1/space/state-sync',
+    },
+    {
+      allowedCodes: [
+        'legacy_api_disabled',
+        'legacy_space_snapshot_disabled',
+      ],
+      method: 'POST',
+      path: '/v1/space/state-sync',
+    },
+  ];
+
+  for (const request of requests) {
+    const response = await fetch(`${baseUrl}${request.path}`, {
+      ...(request.method === 'POST' ? {body: '{}'} : {}),
+      headers: authHeaders,
+      method: request.method,
+    });
     const payload = await response.json();
-    const error = assertObject(payload.error, `${path}.error`);
+    const error = assertObject(payload.error, `${request.path}.error`);
 
     if (
       response.status !== 410 ||
-      !['legacy_api_disabled', 'legacy_snapshot_write_disabled'].includes(
-        error.code,
-      )
+      !request.allowedCodes.includes(error.code)
     ) {
-      fail(`${path} must remain globally disabled with 410.`);
+      fail(
+        `${request.method} ${request.path} must remain globally disabled with 410.`,
+      );
     }
   }
 
-  ok('legacy snapshot writes', 410);
+  ok('legacy snapshot APIs', 410);
 }
 
 async function syncLearningEvents(cardSource, card, selection) {
@@ -612,26 +648,129 @@ function parseLearningEventAck(
   return {serverSequence: result.server_sequence};
 }
 
-async function syncSpaceState(card) {
-  const response = await postJson(
-    '/v1/space/state-sync',
-    {
-      day_key: todayKey(),
-      phone_number: phoneNumber,
-      states: [
-        {
-          card_id: card.card_id,
-          is_favorited: true,
-          is_sleeping: false,
-          last_modified_at: new Date().toISOString(),
-        },
-      ],
-    },
+async function applySpaceAction(cardSource, card) {
+  const actionId = `smoke_space_${Date.now().toString(
+    36,
+  )}_${process.pid.toString(36)}`;
+  const body = {
+    actions: [
+      {
+        action_id: actionId,
+        card_id: card.card_id,
+        client_occurred_at: new Date().toISOString(),
+        dimension: 'favorite',
+        value: true,
+      },
+    ],
+    content_version: cardSource.content_version,
+    schema_version: 'space-actions.v2',
+    track: cardSource.track,
+  };
+  const acceptedResponse = await postJson(
+    '/v2/space/actions',
+    body,
     remoteHeaders,
   );
 
-  assertOk(response, 'space state sync');
-  ok('space state sync', response.status);
+  assertOk(acceptedResponse, 'space action accepted');
+  parseSpaceActionAck(
+    await acceptedResponse.json(),
+    'space action accepted',
+    actionId,
+    'applied',
+    cardSource,
+    card.card_id,
+  );
+  const duplicateResponse = await postJson(
+    '/v2/space/actions',
+    body,
+    remoteHeaders,
+  );
+
+  assertOk(duplicateResponse, 'space action duplicate');
+  parseSpaceActionAck(
+    await duplicateResponse.json(),
+    'space action duplicate',
+    actionId,
+    'duplicate',
+    cardSource,
+    card.card_id,
+  );
+  ok('space-actions v2', 'applied then duplicate');
+}
+
+function parseSpaceActionAck(
+  payload,
+  label,
+  expectedActionId,
+  expectedStatus,
+  cardSource,
+  cardId,
+) {
+  assertExactKeys(payload, ['data'], label);
+  const data = assertExactKeys(
+    payload.data,
+    [
+      'acknowledged_at',
+      'content_version',
+      'results',
+      'schema_version',
+      'space_state',
+      'track',
+    ],
+    `${label}.data`,
+  );
+
+  if (
+    data.schema_version !== 'space-actions-ack.v2' ||
+    data.track !== cardSource.track ||
+    data.content_version !== cardSource.content_version
+  ) {
+    fail(`${label}.data does not match the submitted content scope.`);
+  }
+
+  assertIsoTimestamp(data.acknowledged_at, `${label}.data.acknowledged_at`);
+
+  if (!Array.isArray(data.results) || data.results.length !== 1) {
+    fail(`${label}.data.results must contain exactly one result.`);
+  }
+
+  const result = assertExactKeys(
+    data.results[0],
+    ['action_id', 'status'],
+    `${label}.data.results[0]`,
+  );
+
+  if (
+    result.action_id !== expectedActionId ||
+    result.status !== expectedStatus
+  ) {
+    fail(`${label}.data.results[0] does not match the strict ACK contract.`);
+  }
+
+  const state = assertExactKeys(
+    data.space_state,
+    [
+      'acknowledged_at',
+      'content_version',
+      'schema_version',
+      'states',
+      'track',
+    ],
+    `${label}.data.space_state`,
+  );
+
+  if (
+    state.schema_version !== 'space-state.v2' ||
+    state.track !== cardSource.track ||
+    state.content_version !== cardSource.content_version ||
+    !Array.isArray(state.states) ||
+    !state.states.some(
+      item => item.card_id === cardId && item.is_favorited === true,
+    )
+  ) {
+    fail(`${label}.data.space_state is not the canonical favorite state.`);
+  }
 }
 
 async function startMembershipTrial() {

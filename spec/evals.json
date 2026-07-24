@@ -1,5 +1,5 @@
 {
-  "version": "vnext-23",
+  "version": "vnext-24",
   "regressions": [
     {
       "id": "HR-01",
@@ -1078,7 +1078,43 @@
         "post_ack_canonical_bootstrap_reconciliation",
         "v1_progress_daily_sync_always_returns_410",
         "v1_learning_state_sync_always_returns_410",
-        "development_v1_card_membership_and_space_bridge_is_unchanged",
+        "development_v1_card_and_membership_bridge_is_unchanged",
+        "repository_local_cutover_is_not_deployment_content_approval_or_launch_readiness"
+      ]
+    },
+    {
+      "id": "GT-34",
+      "task": "以 space-actions.v2 替换物理空间 v1 全量 snapshot 同步",
+      "must_include": [
+        "account_sync_contract_owner",
+        "post_v2_space_actions_with_active_session_identity",
+        "strict_space_actions_v2_and_space_actions_ack_v2_schemas",
+        "request_rejects_phone_day_counters_credentials_snapshots_and_unknown_fields",
+        "one_to_twenty_immutable_actions_with_exact_action_fields",
+        "exact_duplicate_returns_duplicate_and_action_id_payload_conflict_is_atomic_409",
+        "favorite_and_sleep_are_independent_dimensions",
+        "client_time_then_action_id_is_the_deterministic_dimension_order",
+        "current_track_content_version_and_card_ids_are_server_validated",
+        "production_requires_matching_published_content_release",
+        "softbook_space_actions_is_an_immutable_account_scoped_ledger",
+        "softbook_space_states_is_account_scoped_canonical_state",
+        "stored_business_schema_and_digest_integrity_fail_closed",
+        "cloudbase_adapter_strips_only_system_id",
+        "memory_and_cloudbase_commits_are_transactional",
+        "maximum_twenty_action_cloudbase_commit_uses_at_most_42_operations",
+        "legacy_phone_and_phone_day_documents_are_read_only_migration_inputs",
+        "legacy_dimension_clocks_use_last_modified_at_and_deterministic_action_ids",
+        "get_and_post_v1_space_state_sync_always_return_410",
+        "mobile_persists_credential_free_apply_space_action_before_optimistic_ui",
+        "legacy_sync_space_state_entries_migrate_to_deterministic_actions_without_replaying_snapshots",
+        "canonical_bootstrap_is_base_and_only_matching_durable_pending_actions_overlay",
+        "same_track_content_update_rebinds_only_the_request_envelope",
+        "cross_track_action_rebinding_is_forbidden",
+        "strict_ordered_applied_stale_or_duplicate_ack_before_queue_removal",
+        "post_ack_bootstrap_and_scheduler_reconciliation",
+        "transient_failure_keeps_exact_action_and_exposes_retryable_diagnosis",
+        "unqueued_local_space_state_never_overwrites_server_authority",
+        "local_mock_smoke_proves_applied_duplicate_bootstrap_and_legacy_410",
         "repository_local_cutover_is_not_deployment_content_approval_or_launch_readiness"
       ]
     }

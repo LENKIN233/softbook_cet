@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const {serializeSpaceState} = require('./space-actions-v2');
 
 const BOOTSTRAP_SCHEMA_VERSION = 'bootstrap.v2';
 const CONTENT_RELEASE_SCHEMA_VERSION = 'content-release.v1';
@@ -32,6 +33,7 @@ function createBootstrapV2Service(options) {
 }
 
 async function readBootstrap(config, input) {
+  const generatedAt = config.now().toISOString();
   const cardSource = await config.store.getCardSource(input.track, {
     allowDevelopmentDefault: config.runtimeMode !== 'production',
   });
@@ -56,9 +58,17 @@ async function readBootstrap(config, input) {
       input.track,
       {accountKey: input.accountKey},
     ),
-    config.store.getSpaceState(input.phoneNumber, input.dayKey),
+    config.store.getSpaceState(input.phoneNumber, input.dayKey, {
+      accountKey: input.accountKey,
+      acknowledgedAt: generatedAt,
+    }),
   ]);
-  const normalizedSpace = normalizeSpaceState(space, input.dayKey);
+  const normalizedSpace = serializeSpaceState(space, {
+    accountKey: input.accountKey,
+    cardIds: new Set(cardSource.card_records.map(card => card.card_id)),
+    contentVersion: cardSource.content_version,
+    track: input.track,
+  });
   const normalizedLearning = applySpaceFavorites(
     normalizeLearningState(learning, input.dayKey, input.track),
     normalizedSpace,
@@ -70,7 +80,7 @@ async function readBootstrap(config, input) {
 
   return {
     schema_version: BOOTSTRAP_SCHEMA_VERSION,
-    generated_at: config.now().toISOString(),
+    generated_at: generatedAt,
     day_key: input.dayKey,
     track: input.track,
     content: serializeContent(cardSource),
@@ -414,57 +424,6 @@ function normalizeMembership(value) {
         'membership.trial_duration_days',
       ),
       trial_started_at_entry_count: trialStartedAtEntryCount,
-    };
-  });
-}
-
-function normalizeSpaceState(snapshot, expectedDayKey) {
-  return readCanonicalState('space state', () => {
-    const state = requireObject(snapshot, 'space state');
-    const dayKey = requireDayKey(state.day_key, 'space state.day_key');
-    const statesByCardId = requireObject(
-      state.states_by_card_id,
-      'space state.states_by_card_id',
-    );
-
-    if (dayKey !== expectedDayKey) {
-      throw new Error('space state day_key does not match the request.');
-    }
-
-    const states = Object.entries(statesByCardId).map(
-      ([storedCardId, value], index) => {
-        const label = `space state.states[${index}]`;
-        const item = requireObject(value, label);
-        const parsed = {
-          card_id: requireCardId(item.card_id, `${label}.card_id`),
-          is_favorited: requireBoolean(
-            item.is_favorited,
-            `${label}.is_favorited`,
-          ),
-          is_sleeping: requireBoolean(item.is_sleeping, `${label}.is_sleeping`),
-          last_modified_at: requireIsoTimestamp(
-            item.last_modified_at,
-            `${label}.last_modified_at`,
-          ),
-        };
-
-        if (parsed.card_id !== storedCardId) {
-          throw new Error('space state card key does not match card_id.');
-        }
-
-        return parsed;
-      },
-    );
-
-    return {
-      acknowledged_at: optionalIsoTimestamp(
-        state.acknowledged_at,
-        'space state.acknowledged_at',
-      ),
-      day_key: dayKey,
-      states: states.sort((left, right) =>
-        left.card_id.localeCompare(right.card_id),
-      ),
     };
   });
 }

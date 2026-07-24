@@ -83,10 +83,17 @@ export function createSoftbookRemoteRuntimeConfig(
   const learningTrack = profile.learningTrack ?? 'cet4';
   const accountBootstrapMode = resolveFeatureMode(profile, 'accountBootstrap');
   const learningSourceMode = resolveFeatureMode(profile, 'learningSource');
+  const spaceStateMode = resolveFeatureMode(profile, 'spaceState');
 
   if (accountBootstrapMode === 'remote' && learningSourceMode === 'local') {
     throw new Error(
       'Remote account bootstrap requires learningSource to also be remote.',
+    );
+  }
+
+  if (spaceStateMode === 'remote' && accountBootstrapMode === 'local') {
+    throw new Error(
+      'Remote space state requires accountBootstrap to also be remote.',
     );
   }
 
@@ -135,7 +142,7 @@ export function createSoftbookRemoteRuntimeConfig(
             mode: 'local',
           },
     spaceState:
-      resolveFeatureMode(profile, 'spaceState') === 'remote'
+      spaceStateMode === 'remote'
         ? {
             mode: 'remote',
             remote,

@@ -13,17 +13,39 @@ describe('spaceStateRuntimeConfig', () => {
       resolveSpaceStateRepositoryConfig({
         spaceState: {
           mode: 'remote',
-          remote: {baseUrl: 'https://api.example.com'},
+          remote: { baseUrl: 'https://api.example.com' },
         },
       });
     }).toThrow(/requires auth.mode to also be remote/);
   });
 
+  it('requires remote canonical bootstrap when spaceState mode is remote', () => {
+    expect(() => {
+      resolveSpaceStateRepositoryConfig({
+        accountBootstrap: {
+          mode: 'local',
+        },
+        auth: {
+          mode: 'remote',
+          remote: { baseUrl: 'https://api.example.com' },
+        },
+        spaceState: {
+          mode: 'remote',
+          remote: { baseUrl: 'https://api.example.com' },
+        },
+      });
+    }).toThrow(/requires accountBootstrap.mode to also be remote/);
+  });
+
   it('builds remote config with baseUrl and apiKey', () => {
     const config = resolveSpaceStateRepositoryConfig({
+      accountBootstrap: {
+        mode: 'remote',
+        remote: { baseUrl: 'https://api.example.com' },
+      },
       auth: {
         mode: 'remote',
-        remote: {baseUrl: 'https://api.example.com'},
+        remote: { baseUrl: 'https://api.example.com' },
       },
       spaceState: {
         mode: 'remote',
@@ -36,7 +58,7 @@ describe('spaceStateRuntimeConfig', () => {
 
     expect(config.mode).toBe('remote');
     expect(config.remoteConfig?.endpoint).toBe(
-      'https://api.example.com/v1/space/state-sync',
+      'https://api.example.com/v2/space/actions',
     );
     expect(config.remoteConfig?.headers?.['x-api-key']).toBe('test-key');
   });

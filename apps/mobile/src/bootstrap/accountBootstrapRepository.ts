@@ -3,7 +3,7 @@ import type { MembershipState } from '../membership/localMembership';
 import { parseSoftbookRemoteMembershipPayload } from '../membership/membershipRepository';
 import { RemoteHttpError } from '../runtime/remoteHttpError';
 import type { SpaceStateSnapshot } from '../space/spaceStateRepository';
-import { parseRemoteSpaceStateSnapshot } from '../space/spaceStateRepository';
+import { parseRemoteSpaceStateProjection } from '../space/spaceStateRepository';
 import type { DailyProgressSnapshot } from '../sync/progressSyncRepository';
 
 export type AccountBootstrapRepositoryMode = 'local' | 'remote';
@@ -182,7 +182,12 @@ export function parseAccountBootstrapPayload(
   const learning = parseLearning(data.learning, expectedTrack);
   const membership = parseMembership(data.membership);
   const progress = parseProgress(data.progress, expectedDayKey);
-  const space = parseSpace(data.space, expectedDayKey);
+  const space = parseSpace(
+    data.space,
+    expectedDayKey,
+    expectedTrack,
+    content.version,
+  );
 
   if (
     (learning.source !== null && learning.source.id !== content.source.id) ||
@@ -445,17 +450,40 @@ function parseProgress(value: unknown, expectedDayKey: string) {
   };
 }
 
-function parseSpace(value: unknown, expectedDayKey: string) {
+function parseSpace(
+  value: unknown,
+  expectedDayKey: string,
+  expectedTrack: LearningTrack,
+  expectedContentVersion: string,
+) {
   const space = requireObject(value, 'bootstrap space');
-  const snapshot = parseRemoteSpaceStateSnapshot(
-    {
-      data: {
-        space_state: {
-          day_key: space.day_key,
-          states: space.states,
-        },
-      },
-    },
+  const expectedKeys = [
+    'acknowledged_at',
+    'content_version',
+    'schema_version',
+    'states',
+    'track',
+  ];
+  const actualKeys = Object.keys(space).sort();
+
+  if (
+    actualKeys.length !== expectedKeys.length ||
+    actualKeys.some((key, index) => key !== expectedKeys[index])
+  ) {
+    throw new Error('Bootstrap space has unexpected fields.');
+  }
+
+  if (
+    space.schema_version !== 'space-state.v2' ||
+    readTrack(space.track, 'bootstrap space.track') !== expectedTrack ||
+    readString(space.content_version, 'bootstrap space.content_version') !==
+      expectedContentVersion
+  ) {
+    throw new Error('Bootstrap space scope must match content.');
+  }
+
+  const snapshot = parseRemoteSpaceStateProjection(
+    space.states,
     expectedDayKey,
   );
 

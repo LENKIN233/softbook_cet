@@ -1,32 +1,32 @@
 import type { LearningCardResult, LearningSession } from '../learning/model';
 import type { PersistedUserState } from '../persistence/userStateStore';
 import {
-  mergeSpaceStateMaps,
+  applySpaceActionToMap,
   spaceStateSnapshotToMap,
 } from '../space/spaceStateRepository';
+import type { SpaceAction } from '../space/spaceStateRepository';
 import type { AccountBootstrapSnapshot } from './accountBootstrapRepository';
 
 export type AccountBootstrapHydration = {
   learningResults: LearningCardResult[];
   persistedUserState: PersistedUserState;
   reviewResults: LearningCardResult[];
-  spaceStateSyncKey: string;
 };
 
 export function reconcileAccountBootstrap(
   persistedUserState: PersistedUserState,
   bootstrap: AccountBootstrapSnapshot,
-  options: {pendingCheckInDayKey?: string | null} = {},
-): Pick<
-  AccountBootstrapHydration,
-  'persistedUserState' | 'spaceStateSyncKey'
-> {
+  options: {
+    pendingCheckInDayKey?: string | null;
+    pendingSpaceActions?: SpaceAction[];
+  } = {},
+): Pick<AccountBootstrapHydration, 'persistedUserState'> {
   const remoteSpaceStateById = spaceStateSnapshotToMap(
     bootstrap.space.snapshot,
   );
-  const mergedSpaceStateById = mergeSpaceStateMaps(
-    persistedUserState.spaceCardStateById,
-    bootstrap.space.snapshot,
+  const reconciledSpaceStateById = (options.pendingSpaceActions ?? []).reduce(
+    applySpaceActionToMap,
+    remoteSpaceStateById,
   );
 
   return {
@@ -39,14 +39,8 @@ export function reconcileAccountBootstrap(
         ? null
         : persistedUserState.checkedInDayKey,
       learningCursor: bootstrap.learning.cursor,
-      spaceCardStateById: mergedSpaceStateById,
+      spaceCardStateById: reconciledSpaceStateById,
     },
-    spaceStateSyncKey: JSON.stringify({
-      dayKey: bootstrap.dayKey,
-      states: Object.entries(remoteSpaceStateById)
-        .map(([cardId, state]) => ({ cardId, ...state }))
-        .sort((left, right) => left.cardId.localeCompare(right.cardId)),
-    }),
   };
 }
 
