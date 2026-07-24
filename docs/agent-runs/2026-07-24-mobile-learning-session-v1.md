@@ -67,8 +67,10 @@
 - `npm test -- --runInBand --watchAll=false --no-watchman` in `apps/mobile` -> 38 suites and 333 tests passed.
 - `npm test` in `infra/cloudbase/functions/softbook-api` -> 95 tests passed.
 - `PYTHONPATH=scripts python3 -m unittest scripts.test_learning_events_contract scripts.test_learning_scheduler_contract` -> 23 tests passed.
+- `python3 scripts/validate_harness.py` -> complete full validation passed, including the remote delivery guard.
 - `python3 scripts/validate_harness.py --mode local --profile` -> all 15 selected local sections passed; local-mode completeness correctly remained partial because the remote guard was not executed.
 - `./scripts/run_local_gates --profile dev --output exports/local-gates/mobile-learning-session-v1-review-final-dev.json` -> complete `passed_with_exception`; 17 checks passed and the only exception was the allowed dev-only Node 25.9.0 versus 22.13.0 drift. The tracked worktree digest was unchanged.
+- Exact Python 3.12.13, Node 22.13.0, and Ruby 3.3.12 `./scripts/run_local_gates --profile pr --base origin/main --pr 440 --output exports/local-gates/mobile-learning-session-v1-pr-reviewed-final.json` -> complete 30/30 passed after restoring the topic branch's explicit upstream mapping; the tracked worktree digest was unchanged.
 - `git diff --check` -> passed.
 
 ## Validation results
@@ -114,6 +116,6 @@
 
 ## Follow-up
 
-- Commit and push the final review fixes and this review record.
-- Update PR `#440`, run strict pinned-toolchain PR gates, and approve only its protected formal-approval environment.
-- Merge only after required GitHub checks pass, then fast-forward any clean local `main` worktree and verify post-merge state.
+- Commit and push this final gate record, then mark PR `#440` ready.
+- Approve only the reviewed HEAD in its protected formal-approval environment.
+- Merge only after every required GitHub check passes, then fast-forward any clean local `main` worktree and verify post-merge state.
