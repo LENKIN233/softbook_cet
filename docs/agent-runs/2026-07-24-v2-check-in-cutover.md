@@ -4,7 +4,7 @@
 
 - Date: 2026-07-24
 - Branch: `cross/v2-check-in-cutover`
-- PR: pending at record creation
+- PR: `#441` (`https://github.com/LENKIN233/softbook_cet/pull/441`)
 - Product-owner decision: the user explicitly approved this repository-local
   cutover slice. This is not formal card-content approval, deployment approval,
   or launch approval.
@@ -125,6 +125,11 @@
   `passed_with_exception`; 17 checks passed and the only exception was the
   allowed dev-only Node 25.9.0 versus 22.13.0 drift. Report:
   `exports/local-gates/20260724T124340Z-9f235025-dev-72787/report.json`.
+- Exact Python 3.12.13, Node 22.13.0, and Ruby 3.3.12
+  `./scripts/run_local_gates --profile pr --base origin/main --pr 441` ->
+  complete 30/30 passed after recording the full Harness review evidence and
+  restoring the topic branch's explicit remote-tracking mapping. Report:
+  `exports/local-gates/v2-check-in-pr-passed.json`.
 - `git diff --check` -> passed after final review.
 
 ## Validation results
@@ -213,6 +218,6 @@
 
 ## Follow-up
 
-- Commit and push the reviewed branch, create a PR to `main`, run the strict PR
-  profile with the real PR context, and merge only after Agent review is
-  recorded and all required GitHub checks pass.
+- PR `#441` now carries the passed Agent review and real-context strict local
+  gate evidence. Merge only after the final reviewed HEAD reproduces the
+  strict profile and every required GitHub check passes.
