@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import App from '../App';
+import { getChinaDayKey } from '../src/shared/chinaDay';
 import { createLocalLearningSession } from '../src/learning/session';
 import { createAuthSessionStore } from '../src/persistence/authSessionStore';
 import {
@@ -146,7 +147,7 @@ function createCanonicalBootstrapPayload() {
   };
   const firstCard = session.catalogCards[0];
   const cursorCard = session.cards[1];
-  const dayKey = new Date().toISOString().slice(0, 10);
+  const dayKey = getChinaDayKey();
 
   return {
     cursorCard,
@@ -305,7 +306,7 @@ test('restores check-in, learning cursor, favorite, and sleep state', async () =
     phoneNumber: '13800138000',
   });
   await createUserStateStore().save('13800138000', {
-    checkedInDayKey: new Date().toISOString().slice(0, 10),
+    checkedInDayKey: getChinaDayKey(),
     learningCursor: {
       cardId: cursorCard.card_id,
       sourceId: session.sourceId,
@@ -404,7 +405,7 @@ test('restores remote account state from canonical bootstrap before local use', 
   try {
     await createAuthSessionStore().save(createRemoteSession());
     await createUserStateStore().save('13800138000', {
-      checkedInDayKey: new Date().toISOString().slice(0, 10),
+      checkedInDayKey: getChinaDayKey(),
       learningCursor: null,
       spaceCardStateById: {},
     });
@@ -919,7 +920,7 @@ test('replays a restored selection-bound v2 event before allowing the stale card
 test('does not persist canonical state before content version validation', async () => {
   const originalFetch = globalThis.fetch;
   const canonical = createCanonicalBootstrapPayload();
-  const dayKey = new Date().toISOString().slice(0, 10);
+  const dayKey = getChinaDayKey();
   const fetchMock = jest.fn(async (input: string) => {
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
       return {

@@ -45,13 +45,26 @@ export type MutationQueueEntry = {
   };
 }[MutationType];
 
+export type MutationQueueTerminalRejection = {
+  code: 'space_action_id_conflict' | 'space_card_not_in_content';
+  status: 409;
+};
+
+export type QuarantinedMutation = {
+  entry: MutationQueueEntry;
+  quarantinedAt: string;
+  rejection: MutationQueueTerminalRejection;
+};
+
 export type MutationQueueStorage = {
   getItem: (key: string) => Promise<string | null>;
   setItem: (key: string, value: string) => Promise<void>;
 };
 
 const MUTATION_QUEUE_KEY = '__softbook_mutation_queue';
+const MUTATION_QUARANTINE_SUFFIX = ':quarantine';
 export const MAX_MUTATION_RETRIES = 5;
+export const MAX_QUARANTINED_MUTATIONS = 50;
 
 export function createInMemoryMutationQueueStorage(
   seed: Record<string, string> = {},
@@ -76,8 +89,10 @@ export function createReactNativeMutationQueueStorage(): MutationQueueStorage {
 export class MutationQueueManager {
   private readonly key: string;
   private readonly now: () => string;
+  private readonly quarantineKey: string;
   private readonly storage: MutationQueueStorage;
   private entries: MutationQueueEntry[] = [];
+  private quarantined: QuarantinedMutation[] = [];
   private readonly hydrationPromise: Promise<void>;
   private operationTail: Promise<void> = Promise.resolve();
 
@@ -89,6 +104,7 @@ export class MutationQueueManager {
     } = {},
   ) {
     this.key = options.key ?? MUTATION_QUEUE_KEY;
+    this.quarantineKey = `${this.key}${MUTATION_QUARANTINE_SUFFIX}`;
     this.now = options.now ?? (() => new Date().toISOString());
     this.storage = options.storage ?? createReactNativeMutationQueueStorage();
     this.hydrationPromise = this.load();
@@ -106,6 +122,25 @@ export class MutationQueueManager {
     } catch (error) {
       console.warn('[MutationQueue] Failed to load persisted entries.', error);
       this.entries = [];
+    }
+
+    try {
+      const stored = await this.storage.getItem(this.quarantineKey);
+      const parsed: unknown = stored ? JSON.parse(stored) : [];
+      this.quarantined = sanitizeQuarantinedMutations(parsed);
+
+      if (stored && stored !== JSON.stringify(this.quarantined)) {
+        await this.storage.setItem(
+          this.quarantineKey,
+          JSON.stringify(this.quarantined),
+        );
+      }
+    } catch (error) {
+      console.warn(
+        '[MutationQueue] Failed to load quarantined entries.',
+        error,
+      );
+      this.quarantined = [];
     }
   }
 
@@ -234,8 +269,47 @@ export class MutationQueueManager {
     });
   }
 
+  quarantineIfUnchanged(
+    expected: MutationQueueEntry,
+    rejection: MutationQueueTerminalRejection,
+  ): Promise<boolean> {
+    return this.runExclusive(async () => {
+      const entry = this.entries[0];
+
+      if (!entry || !areMutationEntriesEqual(entry, expected)) {
+        return false;
+      }
+
+      const quarantinedAt = this.now();
+      const candidateQuarantine: QuarantinedMutation[] = [
+        ...this.quarantined.filter(
+          value =>
+            value.entry.id !== entry.id ||
+            value.rejection.code !== rejection.code,
+        ),
+        {
+          entry: cloneMutationEntry(entry),
+          quarantinedAt,
+          rejection,
+        },
+      ].slice(-MAX_QUARANTINED_MUTATIONS);
+
+      await this.storage.setItem(
+        this.quarantineKey,
+        JSON.stringify(candidateQuarantine),
+      );
+      this.quarantined = candidateQuarantine;
+      await this.persistCandidate(this.entries.slice(1));
+      return true;
+    });
+  }
+
   clear(): Promise<void> {
-    return this.runExclusive(() => this.persistCandidate([]));
+    return this.runExclusive(async () => {
+      await this.storage.setItem(this.quarantineKey, '[]');
+      this.quarantined = [];
+      await this.persistCandidate([]);
+    });
   }
 
   size(): Promise<number> {
@@ -244,6 +318,12 @@ export class MutationQueueManager {
 
   getAll(): Promise<MutationQueueEntry[]> {
     return this.runExclusive(async () => this.entries.map(cloneMutationEntry));
+  }
+
+  getQuarantined(): Promise<QuarantinedMutation[]> {
+    return this.runExclusive(async () =>
+      this.quarantined.map(cloneQuarantinedMutation),
+    );
   }
 
   private runExclusive<Result>(
@@ -419,6 +499,59 @@ function sanitizeMutationPayload<Type extends MutationType>(
 
 function cloneMutationEntry(entry: MutationQueueEntry): MutationQueueEntry {
   return JSON.parse(JSON.stringify(entry)) as MutationQueueEntry;
+}
+
+function cloneQuarantinedMutation(
+  value: QuarantinedMutation,
+): QuarantinedMutation {
+  return JSON.parse(JSON.stringify(value)) as QuarantinedMutation;
+}
+
+function sanitizeQuarantinedMutations(
+  value: unknown,
+): QuarantinedMutation[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .flatMap(item => {
+      const rejectionCode =
+        isObject(item) && isObject(item.rejection)
+          ? item.rejection.code
+          : null;
+
+      if (
+        !isObject(item) ||
+        typeof item.quarantinedAt !== 'string' ||
+        !isValidRfc3339Timestamp(item.quarantinedAt) ||
+        !isObject(item.rejection) ||
+        item.rejection.status !== 409 ||
+        (rejectionCode !== 'space_action_id_conflict' &&
+          rejectionCode !== 'space_card_not_in_content')
+      ) {
+        return [];
+      }
+
+      const entries = sanitizeMutationEntries([item.entry]);
+      const entry = entries[0];
+
+      if (entries.length !== 1 || entry.type !== 'apply_space_action') {
+        return [];
+      }
+
+      const quarantined: QuarantinedMutation = {
+        entry,
+        quarantinedAt: item.quarantinedAt,
+        rejection: {
+          code: rejectionCode,
+          status: 409,
+        },
+      };
+
+      return [quarantined];
+    })
+    .slice(-MAX_QUARANTINED_MUTATIONS);
 }
 
 function cloneCredentialFreeObject(

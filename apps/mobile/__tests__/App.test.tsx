@@ -10,6 +10,7 @@ import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeCo
 import { LearningCard, LearningSession } from '../src/learning/model';
 import { createLocalLearningSession } from '../src/learning/session';
 import { createSoftbookRemoteRuntimeConfig } from '../src/runtime/appRuntimeConfig';
+import { getChinaDayKey } from '../src/shared/chinaDay';
 import App from '../App';
 
 const mockCreateLearningSessionRepository = jest.fn();
@@ -630,7 +631,7 @@ function createAccountBootstrapPayload(
   learningEvents: MockLearningEvent[] = [],
   checkedInToday = false,
 ) {
-  const dayKey = new Date().toISOString().slice(0, 10);
+  const dayKey = getChinaDayKey();
   const learningCompletedCount = learningEvents.filter(
     event => event.phase === 'learning',
   ).length;
@@ -1508,7 +1509,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
     'x-api-key': 'profile-key',
   });
   expect(JSON.parse(String(progressSyncRequest?.init?.body))).toEqual({
-    day_key: new Date().toISOString().slice(0, 10),
+    day_key: getChinaDayKey(),
   });
   expect(progressSyncRequest?.init?.body).not.toMatch(
     /phone|favorite|learning_completed|review|sleeping|total/,
@@ -2398,7 +2399,7 @@ test('queues a failed explicit remote check-in without uploading progress counte
   expect(output).toContain('等待服务端确认');
   expect(checkInRequests).toHaveLength(1);
   expect(JSON.parse(String(checkInRequests[0].body))).toEqual({
-    day_key: new Date().toISOString().slice(0, 10),
+    day_key: getChinaDayKey(),
   });
   const queuedMutations = await AsyncStorage.getItem(
     '__softbook_mutation_queue',
@@ -3361,6 +3362,86 @@ test('replays a queued space action after network reconnect', async () => {
       call => call.input === 'https://api.softbook.example/v2/space/actions',
     ).length,
   ).toBeGreaterThanOrEqual(2);
+});
+
+test('quarantines a removed-card space action and restores canonical state', async () => {
+  let bootstrapRequestCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+  });
+
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      return createJsonResponse(createRemoteMembershipPayload('free'));
+    }
+
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      return createJsonResponse(createAccountBootstrapPayload());
+    }
+
+    if (input === 'https://api.softbook.example/v2/space/actions') {
+      return createJsonResponse(
+        {
+          error: {
+            code: 'space_card_not_in_content',
+            message: 'The card is no longer in the current source.',
+          },
+        },
+        409,
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'learning-favorite-button' }).props.onPress();
+    await flushAsyncEffects();
+    await flushAsyncEffects();
+  });
+
+  expect(
+    root
+      .findByProps({ testID: 'learning-favorite-button' })
+      .findByType(Text).props.children,
+  ).toBe('收藏');
+
+  await openRoute(root, 'space');
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('空间状态已同步');
+  expect(output).toContain('已恢复');
+  expect(output).toContain(
+    '一项空间操作未能应用，当前空间已恢复为服务端状态。',
+  );
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
+  expect(
+    await AsyncStorage.getItem('__softbook_mutation_queue:quarantine'),
+  ).toContain('space_card_not_in_content');
+  expect(
+    await AsyncStorage.getItem('__softbook_mutation_queue:quarantine'),
+  ).not.toContain('remote-access-token');
+  expectNoUserVisibleMetadataLeakage(tree!);
 });
 
 test('replays queued membership refresh after network reconnect', async () => {

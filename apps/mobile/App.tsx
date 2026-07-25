@@ -107,6 +107,7 @@ import {
   type SpaceSurfaceScreen,
 } from './src/space/SpaceSurface';
 import { StatisticsSurface } from './src/statistics/StatisticsSurface';
+import { getChinaDayKey } from './src/shared/chinaDay';
 import { formatLearningSessionDisplayLabel } from './src/shared/uiMetadata/displayMetadata';
 import { createMutationQueueRepository } from './src/sync/mutationQueueRepository';
 import { createLearningEventSyncRepository } from './src/sync/learningEventSyncRepository';
@@ -816,7 +817,7 @@ function AppShell({
     card =>
       !reviewCompletedResults.some(result => result.cardId === card.card_id),
   ).length;
-  const todayKey = getTodayKey();
+  const todayKey = getChinaDayKey();
   const loadAuthenticatedRuntimeHydration = useCallback(
     async (session: AuthSession): Promise<AuthenticatedRuntimeHydration> => {
       const context = {
@@ -1509,6 +1510,7 @@ function AppShell({
 
       let replayedCheckInDayKey: string | null = null;
       let replayedSpaceAction = false;
+      let quarantinedSpaceAction = false;
 
       replayedResults.forEach(result => {
         if (result.entry.type === 'check_in_daily_progress') {
@@ -1524,6 +1526,17 @@ function AppShell({
         }
 
         if (result.entry.type === 'apply_space_action') {
+          if ('terminalRejection' in result) {
+            quarantinedSpaceAction = true;
+            setSpaceStateSyncState({
+              detail:
+                '有一项空间操作无法应用，正在恢复服务端当前状态。',
+              label: '恢复中',
+              state: 'syncing',
+            });
+            return;
+          }
+
           replayedSpaceAction = true;
           setSpaceStateSyncState({
             detail: '空间操作已提交，正在读取服务端确认状态。',
@@ -1554,19 +1567,23 @@ function AppShell({
       });
 
       const replayBootstrap = accountBootstrapSnapshotRef.current;
+      const remainingPendingSpaceActionCount =
+        replayBootstrap === null
+          ? 0
+          : (
+              await mutationQueueRepository.getPendingSpaceActions(
+                replayPhoneNumber,
+                {
+                  contentVersion: replayBootstrap.content.version,
+                  track: replayBootstrap.track,
+                },
+              )
+            ).length;
 
       if (
         !replayedSpaceAction &&
-        replayBootstrap !== null &&
-        (
-          await mutationQueueRepository.getPendingSpaceActions(
-            replayPhoneNumber,
-            {
-              contentVersion: replayBootstrap.content.version,
-              track: replayBootstrap.track,
-            },
-          )
-        ).length > 0
+        !quarantinedSpaceAction &&
+        remainingPendingSpaceActionCount > 0
       ) {
         setSpaceStateSyncState({
           detail:
@@ -1586,20 +1603,36 @@ function AppShell({
         setAccountBootstrapHydrationSettled(false);
         const bootstrapRefreshed = await retryCanonicalAccountBootstrap();
 
-        if (replayedSpaceAction) {
-          setSpaceStateSyncState(
-            bootstrapRefreshed
-              ? {
-                  detail: '空间收藏和休眠状态已由服务端确认。',
-                  label: '已同步',
-                  state: 'synced',
-                }
-              : {
-                  detail: '空间操作已提交，等待重新读取服务端状态。',
-                  label: '待确认',
-                  state: 'error',
-                },
-          );
+        if (replayedSpaceAction || quarantinedSpaceAction) {
+          if (!bootstrapRefreshed) {
+            setSpaceStateSyncState({
+              detail: quarantinedSpaceAction
+                ? '一项空间操作无法应用，且服务端状态暂时无法重新读取。'
+                : '空间操作已提交，等待重新读取服务端状态。',
+              label: '待确认',
+              state: 'error',
+            });
+          } else if (remainingPendingSpaceActionCount > 0) {
+            setSpaceStateSyncState({
+              detail:
+                '部分空间操作仍安全保存在本机，网络恢复后会自动再试。',
+              label: '待重试',
+              state: 'error',
+            });
+          } else if (quarantinedSpaceAction) {
+            setSpaceStateSyncState({
+              detail:
+                '一项空间操作未能应用，当前空间已恢复为服务端状态。',
+              label: '已恢复',
+              state: 'synced',
+            });
+          } else {
+            setSpaceStateSyncState({
+              detail: '空间收藏和休眠状态已由服务端确认。',
+              label: '已同步',
+              state: 'synced',
+            });
+          }
         }
 
         if (replayedCheckInDayKey !== null) {
@@ -3596,6 +3629,7 @@ function AppShell({
       progressSyncState={progressSyncState}
       reviewResults={reviewCompletedResults}
       sleepingCount={sleepingCount}
+      todayKey={todayKey}
     />
   ) : route.key === 'learning' && learningBootstrapStatus !== 'ready' ? (
     <LearningBootstrapSurface
@@ -4767,6 +4801,7 @@ function MineSurface({
   progressSyncState,
   reviewResults,
   sleepingCount,
+  todayKey,
 }: {
   authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
@@ -4793,6 +4828,7 @@ function MineSurface({
   progressSyncState: ProgressSyncState;
   reviewResults: LearningCardResult[];
   sleepingCount: number;
+  todayKey: string;
 }) {
   const isAuthenticated = authState.stage === 'authenticated';
   const hasSentCode = authState.stage === 'code_sent';
@@ -4803,7 +4839,6 @@ function MineSurface({
     ).length - reviewResults.length,
     0,
   );
-  const todayKey = getTodayKey();
   const checkedInToday = checkedInDayKey === todayKey;
   const profileName = isAuthenticated
     ? maskPhoneNumber(authState.phoneNumber)
@@ -6360,10 +6395,6 @@ function InfoCard({
 
 function getDeviceClass(width: number, height: number): DeviceClass {
   return Math.min(width, height) >= 768 ? 'tablet' : 'phone';
-}
-
-function getTodayKey() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function maskPhoneNumber(phoneNumber: string) {

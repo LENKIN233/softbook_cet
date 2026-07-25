@@ -1,5 +1,5 @@
 {
-  "version": "vnext-11",
+  "version": "vnext-12",
   "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, canonical account reads, idempotent learning events, server scheduling, default sync strategy, and offline behavior.",
   "source_anchors": {
     "login_gate": "必须登入",
@@ -58,6 +58,7 @@
       "content_version"
     ],
     "identity_rule": "derive the account only from the active v2 session; bootstrap never accepts phone_number in its query or body",
+    "day_key_rule": "mobile derives the China product day from the current instant at fixed UTC+8 through one shared helper; bootstrap, explicit check-in, and local daily presentation must never use the host timezone or the UTC calendar date as independent authorities",
     "missing_state_rule": "return explicit empty canonical state for a valid account/day/track; never copy device-local state into a canonical read",
     "cursor_rule": "return null when the service has no stored scheduler cursor; do not infer exact cross-device position from device-local state or claim exact resume",
     "consistency_rule": "generated_at binds one response and each mutable component exposes acknowledged_at freshness; the current CloudBase multi-collection adapter does not claim a serializable cross-collection transaction",
@@ -81,7 +82,7 @@
       "required_fields": [
         "day_key"
       ],
-      "day_key_rule": "require YYYY-MM-DD; the client cannot submit checked_in_today because the endpoint itself is the affirmative action",
+      "day_key_rule": "require a valid YYYY-MM-DD; mobile captures the China product day at fixed UTC+8 when the explicit action occurs and preserves that exact day during offline replay; the client cannot submit checked_in_today because the endpoint itself is the affirmative action",
       "schema_rule": "reject unknown fields and any empty, scalar, array, or missing body",
       "monotonic_rule": "the first valid command moves the account-and-day state to checked in; exact repeats return the already-canonical acknowledgement without another state transition",
       "counter_rule": "never accept learning, review, favorite, sleeping, pending-review, or total counters; learning aggregates are derived from accepted learning-events.v2 and space aggregates are derived from canonical physical space",
@@ -151,9 +152,12 @@
     "mobile_contract": {
       "durability_rule": "persist an account-scoped credential-free apply_space_action command before optimistic UI authority advances",
       "request_rule": "replay preserves every immutable action field and action_id, injects the current access token in memory, and for the same track binds the request envelope to the currently validated content version; it never rebinds an action across tracks",
-      "ack_rule": "remove queued actions only after a strict matching space-actions-ack.v2 result of applied, stale, or duplicate and a canonical projection matching track/content",
+      "ack_rule": "remove queued actions as acknowledged only after a strict matching space-actions-ack.v2 result of applied, stale, or duplicate and a canonical projection matching track/content",
+      "terminal_rejection_rule": "only strict HTTP 409 error codes space_card_not_in_content and space_action_id_conflict are terminal for an immutable queued action; durably quarantine the credential-free command and exact code before removing it from the active FIFO, surface the rejection to the app, continue later mutations, and refresh canonical bootstrap before presenting reconciled space state",
+      "retryable_failure_rule": "space_content_version_mismatch, unknown HTTP failures, transport failures, malformed responses, and every non-terminal rejection remain active and block later ordered space actions until retry or explicit reconciliation; authorization and session cancellation retain their separate session lifecycle handling",
+      "quarantine_rule": "terminal quarantine is account-local, credential-free, bounded, excluded from optimistic overlays and formal acknowledgement counts, cleared on logout with the active queue, and retained only as local diagnostic evidence rather than server approval",
       "legacy_queue_rule": "during hydration migrate each valid legacy sync_space_state card snapshot into deterministic favorite and sleep actions, discard phone_number, day_key, counters, tokens, and malformed snapshots, and never replay the original whole snapshot",
-      "recovery_rule": "canonical bootstrap is the base; overlay only same-account, same-track durable pending actions in queue order, including actions awaiting same-track content-version rebinding, so unqueued device state can never overwrite server authority",
+      "recovery_rule": "canonical bootstrap is the base; overlay only active same-account, same-track durable pending actions in queue order, including actions awaiting same-track content-version rebinding; quarantined actions are excluded, so rejected or unqueued device state can never overwrite server authority",
       "reconciliation_rule": "after remote acknowledgement refresh canonical bootstrap before treating space state and scheduler eligibility as reconciled"
     },
     "legacy_cutover": {

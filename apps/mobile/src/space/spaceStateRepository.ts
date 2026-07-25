@@ -221,9 +221,11 @@ export function createSpaceStateRepository(
       });
 
       if (!response.ok) {
+        const errorCode = await readRemoteSpaceActionErrorCode(response);
         throw new RemoteHttpError(
           `Remote space action failed with ${response.status}.`,
           response.status,
+          errorCode,
         );
       }
 
@@ -233,6 +235,27 @@ export function createSpaceStateRepository(
       });
     },
   };
+}
+
+async function readRemoteSpaceActionErrorCode(
+  response: FetchLikeResponse,
+): Promise<string | null> {
+  try {
+    const payload = await response.json();
+
+    if (
+      !isObject(payload) ||
+      !isObject(payload.error) ||
+      typeof payload.error.code !== 'string' ||
+      !/^[a-z][a-z0-9_]{0,127}$/.test(payload.error.code)
+    ) {
+      return null;
+    }
+
+    return payload.error.code;
+  } catch {
+    return null;
+  }
 }
 
 export function parseRemoteSpaceActionAck(

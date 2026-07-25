@@ -1,4 +1,5 @@
 import {
+  createInMemoryMutationQueueStorage,
   MAX_MUTATION_RETRIES,
   MutationQueueManager,
 } from '../src/sync/mutationQueue';
@@ -379,6 +380,119 @@ describe('MutationQueueRepository', () => {
     expect(mockProgressSyncRepository.checkIn).toHaveBeenCalledTimes(
       MAX_MUTATION_RETRIES + 1,
     );
+  });
+
+  it.each([
+    'space_card_not_in_content',
+    'space_action_id_conflict',
+  ] as const)(
+    'quarantines terminal %s and continues later account mutations',
+    async code => {
+      const sharedStore: Record<string, string> = {};
+      const storage = createInMemoryMutationQueueStorage(sharedStore);
+      const queueManager = new MutationQueueManager({
+        now: () => '2026-07-25T08:00:00.000Z',
+        storage,
+      });
+      const repository = createMutationQueueRepository({
+        membershipRepository: mockMembershipRepository as never,
+        progressSyncRepository: mockProgressSyncRepository as never,
+        queueManager,
+        spaceStateRepository: mockSpaceStateRepository as never,
+      });
+      const spacePayload = createSpacePayload();
+      const checkInPayload = {
+        ...createCheckInPayload(),
+        context: {
+          authToken: 'token-progress',
+          phoneNumber: spacePayload.context.phoneNumber,
+        },
+      };
+      mockSpaceStateRepository.applyActions.mockRejectedValue(
+        new RemoteHttpError('Terminal space action rejection', 409, code),
+      );
+
+      await repository.enqueueMutation('apply_space_action', spacePayload);
+      await repository.enqueueMutation(
+        'check_in_daily_progress',
+        checkInPayload,
+      );
+
+      await expect(
+        repository.startReplay(createSpaceReplayContext()),
+      ).resolves.toMatchObject([
+        {
+          entry: { type: 'apply_space_action' },
+          terminalRejection: { code, status: 409 },
+        },
+        {
+          entry: { type: 'check_in_daily_progress' },
+        },
+      ]);
+
+      await expect(repository.getQueueSize()).resolves.toBe(0);
+      await expect(
+        repository.getPendingSpaceActions(spacePayload.context.phoneNumber, {
+          contentVersion: spacePayload.contentVersion,
+          track: spacePayload.track,
+        }),
+      ).resolves.toEqual([]);
+      await expect(queueManager.getQuarantined()).resolves.toMatchObject([
+        {
+          entry: {
+            payload: {
+              context: { phoneNumber: spacePayload.context.phoneNumber },
+            },
+            type: 'apply_space_action',
+          },
+          rejection: { code, status: 409 },
+        },
+      ]);
+      expect(mockProgressSyncRepository.checkIn).toHaveBeenCalledTimes(1);
+      expect(JSON.stringify(sharedStore)).not.toContain('token-space');
+
+      const restoredQueueManager = new MutationQueueManager({ storage });
+      await expect(restoredQueueManager.getQuarantined()).resolves.toHaveLength(
+        1,
+      );
+    },
+  );
+
+  it('keeps a content-version 409 active and blocks later ordered mutations', async () => {
+    const queueManager = new MutationQueueManager();
+    const repository = createMutationQueueRepository({
+      membershipRepository: mockMembershipRepository as never,
+      progressSyncRepository: mockProgressSyncRepository as never,
+      queueManager,
+      spaceStateRepository: mockSpaceStateRepository as never,
+    });
+    const spacePayload = createSpacePayload();
+    const checkInPayload = {
+      ...createCheckInPayload(),
+      context: {
+        phoneNumber: spacePayload.context.phoneNumber,
+      },
+    };
+    mockSpaceStateRepository.applyActions.mockRejectedValue(
+      new RemoteHttpError(
+        'Content version changed',
+        409,
+        'space_content_version_mismatch',
+      ),
+    );
+
+    await repository.enqueueMutation('apply_space_action', spacePayload);
+    await repository.enqueueMutation(
+      'check_in_daily_progress',
+      checkInPayload,
+    );
+
+    await expect(
+      repository.startReplay(createSpaceReplayContext()),
+    ).resolves.toEqual([]);
+    await expect(repository.getQueueSize()).resolves.toBe(2);
+    await expect(queueManager.getQuarantined()).resolves.toEqual([]);
+    expect(mockProgressSyncRepository.checkIn).not.toHaveBeenCalled();
   });
 
   it('surfaces authorization failures so the app can revoke the session', async () => {

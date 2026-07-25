@@ -155,6 +155,45 @@ describe('spaceStateRepository', () => {
     });
   });
 
+  it('preserves a strict server error code for replay classification', async () => {
+    const action = createSpaceAction({
+      cardId: 'removed-card',
+      dimension: 'favorite',
+      now: () => new Date('2026-04-27T10:00:00.000Z'),
+      random: () => 0.5,
+      value: true,
+    });
+    const repository = createSpaceStateRepository({
+      fetchImpl: async () => ({
+        json: async () => ({
+          error: {
+            code: 'space_card_not_in_content',
+            message: 'The card is no longer in the current source.',
+          },
+        }),
+        ok: false,
+        status: 409,
+      }),
+      mode: 'remote',
+      remoteConfig: { endpoint: 'https://api.example/v2/space/actions' },
+    });
+
+    await expect(
+      repository.applyActions(
+        context,
+        {
+          actions: [action],
+          contentVersion: `sha256:${'a'.repeat(64)}`,
+          track: 'cet4',
+        },
+        '2026-04-27',
+      ),
+    ).rejects.toMatchObject({
+      code: 'space_card_not_in_content',
+      status: 409,
+    });
+  });
+
   it('rejects an acknowledgement whose result order is not exact', async () => {
     const action = createSpaceAction({
       cardId: 'card-1',

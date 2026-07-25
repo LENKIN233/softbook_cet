@@ -9,10 +9,14 @@ import {
   MutationQueueManager,
   MutationPayloadByType,
   MutationQueueEntry,
+  MutationQueueTerminalRejection,
   MutationType,
 } from './mutationQueue';
 import type { ProgressSyncRepository } from './progressSyncRepository';
-import { isRemoteAuthorizationError } from '../runtime/remoteHttpError';
+import {
+  isRemoteAuthorizationError,
+  RemoteHttpError,
+} from '../runtime/remoteHttpError';
 import { isRemoteRequestCancellationError } from '../runtime/remoteRequest';
 
 export type MutationReplayResult =
@@ -30,6 +34,10 @@ export type MutationReplayResult =
   | {
       entry: Extract<MutationQueueEntry, { type: 'apply_space_action' }>;
       spaceActionAck: SpaceActionAck;
+    }
+  | {
+      entry: Extract<MutationQueueEntry, { type: 'apply_space_action' }>;
+      terminalRejection: MutationQueueTerminalRejection;
     }
   | {
       entry: Extract<
@@ -65,6 +73,19 @@ export interface MutationQueueRepository {
   clear(): Promise<void>;
 }
 
+type MutationReplayAttempt =
+  | {
+      result: MutationReplayResult;
+      status: 'replayed';
+    }
+  | {
+      rejection: MutationQueueTerminalRejection;
+      status: 'terminal_rejection';
+    }
+  | {
+      status: 'retryable_failure';
+    };
+
 export function createMutationQueueRepository(options: {
   membershipRepository: MembershipRepository;
   progressSyncRepository: ProgressSyncRepository;
@@ -76,7 +97,7 @@ export function createMutationQueueRepository(options: {
 
   const replayMutation = async (
     entry: MutationQueueEntry,
-  ): Promise<MutationReplayResult | null> => {
+  ): Promise<MutationReplayAttempt> => {
     try {
       switch (entry.type) {
         case 'check_in_daily_progress':
@@ -84,7 +105,7 @@ export function createMutationQueueRepository(options: {
             entry.payload.context,
             entry.payload.dayKey,
           );
-          return { entry };
+          return { result: { entry }, status: 'replayed' };
         case 'apply_space_action':
           if (
             entry.payload.contentVersion === null ||
@@ -97,33 +118,42 @@ export function createMutationQueueRepository(options: {
           }
 
           return {
-            entry,
-            spaceActionAck: await options.spaceStateRepository.applyActions(
-              entry.payload.context,
-              {
-                actions: [entry.payload.action],
-                contentVersion: entry.payload.contentVersion,
-                track: entry.payload.track,
-              },
-              requireReplayDayKey(entry),
-            ),
+            result: {
+              entry,
+              spaceActionAck: await options.spaceStateRepository.applyActions(
+                entry.payload.context,
+                {
+                  actions: [entry.payload.action],
+                  contentVersion: entry.payload.contentVersion,
+                  track: entry.payload.track,
+                },
+                requireReplayDayKey(entry),
+              ),
+            },
+            status: 'replayed',
           };
         case 'refresh_membership':
           return {
-            entry,
-            membershipState: await options.membershipRepository.loadState(
-              entry.payload.context,
-            ),
+            result: {
+              entry,
+              membershipState: await options.membershipRepository.loadState(
+                entry.payload.context,
+              ),
+            },
+            status: 'replayed',
           };
         case 'start_membership_trial':
           return {
-            entry,
-            membershipState: (
-              await options.membershipRepository.startTrial(
-                entry.payload.context,
-                entry.payload.currentState,
-              )
-            ).state,
+            result: {
+              entry,
+              membershipState: (
+                await options.membershipRepository.startTrial(
+                  entry.payload.context,
+                  entry.payload.currentState,
+                )
+              ).state,
+            },
+            status: 'replayed',
           };
       }
     } catch (error) {
@@ -134,12 +164,21 @@ export function createMutationQueueRepository(options: {
         throw error;
       }
 
+      const terminalRejection = readTerminalSpaceActionRejection(entry, error);
+
+      if (terminalRejection !== null) {
+        return {
+          rejection: terminalRejection,
+          status: 'terminal_rejection',
+        };
+      }
+
       console.warn(
         `[MutationQueue] Replay failed for ${entry.type}: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
-      return null;
+      return { status: 'retryable_failure' };
     }
   };
 
@@ -181,11 +220,32 @@ export function createMutationQueueRepository(options: {
           const replayEntry = context
             ? withReplayContext(entry, context)
             : entry;
-          const replayResult = await replayMutation(replayEntry);
+          const replayAttempt = await replayMutation(replayEntry);
 
-          if (replayResult) {
+          if (replayAttempt.status === 'replayed') {
             if (await queue.removeIfUnchanged(entry)) {
-              replayedResults.push(replayResult);
+              replayedResults.push(replayAttempt.result);
+            }
+            continue;
+          }
+
+          if (replayAttempt.status === 'terminal_rejection') {
+            if (entry.type !== 'apply_space_action') {
+              throw new Error(
+                'Only physical-space actions can be terminally rejected.',
+              );
+            }
+
+            if (
+              await queue.quarantineIfUnchanged(
+                entry,
+                replayAttempt.rejection,
+              )
+            ) {
+              replayedResults.push({
+                entry,
+                terminalRejection: replayAttempt.rejection,
+              });
             }
             continue;
           }
@@ -243,6 +303,26 @@ export function createMutationQueueRepository(options: {
     clear() {
       return queue.clear();
     },
+  };
+}
+
+function readTerminalSpaceActionRejection(
+  entry: MutationQueueEntry,
+  error: unknown,
+): MutationQueueTerminalRejection | null {
+  if (
+    entry.type !== 'apply_space_action' ||
+    !(error instanceof RemoteHttpError) ||
+    error.status !== 409 ||
+    (error.code !== 'space_card_not_in_content' &&
+      error.code !== 'space_action_id_conflict')
+  ) {
+    return null;
+  }
+
+  return {
+    code: error.code,
+    status: 409,
   };
 }
 

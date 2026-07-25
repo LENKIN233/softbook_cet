@@ -524,6 +524,34 @@ describe('MutationQueueManager', () => {
     });
   });
 
+  it('keeps the active head when durable quarantine persistence fails', async () => {
+    const values: Record<string, string> = {};
+    const manager = new MutationQueueManager({
+      storage: {
+        getItem: async key => values[key] ?? null,
+        setItem: async (key, value) => {
+          if (key.endsWith(':quarantine')) {
+            throw new Error('quarantine storage unavailable');
+          }
+          values[key] = value;
+        },
+      },
+    });
+    await manager.enqueue('apply_space_action', createSpacePayload());
+    const entry = await manager.peek();
+
+    await expect(
+      manager.quarantineIfUnchanged(entry!, {
+        code: 'space_card_not_in_content',
+        status: 409,
+      }),
+    ).rejects.toThrow('quarantine storage unavailable');
+
+    await expect(manager.size()).resolves.toBe(1);
+    await expect(manager.peek()).resolves.toEqual(entry);
+    await expect(manager.getQuarantined()).resolves.toEqual([]);
+  });
+
   it('returns peek without dequeuing', async () => {
     const manager = new MutationQueueManager();
 
@@ -539,17 +567,28 @@ describe('MutationQueueManager', () => {
   });
 
   it('clears all entries', async () => {
-    const manager = new MutationQueueManager();
+    const storage = createInMemoryMutationQueueStorage();
+    const manager = new MutationQueueManager({ storage });
 
     await manager.enqueue('check_in_daily_progress', createCheckInPayload());
-    await manager.enqueue('refresh_membership', {
-      context: { authToken: 'token-2', phoneNumber: '13800138001' },
+    const spaceEntry = await manager.enqueue(
+      'apply_space_action',
+      createSpacePayload(),
+    );
+    await manager.dequeue();
+    await manager.quarantineIfUnchanged(spaceEntry, {
+      code: 'space_card_not_in_content',
+      status: 409,
     });
 
     await manager.clear();
 
     await expect(manager.size()).resolves.toBe(0);
     await expect(manager.peek()).resolves.toBeUndefined();
+    await expect(manager.getQuarantined()).resolves.toEqual([]);
+
+    const restored = new MutationQueueManager({ storage });
+    await expect(restored.getQuarantined()).resolves.toEqual([]);
   });
 
   it('includes timestamp on enqueue', async () => {
