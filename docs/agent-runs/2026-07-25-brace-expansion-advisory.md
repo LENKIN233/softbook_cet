@@ -95,6 +95,14 @@
 - `python3 scripts/validate_harness.py` -> full Harness passed.
 - Node 22.13.0 `./scripts/run_local_gates --profile dev --output
   exports/local-gates/brace-expansion-advisory-dev.json` -> 18/18 passed.
+- The first strict PR profile collected all 30 gates and exposed one local
+  clone issue: the main-only fetch refspec omitted the already-pushed topic
+  branch's remote-tracking ref. An exact topic refspec was added locally and
+  the branch was fetched without changing repository files.
+- Exact Python 3.12.13, Node 22.13.0, and Ruby 3.3.12
+  `./scripts/run_local_gates --profile pr --base origin/main --pr 444
+  --output exports/local-gates/brace-expansion-advisory-pr-passed.json` ->
+  complete 30/30 passed with zero exceptions, skipped, or deferred gates.
 
 ## Validation results
 
@@ -144,6 +152,5 @@
 
 ## Follow-up
 
-- Run the final-HEAD strict PR profile with a real PR number.
-- Merge only after Agent review, PR description validation, and all GitHub
-  required checks pass.
+- Re-run the strict PR profile after this final run-record-only commit.
+- Merge only after all GitHub required checks pass.
