@@ -63,6 +63,9 @@
 - `spec/account-sync-contract.json`, `spec/runtime-boundaries.json`,
   `spec/evals.json`: own and test the corrected day and terminal-replay
   boundaries.
+- `security/dependency-audit-policy.json`: retain newly published
+  `GHSA-MH99-V99M-4GVG` as a visible high-severity exception through
+  2026-08-01 because no API-compatible patched 1.x release exists.
 - `infra/cloudbase/space-actions-v2-runtime-contract.md`: document exact
   terminal and retryable mobile behavior.
 - `scripts/harness_validator/sections/product_contract_mirrors.py`: mirror the
@@ -92,6 +95,11 @@
 - Node 22.13.0 `./scripts/run_local_gates --profile dev --output
   exports/local-gates/canonical-day-mutation-replay-node22-dev.json` ->
   complete 18/18 passed.
+- The first strict PR profile exposed new registry advisory
+  `GHSA-MH99-V99M-4GVG`, pending review state, Ruby path drift, and a missing
+  local remote-tracking ref. The branch ref and Ruby 3.3 path were corrected;
+  the advisory remains visible under a one-week exception rather than being
+  reported as zero vulnerabilities.
 - `git diff --check` -> passed before this record and will be repeated during
   closeout.
 
@@ -163,6 +171,9 @@
 - The backend and mobile integration remain repository-local and undeployed.
 - Quarantine is bounded local diagnostic evidence and is cleared on logout; it
   is not a server acknowledgement or analytics pipeline.
+- `GHSA-MH99-V99M-4GVG` remains a high-severity dependency finding in the
+  React Native Jest/tooling chain. The exception expires on 2026-08-01 and must
+  be removed as soon as an API-compatible maintenance release is available.
 - Production observability should count terminal rejection codes after
   deployment without logging card text, phone numbers, or credentials.
 
