@@ -66,14 +66,28 @@ validated content version; it never rebinds an action across tracks. This is
 safe because content scope is the request envelope rather than part of the
 action ledger digest, and the server still validates the card against the
 current source.
-The entry is removed only after strict matching acknowledgement and canonical
-scope validation, followed by bootstrap reconciliation.
+The entry is removed as acknowledged only after strict matching
+acknowledgement and canonical scope validation, followed by bootstrap
+reconciliation.
+
+Two exact HTTP 409 codes are terminal for an immutable queued action:
+`space_card_not_in_content` and `space_action_id_conflict`. Mobile durably moves
+those credential-free commands into a bounded local quarantine before removing
+them from the active FIFO. It surfaces the rejection, continues later
+mutations, and refreshes bootstrap before presenting reconciled space state.
+Quarantined actions are diagnostic evidence, not acknowledgement or approval,
+and logout clears them with the active queue.
+
+`space_content_version_mismatch`, unknown HTTP failures, transport failures,
+malformed responses, and every other non-terminal rejection remain active.
+Authorization and session cancellation keep their separate session lifecycle
+handling.
 
 Hydration starts from canonical bootstrap and overlays only matching durable
 pending actions for the same account and track, including actions awaiting
-same-track content-version rebinding. Valid legacy `sync_space_state` queue entries migrate into
-deterministic per-card favorite and sleep actions; the original snapshot is
-never sent.
+same-track content-version rebinding. Quarantined actions are excluded. Valid
+legacy `sync_space_state` queue entries migrate into deterministic per-card
+favorite and sleep actions; the original snapshot is never sent.
 
 ## Legacy Boundary
 

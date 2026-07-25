@@ -135,6 +135,11 @@ def learning_events_contract_findings(
             "the repository-local CloudBase learning-events.v2 backend, explicit daily check-in, physical-space actions, React Native durable producer/replay, server scheduler, and mobile scheduler-session binding are implemented but not deployed; production publication remains unimplemented",
         ),
         (
+            "canonical China product day",
+            ("canonical_read", "day_key_rule"),
+            "mobile derives the China product day from the current instant at fixed UTC+8 through one shared helper; bootstrap, explicit check-in, and local daily presentation must never use the host timezone or the UTC calendar date as independent authorities",
+        ),
+        (
             "backend implementation",
             ("learning_events_v2", "implementation_progress", "cloudbase_backend"),
             "implemented_locally_not_deployed",
@@ -555,6 +560,11 @@ def learning_events_contract_findings(
             ["day_key"],
         ),
         (
+            "daily check-in China product day",
+            ("daily_check_in_v2", "command_contract", "day_key_rule"),
+            "require a valid YYYY-MM-DD; mobile captures the China product day at fixed UTC+8 when the explicit action occurs and preserves that exact day during offline replay; the client cannot submit checked_in_today because the endpoint itself is the affirmative action",
+        ),
+        (
             "daily check-in schema",
             ("daily_check_in_v2", "command_contract", "schema_rule"),
             "reject unknown fields and any empty, scalar, array, or missing body",
@@ -781,6 +791,11 @@ def learning_events_contract_findings(
             "runtime daily check-in trigger",
             ("daily_check_in_runtime", "mobile_trigger"),
             "explicit_user_check_in_only_never_learning_completion",
+        ),
+        (
+            "runtime daily check-in China product day",
+            ("daily_check_in_runtime", "mobile_day_key"),
+            "one_shared_fixed_utc_plus_8_china_product_day_for_bootstrap_check_in_and_local_daily_presentation",
         ),
         (
             "runtime daily check-in queue",
@@ -1089,6 +1104,7 @@ def learning_events_contract_findings(
         "pre_event_legacy_baseline_counters_are_preserved_read_only",
         "mobile_explicit_check_in_is_the_only_trigger",
         "mobile_learning_progress_uses_learning_events_not_daily_snapshots",
+        "mobile_uses_one_fixed_utc_plus_8_china_product_day",
         "credential_free_check_in_daily_progress_queue_entry",
         "restart_recovers_exact_pending_account_day_check_in_as_queued",
         "canonical_false_without_matching_queue_clears_stale_local_check_in",
@@ -1831,7 +1847,30 @@ def space_actions_contract_findings(
         (
             "mobile acknowledgement",
             ("physical_space_actions_v2", "mobile_contract", "ack_rule"),
-            "remove queued actions only after a strict matching space-actions-ack.v2 result of applied, stale, or duplicate and a canonical projection matching track/content",
+            "remove queued actions as acknowledged only after a strict matching space-actions-ack.v2 result of applied, stale, or duplicate and a canonical projection matching track/content",
+        ),
+        (
+            "mobile terminal rejection",
+            (
+                "physical_space_actions_v2",
+                "mobile_contract",
+                "terminal_rejection_rule",
+            ),
+            "only strict HTTP 409 error codes space_card_not_in_content and space_action_id_conflict are terminal for an immutable queued action; durably quarantine the credential-free command and exact code before removing it from the active FIFO, surface the rejection to the app, continue later mutations, and refresh canonical bootstrap before presenting reconciled space state",
+        ),
+        (
+            "mobile retryable failure",
+            (
+                "physical_space_actions_v2",
+                "mobile_contract",
+                "retryable_failure_rule",
+            ),
+            "space_content_version_mismatch, unknown HTTP failures, transport failures, malformed responses, and every non-terminal rejection remain active and block later ordered space actions until retry or explicit reconciliation; authorization and session cancellation retain their separate session lifecycle handling",
+        ),
+        (
+            "mobile terminal quarantine",
+            ("physical_space_actions_v2", "mobile_contract", "quarantine_rule"),
+            "terminal quarantine is account-local, credential-free, bounded, excluded from optimistic overlays and formal acknowledgement counts, cleared on logout with the active queue, and retained only as local diagnostic evidence rather than server approval",
         ),
         (
             "mobile legacy queue",
@@ -1841,7 +1880,7 @@ def space_actions_contract_findings(
         (
             "mobile recovery",
             ("physical_space_actions_v2", "mobile_contract", "recovery_rule"),
-            "canonical bootstrap is the base; overlay only same-account, same-track durable pending actions in queue order, including actions awaiting same-track content-version rebinding, so unqueued device state can never overwrite server authority",
+            "canonical bootstrap is the base; overlay only active same-account, same-track durable pending actions in queue order, including actions awaiting same-track content-version rebinding; quarantined actions are excluded, so rejected or unqueued device state can never overwrite server authority",
         ),
         (
             "mobile reconciliation",
@@ -1939,6 +1978,16 @@ def space_actions_contract_findings(
             "credential_free_apply_space_action_persisted_before_optimistic_ui_change",
         ),
         (
+            "mobile terminal rejection",
+            ("mobile_terminal_rejection",),
+            "strict_space_card_not_in_content_or_space_action_id_conflict_409_is_durably_quarantined_before_active_fifo_removal_then_later_mutations_continue_and_bootstrap_reconciles",
+        ),
+        (
+            "mobile retryable failure",
+            ("mobile_retryable_failure",),
+            "content_version_mismatch_unknown_http_transport_and_malformed_responses_remain_active_authorization_and_cancellation_keep_session_lifecycle_semantics",
+        ),
+        (
             "mobile recovery",
             ("mobile_recovery",),
             "canonical_bootstrap_base_plus_same_account_and_track_durable_pending_actions_with_only_same_track_request_envelopes_rebound_to_current_content",
@@ -2033,6 +2082,9 @@ def space_actions_contract_findings(
         "same_track_content_update_rebinds_only_the_request_envelope",
         "cross_track_action_rebinding_is_forbidden",
         "strict_ordered_applied_stale_or_duplicate_ack_before_queue_removal",
+        "terminal_card_or_action_id_409_is_durably_quarantined_before_fifo_removal",
+        "terminal_quarantine_is_excluded_from_overlay_and_later_mutations_continue",
+        "unknown_and_content_version_failures_remain_active",
         "post_ack_bootstrap_and_scheduler_reconciliation",
         "transient_failure_keeps_exact_action_and_exposes_retryable_diagnosis",
         "unqueued_local_space_state_never_overwrites_server_authority",
@@ -2059,8 +2111,14 @@ def space_actions_contract_findings(
         "credential-free `apply_space_action` entry before optimistic",
         "The immutable action fields and action ID never change.",
         "it never rebinds an action across tracks.",
-        "removed only after strict matching acknowledgement",
+        "removed as acknowledged only after strict matching",
+        "Two exact HTTP 409 codes are terminal for an immutable queued action:",
+        "durably moves",
+        "into a bounded local quarantine before removing",
+        "Quarantined actions are diagnostic evidence, not acknowledgement or approval,",
+        "`space_content_version_mismatch`, unknown HTTP failures, transport failures,",
         "Hydration starts from canonical bootstrap and overlays only matching durable",
+        "Quarantined actions are excluded.",
         "Both `GET /v1/space/state-sync` and `POST /v1/space/state-sync` return 410",
         "Retained legacy documents remain read-only migration input.",
     ]

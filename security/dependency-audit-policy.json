@@ -4,7 +4,15 @@
     {
       "id": "mobile",
       "path": "apps/mobile",
-      "allowed_advisories": []
+      "allowed_advisories": [
+        {
+          "id": "GHSA-MH99-V99M-4GVG",
+          "package": "brace-expansion",
+          "severity": "high",
+          "expires_on": "2026-08-01",
+          "reason": "New registry advisory affects every compatible brace-expansion 1.x release in the React Native Jest/tooling chain. Patched 5.0.8 changes the CommonJS API expected by minimatch 3, so a forced major override is unsafe; retain a visible one-week exception while waiting for a compatible maintenance release."
+        }
+      ]
     },
     {
       "id": "cloudbase-api",
