@@ -100,6 +100,13 @@
   local remote-tracking ref. The branch ref and Ruby 3.3 path were corrected;
   the advisory remains visible under a one-week exception rather than being
   reported as zero vulnerabilities.
+- `python3 scripts/validate_harness.py` -> full remote Harness passed.
+- Exact Python 3.12.13, Node 22.13.0, and Ruby 3.3.12
+  `./scripts/run_local_gates --profile pr --base origin/main --pr 443
+  --output
+  exports/local-gates/canonical-day-mutation-replay-pr-passed.json` ->
+  complete 30-gate collection with 29 passed, one visible dependency
+  exception, and zero failed, skipped, or deferred gates.
 - `git diff --check` -> passed before this record and will be repeated during
   closeout.
 
@@ -179,5 +186,5 @@
 
 ## Follow-up
 
-- Run the strict PR profile for `#443`, then merge only after the recorded
-  review and all required GitHub checks pass.
+- Merge only after the final-HEAD strict PR profile and all required GitHub
+  checks pass.
