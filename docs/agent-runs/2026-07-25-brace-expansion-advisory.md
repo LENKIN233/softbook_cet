@@ -4,7 +4,7 @@
 
 - Date: 2026-07-25
 - Branch: `fix/brace-expansion-advisory`
-- PR: pending
+- PR: `#444` (`https://github.com/LENKIN233/softbook_cet/pull/444`)
 - Summary: remove the temporary `GHSA-MH99-V99M-4GVG` exception by
   replacing every vulnerable mobile-tooling copy of `brace-expansion` with
   official release `5.0.8`, while preserving the CommonJS API required by
