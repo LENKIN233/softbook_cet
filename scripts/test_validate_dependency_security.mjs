@@ -6,6 +6,10 @@ import {
   isAuditReport,
   validateTargetReport,
 } from './validate_dependency_security.mjs';
+import {
+  legacyMinimatchPackages,
+  normalizeMinimatchSource,
+} from './normalize_minimatch_brace_expansion.mjs';
 
 const report = {
   vulnerabilities: {
@@ -72,6 +76,42 @@ assert.equal(
   'resolved_exception_still_listed',
 );
 
+const minimatchFixture = `before
+var expand = require('brace-expansion')
+after
+`;
+const normalizedMinimatch = normalizeMinimatchSource(minimatchFixture);
+assert.equal(normalizedMinimatch.changed, true);
+assert.match(normalizedMinimatch.content, /braceExpansion\.expand/);
+assert.equal(
+  normalizeMinimatchSource(normalizedMinimatch.content).changed,
+  false,
+);
+assert.throws(
+  () => normalizeMinimatchSource('upstream changed'),
+  /import shape drifted/,
+);
+assert.throws(
+  () => normalizeMinimatchSource(`${minimatchFixture}${minimatchFixture}`),
+  /multiple brace-expansion imports/,
+);
+assert.throws(
+  () =>
+    normalizeMinimatchSource(
+      `${normalizedMinimatch.content}\n${minimatchFixture}`,
+    ),
+  /ambiguous normalized import/,
+);
+assert.deepEqual(
+  legacyMinimatchPackages({
+    packages: {
+      'node_modules/modern/minimatch': {version: '10.2.5'},
+      'node_modules/old/minimatch': {version: '3.1.5'},
+    },
+  }),
+  [{packagePath: 'node_modules/old/minimatch', version: '3.1.5'}],
+);
+
 console.log(
-  'PASS: dependency security policy rejects invalid reports and unknown, expired, or stale exceptions.',
+  'PASS: dependency policy and minimatch compatibility normalization fail closed.',
 );
