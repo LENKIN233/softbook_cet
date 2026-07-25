@@ -4,7 +4,7 @@
 
 - Date: 2026-07-25
 - Branch: `fix/canonical-day-mutation-replay`
-- PR: pending
+- PR: `#443` (`https://github.com/LENKIN233/softbook_cet/pull/443`)
 - Summary: align mobile daily state with the fixed UTC+8 China product day,
   and prevent strict terminal physical-space rejections from permanently
   blocking later account mutations.
@@ -168,5 +168,5 @@
 
 ## Follow-up
 
-- Create the PR, update this record with its URL, run the strict PR profile,
-  and merge only after the recorded review and all required GitHub checks pass.
+- Run the strict PR profile for `#443`, then merge only after the recorded
+  review and all required GitHub checks pass.
