@@ -63,6 +63,7 @@
 - `python3 scripts/test_learning_scheduler_contract.py` -> 9/9 passed.
 - `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`.
 - `PATH=<Node 22.13.0> scripts/run_local_gates --profile dev` -> 18/18 passed; final report `exports/local-gates/20260726T044541Z-cf7df2da-dev-28897/report.json`.
+- Exact Python 3.12.13 / Node 22.13.0 / Ruby 3.3.12 `scripts/run_local_gates --profile pr --base origin/main --pr 445` -> 30/30 passed with no exceptions, skipped checks, or deferred checks.
 - `rg` scans of generated reports/logs for phone, bearer token, JSON token/secret fields, and auth-secret assignments -> no matches.
 - `git diff --check`, Node syntax checks, and `bash -n infra/cloudbase/deploy-softbook-api.sh` -> passed.
 
@@ -76,7 +77,7 @@
 - Every version publication must be resolved to exactly one newly added immutable version ID with a unique run description before the operation can continue.
 - Configuration and code writes both have automatic restoration paths with exact post-restore verification.
 - All generated reports/logs observed were mode `0600`; sensitive scans were clean and the tracked worktree remained unchanged by every dry-run.
-- Harness and the complete local `dev` profile are green. Agent review, PR-profile remote checks, and GitHub required checks remain pending.
+- Harness, the complete local `dev` profile, Agent review, and strict PR-profile remote checks are green. GitHub required checks remain pending.
 
 ## Binary evidence
 
@@ -107,4 +108,4 @@
 
 ## Follow-up
 
-- Complete local review/gates, open and merge the tooling PR, fast-forward clean `main`, apply secure dev configuration, deploy the exact artifact, and record backend plus iOS remote acceptance before changing any deployment-status claim.
+- Merge the tooling PR only after GitHub required checks and formal approval, fast-forward clean `main`, apply secure dev configuration, deploy the exact artifact, and record backend plus iOS remote acceptance before changing any deployment-status claim.
