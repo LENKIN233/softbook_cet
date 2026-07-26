@@ -54,6 +54,7 @@
 - `tcb config update fn softbook-api --yes --help` -> parsed successfully without a cloud write.
 - `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`.
 - `scripts/run_local_gates --profile dev` -> 18/18 passed; report `exports/local-gates/20260726T065234Z-d5c7f89d-dev-46740/report.json`.
+- Exact Python 3.12.13 / Node 22.13.0 / Ruby 3.3.12 `scripts/run_local_gates --profile pr --base origin/main --pr 446` -> 30/30 passed at final HEAD `a987a52`; report `exports/local-gates/20260726T070238Z-a987a520-pr-53403/report.json`.
 - Post-rollback read-only `preflight` -> returned the expected missing-v2-configuration findings and confirmed the previous function metadata and sole `SOFTBOOK_STORE_MODE` variable remain active.
 - Sensitive scans of the failed-apply, rollback, and post-rollback preflight reports found no bearer token, auth-secret assignment, SMS code, phone, access-token, or refresh-token value.
 - `git diff --check` -> passed.
