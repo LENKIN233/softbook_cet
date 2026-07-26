@@ -181,9 +181,10 @@ node infra/cloudbase/provision-softbook-nosql.mjs
 node infra/cloudbase/provision-softbook-nosql.mjs --apply
 ```
 
-The apply form lists the real table catalog and calls `CreateTable` only for
-missing allowlisted collections. It is idempotent, does not add placeholder
-documents, and verifies the complete required catalog after all writes.
+The apply form uses the public CloudBase `DescribeTables` / `CreateTable` API,
+creates only missing allowlisted collections, and verifies the complete
+required catalog after all writes. It is idempotent and does not add
+placeholder documents.
 
 Secure runtime configuration:
 

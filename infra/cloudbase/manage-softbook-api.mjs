@@ -30,7 +30,7 @@ import {
   REQUIRED_DEPLOYMENT_NODE_VERSION,
   buildCountCommand,
   buildCountProbes,
-  buildListTablesArguments,
+  buildDescribeTablesArguments,
   compareSourceManifests,
   createSourceManifest,
   evaluateRepositoryState,
@@ -909,7 +909,7 @@ function readRemoteState(context) {
     parseTcbJson(
       runTcb(
         context,
-        buildListTablesArguments(environment.database_instance_id),
+        buildDescribeTablesArguments(environment.database_instance_id),
         {label: "read-collection-catalog"}
       )
     )

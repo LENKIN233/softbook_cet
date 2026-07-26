@@ -271,7 +271,8 @@ test("real collection catalog prevents zero-count false positives", () => {
 });
 
 test("collection management commands are environment and table allowlisted", () => {
-  const listArguments = safety.buildListTablesArguments("tnt-contract123");
+  const listArguments =
+    safety.buildDescribeTablesArguments("tnt-contract123");
   const createArguments = safety.buildCreateTableArguments(
     "tnt-contract123",
     "softbook_auth_sessions"
@@ -281,11 +282,19 @@ test("collection management commands are environment and table allowlisted", () 
     "-e",
     safety.DEV_ENV_ID,
     "api",
-    "flexdb",
-    "ListTables",
+    "tcb",
+    "DescribeTables",
   ]);
+  assert.equal(
+    listArguments[listArguments.indexOf("--api-version") + 1],
+    safety.CLOUDBASE_API_VERSION
+  );
   assert.equal(JSON.parse(listArguments.at(-2)).Tag, "tnt-contract123");
   assert.equal(createArguments.includes("CreateTable"), true);
+  assert.equal(
+    createArguments[createArguments.indexOf("--api-version") + 1],
+    safety.CLOUDBASE_API_VERSION
+  );
   assert.deepEqual(JSON.parse(createArguments.at(-2)), {
     TableName: "softbook_auth_sessions",
     Tag: "tnt-contract123",
@@ -298,7 +307,7 @@ test("collection management commands are environment and table allowlisted", () 
       ),
     /not allowlisted/
   );
-  assert.throws(() => safety.buildListTablesArguments("production"));
+  assert.throws(() => safety.buildDescribeTablesArguments("production"));
 });
 
 test("environment inspection exposes only the database instance identifier", () => {

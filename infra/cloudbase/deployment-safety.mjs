@@ -13,7 +13,7 @@ export const DEV_FUNCTION_NAME = "softbook-api";
 export const DEV_HTTP_PATH = "/softbook-api";
 export const DEV_BASE_URL =
   "https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api";
-export const FLEXDB_API_VERSION = "2018-11-27";
+export const CLOUDBASE_API_VERSION = "2018-06-08";
 export const REQUIRED_DEPLOYMENT_NODE_VERSION = "22.13.0";
 
 export const EXPECTED_FUNCTION_CONFIG = Object.freeze({
@@ -626,17 +626,17 @@ export function inspectCollectionCatalog(payload) {
   };
 }
 
-export function buildListTablesArguments(databaseInstanceId) {
+export function buildDescribeTablesArguments(databaseInstanceId) {
   const tag = requireDatabaseInstanceId(databaseInstanceId);
 
   return [
     "-e",
     DEV_ENV_ID,
     "api",
-    "flexdb",
-    "ListTables",
+    "tcb",
+    "DescribeTables",
     "--api-version",
-    FLEXDB_API_VERSION,
+    CLOUDBASE_API_VERSION,
     "--body",
     JSON.stringify({MgoLimit: 100, MgoOffset: 0, Tag: tag}),
     "--json",
@@ -656,10 +656,10 @@ export function buildCreateTableArguments(databaseInstanceId, tableName) {
     "-e",
     DEV_ENV_ID,
     "api",
-    "flexdb",
+    "tcb",
     "CreateTable",
     "--api-version",
-    FLEXDB_API_VERSION,
+    CLOUDBASE_API_VERSION,
     "--body",
     JSON.stringify({TableName: tableName, Tag: tag}),
     "--json",

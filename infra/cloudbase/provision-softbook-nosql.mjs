@@ -8,7 +8,7 @@ import {
   REQUIRED_COLLECTIONS,
   REQUIRED_DEPLOYMENT_NODE_VERSION,
   buildCreateTableArguments,
-  buildListTablesArguments,
+  buildDescribeTablesArguments,
   evaluateRepositoryState,
   inspectCollectionCatalog,
   inspectEnvironment,
@@ -149,7 +149,7 @@ function readCatalog(databaseInstanceId) {
   return inspectCollectionCatalog(
     parseTcbJson(
       runTcb(
-        buildListTablesArguments(databaseInstanceId),
+        buildDescribeTablesArguments(databaseInstanceId),
         "read collection catalog"
       )
     )
