@@ -4,6 +4,7 @@
 
 - Date: 2026-07-26
 - Branch: `fix/cloudbase-config-update-noninteractive`
+- PR: https://github.com/LENKIN233/softbook_cet/pull/446
 - Summary: Fix the guarded CloudBase configuration writer after a merged-main dev apply proved that CloudBase CLI 3.2.2 can exit successfully without updating a function when its environment-variable overwrite prompt receives no input.
 
 ## Referenced specs
