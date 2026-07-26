@@ -261,6 +261,18 @@ async function main() {
   }
 }
 
+export function buildFunctionConfigUpdateArguments() {
+  // Without --yes, CloudBase CLI can exit 0 after an unanswered env-var mode prompt.
+  return [
+    "config",
+    "update",
+    "fn",
+    DEV_FUNCTION_NAME,
+    "--yes",
+    "--json",
+  ];
+}
+
 function createContext(options) {
   if (!nodeVersionAtLeast(process.versions.node)) {
     throw new Error(
@@ -788,7 +800,7 @@ function pushFunctionConfig(context, runtimeValues, functionConfig, label) {
       {encoding: "utf8", mode: 0o600}
     );
     chmodSync(configPath, 0o600);
-    runTcb(context, ["config", "update", "fn", DEV_FUNCTION_NAME, "--json"], {
+    runTcb(context, buildFunctionConfigUpdateArguments(), {
       cwd: temporaryDirectory,
       label,
       sensitiveOutput: true,

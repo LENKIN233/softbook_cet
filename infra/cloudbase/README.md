@@ -194,7 +194,9 @@ values, and creates distinct 32+ character auth token/index secrets with a
 minimum character-diversity check only while no v2 identity-bound documents
 exist. It never records those values. Once identity data exists, missing or
 weak auth secrets fail closed instead of changing account identity or silently
-revoking sessions.
+revoking sessions. The CloudBase CLI update is explicitly non-interactive and
+uses its overwrite mode so a zero-exit prompt cannot silently skip the update;
+the manager still verifies the complete remote configuration after every write.
 
 Build and validate the exact deployment artifact without writing CloudBase:
 

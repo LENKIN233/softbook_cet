@@ -366,6 +366,17 @@ test("managed CloudBase config contains complete values only in memory", () => {
   );
 });
 
+test("runtime configuration update is explicitly non-interactive", () => {
+  assert.deepEqual(manager.buildFunctionConfigUpdateArguments(), [
+    "config",
+    "update",
+    "fn",
+    safety.DEV_FUNCTION_NAME,
+    "--yes",
+    "--json",
+  ]);
+});
+
 test("deployment artifacts include runtime dependencies without npm command shims", () => {
   assert.equal(
     manager.shouldIncludeArtifactPath(
