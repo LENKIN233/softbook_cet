@@ -148,29 +148,107 @@ while `/v2` owns authentication and the canonical bootstrap read:
 - Card source reads `softbook_card_sources` by track. Development mode seeds the CET4/CET6 records when a track document is missing; production bootstrap never seeds development content and fails closed. The legacy card-source response envelope remains the same one parsed by the mobile app.
 - The router uses classic event-style `exports.main` so it can be bound to CloudBase HTTP access service paths such as `/softbook-api`.
 
-Deploy from this folder:
+The tracked `cloudbaserc.json` deliberately contains no environment variable
+values. Runtime variables are managed through a temporary mode-`0600` config
+created by the guarded manager, so a code deploy cannot replace strong secrets
+with tracked defaults.
+
+## Guarded Dev Deployment
+
+All operations are pinned to `test-d2gzcyxr9f7e80972`, `softbook-api`, and the
+known dev HTTP base URL. `configure`, `deploy`, and `rollback` are dry-run by
+default. Their reports and redacted logs are written only to ignored
+`exports/cloudbase-deployments/`. Cloud writes additionally require Node
+`22.13.0`, a clean local `main`, and `HEAD` exactly equal to `origin/main`.
+
+Read-only remote preflight:
 
 ```bash
-cd infra/cloudbase
-node provision-softbook-nosql.mjs
-./deploy-softbook-api.sh
+node infra/cloudbase/manage-softbook-api.mjs preflight
 ```
 
-The default HTTP access path is `/softbook-api`, so the mobile runtime `SOFTBOOK_CET_REMOTE_BASE_URL` should point to that access root. The handler normalizes versioned paths with or without that prefix.
+Preflight checks the environment, function metadata, runtime variable names and
+strength without recording values, all required NoSQL collections, identity
+document counts, immutable function versions, traffic routes, and both dev card
+sources. Add `--require-main` when checking whether the current checkout is
+deployable.
+
+For a new dev environment only, review and explicitly apply the collection
+provisioning plan before configuration:
+
+```bash
+node infra/cloudbase/provision-softbook-nosql.mjs
+node infra/cloudbase/provision-softbook-nosql.mjs --apply
+```
+
+Secure runtime configuration:
+
+```bash
+node infra/cloudbase/manage-softbook-api.mjs configure
+node infra/cloudbase/manage-softbook-api.mjs configure --apply
+```
+
+The apply form requires a clean local `main` exactly equal to `origin/main`.
+It preserves unknown existing variables, sets explicit development runtime
+values, and creates distinct 32+ character auth token/index secrets with a
+minimum character-diversity check only while no v2 identity-bound documents
+exist. It never records those values. Once identity data exists, missing or
+weak auth secrets fail closed instead of changing account identity or silently
+revoking sessions.
+
+Build and validate the exact deployment artifact without writing CloudBase:
+
+```bash
+infra/cloudbase/deploy-softbook-api.sh
+```
+
+After the tooling PR is merged and the local clean `main` is fast-forwarded,
+apply the deployment:
+
+```bash
+infra/cloudbase/deploy-softbook-api.sh --apply
+```
+
+The apply flow performs a clean dependency install, runs the full backend test
+suite, downloads and hashes the current remote source, publishes a pre-deploy
+immutable version, updates code without replacing function configuration or
+the HTTP route, downloads the new source for exact manifest comparison, runs a
+write-enabled isolated CET4 smoke and a CET6 smoke, then publishes a verified
+version. Each publication must resolve to one newly created immutable version
+ID, which is recorded in the mode-`0600` deployment report. Any failure after
+the code update attempts an automatic source restore and verifies the restored
+manifest.
+
+Manual rollback accepts either a deployment run directory or its `backup`
+subdirectory:
+
+```bash
+node infra/cloudbase/manage-softbook-api.mjs rollback \
+  --backup exports/cloudbase-deployments/<deploy-run>
+node infra/cloudbase/manage-softbook-api.mjs rollback \
+  --backup exports/cloudbase-deployments/<deploy-run> \
+  --apply
+```
+
+The default HTTP access path remains `/softbook-api`, so the mobile runtime
+`SOFTBOOK_CET_REMOTE_BASE_URL` should point to that access root. The handler
+normalizes versioned paths with or without that prefix. A successful dev deploy
+does not prove production readiness, formal content approval, or GitHub
+required checks.
 
 Expected CloudBase shape: function detail should show `Handler: index.main` and `Type: Event`. The public REST route is provided by the HTTP access service, not by CloudBase Web Function mode.
 
-Recommended development environment variables:
+Managed development environment variables:
 
-```bash
-export SOFTBOOK_STORE_MODE=cloudbase
-export SOFTBOOK_SMS_DEV_CODE=2468
-export SOFTBOOK_AUTH_TOKEN_SECRET="<dev-only-random-secret>"
-export SOFTBOOK_AUTH_INDEX_SECRET="<stable-dev-index-secret>"
-export SOFTBOOK_API_KEY="<optional-shared-dev-api-key>"
-export SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT=9
-export SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS=90
-export SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS=300
+```text
+SOFTBOOK_STORE_MODE=cloudbase
+SOFTBOOK_RUNTIME_MODE=development
+SOFTBOOK_SMS_DEV_CODE=2468
+SOFTBOOK_AUTH_TOKEN_SECRET=<managed strong dev secret>
+SOFTBOOK_AUTH_INDEX_SECRET=<managed stable strong dev secret>
+SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT=9
+SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS=90
+SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS=300
 ```
 
 Local function tests:
