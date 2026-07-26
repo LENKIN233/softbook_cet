@@ -66,7 +66,8 @@
 - `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`.
 - Final pre-PR `scripts/run_local_gates --profile dev` -> 18/18 passed; report `exports/local-gates/cloudbase-deployment-determinism-dev-pre-pr.json`.
 - Initial strict PR profile -> failed closed only on the intentionally pending Agent review template, local Ruby 4.0 path, and missing topic-branch fetch refspec; 27/30 gates passed. Ruby 3.3 and the exact topic refspec are available for the final rerun.
-- Final strict PR profile and GitHub required checks -> pending.
+- Strict PR profile with Python 3.12, Node 22.13.0, and Ruby 3.3 -> 30/30 passed with no exceptions, skips, or deferrals. The final-head rerun writes `exports/local-gates/cloudbase-deployment-determinism-pr-final.json`.
+- GitHub required checks -> pending.
 - `git diff --check` -> passed.
 
 ## Agent review status
