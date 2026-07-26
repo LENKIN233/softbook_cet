@@ -171,11 +171,18 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "22.13.0"
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - name: Install mobile dependency tree
+        working-directory: apps/mobile
+        run: npm ci
 
       - name: Test dependency policies
         run: |
           node scripts/test_validate_dependency_security.mjs
           node scripts/test_normalize_react_native_podspecs.mjs
+          npm --prefix apps/mobile run test:brace-expansion-compat
 
       - name: Validate dependency security
         run: node scripts/validate_dependency_security.mjs
