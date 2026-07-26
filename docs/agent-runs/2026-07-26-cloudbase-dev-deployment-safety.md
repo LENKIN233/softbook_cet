@@ -4,7 +4,7 @@
 
 - Date: 2026-07-26
 - Branch: `infra/cloudbase-dev-deploy-safety`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/445
 - Summary: Replace the direct force-deploy path with an allowlisted, dry-run-by-default CloudBase dev manager that proves preflight state, protects runtime secrets, creates exact backup/deployment manifests, verifies live smoke, and automatically restores code or configuration after failed writes.
 
 ## Referenced specs
