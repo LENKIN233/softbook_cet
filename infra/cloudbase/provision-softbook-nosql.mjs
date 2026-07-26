@@ -7,7 +7,12 @@ import {
   DEV_ENV_ID,
   REQUIRED_COLLECTIONS,
   REQUIRED_DEPLOYMENT_NODE_VERSION,
+  buildCreateTableArguments,
+  buildListTablesArguments,
   evaluateRepositoryState,
+  inspectCollectionCatalog,
+  inspectEnvironment,
+  parseTcbJson,
   redactText,
 } from "./deployment-safety.mjs";
 
@@ -16,6 +21,7 @@ const repositoryRoot = resolve(
   "../.."
 );
 const requestedEnvId = process.env.CLOUDBASE_ENV_ID || DEV_ENV_ID;
+const tcb = process.env.CLOUDBASE_CLI || "tcb";
 // Contract mirrors intentionally audit these literal entries.
 // prettier-ignore
 const collections = [
@@ -39,7 +45,7 @@ const collections = [
 ];
 
 const args = process.argv.slice(2);
-const unknownArgs = args.filter((arg) => arg !== "--apply");
+const unknownArgs = args.filter((argument) => argument !== "--apply");
 
 if (unknownArgs.length > 0) {
   console.error(
@@ -64,13 +70,13 @@ if (JSON.stringify(collections) !== JSON.stringify([...REQUIRED_COLLECTIONS])) {
 
 if (!args.includes("--apply")) {
   console.log(
-    `[cloudbase-provision] dry-run: ${collections.length} collections in ${DEV_ENV_ID}`
+    `[cloudbase-provision] dry-run: require ${collections.length} collections in ${DEV_ENV_ID}`
   );
   for (const collection of collections) {
-    console.log(`[cloudbase-provision] planned: ${collection}`);
+    console.log(`[cloudbase-provision] required: ${collection}`);
   }
   console.log(
-    "[cloudbase-provision] no CloudBase write; re-run with --apply after review."
+    "[cloudbase-provision] no CloudBase write and no remote read; apply lists the real catalog and creates only missing allowlisted collections."
   );
   process.exit(0);
 }
@@ -96,60 +102,119 @@ if (!repository.ok) {
   process.exit(1);
 }
 
-const now = new Date().toISOString();
-const command = JSON.stringify(
-  collections.map((collectionName) => ({
-    TableName: collectionName,
-    CommandType: "UPDATE",
-    Command: JSON.stringify({
-      update: collectionName,
-      updates: [
-        {
-          q: {_id: "__provision__"},
-          u: {
-            $set: {
-              kind: "provision",
-              updated_at: now,
-            },
-          },
-          upsert: true,
-        },
-      ],
-    }),
-  }))
-);
-const result = spawnSync(
-  "tcb",
-  ["db", "nosql", "execute", "-e", DEV_ENV_ID, "--command", command, "--json"],
-  {
+try {
+  const environment = inspectEnvironment(
+    parseTcbJson(
+      runTcb(
+        ["env", "detail", "-e", DEV_ENV_ID, "--json", "--yes"],
+        "read environment"
+      )
+    )
+  );
+
+  if (!environment.ok) {
+    throw new Error(environment.errors.join("; "));
+  }
+
+  let catalog = readCatalog(environment.database_instance_id);
+  const initiallyMissing = [...catalog.missing_required_collections];
+
+  for (const collection of initiallyMissing) {
+    const result = spawnTcb(
+      buildCreateTableArguments(environment.database_instance_id, collection)
+    );
+
+    if (result.status !== 0 || result.error) {
+      catalog = readCatalog(environment.database_instance_id);
+
+      if (!catalog.collection_names.includes(collection)) {
+        throw processError(`create ${collection}`, result);
+      }
+    }
+
+    console.log(`[cloudbase-provision] created: ${collection}`);
+  }
+
+  catalog = waitForRequiredCatalog(environment.database_instance_id);
+
+  console.log(
+    `[cloudbase-provision] verified: ${collections.length}/${collections.length} required collections; created ${initiallyMissing.length}.`
+  );
+} catch (error) {
+  console.error(`[cloudbase-provision] ${redactText(error.message)}`);
+  process.exit(1);
+}
+
+function readCatalog(databaseInstanceId) {
+  return inspectCollectionCatalog(
+    parseTcbJson(
+      runTcb(
+        buildListTablesArguments(databaseInstanceId),
+        "read collection catalog"
+      )
+    )
+  );
+}
+
+function waitForRequiredCatalog(databaseInstanceId) {
+  let catalog;
+
+  for (let attempt = 0; attempt < 15; attempt += 1) {
+    catalog = readCatalog(databaseInstanceId);
+
+    if (catalog.required_collections_present) {
+      return catalog;
+    }
+
+    sleep(1000);
+  }
+
+  throw new Error(
+    `Required collections are still missing: ${catalog.missing_required_collections.join(
+      ", "
+    )}`
+  );
+}
+
+function runTcb(commandArgs, label) {
+  const result = spawnTcb(commandArgs);
+
+  if (result.status !== 0 || result.error) {
+    throw processError(label, result);
+  }
+
+  return result.stdout;
+}
+
+function spawnTcb(commandArgs) {
+  return spawnSync(tcb, commandArgs, {
+    cwd: repositoryRoot,
     encoding: "utf8",
     maxBuffer: 16 * 1024 * 1024,
-  }
-);
-
-if (result.stdout?.trim()) {
-  console.log(redactText(result.stdout).trim());
+    timeout: 120_000,
+  });
 }
 
-if (result.stderr?.trim()) {
-  console.error(redactText(result.stderr).trim());
+function processError(label, result) {
+  const diagnostic =
+    result.stderr || result.stdout || result.error?.message || "unknown error";
+  return new Error(`${label} failed: ${redactText(diagnostic).slice(-2000)}`);
 }
 
-if (result.error) {
-  console.error(`[cloudbase-provision] ${redactText(result.error.message)}`);
+function sleep(milliseconds) {
+  const shared = new SharedArrayBuffer(4);
+  Atomics.wait(new Int32Array(shared), 0, 0, milliseconds);
 }
 
-process.exit(result.status ?? 1);
-
-function runGit(args) {
-  const result = spawnSync("git", args, {
+function runGit(commandArgs) {
+  const result = spawnSync("git", commandArgs, {
     cwd: repositoryRoot,
     encoding: "utf8",
   });
 
   if (result.error || result.status !== 0) {
     console.error(
-      `[cloudbase-provision] git ${args[0]} failed: ${
+      `[cloudbase-provision] git ${commandArgs[0]} failed: ${
         result.stderr || result.error?.message || "unknown error"
       }`
     );

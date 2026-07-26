@@ -129,6 +129,23 @@ test("function inspection treats the dev-only description as deployable metadata
   assert.match(inspection.errors.join("\n"), /description/);
 });
 
+test("function inspection requires bundled dependencies", () => {
+  const payload = functionPayload({
+    SOFTBOOK_AUTH_INDEX_SECRET: indexSecret,
+    SOFTBOOK_AUTH_TOKEN_SECRET: tokenSecret,
+    ...safety.MANAGED_RUNTIME_VALUES,
+  });
+  payload.data.InstallDependency = "TRUE";
+  const inspection = safety.inspectFunctionAndRuntime(
+    safety.extractFunctionState(payload),
+    new Map()
+  );
+
+  assert.equal(safety.EXPECTED_FUNCTION_CONFIG.installDependency, false);
+  assert.equal(inspection.ok, false);
+  assert.match(inspection.errors.join("\n"), /dependency installation/);
+});
+
 test("runtime configuration plans stable strong secrets only before identity data exists", () => {
   const functionState = safety.extractFunctionState(
     functionPayload({
@@ -203,6 +220,104 @@ test("collection probes parse extended JSON counts and preserve probe identity",
   assert.equal(command.length, 2);
   assert.equal(counts.get(probes[0].id), 3);
   assert.equal(counts.get(probes[1].id), 0);
+});
+
+test("real collection catalog prevents zero-count false positives", () => {
+  const counts = new Map(
+    safety.REQUIRED_COLLECTIONS.map((collection) => [
+      `collection:${collection}`,
+      0,
+    ])
+  );
+  const catalog = safety.inspectCollectionCatalog({
+    data: {
+      Pager: {Limit: 100, Offset: 0, Total: 2},
+      Tables: [
+        {TableName: "softbook_card_sources"},
+        {TableName: "softbook_memberships"},
+      ],
+    },
+  });
+  const summary = safety.summarizeCollectionState(
+    counts,
+    catalog.collection_names
+  );
+
+  assert.equal(catalog.required_collections_present, false);
+  assert.equal(summary.required_collections_present, false);
+  assert.equal(
+    summary.missing_required_collections.includes("softbook_auth_sessions"),
+    true
+  );
+  assert.deepEqual(
+    safety.inspectCollectionCatalog({
+      data: {
+        Pager: {Limit: 100, Offset: 0, Total: 0},
+        Tables: null,
+      },
+    }).collection_names,
+    []
+  );
+  assert.throws(
+    () =>
+      safety.inspectCollectionCatalog({
+        data: {
+          Pager: {Limit: 1, Offset: 0, Total: 2},
+          Tables: [{TableName: "softbook_card_sources"}],
+        },
+      }),
+    /incomplete/
+  );
+});
+
+test("collection management commands are environment and table allowlisted", () => {
+  const listArguments = safety.buildListTablesArguments("tnt-contract123");
+  const createArguments = safety.buildCreateTableArguments(
+    "tnt-contract123",
+    "softbook_auth_sessions"
+  );
+
+  assert.deepEqual(listArguments.slice(0, 5), [
+    "-e",
+    safety.DEV_ENV_ID,
+    "api",
+    "flexdb",
+    "ListTables",
+  ]);
+  assert.equal(JSON.parse(listArguments.at(-2)).Tag, "tnt-contract123");
+  assert.equal(createArguments.includes("CreateTable"), true);
+  assert.deepEqual(JSON.parse(createArguments.at(-2)), {
+    TableName: "softbook_auth_sessions",
+    Tag: "tnt-contract123",
+  });
+  assert.throws(
+    () =>
+      safety.buildCreateTableArguments(
+        "tnt-contract123",
+        "unrelated_collection"
+      ),
+    /not allowlisted/
+  );
+  assert.throws(() => safety.buildListTablesArguments("production"));
+});
+
+test("environment inspection exposes only the database instance identifier", () => {
+  const inspection = safety.inspectEnvironment({
+    data: {
+      alias: "development",
+      envId: safety.DEV_ENV_ID,
+      envType: "BASIC",
+      packageName: "BASIC",
+      region: "ap-shanghai",
+      resources: {
+        databases: [{InstanceId: "tnt-contract123", Status: "RUNNING"}],
+      },
+      status: "NORMAL",
+    },
+  });
+
+  assert.equal(inspection.ok, true);
+  assert.equal(inspection.database_instance_id, "tnt-contract123");
 });
 
 test("repository deployment state requires clean main at exact origin main", () => {
@@ -356,6 +471,7 @@ test("managed CloudBase config contains complete values only in memory", () => {
 
   assert.equal(config.envId, safety.DEV_ENV_ID);
   assert.equal(config.functions[0].handler, "index.main");
+  assert.equal(config.functions[0].installDependency, false);
   assert.equal(
     config.functions[0].description,
     safety.EXPECTED_FUNCTION_CONFIG.description
@@ -394,6 +510,26 @@ test("deployment artifacts include runtime dependencies without npm command shim
   assert.equal(
     manager.shouldIncludeArtifactPath(join("test", "runtime.test.js")),
     false
+  );
+});
+
+test("tracked function config and deployment verification preserve the exact package", () => {
+  const config = JSON.parse(
+    readFileSync(resolve(__dirname, "../../../cloudbaserc.json"), "utf8")
+  );
+  const managerSource = readFileSync(
+    resolve(__dirname, "../../../manage-softbook-api.mjs"),
+    "utf8"
+  );
+
+  assert.equal(config.functions[0].installDependency, false);
+  assert.match(
+    managerSource,
+    /verifyRemoteManifest\(\s*context,\s*build\.packageManifest,\s*"deployed-verification",\s*\{fullPackage: true\}/
+  );
+  assert.doesNotMatch(
+    managerSource,
+    /verifyRemoteManifest\(\s*context,\s*build\.manifest,\s*"deployed-verification"/
   );
 });
 
@@ -447,7 +583,7 @@ function functionPayload(runtimeVariables) {
       FunctionName: safety.DEV_FUNCTION_NAME,
       FunctionVersion: "$LATEST",
       Handler: safety.EXPECTED_FUNCTION_CONFIG.handler,
-      InstallDependency: "TRUE",
+      InstallDependency: "FALSE",
       MemorySize: safety.EXPECTED_FUNCTION_CONFIG.memorySize,
       ModTime: "2026-07-26 00:00:00",
       Qualifier: "$LATEST",

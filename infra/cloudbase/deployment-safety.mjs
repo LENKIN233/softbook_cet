@@ -13,12 +13,14 @@ export const DEV_FUNCTION_NAME = "softbook-api";
 export const DEV_HTTP_PATH = "/softbook-api";
 export const DEV_BASE_URL =
   "https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api";
+export const FLEXDB_API_VERSION = "2018-11-27";
 export const REQUIRED_DEPLOYMENT_NODE_VERSION = "22.13.0";
 
 export const EXPECTED_FUNCTION_CONFIG = Object.freeze({
   description:
     "Softbook CET CloudBase dev v2 integration runtime (not production)",
   handler: "index.main",
+  installDependency: false,
   memorySize: 256,
   runtime: "Nodejs20.19",
   timeout: 10,
@@ -175,6 +177,50 @@ export function validateTarget({
   };
 }
 
+export function inspectEnvironment(payload) {
+  const data = payload?.data;
+
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("Environment detail is missing data.");
+  }
+
+  const database = Array.isArray(data.resources?.databases)
+    ? data.resources.databases[0]
+    : null;
+  const errors = [];
+
+  if (data.envId !== DEV_ENV_ID) {
+    errors.push(`environment id must be ${DEV_ENV_ID}`);
+  }
+
+  if (data.status !== "NORMAL") {
+    errors.push(`environment status must be NORMAL, received ${data.status}`);
+  }
+
+  if (data.region !== "ap-shanghai") {
+    errors.push(
+      `environment region must be ap-shanghai, received ${data.region}`
+    );
+  }
+
+  if (!database || database.Status !== "RUNNING") {
+    errors.push("CloudBase NoSQL database must be RUNNING");
+  }
+
+  return {
+    alias: data.alias ?? null,
+    database_instance_id: database?.InstanceId ?? null,
+    database_status: database?.Status ?? null,
+    env_id: data.envId ?? null,
+    env_type: data.envType ?? null,
+    errors,
+    ok: errors.length === 0,
+    package_name: data.packageName ?? null,
+    region: data.region ?? null,
+    status: data.status ?? null,
+  };
+}
+
 export function extractFunctionState(payload) {
   const data = requireObject(payload?.data, "function detail data");
   const variables = data.Environment?.Variables;
@@ -270,7 +316,7 @@ export function inspectFunctionAndRuntime(functionState, counts = new Map()) {
     errors,
     "function dependency installation",
     metadata.install_dependency,
-    "TRUE"
+    EXPECTED_FUNCTION_CONFIG.installDependency ? "TRUE" : "FALSE"
   );
 
   if (metadata.trigger_count !== 0) {
@@ -500,9 +546,11 @@ export function parseCountResults(payload, probes = buildCountProbes()) {
   return counts;
 }
 
-export function summarizeCounts(counts) {
+export function summarizeCollectionState(counts, collectionNames) {
   const collectionCounts = {};
   const identityCounts = {};
+  const actualCollectionNames = [...new Set(collectionNames)].sort();
+  const actualCollectionNameSet = new Set(actualCollectionNames);
 
   for (const [id, count] of counts.entries()) {
     if (id.startsWith("collection:")) {
@@ -519,10 +567,111 @@ export function summarizeCounts(counts) {
       (sum, count) => sum + count,
       0
     ),
+    actual_collection_names: actualCollectionNames,
+    missing_required_collections: REQUIRED_COLLECTIONS.filter(
+      (name) => !actualCollectionNameSet.has(name)
+    ),
     required_collections_present: REQUIRED_COLLECTIONS.every((name) =>
-      Object.hasOwn(collectionCounts, name)
+      actualCollectionNameSet.has(name)
     ),
   };
+}
+
+export function inspectCollectionCatalog(payload) {
+  const data = payload?.data;
+  const tables = data?.Tables === null ? [] : data?.Tables;
+  const pager = data?.Pager;
+
+  if (
+    !data ||
+    typeof data !== "object" ||
+    !Array.isArray(tables) ||
+    !pager ||
+    !Number.isInteger(pager.Total) ||
+    pager.Total < 0
+  ) {
+    throw new Error("CloudBase collection catalog is invalid.");
+  }
+
+  const collectionNames = tables.map((table) => {
+    if (!table || typeof table.TableName !== "string" || !table.TableName) {
+      throw new Error(
+        "CloudBase collection catalog contains an invalid table."
+      );
+    }
+
+    return table.TableName;
+  });
+  const uniqueNames = [...new Set(collectionNames)].sort();
+
+  if (uniqueNames.length !== collectionNames.length) {
+    throw new Error("CloudBase collection catalog contains duplicate tables.");
+  }
+
+  if (pager.Total !== collectionNames.length) {
+    throw new Error(
+      `CloudBase collection catalog is incomplete: received ${collectionNames.length} of ${pager.Total}.`
+    );
+  }
+
+  return {
+    collection_names: uniqueNames,
+    missing_required_collections: REQUIRED_COLLECTIONS.filter(
+      (name) => !uniqueNames.includes(name)
+    ),
+    required_collections_present: REQUIRED_COLLECTIONS.every((name) =>
+      uniqueNames.includes(name)
+    ),
+    total: pager.Total,
+  };
+}
+
+export function buildListTablesArguments(databaseInstanceId) {
+  const tag = requireDatabaseInstanceId(databaseInstanceId);
+
+  return [
+    "-e",
+    DEV_ENV_ID,
+    "api",
+    "flexdb",
+    "ListTables",
+    "--api-version",
+    FLEXDB_API_VERSION,
+    "--body",
+    JSON.stringify({MgoLimit: 100, MgoOffset: 0, Tag: tag}),
+    "--json",
+  ];
+}
+
+export function buildCreateTableArguments(databaseInstanceId, tableName) {
+  const tag = requireDatabaseInstanceId(databaseInstanceId);
+
+  if (!REQUIRED_COLLECTIONS.includes(tableName)) {
+    throw new Error(
+      `Collection is not allowlisted for provisioning: ${tableName}`
+    );
+  }
+
+  return [
+    "-e",
+    DEV_ENV_ID,
+    "api",
+    "flexdb",
+    "CreateTable",
+    "--api-version",
+    FLEXDB_API_VERSION,
+    "--body",
+    JSON.stringify({TableName: tableName, Tag: tag}),
+    "--json",
+  ];
+}
+
+function requireDatabaseInstanceId(value) {
+  if (typeof value !== "string" || !/^tnt-[a-z0-9]+$/.test(value)) {
+    throw new Error("CloudBase database instance ID is missing or invalid.");
+  }
+
+  return value;
 }
 
 export function evaluateRepositoryState({branch, head, originMain, porcelain}) {
