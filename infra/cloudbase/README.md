@@ -168,18 +168,23 @@ node infra/cloudbase/manage-softbook-api.mjs preflight
 ```
 
 Preflight checks the environment, function metadata, runtime variable names and
-strength without recording values, all required NoSQL collections, identity
+strength without recording values, the real FlexDB table catalog, identity
 document counts, immutable function versions, traffic routes, and both dev card
-sources. Add `--require-main` when checking whether the current checkout is
-deployable.
+sources. A zero count does not prove that a collection exists. Add
+`--require-main` when checking whether the current checkout is deployable.
 
-For a new dev environment only, review and explicitly apply the collection
-provisioning plan before configuration:
+For a new dev environment or after the required catalog changes, review and
+explicitly apply the collection provisioning plan before configuration:
 
 ```bash
 node infra/cloudbase/provision-softbook-nosql.mjs
 node infra/cloudbase/provision-softbook-nosql.mjs --apply
 ```
+
+The apply form uses the public CloudBase `DescribeTables` / `CreateTable` API,
+creates only missing allowlisted collections, and verifies the complete
+required catalog after all writes. It is idempotent and does not add
+placeholder documents.
 
 Secure runtime configuration:
 
@@ -212,14 +217,16 @@ infra/cloudbase/deploy-softbook-api.sh --apply
 ```
 
 The apply flow performs a clean dependency install, runs the full backend test
-suite, downloads and hashes the current remote source, publishes a pre-deploy
-immutable version, updates code without replacing function configuration or
-the HTTP route, downloads the new source for exact manifest comparison, runs a
-write-enabled isolated CET4 smoke and a CET6 smoke, then publishes a verified
-version. Each publication must resolve to one newly created immutable version
-ID, which is recorded in the mode-`0600` deployment report. Any failure after
-the code update attempts an automatic source restore and verifies the restored
-manifest.
+suite, downloads and hashes the current remote package, publishes a pre-deploy
+immutable version, and updates code without replacing the HTTP route. Function
+configuration fixes `installDependency: false`, so CloudBase must execute the
+bundled lockfile-resolved dependencies instead of silently running `npm
+install`. The manager downloads and compares the complete deployed package,
+runs a write-enabled isolated CET4 smoke and a CET6 smoke, then publishes a
+verified version. Each publication must resolve to one newly created immutable
+version ID, which is recorded in the mode-`0600` deployment report. Any failure
+after the code update attempts an automatic package restore and verifies the
+complete restored package.
 
 Manual rollback accepts either a deployment run directory or its `backup`
 subdirectory:

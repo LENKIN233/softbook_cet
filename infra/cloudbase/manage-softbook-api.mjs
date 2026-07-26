@@ -30,11 +30,14 @@ import {
   REQUIRED_DEPLOYMENT_NODE_VERSION,
   buildCountCommand,
   buildCountProbes,
+  buildDescribeTablesArguments,
   compareSourceManifests,
   createSourceManifest,
   evaluateRepositoryState,
   extractFunctionState,
   identifyPublishedVersion,
+  inspectCollectionCatalog,
+  inspectEnvironment,
   inspectFunctionAndRuntime,
   nativeModulePaths,
   nodeVersionAtLeast,
@@ -42,7 +45,7 @@ import {
   parseTcbJson,
   planRuntimeConfiguration,
   redactText,
-  summarizeCounts,
+  summarizeCollectionState,
   validateTarget,
 } from "./deployment-safety.mjs";
 
@@ -128,49 +131,6 @@ export function parseArguments(argv) {
   return options;
 }
 
-export function inspectEnvironment(payload) {
-  const data = payload?.data;
-
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    throw new Error("Environment detail is missing data.");
-  }
-
-  const database = Array.isArray(data.resources?.databases)
-    ? data.resources.databases[0]
-    : null;
-  const errors = [];
-
-  if (data.envId !== DEV_ENV_ID) {
-    errors.push(`environment id must be ${DEV_ENV_ID}`);
-  }
-
-  if (data.status !== "NORMAL") {
-    errors.push(`environment status must be NORMAL, received ${data.status}`);
-  }
-
-  if (data.region !== "ap-shanghai") {
-    errors.push(
-      `environment region must be ap-shanghai, received ${data.region}`
-    );
-  }
-
-  if (!database || database.Status !== "RUNNING") {
-    errors.push("CloudBase NoSQL database must be RUNNING");
-  }
-
-  return {
-    alias: data.alias ?? null,
-    database_status: database?.Status ?? null,
-    env_id: data.envId ?? null,
-    env_type: data.envType ?? null,
-    errors,
-    ok: errors.length === 0,
-    package_name: data.packageName ?? null,
-    region: data.region ?? null,
-    status: data.status ?? null,
-  };
-}
-
 export function buildCloudBaseConfig(
   runtimeValues,
   functionConfig = EXPECTED_FUNCTION_CONFIG
@@ -187,6 +147,7 @@ export function buildCloudBaseConfig(
           )
         ),
         handler: functionConfig.handler,
+        installDependency: functionConfig.installDependency,
         memorySize: functionConfig.memorySize,
         name: DEV_FUNCTION_NAME,
         runtime: functionConfig.runtime,
@@ -338,6 +299,7 @@ function commandPreflight(context) {
   const errors = [
     ...target.errors,
     ...remote.environment.errors,
+    ...remote.collectionCatalogErrors,
     ...remote.functionInspection.errors,
     ...(repositoryOk ? [] : context.repository.errors),
   ];
@@ -391,6 +353,7 @@ function commandConfigure(context) {
   const errors = [
     ...target.errors,
     ...remoteBefore.environment.errors,
+    ...remoteBefore.collectionCatalogErrors,
     ...functionOperationalErrors(remoteBefore.functionState),
   ];
 
@@ -521,8 +484,12 @@ function commandConfigure(context) {
 function commandDeploy(context) {
   const remoteBefore = readRemoteState(context);
   const target = validateTarget();
-  const errors = [...target.errors, ...remoteBefore.environment.errors];
+  const errors = [
+    ...target.errors,
+    ...remoteBefore.environment.errors,
+  ];
   const deployabilityErrors = [
+    ...remoteBefore.collectionCatalogErrors,
     ...remoteBefore.functionInspection.errors,
     ...context.repository.errors,
   ];
@@ -584,6 +551,7 @@ function commandDeploy(context) {
   );
   let backupManifest = null;
   let codeUpdateAttempted = false;
+  let deployedVerification = null;
   let preDeployVersion = null;
   let rollback = null;
   let verifiedVersion = null;
@@ -620,10 +588,11 @@ function commandDeploy(context) {
       }
     );
     waitForFunctionReady(context, "deployed-function-ready");
-    const deployedVerification = verifyRemoteSource(
+    deployedVerification = verifyRemoteManifest(
       context,
-      build.manifest,
-      "deployed-verification"
+      build.packageManifest,
+      "deployed-verification",
+      {fullPackage: true}
     );
     runLiveSmoke(context, "cet4", true);
     runLiveSmoke(context, "cet6", false);
@@ -643,7 +612,13 @@ function commandDeploy(context) {
         deployment_package_manifest_file: relativeToRepository(
           build.packageManifestPath
         ),
-        deployed_source_manifest: deployedVerification.manifest,
+        deployed_package_comparison: deployedVerification.comparison,
+        deployed_package_manifest: summarizeManifest(
+          deployedVerification.manifest
+        ),
+        deployed_source_manifest: createSourceManifest(
+          deployedVerification.directory
+        ),
         local_source_manifest: build.manifest,
       },
       deployment_versions: {
@@ -679,6 +654,17 @@ function commandDeploy(context) {
         deployment_package_manifest_file: relativeToRepository(
           build.packageManifestPath
         ),
+        ...(deployedVerification
+          ? {
+              deployed_package_comparison: deployedVerification.comparison,
+              deployed_package_manifest: summarizeManifest(
+                deployedVerification.manifest
+              ),
+              deployed_source_manifest: createSourceManifest(
+                deployedVerification.directory
+              ),
+            }
+          : {}),
         local_source_manifest: build.manifest,
       },
       deployment_versions: {
@@ -814,16 +800,36 @@ function functionConfigFromState(functionState) {
   return {
     description: functionState.public.description,
     handler: functionState.public.handler,
+    installDependency: parseInstallDependency(
+      functionState.public.install_dependency
+    ),
     memorySize: functionState.public.memory_size,
     runtime: functionState.public.runtime,
     timeout: functionState.public.timeout,
   };
 }
 
+function parseInstallDependency(value) {
+  if (value === "TRUE") {
+    return true;
+  }
+
+  if (value === "FALSE") {
+    return false;
+  }
+
+  return null;
+}
+
 function functionConfigDifferences(actualConfig, expectedConfig) {
   return [
     ["description", actualConfig.description, expectedConfig.description],
     ["handler", actualConfig.handler, expectedConfig.handler],
+    [
+      "install_dependency",
+      actualConfig.installDependency,
+      expectedConfig.installDependency,
+    ],
     ["memory_size", actualConfig.memorySize, expectedConfig.memorySize],
     ["runtime", actualConfig.runtime, expectedConfig.runtime],
     ["timeout", actualConfig.timeout, expectedConfig.timeout],
@@ -873,6 +879,11 @@ function compareExactFunctionConfiguration(
   const metadataChecks = [
     ["description", actualState.public.description, expectedConfig.description],
     ["handler", actualState.public.handler, expectedConfig.handler],
+    [
+      "install dependency",
+      actualState.public.install_dependency,
+      expectedConfig.installDependency ? "TRUE" : "FALSE",
+    ],
     ["memory", actualState.public.memory_size, expectedConfig.memorySize],
     ["runtime", actualState.public.runtime, expectedConfig.runtime],
     ["timeout", actualState.public.timeout, expectedConfig.timeout],
@@ -893,6 +904,16 @@ function readRemoteState(context) {
       label: "read-environment",
     })
   );
+  const environment = inspectEnvironment(environmentPayload);
+  const collectionCatalog = inspectCollectionCatalog(
+    parseTcbJson(
+      runTcb(
+        context,
+        buildDescribeTablesArguments(environment.database_instance_id),
+        {label: "read-collection-catalog"}
+      )
+    )
+  );
   const functionPayload = parseTcbJson(
     runTcb(context, ["fn", "detail", DEV_FUNCTION_NAME, "--json"], {
       label: "read-function",
@@ -911,23 +932,29 @@ function readRemoteState(context) {
       label: "read-route",
     })
   );
-  const probes = buildCountProbes();
-  const countPayload = parseTcbJson(
-    runTcb(
-      context,
-      [
-        "db",
-        "nosql",
-        "execute",
-        "-e",
-        DEV_ENV_ID,
-        "--command",
-        buildCountCommand(probes),
-        "--json",
-      ],
-      {label: "read-collection-counts"}
-    )
+  const collectionNameSet = new Set(collectionCatalog.collection_names);
+  const probes = buildCountProbes().filter((probe) =>
+    collectionNameSet.has(probe.collection)
   );
+  const countPayload =
+    probes.length === 0
+      ? {data: {results: []}}
+      : parseTcbJson(
+          runTcb(
+            context,
+            [
+              "db",
+              "nosql",
+              "execute",
+              "-e",
+              DEV_ENV_ID,
+              "--command",
+              buildCountCommand(probes),
+              "--json",
+            ],
+            {label: "read-collection-counts"}
+          )
+        );
   const auditOutput = runProcess(
     context,
     process.execPath,
@@ -950,9 +977,16 @@ function readRemoteState(context) {
         .map((line) => line.trim())
         .filter(Boolean),
     },
+    collectionCatalog,
+    collectionCatalogErrors: collectionCatalog.missing_required_collections.map(
+      (name) => `required CloudBase collection is missing: ${name}`
+    ),
     counts,
-    countSummary: summarizeCounts(counts),
-    environment: inspectEnvironment(environmentPayload),
+    countSummary: summarizeCollectionState(
+      counts,
+      collectionCatalog.collection_names
+    ),
+    environment,
     functionInspection: inspectFunctionAndRuntime(functionState, counts),
     functionState,
     routes: sanitizeRoutes(routePayload?.data),
@@ -1094,7 +1128,7 @@ function copyFunctionSource(
   });
 }
 
-function verifyRemoteSource(
+function verifyRemoteManifest(
   context,
   expectedManifest,
   label,
@@ -1121,11 +1155,13 @@ function verifyRemoteSource(
 
   if (!comparison.ok) {
     throw new Error(
-      `Remote source verification failed: ${JSON.stringify(comparison)}`
+      `Remote ${fullPackage ? "package" : "source"} verification failed: ${JSON.stringify(
+        comparison
+      )}`
     );
   }
 
-  return {comparison, manifest};
+  return {comparison, directory: verificationDirectory, manifest};
 }
 
 function rollbackCode(context, backupDirectory, expectedManifest, label) {
@@ -1148,7 +1184,7 @@ function rollbackCode(context, backupDirectory, expectedManifest, label) {
       }
     );
     waitForFunctionReady(context, `${label}-function-ready`);
-    const verification = verifyRemoteSource(
+    const verification = verifyRemoteManifest(
       context,
       expectedManifest,
       `${label}-verification`,
