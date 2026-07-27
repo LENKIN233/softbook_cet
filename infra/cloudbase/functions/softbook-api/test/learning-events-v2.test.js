@@ -2023,7 +2023,11 @@ function createFakeCloudBaseDb() {
             ? {_id: documentId, ...clone(documents.get(documentId))}
             : null;
           return {
-            data: transactional ? document : document ? [document] : [],
+            data: transactional
+              ? {list: document ? [document] : []}
+              : document
+              ? [document]
+              : [],
           };
         },
         set: async data => {

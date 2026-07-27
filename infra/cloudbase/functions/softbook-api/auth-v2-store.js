@@ -1,4 +1,7 @@
 const crypto = require('node:crypto');
+const {
+  normalizeCloudBaseDocuments,
+} = require('./cloudbase-documents');
 const {isCloudBaseDocumentMissingError} = require('./cloudbase-errors');
 
 function createMemoryAuthStateStore() {
@@ -439,7 +442,7 @@ function revokeSessionRecord(session, revokedAt, reason) {
 async function getDocument(collection, documentId) {
   try {
     const result = await collection.doc(documentId).get();
-    const documents = normalizeDocuments(result.data);
+    const documents = normalizeCloudBaseDocuments(result.data);
     return documents[0] ?? null;
   } catch (error) {
     if (isCloudBaseDocumentMissingError(error)) {
@@ -452,14 +455,6 @@ async function getDocument(collection, documentId) {
 
 async function setDocument(collection, documentId, value) {
   await collection.doc(documentId).set(stripInternalId(value));
-}
-
-function normalizeDocuments(data) {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  return data ? [data] : [];
 }
 
 function stripInternalId(value) {

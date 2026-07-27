@@ -1,5 +1,8 @@
 const crypto = require('node:crypto');
 const {createAuthV2Service} = require('./auth-v2');
+const {
+  normalizeCloudBaseDocuments,
+} = require('./cloudbase-documents');
 const {isCloudBaseDocumentMissingError} = require('./cloudbase-errors');
 const {
   createCloudBaseAuthStateStore,
@@ -1925,11 +1928,7 @@ async function listCloudBaseDocumentsByQuery(
       .skip(offset)
       .limit(pageSize)
       .get();
-    const page = Array.isArray(result.data)
-      ? result.data
-      : result.data
-      ? [result.data]
-      : [];
+    const page = normalizeCloudBaseDocuments(result.data);
     documents.push(...page);
 
     if (documents.length > maximumCount) {
@@ -1986,7 +1985,7 @@ function deserializeMembershipDocument(document) {
 async function getCloudBaseDocument(collection, documentId) {
   try {
     const result = await collection.doc(documentId).get();
-    const data = Array.isArray(result.data) ? result.data[0] : result.data;
+    const data = normalizeCloudBaseDocuments(result.data)[0];
 
     return data ?? null;
   } catch (error) {
