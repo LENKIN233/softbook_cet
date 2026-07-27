@@ -45,13 +45,16 @@
 - `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`.
 - `node scripts/report_repo_health.mjs --full-tree --remote --strict --allow-dirty ...` -> passed with all six repository settings present; the only warning was the expected missing upstream before first push.
 - `scripts/run_local_gates --profile dev` with Node 22.13.0 and Ruby 3.3 -> 18/18 passed.
+- First strict PR profile -> 29/30 because this main-only clone had not retained a remote-tracking ref for the new topic branch; `repo-health-strict` correctly rejected the missing upstream.
+- After adding one exact topic-branch fetch refspec and binding the upstream, strict PR profile -> 30/30 passed.
 
 ## Validation results
 
 - JavaScript syntax checks, `git diff --check`, repository-health regressions, and complete Harness validation passed.
 - Live remote health using the local authenticated GitHub CLI token returned zero errors and the exact required settings: default `main`, auto-merge enabled, merged-branch deletion enabled, squash enabled, merge commits disabled, and rebase merge disabled.
 - Exact-toolchain dev gates passed 18/18; ignored report: `exports/local-gates/repo-health-graphql-settings-dev.json`.
-- Strict PR profile and GitHub required checks remain pending until the branch is pushed and the draft PR exists.
+- Exact-toolchain strict PR gates passed 30/30 with no exceptions, skips, or deferrals; ignored report: `exports/local-gates/repo-health-graphql-settings-pr-final.json`.
+- GitHub required checks remain pending on the final pushed commit.
 
 ## Binary evidence
 
