@@ -4,7 +4,7 @@
 
 - Date: 2026-07-27
 - Branch: `fix/repo-health-graphql-settings`
-- PR: N/A (not created yet)
+- PR: https://github.com/LENKIN233/softbook_cet/pull/450
 - Summary: Restore trusted scheduled repository-health checks by reading all required repository settings from one authenticated GraphQL repository snapshot.
 
 ## Referenced specs
