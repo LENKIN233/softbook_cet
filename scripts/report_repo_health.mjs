@@ -30,6 +30,21 @@ const REQUIRED_REPOSITORY_SETTINGS = Object.freeze({
   allow_merge_commit: false,
   allow_rebase_merge: false,
 });
+const REPOSITORY_SETTINGS_QUERY = `
+  query RepositoryHealthSettings($owner: String!, $name: String!) {
+    repository(owner: $owner, name: $name) {
+      nameWithOwner
+      defaultBranchRef {
+        name
+      }
+      autoMergeAllowed
+      deleteBranchOnMerge
+      squashMergeAllowed
+      mergeCommitAllowed
+      rebaseMergeAllowed
+    }
+  }
+`;
 const FORBIDDEN_TRACKED_PREFIXES = [
   'exports/',
   'docs/agent-runs/artifacts/',
@@ -122,6 +137,28 @@ function parseRemoteJson(raw, {unavailableCode, malformedCode}, errors) {
     errors.push({code: malformedCode});
     return null;
   }
+}
+
+function repositorySettingsFromGraphQl(payload, expectedRepo, errors) {
+  const repository = payload?.data?.repository;
+  if (
+    !repository
+    || typeof repository !== 'object'
+    || Array.isArray(repository)
+    || repository.nameWithOwner !== expectedRepo
+  ) {
+    errors.push({code: 'remote_repository_settings_malformed'});
+    return null;
+  }
+
+  return {
+    default_branch: repository.defaultBranchRef?.name ?? null,
+    allow_auto_merge: repository.autoMergeAllowed ?? null,
+    delete_branch_on_merge: repository.deleteBranchOnMerge ?? null,
+    allow_squash_merge: repository.squashMergeAllowed ?? null,
+    allow_merge_commit: repository.mergeCommitAllowed ?? null,
+    allow_rebase_merge: repository.rebaseMergeAllowed ?? null,
+  };
 }
 
 function resolvesCommit(ref) {
@@ -280,9 +317,23 @@ function remoteSnapshot(errors, warnings) {
     return null;
   }
   const repo = repository.nameWithOwner;
+  const [owner, name, ...extraParts] = repo.split('/');
+  if (!owner || !name || extraParts.length > 0) {
+    errors.push({code: 'remote_repository_malformed'});
+    return null;
+  }
   const repositorySettingsRaw = run(
     'gh',
-    ['api', `repos/${repo}`],
+    [
+      'api',
+      'graphql',
+      '-f',
+      `query=${REPOSITORY_SETTINGS_QUERY}`,
+      '-F',
+      `owner=${owner}`,
+      '-F',
+      `name=${name}`,
+    ],
     {allowFailure: true},
   );
   const repositorySettingsPayload = parseRemoteJson(
@@ -294,11 +345,10 @@ function remoteSnapshot(errors, warnings) {
     errors,
   );
   const repositorySettings = repositorySettingsPayload
-    ? Object.fromEntries(
-      Object.keys(REQUIRED_REPOSITORY_SETTINGS).map(key => [
-        key,
-        repositorySettingsPayload[key] ?? null,
-      ]),
+    ? repositorySettingsFromGraphQl(
+      repositorySettingsPayload,
+      repo,
+      errors,
     )
     : null;
   const mergeMethods = repositorySettings

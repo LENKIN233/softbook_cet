@@ -71,23 +71,32 @@ if (args[0] === 'repo' && args[1] === 'view') {
   process.stdout.write(JSON.stringify({nameWithOwner: 'LENKIN233/softbook_cet'}));
 } else if (args[0] === 'api') {
   const endpoint = args[1];
-  if (endpoint === 'repos/LENKIN233/softbook_cet') {
+  if (endpoint === 'graphql') {
     if (process.env.REPOSITORY_SETTINGS_MALFORMED === 'true') {
       process.stdout.write('null');
     } else {
-      const repository = {};
+      const repository = {
+        nameWithOwner: process.env.GRAPHQL_REPOSITORY_MISMATCH === 'true'
+          ? 'LENKIN233/other-repository'
+          : 'LENKIN233/softbook_cet',
+      };
       if (process.env.REPOSITORY_SETTINGS_MISSING !== 'true') {
-        repository.default_branch = process.env.DEFAULT_BRANCH_DRIFT === 'true'
-          ? 'develop'
-          : 'main';
-        repository.allow_auto_merge = process.env.AUTO_MERGE_DISABLED !== 'true';
-        repository.delete_branch_on_merge = process.env.DELETE_BRANCH_DISABLED !== 'true';
-        repository.allow_squash_merge = process.env.MERGE_METHOD_DRIFT !== 'true';
-        repository.allow_merge_commit = process.env.MERGE_METHOD_DRIFT === 'true';
-        repository.allow_rebase_merge = false;
+        repository.defaultBranchRef = {
+          name: process.env.DEFAULT_BRANCH_DRIFT === 'true'
+            ? 'develop'
+            : 'main',
+        };
+        repository.autoMergeAllowed = process.env.AUTO_MERGE_DISABLED !== 'true';
+        repository.deleteBranchOnMerge = process.env.DELETE_BRANCH_DISABLED !== 'true';
+        repository.squashMergeAllowed = process.env.MERGE_METHOD_DRIFT !== 'true';
+        repository.mergeCommitAllowed = process.env.MERGE_METHOD_DRIFT === 'true';
+        repository.rebaseMergeAllowed = false;
       }
-      process.stdout.write(JSON.stringify(repository));
+      process.stdout.write(JSON.stringify({data: {repository}}));
     }
+  } else if (endpoint === 'repos/LENKIN233/softbook_cet') {
+    process.stderr.write('REST repository settings must not be used\\n');
+    process.exit(1);
   } else if (endpoint.endsWith('/branches/main/protection/required_signatures')) {
     if (process.env.SIGNATURES_MISSING === 'true') process.exit(1);
     process.stdout.write(JSON.stringify({enabled: true}));
@@ -187,6 +196,7 @@ if (args[0] === 'repo' && args[1] === 'view') {
     [{SIGNATURES_MISSING: 'true'}, 'required_signatures_unavailable'],
     [{REPOSITORY_SETTINGS_MISSING: 'true'}, 'remote_repository_settings_unavailable'],
     [{REPOSITORY_SETTINGS_MALFORMED: 'true'}, 'remote_repository_settings_malformed'],
+    [{GRAPHQL_REPOSITORY_MISMATCH: 'true'}, 'remote_repository_settings_malformed'],
     [{DEFAULT_BRANCH_DRIFT: 'true'}, 'default_branch_not_main'],
     [{AUTO_MERGE_DISABLED: 'true'}, 'auto_merge_disabled'],
     [{DELETE_BRANCH_DISABLED: 'true'}, 'merged_branch_auto_delete_disabled'],
