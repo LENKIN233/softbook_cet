@@ -63,7 +63,7 @@
 - Final PR-head dry-run package -> 6,125 files / 33,753,610 bytes / SHA-256 `42401383a853d8d331d53671ab1689a1bb631afadf0173a4452de2cbf79a6172`.
 - Real final-package canary -> `InstallDependency=FALSE`, node-sdk 4.0.3, js-sdk 3.6.2, request HTTP 200, verify HTTP 200, refresh HTTP 200, refresh token rotated, session ID preserved, logout HTTP 204.
 - Post-canary cleanup preflight -> passed; zero auth challenges, rate-limit records, sessions, and other identity-bound documents; only the original `softbook-api` function remained.
-- `python3 scripts/validate_harness.py --mode local` -> `HARNESS VALIDATION OK`.
+- `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`.
 - `scripts/run_local_gates --profile dev` -> 18/18 passed; report `exports/local-gates/cloudbase-transaction-results-dev.json`.
 - Changed JavaScript syntax checks and `git diff --check` -> passed.
 - Strict PR profile -> pending final-head run.
