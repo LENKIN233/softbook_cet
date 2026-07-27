@@ -66,7 +66,7 @@
 - `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`.
 - `scripts/run_local_gates --profile dev` -> 18/18 passed; report `exports/local-gates/cloudbase-transaction-results-dev.json`.
 - Changed JavaScript syntax checks and `git diff --check` -> passed.
-- Strict PR profile -> pending final-head run.
+- Strict PR profile -> 30/30 passed with no exceptions, skips, or deferrals; report `exports/local-gates/cloudbase-transaction-results-pr-final-head.json`.
 - GitHub required checks -> pending.
 
 ## Agent review status
