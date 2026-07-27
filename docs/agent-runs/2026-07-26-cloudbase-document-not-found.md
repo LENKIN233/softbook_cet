@@ -4,7 +4,7 @@
 
 - Date: 2026-07-26
 - Branch: `fix/cloudbase-document-not-found`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/448
 - Summary: Repair the CloudBase v2 request-code runtime after a complete-package deployment proved that the Node SDK reports an absent document with the structured code `DOCUMENT_NOT_FOUND`.
 
 ## Referenced specs
@@ -62,7 +62,8 @@
 - `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`.
 - Final `scripts/run_local_gates --profile dev` -> 18/18 passed; report `exports/local-gates/cloudbase-document-not-found-dev-final.json`.
 - `git diff --check` -> passed.
-- Strict PR profile and GitHub required checks -> pending.
+- Strict PR profile with Python 3.12, Node 22.13.0, and Ruby 3.3 -> 30/30 passed with no exceptions, skips, or deferrals. The final-head rerun writes `exports/local-gates/cloudbase-document-not-found-pr-final.json`.
+- GitHub required checks -> pending.
 
 ## Agent review status
 
