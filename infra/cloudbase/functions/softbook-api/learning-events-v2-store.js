@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const {isCloudBaseDocumentMissingError} = require('./cloudbase-errors');
 const {
   SCHEDULER_POLICY_VERSION,
   advanceSchedulerEntry,
@@ -1607,16 +1608,6 @@ async function listDocumentsByQuery(collection, query, pageSize, maximumCount) {
 
 async function setDocument(collection, documentId, value) {
   await collection.doc(documentId).set(stripInternalId(value));
-}
-
-function isCloudBaseDocumentMissingError(error) {
-  const message = error instanceof Error ? error.message : String(error);
-
-  return (
-    message.includes('DOCUMENT_NOT_EXIST') ||
-    message.includes('document not exists') ||
-    message.includes('not found')
-  );
 }
 
 function stripInternalId(value) {

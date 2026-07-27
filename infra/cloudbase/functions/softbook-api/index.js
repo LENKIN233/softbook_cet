@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const {createAuthV2Service} = require('./auth-v2');
+const {isCloudBaseDocumentMissingError} = require('./cloudbase-errors');
 const {
   createCloudBaseAuthStateStore,
   createMemoryAuthStateStore,
@@ -1999,16 +2000,6 @@ async function getCloudBaseDocument(collection, documentId) {
 
 async function setCloudBaseDocument(collection, documentId, data) {
   await collection.doc(documentId).set(data);
-}
-
-function isCloudBaseDocumentMissingError(error) {
-  const message = error instanceof Error ? error.message : String(error);
-
-  return (
-    message.includes('DOCUMENT_NOT_EXIST') ||
-    message.includes('document not exists') ||
-    message.includes('not found')
-  );
 }
 
 function createCloudBaseDocumentId(value) {

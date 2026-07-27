@@ -558,6 +558,45 @@ test('v2 auth state survives separate CloudBase function instances', async () =>
   );
 });
 
+test('v2 request-code treats the CloudBase DOCUMENT_NOT_FOUND code as an empty document', async () => {
+  const db = createFakeCloudBaseDb({
+    missingDocumentErrorCode: 'DOCUMENT_NOT_FOUND',
+  });
+  const {api} = createV2TestApi({
+    store: createCloudBaseStore({db}),
+  });
+  const response = await request(api, {
+    body: {phone_number: PHONE_NUMBER},
+    path: '/v2/auth/request-code',
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body.data.delivery, 'test_sms');
+  assert.equal(db.snapshot().get('softbook_auth_rate_limits').size, 2);
+  assert.equal(db.snapshot().get('softbook_auth_challenges').size, 1);
+});
+
+test('v2 request-code keeps CloudBase collection failures fatal', async () => {
+  const db = createFakeCloudBaseDb({
+    missingDocumentErrorCode: 'DATABASE_COLLECTION_NOT_EXIST',
+  });
+  const {api} = createV2TestApi({
+    store: createCloudBaseStore({db}),
+  });
+  const response = await request(api, {
+    body: {phone_number: PHONE_NUMBER},
+    path: '/v2/auth/request-code',
+  });
+
+  assert.equal(response.statusCode, 500);
+  assert.equal(
+    response.body.error.code,
+    'DATABASE_COLLECTION_NOT_EXIST',
+  );
+  assert.equal(db.snapshot().get('softbook_auth_rate_limits').size, 0);
+  assert.equal(db.snapshot().has('softbook_auth_challenges'), false);
+});
+
 test('production auth fails closed on weak configuration and missing trusted client IP', async () => {
   assert.throws(
     () =>
@@ -685,7 +724,7 @@ test('CloudBase adapter discovers v2 paths and trusted gateway source IP', async
   assert.equal(JSON.parse(response.body).data.delivery, 'test_sms');
 });
 
-function createFakeCloudBaseDb() {
+function createFakeCloudBaseDb({missingDocumentErrorCode = null} = {}) {
   const collections = new Map();
   let transactionTail = Promise.resolve();
 
@@ -698,11 +737,19 @@ function createFakeCloudBaseDb() {
 
     return {
       doc: documentId => ({
-        get: async () => ({
-          data: documents.has(documentId)
-            ? [{_id: documentId, ...cloneJson(documents.get(documentId))}]
-            : [],
-        }),
+        get: async () => {
+          if (missingDocumentErrorCode && !documents.has(documentId)) {
+            const error = new Error('CloudBase document lookup failed.');
+            error.code = missingDocumentErrorCode;
+            throw error;
+          }
+
+          return {
+            data: documents.has(documentId)
+              ? [{_id: documentId, ...cloneJson(documents.get(documentId))}]
+              : [],
+          };
+        },
         set: async data => {
           documents.set(documentId, cloneJson(data));
           return {id: documentId};

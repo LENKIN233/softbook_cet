@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const {isCloudBaseDocumentMissingError} = require('./cloudbase-errors');
 
 function createMemoryAuthStateStore() {
   const accountDeletions = new Map();
@@ -441,13 +442,7 @@ async function getDocument(collection, documentId) {
     const documents = normalizeDocuments(result.data);
     return documents[0] ?? null;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-
-    if (
-      message.includes('DOCUMENT_NOT_EXIST') ||
-      message.includes('document not exists') ||
-      message.includes('not found')
-    ) {
+    if (isCloudBaseDocumentMissingError(error)) {
       return null;
     }
 
