@@ -43,6 +43,8 @@
 - The final PR-head package retained the measured raw SDK shape but passed immediate request-code, verify-code, refresh rotation, same-session validation, and logout.
 - Failed-smoke and canary records were bounded by independent zero baselines and isolated timestamps or keys. Cleanup restored zero identity-bound documents, and the temporary canary function was deleted.
 - A canary cleanup defect that derived rate-limit IDs from process start time could cross a ten-minute window. The ignored probe was corrected to delete by its random, exact rate-limit keys before final validation.
+- GitHub run `30240696290` completed the Release simulator build, then continued normal unsigned archive compilation until the `ios-release` job was cancelled exactly at its 60-minute limit. Four immediately preceding successful runs took approximately 36-44 minutes; this runner's simulator build alone took approximately 45 minutes.
+- The `ios-release` hard limit is now 90 minutes. Both independent Release builds remain mandatory, and the bounded increase supplies runner-variance headroom without turning the job into an unbounded wait.
 
 ## Files changed
 
@@ -54,6 +56,7 @@
 - `infra/cloudbase/functions/softbook-api/test/auth-v2.test.js`: model the real transaction envelope across the full auth path.
 - `infra/cloudbase/functions/softbook-api/test/learning-events-v2.test.js`: model the real transaction envelope in canonical learning commits.
 - `infra/cloudbase/functions/softbook-api/test/softbook-api.test.js`: model the real transaction envelope across membership, session, check-in, and physical-space stores.
+- `.github/workflows/pr-gates.yml`: allow 90 minutes for the unchanged Release simulator build and unsigned archive gate.
 - `docs/agent-runs/2026-07-27-cloudbase-transaction-results.md`: preserve deployment, rollback, diagnosis, canary, cleanup, validation, and non-claims.
 
 ## Validation
@@ -67,14 +70,16 @@
 - `scripts/run_local_gates --profile dev` -> 18/18 passed; report `exports/local-gates/cloudbase-transaction-results-dev.json`.
 - Changed JavaScript syntax checks and `git diff --check` -> passed.
 - Strict PR profile -> 30/30 passed with no exceptions, skips, or deferrals; report `exports/local-gates/cloudbase-transaction-results-pr-final-head.json`.
-- GitHub required checks -> pending.
+- GitHub run `30240696290` -> every non-iOS required check passed; `ios-release` was cancelled by the former 60-minute job limit after its simulator build passed and while the unsigned archive was compiling.
+- Workflow YAML parsing, Harness runner tests (21/21), repository-health regression tests, and complete Harness validation after the timeout correction -> passed.
+- Final GitHub required checks after the bounded timeout correction -> pending.
 
 ## Agent review status
 
 - Reviewer: Codex
 - Status: Passed
 - Blocking findings: none.
-- Review summary: reviewed the failed deployment and exact rollback, live SDK response shapes, every transaction read call site, strict envelope detection, full backend regression suite, final-package immediate auth canary, cleanup evidence, generated-report boundary, and non-claims. No product definition or user-visible UI changed.
+- Review summary: reviewed the failed deployment and exact rollback, live SDK response shapes, every transaction read call site, strict envelope detection, full backend regression suite, final-package immediate auth canary, cleanup evidence, generated-report boundary, non-claims, and the bounded CI timeout correction. No Release check was removed or weakened, and no product definition or user-visible UI changed.
 
 ## User-visible UI impact
 
