@@ -728,7 +728,7 @@ function createFakeCloudBaseDb({missingDocumentErrorCode = null} = {}) {
   const collections = new Map();
   let transactionTail = Promise.resolve();
 
-  const collection = name => {
+  const collection = (name, transactional = false) => {
     if (!collections.has(name)) {
       collections.set(name, new Map());
     }
@@ -746,7 +746,23 @@ function createFakeCloudBaseDb({missingDocumentErrorCode = null} = {}) {
 
           return {
             data: documents.has(documentId)
-              ? [{_id: documentId, ...cloneJson(documents.get(documentId))}]
+              ? transactional
+                ? {
+                    list: [
+                      {
+                        _id: documentId,
+                        ...cloneJson(documents.get(documentId)),
+                      },
+                    ],
+                  }
+                : [
+                    {
+                      _id: documentId,
+                      ...cloneJson(documents.get(documentId)),
+                    },
+                  ]
+              : transactional
+              ? {list: []}
               : [],
           };
         },
@@ -775,7 +791,9 @@ function createFakeCloudBaseDb({missingDocumentErrorCode = null} = {}) {
   return {
     collection,
     runTransaction: callback => {
-      const run = transactionTail.then(() => callback({collection}));
+      const run = transactionTail.then(() =>
+        callback({collection: name => collection(name, true)}),
+      );
       transactionTail = run.then(
         () => undefined,
         () => undefined,

@@ -1,4 +1,7 @@
 const crypto = require('node:crypto');
+const {
+  normalizeCloudBaseDocuments,
+} = require('./cloudbase-documents');
 const {isCloudBaseDocumentMissingError} = require('./cloudbase-errors');
 const {
   SCHEDULER_POLICY_VERSION,
@@ -1560,11 +1563,7 @@ async function getDocument(collection, documentId) {
     throw error;
   }
 
-  const documents = Array.isArray(result.data)
-    ? result.data
-    : result.data
-    ? [result.data]
-    : [];
+  const documents = normalizeCloudBaseDocuments(result.data);
 
   if (documents.length === 0) {
     return null;
@@ -1588,11 +1587,12 @@ async function listDocumentsByQuery(collection, query, pageSize, maximumCount) {
       .limit(pageSize)
       .get();
 
-    if (!result || !Array.isArray(result.data)) {
+    if (!result || !Object.hasOwn(result, 'data')) {
       throw invalidStoredState('A transactional collection query is invalid.');
     }
 
-    documents.push(...result.data.map(stripInternalId));
+    const page = normalizeCloudBaseDocuments(result.data);
+    documents.push(...page.map(stripInternalId));
 
     if (documents.length > maximumCount) {
       throw invalidStoredState(
@@ -1600,7 +1600,7 @@ async function listDocumentsByQuery(collection, query, pageSize, maximumCount) {
       );
     }
 
-    if (result.data.length < pageSize) {
+    if (page.length < pageSize) {
       return documents;
     }
   }
