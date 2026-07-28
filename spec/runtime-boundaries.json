@@ -1,5 +1,5 @@
 {
-  "version": "vnext-19",
+  "version": "vnext-20",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -72,7 +72,7 @@
     "the repository-local CloudBase learning-events.v2, daily-check-in.v2, and space-actions.v2 endpoints, React Native event/check-in/space-action clients, server scheduler, and mobile session consumer implement active-session identity, immutable account-scoped commands, durable queues before UI authority advances, exact replay, strict acknowledgement removal, retained content validation, transactional projections, canonical bootstrap reconciliation, server card selection, and global removal of v1 daily/learning/space snapshot APIs; deployment remains pending",
     "development-only v1 card-source and membership routes can accept an active v2 session during migration, the v1 daily and learning snapshot-write routes plus both v1 physical-space snapshot routes are always disabled, and production continues to reject every v1 route",
     "remote content failures fail closed and never substitute bundled development cards",
-    "an authenticated v2 content manifest binds exact published track content to URL-free audio descriptors, Ed25519 signatures, and private expiring downloads while requiring client byte-hash verification; the repository-local backend, mobile parser, and pinned-key verifier are implemented but release key configuration, native cache, byte hashing, and playback remain pending"
+    "an authenticated v2 content manifest binds exact published track content to URL-free audio descriptors, Ed25519 signatures, and private expiring downloads while requiring client byte-hash verification; the repository-local backend, strict runtime keyring consumer, mobile parser, native content-addressed cache, and completed-byte hashing are implemented, while production key registration, native release injection, manifest-to-learning wiring, playback, and deployment remain pending"
   ],
   "learning_event_runtime": {
     "classification": "implementation_hypothesis",
@@ -200,11 +200,12 @@
     "storage_boundary": "private CloudBase file IDs remain server-side and resolve to credential-free expiring HTTPS URLs",
     "signature": "Ed25519 over canonical access summary plus stable manifest excluding expiring URLs",
     "mobile_signature_verifier": "strict_RFC8032_verification_via_@noble/ed25519_3.1.0_and_@noble/hashes_2.2.0_with_allowlisted_key_id",
-    "release_public_keyring_status": "pending_external_release_key_configuration",
+    "release_public_keyring_status": "strict_runtime_configuration_and_verifier_wiring_implemented_but_production_key_values_and_native_release_injection_pending",
     "download_integrity": "client must verify downloaded bytes against signed SHA-256 before playback",
     "source_integrity": "every declared asset is referenced and every card audio reference matches exactly; unreferenced assets are rejected",
-    "implementation_status": "cloudbase_backend_mobile_parser_and_pinned_key_verifier_implemented_locally_not_deployed",
-    "native_cache_hash_and_playback_status": "pending",
+    "implementation_status": "cloudbase_backend_mobile_parser_strict_runtime_keyring_consumer_and_pinned_key_verifier_implemented_locally_not_deployed",
+    "native_cache_hash_status": "react_native_blob_util_0.24.10_direct_to_file_content_addressed_cache_with_native_size_and_sha256_verification_implemented_not_runtime_wired_or_device_smoked",
+    "native_cache_hash_and_playback_status": "cache_and_hash_implemented_locally_playback_pending",
     "user_visible_audio_control_status": "pending",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"

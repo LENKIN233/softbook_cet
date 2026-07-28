@@ -3,6 +3,7 @@ import type { SoftbookAppRuntimeConfig } from '../learning/learningRuntimeConfig
 
 export type SoftbookRemoteRuntimeFeature =
   | 'accountBootstrap'
+  | 'contentManifest'
   | 'learningSource'
   | 'membership'
   | 'progressSync'
@@ -12,6 +13,7 @@ export type SoftbookRemoteRuntimeFeature =
 export type SoftbookRemoteRuntimeProfile = {
   apiKey?: string;
   baseUrl: string;
+  contentManifestPublicKeys?: Readonly<Record<string, string>>;
   featureModes?: Partial<
     Record<SoftbookRemoteRuntimeFeature, 'local' | 'remote'>
   >;
@@ -37,6 +39,9 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
     mode: 'local',
   },
   auth: {
+    mode: 'local',
+  },
+  contentManifest: {
     mode: 'local',
   },
   learningTrack: 'cet4',
@@ -83,6 +88,7 @@ export function createSoftbookRemoteRuntimeConfig(
   const learningTrack = profile.learningTrack ?? 'cet4';
   const accountBootstrapMode = resolveFeatureMode(profile, 'accountBootstrap');
   const learningSourceMode = resolveFeatureMode(profile, 'learningSource');
+  const contentManifestMode = resolveFeatureMode(profile, 'contentManifest');
   const spaceStateMode = resolveFeatureMode(profile, 'spaceState');
 
   if (accountBootstrapMode === 'remote' && learningSourceMode === 'local') {
@@ -111,6 +117,18 @@ export function createSoftbookRemoteRuntimeConfig(
       mode: 'remote',
       remote,
     },
+    contentManifest:
+      contentManifestMode === 'remote'
+        ? {
+            mode: 'remote',
+            remote: {
+              ...remote,
+              publicKeys: profile.contentManifestPublicKeys ?? {},
+            },
+          }
+        : {
+            mode: 'local',
+          },
     learningTrack,
     learningSource:
       learningSourceMode === 'remote'
@@ -178,6 +196,13 @@ export function readRemoteRuntimeProfileFromEnv(
 
   return {
     baseUrl,
+    ...(env?.SOFTBOOK_CET_CONTENT_MANIFEST_PUBLIC_KEYS
+      ? {
+          contentManifestPublicKeys: parseContentManifestPublicKeys(
+            env.SOFTBOOK_CET_CONTENT_MANIFEST_PUBLIC_KEYS,
+          ),
+        }
+      : {}),
     ...(env?.SOFTBOOK_CET_REMOTE_API_KEY
       ? { apiKey: env.SOFTBOOK_CET_REMOTE_API_KEY }
       : {}),
@@ -263,10 +288,37 @@ function isSoftbookRemoteRuntimeFeature(
 ): value is SoftbookRemoteRuntimeFeature {
   return (
     value === 'accountBootstrap' ||
+    value === 'contentManifest' ||
     value === 'learningSource' ||
     value === 'membership' ||
     value === 'progressSync' ||
     value === 'spaceState' ||
     value === 'learningState'
   );
+}
+
+function parseContentManifestPublicKeys(value: string) {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error(
+      'SOFTBOOK_CET_CONTENT_MANIFEST_PUBLIC_KEYS must be a JSON object.',
+    );
+  }
+
+  if (
+    typeof parsed !== 'object' ||
+    parsed === null ||
+    Array.isArray(parsed) ||
+    Object.keys(parsed).length === 0 ||
+    Object.values(parsed).some(publicKey => typeof publicKey !== 'string')
+  ) {
+    throw new Error(
+      'SOFTBOOK_CET_CONTENT_MANIFEST_PUBLIC_KEYS must be a non-empty string map.',
+    );
+  }
+
+  return parsed as Record<string, string>;
 }

@@ -75,6 +75,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       }
     }
 
+    if
+      let publicKeysJson = environment["SOFTBOOK_CET_CONTENT_MANIFEST_PUBLIC_KEYS"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+      !publicKeysJson.isEmpty,
+      let data = publicKeysJson.data(using: .utf8),
+      let publicKeys = try? JSONSerialization.jsonObject(with: data) as? [String: String],
+      !publicKeys.isEmpty
+    {
+      remoteProfile["contentManifestPublicKeys"] = publicKeys
+    }
+
     return ["softbookRemoteRuntimeProfile": remoteProfile]
   }
 }
