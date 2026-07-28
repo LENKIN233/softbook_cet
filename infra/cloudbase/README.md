@@ -365,8 +365,15 @@ SOFTBOOK_CET_IOS_LAUNCH=1 \
 infra/cloudbase/smoke-ios-runtime.sh
 ```
 
-The launch step first reuses an existing Metro server or starts one, then lets
-the React Native CLI build and install the debug app. After that it relaunches
+For an iOS launch, the wrapper first resolves one available Simulator to an
+exact UDID. An explicit `SOFTBOOK_CET_IOS_DEVICE` wins over the human-readable
+selector; otherwise one booted device is used, or
+`SOFTBOOK_CET_IOS_SIMULATOR` must resolve without ambiguity. A shutdown target
+is booted and awaited before local tests or build work begins. The wrapper then
+reuses an existing Metro server or starts one and lets the React Native CLI
+build and install the debug app with `--udid` and unfiltered build diagnostics.
+Only after target resolution, local runtime-profile tests, and the debug build
+have passed does it run the remote write smoke. After that it relaunches
 `com.softbook.cet` with `xcrun simctl launch` and the required `SIMCTL_CHILD_*`
 environment variables. This matters because
 `AppDelegate.swift` reads the app process environment, not the shell environment
@@ -376,8 +383,9 @@ around the helper script. Defaults can be overridden with
 starts Metro itself, it keeps running after the manual acceptance checklist is
 printed; press `Ctrl+C` after acceptance to stop that Metro session. Set
 `SOFTBOOK_CET_STOP_METRO_ON_EXIT=1` when you want the wrapper to stop its own
-Metro process as soon as the launch sequence finishes. An already running Metro
-server is reused and left alone.
+Metro process as soon as the launch sequence finishes. A failed build or an
+interrupted run always stops a Metro process started by the wrapper. An already
+running Metro server is reused and left alone.
 
 When `SOFTBOOK_CET_IOS_LAUNCH=1`, the wrapper prints a one-off manual
 acceptance phone in the `19xxxxxxxxx` format. Use that printed phone in the app;
@@ -410,10 +418,12 @@ SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.
 infra/cloudbase/smoke-ios-maestro-runtime.sh
 ```
 
-`smoke-ios-maestro-runtime.sh` starts or reuses Metro, uninstalls the iOS debug
-app to clear state, delegates the backend contract / runtime-profile / iOS
-remote launch sequence to `smoke-ios-runtime.sh`, and then runs
-`apps/mobile/e2e/maestro/ios-remote-smoke.yaml` against the already-launched app.
+`smoke-ios-maestro-runtime.sh` resolves one exact Simulator UDID, starts or
+reuses Metro, uninstalls the iOS debug app from that device to clear state,
+delegates the backend contract / runtime-profile / iOS remote launch sequence to
+`smoke-ios-runtime.sh`, and then runs
+`apps/mobile/e2e/maestro/ios-remote-smoke.yaml` against the same device with
+`maestro test --udid`.
 The remote Maestro flow intentionally omits `clearState` and `launchApp`, because
 the app must keep the `SIMCTL_CHILD_*` runtime environment injected by
 `smoke-ios-runtime.sh`.

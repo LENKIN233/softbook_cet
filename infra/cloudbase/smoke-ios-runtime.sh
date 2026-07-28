@@ -14,6 +14,8 @@ STOP_METRO_ON_EXIT="${SOFTBOOK_CET_STOP_METRO_ON_EXIT:-0}"
 SMS_CODE="${SOFTBOOK_CET_TEST_CODE:-2468}"
 MANUAL_TEST_PHONE="${SOFTBOOK_CET_MANUAL_TEST_PHONE:-}"
 METRO_PID=""
+RESOLVED_IOS_DEVICE=""
+RESOLVED_IOS_DEVICE_STATE=""
 
 create_manual_test_phone() {
   local suffix
@@ -52,11 +54,44 @@ start_metro_if_needed() {
   exit 1
 }
 
-cleanup() {
-  local reason="${1:-exit}"
+resolve_ios_launch_target() {
+  local resolved resolved_name resolved_runtime
 
-  if [[ -n "${METRO_PID}" && ("${STOP_METRO_ON_EXIT}" == "1" || "${reason}" != "exit") ]]; then
+  resolved="$(
+    node "${ROOT_DIR}/infra/cloudbase/resolve-ios-simulator.mjs" \
+      --device "${IOS_DEVICE}" \
+      --simulator "${IOS_SIMULATOR}" \
+      --format tsv
+  )"
+  IFS=$'\t' read -r \
+    RESOLVED_IOS_DEVICE \
+    RESOLVED_IOS_DEVICE_STATE \
+    resolved_name \
+    resolved_runtime <<<"${resolved}"
+
+  if [[ -z "${RESOLVED_IOS_DEVICE}" ]]; then
+    echo "Resolved iOS Simulator UDID must not be blank." >&2
+    exit 1
+  fi
+
+  echo "==> iOS target ${resolved_name} (${resolved_runtime}) ${RESOLVED_IOS_DEVICE}"
+
+  if [[ "${RESOLVED_IOS_DEVICE_STATE}" == "Shutdown" ]]; then
+    xcrun simctl boot "${RESOLVED_IOS_DEVICE}"
+  elif [[ "${RESOLVED_IOS_DEVICE_STATE}" != "Booted" ]]; then
+    echo "iOS Simulator must be Booted or Shutdown, received ${RESOLVED_IOS_DEVICE_STATE}." >&2
+    exit 1
+  fi
+
+  xcrun simctl bootstatus "${RESOLVED_IOS_DEVICE}" -b
+}
+
+cleanup() {
+  local exit_code="${1:-0}"
+
+  if [[ -n "${METRO_PID}" && ("${STOP_METRO_ON_EXIT}" == "1" || "${exit_code}" != "0") ]]; then
     kill_process_tree "${METRO_PID}"
+    METRO_PID=""
   fi
 }
 
@@ -73,8 +108,8 @@ kill_process_tree() {
   kill "${pid}" >/dev/null 2>&1 || true
 }
 
-trap 'cleanup interrupt; exit 130' INT TERM
-trap 'cleanup exit' EXIT
+trap 'exit 130' INT TERM
+trap 'exit_code=$?; cleanup "${exit_code}"; exit "${exit_code}"' EXIT
 
 if [[ -z "${BASE_URL// }" ]]; then
   echo "SOFTBOOK_CET_REMOTE_BASE_URL is required." >&2
@@ -103,14 +138,32 @@ export SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS="${SOFTBOOK_CET_SMOKE_MEMBERSHIP_
 export SOFTBOOK_CET_SMOKE_ISOLATED_PHONE="${ISOLATED_CONTRACT_PHONE}"
 export SOFTBOOK_CET_TEST_CODE="${SMS_CODE}"
 
-echo "==> Verifying CloudBase REST contract for mobile runtime"
-node "${ROOT_DIR}/infra/cloudbase/smoke-softbook-api.mjs"
+if [[ "${LAUNCH_IOS}" == "1" ]]; then
+  echo "==> Resolving iOS launch target before remote smoke writes"
+  resolve_ios_launch_target
+fi
 
 echo "==> Verifying JS runtime profile parsing"
 (
   cd "${ROOT_DIR}/apps/mobile"
   npm test -- --runInBand --watchman=false __tests__/appRuntimeConfig.test.ts __tests__/installRuntimeConfig.test.ts
 )
+
+if [[ "${LAUNCH_IOS}" == "1" ]]; then
+  echo "==> Building and installing iOS debug app before remote smoke writes"
+  start_metro_if_needed
+  (
+    cd "${ROOT_DIR}/apps/mobile"
+    SOFTBOOK_CET_REMOTE_BASE_URL="${SOFTBOOK_CET_REMOTE_BASE_URL}" \
+    SOFTBOOK_CET_REMOTE_API_KEY="${SOFTBOOK_CET_REMOTE_API_KEY:-}" \
+    SOFTBOOK_CET_LEARNING_TRACK="${TRACK}" \
+    SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES="${SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES:-}" \
+    npm run ios -- --udid "${RESOLVED_IOS_DEVICE}" --no-packager --port "${METRO_PORT}" --verbose
+  )
+fi
+
+echo "==> Verifying CloudBase REST contract for mobile runtime"
+node "${ROOT_DIR}/infra/cloudbase/smoke-softbook-api.mjs"
 
 if [[ "${LAUNCH_IOS}" != "1" ]]; then
   cat <<EOF
@@ -146,23 +199,12 @@ Use SOFTBOOK_CET_MANUAL_TEST_PHONE=${MANUAL_TEST_PHONE} to reproduce this manual
 
 EOF
 
-echo "==> Launching iOS debug app against remote runtime"
-start_metro_if_needed
-(
-  cd "${ROOT_DIR}/apps/mobile"
-  SOFTBOOK_CET_REMOTE_BASE_URL="${SOFTBOOK_CET_REMOTE_BASE_URL}" \
-  SOFTBOOK_CET_REMOTE_API_KEY="${SOFTBOOK_CET_REMOTE_API_KEY:-}" \
-  SOFTBOOK_CET_LEARNING_TRACK="${TRACK}" \
-  SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES="${SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES:-}" \
-  npm run ios -- --simulator "${IOS_SIMULATOR}" --no-packager --port "${METRO_PORT}"
-)
-
 echo "==> Relaunching iOS app with simulator child environment"
 SIMCTL_CHILD_SOFTBOOK_CET_REMOTE_BASE_URL="${SOFTBOOK_CET_REMOTE_BASE_URL}" \
 SIMCTL_CHILD_SOFTBOOK_CET_REMOTE_API_KEY="${SOFTBOOK_CET_REMOTE_API_KEY:-}" \
 SIMCTL_CHILD_SOFTBOOK_CET_LEARNING_TRACK="${TRACK}" \
 SIMCTL_CHILD_SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES="${SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES:-}" \
-xcrun simctl launch --terminate-running-process "${IOS_DEVICE}" "${IOS_BUNDLE_ID}"
+xcrun simctl launch --terminate-running-process "${RESOLVED_IOS_DEVICE}" "${IOS_BUNDLE_ID}"
 
 if [[ -n "${METRO_PID}" && "${STOP_METRO_ON_EXIT}" != "1" ]]; then
   cat <<EOF
