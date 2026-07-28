@@ -52,7 +52,7 @@
 - `bash -n` for both iOS smoke wrappers -> passed.
 - Node 22.13.0 combined lifecycle/device regressions -> 25 tests passed.
 - `python3 -m unittest discover -s scripts -p 'test_*.py'` -> 94 tests passed.
-- `python3 scripts/validate_harness.py --skip-remote-guard` -> passed with partial/local completeness.
+- `python3 scripts/validate_harness.py` -> passed with full remote semantics.
 - Mobile Node 22.13.0 lint -> 0 errors and 14 pre-existing inline-style warnings; typecheck -> passed; Jest -> 39 suites and 371 tests passed.
 - CloudBase function `npm test` -> 137 tests passed.
 - `python3 scripts/validate_maestro_selectors.py` -> passed.
