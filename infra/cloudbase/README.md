@@ -372,8 +372,10 @@ selector; otherwise one booted device is used, or
 is booted and awaited before local tests or build work begins. The wrapper then
 reuses an existing Metro server or starts one and lets the React Native CLI
 build and install the debug app with `--udid` and unfiltered build diagnostics.
-Only after target resolution, local runtime-profile tests, and the debug build
-have passed does it run the remote write smoke. After that it relaunches
+Launch flags, the manual acceptance phone, and the bundle identifier are also
+validated before local device work. Only after those inputs, target resolution,
+local runtime-profile tests, the debug build, and installed app lookup have
+passed does it run the remote write smoke. After that it relaunches
 `com.softbook.cet` with `xcrun simctl launch` and the required `SIMCTL_CHILD_*`
 environment variables. This matters because
 `AppDelegate.swift` reads the app process environment, not the shell environment
@@ -423,7 +425,8 @@ reuses Metro, uninstalls the iOS debug app from that device to clear state,
 delegates the backend contract / runtime-profile / iOS remote launch sequence to
 `smoke-ios-runtime.sh`, and then runs
 `apps/mobile/e2e/maestro/ios-remote-smoke.yaml` against the same device with
-`maestro test --udid`.
+`maestro test --udid`. The Maestro flow file, Java runtime, and CLI are checked
+before target resolution or remote writes begin.
 The remote Maestro flow intentionally omits `clearState` and `launchApp`, because
 the app must keep the `SIMCTL_CHILD_*` runtime environment injected by
 `smoke-ios-runtime.sh`.

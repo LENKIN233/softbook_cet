@@ -120,6 +120,21 @@ if [[ -z "${SMS_CODE// }" ]]; then
   exit 1
 fi
 
+if [[ ! -f "${MAESTRO_FLOW}" ]]; then
+  echo "SOFTBOOK_CET_IOS_MAESTRO_FLOW must identify an existing file." >&2
+  exit 1
+fi
+
+if [[ ! -x "${MAESTRO_JAVA_HOME}/bin/java" ]]; then
+  echo "JAVA_HOME must identify a Java runtime for Maestro." >&2
+  exit 1
+fi
+
+if ! command -v maestro >/dev/null 2>&1; then
+  echo "maestro must be installed and available on PATH." >&2
+  exit 1
+fi
+
 echo "==> Remote Maestro acceptance account"
 echo "Phone: ${MANUAL_TEST_PHONE}"
 echo "Code: ${SMS_CODE} (dev fixed code)"

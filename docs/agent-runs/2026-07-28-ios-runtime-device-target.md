@@ -25,7 +25,7 @@
 ## Implementation hypothesis changed
 
 - Local iOS acceptance now resolves one available Simulator to an exact UDID and uses that same UDID for uninstall, React Native build/install, `simctl launch`, and Maestro.
-- Target resolution, JS runtime-profile tests, and the debug build must pass before the wrapper starts its remote write smoke.
+- Launch inputs, target resolution, JS runtime-profile tests, the debug build, and installed app lookup must pass before the wrapper starts its remote write smoke; Maestro also preflights its flow, Java runtime, and CLI.
 - A wrapper-started Metro process is stopped after a failed build or interruption; a reused Metro process remains outside wrapper ownership.
 
 ## Workspace boundary and read scope
@@ -37,7 +37,7 @@
 ## Files changed
 
 - `infra/cloudbase/resolve-ios-simulator.mjs`: add deterministic Simulator inventory parsing, exact target resolution, structured output, and fail-closed CLI behavior.
-- `infra/cloudbase/test-resolve-ios-simulator.mjs`: cover target precedence, ambiguity, unavailable devices, CLI exit codes, launch order, and Maestro device pinning.
+- `infra/cloudbase/test-resolve-ios-simulator.mjs`: cover target precedence, ambiguity, unavailable devices, CLI exit codes, launch order, local preflight failures, and Maestro device pinning.
 - `infra/cloudbase/smoke-ios-runtime.sh`: resolve and boot one target, build with `--udid --verbose` before remote writes, and clean up owned Metro processes on failure.
 - `infra/cloudbase/smoke-ios-maestro-runtime.sh`: pin uninstall, runtime launch, and Maestro to the same resolved UDID.
 - `scripts/local_gates/catalog.py`, `scripts/test_run_local_gates.py`, `.github/workflows/pr-gates.yml`: add the resolver regression suite to local and GitHub gates.
@@ -45,7 +45,7 @@
 
 ## Commands run
 
-- `node --test infra/cloudbase/test-resolve-ios-simulator.mjs` -> 11 tests passed.
+- `node --test infra/cloudbase/test-resolve-ios-simulator.mjs` -> 14 tests passed.
 - `bash -n infra/cloudbase/smoke-ios-runtime.sh` -> passed.
 - `bash -n infra/cloudbase/smoke-ios-maestro-runtime.sh` -> passed.
 - `python3 -m unittest discover -s scripts -p 'test_*.py'` -> 94 tests passed.

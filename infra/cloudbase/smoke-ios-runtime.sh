@@ -24,6 +24,22 @@ create_manual_test_phone() {
   printf '19%s\n' "${suffix}"
 }
 
+prepare_ios_acceptance_inputs() {
+  if [[ -z "${IOS_BUNDLE_ID// }" ]]; then
+    echo "SOFTBOOK_CET_IOS_BUNDLE_ID must not be blank." >&2
+    exit 1
+  fi
+
+  if [[ -z "${MANUAL_TEST_PHONE// }" ]]; then
+    MANUAL_TEST_PHONE="$(create_manual_test_phone)"
+  fi
+
+  if [[ ! "${MANUAL_TEST_PHONE}" =~ ^19[0-9]{9}$ ]]; then
+    echo "SOFTBOOK_CET_MANUAL_TEST_PHONE must match 19xxxxxxxxx." >&2
+    exit 1
+  fi
+}
+
 metro_is_running() {
   curl --silent --fail "http://127.0.0.1:${METRO_PORT}/status" \
     | grep -q "packager-status:running"
@@ -121,6 +137,11 @@ if [[ "${TRACK}" != "cet4" && "${TRACK}" != "cet6" ]]; then
   exit 1
 fi
 
+if [[ "${LAUNCH_IOS}" != "0" && "${LAUNCH_IOS}" != "1" ]]; then
+  echo "SOFTBOOK_CET_IOS_LAUNCH must be 0 or 1." >&2
+  exit 1
+fi
+
 if [[ -z "${SOFTBOOK_CET_AUTH_TOKEN:-}" && "${ISOLATED_CONTRACT_PHONE}" != "1" ]]; then
   if [[ -z "${SOFTBOOK_CET_TEST_PHONE:-}" ]]; then
     echo "SOFTBOOK_CET_TEST_PHONE is required when SOFTBOOK_CET_AUTH_TOKEN is not set and isolated contract phone mode is disabled." >&2
@@ -139,6 +160,7 @@ export SOFTBOOK_CET_SMOKE_ISOLATED_PHONE="${ISOLATED_CONTRACT_PHONE}"
 export SOFTBOOK_CET_TEST_CODE="${SMS_CODE}"
 
 if [[ "${LAUNCH_IOS}" == "1" ]]; then
+  prepare_ios_acceptance_inputs
   echo "==> Resolving iOS launch target before remote smoke writes"
   resolve_ios_launch_target
 fi
@@ -160,6 +182,10 @@ if [[ "${LAUNCH_IOS}" == "1" ]]; then
     SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES="${SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES:-}" \
     npm run ios -- --udid "${RESOLVED_IOS_DEVICE}" --no-packager --port "${METRO_PORT}" --verbose
   )
+  xcrun simctl get_app_container \
+    "${RESOLVED_IOS_DEVICE}" \
+    "${IOS_BUNDLE_ID}" \
+    app >/dev/null
 fi
 
 echo "==> Verifying CloudBase REST contract for mobile runtime"
@@ -179,15 +205,6 @@ Expected manual iOS smoke after launch:
 
 EOF
   exit 0
-fi
-
-if [[ -z "${MANUAL_TEST_PHONE// }" ]]; then
-  MANUAL_TEST_PHONE="$(create_manual_test_phone)"
-fi
-
-if [[ ! "${MANUAL_TEST_PHONE}" =~ ^19[0-9]{9}$ ]]; then
-  echo "SOFTBOOK_CET_MANUAL_TEST_PHONE must match 19xxxxxxxxx." >&2
-  exit 1
 fi
 
 cat <<EOF
