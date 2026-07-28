@@ -72,9 +72,10 @@
 
 ## Agent review status
 
-- Reviewer: pending
-- Status: pending
-- Blocking findings: formal Agent review and GitHub required checks have not run yet.
+- Reviewer: Codex
+- Status: Passed
+- Blocking findings: none.
+- Review summary: checked exact-device precedence and ambiguity handling, iOS-only inventory filtering, CLI exit semantics, shell failure propagation, Metro ownership, all local-preflight-before-write ordering, consistent UDID use across uninstall/build/launch/Maestro, CI and local gate wiring, documentation accuracy, and product/readiness non-claims.
 
 ## User-visible UI impact
 
