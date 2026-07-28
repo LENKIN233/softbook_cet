@@ -4,7 +4,7 @@
 
 - Date: 2026-07-28
 - Branch: `infra/ios-runtime-device-target`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/451
 - Summary: Make the local iOS CloudBase and Maestro acceptance wrappers resolve one exact Simulator UDID, fail before remote writes when local prerequisites fail, and preserve unfiltered React Native build diagnostics.
 
 ## Referenced specs
