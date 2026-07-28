@@ -221,6 +221,29 @@ test('signed manifest resolves only audio that matches the loaded card catalog',
   );
 });
 
+test('shared audio assets require one authorized download across multiple cards', () => {
+  const payload = createPayload();
+  payload.data.access = {
+    accessible_card_count: 2,
+    mode: 'full',
+    total_card_count: 2,
+  };
+  const result = parseContentManifestPayload(payload, {
+    contentVersion: CONTENT_VERSION,
+    now: NOW,
+    track: 'cet4',
+  });
+  const firstCard = createAudioCard();
+  const secondCard = normalizeLearningCardRecord({
+    ...localLearningCardRecords[1],
+    audio: {...firstCard.audio!},
+  });
+
+  expect(() =>
+    assertContentManifestMatchesCards(result, [firstCard, secondCard]),
+  ).not.toThrow();
+});
+
 test('pinned verifier checks a real Node Ed25519 signature with strict semantics', async () => {
   const {privateKey, publicKey} = generateKeyPairSync('ed25519');
   const rawPublicKey = publicKey

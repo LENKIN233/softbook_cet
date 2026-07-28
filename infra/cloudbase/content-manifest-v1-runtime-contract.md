@@ -109,9 +109,11 @@ rejects over-granted or missing downloads.
 `data.signature` contains `algorithm=ed25519`, an allowlisted `key_id`, and a
 64-byte lowercase-hex signature over recursively key-sorted compact JSON of
 `{access, manifest}`. This binds membership scope without signing expiring URLs.
-`data.downloads` contains exactly one item per signed asset with `asset_id`, a
-future `expires_at`, and a credential-free HTTPS URL. Storage file IDs never
-leave the server response boundary.
+`data.downloads` contains exactly one item per distinct asset referenced by the
+server-authorized card prefix, with `asset_id`, a future `expires_at`, and a
+credential-free HTTPS URL. The signed manifest may describe additional assets
+outside that membership scope. Storage file IDs never leave the server response
+boundary.
 
 ## Client acceptance
 
@@ -119,7 +121,7 @@ The client must:
 
 1. require an authenticated request and exact track/content-version match;
 2. reject unknown or missing fields, duplicate IDs, expired URLs, and any
-   difference between signed asset IDs and download IDs;
+   difference between the authorized card-prefix asset IDs and download IDs;
 3. verify the Ed25519 signature using a pinned key ID and public key with
    strict RFC 8032 semantics;
 4. match every loaded card audio reference to its signed descriptor;

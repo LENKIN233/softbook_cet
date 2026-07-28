@@ -198,10 +198,13 @@ export function assertContentManifestMatchesCards(
     throw new Error('Content manifest accessible card count is invalid.');
   }
 
-  const expectedDownloadIds = cards
-    .slice(0, expectedAccessibleCardCount)
-    .flatMap(card => (card.audio ? [card.audio.asset_id] : []))
-    .sort();
+  const expectedDownloadIds = [
+    ...new Set(
+      cards
+        .slice(0, expectedAccessibleCardCount)
+        .flatMap(card => (card.audio ? [card.audio.asset_id] : [])),
+    ),
+  ].sort();
   const actualDownloadIds = result.downloads
     .map(download => download.asset_id)
     .sort();

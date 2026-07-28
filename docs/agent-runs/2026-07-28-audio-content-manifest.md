@@ -4,7 +4,7 @@
 
 - Date: 2026-07-28
 - Branch: `module/audio-content-manifest`
-- PR: pending
+- PR: `#453` (`https://github.com/LENKIN233/softbook_cet/pull/453`)
 - Summary: Added the repository-local, fail-closed audio metadata and content-manifest foundation without claiming native playback or launch readiness.
 
 ## Referenced specs
@@ -53,7 +53,7 @@
 - `cd infra/cloudbase/functions/softbook-api && npm test` -> 141/141 passed.
 - `cd apps/mobile && npm run typecheck` -> passed.
 - `cd apps/mobile && npm run lint -- --quiet` -> passed.
-- `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 40 suites, 376 tests passed.
+- `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 40 suites, 377 tests passed.
 - `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API report zero known vulnerabilities.
 - `python3 scripts/validate_harness.py --mode local --format text` -> passed with expected local completeness.
 - `python3 scripts/validate_harness.py --format text` -> full Harness passed.
@@ -64,6 +64,7 @@
 - Existing no-asset card sources retain their previous canonical content-version calculation.
 - A real Node Ed25519 signature verifies through the React Native pure-JavaScript verifier with strict RFC 8032 semantics; message or key-ID drift fails.
 - Free membership receives only the stable first-half card prefix's audio URLs; trial-not-started receives no URL; signed access or download drift fails on mobile.
+- Multiple cards may reference one canonical audio asset; the mobile authorization check compares the distinct asset-ID set and requires one download per shared asset.
 - No CloudBase deployment or real object download was performed.
 
 ## Binary evidence
@@ -73,9 +74,10 @@
 
 ## Agent review status
 
-- Reviewer: pending PR Agent review
-- Status: pending
-- Blocking findings: pending
+- Reviewer: Codex
+- Status: passed
+- Blocking findings: none
+- Review summary: The review found that mobile download authorization counted repeated card references while the server correctly emitted one download per distinct asset. The implementation, regression coverage, and runtime contract were corrected before approval; no blocking findings remain in the reviewed diff.
 
 ## User-visible UI impact
 
