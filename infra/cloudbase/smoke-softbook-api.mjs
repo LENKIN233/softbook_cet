@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 
+import {readFileSync} from 'node:fs';
+
 const baseUrl = normalizeBaseUrl(process.env.SOFTBOOK_CET_REMOTE_BASE_URL);
+const cloudBaseDevUrl =
+  'https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api';
 const apiKey = process.env.SOFTBOOK_CET_REMOTE_API_KEY;
 const useIsolatedPhone = process.env.SOFTBOOK_CET_SMOKE_ISOLATED_PHONE === '1';
 const phoneNumber = useIsolatedPhone
-  ? createIsolatedPhoneNumber()
+  ? process.env.SOFTBOOK_CET_TEST_PHONE || createIsolatedPhoneNumber()
   : process.env.SOFTBOOK_CET_TEST_PHONE;
 const smsCode = process.env.SOFTBOOK_CET_TEST_CODE;
 const authTokenFromEnv = process.env.SOFTBOOK_CET_AUTH_TOKEN;
@@ -12,6 +16,8 @@ const track = process.env.SOFTBOOK_CET_LEARNING_TRACK || 'cet4';
 const enableWrites = process.env.SOFTBOOK_CET_SMOKE_WRITE === '1';
 const enableMembershipMutations =
   process.env.SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS === '1';
+const lifecycleManifestPath =
+  process.env.SOFTBOOK_CET_SMOKE_LIFECYCLE_MANIFEST;
 const expectedInitialStage =
   process.env.SOFTBOOK_CET_EXPECT_INITIAL_STAGE ??
   (useIsolatedPhone ? 'trial_available' : undefined);
@@ -49,6 +55,13 @@ if (useIsolatedPhone && authTokenFromEnv) {
   );
 }
 
+if (
+  baseUrl === cloudBaseDevUrl &&
+  (!authTokenFromEnv || enableWrites || enableMembershipMutations)
+) {
+  validateManagedDevSmoke();
+}
+
 const authHeaders = {
   'content-type': 'application/json',
   'x-softbook-client': 'mobile',
@@ -62,7 +75,7 @@ if (authToken) {
   ok('auth', 'using SOFTBOOK_CET_AUTH_TOKEN');
 } else {
   if (useIsolatedPhone) {
-    ok('auth', `using isolated generated phone ${phoneNumber}`);
+    ok('auth', 'using isolated smoke phone');
   }
 
   const challengeId = await requestSmsCode();
@@ -1153,6 +1166,30 @@ function createIsolatedPhoneNumber() {
   const suffix = String(Date.now() % 1_000_000_000).padStart(9, '0');
 
   return `19${suffix}`;
+}
+
+function validateManagedDevSmoke() {
+  if (!useIsolatedPhone || !lifecycleManifestPath || !process.env.SOFTBOOK_CET_TEST_PHONE) {
+    fail(
+      'CloudBase dev auth or write smoke requires an explicit lifecycle-owned isolated phone.',
+    );
+  }
+
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(lifecycleManifestPath, 'utf8'));
+  } catch {
+    fail('CloudBase dev smoke lifecycle manifest is unreadable.');
+  }
+
+  if (
+    manifest.schema_version !== 'cloudbase-smoke-lifecycle.v1' ||
+    manifest.target?.base_url !== cloudBaseDevUrl ||
+    !['prepared', 'planned', 'cleaning'].includes(manifest.status) ||
+    !manifest.phones?.includes(phoneNumber)
+  ) {
+    fail('CloudBase dev smoke lifecycle manifest does not own the test phone.');
+  }
 }
 
 function ok(step, detail) {

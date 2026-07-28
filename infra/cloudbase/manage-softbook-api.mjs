@@ -48,6 +48,11 @@ import {
   summarizeCollectionState,
   validateTarget,
 } from "./deployment-safety.mjs";
+import {
+  cleanupSmokeLifecycle,
+  createCloudBaseRunner,
+  prepareSmokeLifecycle,
+} from "./smoke-record-lifecycle.mjs";
 
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, "../..");
@@ -554,6 +559,7 @@ function commandDeploy(context) {
   let deployedVerification = null;
   let preDeployVersion = null;
   let rollback = null;
+  let smokeLifecycleManifest = null;
   let verifiedVersion = null;
 
   try {
@@ -594,8 +600,34 @@ function commandDeploy(context) {
       "deployed-verification",
       {fullPackage: true}
     );
-    runLiveSmoke(context, "cet4", true);
-    runLiveSmoke(context, "cet6", false);
+    smokeLifecycleManifest = join(
+      context.runDirectory,
+      "smoke-lifecycle.json"
+    );
+    const smokeRunner = createCloudBaseRunner({tcb: TCB});
+    const preparedSmoke = prepareSmokeLifecycle({
+      manifestPath: smokeLifecycleManifest,
+      phoneCount: 2,
+      repository: {
+        branch: context.repository.branch,
+        dirty: !context.repository.clean,
+        head: context.repository.head,
+        originMain: context.repository.origin_main,
+      },
+      runId: `${context.runId}-live-smoke`,
+      runner: smokeRunner,
+    });
+
+    try {
+      runLiveSmoke(context, "cet4", true, preparedSmoke.phones[0]);
+      runLiveSmoke(context, "cet6", false, preparedSmoke.phones[1]);
+    } finally {
+      cleanupSmokeLifecycle({
+        apply: true,
+        manifestPath: smokeLifecycleManifest,
+        runner: smokeRunner,
+      });
+    }
     verifiedVersion = publishVersion(
       context,
       `verified ${context.repository.head.slice(0, 12)}`,
@@ -620,6 +652,9 @@ function commandDeploy(context) {
           deployedVerification.directory
         ),
         local_source_manifest: build.manifest,
+        smoke_lifecycle_manifest: relativeToRepository(
+          smokeLifecycleManifest
+        ),
       },
       deployment_versions: {
         pre_deploy: preDeployVersion,
@@ -662,6 +697,13 @@ function commandDeploy(context) {
               ),
               deployed_source_manifest: createSourceManifest(
                 deployedVerification.directory
+              ),
+            }
+          : {}),
+        ...(smokeLifecycleManifest
+          ? {
+              smoke_lifecycle_manifest: relativeToRepository(
+                smokeLifecycleManifest
               ),
             }
           : {}),
@@ -1219,11 +1261,16 @@ function rollbackCode(context, backupDirectory, expectedManifest, label) {
   }
 }
 
-function runLiveSmoke(context, track, enableWrites) {
+function runLiveSmoke(context, track, enableWrites, phoneNumber) {
   const environment = {
     SOFTBOOK_CET_LEARNING_TRACK: track,
     SOFTBOOK_CET_REMOTE_BASE_URL: DEV_BASE_URL,
     SOFTBOOK_CET_SMOKE_ISOLATED_PHONE: "1",
+    SOFTBOOK_CET_SMOKE_LIFECYCLE_MANIFEST: join(
+      context.runDirectory,
+      "smoke-lifecycle.json"
+    ),
+    SOFTBOOK_CET_TEST_PHONE: phoneNumber,
     SOFTBOOK_CET_TEST_CODE: "2468",
   };
 
