@@ -225,13 +225,21 @@ test('invalid launch configuration exits before device or remote commands', () =
     SOFTBOOK_CET_IOS_LAUNCH: '1',
     SOFTBOOK_CET_MANUAL_TEST_PHONE: '19123456789',
   });
+  const invalidIsolation = runWrapper('smoke-ios-runtime.sh', {
+    SOFTBOOK_CET_IOS_LAUNCH: '0',
+    SOFTBOOK_CET_SMOKE_ISOLATED_PHONE: 'yes',
+    SOFTBOOK_CET_TEST_PHONE: '19123456789',
+  });
 
   assert.equal(invalidLaunch.status, 1);
   assert.match(invalidLaunch.stderr, /IOS_LAUNCH must be 0 or 1/);
   assert.equal(blankBundle.status, 1);
   assert.match(blankBundle.stderr, /IOS_BUNDLE_ID must not be blank/);
+  assert.equal(invalidIsolation.status, 1);
+  assert.match(invalidIsolation.stderr, /SMOKE_ISOLATED_PHONE must be 0 or 1/);
   assert.doesNotMatch(invalidLaunch.stdout, /remote smoke|iOS target/);
   assert.doesNotMatch(blankBundle.stdout, /remote smoke|iOS target/);
+  assert.doesNotMatch(invalidIsolation.stdout, /remote smoke|iOS target/);
 });
 
 test('a missing Maestro flow exits before target resolution or remote smoke', () => {
@@ -287,7 +295,10 @@ test('manual acceptance inputs fail before the remote write smoke', () => {
   assert.ok(prepareIndex >= 0);
   assert.ok(resolveIndex > prepareIndex);
   assert.ok(smokeIndex > resolveIndex);
-  assert.match(script, /SOFTBOOK_CET_IOS_LAUNCH must be 0 or 1/);
+  assert.match(
+    script,
+    /require_binary_flag "SOFTBOOK_CET_IOS_LAUNCH" "\$\{LAUNCH_IOS\}"/,
+  );
   assert.match(script, /SOFTBOOK_CET_IOS_BUNDLE_ID must not be blank/);
 });
 

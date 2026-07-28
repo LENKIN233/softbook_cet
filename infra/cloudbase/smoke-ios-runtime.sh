@@ -9,6 +9,8 @@ IOS_DEVICE="${SOFTBOOK_CET_IOS_DEVICE:-booted}"
 IOS_BUNDLE_ID="${SOFTBOOK_CET_IOS_BUNDLE_ID:-com.softbook.cet}"
 LAUNCH_IOS="${SOFTBOOK_CET_IOS_LAUNCH:-0}"
 ISOLATED_CONTRACT_PHONE="${SOFTBOOK_CET_SMOKE_ISOLATED_PHONE:-1}"
+SMOKE_WRITE="${SOFTBOOK_CET_SMOKE_WRITE:-1}"
+SMOKE_MEMBERSHIP_MUTATIONS="${SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS:-1}"
 METRO_PORT="${SOFTBOOK_CET_METRO_PORT:-8081}"
 STOP_METRO_ON_EXIT="${SOFTBOOK_CET_STOP_METRO_ON_EXIT:-0}"
 SMS_CODE="${SOFTBOOK_CET_TEST_CODE:-2468}"
@@ -36,6 +38,16 @@ prepare_ios_acceptance_inputs() {
 
   if [[ ! "${MANUAL_TEST_PHONE}" =~ ^19[0-9]{9}$ ]]; then
     echo "SOFTBOOK_CET_MANUAL_TEST_PHONE must match 19xxxxxxxxx." >&2
+    exit 1
+  fi
+}
+
+require_binary_flag() {
+  local name="$1"
+  local value="$2"
+
+  if [[ "${value}" != "0" && "${value}" != "1" ]]; then
+    echo "${name} must be 0 or 1." >&2
     exit 1
   fi
 }
@@ -137,10 +149,13 @@ if [[ "${TRACK}" != "cet4" && "${TRACK}" != "cet6" ]]; then
   exit 1
 fi
 
-if [[ "${LAUNCH_IOS}" != "0" && "${LAUNCH_IOS}" != "1" ]]; then
-  echo "SOFTBOOK_CET_IOS_LAUNCH must be 0 or 1." >&2
-  exit 1
-fi
+require_binary_flag "SOFTBOOK_CET_IOS_LAUNCH" "${LAUNCH_IOS}"
+require_binary_flag "SOFTBOOK_CET_SMOKE_ISOLATED_PHONE" "${ISOLATED_CONTRACT_PHONE}"
+require_binary_flag "SOFTBOOK_CET_SMOKE_WRITE" "${SMOKE_WRITE}"
+require_binary_flag \
+  "SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS" \
+  "${SMOKE_MEMBERSHIP_MUTATIONS}"
+require_binary_flag "SOFTBOOK_CET_STOP_METRO_ON_EXIT" "${STOP_METRO_ON_EXIT}"
 
 if [[ -z "${SOFTBOOK_CET_AUTH_TOKEN:-}" && "${ISOLATED_CONTRACT_PHONE}" != "1" ]]; then
   if [[ -z "${SOFTBOOK_CET_TEST_PHONE:-}" ]]; then
@@ -154,8 +169,8 @@ if [[ -z "${SOFTBOOK_CET_AUTH_TOKEN:-}" && -z "${SMS_CODE// }" ]]; then
   exit 1
 fi
 
-export SOFTBOOK_CET_SMOKE_WRITE="${SOFTBOOK_CET_SMOKE_WRITE:-1}"
-export SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS="${SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS:-1}"
+export SOFTBOOK_CET_SMOKE_WRITE="${SMOKE_WRITE}"
+export SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS="${SMOKE_MEMBERSHIP_MUTATIONS}"
 export SOFTBOOK_CET_SMOKE_ISOLATED_PHONE="${ISOLATED_CONTRACT_PHONE}"
 export SOFTBOOK_CET_TEST_CODE="${SMS_CODE}"
 
