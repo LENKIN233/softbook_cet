@@ -4,7 +4,7 @@
 
 - Date: 2026-07-29
 - Branch: `module/audio-cache-integrity`
-- PR: pending
+- PR: `#454` (`https://github.com/LENKIN233/softbook_cet/pull/454`)
 - Summary: Added a release-key configuration boundary and a native content-addressed audio cache that verifies byte length and SHA-256 before returning a local file. This does not add playback or claim production readiness.
 
 ## Referenced specs
