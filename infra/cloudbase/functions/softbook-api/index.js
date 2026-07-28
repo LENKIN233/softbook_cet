@@ -14,6 +14,10 @@ const {
   createContentVersion,
   normalizeContentRelease,
 } = require('./bootstrap-v2');
+const {
+  createContentManifestSigner,
+  createContentManifestV1Service,
+} = require('./content-manifest-v1');
 const {createDailyCheckInV2Service} = require('./daily-check-in-v2');
 const {createLearningEventsV2Service} = require('./learning-events-v2');
 const {
@@ -144,6 +148,15 @@ function createSoftbookApi(options = {}) {
   config.bootstrapV2 = createBootstrapV2Service({
     now: config.now,
     runtimeMode,
+    store,
+  });
+  config.contentManifestV1 = createContentManifestV1Service({
+    downloadTtlSeconds: options.contentManifestDownloadTtlSeconds,
+    now: config.now,
+    resolveDownloadUrl:
+      options.contentAssetUrlResolver ?? createDefaultContentAssetUrlResolver(),
+    signer:
+      options.contentManifestSigner ?? readContentManifestSignerFromEnv(),
     store,
   });
   config.learningEventsV2 = createLearningEventsV2Service({
@@ -334,6 +347,19 @@ async function handleHttpRequest(config, request) {
       });
     }
 
+    if (method === 'GET' && path === '/v2/content/manifest') {
+      const session = await config.authV2.requireActiveSession(request);
+      assertContentManifestRequest(request);
+
+      return jsonResponse(200, {
+        data: await config.contentManifestV1.read({
+          contentVersion: request.query.content_version,
+          phoneNumber: session.phoneNumber,
+          track: request.query.track,
+        }),
+      });
+    }
+
     if (method === 'GET' && path === '/v2/bootstrap') {
       const session = await config.authV2.requireActiveSession(request);
       assertBootstrapIdentityComesFromSession(request);
@@ -515,6 +541,21 @@ function assertLearningSessionIdentityComesFromSession(request) {
   }
 }
 
+function assertContentManifestRequest(request) {
+  const allowedQueryFields = new Set(['content_version', 'track']);
+  const hasForbiddenQuery = Object.keys(request.query).some(
+    field => !allowedQueryFields.has(field),
+  );
+
+  if (hasForbiddenQuery || request.body !== undefined) {
+    throw httpError(
+      400,
+      'content_manifest_input_forbidden',
+      'Content manifest accepts only track and content_version query fields.',
+    );
+  }
+}
+
 function createDefaultStore() {
   const storeMode = process.env.SOFTBOOK_STORE_MODE ?? 'memory';
 
@@ -527,6 +568,57 @@ function createDefaultStore() {
   }
 
   throw new Error(`Unsupported SOFTBOOK_STORE_MODE: ${storeMode}`);
+}
+
+function readContentManifestSignerFromEnv() {
+  const keyId = process.env.SOFTBOOK_CONTENT_MANIFEST_KEY_ID;
+  const privateKeyPem = process.env.SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM;
+
+  if (!keyId && !privateKeyPem) {
+    return null;
+  }
+
+  if (!keyId || !privateKeyPem) {
+    throw new Error(
+      'Content manifest signing requires both key ID and Ed25519 private key.',
+    );
+  }
+
+  return createContentManifestSigner(keyId, privateKeyPem);
+}
+
+function createDefaultContentAssetUrlResolver() {
+  if ((process.env.SOFTBOOK_STORE_MODE ?? 'memory') !== 'cloudbase') {
+    return null;
+  }
+
+  const app = createCloudBaseApp();
+
+  return async ({asset, expiresAt, issuedAt}) => {
+    const maxAge = Math.max(
+      1,
+      Math.floor((expiresAt.getTime() - issuedAt.getTime()) / 1000),
+    );
+    const result = await app.getTempFileURL({
+      fileList: [{fileID: asset.storage_file_id, maxAge}],
+    });
+    const item = result.fileList?.[0];
+
+    if (
+      result.fileList?.length !== 1 ||
+      item?.fileID !== asset.storage_file_id ||
+      item.code ||
+      !item.tempFileURL
+    ) {
+      throw httpError(
+        503,
+        'content_asset_delivery_unavailable',
+        'CloudBase did not return the requested content asset URL.',
+      );
+    }
+
+    return item.tempFileURL;
+  };
 }
 
 function createMemoryStore() {
@@ -1946,15 +2038,18 @@ async function listCloudBaseDocumentsByQuery(
 }
 
 function createCloudBaseDatabase() {
+  return createCloudBaseApp().database();
+}
+
+function createCloudBaseApp() {
   const cloudbase = require('@cloudbase/node-sdk');
   const env =
     process.env.CLOUDBASE_ENV_ID ??
     process.env.TCB_ENV ??
     process.env.SCF_NAMESPACE ??
     cloudbase.SYMBOL_CURRENT_ENV;
-  const app = cloudbase.init({env});
 
-  return app.database();
+  return cloudbase.init({env});
 }
 
 async function getCloudBaseMembership(collection, phoneNumber) {
@@ -2019,6 +2114,7 @@ function createDefaultCardSource(track) {
 
 function cloneCardSource(cardSource) {
   return {
+    assets: cloneJson(cardSource.assets),
     card_records: cloneJson(cardSource.card_records),
     content_version: cardSource.content_version,
     release: cardSource.release ? cloneJson(cardSource.release) : null,
@@ -2064,6 +2160,8 @@ function normalizeCardSource(cardSource, expectedTrack) {
     );
   }
 
+  const assets = normalizeContentAssets(payload.assets ?? []);
+
   const cardRecords = requireCardSourceArray(
     payload.card_records,
     'card source.card_records',
@@ -2071,14 +2169,21 @@ function normalizeCardSource(cardSource, expectedTrack) {
     normalizeCardRecord(record, track, `card source.card_records[${index}]`),
   );
   assertUniqueNonEmptyCardRecords(cardRecords);
-  const contentVersion = createContentVersion({
+  assertCardAudioAssets(cardRecords, assets);
+  const versionedContent = {
     card_records: cardRecords,
     source: {
       id: sourceId,
       label: sourceLabel,
     },
     track,
-  });
+  };
+
+  if (assets.length > 0) {
+    versionedContent.assets = assets;
+  }
+
+  const contentVersion = createContentVersion(versionedContent);
 
   if (
     payload.content_version !== undefined &&
@@ -2093,6 +2198,7 @@ function normalizeCardSource(cardSource, expectedTrack) {
   }
 
   return {
+    assets,
     card_records: cardRecords,
     content_version: contentVersion,
     release: normalizeContentRelease(payload.release, contentVersion, track),
@@ -2189,6 +2295,12 @@ function normalizeCardRecord(record, expectedTrack, label) {
     }
   }
 
+  const normalizedCard = cloneJson(card);
+
+  if (card.audio !== undefined) {
+    normalizedCard.audio = normalizeCardAudio(card.audio, `${label}.audio`);
+  }
+
   switch (card.interaction_id) {
     case 'flip':
       requireCardSourceString(card.back_text, `${label}.back_text`);
@@ -2199,7 +2311,7 @@ function normalizeCardRecord(record, expectedTrack, label) {
         );
       }
 
-      return cloneJson(card);
+      return normalizedCard;
     case 'multiple_choice': {
       const options = requireCardSourceArray(card.options, `${label}.options`);
 
@@ -2223,7 +2335,7 @@ function normalizeCardRecord(record, expectedTrack, label) {
         );
       }
 
-      return cloneJson(card);
+      return normalizedCard;
     }
     case 'lock': {
       const lockSlots = requireCardSourceArray(
@@ -2259,7 +2371,7 @@ function normalizeCardRecord(record, expectedTrack, label) {
         }
       });
 
-      return cloneJson(card);
+      return normalizedCard;
     }
     case 'elimination': {
       const eliminationItems = requireCardSourceArray(
@@ -2292,7 +2404,7 @@ function normalizeCardRecord(record, expectedTrack, label) {
         );
       }
 
-      return cloneJson(card);
+      return normalizedCard;
     }
     case 'swipe': {
       const swipeStates = requireCardSourceArray(
@@ -2317,10 +2429,190 @@ function normalizeCardRecord(record, expectedTrack, label) {
         );
       }
 
-      return cloneJson(card);
+      return normalizedCard;
     }
     default:
       throw cardSourceError(`${label}.interaction_id is unsupported.`);
+  }
+}
+
+function normalizeContentAssets(value) {
+  const assets = requireCardSourceArray(value, 'card source.assets').map(
+    (asset, index) => {
+      const label = `card source.assets[${index}]`;
+      const record = requireCardSourceObject(asset, label);
+      assertExactCardSourceKeys(
+        record,
+        [
+          'asset_id',
+          'duration_ms',
+          'media_type',
+          'sha256',
+          'size_bytes',
+          'storage_file_id',
+        ],
+        label,
+      );
+
+      return {
+        asset_id: requireContentAssetId(
+          record.asset_id,
+          `${label}.asset_id`,
+        ),
+        duration_ms: requirePositiveSafeInteger(
+          record.duration_ms,
+          `${label}.duration_ms`,
+        ),
+        media_type: requireExactString(
+          record.media_type,
+          'audio/mpeg',
+          `${label}.media_type`,
+        ),
+        sha256: requireSha256(record.sha256, `${label}.sha256`),
+        size_bytes: requirePositiveSafeInteger(
+          record.size_bytes,
+          `${label}.size_bytes`,
+        ),
+        storage_file_id: requireCloudBaseFileId(
+          record.storage_file_id,
+          `${label}.storage_file_id`,
+        ),
+      };
+    },
+  );
+  const ids = new Set();
+
+  for (const asset of assets) {
+    if (ids.has(asset.asset_id)) {
+      throw cardSourceError(
+        `card source.assets contains duplicate asset_id ${asset.asset_id}.`,
+      );
+    }
+    ids.add(asset.asset_id);
+  }
+
+  return assets.sort((left, right) =>
+    left.asset_id.localeCompare(right.asset_id),
+  );
+}
+
+function normalizeCardAudio(value, label) {
+  const audio = requireCardSourceObject(value, label);
+  assertExactCardSourceKeys(
+    audio,
+    audio.transcript === undefined
+      ? ['asset_id', 'duration_ms', 'sha256']
+      : ['asset_id', 'duration_ms', 'sha256', 'transcript'],
+    label,
+  );
+  const normalized = {
+    asset_id: requireContentAssetId(audio.asset_id, `${label}.asset_id`),
+    duration_ms: requirePositiveSafeInteger(
+      audio.duration_ms,
+      `${label}.duration_ms`,
+    ),
+    sha256: requireSha256(audio.sha256, `${label}.sha256`),
+  };
+
+  if (audio.transcript !== undefined) {
+    normalized.transcript = requireCardSourceString(
+      audio.transcript,
+      `${label}.transcript`,
+    );
+  }
+
+  return normalized;
+}
+
+function assertCardAudioAssets(cardRecords, assets) {
+  const assetsById = new Map(assets.map(asset => [asset.asset_id, asset]));
+  const referencedAssetIds = new Set();
+
+  for (const card of cardRecords) {
+    if (card.audio === undefined) {
+      continue;
+    }
+
+    const audio = normalizeCardAudio(card.audio, `card ${card.card_id}.audio`);
+    const asset = assetsById.get(audio.asset_id);
+
+    if (!asset) {
+      throw cardSourceError(
+        `card ${card.card_id}.audio references missing asset ${audio.asset_id}.`,
+      );
+    }
+
+    if (
+      asset.sha256 !== audio.sha256 ||
+      asset.duration_ms !== audio.duration_ms
+    ) {
+      throw cardSourceError(
+        `card ${card.card_id}.audio must match its asset hash and duration.`,
+      );
+    }
+
+    referencedAssetIds.add(audio.asset_id);
+  }
+
+  for (const asset of assets) {
+    if (!referencedAssetIds.has(asset.asset_id)) {
+      throw cardSourceError(
+        `card source asset ${asset.asset_id} is not referenced by any card.`,
+      );
+    }
+  }
+}
+
+function requireContentAssetId(value, fieldName) {
+  return requireCardSourcePattern(
+    value,
+    /^[a-z0-9][a-z0-9._-]{2,127}$/,
+    fieldName,
+  );
+}
+
+function requireSha256(value, fieldName) {
+  return requireCardSourcePattern(
+    value,
+    /^sha256:[a-f0-9]{64}$/,
+    fieldName,
+  );
+}
+
+function requirePositiveSafeInteger(value, fieldName) {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw cardSourceError(`${fieldName} must be a positive safe integer.`);
+  }
+
+  return value;
+}
+
+function requireExactString(value, expected, fieldName) {
+  const normalized = requireCardSourceString(value, fieldName);
+
+  if (normalized !== expected) {
+    throw cardSourceError(`${fieldName} must be ${expected}.`);
+  }
+
+  return normalized;
+}
+
+function requireCloudBaseFileId(value, fieldName) {
+  const fileId = requireCardSourceString(value, fieldName);
+
+  if (!/^cloud:\/\/[^\s?#]+$/.test(fileId)) {
+    throw cardSourceError(`${fieldName} must be a CloudBase file ID.`);
+  }
+
+  return fileId;
+}
+
+function assertExactCardSourceKeys(value, expectedKeys, label) {
+  const actual = Object.keys(value).sort();
+  const expected = [...expectedKeys].sort();
+
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw cardSourceError(`${label} has unsupported or missing fields.`);
   }
 }
 

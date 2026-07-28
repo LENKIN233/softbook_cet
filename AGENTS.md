@@ -34,6 +34,7 @@ status: active
 - `spec/runtime-boundaries.json`
 - `infra/cloudbase/learning-events-v2-runtime-contract.md`（仅在 learning events 合同或实现任务中读取；当前为仓库内已实现、未部署的 runtime 边界）
 - `infra/cloudbase/learning-session-v1-runtime-contract.md`（仅在服务端调度或 learning session 任务中读取；当前为仓库内已实现、移动端未接线且未部署的 runtime 边界）
+- `infra/cloudbase/content-manifest-v1-runtime-contract.md`（仅在音频资源、内容 manifest 或私有下载任务中读取；当前为后端与移动解析已实现、原生缓存播放未实现且未部署的 runtime 边界）
 - `infra/cloudbase/space-actions-v2-runtime-contract.md`（仅在物理空间 action、同步或调度联动任务中读取；当前为仓库内已实现、未部署的 runtime 边界）
 - `spec/repo-delivery-contract.json`
 - `spec/agent-harness.json`
@@ -53,6 +54,7 @@ status: active
 - 物理空间 action 同步：`requirement-memory -> product-core -> account-sync-contract -> knowledge-map -> space-operations -> box-catalog -> runtime-boundaries -> infra/cloudbase/space-actions-v2-runtime-contract.md`
 - 多端/端形态：`requirement-memory -> product-core -> platform-contract -> runtime-boundaries`
 - 卡片/交互：`requirement-memory -> product-core -> action-surface -> card-system -> interactions`
+- 音频资源：`requirement-memory -> product-core -> platform-contract -> card-system -> interactions -> runtime-boundaries -> infra/cloudbase/content-manifest-v1-runtime-contract.md`
 - 卡片内容交接：`requirement-memory -> product-core -> card-system -> box-catalog -> runtime-boundaries -> agent-harness -> infra/cloudbase/mobile-runtime-contract.md -> /Users/lenkin/programing/card make`
 - 物理空间/盒码：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog`
 - 会员/试用：`requirement-memory -> product-core -> membership`

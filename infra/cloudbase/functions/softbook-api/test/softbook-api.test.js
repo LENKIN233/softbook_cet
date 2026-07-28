@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const {spawnSync} = require('node:child_process');
+const crypto = require('node:crypto');
 const test = require('node:test');
 
 const boxCatalog = require('../../../../../spec/box-catalog.json');
@@ -15,6 +16,7 @@ const {
   normalizeStoredSpaceState,
   prepareSpaceActionCommit,
 } = require('../space-actions-v2');
+const {stableJsonStringify} = require('../content-manifest-v1');
 
 const fixedNow = new Date('2026-04-30T12:00:00.000Z');
 const CORE_INTERACTIONS = [
@@ -593,6 +595,267 @@ test('content version is canonical and published releases must match it', () => 
   assert.throws(
     () => validateCardSourceForImport(released, 'cet4'),
     /content_version must match normalized content/,
+  );
+});
+
+test('audio card assets are canonical, exact, and fully referenced', () => {
+  const source = createAudioReleasedCardSource('cet4');
+  const normalized = validateCardSourceForImport(source, 'cet4');
+
+  assert.equal(normalized.assets.length, 1);
+  assert.equal(
+    normalized.card_records[0].audio.asset_id,
+    'cet4.052199.prompt',
+  );
+  assert.equal(normalized.release.content_version, normalized.content_version);
+
+  const missingAsset = cloneJson(source);
+  missingAsset.assets = [];
+  delete missingAsset.release;
+  assert.throws(
+    () => validateCardSourceForImport(missingAsset, 'cet4'),
+    /references missing asset/,
+  );
+
+  const unreferencedAsset = cloneJson(source);
+  delete unreferencedAsset.card_records[0].audio;
+  delete unreferencedAsset.release;
+  assert.throws(
+    () => validateCardSourceForImport(unreferencedAsset, 'cet4'),
+    /is not referenced by any card/,
+  );
+
+  const hashDrift = cloneJson(source);
+  hashDrift.card_records[0].audio.sha256 = `sha256:${'b'.repeat(64)}`;
+  delete hashDrift.release;
+  assert.throws(
+    () => validateCardSourceForImport(hashDrift, 'cet4'),
+    /must match its asset hash and duration/,
+  );
+
+  const publicUrlInsteadOfPrivateFile = cloneJson(source);
+  publicUrlInsteadOfPrivateFile.assets[0].storage_file_id =
+    'https://example.com/audio.mp3';
+  delete publicUrlInsteadOfPrivateFile.release;
+  assert.throws(
+    () => validateCardSourceForImport(publicUrlInsteadOfPrivateFile, 'cet4'),
+    /must be a CloudBase file ID/,
+  );
+
+  const cardUrlLeak = cloneJson(source);
+  cardUrlLeak.card_records[0].audio.download_url =
+    'https://example.com/audio.mp3';
+  delete cardUrlLeak.release;
+  assert.throws(
+    () => validateCardSourceForImport(cardUrlLeak, 'cet4'),
+    /audio has unsupported or missing fields/,
+  );
+});
+
+test('content manifest is authenticated, release-bound, signed, and storage-private', async () => {
+  const store = createMemoryStore();
+  const source = validateCardSourceForImport(
+    createAudioReleasedCardSource('cet4'),
+    'cet4',
+  );
+  store.snapshot().cardSources.set('cet4', source);
+  const {privateKey, publicKey} = crypto.generateKeyPairSync('ed25519');
+  const api = createTestApi({
+    contentAssetUrlResolver: async ({asset}) =>
+      `https://private-content.example/${asset.asset_id}.mp3?token=opaque`,
+    contentManifestDownloadTtlSeconds: 600,
+    contentManifestSigner: {
+      keyId: 'content-key-2026-01',
+      privateKey,
+    },
+    store,
+  });
+  await store.startTrial('13800138000', fixedNow.toISOString());
+  const session = await authenticatedV2Session(api);
+  const headers = {authorization: `Bearer ${session.access_token}`};
+  const response = await request(api, {
+    headers,
+    method: 'GET',
+    path: '/v2/content/manifest',
+    query: {
+      content_version: source.content_version,
+      track: 'cet4',
+    },
+  });
+
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  assert.equal(response.body.data.manifest.schema_version, 'content-manifest.v1');
+  assert.equal(response.body.data.manifest.release_id, 'cet4-audio-release');
+  assert.deepEqual(response.body.data.access, {
+    accessible_card_count: 1,
+    mode: 'full',
+    total_card_count: 1,
+  });
+  assert.deepEqual(response.body.data.manifest.assets, [
+    {
+      asset_id: 'cet4.052199.prompt',
+      duration_ms: 2100,
+      media_type: 'audio/mpeg',
+      sha256: `sha256:${'a'.repeat(64)}`,
+      size_bytes: 4096,
+    },
+  ]);
+  assert.equal(response.body.data.signature.algorithm, 'ed25519');
+  assert.equal(response.body.data.signature.key_id, 'content-key-2026-01');
+  assert.equal(
+    crypto.verify(
+      null,
+      Buffer.from(
+        stableJsonStringify({
+          access: response.body.data.access,
+          manifest: response.body.data.manifest,
+        }),
+      ),
+      publicKey,
+      Buffer.from(response.body.data.signature.value, 'hex'),
+    ),
+    true,
+  );
+  assert.deepEqual(response.body.data.downloads, [
+    {
+      asset_id: 'cet4.052199.prompt',
+      expires_at: '2026-04-30T12:10:00.000Z',
+      url: 'https://private-content.example/cet4.052199.prompt.mp3?token=opaque',
+    },
+  ]);
+  assert.equal(JSON.stringify(response.body).includes('storage_file_id'), false);
+  assert.equal(JSON.stringify(response.body).includes('cloud://'), false);
+
+  const wrongVersion = await request(api, {
+    headers,
+    method: 'GET',
+    path: '/v2/content/manifest',
+    query: {
+      content_version: `sha256:${'0'.repeat(64)}`,
+      track: 'cet4',
+    },
+  });
+  assert.equal(wrongVersion.statusCode, 409);
+  assert.equal(
+    wrongVersion.body.error.code,
+    'content_manifest_version_mismatch',
+  );
+
+  const forbiddenIdentity = await request(api, {
+    headers,
+    method: 'GET',
+    path: '/v2/content/manifest',
+    query: {
+      content_version: source.content_version,
+      phone_number: '13800138000',
+      track: 'cet4',
+    },
+  });
+  assert.equal(forbiddenIdentity.statusCode, 400);
+  assert.equal(
+    forbiddenIdentity.body.error.code,
+    'content_manifest_input_forbidden',
+  );
+
+  const unauthenticated = await request(api, {
+    method: 'GET',
+    path: '/v2/content/manifest',
+    query: {
+      content_version: source.content_version,
+      track: 'cet4',
+    },
+  });
+  assert.equal(unauthenticated.statusCode, 401);
+});
+
+test('content manifest grants download URLs only for the canonical membership prefix', async () => {
+  const store = createMemoryStore();
+  const source = validateCardSourceForImport(
+    createMultiAudioReleasedCardSource('cet4'),
+    'cet4',
+  );
+  store.snapshot().cardSources.set('cet4', source);
+  store.snapshot().memberships.set('13800138000', {
+    entitlement: {
+      counted_entry_count: 1,
+      last_experience_ended_by: 'trial',
+      recovery_prompt_visible: true,
+      stage: 'free',
+      trial_duration_days: 5,
+      trial_started_at_entry_count: 1,
+    },
+    updated_at: fixedNow.toISOString(),
+  });
+  const {privateKey} = crypto.generateKeyPairSync('ed25519');
+  const requestedAssets = [];
+  const api = createTestApi({
+    contentAssetUrlResolver: async ({asset}) => {
+      requestedAssets.push(asset.asset_id);
+      return `https://private-content.example/${asset.asset_id}.mp3?token=opaque`;
+    },
+    contentManifestSigner: {keyId: 'content-key-2026-01', privateKey},
+    store,
+  });
+  const session = await authenticatedV2Session(api);
+  const response = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v2/content/manifest',
+    query: {content_version: source.content_version, track: 'cet4'},
+  });
+
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  assert.deepEqual(response.body.data.access, {
+    accessible_card_count: 1,
+    mode: 'free_subset',
+    total_card_count: 2,
+  });
+  assert.equal(response.body.data.manifest.assets.length, 2);
+  assert.deepEqual(
+    response.body.data.downloads.map(download => download.asset_id),
+    ['cet4.052199.prompt'],
+  );
+  assert.deepEqual(requestedAssets, ['cet4.052199.prompt']);
+
+  store.snapshot().memberships.delete('13800138000');
+  const trialNotStarted = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v2/content/manifest',
+    query: {content_version: source.content_version, track: 'cet4'},
+  });
+  assert.equal(trialNotStarted.statusCode, 200);
+  assert.deepEqual(trialNotStarted.body.data.access, {
+    accessible_card_count: 0,
+    mode: 'trial_not_started',
+    total_card_count: 2,
+  });
+  assert.deepEqual(trialNotStarted.body.data.downloads, []);
+});
+
+test('content manifest fails closed without delivery or signing configuration', async () => {
+  const store = createMemoryStore();
+  const source = validateCardSourceForImport(
+    createAudioReleasedCardSource('cet4'),
+    'cet4',
+  );
+  store.snapshot().cardSources.set('cet4', source);
+  const api = createTestApi({store});
+  const session = await authenticatedV2Session(api);
+  const response = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v2/content/manifest',
+    query: {
+      content_version: source.content_version,
+      track: 'cet4',
+    },
+  });
+
+  assert.equal(response.statusCode, 503);
+  assert.equal(
+    response.body.error.code,
+    'content_manifest_signing_unavailable',
   );
 });
 
@@ -1993,6 +2256,72 @@ function createReleasedCardSource(track) {
     release: {
       schema_version: 'content-release.v1',
       release_id: `${track}-test-release`,
+      track,
+      content_version: normalized.content_version,
+      minimum_client_version: '1.0.0',
+      parent_release_id: null,
+      published_at: fixedNow.toISOString(),
+    },
+  };
+}
+
+function createAudioReleasedCardSource(track) {
+  const source = createPersistedCardSource(track);
+  const assetId = `${track}.052199.prompt`;
+  const sha256 = `sha256:${'a'.repeat(64)}`;
+  source.card_records[0].audio = {
+    asset_id: assetId,
+    duration_ms: 2100,
+    sha256,
+    transcript: 'The committee postponed the vote.',
+  };
+  source.assets = [
+    {
+      asset_id: assetId,
+      duration_ms: 2100,
+      media_type: 'audio/mpeg',
+      sha256,
+      size_bytes: 4096,
+      storage_file_id: `cloud://softbook-content/${track}/052199.mp3`,
+    },
+  ];
+  const normalized = validateCardSourceForImport(source, track);
+
+  return {
+    ...source,
+    release: {
+      schema_version: 'content-release.v1',
+      release_id: `${track}-audio-release`,
+      track,
+      content_version: normalized.content_version,
+      minimum_client_version: '1.0.0',
+      parent_release_id: null,
+      published_at: fixedNow.toISOString(),
+    },
+  };
+}
+
+function createMultiAudioReleasedCardSource(track) {
+  const source = createAudioReleasedCardSource(track);
+  delete source.release;
+  const secondCard = cloneJson(source.card_records[0]);
+  secondCard.card_id = `${secondCard.knowledge_ref}98`;
+  secondCard.audio.asset_id = `${track}.${secondCard.card_id}.prompt`;
+  secondCard.audio.sha256 = `sha256:${'b'.repeat(64)}`;
+  source.card_records.push(secondCard);
+  const secondAsset = cloneJson(source.assets[0]);
+  secondAsset.asset_id = secondCard.audio.asset_id;
+  secondAsset.sha256 = secondCard.audio.sha256;
+  secondAsset.storage_file_id =
+    `cloud://softbook-content/${track}/${secondCard.card_id}.mp3`;
+  source.assets.push(secondAsset);
+  const normalized = validateCardSourceForImport(source, track);
+
+  return {
+    ...source,
+    release: {
+      schema_version: 'content-release.v1',
+      release_id: `${track}-multi-audio-release`,
       track,
       content_version: normalized.content_version,
       minimum_client_version: '1.0.0',

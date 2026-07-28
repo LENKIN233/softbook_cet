@@ -1,5 +1,5 @@
 {
-  "version": "vnext-4",
+  "version": "vnext-5",
   "minimum_card_requirements": {
     "must_answer": [
       "这张卡在考什么知识点",
@@ -34,6 +34,25 @@
     "auto_scoring": "whether the system can score directly",
     "answer_key": "data required for auto scoring",
     "space_metadata": "physical-space related metadata, including card position or form changes if needed"
+  },
+  "audio_field_schema": {
+    "required_when_present": [
+      "asset_id",
+      "sha256",
+      "duration_ms"
+    ],
+    "optional": [
+      "transcript"
+    ],
+    "asset_id": "stable URL-free identifier resolved through the authenticated content manifest",
+    "sha256": "sha256:<64 lowercase hex characters>",
+    "duration_ms": "positive safe integer matching the signed asset descriptor",
+    "transcript": "non-empty back-side text only; it is not front-side subtitle authority",
+    "forbidden": [
+      "download_url",
+      "storage_file_id",
+      "autoplay"
+    ]
   },
   "content_constraints": {
     "front_should_be": [
