@@ -1,6 +1,7 @@
 import {
   EliminationItem,
   LearningAnalysis,
+  LearningAudioResource,
   LearningCard,
   LearningFront,
   LearningHintLayer,
@@ -19,6 +20,7 @@ type LearningCardRecordBase = {
   interaction_id: LearningInteractionId;
   front: LearningFront;
   analysis: LearningAnalysis;
+  audio?: LearningAudioResource;
   hint_layer?: LearningHintLayer;
   auto_scoring?: boolean;
   space_metadata: SpaceMetadata;
@@ -160,6 +162,10 @@ export function assertValidLearningCardRecord(record: LearningCardRecord) {
     }
   }
 
+  if (record.audio !== undefined) {
+    assertValidLearningAudioResource(record.audio, prefix);
+  }
+
   switch (record.interaction_id) {
     case 'flip':
       assertNonEmptyString(
@@ -246,6 +252,46 @@ export function assertValidLearningCardRecord(record: LearningCardRecord) {
       const exhaustiveCheck: never = record;
       return exhaustiveCheck;
     }
+  }
+}
+
+function assertValidLearningAudioResource(
+  audio: LearningAudioResource,
+  prefix: string,
+) {
+  if (typeof audio !== 'object' || audio === null || Array.isArray(audio)) {
+    throw new Error(`${prefix} audio must be an object.`);
+  }
+
+  const expectedKeys =
+    audio.transcript === undefined
+      ? ['asset_id', 'duration_ms', 'sha256']
+      : ['asset_id', 'duration_ms', 'sha256', 'transcript'];
+
+  if (
+    JSON.stringify(Object.keys(audio).sort()) !==
+    JSON.stringify(expectedKeys.sort())
+  ) {
+    throw new Error(`${prefix} audio has unsupported or missing fields.`);
+  }
+
+  if (!/^[a-z0-9][a-z0-9._-]{2,127}$/.test(audio.asset_id)) {
+    throw new Error(`${prefix} audio.asset_id is invalid.`);
+  }
+
+  if (!/^sha256:[a-f0-9]{64}$/.test(audio.sha256)) {
+    throw new Error(`${prefix} audio.sha256 must be a SHA-256 identifier.`);
+  }
+
+  if (!Number.isSafeInteger(audio.duration_ms) || audio.duration_ms <= 0) {
+    throw new Error(`${prefix} audio.duration_ms must be a positive integer.`);
+  }
+
+  if (audio.transcript !== undefined) {
+    assertNonEmptyString(
+      audio.transcript,
+      `${prefix} audio.transcript must be non-empty when present.`,
+    );
   }
 }
 

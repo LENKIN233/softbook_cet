@@ -29,6 +29,13 @@ export type LearningHintLayer = {
   reveal_gesture: '下滑';
 };
 
+export type LearningAudioResource = {
+  asset_id: string;
+  duration_ms: number;
+  sha256: string;
+  transcript?: string;
+};
+
 export type SpaceMetadata = {
   box_ref: string;
   library: string;
@@ -43,6 +50,7 @@ type LearningBaseCard = {
   interaction_id: LearningInteractionId;
   front: LearningFront;
   analysis: LearningAnalysis;
+  audio?: LearningAudioResource;
   hint_layer?: LearningHintLayer;
   auto_scoring?: boolean;
   space_metadata: SpaceMetadata;

@@ -91,3 +91,54 @@ test('swipe records must stay dual-state judgments', () => {
     'swipe must stay a dual-state judgment',
   );
 });
+
+test('audio metadata is URL-free and integrity-bound', () => {
+  const source = localLearningCardRecords[0];
+  const withAudio = {
+    ...source,
+    audio: {
+      asset_id: 'cet4.002001.prompt',
+      duration_ms: 2100,
+      sha256: `sha256:${'a'.repeat(64)}`,
+      transcript: 'A short listening transcript.',
+    },
+  };
+
+  expect(() => normalizeLearningCardRecord(withAudio)).not.toThrow();
+  expect(() =>
+    normalizeLearningCardRecord({
+      ...withAudio,
+      audio: {
+        ...withAudio.audio,
+        sha256: 'not-a-hash',
+      },
+    }),
+  ).toThrow('audio.sha256 must be a SHA-256 identifier');
+  expect(() =>
+    normalizeLearningCardRecord({
+      ...withAudio,
+      audio: {
+        ...withAudio.audio,
+        duration_ms: 0,
+      },
+    }),
+  ).toThrow('audio.duration_ms must be a positive integer');
+  expect(() =>
+    normalizeLearningCardRecord({
+      ...withAudio,
+      audio: {
+        ...withAudio.audio,
+        transcript: '',
+      },
+    }),
+  ).toThrow('audio.transcript must be non-empty when present');
+  expect(() =>
+    normalizeLearningCardRecord({
+      ...withAudio,
+      audio: {
+        ...withAudio.audio,
+        download_url: 'https://example.com/audio.mp3',
+      } as unknown as typeof withAudio.audio,
+    }),
+  ).toThrow('audio has unsupported or missing fields');
+});

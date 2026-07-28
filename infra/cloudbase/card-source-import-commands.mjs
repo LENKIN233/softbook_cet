@@ -132,6 +132,7 @@ function createVersionUpsert(cardSource, updatedAt, retentionStatus) {
 
 function createSourceFields(cardSource, updatedAt) {
   return {
+    assets: cardSource.assets,
     card_records: cardSource.card_records,
     content_version: cardSource.content_version,
     imported_via: 'infra/cloudbase/import-card-source.mjs',

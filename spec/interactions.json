@@ -1,5 +1,5 @@
 {
-  "version": "vnext-4",
+  "version": "vnext-5",
   "audio_is_interaction_family": false,
   "interaction_contract_status": "core_content_contract",
   "source_anchors": {
@@ -15,6 +15,18 @@
     "auto_play": false,
     "front_side_subtitles": false,
     "back_side_text_or_transcript_may_exist": true
+  },
+  "audio_resource_contract": {
+    "card_payload_contains": [
+      "asset_id",
+      "sha256",
+      "duration_ms",
+      "optional_back_side_transcript"
+    ],
+    "card_payload_must_not_contain_download_url": true,
+    "download_url_resolution": "authenticated_content_manifest_bound_to_exact_track_and_content_version",
+    "resource_integrity": "signed_manifest_descriptor_plus_downloaded_byte_sha256",
+    "playback_trigger": "explicit_user_action_only"
   },
   "expansion_rule": "new interactions may exist, but must be specified here before content production depends on them",
   "interactions": [
