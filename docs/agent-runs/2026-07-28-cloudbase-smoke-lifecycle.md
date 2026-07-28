@@ -4,7 +4,7 @@
 
 - Date: 2026-07-28
 - Branch: `infra/cloudbase-smoke-cleanup`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/452
 - Summary: Make every allowlisted CloudBase dev auth/write smoke own an exact, resumable cleanup lifecycle so passed, failed, and interrupted acceptance runs cannot silently leave test identity and learning records.
 
 ## Referenced specs
