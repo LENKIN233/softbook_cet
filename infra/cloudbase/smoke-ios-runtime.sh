@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+DEV_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api"
 BASE_URL="${SOFTBOOK_CET_REMOTE_BASE_URL:-}"
 TRACK="${SOFTBOOK_CET_LEARNING_TRACK:-cet4}"
 IOS_SIMULATOR="${SOFTBOOK_CET_IOS_SIMULATOR:-iPhone 17}"
@@ -15,6 +16,10 @@ METRO_PORT="${SOFTBOOK_CET_METRO_PORT:-8081}"
 STOP_METRO_ON_EXIT="${SOFTBOOK_CET_STOP_METRO_ON_EXIT:-0}"
 SMS_CODE="${SOFTBOOK_CET_TEST_CODE:-2468}"
 MANUAL_TEST_PHONE="${SOFTBOOK_CET_MANUAL_TEST_PHONE:-}"
+CONTRACT_TEST_PHONE="${SOFTBOOK_CET_TEST_PHONE:-}"
+SMOKE_LIFECYCLE_OWNER="${SOFTBOOK_CET_SMOKE_LIFECYCLE_OWNER:-self}"
+SMOKE_LIFECYCLE_MANIFEST="${SOFTBOOK_CET_SMOKE_LIFECYCLE_MANIFEST:-}"
+SMOKE_LIFECYCLE_ACTIVE="0"
 METRO_PID=""
 RESOLVED_IOS_DEVICE=""
 RESOLVED_IOS_DEVICE_STATE=""
@@ -116,11 +121,75 @@ resolve_ios_launch_target() {
 
 cleanup() {
   local exit_code="${1:-0}"
+  local cleanup_failed="0"
+
+  if [[ "${SMOKE_LIFECYCLE_ACTIVE}" == "1" ]]; then
+    echo "==> Removing exact CloudBase dev smoke records"
+    if ! node "${ROOT_DIR}/infra/cloudbase/smoke-record-lifecycle.mjs" \
+      cleanup \
+      --manifest "${SMOKE_LIFECYCLE_MANIFEST}" \
+      --apply; then
+      cleanup_failed="1"
+    fi
+    SMOKE_LIFECYCLE_ACTIVE="0"
+  fi
 
   if [[ -n "${METRO_PID}" && ("${STOP_METRO_ON_EXIT}" == "1" || "${exit_code}" != "0") ]]; then
     kill_process_tree "${METRO_PID}"
     METRO_PID=""
   fi
+
+  return "${cleanup_failed}"
+}
+
+prepare_smoke_lifecycle() {
+  local phone_count prepared
+
+  if [[ "${BASE_URL}" != "${DEV_BASE_URL}" ]]; then
+    return
+  fi
+
+  if [[ "${ISOLATED_CONTRACT_PHONE}" != "1" || -n "${SOFTBOOK_CET_AUTH_TOKEN:-}" ]]; then
+    echo "The allowlisted CloudBase dev smoke requires an isolated lifecycle-owned phone." >&2
+    exit 1
+  fi
+
+  if [[ "${SMOKE_LIFECYCLE_OWNER}" == "external" ]]; then
+    if [[ -z "${SMOKE_LIFECYCLE_MANIFEST}" || -z "${CONTRACT_TEST_PHONE}" ]]; then
+      echo "External smoke lifecycle ownership requires a manifest and contract phone." >&2
+      exit 1
+    fi
+    export SOFTBOOK_CET_TEST_PHONE="${CONTRACT_TEST_PHONE}"
+    export SOFTBOOK_CET_SMOKE_LIFECYCLE_MANIFEST
+    return
+  fi
+
+  if [[ "${SMOKE_LIFECYCLE_OWNER}" != "self" ]]; then
+    echo "SOFTBOOK_CET_SMOKE_LIFECYCLE_OWNER must be self or external." >&2
+    exit 1
+  fi
+
+  phone_count="1"
+  if [[ "${LAUNCH_IOS}" == "1" ]]; then
+    phone_count="2"
+  fi
+  if [[ -z "${SMOKE_LIFECYCLE_MANIFEST}" ]]; then
+    SMOKE_LIFECYCLE_MANIFEST="${ROOT_DIR}/exports/cloudbase-smoke/ios-$(date -u +%Y%m%dT%H%M%SZ)-$$/manifest.json"
+  fi
+
+  prepared="$(
+    SOFTBOOK_CET_TEST_PHONE="${CONTRACT_TEST_PHONE}" \
+    SOFTBOOK_CET_MANUAL_TEST_PHONE="${MANUAL_TEST_PHONE}" \
+    node "${ROOT_DIR}/infra/cloudbase/smoke-record-lifecycle.mjs" \
+      prepare \
+      --manifest "${SMOKE_LIFECYCLE_MANIFEST}" \
+      --phone-count "${phone_count}" \
+      --format tsv
+  )"
+  IFS=$'\t' read -r CONTRACT_TEST_PHONE MANUAL_TEST_PHONE <<<"${prepared}"
+  export SOFTBOOK_CET_TEST_PHONE="${CONTRACT_TEST_PHONE}"
+  export SOFTBOOK_CET_SMOKE_LIFECYCLE_MANIFEST
+  SMOKE_LIFECYCLE_ACTIVE="1"
 }
 
 kill_process_tree() {
@@ -136,8 +205,17 @@ kill_process_tree() {
   kill "${pid}" >/dev/null 2>&1 || true
 }
 
+on_exit() {
+  local exit_code="$?"
+  trap - EXIT
+  if ! cleanup "${exit_code}"; then
+    exit_code="1"
+  fi
+  exit "${exit_code}"
+}
+
 trap 'exit 130' INT TERM
-trap 'exit_code=$?; cleanup "${exit_code}"; exit "${exit_code}"' EXIT
+trap on_exit EXIT
 
 if [[ -z "${BASE_URL// }" ]]; then
   echo "SOFTBOOK_CET_REMOTE_BASE_URL is required." >&2
@@ -203,6 +281,8 @@ if [[ "${LAUNCH_IOS}" == "1" ]]; then
     app >/dev/null
 fi
 
+prepare_smoke_lifecycle
+
 echo "==> Verifying CloudBase REST contract for mobile runtime"
 node "${ROOT_DIR}/infra/cloudbase/smoke-softbook-api.mjs"
 
@@ -258,6 +338,11 @@ cat <<EOF
 
 EOF
 
-if [[ -n "${METRO_PID}" && "${STOP_METRO_ON_EXIT}" != "1" ]]; then
+if [[ "${SMOKE_LIFECYCLE_ACTIVE}" == "1" ]]; then
+  echo "==> Press Ctrl+C after manual acceptance to clean the isolated CloudBase records."
+  while true; do
+    sleep 3600
+  done
+elif [[ -n "${METRO_PID}" && "${STOP_METRO_ON_EXIT}" != "1" ]]; then
   wait "${METRO_PID}"
 fi

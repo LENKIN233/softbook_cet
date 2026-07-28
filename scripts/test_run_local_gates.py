@@ -136,6 +136,7 @@ class LocalGateRunnerTests(unittest.TestCase):
         self.assertIn("harness-local", [gate.id for gate in gates])
         self.assertIn("local-gate-runner-tests", [gate.id for gate in gates])
         self.assertIn("ios-runtime-target-tests", [gate.id for gate in gates])
+        self.assertIn("cloudbase-smoke-lifecycle-tests", [gate.id for gate in gates])
         self.assertIn("mobile-jest", [gate.id for gate in gates])
         self.assertIn("backend-tests", [gate.id for gate in gates])
 

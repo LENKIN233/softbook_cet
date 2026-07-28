@@ -117,6 +117,19 @@ def build_catalog() -> tuple[GateSpec, ...]:
             ),
         ),
         GateSpec(
+            "cloudbase-smoke-lifecycle-tests",
+            dev,
+            60,
+            False,
+            lambda _: CommandSpec(
+                (
+                    "node",
+                    "--test",
+                    "infra/cloudbase/test-smoke-record-lifecycle.mjs",
+                )
+            ),
+        ),
+        GateSpec(
             "launch-contract-tests",
             dev,
             60,

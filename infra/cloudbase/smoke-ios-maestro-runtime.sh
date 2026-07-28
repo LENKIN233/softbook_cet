@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+DEV_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api"
 BASE_URL="${SOFTBOOK_CET_REMOTE_BASE_URL:-}"
 TRACK="${SOFTBOOK_CET_LEARNING_TRACK:-cet4}"
 IOS_DEVICE="${SOFTBOOK_CET_IOS_DEVICE:-booted}"
@@ -10,6 +11,9 @@ IOS_BUNDLE_ID="${SOFTBOOK_CET_IOS_BUNDLE_ID:-com.softbook.cet}"
 METRO_PORT="${SOFTBOOK_CET_METRO_PORT:-8081}"
 SMS_CODE="${SOFTBOOK_CET_TEST_CODE:-2468}"
 MANUAL_TEST_PHONE="${SOFTBOOK_CET_MANUAL_TEST_PHONE:-}"
+CONTRACT_TEST_PHONE="${SOFTBOOK_CET_TEST_PHONE:-}"
+SMOKE_LIFECYCLE_MANIFEST="${SOFTBOOK_CET_SMOKE_LIFECYCLE_MANIFEST:-}"
+SMOKE_LIFECYCLE_ACTIVE="0"
 MAESTRO_FLOW="${SOFTBOOK_CET_IOS_MAESTRO_FLOW:-${ROOT_DIR}/apps/mobile/e2e/maestro/ios-remote-smoke.yaml}"
 MAESTRO_JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk}"
 METRO_PID=""
@@ -66,9 +70,46 @@ kill_process_tree() {
 }
 
 cleanup() {
+  local cleanup_failed="0"
+
+  if [[ "${SMOKE_LIFECYCLE_ACTIVE}" == "1" ]]; then
+    echo "==> Removing exact CloudBase dev smoke records"
+    if ! node "${ROOT_DIR}/infra/cloudbase/smoke-record-lifecycle.mjs" \
+      cleanup \
+      --manifest "${SMOKE_LIFECYCLE_MANIFEST}" \
+      --apply; then
+      cleanup_failed="1"
+    fi
+    SMOKE_LIFECYCLE_ACTIVE="0"
+  fi
+
   if [[ -n "${METRO_PID}" ]]; then
     kill_process_tree "${METRO_PID}"
   fi
+
+  return "${cleanup_failed}"
+}
+
+prepare_smoke_lifecycle() {
+  local prepared
+
+  if [[ "${BASE_URL}" != "${DEV_BASE_URL}" ]]; then
+    return
+  fi
+  if [[ -z "${SMOKE_LIFECYCLE_MANIFEST}" ]]; then
+    SMOKE_LIFECYCLE_MANIFEST="${ROOT_DIR}/exports/cloudbase-smoke/maestro-$(date -u +%Y%m%dT%H%M%SZ)-$$/manifest.json"
+  fi
+  prepared="$(
+    SOFTBOOK_CET_TEST_PHONE="${CONTRACT_TEST_PHONE}" \
+    SOFTBOOK_CET_MANUAL_TEST_PHONE="${MANUAL_TEST_PHONE}" \
+    node "${ROOT_DIR}/infra/cloudbase/smoke-record-lifecycle.mjs" \
+      prepare \
+      --manifest "${SMOKE_LIFECYCLE_MANIFEST}" \
+      --phone-count 2 \
+      --format tsv
+  )"
+  IFS=$'\t' read -r CONTRACT_TEST_PHONE MANUAL_TEST_PHONE <<<"${prepared}"
+  SMOKE_LIFECYCLE_ACTIVE="1"
 }
 
 resolve_ios_target() {
@@ -94,7 +135,17 @@ resolve_ios_target() {
   echo "==> Maestro target ${resolved_name} (${resolved_runtime}) ${RESOLVED_IOS_DEVICE} [${resolved_state}]"
 }
 
-trap cleanup EXIT
+on_exit() {
+  local exit_code="$?"
+  trap - EXIT
+  if ! cleanup; then
+    exit_code="1"
+  fi
+  exit "${exit_code}"
+}
+
+trap 'exit 130' INT TERM
+trap on_exit EXIT
 
 if [[ -z "${BASE_URL// }" ]]; then
   echo "SOFTBOOK_CET_REMOTE_BASE_URL is required." >&2
@@ -145,8 +196,13 @@ start_metro_if_needed
 echo "==> Clearing installed iOS app before remote Maestro launch"
 xcrun simctl uninstall "${RESOLVED_IOS_DEVICE}" "${IOS_BUNDLE_ID}" >/dev/null 2>&1 || true
 
+prepare_smoke_lifecycle
+
 echo "==> Launching iOS app with CloudBase runtime profile"
 SOFTBOOK_CET_IOS_LAUNCH=1 \
+SOFTBOOK_CET_SMOKE_LIFECYCLE_OWNER=external \
+SOFTBOOK_CET_SMOKE_LIFECYCLE_MANIFEST="${SMOKE_LIFECYCLE_MANIFEST}" \
+SOFTBOOK_CET_TEST_PHONE="${CONTRACT_TEST_PHONE}" \
 SOFTBOOK_CET_MANUAL_TEST_PHONE="${MANUAL_TEST_PHONE}" \
 SOFTBOOK_CET_REMOTE_BASE_URL="${SOFTBOOK_CET_REMOTE_BASE_URL}" \
 SOFTBOOK_CET_REMOTE_API_KEY="${SOFTBOOK_CET_REMOTE_API_KEY:-}" \

@@ -226,7 +226,12 @@ runs a write-enabled isolated CET4 smoke and a CET6 smoke, then publishes a
 verified version. Each publication must resolve to one newly created immutable
 version ID, which is recorded in the mode-`0600` deployment report. Any failure
 after the code update attempts an automatic package restore and verifies the
-complete restored package.
+complete restored package. Before either live smoke, the manager requires an
+empty dev identity/account baseline and creates an ignored mode-`0600` smoke
+lifecycle manifest. Success and failure both delete only the exact persisted
+document IDs and verify that every collection returned to its baseline. A
+cleanup failure fails the deployment and leaves the manifest resumable at
+`exports/cloudbase-deployments/<deploy-run>/smoke-lifecycle.json`.
 
 Manual rollback accepts either a deployment run directory or its `backup`
 subdirectory:
@@ -316,20 +321,32 @@ Run the deployed CloudBase endpoint against the same payload shape used by the R
 
 ```bash
 SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
-SOFTBOOK_CET_TEST_CODE="2468" \
-SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1 \
-SOFTBOOK_CET_SMOKE_WRITE=1 \
-SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS=1 \
-node infra/cloudbase/smoke-softbook-api.mjs
+infra/cloudbase/smoke-ios-runtime.sh
 ```
 
-`SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1` generates a one-off valid dev phone for
-the contract run. Omit it only when you intentionally want the smoke to operate
-on `SOFTBOOK_CET_TEST_PHONE`. Isolated runs also assert that initial entitlement
-starts at `trial_available`, start-trial returns `trial`, and purchase returns
-`premium`. Override those checks only for a deliberate fixture with
+The wrapper allocates a one-off valid dev phone and owns its cleanup lifecycle.
+Calling `smoke-softbook-api.mjs` directly against the allowlisted CloudBase dev
+environment is rejected when authentication or writes are not backed by that
+lifecycle. Isolated runs also assert that initial entitlement starts at
+`trial_available`, start-trial returns `trial`, and purchase returns `premium`.
+Override those checks only for a deliberate fixture with
 `SOFTBOOK_CET_EXPECT_INITIAL_STAGE`, `SOFTBOOK_CET_EXPECT_START_TRIAL_STAGE`,
 or `SOFTBOOK_CET_EXPECT_PURCHASE_STAGE`.
+
+If a process is killed after its cleanup plan has been persisted, resume only
+that exact plan:
+
+```bash
+node infra/cloudbase/smoke-record-lifecycle.mjs cleanup \
+  --manifest exports/cloudbase-smoke/<run>/manifest.json
+node infra/cloudbase/smoke-record-lifecycle.mjs cleanup \
+  --manifest exports/cloudbase-smoke/<run>/manifest.json \
+  --apply
+```
+
+The first command is a dry run. Cleanup aborts without deleting when it sees an
+unowned record, count drift, a non-dev target, or a document outside the
+lifecycle window.
 
 ## iOS Runtime Smoke
 
@@ -387,7 +404,9 @@ printed; press `Ctrl+C` after acceptance to stop that Metro session. Set
 `SOFTBOOK_CET_STOP_METRO_ON_EXIT=1` when you want the wrapper to stop its own
 Metro process as soon as the launch sequence finishes. A failed build or an
 interrupted run always stops a Metro process started by the wrapper. An already
-running Metro server is reused and left alone.
+running Metro server is reused and left alone. For the allowlisted CloudBase dev
+environment, the wrapper remains attached even when Metro was reused so
+`Ctrl+C` can close the acceptance window and verify exact smoke-record cleanup.
 
 When `SOFTBOOK_CET_IOS_LAUNCH=1`, the wrapper prints a one-off manual
 acceptance phone in the `19xxxxxxxxx` format. Use that printed phone in the app;
@@ -427,6 +446,9 @@ delegates the backend contract / runtime-profile / iOS remote launch sequence to
 `apps/mobile/e2e/maestro/ios-remote-smoke.yaml` against the same device with
 `maestro test --udid`. The Maestro flow file, Java runtime, and CLI are checked
 before target resolution or remote writes begin.
+The parent Maestro wrapper owns one lifecycle across both the contract smoke and
+the UI flow; the delegated iOS wrapper cannot clean the records early. Its exit
+trap verifies cleanup after either a passed or failed Maestro run.
 The remote Maestro flow intentionally omits `clearState` and `launchApp`, because
 the app must keep the `SIMCTL_CHILD_*` runtime environment injected by
 `smoke-ios-runtime.sh`.
