@@ -28,10 +28,12 @@ Referenced active specs:
 - The stable manifest is signed with Ed25519. Expiring private-object URLs are
   returned separately because expiry is transport state, not signed content
   identity.
-- The repository-local CloudBase endpoint, mobile parser, and strict pinned-key
-  Ed25519 verifier are implemented but not deployed. A release public-key
-  keyring, native download cache, downloaded-byte hashing, playback, and visible
-  controls remain pending and the audio launch gate stays pending.
+- The repository-local CloudBase endpoint, mobile parser, strict runtime keyring
+  consumer, pinned-key Ed25519 verifier, and native content-addressed cache with
+  completed-byte hashing are implemented but not deployed or wired into the
+  Learning surface. Production key values and native release injection, real
+  private-object download smoke, playback, and visible controls remain pending,
+  so the audio launch gate stays pending.
 
 ## Card source
 
@@ -130,6 +132,22 @@ The client must:
 7. start playback only after an explicit user action.
 
 Steps 1-4 and the reusable strict verifier are implemented in the
-repository-local mobile runtime. The release build still needs its owned
-public-key keyring. Steps 5-7 remain follow-up work and cannot be inferred from
-this contract being green.
+repository-local mobile runtime. Remote runtime configuration now consumes a
+non-empty release-owned public-key map and fails closed when it is absent or
+invalid, but production key values and cross-platform release injection remain
+external pending work.
+
+Steps 5-6 are implemented through `react-native-blob-util@0.24.10`: downloads
+write directly to a unique partial file under the app cache, then native stat
+and SHA-256 must match the signed descriptor before same-directory promotion to
+`softbook-content-v1/sha256/<prefix>/<digest>.mp3`. Corrupt hits, failed
+downloads, and post-move mismatches are deleted. A verified cache hit is
+account-independent and remains usable offline without reusing an expired URL;
+cache misses require an unexpired credential-free HTTPS download, and every
+native redirect target must also remain credential-free HTTPS. Concurrent
+requests for the same digest share one in-process operation only after each
+caller's asset/download identity and declared byte length are validated.
+
+The cache is not yet called by the Learning runtime and has no playback API.
+Step 7, device smoke, cache lifecycle/eviction policy, and user-visible state
+remain follow-up work and cannot be inferred from this contract being green.

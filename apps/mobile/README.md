@@ -129,9 +129,14 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG = createSoftbookRemoteRuntimeConfig({
 ```bash
 SOFTBOOK_CET_REMOTE_BASE_URL=https://your-api.example.com \
 SOFTBOOK_CET_REMOTE_API_KEY=your-dev-key \
+SOFTBOOK_CET_CONTENT_MANIFEST_PUBLIC_KEYS='{"content-key-1":"<64-lowercase-hex-public-key>"}' \
 SOFTBOOK_CET_LEARNING_TRACK=cet4 \
 npm start
 ```
+
+Content manifest 公钥不是秘密，但 key ID 与值必须和服务端签名私钥登记一致；
+服务端私钥、临时下载 URL 和访问 token 不得写入 tracked config。缺失或格式错误的
+公钥表会在创建 remote content-manifest runtime 时失败关闭。
 
 分段 smoke 时，用 `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES=accountBootstrap,learningSource,learningState,spaceState` 让指定 surface 暂时留在本地，其它远端能力仍由同一个 `baseUrl` 派生。
 `learningState` 为远端时，`accountBootstrap` 与 `learningSource` 也必须为远端，客户端才能把实际卡源的 `content_version` 与 canonical content version 绑定；若要本地卡源，必须把这三个 feature 一起留在本地。

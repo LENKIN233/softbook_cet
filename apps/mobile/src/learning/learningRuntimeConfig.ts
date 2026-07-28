@@ -69,9 +69,19 @@ export type AccountBootstrapRuntimeConfig = {
   };
 };
 
+export type ContentManifestRuntimeConfig = {
+  mode?: 'local' | 'remote';
+  remote?: {
+    apiKey?: string;
+    baseUrl: string;
+    publicKeys: Readonly<Record<string, string>>;
+  };
+};
+
 export type SoftbookAppRuntimeConfig = {
   accountBootstrap?: AccountBootstrapRuntimeConfig;
   auth?: AuthRuntimeConfig;
+  contentManifest?: ContentManifestRuntimeConfig;
   learningTrack?: LearningTrack;
   learningSource?: LearningSourceRuntimeConfig;
   membership?: MembershipRuntimeConfig;
@@ -83,6 +93,7 @@ export type SoftbookAppRuntimeConfig = {
 
 type RemoteRuntimeFeature =
   | 'accountBootstrap'
+  | 'contentManifest'
   | 'learningSource'
   | 'membership'
   | 'progressSync'
@@ -112,6 +123,7 @@ export function assertRemoteRuntimeUsesRemoteAuth(
 
   const labelByFeature: Record<RemoteRuntimeFeature, string> = {
     accountBootstrap: 'Remote account bootstrap mode',
+    contentManifest: 'Remote content manifest mode',
     learningSource: 'Remote learning source mode',
     learningState: 'Remote learning state mode',
     membership: 'Remote membership mode',

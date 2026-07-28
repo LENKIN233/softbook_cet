@@ -51,10 +51,13 @@ Environment:
 
 - `SOFTBOOK_CET_REMOTE_BASE_URL`: enables remote runtime profile.
 - `SOFTBOOK_CET_REMOTE_API_KEY`: optional; sent as `x-api-key`.
+- `SOFTBOOK_CET_CONTENT_MANIFEST_PUBLIC_KEYS`: JSON object containing the
+  release-owned content-manifest key IDs and 32-byte lowercase-hex Ed25519
+  public keys. Remote content-manifest consumption fails closed without one.
 - `SOFTBOOK_CET_LEARNING_TRACK`: optional, `cet4` or `cet6`; default `cet4`.
 - `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES`: optional comma-separated features to
   keep local while auth remains remote. Allowed values:
-  `accountBootstrap,learningSource,membership,progressSync,spaceState,learningState`.
+  `accountBootstrap,contentManifest,learningSource,membership,progressSync,spaceState,learningState`.
 
 If `SOFTBOOK_CET_REMOTE_BASE_URL` is present, auth is remote. By default all
 remote-capable features are also remote.
