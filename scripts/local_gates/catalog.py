@@ -108,6 +108,15 @@ def build_catalog() -> tuple[GateSpec, ...]:
             lambda _: CommandSpec((sys.executable, "scripts/validate_maestro_selectors.py")),
         ),
         GateSpec(
+            "ios-runtime-target-tests",
+            dev,
+            60,
+            False,
+            lambda _: CommandSpec(
+                ("node", "--test", "infra/cloudbase/test-resolve-ios-simulator.mjs")
+            ),
+        ),
+        GateSpec(
             "launch-contract-tests",
             dev,
             60,

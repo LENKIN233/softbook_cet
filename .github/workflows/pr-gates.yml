@@ -58,6 +58,9 @@ jobs:
       - name: Validate Maestro selectors
         run: python3 scripts/validate_maestro_selectors.py
 
+      - name: Test iOS runtime target resolution
+        run: node --test infra/cloudbase/test-resolve-ios-simulator.mjs
+
       - name: Test Harness runner
         run: python3 scripts/test_validate_harness_runner.py
 
