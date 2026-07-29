@@ -33,6 +33,14 @@ test('Android Release never falls back to the repository debug keystore', () => 
   }
 });
 
+test('Android ReactHost follows the application build type for dev support', () => {
+  const application = read(
+    'apps/mobile/android/app/src/main/java/com/softbook/cet/MainApplication.kt',
+  );
+
+  assert.match(application, /useDevSupport\s*=\s*BuildConfig\.DEBUG/);
+});
+
 test('Android Release CI uses JDK 17 and verifies an unsigned artifact', () => {
   const workflow = read('.github/workflows/pr-gates.yml');
   const job = workflow.slice(workflow.indexOf('  android-release:'), workflow.indexOf('\n  repo-health:'));
@@ -46,6 +54,7 @@ test('Android Release CI uses JDK 17 and verifies an unsigned artifact', () => {
 test('Android remote smoke reuses the complete stable-selector flow', () => {
   const packageJson = JSON.parse(read('apps/mobile/package.json'));
   const flow = read('apps/mobile/e2e/maestro/android-remote-smoke.yaml');
+  const sharedRemoteFlow = read('apps/mobile/e2e/maestro/ios-remote-smoke.yaml');
 
   assert.equal(
     packageJson.scripts['e2e:android:maestro'],
@@ -53,4 +62,8 @@ test('Android remote smoke reuses the complete stable-selector flow', () => {
   );
   assert.match(flow, /name: android-remote-auth-learning-space-statistics-smoke/);
   assert.match(flow, /file: ios-remote-smoke\.yaml/);
+  assert.match(
+    sharedRemoteFlow,
+    /id: "auth-dismiss-keyboard-button"\n\s+optional: true\n- hideKeyboard/,
+  );
 });
