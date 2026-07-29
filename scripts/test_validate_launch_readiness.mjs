@@ -1113,6 +1113,48 @@ test('release campaign reports must share commit, profile, environment, bundle, 
   assert.match(result.errors.join('\n'), /share backend_deployment_id/);
 });
 
+test('SMS provider smoke evidence must satisfy its strict human-confirmation schema', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-readiness-sms-'));
+  t.after(() => fs.rmSync(root, { force: true, recursive: true }));
+  const relativePath = 'docs/release/evidence/sms-provider-smoke.json';
+  const evidencePath = path.join(root, relativePath);
+  const report = smsProviderSmokeReport();
+  fs.mkdirSync(path.dirname(evidencePath), { recursive: true });
+  fs.writeFileSync(evidencePath, `${JSON.stringify(report, null, 2)}\n`);
+
+  const launch = structuredClone(launchContract);
+  const gate = launch.gates.find(
+    candidate => candidate.id === 'production-auth-and-account-deletion',
+  );
+  gate.evidence = [
+    createEvidence('sms-provider-smoke', 903, {
+      artifactUri: `repo://${relativePath}`,
+      payload: fs.readFileSync(evidencePath),
+    }),
+  ];
+
+  const valid = verifyRepositoryEvidenceFiles(launch, accountsContract, {
+    root,
+    trackedFiles: new Set([relativePath]),
+  });
+  assert.equal(valid.ok, true, valid.errors.join('\n'));
+
+  report.confirmation_method = 'automated_api_response';
+  report.verifier.id = 'github:different-reviewer';
+  fs.writeFileSync(evidencePath, `${JSON.stringify(report, null, 2)}\n`);
+  gate.evidence[0] = createEvidence('sms-provider-smoke', 904, {
+    artifactUri: `repo://${relativePath}`,
+    payload: fs.readFileSync(evidencePath),
+  });
+  const invalid = verifyRepositoryEvidenceFiles(launch, accountsContract, {
+    root,
+    trackedFiles: new Set([relativePath]),
+  });
+  assert.equal(invalid.ok, false);
+  assert.match(invalid.errors.join('\n'), /confirmation_method is invalid/);
+  assert.match(invalid.errors.join('\n'), /verifier does not match verified_by/);
+});
+
 test('launch and external account statuses must agree', () => {
   const invalidLaunch = structuredClone(launchContract);
   invalidLaunch.external_dependencies[0].status = 'ready';
@@ -1746,6 +1788,34 @@ function createEvidence(type, sequence, { artifactUri, payload } = {}) {
     subject_commit_sha: TEST_COMMIT_SHA,
     verified_at: '2026-07-13T23:00:00.000Z',
     verified_by: 'github:LENKIN233',
+  };
+}
+
+function smsProviderSmokeReport() {
+  return {
+    schema_version: 'sms-provider-smoke.v1',
+    run_id: 'sms-smoke-123e4567-e89b-12d3-a456-426614174000',
+    status: 'passed',
+    target_id: 'receiver-closed-beta',
+    repository_commit: '0123456789abcdef0123456789abcdef01234567',
+    provider: 'tencentcloud',
+    delivery: 'sms_tencentcloud',
+    provider_configuration_fingerprint:
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    provider_receipt: {
+      provider_request_fingerprint:
+        'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
+      provider_status_code: null,
+    },
+    phone_fingerprint:
+      '123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0',
+    sent_at: '2026-07-13T22:58:00.000Z',
+    confirmed_at: '2026-07-13T23:00:00.000Z',
+    expires_at: '2026-07-13T23:03:00.000Z',
+    confirmation_method: 'human_received_code_match',
+    verifier: { kind: 'human', id: 'github:LENKIN233' },
+    private_state_removed: true,
+    generated_at: '2026-07-13T23:00:00.000Z',
   };
 }
 

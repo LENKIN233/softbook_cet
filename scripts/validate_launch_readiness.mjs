@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import {validateSmsProviderSmokeReport} from '../infra/cloudbase/smoke-sms-provider.mjs';
 import {
   validateGateEvidenceArtifact,
   validateGateEvidenceCoherence,
@@ -1163,6 +1164,25 @@ export function loadLaunchEvidenceSemanticContext({root = ROOT} = {}) {
     releaseOperationalPolicy,
     releasePolicySha256,
   };
+}
+
+function validateSmsProviderSmokeEvidence(bytes, evidence, label, errors) {
+  let report;
+  try {
+    report = JSON.parse(bytes.toString('utf8'));
+  } catch {
+    errors.push(`${label} SMS provider smoke evidence must be valid JSON.`);
+    return;
+  }
+  for (const message of validateSmsProviderSmokeReport(report)) {
+    errors.push(`${label} SMS provider smoke evidence: ${message}.`);
+  }
+  if (report?.verifier?.id !== evidence.verified_by) {
+    errors.push(`${label} SMS provider smoke verifier does not match verified_by.`);
+  }
+  if (report?.confirmed_at !== evidence.verified_at) {
+    errors.push(`${label} SMS provider smoke confirmed_at does not match verified_at.`);
+  }
 }
 
 function validateProductScope(scope, errors) {

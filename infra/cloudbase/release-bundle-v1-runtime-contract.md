@@ -117,6 +117,15 @@ read-only and checks the active release, API route, bundle, catalog, and zero
 imported user-data baseline. A real lifecycle-managed production SMS/device
 smoke is still a separate acceptance gate.
 
+Provider smoke does not use the CloudBase database. The two-phase
+`smoke-sms-provider.mjs` command sends only with explicit apply on clean exact
+`main`, keeps phone/code state private and ignored, and publishes a
+`sms-provider-smoke.v1` raw report only after a non-agent human submits the
+received code through stdin. Formal launch evidence wraps that raw report in a
+typed `launch-gate-evidence.v1` record so the candidate, environment, execution,
+independent verification, tracked hash, and semantic report bindings all fail
+closed together; repository-local tests alone never create that evidence.
+
 ## Operational evidence policy
 
 `spec/release-operational-policy.json` owns the minimum non-regressing launch

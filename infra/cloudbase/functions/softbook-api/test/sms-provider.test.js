@@ -34,7 +34,7 @@ test('webhook provider sends the bounded delivery contract and bearer secret', a
     },
   });
 
-  await provider.sendCode({
+  const receipt = await provider.sendCode({
     challengeId: 'challenge-1',
     code: '482913',
     expiresAt: '2026-07-29T07:05:00.000Z',
@@ -54,6 +54,11 @@ test('webhook provider sends the bounded delivery contract and bearer secret', a
     phone_number: '13800138000',
   });
   assert.equal(calls[0].init.redirect, 'error');
+  assert.deepEqual(receipt, {
+    accepted: true,
+    providerRequestId: null,
+    providerStatusCode: 202,
+  });
 });
 
 test('webhook provider never includes remote response details in its error', async () => {
@@ -122,7 +127,7 @@ test('Tencent Cloud provider sends one E.164 recipient with the approved templat
     },
   });
 
-  await provider.sendCode({
+  const receipt = await provider.sendCode({
     challengeId: 'challenge-1',
     code: '482913',
     expiresAt: '2026-07-29T07:05:00.000Z',
@@ -140,6 +145,11 @@ test('Tencent Cloud provider sends one E.164 recipient with the approved templat
       TemplateParamSet: ['482913', '5'],
     },
   ]);
+  assert.deepEqual(receipt, {
+    accepted: true,
+    providerRequestId: 'provider-request-id',
+    providerStatusCode: null,
+  });
 });
 
 test('Tencent Cloud provider accepts a code-only approved template', async () => {
@@ -148,7 +158,10 @@ test('Tencent Cloud provider accepts a code-only approved template', async () =>
     client: {
       async SendSms(request) {
         calls.push(request);
-        return {SendStatusSet: [{Code: 'Ok', PhoneNumber: '+8613900139000'}]};
+        return {
+          RequestId: 'provider-request-id-code-only',
+          SendStatusSet: [{Code: 'Ok', PhoneNumber: '+8613900139000'}],
+        };
       },
     },
     clock: () => Date.parse('2026-07-29T07:00:00.000Z'),
@@ -173,7 +186,9 @@ test('Tencent Cloud provider rejects a non-Ok or mismatched status without leaki
     {Code: 'Ok', PhoneNumber: '+8613900139000'},
   ]) {
     const provider = createTencentCloudSmsProvider({
-      client: {SendSms: async () => ({SendStatusSet: [status]})},
+      client: {
+        SendSms: async () => ({RequestId: 'provider-request-id', SendStatusSet: [status]}),
+      },
       clock: () => Date.parse('2026-07-29T07:00:00.000Z'),
       sdkAppId: '1400006666',
       signName: '软书四六级',
@@ -194,6 +209,31 @@ test('Tencent Cloud provider rejects a non-Ok or mismatched status without leaki
         !error.message.includes(status.PhoneNumber),
     );
   }
+});
+
+test('Tencent Cloud provider requires the provider request ID for smoke traceability', async () => {
+  const provider = createTencentCloudSmsProvider({
+    client: {
+      SendSms: async () => ({
+        SendStatusSet: [{Code: 'Ok', PhoneNumber: '+8613800138000'}],
+      }),
+    },
+    clock: () => Date.parse('2026-07-29T07:00:00.000Z'),
+    sdkAppId: '1400006666',
+    signName: '软书四六级',
+    templateId: '1110',
+    templateParameters: ['code'],
+  });
+
+  await assert.rejects(
+    () =>
+      provider.sendCode({
+        code: '482913',
+        expiresAt: '2026-07-29T07:05:00.000Z',
+        phoneNumber: '13800138000',
+      }),
+    /Tencent Cloud SMS delivery failed/,
+  );
 });
 
 for (const env of [

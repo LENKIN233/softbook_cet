@@ -407,6 +407,43 @@ stored together in `softbook_beta_entitlements`. The base membership document
 is not modified. Command files contain phone numbers and must not be committed
 or included in a release bundle.
 
+### Real-provider SMS smoke
+
+The repository provides a database-free, two-phase provider smoke. Dry-run
+validates the selected production adapter without sending:
+
+```bash
+SOFTBOOK_SMS_SMOKE_PHONE=<receiver-owned-test-phone> \
+SOFTBOOK_SMS_SMOKE_TARGET_ID=receiver-closed-beta \
+node infra/cloudbase/smoke-sms-provider.mjs prepare \
+  --state docs/agent-runs/artifacts/sms-provider-smoke.json \
+  --format json
+```
+
+Run the same command with `--apply` only from clean `main` exactly matching
+`origin/main`. The raw phone and generated code then exist only in the ignored,
+mode-0600 state file. After a human receives the message, pass the received code
+through stdin rather than an argument or environment variable:
+
+```bash
+read -r -s RECEIVED_SMS_CODE
+printf '%s' "$RECEIVED_SMS_CODE" | \
+  SOFTBOOK_SMS_SMOKE_VERIFIER=github:LENKIN233 \
+  node infra/cloudbase/smoke-sms-provider.mjs confirm \
+    --state docs/agent-runs/artifacts/sms-provider-smoke.json \
+    --report docs/release/evidence/sms-provider-smoke.json \
+    --apply --format json
+unset RECEIVED_SMS_CODE
+```
+
+Successful confirmation atomically removes private state before publishing the
+PII-free `sms-provider-smoke.v1` report. A wrong code is limited to three local
+attempts; expiry or the third mismatch deletes private state and produces no
+evidence. Use `discard --state ... --apply` to remove an interrupted state. The
+launch validator re-hashes the tracked report, validates its exact schema, and
+requires its human verifier and confirmation time to match the readiness
+evidence record.
+
 Dependency audit status: the current lockfile returns zero known findings from
 `npm audit --omit=dev`. This is a point-in-time dependency result, not production
 readiness. The function remains pinned by its lockfile to the currently verified

@@ -202,10 +202,18 @@ recipient is accepted. Credentials and template configuration remain outside
 tracked files, and provider details are not exposed through the public auth
 error envelope.
 
+`infra/cloudbase/smoke-sms-provider.mjs` implements a database-free two-phase
+provider acceptance path. Apply mode is restricted to clean exact `main`, keeps
+the phone and generated code in a mode-0600 ignored file, and requires a human
+to submit the received code through stdin. A match deletes private state before
+publishing a strict PII-free `sms-provider-smoke.v1` report. Repository tests
+and the launch validator cover this workflow, but no report exists until the
+receiver actually performs and confirms a real send.
+
 Remaining blockers include:
 
-- Tencent Cloud SMS account enablement, signature/template approval, and
-  lifecycle-managed delivery smoke evidence;
+- Tencent Cloud SMS account enablement, signature/template approval, and an
+  actually executed lifecycle-managed delivery smoke report;
 - production secret injection, signing-key key-ring rotation, and stable index
   secret custody;
 - production Web origin allowlisting and gateway abuse-control review;

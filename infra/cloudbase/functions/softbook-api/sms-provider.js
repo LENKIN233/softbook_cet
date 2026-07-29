@@ -108,6 +108,11 @@ function createWebhookSmsProvider({endpoint, fetchImpl, secret, timeoutMs = DEFA
         if (!response || response.ok !== true) {
           throw new Error('SMS webhook rejected delivery.');
         }
+        return {
+          accepted: true,
+          providerRequestId: null,
+          providerStatusCode: Number.isInteger(response.status) ? response.status : null,
+        };
       } catch {
         throw new Error('SMS webhook delivery failed.');
       } finally {
@@ -194,10 +199,17 @@ function createTencentCloudSmsProvider({
           !Array.isArray(statuses) ||
           statuses.length !== 1 ||
           statuses[0]?.Code !== 'Ok' ||
-          statuses[0]?.PhoneNumber !== e164PhoneNumber
+          statuses[0]?.PhoneNumber !== e164PhoneNumber ||
+          typeof response?.RequestId !== 'string' ||
+          response.RequestId.trim() === ''
         ) {
           throw new Error('Tencent Cloud rejected delivery.');
         }
+        return {
+          accepted: true,
+          providerRequestId: response.RequestId,
+          providerStatusCode: null,
+        };
       } catch {
         throw new Error('Tencent Cloud SMS delivery failed.');
       }
