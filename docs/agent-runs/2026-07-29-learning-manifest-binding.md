@@ -4,7 +4,7 @@
 
 - Date: 2026-07-29
 - Branch: `module/learning-manifest-binding`
-- PR: pending
+- PR: `#455` (`https://github.com/LENKIN233/softbook_cet/pull/455`)
 - Summary: Bind authenticated, signed content manifests to remote Learning sessions so card source, scheduler selection, membership access, and audio descriptors must agree before a card is returned. This adds no player or user-visible audio control.
 
 ## Referenced specs
