@@ -1,3 +1,5 @@
+import type {VerifiedContentManifest} from '../audio/contentManifestRepository';
+
 export const CORE_INTERACTION_ORDER = [
   'flip',
   'multiple_choice',
@@ -167,6 +169,7 @@ export type LearningServerMembershipStage = 'trial' | 'free' | 'premium';
 
 export type LearningSession = {
   catalogCards: LearningCard[];
+  contentManifest: VerifiedContentManifest | null;
   contentVersion: string | null;
   membershipStage: LearningServerMembershipStage | null;
   nextDueAt: string | null;

@@ -416,6 +416,7 @@ test('restores remote account state from canonical bootstrap before local use', 
           apiKey: 'runtime-key',
           baseUrl: 'https://api.softbook.example/',
           featureModes: {
+            contentManifest: 'local',
             learningState: 'local',
             membership: 'local',
             progressSync: 'local',
@@ -556,6 +557,7 @@ test('restores an exact queued check-in without treating event-derived progress 
         softbookRemoteRuntimeProfile={{
           baseUrl: 'https://api.softbook.example/',
           featureModes: {
+            contentManifest: 'local',
             learningState: 'local',
             membership: 'local',
             progressSync: 'remote',
@@ -820,6 +822,7 @@ test('replays a restored selection-bound v2 event before allowing the stale card
         softbookRemoteRuntimeProfile={{
           baseUrl: 'https://api.softbook.example/',
           featureModes: {
+            contentManifest: 'local',
             membership: 'local',
             progressSync: 'local',
             spaceState: 'local',
@@ -973,6 +976,7 @@ test('does not persist canonical state before content version validation', async
           softbookRemoteRuntimeProfile={{
             baseUrl: 'https://api.softbook.example/',
             featureModes: {
+              contentManifest: 'local',
               learningState: 'local',
               membership: 'local',
               progressSync: 'local',
@@ -1068,6 +1072,7 @@ test('remote logout clears local persistence when server revocation is unavailab
           baseUrl: 'https://api.softbook.example/',
           featureModes: {
             accountBootstrap: 'local',
+            contentManifest: 'local',
             learningSource: 'local',
             learningState: 'local',
             membership: 'local',
@@ -1151,6 +1156,7 @@ test('reloads remote membership authority when restoring an auth session', async
           baseUrl: 'https://api.softbook.example/',
           featureModes: {
             accountBootstrap: 'local',
+            contentManifest: 'local',
             learningSource: 'local',
             learningState: 'local',
             membership: 'remote',
@@ -1259,6 +1265,7 @@ test('uses bootstrap canonical space state without pushing unqueued restored sta
           apiKey: 'runtime-key',
           baseUrl: 'https://api.softbook.example/',
           featureModes: {
+            contentManifest: 'local',
             learningState: 'local',
             membership: 'local',
             progressSync: 'local',
@@ -1347,6 +1354,7 @@ test('expired restored session clears account state instead of authenticating of
             baseUrl: 'https://api.softbook.example/',
             featureModes: {
               accountBootstrap: 'local',
+              contentManifest: 'local',
               learningSource: 'local',
               learningState: 'local',
               membership: 'remote',

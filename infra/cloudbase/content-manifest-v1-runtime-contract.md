@@ -132,10 +132,15 @@ The client must:
 7. start playback only after an explicit user action.
 
 Steps 1-4 and the reusable strict verifier are implemented in the
-repository-local mobile runtime. Remote runtime configuration now consumes a
-non-empty release-owned public-key map and fails closed when it is absent or
-invalid, but production key values and cross-platform release injection remain
-external pending work.
+repository-local mobile runtime. When remote learning is enabled, the Learning
+repository loads the canonical card source and server selection first, then
+loads this manifest for that exact track/content version. It rejects any card
+catalog, membership access mode, or access-count drift before returning a
+selected card. Remote runtime configuration consumes a non-empty
+release-owned public-key map and fails closed when it is absent or invalid, but
+production key values and cross-platform release injection remain external
+pending work. A deliberately local content-manifest feature is allowed only as
+an explicit development smoke configuration; it returns no manifest.
 
 Steps 5-6 are implemented through `react-native-blob-util@0.24.10`: downloads
 write directly to a unique partial file under the app cache, then native stat
@@ -148,6 +153,7 @@ native redirect target must also remain credential-free HTTPS. Concurrent
 requests for the same digest share one in-process operation only after each
 caller's asset/download identity and declared byte length are validated.
 
-The cache is not yet called by the Learning runtime and has no playback API.
-Step 7, device smoke, cache lifecycle/eviction policy, and user-visible state
-remain follow-up work and cannot be inferred from this contract being green.
+The verified manifest is now attached to the in-memory Learning session, but
+the cache is not yet called by a player and there is no playback API. Step 7,
+device smoke, cache lifecycle/eviction policy, and user-visible state remain
+follow-up work and cannot be inferred from this contract being green.

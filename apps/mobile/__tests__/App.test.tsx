@@ -9,7 +9,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
 import { LearningCard, LearningSession } from '../src/learning/model';
 import { createLocalLearningSession } from '../src/learning/session';
-import { createSoftbookRemoteRuntimeConfig } from '../src/runtime/appRuntimeConfig';
+import {
+  createSoftbookRemoteRuntimeConfig as createProductionRemoteRuntimeConfig,
+  type SoftbookRemoteRuntimeProfile,
+} from '../src/runtime/appRuntimeConfig';
 import { getChinaDayKey } from '../src/shared/chinaDay';
 import App from '../App';
 
@@ -17,6 +20,18 @@ const mockCreateLearningSessionRepository = jest.fn();
 const mockLoadSession = jest.fn();
 const mockFetch = jest.fn();
 const TEST_CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
+
+function createSoftbookRemoteRuntimeConfig(
+  profile: SoftbookRemoteRuntimeProfile,
+) {
+  return createProductionRemoteRuntimeConfig({
+    ...profile,
+    featureModes: {
+      contentManifest: 'local',
+      ...profile.featureModes,
+    },
+  });
+}
 
 type MockFetchInit = {
   body?: string;
@@ -733,6 +748,7 @@ function createRemoteCatalogSession(): LearningSession {
   return {
     catalogCards: [remoteCard],
     cards: [remoteCard],
+    contentManifest: null,
     contentVersion: TEST_CONTENT_VERSION,
     membershipStage: 'free',
     nextDueAt: null,
@@ -1040,6 +1056,9 @@ test('uses native initial remote runtime profile before the shell mounts', async
       <App
         softbookRemoteRuntimeProfile={{
           baseUrl: 'https://api.softbook.example',
+          featureModes: {
+            contentManifest: 'local',
+          },
           learningTrack: 'cet6',
         }}
       />,
@@ -1396,6 +1415,9 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   const repositoryConfig =
     mockCreateLearningSessionRepository.mock.calls[0]?.[0];
   expect(repositoryConfig).toMatchObject({
+    contentManifestConfig: {
+      mode: 'disabled',
+    },
     mode: 'remote',
     remoteConfig: {
       apiKey: 'profile-key',
@@ -3821,6 +3843,38 @@ test('can unlock gated space after remote purchase', async () => {
   expect(normalizeMockHeaders(purchaseRequest?.init?.headers)).toMatchObject({
     authorization: 'Bearer remote-auth-token',
   });
+});
+
+test('wires a release-owned content-manifest keyring into the remote learning repository', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <App
+        softbookRemoteRuntimeProfile={{
+          baseUrl: 'https://api.softbook.example',
+          contentManifestPublicKeys: {
+            'content-key-1': 'a'.repeat(64),
+          },
+          featureModes: {
+            contentManifest: 'remote',
+          },
+        }}
+      />,
+    );
+  });
+
+  expect(tree!.toJSON()).toBeTruthy();
+  expect(mockCreateLearningSessionRepository).toHaveBeenCalledWith(
+    expect.objectContaining({
+      contentManifestConfig: expect.objectContaining({
+        baseUrl: 'https://api.softbook.example',
+        mode: 'remote',
+        verifySignature: expect.any(Function),
+      }),
+      mode: 'remote',
+    }),
+  );
 });
 
 test('keeps remote purchase failure copy user-facing', async () => {

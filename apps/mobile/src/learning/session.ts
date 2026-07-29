@@ -23,6 +23,7 @@ export function createLearningSession(
 
   return {
     catalogCards: orderedCards,
+    contentManifest: null,
     contentVersion,
     membershipStage: null,
     nextDueAt: null,

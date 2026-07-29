@@ -3,6 +3,7 @@ import { createLearningSessionRepository } from '../src/learning/learningReposit
 import { parseSoftbookRemoteLearningCardSourcePayload } from '../src/learning/remoteCardSource';
 
 const CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
+const AUDIO_SHA256 = `sha256:${'b'.repeat(64)}`;
 const SELECTION_ID = 'sel_1234567890abcdef';
 
 const authenticatedContext = {
@@ -10,7 +11,7 @@ const authenticatedContext = {
   phoneNumber: '13800138000',
 };
 
-function createSourcePayload() {
+function createSourcePayload(cardRecords = localLearningCardRecords) {
   return {
     data: {
       source: {
@@ -18,7 +19,7 @@ function createSourcePayload() {
         label: '远端卡源',
       },
       track: 'cet4',
-      card_records: localLearningCardRecords,
+      card_records: cardRecords,
       content_version: CONTENT_VERSION,
     },
   };
@@ -75,8 +76,14 @@ function createSessionPayload(
   };
 }
 
-function createRemoteRepository(fetchImpl: jest.Mock) {
+function createRemoteRepository(
+  fetchImpl: jest.Mock,
+  contentManifestConfig: Parameters<typeof createLearningSessionRepository>[0]['contentManifestConfig'] = {
+    mode: 'disabled',
+  },
+) {
   return createLearningSessionRepository({
+    contentManifestConfig,
     mode: 'remote',
     remoteConfig: {
       endpoint: 'https://example.com/v1/learning/card-source',
@@ -98,6 +105,7 @@ test('local learning session repository loads a usable session', async () => {
 
   expect(session.track).toBe('cet4');
   expect(session.contentVersion).toBeNull();
+  expect(session.contentManifest).toBeNull();
   expect(session.membershipStage).toBeNull();
   expect(session.schedulingMode).toBe('local');
   expect(session.serverSelection).toBeNull();
@@ -157,6 +165,7 @@ test('remote repository renders only the server-selected canonical card', async 
     track: 'cet4',
   });
   expect(session.catalogCards).toHaveLength(localLearningCardRecords.length);
+  expect(session.contentManifest).toBeNull();
   expect(session.cards.map(card => card.card_id)).toEqual([
     localLearningCardRecords[2].card_id,
   ]);
@@ -164,6 +173,163 @@ test('remote repository renders only the server-selected canonical card', async 
     'https://example.com/v1/learning/card-source?track=cet4',
     'https://example.com/v2/learning/session?track=cet4',
   ]);
+});
+
+test('remote repository binds a verified manifest to the canonical card source and session access', async () => {
+  const audioCards = localLearningCardRecords.map((card, index) =>
+    index === 0
+      ? {
+          ...card,
+          audio: {
+            asset_id: 'cet4.002001.prompt',
+            duration_ms: 2100,
+            sha256: AUDIO_SHA256,
+          },
+        }
+      : card,
+  );
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(audioCards),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSessionPayload(),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: {
+          access: {
+            accessible_card_count: audioCards.length,
+            mode: 'full',
+            total_card_count: audioCards.length,
+          },
+          downloads: [
+            {
+              asset_id: 'cet4.002001.prompt',
+              expires_at: '2099-01-01T00:00:00.000Z',
+              url: 'https://private-content.example/cet4.mp3?token=opaque',
+            },
+          ],
+          manifest: {
+            assets: [
+              {
+                asset_id: 'cet4.002001.prompt',
+                duration_ms: 2100,
+                media_type: 'audio/mpeg',
+                sha256: AUDIO_SHA256,
+                size_bytes: 4096,
+              },
+            ],
+            content_version: CONTENT_VERSION,
+            minimum_client_version: '1.0.0',
+            parent_release_id: null,
+            release_id: 'cet4-release-1',
+            schema_version: 'content-manifest.v1',
+            track: 'cet4',
+          },
+          signature: {
+            algorithm: 'ed25519',
+            key_id: 'content-key-1',
+            value: 'c'.repeat(128),
+          },
+        },
+      }),
+    });
+  const repository = createRemoteRepository(fetchMock, {
+    apiKey: 'runtime-key',
+    baseUrl: 'https://example.com',
+    mode: 'remote',
+    verifySignature: () => true,
+  });
+
+  const session = await repository.loadSession(authenticatedContext, 'cet4');
+
+  expect(session.contentManifest?.manifest.release_id).toBe('cet4-release-1');
+  expect(session.contentManifest?.downloads).toHaveLength(1);
+  expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+    'https://example.com/v1/learning/card-source?track=cet4',
+    'https://example.com/v2/learning/session?track=cet4',
+    `https://example.com/v2/content/manifest?track=cet4&content_version=${encodeURIComponent(CONTENT_VERSION)}`,
+  ]);
+});
+
+test('remote repository rejects content-manifest access that drifts from the canonical session', async () => {
+  const audioCards = localLearningCardRecords.map((card, index) =>
+    index === 0
+      ? {
+          ...card,
+          audio: {
+            asset_id: 'cet4.002001.prompt',
+            duration_ms: 2100,
+            sha256: AUDIO_SHA256,
+          },
+        }
+      : card,
+  );
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(audioCards),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSessionPayload(),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: {
+          access: {
+            accessible_card_count: 0,
+            mode: 'trial_not_started',
+            total_card_count: audioCards.length,
+          },
+          downloads: [],
+          manifest: {
+            assets: [
+              {
+                asset_id: 'cet4.002001.prompt',
+                duration_ms: 2100,
+                media_type: 'audio/mpeg',
+                sha256: AUDIO_SHA256,
+                size_bytes: 4096,
+              },
+            ],
+            content_version: CONTENT_VERSION,
+            minimum_client_version: '1.0.0',
+            parent_release_id: null,
+            release_id: 'cet4-release-1',
+            schema_version: 'content-manifest.v1',
+            track: 'cet4',
+          },
+          signature: {
+            algorithm: 'ed25519',
+            key_id: 'content-key-1',
+            value: 'c'.repeat(128),
+          },
+        },
+      }),
+    });
+  const repository = createRemoteRepository(fetchMock, {
+    baseUrl: 'https://example.com',
+    mode: 'remote',
+    verifySignature: () => true,
+  });
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).rejects.toThrow('Content manifest access does not match the canonical learning session');
 });
 
 test('remote selection null is valid and never falls back to local ordering', async () => {
@@ -254,7 +420,67 @@ test('remote repository surfaces failure without bundled-card fallback', async (
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 
-test('remote repository requires both canonical endpoint configs', async () => {
+test('remote repository surfaces manifest failure without bundled-card fallback', async () => {
+  const audioCards = localLearningCardRecords.map((card, index) =>
+    index === 0
+      ? {
+          ...card,
+          audio: {
+            asset_id: 'cet4.002001.prompt',
+            duration_ms: 2100,
+            sha256: AUDIO_SHA256,
+          },
+        }
+      : card,
+  );
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(audioCards),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSessionPayload(),
+    })
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      json: async () => ({}),
+    });
+  const repository = createRemoteRepository(fetchMock, {
+    baseUrl: 'https://example.com',
+    mode: 'remote',
+    verifySignature: () => true,
+  });
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).rejects.toThrow('Remote content manifest request failed with status 503');
+  expect(fetchMock).toHaveBeenCalledTimes(3);
+});
+
+test('remote repository requires an explicit content-manifest mode', async () => {
+  const repository = createLearningSessionRepository({
+    mode: 'remote',
+    remoteConfig: {
+      endpoint: 'https://example.com/v1/learning/card-source',
+    },
+    remoteSessionConfig: {
+      endpoint: 'https://example.com/v2/learning/session',
+    },
+  });
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).rejects.toThrow(
+    'Remote learning repository requires card-source, session, and content-manifest configs.',
+  );
+});
+
+test('remote repository requires card-source, session, and manifest configs', async () => {
   const repository = createLearningSessionRepository({
     mode: 'remote',
     remoteConfig: {
@@ -265,6 +491,6 @@ test('remote repository requires both canonical endpoint configs', async () => {
   await expect(
     repository.loadSession(authenticatedContext, 'cet4'),
   ).rejects.toThrow(
-    'Remote learning repository requires card-source and session configs.',
+    'Remote learning repository requires card-source, session, and content-manifest configs.',
   );
 });
