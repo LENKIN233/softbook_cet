@@ -73,7 +73,7 @@ export function validateDeliveryProfile(value) {
     );
   }
 
-  const region = requirePattern(profile.region, /^[a-z]+-[a-z]+-\d+$/, 'region');
+  const region = requirePattern(profile.region, /^[a-z]+-[a-z]+(?:-\d+)?$/, 'region');
   const apiBaseUrl = requireHttpsOrigin(profile.api_base_url, 'api_base_url');
   requireExact(profile.runtime_mode, 'closed_beta', 'runtime_mode');
   const enabledTracks = requireStringArray(profile.enabled_tracks, 'enabled_tracks');

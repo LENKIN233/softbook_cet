@@ -447,7 +447,7 @@ function profileFixture() {
     schema_version: 'delivery-profile.v1',
     profile_id: 'receiver-closed-beta',
     environment_id: 'receiver-cet4-beta',
-    region: 'ap-shanghai-1',
+    region: 'ap-shanghai',
     api_base_url: 'https://receiver.example.com/softbook-api',
     runtime_mode: 'closed_beta',
     enabled_tracks: ['cet4'],
