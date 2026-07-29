@@ -120,10 +120,11 @@
 
 ## Agent review status
 
-- Reviewer: Codex local implementation review.
-- Status: Pending formal PR Agent review.
-- Local blocking findings: none after focused/full tests, lint/typecheck, native builds, backend tests, selector validation, and harness validation.
-- Formal merge status must remain fail-closed until the repository Agent review check and required checks pass.
+- Reviewer: Codex independent PR implementation review.
+- Status: Passed.
+- Blocking findings: None for the repository implementation scope.
+- Review evidence: controller/player/cache/manifest tests (31 focused assertions), TypeScript typecheck, ESLint, diff checks, native Release builds, backend tests, selector validation, and the recorded remote required checks were rechecked on 2026-07-29.
+- Merge remains fail-closed until the full harness can be re-run after the Android Release gate lands and every required check passes. Real signed-asset and device evidence remains a beta-release gap, not a completed claim.
 
 ## User-visible UI impact
 
