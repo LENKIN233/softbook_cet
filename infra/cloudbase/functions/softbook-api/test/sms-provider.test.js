@@ -1,6 +1,10 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const {createRuntimeSmsProvider, createWebhookSmsProvider} = require('../sms-provider');
+const {
+  createRuntimeSmsProvider,
+  createTencentCloudSmsProvider,
+  createWebhookSmsProvider,
+} = require('../sms-provider');
 
 const SECRET = 'receiver-SMS-secret-0123456789-ABCDEFG';
 
@@ -11,7 +15,7 @@ test('development runtime keeps the in-memory fixed-code adapter boundary', () =
 test('production runtime fails closed without a configured provider', () => {
   assert.throws(
     () => createRuntimeSmsProvider({runtimeMode: 'production', env: {}}),
-    /SOFTBOOK_SMS_PROVIDER=webhook/,
+    /SOFTBOOK_SMS_PROVIDER=webhook or tencentcloud/,
   );
 });
 
@@ -88,6 +92,145 @@ for (const configuration of [
           fetchImpl: async () => ({ok: true}),
         }),
       /SMS_WEBHOOK|HTTPS URL/,
+    );
+  });
+}
+
+test('Tencent Cloud provider sends one E.164 recipient with the approved template binding', async () => {
+  const calls = [];
+  const provider = createRuntimeSmsProvider({
+    clock: () => Date.parse('2026-07-29T07:00:00.000Z'),
+    env: {
+      SOFTBOOK_SMS_PROVIDER: 'tencentcloud',
+      SOFTBOOK_SMS_TENCENT_REGION: 'ap-guangzhou',
+      SOFTBOOK_SMS_TENCENT_SDK_APP_ID: '1400006666',
+      SOFTBOOK_SMS_TENCENT_SECRET_ID: 'AKID0123456789ABCDEFGHIJKLMN',
+      SOFTBOOK_SMS_TENCENT_SECRET_KEY: 'tencent-secret-key-0123456789-ABCDEFG',
+      SOFTBOOK_SMS_TENCENT_SIGN_NAME: '软书四六级',
+      SOFTBOOK_SMS_TENCENT_TEMPLATE_ID: '1110',
+      SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS: 'code,expiry_minutes',
+    },
+    runtimeMode: 'production',
+    tencentCloudClient: {
+      async SendSms(request) {
+        calls.push(request);
+        return {
+          RequestId: 'provider-request-id',
+          SendStatusSet: [{Code: 'Ok', PhoneNumber: '+8613800138000'}],
+        };
+      },
+    },
+  });
+
+  await provider.sendCode({
+    challengeId: 'challenge-1',
+    code: '482913',
+    expiresAt: '2026-07-29T07:05:00.000Z',
+    phoneNumber: '13800138000',
+  });
+
+  assert.equal(provider.kind, 'tencentcloud');
+  assert.equal(provider.delivery, 'sms_tencentcloud');
+  assert.deepEqual(calls, [
+    {
+      PhoneNumberSet: ['+8613800138000'],
+      SignName: '软书四六级',
+      SmsSdkAppId: '1400006666',
+      TemplateId: '1110',
+      TemplateParamSet: ['482913', '5'],
+    },
+  ]);
+});
+
+test('Tencent Cloud provider accepts a code-only approved template', async () => {
+  const calls = [];
+  const provider = createTencentCloudSmsProvider({
+    client: {
+      async SendSms(request) {
+        calls.push(request);
+        return {SendStatusSet: [{Code: 'Ok', PhoneNumber: '+8613900139000'}]};
+      },
+    },
+    clock: () => Date.parse('2026-07-29T07:00:00.000Z'),
+    sdkAppId: '1400006666',
+    signName: '软书四六级',
+    templateId: '1110',
+    templateParameters: ['code'],
+  });
+
+  await provider.sendCode({
+    code: '482913',
+    expiresAt: '2026-07-29T07:05:00.000Z',
+    phoneNumber: '13900139000',
+  });
+
+  assert.deepEqual(calls[0].TemplateParamSet, ['482913']);
+});
+
+test('Tencent Cloud provider rejects a non-Ok or mismatched status without leaking it', async () => {
+  for (const status of [
+    {Code: 'FailedOperation.TemplateIncorrectOrUnapproved', PhoneNumber: '+8613800138000'},
+    {Code: 'Ok', PhoneNumber: '+8613900139000'},
+  ]) {
+    const provider = createTencentCloudSmsProvider({
+      client: {SendSms: async () => ({SendStatusSet: [status]})},
+      clock: () => Date.parse('2026-07-29T07:00:00.000Z'),
+      sdkAppId: '1400006666',
+      signName: '软书四六级',
+      templateId: '1110',
+      templateParameters: ['code'],
+    });
+
+    await assert.rejects(
+      () =>
+        provider.sendCode({
+          code: '482913',
+          expiresAt: '2026-07-29T07:05:00.000Z',
+          phoneNumber: '13800138000',
+        }),
+      error =>
+        error.message === 'Tencent Cloud SMS delivery failed.' &&
+        !error.message.includes(status.Code) &&
+        !error.message.includes(status.PhoneNumber),
+    );
+  }
+});
+
+for (const env of [
+  {
+    SOFTBOOK_SMS_PROVIDER: 'tencentcloud',
+    SOFTBOOK_SMS_TENCENT_REGION: 'ap-guangzhou',
+  },
+  {
+    SOFTBOOK_SMS_PROVIDER: 'tencentcloud',
+    SOFTBOOK_SMS_TENCENT_REGION: 'us-west-1',
+    SOFTBOOK_SMS_TENCENT_SECRET_ID: 'AKID0123456789ABCDEFGHIJKLMN',
+    SOFTBOOK_SMS_TENCENT_SECRET_KEY: 'tencent-secret-key-0123456789-ABCDEFG',
+  },
+  {
+    SOFTBOOK_SMS_PROVIDER: 'tencentcloud',
+    SOFTBOOK_SMS_TENCENT_TIMEOUT_MS: '15001',
+  },
+  {
+    SOFTBOOK_SMS_PROVIDER: 'tencentcloud',
+    SOFTBOOK_SMS_TENCENT_REGION: 'ap-guangzhou',
+    SOFTBOOK_SMS_TENCENT_SDK_APP_ID: '1400006666',
+    SOFTBOOK_SMS_TENCENT_SECRET_ID: 'AKID0123456789ABCDEFGHIJKLMN',
+    SOFTBOOK_SMS_TENCENT_SECRET_KEY: 'tencent-secret-key-0123456789-ABCDEFG',
+    SOFTBOOK_SMS_TENCENT_SIGN_NAME: '软书四六级',
+    SOFTBOOK_SMS_TENCENT_TEMPLATE_ID: '1110',
+    SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS: 'expiry_minutes,code',
+  },
+]) {
+  test('Tencent Cloud production configuration fails closed when incomplete or unsafe', () => {
+    assert.throws(
+      () =>
+        createRuntimeSmsProvider({
+          env,
+          runtimeMode: 'production',
+          tencentCloudClient: {SendSms: async () => ({})},
+        }),
+      /SOFTBOOK_SMS_TENCENT|Tencent Cloud SMS timeout/,
     );
   });
 }

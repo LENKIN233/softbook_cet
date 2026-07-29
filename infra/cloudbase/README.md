@@ -355,15 +355,33 @@ Receiver/CI secrets are never stored in `delivery-profile.v1`:
 SOFTBOOK_AUTH_TOKEN_SECRET
 SOFTBOOK_AUTH_INDEX_SECRET
 SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM
+SOFTBOOK_SMS_PROVIDER=webhook
 SOFTBOOK_SMS_WEBHOOK_URL
 SOFTBOOK_SMS_WEBHOOK_SECRET
 ```
 
-The deploy command injects the public `signing_key_id` from the profile, sets
-production mode, uses the receiver HTTPS SMS webhook, and does not carry
-`SOFTBOOK_SMS_DEV_CODE`. The SMS gateway receives
-`softbook-sms-delivery.v1` over HTTPS with a bearer secret. A successful local
-or CI test does not prove the gateway sent a real message.
+Or select the direct Tencent Cloud SMS adapter:
+
+```text
+SOFTBOOK_SMS_PROVIDER=tencentcloud
+SOFTBOOK_SMS_TENCENT_SECRET_ID
+SOFTBOOK_SMS_TENCENT_SECRET_KEY
+SOFTBOOK_SMS_TENCENT_REGION=ap-guangzhou
+SOFTBOOK_SMS_TENCENT_SDK_APP_ID
+SOFTBOOK_SMS_TENCENT_SIGN_NAME
+SOFTBOOK_SMS_TENCENT_TEMPLATE_ID
+SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS=code,expiry_minutes
+```
+
+`SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS` must match the approved template's
+placeholder order and may be `code` or `code,expiry_minutes`. The deploy command
+injects the public `signing_key_id` from the profile, sets production mode, and
+does not carry `SOFTBOOK_SMS_DEV_CODE`. Webhook mode sends
+`softbook-sms-delivery.v1` over HTTPS with a bearer secret. Tencent Cloud mode
+uses SMS v20210111, converts the verified mainland mobile number to E.164, and
+accepts only one matching `Ok` send status. A successful local or CI test does
+not prove that either provider sent a real message; the receiver still needs a
+lifecycle-managed SMS smoke after its sign and template are approved.
 
 ### Audited closed-beta entitlement
 

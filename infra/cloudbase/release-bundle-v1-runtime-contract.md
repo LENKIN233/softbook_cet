@@ -108,11 +108,14 @@ receiver secrets supplied through environment variables.
 Provisioning creates only the existing CloudBase collection allowlist.
 Deployment builds and tests an isolated lockfile-resolved function artifact,
 uses a mode-0600 temporary CloudBase config, and removes it after use. The
-production runtime excludes `SOFTBOOK_SMS_DEV_CODE` and requires a
-receiver-owned HTTPS SMS webhook plus separate auth, SMS, and Ed25519 signing
-secrets. `verify` is read-only and checks the active release, API route, bundle,
-catalog, and zero imported user-data baseline. A real lifecycle-managed
-production SMS/device smoke is still a separate acceptance gate.
+production runtime excludes `SOFTBOOK_SMS_DEV_CODE` and requires the receiver
+to select either the credentialed HTTPS webhook or direct Tencent Cloud SMS
+adapter, plus separate auth, SMS, and Ed25519 signing secrets. Tencent Cloud
+mode additionally requires the receiver's region, SdkAppId, approved sign,
+approved template ID, and explicit template parameter order. `verify` is
+read-only and checks the active release, API route, bundle, catalog, and zero
+imported user-data baseline. A real lifecycle-managed production SMS/device
+smoke is still a separate acceptance gate.
 
 ## Operational evidence policy
 

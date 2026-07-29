@@ -36,16 +36,26 @@ const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
 const FUNCTION_NAME = 'softbook-api';
 const FUNCTION_RUNTIME = 'Nodejs20.19';
 const COMMANDS = new Set(['preflight', 'provision', 'deploy', 'publish', 'verify', 'rollback']);
-const SECRET_ENV_NAMES = Object.freeze([
+const COMMON_SECRET_ENV_NAMES = Object.freeze([
   'SOFTBOOK_AUTH_INDEX_SECRET',
   'SOFTBOOK_AUTH_TOKEN_SECRET',
   'SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM',
-  'SOFTBOOK_SMS_WEBHOOK_SECRET',
 ]);
-const REQUIRED_RECEIVER_ENV_NAMES = Object.freeze([
-  ...SECRET_ENV_NAMES,
-  'SOFTBOOK_SMS_WEBHOOK_URL',
-]);
+const SMS_PROVIDER_ENV_NAMES = Object.freeze({
+  tencentcloud: Object.freeze([
+    'SOFTBOOK_SMS_TENCENT_REGION',
+    'SOFTBOOK_SMS_TENCENT_SDK_APP_ID',
+    'SOFTBOOK_SMS_TENCENT_SECRET_ID',
+    'SOFTBOOK_SMS_TENCENT_SECRET_KEY',
+    'SOFTBOOK_SMS_TENCENT_SIGN_NAME',
+    'SOFTBOOK_SMS_TENCENT_TEMPLATE_ID',
+    'SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS',
+  ]),
+  webhook: Object.freeze([
+    'SOFTBOOK_SMS_WEBHOOK_SECRET',
+    'SOFTBOOK_SMS_WEBHOOK_URL',
+  ]),
+});
 const USER_DATA_COLLECTIONS = Object.freeze(
   REQUIRED_COLLECTIONS.filter(
     name => name !== 'softbook_card_sources' && name !== 'softbook_card_source_versions',
@@ -474,7 +484,7 @@ export function buildReceiverRuntimeEnvironment(profile, env) {
   if (!inspection.ok) {
     throw new ReleaseDeliveryError(inspection.errors.join('; '));
   }
-  return {
+  const runtime = {
     SOFTBOOK_AUTH_INDEX_SECRET: env.SOFTBOOK_AUTH_INDEX_SECRET,
     SOFTBOOK_AUTH_TOKEN_SECRET: env.SOFTBOOK_AUTH_TOKEN_SECRET,
     SOFTBOOK_CONTENT_MANIFEST_KEY_ID: profile.signing_key_id,
@@ -483,26 +493,51 @@ export function buildReceiverRuntimeEnvironment(profile, env) {
     SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS: '300',
     SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS: '90',
     SOFTBOOK_RUNTIME_MODE: 'production',
-    SOFTBOOK_SMS_PROVIDER: 'webhook',
-    SOFTBOOK_SMS_WEBHOOK_SECRET: env.SOFTBOOK_SMS_WEBHOOK_SECRET,
-    SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS: env.SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS || '5000',
-    SOFTBOOK_SMS_WEBHOOK_URL: env.SOFTBOOK_SMS_WEBHOOK_URL,
+    SOFTBOOK_SMS_PROVIDER: inspection.provider,
     SOFTBOOK_STORE_MODE: 'cloudbase',
+  };
+  if (inspection.provider === 'webhook') {
+    return {
+      ...runtime,
+      SOFTBOOK_SMS_WEBHOOK_SECRET: env.SOFTBOOK_SMS_WEBHOOK_SECRET,
+      SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS: env.SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS || '5000',
+      SOFTBOOK_SMS_WEBHOOK_URL: env.SOFTBOOK_SMS_WEBHOOK_URL,
+    };
+  }
+  return {
+    ...runtime,
+    SOFTBOOK_SMS_TENCENT_REGION: env.SOFTBOOK_SMS_TENCENT_REGION,
+    SOFTBOOK_SMS_TENCENT_SDK_APP_ID: env.SOFTBOOK_SMS_TENCENT_SDK_APP_ID,
+    SOFTBOOK_SMS_TENCENT_SECRET_ID: env.SOFTBOOK_SMS_TENCENT_SECRET_ID,
+    SOFTBOOK_SMS_TENCENT_SECRET_KEY: env.SOFTBOOK_SMS_TENCENT_SECRET_KEY,
+    SOFTBOOK_SMS_TENCENT_SIGN_NAME: env.SOFTBOOK_SMS_TENCENT_SIGN_NAME,
+    SOFTBOOK_SMS_TENCENT_TEMPLATE_ID: env.SOFTBOOK_SMS_TENCENT_TEMPLATE_ID,
+    SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS:
+      env.SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS,
+    SOFTBOOK_SMS_TENCENT_TIMEOUT_MS: env.SOFTBOOK_SMS_TENCENT_TIMEOUT_MS || '5000',
   };
 }
 
 export function inspectReceiverSecrets(profile, env) {
   const errors = [];
-  for (const name of REQUIRED_RECEIVER_ENV_NAMES) {
+  const provider = env.SOFTBOOK_SMS_PROVIDER;
+  if (!Object.hasOwn(SMS_PROVIDER_ENV_NAMES, provider)) {
+    errors.push('SOFTBOOK_SMS_PROVIDER must be webhook or tencentcloud');
+  }
+  const requiredNames = [
+    ...COMMON_SECRET_ENV_NAMES,
+    'SOFTBOOK_SMS_PROVIDER',
+    ...(SMS_PROVIDER_ENV_NAMES[provider] ?? []),
+  ];
+  for (const name of requiredNames) {
     if (typeof env[name] !== 'string' || env[name].length === 0) {
       errors.push(`${name} is missing`);
     }
   }
-  for (const name of [
-    'SOFTBOOK_AUTH_INDEX_SECRET',
-    'SOFTBOOK_AUTH_TOKEN_SECRET',
-    'SOFTBOOK_SMS_WEBHOOK_SECRET',
-  ]) {
+  const strongSecretNames = ['SOFTBOOK_AUTH_INDEX_SECRET', 'SOFTBOOK_AUTH_TOKEN_SECRET'];
+  if (provider === 'webhook') strongSecretNames.push('SOFTBOOK_SMS_WEBHOOK_SECRET');
+  if (provider === 'tencentcloud') strongSecretNames.push('SOFTBOOK_SMS_TENCENT_SECRET_KEY');
+  for (const name of strongSecretNames) {
     if (env[name] && !isStrongSecret(env[name])) {
       errors.push(`${name} fails the 32-character diversity policy`);
     }
@@ -513,7 +548,7 @@ export function inspectReceiverSecrets(profile, env) {
   ) {
     errors.push('auth index and token secrets must be distinct');
   }
-  if (env.SOFTBOOK_SMS_WEBHOOK_URL) {
+  if (provider === 'webhook' && env.SOFTBOOK_SMS_WEBHOOK_URL) {
     try {
       const url = new URL(env.SOFTBOOK_SMS_WEBHOOK_URL);
       if (
@@ -530,6 +565,39 @@ export function inspectReceiverSecrets(profile, env) {
       errors.push('SOFTBOOK_SMS_WEBHOOK_URL must be credential-free HTTPS with a path');
     }
   }
+  if (
+    provider === 'webhook' &&
+    env.SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS &&
+    !isTimeoutMilliseconds(env.SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS)
+  ) {
+    errors.push('SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS must be an integer from 1 to 15000');
+  }
+  if (provider === 'tencentcloud') {
+    if (!/^AKID[A-Za-z0-9]{12,124}$/.test(env.SOFTBOOK_SMS_TENCENT_SECRET_ID || '')) {
+      errors.push('SOFTBOOK_SMS_TENCENT_SECRET_ID is invalid');
+    }
+    if (!/^ap-[a-z]+(?:-[0-9]+)?$/.test(env.SOFTBOOK_SMS_TENCENT_REGION || '')) {
+      errors.push('SOFTBOOK_SMS_TENCENT_REGION is invalid');
+    }
+    if (!/^\d{10,20}$/.test(env.SOFTBOOK_SMS_TENCENT_SDK_APP_ID || '')) {
+      errors.push('SOFTBOOK_SMS_TENCENT_SDK_APP_ID is invalid');
+    }
+    if (!/^\d{1,20}$/.test(env.SOFTBOOK_SMS_TENCENT_TEMPLATE_ID || '')) {
+      errors.push('SOFTBOOK_SMS_TENCENT_TEMPLATE_ID is invalid');
+    }
+    if (!isVisibleText(env.SOFTBOOK_SMS_TENCENT_SIGN_NAME, 64)) {
+      errors.push('SOFTBOOK_SMS_TENCENT_SIGN_NAME is invalid');
+    }
+    if (!isTencentTemplateParameterList(env.SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS)) {
+      errors.push('SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS is invalid');
+    }
+    if (
+      env.SOFTBOOK_SMS_TENCENT_TIMEOUT_MS &&
+      !isTimeoutMilliseconds(env.SOFTBOOK_SMS_TENCENT_TIMEOUT_MS)
+    ) {
+      errors.push('SOFTBOOK_SMS_TENCENT_TIMEOUT_MS must be an integer from 1 to 15000');
+    }
+  }
   if (env.SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM) {
     try {
       const key = createPrivateKey(env.SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM);
@@ -541,8 +609,9 @@ export function inspectReceiverSecrets(profile, env) {
   return {
     ok: errors.length === 0,
     errors,
+    provider,
     public: {
-      configured_names: REQUIRED_RECEIVER_ENV_NAMES.filter(
+      configured_names: requiredNames.filter(
         name => typeof env[name] === 'string' && env[name].length > 0,
       ),
       errors,
@@ -550,6 +619,24 @@ export function inspectReceiverSecrets(profile, env) {
       signing_key_id: profile.signing_key_id,
     },
   };
+}
+
+function isVisibleText(value, maximumLength) {
+  return (
+    typeof value === 'string' &&
+    value.trim() === value &&
+    value.length > 0 &&
+    value.length <= maximumLength &&
+    !/[\u0000-\u001f\u007f]/.test(value)
+  );
+}
+
+function isTencentTemplateParameterList(value) {
+  return value === 'code' || value === 'code,expiry_minutes';
+}
+
+function isTimeoutMilliseconds(value) {
+  return /^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 15000;
 }
 
 function inspectWriteSafety({nodeVersion, repository}) {
