@@ -9,7 +9,10 @@ import ReactTestRenderer from 'react-test-renderer';
 import {
   LearningResultDetailSurface,
   LearningSurface,
+  SWIPE_DISTANCE_THRESHOLD_RATIO,
+  SWIPE_VELOCITY_THRESHOLD,
   isCompactLearningViewport,
+  resolveSwipeGestureDirection,
 } from '../src/learning/LearningSurface';
 import {
   createLearningCardState,
@@ -40,6 +43,23 @@ test('learning compact mode covers 320dp and short phone viewports', () => {
   expect(isCompactLearningViewport(320, 693)).toBe(true);
   expect(isCompactLearningViewport(393, 700)).toBe(true);
   expect(isCompactLearningViewport(393, 850)).toBe(false);
+});
+
+test('swipe gesture commits at 25% distance or the velocity threshold', () => {
+  expect(SWIPE_DISTANCE_THRESHOLD_RATIO).toBe(0.25);
+  expect(SWIPE_VELOCITY_THRESHOLD).toBe(0.65);
+  expect(
+    resolveSwipeGestureDirection({ cardWidth: 320, dx: -79, vx: -0.64 }),
+  ).toBeNull();
+  expect(
+    resolveSwipeGestureDirection({ cardWidth: 320, dx: -80, vx: 0 }),
+  ).toBe('left');
+  expect(
+    resolveSwipeGestureDirection({ cardWidth: 320, dx: 79, vx: 0.65 }),
+  ).toBe('right');
+  expect(
+    resolveSwipeGestureDirection({ cardWidth: 320, dx: 10, vx: -0.7 }),
+  ).toBe('left');
 });
 
 test('does not expose raw space metadata while learning', () => {
@@ -309,6 +329,9 @@ test('swipe choices stay compact enough for the one-screen phone action plane', 
   });
 
   const safeChoice = tree!.root.findByProps({ testID: 'learning-swipe-safe' });
+  const draggableCard = tree!.root.findByProps({
+    testID: 'learning-swipe-draggable-card',
+  });
   const safeChoiceStyle = StyleSheet.flatten(safeChoice.props.style);
   const safeChoiceText = safeChoice.findAllByType(Text);
   const safeChoiceLabelStyle = StyleSheet.flatten(
@@ -319,12 +342,18 @@ test('swipe choices stay compact enough for the one-screen phone action plane', 
   );
 
   expect(safeChoiceStyle.minWidth).toBe(0);
+  expect(safeChoiceStyle.minHeight).toBe(44);
   expect(safeChoiceStyle.paddingVertical).toBe(6);
   expect(safeChoiceStyle.gap).toBe(3);
   expect(safeChoiceText).toHaveLength(3);
   expect(safeChoiceLabelStyle.fontSize).toBeGreaterThanOrEqual(13);
   expect(safeChoiceDescriptionStyle.fontSize).toBeGreaterThanOrEqual(13);
   expect(safeChoiceText[2].props.numberOfLines).toBe(1);
+  expect(draggableCard.props.accessibilityRole).toBe('adjustable');
+  expect(draggableCard.props.onResponderRelease).toEqual(expect.any(Function));
+  expect(
+    tree!.root.findAllByProps({ testID: 'learning-submit-button' }),
+  ).toHaveLength(0);
 });
 
 test('completion state keeps the next step primary instead of a metric dashboard', () => {

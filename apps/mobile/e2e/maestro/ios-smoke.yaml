@@ -136,10 +136,6 @@ name: ios-auth-learning-space-statistics-smoke
 - tapOn:
     id: "learning-swipe-safe"
 - assertVisible:
-    id: "learning-submit-button"
-- tapOn:
-    id: "learning-submit-button"
-- assertVisible:
     id: "learning-next-button"
 - tapOn:
     id: "learning-next-button"

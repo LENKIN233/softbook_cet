@@ -1,6 +1,9 @@
 import React from 'react';
 import type { DimensionValue } from 'react-native';
 import {
+  AccessibilityInfo,
+  Animated,
+  PanResponder,
   Pressable,
   StyleSheet,
   Text,
@@ -783,7 +786,8 @@ export function LearningSurface({
                 ) : null}
               </>
             ) : null}
-            {currentCard.interaction_id !== 'flip' ? (
+            {currentCard.interaction_id !== 'flip' &&
+            currentCard.interaction_id !== 'swipe' ? (
               <View
                 style={[
                   styles.submitActionDock,
@@ -1338,113 +1342,304 @@ function InteractionBody({
       );
     case 'swipe':
       return (
-        <View
-          style={[
-            styles.swipeColumn,
-            compact ? styles.swipeColumnCompact : null,
-          ]}
-        >
-          <View
-            style={[styles.swipeDeck, compact ? styles.swipeDeckCompact : null]}
-          >
-            <View
-              style={[
-                styles.swipeGhostCard,
-                compact ? styles.swipeGhostCardCompact : null,
-                styles.swipeGhostBack,
-                { backgroundColor: palette.panel, borderColor: palette.border },
-              ]}
-            />
-            <View
-              style={[
-                styles.swipeGhostCard,
-                compact ? styles.swipeGhostCardCompact : null,
-                styles.swipeGhostMid,
-                {
-                  backgroundColor: palette.panelStrong,
-                  borderColor: palette.border,
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.swipeTopCard,
-                compact ? styles.swipeTopCardCompact : null,
-                { backgroundColor: palette.panel, borderColor: tone.accent },
-              ]}
-            >
-              <Text style={[styles.swipePromptLabel, { color: tone.accent }]}>
-                当前判断
-              </Text>
-              <Text style={[styles.swipePromptText, { color: palette.text }]}>
-                {card.front.prompt}
-              </Text>
-            </View>
-          </View>
-          <View
-            style={[
-              styles.swipeTrailRow,
-              compact ? styles.swipeTrailRowCompact : null,
-            ]}
-          >
-            {card.swipe_states.map((state, index) => {
-              const isSelected = cardState.swipeSelection === state.id;
-              const isCorrect =
-                currentResult !== null &&
-                state.id === card.answer_key.correct_state;
-
-              return (
-                <Pressable
-                  key={state.id}
-                  onPress={() => onSelectSwipeState(state.id)}
-                  style={[
-                    styles.swipeTrailCard,
-                    compact ? styles.swipeTrailCardCompact : null,
-                    index === 0
-                      ? styles.swipeTrailLeft
-                      : styles.swipeTrailRight,
-                    {
-                      backgroundColor: isSelected
-                        ? neutralAction.surface
-                        : palette.panel,
-                      borderColor: isCorrect
-                        ? palette.success
-                        : isSelected
-                        ? neutralAction.border
-                        : palette.border,
-                    },
-                  ]}
-                  testID={`learning-swipe-${state.id}`}
-                >
-                  <View style={styles.swipeTrailHeading}>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.swipeTrailHint, { color: tone.accent }]}
-                    >
-                      {index === 0 ? '← 左划' : '右划 →'}
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.swipeLabel, { color: palette.text }]}
-                    >
-                      {state.label}
-                    </Text>
-                  </View>
-                  <Text
-                    numberOfLines={1}
-                    style={[styles.swipeText, { color: palette.textMuted }]}
-                  >
-                    {state.description}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
+        <SwipeInteraction
+          card={card}
+          cardState={cardState}
+          compact={compact}
+          onCommit={onSelectSwipeState}
+          palette={palette}
+        />
       );
     default:
       return null;
   }
+}
+
+export const SWIPE_DISTANCE_THRESHOLD_RATIO = 0.25;
+export const SWIPE_VELOCITY_THRESHOLD = 0.65;
+
+export type SwipeGestureDirection = 'left' | 'right' | null;
+
+export function resolveSwipeGestureDirection(input: {
+  cardWidth: number;
+  dx: number;
+  vx: number;
+}): SwipeGestureDirection {
+  const distanceThreshold =
+    Math.max(input.cardWidth, 1) * SWIPE_DISTANCE_THRESHOLD_RATIO;
+
+  if (Math.abs(input.dx) >= distanceThreshold) {
+    return input.dx < 0 ? 'left' : 'right';
+  }
+
+  if (Math.abs(input.vx) >= SWIPE_VELOCITY_THRESHOLD) {
+    return input.vx < 0 ? 'left' : 'right';
+  }
+
+  return null;
+}
+
+function SwipeInteraction({
+  card,
+  cardState,
+  compact,
+  onCommit,
+  palette,
+}: {
+  card: Extract<LearningCard, { interaction_id: 'swipe' }>;
+  cardState: LearningCardState;
+  compact: boolean;
+  onCommit: (stateId: string) => void;
+  palette: LearningSurfacePalette;
+}) {
+  const libraryTone = resolveLibraryTone(card.space_metadata.library);
+  const tone = { accent: libraryTone.accent };
+  const dragX = React.useRef(new Animated.Value(0)).current;
+  const cardWidthRef = React.useRef(280);
+  const settlingRef = React.useRef(false);
+  const [reduceMotionEnabled, setReduceMotionEnabled] = React.useState(false);
+
+  React.useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(enabled => {
+        if (mounted) {
+          setReduceMotionEnabled(enabled);
+        }
+      })
+      .catch(() => undefined);
+    const subscription = AccessibilityInfo.addEventListener(
+      'reduceMotionChanged',
+      setReduceMotionEnabled,
+    );
+
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
+
+  const settleToCenter = React.useCallback(() => {
+    settlingRef.current = true;
+    if (reduceMotionEnabled) {
+      dragX.setValue(0);
+      settlingRef.current = false;
+      return;
+    }
+
+    Animated.spring(dragX, {
+      damping: 18,
+      mass: 0.72,
+      stiffness: 210,
+      toValue: 0,
+      useNativeDriver: true,
+    }).start(() => {
+      settlingRef.current = false;
+    });
+  }, [dragX, reduceMotionEnabled]);
+
+  const commitStateAtIndex = React.useCallback(
+    (index: number) => {
+      const state = card.swipe_states[index];
+      if (state) {
+        onCommit(state.id);
+      }
+    },
+    [card.swipe_states, onCommit],
+  );
+
+  const commitDirection = React.useCallback(
+    (direction: Exclude<SwipeGestureDirection, null>) => {
+      if (settlingRef.current) {
+        return;
+      }
+
+      const state = card.swipe_states[direction === 'left' ? 0 : 1];
+      if (!state) {
+        settleToCenter();
+        return;
+      }
+
+      settlingRef.current = true;
+      const finish = () => {
+        dragX.setValue(0);
+        settlingRef.current = false;
+        onCommit(state.id);
+      };
+
+      if (reduceMotionEnabled) {
+        finish();
+        return;
+      }
+
+      Animated.timing(dragX, {
+        duration: 220,
+        toValue:
+          (direction === 'left' ? -1 : 1) *
+          Math.max(cardWidthRef.current * 1.15, 320),
+        useNativeDriver: true,
+      }).start(finish);
+    },
+    [card.swipe_states, dragX, onCommit, reduceMotionEnabled, settleToCenter],
+  );
+
+  const panResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_event, gesture) =>
+          !settlingRef.current &&
+          Math.abs(gesture.dx) > 8 &&
+          Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.15,
+        onPanResponderGrant: () => {
+          dragX.stopAnimation();
+        },
+        onPanResponderMove: Animated.event([null, { dx: dragX }], {
+          useNativeDriver: false,
+        }),
+        onPanResponderRelease: (_event, gesture) => {
+          const direction = resolveSwipeGestureDirection({
+            cardWidth: cardWidthRef.current,
+            dx: gesture.dx,
+            vx: gesture.vx,
+          });
+          if (direction) {
+            commitDirection(direction);
+          } else {
+            settleToCenter();
+          }
+        },
+        onPanResponderTerminate: settleToCenter,
+        onPanResponderTerminationRequest: () => true,
+      }),
+    [commitDirection, dragX, settleToCenter],
+  );
+
+  const rotate = dragX.interpolate({
+    inputRange: [-Math.max(cardWidthRef.current, 1), 0, Math.max(cardWidthRef.current, 1)],
+    outputRange: ['-5deg', '0deg', '5deg'],
+  });
+  const selectedState = card.swipe_states.find(
+    state => state.id === cardState.swipeSelection,
+  );
+
+  return (
+    <View
+      style={[
+        styles.swipeColumn,
+        compact ? styles.swipeColumnCompact : null,
+      ]}
+    >
+      <View
+        style={[styles.swipeDeck, compact ? styles.swipeDeckCompact : null]}
+      >
+        <View
+          style={[
+            styles.swipeGhostCard,
+            compact ? styles.swipeGhostCardCompact : null,
+            styles.swipeGhostBack,
+            { backgroundColor: palette.panel, borderColor: palette.border },
+          ]}
+        />
+        <View
+          style={[
+            styles.swipeGhostCard,
+            compact ? styles.swipeGhostCardCompact : null,
+            styles.swipeGhostMid,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+            },
+          ]}
+        />
+        <Animated.View
+          {...panResponder.panHandlers}
+          accessibilityActions={[
+            { label: '选择左侧判断', name: 'decrement' },
+            { label: '选择右侧判断', name: 'increment' },
+          ]}
+          accessibilityHint="向左或向右选择对应判断"
+          accessibilityLabel="滑动判断"
+          accessibilityRole="adjustable"
+          accessibilityValue={{ text: selectedState?.label ?? '未选择' }}
+          accessible
+          onLayout={event => {
+            cardWidthRef.current = Math.max(event.nativeEvent.layout.width, 1);
+          }}
+          onAccessibilityAction={event => {
+            if (event.nativeEvent.actionName === 'decrement') {
+              commitStateAtIndex(0);
+            } else if (event.nativeEvent.actionName === 'increment') {
+              commitStateAtIndex(1);
+            }
+          }}
+          style={[
+            styles.swipeTopCard,
+            compact ? styles.swipeTopCardCompact : null,
+            {
+              backgroundColor: palette.panel,
+              borderColor: tone.accent,
+              transform: [{ translateX: dragX }, { rotate }],
+            },
+          ]}
+          testID="learning-swipe-draggable-card"
+        >
+          <Text style={[styles.swipePromptLabel, { color: tone.accent }]}>
+            左右滑动判断
+          </Text>
+          <Text style={[styles.swipePromptText, { color: palette.text }]}>
+            {card.front.prompt}
+          </Text>
+        </Animated.View>
+      </View>
+      <View
+        style={[
+          styles.swipeTrailRow,
+          compact ? styles.swipeTrailRowCompact : null,
+        ]}
+      >
+        {card.swipe_states.map((state, index) => (
+          <Pressable
+            accessibilityHint="点按后直接提交这一判断"
+            accessibilityLabel={index === 0 ? '左划选项' : '右划选项'}
+            accessibilityRole="button"
+            key={state.id}
+            onPress={() => commitStateAtIndex(index)}
+            style={[
+              styles.swipeTrailCard,
+              compact ? styles.swipeTrailCardCompact : null,
+              index === 0 ? styles.swipeTrailLeft : styles.swipeTrailRight,
+              {
+                backgroundColor: palette.panel,
+                borderColor: palette.border,
+              },
+            ]}
+            testID={`learning-swipe-${state.id}`}
+          >
+            <View style={styles.swipeTrailHeading}>
+              <Text
+                numberOfLines={1}
+                style={[styles.swipeTrailHint, { color: tone.accent }]}
+              >
+                {index === 0 ? '← 左划' : '右划 →'}
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[styles.swipeLabel, { color: palette.text }]}
+              >
+                {state.label}
+              </Text>
+            </View>
+            <Text
+              numberOfLines={1}
+              style={[styles.swipeText, { color: palette.textMuted }]}
+            >
+              {state.description}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
 }
 
 type DetailAnswerRow = {
@@ -3183,6 +3378,7 @@ const styles = StyleSheet.create({
   },
   swipeTrailCard: {
     flex: 1,
+    minHeight: 44,
     minWidth: 0,
     borderWidth: 1,
     borderRadius: 22,
