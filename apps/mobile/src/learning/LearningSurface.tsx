@@ -1,6 +1,12 @@
 import React from 'react';
 import type { DimensionValue } from 'react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import {
   INTERACTION_LABELS,
@@ -190,6 +196,10 @@ function getNeutralActionSurface(palette: LearningSurfacePalette) {
   };
 }
 
+export function isCompactLearningViewport(width: number, height: number) {
+  return width <= 340 || height <= 720;
+}
+
 export function LearningSurface({
   palette,
   sessionCards,
@@ -216,6 +226,12 @@ export function LearningSurface({
   onRestartDeck,
   onStartReview,
 }: LearningSurfaceProps) {
+  const { height: viewportHeight, width: viewportWidth } =
+    useWindowDimensions();
+  const isCompactPhone = isCompactLearningViewport(
+    viewportWidth,
+    viewportHeight,
+  );
   const isReviewPhase = phase === 'review';
   const displaySessionLabel = formatLearningSessionLabelForDisplay(
     sessionLabel,
@@ -414,11 +430,18 @@ export function LearningSurface({
     currentResult === null && !hasCommittedChoiceSelection;
 
   return (
-    <View style={styles.oneScreenPage} testID="learning-one-screen-flow">
+    <View
+      style={[
+        styles.oneScreenPage,
+        isCompactPhone ? styles.oneScreenPageCompact : null,
+      ]}
+      testID="learning-one-screen-flow"
+    >
       <View
         style={[
           styles.studyCard,
           styles.studyCardOneScreen,
+          isCompactPhone ? styles.studyCardOneScreenCompact : null,
           currentResult === null ? styles.studyCardWorkArea : null,
           styles.glassCard,
           {
@@ -430,7 +453,10 @@ export function LearningSurface({
         testID="learning-current-card"
       >
         <View
-          style={styles.cardAddressShelf}
+          style={[
+            styles.cardAddressShelf,
+            isCompactPhone ? styles.cardAddressShelfCompact : null,
+          ]}
           testID="learning-card-address-shelf"
         >
           <View style={styles.heroChipRow}>
@@ -438,17 +464,35 @@ export function LearningSurface({
               pointerEvents="none"
               style={[
                 styles.cardObjectAccent,
+                isCompactPhone ? styles.cardObjectAccentCompact : null,
                 { backgroundColor: hexToRgba(tone.accent, 0.92) },
               ]}
             />
-            <View style={styles.cardObjectHeaderText}>
+            <View
+              style={[
+                styles.cardObjectHeaderText,
+                isCompactPhone ? styles.cardObjectHeaderTextCompact : null,
+              ]}
+            >
               <Text
                 style={[styles.learningFrameMeta, { color: palette.textMuted }]}
                 testID="learning-progress-label"
               >
-                {isReviewPhase ? '本轮回看' : displaySessionLabel}
+                {isCompactPhone
+                  ? `${
+                      isReviewPhase ? '本轮回看' : displaySessionLabel
+                    } · 本轮盒`
+                  : isReviewPhase
+                  ? '本轮回看'
+                  : displaySessionLabel}
               </Text>
-              <Text style={[styles.cardObjectLead, { color: palette.text }]}>
+              <Text
+                style={[
+                  styles.cardObjectLead,
+                  isCompactPhone ? styles.cardObjectLeadCompact : null,
+                  { color: palette.text },
+                ]}
+              >
                 当前卡 · {INTERACTION_LABELS[currentCard.interaction_id]}
               </Text>
             </View>
@@ -456,6 +500,7 @@ export function LearningSurface({
           <View
             style={[
               styles.cardProgressCluster,
+              isCompactPhone ? styles.cardProgressClusterCompact : null,
               {
                 backgroundColor: palette.panelStrong,
                 borderColor: hexToRgba(tone.accent, 0.14),
@@ -483,42 +528,45 @@ export function LearningSurface({
             </View>
           </View>
         </View>
-        <View
-          style={[
-            styles.cardLocationStrip,
-            styles.learningCardLocationHint,
-            {
-              backgroundColor: 'transparent',
-              borderColor: 'transparent',
-            },
-          ]}
-          testID="learning-card-location-strip"
-        >
+        {!isCompactPhone ? (
           <View
-            pointerEvents="none"
             style={[
-              styles.cardLocationDot,
-              { backgroundColor: hexToRgba(tone.accent, 0.62) },
+              styles.cardLocationStrip,
+              styles.learningCardLocationHint,
+              {
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+              },
             ]}
-          />
-          <View style={styles.cardLocationTextWrap}>
-            <Text
-              numberOfLines={1}
-              style={[styles.cardLocationTitle, { color: palette.textMuted }]}
-            >
-              本轮盒
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[styles.cardLocationMeta, { color: palette.textMuted }]}
-            >
-              {isReviewPhase ? '回看卡在这' : '位置已接上'}
-            </Text>
+            testID="learning-card-location-strip"
+          >
+            <View
+              pointerEvents="none"
+              style={[
+                styles.cardLocationDot,
+                { backgroundColor: hexToRgba(tone.accent, 0.62) },
+              ]}
+            />
+            <View style={styles.cardLocationTextWrap}>
+              <Text
+                numberOfLines={1}
+                style={[styles.cardLocationTitle, { color: palette.textMuted }]}
+              >
+                本轮盒
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[styles.cardLocationMeta, { color: palette.textMuted }]}
+              >
+                {isReviewPhase ? '回看卡在这' : '位置已接上'}
+              </Text>
+            </View>
           </View>
-        </View>
+        ) : null}
         <View
           style={[
             styles.studyCardTop,
+            isCompactPhone ? styles.studyCardTopCompact : null,
             {
               backgroundColor: palette.panelStrong,
               borderColor: palette.border,
@@ -526,14 +574,17 @@ export function LearningSurface({
           ]}
         >
           <View style={styles.studyTitleWrap}>
-            <Text style={[styles.cardEyebrow, { color: palette.textMuted }]}>
-              先读题干
-            </Text>
+            {!isCompactPhone ? (
+              <Text style={[styles.cardEyebrow, { color: palette.textMuted }]}>
+                先读题干
+              </Text>
+            ) : null}
             <Text
               numberOfLines={isDenseInteraction ? 2 : 4}
               style={[
                 styles.cardPrompt,
                 styles.cardPromptOneScreen,
+                isCompactPhone ? styles.cardPromptOneScreenCompact : null,
                 { color: palette.text },
               ]}
             >
@@ -580,6 +631,7 @@ export function LearningSurface({
           onOpenResultDetail ? (
             <ResultSummaryPanel
               card={currentCard}
+              compact={isCompactPhone}
               palette={palette}
               result={currentResult}
               onAdvanceCard={onAdvanceCard}
@@ -601,6 +653,7 @@ export function LearningSurface({
               styles.interactionCard,
               styles.interactionCardOneScreen,
               styles.interactionCardEmbedded,
+              isCompactPhone ? styles.interactionCardOneScreenCompact : null,
               {
                 backgroundColor: 'transparent',
                 borderColor: hexToRgba(tone.accent, 0.18),
@@ -639,6 +692,7 @@ export function LearningSurface({
               onSetLockSelection={onSetLockSelection}
               onToggleEliminationItem={onToggleEliminationItem}
               onSelectSwipeState={onSelectSwipeState}
+              compact={isCompactPhone}
             />
           </View>
         )}
@@ -649,13 +703,20 @@ export function LearningSurface({
               styles.oneScreenDock,
               styles.oneScreenDockAnchored,
               isLockInteraction ? styles.oneScreenDockCompact : null,
+              isCompactPhone ? styles.oneScreenDockSmallViewport : null,
             ]}
             testID="learning-action-dock"
           >
             {shouldShowUtilityDock ? (
               <>
-                <View style={styles.actionRow}>
+                <View
+                  style={[
+                    styles.actionRow,
+                    isCompactPhone ? styles.actionRowCompact : null,
+                  ]}
+                >
                   <LightActionButton
+                    compact={isCompactPhone}
                     label={currentCardState.isPeeked ? '收起线索' : '查看线索'}
                     onPress={onTogglePeek}
                     palette={palette}
@@ -663,6 +724,7 @@ export function LearningSurface({
                   />
                   {currentCard.hint_layer ? (
                     <LightActionButton
+                      compact={isCompactPhone}
                       label={
                         currentCardState.isHintVisible ? '收起提示' : '查看提示'
                       }
@@ -675,6 +737,7 @@ export function LearningSurface({
                     onPress={onToggleFavorite}
                     style={[
                       styles.favoriteButton,
+                      isCompactPhone ? styles.favoriteButtonCompact : null,
                       {
                         backgroundColor: currentCardState.isFavorited
                           ? tone.accentSoft
@@ -700,28 +763,31 @@ export function LearningSurface({
                     </Text>
                   </Pressable>
                 </View>
-                <View
-                  style={[
-                    styles.addressAperture,
-                    {
-                      backgroundColor: palette.panelStrong,
-                      borderColor: palette.border,
-                    },
-                  ]}
-                  testID="learning-address-aperture"
-                >
-                  <Text
-                    style={[styles.addressText, { color: palette.textMuted }]}
+                {!isCompactPhone ? (
+                  <View
+                    style={[
+                      styles.addressAperture,
+                      {
+                        backgroundColor: palette.panelStrong,
+                        borderColor: palette.border,
+                      },
+                    ]}
+                    testID="learning-address-aperture"
                   >
-                    同盒继续
-                  </Text>
-                </View>
+                    <Text
+                      style={[styles.addressText, { color: palette.textMuted }]}
+                    >
+                      同盒继续
+                    </Text>
+                  </View>
+                ) : null}
               </>
             ) : null}
             {currentCard.interaction_id !== 'flip' ? (
               <View
                 style={[
                   styles.submitActionDock,
+                  isCompactPhone ? styles.submitActionDockCompact : null,
                   {
                     backgroundColor: canSubmitCurrentCard
                       ? neutralAction.surface
@@ -796,6 +862,7 @@ export function LearningSurface({
 function InteractionBody({
   card,
   cardState,
+  compact,
   currentResult,
   palette,
   onFlip,
@@ -807,6 +874,7 @@ function InteractionBody({
 }: {
   card: LearningCard;
   cardState: LearningCardState;
+  compact: boolean;
   currentResult: LearningCardResult | null;
   palette: LearningSurfacePalette;
   onFlip: () => void;
@@ -827,11 +895,17 @@ function InteractionBody({
   switch (card.interaction_id) {
     case 'flip':
       return (
-        <View style={styles.interactionBody}>
+        <View
+          style={[
+            styles.interactionBody,
+            compact ? styles.interactionBodyCompact : null,
+          ]}
+        >
           {cardState.isFlipped ? (
             <View
               style={[
                 styles.revealPanel,
+                compact ? styles.revealPanelCompact : null,
                 {
                   backgroundColor: tone.accentSoft,
                   borderColor: tone.accent,
@@ -842,8 +916,12 @@ function InteractionBody({
                 翻面结果
               </Text>
               <Text
-                numberOfLines={4}
-                style={[styles.revealText, { color: palette.text }]}
+                numberOfLines={compact ? 3 : 4}
+                style={[
+                  styles.revealText,
+                  compact ? styles.revealTextCompact : null,
+                  { color: palette.text },
+                ]}
               >
                 {card.back_text}
               </Text>
@@ -869,12 +947,18 @@ function InteractionBody({
           )}
 
           {cardState.isFlipped && currentResult === null ? (
-            <View style={styles.confidenceRow}>
+            <View
+              style={[
+                styles.confidenceRow,
+                compact ? styles.confidenceRowCompact : null,
+              ]}
+            >
               <Pressable
                 onPress={() => onSetFlipConfidence('confident')}
                 style={[
                   styles.choicePill,
                   styles.choicePillWide,
+                  compact ? styles.choicePillCompact : null,
                   {
                     backgroundColor: hexToRgba(
                       SELF_ASSESS_COLORS.confident,
@@ -899,6 +983,7 @@ function InteractionBody({
                 style={[
                   styles.choicePill,
                   styles.choicePillWide,
+                  compact ? styles.choicePillCompact : null,
                   {
                     backgroundColor: hexToRgba(SELF_ASSESS_COLORS.review, 0.12),
                     borderColor: SELF_ASSESS_COLORS.review,
@@ -921,7 +1006,13 @@ function InteractionBody({
       );
     case 'multiple_choice':
       return (
-        <View style={[styles.interactionBody, styles.choiceInteractionBody]}>
+        <View
+          style={[
+            styles.interactionBody,
+            styles.choiceInteractionBody,
+            compact ? styles.interactionBodyCompact : null,
+          ]}
+        >
           <View
             style={[styles.optionGrid, styles.optionGridWorkArea]}
             testID="learning-option-grid"
@@ -960,6 +1051,7 @@ function InteractionBody({
                   onPress={() => onSelectOption(option.id)}
                   style={[
                     styles.optionCard,
+                    compact ? styles.optionCardCompact : null,
                     isSelected ? styles.optionCardSelected : null,
                     {
                       backgroundColor: optionStateTint,
@@ -1023,8 +1115,15 @@ function InteractionBody({
       );
     case 'lock':
       return (
-        <View style={styles.interactionBody}>
-          <View style={styles.lockList}>
+        <View
+          style={[
+            styles.interactionBody,
+            compact ? styles.interactionBodyCompact : null,
+          ]}
+        >
+          <View
+            style={[styles.lockList, compact ? styles.lockListCompact : null]}
+          >
             {card.lock_slots.map(slot => {
               const selectedValue = cardState.lockSelections[slot.id];
               const isUnlocked = Boolean(selectedValue);
@@ -1034,6 +1133,7 @@ function InteractionBody({
                   key={slot.id}
                   style={[
                     styles.lockRow,
+                    compact ? styles.lockRowCompact : null,
                     {
                       backgroundColor: isUnlocked
                         ? neutralAction.surface
@@ -1047,6 +1147,7 @@ function InteractionBody({
                   <View
                     style={[
                       styles.lockGlyph,
+                      compact ? styles.lockGlyphCompact : null,
                       {
                         backgroundColor: isUnlocked
                           ? primaryAction.surface
@@ -1070,25 +1171,43 @@ function InteractionBody({
                       {isUnlocked ? '开' : '锁'}
                     </Text>
                   </View>
-                  <View style={styles.lockBody}>
-                    <View style={styles.lockLabelRow}>
+                  <View
+                    style={[
+                      styles.lockBody,
+                      compact ? styles.lockBodyCompact : null,
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.lockLabelRow,
+                        compact ? styles.lockLabelRowCompact : null,
+                      ]}
+                    >
                       <Text style={[styles.lockLabel, { color: palette.text }]}>
                         {slot.label}
                       </Text>
-                      <Text
-                        style={[
-                          styles.lockStatus,
-                          {
-                            color: isUnlocked
-                              ? palette.text
-                              : palette.textMuted,
-                          },
-                        ]}
-                      >
-                        {isUnlocked ? '已开锁' : '待选择'}
-                      </Text>
+                      {!compact ? (
+                        <Text
+                          style={[
+                            styles.lockStatus,
+                            {
+                              color: isUnlocked
+                                ? palette.text
+                                : palette.textMuted,
+                            },
+                          ]}
+                        >
+                          {isUnlocked ? '已开锁' : '待选择'}
+                        </Text>
+                      ) : null}
                     </View>
-                    <View style={[styles.inlineWrap, styles.lockChoiceWrap]}>
+                    <View
+                      style={[
+                        styles.inlineWrap,
+                        styles.lockChoiceWrap,
+                        compact ? styles.lockChoiceWrapCompact : null,
+                      ]}
+                    >
                       {slot.options.map(option => {
                         const isSelected = selectedValue === option;
 
@@ -1099,6 +1218,7 @@ function InteractionBody({
                             style={[
                               styles.choicePill,
                               styles.lockChoicePill,
+                              compact ? styles.lockChoicePillCompact : null,
                               {
                                 backgroundColor: isSelected
                                   ? palette.panel
@@ -1139,8 +1259,18 @@ function InteractionBody({
       );
     case 'elimination':
       return (
-        <View style={styles.interactionBody}>
-          <View style={styles.eliminationGrid}>
+        <View
+          style={[
+            styles.interactionBody,
+            compact ? styles.interactionBodyCompact : null,
+          ]}
+        >
+          <View
+            style={[
+              styles.eliminationGrid,
+              compact ? styles.eliminationGridCompact : null,
+            ]}
+          >
             {card.elimination_items.map(item => {
               const isSelected = cardState.eliminatedItemIds.includes(item.id);
               const isCorrect =
@@ -1153,6 +1283,7 @@ function InteractionBody({
                   onPress={() => onToggleEliminationItem(item.id)}
                   style={[
                     styles.eliminationCard,
+                    compact ? styles.eliminationCardCompact : null,
                     {
                       backgroundColor: isSelected
                         ? neutralAction.surface
@@ -1207,11 +1338,19 @@ function InteractionBody({
       );
     case 'swipe':
       return (
-        <View style={styles.swipeColumn}>
-          <View style={styles.swipeDeck}>
+        <View
+          style={[
+            styles.swipeColumn,
+            compact ? styles.swipeColumnCompact : null,
+          ]}
+        >
+          <View
+            style={[styles.swipeDeck, compact ? styles.swipeDeckCompact : null]}
+          >
             <View
               style={[
                 styles.swipeGhostCard,
+                compact ? styles.swipeGhostCardCompact : null,
                 styles.swipeGhostBack,
                 { backgroundColor: palette.panel, borderColor: palette.border },
               ]}
@@ -1219,6 +1358,7 @@ function InteractionBody({
             <View
               style={[
                 styles.swipeGhostCard,
+                compact ? styles.swipeGhostCardCompact : null,
                 styles.swipeGhostMid,
                 {
                   backgroundColor: palette.panelStrong,
@@ -1229,6 +1369,7 @@ function InteractionBody({
             <View
               style={[
                 styles.swipeTopCard,
+                compact ? styles.swipeTopCardCompact : null,
                 { backgroundColor: palette.panel, borderColor: tone.accent },
               ]}
             >
@@ -1240,7 +1381,12 @@ function InteractionBody({
               </Text>
             </View>
           </View>
-          <View style={styles.swipeTrailRow}>
+          <View
+            style={[
+              styles.swipeTrailRow,
+              compact ? styles.swipeTrailRowCompact : null,
+            ]}
+          >
             {card.swipe_states.map((state, index) => {
               const isSelected = cardState.swipeSelection === state.id;
               const isCorrect =
@@ -1253,6 +1399,7 @@ function InteractionBody({
                   onPress={() => onSelectSwipeState(state.id)}
                   style={[
                     styles.swipeTrailCard,
+                    compact ? styles.swipeTrailCardCompact : null,
                     index === 0
                       ? styles.swipeTrailLeft
                       : styles.swipeTrailRight,
@@ -1269,13 +1416,22 @@ function InteractionBody({
                   ]}
                   testID={`learning-swipe-${state.id}`}
                 >
-                  <Text style={[styles.swipeTrailHint, { color: tone.accent }]}>
-                    {index === 0 ? '← 左划' : '右划 →'}
-                  </Text>
-                  <Text style={[styles.swipeLabel, { color: palette.text }]}>
-                    {state.label}
-                  </Text>
+                  <View style={styles.swipeTrailHeading}>
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.swipeTrailHint, { color: tone.accent }]}
+                    >
+                      {index === 0 ? '← 左划' : '右划 →'}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.swipeLabel, { color: palette.text }]}
+                    >
+                      {state.label}
+                    </Text>
+                  </View>
                   <Text
+                    numberOfLines={1}
                     style={[styles.swipeText, { color: palette.textMuted }]}
                   >
                     {state.description}
@@ -1466,6 +1622,12 @@ export function LearningResultDetailSurface({
   sessionCardCount: number;
   sessionLabel: string;
 }) {
+  const { height: viewportHeight, width: viewportWidth } =
+    useWindowDimensions();
+  const isCompactPhone = isCompactLearningViewport(
+    viewportWidth,
+    viewportHeight,
+  );
   const displaySessionLabel = formatLearningSessionLabelForDisplay(
     sessionLabel,
     phase,
@@ -1491,12 +1653,17 @@ export function LearningResultDetailSurface({
 
   return (
     <View
-      style={[styles.oneScreenPage, styles.detailScreen]}
+      style={[
+        styles.oneScreenPage,
+        styles.detailScreen,
+        isCompactPhone ? styles.oneScreenPageCompact : null,
+      ]}
       testID="learning-result-detail-screen"
     >
       <View
         style={[
           styles.detailResolvedCard,
+          isCompactPhone ? styles.detailResolvedCardCompact : null,
           styles.glassCard,
           {
             backgroundColor: palette.panel,
@@ -1506,22 +1673,45 @@ export function LearningResultDetailSurface({
         ]}
         testID="learning-detail-resolved-card"
       >
-        <View style={styles.cardAddressShelf}>
+        <View
+          style={[
+            styles.cardAddressShelf,
+            isCompactPhone ? styles.cardAddressShelfCompact : null,
+          ]}
+        >
           <View style={styles.heroChipRow}>
             <View
               pointerEvents="none"
               style={[
                 styles.cardObjectAccent,
+                isCompactPhone ? styles.cardObjectAccentCompact : null,
                 { backgroundColor: hexToRgba(detailLibraryTone.accent, 0.92) },
               ]}
             />
-            <View style={styles.cardObjectHeaderText}>
+            <View
+              style={[
+                styles.cardObjectHeaderText,
+                isCompactPhone ? styles.cardObjectHeaderTextCompact : null,
+              ]}
+            >
               <Text
                 style={[styles.learningFrameMeta, { color: palette.textMuted }]}
               >
-                {phase === 'review' ? '本轮回看' : displaySessionLabel}
+                {isCompactPhone
+                  ? `${
+                      phase === 'review' ? '本轮回看' : displaySessionLabel
+                    } · 本轮盒`
+                  : phase === 'review'
+                  ? '本轮回看'
+                  : displaySessionLabel}
               </Text>
-              <Text style={[styles.cardObjectLead, { color: palette.text }]}>
+              <Text
+                style={[
+                  styles.cardObjectLead,
+                  isCompactPhone ? styles.cardObjectLeadCompact : null,
+                  { color: palette.text },
+                ]}
+              >
                 当前卡 · {INTERACTION_LABELS[card.interaction_id]}
               </Text>
             </View>
@@ -1529,6 +1719,7 @@ export function LearningResultDetailSurface({
           <View
             style={[
               styles.cardProgressCluster,
+              isCompactPhone ? styles.cardProgressClusterCompact : null,
               {
                 backgroundColor: palette.panelStrong,
                 borderColor: hexToRgba(detailLibraryTone.accent, 0.14),
@@ -1557,58 +1748,64 @@ export function LearningResultDetailSurface({
           </View>
         </View>
 
-        <View
-          style={[
-            styles.cardLocationStrip,
-            {
-              backgroundColor: 'transparent',
-              borderColor: hexToRgba(palette.textMuted, 0.14),
-            },
-          ]}
-        >
+        {!isCompactPhone ? (
           <View
-            pointerEvents="none"
             style={[
-              styles.cardLocationDot,
-              { backgroundColor: hexToRgba(detailLibraryTone.accent, 0.62) },
-            ]}
-          />
-          <View style={styles.cardLocationTextWrap}>
-            <Text
-              numberOfLines={1}
-              style={[styles.cardLocationTitle, { color: palette.textMuted }]}
-            >
-              位置 · 本轮盒
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[styles.cardLocationMeta, { color: palette.textMuted }]}
-            >
-              答案留在本卡
-            </Text>
-          </View>
-          <Pressable
-            onPress={onBackToPractice}
-            style={[
-              styles.detailCollapseButton,
+              styles.cardLocationStrip,
               {
-                backgroundColor: palette.panel,
-                borderColor: palette.border,
+                backgroundColor: 'transparent',
+                borderColor: hexToRgba(palette.textMuted, 0.14),
               },
             ]}
-            testID="learning-result-back-button"
           >
-            <Text
-              style={[styles.detailCollapseLabel, { color: palette.textMuted }]}
+            <View
+              pointerEvents="none"
+              style={[
+                styles.cardLocationDot,
+                { backgroundColor: hexToRgba(detailLibraryTone.accent, 0.62) },
+              ]}
+            />
+            <View style={styles.cardLocationTextWrap}>
+              <Text
+                numberOfLines={1}
+                style={[styles.cardLocationTitle, { color: palette.textMuted }]}
+              >
+                位置 · 本轮盒
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[styles.cardLocationMeta, { color: palette.textMuted }]}
+              >
+                答案留在本卡
+              </Text>
+            </View>
+            <Pressable
+              onPress={onBackToPractice}
+              style={[
+                styles.detailCollapseButton,
+                {
+                  backgroundColor: palette.panel,
+                  borderColor: palette.border,
+                },
+              ]}
+              testID="learning-result-back-button"
             >
-              卡面
-            </Text>
-          </Pressable>
-        </View>
+              <Text
+                style={[
+                  styles.detailCollapseLabel,
+                  { color: palette.textMuted },
+                ]}
+              >
+                卡面
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         <View
           style={[
             styles.detailResolvedHero,
+            isCompactPhone ? styles.detailResolvedHeroCompact : null,
             {
               backgroundColor: palette.panelStrong,
               borderColor: palette.border,
@@ -1627,8 +1824,12 @@ export function LearningResultDetailSurface({
               </Text>
             </View>
             <Text
-              numberOfLines={3}
-              style={[styles.detailPrompt, { color: palette.text }]}
+              numberOfLines={isCompactPhone ? 2 : 3}
+              style={[
+                styles.detailPrompt,
+                isCompactPhone ? styles.detailPromptCompact : null,
+                { color: palette.text },
+              ]}
             >
               {card.front.prompt}
             </Text>
@@ -1638,6 +1839,7 @@ export function LearningResultDetailSurface({
         <View
           style={[
             styles.detailAnswerSlip,
+            isCompactPhone ? styles.detailAnswerSlipCompact : null,
             {
               backgroundColor: neutralAction.surface,
               borderColor: neutralAction.border,
@@ -1676,6 +1878,7 @@ export function LearningResultDetailSurface({
                   key={row.label}
                   style={[
                     styles.detailAnswerCell,
+                    isCompactPhone ? styles.detailAnswerCellCompact : null,
                     {
                       backgroundColor: hexToRgba(rowTone, 0.075),
                       borderColor: hexToRgba(rowTone, 0.14),
@@ -1707,6 +1910,7 @@ export function LearningResultDetailSurface({
           <View
             style={[
               styles.detailExplanationSlip,
+              isCompactPhone ? styles.detailExplanationSlipCompact : null,
               {
                 backgroundColor: palette.panel,
                 borderColor: palette.border,
@@ -1714,22 +1918,28 @@ export function LearningResultDetailSurface({
             ]}
           >
             <Text
+              numberOfLines={1}
               style={[styles.resultExplanationTitle, { color: palette.text }]}
             >
               {card.analysis.title}
             </Text>
             <Text
-              numberOfLines={3}
+              numberOfLines={isCompactPhone ? 2 : 3}
               style={[
                 styles.resultExplanationBody,
+                isCompactPhone ? styles.resultExplanationBodyCompact : null,
                 { color: palette.textMuted },
               ]}
             >
               {card.analysis.summary}
             </Text>
             <Text
-              numberOfLines={2}
-              style={[styles.detailTip, { color: palette.textMuted }]}
+              numberOfLines={isCompactPhone ? 1 : 2}
+              style={[
+                styles.detailTip,
+                isCompactPhone ? styles.detailTipCompact : null,
+                { color: palette.textMuted },
+              ]}
             >
               过级提醒：{card.analysis.exam_tip}
             </Text>
@@ -1741,6 +1951,7 @@ export function LearningResultDetailSurface({
           style={[
             styles.primaryButton,
             styles.detailPrimaryButton,
+            isCompactPhone ? styles.detailPrimaryButtonCompact : null,
             { backgroundColor: primaryAction.surface },
           ]}
           testID="learning-next-button"
@@ -1758,6 +1969,7 @@ export function LearningResultDetailSurface({
 
 function ResultSummaryPanel({
   card,
+  compact,
   palette,
   result,
   onAdvanceCard,
@@ -1765,6 +1977,7 @@ function ResultSummaryPanel({
   isLastCard,
 }: {
   card: LearningCard;
+  compact: boolean;
   palette: LearningSurfacePalette;
   result: LearningCardResult;
   onAdvanceCard: () => void;
@@ -1785,6 +1998,7 @@ function ResultSummaryPanel({
     <View
       style={[
         styles.resultCard,
+        compact ? styles.resultCardCompact : null,
         {
           backgroundColor: palette.panelStrong,
           borderColor: borderTone,
@@ -2001,11 +2215,13 @@ function ResultBadge({
 }
 
 function LightActionButton({
+  compact,
   label,
   onPress,
   palette,
   testID,
 }: {
+  compact: boolean;
   label: string;
   onPress: () => void;
   palette: LearningSurfacePalette;
@@ -2016,6 +2232,7 @@ function LightActionButton({
       onPress={onPress}
       style={[
         styles.lightActionButton,
+        compact ? styles.lightActionButtonCompact : null,
         {
           backgroundColor: palette.panelStrong,
           borderColor: palette.border,
@@ -2041,6 +2258,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
+  },
+  oneScreenPageCompact: {
+    gap: 6,
+    paddingBottom: 6,
+    paddingHorizontal: 12,
+    paddingTop: 6,
   },
   completeScreen: {
     justifyContent: 'center',
@@ -2148,11 +2371,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     position: 'relative',
   },
+  detailResolvedCardCompact: {
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   detailResolvedHero: {
     borderRadius: 22,
     borderWidth: 1,
     paddingHorizontal: 13,
     paddingVertical: 8,
+  },
+  detailResolvedHeroCompact: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   detailTitleWrap: {
     alignSelf: 'stretch',
@@ -2174,6 +2406,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 22,
   },
+  detailPromptCompact: {
+    fontSize: 15,
+    lineHeight: 19,
+  },
   detailAnswerSlip: {
     borderRadius: 22,
     borderWidth: 1,
@@ -2183,6 +2419,11 @@ const styles = StyleSheet.create({
     minHeight: 0,
     paddingHorizontal: 12,
     paddingVertical: 8,
+  },
+  detailAnswerSlipCompact: {
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   detailSlipHeader: {
     alignItems: 'center',
@@ -2217,6 +2458,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
+  detailAnswerCellCompact: {
+    minHeight: 44,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
   detailAnswerLabel: {
     fontSize: 11,
     fontWeight: '700',
@@ -2237,6 +2483,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
+  detailExplanationSlipCompact: {
+    gap: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
   detailOutcomeTitle: {
     fontSize: 13,
     fontWeight: '800',
@@ -2246,9 +2497,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
   },
+  detailTipCompact: {
+    lineHeight: 16,
+  },
   detailPrimaryButton: {
     marginTop: 0,
     paddingVertical: 12,
+  },
+  detailPrimaryButtonCompact: {
+    minHeight: 44,
+    paddingVertical: 8,
   },
   detailCardLocationStrip: {
     paddingHorizontal: 11,
@@ -2323,6 +2581,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 17,
     paddingVertical: 14,
   },
+  studyCardOneScreenCompact: {
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   studyCardWorkArea: {
     flexGrow: 1,
   },
@@ -2332,19 +2595,32 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: 'space-between',
   },
+  cardAddressShelfCompact: {
+    gap: 8,
+  },
   cardObjectAccent: {
     borderRadius: 999,
     height: 32,
     width: 6,
   },
+  cardObjectAccentCompact: {
+    height: 28,
+  },
   cardObjectHeaderText: {
     flex: 1,
     gap: 2,
+  },
+  cardObjectHeaderTextCompact: {
+    gap: 0,
   },
   cardObjectLead: {
     fontSize: 16,
     fontWeight: '800',
     lineHeight: 20,
+  },
+  cardObjectLeadCompact: {
+    fontSize: 14,
+    lineHeight: 18,
   },
   cardProgressCluster: {
     alignItems: 'center',
@@ -2354,6 +2630,12 @@ const styles = StyleSheet.create({
     minWidth: 62,
     paddingHorizontal: 9,
     paddingVertical: 7,
+  },
+  cardProgressClusterCompact: {
+    gap: 2,
+    minWidth: 56,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
   },
   cardProgressCount: {
     fontSize: 16,
@@ -2399,6 +2681,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     paddingVertical: 11,
   },
+  studyCardTopCompact: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
   studyTitleWrap: {
     flex: 1,
     gap: 7,
@@ -2416,6 +2702,10 @@ const styles = StyleSheet.create({
   cardPromptOneScreen: {
     fontSize: 20,
     lineHeight: 26,
+  },
+  cardPromptOneScreenCompact: {
+    fontSize: 18,
+    lineHeight: 23,
   },
   contextCard: {
     borderWidth: 1,
@@ -2445,6 +2735,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
+  favoriteButtonCompact: {
+    minHeight: 44,
+    minWidth: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+  },
   favoriteLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -2454,6 +2750,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
+  actionRowCompact: {
+    flexWrap: 'nowrap',
+    gap: 6,
+  },
   lightActionButton: {
     alignItems: 'center',
     borderWidth: 1,
@@ -2462,6 +2762,12 @@ const styles = StyleSheet.create({
     minWidth: 86,
     paddingHorizontal: 14,
     paddingVertical: 10,
+  },
+  lightActionButtonCompact: {
+    minHeight: 44,
+    minWidth: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
   },
   lightActionLabel: {
     fontSize: 13,
@@ -2525,6 +2831,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     paddingVertical: 2,
   },
+  interactionCardOneScreenCompact: {
+    gap: 4,
+    paddingVertical: 1,
+  },
   interactionCardEmbedded: {
     borderRadius: 22,
     borderWidth: 0,
@@ -2552,6 +2862,9 @@ const styles = StyleSheet.create({
   interactionBody: {
     gap: 8,
   },
+  interactionBodyCompact: {
+    gap: 4,
+  },
   choiceInteractionBody: {
     flexGrow: 1,
   },
@@ -2560,6 +2873,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 14,
     gap: 6,
+  },
+  revealPanelCompact: {
+    gap: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   revealTitle: {
     fontSize: 13,
@@ -2570,10 +2888,18 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: '600',
   },
+  revealTextCompact: {
+    fontSize: 14,
+    lineHeight: 19,
+  },
   confidenceRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
+  },
+  confidenceRowCompact: {
+    flexWrap: 'nowrap',
+    gap: 6,
   },
   choicePill: {
     borderWidth: 1,
@@ -2585,6 +2911,10 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 132,
     alignItems: 'center',
+  },
+  choicePillCompact: {
+    minHeight: 44,
+    paddingVertical: 7,
   },
   choiceLabel: {
     fontSize: 14,
@@ -2620,6 +2950,12 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 2,
   },
+  optionCardCompact: {
+    gap: 4,
+    minHeight: 62,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
   optionHeaderRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -2654,6 +2990,9 @@ const styles = StyleSheet.create({
   lockList: {
     gap: 6,
   },
+  lockListCompact: {
+    gap: 3,
+  },
   lockRow: {
     alignItems: 'center',
     borderRadius: 16,
@@ -2663,6 +3002,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 8,
   },
+  lockRowCompact: {
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 7,
+    paddingVertical: 5,
+  },
   lockGlyph: {
     alignItems: 'center',
     borderRadius: 13,
@@ -2670,6 +3015,10 @@ const styles = StyleSheet.create({
     height: 26,
     justifyContent: 'center',
     width: 26,
+  },
+  lockGlyphCompact: {
+    height: 22,
+    width: 22,
   },
   lockGlyphLabel: {
     fontSize: 10,
@@ -2679,10 +3028,19 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 5,
   },
+  lockBodyCompact: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
   lockLabelRow: {
     flexDirection: 'row',
     gap: 6,
     justifyContent: 'space-between',
+  },
+  lockLabelRowCompact: {
+    flexShrink: 0,
+    width: 28,
   },
   lockLabel: {
     fontSize: 12,
@@ -2697,12 +3055,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 5,
   },
+  lockChoicePillCompact: {
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
   lockChoiceLabel: {
     fontSize: 11,
   },
   lockChoiceWrap: {
     flexWrap: 'nowrap',
     gap: 5,
+  },
+  lockChoiceWrapCompact: {
+    flex: 1,
   },
   inlineWrap: {
     flexDirection: 'row',
@@ -2718,6 +3083,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
   },
+  eliminationGridCompact: {
+    gap: 6,
+  },
   eliminationCard: {
     minWidth: '47%',
     flexGrow: 1,
@@ -2727,6 +3095,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingHorizontal: 14,
     paddingVertical: 16,
+  },
+  eliminationCardCompact: {
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
   },
   eliminationStrikeRail: {
     borderRadius: 999,
@@ -2748,10 +3121,16 @@ const styles = StyleSheet.create({
   swipeColumn: {
     gap: 8,
   },
+  swipeColumnCompact: {
+    gap: 5,
+  },
   swipeDeck: {
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 116,
+  },
+  swipeDeckCompact: {
+    minHeight: 94,
   },
   swipeGhostCard: {
     borderWidth: 1,
@@ -2759,6 +3138,9 @@ const styles = StyleSheet.create({
     height: 92,
     position: 'absolute',
     width: '78%',
+  },
+  swipeGhostCardCompact: {
+    height: 72,
   },
   swipeGhostBack: {
     transform: [{ translateX: -22 }, { translateY: 6 }],
@@ -2776,6 +3158,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
+  swipeTopCardCompact: {
+    gap: 3,
+    minHeight: 80,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
   swipePromptLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -2790,13 +3178,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  swipeTrailRowCompact: {
+    gap: 8,
+  },
   swipeTrailCard: {
     flex: 1,
-    minWidth: 140,
+    minWidth: 0,
     borderWidth: 1,
     borderRadius: 22,
-    padding: 16,
-    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 3,
+  },
+  swipeTrailCardCompact: {
+    borderRadius: 18,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  swipeTrailHeading: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'space-between',
   },
   swipeTrailLeft: {
     transform: [{ translateX: -2 }],
@@ -2807,7 +3210,8 @@ const styles = StyleSheet.create({
   swipeTrailHint: {
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.7,
+    letterSpacing: 0.4,
+    lineHeight: 17,
   },
   swipeRow: {
     flexDirection: 'row',
@@ -2824,11 +3228,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   swipeLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
+    lineHeight: 18,
   },
   swipeText: {
-    fontSize: 12,
+    fontSize: 13,
     lineHeight: 17,
   },
   primaryButton: {
@@ -2848,6 +3253,10 @@ const styles = StyleSheet.create({
   oneScreenDockCompact: {
     gap: 0,
   },
+  oneScreenDockSmallViewport: {
+    gap: 4,
+    marginTop: 0,
+  },
   submitActionDock: {
     alignItems: 'center',
     borderRadius: 21,
@@ -2858,6 +3267,12 @@ const styles = StyleSheet.create({
     minHeight: 58,
     paddingHorizontal: 13,
     paddingVertical: 9,
+  },
+  submitActionDockCompact: {
+    gap: 8,
+    minHeight: 52,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   submitActionTextStack: {
     flex: 1,
@@ -2911,6 +3326,11 @@ const styles = StyleSheet.create({
     gap: 12,
     position: 'relative',
   },
+  resultCardCompact: {
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   completeActionCard: {
     paddingVertical: 16,
   },
@@ -2936,6 +3356,10 @@ const styles = StyleSheet.create({
   resultExplanationBody: {
     fontSize: 14,
     lineHeight: 22,
+  },
+  resultExplanationBodyCompact: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   resultTip: {
     fontSize: 13,
