@@ -365,6 +365,30 @@ production mode, uses the receiver HTTPS SMS webhook, and does not carry
 `softbook-sms-delivery.v1` over HTTPS with a bearer secret. A successful local
 or CI test does not prove the gateway sent a real message.
 
+### Audited closed-beta entitlement
+
+Closed-beta premium access is granted without a payment route through the
+dry-run-first operator contract in `beta-entitlement-v1-runtime-contract.md`.
+Create a local, untracked `beta-entitlement-command.v1` file and review the
+phone-free plan before apply:
+
+```bash
+node infra/cloudbase/manage-beta-entitlement.mjs \
+  --profile path/to/delivery-profile.json \
+  --command path/to/beta-entitlement-command.json
+
+node infra/cloudbase/manage-beta-entitlement.mjs \
+  --profile path/to/delivery-profile.json \
+  --command path/to/beta-entitlement-command.json \
+  --apply
+```
+
+The same command shape is used for `grant` and `revoke`. Apply requires Node
+22.13.0 plus clean exact `main`; the active grant and its audit history are
+stored together in `softbook_beta_entitlements`. The base membership document
+is not modified. Command files contain phone numbers and must not be committed
+or included in a release bundle.
+
 Dependency audit status: the current lockfile returns zero known findings from
 `npm audit --omit=dev`. This is a point-in-time dependency result, not production
 readiness. The function remains pinned by its lockfile to the currently verified

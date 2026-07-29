@@ -73,6 +73,7 @@ const CLOUDBASE_COLLECTIONS = {
   authChallenges: 'softbook_auth_challenges',
   authRateLimits: 'softbook_auth_rate_limits',
   authSessions: 'softbook_auth_sessions',
+  betaEntitlements: 'softbook_beta_entitlements',
   cardSourceVersions: 'softbook_card_source_versions',
   cardSources: 'softbook_card_sources',
   dailyCheckIns: 'softbook_daily_check_ins',
@@ -1072,6 +1073,7 @@ function createCloudBaseStore(options = {}) {
     CLOUDBASE_COLLECTIONS,
   );
   const cardSources = db.collection(CLOUDBASE_COLLECTIONS.cardSources);
+  const betaEntitlements = db.collection(CLOUDBASE_COLLECTIONS.betaEntitlements);
   const memberships = db.collection(CLOUDBASE_COLLECTIONS.memberships);
   const dailyCheckIns = db.collection(CLOUDBASE_COLLECTIONS.dailyCheckIns);
   const dailyProgress = db.collection(CLOUDBASE_COLLECTIONS.dailyProgress);
@@ -1276,18 +1278,34 @@ function createCloudBaseStore(options = {}) {
         return true;
       }),
     getMembership: async phoneNumber => {
-      const existing = await getCloudBaseDocument(memberships, phoneNumber);
+      const [existing, betaEntitlement] = await Promise.all([
+        getCloudBaseDocument(memberships, phoneNumber),
+        getCloudBaseDocument(betaEntitlements, phoneNumber),
+      ]);
 
       if (existing) {
+        const entitlement = applyBetaEntitlement(
+          deserializeMembershipDocument(existing),
+          betaEntitlement,
+          phoneNumber,
+        );
         return {
-          acknowledged_at: existing.updated_at ?? null,
-          ...deserializeMembershipDocument(existing),
+          acknowledged_at: latestAcknowledgedAt(
+            existing.updated_at,
+            betaEntitlement?.updated_at,
+          ),
+          ...entitlement,
         };
       }
 
+      const entitlement = applyBetaEntitlement(
+        createInitialMembership(),
+        betaEntitlement,
+        phoneNumber,
+      );
       return {
-        acknowledged_at: null,
-        ...createInitialMembership(),
+        acknowledged_at: betaEntitlement?.updated_at ?? null,
+        ...entitlement,
       };
     },
     startTrial: (phoneNumber, acknowledgedAt) =>
@@ -2084,6 +2102,109 @@ async function saveCloudBaseMembership(
 
 function deserializeMembershipDocument(document) {
   return cloneMembership(document.entitlement ?? document);
+}
+
+function applyBetaEntitlement(membership, document, phoneNumber) {
+  if (document === null || document === undefined) {
+    return membership;
+  }
+  assertBetaEntitlementDocument(document, phoneNumber);
+  const active = document.active_grant ?? null;
+  if (active === null) return membership;
+  return {
+    ...membership,
+    last_experience_ended_by: null,
+    recovery_prompt_visible: false,
+    stage: 'premium',
+  };
+}
+
+function assertBetaEntitlementDocument(document, phoneNumber) {
+  const audit = document.audit;
+  const active = document.active_grant ?? null;
+  const invalid = () =>
+    httpError(
+      500,
+      'invalid_beta_entitlement',
+      'Canonical beta entitlement is invalid.',
+    );
+  if (
+    document.phone_number !== phoneNumber ||
+    !Number.isSafeInteger(document.revision) ||
+    document.revision <= 0 ||
+    !Array.isArray(audit) ||
+    audit.length !== document.revision ||
+    document.updated_at !== audit.at(-1)?.occurred_at
+  ) {
+    throw invalid();
+  }
+  let openGrantId = null;
+  let previousTimestamp = null;
+  for (const event of audit) {
+    if (
+      event?.schema_version !== 'beta-entitlement-audit.v1' ||
+      !['grant', 'revoke'].includes(event.action) ||
+      typeof event.actor_id !== 'string' ||
+      !/^sha256:[a-f0-9]{64}$/.test(event.command_sha256 ?? '') ||
+      typeof event.event_id !== 'string' ||
+      typeof event.grant_id !== 'string' ||
+      !isCanonicalIsoTimestamp(event.occurred_at) ||
+      typeof event.reason !== 'string' ||
+      !['trial_available', 'trial', 'free', 'premium'].includes(
+        event.previous_stage,
+      ) ||
+      !['trial_available', 'trial', 'free', 'premium'].includes(
+        event.resulting_stage,
+      ) ||
+      (previousTimestamp !== null && event.occurred_at < previousTimestamp)
+    ) {
+      throw invalid();
+    }
+    if (event.action === 'grant') {
+      if (openGrantId !== null || event.resulting_stage !== 'premium') {
+        throw invalid();
+      }
+      openGrantId = event.grant_id;
+    } else {
+      if (
+        openGrantId !== event.grant_id ||
+        event.previous_stage !== 'premium'
+      ) {
+        throw invalid();
+      }
+      openGrantId = null;
+    }
+    previousTimestamp = event.occurred_at;
+  }
+  const latest = audit.at(-1);
+  if (active === null) {
+    if (openGrantId !== null || latest.action !== 'revoke') throw invalid();
+    return;
+  }
+  if (
+    latest.action !== 'grant' ||
+    openGrantId !== latest.grant_id ||
+    active.schema_version !== 'beta-entitlement.v1' ||
+    active.actor_id !== latest.actor_id ||
+    active.command_sha256 !== latest.command_sha256 ||
+    active.grant_event_id !== latest.event_id ||
+    active.grant_id !== latest.grant_id ||
+    active.granted_at !== latest.occurred_at ||
+    active.reason !== latest.reason
+  ) {
+    throw invalid();
+  }
+}
+
+function isCanonicalIsoTimestamp(value) {
+  if (typeof value !== 'string') return false;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) && date.toISOString() === value;
+}
+
+function latestAcknowledgedAt(...values) {
+  const timestamps = values.filter(isCanonicalIsoTimestamp).sort();
+  return timestamps.at(-1) ?? null;
 }
 
 async function getCloudBaseDocument(collection, documentId) {

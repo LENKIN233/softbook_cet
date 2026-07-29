@@ -61,6 +61,8 @@ const schedulerWatermarkFieldPattern =
   /\b(?:learning_server_sequence|learningServerSequence)\b/i;
 const dailyCheckInMetadataFieldPattern =
   /\b(?:check_in_daily_progress|dailyCheckIns|softbook_daily_check_ins|checkInDailyProgress|assertLegacySnapshotWritesDisabled)\b/i;
+const betaEntitlementMetadataFieldPattern =
+  /\b(?:betaEntitlements|softbook_beta_entitlements)\b/i;
 
 const processLeakTermPattern =
   /(^|[^A-Za-z0-9])(?:agent|harness|validator|runtime|mock|prototype|seed|fixture|debug|dev|todo|implementation|repository|repo|pull request|pr|rn|endpoint|payload)(?=$|[^A-Za-z0-9])/i;
@@ -115,6 +117,10 @@ const leakagePatterns = [
   {
     pattern: dailyCheckInMetadataFieldPattern,
     reason: 'raw daily check-in storage field in visual design artifact',
+  },
+  {
+    pattern: betaEntitlementMetadataFieldPattern,
+    reason: 'raw beta entitlement storage field in visual design artifact',
   },
   {
     pattern: /\b(?:0\d{3,5}|R-\d{1,3})\b/i,

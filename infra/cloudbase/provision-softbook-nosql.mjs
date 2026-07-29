@@ -29,6 +29,7 @@ const collections = [
   'softbook_auth_challenges',
   'softbook_auth_rate_limits',
   'softbook_auth_sessions',
+  'softbook_beta_entitlements',
   'softbook_card_source_versions',
   'softbook_card_sources',
   'softbook_memberships',

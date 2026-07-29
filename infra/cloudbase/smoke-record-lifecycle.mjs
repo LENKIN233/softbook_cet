@@ -49,7 +49,12 @@ const ACCOUNT_COLLECTIONS = Object.freeze([
   "softbook_space_states",
 ]);
 export const CLEANUP_COLLECTIONS = Object.freeze(
-  [...AUTH_COLLECTIONS, "softbook_memberships", ...ACCOUNT_COLLECTIONS].sort()
+  [
+    ...AUTH_COLLECTIONS,
+    "softbook_beta_entitlements",
+    "softbook_memberships",
+    ...ACCOUNT_COLLECTIONS,
+  ].sort()
 );
 
 export function createSmokePhone() {
@@ -322,6 +327,9 @@ export function createCloudBaseRunner({
         softbook_auth_sessions: readDocuments("softbook_auth_sessions", {
           _id: {$ne: "__provision__"},
         }),
+        softbook_beta_entitlements: readDocuments("softbook_beta_entitlements", {
+          _id: {$in: phones},
+        }),
         softbook_memberships: readDocuments("softbook_memberships", {
           _id: {$in: phones},
         }),
@@ -381,6 +389,7 @@ function validateInventoryOwnership(
   const sessions = inventory.softbook_auth_sessions ?? [];
   const challenges = inventory.softbook_auth_challenges ?? [];
   const rateLimits = inventory.softbook_auth_rate_limits ?? [];
+  const betaEntitlements = inventory.softbook_beta_entitlements ?? [];
   const memberships = inventory.softbook_memberships ?? [];
 
   for (const document of [...sessions, ...challenges]) {
@@ -392,10 +401,10 @@ function validateInventoryOwnership(
     }
   }
 
-  for (const membership of memberships) {
-    assertDocument(membership, "membership");
-    if (!allowedPhones.has(membership._id)) {
-      throw new Error("A membership is not owned by an assigned smoke phone.");
+  for (const document of [...betaEntitlements, ...memberships]) {
+    assertDocument(document, "membership document");
+    if (!allowedPhones.has(document._id)) {
+      throw new Error("A membership document is not owned by an assigned smoke phone.");
     }
   }
 

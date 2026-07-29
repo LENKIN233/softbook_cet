@@ -18,7 +18,10 @@
   "trial_and_purchase": {
     "trial_starts_when": "first_entry_counted_as_membership_trial",
     "purchase_recovery_reminder": "after_membership_experience_ends",
-    "web_and_app_purchase_authority": "equal"
+    "web_and_app_purchase_authority": "equal",
+    "closed_beta_rule": "payment_is_not_connected_for_closed_beta_receiver_operator_may_grant_or_revoke_premium_access_only_through_an_audited_server_side_operation",
+    "closed_beta_client_rule": "clients_can_read_canonical_entitlement_but_cannot_self_grant_or_revoke_beta_access",
+    "closed_beta_audit_rule": "each_grant_or_revoke_is_idempotent_and_atomically_persisted_with_actor_reason_timestamp_previous_stage_and_resulting_stage_in_one_beta_entitlement_record_while_base_membership_remains_unchanged"
   },
   "external_account_readiness": {
     "classification": "implementation_hypothesis",
