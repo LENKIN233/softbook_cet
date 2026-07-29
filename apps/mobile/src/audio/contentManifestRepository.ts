@@ -441,7 +441,7 @@ function assertAudioMatchesAsset(
   audio: LearningAudioResource,
   asset: ContentManifestAsset | undefined,
   cardId: string,
-) {
+): asserts asset is ContentManifestAsset {
   if (!asset) {
     throw new Error(
       `Card ${cardId} audio references missing manifest asset ${audio.asset_id}.`,

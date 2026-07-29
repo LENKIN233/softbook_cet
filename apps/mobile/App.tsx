@@ -3712,6 +3712,7 @@ function AppShell({
   ) : route.key === 'learning' ? (
     <LearningSurface
       completedResults={activeCompletedResults}
+      contentManifest={learningSession?.contentManifest ?? null}
       currentCard={currentLearningCard}
       currentCardState={learningCardState}
       currentIndex={learningIndex}

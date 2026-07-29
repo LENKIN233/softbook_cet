@@ -3,6 +3,21 @@
 jest.mock('@react-native-async-storage/async-storage');
 jest.mock('@react-native-community/netinfo');
 jest.mock('react-native-keychain');
+jest.mock('react-native-blob-util', () => ({
+  __esModule: true,
+  default: {
+    config: jest.fn(),
+    fs: {
+      dirs: {CacheDir: '/tmp/softbook-test-cache'},
+      exists: jest.fn(),
+      hash: jest.fn(),
+      mkdir: jest.fn(),
+      mv: jest.fn(),
+      stat: jest.fn(),
+      unlink: jest.fn(),
+    },
+  },
+}));
 
 beforeEach(async () => {
   const AsyncStorage =

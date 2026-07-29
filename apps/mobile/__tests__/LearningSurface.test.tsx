@@ -62,6 +62,96 @@ test('swipe gesture commits at 25% distance or the velocity threshold', () => {
   ).toBe('left');
 });
 
+test('keeps verified audio as an explicit accessible chip attached to the card', () => {
+  const session = createLocalLearningSession('cet4');
+  const currentCard = {
+    ...session.catalogCards[0],
+    audio: {
+      asset_id: 'cet4.audio.001',
+      duration_ms: 2100,
+      sha256: `sha256:${'a'.repeat(64)}`,
+    },
+  };
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <LearningSurface
+        completedResults={[]}
+        contentManifest={{
+          access: {
+            accessible_card_count: 1,
+            mode: 'full',
+            total_card_count: 1,
+          },
+          downloads: [
+            {
+              asset_id: currentCard.audio.asset_id,
+              expires_at: '2030-01-01T00:00:00.000Z',
+              url: 'https://private-content.example/audio.mp3?token=opaque',
+            },
+          ],
+          manifest: {
+            assets: [
+              {
+                asset_id: currentCard.audio.asset_id,
+                duration_ms: currentCard.audio.duration_ms,
+                media_type: 'audio/mpeg',
+                sha256: currentCard.audio.sha256,
+                size_bytes: 4096,
+              },
+            ],
+            content_version: `sha256:${'b'.repeat(64)}`,
+            minimum_client_version: '1.0.0',
+            parent_release_id: null,
+            release_id: 'cet4-release-1',
+            schema_version: 'content-manifest.v1',
+            track: 'cet4',
+          },
+          signature: {
+            algorithm: 'ed25519',
+            key_id: 'content-key-1',
+            value: 'c'.repeat(128),
+          },
+        }}
+        currentCard={currentCard}
+        currentCardState={createLearningCardState(currentCard)}
+        currentIndex={0}
+        currentResult={null}
+        onAdvanceCard={jest.fn()}
+        onFlip={jest.fn()}
+        onRestartDeck={jest.fn()}
+        onSelectOption={jest.fn()}
+        onSelectSwipeState={jest.fn()}
+        onSetFlipConfidence={jest.fn()}
+        onSetLockSelection={jest.fn()}
+        onSubmitCurrentCard={jest.fn()}
+        onToggleEliminationItem={jest.fn()}
+        onToggleFavorite={jest.fn()}
+        onToggleHint={jest.fn()}
+        onTogglePeek={jest.fn()}
+        palette={palette}
+        phase="learning"
+        reviewCandidateCount={0}
+        sessionCards={[currentCard]}
+        sessionLabel={session.sourceLabel}
+      />,
+    );
+  });
+
+  const control = tree!.root.findByProps({testID: 'learning-audio-control'});
+  expect(control.props.accessibilityRole).toBe('button');
+  expect(control.props.accessibilityLabel).toBe('播放听力');
+  expect(control.props.accessibilityState).toEqual({
+    busy: false,
+    disabled: false,
+    selected: false,
+  });
+  expect(JSON.stringify(tree!.toJSON())).not.toContain(
+    'private-content.example',
+  );
+});
+
 test('does not expose raw space metadata while learning', () => {
   const session = createLocalLearningSession('cet4');
   const currentCard = {

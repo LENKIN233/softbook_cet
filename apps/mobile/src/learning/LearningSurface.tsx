@@ -11,6 +11,12 @@ import {
   View,
 } from 'react-native';
 
+import { LearningAudioPlayer } from '../audio/LearningAudioPlayer';
+import {
+  resolveCardAudioDownload,
+  type VerifiedContentManifest,
+} from '../audio/contentManifestRepository';
+
 import {
   INTERACTION_LABELS,
   LearningCard,
@@ -45,6 +51,7 @@ export type LearningSurfacePalette = {
 
 type LearningSurfaceProps = {
   palette: LearningSurfacePalette;
+  contentManifest?: VerifiedContentManifest | null;
   sessionCards: LearningCard[];
   sessionLabel: string;
   phase: 'learning' | 'review';
@@ -205,6 +212,7 @@ export function isCompactLearningViewport(width: number, height: number) {
 
 export function LearningSurface({
   palette,
+  contentManifest = null,
   sessionCards,
   sessionLabel,
   phase,
@@ -424,6 +432,23 @@ export function LearningSurface({
   );
   const primaryAction = getPrimaryActionColors(palette);
   const neutralAction = getNeutralActionSurface(palette);
+  const audioSelection = (() => {
+    if (!currentCard.audio || !contentManifest) {
+      return null;
+    }
+
+    try {
+      const resolved = resolveCardAudioDownload(contentManifest, currentCard);
+      return resolved
+        ? {
+            ...resolved,
+            cardToken: `${currentCard.card_id}:${currentCard.audio.sha256}`,
+          }
+        : null;
+    } catch {
+      return null;
+    }
+  })();
   const hasCommittedChoiceSelection =
     currentCard.interaction_id === 'multiple_choice' &&
     currentCardState.selectedOptionId !== null;
@@ -595,6 +620,15 @@ export function LearningSurface({
             </Text>
           </View>
         </View>
+
+        {audioSelection ? (
+          <View style={styles.audioResourceSlot} testID="learning-audio-slot">
+            <LearningAudioPlayer
+              palette={palette}
+              selection={audioSelection}
+            />
+          </View>
+        ) : null}
 
         {shouldShowContextCard ? (
           <View
@@ -2447,6 +2481,10 @@ function toTestIdSegment(value: string) {
 }
 
 const styles = StyleSheet.create({
+  audioResourceSlot: {
+    alignItems: 'flex-start',
+    flexShrink: 0,
+  },
   oneScreenPage: {
     flex: 1,
     gap: 10,
