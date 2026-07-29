@@ -23,6 +23,7 @@
 - Xcode 26+
 - `watchman`
 - `cocoapods`
+- Android Studio command-line SDK and JDK 17 for Android builds
 
 ## 启动开发
 
@@ -65,6 +66,41 @@ JAVA_HOME=/opt/homebrew/opt/openjdk PATH=/opt/homebrew/opt/openjdk/bin:$PATH npm
 
 最近一次本地 iOS UI 自动化验收记录：
 `apps/mobile/e2e/maestro/ios-smoke-acceptance-log.md`。
+
+## Android Release 与 UI smoke
+
+PR 会在 JDK 17 上生成未签名的 Android Release APK，证明 JavaScript bundle、
+Hermes、四个 ABI 和原生依赖能够完成 Release 编译。仓库不再使用 debug keystore
+签署 Release。接收方签名只允许通过以下环境变量注入：
+
+```text
+SOFTBOOK_ANDROID_RELEASE_STORE_FILE
+SOFTBOOK_ANDROID_RELEASE_STORE_PASSWORD
+SOFTBOOK_ANDROID_RELEASE_KEY_ALIAS
+SOFTBOOK_ANDROID_RELEASE_KEY_PASSWORD
+```
+
+四项必须全部存在或全部缺失；部分配置会失败关闭。CI 故意不注入这些值，输出
+`android/app/build/outputs/apk/release/app-release-unsigned.apk`。接收方封闭内测构建
+使用自身 keystore，并在安全 CI 中注入四项配置；keystore 和密码不得进入仓库。
+
+本地编译：
+
+```bash
+cd apps/mobile
+JAVA_HOME=<jdk-17-home> ANDROID_HOME=<android-sdk> npm run android:release:unsigned
+```
+
+安装已配置远端 runtime 的 Android 构建后，用与 iOS 相同的稳定 testID 主流程：
+
+```bash
+SOFTBOOK_CET_MAESTRO_PHONE=<isolated-phone> \
+SOFTBOOK_CET_MAESTRO_CODE=<lifecycle-managed-code> \
+npm run e2e:android:maestro
+```
+
+该 flow 文件存在不等于真机通过；真实 Android 设备的登录、五类交互、音频、同步、
+重启恢复、空间和统计仍需单独验收记录。
 
 ## runtime config
 

@@ -23,6 +23,7 @@
 - [ ] `cd infra/cloudbase/functions/softbook-api && npm test`
 - [ ] `node scripts/validate_dependency_security.mjs`
 - [ ] `cd apps/mobile && bundle exec pod install --project-directory=ios --deployment`
+- [ ] `cd apps/mobile && npm run android:release:unsigned`（JDK 17）
 - [ ] `scripts/run_local_gates --profile dev`
 
 ## Agent review

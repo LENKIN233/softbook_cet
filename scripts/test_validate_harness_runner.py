@@ -401,6 +401,7 @@ class HarnessRunnerTests(unittest.TestCase):
             "mobile-quality",
             "dependency-security",
             "ios-release",
+            "android-release",
             "repo-health",
             "evidence-archive",
             "formal-approval",

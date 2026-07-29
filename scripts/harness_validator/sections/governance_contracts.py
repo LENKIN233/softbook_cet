@@ -527,6 +527,10 @@ def validate(context) -> None:
                 "command": "cd apps/mobile && bundle install && git diff --exit-code -- Gemfile.lock && bundle exec pod install --project-directory=ios --deployment && xcodebuild Release simulator build and unsigned archive",
             },
             {
+                "id": "android_release",
+                "command": "cd apps/mobile && JDK 17 npm run android:release:unsigned && verify app-release-unsigned.apk exists",
+            },
+            {
                 "id": "repository_health",
                 "command": "node scripts/report_repo_health.mjs --base <base_sha> --strict",
             },
