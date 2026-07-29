@@ -16,6 +16,11 @@ import {
   validateLaunchReadiness,
   verifyRepositoryEvidenceFiles,
 } from './validate_launch_readiness.mjs';
+import {
+  BETA_DOMAIN_DEFINITIONS,
+  validateBetaReleaseReadiness,
+  verifyBetaEvidenceFiles,
+} from './validate_beta_release_readiness.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const NOW = new Date('2026-07-14T00:00:00.000Z');
@@ -25,6 +30,10 @@ const launchContract = readJson(
 const accountsContract = readJson(
   path.join(ROOT, 'docs', 'release', 'external-account-readiness.v1.json'),
 );
+const betaContract = readJson(
+  path.join(ROOT, 'docs', 'release', 'beta-release-readiness.v1.json'),
+);
+const BETA_NOW = new Date('2026-07-30T00:00:00.000Z');
 
 test('tracked contracts are structurally valid and honestly not ready', () => {
   const launch = validateLaunchReadiness(launchContract, { now: NOW });
@@ -41,6 +50,164 @@ test('tracked contracts are structurally valid and honestly not ready', () => {
   assert.equal(accounts.ready, false);
 });
 
+test('tracked CET4 beta release record is structurally valid and honestly blocked', () => {
+  const result = validateBetaReleaseReadiness(betaContract, { now: BETA_NOW });
+
+  assert.equal(result.ok, true, result.errors.join('\n'));
+  assert.equal(result.ready, false);
+  assert.equal(result.summary.passed_domains, 0);
+  assert.equal(result.summary.unresolved_blockers, 20);
+});
+
+test('beta readiness cannot delete a domain or replace the five-domain gate', () => {
+  const invalid = structuredClone(betaContract);
+  invalid.domains = invalid.domains.filter(domain => domain.id !== 'audio');
+  invalid.evidence_policy.required_domains = ['content'];
+
+  const result = validateBetaReleaseReadiness(invalid, { now: BETA_NOW });
+
+  assert.equal(result.ok, false);
+  assert.match(
+    result.errors.join('\n'),
+    /required_domains must contain exactly/,
+  );
+  assert.match(result.errors.join('\n'), /domain ids must contain exactly/);
+});
+
+test('all five beta domains can reach ready only with complete distinct evidence', () => {
+  const ready = createReadyBetaContract();
+  const result = validateBetaReleaseReadiness(ready, { now: BETA_NOW });
+
+  assert.equal(result.ok, true, result.errors.join('\n'));
+  assert.equal(result.ready, true);
+  assert.equal(result.summary.passed_domains, 5);
+});
+
+test('one green artifact cannot substitute for missing evidence or another domain', () => {
+  const invalid = createReadyBetaContract();
+  invalid.domains.find(domain => domain.id === 'clients').evidence.pop();
+  const contentEvidence = invalid.domains.find(
+    domain => domain.id === 'content',
+  ).evidence[0];
+  const backendEvidence = invalid.domains.find(
+    domain => domain.id === 'backend',
+  ).evidence[0];
+  backendEvidence.artifact_uri = contentEvidence.artifact_uri;
+  backendEvidence.artifact_sha256 = contentEvidence.artifact_sha256;
+
+  const result = validateBetaReleaseReadiness(invalid, { now: BETA_NOW });
+  const message = result.errors.join('\n');
+
+  assert.equal(result.ok, false);
+  assert.match(message, /domain clients status must be in_progress/);
+  assert.match(message, /artifact_uri .* is reused/);
+  assert.match(message, /artifact_sha256 .* is reused/);
+});
+
+test('audio vendor evidence becomes mandatory only after regeneration is required', () => {
+  const noRegeneration = createReadyBetaContract({
+    regenerationRequired: false,
+  });
+  assert.equal(
+    validateBetaReleaseReadiness(noRegeneration, { now: BETA_NOW }).ok,
+    true,
+  );
+
+  const regeneration = createReadyBetaContract({ regenerationRequired: true });
+  assert.equal(
+    validateBetaReleaseReadiness(regeneration, { now: BETA_NOW }).ok,
+    true,
+  );
+  regeneration.domains.find(domain => domain.id === 'audio').evidence =
+    regeneration.domains
+      .find(domain => domain.id === 'audio')
+      .evidence.filter(
+        evidence => evidence.type !== 'audio-vendor-blind-selection',
+      );
+
+  const result = validateBetaReleaseReadiness(regeneration, { now: BETA_NOW });
+  assert.equal(result.ok, false);
+  assert.match(
+    result.errors.join('\n'),
+    /audio passed without required evidence audio-vendor-blind-selection/,
+  );
+});
+
+test('human and product-owner beta evidence cannot be self-certified by automation', () => {
+  const invalid = createReadyBetaContract();
+  const content = invalid.domains.find(domain => domain.id === 'content');
+  content.evidence.find(
+    evidence => evidence.type === 'human-cet-review-1180',
+  ).verified_by = 'agent:codex';
+  content.evidence.find(
+    evidence => evidence.type === 'full-track-user-approval',
+  ).verified_by = 'team:content';
+
+  const result = validateBetaReleaseReadiness(invalid, { now: BETA_NOW });
+  const message = result.errors.join('\n');
+  assert.equal(result.ok, false);
+  assert.match(message, /human:/);
+  assert.match(message, /github:LENKIN233/);
+});
+
+test('external card-workspace observations remain diagnostic, never release evidence', () => {
+  const invalid = structuredClone(betaContract);
+  invalid.domains[0].observations[0].release_evidence = true;
+
+  const result = validateBetaReleaseReadiness(invalid, { now: BETA_NOW });
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /must remain diagnostic/);
+});
+
+test('beta readiness records reject secret-shaped fields', () => {
+  const invalid = structuredClone(betaContract);
+  invalid.domains[4].observations.push({
+    source_kind: 'external_workspace_report',
+    locator: 'external-workspace://card-make/exports/redacted.json',
+    source_commit: '1'.repeat(40),
+    artifact_sha256: '2'.repeat(64),
+    observed_at: '2026-07-29T22:00:00+08:00',
+    release_evidence: false,
+    summary: { api_token: 'must-not-be-here' },
+  });
+
+  const result = validateBetaReleaseReadiness(invalid, { now: BETA_NOW });
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /forbidden secret-shaped field/);
+});
+
+test('beta evidence files are tracked and re-hashed', t => {
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'softbook-beta-readiness-'),
+  );
+  t.after(() => fs.rmSync(root, { force: true, recursive: true }));
+  const relative = 'docs/release/evidence/beta-content.json';
+  const absolute = path.join(root, relative);
+  const payload = '{"status":"passed"}\n';
+  fs.mkdirSync(path.dirname(absolute), { recursive: true });
+  fs.writeFileSync(absolute, payload);
+  const record = structuredClone(betaContract);
+  record.domains[0].evidence = [
+    createBetaEvidence('content-audit-1180', 999, {
+      artifactUri: `repo://${relative}`,
+      payload,
+    }),
+  ];
+
+  const first = verifyBetaEvidenceFiles(record, {
+    root,
+    trackedFiles: new Set([relative]),
+  });
+  assert.equal(first.ok, true, first.errors.join('\n'));
+  fs.appendFileSync(absolute, 'changed\n');
+  const second = verifyBetaEvidenceFiles(record, {
+    root,
+    trackedFiles: new Set([relative]),
+  });
+  assert.equal(second.ok, false);
+  assert.match(second.errors.join('\n'), /SHA-256 does not match/);
+});
+
 test('formal approval policy cannot be replaced by pull request metadata', () => {
   const invalid = structuredClone(launchContract);
   invalid.formal_approval.provider = 'self_declared_record';
@@ -54,7 +221,10 @@ test('formal approval policy cannot be replaced by pull request metadata', () =>
   assert.match(result.errors.join('\n'), /formal_approval.provider/);
   assert.match(result.errors.join('\n'), /formal_approval.environment/);
   assert.match(result.errors.join('\n'), /formal_approval.required_reviewer/);
-  assert.match(result.errors.join('\n'), /formal_approval.administrators_can_bypass/);
+  assert.match(
+    result.errors.join('\n'),
+    /formal_approval.administrators_can_bypass/,
+  );
 });
 
 test('all fixed product scope, gates, accounts, and capabilities can reach ready', () => {
@@ -171,7 +341,8 @@ test('evidence artifacts cannot be reused across gates or account capabilities',
   secondGateEvidence.artifact_uri = firstGateEvidence.artifact_uri;
   secondGateEvidence.artifact_sha256 = firstGateEvidence.artifact_sha256;
 
-  const firstCapabilityEvidence = accounts.accounts[0].capabilities[0].evidence[0];
+  const firstCapabilityEvidence =
+    accounts.accounts[0].capabilities[0].evidence[0];
   const secondCapabilityEvidence =
     accounts.accounts[1].capabilities[0].evidence[0];
   secondCapabilityEvidence.artifact_uri = firstCapabilityEvidence.artifact_uri;
@@ -406,6 +577,68 @@ test('CLI require-ready mode fails closed for the tracked baseline', () => {
   assert.equal(result.status, 1);
   assert.equal(JSON.parse(result.stdout).ready, false);
 });
+
+test('CLI require-beta-ready mode fails closed for the tracked beta baseline', () => {
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.join(ROOT, 'scripts', 'validate_launch_readiness.mjs'),
+      '--require-beta-ready',
+    ],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
+
+  assert.equal(result.status, 1);
+  assert.equal(JSON.parse(result.stdout).beta_release.ready, false);
+});
+
+function createReadyBetaContract({ regenerationRequired = false } = {}) {
+  let sequence = 1000;
+  const record = structuredClone(betaContract);
+  record.updated_at = '2026-07-29T23:00:00+08:00';
+  record.conditions.audio_regeneration_required = regenerationRequired;
+  for (const domain of record.domains) {
+    domain.blockers = [];
+    domain.observations = [];
+    const definition = BETA_DOMAIN_DEFINITIONS[domain.id];
+    const required = [...definition.required];
+    if (definition.conditional && regenerationRequired)
+      required.push(definition.conditional.type);
+    domain.evidence = required.map(type =>
+      createBetaEvidence(type, sequence++),
+    );
+    domain.status = 'passed';
+  }
+  record.status = 'ready';
+  record.decision.ready = true;
+  record.decision.passed_domain_count = 5;
+  record.decision.unresolved_blocker_count = 0;
+  record.decision.release_bundle_activation_allowed = true;
+  return record;
+}
+
+function createBetaEvidence(type, sequence, { artifactUri, payload } = {}) {
+  const body = payload ?? `softbook-beta-evidence:${type}:${sequence}`;
+  let verifiedBy = 'team:release-engineering';
+  if (type === 'full-track-user-approval') verifiedBy = 'github:LENKIN233';
+  else if (type === 'human-cet-review-1180') verifiedBy = 'human:cet-reviewer';
+  else if (
+    type === 'audio-perceptual-qc-301' ||
+    type === 'audio-vendor-blind-selection'
+  )
+    verifiedBy = 'human_audio:reviewer';
+  else if (type.includes('device')) verifiedBy = 'human_device:mobile-qa';
+  return {
+    type,
+    release_id: 'cet4-closed-beta',
+    artifact_uri:
+      artifactUri ?? `repo://docs/release/evidence/beta-${sequence}.json`,
+    artifact_sha256: createHash('sha256').update(body).digest('hex'),
+    artifact_size_bytes: Buffer.byteLength(body),
+    verified_at: '2026-07-29T22:00:00+08:00',
+    verified_by: verifiedBy,
+  };
+}
 
 function createReadyContracts() {
   let sequence = 1;

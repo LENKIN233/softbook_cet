@@ -218,6 +218,16 @@
     "runtime_contract": "infra/cloudbase/release-bundle-v1-runtime-contract.md",
     "delivery_profile_schema": "delivery-profile.v1",
     "release_bundle_schema": "release-bundle.v1",
+    "beta_readiness_schema": "beta-release-readiness.v1",
+    "beta_readiness_record": "docs/release/beta-release-readiness.v1.json",
+    "beta_readiness_validator": "scripts/validate_beta_release_readiness.mjs",
+    "beta_readiness_domains": [
+      "content",
+      "audio",
+      "clients",
+      "backend",
+      "delivery"
+    ],
     "scope": "cet4_closed_beta_only",
     "environment_boundary": "receiver_owned_cloudbase_environment_personal_development_environment_rejected",
     "secret_boundary": "profile_and_bundle_are_non_sensitive_private_keys_sms_credentials_and_runtime_secrets_are_environment_or_CI_only",
@@ -230,6 +240,7 @@
     "cloudbase_adapter_status": "implemented_locally_with_private_asset_redownload_hash_verification_staged_evidence_and_active_pointer_last",
     "production_sms_adapter_status": "receiver_owned_https_webhook_adapter_implemented_locally_credentials_environment_only_fixed_code_excluded",
     "blank_environment_drill_status": "pending",
+    "beta_readiness_status": "implemented_fail_closed_current_record_not_ready",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"
   },

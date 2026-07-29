@@ -108,3 +108,20 @@ receiver-owned HTTPS SMS webhook plus separate auth, SMS, and Ed25519 signing
 secrets. `verify` is read-only and checks the active release, API route, bundle,
 catalog, and zero imported user-data baseline. A real lifecycle-managed
 production SMS/device smoke is still a separate acceptance gate.
+
+## Closed-beta readiness aggregation
+
+`docs/release/beta-release-readiness.v1.json` is the independent closed-beta
+acceptance ledger. It requires five separately evidenced domains: content,
+audio, iOS/Android clients, backend, and receiver delivery. Its validator is
+`scripts/validate_beta_release_readiness.mjs` and is also invoked by the normal
+launch-readiness command.
+
+Every release evidence item is a distinct tracked, size- and SHA-256-bound
+repository artifact. Human CET review, perceptual audio review, real-device
+smoke, and final whole-track user approval require their corresponding named
+human or product-owner verifier. External card-workspace reports may be recorded
+as diagnostic observations, but cannot become release evidence merely because
+their technical audit passes. The personal development database is excluded.
+The current record remains `not_ready` until all five domains pass; a single
+green test or build cannot substitute for whole-release readiness.

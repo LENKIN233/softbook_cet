@@ -1,0 +1,129 @@
+{
+  "schema_version": "beta-release-readiness.v1",
+  "release_id": "cet4-closed-beta",
+  "updated_at": "2026-07-29T23:00:00+08:00",
+  "status": "not_ready",
+  "scope": {
+    "track": "cet4",
+    "box_count": 108,
+    "card_count": 1180,
+    "audio_asset_count": 301,
+    "release_targets": ["ios", "android"],
+    "runtime_mode": "closed_beta",
+    "delivery_environment": "receiver_owned_cloudbase"
+  },
+  "conditions": {
+    "audio_regeneration_required": null
+  },
+  "evidence_policy": {
+    "required_domains": ["content", "audio", "clients", "backend", "delivery"],
+    "evidence_must_be_hash_bound": true,
+    "human_or_external_evidence_not_created_by_automation": true,
+    "personal_development_database_is_not_delivery_evidence": true,
+    "single_domain_or_test_cannot_replace_overall_readiness": true
+  },
+  "domains": [
+    {
+      "id": "content",
+      "status": "blocked",
+      "evidence": [],
+      "blockers": [
+        "138_hard_blocker_findings_remain",
+        "1165_cards_missing_quality_metadata",
+        "source_classification_risks_remain",
+        "complete_human_CET_review_missing",
+        "final_whole_track_user_approval_missing"
+      ],
+      "observations": [
+        {
+          "source_kind": "external_workspace_report",
+          "locator": "external-workspace://card-make/exports/cet4-full-track-remediation-baseline-20260729.json",
+          "source_commit": "5ab8366d4c511c957ffa62374b7450817c979049",
+          "artifact_sha256": "be0f80db3b213ee893f496abeb2234086ad732b3c1a73928d45b3661efa56be6",
+          "observed_at": "2026-07-29T13:35:46.559Z",
+          "release_evidence": false,
+          "summary": {
+            "card_count": 1180,
+            "box_count": 108,
+            "cards_with_hard_blockers": 137,
+            "hard_blocker_findings": 138,
+            "missing_quality_metadata": 1165,
+            "unverified_source_findings": 1180,
+            "ready_for_final_user_approval": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio",
+      "status": "blocked",
+      "evidence": [],
+      "blockers": [
+        "301_per_card_perceptual_QC_records_missing",
+        "speech_to_transcript_and_pronunciation_review_missing",
+        "ios_and_android_real_device_audio_smoke_missing",
+        "audio_regeneration_decision_pending"
+      ],
+      "observations": [
+        {
+          "source_kind": "external_workspace_report",
+          "locator": "external-workspace://card-make/exports/cet4-audio-technical-audit.json",
+          "source_commit": "5ab8366d4c511c957ffa62374b7450817c979049",
+          "artifact_sha256": "fb9005da8638974e086afad29dbfc486570c1e42a44de587ea11018cf4b56009",
+          "observed_at": "2026-07-29T08:01:05.878Z",
+          "release_evidence": false,
+          "summary": {
+            "referenced_audio_assets": 301,
+            "technically_verified_assets": 301,
+            "technical_errors": 0,
+            "formal_perceptual_QC_records": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "clients",
+      "status": "blocked",
+      "evidence": [],
+      "blockers": [
+        "ios_real_device_main_flow_missing",
+        "android_real_device_main_flow_missing",
+        "cross_platform_accessibility_and_state_matrix_incomplete"
+      ],
+      "observations": []
+    },
+    {
+      "id": "backend",
+      "status": "blocked",
+      "evidence": [],
+      "blockers": [
+        "receiver_cloudbase_contract_smoke_missing",
+        "production_SMS_adapter_smoke_missing",
+        "beta_entitlement_change_not_merged",
+        "remote_lifecycle_cleanup_evidence_missing"
+      ],
+      "observations": []
+    },
+    {
+      "id": "delivery",
+      "status": "blocked",
+      "evidence": [],
+      "blockers": [
+        "blank_receiver_environment_not_provisioned",
+        "approved_release_bundle_not_available",
+        "publish_verify_sequence_not_executed",
+        "rollback_drill_not_executed"
+      ],
+      "observations": []
+    }
+  ],
+  "decision": {
+    "ready": false,
+    "passed_domain_count": 0,
+    "unresolved_blocker_count": 20,
+    "final_user_approval_required": true,
+    "personal_development_database_excluded": true,
+    "single_gate_cannot_replace_overall_readiness": true,
+    "release_bundle_activation_allowed": false
+  }
+}

@@ -6,6 +6,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import {
+  DEFAULT_BETA_RELEASE_RECORD,
+  validateBetaReleaseReadiness,
+  verifyBetaEvidenceFiles,
+} from './validate_beta_release_readiness.mjs';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_LAUNCH_CONTRACT = path.join(
   ROOT,
@@ -986,7 +992,9 @@ function readTrackedFiles(root) {
 function parseArgs(args) {
   const result = {
     accountsPath: DEFAULT_ACCOUNT_CONTRACT,
+    betaPath: DEFAULT_BETA_RELEASE_RECORD,
     launchPath: DEFAULT_LAUNCH_CONTRACT,
+    requireBetaReady: false,
     requireReady: false,
   };
   for (let index = 0; index < args.length; index += 1) {
@@ -999,8 +1007,12 @@ function parseArgs(args) {
       result.accountsPath = path.resolve(
         requireArgument(args, ++index, '--accounts'),
       );
+    } else if (argument === '--beta') {
+      result.betaPath = path.resolve(requireArgument(args, ++index, '--beta'));
     } else if (argument === '--require-launch-ready') {
       result.requireReady = true;
+    } else if (argument === '--require-beta-ready') {
+      result.requireBetaReady = true;
     } else {
       throw new Error(`Unknown argument: ${argument}`);
     }
@@ -1020,10 +1032,12 @@ function main() {
   let args;
   let launchContract;
   let accountsContract;
+  let betaContract;
   try {
     args = parseArgs(process.argv.slice(2));
     launchContract = readJson(args.launchPath);
     accountsContract = readJson(args.accountsPath);
+    betaContract = readJson(args.betaPath);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
@@ -1040,7 +1054,17 @@ function main() {
     accountsContract,
     { trackedFiles: readTrackedFiles(ROOT) },
   );
-  const ok = launch.ok && accounts.ok && repositoryEvidence.ok;
+  const betaValidation = validateBetaReleaseReadiness(betaContract);
+  const betaEvidence = verifyBetaEvidenceFiles(betaContract, {
+    trackedFiles: readTrackedFiles(ROOT),
+  });
+  const beta = {
+    ok: betaValidation.ok && betaEvidence.ok,
+    ready: betaValidation.ready && betaEvidence.ok,
+    validation: betaValidation,
+    repository_evidence: betaEvidence,
+  };
+  const ok = launch.ok && accounts.ok && repositoryEvidence.ok && beta.ok;
   const ready = ok && launch.ready && accounts.ready;
   const report = {
     schema_version: 'launch-readiness-report.v1',
@@ -1048,10 +1072,15 @@ function main() {
     ready,
     launch,
     external_accounts: accounts,
+    beta_release: beta,
     repository_evidence: repositoryEvidence,
   };
   console.log(JSON.stringify(report, null, 2));
-  if (!ok || (args.requireReady && !ready)) {
+  if (
+    !ok ||
+    (args.requireReady && !ready) ||
+    (args.requireBetaReady && !beta.ready)
+  ) {
     process.exitCode = 1;
   }
 }

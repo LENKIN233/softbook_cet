@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 
 def _read_path(value, keys):
     current = value
@@ -2143,6 +2145,7 @@ def space_actions_contract_findings(
 
 def validate(context) -> None:
     check_equal = context.check_equal
+    check_contains = context.check_contains
     req = context.load("requirement-memory.json")
     auth = context.load("account-sync-contract.json")
     platform = context.load("platform-contract.json")
@@ -2189,6 +2192,116 @@ def validate(context) -> None:
         package_path.read_text(encoding="utf-8") if package_path.is_file() else ""
     )
     agent_entry_text = (context.root / "AGENTS.md").read_text(encoding="utf-8")
+
+    release_delivery = runtime.get("release_delivery_runtime", {})
+    check_equal(
+        "release delivery beta readiness schema",
+        "beta-release-readiness.v1",
+        release_delivery.get("beta_readiness_schema"),
+    )
+    check_equal(
+        "release delivery beta readiness record",
+        "docs/release/beta-release-readiness.v1.json",
+        release_delivery.get("beta_readiness_record"),
+    )
+    check_equal(
+        "release delivery beta readiness validator",
+        "scripts/validate_beta_release_readiness.mjs",
+        release_delivery.get("beta_readiness_validator"),
+    )
+    check_equal(
+        "release delivery beta readiness domains",
+        ["content", "audio", "clients", "backend", "delivery"],
+        release_delivery.get("beta_readiness_domains"),
+    )
+    check_equal(
+        "release delivery beta readiness status",
+        "implemented_fail_closed_current_record_not_ready",
+        release_delivery.get("beta_readiness_status"),
+    )
+
+    release_contract_path = context.root / "infra/cloudbase/release-bundle-v1-runtime-contract.md"
+    beta_record_path = context.root / "docs/release/beta-release-readiness.v1.json"
+    beta_validator_path = context.root / "scripts/validate_beta_release_readiness.mjs"
+    launch_validator_path = context.root / "scripts/validate_launch_readiness.mjs"
+    launch_test_path = context.root / "scripts/test_validate_launch_readiness.mjs"
+    for asset in [
+        release_contract_path,
+        beta_record_path,
+        beta_validator_path,
+        launch_validator_path,
+        launch_test_path,
+    ]:
+        if not asset.is_file():
+            context.errors.append(
+                f"release delivery beta readiness artifact missing: {asset.relative_to(context.root)}"
+            )
+
+    if release_contract_path.is_file():
+        release_contract_text = release_contract_path.read_text(encoding="utf-8")
+        for snippet in [
+            "## Closed-beta readiness aggregation",
+            "five separately evidenced domains",
+            "cannot become release evidence",
+            "personal development database is excluded",
+            "cannot substitute for whole-release readiness",
+        ]:
+            check_contains("release delivery beta readiness contract", release_contract_text, snippet)
+
+    if beta_record_path.is_file():
+        try:
+            beta_record = json.loads(beta_record_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            context.errors.append("beta release readiness record must be valid JSON")
+        else:
+            check_equal(
+                "beta release readiness schema",
+                "beta-release-readiness.v1",
+                beta_record.get("schema_version"),
+            )
+            check_equal("beta release readiness status", "not_ready", beta_record.get("status"))
+            check_equal(
+                "beta release readiness domain ids",
+                ["content", "audio", "clients", "backend", "delivery"],
+                [domain.get("id") for domain in beta_record.get("domains", [])],
+            )
+            check_equal(
+                "beta release personal database exclusion",
+                True,
+                beta_record.get("decision", {}).get("personal_development_database_excluded"),
+            )
+
+    if beta_validator_path.is_file():
+        beta_validator_text = beta_validator_path.read_text(encoding="utf-8")
+        for snippet in [
+            "BETA_DOMAIN_DEFINITIONS",
+            "audio-vendor-blind-selection",
+            "full-track-user-approval",
+            "single_domain_or_test_cannot_replace_overall_readiness",
+            "forbidden secret-shaped field",
+            "verifyBetaEvidenceFiles",
+        ]:
+            check_contains("beta release readiness validator", beta_validator_text, snippet)
+
+    if launch_validator_path.is_file():
+        launch_validator_text = launch_validator_path.read_text(encoding="utf-8")
+        for snippet in [
+            "validateBetaReleaseReadiness",
+            "verifyBetaEvidenceFiles",
+            "--require-beta-ready",
+            "beta_release: beta",
+        ]:
+            check_contains("launch readiness beta integration", launch_validator_text, snippet)
+
+    if launch_test_path.is_file():
+        launch_test_text = launch_test_path.read_text(encoding="utf-8")
+        for snippet in [
+            "all five beta domains can reach ready only with complete distinct evidence",
+            "one green artifact cannot substitute",
+            "human and product-owner beta evidence cannot be self-certified",
+            "beta evidence files are tracked and re-hashed",
+        ]:
+            check_contains("beta release readiness regressions", launch_test_text, snippet)
 
     context.errors.extend(
         learning_events_contract_findings(

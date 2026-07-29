@@ -8,7 +8,27 @@ The tracked contracts start fail-closed:
 
 - `launch-readiness.v1.json` fixes the release scope and records launch gates.
 - `external-account-readiness.v1.json` records external account capabilities.
+- `beta-release-readiness.v1.json` independently aggregates the CET4 closed-beta
+  content, audio, iOS/Android client, backend, and receiver-delivery evidence.
 - `scripts/validate_launch_readiness.mjs` derives readiness from those records.
+
+The beta record is intentionally separate from the broader public-launch
+contract. It requires all five domains to pass and rejects using one green test
+as a substitute for another domain. Card-workspace reports may appear as
+hash-bound diagnostic observations, but they remain non-release evidence until
+archived through an accepted repository evidence path. Personal development
+database state is never receiver-delivery evidence.
+
+Validate the tracked baseline with either entry point:
+
+```bash
+node scripts/validate_beta_release_readiness.mjs
+node scripts/validate_launch_readiness.mjs
+```
+
+Use `--require-beta-ready` only at the actual closed-beta release gate; the
+tracked baseline is expected to exit non-zero in that mode until all evidence
+is present.
 
 Changes to launch contracts, evidence, readiness validators, or the formal
 approval workflow are classified by trusted default-branch code in

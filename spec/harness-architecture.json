@@ -190,6 +190,7 @@
           "local_harness_and_harness_regressions",
           "local_gate_runner_regressions",
           "launch_readiness_contract",
+          "beta_release_readiness_contract",
           "maestro_selector_contract",
           "mobile_metadata_lint_typecheck_and_jest",
           "backend_contract_tests"
