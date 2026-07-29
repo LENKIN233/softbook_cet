@@ -9,3 +9,7 @@ Every user-facing UI implementation should state:
 - implementation mapping
 - intentional deviations
 - unimplemented design gaps
+
+## Accepted Mappings
+
+- `learning-audio-control-implementation-map-v1.md`: maps the accepted attached listening chip to verified cache, native playback, lifecycle, visible state, and accessibility surfaces.
