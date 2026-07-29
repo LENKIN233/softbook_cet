@@ -4,7 +4,7 @@
 
 - Date: 2026-07-29
 - Branch: `fix/auth-error-sanitization`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/458
 - Summary: Replaced direct rendering of runtime exception messages with a fail-closed user-copy boundary and added an integration regression for native credential-storage failures. No backend, database, content, or visual layout was changed.
 
 ## Referenced specs
