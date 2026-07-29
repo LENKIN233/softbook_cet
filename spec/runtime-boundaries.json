@@ -211,6 +211,26 @@
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"
   },
+  "release_delivery_runtime": {
+    "classification": "implementation_hypothesis",
+    "owner": "spec/runtime-boundaries.json#release_delivery_runtime",
+    "runtime_contract": "infra/cloudbase/release-bundle-v1-runtime-contract.md",
+    "delivery_profile_schema": "delivery-profile.v1",
+    "release_bundle_schema": "release-bundle.v1",
+    "scope": "cet4_closed_beta_only",
+    "environment_boundary": "receiver_owned_cloudbase_environment_personal_development_environment_rejected",
+    "secret_boundary": "profile_and_bundle_are_non_sensitive_private_keys_sms_credentials_and_runtime_secrets_are_environment_or_CI_only",
+    "content_identity": "deterministic_normalized_cards_and_stable_audio_descriptors_excluding_environment_specific_storage_file_ids",
+    "approval_boundary": "one_full_track_final_user_approval_bound_to_exact_card_box_scope_corpus_fingerprint_and_audit_hash",
+    "audio_boundary": "301_hash_verified_assets_and_301_formal_QC_entries_required_before_publish",
+    "publish_order": "upload_private_assets_then_stage_content_then_verify_then_activate_release_last",
+    "rollback_boundary": "switch_only_to_verified_retained_release_without_deleting_learning_data",
+    "implementation_status": "repository_local_profile_bundle_validator_publisher_orchestration_and_fail_closed_tests_implemented",
+    "cloudbase_adapter_status": "pending",
+    "blank_environment_drill_status": "pending",
+    "deployment_status": "not_deployed_by_repository_change",
+    "launch_gate_status": "pending"
+  },
   "local_persistence": {
     "classification": "implementation_hypothesis",
     "auth_session_store": {

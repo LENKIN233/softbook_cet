@@ -49,13 +49,17 @@ all clients:
 }
 ```
 
-The card source owns a private `assets` catalog. Each descriptor contains the
-same `asset_id`, hash, and duration plus `media_type`, `size_bytes`, and a
-server-only CloudBase `storage_file_id`. Validation rejects duplicate assets,
+The card source owns a private `assets` catalog. Each runtime descriptor contains
+the same `asset_id`, hash, and duration plus `media_type`, `size_bytes`, and a
+server-only CloudBase `storage_file_id`. Release-bundle payloads use a safe
+relative `asset_path` until the receiver environment upload supplies that file
+ID. Validation rejects duplicate assets,
 missing references, hash or duration drift, unreferenced assets, public URLs,
 and non-MP3 media. A source without assets retains its previous canonical
-content-version calculation; once assets exist, their sorted normalized
-descriptors participate in the content hash.
+content-version calculation; once assets exist, their sorted stable descriptors
+participate in the content hash. The environment-specific `storage_file_id` and
+bundle-local `asset_path` do not, so one approved content version is portable to
+a fresh receiver environment.
 
 ## Request
 
