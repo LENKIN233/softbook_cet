@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const {createAuthV2Service} = require('./auth-v2');
+const {createRuntimeSmsProvider} = require('./sms-provider');
 const {
   normalizeCloudBaseDocuments,
 } = require('./cloudbase-documents');
@@ -140,7 +141,15 @@ function createSoftbookApi(options = {}) {
     refreshTokenTtlSeconds: options.authV2RefreshTokenTtlSeconds,
     requireClientIp: options.authV2RequireClientIp,
     runtimeMode,
-    smsProvider: options.smsProvider,
+    smsProvider:
+      options.smsProvider ??
+      (process.env.SOFTBOOK_SMS_PROVIDER
+        ? createRuntimeSmsProvider({
+            env: process.env,
+            fetchImpl: options.smsFetch,
+            runtimeMode,
+          })
+        : undefined),
     store,
     tokenSecret,
     verifyAttemptLimit: options.authV2VerifyAttemptLimit,

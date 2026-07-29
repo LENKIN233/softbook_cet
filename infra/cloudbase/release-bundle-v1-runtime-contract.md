@@ -26,9 +26,11 @@ Referenced active specs:
   non-sensitive configuration.
 - `release-bundle.v1` binds the exact card payload, whole-track approval, quality
   audit, audio asset manifest, audio QC index, and iOS/Android compatibility.
-- The repository-local validator and publisher orchestration are implemented;
-  a receiver environment, its secrets, actual uploads, activation, rollback
-  drill, and remote verification remain external execution evidence.
+- The repository-local validator, receiver CloudBase adapter, dry-run-first
+  unified delivery command, and publisher orchestration are implemented. A
+  receiver environment, its secrets, actual uploads, activation, rollback
+  drill, remote device smoke, and verification remain external execution
+  evidence.
 
 ## Environment-independent content identity
 
@@ -45,7 +47,8 @@ The profile contains `profile_id`, receiver `environment_id`, `region`, HTTPS
 `api_base_url`, `runtime_mode=closed_beta`, `enabled_tracks=[cet4]`, minimum iOS
 and Android client versions, and a public `signing_key_id`. Secret-shaped fields
 are rejected. The personal development environment is rejected as a delivery
-target.
+target. `region` accepts the real CloudBase environment form such as
+`ap-shanghai` and an optional numeric zone suffix.
 
 ## `release-bundle.v1`
 
@@ -80,3 +83,28 @@ An error before activation leaves the previous release active. Rollback first
 verifies a retained release and then changes only the active release pointer;
 it never deletes learning data. The publisher adapter is deliberately injected
 so repository tests can prove ordering without writing CloudBase.
+
+The concrete receiver adapter stores immutable staged versions in
+`softbook_card_source_versions`. It re-downloads every uploaded private audio
+object and verifies byte length and SHA-256 before staging, binds the staged
+document to the approval, audit, audio-manifest, and audio-QC hashes, and marks
+that stage verified before changing `softbook_card_sources.cet4`. Retention
+metadata is written before the current-source pointer, so activation remains
+the final write.
+
+## Receiver delivery command
+
+`infra/cloudbase/deliver-release.mjs` exposes `preflight`, `provision`,
+`deploy`, `publish`, `verify`, and `rollback`. Mutating commands are dry-run by
+default and require `--apply`, Node 22.13.0, a clean local `main` exactly equal
+to `origin/main`, a receiver-owned profile, successful remote inspection, and
+receiver secrets supplied through environment variables.
+
+Provisioning creates only the existing CloudBase collection allowlist.
+Deployment builds and tests an isolated lockfile-resolved function artifact,
+uses a mode-0600 temporary CloudBase config, and removes it after use. The
+production runtime excludes `SOFTBOOK_SMS_DEV_CODE` and requires a
+receiver-owned HTTPS SMS webhook plus separate auth, SMS, and Ed25519 signing
+secrets. `verify` is read-only and checks the active release, API route, bundle,
+catalog, and zero imported user-data baseline. A real lifecycle-managed
+production SMS/device smoke is still a separate acceptance gate.

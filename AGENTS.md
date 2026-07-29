@@ -35,7 +35,7 @@ status: active
 - `infra/cloudbase/learning-events-v2-runtime-contract.md`（仅在 learning events 合同或实现任务中读取；当前为仓库内已实现、未部署的 runtime 边界）
 - `infra/cloudbase/learning-session-v1-runtime-contract.md`（仅在服务端调度或 learning session 任务中读取；当前为仓库内已实现、移动端未接线且未部署的 runtime 边界）
 - `infra/cloudbase/content-manifest-v1-runtime-contract.md`（仅在音频资源、内容 manifest 或私有下载任务中读取；当前为后端与移动解析已实现、原生缓存播放未实现且未部署的 runtime 边界）
-- `infra/cloudbase/release-bundle-v1-runtime-contract.md`（仅在独立交付、正式内容发布、回滚或空白环境重建任务中读取；当前为 profile/bundle 校验与 publisher 编排已实现、接收方 CloudBase adapter 和空白环境演练未实现的 runtime 边界）
+- `infra/cloudbase/release-bundle-v1-runtime-contract.md`（仅在独立交付、正式内容发布、回滚或空白环境重建任务中读取；当前为 profile/bundle 校验、接收方 CloudBase adapter、统一交付命令与 publisher 编排已实现，空白环境演练未完成的 runtime 边界）
 - `infra/cloudbase/space-actions-v2-runtime-contract.md`（仅在物理空间 action、同步或调度联动任务中读取；当前为仓库内已实现、未部署的 runtime 边界）
 - `spec/repo-delivery-contract.json`
 - `spec/agent-harness.json`

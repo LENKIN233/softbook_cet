@@ -316,10 +316,11 @@ complete 1,180-card CET4 payload, final whole-track approval, audit hash, 301
 audio assets, and 301 QC entries before publisher orchestration can start.
 
 The personal development environment is explicitly rejected by the delivery
-profile validator. The repository-local publisher uploads assets, stages and
-verifies content, and activates the release last through an injected adapter;
-the concrete receiver CloudBase adapter and blank-environment drill remain
-pending and must not be inferred from green unit tests.
+profile validator. The repository-local receiver adapter uploads and
+re-downloads private assets for byte/hash verification, stages evidence-bound
+content, verifies it, and changes the current release pointer last. The
+blank-environment drill remains pending and must not be inferred from green
+unit tests.
 
 Read-only bundle verification:
 
@@ -328,6 +329,41 @@ node infra/cloudbase/verify-release-bundle.mjs \
   --profile path/to/delivery-profile.json \
   --bundle path/to/release-bundle.json
 ```
+
+Unified receiver delivery is dry-run by default:
+
+```bash
+node infra/cloudbase/deliver-release.mjs preflight --profile path/to/delivery-profile.json
+node infra/cloudbase/deliver-release.mjs provision --profile path/to/delivery-profile.json
+node infra/cloudbase/deliver-release.mjs deploy --profile path/to/delivery-profile.json
+node infra/cloudbase/deliver-release.mjs publish \
+  --profile path/to/delivery-profile.json \
+  --bundle path/to/release-bundle.json
+node infra/cloudbase/deliver-release.mjs verify \
+  --profile path/to/delivery-profile.json \
+  --bundle path/to/release-bundle.json
+node infra/cloudbase/deliver-release.mjs rollback \
+  --profile path/to/delivery-profile.json \
+  --release cet4-beta-previous
+```
+
+Add `--apply` only to `provision`, `deploy`, `publish`, or `rollback` after
+reviewing the plan. Apply requires Node 22.13.0 and clean exact `main`.
+Receiver/CI secrets are never stored in `delivery-profile.v1`:
+
+```text
+SOFTBOOK_AUTH_TOKEN_SECRET
+SOFTBOOK_AUTH_INDEX_SECRET
+SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM
+SOFTBOOK_SMS_WEBHOOK_URL
+SOFTBOOK_SMS_WEBHOOK_SECRET
+```
+
+The deploy command injects the public `signing_key_id` from the profile, sets
+production mode, uses the receiver HTTPS SMS webhook, and does not carry
+`SOFTBOOK_SMS_DEV_CODE`. The SMS gateway receives
+`softbook-sms-delivery.v1` over HTTPS with a bearer secret. A successful local
+or CI test does not prove the gateway sent a real message.
 
 Dependency audit status: the current lockfile returns zero known findings from
 `npm audit --omit=dev`. This is a point-in-time dependency result, not production

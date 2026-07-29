@@ -1,5 +1,5 @@
 {
-  "version": "vnext-21",
+  "version": "vnext-22",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -61,6 +61,7 @@
     "sync_conflict_resolution_can_use_server_authoritative_event_merging",
     "CloudBase physical-space canonical state uses database transactions so concurrent function instances retry read-merge-write conflicts",
     "mobile remote authentication uses challenge-bound SMS verification, short-lived access tokens, rotating refresh tokens, and revocable server sessions",
+    "production SMS delivery uses a receiver-owned credentialed HTTPS webhook adapter configured only through runtime environment variables; fixed codes remain development-only",
     "mobile refresh is demand-driven before protected requests and serialized per session so one refresh token is never submitted concurrently",
     "mobile remote auth calls and authenticated fetch pipelines have a 15000 millisecond deadline; session replacement aborts stale requests, timeout remains retryable, and cancellation cannot become authorization rejection or mutate replacement-session state",
     "an authenticated v2 bootstrap read derives account identity from the active session and returns membership, daily progress, learning card state, nullable scheduler cursor, physical space, and content version without accepting phone_number input",
@@ -225,8 +226,9 @@
     "audio_boundary": "301_hash_verified_assets_and_301_formal_QC_entries_required_before_publish",
     "publish_order": "upload_private_assets_then_stage_content_then_verify_then_activate_release_last",
     "rollback_boundary": "switch_only_to_verified_retained_release_without_deleting_learning_data",
-    "implementation_status": "repository_local_profile_bundle_validator_publisher_orchestration_and_fail_closed_tests_implemented",
-    "cloudbase_adapter_status": "pending",
+    "implementation_status": "repository_local_profile_bundle_validator_cloudbase_receiver_adapter_unified_dry_run_first_delivery_command_publisher_rollback_and_fail_closed_tests_implemented",
+    "cloudbase_adapter_status": "implemented_locally_with_private_asset_redownload_hash_verification_staged_evidence_and_active_pointer_last",
+    "production_sms_adapter_status": "receiver_owned_https_webhook_adapter_implemented_locally_credentials_environment_only_fixed_code_excluded",
     "blank_environment_drill_status": "pending",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"
