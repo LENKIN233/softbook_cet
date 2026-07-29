@@ -1,3 +1,9 @@
+import {
+  assertContentManifestMatchesCards,
+  loadRemoteContentManifest,
+  type ContentManifestSignatureVerifier,
+  type VerifiedContentManifest,
+} from '../audio/contentManifestRepository';
 import { LearningSession, LearningTrack } from './model';
 import {
   FetchLike,
@@ -28,11 +34,23 @@ export type LearningSessionRepository = {
   ) => Promise<LearningSession>;
 };
 
+export type RemoteLearningContentManifestConfig =
+  | {
+      mode: 'disabled';
+    }
+  | {
+      mode: 'remote';
+      apiKey?: string;
+      baseUrl: string;
+      verifySignature: ContentManifestSignatureVerifier;
+    };
+
 export type LearningSessionRepositoryConfig = {
   cardCount?: number;
   fetchImpl?: FetchLike;
   localSource?: LearningCardSource;
   mode: LearningRepositoryMode;
+  contentManifestConfig?: RemoteLearningContentManifestConfig;
   remoteConfig?: RemoteLearningCardSourceConfig;
   remoteSessionConfig?: RemoteLearningSessionConfig;
 };
@@ -56,9 +74,13 @@ export function createLearningSessionRepository(
   return {
     loadSession: async (context, track) => {
       if (config.mode === 'remote') {
-        if (!config.remoteConfig || !config.remoteSessionConfig) {
+        if (
+          !config.remoteConfig ||
+          !config.remoteSessionConfig ||
+          !config.contentManifestConfig
+        ) {
           throw new Error(
-            'Remote learning repository requires card-source and session configs.',
+            'Remote learning repository requires card-source, session, and content-manifest configs.',
           );
         }
 
@@ -88,6 +110,16 @@ export function createLearningSessionRepository(
           );
         }
 
+        const contentManifest = await loadContentManifestForSession({
+          cards: source.cards,
+          config: config.contentManifestConfig,
+          contentVersion: scheduled.contentVersion,
+          context,
+          fetchImpl,
+          scheduled,
+          track,
+        });
+
         const selectedCardIndex =
           scheduled.selection === null
             ? -1
@@ -108,6 +140,7 @@ export function createLearningSessionRepository(
         return {
           cards: selectedCardIndex < 0 ? [] : [source.cards[selectedCardIndex]],
           catalogCards: source.cards,
+          contentManifest,
           contentVersion: scheduled.contentVersion,
           membershipStage: scheduled.membershipStage,
           nextDueAt: scheduled.nextDueAt,
@@ -122,6 +155,49 @@ export function createLearningSessionRepository(
       return createLocalSession(track);
     },
   };
+}
+
+async function loadContentManifestForSession(options: {
+  cards: LearningSession['catalogCards'];
+  config: RemoteLearningContentManifestConfig;
+  contentVersion: string;
+  context: LearningSessionRepositoryContext;
+  fetchImpl: FetchLike;
+  scheduled: Awaited<ReturnType<typeof loadRemoteLearningSession>>;
+  track: LearningTrack;
+}): Promise<VerifiedContentManifest | null> {
+  if (options.config.mode === 'disabled') {
+    return null;
+  }
+
+  if (!options.context.authToken) {
+    throw new Error('Remote content manifest requires authToken.');
+  }
+
+  const manifest = await loadRemoteContentManifest({
+    apiKey: options.config.apiKey,
+    authToken: options.context.authToken,
+    baseUrl: options.config.baseUrl,
+    contentVersion: options.contentVersion,
+    fetchImpl: options.fetchImpl,
+    track: options.track,
+    verifySignature: options.config.verifySignature,
+  });
+  assertContentManifestMatchesCards(manifest, options.cards);
+
+  const expectedMode = options.scheduled.access.mode;
+  if (
+    manifest.access.mode !== expectedMode ||
+    manifest.access.accessible_card_count !==
+      options.scheduled.access.accessibleCardCount ||
+    manifest.access.total_card_count !== options.scheduled.access.totalCardCount
+  ) {
+    throw new Error(
+      'Content manifest access does not match the canonical learning session.',
+    );
+  }
+
+  return manifest;
 }
 
 function assertNonEmptySession(session: LearningSession) {

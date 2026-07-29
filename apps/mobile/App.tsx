@@ -81,6 +81,7 @@ import {
   type PersistedUserState,
 } from './src/persistence/userStateStore';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
+import { resolveContentManifestRuntimeConfig } from './src/audio/contentManifestRuntimeConfig';
 import {
   readSoftbookAppRuntimeConfig,
   resolveLearningSessionRepositoryConfig,
@@ -430,13 +431,29 @@ function AppShell({
     [accountBootstrapRepositoryConfig],
   );
   const runtimeAccountBootstrapMode = accountBootstrapRepositoryConfig.mode;
+  const contentManifestRuntimeConfig = useMemo(
+    () => resolveContentManifestRuntimeConfig(runtimeConfig),
+    [runtimeConfig],
+  );
   const learningSessionRepositoryConfig = useMemo(() => {
     const resolved = resolveLearningSessionRepositoryConfig(runtimeConfig);
 
-    return resolved.mode === 'remote'
-      ? { ...resolved, fetchImpl: authenticatedFetch }
-      : resolved;
-  }, [authenticatedFetch, runtimeConfig]);
+    if (resolved.mode !== 'remote') {
+      return resolved;
+    }
+
+    return {
+      ...resolved,
+      contentManifestConfig:
+        contentManifestRuntimeConfig.mode === 'remote'
+          ? {
+              mode: 'remote' as const,
+              ...contentManifestRuntimeConfig.remote,
+            }
+          : {mode: 'disabled' as const},
+      fetchImpl: authenticatedFetch,
+    };
+  }, [authenticatedFetch, contentManifestRuntimeConfig, runtimeConfig]);
   const learningSessionRepository = useMemo(
     () => createLearningSessionRepository(learningSessionRepositoryConfig),
     [learningSessionRepositoryConfig],
