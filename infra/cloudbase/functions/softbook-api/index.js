@@ -2141,10 +2141,22 @@ function serializeCardSourceResponse(cardSource, expectedTrack) {
 }
 
 function validateCardSourceForImport(cardSource, expectedTrack) {
-  return normalizeCardSource(cardSource, expectedTrack);
+  return normalizeCardSource(cardSource, expectedTrack, {
+    assetLocator: 'storage_file_id',
+  });
 }
 
-function normalizeCardSource(cardSource, expectedTrack) {
+function validateCardSourceForReleaseBundle(cardSource, expectedTrack) {
+  return normalizeCardSource(cardSource, expectedTrack, {
+    assetLocator: 'asset_path',
+  });
+}
+
+function normalizeCardSource(
+  cardSource,
+  expectedTrack,
+  {assetLocator = 'storage_file_id'} = {},
+) {
   const payload = requireCardSourceObject(cardSource, 'card source');
   const source = requireCardSourceObject(payload.source, 'card source.source');
   const sourceId = requireCardSourceString(source.id, 'card source.source.id');
@@ -2160,7 +2172,7 @@ function normalizeCardSource(cardSource, expectedTrack) {
     );
   }
 
-  const assets = normalizeContentAssets(payload.assets ?? []);
+  const assets = normalizeContentAssets(payload.assets ?? [], assetLocator);
 
   const cardRecords = requireCardSourceArray(
     payload.card_records,
@@ -2180,7 +2192,13 @@ function normalizeCardSource(cardSource, expectedTrack) {
   };
 
   if (assets.length > 0) {
-    versionedContent.assets = assets;
+    versionedContent.assets = assets.map(asset => ({
+      asset_id: asset.asset_id,
+      duration_ms: asset.duration_ms,
+      media_type: asset.media_type,
+      sha256: asset.sha256,
+      size_bytes: asset.size_bytes,
+    }));
   }
 
   const contentVersion = createContentVersion(versionedContent);
@@ -2436,7 +2454,11 @@ function normalizeCardRecord(record, expectedTrack, label) {
   }
 }
 
-function normalizeContentAssets(value) {
+function normalizeContentAssets(value, assetLocator) {
+  if (!['asset_path', 'storage_file_id'].includes(assetLocator)) {
+    throw cardSourceError('card source asset locator is unsupported.');
+  }
+
   const assets = requireCardSourceArray(value, 'card source.assets').map(
     (asset, index) => {
       const label = `card source.assets[${index}]`;
@@ -2449,7 +2471,7 @@ function normalizeContentAssets(value) {
           'media_type',
           'sha256',
           'size_bytes',
-          'storage_file_id',
+          assetLocator,
         ],
         label,
       );
@@ -2473,10 +2495,16 @@ function normalizeContentAssets(value) {
           record.size_bytes,
           `${label}.size_bytes`,
         ),
-        storage_file_id: requireCloudBaseFileId(
-          record.storage_file_id,
-          `${label}.storage_file_id`,
-        ),
+        [assetLocator]:
+          assetLocator === 'storage_file_id'
+            ? requireCloudBaseFileId(
+                record.storage_file_id,
+                `${label}.storage_file_id`,
+              )
+            : requireBundleAssetPath(
+                record.asset_path,
+                `${label}.asset_path`,
+              ),
       };
     },
   );
@@ -2605,6 +2633,23 @@ function requireCloudBaseFileId(value, fieldName) {
   }
 
   return fileId;
+}
+
+function requireBundleAssetPath(value, fieldName) {
+  const assetPath = requireCardSourceString(value, fieldName);
+
+  if (
+    assetPath.startsWith('/') ||
+    assetPath.includes('\\') ||
+    assetPath.split('/').some(segment => segment === '' || segment === '.' || segment === '..') ||
+    !assetPath.toLowerCase().endsWith('.mp3')
+  ) {
+    throw cardSourceError(
+      `${fieldName} must be a relative in-bundle MP3 path without traversal.`,
+    );
+  }
+
+  return assetPath;
 }
 
 function assertExactCardSourceKeys(value, expectedKeys, label) {
@@ -3526,4 +3571,5 @@ module.exports = {
   },
   main,
   validateCardSourceForImport,
+  validateCardSourceForReleaseBundle,
 };
