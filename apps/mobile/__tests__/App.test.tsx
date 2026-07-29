@@ -15,12 +15,18 @@ import {
   type SoftbookRemoteRuntimeProfile,
 } from '../src/runtime/appRuntimeConfig';
 import { getChinaDayKey } from '../src/shared/chinaDay';
-import App from '../App';
+import App, { isCompactMineViewport } from '../App';
 
 const mockCreateLearningSessionRepository = jest.fn();
 const mockLoadSession = jest.fn();
 const mockFetch = jest.fn();
 const TEST_CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
+
+test('Mine compact mode covers 320dp and short phone viewports', () => {
+  expect(isCompactMineViewport(320, 693)).toBe(true);
+  expect(isCompactMineViewport(393, 700)).toBe(true);
+  expect(isCompactMineViewport(393, 850)).toBe(false);
+});
 
 function createSoftbookRemoteRuntimeConfig(
   profile: SoftbookRemoteRuntimeProfile,
@@ -5059,7 +5065,11 @@ test('mine page keeps profile status and route actions in one screen after login
   const purchaseButtonStyle = StyleSheet.flatten(
     findPressableByTestId(root, 'membership-purchase-button').props.style,
   );
-  expect(purchaseButtonStyle.minHeight).toBeGreaterThanOrEqual(30);
+  const startTrialButtonStyle = StyleSheet.flatten(
+    findPressableByTestId(root, 'membership-start-trial-button').props.style,
+  );
+  expect(startTrialButtonStyle.minHeight).toBeGreaterThanOrEqual(44);
+  expect(purchaseButtonStyle.minHeight).toBeGreaterThanOrEqual(44);
   expect(purchaseButtonStyle.backgroundColor).not.toBe('transparent');
   expect(purchaseButtonStyle.borderColor).not.toBe('transparent');
   expect(

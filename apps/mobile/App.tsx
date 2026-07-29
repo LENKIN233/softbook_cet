@@ -4848,6 +4848,9 @@ function MineSurface({
   sleepingCount: number;
   todayKey: string;
 }) {
+  const { height: viewportHeight, width: viewportWidth } =
+    useWindowDimensions();
+  const isCompactPhone = isCompactMineViewport(viewportWidth, viewportHeight);
   const isAuthenticated = authState.stage === 'authenticated';
   const hasSentCode = authState.stage === 'code_sent';
   const completedCount = learningResults.length + reviewResults.length;
@@ -4904,6 +4907,7 @@ function MineSurface({
         style={[
           styles.mineScreen,
           deviceClass === 'tablet' ? styles.mineScreenTablet : null,
+          isCompactPhone ? styles.mineScreenCompact : null,
         ]}
         testID="mine-surface"
       >
@@ -4925,39 +4929,70 @@ function MineSurface({
       style={[
         styles.mineScreen,
         deviceClass === 'tablet' ? styles.mineScreenTablet : null,
+        isCompactPhone ? styles.mineScreenCompact : null,
       ]}
       testID="mine-surface"
     >
       <View
         style={[
           styles.mineProfilePanel,
+          isCompactPhone ? styles.mineProfilePanelCompact : null,
           { backgroundColor: palette.panel, borderColor: palette.border },
         ]}
         testID="mine-profile-card"
       >
-        <View style={styles.minePassportStack} testID="mine-passport-stack">
-          <View style={styles.minePassportHeader}>
+        <View
+          style={[
+            styles.minePassportStack,
+            isCompactPhone ? styles.minePassportStackCompact : null,
+          ]}
+          testID="mine-passport-stack"
+        >
+          <View
+            style={[
+              styles.minePassportHeader,
+              isCompactPhone ? styles.minePassportHeaderCompact : null,
+            ]}
+          >
             <View
-              style={[styles.mineAvatar, { backgroundColor: palette.accent }]}
+              style={[
+                styles.mineAvatar,
+                isCompactPhone ? styles.mineAvatarCompact : null,
+                { backgroundColor: palette.accent },
+              ]}
             >
               <RouteIcon active color={palette.panel} routeKey="mine" />
             </View>
-            <View style={styles.mineAccountHeaderCopy}>
+            <View
+              style={[
+                styles.mineAccountHeaderCopy,
+                isCompactPhone ? styles.mineAccountHeaderCopyCompact : null,
+              ]}
+            >
               <Text
-                style={[styles.mineAccountEyebrow, { color: palette.accent }]}
+                style={[
+                  styles.mineAccountEyebrow,
+                  isCompactPhone ? styles.mineAccountEyebrowCompact : null,
+                  { color: palette.accent },
+                ]}
               >
                 学习账户
               </Text>
               <Text
                 numberOfLines={1}
-                style={[styles.mineAccountTitle, { color: palette.text }]}
+                style={[
+                  styles.mineAccountTitle,
+                  isCompactPhone ? styles.mineAccountTitleCompact : null,
+                  { color: palette.text },
+                ]}
               >
                 账户已接上
               </Text>
               <Text
-                numberOfLines={2}
+                numberOfLines={isCompactPhone ? 1 : 2}
                 style={[
                   styles.mineAccountSummary,
+                  isCompactPhone ? styles.mineAccountSummaryCompact : null,
                   { color: palette.textMuted },
                 ]}
               >
@@ -4967,6 +5002,7 @@ function MineSurface({
             <View
               style={[
                 styles.mineMembershipPill,
+                isCompactPhone ? styles.mineMembershipPillCompact : null,
                 {
                   backgroundColor: palette.accentSoft,
                   borderColor: hexToRgba(palette.accent, 0.14),
@@ -4985,10 +5021,16 @@ function MineSurface({
             </View>
           </View>
 
-          <View style={styles.mineContinuityDock}>
+          <View
+            style={[
+              styles.mineContinuityDock,
+              isCompactPhone ? styles.mineContinuityDockCompact : null,
+            ]}
+          >
             <View
               style={[
                 styles.mineIdentityBand,
+                isCompactPhone ? styles.mineIdentityBandCompact : null,
                 {
                   backgroundColor: palette.panelStrong,
                   borderColor: palette.border,
@@ -5035,6 +5077,7 @@ function MineSurface({
               style={[
                 styles.mineMetricStrip,
                 deviceClass === 'tablet' ? styles.mineMetricStripTablet : null,
+                isCompactPhone ? styles.mineMetricStripCompact : null,
                 {
                   backgroundColor: palette.panelStrong,
                   borderColor: hexToRgba(palette.textMuted, 0.08),
@@ -5076,15 +5119,23 @@ function MineSurface({
           </View>
         </View>
 
-        <View style={styles.mineRouteDock} testID="mine-route-dock">
+        <View
+          style={[
+            styles.mineRouteDock,
+            isCompactPhone ? styles.mineRouteDockCompact : null,
+          ]}
+          testID="mine-route-dock"
+        >
           <View
             style={[
               styles.mineActionRail,
               deviceClass === 'tablet' ? styles.mineActionRailTablet : null,
+              isCompactPhone ? styles.mineActionRailCompact : null,
             ]}
             testID="mine-action-rail"
           >
             <MineActionCard
+              compact={isCompactPhone}
               detail={
                 pendingReviewCount > 0
                   ? `${pendingReviewCount} 张卡等待回看`
@@ -5119,10 +5170,14 @@ function MineSurface({
               variant="primary"
             />
             <View
-              style={styles.mineSecondaryActionRow}
+              style={[
+                styles.mineSecondaryActionRow,
+                isCompactPhone ? styles.mineSecondaryActionRowCompact : null,
+              ]}
               testID="mine-secondary-action-row"
             >
               <MineActionCard
+                compact={isCompactPhone}
                 detail={`${favoriteCount} 收藏 · ${sleepingCount} 休眠`}
                 label="空间"
                 onPress={onGoToSpace}
@@ -5131,6 +5186,7 @@ function MineSurface({
                 testID="mine-go-space"
               />
               <MineActionCard
+                compact={isCompactPhone}
                 detail={checkedInToday ? '今日已签到' : '今日未签到'}
                 label="今日"
                 onPress={onGoToStatistics}
@@ -5142,6 +5198,7 @@ function MineSurface({
           </View>
 
           <MembershipHostCard
+            compact={isCompactPhone}
             deviceClass={deviceClass}
             focusGate={membershipGate}
             handlers={membershipHandlers}
@@ -5158,6 +5215,7 @@ function MineSurface({
 }
 
 function MineActionCard({
+  compact,
   detail,
   heroLabel,
   heroValue,
@@ -5169,6 +5227,7 @@ function MineActionCard({
   testID,
   variant = 'secondary',
 }: {
+  compact: boolean;
   detail: string;
   heroLabel?: string;
   heroValue?: string;
@@ -5314,6 +5373,8 @@ function MineActionCard({
         isPrimary
           ? styles.mineActionCardPrimary
           : styles.mineActionCardSecondary,
+        compact && isPrimary ? styles.mineActionCardPrimaryCompact : null,
+        compact && !isPrimary ? styles.mineActionCardSecondaryCompact : null,
         {
           backgroundColor: isPrimary
             ? palette.primaryActionSurface
@@ -5328,8 +5389,8 @@ function MineActionCard({
       {isPrimary ? (
         <>
           {primaryHeader}
-          {primaryCenter}
-          {primaryMeta}
+          {compact ? null : primaryCenter}
+          {compact ? null : primaryMeta}
         </>
       ) : (
         <>
@@ -5343,6 +5404,7 @@ function MineActionCard({
 }
 
 function MembershipHostCard({
+  compact,
   deviceClass,
   focusGate,
   handlers,
@@ -5352,6 +5414,7 @@ function MembershipHostCard({
   membershipState,
   palette,
 }: {
+  compact: boolean;
   deviceClass: DeviceClass;
   focusGate: MembershipGate | null;
   handlers: MembershipHandlers;
@@ -5385,6 +5448,7 @@ function MembershipHostCard({
     <View
       style={[
         styles.membershipHostCard,
+        compact ? styles.membershipHostCardCompact : null,
         {
           backgroundColor: 'transparent',
           borderColor: hexToRgba(palette.accent, 0.1),
@@ -5392,7 +5456,7 @@ function MembershipHostCard({
       ]}
       testID="membership-host-card"
     >
-      {isTrialAvailable ? null : (
+      {isTrialAvailable || compact ? null : (
         <View style={styles.membershipHeaderRow}>
           <View style={styles.membershipHeaderCopy}>
             <View style={styles.membershipTitleRow}>
@@ -5558,6 +5622,7 @@ function MembershipHostCard({
             deviceClass === 'tablet'
               ? styles.membershipAccessTrackTablet
               : null,
+            compact ? styles.membershipAccessTrackCompact : null,
           ]}
           testID="membership-access-strip"
         >
@@ -5566,6 +5631,7 @@ function MembershipHostCard({
               key={item.label}
               style={[
                 styles.membershipAccessStep,
+                compact ? styles.membershipAccessStepCompact : null,
                 { borderColor: palette.border },
               ]}
               testID="membership-access-step"
@@ -5655,6 +5721,7 @@ function MembershipHostCard({
       ) : null}
       {isTrialAvailable ? null : (
         <MembershipActionGroup
+          compact={compact}
           handlers={handlers}
           membershipPendingAction={membershipPendingAction}
           membershipRepositoryMode={membershipRepositoryMode}
@@ -5667,12 +5734,14 @@ function MembershipHostCard({
 }
 
 function MembershipActionGroup({
+  compact = false,
   handlers,
   membershipPendingAction,
   membershipRepositoryMode,
   membershipState,
   palette,
 }: {
+  compact?: boolean;
   handlers: MembershipHandlers;
   membershipPendingAction:
     | 'dismiss_recovery'
@@ -5726,7 +5795,11 @@ function MembershipActionGroup({
       <Pressable
         disabled={isPending}
         onPress={handlers.onPurchase}
-        style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+        style={[
+          styles.primaryButton,
+          compact ? styles.membershipPrimaryActionCompact : null,
+          { backgroundColor: palette.accent },
+        ]}
         testID="membership-purchase-button"
       >
         <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
@@ -5785,7 +5858,11 @@ function MembershipActionGroup({
       <Pressable
         disabled={isPending}
         onPress={handlers.onPurchase}
-        style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+        style={[
+          styles.primaryButton,
+          compact ? styles.membershipPrimaryActionCompact : null,
+          { backgroundColor: palette.accent },
+        ]}
         testID="membership-purchase-button"
       >
         <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
@@ -6413,6 +6490,10 @@ function InfoCard({
 
 function getDeviceClass(width: number, height: number): DeviceClass {
   return Math.min(width, height) >= 768 ? 'tablet' : 'phone';
+}
+
+export function isCompactMineViewport(width: number, height: number) {
+  return width <= 340 || height <= 720;
 }
 
 function maskPhoneNumber(phoneNumber: string) {
@@ -7611,6 +7692,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 4,
   },
+  mineScreenCompact: {
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
   mineProfilePanel: {
     alignItems: 'stretch',
     borderRadius: 26,
@@ -7626,32 +7712,58 @@ const styles = StyleSheet.create({
     shadowRadius: 30,
     elevation: 4,
   },
+  mineProfilePanelCompact: {
+    gap: 5,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
   minePassportStack: {
     flexShrink: 0,
     gap: 8,
+  },
+  minePassportStackCompact: {
+    gap: 5,
   },
   minePassportHeader: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
   },
+  minePassportHeaderCompact: {
+    gap: 7,
+  },
   mineAccountHeaderCopy: {
     flex: 1,
     gap: 3,
     minWidth: 0,
   },
+  mineAccountHeaderCopyCompact: {
+    gap: 1,
+  },
   mineAccountEyebrow: {
     fontSize: 12,
     fontWeight: '800',
+  },
+  mineAccountEyebrowCompact: {
+    fontSize: 10,
   },
   mineAccountTitle: {
     fontSize: 21,
     fontWeight: '800',
     lineHeight: 25,
   },
+  mineAccountTitleCompact: {
+    fontSize: 17,
+    lineHeight: 21,
+  },
   mineAccountSummary: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
+    lineHeight: 18,
+  },
+  mineAccountSummaryCompact: {
+    fontSize: 13,
     lineHeight: 17,
   },
   mineAvatar: {
@@ -7661,12 +7773,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 44,
   },
+  mineAvatarCompact: {
+    borderRadius: 18,
+    height: 36,
+    width: 36,
+  },
   mineMembershipPill: {
     borderRadius: 999,
     borderWidth: 1,
     maxWidth: 108,
     paddingHorizontal: 9,
     paddingVertical: 6,
+  },
+  mineMembershipPillCompact: {
+    maxWidth: 90,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
   },
   mineMembershipPillText: {
     fontSize: 12,
@@ -7682,8 +7804,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
+  mineIdentityBandCompact: {
+    minHeight: 44,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
   mineContinuityDock: {
     gap: 6,
+  },
+  mineContinuityDockCompact: {
+    gap: 4,
   },
   mineIdentityCopy: {
     flex: 1,
@@ -7713,6 +7843,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 3,
   },
+  mineMetricStripCompact: {
+    paddingVertical: 2,
+  },
   mineSignalPill: {
     alignItems: 'center',
     borderRadius: 999,
@@ -7741,6 +7874,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     minHeight: 0,
   },
+  mineRouteDockCompact: {
+    flex: 0,
+    gap: 5,
+    justifyContent: 'flex-start',
+  },
   mineActionRail: {
     flex: 1,
     gap: 8,
@@ -7748,6 +7886,11 @@ const styles = StyleSheet.create({
     minHeight: 0,
     paddingHorizontal: 0,
     paddingVertical: 0,
+  },
+  mineActionRailCompact: {
+    flex: 0,
+    gap: 5,
+    justifyContent: 'flex-start',
   },
   mineActionRailTablet: {
     maxWidth: 560,
@@ -7757,6 +7900,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     minHeight: 0,
+  },
+  mineSecondaryActionRowCompact: {
+    flex: 0,
+    gap: 5,
+    minHeight: 50,
   },
   mineActionCard: {
     alignItems: 'stretch',
@@ -7774,6 +7922,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 13,
   },
+  mineActionCardPrimaryCompact: {
+    flex: 0,
+    minHeight: 54,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
   mineActionCardSecondary: {
     alignItems: 'center',
     borderRadius: 17,
@@ -7782,6 +7936,11 @@ const styles = StyleSheet.create({
     minHeight: 66,
     paddingHorizontal: 11,
     paddingVertical: 8,
+  },
+  mineActionCardSecondaryCompact: {
+    minHeight: 50,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   mineActionTopRow: {
     alignItems: 'center',
@@ -7856,14 +8015,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   mineActionDetail: {
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: '600',
-    lineHeight: 13,
+    lineHeight: 17,
   },
   mineActionDetailPrimary: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
-    lineHeight: 14,
+    lineHeight: 17,
   },
   mineActionArrow: {
     fontSize: 14,
@@ -7878,6 +8037,9 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     shadowOpacity: 0,
     elevation: 0,
+  },
+  membershipHostCardCompact: {
+    gap: 5,
   },
   membershipHeaderRow: {
     alignItems: 'flex-start',
@@ -7956,6 +8118,9 @@ const styles = StyleSheet.create({
   membershipAccessTrackTablet: {
     gap: 8,
   },
+  membershipAccessTrackCompact: {
+    gap: 4,
+  },
   membershipAccessCompactDock: {
     alignItems: 'center',
     borderRadius: 18,
@@ -8020,7 +8185,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 999,
     justifyContent: 'center',
-    minHeight: 30,
+    minHeight: 44,
     minWidth: 80,
     paddingHorizontal: 9,
   },
@@ -8034,7 +8199,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 30,
+    minHeight: 44,
     minWidth: 82,
     paddingHorizontal: 10,
   },
@@ -8051,6 +8216,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingHorizontal: 8,
     paddingVertical: 8,
+  },
+  membershipAccessStepCompact: {
+    gap: 3,
+    minHeight: 40,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
   },
   membershipAccessDot: {
     borderRadius: 999,
@@ -8075,6 +8246,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 12,
     paddingVertical: 11,
+  },
+  membershipPrimaryActionCompact: {
+    minHeight: 44,
+    paddingVertical: 8,
   },
   membershipSecondaryLink: {
     alignItems: 'center',
