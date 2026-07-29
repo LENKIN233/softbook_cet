@@ -4,7 +4,7 @@
 
 - Date: 2026-07-29
 - Branch: `fix/android-learning-small-screen`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/461
 - Summary: Fixes Learning card overlap on Android phone viewports, including the 320dp acceptance width. The change keeps all five core interactions and the resolved-answer detail on one operable screen without changing interaction semantics.
 
 ## Referenced specs
