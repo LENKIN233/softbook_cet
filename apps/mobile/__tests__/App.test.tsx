@@ -6,6 +6,7 @@ import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Keychain from 'react-native-keychain';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
 import { LearningCard, LearningSession } from '../src/learning/model';
 import { createLocalLearningSession } from '../src/learning/session';
@@ -1284,6 +1285,28 @@ test('sanitizes remote verify-code parser failures inside the auth gate', async 
   expect(output).toContain('可重试');
   expect(output).not.toContain('JSON Parse error');
   expect(output).not.toContain('Unexpected character');
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('does not expose native credential storage failures inside the auth gate', async () => {
+  (Keychain.setGenericPassword as jest.Mock).mockRejectedValueOnce(
+    new Error(
+      "TurboModuleRegistry.getEnforcing(...): 'RNKeychain' could not be found",
+    ),
+  );
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  await authenticateIntoLearningBootstrap(tree!.root);
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('验证码暂时没通过。');
+  expect(output).not.toContain('TurboModuleRegistry');
+  expect(output).not.toContain('RNKeychain');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 

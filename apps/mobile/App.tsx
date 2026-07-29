@@ -120,6 +120,7 @@ import {
 } from './src/sync/progressSyncRepository';
 import { resolveProgressSyncRepositoryConfig } from './src/sync/progressSyncRuntimeConfig';
 import { isRemoteAuthorizationError } from './src/runtime/remoteHttpError';
+import { getUserFacingErrorMessage } from './src/runtime/userFacingError';
 import { hexToRgba } from './src/visual/tokens';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
@@ -6491,43 +6492,6 @@ function shouldClearMembershipGate(
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
-}
-
-const INTERNAL_ERROR_COPY_PATTERN =
-  /\b(Remote|Bootstrap|Canonical|payload|source_id|source_label|card_records|remoteConfig|authToken|accessToken|refreshToken|challengeId|sessionId|endpoint|repository|card_id|knowledge_ref|box_ref|space_metadata|MutationQueue|runtime|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC)\b|JSON Parse error|Unexpected character|SyntaxError|parse failed|data\.|卡源|离线队列|离线重试|本机缓存|当前设备|会员矩阵|占位|快照|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
-
-function getUserFacingErrorMessage(error: unknown, fallback: string) {
-  const message = getErrorMessage(error, fallback);
-  const remoteStatusMatch = message.match(
-    /^Remote (auth request-code|auth verify-code|learning card source request|membership entitlement request|membership mutation|progress sync|learning state sync|space state sync) failed(?: with status| with)? (\d+)\.$/,
-  );
-
-  if (!remoteStatusMatch) {
-    return INTERNAL_ERROR_COPY_PATTERN.test(message) ? fallback : message;
-  }
-
-  const [, type] = remoteStatusMatch;
-
-  switch (type) {
-    case 'auth request-code':
-      return '验证码暂时没发出。';
-    case 'auth verify-code':
-      return '验证码暂时没通过。';
-    case 'membership entitlement request':
-      return '会员状态暂时无法读取。';
-    case 'membership mutation':
-      return '会员状态更新暂时失败。';
-    case 'learning card source request':
-      return '学习卡片加载暂时失败。';
-    case 'progress sync':
-      return '学习进展同步暂时失败。';
-    case 'learning state sync':
-      return '学习状态同步暂时失败。';
-    case 'space state sync':
-      return '空间状态同步暂时失败。';
-    default:
-      return message;
-  }
 }
 
 function shouldQueueMembershipTrialStart(error: unknown) {
