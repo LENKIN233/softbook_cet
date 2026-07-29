@@ -14,4 +14,5 @@ Directions must include what they reject and why they belong to 软书四六级.
 
 - `learning-surface-3-directions.md`: Learning surface A/B/C direction set and accepted `Knowledge Object` direction.
 - `learning-card-rhythm-directions-v1.md`: Learning single-card state rhythm A/B/C direction set and accepted `Guided Addressed Card Rhythm`.
+- `learning-audio-control-directions-v1.md`: attached audio resource A/B/C direction set and accepted `Attached Listening Chip`.
 - `space-surface-visual-directions-v1.md`: Space surface A/B/C visual direction set and accepted `Box Desk` direction.
