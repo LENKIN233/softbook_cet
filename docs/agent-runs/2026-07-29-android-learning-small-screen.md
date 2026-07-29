@@ -107,9 +107,10 @@
 
 ## Agent review status
 
-- Reviewer: Codex local self-review; independent PR Agent review pending.
-- Status: pending PR Agent review.
-- Blocking findings: none in the Learning surface. Full-app 320dp acceptance remains blocked by the separate Mine screen overlap recorded below.
+- Reviewer: Codex independent PR implementation review.
+- Status: Passed.
+- Blocking findings: None for this Learning-only PR. Full-app 320dp acceptance remains incomplete because of the separate Mine screen overlap recorded below.
+- Review evidence: focused Learning tests (6/6), TypeScript typecheck, ESLint, diff checks, emulator screenshots, and recorded native bounds were rechecked on 2026-07-29. The review found no change to the five interaction semantics, answer authority, or two-state self-assessment contract.
 
 ## User-visible UI impact
 
@@ -131,6 +132,6 @@
 
 ## Follow-up
 
-- Deliver this Learning-only PR after independent Agent review and required checks.
+- Deliver this Learning-only PR after required checks; the independent Agent review is complete.
 - Open a separate user-visible UI run for Mine 320dp containment, then repeat the full shared 320dp flow.
 - Repeat Learning and full-flow validation on a physical Android device and with supported dynamic-type settings before declaring beta readiness.
