@@ -91,6 +91,57 @@ cd apps/mobile
 JAVA_HOME=<jdk-17-home> ANDROID_HOME=<android-sdk> npm run android:release:unsigned
 ```
 
+接收方正式签名采用两阶段、失败关闭的流程。脚本不会生成 keystore，也不会把
+keystore 路径、alias 或密码写入公开报告；`build --apply` 和 `finalize --apply` 只允许
+在干净且与 `origin/main` 完全一致的 `main` 上执行。除上面的四项签名变量外，构建时
+还需提供稳定的非敏感目标 ID：
+
+```text
+SOFTBOOK_ANDROID_RELEASE_TARGET_ID=receiver-beta
+```
+
+先在 `apps/mobile` 下预检，再由接收方安全 CI 执行正式构建：
+
+```bash
+npm run android:release:signed -- build \
+  --state ../../docs/agent-runs/artifacts/android-signed-release-state.json
+
+npm run android:release:signed -- build \
+  --state ../../docs/agent-runs/artifacts/android-signed-release-state.json \
+  --apply
+```
+
+脚本运行 Gradle 的显式 signed 模式，再用 Android SDK `apksigner verify --Werr
+--print-certs` 检查唯一证书 SHA-256 与 APK Signature Scheme v2 或更新版本。私有中间
+状态权限固定为 `0600`，且位于 Git 忽略目录。随后由接收方把
+`app-release.apk` 上传到 GitHub Release；资产必须提供 GitHub API 认证的 SHA-256
+digest 和字节数，且两者与本地验证结果完全一致。
+
+归档完成后由真人发布负责人生成公开证据，再做一次远端复验：
+
+```bash
+SOFTBOOK_ANDROID_RELEASE_VERIFIER=github:<human-account> \
+npm run android:release:signed -- finalize \
+  --state ../../docs/agent-runs/artifacts/android-signed-release-state.json \
+  --report ../../docs/release/evidence/android-signed-release.json \
+  --archive-url https://github.com/<owner>/<repo>/releases/download/<tag>/app-release.apk
+
+SOFTBOOK_ANDROID_RELEASE_VERIFIER=github:<human-account> \
+npm run android:release:signed -- finalize \
+  --state ../../docs/agent-runs/artifacts/android-signed-release-state.json \
+  --report ../../docs/release/evidence/android-signed-release.json \
+  --archive-url https://github.com/<owner>/<repo>/releases/download/<tag>/app-release.apk \
+  --apply
+
+npm run android:release:signed -- verify \
+  --report ../../docs/release/evidence/android-signed-release.json
+```
+
+`finalize --apply` 会先完成远端 digest 校验，再删除私有状态并发布
+`android-signed-release.v1` 报告。未通过或不再需要的中间状态可用 `discard` 预检后加
+`--apply` 删除。只有该报告的文件哈希、审核人和时间与 external-account readiness
+证据完全匹配时，`android-distribution/release-signing` 才能作为有效证据。
+
 安装已配置远端 runtime 的 Android 构建后，用与 iOS 相同的稳定 testID 主流程：
 
 ```bash

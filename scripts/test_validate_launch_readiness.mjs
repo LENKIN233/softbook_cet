@@ -1282,6 +1282,101 @@ test('SMS provider smoke evidence must satisfy its strict human-confirmation sch
   );
 });
 
+test('Android release-signing evidence requires the dedicated signed APK report', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-readiness-'));
+  t.after(() => fs.rmSync(root, {force: true, recursive: true}));
+  const fixture = writeExternalCapabilityFixture(root, {
+    accountId: 'android-distribution',
+    capabilityId: 'release-signing',
+    sequence: 903,
+  });
+  const reportRelativePath =
+    'docs/release/evidence/raw/android-signed-release.json';
+  const reportPath = path.join(root, reportRelativePath);
+  const report = createAndroidSignedReleaseReport();
+  const signedReleaseRole = 'android-signed-release-report';
+  const writeSignedReleaseReport = () => {
+    const payload = `${JSON.stringify(report, null, 2)}\n`;
+    fs.mkdirSync(path.dirname(reportPath), {recursive: true});
+    fs.writeFileSync(reportPath, payload);
+    const descriptor = fixture.artifact.raw_artifacts.find(
+      candidate => candidate.role === signedReleaseRole,
+    );
+    descriptor.sha256 = hash(payload);
+    descriptor.size_bytes = Buffer.byteLength(payload);
+    rewriteExternalCapabilityReport(fixture);
+    return payload;
+  };
+  fixture.artifact.observation.observed_at = report.archived_verified_at;
+  fixture.artifact.observation.provider_subject_sha256 = hash(
+    `android-release-target:${report.target_id}`,
+  );
+  fixture.artifact.raw_artifacts.push({
+    role: signedReleaseRole,
+    artifact_uri: `repo://${reportRelativePath}`,
+    sha256: '0'.repeat(64),
+    size_bytes: 1,
+  });
+  for (const checkId of [
+    'current-state-observed',
+    'certificate-fingerprint-recorded',
+  ]) {
+    fixture.artifact.checks.find(check => check.id === checkId).artifact_roles = [
+      signedReleaseRole,
+    ];
+  }
+  writeSignedReleaseReport();
+  fixture.trackedFiles.add(reportRelativePath);
+  const accounts = structuredClone(accountsContract);
+  const capability = accounts.accounts
+    .find(account => account.id === 'android-distribution')
+    .capabilities.find(candidate => candidate.id === 'release-signing');
+  capability.evidence = [fixture.evidence];
+
+  const valid = verifyRepositoryEvidenceFiles(launchContract, accounts, {
+    root,
+    semanticContext,
+    trackedFiles: fixture.trackedFiles,
+    trustedCommits: TRUSTED_COMMITS,
+    now: NOW,
+  });
+  assert.equal(valid.ok, true, valid.errors.join('\n'));
+
+  report.verified_by = 'external:release-auditor';
+  writeSignedReleaseReport();
+  const invalid = verifyRepositoryEvidenceFiles(launchContract, accounts, {
+    root,
+    semanticContext,
+    trackedFiles: fixture.trackedFiles,
+    trustedCommits: TRUSTED_COMMITS,
+    now: NOW,
+  });
+  assert.equal(invalid.ok, false);
+  assert.match(invalid.errors.join('\n'), /signed-release verifier does not match/);
+
+  report.verified_by = fixture.artifact.verification.verified_by;
+  fixture.artifact.observation.provider_subject_sha256 = hash(
+    'android-release-target:receiver-other',
+  );
+  writeSignedReleaseReport();
+  const mismatchedTarget = verifyRepositoryEvidenceFiles(
+    launchContract,
+    accounts,
+    {
+      root,
+      semanticContext,
+      trackedFiles: fixture.trackedFiles,
+      trustedCommits: TRUSTED_COMMITS,
+      now: NOW,
+    },
+  );
+  assert.equal(mismatchedTarget.ok, false);
+  assert.match(
+    mismatchedTarget.errors.join('\n'),
+    /signed-release receiver target does not match/,
+  );
+});
+
 test('launch and external account statuses must agree', () => {
   const invalidLaunch = structuredClone(launchContract);
   invalidLaunch.external_dependencies[0].status = 'ready';
@@ -1944,6 +2039,43 @@ function smsProviderSmokeReport() {
     expires_at: '2026-07-13T23:03:00.000Z',
     confirmation_method: 'human_received_code_match',
     verifier: { kind: 'human', id: 'external:release-auditor' },
+    private_state_removed: true,
+    generated_at: '2026-07-13T23:00:00.000Z',
+  };
+}
+
+function createAndroidSignedReleaseReport() {
+  return {
+    schema_version: 'android-signed-release.v1',
+    status: 'passed',
+    platform: 'android',
+    target_id: 'receiver-beta',
+    repository_commit: TEST_COMMIT_SHA,
+    application_id: 'com.softbook.cet',
+    version_code: 1,
+    version_name: '1.0',
+    artifact: {
+      filename: 'app-release.apk',
+      sha256: '0123456789abcdef'.repeat(4),
+      size_bytes: 123456,
+      archive_url:
+        'https://github.com/LENKIN233/softbook_cet/releases/download/android-beta-1/app-release.apk',
+    },
+    signing: {
+      certificate_sha256: 'abcdef0123456789'.repeat(4),
+      signature_schemes: {
+        v1: true,
+        v2: true,
+        v3: false,
+        v3_1: false,
+        v4: false,
+      },
+      verifier: 'android-sdk-apksigner',
+      verifier_version: '35.0.0',
+    },
+    built_at: '2026-07-13T22:00:00.000Z',
+    archived_verified_at: '2026-07-13T23:00:00.000Z',
+    verified_by: 'github:LENKIN233',
     private_state_removed: true,
     generated_at: '2026-07-13T23:00:00.000Z',
   };

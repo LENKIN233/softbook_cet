@@ -23,6 +23,9 @@ test('Android Release never falls back to the repository debug keystore', () => 
   assert.doesNotMatch(releaseBlock, /signingConfig\s+signingConfigs\.debug/);
   assert.match(releaseBlock, /signingConfig\s+signingConfigs\.release/);
   assert.match(gradle, /verifyReleaseSigningBoundary/);
+  assert.match(gradle, /softbookRequireSignedRelease/);
+  assert.match(gradle, /softbookRequireUnsignedRelease/);
+  assert.match(gradle, /cannot require signed and unsigned modes together/);
   for (const name of [
     'SOFTBOOK_ANDROID_RELEASE_STORE_FILE',
     'SOFTBOOK_ANDROID_RELEASE_STORE_PASSWORD',
@@ -49,6 +52,15 @@ test('Android Release CI uses JDK 17 and verifies an unsigned artifact', () => {
   assert.match(job, /java-version: "17"/);
   assert.match(job, /npm run android:release:unsigned/);
   assert.match(job, /app-release-unsigned\.apk/);
+  const packageJson = JSON.parse(read('apps/mobile/package.json'));
+  assert.match(
+    packageJson.scripts['android:release:unsigned'],
+    /softbookRequireUnsignedRelease=true/,
+  );
+  assert.equal(
+    packageJson.scripts['android:release:signed'],
+    'node ../../scripts/build_android_signed_release.mjs',
+  );
 });
 
 test('Android remote smoke reuses the complete stable-selector flow', () => {

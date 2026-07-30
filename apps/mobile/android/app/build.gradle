@@ -84,12 +84,24 @@ def releaseSigningValues = [
 ]
 def configuredReleaseSigningValues = releaseSigningValues.count { value -> value != null && !value.isEmpty() }
 def releaseSigningConfigured = configuredReleaseSigningValues == releaseSigningValues.size()
+def requireSignedRelease = project.findProperty('softbookRequireSignedRelease') == 'true'
+def requireUnsignedRelease = project.findProperty('softbookRequireUnsignedRelease') == 'true'
+
+if (requireSignedRelease && requireUnsignedRelease) {
+    throw new GradleException('Android release cannot require signed and unsigned modes together.')
+}
 
 if (configuredReleaseSigningValues > 0 && !releaseSigningConfigured) {
     throw new GradleException('Android release signing is partially configured.')
 }
 if (releaseSigningConfigured && !file(releaseStoreFilePath).isFile()) {
     throw new GradleException('Android release signing store file does not exist.')
+}
+if (requireSignedRelease && !releaseSigningConfigured) {
+    throw new GradleException('Signed Android release requires complete receiver signing configuration.')
+}
+if (requireUnsignedRelease && releaseSigningConfigured) {
+    throw new GradleException('Unsigned Android release rejects receiver signing configuration.')
 }
 
 android {
@@ -143,6 +155,12 @@ tasks.register('verifyReleaseSigningBoundary') {
         }
         if (releaseSigningConfigured && configuredSigning?.name != 'release') {
             throw new GradleException('Configured Android release signing was not applied.')
+        }
+        if (requireSignedRelease && configuredSigning?.name != 'release') {
+            throw new GradleException('Signed Android release did not apply receiver signing.')
+        }
+        if (requireUnsignedRelease && configuredSigning != null) {
+            throw new GradleException('Unsigned Android release unexpectedly has a signing config.')
         }
         println releaseSigningConfigured
             ? 'Android release signing boundary: receiver signing configured.'
