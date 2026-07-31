@@ -66,11 +66,14 @@
 - Mobile Jest -> 43 suites / 399 tests passed.
 - `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API reported zero known vulnerabilities.
 - `scripts/run_local_gates --profile dev` -> 19/20 gates passed plus the declared dev-only Node 25.9.0 versus required 22.13.0 safe exception; no failed gate.
-- Post-stack rebase validation on 2026-07-31: `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
-- Post-stack CloudBase API validation: `npm test -- --runInBand` -> 185/185 tests passed.
-- Post-stack mobile validation: lint and typecheck passed (14 pre-existing inline-style warnings, 0 errors); metadata and design-metadata scans passed; Jest 45 suites / 434 tests passed.
-- Post-stack dependency validation: `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API reported zero known vulnerabilities.
-- `git diff --check 446a6b47765b13c54015cf0582d593a89ee35a57...HEAD` -> passed after rebasing the beta-only change on the reviewed audio stack.
+- Independent-main validation on 2026-08-01 after rebasing only the two beta commits from the audio stack onto exact `origin/main` `db7233d5981ee43f6fd57071de398edf8e0478b3`:
+  - The audio-runtime conflict in `spec/runtime-boundaries.json` was resolved by retaining the actual `main` audio truth and adding only the beta-entitlement boundary; the resulting 21-file diff contains no audio implementation file.
+  - Both rebased commits retain valid ED25519 signatures.
+  - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
+  - `npm test` in `infra/cloudbase/functions/softbook-api` -> 185/185 tests passed.
+  - Mobile lint and typecheck passed; metadata and design-metadata scans passed; Jest 44 suites / 422 tests passed.
+  - `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API reported zero known vulnerabilities.
+  - `git diff --check origin/main...HEAD` -> passed.
 - No CloudBase command was run with `--apply`.
 
 ## Validation results
@@ -78,7 +81,7 @@
 - Tests prove strict command fields, phone validation, event collision rejection, exact replay idempotency, matching-grant revoke, audit sequence validation, topic-branch write rejection, post-write verification, and phone-free reports.
 - Canonical CloudBase membership tests prove active beta access overlays premium without changing the base membership, later base premium survives beta revoke, and malformed active evidence fails closed.
 - Provisioning and blank-baseline checks include `softbook_beta_entitlements`; smoke lifecycle cleanup deletes only exact manifest-owned beta documents.
-- Repository-local harness, backend, mobile, metadata, and dependency-security checks pass on the rebased stack. Formal remote required-check evidence remains pending until this branch is rebased onto the final serially merged base and opened as its own PR.
+- Repository-local harness, backend, mobile, metadata, and dependency-security checks pass on an independent exact-`main` base without the unmerged audio implementation. Formal remote required-check evidence remains pending until the compact-Mine PR is squash-merged, this branch is rebased onto that actual `main`, and the beta-only PR is opened.
 
 ## Binary evidence
 
@@ -111,6 +114,6 @@
 
 ## Follow-up
 
-- After the serial UI/audio dependency chain is resolved, rebase the beta-only commit onto exact `origin/main`, rerun the complete PR profile, and open its own PR.
+- After the compact-Mine PR is squash-merged, rebase these beta-only commits onto the resulting exact `origin/main`, rerun the complete PR profile, and open the independent PR without waiting for the audio Draft.
 - In the receiver-owned environment, provision the new collection before deploying the runtime, then dry-run and apply lifecycle-owned test grant/revoke commands from clean exact `main`.
 - Verify the entitlement on both iOS and Android through login, bootstrap, learning access, restart recovery, and exact cleanup before closed-beta release.
