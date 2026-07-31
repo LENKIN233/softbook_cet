@@ -29,7 +29,7 @@
 - Gradle now exposes mutually exclusive explicit signed and unsigned Release modes. Signed mode requires all four receiver signing values; unsigned mode rejects them.
 - `scripts/build_android_signed_release.mjs` implements `build`, `finalize`, `verify`, and `discard` operations. Mutating build/finalize operations require clean `main` exactly equal to `origin/main`.
 - A signed build is accepted only after `apksigner verify --verbose --print-certs --Werr` reports exactly one signing certificate and APK Signature Scheme v2 or newer.
-- The ignored, mode-0600 build state contains artifact identity but no password. Private state and public reports use strict JSON; exclusive randomized temporary files, regular-file checks, path confinement, and symbolic-link rejection protect their write/read boundaries. Finalization requires an authenticated GitHub Release asset digest and size that match the locally verified APK, then removes the private state before publishing `android-signed-release.v1`.
+- The receiver keystore must be a regular file outside the repository and, on POSIX, must expose no group/other permissions. The ignored, mode-0600 build state contains artifact identity but no password. Private state and public reports use strict JSON; exclusive randomized temporary files, regular-file checks, path confinement, and symbolic-link rejection protect their write/read boundaries. Finalization requires an authenticated GitHub Release asset digest and size that match the locally verified APK, then removes the private state before publishing `android-signed-release.v1`.
 - `android-distribution/release-signing` is capability-eligible but never gate-eligible through this report alone. Its repository evidence must be `external-capability-evidence.v1`, satisfy the exact operational policy checks, rehash all tracked raw artifacts, and contain exactly one semantic `android-signed-release.v1` raw report bound to the reachable commit, product-owner verifier, archive/observation time, and hashed receiver target.
 
 ## Workspace boundary and read scope
@@ -49,7 +49,7 @@
 
 ## Commands run
 
-- `node --test scripts/test_build_android_signed_release.mjs scripts/test_android_release_boundary.mjs scripts/test_validate_launch_readiness.mjs` -> 51 tests passed.
+- `node --test scripts/test_build_android_signed_release.mjs scripts/test_android_release_boundary.mjs scripts/test_validate_launch_readiness.mjs` -> 52 tests passed.
 - `node scripts/validate_launch_readiness.mjs` -> repository evidence was valid; launch remained honestly not ready with 5 pending, 5 blocked, and 0 passed gates.
 - `npm test` in `infra/cloudbase/functions/softbook-api` -> 206 tests passed.
 - `npm test -- --runInBand` in `apps/mobile` -> 44 suites and 424 tests passed.
@@ -66,7 +66,7 @@
 
 - Unit integration proves complete signing configuration can produce a mode-0600 state without leaking either test password, while partial configuration fails.
 - `apksigner` parsing rejects v1-only output and more than one certificate identity.
-- Finalization rejects a changed local APK, a mismatched or digest-less GitHub Release asset, a non-human verifier, duplicate-key JSON, symbolic-link traversal, and a private state whose artifact path was redirected.
+- Build setup rejects a keystore inside the repository or with group/other POSIX permissions. Finalization rejects a changed local APK, a mismatched or digest-less GitHub Release asset, a non-human verifier, duplicate-key JSON, symbolic-link traversal, and a private state whose artifact path was redirected.
 - The public report is strict-schema, contains the exact APK/certificate hashes and signature schemes, and can be rechecked against GitHub asset metadata.
 - Readiness evidence for `android-distribution/release-signing` cannot use a bare signed-release report or a structurally unrelated file. The typed wrapper, policy checks, tracked raw artifacts, hashes, commit, verifier, time, and target bindings are all validated independently.
 

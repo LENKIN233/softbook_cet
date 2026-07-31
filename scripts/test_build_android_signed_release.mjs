@@ -50,6 +50,40 @@ test('signing environment is all-or-nothing and never returns secrets', t => {
     JSON.stringify(result),
     /receiver-store-password|receiver-key-password/,
   );
+
+  if (process.platform !== 'win32') {
+    fs.chmodSync(fixture.keystore, 0o640);
+    assert.throws(
+      () => inspectSigningEnvironment(fixture.signingEnv),
+      /must not be readable or writable by group or other users/,
+    );
+    fs.chmodSync(fixture.keystore, 0o600);
+  }
+});
+
+test('receiver keystore must remain outside the repository', async t => {
+  const fixture = createFixture(t);
+  const repositoryKeystore = path.join(fixture.root, 'receiver-release.jks');
+  fs.writeFileSync(repositoryKeystore, 'unsafe-repository-keystore', {
+    mode: 0o600,
+  });
+  fs.chmodSync(repositoryKeystore, 0o600);
+
+  await assert.rejects(
+    buildSignedAndroidRelease({
+      env: {
+        ...fixture.signingEnv,
+        SOFTBOOK_ANDROID_RELEASE_STORE_FILE: repositoryKeystore,
+      },
+      repository: exactMainRepository(),
+      repositoryRoot: fixture.root,
+      statePath: path.join(
+        fixture.root,
+        'docs/agent-runs/artifacts/state.json',
+      ),
+    }),
+    /must be stored outside the repository/,
+  );
 });
 
 test('mutating signed release operations require clean main at origin/main', async t => {
@@ -419,7 +453,11 @@ function createFixture(t) {
   t.after(() => fs.rmSync(root, { force: true, recursive: true }));
   const gradle = path.join(root, 'apps/mobile/android/app/build.gradle');
   const gradlew = path.join(root, 'apps/mobile/android/gradlew');
-  const keystore = path.join(root, 'receiver-release.jks');
+  const privateRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'softbook-android-keystore-'),
+  );
+  t.after(() => fs.rmSync(privateRoot, {force: true, recursive: true}));
+  const keystore = path.join(privateRoot, 'receiver-release.jks');
   const apksigner = path.join(root, 'android-sdk/apksigner');
   fs.mkdirSync(path.dirname(gradle), { recursive: true });
   fs.mkdirSync(path.dirname(apksigner), { recursive: true });
@@ -428,7 +466,8 @@ function createFixture(t) {
     'applicationId "com.softbook.cet"\nversionCode 1\nversionName "1.0"\n',
   );
   fs.writeFileSync(gradlew, '#!/bin/sh\n');
-  fs.writeFileSync(keystore, 'test-keystore');
+  fs.writeFileSync(keystore, 'test-keystore', {mode: 0o600});
+  fs.chmodSync(keystore, 0o600);
   fs.writeFileSync(apksigner, '#!/bin/sh\n');
   return {
     apksigner,

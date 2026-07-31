@@ -48,6 +48,7 @@ export async function buildSignedAndroidRelease({
     );
   }
   const signing = inspectSigningEnvironment(env);
+  assertReceiverKeystoreBoundary(env, repositoryRoot);
   const targetId = requireTargetId(env.SOFTBOOK_ANDROID_RELEASE_TARGET_ID);
   const apksigner = findApkSigner(env);
   const identity = readAndroidIdentity(
@@ -294,6 +295,11 @@ export function inspectSigningEnvironment(env = process.env) {
   const stats = lstatSync(storePath);
   if (!stats.isFile())
     throw new Error('Android release keystore must be a regular file.');
+  if (process.platform !== 'win32' && (stats.mode & 0o077) !== 0) {
+    throw new Error(
+      'Android release keystore must not be readable or writable by group or other users.',
+    );
+  }
   for (const name of [
     'SOFTBOOK_ANDROID_RELEASE_STORE_PASSWORD',
     'SOFTBOOK_ANDROID_RELEASE_KEY_PASSWORD',
@@ -305,6 +311,18 @@ export function inspectSigningEnvironment(env = process.env) {
     throw new Error('SOFTBOOK_ANDROID_RELEASE_KEY_ALIAS is invalid.');
   }
   return { complete: true, configured_names: [...SIGNING_ENV_NAMES] };
+}
+
+function assertReceiverKeystoreBoundary(env, repositoryRoot) {
+  const value = env.SOFTBOOK_ANDROID_RELEASE_STORE_FILE;
+  if (typeof value !== 'string' || value.length === 0) return;
+  const storePath = resolve(value);
+  const root = resolve(repositoryRoot);
+  if (storePath === root || storePath.startsWith(`${root}${sep}`)) {
+    throw new Error(
+      'Android release keystore must be stored outside the repository.',
+    );
+  }
 }
 
 export function parseApkSignerOutput(output) {

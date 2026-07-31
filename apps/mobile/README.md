@@ -92,7 +92,8 @@ JAVA_HOME=<jdk-17-home> ANDROID_HOME=<android-sdk> npm run android:release:unsig
 ```
 
 接收方正式签名采用两阶段、失败关闭的流程。脚本不会生成 keystore，也不会把
-keystore 路径、alias 或密码写入公开报告；`build --apply` 和 `finalize --apply` 只允许
+keystore 路径、alias 或密码写入公开报告；keystore 文件必须位于仓库外，且在 POSIX
+环境中不得向 group/other 开放任何权限。`build --apply` 和 `finalize --apply` 只允许
 在干净且与 `origin/main` 完全一致的 `main` 上执行。除上面的四项签名变量外，构建时
 还需提供稳定的非敏感目标 ID：
 
