@@ -80,12 +80,51 @@ test('secret inspection exposes names and validation only, never values', () => 
     'SOFTBOOK_AUTH_INDEX_SECRET',
     'SOFTBOOK_AUTH_TOKEN_SECRET',
     'SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM',
+    'SOFTBOOK_SMS_PROVIDER',
     'SOFTBOOK_SMS_WEBHOOK_SECRET',
     'SOFTBOOK_SMS_WEBHOOK_URL',
   ]);
   for (const value of Object.values(env)) {
     assert.equal(serialized.includes(value), false);
   }
+});
+
+test('receiver runtime can select Tencent Cloud SMS without carrying webhook credentials', () => {
+  const env = receiverEnvironment();
+  delete env.SOFTBOOK_SMS_WEBHOOK_SECRET;
+  delete env.SOFTBOOK_SMS_WEBHOOK_URL;
+  Object.assign(env, {
+    SOFTBOOK_SMS_PROVIDER: 'tencentcloud',
+    SOFTBOOK_SMS_TENCENT_REGION: 'ap-guangzhou',
+    SOFTBOOK_SMS_TENCENT_SDK_APP_ID: '1400006666',
+    SOFTBOOK_SMS_TENCENT_SECRET_ID: 'AKID0123456789ABCDEFGHIJKLMN',
+    SOFTBOOK_SMS_TENCENT_SECRET_KEY: 'tencent-secret-key-0123456789-ABCDEFG',
+    SOFTBOOK_SMS_TENCENT_SIGN_NAME: '软书四六级',
+    SOFTBOOK_SMS_TENCENT_TEMPLATE_ID: '1110',
+    SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS: 'code,expiry_minutes',
+  });
+
+  const runtime = deliveryCli.buildReceiverRuntimeEnvironment(profileFixture(), env);
+
+  assert.equal(runtime.SOFTBOOK_SMS_PROVIDER, 'tencentcloud');
+  assert.equal(runtime.SOFTBOOK_SMS_TENCENT_REGION, 'ap-guangzhou');
+  assert.equal(runtime.SOFTBOOK_SMS_TENCENT_SIGN_NAME, '软书四六级');
+  assert.equal(Object.hasOwn(runtime, 'SOFTBOOK_SMS_WEBHOOK_SECRET'), false);
+  assert.equal(Object.hasOwn(runtime, 'SOFTBOOK_SMS_WEBHOOK_URL'), false);
+});
+
+test('receiver preflight rejects an unknown provider and unsafe SMS timeout', () => {
+  const unknown = receiverEnvironment();
+  unknown.SOFTBOOK_SMS_PROVIDER = 'fixed-code';
+  const unknownInspection = deliveryCli.inspectReceiverSecrets(profileFixture(), unknown);
+  assert.equal(unknownInspection.ok, false);
+  assert.match(unknownInspection.errors.join(';'), /webhook or tencentcloud/);
+
+  const unsafeTimeout = receiverEnvironment();
+  unsafeTimeout.SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS = '15001';
+  const timeoutInspection = deliveryCli.inspectReceiverSecrets(profileFixture(), unsafeTimeout);
+  assert.equal(timeoutInspection.ok, false);
+  assert.match(timeoutInspection.errors.join(';'), /1 to 15000/);
 });
 
 test('receiver preflight reads the exact environment and reports missing collections', async () => {
@@ -299,6 +338,7 @@ function receiverEnvironment() {
       format: 'pem',
       type: 'pkcs8',
     }),
+    SOFTBOOK_SMS_PROVIDER: 'webhook',
     SOFTBOOK_SMS_WEBHOOK_SECRET: 'sms-secret-1357902468-QWERTYUIOPAS',
     SOFTBOOK_SMS_WEBHOOK_URL: 'https://sms.receiver.example/v1/send',
   };

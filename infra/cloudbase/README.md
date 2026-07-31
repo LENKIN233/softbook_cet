@@ -355,15 +355,33 @@ Receiver/CI secrets are never stored in `delivery-profile.v1`:
 SOFTBOOK_AUTH_TOKEN_SECRET
 SOFTBOOK_AUTH_INDEX_SECRET
 SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM
+SOFTBOOK_SMS_PROVIDER=webhook
 SOFTBOOK_SMS_WEBHOOK_URL
 SOFTBOOK_SMS_WEBHOOK_SECRET
 ```
 
-The deploy command injects the public `signing_key_id` from the profile, sets
-production mode, uses the receiver HTTPS SMS webhook, and does not carry
-`SOFTBOOK_SMS_DEV_CODE`. The SMS gateway receives
-`softbook-sms-delivery.v1` over HTTPS with a bearer secret. A successful local
-or CI test does not prove the gateway sent a real message.
+Or select the direct Tencent Cloud SMS adapter:
+
+```text
+SOFTBOOK_SMS_PROVIDER=tencentcloud
+SOFTBOOK_SMS_TENCENT_SECRET_ID
+SOFTBOOK_SMS_TENCENT_SECRET_KEY
+SOFTBOOK_SMS_TENCENT_REGION=ap-guangzhou
+SOFTBOOK_SMS_TENCENT_SDK_APP_ID
+SOFTBOOK_SMS_TENCENT_SIGN_NAME
+SOFTBOOK_SMS_TENCENT_TEMPLATE_ID
+SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS=code,expiry_minutes
+```
+
+`SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS` must match the approved template's
+placeholder order and may be `code` or `code,expiry_minutes`. The deploy command
+injects the public `signing_key_id` from the profile, sets production mode, and
+does not carry `SOFTBOOK_SMS_DEV_CODE`. Webhook mode sends
+`softbook-sms-delivery.v1` over HTTPS with a bearer secret. Tencent Cloud mode
+uses SMS v20210111, converts the verified mainland mobile number to E.164, and
+accepts only one matching `Ok` send status. A successful local or CI test does
+not prove that either provider sent a real message; the receiver still needs a
+lifecycle-managed SMS smoke after its sign and template are approved.
 
 ### Audited closed-beta entitlement
 
@@ -388,6 +406,51 @@ The same command shape is used for `grant` and `revoke`. Apply requires Node
 stored together in `softbook_beta_entitlements`. The base membership document
 is not modified. Command files contain phone numbers and must not be committed
 or included in a release bundle.
+
+### Real-provider SMS smoke
+
+The repository provides a database-free, two-phase provider smoke. Dry-run
+validates the selected production adapter without sending:
+
+```bash
+SOFTBOOK_SMS_SMOKE_PHONE=<receiver-owned-test-phone> \
+SOFTBOOK_SMS_SMOKE_TARGET_ID=<receiver-environment-id> \
+node infra/cloudbase/smoke-sms-provider.mjs prepare \
+  --state docs/agent-runs/artifacts/sms-provider-smoke.json \
+  --format json
+```
+
+Run the same command with `--apply` only from clean `main` exactly matching
+`origin/main`. The raw phone and generated code then exist only in the ignored,
+mode-0600 state file. After a human receives the message, pass the received code
+through stdin rather than an argument or environment variable:
+
+```bash
+read -r -s RECEIVED_SMS_CODE
+printf '%s' "$RECEIVED_SMS_CODE" | \
+  SOFTBOOK_SMS_SMOKE_VERIFIER=github:LENKIN233 \
+  node infra/cloudbase/smoke-sms-provider.mjs confirm \
+    --state docs/agent-runs/artifacts/sms-provider-smoke.json \
+    --report docs/release/evidence/raw/sms-provider-smoke.json \
+    --apply --format json
+unset RECEIVED_SMS_CODE
+```
+
+Successful confirmation atomically removes private state before publishing the
+PII-free raw `sms-provider-smoke.v1` report below
+`docs/release/evidence/raw/`. The target ID must be the receiver environment ID
+used by the release candidate. A wrong code is limited to three local attempts;
+expiry or the third mismatch deletes private state and produces no evidence.
+Use `discard --state ... --apply` to remove an interrupted state.
+
+The raw report is not itself a gate record. Formal evidence must wrap it in a
+`launch-gate-evidence.v1` artifact for `sms-provider-smoke`, set
+`measurements.report_role` to the raw report role, and bind the same run ID,
+repository commit, receiver environment, send/confirmation window, human
+verifier, release candidate, independent attestation, file size, and SHA-256.
+The launch validator re-hashes both files and validates these bindings; a direct
+raw report, generic summary, local test, or mismatched wrapper remains
+ineligible.
 
 Dependency audit status: the current lockfile returns zero known findings from
 `npm audit --omit=dev`. This is a point-in-time dependency result, not production

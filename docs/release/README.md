@@ -39,6 +39,13 @@ artifacts. Large or restricted remote evidence must be represented by an
 `agent-run-evidence.v1` repository manifest that the required
 `evidence-archive` gate has independently verified.
 
+The `sms-provider-smoke` type has a dedicated semantic contract. A real
+two-phase send produces a PII-free `sms-provider-smoke.v1` raw report below
+`docs/release/evidence/raw/`; a formal `launch-gate-evidence.v1` wrapper must
+bind that report to the exact launch candidate, receiver environment, campaign,
+execution window, human verifier, independent attestation, byte size, and
+SHA-256. The raw report alone cannot satisfy the gate.
+
 External account capabilities and the approved box/card coverage reports must be
 verified by the tracked product owner, `github:LENKIN233`. Evidence from Apple,
 Tencent Cloud, payment portals, filing systems, or security vendors must first

@@ -193,10 +193,31 @@ existing API error envelope.
 
 ## Explicit remaining work
 
-This contract does not satisfy the launch gate. Remaining blockers include:
+This contract does not satisfy the launch gate. The repository now implements
+both a receiver-owned HTTPS webhook and a direct Tencent Cloud SMS v20210111
+adapter. The Tencent path binds one mainland-China E.164 recipient to an
+environment-supplied approved SdkAppId, sign, template, and explicit
+`code`/`expiry_minutes` parameter order; only a single `Ok` status for that
+recipient is accepted. Credentials and template configuration remain outside
+tracked files, and provider details are not exposed through the public auth
+error envelope.
 
-- Tencent Cloud SMS provider integration, signature/template approval, and
-  delivery smoke evidence;
+`infra/cloudbase/smoke-sms-provider.mjs` implements a database-free two-phase
+provider acceptance path. Apply mode is restricted to clean exact `main`, keeps
+the phone and generated code in a mode-0600 ignored file, and requires a human
+to submit the received code through stdin. A match deletes private state before
+publishing a strict PII-free `sms-provider-smoke.v1` raw report below
+`docs/release/evidence/raw/`. That report is not gate-eligible by itself; formal
+launch evidence must wrap it in the typed `launch-gate-evidence.v1` contract.
+Repository tests and the launch validator cover this workflow, but neither raw
+nor formal evidence exists until the receiver actually performs and confirms a
+real send.
+
+Remaining blockers include:
+
+- Tencent Cloud SMS account enablement, signature/template approval, an
+  actually executed lifecycle-managed delivery smoke raw report, and its typed
+  formal wrapper;
 - production secret injection, signing-key key-ring rotation, and stable index
   secret custody;
 - production Web origin allowlisting and gateway abuse-control review;

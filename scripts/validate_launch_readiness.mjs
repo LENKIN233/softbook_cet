@@ -610,6 +610,15 @@ export function verifyRepositoryEvidenceFiles(
       );
     }
     const expectedPolicy = loadedContext?.expectedPolicies?.[record.gateId];
+    const smsProviderResult =
+      record.evidenceType === 'sms-provider-smoke'
+        ? loadSmsProviderSmokeReport(artifact, {
+            label,
+            root,
+            trackedFiles,
+          })
+        : {errors: [], ok: true, report: null};
+    errors.push(...smsProviderResult.errors);
     const result = validateGateEvidenceArtifact(artifact, {
       evidenceType: record.evidenceType,
       expectedPolicy,
@@ -617,9 +626,10 @@ export function verifyRepositoryEvidenceFiles(
       gateId: record.gateId,
       outerEvidence: evidence,
       releaseOperationalPolicy: loadedContext?.releaseOperationalPolicy,
+      smsProviderSmokeReport: smsProviderResult.report,
     });
     errors.push(...result.errors);
-    if (result.ok) {
+    if (result.ok && smsProviderResult.ok) {
       const reports = parsedGateEvidence.get(record.gateId) ?? [];
       reports.push(artifact);
       parsedGateEvidence.set(record.gateId, reports);
@@ -1163,6 +1173,52 @@ export function loadLaunchEvidenceSemanticContext({root = ROOT} = {}) {
     releaseOperationalPolicy,
     releasePolicySha256,
   };
+}
+
+function loadSmsProviderSmokeReport(
+  artifact,
+  {label, root, trackedFiles},
+) {
+  const errors = [];
+  const reportRole = artifact?.measurements?.report_role;
+  const matchingArtifacts = asArray(artifact?.raw_artifacts).filter(
+    candidate => candidate?.role === reportRole,
+  );
+  if (matchingArtifacts.length !== 1) {
+    errors.push(
+      `${label} SMS provider smoke report_role must resolve to exactly one raw artifact.`,
+    );
+    return {errors, ok: false, report: null};
+  }
+  const rawArtifact = matchingArtifacts[0];
+  if (!rawArtifact?.artifact_uri?.startsWith('repo://')) {
+    errors.push(`${label} SMS provider smoke report must use repo://.`);
+    return {errors, ok: false, report: null};
+  }
+  const relativePath = rawArtifact.artifact_uri.slice('repo://'.length);
+  if (!trackedFiles.has(relativePath)) {
+    errors.push(`${label} SMS provider smoke report must be tracked by Git.`);
+    return {errors, ok: false, report: null};
+  }
+  const resolvedPath = path.resolve(root, relativePath);
+  const rootPrefix = `${path.resolve(root)}${path.sep}`;
+  if (!resolvedPath.startsWith(rootPrefix)) {
+    errors.push(`${label} SMS provider smoke report escapes the repository root.`);
+    return {errors, ok: false, report: null};
+  }
+  if (!fs.existsSync(resolvedPath) || !fs.lstatSync(resolvedPath).isFile()) {
+    errors.push(`${label} SMS provider smoke report must be a regular file.`);
+    return {errors, ok: false, report: null};
+  }
+  const bytes = fs.readFileSync(resolvedPath);
+  let report;
+  try {
+    report = parseStrictJson(bytes, `${label} SMS provider smoke raw report`);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+    return {errors, ok: false, report: null};
+  }
+  return {errors, ok: errors.length === 0, report};
 }
 
 function validateProductScope(scope, errors) {
