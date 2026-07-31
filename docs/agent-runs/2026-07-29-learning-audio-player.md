@@ -94,6 +94,7 @@
   - `cd apps/mobile && npm run metadata-leak-scan && npm run design-metadata-leak-scan` -> passed.
   - `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 45 suites and 434 tests passed; the retained compact-viewport and audio integration tests both pass.
   - `cd infra/cloudbase/functions/softbook-api && npm test` -> 176 tests passed.
+  - `cd apps/mobile/android && env JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/Users/lenkin/Library/Android/sdk ANDROID_SDK_ROOT=/Users/lenkin/Library/Android/sdk ./gradlew :app:compileDebugKotlin --no-daemon` -> passed (`BUILD SUCCESSFUL`, 107 tasks) after retrying transient Gradle Plugin Portal / Google Maven TLS fetch failures; the failed attempts were dependency-download/environment failures, not Kotlin compiler findings.
   - `git diff --check 46624f66275a335775ea4b30c4355b7b205646ea...HEAD` -> passed; the diff remains limited to the audio implementation, runtime truth, and this run record.
 
 ## Validation results
