@@ -4,7 +4,7 @@
 
 - Date: 2026-07-29
 - Branch: `fix/android-mine-small-screen`
-- PR: pending dependency on PR #461
+- PR: pending creation after PR #461 merge
 - Summary: Removes overlapping account, route, and membership objects from Mine on a 320dp Android phone viewport while preserving the accepted quiet account-object hierarchy and membership semantics.
 
 ## Referenced specs
@@ -73,6 +73,13 @@
   - `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 44 suites and 423 tests passed.
   - `cd apps/mobile && npm run metadata-leak-scan && npm run design-metadata-leak-scan` -> both repository scans passed.
   - `git diff --check 6d403f364b250400bed1ef60a6342fd021f6750b...HEAD` -> passed; the Mine-only diff remains limited to the three files listed above.
+- 2026-08-01 final rebase after PR #461 passed every required check and squash-merged as `db7233d5981ee43f6fd57071de398edf8e0478b3`:
+  - The two Mine-only commits were rebased onto exact `origin/main`; both rebased commits retain valid signatures and the diff remains limited to `App.tsx`, `App.test.tsx`, and this run record.
+  - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
+  - `cd apps/mobile && npm run lint -- --quiet && npm run typecheck` -> passed.
+  - `cd apps/mobile && npm run metadata-leak-scan && npm run design-metadata-leak-scan` -> passed.
+  - `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 44 suites and 423 tests passed.
+  - `git diff --check origin/main...HEAD` -> passed.
 
 ## Validation results
 
@@ -128,5 +135,5 @@
 
 ## Follow-up
 
-- After PR #461 merges, rebase this locally validated stack onto its tree-equivalent `main` squash commit, re-sign commits, create the Mine-only PR, and complete required Agent review/checks.
+- Create the Mine-only PR from this exact rebased stack, then complete exact-head Agent review and required checks before merge.
 - Add physical-device and dynamic-font evidence before beta release readiness.
