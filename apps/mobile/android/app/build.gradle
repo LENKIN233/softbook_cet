@@ -72,6 +72,26 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+def releaseStoreFilePath = System.getenv('SOFTBOOK_ANDROID_RELEASE_STORE_FILE')
+def releaseStorePassword = System.getenv('SOFTBOOK_ANDROID_RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('SOFTBOOK_ANDROID_RELEASE_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('SOFTBOOK_ANDROID_RELEASE_KEY_PASSWORD')
+def releaseSigningValues = [
+    releaseStoreFilePath,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+]
+def configuredReleaseSigningValues = releaseSigningValues.count { value -> value != null && !value.isEmpty() }
+def releaseSigningConfigured = configuredReleaseSigningValues == releaseSigningValues.size()
+
+if (configuredReleaseSigningValues > 0 && !releaseSigningConfigured) {
+    throw new GradleException('Android release signing is partially configured.')
+}
+if (releaseSigningConfigured && !file(releaseStoreFilePath).isFile()) {
+    throw new GradleException('Android release signing store file does not exist.')
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -92,18 +112,41 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        if (releaseSigningConfigured) {
+            release {
+                storeFile file(releaseStoreFilePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            if (releaseSigningConfigured) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
+    }
+}
+
+tasks.register('verifyReleaseSigningBoundary') {
+    doLast {
+        def configuredSigning = android.buildTypes.release.signingConfig
+        if (configuredSigning != null && configuredSigning.name == 'debug') {
+            throw new GradleException('Android release must never use the debug signing config.')
+        }
+        if (releaseSigningConfigured && configuredSigning?.name != 'release') {
+            throw new GradleException('Configured Android release signing was not applied.')
+        }
+        println releaseSigningConfigured
+            ? 'Android release signing boundary: receiver signing configured.'
+            : 'Android release signing boundary: unsigned CI artifact.'
     }
 }
 

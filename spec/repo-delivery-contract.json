@@ -1,5 +1,5 @@
 {
-  "version": "vnext-14",
+  "version": "vnext-15",
   "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -235,6 +235,10 @@
       {
         "id": "ios_release",
         "command": "cd apps/mobile && bundle install && git diff --exit-code -- Gemfile.lock && bundle exec pod install --project-directory=ios --deployment && xcodebuild Release simulator build and unsigned archive"
+      },
+      {
+        "id": "android_release",
+        "command": "cd apps/mobile && JDK 17 npm run android:release:unsigned && verify app-release-unsigned.apk exists"
       },
       {
         "id": "repository_health",

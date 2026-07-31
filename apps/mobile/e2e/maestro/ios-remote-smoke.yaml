@@ -10,6 +10,8 @@ name: ios-remote-auth-learning-space-statistics-smoke
 - inputText: "${SOFTBOOK_CET_MAESTRO_PHONE}"
 - tapOn:
     id: "auth-dismiss-keyboard-button"
+    optional: true
+- hideKeyboard
 - assertVisible:
     id: "auth-request-code-button"
 - tapOn:

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-22",
+  "version": "vnext-23",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -574,6 +574,7 @@
         "mobile-quality",
         "dependency-security",
         "ios-release",
+        "android-release",
         "repo-health",
         "evidence-archive",
         "formal-approval"

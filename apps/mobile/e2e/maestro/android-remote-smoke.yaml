@@ -1,0 +1,5 @@
+appId: com.softbook.cet
+name: android-remote-auth-learning-space-statistics-smoke
+---
+- runFlow:
+    file: ios-remote-smoke.yaml
