@@ -6,7 +6,7 @@
 - Branch: `infra/tencent-sms-provider`
 - PR: [#467](https://github.com/LENKIN233/softbook_cet/pull/467)
 - Summary: Added a receiver-selectable direct Tencent Cloud SMS production adapter while retaining the existing HTTPS webhook path, plus a two-phase human-confirmed raw smoke and a typed launch-evidence wrapper contract. No real SMS, CloudBase write, deployment, or receiver-secret access was performed.
-- Final integration base before PR creation: `origin/main` `f0410d777f0a539d935537cc74e38f1d6943e41b`; the branch was replayed after the Android release and typed launch-evidence governance PRs merged.
+- Final integration base: exact `origin/main` `253ae12b3132a7250acb0e05d2c7d4f555a3c9c4`; the branch was serially replayed after beta entitlement PR #465 and Learning swipe PR #466 passed their exact-head required checks and squash-merged.
 
 ## Referenced specs
 
@@ -58,18 +58,18 @@
 
 ## Commands run
 
-- `cd infra/cloudbase/functions/softbook-api && npm test` -> 197/197 tests passed on the rebased branch after the 2026-08-01 provider-shape and typed-wrapper tightening.
-- `cd infra/cloudbase/functions/softbook-api && node --test test/sms-provider.test.js test/deliver-release.test.js` -> 23 tests passed at an earlier targeted checkpoint; all later provider and smoke regressions are included in the final 197-test run.
+- `cd infra/cloudbase/functions/softbook-api && npm test` -> 206/206 tests passed on the final post-#466 rebased branch after the provider-shape, typed-wrapper, raw-path, and atomic-write tightening.
+- `cd infra/cloudbase/functions/softbook-api && node --test test/sms-provider.test.js test/deliver-release.test.js` -> 23 tests passed at an earlier targeted checkpoint; all later provider and smoke regressions are included in the final 206-test run.
 - `cd infra/cloudbase/functions/softbook-api && npm audit --omit=dev --audit-level=moderate` -> zero known vulnerabilities after overriding the SDK's compatible `uuid` dependency to 11.1.1.
 - `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API both reported zero known vulnerabilities.
 - `python3 -m json.tool spec/runtime-boundaries.json` and `git diff --check` -> passed.
 - `scripts/run_local_gates --profile dev` -> `PASSED_WITH_EXCEPTION`, 19/20 passed, no failed gate; only the declared development Node 25.9.0 versus pinned Node 22.13.0 exception remained.
-- `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK` after replay onto the post-#460/#463 main.
+- `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK` after final replay onto the post-#466 main.
 - `node --test test/sms-provider.test.js test/sms-provider-smoke.test.js` -> 24 targeted provider/smoke tests passed before the final request-ID and symlink regressions; both are included in the final full run.
 - `node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs` -> 19 tests passed; tracked readiness remained structurally valid and honestly `ready=false`.
 - Final typed-evidence regression: `node --test scripts/test_validate_launch_readiness.mjs` -> 37/37 passed, including direct-raw rejection, mandatory raw-report injection, enforced `docs/release/evidence/raw/` placement at the shared validator boundary, and campaign/commit/environment/time/verifier/hash wrapper binding.
 - `scripts/run_local_gates --profile dev` -> `PASSED_WITH_EXCEPTION`, 19/20 passed and zero failed gates after `npm ci`; the sole declared exception is local Node 25.9.0 versus pinned Node 22.13.0.
-- Mobile regression within the final local-gate run -> 44 suites / 423 tests passed.
+- Mobile regression within the final local-gate run -> 44 suites / 424 tests passed.
 
 ## Validation results
 
