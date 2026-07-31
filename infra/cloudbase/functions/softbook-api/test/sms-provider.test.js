@@ -180,6 +180,39 @@ test('Tencent Cloud provider accepts a code-only approved template', async () =>
   assert.deepEqual(calls[0].TemplateParamSet, ['482913']);
 });
 
+test('Tencent Cloud provider rejects codes outside the approved six-digit shape', async () => {
+  let calls = 0;
+  const provider = createTencentCloudSmsProvider({
+    client: {
+      async SendSms() {
+        calls += 1;
+        return {
+          RequestId: 'provider-request-id',
+          SendStatusSet: [{Code: 'Ok', PhoneNumber: '+8613800138000'}],
+        };
+      },
+    },
+    clock: () => Date.parse('2026-07-29T07:00:00.000Z'),
+    sdkAppId: '1400006666',
+    signName: '软书四六级',
+    templateId: '1110',
+    templateParameters: ['code'],
+  });
+
+  for (const code of ['12345', '1234567', '12A456']) {
+    await assert.rejects(
+      () =>
+        provider.sendCode({
+          code,
+          expiresAt: '2026-07-29T07:05:00.000Z',
+          phoneNumber: '13800138000',
+        }),
+      /exactly six digits/,
+    );
+  }
+  assert.equal(calls, 0);
+});
+
 test('Tencent Cloud provider rejects a non-Ok or mismatched status without leaking it', async () => {
   for (const status of [
     {Code: 'FailedOperation.TemplateIncorrectOrUnapproved', PhoneNumber: '+8613800138000'},

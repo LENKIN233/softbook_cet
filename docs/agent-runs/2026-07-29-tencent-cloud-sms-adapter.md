@@ -41,7 +41,7 @@
 - Active truth/source read: task-relevant authentication, runtime, delivery, governance specs; CloudBase auth/delivery implementation and tests.
 - Generated/dependency/cache/archive read: the installed official Tencent Cloud SMS package was inspected only to confirm the v20210111 request shape and CommonJS export. It was not used as product truth.
 - External workspace read: none. `/Users/lenkin/programing/card make` was not read or modified.
-- External technical references: official Tencent Cloud SMS SendSms and Node SDK documentation were consulted for the current endpoint, fields, SDK generation, E.164 format, and `Code=Ok` result contract.
+- External technical references: official Tencent Cloud SMS SendSms and Node SDK documentation were consulted for the current endpoint, fields, SDK generation, E.164 format, and `Code=Ok` result contract. Rechecked on 2026-08-01: the official page last updated 2026-04-16 still identifies `2021-01-11` as the current version, requires approved domestic `SignName`/`TemplateId`, exact template parameter count, E.164 recipients, and exposes `SendStatusSet` plus `RequestId`; npm still reports `tencentcloud-sdk-nodejs-sms@4.1.240` as `latest`.
 
 ## Files changed
 
@@ -55,7 +55,7 @@
 
 ## Commands run
 
-- `cd infra/cloudbase/functions/softbook-api && npm test` -> 190 tests passed in the final run.
+- `cd infra/cloudbase/functions/softbook-api && npm test` -> 191 tests passed after the 2026-08-01 provider-shape tightening.
 - `cd infra/cloudbase/functions/softbook-api && node --test test/sms-provider.test.js test/deliver-release.test.js` -> 23 tests passed at an earlier targeted checkpoint; all later provider and smoke regressions are included in the final 190-test run.
 - `cd infra/cloudbase/functions/softbook-api && npm audit --omit=dev --audit-level=moderate` -> zero known vulnerabilities after overriding the SDK's compatible `uuid` dependency to 11.1.1.
 - `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API both reported zero known vulnerabilities.
@@ -68,6 +68,7 @@
 ## Validation results
 
 - The adapter emits one request for one verified mainland-China number, converts it to `+86` E.164, and maps only the configured approved template placeholders.
+- The Tencent adapter rejects every non-six-digit verification code before calling the provider, matching the repository generator and the current provider template constraint rather than relying on remote rejection.
 - Missing credentials, unknown provider values, unsafe regions/IDs/template fields, invalid timeout values, non-`Ok` delivery results, and mismatched returned numbers fail closed.
 - Tests assert that receiver reports expose configured variable names but never secret values, and that one provider's deployed environment does not contain the other provider's credentials.
 - No provider account, approved sign/template, lifecycle-managed phone, or receiver CloudBase environment was available; real delivery smoke remains pending.

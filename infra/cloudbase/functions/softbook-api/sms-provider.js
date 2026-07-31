@@ -339,8 +339,8 @@ function requireMainlandPhoneNumber(value) {
 }
 
 function requireSmsCode(value) {
-  if (typeof value !== 'string' || !/^\d{4,8}$/.test(value)) {
-    throw new Error('Tencent Cloud SMS code is invalid.');
+  if (typeof value !== 'string' || !/^\d{6}$/.test(value)) {
+    throw new Error('Tencent Cloud SMS code must contain exactly six digits.');
   }
   return value;
 }
