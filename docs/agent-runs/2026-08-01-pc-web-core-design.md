@@ -5,7 +5,7 @@
 - Date: 2026-08-01
 - Branch: `module/pc-web-core-design`
 - Base: `origin/main` at `032e9a5d9b03e6fdd9ffd30f270293b9161632fd`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/469
 - Summary: Promotes a design-only PC Web core-surface authority from an eight-candidate search run. It renders authentication, the five canonical Learning interaction families, review with attached audio, Space, Statistics, Mine, and membership gating in contained `1440 x 900` frames, while leaving production implementation to a separate future PR.
 
 ## Referenced specs
@@ -114,5 +114,5 @@
 
 ## Follow-up
 
-- Finish rendered browser inspection and repository design gates, then open this design-only PR.
+- Wait for exact-head required checks and formal product-owner approval; merge only after both are green.
 - After the design authority is accepted and merged, create a separate PC Web implementation PR mapped to these artifacts.
