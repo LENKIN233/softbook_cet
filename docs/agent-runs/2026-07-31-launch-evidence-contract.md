@@ -4,7 +4,7 @@
 
 - Date: 2026-07-31
 - Branch: `infra/launch-evidence-contract`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/463
 - Summary: Added fail-closed, typed launch-evidence validation for learning runtimes, release operations, and external provider capabilities; added a non-gate-eligible blank-receiver simulation and kept the tracked launch baseline honestly not ready. The external `card make` repository was security-audited before its requested Public visibility change.
 
 ## Referenced specs
