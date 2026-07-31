@@ -76,19 +76,22 @@
 - External `card make`: GitHub visibility update and read-back -> `PUBLIC`.
 - External `card make`: enabled GitHub Secret Scanning and Push Protection; open secret-scanning alerts -> 0.
 - External `card make`: PR #108 checks -> 5/5 passed; scope audit -> harness/tooling/docs/templates and contract specs only; squash merge -> `6dfa3b2736e9e8b4ec8d47d444dba6c5e3e4b5e4`.
+- External `card make`: delivery-integrity PR #110 checks -> 5/5 passed; squash merge -> `59c85d65c627783dce452b65caa4530782c4e256`. The follow-up hardens exact PR-event binding, append-only handoffs, pre-payload history detection, and legacy graft rejection without changing candidate content or approval state.
 - `node --test scripts/test_validate_launch_readiness.mjs` -> 36/36 passed.
 - `node --test scripts/test_classify_formal_approval_scope.mjs` -> 10/10 passed.
 - `python3 scripts/validate_harness.py --mode local --format text` -> 15/15 selected sections passed; local completeness remains partial by contract.
 - `python3 scripts/test_validate_harness_runner.py` -> 21/21 passed.
 - `python3 scripts/test_harness_module_boundaries.py` -> 18/18 passed.
 - `PATH=/Users/lenkin/.nvm/versions/node/v22.13.0/bin:/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/run_local_gates --profile dev --verbose` -> 20/20 passed; report `exports/local-gates/20260731T074516Z-baf9a8d2-dev-21740/report.json`.
-- `python3 scripts/validate_harness.py --format text` -> blocked by truthful remote-governance drift: GitHub `main` currently requires `android-release`, while the `origin/main` contract cannot include it until PR #460 receives protected product-owner approval and merges.
+- After protected product-owner approval and merge of PR #460, this branch was rebased onto `bfa7367592aa1cb6c76b1cefdfe15032136b6007`; `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
+- Post-rebase `node --test scripts/test_validate_launch_readiness.mjs scripts/test_classify_formal_approval_scope.mjs` -> 46/46 passed; blank-receiver focused suite -> 5/5 passed; CloudBase backend -> 176/176 passed.
+- Post-rebase `scripts/run_local_gates --profile dev --verbose` -> 19/20 passed plus the declared dev-only Node 25.9.0 versus required 22.13.0 safe exception; no failed gate. Report `exports/local-gates/20260731T140408Z-7058c621-dev-16281/report.json`.
 - `git diff --check` -> passed.
 
 ## Validation results
 
 - The final `dev` profile passed all 20 local gates, including toolchain/network isolation, harness tests, launch contract tests, launch validator, mobile metadata/design scans, mobile lint/typecheck/Jest, CloudBase backend tests, and dependency checks.
-- The full harness remote guard remains blocked only on the expected `android-release` required-check drift; local truth/workspace/harness sections pass.
+- The full harness, including the remote required-check guard, passes after PR #460 aligned `origin/main` with the protected `android-release` context.
 - CloudBase backend suite passed 176/176, including the blank-receiver A/B/rollback simulation.
 - Mobile Jest passed 43 suites / 399 tests; lint and typecheck passed.
 - Launch validation reports `ok=true`, `ready=false`, with 5 pending gates, 5 blocked gates, and 0 passed gates. No simulation or external capability metadata is counted as launch-gate evidence.
@@ -117,6 +120,7 @@
 - `LENKIN233/card-make` changed from Private to Public only after a clean full-history secret scan and current-tree sensitive-material audit.
 - GitHub Secret Scanning and Push Protection are enabled; there are no open secret-scanning alerts.
 - PR #108 passed all five checks and was squash-merged. It changes harness/tooling/docs/templates and contract specs only.
+- PR #110 passed all five checks and was squash-merged. It further hardens delivery integrity without changing candidate payloads or formal approvals.
 - No candidate card content, audio, approval decision, payload import, or formal content quantity was created or altered.
 
 ## Risks and open questions
@@ -124,14 +128,12 @@
 - No receiver-owned environment was provisioned or deployed, so no formal learning-runtime or release-operation evidence was created.
 - The repository-only blank-environment simulation is deliberately nonformal and cannot satisfy a launch gate.
 - The tracked launch baseline remains not ready until a concrete reachable release candidate and all receiver-owned evidence exist.
-- PR #460 still requires human approval in the protected `formal-product-owner-approval` environment before its Android release/signing governance can merge; this approval cannot be self-issued.
+- PR #460 received explicit product-owner authorization through the protected `formal-product-owner-approval` environment and merged as `bfa7367592aa1cb6c76b1cefdfe15032136b6007`.
 - PR #463 itself changes protected launch-evidence policy, semantic validation, approval classification, and workflow surfaces, so it also requires human approval in `formal-product-owner-approval` before merge.
-- Until PR #460 merges, the remote branch-protection set contains `android-release` but the `origin/main` delivery contract does not, so full remote harness validation cannot pass.
 - Remote/large raw evidence must use an immutable archive plus a tracked, rehashed repository manifest; direct HTTPS raw artifacts are rejected.
 - External portal observations remain human-authenticated metadata under protected product-owner approval, not machine-asserted provider truth.
 
 ## Follow-up
 
-- Complete the final harness review, commit and push this branch, then open a Draft PR to `main`.
-- After PR #460 is human-approved and merged, update this branch, run required CI, update the PR description with the complete harness result, obtain PR #463's protected approval, and merge only when all required checks are green.
+- Push the rebased branch, update PR #463 with the complete harness result, obtain its protected product-owner approval, and merge only when all required checks are green.
 - For an actual release candidate, run receiver-owned learning and operational campaigns, archive raw evidence through tracked manifests, and update readiness only after every formal validator passes.
