@@ -73,7 +73,8 @@
     "the repository-local CloudBase learning-events.v2, daily-check-in.v2, and space-actions.v2 endpoints, React Native event/check-in/space-action clients, server scheduler, and mobile session consumer implement active-session identity, immutable account-scoped commands, durable queues before UI authority advances, exact replay, strict acknowledgement removal, retained content validation, transactional projections, canonical bootstrap reconciliation, server card selection, and global removal of v1 daily/learning/space snapshot APIs; deployment remains pending",
     "development-only v1 card-source and membership routes can accept an active v2 session during migration, the v1 daily and learning snapshot-write routes plus both v1 physical-space snapshot routes are always disabled, and production continues to reject every v1 route",
     "remote content failures fail closed and never substitute bundled development cards",
-    "an authenticated v2 content manifest binds exact published track content to URL-free audio descriptors, Ed25519 signatures, and private expiring downloads while requiring client byte-hash verification; the repository-local backend, strict runtime keyring consumer, mobile parser, Learning repository binding, native content-addressed cache, and completed-byte hashing are implemented, while production key registration, native release injection, cache-to-player wiring, playback, and deployment remain pending"
+    "an authenticated v2 content manifest binds exact published track content to URL-free audio descriptors, Ed25519 signatures, and private expiring downloads while requiring client byte-hash verification; the repository-local backend, strict runtime keyring consumer, mobile parser, Learning repository binding, native content-addressed cache, and completed-byte hashing are implemented, while production key registration, native release injection, cache-to-player wiring, playback, and deployment remain pending",
+    "closed beta premium access is granted or revoked only by a receiver operator through a dry-run-first command that atomically stores an idempotent audit event with the active beta grant record while leaving base membership unchanged; no client purchase or self-grant route is exposed"
   ],
   "learning_event_runtime": {
     "classification": "implementation_hypothesis",
@@ -287,6 +288,20 @@
     "repository_blank_environment_simulation_gate_eligible": false,
     "formal_rollback_evidence": "distinct_release_a_and_b_verified_and_retained_state_nonempty_learning_count_and_hash_zero_deletes_and_timed_execution_are_required",
     "blank_environment_drill_status": "pending",
+    "deployment_status": "not_deployed_by_repository_change",
+    "launch_gate_status": "pending"
+  },
+  "beta_entitlement_runtime": {
+    "classification": "implementation_hypothesis",
+    "owner": "spec/membership.json#policy.closed_beta_entitlement",
+    "command_schema": "beta-entitlement-command.v1",
+    "scope": "receiver_owned_closed_beta_environment_only",
+    "access_state": "premium",
+    "mutation_boundary": "receiver_operator_only_no_client_route",
+    "audit_boundary": "idempotent_event_id_actor_reason_timestamp_previous_stage_resulting_stage_and_command_hash_saved_atomically_with_the_active_beta_grant_record_while_base_membership_remains_unchanged",
+    "write_safety": "dry_run_by_default_apply_requires_clean_main_exactly_equal_to_origin_main_and_a_receiver_delivery_profile",
+    "revoke_boundary": "revoke_only_an_active_matching_beta_grant_then_resolve_the_unchanged_current_base_membership_without_downgrading_a_later_non_beta_premium_entitlement",
+    "personal_data_boundary": "command_files_are_operator_inputs_not_release_bundle_artifacts_and_must_not_be_committed_or_exported",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"
   },

@@ -21,6 +21,8 @@ const schedulerWatermarkFieldNames =
   'learning_server_sequence|learningServerSequence';
 const dailyCheckInMetadataFieldNames =
   'check_in_daily_progress|dailyCheckIns|softbook_daily_check_ins|checkInDailyProgress|assertLegacySnapshotWritesDisabled';
+const betaEntitlementMetadataFieldNames =
+  'betaEntitlements|softbook_beta_entitlements';
 
 const rawSpaceMetadataFieldNames = 'library|group|box|box_ref|boxRef';
 const propertyAccessPattern = String.raw`(?:\.|\?\.)`;
@@ -36,6 +38,7 @@ const rawMetadataReferencePattern = new RegExp(
     `\\b\\w+${propertyAccessPattern}(?:${rawMetadataFieldNames})\\b`,
     `\\b(?:${rawMetadataFieldNames})\\b`,
     `\\b(?:${schedulerWatermarkFieldNames})\\b`,
+    `\\b(?:${betaEntitlementMetadataFieldNames})\\b`,
     `\\b(?:${dailyCheckInMetadataFieldNames})\\b`,
   ].join('|'),
 );

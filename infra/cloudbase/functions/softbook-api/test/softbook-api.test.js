@@ -1893,6 +1893,88 @@ test('CloudBase store keeps membership and canonical check-in outside function m
   assert.equal(db.snapshot().get('softbook_daily_progress')?.size ?? 0, 0);
 });
 
+test('CloudBase membership overlays an audited beta grant without overwriting base state', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const phoneNumber = '13800138000';
+  await store.startTrial(phoneNumber, fixedNow.toISOString());
+  const grantEvent = {
+    schema_version: 'beta-entitlement-audit.v1',
+    action: 'grant',
+    actor_id: 'receiver-operator',
+    command_sha256: `sha256:${'a'.repeat(64)}`,
+    event_id: 'beta-event-grant-0001',
+    grant_id: 'cet4-beta-grant-0001',
+    occurred_at: fixedNow.toISOString(),
+    previous_stage: 'trial',
+    reason: 'closed_beta_access',
+    resulting_stage: 'premium',
+  };
+  db.snapshot().get('softbook_beta_entitlements').set(phoneNumber, {
+    active_grant: {
+      schema_version: 'beta-entitlement.v1',
+      actor_id: grantEvent.actor_id,
+      command_sha256: grantEvent.command_sha256,
+      grant_event_id: grantEvent.event_id,
+      grant_id: grantEvent.grant_id,
+      granted_at: grantEvent.occurred_at,
+      reason: grantEvent.reason,
+    },
+    audit: [grantEvent],
+    phone_number: phoneNumber,
+    revision: 1,
+    updated_at: fixedNow.toISOString(),
+  });
+
+  const granted = await store.getMembership(phoneNumber);
+  assert.equal(granted.stage, 'premium');
+  assert.equal(
+    db.snapshot().get('softbook_memberships').get(phoneNumber).entitlement.stage,
+    'trial',
+  );
+  await store.purchase(phoneNumber, '2026-05-01T12:00:00.000Z');
+  const purchasedDuringBeta = await store.getMembership(phoneNumber);
+  assert.equal(purchasedDuringBeta.stage, 'premium');
+  assert.equal(
+    purchasedDuringBeta.acknowledged_at,
+    '2026-05-01T12:00:00.000Z',
+  );
+
+  const betaDocument = db
+    .snapshot()
+    .get('softbook_beta_entitlements')
+    .get(phoneNumber);
+  betaDocument.active_grant = null;
+  betaDocument.audit.push({
+    ...grantEvent,
+    action: 'revoke',
+    event_id: 'beta-event-revoke-0001',
+    occurred_at: '2026-05-02T12:00:00.000Z',
+    previous_stage: 'premium',
+    resulting_stage: 'premium',
+  });
+  betaDocument.revision = 2;
+  betaDocument.updated_at = '2026-05-02T12:00:00.000Z';
+  const revoked = await store.getMembership(phoneNumber);
+  assert.equal(revoked.stage, 'premium');
+});
+
+test('CloudBase membership fails closed on malformed active beta evidence', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  db.snapshot().get('softbook_beta_entitlements').set('13800138000', {
+    active_grant: {schema_version: 'beta-entitlement.v1'},
+    audit: [],
+    phone_number: '13800138000',
+    revision: 1,
+  });
+
+  await assert.rejects(
+    () => store.getMembership('13800138000'),
+    error => error.code === 'invalid_beta_entitlement',
+  );
+});
+
 test('CloudBase space state migrates legacy daily documents into account canonical state', async () => {
   const db = createFakeCloudBaseDb();
   await db

@@ -8,7 +8,16 @@
     "membership_entitlement_is_shared_across_ios_android_web": true,
     "trial_start_trigger": "first_entry_counted_as_membership_trial",
     "purchase_recovery_reminder": "after_membership_experience_ends",
-    "web_and_app_purchase_authority": "equal"
+    "web_and_app_purchase_authority": "equal",
+    "closed_beta_entitlement": {
+      "access_state": "premium",
+      "delivery_rule": "receiver_operator_grant_only",
+      "payment_required": false,
+      "audit_required": true,
+      "client_self_grant_forbidden": true,
+      "grant_state_and_audit_history_must_share_one_atomic_record": true,
+      "base_membership_must_not_be_overwritten": true
+    }
   },
   "states": {
     "trial": {

@@ -31,6 +31,7 @@ export const REQUIRED_COLLECTIONS = Object.freeze([
   "softbook_auth_challenges",
   "softbook_auth_rate_limits",
   "softbook_auth_sessions",
+  "softbook_beta_entitlements",
   "softbook_card_source_versions",
   "softbook_card_sources",
   "softbook_memberships",
@@ -80,6 +81,11 @@ const IDENTITY_PROBES = Object.freeze([
     collection: "softbook_auth_sessions",
     filter: {_id: {$ne: "__provision__"}},
     id: "auth_sessions",
+  },
+  {
+    collection: "softbook_beta_entitlements",
+    filter: {phone_number: {$exists: true}},
+    id: "beta_entitlements",
   },
   {
     collection: "softbook_learning_event_cursors",
