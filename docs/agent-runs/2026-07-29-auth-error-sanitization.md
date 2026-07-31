@@ -57,6 +57,12 @@
 - `node --test scripts/test_check_design_metadata_leaks.mjs && node scripts/check_design_metadata_leaks.mjs` -> 3 scanner tests and the repository scan passed.
 - `node scripts/validate_dependency_security.mjs` -> zero known mobile or CloudBase API vulnerabilities.
 - `scripts/run_local_gates --profile dev` -> 19/20 passed and one documented dev-only exception: local Node 25.9.0 differs from pinned Node 22.13.0. Report: `exports/local-gates/20260729T065507Z-d479f5f5-dev-89458/report.json` (generated report, not committed release evidence).
+- 2026-07-31 serial-integration validation after rebasing onto launch-evidence head `42d36fbd2b233e271b78835f36bd7404e6963535`:
+  - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
+  - `cd apps/mobile && npm run lint -- --quiet && npm run typecheck` -> passed.
+  - `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 44 suites and 420 tests passed.
+  - `cd apps/mobile && npm run metadata-leak-scan && npm run design-metadata-leak-scan` -> both repository scans passed.
+  - `git diff --check 42d36fbd2b233e271b78835f36bd7404e6963535...HEAD` -> passed; the rebased diff remains limited to the five files listed above.
 
 ## Validation results
 
@@ -73,7 +79,7 @@
 ## Agent review status
 
 - Reviewer: Codex
-- Status: passed locally; GitHub Agent review pending
+- Status: passed locally and in the previous GitHub run; the post-rebase required check must pass again before merge
 - Blocking findings: none in the local implementation and tests.
 - Review summary: The previous substring denylist could expose unknown native and English exceptions. The replacement is centralized and fail-closed, while retaining only explicit operation mappings and narrowly safe Chinese copy.
 
@@ -98,5 +104,5 @@
 
 ## Follow-up
 
-- Complete required repository gates, open the PR, record the PR URL and passed Agent review, and allow merge only after all required GitHub checks are green.
-- After the separately accepted audio design PR merges, implement the native audio player on a fresh `main`-based branch.
+- Wait for PR #463 to merge at the exact validated head, then push this rebased branch with an explicit lease and rerun all required GitHub checks.
+- Merge PR #458 only after its post-rebase Agent review and required checks are green; native iOS/Android login smoke remains release-acceptance evidence rather than a repository-test claim.
