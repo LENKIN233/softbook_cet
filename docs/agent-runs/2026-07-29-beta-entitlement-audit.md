@@ -74,6 +74,13 @@
   - Mobile lint and typecheck passed; metadata and design-metadata scans passed; Jest 44 suites / 422 tests passed.
   - `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API reported zero known vulnerabilities.
   - `git diff --check origin/main...HEAD` -> passed.
+- Final serial-integration validation after compact Mine PR #464 passed every exact-head required check and squash-merged as `f0410d777f0a539d935537cc74e38f1d6943e41b`:
+  - The three beta-only commits were rebased onto exact `origin/main`; all three rebased commits retain valid ED25519 signatures and the 21-file diff still contains no audio implementation file.
+  - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
+  - `npm test` in `infra/cloudbase/functions/softbook-api` -> 185/185 tests passed.
+  - Mobile lint and typecheck passed; metadata and design-metadata scans passed; Jest 44 suites / 423 tests passed.
+  - `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API reported zero known vulnerabilities.
+  - `git diff --check origin/main...HEAD` -> passed.
 - No CloudBase command was run with `--apply`.
 
 ## Validation results
@@ -81,7 +88,7 @@
 - Tests prove strict command fields, phone validation, event collision rejection, exact replay idempotency, matching-grant revoke, audit sequence validation, topic-branch write rejection, post-write verification, and phone-free reports.
 - Canonical CloudBase membership tests prove active beta access overlays premium without changing the base membership, later base premium survives beta revoke, and malformed active evidence fails closed.
 - Provisioning and blank-baseline checks include `softbook_beta_entitlements`; smoke lifecycle cleanup deletes only exact manifest-owned beta documents.
-- Repository-local harness, backend, mobile, metadata, and dependency-security checks pass on an independent exact-`main` base without the unmerged audio implementation. Formal remote required-check evidence remains pending until the compact-Mine PR is squash-merged, this branch is rebased onto that actual `main`, and the beta-only PR is opened.
+- Repository-local harness, backend, mobile, metadata, and dependency-security checks pass on the actual post-#464 `main` without the unmerged audio implementation. Formal remote required-check evidence remains pending until the beta-only branch is pushed and its independent PR is opened.
 
 ## Binary evidence
 
@@ -114,6 +121,6 @@
 
 ## Follow-up
 
-- After the compact-Mine PR is squash-merged, rebase these beta-only commits onto the resulting exact `origin/main`, rerun the complete PR profile, and open the independent PR without waiting for the audio Draft.
+- Push the exact beta-only head with force-with-lease, open the independent PR without waiting for the audio Draft, and require exact-head Agent review plus all required checks before merge.
 - In the receiver-owned environment, provision the new collection before deploying the runtime, then dry-run and apply lifecycle-owned test grant/revoke commands from clean exact `main`.
 - Verify the entitlement on both iOS and Android through login, bootstrap, learning access, restart recovery, and exact cleanup before closed-beta release.
