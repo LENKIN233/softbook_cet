@@ -84,6 +84,11 @@ verifies a retained release and then changes only the active release pointer;
 it never deletes learning data. The publisher adapter is deliberately injected
 so repository tests can prove ordering without writing CloudBase.
 
+The receiver adapter accepts a rollback target only when its stored release
+verification is true and its `retention_status` is exactly `retained`.
+Verification alone is not enough to make an arbitrary staged version a
+rollback target.
+
 The concrete receiver adapter stores immutable staged versions in
 `softbook_card_source_versions`. It re-downloads every uploaded private audio
 object and verifies byte length and SHA-256 before staging, binds the staged
@@ -108,3 +113,72 @@ receiver-owned HTTPS SMS webhook plus separate auth, SMS, and Ed25519 signing
 secrets. `verify` is read-only and checks the active release, API route, bundle,
 catalog, and zero imported user-data baseline. A real lifecycle-managed
 production SMS/device smoke is still a separate acceptance gate.
+
+## Operational evidence policy
+
+`spec/release-operational-policy.json` owns the minimum non-regressing launch
+thresholds and the formal evidence schema. The
+`release-slo-and-recovery-drill` gate requires one coherent campaign containing
+all five `release-operational-evidence.v1` reports:
+
+- load test;
+- availability observation;
+- backup and isolated restore;
+- penetration test;
+- release rollback.
+
+All reports share the exact commit, policy hash, receiver-owned profile and
+environment, release and parent release, bundle, content version, backend
+deployment, and iOS, Android, and PC Web builds. The validator recomputes pass
+from raw counts and measurements against the policy; it requires the outer and
+inner subject commit to match and that commit to be reachable from the
+validated repository HEAD. Every report must match the single
+product-owner-recorded `launch-release-candidate.v1` cohort, and nested
+repository raw artifacts are rechecked for tracked regular-file identity,
+size, and SHA-256. Formal reports may reference only `repo://` raw artifacts;
+large or restricted remote evidence must first be represented by an
+`evidence-archive`-verified repository manifest. Measured duration and
+timestamps must fit the execution window. Availability records exact
+expected/success/failed/missing counts, ratio, latency, and outage for every
+required route and binds their sums to the aggregate. Backup requires every
+source dataset to be nonempty before exact restored count/hash comparison, and
+RPO is recomputed from the snapshot and recovery reference. Rollback uses
+distinct A/B releases with explicit verified/retained state plus a nonempty
+learning-data count and hash. It does not trust a self-declared result. The
+five reports must also carry hashed raw artifacts and an independent verifier
+different from the execution operator. The protected product-owner
+environment remains the merge authority; report identity strings are
+metadata, not authentication by themselves.
+
+External account readiness uses `external-capability-evidence.v1`. Each report
+binds the exact reachable repository commit, target release, policy hash,
+account, capability, provider observation, required control-plane checks, and
+tracked repository raw artifacts whose size and SHA-256 are rechecked. It is
+always `gate_eligible=false`: external capability evidence cannot replace
+runtime, payment, distribution, compliance, or security launch gates. Portal
+records and identity fields remain metadata; the protected product-owner
+Environment authenticates approval for the exact pull request head.
+
+Other launch-gate evidence remains fail-closed when no type-specific
+measurement contract is registered. A generic scope and summary cannot make a
+gate eligible.
+
+## Repository blank-environment simulation
+
+`infra/cloudbase/release-blank-environment-simulation.mjs` runs the real
+publisher, receiver adapter, and rollback functions against an injected
+credential-free in-memory CloudBase runner. It starts from an empty receiver,
+publishes and verifies release A, inserts a synthetic learning-data sentinel,
+publishes and verifies release B, rolls back and reverifies A, and proves the
+sentinel count and canonical hash are unchanged with zero delete operations.
+
+Its output is fixed to:
+
+- `schema_version=release-blank-environment-simulation.v1`;
+- `execution_mode=repository_in_memory`;
+- `simulation=true`;
+- `gate_eligible=false`.
+
+The simulation is a regression framework, not receiver execution evidence.
+Only a receiver-owned deployment running the formal policy can satisfy the
+launch gate.

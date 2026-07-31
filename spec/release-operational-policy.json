@@ -1,0 +1,276 @@
+{
+  "schema_version": "release-operational-policy.v1",
+  "policy_id": "softbook-release-operations.v1",
+  "classification": "implementation_hypothesis",
+  "status": "active",
+  "target_release": "2027-Q2",
+  "quality_policy": "move_release_date_before_reducing_gate",
+  "evidence_validity_days": 180,
+  "environment": {
+    "allowed_classes": [
+      "production_like_staging",
+      "production"
+    ],
+    "receiver_owned_required": true,
+    "personal_development_environment_forbidden": true,
+    "required_execution_modes": {
+      "load-test-report": "receiver_deployed",
+      "availability-observation": "receiver_deployed",
+      "backup-restore-drill": "receiver_external_apply",
+      "penetration-test-report": "receiver_deployed",
+      "rollback-drill": "receiver_external_apply"
+    }
+  },
+  "common_binding": {
+    "repository": "LENKIN233/softbook_cet",
+    "require_one_campaign": true,
+    "require_same_commit": true,
+    "require_same_profile": true,
+    "require_same_environment": true,
+    "require_same_bundle": true,
+    "require_same_release": true,
+    "require_parent_release": true,
+    "require_reachable_commit": true,
+    "require_launch_release_candidate_cohort": true,
+    "require_raw_artifact_hashes": true,
+    "require_repository_raw_artifact_verification": true,
+    "require_repository_raw_artifacts_only": true,
+    "require_independent_verification": true,
+    "require_distinct_operator_and_verifier": true,
+    "require_execution_window_binding": true
+  },
+  "external_capability": {
+    "schema_version": "external-capability-evidence.v1",
+    "product_owner": "github:LENKIN233",
+    "protected_approval_environment": "formal-product-owner-approval",
+    "target_release_binding_required": true,
+    "repository_report_and_raw_artifacts_must_be_rehashed": true,
+    "capability_evidence_cannot_replace_launch_gate": true,
+    "allowed_observation_modes": [
+      "provider_control_plane",
+      "official_registry",
+      "public_endpoint"
+    ],
+    "common_required_checks": [
+      "provider-subject-bound",
+      "owner-control-confirmed",
+      "current-state-observed"
+    ],
+    "required_checks": {
+      "apple-developer": {
+        "app-store-connect": [
+          "team-access-confirmed",
+          "app-record-active",
+          "release-role-confirmed"
+        ],
+        "storekit-subscriptions": [
+          "monthly-product-active",
+          "yearly-product-active",
+          "subscription-group-active"
+        ],
+        "app-store-server-notifications": [
+          "v2-endpoint-registered",
+          "production-url-configured",
+          "provider-configuration-active"
+        ],
+        "distribution-signing": [
+          "distribution-certificate-active",
+          "provisioning-profile-active",
+          "signing-assets-custody-confirmed"
+        ]
+      },
+      "android-distribution": {
+        "huawei": [
+          "publisher-account-active",
+          "app-record-active",
+          "release-channel-available"
+        ],
+        "xiaomi": [
+          "publisher-account-active",
+          "app-record-active",
+          "release-channel-available"
+        ],
+        "oppo": [
+          "publisher-account-active",
+          "app-record-active",
+          "release-channel-available"
+        ],
+        "vivo": [
+          "publisher-account-active",
+          "app-record-active",
+          "release-channel-available"
+        ],
+        "tencent-myapp": [
+          "publisher-account-active",
+          "app-record-active",
+          "release-channel-available"
+        ],
+        "release-signing": [
+          "keystore-custody-confirmed",
+          "certificate-fingerprint-recorded",
+          "backup-custody-confirmed"
+        ]
+      },
+      "tencent-cloud-production": {
+        "cloudbase-run": [
+          "receiver-owned-environment-confirmed",
+          "service-identity-configured",
+          "deployment-permission-confirmed"
+        ],
+        "tencentdb-postgresql": [
+          "instance-access-confirmed",
+          "backup-policy-active",
+          "network-policy-configured"
+        ],
+        "cos-private-bucket": [
+          "private-bucket-confirmed",
+          "access-policy-configured",
+          "signed-url-capability-enabled"
+        ],
+        "sms": [
+          "sender-approved",
+          "template-approved",
+          "quota-and-region-configured"
+        ],
+        "cls": [
+          "logset-access-confirmed",
+          "retention-policy-active",
+          "alert-destination-configured"
+        ],
+        "rum": [
+          "application-registered",
+          "data-source-configured",
+          "alerting-path-configured"
+        ]
+      },
+      "payments": {
+        "wechat-pay": [
+          "merchant-account-active",
+          "product-configuration-confirmed",
+          "api-credential-configured",
+          "webhook-endpoint-registered"
+        ],
+        "alipay": [
+          "merchant-account-active",
+          "product-configuration-confirmed",
+          "api-credential-configured",
+          "webhook-endpoint-registered"
+        ],
+        "webhook-domain": [
+          "dns-control-confirmed",
+          "tls-certificate-configured",
+          "public-endpoint-registered"
+        ]
+      },
+      "china-compliance": {
+        "domain-registration": [
+          "registrant-current",
+          "dns-control-confirmed"
+        ],
+        "icp-filing": [
+          "filing-approved",
+          "domain-binding-confirmed"
+        ],
+        "app-filing": [
+          "filing-approved",
+          "app-identity-binding-confirmed"
+        ],
+        "privacy-policy-public-url": [
+          "public-reachability-confirmed",
+          "published-content-current"
+        ],
+        "customer-support-contact": [
+          "contact-channel-reachable",
+          "response-owner-confirmed"
+        ]
+      }
+    }
+  },
+  "load_test": {
+    "required_scenarios": [
+      "auth-bootstrap",
+      "learning-session",
+      "learning-event",
+      "content-manifest",
+      "space-action"
+    ],
+    "minimum_concurrent_users": 200,
+    "minimum_duration_seconds": 1800,
+    "minimum_request_count": 10000,
+    "maximum_error_ratio": 0.01,
+    "maximum_p95_latency_ms": 1200,
+    "maximum_p99_latency_ms": 2500,
+    "maximum_data_integrity_errors": 0,
+    "measurement_duration_within_execution_window_required": true
+  },
+  "availability": {
+    "required_routes": [
+      "/v2/bootstrap",
+      "/v2/learning/session",
+      "/v2/content/manifest"
+    ],
+    "minimum_window_seconds": 86400,
+    "maximum_probe_interval_seconds": 60,
+    "minimum_availability_ratio": 0.999,
+    "maximum_p95_latency_ms": 1200,
+    "maximum_single_outage_seconds": 300,
+    "missing_probe_counts_as_failure": true,
+    "per_route_probe_coverage_required": true
+  },
+  "backup_restore": {
+    "required_datasets": [
+      "account-session-membership",
+      "learning-events-and-projections",
+      "daily-progress",
+      "space-actions-and-state",
+      "content-releases"
+    ],
+    "maximum_rpo_seconds": 900,
+    "maximum_rto_seconds": 3600,
+    "isolated_restore_target_required": true,
+    "source_and_restore_counts_must_match": true,
+    "source_and_restore_hashes_must_match": true,
+    "production_must_remain_unchanged": true,
+    "rpo_recomputed_from_snapshot_and_recovery_reference": true,
+    "all_required_source_datasets_must_be_nonempty": true
+  },
+  "penetration_test": {
+    "required_scope": [
+      "authentication-and-session",
+      "learning-and-space-api",
+      "private-content-storage",
+      "ios-release",
+      "android-release",
+      "pc-web-release",
+      "payments-and-webhooks"
+    ],
+    "maximum_open_critical": 0,
+    "maximum_open_high": 0,
+    "critical_and_high_waivers_forbidden": true,
+    "retest_required_for_resolved_critical_and_high": true
+  },
+  "rollback": {
+    "required_sequence": [
+      "publish-release-a",
+      "verify-release-a",
+      "publish-release-b",
+      "verify-release-b",
+      "rollback-release-a",
+      "reverify-release-a"
+    ],
+    "maximum_rto_seconds": 900,
+    "active_pointer_must_match_target": true,
+    "api_and_content_must_match_target": true,
+    "learning_data_count_and_hash_must_match": true,
+    "maximum_delete_operations": 0,
+    "nonempty_learning_dataset_required": true,
+    "retained_and_verified_target_required": true
+  },
+  "simulation_boundary": {
+    "schema_version": "release-blank-environment-simulation.v1",
+    "execution_mode": "repository_in_memory",
+    "simulation": true,
+    "gate_eligible": false,
+    "may_satisfy_formal_gate": false
+  }
+}

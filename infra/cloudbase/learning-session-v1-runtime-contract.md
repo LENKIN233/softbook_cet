@@ -245,6 +245,32 @@ offline.
 No failure falls back to client ordering, bundled cards, another account,
 another track, or unvalidated scheduler state.
 
+## Formal launch evidence boundary
+
+The scheduler gate requires three independent
+`learning-runtime-evidence.v1` reports:
+
+- `fsrs-version-lock`;
+- `scheduler-contract-test`;
+- `clock-boundary-test`.
+
+The reports bind this contract's exact SHA-256 plus the deployed commit,
+receiver-owned environment, release, backend deployment, and all three client
+builds. The validator rechecks the exact `ts-fsrs@5.4.1`,
+`softbook-fsrs.v1`, fuzz-disabled policy, and repository
+`softbook-api/package-lock.json` SHA-256, plus due-before-new ordering,
+sleeping and membership exclusion, selection-bound completion, duplicate
+non-advance, and server-acceptance clock boundaries. The outer subject commit
+must match the report and be reachable from the validated HEAD; the operator
+and independent verifier must differ; measured clock events must fit the
+execution window. All reports match one product-owner-recorded
+`launch-release-candidate.v1` cohort, and any repository raw artifact is
+tracked and rehashed independently. A `result=passed` field alone has no
+authority.
+
+Repository memory tests, local smoke, dry-runs, and simulations are
+`gate_eligible=false` and cannot satisfy the scheduler launch gate.
+
 ## Explicit non-claims
 
 This contract does not prove:
@@ -253,4 +279,5 @@ This contract does not prove:
 - deployed mobile/backend integration or release validation;
 - production membership expiry, StoreKit, WeChat Pay, or Alipay entitlement;
 - complete approved card content, signed packs, or audio QC;
+- formal launch evidence from repository-local or simulated tests;
 - launch readiness.

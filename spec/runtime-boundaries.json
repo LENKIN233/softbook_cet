@@ -1,5 +1,5 @@
 {
-  "version": "vnext-22",
+  "version": "vnext-23",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -112,6 +112,9 @@
     "scheduler_library_version": "ts-fsrs@5.4.1",
     "selection_binding": "unseen_event_must_match_current_account_track_selection_id_card_phase_and_content_inside_the_commit_transaction",
     "mobile_scheduler_session_binding": true,
+    "launch_evidence_schema": "learning-runtime-evidence.v1",
+    "launch_evidence_policy_binding": "exact_learning_events_runtime_contract_sha256",
+    "repository_simulation_gate_eligible": false,
     "launch_gate_status": "pending"
   },
   "daily_check_in_runtime": {
@@ -185,6 +188,9 @@
     "mobile_session_binding_status": "implemented_locally_not_deployed",
     "mobile_session_binding": "authenticated_session_and_card_source_must_match_track_source_and_content_then_only_server_selected_card_is_rendered_and_selection_id_is_durably_submitted",
     "mobile_membership_reconciliation": "session_stage_drift_requires_verified_canonical_bootstrap_refresh_before_presenting_selection",
+    "launch_evidence_schema": "learning-runtime-evidence.v1",
+    "launch_evidence_policy_binding": "exact_learning_session_runtime_contract_sha256",
+    "repository_simulation_gate_eligible": false,
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"
   },
@@ -212,6 +218,51 @@
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"
   },
+  "launch_evidence_runtime": {
+    "classification": "implementation_hypothesis",
+    "owner": "spec/release-operational-policy.json",
+    "gate_record_owner": "docs/release/launch-readiness.v1.json",
+    "semantic_schemas": [
+      "launch-gate-evidence.v1",
+      "learning-runtime-evidence.v1",
+      "release-operational-evidence.v1",
+      "external-capability-evidence.v1"
+    ],
+    "strict_json_boundary": "valid_utf8_without_bom_duplicate_keys_unknown_fields_nonfinite_numbers_or_trailing_content",
+    "repository_evidence_boundary": "explicit_trusted_git_tracked_file_and_reachable_commit_sets_regular_file_size_and_sha256_for_outer_reports_and_nested_repository_raw_artifacts_then_type_specific_semantic_validation",
+    "remote_raw_evidence_boundary": "formal_reports_reference_only_repo_raw_artifacts_remote_archives_require_an_evidence_archive_verified_repository_manifest",
+    "common_binding": "exact_gate_and_evidence_type_repository_commit_target_release_policy_hash_receiver_owned_profile_and_environment_release_bundle_content_version_backend_deployment_ios_android_pc_web_builds_execution_window_raw_artifacts_checks_and_independent_verification",
+    "release_candidate_cohort": "launch_readiness_owns_one_product_owner_recorded_launch_release_candidate_v1_commit_profile_environment_release_parent_bundle_content_backend_and_all_client_builds_cohort_every_formal_gate_report_must_match_exactly",
+    "external_capability_boundary": "external_reports_bind_reachable_commit_target_release_policy_hash_account_capability_observation_required_checks_and_rehashed_repository_raw_artifacts",
+    "external_capability_scope": "provider_and_regulatory_control_plane_only_never_runtime_payment_distribution_compliance_or_security_gate_substitution",
+    "external_capability_truth_authority": "protected_formal_product_owner_approval_authenticates_the_exact_pull_request_head_report_identity_and_portal_bytes_remain_metadata",
+    "commit_authority": "outer_subject_commit_matches_inner_report_and_must_be_reachable_from_validated_repository_head",
+    "independent_verification_rule": "execution_operator_and_independent_verifier_must_be_distinct_identities",
+    "execution_window_rule": "measured_runtime_windows_and_events_must_fit_inside_the_recorded_execution_window",
+    "generic_gate_rule": "launch_gate_evidence_without_a_registered_type_specific_measurement_contract_is_gate_ineligible_fail_closed",
+    "learning_evidence_types": [
+      "cross-device-bootstrap-test",
+      "offline-replay-test",
+      "canonical-state-test",
+      "fsrs-version-lock",
+      "scheduler-contract-test",
+      "clock-boundary-test"
+    ],
+    "learning_policy_binding": "canonical_gate_binds_exact_learning_events_runtime_contract_sha256_scheduler_gate_binds_exact_learning_session_runtime_contract_sha256",
+    "scheduler_lockfile_binding": "fsrs_version_lock_binds_exact_repository_softbook_api_package_lock_sha256",
+    "release_operational_policy": "spec/release-operational-policy.json",
+    "release_campaign_coherence": "five_reports_share_campaign_commit_policy_profile_environment_release_parent_bundle_content_and_all_client_builds",
+    "release_result_rule": "validator_recomputes_load_duration_and_counts_availability_per_route_probe_coverage_backup_rpo_and_rto_penetration_findings_and_rollback_retained_verified_nonempty_learning_state_from_policy_and_measurements_never_trusts_result_passed_alone",
+    "availability_route_probe_rule": "each_required_route_has_exact_expected_success_failed_missing_ratio_latency_and_outage_measurements_each_meets_window_and_policy_and_aggregates_match",
+    "backup_restore_nonempty_rule": "every_required_source_dataset_has_positive_count_before_exact_restored_count_and_hash_comparison",
+    "formal_approval_boundary": "tracked_verified_by_and_attestation_fields_are_metadata_the_protected_formal_product_owner_environment_remains_the_merge_authority",
+    "simulation_schema": "release-blank-environment-simulation.v1",
+    "simulation_execution_mode": "repository_in_memory",
+    "simulation_gate_eligible": false,
+    "implementation_status": "strict_repository_evidence_loader_semantic_contracts_policy_thresholds_and_repository_blank_environment_simulation_implemented",
+    "deployment_status": "formal_receiver_evidence_not_created_by_repository_change",
+    "launch_gate_status": "pending"
+  },
   "release_delivery_runtime": {
     "classification": "implementation_hypothesis",
     "owner": "spec/runtime-boundaries.json#release_delivery_runtime",
@@ -228,7 +279,13 @@
     "rollback_boundary": "switch_only_to_verified_retained_release_without_deleting_learning_data",
     "implementation_status": "repository_local_profile_bundle_validator_cloudbase_receiver_adapter_unified_dry_run_first_delivery_command_publisher_rollback_and_fail_closed_tests_implemented",
     "cloudbase_adapter_status": "implemented_locally_with_private_asset_redownload_hash_verification_staged_evidence_and_active_pointer_last",
+    "retained_release_verification": "rollback_requires_verified_true_and_retention_status_retained_before_pointer_activation",
     "production_sms_adapter_status": "receiver_owned_https_webhook_adapter_implemented_locally_credentials_environment_only_fixed_code_excluded",
+    "operational_evidence_policy": "spec/release-operational-policy.json",
+    "operational_evidence_schema": "release-operational-evidence.v1",
+    "repository_blank_environment_simulation_status": "implemented_with_real_publisher_receiver_adapter_rollback_in_memory_runner_user_data_sentinel_and_zero_delete_assertion",
+    "repository_blank_environment_simulation_gate_eligible": false,
+    "formal_rollback_evidence": "distinct_release_a_and_b_verified_and_retained_state_nonempty_learning_count_and_hash_zero_deletes_and_timed_execution_are_required",
     "blank_environment_drill_status": "pending",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"

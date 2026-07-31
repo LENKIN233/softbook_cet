@@ -36,6 +36,35 @@ def validate(context) -> None:
     if "spec/repo-delivery-contract.json" not in manifest["active_specs"]:
         errors.append("manifest missing active spec: spec/repo-delivery-contract.json")
 
+    release_policy_path = "spec/release-operational-policy.json"
+    if release_policy_path not in manifest["active_specs"]:
+        errors.append(f"manifest missing active spec: {release_policy_path}")
+
+    release_evidence_authority = authority["domains"].get(
+        "release_operational_evidence"
+    )
+    if not release_evidence_authority:
+        errors.append("authority-map missing domain: release_operational_evidence")
+    else:
+        check_equal(
+            "release_operational_evidence owner",
+            release_evidence_authority.get("owner"),
+            release_policy_path,
+        )
+        check_equal(
+            "release_operational_evidence mirrors",
+            release_evidence_authority.get("mirrors"),
+            [
+                "spec/runtime-boundaries.json",
+                "infra/cloudbase/release-bundle-v1-runtime-contract.md",
+                "spec/agent-harness.json",
+                "spec/evals.json",
+                "spec/account-sync-contract.json",
+                "scripts/validate_launch_readiness.mjs",
+                "scripts/lib/launch_evidence_contract.mjs",
+            ],
+        )
+
     # Authority owners must exist.
     for domain, meta in authority["domains"].items():
         for key in ["owner", "related_owner"]:

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-7",
+  "version": "vnext-8",
   "active_documents": [
     {
       "path": "AGENTS.md",
@@ -702,6 +702,7 @@
     "spec/box-catalog.json",
     "spec/membership.json",
     "spec/runtime-boundaries.json",
+    "spec/release-operational-policy.json",
     "spec/repo-delivery-contract.json",
     "spec/agent-harness.json",
     "spec/evals.json",

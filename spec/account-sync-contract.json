@@ -1,6 +1,6 @@
 {
-  "version": "vnext-13",
-  "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, sync scope, canonical account reads, idempotent learning events, server scheduling, default sync strategy, and offline behavior.",
+  "version": "vnext-15",
+  "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, external account readiness evidence, sync scope, canonical account reads, idempotent learning events, server scheduling, default sync strategy, and offline behavior.",
   "source_anchors": {
     "login_gate": "必须登入",
     "primary_login_method": "手机号+验证码",
@@ -19,6 +19,19 @@
     "trial_starts_when": "first_entry_counted_as_membership_trial",
     "purchase_recovery_reminder": "after_membership_experience_ends",
     "web_and_app_purchase_authority": "equal"
+  },
+  "external_account_readiness": {
+    "classification": "implementation_hypothesis",
+    "schema_version": "external-capability-evidence.v1",
+    "policy_owner": "spec/release-operational-policy.json#external_capability",
+    "scope": "provider_and_regulatory_control_plane_capability_only",
+    "subject_binding": "exact_repository_reachable_commit_target_release_policy_hash_account_id_and_capability_id",
+    "required_checks": "policy_common_checks_plus_exact_capability_specific_checks",
+    "repository_evidence_rule": "outer_report_and_every_referenced_raw_artifact_are_tracked_regular_root_contained_size_checked_and_sha256_rehashed",
+    "truth_authority": "protected_formal_product_owner_approval_for_the_exact_pull_request_head",
+    "metadata_rule": "verified_by_observation_and_portal_artifacts_are_reviewable_metadata_not_provider_authentication_by_themselves",
+    "gate_nonreplacement_rule": "capability_evidence_is_gate_eligible_false_and_cannot_replace_runtime_payment_distribution_compliance_or_security_launch_gates",
+    "current_status": "all_capabilities_unverified"
   },
   "sync_scope": {
     "must_sync": [
@@ -404,7 +417,24 @@
         "mobile_scheduler_session_consumption_and_selection_binding",
         "disable_global_legacy_snapshot_writes"
       ],
-      "launch_claim_rule": "green repository-local backend, explicit check-in, scheduler, and mobile binding tests do not satisfy formal content approval, production deployment, or launch readiness"
+    "launch_evidence_contract": {
+      "schema_version": "learning-runtime-evidence.v1",
+      "policy_binding": "exact_learning_events_v2_runtime_contract_sha256",
+      "required_types": [
+        "cross-device-bootstrap-test",
+        "offline-replay-test",
+        "canonical-state-test"
+      ],
+      "receiver_owned_deployment_required": true,
+      "local_or_simulated_evidence_gate_eligible": false,
+      "outer_metadata_must_match_report": true,
+      "outer_subject_commit_must_match_and_be_reachable": true,
+      "launch_release_candidate_cohort_required": true,
+      "repository_raw_artifacts_must_be_rehashed": true,
+      "independent_operator_and_verifier_required": true,
+      "execution_window_binding_required": true
+    },
+    "launch_claim_rule": "green repository-local backend, explicit check-in, scheduler, mobile binding, memory smoke, or simulated evidence do not satisfy formal content approval, production deployment, or launch readiness"
     }
   },
   "server_scheduler_v1": {
@@ -498,7 +528,25 @@
       "production_membership_expiry_and_payment_entitlement",
       "formal_content_publication"
     ],
-    "launch_claim_rule": "a green repository-local scheduler and mobile binding do not prove deployed integration, production entitlement, formal content approval, or launch readiness"
+    "launch_evidence_contract": {
+      "schema_version": "learning-runtime-evidence.v1",
+      "policy_binding": "exact_learning_session_v1_runtime_contract_sha256",
+      "required_types": [
+        "fsrs-version-lock",
+        "scheduler-contract-test",
+        "clock-boundary-test"
+      ],
+      "receiver_owned_deployment_required": true,
+      "local_or_simulated_evidence_gate_eligible": false,
+      "outer_metadata_must_match_report": true,
+      "outer_subject_commit_must_match_and_be_reachable": true,
+      "launch_release_candidate_cohort_required": true,
+      "repository_raw_artifacts_must_be_rehashed": true,
+      "independent_operator_and_verifier_required": true,
+      "execution_window_binding_required": true,
+      "exact_scheduler_lockfile_sha256_required": true
+    },
+    "launch_claim_rule": "a green repository-local scheduler, mobile binding, memory smoke, or simulated evidence does not prove deployed integration, production entitlement, formal content approval, or launch readiness"
   },
   "offline_policy": {
     "classification": "implementation_hypothesis",

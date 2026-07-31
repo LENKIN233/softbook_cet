@@ -149,7 +149,15 @@ test('rollback activates only a verified version and does not delete learning da
   const retainedBundle = bundleFixture(retained, null);
   await adapter.stageContent({bundle: retainedBundle, cardSource: retained});
   await adapter.verifyStaged({bundle: retainedBundle, cardSource: retained});
-  runner.seedCurrent(createRuntimeCardSource('cet4-beta-current', null));
+  await adapter.activateRelease({bundle: retainedBundle, cardSource: retained});
+  const current = createRuntimeCardSource(
+    'cet4-beta-current',
+    'cet4-beta-retained',
+  );
+  const currentBundle = bundleFixture(current, 'cet4-beta-retained');
+  await adapter.stageContent({bundle: currentBundle, cardSource: current});
+  await adapter.verifyStaged({bundle: currentBundle, cardSource: current});
+  await adapter.activateRelease({bundle: currentBundle, cardSource: current});
 
   const result = await deliveryModule.rollbackToRetainedRelease('cet4-beta-retained', adapter);
 
@@ -159,6 +167,28 @@ test('rollback activates only a verified version and does not delete learning da
     runner.calls.some(call => call.kind === 'delete'),
     false,
   );
+});
+
+test('rollback rejects a verified release that was never retained', async () => {
+  const runner = createDatabaseRunner();
+  const adapter = adapterModule.createCloudBaseReceiverAdapter({
+    profile: profileFixture(),
+    runner,
+  });
+  const verifiedOnly = createRuntimeCardSource('cet4-beta-verified-only', null);
+  const bundle = bundleFixture(verifiedOnly, null);
+  await adapter.stageContent({bundle, cardSource: verifiedOnly});
+  await adapter.verifyStaged({bundle, cardSource: verifiedOnly});
+
+  await assert.rejects(
+    () =>
+      deliveryModule.rollbackToRetainedRelease(
+        'cet4-beta-verified-only',
+        adapter,
+      ),
+    /not a verified retained release/,
+  );
+  assert.equal(runner.current(), undefined);
 });
 
 function createRuntimeCardSource(releaseId, parentReleaseId) {
@@ -185,7 +215,7 @@ function createRuntimeCardSource(releaseId, parentReleaseId) {
         interaction_id: 'flip',
         front: {
           eyebrow: 'Test task',
-          prompt: 'Contract prompt',
+          prompt: `Contract prompt ${releaseId}`,
           support: 'Contract support',
           context: 'Contract context',
         },

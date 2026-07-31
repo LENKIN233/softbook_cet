@@ -16,6 +16,7 @@ REQUIRED_SPEC_FILES = (
     "agent-run-record.json",
     "evals.json",
     "perturbation-audit.json",
+    "release-operational-policy.json",
 )
 
 

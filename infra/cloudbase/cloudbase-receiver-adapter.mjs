@@ -277,7 +277,11 @@ export function createCloudBaseReceiverAdapter({
         'read retained release',
       );
 
-      if (!document || document.release_verification?.verified !== true) {
+      if (
+        !document ||
+        document.retention_status !== 'retained' ||
+        document.release_verification?.verified !== true
+      ) {
         return null;
       }
 
