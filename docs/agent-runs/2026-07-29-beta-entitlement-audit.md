@@ -66,6 +66,11 @@
 - Mobile Jest -> 43 suites / 399 tests passed.
 - `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API reported zero known vulnerabilities.
 - `scripts/run_local_gates --profile dev` -> 19/20 gates passed plus the declared dev-only Node 25.9.0 versus required 22.13.0 safe exception; no failed gate.
+- Post-stack rebase validation on 2026-07-31: `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
+- Post-stack CloudBase API validation: `npm test -- --runInBand` -> 185/185 tests passed.
+- Post-stack mobile validation: lint and typecheck passed (14 pre-existing inline-style warnings, 0 errors); metadata and design-metadata scans passed; Jest 45 suites / 434 tests passed.
+- Post-stack dependency validation: `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API reported zero known vulnerabilities.
+- `git diff --check 446a6b47765b13c54015cf0582d593a89ee35a57...HEAD` -> passed after rebasing the beta-only change on the reviewed audio stack.
 - No CloudBase command was run with `--apply`.
 
 ## Validation results
@@ -73,7 +78,7 @@
 - Tests prove strict command fields, phone validation, event collision rejection, exact replay idempotency, matching-grant revoke, audit sequence validation, topic-branch write rejection, post-write verification, and phone-free reports.
 - Canonical CloudBase membership tests prove active beta access overlays premium without changing the base membership, later base premium survives beta revoke, and malformed active evidence fails closed.
 - Provisioning and blank-baseline checks include `softbook_beta_entitlements`; smoke lifecycle cleanup deletes only exact manifest-owned beta documents.
-- Full remote harness completeness remains pending until PR #460 adds and lands the Android required check on `main`.
+- Repository-local harness, backend, mobile, metadata, and dependency-security checks pass on the rebased stack. Formal remote required-check evidence remains pending until this branch is rebased onto the final serially merged base and opened as its own PR.
 
 ## Binary evidence
 
@@ -101,10 +106,11 @@
 - The operator-supplied `occurred_at` is audit input bound by the command hash; the receiver must control actor identities and command-file handling operationally.
 - Account deletion currently queues deletion work; the eventual production deletion worker must include the beta-entitlement collection, while the existing smoke lifecycle already cleans exact test records.
 - Payment and public purchase remain outside this closed-beta scope. This change does not itself hide or redesign any paywall surface.
-- #460 still awaits the user's protected-environment approval, and the card-content repository still has GitHub Actions billing failures; those external gates block the dependent PR chain and bulk content remediation.
+- The implementation is not deployed. Receiver-owned preflight, collection provisioning, grant/read-back/revoke/cleanup, and two-platform verification remain formal external evidence, not repository-local proof.
+- Approved card content remains a separate `card make` boundary; this change neither approves nor imports candidate batches.
 
 ## Follow-up
 
-- After #460 merges, rebase this branch on `main`, run the complete PR profile including remote required-check validation, and open the PR.
+- After the serial UI/audio dependency chain is resolved, rebase the beta-only commit onto exact `origin/main`, rerun the complete PR profile, and open its own PR.
 - In the receiver-owned environment, provision the new collection before deploying the runtime, then dry-run and apply lifecycle-owned test grant/revoke commands from clean exact `main`.
 - Verify the entitlement on both iOS and Android through login, bootstrap, learning access, restart recovery, and exact cleanup before closed-beta release.
