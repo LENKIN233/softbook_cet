@@ -88,32 +88,43 @@
 - `python3 scripts/validate_harness.py --format text` -> failed only on the known governance transition: remote branch protection already requires `android-release`, while the local expected-context list will include it only after the separate Android Release gate PR lands.
 - `jq empty spec/runtime-boundaries.json` -> passed.
 - `git diff --check` -> passed.
-- 2026-08-01 final serial-integration validation after compact Mine PR #464 passed every exact-head required check and squash-merged as `f0410d777f0a539d935537cc74e38f1d6943e41b`:
-  - The four audio-only commits were rebased from the reviewed Mine head onto exact `origin/main`; all four rebased commits retain valid ED25519 signatures and the 19-file diff remains limited to the audio implementation, runtime truth, and this run record.
+- 2026-08-01 serial-integration validation after SMS provider PR #467 squash-merged as `345b01483896ea39cb9e8ed42b4b1ba0608c7486`:
+  - The five audio-only commits were rebased onto exact `origin/main`; all five rebased commits retain valid ED25519 signatures and the 19-file diff remains limited to the audio implementation, runtime truth, and this run record. The resolved Learning test conflict preserves both the merged swipe thresholds and the manifest-bound audio control.
   - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
   - `cd apps/mobile && npm run lint -- --quiet && npm run typecheck` -> passed.
   - `cd apps/mobile && npm run metadata-leak-scan && npm run design-metadata-leak-scan` -> passed.
-  - `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 45 suites and 434 tests passed; the retained compact-viewport and audio integration tests both pass.
-  - `cd infra/cloudbase/functions/softbook-api && npm test` -> 176 tests passed.
+  - `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 45 suites and 435 tests passed; the retained swipe, compact-viewport, and audio integration tests all pass.
+  - `cd infra/cloudbase/functions/softbook-api && npm test` -> 206 tests passed.
   - `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API reported zero known vulnerabilities.
   - `cd apps/mobile/android && env JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/Users/lenkin/Library/Android/sdk ANDROID_SDK_ROOT=/Users/lenkin/Library/Android/sdk ./gradlew :app:compileDebugKotlin --no-daemon` -> passed (`BUILD SUCCESSFUL`, 107 tasks).
+  - `bundle install`, `bundle exec pod install`, then `xcodebuild -workspace SoftbookCET.xcworkspace -scheme SoftbookCET -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build` -> passed. The first build stopped only because the rebased worktree's generated `Pods/Manifest.lock` was stale; regeneration restored the materialized dependency graph, and checksum-only tracked lockfile churn was not retained.
+  - `scripts/run_local_gates --profile dev` -> `PASSED_WITH_EXCEPTION`, 19/20 passed with zero failures and only the declared Node 25.9.0 versus pinned 22.13.0 development exception. One earlier attempt hit a macOS `sandbox-exec` permission error while its timeout test killed a child process; the same runner passed 21/21 directly and the complete gate profile passed on immediate rerun.
   - `git diff --check origin/main...HEAD` -> passed.
+- 2026-08-01 final integration after PC Web PR #470 squash-merged as `1e7adc5f83e00bcfa39b1ec9f6a1073b388d8d40`:
+  - All six audio commits rebased without conflict onto exact `origin/main`; every rebased commit retains a valid ED25519 signature, and the diff remains limited to the same 19 audio implementation, runtime-truth, and run-record files.
+  - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`; repository health passed for all 19 changed files and 24 introduced blobs.
+  - Mobile lint, type-check, both metadata scans, and Jest -> passed, 45/45 suites and 435/435 tests.
+  - CloudBase backend -> passed, 206/206 tests; dependency-security validation reported zero known mobile or backend vulnerabilities.
+  - The new protected Web path inherited from #470 passed locally: lint, type-check, exact Node 22.13.0 Vitest 9/9, production build/boundary scan, and production dependency audit with zero vulnerabilities.
+  - `scripts/run_local_gates --profile dev` -> `PASSED_WITH_EXCEPTION`, 23/24 passed with zero failed gates; the sole declared exception remains local Node 25.9.0 versus pinned 22.13.0.
+  - Exact-head Android/iOS Release jobs, protected formal approval, Agent review, and all required GitHub checks remain mandatory before repository integration. This validation does not satisfy real signed private-asset playback, physical-device, production-key, or 301/301 listening evidence; those remain launch blockers.
 
 ## Validation results
 
 - Controller/component focused tests: pass, 15/15.
-- Mobile full suite: pass, 45 suites / 434 tests on the final actual-`main` rebase.
+- Mobile full suite: pass, 45 suites / 435 tests on the final actual-`main` rebase.
 - Mobile typecheck: pass.
 - Mobile lint: pass with zero errors.
 - Visible/design metadata scans: pass.
 - Android native compilation: pass.
 - iOS simulator native compilation and link: pass.
-- CloudBase backend tests: pass, 176/176 on the final actual-`main` rebase.
+- CloudBase backend tests: pass, 206/206 on the final actual-`main` rebase.
 - Maestro selector validation: pass.
 - Dependency security validation: pass, zero reported vulnerabilities.
 - Local harness without remote guard: pass.
-- Local `dev` gate profile: pass with the documented development-only Node version exception and zero failed gates.
+- Local `dev` gate profile: pass with the documented development-only Node version exception and zero failed gates; a prior nested-sandbox-only runner error did not reproduce on immediate rerun.
 - Full remote-guard harness: passed on the locally integrated stack after the Android Release governance and typed evidence contracts merged.
+- Protected Web quality path: passed locally on the final rebase; exact-head GitHub evidence remains required.
 - Real signed private audio playback on simulator/physical devices: pending because this branch has no approved release bundle, receiver credentials, or releasable 301-item QC set.
 
 ## Design review checklist
