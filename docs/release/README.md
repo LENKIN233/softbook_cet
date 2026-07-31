@@ -34,7 +34,10 @@ validator. Evidence is structured, identifies its verifier and verification
 time, and binds a tracked `repo://<path>` artifact to its byte size and SHA-256.
 Each required evidence type must use a distinct artifact. The CLI rejects
 symlinks, re-hashes every artifact, and limits ordinary Git evidence records to
-1 MiB.
+1 MiB. Formal semantic reports may reference only re-hashable `repo://` raw
+artifacts. Large or restricted remote evidence must be represented by an
+`agent-run-evidence.v1` repository manifest that the required
+`evidence-archive` gate has independently verified.
 
 External account capabilities and the approved box/card coverage reports must be
 verified by the tracked product owner, `github:LENKIN233`. Evidence from Apple,
@@ -44,6 +47,18 @@ account data. Large or restricted remote assets must use an
 `agent-run-evidence.v1` manifest, which is independently downloaded and hashed by
 the required `evidence-archive` gate. Evidence and account verification must be
 refreshed within 180 days of the validation run.
+
+A ready external capability uses `external-capability-evidence.v1`, binds the
+exact reachable repository commit, target release, policy hash, account and
+capability, and satisfies the common plus capability-specific control-plane
+checks from `spec/release-operational-policy.json`. The semantic report and each
+referenced redacted raw artifact are tracked and re-hashed. The report fixes
+`capability_eligible=true` and `gate_eligible=false`: it proves a reviewed
+provider, registry, or public-endpoint capability record, and cannot replace
+runtime, payment, distribution, compliance, or security launch gates. Report
+identity fields and portal bytes are metadata; only the protected
+`formal-product-owner-approval` Environment authenticates product-owner
+approval for the exact pull request head.
 
 Green CI does not create evidence, approve content, verify an external account,
 or make the product launch-ready. If schedule and a gate conflict, move the

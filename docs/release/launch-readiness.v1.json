@@ -12,6 +12,7 @@
     "workflow": ".github/workflows/formal-approval.yml",
     "required_check": "formal-approval"
   },
+  "release_candidate": null,
   "product_scope": {
     "tracks": [
       "cet4",

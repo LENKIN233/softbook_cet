@@ -27,9 +27,18 @@ test('launch records, evidence, validators, and workflows require approval', () 
     'docs/release/launch-readiness.v1.json',
     'docs/agent-runs/evidence/run.json',
     'security/reports/penetration-test.json',
+    'scripts/lib/launch_evidence_contract.mjs',
+    'scripts/lib/strict_json.mjs',
     'scripts/validate_launch_readiness.mjs',
     'scripts/report_repo_health.mjs',
+    'scripts/harness_validator/sections/product_contract_mirrors.py',
+    'scripts/harness_validator/sections/truth_mirrors.py',
     'scripts/harness_validator/sections/governance_contracts.py',
+    'spec/account-sync-contract.json',
+    'spec/authority-map.json',
+    'spec/doc-manifest.json',
+    'spec/release-operational-policy.json',
+    'spec/runtime-boundaries.json',
     '.github/workflows/fake-formal-approval.yml',
   ];
   const result = classifyFormalApprovalScope(changed);

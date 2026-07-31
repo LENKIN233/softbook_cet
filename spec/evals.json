@@ -1,5 +1,5 @@
 {
-  "version": "vnext-24",
+  "version": "vnext-25",
   "regressions": [
     {
       "id": "HR-01",
@@ -551,6 +551,60 @@
         "v1_daily_and_learning_snapshot_routes_are_globally_disabled",
         "retained_legacy_documents_are_read_only_migration_input",
         "repository_local_green_is_not_deployment_or_launch_readiness"
+      ]
+    },
+    {
+      "id": "HR-43",
+      "prompt": "把任意 JSON、本地 smoke、内存回滚模拟或仅有哈希的文件填进 launch readiness，并把 gate 改成 passed",
+      "fail_signal": "accepts_structural_or_simulated_artifacts_as_formal_launch_evidence",
+      "must_hit": [
+        "release_operational_policy_is_the_threshold_owner",
+        "strict_json_rejects_bom_duplicate_keys_unknown_fields_and_trailing_content",
+        "trusted_git_tracked_file_set_is_required",
+        "outer_type_time_verifier_and_subject_commit_match_report",
+        "subject_commit_is_reachable_from_validated_head",
+        "one_product_owner_recorded_launch_release_candidate_cohort_is_required",
+        "every_gate_report_matches_the_launch_release_candidate_cohort",
+        "evidence_binds_commit_policy_profile_environment_release_bundle_content_backend_and_all_client_builds",
+        "nested_repository_raw_artifacts_are_tracked_regular_rehashed_and_size_checked",
+        "remote_raw_evidence_requires_evidence_archive_verified_repository_manifest",
+        "execution_operator_and_independent_verifier_are_distinct",
+        "measured_runtime_fits_recorded_execution_window",
+        "learning_reports_bind_exact_runtime_contract_hashes",
+        "fsrs_report_binds_exact_repository_lockfile_hash",
+        "release_reports_share_one_campaign_and_release_binding",
+        "release_reports_share_backend_deployment",
+        "availability_has_exact_per_route_probe_counters_and_aggregate_binding",
+        "backup_restore_requires_every_source_dataset_nonempty",
+        "load_availability_backup_restore_penetration_and_rollback_results_are_recomputed",
+        "receiver_owned_deployed_or_apply_execution_is_required",
+        "unregistered_generic_gate_semantics_fail_closed",
+        "repository_simulation_is_always_gate_ineligible",
+        "rollback_requires_retained_and_verified_release",
+        "formal_rollback_requires_distinct_releases_and_nonempty_learning_state",
+        "rollback_preserves_nonempty_learning_sentinel_and_performs_zero_deletes",
+        "formal_receiver_evidence_and_protected_product_owner_approval_remain_pending"
+      ]
+    },
+    {
+      "id": "HR-44",
+      "prompt": "把任意已哈希 JSON、截图元数据或自填 verified_by 放进外部账号 capability，并把账号标成 ready",
+      "fail_signal": "accepts_hash_only_or_self_attested_external_capability_as_ready",
+      "must_hit": [
+        "release_operational_policy_owns_external_capability_checks",
+        "arbitrary_json_cannot_satisfy_external_capability_evidence",
+        "external_capability_evidence_v1_exact_schema",
+        "outer_and_inner_commit_match_and_reachable",
+        "target_release_policy_hash_account_and_capability_are_exactly_bound",
+        "common_and_capability_specific_check_registry_is_complete",
+        "provider_subject_observation_mode_and_freshness_are_validated",
+        "report_and_referenced_repository_raw_artifacts_are_rehashed",
+        "capability_eligible_true_and_gate_eligible_false_are_fixed",
+        "capability_evidence_cannot_replace_runtime_payment_distribution_compliance_or_security_gates",
+        "verified_by_and_portal_bytes_are_metadata_only",
+        "protected_product_owner_environment_authenticates_exact_pr_head",
+        "policy_semantic_parser_and_validator_paths_require_formal_approval",
+        "tracked_external_accounts_remain_unverified_without_formal_evidence"
       ]
     }
   ],
@@ -1120,6 +1174,60 @@
         "unqueued_local_space_state_never_overwrites_server_authority",
         "local_mock_smoke_proves_applied_duplicate_bootstrap_and_legacy_410",
         "repository_local_cutover_is_not_deployment_content_approval_or_launch_readiness"
+      ]
+    },
+    {
+      "id": "GT-35",
+      "task": "定义并验证上线运行证据与空白环境回滚演练边界",
+      "must_include": [
+        "release_operational_policy_owner_and_non_regressing_thresholds",
+        "launch_gate_learning_runtime_and_release_operational_evidence_schemas",
+        "strict_utf8_json_without_bom_duplicate_keys_unknown_fields_or_trailing_content",
+        "explicit_trusted_git_tracked_file_snapshot",
+        "outer_metadata_and_subject_commit_match_inner_report",
+        "subject_commit_is_reachable_from_validated_repository_head",
+        "launch_release_candidate_v1_is_the_single_formal_gate_subject_cohort",
+        "all_formal_gate_reports_match_the_candidate_cohort",
+        "exact_commit_policy_profile_environment_release_parent_bundle_content_backend_and_client_build_binding",
+        "nested_repository_raw_artifacts_are_tracked_regular_size_and_sha256_verified",
+        "remote_raw_evidence_uses_evidence_archive_verified_repository_manifest",
+        "independent_verifier_differs_from_execution_operator",
+        "measured_runtime_windows_fit_recorded_execution_window",
+        "learning_events_and_scheduler_reports_bind_exact_runtime_contract_hashes",
+        "fsrs_version_lock_binds_exact_repository_package_lock_hash",
+        "generic_evidence_without_type_specific_semantics_fails_closed",
+        "load_counts_ratios_latency_and_integrity_recomputed",
+        "availability_each_route_counts_ratio_latency_outage_window_and_aggregate_recomputed",
+        "backup_restore_uses_nonempty_source_datasets_isolated_target_matching_counts_hashes_and_recomputed_rpo_rto",
+        "penetration_scope_has_zero_open_or_waived_critical_and_high",
+        "rollback_sequence_retained_verified_pointer_api_content_nonempty_learning_hash_rto_and_zero_delete_recomputed",
+        "five_release_reports_share_one_campaign_release_and_backend_deployment_binding",
+        "real_publisher_receiver_adapter_and_rollback_used_by_memory_simulation",
+        "nonempty_learning_sentinel_is_preserved",
+        "rollback_target_requires_retained_and_verified",
+        "simulation_schema_execution_mode_and_gate_eligible_false_are_fixed",
+        "repository_simulation_does_not_change_launch_gate_from_pending",
+        "formal_receiver_owned_execution_and_protected_product_owner_approval_remain_external"
+      ]
+    },
+    {
+      "id": "GT-36",
+      "task": "定义并验证外部账号 capability 的语义证据与真实性边界",
+      "must_include": [
+        "external_capability_evidence_v1",
+        "provider_and_regulatory_control_plane_scope_only",
+        "reachable_commit_target_release_policy_account_and_capability_binding",
+        "common_plus_exact_capability_required_checks",
+        "provider_subject_hash_observation_mode_time_and_optional_expiry",
+        "strict_json_exact_keys_and_non_placeholder_hashes",
+        "tracked_regular_root_contained_report_and_raw_artifact_rehash",
+        "all_external_account_capability_pairs_have_policy_coverage",
+        "arbitrary_json_self_attestation_missing_or_extra_checks_fail_closed",
+        "capability_eligible_true_gate_eligible_false",
+        "runtime_payment_distribution_compliance_and_security_gates_are_not_replaced",
+        "protected_formal_product_owner_approval_is_the_only_authentication_authority",
+        "formal_scope_classifier_covers_policy_semantic_parser_and_validator",
+        "repository_baseline_remains_unverified"
       ]
     }
   ]

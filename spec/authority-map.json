@@ -1,5 +1,5 @@
 {
-  "version": "vnext-3",
+  "version": "vnext-4",
   "purpose": "Single-source ownership map for active harness facts. If the same concept appears in multiple files, the owner here wins and non-owner copies must stay consistent.",
   "domains": {
     "user_origin_memory": {
@@ -58,6 +58,19 @@
     },
     "runtime_hypotheses_and_boundaries": {
       "owner": "spec/runtime-boundaries.json"
+    },
+    "release_operational_evidence": {
+      "owner": "spec/release-operational-policy.json",
+      "mirrors": [
+        "spec/runtime-boundaries.json",
+        "infra/cloudbase/release-bundle-v1-runtime-contract.md",
+        "spec/agent-harness.json",
+        "spec/evals.json",
+        "spec/account-sync-contract.json",
+        "scripts/validate_launch_readiness.mjs",
+        "scripts/lib/launch_evidence_contract.mjs"
+      ],
+      "notes": "Owns the minimum release SLO, RPO, RTO, evidence binding, external provider/control-plane capability checks, gate non-replacement, and simulation non-eligibility policy. Runtime contracts describe execution boundaries; launch evidence validators enforce the policy without promoting repository simulations or capability metadata to formal runtime gates."
     },
     "repo_delivery_and_pull_request_contract": {
       "owner": "spec/repo-delivery-contract.json",

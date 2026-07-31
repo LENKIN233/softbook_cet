@@ -32,10 +32,11 @@ status: active
 - `spec/box-catalog.json`
 - `spec/membership.json`
 - `spec/runtime-boundaries.json`
+- `spec/release-operational-policy.json`（仅在上线证据、外部账号 capability、SLO、备份恢复、渗透或回滚演练任务中读取；定义不得降低的正式证据阈值、外部控制面检查、gate 非替代与模拟非正式边界）
 - `infra/cloudbase/learning-events-v2-runtime-contract.md`（仅在 learning events 合同或实现任务中读取；当前为仓库内已实现、未部署的 runtime 边界）
 - `infra/cloudbase/learning-session-v1-runtime-contract.md`（仅在服务端调度或 learning session 任务中读取；当前为仓库内已实现、移动端未接线且未部署的 runtime 边界）
 - `infra/cloudbase/content-manifest-v1-runtime-contract.md`（仅在音频资源、内容 manifest 或私有下载任务中读取；当前为后端与移动解析已实现、原生缓存播放未实现且未部署的 runtime 边界）
-- `infra/cloudbase/release-bundle-v1-runtime-contract.md`（仅在独立交付、正式内容发布、回滚或空白环境重建任务中读取；当前为 profile/bundle 校验、接收方 CloudBase adapter、统一交付命令与 publisher 编排已实现，空白环境演练未完成的 runtime 边界）
+- `infra/cloudbase/release-bundle-v1-runtime-contract.md`（仅在独立交付、正式内容发布、回滚或空白环境重建任务中读取；当前为 profile/bundle 校验、接收方 CloudBase adapter、统一交付命令、publisher 编排与仓库内模拟演练已实现，接收方正式演练未完成的 runtime 边界）
 - `infra/cloudbase/space-actions-v2-runtime-contract.md`（仅在物理空间 action、同步或调度联动任务中读取；当前为仓库内已实现、未部署的 runtime 边界）
 - `spec/repo-delivery-contract.json`
 - `spec/agent-harness.json`
@@ -60,6 +61,7 @@ status: active
 - 物理空间/盒码：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog`
 - 会员/试用：`requirement-memory -> product-core -> membership`
 - 交付 / PR / CI：`authority-map -> agent-harness -> repo-delivery-contract -> evals`（涉及接收方环境、正式内容发布或回滚时追加 `runtime-boundaries -> infra/cloudbase/release-bundle-v1-runtime-contract.md`）
+- 上线证据 / 外部账号 capability / SLO / 恢复演练：`authority-map -> account-sync-contract -> runtime-boundaries -> release-operational-policy -> infra/cloudbase/release-bundle-v1-runtime-contract.md -> agent-harness -> repo-delivery-contract -> evals`
 - Agent run records / context handoff：`authority-map -> agent-run-record -> workspace-boundary -> harness-architecture -> agent-harness -> repo-delivery-contract -> evals`
 - 工作区边界 / agent 默认读取：`authority-map -> workspace-boundary -> agent-harness -> repo-delivery-contract -> evals`
 - Harness 架构 / validator 分层：`authority-map -> harness-architecture -> workspace-boundary -> agent-harness -> repo-delivery-contract -> evals`
@@ -82,6 +84,7 @@ status: active
 - 不要默认把 generated / dependency / cache / machine-local / archive / external workspace 当作 agent 语义上下文；先按 `spec/workspace-boundary.json` 分类，再决定是否读取
 - 不要把 truth/workspace 纯检查、delivery 远端治理、design fixture 回归和 runtime smoke 混在同一 harness 层；按 `spec/harness-architecture.json` 分层
 - 不要把 `scripts/run_local_gates` 的本地报告当作 GitHub required checks、Agent review、正式内容批准或 launch readiness；`dev` / `pr` / `release` profile 与 `local-gate-report.v1` 以 `spec/harness-architecture.json#local_gate_runner_contract` 为准
+- 不要把仓库内存模拟、dry-run、任意 JSON 或仅有路径/哈希的文件当作正式上线证据；gate evidence 必须匹配 `launch-release-candidate.v1` 的单一 commit/profile/environment/release/build cohort，通过已注册类型语义，且 outer/raw 只能引用 tracked + regular + size/SHA-256 重验的 `repo://` 文件（远端大文件先进入 `evidence-archive` 已验证 manifest）、commit 可从验证 HEAD 到达、执行窗口有效、操作者与复核者不同；availability 必须逐 route 记录并重算 probe，备份每个必需 source dataset 必须非空；未实现类型语义时 fail closed，模拟始终 `gate_eligible=false`
 - 不要为每个屏幕/每个 agent 各自重造视觉语言；视觉输出必须从 `spec/visual-language.json` 与 `docs/design/visual-reference.html` 继承 token 与剪影
 - 不要直接用 RN 代码、截图或 agent 个人审美定义用户可见设计；任何呈现给用户的 screen / component / state / chrome 都必须先有已接受设计稿或等价设计基准，再进入实现
 - 不要用同一 PR 内新增 / 修改的 design brief、direction 或 decision 为同一 PR 的用户可见 UI 实现背书；同 PR 设计稿只适用于 design-only PR

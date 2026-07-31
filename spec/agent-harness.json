@@ -40,6 +40,23 @@
       "spec/agent-run-record.json",
       "spec/evals.json"
     ],
+    "launch_evidence_or_release_readiness": [
+      "spec/requirement-memory.json",
+      "spec/authority-map.json",
+      "spec/product-core.json",
+      "spec/account-sync-contract.json",
+      "spec/membership.json",
+      "spec/runtime-boundaries.json",
+      "spec/release-operational-policy.json",
+      "infra/cloudbase/learning-events-v2-runtime-contract.md",
+      "infra/cloudbase/learning-session-v1-runtime-contract.md",
+      "infra/cloudbase/release-bundle-v1-runtime-contract.md",
+      "spec/harness-architecture.json",
+      "spec/agent-harness.json",
+      "spec/repo-delivery-contract.json",
+      "spec/agent-run-record.json",
+      "spec/evals.json"
+    ],
     "physical_space_actions_runtime": [
       "spec/requirement-memory.json",
       "spec/authority-map.json",
@@ -822,6 +839,11 @@
       "id": "AP-42",
       "name": "treat_static_harness_analysis_as_a_complete_runtime_capability_boundary",
       "correction": "enforce_read_only_sections_with_both_ast_validation_and_worker_runtime_audit_hooks"
+    },
+    {
+      "id": "AP-43",
+      "name": "treat_hashed_external_account_file_as_verified_provider_capability",
+      "correction": "require_external_capability_evidence_v1_reachable_commit_policy_identity_exact_checks_rehashed_raw_artifacts_and_protected_product_owner_approval_without_replacing_launch_gates"
     }
   ],
   "compaction_keep": [

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 
 def _read_path(value, keys):
     current = value
@@ -527,7 +529,7 @@ def learning_events_contract_findings(
         (
             "launch non-claim",
             ("learning_events_v2", "migration_boundary", "launch_claim_rule"),
-            "green repository-local backend, explicit check-in, scheduler, and mobile binding tests do not satisfy formal content approval, production deployment, or launch readiness",
+            "green repository-local backend, explicit check-in, scheduler, mobile binding, memory smoke, or simulated evidence do not satisfy formal content approval, production deployment, or launch readiness",
         ),
         (
             "migrated account write rule",
@@ -1447,7 +1449,7 @@ def learning_scheduler_contract_findings(
         (
             "scheduler launch non-claim",
             ("server_scheduler_v1", "launch_claim_rule"),
-            "a green repository-local scheduler and mobile binding do not prove deployed integration, production entitlement, formal content approval, or launch readiness",
+            "a green repository-local scheduler, mobile binding, memory smoke, or simulated evidence does not prove deployed integration, production entitlement, formal content approval, or launch readiness",
         ),
     ]
     for label, keys, expected in owner_expectations:
@@ -2141,6 +2143,911 @@ def space_actions_contract_findings(
     return findings
 
 
+def launch_evidence_contract_findings(
+    root,
+    policy,
+    auth,
+    runtime,
+    agent,
+    evals,
+    release_runtime_text,
+    package_text,
+):
+    findings = []
+
+    expected_policy = {
+        "schema_version": "release-operational-policy.v1",
+        "policy_id": "softbook-release-operations.v1",
+        "classification": "implementation_hypothesis",
+        "status": "active",
+        "target_release": "2027-Q2",
+        "quality_policy": "move_release_date_before_reducing_gate",
+        "evidence_validity_days": 180,
+        "environment": {
+            "allowed_classes": [
+                "production_like_staging",
+                "production",
+            ],
+            "receiver_owned_required": True,
+            "personal_development_environment_forbidden": True,
+            "required_execution_modes": {
+                "load-test-report": "receiver_deployed",
+                "availability-observation": "receiver_deployed",
+                "backup-restore-drill": "receiver_external_apply",
+                "penetration-test-report": "receiver_deployed",
+                "rollback-drill": "receiver_external_apply",
+            },
+        },
+        "common_binding": {
+            "repository": "LENKIN233/softbook_cet",
+            "require_one_campaign": True,
+            "require_same_commit": True,
+            "require_same_profile": True,
+            "require_same_environment": True,
+            "require_same_bundle": True,
+            "require_same_release": True,
+            "require_parent_release": True,
+            "require_reachable_commit": True,
+            "require_launch_release_candidate_cohort": True,
+            "require_raw_artifact_hashes": True,
+            "require_repository_raw_artifact_verification": True,
+            "require_repository_raw_artifacts_only": True,
+            "require_independent_verification": True,
+            "require_distinct_operator_and_verifier": True,
+            "require_execution_window_binding": True,
+        },
+        "external_capability": {
+            "schema_version": "external-capability-evidence.v1",
+            "product_owner": "github:LENKIN233",
+            "protected_approval_environment": "formal-product-owner-approval",
+            "target_release_binding_required": True,
+            "repository_report_and_raw_artifacts_must_be_rehashed": True,
+            "capability_evidence_cannot_replace_launch_gate": True,
+            "allowed_observation_modes": [
+                "provider_control_plane",
+                "official_registry",
+                "public_endpoint",
+            ],
+            "common_required_checks": [
+                "provider-subject-bound",
+                "owner-control-confirmed",
+                "current-state-observed",
+            ],
+            "required_checks": {
+                "apple-developer": {
+                    "app-store-connect": [
+                        "team-access-confirmed",
+                        "app-record-active",
+                        "release-role-confirmed",
+                    ],
+                    "storekit-subscriptions": [
+                        "monthly-product-active",
+                        "yearly-product-active",
+                        "subscription-group-active",
+                    ],
+                    "app-store-server-notifications": [
+                        "v2-endpoint-registered",
+                        "production-url-configured",
+                        "provider-configuration-active",
+                    ],
+                    "distribution-signing": [
+                        "distribution-certificate-active",
+                        "provisioning-profile-active",
+                        "signing-assets-custody-confirmed",
+                    ],
+                },
+                "android-distribution": {
+                    "huawei": [
+                        "publisher-account-active",
+                        "app-record-active",
+                        "release-channel-available",
+                    ],
+                    "xiaomi": [
+                        "publisher-account-active",
+                        "app-record-active",
+                        "release-channel-available",
+                    ],
+                    "oppo": [
+                        "publisher-account-active",
+                        "app-record-active",
+                        "release-channel-available",
+                    ],
+                    "vivo": [
+                        "publisher-account-active",
+                        "app-record-active",
+                        "release-channel-available",
+                    ],
+                    "tencent-myapp": [
+                        "publisher-account-active",
+                        "app-record-active",
+                        "release-channel-available",
+                    ],
+                    "release-signing": [
+                        "keystore-custody-confirmed",
+                        "certificate-fingerprint-recorded",
+                        "backup-custody-confirmed",
+                    ],
+                },
+                "tencent-cloud-production": {
+                    "cloudbase-run": [
+                        "receiver-owned-environment-confirmed",
+                        "service-identity-configured",
+                        "deployment-permission-confirmed",
+                    ],
+                    "tencentdb-postgresql": [
+                        "instance-access-confirmed",
+                        "backup-policy-active",
+                        "network-policy-configured",
+                    ],
+                    "cos-private-bucket": [
+                        "private-bucket-confirmed",
+                        "access-policy-configured",
+                        "signed-url-capability-enabled",
+                    ],
+                    "sms": [
+                        "sender-approved",
+                        "template-approved",
+                        "quota-and-region-configured",
+                    ],
+                    "cls": [
+                        "logset-access-confirmed",
+                        "retention-policy-active",
+                        "alert-destination-configured",
+                    ],
+                    "rum": [
+                        "application-registered",
+                        "data-source-configured",
+                        "alerting-path-configured",
+                    ],
+                },
+                "payments": {
+                    "wechat-pay": [
+                        "merchant-account-active",
+                        "product-configuration-confirmed",
+                        "api-credential-configured",
+                        "webhook-endpoint-registered",
+                    ],
+                    "alipay": [
+                        "merchant-account-active",
+                        "product-configuration-confirmed",
+                        "api-credential-configured",
+                        "webhook-endpoint-registered",
+                    ],
+                    "webhook-domain": [
+                        "dns-control-confirmed",
+                        "tls-certificate-configured",
+                        "public-endpoint-registered",
+                    ],
+                },
+                "china-compliance": {
+                    "domain-registration": [
+                        "registrant-current",
+                        "dns-control-confirmed",
+                    ],
+                    "icp-filing": [
+                        "filing-approved",
+                        "domain-binding-confirmed",
+                    ],
+                    "app-filing": [
+                        "filing-approved",
+                        "app-identity-binding-confirmed",
+                    ],
+                    "privacy-policy-public-url": [
+                        "public-reachability-confirmed",
+                        "published-content-current",
+                    ],
+                    "customer-support-contact": [
+                        "contact-channel-reachable",
+                        "response-owner-confirmed",
+                    ],
+                },
+            },
+        },
+        "load_test": {
+            "required_scenarios": [
+                "auth-bootstrap",
+                "learning-session",
+                "learning-event",
+                "content-manifest",
+                "space-action",
+            ],
+            "minimum_concurrent_users": 200,
+            "minimum_duration_seconds": 1800,
+            "minimum_request_count": 10000,
+            "maximum_error_ratio": 0.01,
+            "maximum_p95_latency_ms": 1200,
+            "maximum_p99_latency_ms": 2500,
+            "maximum_data_integrity_errors": 0,
+            "measurement_duration_within_execution_window_required": True,
+        },
+        "availability": {
+            "required_routes": [
+                "/v2/bootstrap",
+                "/v2/learning/session",
+                "/v2/content/manifest",
+            ],
+            "minimum_window_seconds": 86400,
+            "maximum_probe_interval_seconds": 60,
+            "minimum_availability_ratio": 0.999,
+            "maximum_p95_latency_ms": 1200,
+            "maximum_single_outage_seconds": 300,
+            "missing_probe_counts_as_failure": True,
+            "per_route_probe_coverage_required": True,
+        },
+        "backup_restore": {
+            "required_datasets": [
+                "account-session-membership",
+                "learning-events-and-projections",
+                "daily-progress",
+                "space-actions-and-state",
+                "content-releases",
+            ],
+            "maximum_rpo_seconds": 900,
+            "maximum_rto_seconds": 3600,
+            "isolated_restore_target_required": True,
+            "source_and_restore_counts_must_match": True,
+            "source_and_restore_hashes_must_match": True,
+            "production_must_remain_unchanged": True,
+            "rpo_recomputed_from_snapshot_and_recovery_reference": True,
+            "all_required_source_datasets_must_be_nonempty": True,
+        },
+        "penetration_test": {
+            "required_scope": [
+                "authentication-and-session",
+                "learning-and-space-api",
+                "private-content-storage",
+                "ios-release",
+                "android-release",
+                "pc-web-release",
+                "payments-and-webhooks",
+            ],
+            "maximum_open_critical": 0,
+            "maximum_open_high": 0,
+            "critical_and_high_waivers_forbidden": True,
+            "retest_required_for_resolved_critical_and_high": True,
+        },
+        "rollback": {
+            "required_sequence": [
+                "publish-release-a",
+                "verify-release-a",
+                "publish-release-b",
+                "verify-release-b",
+                "rollback-release-a",
+                "reverify-release-a",
+            ],
+            "maximum_rto_seconds": 900,
+            "active_pointer_must_match_target": True,
+            "api_and_content_must_match_target": True,
+            "learning_data_count_and_hash_must_match": True,
+            "maximum_delete_operations": 0,
+            "nonempty_learning_dataset_required": True,
+            "retained_and_verified_target_required": True,
+        },
+        "simulation_boundary": {
+            "schema_version": "release-blank-environment-simulation.v1",
+            "execution_mode": "repository_in_memory",
+            "simulation": True,
+            "gate_eligible": False,
+            "may_satisfy_formal_gate": False,
+        },
+    }
+    if set(policy) != set(expected_policy):
+        findings.append(
+            "launch-evidence contract release operational policy top-level keys drift"
+        )
+    for key, expected in expected_policy.items():
+        _expect_contract_path(
+            findings,
+            "launch-evidence",
+            f"release operational policy {key}",
+            policy,
+            (key,),
+            expected,
+        )
+
+    expected_learning_contract = {
+        "schema_version": "learning-runtime-evidence.v1",
+        "policy_binding": "exact_learning_events_v2_runtime_contract_sha256",
+        "required_types": [
+            "cross-device-bootstrap-test",
+            "offline-replay-test",
+            "canonical-state-test",
+        ],
+        "receiver_owned_deployment_required": True,
+        "local_or_simulated_evidence_gate_eligible": False,
+        "outer_metadata_must_match_report": True,
+        "outer_subject_commit_must_match_and_be_reachable": True,
+        "launch_release_candidate_cohort_required": True,
+        "repository_raw_artifacts_must_be_rehashed": True,
+        "independent_operator_and_verifier_required": True,
+        "execution_window_binding_required": True,
+    }
+    _expect_contract_path(
+        findings,
+        "launch-evidence",
+        "learning-events formal evidence",
+        auth,
+        (
+            "learning_events_v2",
+            "migration_boundary",
+            "launch_evidence_contract",
+        ),
+        expected_learning_contract,
+    )
+
+    expected_scheduler_contract = {
+        "schema_version": "learning-runtime-evidence.v1",
+        "policy_binding": "exact_learning_session_v1_runtime_contract_sha256",
+        "required_types": [
+            "fsrs-version-lock",
+            "scheduler-contract-test",
+            "clock-boundary-test",
+        ],
+        "receiver_owned_deployment_required": True,
+        "local_or_simulated_evidence_gate_eligible": False,
+        "outer_metadata_must_match_report": True,
+        "outer_subject_commit_must_match_and_be_reachable": True,
+        "launch_release_candidate_cohort_required": True,
+        "repository_raw_artifacts_must_be_rehashed": True,
+        "independent_operator_and_verifier_required": True,
+        "execution_window_binding_required": True,
+        "exact_scheduler_lockfile_sha256_required": True,
+    }
+    _expect_contract_path(
+        findings,
+        "launch-evidence",
+        "scheduler formal evidence",
+        auth,
+        ("server_scheduler_v1", "launch_evidence_contract"),
+        expected_scheduler_contract,
+    )
+
+    expected_external_account_contract = {
+        "classification": "implementation_hypothesis",
+        "schema_version": "external-capability-evidence.v1",
+        "policy_owner": "spec/release-operational-policy.json#external_capability",
+        "scope": "provider_and_regulatory_control_plane_capability_only",
+        "subject_binding": "exact_repository_reachable_commit_target_release_policy_hash_account_id_and_capability_id",
+        "required_checks": "policy_common_checks_plus_exact_capability_specific_checks",
+        "repository_evidence_rule": "outer_report_and_every_referenced_raw_artifact_are_tracked_regular_root_contained_size_checked_and_sha256_rehashed",
+        "truth_authority": "protected_formal_product_owner_approval_for_the_exact_pull_request_head",
+        "metadata_rule": "verified_by_observation_and_portal_artifacts_are_reviewable_metadata_not_provider_authentication_by_themselves",
+        "gate_nonreplacement_rule": "capability_evidence_is_gate_eligible_false_and_cannot_replace_runtime_payment_distribution_compliance_or_security_launch_gates",
+        "current_status": "all_capabilities_unverified",
+    }
+    _expect_contract_path(
+        findings,
+        "launch-evidence",
+        "external account formal evidence",
+        auth,
+        ("external_account_readiness",),
+        expected_external_account_contract,
+    )
+
+    runtime_expectations = [
+        (
+            "learning evidence schema",
+            ("learning_event_runtime", "launch_evidence_schema"),
+            "learning-runtime-evidence.v1",
+        ),
+        (
+            "learning evidence policy binding",
+            ("learning_event_runtime", "launch_evidence_policy_binding"),
+            "exact_learning_events_runtime_contract_sha256",
+        ),
+        (
+            "learning repository simulation eligibility",
+            ("learning_event_runtime", "repository_simulation_gate_eligible"),
+            False,
+        ),
+        (
+            "learning deployment non-claim",
+            ("learning_event_runtime", "deployment_status"),
+            "not_deployed_by_repository_change",
+        ),
+        (
+            "learning launch pending",
+            ("learning_event_runtime", "launch_gate_status"),
+            "pending",
+        ),
+        (
+            "scheduler evidence schema",
+            ("scheduler_runtime", "launch_evidence_schema"),
+            "learning-runtime-evidence.v1",
+        ),
+        (
+            "scheduler evidence policy binding",
+            ("scheduler_runtime", "launch_evidence_policy_binding"),
+            "exact_learning_session_runtime_contract_sha256",
+        ),
+        (
+            "scheduler repository simulation eligibility",
+            ("scheduler_runtime", "repository_simulation_gate_eligible"),
+            False,
+        ),
+        (
+            "scheduler deployment non-claim",
+            ("scheduler_runtime", "deployment_status"),
+            "not_deployed_by_repository_change",
+        ),
+        (
+            "scheduler launch pending",
+            ("scheduler_runtime", "launch_gate_status"),
+            "pending",
+        ),
+        (
+            "release operational evidence policy",
+            ("release_delivery_runtime", "operational_evidence_policy"),
+            "spec/release-operational-policy.json",
+        ),
+        (
+            "release operational evidence schema",
+            ("release_delivery_runtime", "operational_evidence_schema"),
+            "release-operational-evidence.v1",
+        ),
+        (
+            "release retained target verification",
+            ("release_delivery_runtime", "retained_release_verification"),
+            "rollback_requires_verified_true_and_retention_status_retained_before_pointer_activation",
+        ),
+        (
+            "release repository simulation status",
+            (
+                "release_delivery_runtime",
+                "repository_blank_environment_simulation_status",
+            ),
+            "implemented_with_real_publisher_receiver_adapter_rollback_in_memory_runner_user_data_sentinel_and_zero_delete_assertion",
+        ),
+        (
+            "release repository simulation eligibility",
+            (
+                "release_delivery_runtime",
+                "repository_blank_environment_simulation_gate_eligible",
+            ),
+            False,
+        ),
+        (
+            "release formal rollback evidence",
+            ("release_delivery_runtime", "formal_rollback_evidence"),
+            "distinct_release_a_and_b_verified_and_retained_state_nonempty_learning_count_and_hash_zero_deletes_and_timed_execution_are_required",
+        ),
+        (
+            "release blank environment drill pending",
+            ("release_delivery_runtime", "blank_environment_drill_status"),
+            "pending",
+        ),
+        (
+            "release deployment non-claim",
+            ("release_delivery_runtime", "deployment_status"),
+            "not_deployed_by_repository_change",
+        ),
+        (
+            "release launch pending",
+            ("release_delivery_runtime", "launch_gate_status"),
+            "pending",
+        ),
+    ]
+    for label, keys, expected in runtime_expectations:
+        _expect_contract_path(
+            findings,
+            "launch-evidence",
+            label,
+            runtime,
+            keys,
+            expected,
+        )
+
+    expected_launch_runtime = {
+        "classification": "implementation_hypothesis",
+        "owner": "spec/release-operational-policy.json",
+        "gate_record_owner": "docs/release/launch-readiness.v1.json",
+        "semantic_schemas": [
+            "launch-gate-evidence.v1",
+            "learning-runtime-evidence.v1",
+            "release-operational-evidence.v1",
+            "external-capability-evidence.v1",
+        ],
+        "strict_json_boundary": "valid_utf8_without_bom_duplicate_keys_unknown_fields_nonfinite_numbers_or_trailing_content",
+        "repository_evidence_boundary": "explicit_trusted_git_tracked_file_and_reachable_commit_sets_regular_file_size_and_sha256_for_outer_reports_and_nested_repository_raw_artifacts_then_type_specific_semantic_validation",
+        "remote_raw_evidence_boundary": "formal_reports_reference_only_repo_raw_artifacts_remote_archives_require_an_evidence_archive_verified_repository_manifest",
+        "common_binding": "exact_gate_and_evidence_type_repository_commit_target_release_policy_hash_receiver_owned_profile_and_environment_release_bundle_content_version_backend_deployment_ios_android_pc_web_builds_execution_window_raw_artifacts_checks_and_independent_verification",
+        "release_candidate_cohort": "launch_readiness_owns_one_product_owner_recorded_launch_release_candidate_v1_commit_profile_environment_release_parent_bundle_content_backend_and_all_client_builds_cohort_every_formal_gate_report_must_match_exactly",
+        "external_capability_boundary": "external_reports_bind_reachable_commit_target_release_policy_hash_account_capability_observation_required_checks_and_rehashed_repository_raw_artifacts",
+        "external_capability_scope": "provider_and_regulatory_control_plane_only_never_runtime_payment_distribution_compliance_or_security_gate_substitution",
+        "external_capability_truth_authority": "protected_formal_product_owner_approval_authenticates_the_exact_pull_request_head_report_identity_and_portal_bytes_remain_metadata",
+        "commit_authority": "outer_subject_commit_matches_inner_report_and_must_be_reachable_from_validated_repository_head",
+        "independent_verification_rule": "execution_operator_and_independent_verifier_must_be_distinct_identities",
+        "execution_window_rule": "measured_runtime_windows_and_events_must_fit_inside_the_recorded_execution_window",
+        "generic_gate_rule": "launch_gate_evidence_without_a_registered_type_specific_measurement_contract_is_gate_ineligible_fail_closed",
+        "learning_evidence_types": [
+            "cross-device-bootstrap-test",
+            "offline-replay-test",
+            "canonical-state-test",
+            "fsrs-version-lock",
+            "scheduler-contract-test",
+            "clock-boundary-test",
+        ],
+        "learning_policy_binding": "canonical_gate_binds_exact_learning_events_runtime_contract_sha256_scheduler_gate_binds_exact_learning_session_runtime_contract_sha256",
+        "scheduler_lockfile_binding": "fsrs_version_lock_binds_exact_repository_softbook_api_package_lock_sha256",
+        "release_operational_policy": "spec/release-operational-policy.json",
+        "release_campaign_coherence": "five_reports_share_campaign_commit_policy_profile_environment_release_parent_bundle_content_and_all_client_builds",
+        "release_result_rule": "validator_recomputes_load_duration_and_counts_availability_per_route_probe_coverage_backup_rpo_and_rto_penetration_findings_and_rollback_retained_verified_nonempty_learning_state_from_policy_and_measurements_never_trusts_result_passed_alone",
+        "availability_route_probe_rule": "each_required_route_has_exact_expected_success_failed_missing_ratio_latency_and_outage_measurements_each_meets_window_and_policy_and_aggregates_match",
+        "backup_restore_nonempty_rule": "every_required_source_dataset_has_positive_count_before_exact_restored_count_and_hash_comparison",
+        "formal_approval_boundary": "tracked_verified_by_and_attestation_fields_are_metadata_the_protected_formal_product_owner_environment_remains_the_merge_authority",
+        "simulation_schema": "release-blank-environment-simulation.v1",
+        "simulation_execution_mode": "repository_in_memory",
+        "simulation_gate_eligible": False,
+        "implementation_status": "strict_repository_evidence_loader_semantic_contracts_policy_thresholds_and_repository_blank_environment_simulation_implemented",
+        "deployment_status": "formal_receiver_evidence_not_created_by_repository_change",
+        "launch_gate_status": "pending",
+    }
+    _expect_contract_path(
+        findings,
+        "launch-evidence",
+        "runtime mirror",
+        runtime,
+        ("launch_evidence_runtime",),
+        expected_launch_runtime,
+    )
+
+    expected_read_path = [
+        "spec/requirement-memory.json",
+        "spec/authority-map.json",
+        "spec/product-core.json",
+        "spec/account-sync-contract.json",
+        "spec/membership.json",
+        "spec/runtime-boundaries.json",
+        "spec/release-operational-policy.json",
+        "infra/cloudbase/learning-events-v2-runtime-contract.md",
+        "infra/cloudbase/learning-session-v1-runtime-contract.md",
+        "infra/cloudbase/release-bundle-v1-runtime-contract.md",
+        "spec/harness-architecture.json",
+        "spec/agent-harness.json",
+        "spec/repo-delivery-contract.json",
+        "spec/agent-run-record.json",
+        "spec/evals.json",
+    ]
+    _expect_contract_path(
+        findings,
+        "launch-evidence",
+        "agent read path",
+        agent,
+        ("read_paths", "launch_evidence_or_release_readiness"),
+        expected_read_path,
+    )
+
+    expected_hr43 = [
+        "release_operational_policy_is_the_threshold_owner",
+        "strict_json_rejects_bom_duplicate_keys_unknown_fields_and_trailing_content",
+        "trusted_git_tracked_file_set_is_required",
+        "outer_type_time_verifier_and_subject_commit_match_report",
+        "subject_commit_is_reachable_from_validated_head",
+        "one_product_owner_recorded_launch_release_candidate_cohort_is_required",
+        "every_gate_report_matches_the_launch_release_candidate_cohort",
+        "evidence_binds_commit_policy_profile_environment_release_bundle_content_backend_and_all_client_builds",
+        "nested_repository_raw_artifacts_are_tracked_regular_rehashed_and_size_checked",
+        "remote_raw_evidence_requires_evidence_archive_verified_repository_manifest",
+        "execution_operator_and_independent_verifier_are_distinct",
+        "measured_runtime_fits_recorded_execution_window",
+        "learning_reports_bind_exact_runtime_contract_hashes",
+        "fsrs_report_binds_exact_repository_lockfile_hash",
+        "release_reports_share_one_campaign_and_release_binding",
+        "release_reports_share_backend_deployment",
+        "availability_has_exact_per_route_probe_counters_and_aggregate_binding",
+        "backup_restore_requires_every_source_dataset_nonempty",
+        "load_availability_backup_restore_penetration_and_rollback_results_are_recomputed",
+        "receiver_owned_deployed_or_apply_execution_is_required",
+        "unregistered_generic_gate_semantics_fail_closed",
+        "repository_simulation_is_always_gate_ineligible",
+        "rollback_requires_retained_and_verified_release",
+        "formal_rollback_requires_distinct_releases_and_nonempty_learning_state",
+        "rollback_preserves_nonempty_learning_sentinel_and_performs_zero_deletes",
+        "formal_receiver_evidence_and_protected_product_owner_approval_remain_pending",
+    ]
+    hr43 = _entry_by_id(evals.get("regressions", []), "HR-43")
+    if not hr43:
+        findings.append("launch-evidence contract evals: missing HR-43")
+    elif hr43.get("must_hit") != expected_hr43:
+        findings.append("launch-evidence contract evals: HR-43 must_hit drift")
+
+    expected_hr44 = [
+        "release_operational_policy_owns_external_capability_checks",
+        "arbitrary_json_cannot_satisfy_external_capability_evidence",
+        "external_capability_evidence_v1_exact_schema",
+        "outer_and_inner_commit_match_and_reachable",
+        "target_release_policy_hash_account_and_capability_are_exactly_bound",
+        "common_and_capability_specific_check_registry_is_complete",
+        "provider_subject_observation_mode_and_freshness_are_validated",
+        "report_and_referenced_repository_raw_artifacts_are_rehashed",
+        "capability_eligible_true_and_gate_eligible_false_are_fixed",
+        "capability_evidence_cannot_replace_runtime_payment_distribution_compliance_or_security_gates",
+        "verified_by_and_portal_bytes_are_metadata_only",
+        "protected_product_owner_environment_authenticates_exact_pr_head",
+        "policy_semantic_parser_and_validator_paths_require_formal_approval",
+        "tracked_external_accounts_remain_unverified_without_formal_evidence",
+    ]
+    hr44 = _entry_by_id(evals.get("regressions", []), "HR-44")
+    if not hr44:
+        findings.append("launch-evidence contract evals: missing HR-44")
+    elif hr44.get("must_hit") != expected_hr44:
+        findings.append("launch-evidence contract evals: HR-44 must_hit drift")
+
+    expected_gt35 = [
+        "release_operational_policy_owner_and_non_regressing_thresholds",
+        "launch_gate_learning_runtime_and_release_operational_evidence_schemas",
+        "strict_utf8_json_without_bom_duplicate_keys_unknown_fields_or_trailing_content",
+        "explicit_trusted_git_tracked_file_snapshot",
+        "outer_metadata_and_subject_commit_match_inner_report",
+        "subject_commit_is_reachable_from_validated_repository_head",
+        "launch_release_candidate_v1_is_the_single_formal_gate_subject_cohort",
+        "all_formal_gate_reports_match_the_candidate_cohort",
+        "exact_commit_policy_profile_environment_release_parent_bundle_content_backend_and_client_build_binding",
+        "nested_repository_raw_artifacts_are_tracked_regular_size_and_sha256_verified",
+        "remote_raw_evidence_uses_evidence_archive_verified_repository_manifest",
+        "independent_verifier_differs_from_execution_operator",
+        "measured_runtime_windows_fit_recorded_execution_window",
+        "learning_events_and_scheduler_reports_bind_exact_runtime_contract_hashes",
+        "fsrs_version_lock_binds_exact_repository_package_lock_hash",
+        "generic_evidence_without_type_specific_semantics_fails_closed",
+        "load_counts_ratios_latency_and_integrity_recomputed",
+        "availability_each_route_counts_ratio_latency_outage_window_and_aggregate_recomputed",
+        "backup_restore_uses_nonempty_source_datasets_isolated_target_matching_counts_hashes_and_recomputed_rpo_rto",
+        "penetration_scope_has_zero_open_or_waived_critical_and_high",
+        "rollback_sequence_retained_verified_pointer_api_content_nonempty_learning_hash_rto_and_zero_delete_recomputed",
+        "five_release_reports_share_one_campaign_release_and_backend_deployment_binding",
+        "real_publisher_receiver_adapter_and_rollback_used_by_memory_simulation",
+        "nonempty_learning_sentinel_is_preserved",
+        "rollback_target_requires_retained_and_verified",
+        "simulation_schema_execution_mode_and_gate_eligible_false_are_fixed",
+        "repository_simulation_does_not_change_launch_gate_from_pending",
+        "formal_receiver_owned_execution_and_protected_product_owner_approval_remain_external",
+    ]
+    gt35 = _entry_by_id(evals.get("golden_tasks", []), "GT-35")
+    if not gt35:
+        findings.append("launch-evidence contract evals: missing GT-35")
+    elif gt35.get("must_include") != expected_gt35:
+        findings.append("launch-evidence contract evals: GT-35 must_include drift")
+
+    expected_gt36 = [
+        "external_capability_evidence_v1",
+        "provider_and_regulatory_control_plane_scope_only",
+        "reachable_commit_target_release_policy_account_and_capability_binding",
+        "common_plus_exact_capability_required_checks",
+        "provider_subject_hash_observation_mode_time_and_optional_expiry",
+        "strict_json_exact_keys_and_non_placeholder_hashes",
+        "tracked_regular_root_contained_report_and_raw_artifact_rehash",
+        "all_external_account_capability_pairs_have_policy_coverage",
+        "arbitrary_json_self_attestation_missing_or_extra_checks_fail_closed",
+        "capability_eligible_true_gate_eligible_false",
+        "runtime_payment_distribution_compliance_and_security_gates_are_not_replaced",
+        "protected_formal_product_owner_approval_is_the_only_authentication_authority",
+        "formal_scope_classifier_covers_policy_semantic_parser_and_validator",
+        "repository_baseline_remains_unverified",
+    ]
+    gt36 = _entry_by_id(evals.get("golden_tasks", []), "GT-36")
+    if not gt36:
+        findings.append("launch-evidence contract evals: missing GT-36")
+    elif gt36.get("must_include") != expected_gt36:
+        findings.append("launch-evidence contract evals: GT-36 must_include drift")
+
+    expected_ap43 = {
+        "id": "AP-43",
+        "name": "treat_hashed_external_account_file_as_verified_provider_capability",
+        "correction": "require_external_capability_evidence_v1_reachable_commit_policy_identity_exact_checks_rehashed_raw_artifacts_and_protected_product_owner_approval_without_replacing_launch_gates",
+    }
+    ap43 = _entry_by_id(agent.get("anti_patterns", []), "AP-43")
+    if ap43 != expected_ap43:
+        findings.append("launch-evidence agent harness AP-43 drift")
+
+    required_release_runtime_snippets = [
+        "## Operational evidence policy",
+        "`spec/release-operational-policy.json` owns the minimum non-regressing launch",
+        "`release-slo-and-recovery-drill` gate requires one coherent campaign containing",
+        "all five `release-operational-evidence.v1` reports:",
+        "inner subject commit to match and that commit to be reachable from the",
+        "product-owner-recorded `launch-release-candidate.v1` cohort",
+        "repository raw artifacts are rechecked for tracked regular-file identity",
+        "Formal reports may reference only `repo://` raw artifacts;",
+        "expected/success/failed/missing counts, ratio, latency, and outage for every",
+        "source dataset to be nonempty before exact restored count/hash comparison",
+        "RPO is recomputed from the snapshot and recovery reference",
+        "distinct A/B releases with explicit verified/retained state plus a nonempty",
+        "different from the execution operator.",
+        "External account readiness uses `external-capability-evidence.v1`.",
+        "always `gate_eligible=false`: external capability evidence cannot replace",
+        "protected product-owner",
+        "Other launch-gate evidence remains fail-closed when no type-specific",
+        "## Repository blank-environment simulation",
+        "`infra/cloudbase/release-blank-environment-simulation.mjs` runs the real",
+        "publisher, receiver adapter, and rollback functions against an injected",
+        "sentinel count and canonical hash are unchanged with zero delete operations.",
+        "`schema_version=release-blank-environment-simulation.v1`",
+        "`execution_mode=repository_in_memory`",
+        "`simulation=true`",
+        "`gate_eligible=false`",
+        "The simulation is a regression framework, not receiver execution evidence.",
+        "Only a receiver-owned deployment running the formal policy can satisfy the",
+    ]
+    for snippet in required_release_runtime_snippets:
+        if snippet not in release_runtime_text:
+            findings.append(
+                "launch-evidence release runtime contract missing exact snippet: "
+                f"{snippet!r}"
+            )
+
+    simulation_source_path = (
+        root / "infra/cloudbase/release-blank-environment-simulation.mjs"
+    )
+    simulation_test_path = (
+        root
+        / "infra/cloudbase/functions/softbook-api/test/"
+        "release-blank-environment-simulation.test.js"
+    )
+    simulation_source_text = (
+        simulation_source_path.read_text(encoding="utf-8")
+        if simulation_source_path.is_file()
+        else ""
+    )
+    simulation_test_text = (
+        simulation_test_path.read_text(encoding="utf-8")
+        if simulation_test_path.is_file()
+        else ""
+    )
+    if not simulation_source_path.is_file():
+        findings.append(
+            "launch-evidence simulation source missing: "
+            "infra/cloudbase/release-blank-environment-simulation.mjs"
+        )
+    if not simulation_test_path.is_file():
+        findings.append(
+            "launch-evidence simulation test missing: "
+            "infra/cloudbase/functions/softbook-api/test/"
+            "release-blank-environment-simulation.test.js"
+        )
+
+    required_simulation_source_snippets = [
+        "from './cloudbase-receiver-adapter.mjs';",
+        "from './release-delivery-v1.mjs';",
+        "const adapter = createCloudBaseReceiverAdapter({",
+        "const publishedA = await publishVerifiedRelease(releaseA, adapter);",
+        "const publishedB = await publishVerifiedRelease(releaseB, adapter);",
+        "const rollback = await rollbackToRetainedRelease(",
+        "'softbook_learning_events'",
+        "schema_version: RELEASE_BLANK_ENVIRONMENT_SIMULATION_SCHEMA",
+        "simulation: true",
+        "gate_eligible: false",
+        "execution_mode: 'repository_in_memory'",
+    ]
+    for snippet in required_simulation_source_snippets:
+        if snippet not in simulation_source_text:
+            findings.append(
+                f"launch-evidence simulation source missing exact snippet: {snippet!r}"
+            )
+
+    required_simulation_test_snippets = [
+        "../../../release-blank-environment-simulation.mjs",
+        "'release-blank-environment-simulation.v1'",
+        "assert.equal(report.simulation, true);",
+        "assert.equal(report.gate_eligible, false);",
+        "assert.equal(report.execution_mode, 'repository_in_memory');",
+        "assert.equal(report.assertions.user_data_sentinel_unchanged, true);",
+        "assert.equal(report.assertions.delete_attempt_count, 0);",
+    ]
+    for snippet in required_simulation_test_snippets:
+        if snippet not in simulation_test_text:
+            findings.append(
+                f"launch-evidence simulation test missing exact snippet: {snippet!r}"
+            )
+
+    if '"test": "node --test test/*.test.js"' not in package_text:
+        findings.append(
+            "launch-evidence package test script must include every test/*.test.js file"
+        )
+
+    launch_readiness_path = root / "docs/release/launch-readiness.v1.json"
+    launch_readiness = (
+        json.loads(launch_readiness_path.read_text(encoding="utf-8"))
+        if launch_readiness_path.is_file()
+        else {}
+    )
+    if "release_candidate" not in launch_readiness:
+        findings.append(
+            "launch-evidence launch readiness must declare release_candidate"
+        )
+
+    validator_path = root / "scripts/validate_launch_readiness.mjs"
+    validator_text = (
+        validator_path.read_text(encoding="utf-8")
+        if validator_path.is_file()
+        else ""
+    )
+    required_validator_snippets = [
+        "'launch-release-candidate.v1'",
+        "'release_candidate is required before recording formal gate evidence.'",
+        "function verifyInnerRepositoryArtifact(",
+        "validateExternalCapabilityEvidenceArtifact(artifact,",
+        "'external-capability-evidence.v1'",
+        "artifact.capability_eligible",
+        "artifact.gate_eligible",
+        "release_candidate commit must be reachable from the validated repository HEAD.",
+    ]
+    for snippet in required_validator_snippets:
+        if snippet not in validator_text:
+            findings.append(
+                "launch-evidence validator missing exact snippet: "
+                f"{snippet!r}"
+            )
+
+    evidence_contract_path = root / "scripts/lib/launch_evidence_contract.mjs"
+    evidence_contract_text = (
+        evidence_contract_path.read_text(encoding="utf-8")
+        if evidence_contract_path.is_file()
+        else ""
+    )
+    for snippet in [
+        "must match the launch-level release_candidate cohort.",
+        "'route_probes'",
+        "must use repo://; remote evidence requires a verified repository manifest",
+        "all_required_source_datasets_must_be_nonempty",
+        "validateAvailabilityRouteProbes(",
+    ]:
+        if snippet not in evidence_contract_text:
+            findings.append(
+                "launch-evidence semantic contract missing exact snippet: "
+                f"{snippet!r}"
+            )
+
+    classifier_path = root / "scripts/classify_formal_approval_scope.mjs"
+    classifier_text = (
+        classifier_path.read_text(encoding="utf-8")
+        if classifier_path.is_file()
+        else ""
+    )
+    for sensitive_path in [
+        "'scripts/harness_validator/sections/product_contract_mirrors.py'",
+        "'scripts/harness_validator/sections/truth_mirrors.py'",
+        "'scripts/lib/launch_evidence_contract.mjs'",
+        "'scripts/lib/strict_json.mjs'",
+        "'spec/account-sync-contract.json'",
+        "'spec/authority-map.json'",
+        "'spec/doc-manifest.json'",
+        "'spec/release-operational-policy.json'",
+        "'spec/runtime-boundaries.json'",
+    ]:
+        if sensitive_path not in classifier_text:
+            findings.append(
+                "launch-evidence formal approval classifier missing sensitive path: "
+                f"{sensitive_path}"
+            )
+
+    workflow_path = root / ".github/workflows/pr-gates.yml"
+    workflow_text = (
+        workflow_path.read_text(encoding="utf-8")
+        if workflow_path.is_file()
+        else ""
+    )
+    validate_harness_marker = "\n  validate-harness:\n"
+    agent_review_marker = "\n  agent-review:\n"
+    if (
+        validate_harness_marker not in workflow_text
+        or agent_review_marker not in workflow_text
+    ):
+        findings.append(
+            "launch-evidence PR gates must retain validate-harness and agent-review jobs"
+        )
+    else:
+        validate_harness_block = workflow_text.split(
+            validate_harness_marker, 1
+        )[1].split(agent_review_marker, 1)[0]
+        if "fetch-depth: 0" not in validate_harness_block:
+            findings.append(
+                "launch-evidence validate-harness checkout must use fetch-depth: 0"
+            )
+
+    return findings
+
+
 def validate(context) -> None:
     check_equal = context.check_equal
     req = context.load("requirement-memory.json")
@@ -2152,6 +3059,7 @@ def validate(context) -> None:
     runtime = context.load("runtime-boundaries.json")
     agent = context.load("agent-harness.json")
     evals = context.load("evals.json")
+    release_policy = context.load("release-operational-policy.json")
     runtime_contract = (
         context.root / "infra/cloudbase/learning-events-v2-runtime-contract.md"
     )
@@ -2174,6 +3082,14 @@ def validate(context) -> None:
     space_runtime_text = (
         space_runtime_contract.read_text(encoding="utf-8")
         if space_runtime_contract.is_file()
+        else ""
+    )
+    release_runtime_contract = (
+        context.root / "infra/cloudbase/release-bundle-v1-runtime-contract.md"
+    )
+    release_runtime_text = (
+        release_runtime_contract.read_text(encoding="utf-8")
+        if release_runtime_contract.is_file()
         else ""
     )
     provision_path = context.root / "infra/cloudbase/provision-softbook-nosql.mjs"
@@ -2222,6 +3138,18 @@ def validate(context) -> None:
             space_runtime_text,
             agent_entry_text,
             provision_text,
+        )
+    )
+    context.errors.extend(
+        launch_evidence_contract_findings(
+            context.root,
+            release_policy,
+            auth,
+            runtime,
+            agent,
+            evals,
+            release_runtime_text,
+            package_text,
         )
     )
 

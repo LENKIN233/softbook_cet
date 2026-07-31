@@ -6,6 +6,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import {
+  validateGateEvidenceArtifact,
+  validateGateEvidenceCoherence,
+  validateReleaseOperationalPolicy,
+} from './lib/launch_evidence_contract.mjs';
+import {parseStrictJson} from './lib/strict_json.mjs';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_LAUNCH_CONTRACT = path.join(
   ROOT,
@@ -33,6 +40,13 @@ const REPOSITORY_EVIDENCE_PREFIXES = [
 const PRODUCT_OWNER_VERIFIER = 'github:LENKIN233';
 const EVIDENCE_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
 const MAX_REPOSITORY_EVIDENCE_BYTES = 1024 * 1024;
+const MAX_REPOSITORY_RAW_EVIDENCE_BYTES = 16 * 1024 * 1024;
+const COMMIT_SHA_PATTERN = /^[0-9a-f]{40}$/;
+const SUBJECT_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/;
+const SHA256_PATTERN = /^[0-9a-f]{64}$/;
+const CONTENT_VERSION_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const FORBIDDEN_ENVIRONMENT_PATTERN =
+  /(^|[-_.:])(local|mock|simulation|simulator|personal|development|dev)([-_.:]|$)/i;
 const FORMAL_APPROVAL_POLICY = Object.freeze({
   provider: 'github_environment',
   environment: 'formal-product-owner-approval',
@@ -193,6 +207,7 @@ export function validateLaunchReadiness(contract, { now = new Date() } = {}) {
       'current_milestone',
       'quality_policy',
       'formal_approval',
+      'release_candidate',
       'product_scope',
       'external_dependencies',
       'gates',
@@ -221,6 +236,7 @@ export function validateLaunchReadiness(contract, { now = new Date() } = {}) {
   }
 
   validateFormalApprovalPolicy(contract.formal_approval, errors);
+  validateLaunchReleaseCandidate(contract.release_candidate, now, errors);
 
   validateProductScope(contract.product_scope, errors);
 
@@ -267,9 +283,18 @@ export function validateLaunchReadiness(contract, { now = new Date() } = {}) {
     }
     validateGate(gate, definition, now, errors);
   }
+  const hasGateEvidence = [...gates.values()].some(
+    gate => Array.isArray(gate.evidence) && gate.evidence.length > 0,
+  );
+  if (hasGateEvidence && !isRecord(contract.release_candidate)) {
+    errors.push(
+      'release_candidate is required before recording formal gate evidence.',
+    );
+  }
   validateDistinctEvidenceArtifacts(collectEvidence(contract, null), errors);
 
   const stateReady =
+    isRecord(contract.release_candidate) &&
     gates.size === Object.keys(GATE_DEFINITIONS).length &&
     [...gates.values()].every(gate => gate.status === 'passed') &&
     dependencies.size === Object.keys(EXTERNAL_ACCOUNT_DEFINITIONS).length &&
@@ -420,20 +445,70 @@ export function validateExternalAccountReadiness(
 export function verifyRepositoryEvidenceFiles(
   launchContract,
   accountsContract,
-  { root = ROOT, trackedFiles = null } = {},
+  {
+    root = ROOT,
+    semanticContext = null,
+    trackedFiles = null,
+    trustedCommits = null,
+    now = new Date(),
+  } = {},
 ) {
   const errors = [];
-  const evidenceRecords = collectEvidence(
-    launchContract,
-    accountsContract,
-  );
+  if (!(trackedFiles instanceof Set) || !(trustedCommits instanceof Set)) {
+    const trustErrors = [];
+    if (!(trackedFiles instanceof Set)) {
+      trustErrors.push(
+        'repository evidence verification requires an explicit trusted tracked-file set.',
+      );
+    }
+    if (!(trustedCommits instanceof Set)) {
+      trustErrors.push(
+        'repository evidence verification requires an explicit trusted reachable-commit set.',
+      );
+    }
+    return {
+      errors: trustErrors,
+      ok: false,
+    };
+  }
+  const loadedContext =
+    semanticContext ?? loadLaunchEvidenceSemanticContext({root});
+  if (!loadedContext?.ok) {
+    errors.push(
+      ...(loadedContext?.errors ?? [
+        'launch evidence semantic context is unavailable.',
+      ]),
+    );
+  }
+  const evidenceRecords = collectEvidence(launchContract, accountsContract);
   validateDistinctEvidenceArtifacts(evidenceRecords, errors);
-  for (const { evidence, label } of evidenceRecords) {
+  const gateEvidenceRecords = evidenceRecords.filter(
+    record => record.scope === 'gate',
+  );
+  const expectedReleaseCandidate = isRecord(launchContract?.release_candidate)
+    ? launchContract.release_candidate
+    : null;
+  if (gateEvidenceRecords.length > 0 && !expectedReleaseCandidate) {
+    errors.push(
+      'formal gate evidence requires one launch-level release_candidate cohort.',
+    );
+  }
+  if (
+    expectedReleaseCandidate &&
+    !trustedCommits.has(expectedReleaseCandidate.commit_sha)
+  ) {
+    errors.push(
+      'release_candidate commit must be reachable from the validated repository HEAD.',
+    );
+  }
+  const parsedGateEvidence = new Map();
+  for (const record of evidenceRecords) {
+    const {evidence, label} = record;
     if (!isRecord(evidence) || !evidence.artifact_uri?.startsWith('repo://')) {
       continue;
     }
     const relativePath = evidence.artifact_uri.slice('repo://'.length);
-    if (trackedFiles && !trackedFiles.has(relativePath)) {
+    if (!trackedFiles.has(relativePath)) {
       errors.push(`${label} repository evidence must be tracked by Git.`);
       continue;
     }
@@ -459,14 +534,635 @@ export function verifyRepositoryEvidenceFiles(
     if (stats.size !== evidence.artifact_size_bytes) {
       errors.push(`${label} repository evidence byte size does not match.`);
     }
-    const actualSha256 = createHash('sha256')
-      .update(fs.readFileSync(resolvedPath))
-      .digest('hex');
+    const artifactBytes = fs.readFileSync(resolvedPath);
+    const actualSha256 = createHash('sha256').update(artifactBytes).digest('hex');
     if (actualSha256 !== evidence.artifact_sha256) {
       errors.push(`${label} repository evidence SHA-256 does not match.`);
     }
+    const requiresSemanticJson =
+      record.scope === 'gate' ||
+      (record.scope === 'external_capability' &&
+        evidence.type === 'capability-verification');
+    if (!requiresSemanticJson) {
+      continue;
+    }
+    if (!relativePath.endsWith('.json')) {
+      errors.push(`${label} semantic evidence must be a JSON file.`);
+      continue;
+    }
+    let artifact;
+    try {
+      artifact = parseStrictJson(artifactBytes, label);
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+      continue;
+    }
+    for (const [index, rawArtifact] of asArray(
+      artifact?.raw_artifacts,
+    ).entries()) {
+      if (!rawArtifact?.artifact_uri?.startsWith('repo://')) {
+        continue;
+      }
+      verifyInnerRepositoryArtifact(
+        rawArtifact,
+        {
+          label: `${label} raw_artifacts[${index}]`,
+          root,
+          trackedFiles,
+        },
+        errors,
+      );
+    }
+    if (record.scope === 'external_capability') {
+      const subjectCommit = artifact?.subject?.commit_sha;
+      if (
+        typeof subjectCommit !== 'string' ||
+        !trustedCommits.has(subjectCommit)
+      ) {
+        errors.push(
+          `${label} subject commit must be reachable from the validated repository HEAD.`,
+        );
+      }
+      const result = validateExternalCapabilityEvidenceArtifact(artifact, {
+        accountId: record.accountId,
+        capabilityId: record.capabilityId,
+        expectedPolicy: {
+          ...loadedContext?.releaseOperationalPolicy?.external_capability,
+          policy_id: loadedContext?.releaseOperationalPolicy?.policy_id,
+          policy_sha256: loadedContext?.releasePolicySha256,
+          evidence_validity_days:
+            loadedContext?.releaseOperationalPolicy?.evidence_validity_days,
+        },
+        now,
+        outerEvidence: evidence,
+        targetRelease: launchContract?.target_release,
+      });
+      errors.push(...result.errors);
+      continue;
+    }
+    const subjectCommit = artifact?.subject?.commit_sha;
+    if (
+      typeof subjectCommit !== 'string' ||
+      !trustedCommits.has(subjectCommit)
+    ) {
+      errors.push(
+        `${label} subject commit must be reachable from the validated repository HEAD.`,
+      );
+    }
+    const expectedPolicy = loadedContext?.expectedPolicies?.[record.gateId];
+    const result = validateGateEvidenceArtifact(artifact, {
+      evidenceType: record.evidenceType,
+      expectedPolicy,
+      expectedSubject: expectedReleaseCandidate,
+      gateId: record.gateId,
+      outerEvidence: evidence,
+      releaseOperationalPolicy: loadedContext?.releaseOperationalPolicy,
+    });
+    errors.push(...result.errors);
+    if (result.ok) {
+      const reports = parsedGateEvidence.get(record.gateId) ?? [];
+      reports.push(artifact);
+      parsedGateEvidence.set(record.gateId, reports);
+    }
+  }
+  for (const gate of asArray(launchContract?.gates)) {
+    const reports = parsedGateEvidence.get(gate?.id) ?? [];
+    if (reports.length <= 1) continue;
+    const coherence = validateGateEvidenceCoherence(reports, {
+      gateId: gate.id,
+      requiredEvidenceTypes:
+        gate.status === 'passed'
+          ? GATE_DEFINITIONS[gate.id]?.evidenceTypes ?? []
+          : reports.map(report => report.subject?.evidence_type),
+    });
+    errors.push(...coherence.errors);
   }
   return { errors, ok: errors.length === 0 };
+}
+
+function verifyInnerRepositoryArtifact(
+  artifact,
+  {label, root, trackedFiles},
+  errors,
+) {
+  const relativePath = artifact.artifact_uri.slice('repo://'.length);
+  if (!trackedFiles.has(relativePath)) {
+    errors.push(`${label} repository artifact must be tracked by Git.`);
+    return;
+  }
+  const resolvedPath = path.resolve(root, relativePath);
+  const rootPrefix = `${path.resolve(root)}${path.sep}`;
+  if (!resolvedPath.startsWith(rootPrefix)) {
+    errors.push(`${label} repository artifact escapes the repository root.`);
+    return;
+  }
+  if (!fs.existsSync(resolvedPath)) {
+    errors.push(`${label} repository artifact file does not exist.`);
+    return;
+  }
+  const stats = fs.lstatSync(resolvedPath);
+  if (!stats.isFile()) {
+    errors.push(`${label} repository artifact must be a regular file.`);
+    return;
+  }
+  if (stats.size > MAX_REPOSITORY_RAW_EVIDENCE_BYTES) {
+    errors.push(`${label} repository artifact exceeds the 16 MiB limit.`);
+    return;
+  }
+  if (stats.size !== artifact.size_bytes) {
+    errors.push(`${label} repository artifact byte size does not match.`);
+  }
+  const actualSha256 = createHash('sha256')
+    .update(fs.readFileSync(resolvedPath))
+    .digest('hex');
+  if (actualSha256 !== artifact.sha256) {
+    errors.push(`${label} repository artifact SHA-256 does not match.`);
+  }
+}
+
+export function validateExternalCapabilityEvidenceArtifact(
+  artifact,
+  {
+    accountId,
+    capabilityId,
+    expectedPolicy,
+    now = new Date(),
+    outerEvidence,
+    targetRelease,
+  } = {},
+) {
+  const errors = [];
+  const label = `external capability ${String(accountId)}/${String(
+    capabilityId,
+  )}`;
+  if (!isRecord(artifact)) {
+    return {errors: [`${label} artifact must be a JSON object.`], ok: false};
+  }
+  assertAllowedKeys(
+    artifact,
+    [
+      'schema_version',
+      'capability_eligible',
+      'gate_eligible',
+      'result',
+      'subject',
+      'observation',
+      'verification',
+      'checks',
+      'raw_artifacts',
+    ],
+    `${label} artifact`,
+    errors,
+  );
+  assertEqual(
+    artifact.schema_version,
+    'external-capability-evidence.v1',
+    `${label} schema_version`,
+    errors,
+  );
+  assertEqual(
+    artifact.capability_eligible,
+    true,
+    `${label} capability_eligible`,
+    errors,
+  );
+  assertEqual(
+    artifact.gate_eligible,
+    false,
+    `${label} gate_eligible`,
+    errors,
+  );
+  assertEqual(artifact.result, 'verified', `${label} result`, errors);
+
+  const subject = artifact.subject;
+  if (!isRecord(subject)) {
+    errors.push(`${label} subject must be an object.`);
+  } else {
+    assertAllowedKeys(
+      subject,
+      [
+        'repository',
+        'commit_sha',
+        'target_release',
+        'account_id',
+        'capability_id',
+        'policy',
+      ],
+      `${label} subject`,
+      errors,
+    );
+    assertEqual(
+      subject.repository,
+      'LENKIN233/softbook_cet',
+      `${label} subject.repository`,
+      errors,
+    );
+    assertEqual(
+      subject.commit_sha,
+      outerEvidence?.subject_commit_sha,
+      `${label} subject.commit_sha`,
+      errors,
+    );
+    assertEqual(
+      subject.target_release,
+      targetRelease,
+      `${label} subject.target_release`,
+      errors,
+    );
+    assertEqual(
+      subject.account_id,
+      accountId,
+      `${label} subject.account_id`,
+      errors,
+    );
+    assertEqual(
+      subject.capability_id,
+      capabilityId,
+      `${label} subject.capability_id`,
+      errors,
+    );
+    if (!isRecord(subject.policy)) {
+      errors.push(`${label} subject.policy must be an object.`);
+    } else {
+      assertAllowedKeys(
+        subject.policy,
+        ['id', 'sha256'],
+        `${label} subject.policy`,
+        errors,
+      );
+      assertEqual(
+        subject.policy.id,
+        expectedPolicy?.policy_id,
+        `${label} subject.policy.id`,
+        errors,
+      );
+      assertEqual(
+        subject.policy.sha256,
+        expectedPolicy?.policy_sha256,
+        `${label} subject.policy.sha256`,
+        errors,
+      );
+    }
+  }
+
+  const observation = artifact.observation;
+  if (!isRecord(observation)) {
+    errors.push(`${label} observation must be an object.`);
+  } else {
+    assertAllowedKeys(
+      observation,
+      [
+        'provider_id',
+        'provider_subject_sha256',
+        'mode',
+        'observed_at',
+        'valid_until',
+      ],
+      `${label} observation`,
+      errors,
+    );
+    assertEqual(
+      observation.provider_id,
+      accountId,
+      `${label} observation.provider_id`,
+      errors,
+    );
+    validateSha256(
+      observation.provider_subject_sha256,
+      `${label} observation.provider_subject_sha256`,
+      errors,
+    );
+    if (
+      !Array.isArray(expectedPolicy?.allowed_observation_modes) ||
+      !expectedPolicy.allowed_observation_modes.includes(observation.mode)
+    ) {
+      errors.push(`${label} observation.mode is not allowed by policy.`);
+    }
+    const observedAt = parseIsoTimestamp(
+      observation.observed_at,
+      `${label} observation.observed_at`,
+      now,
+      errors,
+    );
+    const verifiedAt =
+      typeof outerEvidence?.verified_at === 'string'
+        ? new Date(outerEvidence.verified_at)
+        : null;
+    if (
+      observedAt &&
+      verifiedAt &&
+      !Number.isNaN(verifiedAt.getTime()) &&
+      observedAt.getTime() > verifiedAt.getTime()
+    ) {
+      errors.push(
+        `${label} observation.observed_at must not be later than verification.`,
+      );
+    }
+    if (
+      observedAt &&
+      Number.isInteger(expectedPolicy?.evidence_validity_days) &&
+      observedAt.getTime() <
+        now.getTime() -
+          expectedPolicy.evidence_validity_days * 24 * 60 * 60 * 1000
+    ) {
+      errors.push(
+        `${label} observation exceeds the active evidence validity window.`,
+      );
+    }
+    if (observation.valid_until !== null) {
+      const validUntil = parseIsoTimestamp(
+        observation.valid_until,
+        `${label} observation.valid_until`,
+        new Date(
+          now.getTime() +
+            (expectedPolicy?.evidence_validity_days ?? 180) *
+              24 *
+              60 *
+              60 *
+              1000,
+        ),
+        errors,
+      );
+      if (validUntil && validUntil.getTime() <= now.getTime()) {
+        errors.push(`${label} observation.valid_until must be in the future.`);
+      }
+      if (
+        validUntil &&
+        verifiedAt &&
+        !Number.isNaN(verifiedAt.getTime()) &&
+        validUntil.getTime() < verifiedAt.getTime()
+      ) {
+        errors.push(
+          `${label} observation.valid_until must not predate verification.`,
+        );
+      }
+    }
+  }
+
+  const verification = artifact.verification;
+  if (!isRecord(verification)) {
+    errors.push(`${label} verification must be an object.`);
+  } else {
+    assertAllowedKeys(
+      verification,
+      ['verified_at', 'verified_by'],
+      `${label} verification`,
+      errors,
+    );
+    assertEqual(
+      verification.verified_at,
+      outerEvidence?.verified_at,
+      `${label} verification.verified_at`,
+      errors,
+    );
+    assertEqual(
+      verification.verified_by,
+      outerEvidence?.verified_by,
+      `${label} verification.verified_by`,
+      errors,
+    );
+    assertEqual(
+      verification.verified_by,
+      expectedPolicy?.product_owner,
+      `${label} verification product_owner`,
+      errors,
+    );
+  }
+
+  const capabilityChecks =
+    expectedPolicy?.required_checks?.[accountId]?.[capabilityId];
+  const commonChecks = expectedPolicy?.common_required_checks;
+  const requiredChecks =
+    Array.isArray(commonChecks) && Array.isArray(capabilityChecks)
+      ? [...commonChecks, ...capabilityChecks]
+      : null;
+  if (!Array.isArray(requiredChecks) || requiredChecks.length === 0) {
+    errors.push(`${label} has no trusted required-check policy.`);
+  }
+  const checks = mapRecordsById(
+    artifact.checks,
+    `${label} checks`,
+    errors,
+  );
+  if (Array.isArray(requiredChecks)) {
+    assertExactSet(
+      [...checks.keys()],
+      requiredChecks,
+      `${label} check ids`,
+      errors,
+    );
+  }
+  for (const [checkId, check] of checks) {
+    assertAllowedKeys(
+      check,
+      ['id', 'result', 'artifact_roles'],
+      `${label} check ${checkId}`,
+      errors,
+    );
+    assertEqual(
+      check.result,
+      'passed',
+      `${label} check ${checkId} result`,
+      errors,
+    );
+    if (
+      !Array.isArray(check.artifact_roles) ||
+      check.artifact_roles.length === 0 ||
+      check.artifact_roles.some(role => !isNonEmptyString(role)) ||
+      new Set(check.artifact_roles).size !== check.artifact_roles.length
+    ) {
+      errors.push(
+        `${label} check ${checkId} artifact_roles must be a non-empty unique string array.`,
+      );
+    }
+  }
+
+  const rawArtifacts = new Map();
+  const rawUris = new Set();
+  const rawHashes = new Set();
+  if (!Array.isArray(artifact.raw_artifacts)) {
+    errors.push(`${label} raw_artifacts must be an array.`);
+  } else {
+    for (const [index, rawArtifact] of artifact.raw_artifacts.entries()) {
+      const rawLabel = `${label} raw_artifacts[${index}]`;
+      if (!isRecord(rawArtifact)) {
+        errors.push(`${rawLabel} must be an object.`);
+        continue;
+      }
+      assertAllowedKeys(
+        rawArtifact,
+        ['role', 'artifact_uri', 'sha256', 'size_bytes'],
+        rawLabel,
+        errors,
+      );
+      if (
+        typeof rawArtifact.role !== 'string' ||
+        !SUBJECT_ID_PATTERN.test(rawArtifact.role)
+      ) {
+        errors.push(`${rawLabel}.role has an invalid value.`);
+      } else if (rawArtifacts.has(rawArtifact.role)) {
+        errors.push(`${label} repeats raw artifact role ${rawArtifact.role}.`);
+      } else {
+        rawArtifacts.set(rawArtifact.role, rawArtifact);
+      }
+      validateArtifactUri(rawArtifact.artifact_uri, rawLabel, errors);
+      if (rawArtifact.artifact_uri === outerEvidence?.artifact_uri) {
+        errors.push(`${rawLabel} must not reference its own semantic report.`);
+      }
+      if (rawUris.has(rawArtifact.artifact_uri)) {
+        errors.push(
+          `${label} reuses raw artifact_uri ${String(
+            rawArtifact.artifact_uri,
+          )}.`,
+        );
+      }
+      rawUris.add(rawArtifact.artifact_uri);
+      validateSha256(rawArtifact.sha256, `${rawLabel}.sha256`, errors);
+      if (rawHashes.has(rawArtifact.sha256)) {
+        errors.push(
+          `${label} reuses raw artifact SHA-256 ${String(
+            rawArtifact.sha256,
+          )}.`,
+        );
+      }
+      rawHashes.add(rawArtifact.sha256);
+      if (
+        !Number.isInteger(rawArtifact.size_bytes) ||
+        rawArtifact.size_bytes <= 0 ||
+        rawArtifact.size_bytes > MAX_REPOSITORY_RAW_EVIDENCE_BYTES
+      ) {
+        errors.push(
+          `${rawLabel}.size_bytes must be a positive integer no larger than 16 MiB.`,
+        );
+      }
+    }
+  }
+  const referencedRoles = new Set(
+    [...checks.values()].flatMap(check =>
+      Array.isArray(check.artifact_roles) ? check.artifact_roles : [],
+    ),
+  );
+  for (const role of referencedRoles) {
+    if (!rawArtifacts.has(role)) {
+      errors.push(`${label} check references unknown raw artifact role ${role}.`);
+    }
+  }
+  assertExactSet(
+    [...rawArtifacts.keys()],
+    [...referencedRoles],
+    `${label} referenced raw artifact roles`,
+    errors,
+  );
+
+  return {errors, ok: errors.length === 0};
+}
+
+export function loadLaunchEvidenceSemanticContext({root = ROOT} = {}) {
+  const errors = [];
+  const policyPath = path.join(root, 'spec', 'release-operational-policy.json');
+  const eventsContractPath = path.join(
+    root,
+    'infra',
+    'cloudbase',
+    'learning-events-v2-runtime-contract.md',
+  );
+  const sessionContractPath = path.join(
+    root,
+    'infra',
+    'cloudbase',
+    'learning-session-v1-runtime-contract.md',
+  );
+  const validatorPath = path.join(root, 'scripts', 'validate_launch_readiness.mjs');
+  const schedulerLockfilePath = path.join(
+    root,
+    'infra',
+    'cloudbase',
+    'functions',
+    'softbook-api',
+    'package-lock.json',
+  );
+  let releaseOperationalPolicy = null;
+  let releasePolicySha256 = null;
+  try {
+    const policyBytes = fs.readFileSync(policyPath);
+    releaseOperationalPolicy = parseStrictJson(
+      policyBytes,
+      'release operational policy',
+    );
+    releasePolicySha256 = createHash('sha256').update(policyBytes).digest('hex');
+    const policyResult = validateReleaseOperationalPolicy(
+      releaseOperationalPolicy,
+    );
+    errors.push(...policyResult.errors);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+  }
+
+  const fileHash = (filePath, label) => {
+    try {
+      return createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+    } catch (error) {
+      errors.push(
+        `${label} could not be read: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return null;
+    }
+  };
+  const eventsContractSha256 = fileHash(
+    eventsContractPath,
+    'learning events runtime contract',
+  );
+  const sessionContractSha256 = fileHash(
+    sessionContractPath,
+    'learning session runtime contract',
+  );
+  const validatorSha256 = fileHash(
+    validatorPath,
+    'launch readiness validator',
+  );
+  const schedulerLockfileSha256 = fileHash(
+    schedulerLockfilePath,
+    'scheduler dependency lockfile',
+  );
+  const expectedPolicies = Object.fromEntries(
+    Object.keys(GATE_DEFINITIONS).map(gateId => [
+      gateId,
+      {
+        id: 'launch-readiness-validator.v1',
+        sha256: validatorSha256,
+      },
+    ]),
+  );
+  expectedPolicies['canonical-bootstrap-and-idempotent-events'] = {
+    id: 'learning-events-v2-runtime-contract',
+    sha256: eventsContractSha256,
+  };
+  expectedPolicies['server-scheduler'] = {
+    id: 'learning-session-v1-runtime-contract',
+    lockfile_sha256: schedulerLockfileSha256,
+    sha256: sessionContractSha256,
+  };
+  expectedPolicies['release-slo-and-recovery-drill'] = {
+    id: releaseOperationalPolicy?.policy_id,
+    sha256: releasePolicySha256,
+  };
+  return {
+    errors,
+    expectedPolicies,
+    ok:
+      errors.length === 0 &&
+      Object.values(expectedPolicies).every(
+        policy =>
+          isNonEmptyString(policy.id) &&
+          isNonEmptyString(policy.sha256) &&
+          (!Object.hasOwn(policy, 'lockfile_sha256') ||
+            isNonEmptyString(policy.lockfile_sha256)),
+      ),
+    releaseOperationalPolicy,
+    releasePolicySha256,
+  };
 }
 
 function validateProductScope(scope, errors) {
@@ -548,6 +1244,207 @@ function validateFormalApprovalPolicy(policy, errors) {
   }
 }
 
+function validateLaunchReleaseCandidate(candidate, now, errors) {
+  if (candidate === null) {
+    return;
+  }
+  const label = 'release_candidate';
+  if (!isRecord(candidate)) {
+    errors.push(`${label} must be null or an object.`);
+    return;
+  }
+  assertAllowedKeys(
+    candidate,
+    [
+      'schema_version',
+      'repository',
+      'commit_sha',
+      'target_release',
+      'environment',
+      'release',
+      'client_builds',
+      'recorded_at',
+      'recorded_by',
+    ],
+    label,
+    errors,
+  );
+  assertEqual(
+    candidate.schema_version,
+    'launch-release-candidate.v1',
+    `${label}.schema_version`,
+    errors,
+  );
+  assertEqual(
+    candidate.repository,
+    'LENKIN233/softbook_cet',
+    `${label}.repository`,
+    errors,
+  );
+  if (
+    typeof candidate.commit_sha !== 'string' ||
+    !COMMIT_SHA_PATTERN.test(candidate.commit_sha)
+  ) {
+    errors.push(`${label}.commit_sha must be a full Git commit SHA.`);
+  }
+  assertEqual(
+    candidate.target_release,
+    '2027-Q2',
+    `${label}.target_release`,
+    errors,
+  );
+
+  const environment = candidate.environment;
+  if (!isRecord(environment)) {
+    errors.push(`${label}.environment must be an object.`);
+  } else {
+    assertAllowedKeys(
+      environment,
+      [
+        'profile_id',
+        'profile_sha256',
+        'environment_id',
+        'class',
+        'receiver_owned',
+      ],
+      `${label}.environment`,
+      errors,
+    );
+    validateSubjectId(
+      environment.profile_id,
+      `${label}.environment.profile_id`,
+      errors,
+    );
+    validateSha256(
+      environment.profile_sha256,
+      `${label}.environment.profile_sha256`,
+      errors,
+    );
+    validateSubjectId(
+      environment.environment_id,
+      `${label}.environment.environment_id`,
+      errors,
+    );
+    if (
+      typeof environment.environment_id === 'string' &&
+      FORBIDDEN_ENVIRONMENT_PATTERN.test(environment.environment_id)
+    ) {
+      errors.push(
+        `${label}.environment.environment_id must not name a local or development target.`,
+      );
+    }
+    if (
+      !['production_like_staging', 'production'].includes(environment.class)
+    ) {
+      errors.push(
+        `${label}.environment.class must be production_like_staging or production.`,
+      );
+    }
+    assertEqual(
+      environment.receiver_owned,
+      true,
+      `${label}.environment.receiver_owned`,
+      errors,
+    );
+  }
+
+  const release = candidate.release;
+  if (!isRecord(release)) {
+    errors.push(`${label}.release must be an object.`);
+  } else {
+    assertAllowedKeys(
+      release,
+      [
+        'release_id',
+        'parent_release_id',
+        'content_version',
+        'bundle_sha256',
+        'backend_deployment_id',
+      ],
+      `${label}.release`,
+      errors,
+    );
+    validateSubjectId(
+      release.release_id,
+      `${label}.release.release_id`,
+      errors,
+    );
+    validateSubjectId(
+      release.parent_release_id,
+      `${label}.release.parent_release_id`,
+      errors,
+    );
+    if (release.release_id === release.parent_release_id) {
+      errors.push(
+        `${label}.release.parent_release_id must differ from release_id.`,
+      );
+    }
+    if (
+      typeof release.content_version !== 'string' ||
+      !CONTENT_VERSION_PATTERN.test(release.content_version)
+    ) {
+      errors.push(`${label}.release.content_version has an invalid value.`);
+    }
+    validateSha256(
+      release.bundle_sha256,
+      `${label}.release.bundle_sha256`,
+      errors,
+    );
+    validateSubjectId(
+      release.backend_deployment_id,
+      `${label}.release.backend_deployment_id`,
+      errors,
+    );
+  }
+
+  const clientBuilds = candidate.client_builds;
+  if (!isRecord(clientBuilds)) {
+    errors.push(`${label}.client_builds must be an object.`);
+  } else {
+    assertAllowedKeys(
+      clientBuilds,
+      ['ios', 'android', 'pc_web'],
+      `${label}.client_builds`,
+      errors,
+    );
+    for (const platform of ['ios', 'android', 'pc_web']) {
+      validateSubjectId(
+        clientBuilds[platform],
+        `${label}.client_builds.${platform}`,
+        errors,
+      );
+    }
+  }
+  parseIsoTimestamp(
+    candidate.recorded_at,
+    `${label}.recorded_at`,
+    now,
+    errors,
+  );
+  assertEqual(
+    candidate.recorded_by,
+    PRODUCT_OWNER_VERIFIER,
+    `${label}.recorded_by`,
+    errors,
+  );
+}
+
+function validateSubjectId(value, label, errors) {
+  if (typeof value !== 'string' || !SUBJECT_ID_PATTERN.test(value)) {
+    errors.push(`${label} has an invalid value.`);
+  }
+}
+
+function validateSha256(value, label, errors) {
+  if (
+    typeof value !== 'string' ||
+    !SHA256_PATTERN.test(value) ||
+    /^([0-9a-f])\1{63}$/.test(value)
+  ) {
+    errors.push(`${label} must be a non-placeholder SHA-256.`);
+  }
+}
+
 function validateGate(gate, definition, now, errors) {
   const label = `gate ${gate.id}`;
   assertAllowedKeys(
@@ -567,6 +1464,7 @@ function validateGate(gate, definition, now, errors) {
     `${label} evidence`,
     now,
     errors,
+    {requireSubjectCommit: true},
   );
   if (gate.status === 'passed') {
     for (const requiredType of definition.evidenceTypes) {
@@ -685,6 +1583,7 @@ function validateCapability(capability, productOwner, now, errors) {
     `${label} evidence`,
     now,
     errors,
+    {requireSubjectCommit: true},
   );
 
   if (
@@ -715,7 +1614,14 @@ function validateCapability(capability, productOwner, now, errors) {
   }
 }
 
-function validateEvidenceList(evidence, allowedTypes, label, now, errors) {
+function validateEvidenceList(
+  evidence,
+  allowedTypes,
+  label,
+  now,
+  errors,
+  options = {},
+) {
   const discoveredTypes = new Set();
   const discoveredArtifactUris = new Set();
   const discoveredArtifactHashes = new Set();
@@ -736,6 +1642,7 @@ function validateEvidenceList(evidence, allowedTypes, label, now, errors) {
         'artifact_uri',
         'artifact_sha256',
         'artifact_size_bytes',
+        'subject_commit_sha',
         'verified_at',
         'verified_by',
       ],
@@ -748,6 +1655,14 @@ function validateEvidenceList(evidence, allowedTypes, label, now, errors) {
       errors.push(`${label} contains duplicate evidence type ${record.type}.`);
     } else {
       discoveredTypes.add(record.type);
+    }
+    if (options.requireSubjectCommit) {
+      if (
+        typeof record.subject_commit_sha !== 'string' ||
+        !COMMIT_SHA_PATTERN.test(record.subject_commit_sha)
+      ) {
+        errors.push(`${recordLabel} subject_commit_sha must be a full Git commit SHA.`);
+      }
     }
     validateArtifactUri(record.artifact_uri, recordLabel, errors);
     if (typeof record.artifact_uri === 'string') {
@@ -851,7 +1766,10 @@ function collectEvidence(launchContract, accountsContract) {
     for (const evidence of asArray(gate?.evidence)) {
       records.push({
         evidence,
+        evidenceType: evidence?.type,
+        gateId: gate?.id,
         label: `gate ${gate.id} evidence ${evidence?.type}`,
+        scope: 'gate',
       });
     }
   }
@@ -859,8 +1777,11 @@ function collectEvidence(launchContract, accountsContract) {
     for (const capability of asArray(account?.capabilities)) {
       for (const evidence of asArray(capability?.evidence)) {
         records.push({
+          accountId: account?.id,
+          capabilityId: capability?.id,
           evidence,
           label: `account ${account.id} capability ${capability.id} evidence ${evidence?.type}`,
+          scope: 'external_capability',
         });
       }
     }
@@ -973,7 +1894,7 @@ function invalidResult(error) {
 }
 
 function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  return parseStrictJson(fs.readFileSync(filePath), path.relative(ROOT, filePath));
 }
 
 function readTrackedFiles(root) {
@@ -981,6 +1902,13 @@ function readTrackedFiles(root) {
     encoding: 'utf8',
   });
   return new Set(output.split('\0').filter(Boolean));
+}
+
+function readReachableCommits(root) {
+  const output = execFileSync('git', ['-C', root, 'rev-list', 'HEAD'], {
+    encoding: 'utf8',
+  });
+  return new Set(output.split('\n').filter(Boolean));
 }
 
 function parseArgs(args) {
@@ -1038,7 +1966,10 @@ function main() {
   const repositoryEvidence = verifyRepositoryEvidenceFiles(
     launchContract,
     accountsContract,
-    { trackedFiles: readTrackedFiles(ROOT) },
+    {
+      trackedFiles: readTrackedFiles(ROOT),
+      trustedCommits: readReachableCommits(ROOT),
+    },
   );
   const ok = launch.ok && accounts.ok && repositoryEvidence.ok;
   const ready = ok && launch.ready && accounts.ready;
