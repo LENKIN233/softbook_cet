@@ -3,7 +3,7 @@
 ## Scope
 
 - Branch: `module/learning-swipe-gesture`
-- Final base: exact `origin/main` `f0410d777f0a539d935537cc74e38f1d6943e41b` after compact Learning PR #461 and compact Mine PR #464 passed every required check and squash-merged
+- Final base: exact `origin/main` `5d519627c1e4f3d01cfbf8d9341e212dbf19646e` after beta entitlement PR #465 passed every required check and squash-merged
 - Product surface: mobile Learning `swipe` interaction on iOS and Android
 - Card/content scope: none; no candidate card, approved payload, audio asset, or CloudBase data changed
 
@@ -54,13 +54,13 @@
 - `python3 scripts/validate_maestro_selectors.py`: passed.
 - Android JDK 17 `:app:compileDebugKotlin`: passed with explicit local SDK/JDK paths; dependency deprecation warnings remain non-blocking.
 - `git diff --check`: passed.
-- 2026-08-01 final integration after replaying only the swipe commit onto exact `origin/main` `f0410d777f0a539d935537cc74e38f1d6943e41b`:
+- 2026-08-01 final integration after replaying only the swipe commit onto exact `origin/main` `5d519627c1e4f3d01cfbf8d9341e212dbf19646e`:
   - The old compact-Learning commits were not replayed; the resulting nine-file diff contains only swipe behavior, its exact dependency alignment, E2E selector updates, tests, and this run record.
   - The rebased swipe commit retains a valid ED25519 signature.
   - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
   - Mobile lint, typecheck, visible metadata scan, and design metadata scan -> passed.
   - Mobile Jest -> 44 suites / 424 tests passed.
-  - CloudBase API -> 176/176 tests passed.
+  - CloudBase API -> 185/185 tests passed after replay onto the beta-entitlement main.
   - `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API reported zero known vulnerabilities.
   - Android JDK 17 `:app:compileDebugKotlin --no-daemon` -> `BUILD SUCCESSFUL`, 107 tasks.
   - `git diff --check origin/main...HEAD` -> passed.
@@ -94,4 +94,4 @@
 
 - This run does not prove Android/iOS physical-device gesture quality.
 - It does not complete Mine 320dp, final CET4 content quality, 301-item perceptual audio QC, receiver CloudBase rehearsal, signing, or launch readiness.
-- The swipe-only branch is now rebased onto the actual post-#464 `main`; exact-head GitHub Agent review and every required check remain mandatory before merge.
+- The swipe-only branch is now rebased onto the actual post-#465 `main`; exact-head GitHub Agent review and every required check remain mandatory before merge.
