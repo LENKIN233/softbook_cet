@@ -4,7 +4,7 @@
 
 - Date: 2026-07-29
 - Branch: `fix/android-mine-small-screen`
-- PR: pending creation after PR #461 merge
+- PR: https://github.com/LENKIN233/softbook_cet/pull/464
 - Summary: Removes overlapping account, route, and membership objects from Mine on a 320dp Android phone viewport while preserving the accepted quiet account-object hierarchy and membership semantics.
 
 ## Referenced specs
@@ -111,9 +111,10 @@
 
 ## Agent review status
 
-- Reviewer: Codex local self-review; independent PR Agent review pending.
-- Status: pending PR Agent review.
-- Blocking findings: none in compact Mine after the 320dp shared flow. PR creation remains sequenced behind PR #461 so the Mine diff can target `main` without duplicating the Learning change; the full harness now passes.
+- Reviewer: Codex Mine-only implementation review.
+- Status: Passed for the repository-local implementation scope; exact-head GitHub Agent review remains a required merge check.
+- Blocking findings: None in compact Mine after the 320dp and 393dp shared flows.
+- Review evidence: Rechecked the Mine-only diff after rebasing onto PR #461's actual squash merge. Compact mode changes presentation only, preserves authentication and membership authority, keeps Learning/Space/Today actions explicit, retains 44dp applicable membership actions and 13sp body copy, and introduces no forbidden metadata or self-assess changes. Harness, lint, typecheck, metadata scans, 44 suites / 423 tests, signed commits, and the three-file diff all pass.
 
 ## User-visible UI impact
 
