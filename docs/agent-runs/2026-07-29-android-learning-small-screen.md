@@ -77,6 +77,12 @@
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home maestro test /tmp/android-swipe-proof.yaml` at 320x693dp -> passed through flip, multiple choice, lock, elimination, and the swipe acceptance point.
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home maestro test /tmp/android-learning-detail-proof.yaml` at 320x693dp -> passed through resolved answer detail with both answer cells and the next-card action visible.
 - Shared full-flow Maestro at 320x693dp -> Learning completed, then the flow exposed a separate pre-existing Mine screen overlap and failed when the Mine shortcut could not return to Statistics.
+- 2026-07-31 serial-integration validation after locally rebasing onto auth-sanitization exact head `dd74785fc2f7d8388e2791a95ccb5e28d249085c`:
+  - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
+  - `cd apps/mobile && npm run lint -- --quiet && npm run typecheck` -> passed.
+  - `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 44 suites and 422 tests passed.
+  - `cd apps/mobile && npm run metadata-leak-scan && npm run design-metadata-leak-scan` -> both repository scans passed.
+  - `git diff --check dd74785fc2f7d8388e2791a95ccb5e28d249085c...HEAD` -> passed; the Learning-only diff remains limited to the three files listed above.
 
 ## Validation results
 
@@ -132,6 +138,7 @@
 
 ## Follow-up
 
-- Deliver this Learning-only PR after required checks; the independent Agent review is complete.
+- After PR #458 merges, rebase this locally validated stack onto its tree-equivalent `origin/main` squash commit, then push with an explicit remote lease and rerun all required checks.
+- Deliver this Learning-only PR only after its post-rebase required checks; the independent Agent review is complete.
 - Open a separate user-visible UI run for Mine 320dp containment, then repeat the full shared 320dp flow.
 - Repeat Learning and full-flow validation on a physical Android device and with supported dynamic-type settings before declaring beta readiness.
