@@ -8,6 +8,7 @@ const VERIFIER_PATTERN = /^(github|team|external):[A-Za-z0-9_.-]+$/;
 const FORBIDDEN_ENVIRONMENT_PATTERN =
   /(^|[-_.:])(local|mock|simulation|simulator|personal|development|dev)([-_.:]|$)/i;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
+const SMS_PROVIDER_SMOKE_RAW_PREFIX = 'repo://docs/release/evidence/raw/';
 const RAW_REPOSITORY_EVIDENCE_PREFIXES = Object.freeze([
   'docs/agent-runs/evidence/',
   'docs/release/evidence/',
@@ -776,6 +777,21 @@ function validateSmsProviderSmokeMeasurements(
     !artifactRoles.has(value.report_role)
   ) {
     errors.push(`${label}.report_role must reference a declared raw artifact role.`);
+  }
+  const reportArtifacts = Array.isArray(artifact.raw_artifacts)
+    ? artifact.raw_artifacts.filter(
+        candidate => candidate?.role === value.report_role,
+      )
+    : [];
+  if (
+    reportArtifacts.length === 1 &&
+    !reportArtifacts[0]?.artifact_uri?.startsWith(
+      SMS_PROVIDER_SMOKE_RAW_PREFIX,
+    )
+  ) {
+    errors.push(
+      `${label}.report_role artifact must be below docs/release/evidence/raw/.`,
+    );
   }
   if (!isRecord(report)) {
     errors.push(`${label}.report_role must resolve to a parsed SMS provider smoke report.`);

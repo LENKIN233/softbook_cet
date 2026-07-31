@@ -67,7 +67,7 @@
 - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK` after replay onto the post-#460/#463 main.
 - `node --test test/sms-provider.test.js test/sms-provider-smoke.test.js` -> 24 targeted provider/smoke tests passed before the final request-ID and symlink regressions; both are included in the final full run.
 - `node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs` -> 19 tests passed; tracked readiness remained structurally valid and honestly `ready=false`.
-- Final typed-evidence regression: `node --test scripts/test_validate_launch_readiness.mjs` -> 37/37 passed, including direct-raw rejection, mandatory raw-report injection at the shared validator boundary, and campaign/commit/environment/time/verifier/hash wrapper binding.
+- Final typed-evidence regression: `node --test scripts/test_validate_launch_readiness.mjs` -> 37/37 passed, including direct-raw rejection, mandatory raw-report injection, enforced `docs/release/evidence/raw/` placement at the shared validator boundary, and campaign/commit/environment/time/verifier/hash wrapper binding.
 - `scripts/run_local_gates --profile dev` -> `PASSED_WITH_EXCEPTION`, 19/20 passed and zero failed gates after `npm ci`; the sole declared exception is local Node 25.9.0 versus pinned Node 22.13.0.
 - Mobile regression within the final local-gate run -> 44 suites / 423 tests passed.
 
@@ -78,7 +78,7 @@
 - Missing credentials, unknown provider values, unsafe regions/IDs/template fields, invalid timeout values, non-`Ok` delivery results, and mismatched returned numbers fail closed.
 - Tests assert that receiver reports expose configured variable names but never secret values, and that one provider's deployed environment does not contain the other provider's credentials.
 - No provider account, approved sign/template, lifecycle-managed phone, or receiver CloudBase environment was available; real delivery smoke remains pending.
-- No SMS smoke command was run with `--apply`; no phone, generated code, provider request, private state, or public smoke report was created during this implementation.
+- No SMS smoke command was run with `--apply`; no phone, generated code, provider request, private state, raw smoke report, or formal wrapper was created during this implementation.
 - Local dev gates passed with the repository-declared Node-version exception; full remote-aware Harness validation now also passes on the rebased branch.
 - A CLI dry-run instantiated the official Tencent Cloud adapter with synthetic configuration, returned only provider/target/path readiness metadata, created no state file, and exposed neither the synthetic phone nor code.
 

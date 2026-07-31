@@ -206,14 +206,18 @@ error envelope.
 provider acceptance path. Apply mode is restricted to clean exact `main`, keeps
 the phone and generated code in a mode-0600 ignored file, and requires a human
 to submit the received code through stdin. A match deletes private state before
-publishing a strict PII-free `sms-provider-smoke.v1` report. Repository tests
-and the launch validator cover this workflow, but no report exists until the
-receiver actually performs and confirms a real send.
+publishing a strict PII-free `sms-provider-smoke.v1` raw report below
+`docs/release/evidence/raw/`. That report is not gate-eligible by itself; formal
+launch evidence must wrap it in the typed `launch-gate-evidence.v1` contract.
+Repository tests and the launch validator cover this workflow, but neither raw
+nor formal evidence exists until the receiver actually performs and confirms a
+real send.
 
 Remaining blockers include:
 
-- Tencent Cloud SMS account enablement, signature/template approval, and an
-  actually executed lifecycle-managed delivery smoke report;
+- Tencent Cloud SMS account enablement, signature/template approval, an
+  actually executed lifecycle-managed delivery smoke raw report, and its typed
+  formal wrapper;
 - production secret injection, signing-key key-ring rotation, and stable index
   secret custody;
 - production Web origin allowlisting and gateway abuse-control review;

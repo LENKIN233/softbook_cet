@@ -1163,6 +1163,23 @@ test('SMS provider smoke evidence must satisfy its strict human-confirmation sch
     smsProviderSmokeReport: report,
   });
   assert.equal(completeArtifact.ok, true, completeArtifact.errors.join('\n'));
+  const misplacedArtifact = structuredClone(artifact);
+  misplacedArtifact.raw_artifacts[0].artifact_uri =
+    'repo://docs/release/evidence/sms-provider-smoke.json';
+  const misplacedRawReport = validateGateEvidenceArtifact(misplacedArtifact, {
+    evidenceType,
+    expectedPolicy: semanticContext.expectedPolicies[gateId],
+    gateId,
+    now: NOW,
+    outerEvidence: outerEvidenceForArtifact(evidenceType),
+    releaseOperationalPolicy: semanticContext.releaseOperationalPolicy,
+    smsProviderSmokeReport: report,
+  });
+  assert.equal(misplacedRawReport.ok, false);
+  assert.match(
+    misplacedRawReport.errors.join('\n'),
+    /must be below docs\/release\/evidence\/raw/,
+  );
   const reportRelativePath =
     'docs/release/evidence/sms-provider-smoke-evidence.json';
   const evidencePath = path.join(root, reportRelativePath);
