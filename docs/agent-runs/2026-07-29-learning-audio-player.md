@@ -4,7 +4,7 @@
 
 - Date: 2026-07-29
 - Branch: `module/learning-audio-player`
-- PR: N/A at record creation
+- PR: https://github.com/LENKIN233/softbook_cet/pull/462 (Draft)
 - Summary: Implement the accepted attached Learning audio control on iOS and Android, backed by the signed content manifest, verified local cache, bounded playback state, lifecycle pause, and user-safe recovery copy.
 
 ## Referenced specs
@@ -88,6 +88,13 @@
 - `python3 scripts/validate_harness.py --format text` -> failed only on the known governance transition: remote branch protection already requires `android-release`, while the local expected-context list will include it only after the separate Android Release gate PR lands.
 - `jq empty spec/runtime-boundaries.json` -> passed.
 - `git diff --check` -> passed.
+- 2026-07-31 serial-integration validation after rebasing the audio-only changes onto compact Mine head `46624f66275a335775ea4b30c4355b7b205646ea`:
+  - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
+  - `cd apps/mobile && npm run lint -- --quiet && npm run typecheck` -> passed.
+  - `cd apps/mobile && npm run metadata-leak-scan && npm run design-metadata-leak-scan` -> passed.
+  - `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 45 suites and 434 tests passed; the retained compact-viewport and audio integration tests both pass.
+  - `cd infra/cloudbase/functions/softbook-api && npm test` -> 176 tests passed.
+  - `git diff --check 46624f66275a335775ea4b30c4355b7b205646ea...HEAD` -> passed; the diff remains limited to the audio implementation, runtime truth, and this run record.
 
 ## Validation results
 
@@ -103,7 +110,7 @@
 - Dependency security validation: pass, zero reported vulnerabilities.
 - Local harness without remote guard: pass.
 - Local `dev` gate profile: pass with the documented development-only Node version exception and zero failed gates.
-- Full remote-guard harness: expected-context mismatch only (`android-release` exists remotely but is not yet in this branch's local truth); no runtime or audio finding.
+- Full remote-guard harness: passed on the locally integrated stack after the Android Release governance and typed evidence contracts merged.
 - Real signed private audio playback on simulator/physical devices: pending because this branch has no approved release bundle, receiver credentials, or releasable 301-item QC set.
 
 ## Design review checklist
@@ -124,7 +131,7 @@
 - Status: Passed.
 - Blocking findings: None for the repository implementation scope.
 - Review evidence: controller/player/cache/manifest tests (31 focused assertions), TypeScript typecheck, ESLint, diff checks, native Release builds, backend tests, selector validation, and the recorded remote required checks were rechecked on 2026-07-29.
-- Merge remains fail-closed until the full harness can be re-run after the Android Release gate lands and every required check passes. Real signed-asset and device evidence remains a beta-release gap, not a completed claim.
+- PR #462 remains Draft while the serial UI dependency chain is merged and exact-head required checks are pending. Real signed-asset and device evidence remains a beta-release gap, not a completed claim.
 
 ## User-visible UI impact
 
