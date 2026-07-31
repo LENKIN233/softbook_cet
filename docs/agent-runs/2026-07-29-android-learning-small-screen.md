@@ -83,6 +83,7 @@
   - `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 44 suites and 422 tests passed.
   - `cd apps/mobile && npm run metadata-leak-scan && npm run design-metadata-leak-scan` -> both repository scans passed.
   - `git diff --check dd74785fc2f7d8388e2791a95ccb5e28d249085c...HEAD` -> passed; the Learning-only diff remains limited to the three files listed above.
+- After PR #458 passed every required check and squash-merged as `f3c1b525634ee5e61a790cab354e0d29059b4cee`, the four Learning commits were rebased onto exact `origin/main`; the pre-record-update tree `f47bc30947df85155a8c4354a5c31a1caa33d999` exactly matches the pre-merge validated tree and the rebased commits retain valid signatures.
 
 ## Validation results
 
@@ -138,7 +139,7 @@
 
 ## Follow-up
 
-- After PR #458 merges, rebase this locally validated stack onto its tree-equivalent `origin/main` squash commit, then push with an explicit remote lease and rerun all required checks.
-- Deliver this Learning-only PR only after its post-rebase required checks; the independent Agent review is complete.
+- Push final exact head with an explicit remote lease and rerun all required checks.
+- Deliver this Learning-only PR only after its new exact-head Agent review and required checks pass.
 - Open a separate user-visible UI run for Mine 320dp containment, then repeat the full shared 320dp flow.
 - Repeat Learning and full-flow validation on a physical Android device and with supported dynamic-type settings before declaring beta readiness.
