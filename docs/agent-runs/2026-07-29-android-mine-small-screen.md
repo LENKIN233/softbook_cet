@@ -67,6 +67,12 @@
 - `python3 scripts/validate_maestro_selectors.py && git diff --check` -> passed.
 - `python3 scripts/validate_harness.py --format text` -> code and local layers passed, but the remote governance guard failed because GitHub now requires `android-release` while the matching expected-context update remains unmerged in PR #460.
 - `python3 scripts/validate_harness.py --skip-remote-guard --format text` -> local harness passed with the expected partial-completeness notice; this is not treated as release readiness.
+- 2026-07-31 serial-integration validation after rebasing the Mine-only commit onto compact-Learning head `6d403f364b250400bed1ef60a6342fd021f6750b`:
+  - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`, including the remote governance guard after PRs #460 and #463 merged.
+  - `cd apps/mobile && npm run lint -- --quiet && npm run typecheck` -> passed.
+  - `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 44 suites and 423 tests passed.
+  - `cd apps/mobile && npm run metadata-leak-scan && npm run design-metadata-leak-scan` -> both repository scans passed.
+  - `git diff --check 6d403f364b250400bed1ef60a6342fd021f6750b...HEAD` -> passed; the Mine-only diff remains limited to the three files listed above.
 
 ## Validation results
 
@@ -74,7 +80,7 @@
 - Mobile full Jest: pass, 43 suites and 402 tests.
 - CloudBase API: pass, 170 tests.
 - TypeScript, ESLint, visible metadata scan, design metadata scan, selector validation, and whitespace validation: pass.
-- Local harness layers: pass. Full harness remains blocked on the deliberate remote/repository required-check mismatch until PR #460 merges.
+- Local and full harness layers: pass after PRs #460 and #463 merged; the earlier deliberate remote/repository mismatch is closed.
 - 320x693dp full shared Android flow: pass for login, trial, Space, all five Learning interactions, completion, Statistics, Mine, Mine -> Statistics, and return to Mine.
 - 393x851dp full shared Android regression: pass for the same complete flow.
 - 320dp compact Mine bounds after final layout: Learning `[78,912][1002,1106]`; Space `[78,1123][532,1355]`; Statistics `[549,1123][1003,1355]`; start trial `[689,1402][965,1550]`; purchase `[689,1567][965,1715]`.
@@ -100,7 +106,7 @@
 
 - Reviewer: Codex local self-review; independent PR Agent review pending.
 - Status: pending PR Agent review.
-- Blocking findings: none in compact Mine after the 320dp shared flow. PR creation remains sequenced behind PR #461 so the Mine diff can target `main` without duplicating the Learning change; full harness additionally waits for PR #460 to land the repository-side `android-release` expectation.
+- Blocking findings: none in compact Mine after the 320dp shared flow. PR creation remains sequenced behind PR #461 so the Mine diff can target `main` without duplicating the Learning change; the full harness now passes.
 
 ## User-visible UI impact
 
@@ -116,12 +122,11 @@
 ## Risks and open questions
 
 - The 320dp proof is an Android emulator with a density override rather than a physical 320dp handset.
-- Full harness currently fails closed on a known governance ordering gap: GitHub requires `android-release`, while the repository declaration is still in unmerged PR #460. The local skip-remote result is supporting evidence only.
+- The earlier full-harness governance ordering gap is closed; the remaining quality gaps are physical-device and dedicated visual-state evidence, not repository validation.
 - Compact premium, free, recovery-prompt, error, and pending membership variants remain covered by behavior tests but need dedicated visual screenshots before beta readiness.
 - This UI evidence does not prove production membership, SMS, database deployment, content approval, or audio readiness.
 
 ## Follow-up
 
-- After PR #460 merges, rebase and rerun the full harness without `--skip-remote-guard`.
-- After PR #461 merges, rebase this branch onto `main`, re-sign commits, create the Mine-only PR, and complete required Agent review/checks.
+- After PR #461 merges, rebase this locally validated stack onto its tree-equivalent `main` squash commit, re-sign commits, create the Mine-only PR, and complete required Agent review/checks.
 - Add physical-device and dynamic-font evidence before beta release readiness.
