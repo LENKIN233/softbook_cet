@@ -4623,10 +4623,6 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
-  });
-
-  await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
 
@@ -4721,10 +4717,6 @@ test('can start a review round from cards that need revisiting', async () => {
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-swipe-safe' }).props.onPress();
-  });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -5525,10 +5517,6 @@ test('starts review after membership is already unlocked', async () => {
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-swipe-safe' }).props.onPress();
-  });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {

@@ -3153,10 +3153,20 @@ function AppShell({
       }));
     },
     onSelectSwipeState: (stateId: string) => {
-      patchLearningCardState(current => ({
-        ...current,
+      if (currentLearningCard === null || learningCardState === null) {
+        return;
+      }
+
+      const nextState = {
+        ...learningCardState,
         swipeSelection: stateId,
-      }));
+      };
+
+      setLearningCardState(nextState);
+      setLearningCurrentResult(
+        evaluateLearningCard(currentLearningCard, nextState),
+      );
+      setLearningScreen('practice');
     },
     onSubmitCurrentCard: () => {
       if (currentLearningCard === null || learningCardState === null) {
