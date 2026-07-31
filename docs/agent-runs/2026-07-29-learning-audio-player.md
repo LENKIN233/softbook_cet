@@ -88,25 +88,27 @@
 - `python3 scripts/validate_harness.py --format text` -> failed only on the known governance transition: remote branch protection already requires `android-release`, while the local expected-context list will include it only after the separate Android Release gate PR lands.
 - `jq empty spec/runtime-boundaries.json` -> passed.
 - `git diff --check` -> passed.
-- 2026-07-31 serial-integration validation after rebasing the audio-only changes onto compact Mine head `46624f66275a335775ea4b30c4355b7b205646ea`:
+- 2026-08-01 final serial-integration validation after compact Mine PR #464 passed every exact-head required check and squash-merged as `f0410d777f0a539d935537cc74e38f1d6943e41b`:
+  - The four audio-only commits were rebased from the reviewed Mine head onto exact `origin/main`; all four rebased commits retain valid ED25519 signatures and the 19-file diff remains limited to the audio implementation, runtime truth, and this run record.
   - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
   - `cd apps/mobile && npm run lint -- --quiet && npm run typecheck` -> passed.
   - `cd apps/mobile && npm run metadata-leak-scan && npm run design-metadata-leak-scan` -> passed.
   - `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 45 suites and 434 tests passed; the retained compact-viewport and audio integration tests both pass.
   - `cd infra/cloudbase/functions/softbook-api && npm test` -> 176 tests passed.
-  - `cd apps/mobile/android && env JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/Users/lenkin/Library/Android/sdk ANDROID_SDK_ROOT=/Users/lenkin/Library/Android/sdk ./gradlew :app:compileDebugKotlin --no-daemon` -> passed (`BUILD SUCCESSFUL`, 107 tasks) after retrying transient Gradle Plugin Portal / Google Maven TLS fetch failures; the failed attempts were dependency-download/environment failures, not Kotlin compiler findings.
-  - `git diff --check 46624f66275a335775ea4b30c4355b7b205646ea...HEAD` -> passed; the diff remains limited to the audio implementation, runtime truth, and this run record.
+  - `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API reported zero known vulnerabilities.
+  - `cd apps/mobile/android && env JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/Users/lenkin/Library/Android/sdk ANDROID_SDK_ROOT=/Users/lenkin/Library/Android/sdk ./gradlew :app:compileDebugKotlin --no-daemon` -> passed (`BUILD SUCCESSFUL`, 107 tasks).
+  - `git diff --check origin/main...HEAD` -> passed.
 
 ## Validation results
 
 - Controller/component focused tests: pass, 15/15.
-- Mobile full suite: pass, 410/410 after final controller hardening.
+- Mobile full suite: pass, 45 suites / 434 tests on the final actual-`main` rebase.
 - Mobile typecheck: pass.
 - Mobile lint: pass with zero errors.
 - Visible/design metadata scans: pass.
 - Android native compilation: pass.
 - iOS simulator native compilation and link: pass.
-- CloudBase backend tests: pass, 170/170 after dependency installation.
+- CloudBase backend tests: pass, 176/176 on the final actual-`main` rebase.
 - Maestro selector validation: pass.
 - Dependency security validation: pass, zero reported vulnerabilities.
 - Local harness without remote guard: pass.
@@ -132,7 +134,7 @@
 - Status: Passed.
 - Blocking findings: None for the repository implementation scope.
 - Review evidence: controller/player/cache/manifest tests (31 focused assertions), TypeScript typecheck, ESLint, diff checks, native Release builds, backend tests, selector validation, and the recorded remote required checks were rechecked on 2026-07-29.
-- PR #462 remains Draft while the serial UI dependency chain is merged and exact-head required checks are pending. Real signed-asset and device evidence remains a beta-release gap, not a completed claim.
+- PR #462 remains Draft after the serial UI dependency chain merged because real signed-asset playback, device evidence, release key injection, and corpus listening QC remain beta-release gaps. Exact-head remote checks will be rerun after the final force-with-lease update, but green repository checks will not be used to claim those external gaps complete.
 
 ## User-visible UI impact
 
