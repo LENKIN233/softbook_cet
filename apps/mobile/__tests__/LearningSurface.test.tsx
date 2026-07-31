@@ -3,12 +3,13 @@
  */
 
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 
 import {
   LearningResultDetailSurface,
   LearningSurface,
+  isCompactLearningViewport,
 } from '../src/learning/LearningSurface';
 import {
   createLearningCardState,
@@ -34,6 +35,12 @@ const palette = {
   textMuted: '#686B7A',
   warning: '#B77900',
 };
+
+test('learning compact mode covers 320dp and short phone viewports', () => {
+  expect(isCompactLearningViewport(320, 693)).toBe(true);
+  expect(isCompactLearningViewport(393, 700)).toBe(true);
+  expect(isCompactLearningViewport(393, 850)).toBe(false);
+});
 
 test('does not expose raw space metadata while learning', () => {
   const session = createLocalLearningSession('cet4');
@@ -258,6 +265,66 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   expect(output).not.toContain(`已选 ${currentCard.options[0].label}`);
   expect(output).not.toContain('提交后立即看解析');
   expect(output).not.toContain(currentCard.space_metadata.box_ref);
+});
+
+test('swipe choices stay compact enough for the one-screen phone action plane', () => {
+  const session = createLocalLearningSession('cet4');
+  const currentCard = session.cards.find(
+    sessionCard => sessionCard.interaction_id === 'swipe',
+  );
+
+  if (!currentCard || currentCard.interaction_id !== 'swipe') {
+    throw new Error('Expected a swipe card in the local session.');
+  }
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <LearningSurface
+        palette={palette}
+        sessionCards={session.cards}
+        sessionLabel={session.sourceLabel}
+        phase="learning"
+        currentCard={currentCard}
+        currentCardState={createLearningCardState(currentCard)}
+        currentIndex={4}
+        currentResult={null}
+        completedResults={[]}
+        reviewCandidateCount={0}
+        onTogglePeek={jest.fn()}
+        onToggleFavorite={jest.fn()}
+        onToggleHint={jest.fn()}
+        onFlip={jest.fn()}
+        onSetFlipConfidence={jest.fn()}
+        onSelectOption={jest.fn()}
+        onSetLockSelection={jest.fn()}
+        onToggleEliminationItem={jest.fn()}
+        onSelectSwipeState={jest.fn()}
+        onSubmitCurrentCard={jest.fn()}
+        onAdvanceCard={jest.fn()}
+        onRestartDeck={jest.fn()}
+      />,
+    );
+  });
+
+  const safeChoice = tree!.root.findByProps({ testID: 'learning-swipe-safe' });
+  const safeChoiceStyle = StyleSheet.flatten(safeChoice.props.style);
+  const safeChoiceText = safeChoice.findAllByType(Text);
+  const safeChoiceLabelStyle = StyleSheet.flatten(
+    safeChoiceText[1].props.style,
+  );
+  const safeChoiceDescriptionStyle = StyleSheet.flatten(
+    safeChoiceText[2].props.style,
+  );
+
+  expect(safeChoiceStyle.minWidth).toBe(0);
+  expect(safeChoiceStyle.paddingVertical).toBe(6);
+  expect(safeChoiceStyle.gap).toBe(3);
+  expect(safeChoiceText).toHaveLength(3);
+  expect(safeChoiceLabelStyle.fontSize).toBeGreaterThanOrEqual(13);
+  expect(safeChoiceDescriptionStyle.fontSize).toBeGreaterThanOrEqual(13);
+  expect(safeChoiceText[2].props.numberOfLines).toBe(1);
 });
 
 test('completion state keeps the next step primary instead of a metric dashboard', () => {
