@@ -125,6 +125,7 @@
 - The repository-only blank-environment simulation is deliberately nonformal and cannot satisfy a launch gate.
 - The tracked launch baseline remains not ready until a concrete reachable release candidate and all receiver-owned evidence exist.
 - PR #460 still requires human approval in the protected `formal-product-owner-approval` environment before its Android release/signing governance can merge; this approval cannot be self-issued.
+- PR #463 itself changes protected launch-evidence policy, semantic validation, approval classification, and workflow surfaces, so it also requires human approval in `formal-product-owner-approval` before merge.
 - Until PR #460 merges, the remote branch-protection set contains `android-release` but the `origin/main` delivery contract does not, so full remote harness validation cannot pass.
 - Remote/large raw evidence must use an immutable archive plus a tracked, rehashed repository manifest; direct HTTPS raw artifacts are rejected.
 - External portal observations remain human-authenticated metadata under protected product-owner approval, not machine-asserted provider truth.
@@ -132,5 +133,5 @@
 ## Follow-up
 
 - Complete the final harness review, commit and push this branch, then open a Draft PR to `main`.
-- After PR #460 is human-approved and merged, update this branch, run required CI, record passed Agent review in the PR description, and merge only when all required checks are green.
+- After PR #460 is human-approved and merged, update this branch, run required CI, update the PR description with the complete harness result, obtain PR #463's protected approval, and merge only when all required checks are green.
 - For an actual release candidate, run receiver-owned learning and operational campaigns, archive raw evidence through tracked manifests, and update readiness only after every formal validator passes.
