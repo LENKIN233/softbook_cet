@@ -82,11 +82,13 @@
 - `python3 scripts/test_validate_harness_runner.py` -> 21/21 passed.
 - `python3 scripts/test_harness_module_boundaries.py` -> 18/18 passed.
 - `PATH=/Users/lenkin/.nvm/versions/node/v22.13.0/bin:/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/run_local_gates --profile dev --verbose` -> 20/20 passed; report `exports/local-gates/20260731T074516Z-baf9a8d2-dev-21740/report.json`.
+- `python3 scripts/validate_harness.py --format text` -> blocked by truthful remote-governance drift: GitHub `main` currently requires `android-release`, while the `origin/main` contract cannot include it until PR #460 receives protected product-owner approval and merges.
 - `git diff --check` -> passed.
 
 ## Validation results
 
 - The final `dev` profile passed all 20 local gates, including toolchain/network isolation, harness tests, launch contract tests, launch validator, mobile metadata/design scans, mobile lint/typecheck/Jest, CloudBase backend tests, and dependency checks.
+- The full harness remote guard remains blocked only on the expected `android-release` required-check drift; local truth/workspace/harness sections pass.
 - CloudBase backend suite passed 176/176, including the blank-receiver A/B/rollback simulation.
 - Mobile Jest passed 43 suites / 399 tests; lint and typecheck passed.
 - Launch validation reports `ok=true`, `ready=false`, with 5 pending gates, 5 blocked gates, and 0 passed gates. No simulation or external capability metadata is counted as launch-gate evidence.
@@ -123,6 +125,7 @@
 - The repository-only blank-environment simulation is deliberately nonformal and cannot satisfy a launch gate.
 - The tracked launch baseline remains not ready until a concrete reachable release candidate and all receiver-owned evidence exist.
 - PR #460 still requires human approval in the protected `formal-product-owner-approval` environment before its Android release/signing governance can merge; this approval cannot be self-issued.
+- Until PR #460 merges, the remote branch-protection set contains `android-release` but the `origin/main` delivery contract does not, so full remote harness validation cannot pass.
 - Remote/large raw evidence must use an immutable archive plus a tracked, rehashed repository manifest; direct HTTPS raw artifacts are rejected.
 - External portal observations remain human-authenticated metadata under protected product-owner approval, not machine-asserted provider truth.
 
