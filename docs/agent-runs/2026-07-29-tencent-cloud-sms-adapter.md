@@ -4,7 +4,7 @@
 
 - Date: 2026-07-29
 - Branch: `infra/tencent-sms-provider`
-- PR: pending creation
+- PR: [#467](https://github.com/LENKIN233/softbook_cet/pull/467)
 - Summary: Added a receiver-selectable direct Tencent Cloud SMS production adapter while retaining the existing HTTPS webhook path, plus a two-phase human-confirmed raw smoke and a typed launch-evidence wrapper contract. No real SMS, CloudBase write, deployment, or receiver-secret access was performed.
 - Final integration base before PR creation: `origin/main` `f0410d777f0a539d935537cc74e38f1d6943e41b`; the branch was replayed after the Android release and typed launch-evidence governance PRs merged.
 
