@@ -3,7 +3,7 @@
 ## Scope
 
 - Branch: `module/learning-swipe-gesture`
-- Base dependency: `fix/android-learning-small-screen` / PR #461
+- Final base: exact `origin/main` `f0410d777f0a539d935537cc74e38f1d6943e41b` after compact Learning PR #461 and compact Mine PR #464 passed every required check and squash-merged
 - Product surface: mobile Learning `swipe` interaction on iOS and Android
 - Card/content scope: none; no candidate card, approved payload, audio asset, or CloudBase data changed
 
@@ -54,6 +54,16 @@
 - `python3 scripts/validate_maestro_selectors.py`: passed.
 - Android JDK 17 `:app:compileDebugKotlin`: passed with explicit local SDK/JDK paths; dependency deprecation warnings remain non-blocking.
 - `git diff --check`: passed.
+- 2026-08-01 final integration after replaying only the swipe commit onto exact `origin/main` `f0410d777f0a539d935537cc74e38f1d6943e41b`:
+  - The old compact-Learning commits were not replayed; the resulting nine-file diff contains only swipe behavior, its exact dependency alignment, E2E selector updates, tests, and this run record.
+  - The rebased swipe commit retains a valid ED25519 signature.
+  - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
+  - Mobile lint, typecheck, visible metadata scan, and design metadata scan -> passed.
+  - Mobile Jest -> 44 suites / 424 tests passed.
+  - CloudBase API -> 176/176 tests passed.
+  - `node scripts/validate_dependency_security.mjs` -> mobile and CloudBase API reported zero known vulnerabilities.
+  - Android JDK 17 `:app:compileDebugKotlin --no-daemon` -> `BUILD SUCCESSFUL`, 107 tasks.
+  - `git diff --check origin/main...HEAD` -> passed.
 
 ## Agent review status
 
@@ -67,7 +77,7 @@
 - Accepted design source: `docs/design/interaction-motion/learning-core-interactions-v1.md` and `docs/design/interaction-motion/learning-card-rhythm-v1.md`.
 - Existing rendered/design source: `docs/design/decisions/learning-card-rhythm-decision-v1.md` and `docs/design/mocks/learning-card-rhythm-v1.md`.
 - Implementation mapping: current swipe silhouette in `apps/mobile/src/learning/LearningSurface.tsx`; atomic auto-score handoff in `apps/mobile/App.tsx`; stable selector flow in `apps/mobile/e2e/maestro/ios-smoke.yaml` and `ios-remote-smoke.yaml` (the Android remote flow reuses the latter).
-- Unimplemented gaps: current evidence is unit/native-compile evidence, not a physical-device gesture or reduce-motion visual pass. Dynamic font, 320dp full-flow, Android/iOS physical-device drag, and screen-reader operation remain beta acceptance work.
+- Unimplemented gaps: current evidence is unit/native-compile and merged compact-emulator evidence, not a physical-device gesture or reduce-motion visual pass. Dynamic font, Android/iOS physical-device drag, and screen-reader operation remain beta acceptance work.
 
 ## Design review checklist
 
@@ -84,4 +94,4 @@
 
 - This run does not prove Android/iOS physical-device gesture quality.
 - It does not complete Mine 320dp, final CET4 content quality, 301-item perceptual audio QC, receiver CloudBase rehearsal, signing, or launch readiness.
-- The branch must be rebased onto `main` after PR #461 and the Android Release gate land, then pass full required checks before merge.
+- The swipe-only branch is now rebased onto the actual post-#464 `main`; exact-head GitHub Agent review and every required check remain mandatory before merge.
