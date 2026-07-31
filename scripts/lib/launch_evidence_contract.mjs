@@ -1,3 +1,5 @@
+import {validateSmsProviderSmokeReport} from '../../infra/cloudbase/smoke-sms-provider.mjs';
+
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 const CONTENT_VERSION_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
@@ -626,6 +628,7 @@ export function validateGateEvidenceArtifact(
     now = new Date(),
     outerEvidence = null,
     releaseOperationalPolicy = null,
+    smsProviderSmokeReport = null,
   } = {},
 ) {
   const errors = [];
@@ -734,6 +737,15 @@ export function validateGateEvidenceArtifact(
       `${label} measurements`,
       errors,
     );
+  } else if (evidenceType === 'sms-provider-smoke') {
+    validateSmsProviderSmokeMeasurements(
+      artifact.measurements,
+      artifactRoles,
+      smsProviderSmokeReport,
+      artifact,
+      `${label} measurements`,
+      errors,
+    );
   } else {
     validateGenericMeasurements(
       artifact.measurements,
@@ -743,6 +755,65 @@ export function validateGateEvidenceArtifact(
     );
   }
   return {errors, ok: errors.length === 0};
+}
+
+function validateSmsProviderSmokeMeasurements(
+  value,
+  artifactRoles,
+  report,
+  artifact,
+  label,
+  errors,
+) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(value, ['report_role'], label, errors);
+  requirePattern(value.report_role, ID_PATTERN, `${label}.report_role`, errors);
+  if (
+    typeof value.report_role === 'string' &&
+    !artifactRoles.has(value.report_role)
+  ) {
+    errors.push(`${label}.report_role must reference a declared raw artifact role.`);
+  }
+  if (!isRecord(report)) {
+    errors.push(`${label}.report_role must resolve to a parsed SMS provider smoke report.`);
+    return;
+  }
+  for (const message of validateSmsProviderSmokeReport(report)) {
+    errors.push(`${label} raw report: ${message}.`);
+  }
+  const bindings = [
+    ['campaign_id', report.run_id, artifact.campaign_id],
+    ['repository commit', report.repository_commit, artifact.subject?.commit_sha],
+    [
+      'receiver environment',
+      report.target_id,
+      artifact.subject?.environment?.environment_id,
+    ],
+    ['send start', report.sent_at, artifact.execution?.started_at],
+    [
+      'confirmation completion',
+      report.confirmed_at,
+      artifact.execution?.completed_at,
+    ],
+    [
+      'human verifier',
+      report.verifier?.id,
+      artifact.verification?.verified_by,
+    ],
+    [
+      'verification timestamp',
+      report.confirmed_at,
+      artifact.verification?.verified_at,
+    ],
+  ];
+  for (const [binding, actual, expected] of bindings) {
+    if (actual !== expected) {
+      errors.push(`${label} raw report ${binding} binding does not match.`);
+    }
+  }
 }
 
 function validateReleasePolicyEnvironment(value, errors) {

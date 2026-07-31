@@ -1116,43 +1116,153 @@ test('release campaign reports must share commit, profile, environment, bundle, 
 test('SMS provider smoke evidence must satisfy its strict human-confirmation schema', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-readiness-sms-'));
   t.after(() => fs.rmSync(root, { force: true, recursive: true }));
-  const relativePath = 'docs/release/evidence/sms-provider-smoke.json';
-  const evidencePath = path.join(root, relativePath);
+  const rawRelativePath =
+    'docs/release/evidence/raw/sms-provider-smoke.json';
+  const rawPath = path.join(root, rawRelativePath);
   const report = smsProviderSmokeReport();
-  fs.mkdirSync(path.dirname(evidencePath), { recursive: true });
-  fs.writeFileSync(evidencePath, `${JSON.stringify(report, null, 2)}\n`);
+  const writeRawReport = () => {
+    const payload = `${JSON.stringify(report, null, 2)}\n`;
+    fs.mkdirSync(path.dirname(rawPath), {recursive: true});
+    fs.writeFileSync(rawPath, payload);
+    return payload;
+  };
+  let rawPayload = writeRawReport();
+
+  const gateId = 'production-auth-and-account-deletion';
+  const evidenceType = 'sms-provider-smoke';
+  const artifact = createValidGateArtifact(gateId, evidenceType);
+  artifact.campaign_id = report.run_id;
+  artifact.execution.started_at = report.sent_at;
+  artifact.execution.completed_at = report.confirmed_at;
+  artifact.raw_artifacts[0] = {
+    role: artifact.measurements.report_role,
+    artifact_uri: `repo://${rawRelativePath}`,
+    sha256: hash(rawPayload),
+    size_bytes: Buffer.byteLength(rawPayload),
+  };
+  const missingRawReport = validateGateEvidenceArtifact(artifact, {
+    evidenceType,
+    expectedPolicy: semanticContext.expectedPolicies[gateId],
+    gateId,
+    now: NOW,
+    outerEvidence: outerEvidenceForArtifact(evidenceType),
+    releaseOperationalPolicy: semanticContext.releaseOperationalPolicy,
+  });
+  assert.equal(missingRawReport.ok, false);
+  assert.match(
+    missingRawReport.errors.join('\n'),
+    /must resolve to a parsed SMS provider smoke report/,
+  );
+  const completeArtifact = validateGateEvidenceArtifact(artifact, {
+    evidenceType,
+    expectedPolicy: semanticContext.expectedPolicies[gateId],
+    gateId,
+    now: NOW,
+    outerEvidence: outerEvidenceForArtifact(evidenceType),
+    releaseOperationalPolicy: semanticContext.releaseOperationalPolicy,
+    smsProviderSmokeReport: report,
+  });
+  assert.equal(completeArtifact.ok, true, completeArtifact.errors.join('\n'));
+  const reportRelativePath =
+    'docs/release/evidence/sms-provider-smoke-evidence.json';
+  const evidencePath = path.join(root, reportRelativePath);
+  const writeFormalEvidence = () => {
+    const payload = `${JSON.stringify(artifact, null, 2)}\n`;
+    fs.mkdirSync(path.dirname(evidencePath), {recursive: true});
+    fs.writeFileSync(evidencePath, payload);
+    return payload;
+  };
+  let evidencePayload = writeFormalEvidence();
 
   const launch = structuredClone(launchContract);
+  launch.release_candidate = createReleaseCandidate();
   const gate = launch.gates.find(
-    candidate => candidate.id === 'production-auth-and-account-deletion',
+    candidate => candidate.id === gateId,
   );
   gate.evidence = [
-    createEvidence('sms-provider-smoke', 903, {
-      artifactUri: `repo://${relativePath}`,
-      payload: fs.readFileSync(evidencePath),
-    }),
+    {
+      ...outerEvidenceForArtifact(evidenceType),
+      artifact_uri: `repo://${reportRelativePath}`,
+      artifact_sha256: hash(evidencePayload),
+      artifact_size_bytes: Buffer.byteLength(evidencePayload),
+    },
   ];
 
   const valid = verifyRepositoryEvidenceFiles(launch, accountsContract, {
     root,
-    trackedFiles: new Set([relativePath]),
+    semanticContext,
+    trackedFiles: new Set([rawRelativePath, reportRelativePath]),
+    trustedCommits: TRUSTED_COMMITS,
+    now: NOW,
   });
   assert.equal(valid.ok, true, valid.errors.join('\n'));
 
+  const directLaunch = structuredClone(launch);
+  const directGate = directLaunch.gates.find(candidate => candidate.id === gateId);
+  directGate.evidence[0].artifact_uri = `repo://${rawRelativePath}`;
+  directGate.evidence[0].artifact_sha256 = hash(rawPayload);
+  directGate.evidence[0].artifact_size_bytes = Buffer.byteLength(rawPayload);
+  const direct = verifyRepositoryEvidenceFiles(
+    directLaunch,
+    accountsContract,
+    {
+      root,
+      semanticContext,
+      trackedFiles: new Set([rawRelativePath, reportRelativePath]),
+      trustedCommits: TRUSTED_COMMITS,
+      now: NOW,
+    },
+  );
+  assert.equal(direct.ok, false);
+  assert.match(
+    direct.errors.join('\n'),
+    /schema_version|report_role must resolve to exactly one raw artifact/,
+  );
+
   report.confirmation_method = 'automated_api_response';
   report.verifier.id = 'github:different-reviewer';
-  fs.writeFileSync(evidencePath, `${JSON.stringify(report, null, 2)}\n`);
-  gate.evidence[0] = createEvidence('sms-provider-smoke', 904, {
-    artifactUri: `repo://${relativePath}`,
-    payload: fs.readFileSync(evidencePath),
-  });
+  rawPayload = writeRawReport();
+  artifact.raw_artifacts[0].sha256 = hash(rawPayload);
+  artifact.raw_artifacts[0].size_bytes = Buffer.byteLength(rawPayload);
+  evidencePayload = writeFormalEvidence();
+  gate.evidence[0].artifact_sha256 = hash(evidencePayload);
+  gate.evidence[0].artifact_size_bytes = Buffer.byteLength(evidencePayload);
   const invalid = verifyRepositoryEvidenceFiles(launch, accountsContract, {
     root,
-    trackedFiles: new Set([relativePath]),
+    semanticContext,
+    trackedFiles: new Set([rawRelativePath, reportRelativePath]),
+    trustedCommits: TRUSTED_COMMITS,
+    now: NOW,
   });
   assert.equal(invalid.ok, false);
   assert.match(invalid.errors.join('\n'), /confirmation_method is invalid/);
-  assert.match(invalid.errors.join('\n'), /verifier does not match verified_by/);
+  assert.match(invalid.errors.join('\n'), /human verifier binding does not match/);
+
+  report.confirmation_method = 'human_received_code_match';
+  report.verifier.id = artifact.verification.verified_by;
+  report.target_id = 'receiver-prod-other';
+  rawPayload = writeRawReport();
+  artifact.raw_artifacts[0].sha256 = hash(rawPayload);
+  artifact.raw_artifacts[0].size_bytes = Buffer.byteLength(rawPayload);
+  evidencePayload = writeFormalEvidence();
+  gate.evidence[0].artifact_sha256 = hash(evidencePayload);
+  gate.evidence[0].artifact_size_bytes = Buffer.byteLength(evidencePayload);
+  const mismatchedTarget = verifyRepositoryEvidenceFiles(
+    launch,
+    accountsContract,
+    {
+      root,
+      semanticContext,
+      trackedFiles: new Set([rawRelativePath, reportRelativePath]),
+      trustedCommits: TRUSTED_COMMITS,
+      now: NOW,
+    },
+  );
+  assert.equal(mismatchedTarget.ok, false);
+  assert.match(
+    mismatchedTarget.errors.join('\n'),
+    /receiver environment binding does not match/,
+  );
 });
 
 test('launch and external account statuses must agree', () => {
@@ -1383,6 +1493,9 @@ function createMeasurements(evidenceType, expectedPolicy) {
       utc_plus_8_day_used: true,
     },
   };
+  if (evidenceType === 'sms-provider-smoke') {
+    return {report_role: 'raw-sms-provider-smoke'};
+  }
   if (evidenceType === 'cross-device-bootstrap-test') {
     return {
       account_subject_sha256: hash('account-subject'),
@@ -1796,8 +1909,8 @@ function smsProviderSmokeReport() {
     schema_version: 'sms-provider-smoke.v1',
     run_id: 'sms-smoke-123e4567-e89b-12d3-a456-426614174000',
     status: 'passed',
-    target_id: 'receiver-closed-beta',
-    repository_commit: '0123456789abcdef0123456789abcdef01234567',
+    target_id: 'receiver-prod-001',
+    repository_commit: TEST_COMMIT_SHA,
     provider: 'tencentcloud',
     delivery: 'sms_tencentcloud',
     provider_configuration_fingerprint:
@@ -1813,7 +1926,7 @@ function smsProviderSmokeReport() {
     confirmed_at: '2026-07-13T23:00:00.000Z',
     expires_at: '2026-07-13T23:03:00.000Z',
     confirmation_method: 'human_received_code_match',
-    verifier: { kind: 'human', id: 'github:LENKIN233' },
+    verifier: { kind: 'human', id: 'external:release-auditor' },
     private_state_removed: true,
     generated_at: '2026-07-13T23:00:00.000Z',
   };

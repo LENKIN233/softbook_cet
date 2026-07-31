@@ -221,6 +221,23 @@ test('state and report paths cannot escape their dedicated roots', async () => {
       }),
     /below/,
   );
+  assert.throws(
+    () =>
+      smoke.confirmSmsProviderSmoke({
+        apply: false,
+        reportPath: join(
+          fixture.root,
+          'docs',
+          'release',
+          'evidence',
+          'direct-gate-evidence.json',
+        ),
+        repository: repositoryFixture(),
+        repositoryRoot: fixture.root,
+        statePath: fixture.state,
+      }),
+    /raw report.*below/,
+  );
 });
 
 test('private state cannot escape through a symbolic link', () => {
@@ -270,7 +287,7 @@ test('CLI arguments require explicit state and report destinations', () => {
       '--state',
       'docs/agent-runs/artifacts/state.json',
       '--report',
-      'docs/release/evidence/report.json',
+      'docs/release/evidence/raw/report.json',
       '--apply',
       '--format',
       'json',
@@ -279,7 +296,7 @@ test('CLI arguments require explicit state and report destinations', () => {
       apply: true,
       command: 'confirm',
       format: 'json',
-      reportPath: 'docs/release/evidence/report.json',
+      reportPath: 'docs/release/evidence/raw/report.json',
       statePath: 'docs/agent-runs/artifacts/state.json',
     },
   );
@@ -343,7 +360,14 @@ function createFixture() {
   return {
     root,
     state: join(root, 'docs', 'agent-runs', 'artifacts', 'sms-state.json'),
-    report: join(root, 'docs', 'release', 'evidence', 'sms-report.json'),
+    report: join(
+      root,
+      'docs',
+      'release',
+      'evidence',
+      'raw',
+      'sms-report.json',
+    ),
   };
 }
 

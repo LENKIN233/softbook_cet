@@ -414,7 +414,7 @@ validates the selected production adapter without sending:
 
 ```bash
 SOFTBOOK_SMS_SMOKE_PHONE=<receiver-owned-test-phone> \
-SOFTBOOK_SMS_SMOKE_TARGET_ID=receiver-closed-beta \
+SOFTBOOK_SMS_SMOKE_TARGET_ID=<receiver-environment-id> \
 node infra/cloudbase/smoke-sms-provider.mjs prepare \
   --state docs/agent-runs/artifacts/sms-provider-smoke.json \
   --format json
@@ -431,18 +431,26 @@ printf '%s' "$RECEIVED_SMS_CODE" | \
   SOFTBOOK_SMS_SMOKE_VERIFIER=github:LENKIN233 \
   node infra/cloudbase/smoke-sms-provider.mjs confirm \
     --state docs/agent-runs/artifacts/sms-provider-smoke.json \
-    --report docs/release/evidence/sms-provider-smoke.json \
+    --report docs/release/evidence/raw/sms-provider-smoke.json \
     --apply --format json
 unset RECEIVED_SMS_CODE
 ```
 
 Successful confirmation atomically removes private state before publishing the
-PII-free `sms-provider-smoke.v1` report. A wrong code is limited to three local
-attempts; expiry or the third mismatch deletes private state and produces no
-evidence. Use `discard --state ... --apply` to remove an interrupted state. The
-launch validator re-hashes the tracked report, validates its exact schema, and
-requires its human verifier and confirmation time to match the readiness
-evidence record.
+PII-free raw `sms-provider-smoke.v1` report below
+`docs/release/evidence/raw/`. The target ID must be the receiver environment ID
+used by the release candidate. A wrong code is limited to three local attempts;
+expiry or the third mismatch deletes private state and produces no evidence.
+Use `discard --state ... --apply` to remove an interrupted state.
+
+The raw report is not itself a gate record. Formal evidence must wrap it in a
+`launch-gate-evidence.v1` artifact for `sms-provider-smoke`, set
+`measurements.report_role` to the raw report role, and bind the same run ID,
+repository commit, receiver environment, send/confirmation window, human
+verifier, release candidate, independent attestation, file size, and SHA-256.
+The launch validator re-hashes both files and validates these bindings; a direct
+raw report, generic summary, local test, or mismatched wrapper remains
+ineligible.
 
 Dependency audit status: the current lockfile returns zero known findings from
 `npm audit --omit=dev`. This is a point-in-time dependency result, not production

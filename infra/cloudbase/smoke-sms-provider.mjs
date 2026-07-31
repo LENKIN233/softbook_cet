@@ -484,8 +484,8 @@ function requireStatePath(path, repositoryRoot) {
 function requireReportPath(path, repositoryRoot) {
   return requirePathBelow(
     path,
-    resolve(repositoryRoot, 'docs', 'release', 'evidence'),
-    'SMS smoke report',
+    resolve(repositoryRoot, 'docs', 'release', 'evidence', 'raw'),
+    'SMS smoke raw report',
   );
 }
 
