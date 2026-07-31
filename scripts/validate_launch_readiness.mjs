@@ -12,6 +12,7 @@ import {
   validateReleaseOperationalPolicy,
 } from './lib/launch_evidence_contract.mjs';
 import {parseStrictJson} from './lib/strict_json.mjs';
+import {validateAndroidSignedReleaseReport} from './build_android_signed_release.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_LAUNCH_CONTRACT = path.join(
@@ -583,6 +584,16 @@ export function verifyRepositoryEvidenceFiles(
           `${label} subject commit must be reachable from the validated repository HEAD.`,
         );
       }
+      const androidSignedReleaseResult =
+        record.accountId === 'android-distribution' &&
+        record.capabilityId === 'release-signing'
+          ? loadAndroidSignedReleaseReport(artifact, {
+              label,
+              root,
+              trackedFiles,
+            })
+          : {errors: [], ok: true, report: null};
+      errors.push(...androidSignedReleaseResult.errors);
       const result = validateExternalCapabilityEvidenceArtifact(artifact, {
         accountId: record.accountId,
         capabilityId: record.capabilityId,
@@ -598,6 +609,15 @@ export function verifyRepositoryEvidenceFiles(
         targetRelease: launchContract?.target_release,
       });
       errors.push(...result.errors);
+      if (androidSignedReleaseResult.report) {
+        validateAndroidSignedReleaseBindings(
+          artifact,
+          androidSignedReleaseResult.report,
+          evidence,
+          label,
+          errors,
+        );
+      }
       continue;
     }
     const subjectCommit = artifact?.subject?.commit_sha;
@@ -687,6 +707,124 @@ function verifyInnerRepositoryArtifact(
     .digest('hex');
   if (actualSha256 !== artifact.sha256) {
     errors.push(`${label} repository artifact SHA-256 does not match.`);
+  }
+}
+
+function loadAndroidSignedReleaseReport(
+  artifact,
+  {label, root, trackedFiles},
+) {
+  const errors = [];
+  const role = 'android-signed-release-report';
+  const matches = asArray(artifact?.raw_artifacts).filter(
+    candidate => candidate?.role === role,
+  );
+  if (matches.length !== 1) {
+    errors.push(
+      `${label} ${role} must resolve to exactly one raw artifact.`,
+    );
+    return {errors, ok: false, report: null};
+  }
+  const rawArtifact = matches[0];
+  if (!rawArtifact?.artifact_uri?.startsWith('repo://')) {
+    errors.push(`${label} ${role} must use a repo:// artifact_uri.`);
+    return {errors, ok: false, report: null};
+  }
+  const relativePath = rawArtifact.artifact_uri.slice('repo://'.length);
+  if (!relativePath.endsWith('.json')) {
+    errors.push(`${label} ${role} must be a JSON file.`);
+    return {errors, ok: false, report: null};
+  }
+  if (!trackedFiles.has(relativePath)) {
+    errors.push(`${label} ${role} must be tracked by Git.`);
+    return {errors, ok: false, report: null};
+  }
+  const resolvedRoot = path.resolve(root);
+  const resolvedPath = path.resolve(resolvedRoot, relativePath);
+  if (!resolvedPath.startsWith(`${resolvedRoot}${path.sep}`)) {
+    errors.push(`${label} ${role} escapes the repository root.`);
+    return {errors, ok: false, report: null};
+  }
+  if (!fs.existsSync(resolvedPath)) {
+    errors.push(`${label} ${role} file does not exist.`);
+    return {errors, ok: false, report: null};
+  }
+  const stats = fs.lstatSync(resolvedPath);
+  if (!stats.isFile()) {
+    errors.push(`${label} ${role} must be a regular file.`);
+    return {errors, ok: false, report: null};
+  }
+  if (stats.size > MAX_REPOSITORY_RAW_EVIDENCE_BYTES) {
+    errors.push(`${label} ${role} exceeds the 16 MiB limit.`);
+    return {errors, ok: false, report: null};
+  }
+  const bytes = fs.readFileSync(resolvedPath);
+  if (stats.size !== rawArtifact.size_bytes) {
+    errors.push(`${label} ${role} byte size does not match.`);
+  }
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  if (sha256 !== rawArtifact.sha256) {
+    errors.push(`${label} ${role} SHA-256 does not match.`);
+  }
+  let report;
+  try {
+    report = parseStrictJson(bytes, `${label} ${role}`);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+    return {errors, ok: false, report: null};
+  }
+  for (const error of validateAndroidSignedReleaseReport(report)) {
+    errors.push(`${label} ${role}: ${error}.`);
+  }
+  return {errors, ok: errors.length === 0, report};
+}
+
+function validateAndroidSignedReleaseBindings(
+  artifact,
+  report,
+  outerEvidence,
+  label,
+  errors,
+) {
+  const role = 'android-signed-release-report';
+  if (report.repository_commit !== artifact?.subject?.commit_sha) {
+    errors.push(`${label} signed-release repository commit does not match.`);
+  }
+  if (
+    report.verified_by !== artifact?.verification?.verified_by ||
+    report.verified_by !== outerEvidence?.verified_by
+  ) {
+    errors.push(`${label} signed-release verifier does not match.`);
+  }
+  if (
+    report.archived_verified_at !== artifact?.verification?.verified_at ||
+    report.archived_verified_at !== outerEvidence?.verified_at
+  ) {
+    errors.push(`${label} signed-release verification time does not match.`);
+  }
+  if (artifact?.observation?.observed_at !== report.archived_verified_at) {
+    errors.push(`${label} signed-release observation time does not match.`);
+  }
+  const expectedTargetHash = createHash('sha256')
+    .update(`android-release-target:${report.target_id}`)
+    .digest('hex');
+  if (
+    artifact?.observation?.provider_subject_sha256 !== expectedTargetHash
+  ) {
+    errors.push(`${label} signed-release receiver target does not match.`);
+  }
+  const checks = new Map(
+    asArray(artifact?.checks).map(check => [check?.id, check]),
+  );
+  for (const checkId of [
+    'current-state-observed',
+    'certificate-fingerprint-recorded',
+  ]) {
+    if (!asArray(checks.get(checkId)?.artifact_roles).includes(role)) {
+      errors.push(
+        `${label} check ${checkId} must reference ${role}.`,
+      );
+    }
   }
 }
 
