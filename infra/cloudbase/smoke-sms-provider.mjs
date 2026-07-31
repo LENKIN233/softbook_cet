@@ -510,30 +510,39 @@ function writePrivateJson(path, value) {
 }
 
 function writeAtomicJson(path, value, mode) {
-  const temporary = `${path}.tmp-${process.pid}`;
-  mkdirSync(dirname(path), {recursive: true});
-  writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, {
-    encoding: 'utf8',
-    mode,
-  });
-  chmodSync(temporary, mode);
-  renameSync(temporary, path);
+  const temporary = `${path}.tmp-${randomUUID()}`;
+  let published = false;
+  try {
+    mkdirSync(dirname(path), {recursive: true});
+    writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, {
+      encoding: 'utf8',
+      flag: 'wx',
+      mode,
+    });
+    chmodSync(temporary, mode);
+    renameSync(temporary, path);
+    published = true;
+  } finally {
+    if (!published) rmSync(temporary, {force: true});
+  }
 }
 
 function publishReportAfterPrivateStateRemoval(reportPath, statePath, report) {
-  const temporary = `${reportPath}.tmp-${process.pid}`;
-  mkdirSync(dirname(reportPath), {recursive: true});
-  writeFileSync(temporary, `${JSON.stringify(report, null, 2)}\n`, {
-    encoding: 'utf8',
-    mode: 0o644,
-  });
-  chmodSync(temporary, 0o644);
+  const temporary = `${reportPath}.tmp-${randomUUID()}`;
+  let published = false;
   try {
+    mkdirSync(dirname(reportPath), {recursive: true});
+    writeFileSync(temporary, `${JSON.stringify(report, null, 2)}\n`, {
+      encoding: 'utf8',
+      flag: 'wx',
+      mode: 0o644,
+    });
+    chmodSync(temporary, 0o644);
     rmSync(statePath);
     renameSync(temporary, reportPath);
-  } catch (error) {
-    rmSync(temporary, {force: true});
-    throw error;
+    published = true;
+  } finally {
+    if (!published) rmSync(temporary, {force: true});
   }
 }
 
