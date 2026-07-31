@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>软书四六级 · PC Web 方向比较</title>
+  <style>
+    :root {
+      --page: #f1f0f6;
+      --ink: #0b0b14;
+      --ink-2: #3a3a4e;
+      --muted: #7a7a90;
+      --edge: rgba(255,255,255,.76);
+      --hair: rgba(11,11,20,.08);
+      --glass: rgba(255,255,255,.72);
+      --coral: rgb(255, 138, 61);
+      --mint: #22c58b;
+      --amber: #f5b100;
+      --indigo: rgb(91, 109, 245);
+      font-family: Outfit, Inter, "Noto Sans SC", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--page);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 1180px; background:
+      radial-gradient(circle at 18% 12%, rgba(255,138,61,.18), transparent 31%),
+      radial-gradient(circle at 85% 18%, rgba(91,109,245,.10), transparent 30%),
+      var(--page); }
+    body::after { content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .035; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 140 140' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E"); mix-blend-mode: multiply; }
+    header { padding: 64px 72px 28px; max-width: 1520px; margin: auto; }
+    header p { margin: 0 0 12px; color: var(--coral); font-size: 12px; letter-spacing: .16em; font-weight: 800; }
+    h1 { margin: 0; font-size: 48px; letter-spacing: -.04em; }
+    header .lede { max-width: 780px; margin-top: 14px; color: var(--ink-2); font-size: 16px; line-height: 1.65; }
+    main { max-width: 1520px; margin: 0 auto; padding: 28px 72px 88px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+    .direction { min-height: 530px; padding: 22px; border: 1px solid var(--edge); border-radius: 30px; background: rgba(255,255,255,.54); backdrop-filter: blur(44px) saturate(1.22); box-shadow: 0 24px 64px rgba(11,11,20,.08), inset 0 1px 0 rgba(255,255,255,.9); }
+    .direction-head { display: flex; justify-content: space-between; align-items: baseline; margin: 0 4px 16px; }
+    .direction h2 { font-size: 21px; margin: 0; letter-spacing: -.02em; }
+    .direction-head span { color: var(--muted); font-size: 11px; letter-spacing: .12em; }
+    .frame { height: 438px; border-radius: 22px; overflow: hidden; border: 1px solid var(--hair); background: rgba(250,249,252,.88); display: grid; position: relative; }
+    .frame::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.9); }
+    .rail { padding: 22px 16px; border-right: 1px solid var(--hair); display: flex; flex-direction: column; gap: 10px; background: rgba(255,255,255,.42); }
+    .brand { width: 32px; height: 32px; border-radius: 12px; background: var(--ink); color: white; display: grid; place-items: center; font-weight: 900; margin-bottom: 18px; }
+    .nav { padding: 9px 10px; border-radius: 12px; font-size: 12px; color: var(--muted); }
+    .nav.active { color: var(--ink); background: rgba(255,138,61,.14); box-shadow: inset 3px 0 var(--coral); }
+    .work { padding: 30px; display: grid; place-items: center; min-width: 0; }
+    .context { padding: 24px 18px; border-left: 1px solid var(--hair); background: rgba(255,255,255,.34); }
+    .eyebrow { color: var(--coral); font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+    .card { width: min(100%, 380px); border-radius: 24px; padding: 28px; background: var(--glass); border: 1px solid var(--edge); box-shadow: 0 20px 52px rgba(11,11,20,.10), inset 0 1px 0 rgba(255,255,255,.9); }
+    .card h3 { font-size: 25px; line-height: 1.18; letter-spacing: -.03em; margin: 12px 0; }
+    .card p { margin: 0 0 18px; color: var(--ink-2); line-height: 1.55; font-size: 12px; }
+    .options { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .option { padding: 12px; border-radius: 13px; border: 1px solid var(--hair); background: rgba(255,255,255,.62); font-size: 11px; }
+    .option.active { border-color: rgba(255,138,61,.55); background: rgba(255,138,61,.12); }
+    .path { font-size: 11px; line-height: 1.6; color: var(--ink-2); margin: 10px 0 18px; }
+    .key { display: inline-flex; border: 1px solid var(--hair); border-bottom-width: 2px; border-radius: 7px; padding: 4px 7px; font: 10px ui-monospace, monospace; background: white; }
+    .folio { width: 88%; height: 78%; border-radius: 10px 26px 26px 10px; padding: 32px; background: rgba(255,255,255,.82); border-left: 8px solid var(--coral); box-shadow: 0 24px 60px rgba(11,11,20,.12); }
+    .folio .rule { height: 1px; background: var(--hair); margin: 18px 0; }
+    .slip { margin-top: 20px; padding: 15px 18px; border-radius: 4px 16px 16px 4px; background: rgba(255,138,61,.10); border-left: 3px solid var(--coral); font-size: 12px; line-height: 1.55; }
+    .shelf { width: 92%; display: grid; grid-template-columns: 120px 1fr; gap: 18px; }
+    .tree { padding: 18px; border-radius: 18px; background: rgba(255,255,255,.6); border: 1px solid var(--edge); font-size: 11px; line-height: 2.1; }
+    .box { padding: 22px; border-radius: 26px; background: rgba(255,255,255,.66); border: 1px solid var(--edge); box-shadow: inset 0 4px rgba(255,138,61,.55); }
+    .cards { display: flex; gap: 10px; margin-top: 18px; }
+    .mini-card { flex: 1; height: 96px; border-radius: 14px; background: rgba(255,255,255,.72); border: 1px solid var(--hair); padding: 12px; font-size: 10px; }
+    .console { width: 76%; }
+    .console h3 { font-size: 30px; margin: 10px 0 22px; }
+    .answer-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .answer-row div { padding: 14px; border: 1px solid var(--hair); border-radius: 12px; background: white; }
+    .shortcut { margin-top: 16px; color: var(--muted); font-size: 10px; }
+    .dashboard { grid-template-columns: 92px 1fr; }
+    .dash { padding: 22px; display: grid; grid-template-columns: 1.5fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; }
+    .panel { border-radius: 18px; border: 1px solid var(--hair); background: rgba(255,255,255,.72); padding: 18px; }
+    .metric { font-size: 34px; font-weight: 900; }
+    .bars { display: flex; align-items: end; gap: 5px; height: 70px; margin-top: 14px; }
+    .bars i { flex: 1; border-radius: 5px 5px 0 0; background: var(--indigo); opacity: .45; }
+    .grid-study { padding: 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .grid-study .tile { padding: 18px; border-radius: 18px; background: white; border: 1px solid var(--hair); min-height: 120px; box-shadow: 0 10px 28px rgba(11,11,20,.05); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--coral); }
+    .windows { background: radial-gradient(circle at 50% 0%, rgba(91,109,245,.13), transparent 45%), #ecebf2; }
+    .window { position: absolute; width: 300px; height: 180px; border-radius: 20px; padding: 20px; background: rgba(255,255,255,.76); border: 1px solid white; box-shadow: 0 24px 60px rgba(11,11,20,.16); }
+    .w1 { left: 80px; top: 75px; transform: rotate(-2deg); }
+    .w2 { left: 300px; top: 165px; transform: rotate(2deg); }
+    .w3 { left: 190px; top: 260px; }
+    .library { grid-template-columns: 240px 1fr 200px; }
+    .library-list { padding: 22px; border-right: 1px solid var(--hair); background: rgba(255,255,255,.52); }
+    .lib-row { padding: 12px; margin-bottom: 7px; border-radius: 12px; background: rgba(255,255,255,.58); font-size: 11px; }
+    .lib-row:nth-child(2) { box-shadow: inset 3px 0 var(--coral); }
+    .module-list { padding: 26px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .module { border: 1px solid var(--hair); border-radius: 18px; padding: 18px; background: white; }
+    .detail { padding: 24px 18px; border-left: 1px solid var(--hair); color: var(--ink-2); font-size: 11px; line-height: 1.7; }
+  </style>
+</head>
+<body>
+  <header>
+    <p>SOFTBOOK CET · PC WEB</p>
+    <h1>让宽屏减少负担，而不是增加选择。</h1>
+    <div class="lede">八个方向共享同一产品约束。前四个探索不同的工作台重心；后四个故意暴露宽屏最容易滑向的错误：数据大盘、多卡选择、窗口管理和模块目录。</div>
+  </header>
+  <main>
+    <article class="direction" id="pcw-01">
+      <div class="direction-head"><h2>方向 01 · 专注工作台</h2><span>单对象 / 三栏</span></div>
+      <div class="frame" style="grid-template-columns:92px 1fr 176px">
+        <aside class="rail"><div class="brand">软</div><div class="nav active">学习</div><div class="nav">空间</div><div class="nav">统计</div><div class="nav">我的</div></aside>
+        <section class="work"><div class="card"><div class="eyebrow">当前馆 · 当前知识卡</div><h3>作者为什么在转折之后改变判断？</h3><p>先抓住句间关系，再选择最符合原文立场的一项。</p><div class="options"><div class="option">A · 证据不足</div><div class="option active">B · 立场修正</div><div class="option">C · 例外补充</div><div class="option">D · 时间变化</div></div></div></section>
+        <aside class="context"><div class="eyebrow">当前位置</div><div class="path">当前馆<br>当前组<br>转折与立场<br>当前盒</div><span class="key">1—4</span><p class="path">选择答案</p><span class="key">S</span><p class="path">回到空间</p></aside>
+      </div>
+    </article>
+    <article class="direction" id="pcw-02">
+      <div class="direction-head"><h2>方向 02 · 考试折页</h2><span>资料感 / 附着解析</span></div>
+      <div class="frame" style="grid-template-columns:82px 1fr">
+        <aside class="rail"><div class="brand">软</div><div class="nav active">学习</div><div class="nav">空间</div><div class="nav">统计</div><div class="nav">我的</div></aside>
+        <section class="work"><div class="folio"><div class="eyebrow">CURRENT LIBRARY · CURRENT</div><h3>转折后的真正结论</h3><div class="rule"></div><p>题干与原句保持在同一张考试折页上，解析从当前对象下方展开。</p><div class="slip">判断依据：转折词之后出现作者的最终取舍，前句只是让步背景。</div></div></section>
+      </div>
+    </article>
+    <article class="direction" id="pcw-03">
+      <div class="direction-head"><h2>方向 03 · 空间观测台</h2><span>地址连续 / 当前盒</span></div>
+      <div class="frame" style="grid-template-columns:92px 1fr">
+        <aside class="rail"><div class="brand">软</div><div class="nav active">学习</div><div class="nav">空间</div><div class="nav">统计</div><div class="nav">我的</div></aside>
+        <section class="work"><div class="shelf"><div class="tree">当前馆<br>└ 当前组<br>&nbsp;&nbsp;└ 当前盒<br>&nbsp;&nbsp;&nbsp;&nbsp;● 当前卡</div><div class="box"><div class="eyebrow">CURRENT BOX</div><h3>转折与立场</h3><div class="cards"><div class="mini-card">当前卡<br><strong>判断作者立场</strong></div><div class="mini-card">同盒卡<br>让步结构</div><div class="mini-card">睡眠区<br>1 张待唤醒</div></div></div></div></section>
+      </div>
+    </article>
+    <article class="direction" id="pcw-04">
+      <div class="direction-head"><h2>方向 04 · 安静指令栏</h2><span>键盘效率 / 克制</span></div>
+      <div class="frame" style="grid-template-columns:92px 1fr 150px">
+        <aside class="rail"><div class="brand">软</div><div class="nav active">学习</div><div class="nav">空间</div><div class="nav">统计</div><div class="nav">我的</div></aside>
+        <section class="work"><div class="console"><div class="eyebrow">当前馆 · 单项选择</div><h3>哪一项最符合作者态度？</h3><div class="answer-row"><div>A · 怀疑</div><div>B · 保留</div><div>C · 支持</div><div>D · 否定</div></div><div class="shortcut">数字键作答 · Esc 取消 · Enter 继续</div></div></section>
+        <aside class="context"><div class="eyebrow">学习位置</div><div class="path">当前馆 / 当前组 / 当前盒</div><span class="key">S</span><p class="path">查看空间</p></aside>
+      </div>
+    </article>
+    <article class="direction" id="pcw-05">
+      <div class="direction-head"><h2>方向 05 · 进度大盘</h2><span>错误：数据抢占</span></div>
+      <div class="frame dashboard"><aside class="rail"><div class="brand">软</div><div class="nav">概览</div><div class="nav">计划</div><div class="nav">排行</div></aside><section class="dash"><div class="panel"><div class="metric">78%</div><p>本周完成度</p><div class="bars"><i style="height:35%"></i><i style="height:64%"></i><i style="height:44%"></i><i style="height:88%"></i><i style="height:72%"></i></div></div><div class="panel"><strong>今日安排</strong><p>当前馆 24<br>乙馆 18<br>己馆 32</p></div><div class="panel"><strong>连续记录</strong><p class="metric">12</p></div><div class="panel"><strong>继续学习</strong><p>当前知识卡被压缩为一个入口。</p></div></section></div>
+    </article>
+    <article class="direction" id="pcw-06">
+      <div class="direction-head"><h2>方向 06 · 多卡网格</h2><span>错误：自己选模块</span></div>
+      <div class="frame" style="grid-template-columns:92px 1fr"><aside class="rail"><div class="brand">软</div><div class="nav active">学习</div><div class="nav">空间</div></aside><section class="grid-study"><div class="tile"><div class="dot"></div><h3>当前组</h3><p>24 张</p></div><div class="tile"><div class="dot" style="background:rgb(91, 109, 245)"></div><h3>乙馆</h3><p>18 张</p></div><div class="tile"><div class="dot" style="background:#22c58b"></div><h3>丙馆</h3><p>16 张</p></div><div class="tile"><div class="dot" style="background:rgb(181, 104, 245)"></div><h3>丁馆</h3><p>12 张</p></div><div class="tile"><div class="dot" style="background:rgb(24, 196, 224)"></div><h3>戊馆</h3><p>20 张</p></div><div class="tile"><div class="dot" style="background:rgb(241, 91, 110)"></div><h3>己馆</h3><p>32 张</p></div></section></div>
+    </article>
+    <article class="direction" id="pcw-07">
+      <div class="direction-head"><h2>方向 07 · 浮动窗口</h2><span>错误：管理布局</span></div>
+      <div class="frame windows"><div class="window w1"><div class="eyebrow">学习</div><h3>当前知识卡</h3><p>窗口位置成为额外操作。</p></div><div class="window w2"><div class="eyebrow">空间</div><h3>当前盒</h3><p>物理归属被误解为桌面位置。</p></div><div class="window w3"><div class="eyebrow">记录</div><h3>今日学习</h3><p>多个窗口争夺焦点。</p></div></div>
+    </article>
+    <article class="direction" id="pcw-08">
+      <div class="direction-head"><h2>方向 08 · 模块目录</h2><span>错误：目录优先</span></div>
+      <div class="frame library"><aside class="library-list"><div class="lib-row">乙馆</div><div class="lib-row">当前馆</div><div class="lib-row">丙馆</div><div class="lib-row">丁馆</div><div class="lib-row">戊馆</div><div class="lib-row">己馆</div><div class="lib-row">语法</div></aside><section class="module-list"><div class="module"><h3>当前组</h3><p>选择一个模块开始。</p></div><div class="module"><h3>当前组</h3><p>选择一个模块开始。</p></div><div class="module"><h3>段落匹配</h3><p>选择一个模块开始。</p></div><div class="module"><h3>观点判断</h3><p>选择一个模块开始。</p></div></section><aside class="detail"><strong>模块详情</strong><p>当前知识卡被目录层级推到最后。</p></aside></div>
+    </article>
+  </main>
+</body>
+</html>

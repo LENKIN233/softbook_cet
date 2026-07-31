@@ -32,6 +32,8 @@ For core Learning or Space implementation work, prose direction alone is not eno
 - `leadership-screenshot-handoff-v2.html`: rendered phone screenshot board for 首页, 卡片列表, 学习详情, and 知识空间.
 - `../physical-space/space-state-baseline-v1.md`: Space state baseline for loading, empty, remote-error, permission/paywall, and sync-merge states.
 - `space-state-baseline-v1.html`: rendered `393 x 852` phone proof for Space non-ideal states.
+- `pc-web-core-surfaces-v1.md`: accepted PC Web core-surface specification promoted from the 2026-08-01 eight-candidate search run.
+- `pc-web-core-surfaces-v1.html`: rendered `1440 x 900` PC Web proof for authentication, Learning interaction families, review/audio, Space, Statistics, Mine, and membership gating.
 
 ## Required Contents
 
