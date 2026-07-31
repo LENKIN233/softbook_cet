@@ -57,12 +57,13 @@
 - `node --test scripts/test_check_design_metadata_leaks.mjs && node scripts/check_design_metadata_leaks.mjs` -> 3 scanner tests and the repository scan passed.
 - `node scripts/validate_dependency_security.mjs` -> zero known mobile or CloudBase API vulnerabilities.
 - `scripts/run_local_gates --profile dev` -> 19/20 passed and one documented dev-only exception: local Node 25.9.0 differs from pinned Node 22.13.0. Report: `exports/local-gates/20260729T065507Z-d479f5f5-dev-89458/report.json` (generated report, not committed release evidence).
-- 2026-07-31 serial-integration validation after rebasing onto launch-evidence head `42d36fbd2b233e271b78835f36bd7404e6963535`:
+- 2026-07-31 serial-integration validation after rebasing onto launch-evidence head `42d36fbd2b233e271b78835f36bd7404e6963535`, then onto its tree-equivalent squash merge `64c9cc18fbf102b276e129e9245b9196bca8a0db`:
   - `python3 scripts/validate_harness.py --format text` -> `HARNESS VALIDATION OK`.
   - `cd apps/mobile && npm run lint -- --quiet && npm run typecheck` -> passed.
   - `cd apps/mobile && npm test -- --runInBand --watchAll=false` -> 44 suites and 420 tests passed.
   - `cd apps/mobile && npm run metadata-leak-scan && npm run design-metadata-leak-scan` -> both repository scans passed.
-  - `git diff --check 42d36fbd2b233e271b78835f36bd7404e6963535...HEAD` -> passed; the rebased diff remains limited to the five files listed above.
+  - `git diff --quiet 049d7142a76a9cc80e8573f0dd6e8043fab0e864 HEAD` -> passed after the final squash-base rebase, proving the validated tree is unchanged.
+  - `git diff --check 64c9cc18fbf102b276e129e9245b9196bca8a0db...HEAD` -> passed; the rebased diff remains limited to the five files listed above.
 
 ## Validation results
 
@@ -104,5 +105,5 @@
 
 ## Follow-up
 
-- Wait for PR #463 to merge at the exact validated head, then push this rebased branch with an explicit lease and rerun all required GitHub checks.
+- Push this branch from actual `origin/main` merge `64c9cc18fbf102b276e129e9245b9196bca8a0db` with the recorded explicit remote lease, then rerun all required GitHub checks.
 - Merge PR #458 only after its post-rebase Agent review and required checks are green; native iOS/Android login smoke remains release-acceptance evidence rather than a repository-test claim.
