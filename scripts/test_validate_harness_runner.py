@@ -399,6 +399,7 @@ class HarnessRunnerTests(unittest.TestCase):
             "design-artifact-gate",
             "validate-harness",
             "mobile-quality",
+            "web-quality",
             "dependency-security",
             "ios-release",
             "android-release",

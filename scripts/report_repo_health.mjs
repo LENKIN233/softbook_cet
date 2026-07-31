@@ -12,6 +12,7 @@ const REQUIRED_CHECKS = [
   'validate-harness',
   'agent-review',
   'mobile-quality',
+  'web-quality',
   'backend-contract',
   'dependency-security',
   'ios-release',

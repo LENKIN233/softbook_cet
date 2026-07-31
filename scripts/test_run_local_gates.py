@@ -138,6 +138,10 @@ class LocalGateRunnerTests(unittest.TestCase):
         self.assertIn("ios-runtime-target-tests", [gate.id for gate in gates])
         self.assertIn("cloudbase-smoke-lifecycle-tests", [gate.id for gate in gates])
         self.assertIn("mobile-jest", [gate.id for gate in gates])
+        self.assertIn("web-lint", [gate.id for gate in gates])
+        self.assertIn("web-typecheck", [gate.id for gate in gates])
+        self.assertIn("web-vitest", [gate.id for gate in gates])
+        self.assertIn("web-build", [gate.id for gate in gates])
         self.assertIn("backend-tests", [gate.id for gate in gates])
 
     def test_pr_and_release_profiles_are_strict_supersets(self):

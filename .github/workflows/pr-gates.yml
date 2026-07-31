@@ -148,6 +148,47 @@ jobs:
       - name: Run mobile tests
         run: npm test -- --runInBand --watchAll=false
 
+  web-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22.13.0"
+          cache: "npm"
+          cache-dependency-path: |
+            apps/web/package-lock.json
+            apps/mobile/package-lock.json
+
+      - name: Install shared mobile-domain TypeScript context
+        working-directory: apps/mobile
+        run: npm ci --ignore-scripts
+
+      - name: Install Web dependencies
+        run: npm ci
+
+      - name: Lint Web app
+        run: npm run lint
+
+      - name: Type-check Web app
+        run: npm run typecheck
+
+      - name: Run Web tests
+        run: npm test
+
+      - name: Build production Web app
+        run: npm run build
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
   backend-contract:
     runs-on: ubuntu-latest
     timeout-minutes: 15
