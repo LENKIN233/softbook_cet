@@ -4,7 +4,7 @@
 
 - Date: 2026-08-01
 - Branch: `infra/controlled-pilot-runtime`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/474
 - Summary: Implemented the repository-side controlled-pilot backend boundary: atomic 120-hour Learning Session trial activation, gate-isolated 120/60 pilot releases, signed private content access, audited pilot entitlement overlays, retryable account deletion, and dry-run-first receiver deployment/publication tools.
 
 ## Referenced specs
