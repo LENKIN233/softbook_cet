@@ -4,7 +4,7 @@
 
 - Date: 2026-08-01
 - Branch: `cross/controlled-pilot-design`
-- PR: pending stacked PR against `cross/controlled-pilot-contract`
+- PR: https://github.com/LENKIN233/softbook_cet/pull/473 (stacked against `cross/controlled-pilot-contract`)
 - Summary: Produced the separate design-only authority for the fixed CET4 controlled-pilot identity, first-valid-card non-blocking start notice, every-five-confirmed-event completion object, Learning-to-Space continuity, and no-payment Mine entitlement states.
 
 ## Referenced specs
