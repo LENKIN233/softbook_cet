@@ -4,7 +4,7 @@
 
 - Date: 2026-08-01
 - Branch: `cross/controlled-pilot-contract`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/472
 - Summary: Defined the pre-beta CET4 controlled-pilot product truth, made the first valid Learning Session the only atomic 120-hour trial trigger, added isolated gate-ineligible pilot artifact validators, and preserved the formal CET4 closed-beta 1,180-card/301-audio whole-track threshold.
 
 ## Referenced specs
