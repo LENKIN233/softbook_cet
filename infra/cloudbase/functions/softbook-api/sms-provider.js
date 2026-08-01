@@ -6,7 +6,7 @@ const TENCENT_TEMPLATE_PARAMETER_NAMES = new Set(['code', 'expiry_minutes']);
 function createRuntimeSmsProvider(options = {}) {
   const runtimeMode = options.runtimeMode ?? 'development';
 
-  if (runtimeMode !== 'production') {
+  if (runtimeMode === 'development') {
     return undefined;
   }
 

@@ -1,10 +1,15 @@
 const crypto = require('node:crypto');
 const {serializeSpaceState} = require('./space-actions-v2');
+const {
+  isContentReleaseValidForRuntime,
+} = require('./content-release-runtime');
 
 const BOOTSTRAP_SCHEMA_VERSION = 'bootstrap.v2';
 const CONTENT_RELEASE_SCHEMA_VERSION = 'content-release.v1';
+const PILOT_CONTENT_RELEASE_SCHEMA_VERSION = 'pilot-content-release.v1';
 const TRACKS = ['cet4', 'cet6'];
 const CHINA_OFFSET_MILLISECONDS = 8 * 60 * 60 * 1000;
+const TRIAL_DURATION_MILLISECONDS = 120 * 60 * 60 * 1000;
 const OUTCOMES_BY_INTERACTION = {
   flip: ['confident', 'review'],
   multiple_choice: ['correct', 'incorrect'],
@@ -35,12 +40,15 @@ function createBootstrapV2Service(options) {
 async function readBootstrap(config, input) {
   const generatedAt = config.now().toISOString();
   const cardSource = await config.store.getCardSource(input.track, {
-    allowDevelopmentDefault: config.runtimeMode !== 'production',
+    allowDevelopmentDefault: config.runtimeMode === 'development',
   });
 
   if (
-    config.runtimeMode === 'production' &&
-    (cardSource.release === null || cardSource.release === undefined)
+    !isContentReleaseValidForRuntime(
+      cardSource,
+      config.runtimeMode,
+      generatedAt,
+    )
   ) {
     throw contentReleaseUnavailableError(
       'A matching published content release is required.',
@@ -48,7 +56,7 @@ async function readBootstrap(config, input) {
   }
 
   const [membership, progress, learning, space] = await Promise.all([
-    config.store.getMembership(input.phoneNumber),
+    config.store.getMembership(input.phoneNumber, generatedAt),
     config.store.getDailyProgress(input.phoneNumber, input.dayKey, {
       accountKey: input.accountKey,
     }),
@@ -93,6 +101,23 @@ async function readBootstrap(config, input) {
 
 function serializeContent(cardSource) {
   const release = cardSource.release;
+
+  if (release?.schema_version === PILOT_CONTENT_RELEASE_SCHEMA_VERSION) {
+    return {
+      card_count: cardSource.card_records.length,
+      release_id: release.release_id,
+      release_class: 'controlled_pilot',
+      pilot_id: release.pilot_id,
+      minimum_client_versions: release.minimum_client_versions,
+      expires_at: release.expires_at,
+      gate_eligible: false,
+      source: {
+        id: cardSource.source.id,
+        label: cardSource.source.label,
+      },
+      version: cardSource.content_version,
+    };
+  }
 
   return {
     card_count: cardSource.card_records.length,
@@ -384,6 +409,14 @@ function normalizeMembership(value) {
   return readCanonicalState('membership', () => {
     const membership = requireObject(value, 'membership');
     const trialStartedAtEntryCount = membership.trial_started_at_entry_count;
+    const trialStartedAt = optionalIsoTimestamp(
+      membership.trial_started_at,
+      'membership.trial_started_at',
+    );
+    const trialExpiresAt = optionalIsoTimestamp(
+      membership.trial_expires_at,
+      'membership.trial_expires_at',
+    );
 
     if (
       trialStartedAtEntryCount !== null &&
@@ -393,16 +426,28 @@ function normalizeMembership(value) {
       throw new Error('membership trial start count is invalid.');
     }
 
+    const stage = requireEnum(
+      membership.stage,
+      ['trial_available', 'trial', 'free', 'premium', 'pilot_premium'],
+      'membership.stage',
+    );
+    if (
+      (trialStartedAt === null) !== (trialExpiresAt === null) ||
+      (trialStartedAt !== null &&
+        Date.parse(trialExpiresAt) - Date.parse(trialStartedAt) !==
+          TRIAL_DURATION_MILLISECONDS) ||
+      (stage === 'trial' && trialStartedAt === null) ||
+      (stage === 'trial_available' && trialStartedAt !== null)
+    ) {
+      throw new Error('membership trial timeline is invalid.');
+    }
+
     return {
       acknowledged_at: optionalIsoTimestamp(
         membership.acknowledged_at,
         'membership.acknowledged_at',
       ),
-      stage: requireEnum(
-        membership.stage,
-        ['trial_available', 'trial', 'free', 'premium'],
-        'membership.stage',
-      ),
+      stage,
       counted_entry_count: requireNonNegativeInteger(
         membership.counted_entry_count,
         'membership.counted_entry_count',
@@ -423,6 +468,8 @@ function normalizeMembership(value) {
         membership.trial_duration_days,
         'membership.trial_duration_days',
       ),
+      trial_expires_at: trialExpiresAt,
+      trial_started_at: trialStartedAt,
       trial_started_at_entry_count: trialStartedAtEntryCount,
     };
   });
@@ -447,6 +494,13 @@ function normalizeContentRelease(value, contentVersion, expectedTrack) {
     release.schema_version,
     'card source.release.schema_version',
   );
+  if (schemaVersion === PILOT_CONTENT_RELEASE_SCHEMA_VERSION) {
+    return normalizePilotContentRelease(
+      release,
+      contentVersion,
+      expectedTrack,
+    );
+  }
   const track = requireCardSourceTrack(
     release.track,
     'card source.release.track',
@@ -521,6 +575,92 @@ function normalizeContentRelease(value, contentVersion, expectedTrack) {
   };
 }
 
+function normalizePilotContentRelease(release, contentVersion, expectedTrack) {
+  const track = requireCardSourceTrack(
+    release.track,
+    'card source.release.track',
+  );
+  const declaredContentVersion = requireCardSourceString(
+    release.content_version,
+    'card source.release.content_version',
+  );
+  const releaseId = requireContentReleaseId(
+    release.release_id,
+    'card source.release.release_id',
+  );
+  const pilotId = requireContentReleaseId(
+    release.pilot_id,
+    'card source.release.pilot_id',
+  );
+  const profileId = requireContentReleaseId(
+    release.profile_id,
+    'card source.release.profile_id',
+  );
+  const activatedAt = requireCardSourceString(
+    release.activated_at,
+    'card source.release.activated_at',
+  );
+  const expiresAt = requireCardSourceString(
+    release.expires_at,
+    'card source.release.expires_at',
+  );
+  const minimumClientVersions = requireCardSourceObject(
+    release.minimum_client_versions,
+    'card source.release.minimum_client_versions',
+  );
+  const normalizedMinimumClients = Object.fromEntries(
+    ['android', 'ios'].map(platform => {
+      const version = requireCardSourceString(
+        minimumClientVersions[platform],
+        `card source.release.minimum_client_versions.${platform}`,
+      );
+      if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
+        throw cardSourceError(
+          `card source.release.minimum_client_versions.${platform} must use semantic version form.`,
+        );
+      }
+      return [platform, version];
+    }),
+  );
+  if (
+    track !== expectedTrack ||
+    track !== 'cet4' ||
+    declaredContentVersion !== contentVersion ||
+    release.runtime_mode !== 'controlled_pilot' ||
+    release.release_class !== 'controlled_pilot' ||
+    release.card_count !== 120 ||
+    release.free_card_count !== 60 ||
+    release.gate_eligible !== false ||
+    !isCanonicalIsoTimestamp(activatedAt) ||
+    !isCanonicalIsoTimestamp(expiresAt) ||
+    activatedAt >= expiresAt
+  ) {
+    throw cardSourceError('card source pilot release is invalid.');
+  }
+  return {
+    schema_version: PILOT_CONTENT_RELEASE_SCHEMA_VERSION,
+    release_id: releaseId,
+    profile_id: profileId,
+    pilot_id: pilotId,
+    release_class: 'controlled_pilot',
+    runtime_mode: 'controlled_pilot',
+    track: 'cet4',
+    content_version: declaredContentVersion,
+    card_count: 120,
+    free_card_count: 60,
+    activated_at: activatedAt,
+    expires_at: expiresAt,
+    minimum_client_versions: normalizedMinimumClients,
+    gate_eligible: false,
+  };
+}
+
+function isCanonicalIsoTimestamp(value) {
+  if (typeof value !== 'string') return false;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) && date.toISOString() === value;
+}
+
 function stableJsonStringify(value) {
   if (Array.isArray(value)) {
     return `[${value.map(item => stableJsonStringify(item)).join(',')}]`;
@@ -537,7 +677,7 @@ function stableJsonStringify(value) {
 }
 
 function validateConfig(config) {
-  if (!['development', 'production'].includes(config.runtimeMode)) {
+  if (!['development', 'production', 'controlled_pilot'].includes(config.runtimeMode)) {
     throw new Error(
       `Unsupported bootstrap runtime mode: ${config.runtimeMode}`,
     );

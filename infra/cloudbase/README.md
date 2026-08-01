@@ -383,6 +383,54 @@ accepts only one matching `Ok` send status. A successful local or CI test does
 not prove that either provider sent a real message; the receiver still needs a
 lifecycle-managed SMS smoke after its sign and template are approved.
 
+### Controlled CET4 pilot runtime and content
+
+Controlled-pilot tools are isolated from the formal release publisher and are
+dry-run-first. Deploy the API plus the timer-driven account-deletion worker:
+
+```bash
+node infra/cloudbase/deploy-controlled-pilot-runtime.mjs \
+  --profile path/to/controlled-pilot-profile.json
+
+node infra/cloudbase/deploy-controlled-pilot-runtime.mjs \
+  --profile path/to/controlled-pilot-profile.json \
+  --apply
+```
+
+Publish an approved 120-card bundle only after runtime deployment, SMS setup
+and the complete receiver collection catalog:
+
+```bash
+node infra/cloudbase/manage-controlled-pilot.mjs \
+  --profile path/to/controlled-pilot-profile.json \
+  --bundle path/to/controlled-pilot-bundle.json
+
+node infra/cloudbase/manage-controlled-pilot.mjs \
+  --profile path/to/controlled-pilot-profile.json \
+  --bundle path/to/controlled-pilot-bundle.json \
+  --apply
+```
+
+The publisher verifies all bound hashes and actual content distribution,
+uploads and rereads private audio, stages and reverifies content, then activates
+last. Every report remains `gate_eligible=false`; these commands cannot update
+formal beta or launch readiness.
+
+Continued pilot access is a receiver-operator overlay. Command files contain a
+phone number, must remain untracked, and use the same immutable bytes for
+dry-run and apply:
+
+```bash
+node infra/cloudbase/manage-pilot-entitlement.mjs \
+  --profile path/to/controlled-pilot-profile.json \
+  --command path/to/pilot-entitlement-command.json
+
+node infra/cloudbase/manage-pilot-entitlement.mjs \
+  --profile path/to/controlled-pilot-profile.json \
+  --command path/to/pilot-entitlement-command.json \
+  --apply
+```
+
 ### Audited closed-beta entitlement
 
 Closed-beta premium access is granted without a payment route through the

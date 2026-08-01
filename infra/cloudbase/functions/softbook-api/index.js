@@ -1,5 +1,10 @@
 const crypto = require('node:crypto');
 const {createAuthV2Service} = require('./auth-v2');
+const {
+  createAccountDeletionWorkerV1,
+  createCloudBaseAccountDeletionRepository,
+  createMemoryAccountDeletionRepository,
+} = require('./account-deletion-worker-v1');
 const {createRuntimeSmsProvider} = require('./sms-provider');
 const {
   normalizeCloudBaseDocuments,
@@ -53,6 +58,7 @@ const {
 
 const DEFAULT_SMS_CODE = '2468';
 const DEFAULT_TRIAL_DURATION_DAYS = 5;
+const CONTROLLED_TRIAL_DURATION_HOURS = 120;
 const DEFAULT_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 const LEGACY_SNAPSHOT_WRITE_PATHS = new Set([
   '/v1/learning/state-sync',
@@ -74,6 +80,7 @@ const CLOUDBASE_COLLECTIONS = {
   authRateLimits: 'softbook_auth_rate_limits',
   authSessions: 'softbook_auth_sessions',
   betaEntitlements: 'softbook_beta_entitlements',
+  pilotEntitlements: 'softbook_pilot_entitlements',
   cardSourceVersions: 'softbook_card_source_versions',
   cardSources: 'softbook_card_sources',
   dailyCheckIns: 'softbook_daily_check_ins',
@@ -99,6 +106,16 @@ async function main(event, context) {
   return getDefaultApi().handleCloudBaseEvent(event, context);
 }
 
+async function accountDeletionWorkerMain(event = {}) {
+  const db = createCloudBaseDatabase();
+  const repository = createCloudBaseAccountDeletionRepository(
+    db,
+    CLOUDBASE_COLLECTIONS,
+  );
+  const worker = createAccountDeletionWorkerV1({repository});
+  return worker.run({limit: event.limit ?? 10});
+}
+
 function getDefaultApi() {
   if (!defaultApi) {
     defaultApi = createSoftbookApi();
@@ -117,7 +134,7 @@ function createSoftbookApi(options = {}) {
     'softbook-cloudbase-dev-secret';
   const config = {
     allowLegacyV1:
-      runtimeMode === 'production' ? false : options.allowLegacyV1 ?? true,
+      runtimeMode === 'development' ? options.allowLegacyV1 ?? true : false,
     apiKey: options.apiKey ?? process.env.SOFTBOOK_API_KEY,
     now: options.now ?? (() => new Date()),
     runtimeMode,
@@ -163,6 +180,7 @@ function createSoftbookApi(options = {}) {
   config.contentManifestV1 = createContentManifestV1Service({
     downloadTtlSeconds: options.contentManifestDownloadTtlSeconds,
     now: config.now,
+    runtimeMode,
     resolveDownloadUrl:
       options.contentAssetUrlResolver ?? createDefaultContentAssetUrlResolver(),
     signer:
@@ -635,7 +653,9 @@ function createMemoryStore() {
   const authStateStore = createMemoryAuthStateStore();
   const cardSources = new Map();
   const cardSourceVersions = new Map();
+  const betaEntitlements = new Map();
   const memberships = new Map();
+  const pilotEntitlements = new Map();
   const dailyCheckIns = new Map();
   const dailyProgress = new Map();
   const learningEventCursors = new Map();
@@ -664,9 +684,29 @@ function createMemoryStore() {
     },
     runTransaction: runLearningTransaction,
   });
+  const accountDeletionWorker = createAccountDeletionWorkerV1({
+    repository: createMemoryAccountDeletionRepository({
+      ...authStateStore.snapshotAuth(),
+      betaEntitlements,
+      dailyCheckIns,
+      dailyProgress,
+      learningEventCursors,
+      learningEvents,
+      learningEventSequences,
+      learningMigrationRevisions,
+      learningSessions,
+      learningStates,
+      memberships,
+      pilotEntitlements,
+      spaceActions,
+      spaceStates,
+    }),
+  });
 
   return {
     ...authStateStore,
+    runAccountDeletionWorkerForTest: options =>
+      accountDeletionWorker.run(options),
     getCardSource: (track, options = {}) => {
       if (!cardSources.has(track)) {
         if (options.allowDevelopmentDefault === false) {
@@ -809,12 +849,37 @@ function createMemoryStore() {
             input.expectedLearningServerSequence
         );
       }),
-    getMembership: phoneNumber => {
+    getMembership: (phoneNumber, acknowledgedAt = null) => {
       const document = memberships.get(phoneNumber);
+      const current = resolveTrialExpiration(
+        cloneMembership(document?.entitlement ?? createInitialMembership()),
+        acknowledgedAt,
+      );
 
+      if (current.changed) {
+        memberships.set(phoneNumber, {
+          entitlement: current.membership,
+          updated_at: acknowledgedAt,
+        });
+      }
+
+      const base = {
+        acknowledged_at: current.changed
+          ? acknowledgedAt
+          : document?.updated_at ?? null,
+        ...current.membership,
+      };
       return {
-        acknowledged_at: document?.updated_at ?? null,
-        ...cloneMembership(document?.entitlement ?? createInitialMembership()),
+        acknowledged_at: base.acknowledged_at,
+        ...applyPilotEntitlement(
+          applyBetaEntitlement(
+            current.membership,
+            betaEntitlements.get(phoneNumber),
+            phoneNumber,
+          ),
+          pilotEntitlements.get(phoneNumber),
+          phoneNumber,
+        ),
       };
     },
     startTrial: (phoneNumber, acknowledgedAt) => {
@@ -823,11 +888,7 @@ function createMemoryStore() {
       );
 
       if (current.stage === 'trial_available') {
-        current.counted_entry_count += 1;
-        current.last_experience_ended_by = null;
-        current.recovery_prompt_visible = false;
-        current.stage = 'trial';
-        current.trial_started_at_entry_count = current.counted_entry_count;
+        activateTrialMembership(current, acknowledgedAt);
       }
 
       memberships.set(phoneNumber, {
@@ -955,6 +1016,56 @@ function createMemoryStore() {
         );
         return true;
       }),
+    commitLearningSessionRead: input =>
+      runLearningTransaction(async () => {
+        const key = createAccountLearningSessionKey(
+          input.accountKey,
+          input.track,
+        );
+        const currentSession = normalizeStoreLearningSession(
+          learningSessions.get(key) ?? null,
+          input.accountKey,
+          input.track,
+        );
+
+        if (!learningSessionReadMatches(currentSession, input)) {
+          return {accepted: false, membership: null};
+        }
+
+        if (input.operation === 'save') {
+          learningSessions.set(
+            key,
+            createNextLearningSessionState(currentSession, input),
+          );
+        } else if (input.operation !== 'confirm') {
+          throw new Error('Learning session read operation is invalid.');
+        }
+
+        const membership = cloneMembership(
+          memberships.get(input.phoneNumber)?.entitlement ??
+            createInitialMembership(),
+        );
+        if (input.activateTrial && membership.stage === 'trial_available') {
+          activateTrialMembership(membership, input.acknowledgedAt);
+          memberships.set(input.phoneNumber, {
+            entitlement: membership,
+            updated_at: input.acknowledgedAt,
+          });
+        }
+
+        return {
+          accepted: true,
+          membership: applyPilotEntitlement(
+            applyBetaEntitlement(
+              membership,
+              betaEntitlements.get(input.phoneNumber),
+              input.phoneNumber,
+            ),
+            pilotEntitlements.get(input.phoneNumber),
+            input.phoneNumber,
+          ),
+        };
+      }),
     commitLearningEvents,
     getSpaceState: (phoneNumber, dayKey, options = {}) =>
       runSpaceTransaction(async () => {
@@ -1049,6 +1160,7 @@ function createMemoryStore() {
       }),
     snapshot: () => ({
       ...authStateStore.snapshotAuth(),
+      betaEntitlements,
       cardSourceVersions,
       cardSources,
       dailyCheckIns,
@@ -1060,6 +1172,7 @@ function createMemoryStore() {
       learningSessions,
       learningStates,
       memberships,
+      pilotEntitlements,
       spaceActions,
       spaceStates,
     }),
@@ -1277,37 +1390,54 @@ function createCloudBaseStore(options = {}) {
         );
         return true;
       }),
-    getMembership: async phoneNumber => {
-      const [existing, betaEntitlement] = await Promise.all([
-        getCloudBaseDocument(memberships, phoneNumber),
-        getCloudBaseDocument(betaEntitlements, phoneNumber),
-      ]);
-
-      if (existing) {
-        const entitlement = applyBetaEntitlement(
-          deserializeMembershipDocument(existing),
-          betaEntitlement,
+    getMembership: (phoneNumber, acknowledgedAt = null) =>
+      db.runTransaction(async transaction => {
+        const transactionMemberships = transaction.collection(
+          CLOUDBASE_COLLECTIONS.memberships,
+        );
+        const [existing, betaEntitlement, pilotEntitlement] = await Promise.all([
+          getCloudBaseDocument(transactionMemberships, phoneNumber),
+          getCloudBaseDocument(
+            transaction.collection(CLOUDBASE_COLLECTIONS.betaEntitlements),
+            phoneNumber,
+          ),
+          getCloudBaseDocument(
+            transaction.collection(CLOUDBASE_COLLECTIONS.pilotEntitlements),
+            phoneNumber,
+          ),
+        ]);
+        const resolved = resolveTrialExpiration(
+          existing
+            ? deserializeMembershipDocument(existing)
+            : createInitialMembership(),
+          acknowledgedAt,
+        );
+        if (resolved.changed) {
+          await saveCloudBaseMembership(
+            transactionMemberships,
+            phoneNumber,
+            resolved.membership,
+            acknowledgedAt,
+          );
+        }
+        const entitlement = applyPilotEntitlement(
+          applyBetaEntitlement(
+            resolved.membership,
+            betaEntitlement,
+            phoneNumber,
+          ),
+          pilotEntitlement,
           phoneNumber,
         );
         return {
           acknowledged_at: latestAcknowledgedAt(
-            existing.updated_at,
+            resolved.changed ? acknowledgedAt : existing?.updated_at,
             betaEntitlement?.updated_at,
+            pilotEntitlement?.updated_at,
           ),
           ...entitlement,
         };
-      }
-
-      const entitlement = applyBetaEntitlement(
-        createInitialMembership(),
-        betaEntitlement,
-        phoneNumber,
-      );
-      return {
-        acknowledged_at: betaEntitlement?.updated_at ?? null,
-        ...entitlement,
-      };
-    },
+      }),
     startTrial: (phoneNumber, acknowledgedAt) =>
       db.runTransaction(async transaction => {
         const transactionMemberships = transaction.collection(
@@ -1318,11 +1448,7 @@ function createCloudBaseStore(options = {}) {
         );
 
         if (current.stage === 'trial_available') {
-          current.counted_entry_count += 1;
-          current.last_experience_ended_by = null;
-          current.recovery_prompt_visible = false;
-          current.stage = 'trial';
-          current.trial_started_at_entry_count = current.counted_entry_count;
+          activateTrialMembership(current, acknowledgedAt);
         }
 
         await saveCloudBaseMembership(
@@ -1487,6 +1613,81 @@ function createCloudBaseStore(options = {}) {
           createNextLearningSessionState(current, input),
         );
         return true;
+      }),
+    commitLearningSessionRead: input =>
+      db.runTransaction(async transaction => {
+        const transactionSessions = transaction.collection(
+          CLOUDBASE_COLLECTIONS.learningSessions,
+        );
+        const transactionMemberships = transaction.collection(
+          CLOUDBASE_COLLECTIONS.memberships,
+        );
+        const documentId = createAccountLearningSessionId(
+          input.accountKey,
+          input.track,
+        );
+        const currentSession = normalizeStoreLearningSession(
+          await getCloudBaseDocument(transactionSessions, documentId),
+          input.accountKey,
+          input.track,
+        );
+
+        if (!learningSessionReadMatches(currentSession, input)) {
+          return {accepted: false, membership: null};
+        }
+
+        if (input.operation === 'save') {
+          await setCloudBaseDocument(
+            transactionSessions,
+            documentId,
+            createNextLearningSessionState(currentSession, input),
+          );
+        } else if (input.operation !== 'confirm') {
+          throw new Error('Learning session read operation is invalid.');
+        }
+
+        const [membershipValue, betaEntitlement, pilotEntitlement] =
+          await Promise.all([
+            getCloudBaseMembership(
+              transactionMemberships,
+              input.phoneNumber,
+            ),
+            getCloudBaseDocument(
+              transaction.collection(
+                CLOUDBASE_COLLECTIONS.betaEntitlements,
+              ),
+              input.phoneNumber,
+            ),
+            getCloudBaseDocument(
+              transaction.collection(
+                CLOUDBASE_COLLECTIONS.pilotEntitlements,
+              ),
+              input.phoneNumber,
+            ),
+          ]);
+        const membership = cloneMembership(membershipValue);
+        if (input.activateTrial && membership.stage === 'trial_available') {
+          activateTrialMembership(membership, input.acknowledgedAt);
+          await saveCloudBaseMembership(
+            transactionMemberships,
+            input.phoneNumber,
+            membership,
+            input.acknowledgedAt,
+          );
+        }
+
+        return {
+          accepted: true,
+          membership: applyPilotEntitlement(
+            applyBetaEntitlement(
+              membership,
+              betaEntitlement,
+              input.phoneNumber,
+            ),
+            pilotEntitlement,
+            input.phoneNumber,
+          ),
+        };
       }),
     commitLearningEvents,
     getSpaceState: async (phoneNumber, dayKey, options = {}) => {
@@ -2006,6 +2207,14 @@ function createNextLearningSessionState(current, input) {
   );
 }
 
+function learningSessionReadMatches(current, input) {
+  return (
+    current.revision === input.expectedRevision &&
+    current.learning_acknowledged_at === input.learningAcknowledgedAt &&
+    current.learning_server_sequence === input.learningServerSequence
+  );
+}
+
 function assertLearningWriteAccountKey(accountKey) {
   if (typeof accountKey !== 'string' || accountKey.length === 0) {
     throw httpError(
@@ -2117,6 +2326,107 @@ function applyBetaEntitlement(membership, document, phoneNumber) {
     recovery_prompt_visible: false,
     stage: 'premium',
   };
+}
+
+function applyPilotEntitlement(membership, document, phoneNumber) {
+  if (document === null || document === undefined) {
+    return membership;
+  }
+  assertPilotEntitlementDocument(document, phoneNumber);
+  if ((document.active_grant ?? null) === null) return membership;
+  return {
+    ...membership,
+    last_experience_ended_by: null,
+    recovery_prompt_visible: false,
+    stage: 'pilot_premium',
+  };
+}
+
+function assertPilotEntitlementDocument(document, phoneNumber) {
+  const audit = document.audit;
+  const active = document.active_grant ?? null;
+  const invalid = () =>
+    httpError(
+      500,
+      'invalid_pilot_entitlement',
+      'Canonical pilot entitlement is invalid.',
+    );
+  if (
+    document.phone_number !== phoneNumber ||
+    !Number.isSafeInteger(document.revision) ||
+    document.revision <= 0 ||
+    !Array.isArray(audit) ||
+    audit.length !== document.revision ||
+    document.updated_at !== audit.at(-1)?.occurred_at
+  ) {
+    throw invalid();
+  }
+  let openGrant = null;
+  let previousTimestamp = null;
+  for (const event of audit) {
+    if (
+      event?.schema_version !== 'pilot-entitlement-audit.v1' ||
+      !['grant', 'revoke'].includes(event.action) ||
+      typeof event.actor_id !== 'string' ||
+      !/^sha256:[a-f0-9]{64}$/.test(event.command_sha256 ?? '') ||
+      typeof event.event_id !== 'string' ||
+      typeof event.pilot_id !== 'string' ||
+      !isCanonicalIsoTimestamp(event.occurred_at) ||
+      typeof event.reason !== 'string' ||
+      ![
+        'trial_available',
+        'trial',
+        'free',
+        'premium',
+        'pilot_premium',
+      ].includes(event.previous_stage) ||
+      ![
+        'trial_available',
+        'trial',
+        'free',
+        'premium',
+        'pilot_premium',
+      ].includes(event.resulting_stage) ||
+      (previousTimestamp !== null && event.occurred_at < previousTimestamp)
+    ) {
+      throw invalid();
+    }
+    if (event.action === 'grant') {
+      if (openGrant !== null || event.resulting_stage !== 'pilot_premium') {
+        throw invalid();
+      }
+      openGrant = {eventId: event.event_id, pilotId: event.pilot_id};
+    } else {
+      if (
+        openGrant === null ||
+        openGrant.pilotId !== event.pilot_id ||
+        event.previous_stage !== 'pilot_premium' ||
+        event.resulting_stage === 'pilot_premium'
+      ) {
+        throw invalid();
+      }
+      openGrant = null;
+    }
+    previousTimestamp = event.occurred_at;
+  }
+  const latest = audit.at(-1);
+  if (active === null) {
+    if (openGrant !== null || latest.action !== 'revoke') throw invalid();
+    return;
+  }
+  if (
+    latest.action !== 'grant' ||
+    openGrant === null ||
+    active.schema_version !== 'pilot-entitlement.v1' ||
+    active.actor_id !== latest.actor_id ||
+    active.command_sha256 !== latest.command_sha256 ||
+    active.grant_event_id !== latest.event_id ||
+    active.pilot_id !== latest.pilot_id ||
+    active.granted_at !== latest.occurred_at ||
+    active.reason !== latest.reason
+  ) {
+    throw invalid();
+  }
 }
 
 function assertBetaEntitlementDocument(document, phoneNumber) {
@@ -2853,8 +3163,46 @@ function createInitialMembership() {
     recovery_prompt_visible: false,
     stage: 'trial_available',
     trial_duration_days: DEFAULT_TRIAL_DURATION_DAYS,
+    trial_expires_at: null,
+    trial_started_at: null,
     trial_started_at_entry_count: null,
   };
+}
+
+function activateTrialMembership(membership, acknowledgedAt) {
+  const startedAt = requireIsoTimestamp(
+    acknowledgedAt,
+    'trial_started_at',
+  );
+  if (membership.stage !== 'trial_available') {
+    return membership;
+  }
+  membership.counted_entry_count += 1;
+  membership.last_experience_ended_by = null;
+  membership.recovery_prompt_visible = false;
+  membership.stage = 'trial';
+  membership.trial_started_at = startedAt;
+  membership.trial_expires_at = new Date(
+    Date.parse(startedAt) +
+      CONTROLLED_TRIAL_DURATION_HOURS * 60 * 60 * 1000,
+  ).toISOString();
+  membership.trial_started_at_entry_count = membership.counted_entry_count;
+  return membership;
+}
+
+function resolveTrialExpiration(membership, acknowledgedAt) {
+  if (
+    membership.stage !== 'trial' ||
+    !isCanonicalIsoTimestamp(acknowledgedAt) ||
+    !isCanonicalIsoTimestamp(membership.trial_expires_at) ||
+    Date.parse(acknowledgedAt) < Date.parse(membership.trial_expires_at)
+  ) {
+    return {changed: false, membership};
+  }
+  membership.stage = 'free';
+  membership.last_experience_ended_by = 'trial';
+  membership.recovery_prompt_visible = true;
+  return {changed: true, membership};
 }
 
 function cloneMembership(membership) {
@@ -2864,6 +3212,8 @@ function cloneMembership(membership) {
     recovery_prompt_visible: membership.recovery_prompt_visible,
     stage: membership.stage,
     trial_duration_days: membership.trial_duration_days,
+    trial_expires_at: membership.trial_expires_at ?? null,
+    trial_started_at: membership.trial_started_at ?? null,
     trial_started_at_entry_count: membership.trial_started_at_entry_count,
   };
 }
@@ -3693,6 +4043,7 @@ const CET6_CARD_RECORDS = [
 ];
 
 module.exports = {
+  accountDeletionWorkerMain,
   createCloudBaseStore,
   createMemoryStore,
   createSoftbookApi,

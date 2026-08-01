@@ -23,9 +23,10 @@ Referenced active sources:
 
 `implementation_hypothesis`:
 
-- The repository provides fail-closed schema validators before implementing a receiver publisher, entitlement mutation, outcome aggregation or remote deployment.
+- The repository implements fail-closed schema validators, a dry-run-first receiver publisher, controlled-pilot runtime release enforcement, audited entitlement mutation, atomic trial timestamps, and a retryable account-deletion worker plus deployment tooling.
+- The deployment tool packages the API and a separate non-HTTP deletion worker, configures the worker's idempotent one-minute timer trigger, and still requires an exact receiver environment, complete collection catalog, real secret inputs, clean exact `main`, and an explicit apply flag.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
-- Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
+- None of this has been deployed to the receiver environment in this repository run. Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
 
 ## Trial authority
 
@@ -77,6 +78,41 @@ routes, and clean all account-keyed pilot entitlement data during account
 deletion. Dry-run/apply is an execution mode outside the immutable command:
 tooling defaults to dry-run and requires an explicit apply flag so the exact
 same command hash can be verified before mutation.
+
+The implemented operator tool reads the current base membership and any formal
+beta overlay, rederives the exact previous/resulting stages, performs one
+compare-and-set write, rereads the stored audit chain, and never returns a phone
+number in its public report. `pilot_premium` is applied after the canonical
+base/beta stage and does not mutate the base membership document.
+
+## Account deletion
+
+`POST /v2/account/deletion` stores the account key, phone, derived phone-rate
+key and retry metadata before revoking sessions. The independent deletion
+worker claims tasks with a bounded lease, deletes account-keyed learning and
+Space data, phone-bound auth challenges, the phone-only rate-limit key,
+membership, beta entitlement and pilot entitlement, and removes the deletion
+task last. A partial failure requeues the task; duplicate timer delivery is
+safe. Removing the task last keeps login blocked until erasure is verified and
+permits a clean registration only after completion. Repository tests exercise
+interruption/retry and post-deletion registration, but receiver execution and
+monitoring evidence remain pending.
+
+## Publication and deployment
+
+`manage-controlled-pilot.mjs` verifies the profile/bundle binding, every bound
+file hash, actual 120/60 distribution, catalog mapping, interaction counts,
+audio bytes and QC coverage. Apply uploads and rereads private audio, stages
+the hydrated card source, revalidates the staged evidence, activates last and
+rereads the active pointer. It never invokes the formal publisher.
+
+`deploy-controlled-pilot-runtime.mjs` is separately dry-run-first. Apply
+packages the tested runtime with `SOFTBOOK_RUNTIME_MODE=controlled_pilot`,
+deploys `softbook-api`, deploys
+`softbook-account-deletion-worker` with handler
+`index.accountDeletionWorkerMain`, and creates its timer trigger. Receiver
+deployment, SMS delivery, route probes, trigger logs, deletion drills and
+rollback evidence are still external gates.
 
 ### `pilot-outcome-report.v1`
 

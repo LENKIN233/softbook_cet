@@ -43,6 +43,7 @@ export const REQUIRED_COLLECTIONS = Object.freeze([
   "softbook_learning_migration_revisions",
   "softbook_learning_sessions",
   "softbook_learning_states",
+  "softbook_pilot_entitlements",
   "softbook_space_actions",
   "softbook_space_states",
 ]);
@@ -86,6 +87,11 @@ const IDENTITY_PROBES = Object.freeze([
     collection: "softbook_beta_entitlements",
     filter: {phone_number: {$exists: true}},
     id: "beta_entitlements",
+  },
+  {
+    collection: "softbook_pilot_entitlements",
+    filter: {phone_number: {$exists: true}},
+    id: "pilot_entitlements",
   },
   {
     collection: "softbook_learning_event_cursors",

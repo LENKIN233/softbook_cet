@@ -20,7 +20,7 @@ function createAuthV2Service(options) {
   const smsProvider = options.smsProvider ?? createDevelopmentSmsProvider();
   const codeGenerator =
     options.codeGenerator ??
-    (runtimeMode === 'production'
+    (runtimeMode !== 'development'
       ? generateSixDigitCode
       : () => String(options.developmentSmsCode ?? '2468'));
   const config = {
@@ -37,7 +37,7 @@ function createAuthV2Service(options) {
       options.rateLimitWindowSeconds ?? RATE_LIMIT_WINDOW_SECONDS,
     refreshTokenTtlSeconds:
       options.refreshTokenTtlSeconds ?? REFRESH_TOKEN_TTL_SECONDS,
-    requireClientIp: options.requireClientIp ?? runtimeMode === 'production',
+    requireClientIp: options.requireClientIp ?? runtimeMode !== 'development',
     runtimeMode,
     smsProvider,
     store,
@@ -271,8 +271,16 @@ async function requestAccountDeletion(config, request) {
   const requestedAt = config.now().toISOString();
   const deletionTask = await config.store.getOrCreateAccountDeletionTask({
     account_key: session.accountKey,
+    attempt_count: 0,
     deletion_id: `delete_${randomBase64Url(config.randomBytes, 18)}`,
+    last_attempt_at: null,
+    lease_expires_at: null,
     phone_number: session.phoneNumber,
+    phone_rate_key: `phone:${keyedHash(
+      config.indexSecret,
+      'rate-phone',
+      session.phoneNumber,
+    )}`,
     requested_at: requestedAt,
     status: 'queued',
   });
@@ -563,7 +571,7 @@ function assertRefreshRotated(status) {
 }
 
 function validateServiceConfig(config) {
-  if (!['development', 'production'].includes(config.runtimeMode)) {
+  if (!['development', 'production', 'controlled_pilot'].includes(config.runtimeMode)) {
     throw new Error(`Unsupported SOFTBOOK_RUNTIME_MODE: ${config.runtimeMode}`);
   }
 
@@ -622,7 +630,7 @@ function validateServiceConfig(config) {
     }
   }
 
-  if (config.runtimeMode !== 'production') {
+  if (config.runtimeMode === 'development') {
     return;
   }
 

@@ -1126,6 +1126,9 @@ test('CloudBase concurrent submissions converge without duplicate projection wri
     submit(firstApi, session, [event]),
     submit(secondApi, session, [event]),
   ]);
+  duplicateRace.forEach(response => {
+    assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  });
   assert.deepEqual(
     duplicateRace.map(response => response.body.data.results[0].status).sort(),
     ['accepted', 'duplicate'],
@@ -1145,11 +1148,31 @@ test('CloudBase concurrent submissions converge without duplicate projection wri
     submit(secondApi, session, [third]),
   ]);
   assert.deepEqual(
-    distinctRace
-      .map(response => response.body.data.results[0].server_sequence)
-      .sort((left, right) => left - right),
-    [2, 3],
+    distinctRace.map(response => response.statusCode).sort(),
+    [200, 409],
   );
+  const acceptedDistinct = distinctRace.find(
+    response => response.statusCode === 200,
+  );
+  const rejectedDistinct = distinctRace.find(
+    response => response.statusCode === 409,
+  );
+  assert.equal(
+    acceptedDistinct.body.data.results[0].server_sequence,
+    2,
+  );
+  assert.equal(
+    rejectedDistinct.body.error.code,
+    'learning_event_selection_conflict',
+  );
+
+  const rejectedEvent =
+    acceptedDistinct === distinctRace[0] ? third : second;
+  const retried = await submit(secondApi, session, [
+    {...rejectedEvent, selection_id: CURRENT_SELECTION_ID},
+  ]);
+  assert.equal(retried.statusCode, 200, JSON.stringify(retried.body));
+  assert.equal(retried.body.data.results[0].server_sequence, 3);
 
   const bootstrap = await request(secondApi, {
     headers: {authorization: `Bearer ${session.access_token}`},

@@ -372,6 +372,57 @@ test('v2 logout is idempotent and account deletion queues once then revokes all 
   );
 });
 
+test('deletion worker clears account data and permits clean re-registration', async () => {
+  const {api, store} = createV2TestApi();
+  const session = await issueSession(api, {
+    clientIp: '203.0.113.70',
+    deviceId: 'device-before-deletion',
+  });
+  const learning = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v2/learning/session',
+    query: {track: 'cet4'},
+  });
+  assert.equal(learning.statusCode, 200, JSON.stringify(learning.body));
+  const accountKey = store
+    .snapshot()
+    .authSessions.get(session.session_id).account_key;
+  store.snapshot().pilotEntitlements.set(PHONE_NUMBER, {
+    phone_number: PHONE_NUMBER,
+  });
+
+  const deletion = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    path: '/v2/account/deletion',
+  });
+  assert.equal(deletion.statusCode, 202);
+  const report = await store.runAccountDeletionWorkerForTest();
+
+  assert.equal(report.completed_count, 1);
+  assert.equal(store.snapshot().accountDeletions.has(accountKey), false);
+  assert.equal(store.snapshot().authSessions.size, 0);
+  assert.equal(store.snapshot().learningSessions.size, 0);
+  assert.equal(store.snapshot().memberships.has(PHONE_NUMBER), false);
+  assert.equal(store.snapshot().pilotEntitlements.has(PHONE_NUMBER), false);
+  assert.equal(
+    [...store.snapshot().authChallenges.values()].some(
+      challenge => challenge.phone_number === PHONE_NUMBER,
+    ),
+    false,
+  );
+
+  const registeredAgain = await issueSession(api, {
+    clientIp: '203.0.113.71',
+    deviceId: 'device-after-deletion',
+  });
+  assert.equal(typeof registeredAgain.access_token, 'string');
+  assert.equal(
+    store.snapshot().authSessions.get(registeredAgain.session_id).status,
+    'active',
+  );
+});
+
 test('v2 deletion task blocks refresh even when account-wide revocation is interrupted', async () => {
   const store = createMemoryStore();
   const {api} = createV2TestApi({store});
