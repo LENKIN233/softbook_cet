@@ -25,7 +25,7 @@ describe('PC Web core flow', () => {
       within(navigation)
         .getAllByRole('button')
         .map(button => button.textContent),
-    ).toEqual(['学Learning', '域Space', '记Statistics', '我Mine']);
+    ).toEqual(['学学习', '域空间', '记统计', '我我的']);
     expect(screen.getByRole('heading', {name: '当前学习卡'})).toBeInTheDocument();
   });
 
@@ -39,8 +39,8 @@ describe('PC Web core flow', () => {
     expect(within(assessment).getByRole('button', {name: '再回看'})).toBeInTheDocument();
 
     fireEvent.click(within(assessment).getByRole('button', {name: '有把握'}));
-    fireEvent.click(screen.getByRole('button', {name: '确认自评'}));
     expect(screen.getByText('已记为有把握')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: '确认自评'})).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
     expect(within(screen.getByRole('group', {name: '四选一选项'})).getAllByRole('button')).toHaveLength(4);
@@ -48,16 +48,20 @@ describe('PC Web core flow', () => {
 
   it('keeps favorite and sleep as card states inside the owning box', async () => {
     await authenticate();
-    fireEvent.click(screen.getByRole('button', {name: 'Space'}));
+    fireEvent.click(screen.getByRole('button', {name: '空间'}));
 
-    expect(screen.getByRole('heading', {name: '当前卡盒'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: '转折关系'})).toBeInTheDocument();
+    expect(screen.getByText('听力')).toBeInTheDocument();
+    expect(screen.getByText('逻辑关系')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: '转折关系 2 张'})).toHaveAttribute('aria-current', 'location');
+    expect(screen.queryByText('把句子主干锁出来，三个槽位都对才开锁。')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: '标记喜欢'}));
     fireEvent.click(screen.getByRole('button', {name: '移入盒内休眠区'}));
 
     expect(screen.getByText(/1 张卡暂时离开学习流/)).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '取消喜欢'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '唤醒到学习流'})).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', {name: '回到 Learning'}));
+    fireEvent.click(screen.getByRole('button', {name: '回到学习'}));
     expect(screen.getByRole('button', {name: '已标记喜欢'})).toBeInTheDocument();
   });
 
@@ -83,15 +87,100 @@ describe('PC Web core flow', () => {
 
     fireEvent.keyDown(document.body, {key: 'Enter'});
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
-    fireEvent.click(screen.getByRole('button', {name: '确认自评'}));
     fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
     fireEvent.keyDown(document.body, {key: '2'});
 
     expect(screen.getByRole('button', {name: /B.*unclear/})).toHaveAttribute('aria-pressed', 'true');
-    for (const routeName of ['Space', 'Statistics', 'Mine', 'Learning']) {
+    for (const routeName of ['空间', '统计', '我的', '学习']) {
       fireEvent.click(screen.getByRole('button', {name: new RegExp(`^${routeName}$`)}));
       expect(document.body.textContent).not.toMatch(/card_id|knowledge_ref|box_ref|sourceId|contentVersion|apiKey/i);
     }
+  });
+
+  it('starts the full trial on the first authenticated entry and makes unavailable account actions honest', async () => {
+    await authenticate();
+    fireEvent.click(screen.getByRole('button', {name: '我的'}));
+
+    expect(screen.getByText('5 天体验中')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /开启 5 天体验/})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: '购买会员 · 尚未接入'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: '恢复购买 · 尚未接入'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: '删除账户 · 尚未接入'})).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', {name: '隐私与账户规则'}));
+    expect(screen.getByRole('region', {name: '隐私与账户规则说明'})).toBeInTheDocument();
+  });
+
+  it('ends the system-ordered session instead of silently looping to the first card', async () => {
+    await authenticate();
+
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+
+    fireEvent.click(screen.getByRole('button', {name: /B.*unclear/}));
+    fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+
+    const lockFields = screen.getAllByRole('combobox');
+    fireEvent.change(lockFields[0], {target: {value: 'The policy'}});
+    fireEvent.change(lockFields[1], {target: {value: 'reduces'}});
+    fireEvent.change(lockFields[2], {target: {value: 'test anxiety'}});
+    fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+
+    const elimination = screen.getByRole('group', {name: '选择要删除的干扰成分'});
+    fireEvent.click(within(elimination).getByRole('button', {name: 'who review in short bursts'}));
+    fireEvent.click(within(elimination).getByRole('button', {name: 'usually'}));
+    fireEvent.click(within(elimination).getByRole('button', {name: 'before the test'}));
+    fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+
+    fireEvent.click(screen.getByRole('button', {name: /可直接套用/}));
+    fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
+    fireEvent.click(screen.getByRole('button', {name: '完成本轮'}));
+
+    expect(screen.getByRole('heading', {name: '这一轮到这里'})).toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: '当前学习卡'})).not.toBeInTheDocument();
+    expect(screen.getByLabelText('本轮摘要')).toHaveTextContent('完成 5');
+  });
+
+  it('ends a review deck without offering the same review loop again', async () => {
+    await authenticate();
+
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '再回看'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+
+    fireEvent.click(screen.getByRole('button', {name: /B.*unclear/}));
+    fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+
+    const lockFields = screen.getAllByRole('combobox');
+    fireEvent.change(lockFields[0], {target: {value: 'The policy'}});
+    fireEvent.change(lockFields[1], {target: {value: 'reduces'}});
+    fireEvent.change(lockFields[2], {target: {value: 'test anxiety'}});
+    fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+
+    const elimination = screen.getByRole('group', {name: '选择要删除的干扰成分'});
+    fireEvent.click(within(elimination).getByRole('button', {name: 'who review in short bursts'}));
+    fireEvent.click(within(elimination).getByRole('button', {name: 'usually'}));
+    fireEvent.click(within(elimination).getByRole('button', {name: 'before the test'}));
+    fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+
+    fireEvent.click(screen.getByRole('button', {name: /可直接套用/}));
+    fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
+    fireEvent.click(screen.getByRole('button', {name: '完成本轮'}));
+    fireEvent.click(screen.getByRole('button', {name: '开始回看 1 张'}));
+
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '再回看'}));
+    fireEvent.click(screen.getByRole('button', {name: '完成本轮'}));
+
+    expect(screen.getByText('回看完成')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /开始回看/})).not.toBeInTheDocument();
   });
 
   it('clears account-scoped state on sign out', async () => {

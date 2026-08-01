@@ -34,7 +34,7 @@ PC Web is a first-class target with the same core product meaning as iOS and And
 
 ## Implementation Hypothesis
 
-`apps/web` is an independent React + Vite entry that reuses the mobile repository's platform-neutral learning evaluation, local development session, membership access, and safe display metadata. The browser shell uses a left route rail, one center focal object, and a bounded context rail. Development mode may exercise repository-local structured cards; production mode fails closed until an HTTPS runtime and remote authentication path are present.
+`apps/web` is an independent React + Vite entry that reuses the mobile repository's platform-neutral learning evaluation, local development session, and membership access. Space derives its visible hierarchy directly from each card's validated `space_metadata` rather than display placeholders. The browser shell uses a left route rail, one center focal object, and a bounded context rail. Development mode may exercise repository-local structured cards; production mode fails closed until an HTTPS runtime and remote authentication path are present.
 
 This implementation hypothesis does not turn repository-local cards into approved content and does not establish a production Web runtime.
 
@@ -42,16 +42,16 @@ This implementation hypothesis does not turn repository-local cards into approve
 
 | Accepted surface | Repository implementation | Evidence |
 |---|---|---|
-| Auth object | phone field, code field, validation, safe error copy, authenticated shell gate | browser flow and `App.test.tsx` |
-| Flip | reveal, exactly two mint/amber self-assess choices, attached result slip | browser flow and tests |
+| Auth object | phone field, code field, validation, safe error copy, and neutral first-time/returning copy that waits for account state before claiming continuity | browser flow and `App.test.tsx` |
+| Flip | reveal, exactly two mint/amber self-assess choices, immediate attached result with no redundant confirmation step | browser flow and tests |
 | Multiple choice | 2 x 2 desktop choice grid, persistent selected state, `1–4` shortcut | browser flow and tests |
 | Lock | three vertical labelled slots with native keyboard-operable selects | browser flow |
 | Elimination | reversible strike choices and explicit submit | browser flow |
 | Swipe | two directional states, discrete buttons, left/right keyboard equivalence | browser flow and tests |
-| Review | answer/analysis/exam-tip slip remains attached to the current card | browser flow |
-| Space | library/group/box tree, current box, contained cards, inspector, favorite and owned sleep region | browser flow and tests |
+| Review | answer/analysis/exam-tip slip remains attached; the final card enters an explicit session-complete object and can start a bounded review deck | browser flow and tests |
+| Space | actual library/group/box tree derived from card ownership, selected owning box only, contained cards, inspector, favorite and owned sleep region | browser flow and tests |
 | Statistics | quiet daily ledger with tabular counts | browser flow |
-| Mine/membership | masked identity, membership stage, trial, purchase/restore/delete fail-closed notices, sign out | browser flow |
+| Mine/membership | first authenticated entry starts the full trial; masked identity and membership stage remain visible; unconnected purchase/restore/delete controls are explicitly disabled; privacy boundary expands in place | browser flow and tests |
 | Runtime boundary | external browser-visible config accepts HTTPS base only; missing production config is unavailable; no API key field; production artifact excludes development cards | `runtime.test.ts`, build boundary scan, production preview browser proof |
 | Accessibility | landmarks, labels, pressed/expanded state, focus-visible treatment, reduced-motion-safe discrete operations | axe-core smoke, keyboard browser flow, unit tests |
 
@@ -63,7 +63,7 @@ This implementation hypothesis does not turn repository-local cards into approve
 | Canonical bootstrap and scheduler | development session only | hydrate canonical bootstrap and `/v2/learning/session` with authenticated server selection |
 | Learning events/progress | in-memory results only | durable queue, replay, check-in and recovery evidence |
 | Space sync | in-memory favorite/sleep state only | authenticated `/v2/space/actions`, projection and offline recovery |
-| Membership/payment | trial model is exercisable; purchase/restore remain unavailable | shared remote membership, Web purchase authority, restore and payment evidence |
+| Membership/payment | first authenticated entry starts the local full trial; purchase/restore remain explicitly unavailable | shared remote membership, Web purchase authority, restore and payment evidence |
 | Audio | unavailable state is attached; playback is not implemented | signed manifest, private fetch, hash verification, cache/playback and listening QC |
 | Formal content | development structured cards only | approved `card make` payload, import/audit/smoke and coverage evidence |
 | Account deletion | visible action remains unavailable | remote deletion/recovery flow and policy evidence |
@@ -74,7 +74,9 @@ This implementation hypothesis does not turn repository-local cards into approve
 
 ## Browser Review
 
-- Real in-app browser exercised Auth, all five Learning silhouettes, result continuation, Space, Statistics, Mine, trial/membership context, and the production unavailable state.
+- Real in-app browser re-exercised Auth, all five Learning silhouettes, immediate flip resolution, explicit five-card completion, one-card review entry, the real Space hierarchy, and trial/membership context after the acceptance correction.
+- The corrected Space proof showed `听力 / 逻辑关系 / 转折关系` with exactly its two owned cards while sibling libraries, groups, and boxes remained browsable in the hierarchy.
+- Development styling loaded under a nonce-bound CSP after the earlier meta policy had blocked Vite's injected development style element.
 - Production-build inspection proves the local source identifier and representative development card prompts are absent from emitted HTML/JS/CSS.
 - Left-arrow keyboard input selected the left swipe state; automated tests also prove Enter reveal and `1–4` selection.
 - Visual inspection found and corrected light-mode contrast weaknesses for labels, support copy, error copy, self-assessment colors, tree focus, and destructive actions.

@@ -88,6 +88,15 @@ Detail must not be implemented as a separate report page or a vertical article. 
 - Confirmation that Learning remains one-screen and does not require vertical scrolling for the main task.
 - Confirmation that Space preserves library / group / box / card hierarchy.
 
+## 2026-08-01 Acceptance Correction Evidence
+
+- `apps/mobile/App.tsx` no longer tells an unknown signed-out user that a card, box position, or daily rhythm has already been retained. The accepted account object now says that account state will be read after verification and explicitly distinguishes an existing account from a new account.
+- The first authenticated counted entry now starts `trial_available -> trial` automatically. Local mode updates immediately; remote mode waits for validated account state, uses the authenticated membership repository, and preserves the existing queued-retry/server-ack boundary.
+- `apps/mobile/__tests__/App.test.tsx` covers local automatic start, remote automatic start with authorization, failed-start queue/replay, and the resulting five-card session.
+- The iOS simulator at the accepted phone frame rendered the corrected neutral auth object without horizontal overflow, clipped CTA, or covered navigation. The screenshot remained local evidence and was not committed as ordinary Git content.
+
+These corrections use the already accepted reset decision and mock. They do not claim that every future implementation-evidence item above is now complete.
+
 ## Design Review Checklist Answers
 
 Q1: Future implementation must name the current library per screen and keep one strong accent. The reset proof uses the active library with coral.
