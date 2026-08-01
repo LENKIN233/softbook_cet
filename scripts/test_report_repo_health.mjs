@@ -60,6 +60,7 @@ const checks = [
   'validate-harness',
   'agent-review',
   'mobile-quality',
+  'web-quality',
   'backend-contract',
   'dependency-security',
   'ios-release',

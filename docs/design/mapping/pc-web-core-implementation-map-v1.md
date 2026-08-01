@@ -28,6 +28,8 @@
 
 This map translates accepted design regions into future Web responsibilities. It does not define runtime contracts, product state names, data schemas, component trees, or deployment readiness.
 
+The later, separate implementation status and gap table live in `docs/design/mapping/pc-web-core-implementation-evidence-v1.md`. This design-planning map remains the accepted baseline and must not be read as shipped-runtime evidence.
+
 ## Shared Shell Mapping
 
 | Region | Design role | Future Web responsibility |

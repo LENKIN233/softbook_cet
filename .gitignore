@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 node_modules/
+dist/
+*.tsbuildinfo
 .tmp/
 infra/cloudbase/*.local.env
 exports/

@@ -672,7 +672,7 @@ def validate(context) -> None:
     if runtime_layer:
         if runtime_layer.get("sections") != []:
             errors.append("runtime_smoke_layer must remain delegated to CI jobs, not validate_harness sections")
-        for job in ["backend-contract", "mobile-quality"]:
+        for job in ["backend-contract", "mobile-quality", "web-quality"]:
             if job not in runtime_layer.get("ci_jobs", []):
                 errors.append(f"runtime_smoke_layer missing CI job: {job}")
 

@@ -411,7 +411,8 @@
       "sections": [],
       "ci_jobs": [
         "backend-contract",
-        "mobile-quality"
+        "mobile-quality",
+        "web-quality"
       ],
       "responsibility": "Runtime behavior is verified by dedicated CI jobs, not by the pure harness layers. validate_harness.py may check that those jobs are wired, but it must not become the runtime smoke runner.",
       "side_effect_policy": "delegated_to_ci_jobs",

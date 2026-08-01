@@ -35,6 +35,7 @@ def build_catalog() -> tuple[GateSpec, ...]:
     pr = pr_profiles()
     release = frozenset(("release",))
     mobile = ROOT / "apps" / "mobile"
+    web = ROOT / "apps" / "web"
     backend = ROOT / "infra" / "cloudbase" / "functions" / "softbook-api"
 
     return (
@@ -187,6 +188,34 @@ def build_catalog() -> tuple[GateSpec, ...]:
                 ),
                 cwd=mobile,
             ),
+        ),
+        GateSpec(
+            "web-lint",
+            dev,
+            120,
+            False,
+            lambda _: CommandSpec(("npm", "run", "lint"), cwd=web),
+        ),
+        GateSpec(
+            "web-typecheck",
+            dev,
+            120,
+            False,
+            lambda _: CommandSpec(("npm", "run", "typecheck"), cwd=web),
+        ),
+        GateSpec(
+            "web-vitest",
+            dev,
+            180,
+            False,
+            lambda _: CommandSpec(("npm", "test"), cwd=web),
+        ),
+        GateSpec(
+            "web-build",
+            dev,
+            180,
+            False,
+            lambda _: CommandSpec(("npm", "run", "build"), cwd=web),
         ),
         GateSpec(
             "backend-tests",

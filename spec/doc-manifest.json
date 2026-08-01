@@ -439,6 +439,27 @@
       "status": "active"
     },
     {
+      "path": "docs/design/mapping/pc-web-core-implementation-evidence-v1.md",
+      "authority": "implementation_evidence_mapping",
+      "audience": [
+        "agent",
+        "engineer",
+        "reviewer"
+      ],
+      "load_when": [
+        "pc_web_user_facing_ui_implementation",
+        "pc_web_implementation_review"
+      ],
+      "depends_on": [
+        "docs/design/mapping/pc-web-core-implementation-map-v1.md",
+        "docs/design/decisions/pc-web-core-surface-decision-v1.md",
+        "docs/design/mocks/pc-web-core-surfaces-v1.md",
+        "spec/runtime-boundaries.json",
+        "spec/evals.json"
+      ],
+      "status": "active"
+    },
+    {
       "path": "docs/design/mocks/learning-space-phone-frames-v1.md",
       "authority": "accepted_rendered_mock_artifact",
       "audience": [
