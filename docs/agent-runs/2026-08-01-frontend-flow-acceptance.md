@@ -4,7 +4,7 @@
 
 - Date: 2026-08-01
 - Branch: `fix/frontend-flow-acceptance`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/471
 - Summary: Correct the Web learning/session/Space/account flow and the mobile signed-out/trial-entry semantics after the prior product flow was rejected as non-standard and unacceptable.
 
 ## Referenced specs
@@ -82,6 +82,7 @@
 - In-app browser flow -> passed Auth, immediate flip, five interaction sequence, explicit completion/review, real Space ownership, automatic trial, and disabled account controls.
 - iOS simulator render -> passed corrected signed-out Learning auth object at the target phone frame.
 - `maestro test e2e/maestro/ios-smoke.yaml` -> not run because this machine has no Java runtime; Jest and manual simulator evidence remain available, and this limitation does not count as a passing Maestro run.
+- `PATH=/Users/lenkin/.nvm/versions/node/v22.13.0/bin:/opt/homebrew/opt/ruby@3.3/bin:$PATH ./scripts/run_local_gates --profile pr --base origin/main --pr 471 --fail-fast` -> 32/36 passed before the strict local repository-health check failed. The failure is workspace/governance state, not a product-test failure: 9 existing worktrees, 16 existing topic branches reported without upstreams, and local required-check expectations not recognizing `android-release`. No user worktrees or branches were deleted to manufacture a pass.
 
 ## Validation results
 
@@ -91,7 +92,7 @@
 - iOS simulator visual inspection confirmed neutral first-time/returning auth copy and contained phone layout.
 - Full repository harness passed.
 - Local development gates completed with 23/24 checks passed and one documented safe exception: the machine runs Node `25.9.0` while the repository pins `22.13.0`. The development profile therefore reported `deferred`; the product tests and validators themselves passed.
-- PR-bound gates: pending PR creation.
+- PR body Agent review and design gates passed locally. GitHub `design-artifact-gate`, `validate-harness`, `agent-review`, `mobile-quality`, `web-quality`, `backend-contract`, `dependency-security`, `repo-health`, `evidence-archive`, and `formal-approval` passed on the first pushed head; iOS/Android release jobs were still running when this record was updated.
 
 ## Binary evidence
 
