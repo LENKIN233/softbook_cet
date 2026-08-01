@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>受控试点界面方向比较</title>
+  <style>
+    :root {
+      --page: #efedf4;
+      --ink: #0b0b14;
+      --ink-2: #3d3b4e;
+      --muted: #777487;
+      --hair: rgba(11,11,20,.08);
+      --accent: rgb(255,138,61);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: Outfit, "Noto Sans SC", Arial, sans-serif;
+      background:
+        radial-gradient(circle at 10% 5%, rgba(255,138,61,.18), transparent 25%),
+        radial-gradient(circle at 90% 8%, rgba(114,104,170,.14), transparent 28%),
+        linear-gradient(180deg, #fbfafd, var(--page));
+    }
+    main { max-width: 1460px; margin: 0 auto; padding: 42px 24px 64px; }
+    h1 { margin: 0; font-size: clamp(34px,5vw,58px); line-height: .98; }
+    .intro { max-width: 720px; margin: 12px 0 28px; color: var(--muted); line-height: 1.6; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 22px; }
+    .direction { padding: 14px; border-radius: 30px; border: 1px solid rgba(255,255,255,.78); background: rgba(255,255,255,.46); box-shadow: 0 24px 58px rgba(24,20,44,.12); }
+    .caption { display: flex; justify-content: space-between; gap: 12px; margin: 1px 3px 12px; color: var(--muted); font-size: 12px; }
+    .caption b { color: var(--ink); font-size: 13px; }
+    .phone {
+      min-height: 650px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px;
+      border-radius: 34px;
+      border: 1px solid rgba(255,255,255,.9);
+      background: radial-gradient(circle at 10% 10%, rgba(255,138,61,.16), transparent 33%), rgba(250,249,253,.92);
+    }
+    .top { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+    .identity, .strip { align-self: flex-start; padding: 9px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.86); background: rgba(255,255,255,.72); color: var(--ink-2); font-size: 12px; font-weight: 800; }
+    .strip { align-self: stretch; display: flex; justify-content: space-between; border-radius: 18px; }
+    .card, .receipt { position: relative; padding: 21px; border-radius: 27px; border: 1px solid rgba(255,255,255,.94); border-left: 5px solid var(--accent); background: rgba(255,255,255,.94); box-shadow: 0 18px 38px rgba(18,16,36,.10); }
+    .card h2, .receipt h2 { margin: 0; font-size: 24px; line-height: 1.12; }
+    .card p, .receipt p { margin: 10px 0 0; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+    .slip { margin: -27px 15px 0; position: relative; z-index: 2; padding: 13px 15px; border-radius: 18px; border: 1px solid rgba(255,255,255,.95); background: rgba(255,255,255,.96); box-shadow: 0 14px 28px rgba(18,16,36,.11); font-size: 12px; line-height: 1.4; }
+    .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .choices span { min-height: 46px; display: grid; place-items: center; border: 1px solid var(--hair); border-radius: 15px; background: rgba(255,255,255,.72); color: var(--ink-2); font-size: 12px; }
+    .aperture { padding: 13px; border: 1px solid var(--hair); border-radius: 18px; background: rgba(244,242,249,.86); color: var(--ink-2); font-size: 12px; line-height: 1.4; }
+    .settled { width: 84%; margin: 2px auto -20px; padding: 17px 18px 32px; border: 1px solid rgba(255,255,255,.92); border-left: 5px solid var(--accent); border-radius: 23px; background: rgba(255,255,255,.75); color: var(--ink-2); font-size: 12px; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .actions span, .continue { min-height: 44px; display: grid; place-items: center; border-radius: 15px; font-size: 12px; font-weight: 800; }
+    .actions span { border: 1px solid var(--hair); background: rgba(247,246,250,.9); color: var(--ink-2); text-align: center; padding: 7px; }
+    .continue { background: var(--ink); color: white; }
+    .ledger { border-top: 1px solid var(--hair); }
+    .row { display: flex; justify-content: space-between; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--hair); color: var(--muted); font-size: 12px; }
+    .row b { color: var(--ink-2); text-align: right; }
+    .spacer { flex: 1; }
+    .nav { min-height: 56px; display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; padding: 6px; border: 1px solid rgba(255,255,255,.8); border-radius: 21px; background: rgba(255,255,255,.76); }
+    .nav span { display: grid; place-items: center; border-radius: 14px; color: var(--muted); font-size: 11px; }
+    .nav .active { background: var(--ink); color: white; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>受控试点界面方向比较</h1>
+    <p class="intro">比较附着关系、首读顺序、Space 连续性和下一步负担；所有方向都保持固定试点身份。</p>
+    <section class="grid">
+      <article class="direction" id="cpl-01">
+        <p class="caption"><b>方向 01 · 附着凭条</b><span>首卡</span></p>
+        <div class="phone">
+          <div class="top"><span>9:41</span><span>学习</span></div>
+          <div class="identity">CET4 受控试点</div>
+          <div class="card"><h2>转折之后，才是作者真正的态度。</h2><p>先锁定转折后的评价词，再完成判断。</p></div>
+          <div class="slip"><strong>体验已开始</strong><br>从这张有效卡起连续 120 小时。</div>
+          <div class="choices"><span>支持</span><span>怀疑</span><span>中立</span><span>反对</span></div>
+          <div class="aperture">当前位置<br>当前库 / 判断线索 / 第 3 盒</div>
+          <div class="spacer"></div>
+          <div class="nav"><span class="active">学习</span><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+      </article>
+
+      <article class="direction" id="cpl-02">
+        <p class="caption"><b>方向 02 · 安静状态条</b><span>账户状态</span></p>
+        <div class="phone">
+          <div class="top"><span>9:41</span><span>学习</span></div>
+          <div class="strip"><span>CET4 受控试点</span><span>至 8 月 6 日</span></div>
+          <div class="card"><h2>转折之后，才是作者真正的态度。</h2><p>卡片仍是主体，但状态条会先被读到。</p></div>
+          <div class="choices"><span>支持</span><span>怀疑</span><span>中立</span><span>反对</span></div>
+          <div class="ledger"><div class="row"><span>开始</span><b>8 月 1 日 09:41</b></div><div class="row"><span>结束</span><b>8 月 6 日 09:41</b></div></div>
+          <div class="spacer"></div>
+          <div class="nav"><span class="active">学习</span><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+      </article>
+
+      <article class="direction" id="cpl-05">
+        <p class="caption"><b>方向 05 · 卡片落位</b><span>一轮完成</span></p>
+        <div class="phone">
+          <div class="top"><span>9:47</span><span>学习</span></div>
+          <div class="identity">CET4 受控试点</div>
+          <div class="settled"><strong>刚完成的卡</strong><br>转折之后，才是作者真正的态度。</div>
+          <div class="receipt"><h2>这一轮已放好</h2><p>完成的内容回到它原本的位置。</p><div class="aperture">当前库 / 判断线索 / 第 3 盒</div></div>
+          <div class="actions"><span>回看待复习内容</span><span>查看所在 Space</span></div>
+          <div class="continue">继续下一轮</div>
+          <div class="spacer"></div>
+          <div class="nav"><span class="active">学习</span><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+      </article>
+
+      <article class="direction" id="cpl-06">
+        <p class="caption"><b>方向 06 · 轮次凭条</b><span>紧凑完成页</span></p>
+        <div class="phone">
+          <div class="top"><span>9:47</span><span>学习</span></div>
+          <div class="identity">CET4 受控试点</div>
+          <div class="receipt"><h2>5 张都已确认</h2><p>下一轮仍由系统继续安排。</p><div class="ledger"><div class="row"><span>待回看</span><b>已归位</b></div><div class="row"><span>所在位置</span><b>第 3 盒</b></div></div><div class="actions"><span>回看待复习内容</span><span>查看所在 Space</span></div><div class="continue" style="margin-top:8px">继续下一轮</div></div>
+          <div class="spacer"></div>
+          <div class="nav"><span class="active">学习</span><span>空间</span><span>统计</span><span>我的</span></div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
