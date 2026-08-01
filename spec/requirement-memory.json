@@ -1,5 +1,5 @@
 {
-  "version": "vnext-7",
+  "version": "vnext-8",
   "purpose": "Persistent machine-readable memory of user-provided requirements from this conversation so they do not collapse during compaction or future rewrites.",
   "source_anchors": {
     "authentication": {
@@ -180,7 +180,48 @@
       "max": 7
     },
     "trial_is_complete_experience": true,
-    "trial_starts_when": "first_entry_counted_as_membership_trial",
+    "trial_starts_when": "inside_the_first_successful_authenticated_learning_session_after_server_content_validation_selection_and_cursor_persistence_succeed",
+    "trial_time_authority": {
+      "source": "server",
+      "duration_hours": 120,
+      "fields": [
+        "trial_started_at",
+        "trial_expires_at"
+      ],
+      "non_triggers": [
+        "login",
+        "account_browsing",
+        "failed_content_load",
+        "failed_cursor_persistence",
+        "failed_learning_session"
+      ]
+    },
+    "controlled_pilot": {
+      "classification": "pre_beta_controlled_product_pilot",
+      "track": "cet4",
+      "card_count": 120,
+      "stable_free_card_count_after_trial": 60,
+      "cohort_min": 30,
+      "cohort_max": 50,
+      "client_surfaces": [
+        "ios",
+        "android"
+      ],
+      "web_role": "internal_acceptance_only",
+      "payment_connected": false,
+      "continuation_access": "audited_server_operator_entitlement_only",
+      "gate_eligible": false,
+      "must_not_be_claimed_as": [
+        "closed_beta",
+        "public_release",
+        "launch_ready"
+      ],
+      "formal_cet4_closed_beta_threshold_unchanged": {
+        "cards": 1180,
+        "audio_references": 301,
+        "whole_track_final_approval_required": true
+      }
+    },
     "free_after_trial": "basic_learning_remains",
     "free_content_access": "near_half_of_cards",
     "premium_gates": [

@@ -1,0 +1,90 @@
+# Softbook Controlled Pilot v1 Runtime Contract
+
+Referenced active sources:
+
+- `spec/requirement-memory.json`
+- `spec/product-core.json`
+- `spec/account-sync-contract.json`
+- `spec/membership.json`
+- `spec/runtime-boundaries.json`
+- `spec/box-catalog.json`
+- `infra/cloudbase/learning-session-v1-runtime-contract.md`
+- `infra/cloudbase/content-manifest-v1-runtime-contract.md`
+- `infra/cloudbase/release-bundle-v1-runtime-contract.md`
+
+## Authority boundary
+
+`product_truth`:
+
+- The controlled pilot is a pre-beta CET4 learning proof for 30–50 invited iOS and Android users.
+- It contains exactly 120 approved cards, starts a complete five-day experience only from the first valid Learning Session, and measures five-card rounds and five-day retention.
+- It is not the formal closed beta. Formal CET4 closed beta continues to require 1,180 cards, 301 audio references, complete QC and one whole-track final approval.
+- Pilot payment is unavailable. Continued access may be overlaid only by an audited receiver-operator pilot entitlement.
+
+`implementation_hypothesis`:
+
+- The repository provides fail-closed schema validators before implementing a receiver publisher, entitlement mutation, outcome aggregation or remote deployment.
+- Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
+- Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
+
+## Trial authority
+
+Authentication alone never starts the trial. The Learning Session authority may start an available trial only after it has validated canonical content and access, selected an eligible card, persisted and confirmed the selection cursor, and is ready to return a successful session. It stores server-authoritative `trial_started_at` and `trial_expires_at` exactly 120 hours apart in the same membership transaction that changes `trial_available -> trial`.
+
+Invalid content, a missing selection, cursor write failure, failed cursor confirmation or an unsuccessful session response cannot consume the trial. Repeated or concurrent session reads are idempotent. Bootstrap exposes the canonical timestamps; clients display them and never manufacture entitlement time.
+
+## Schemas
+
+### `controlled-pilot-profile.v1`
+
+The profile binds an independent receiver-owned environment,
+`runtime_mode=controlled_pilot`, only `cet4`, iOS and Android minimum versions,
+a public signing key ID, a 30–50 account cohort limit and a pilot expiry. The
+known personal development environment is rejected. It contains no credential
+or user identity and is always `gate_eligible=false`.
+
+### `controlled-pilot-bundle.v1`
+
+The bundle binds one exact controlled-pilot profile, exactly 120 approved CET4
+cards and a stable 60-card free prefix. Full content distribution is fixed at
+listening 24, careful reading 24, cloze 16, writing 16, translation 16,
+vocabulary 12 and grammar 12. All 120 cards must map to active boxes, duplicate
+card IDs and unmapped cards are zero, every library covers at least two boxes,
+and all five owned core interactions appear with counts that sum to 120. The
+first 60 cards must contain every library. Repository development cards,
+candidate workspace rows and dry-run projections do not count toward this
+approved total. Every referenced audio asset has one matching QC record; at
+least the 24 listening cards require audio.
+
+Approval scope is `controlled_pilot_120`. Audit has zero unresolved blockers, zero unexplained risks and complete metadata coverage. Content, approval, audit, audio manifest and audio QC remain path/hash bound. Publication implementation must upload and re-read audio, stage content, revalidate it and activate last.
+
+### `pilot-content-release.v1`
+
+The activated descriptor binds one exact controlled-pilot profile and is
+accepted only in a `controlled_pilot` runtime. It binds 120 total cards, 60 free
+cards, exact content version, minimum clients and pilot expiry. It is never
+accepted by the formal release publisher and remains `gate_eligible=false`.
+
+### `pilot-entitlement-command.v1`
+
+An untracked receiver-operator input contains one idempotent event, pilot,
+phone, `grant|revoke`, actor, reason, UTC occurrence time, previous stage and
+resulting stage. Grant must result in
+`pilot_premium`; revoke must restore the canonical base stage. Future mutation
+implementation must rederive and atomically verify those stages while storing
+the event and active overlay, leave base membership unchanged, reject client
+routes, and clean all account-keyed pilot entitlement data during account
+deletion. Dry-run/apply is an execution mode outside the immutable command:
+tooling defaults to dry-run and requires an explicit apply flag so the exact
+same command hash can be verified before mutation.
+
+### `pilot-outcome-report.v1`
+
+The report contains only aggregate integer counts for a 30–50 account cohort observed for five days. The validator derives rates and permits `advance` only when first-round completion is at least 70%, D1 at least 40%, D5 at least 20%, survey response at least 80%, exam-value plus Space understanding at least 60% of respondents, and P0 incidents equal zero. It rejects direct identifiers and remains `gate_eligible=false`.
+
+## Release non-replacement
+
+- Pilot profiles and bundles cannot be passed to `release-bundle.v1` verification or publication.
+- Pilot content, approval, device checks and outcome reports cannot update `docs/release/launch-readiness.v1.json` or replace formal beta evidence.
+- Failure never falls back to repository development cards, unsigned manifests, public asset URLs, personal environments or arbitrary JSON.
+- A successful pilot authorizes planning the remaining CET4 corpus; it does not approve the 120 cards as a whole-track release without the later final 1,180-card approval.

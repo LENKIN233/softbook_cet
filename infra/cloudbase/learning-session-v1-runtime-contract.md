@@ -136,16 +136,25 @@ selection without deleting its learning or FSRS history. Favorite state does
 not change order.
 
 The first authenticated learning-session entry starts an available trial
-exactly once through the existing membership authority. Trial and premium
+exactly once only after canonical content validation, card selection, selection
+ID generation, and cursor persistence all succeed. The same server transaction
+writes `trial_started_at` and `trial_expires_at`, with expiration exactly 120
+continuous hours after start. Login, account browsing, invalid content, failed
+selection, failed cursor persistence, or any failed session response does not
+consume trial time. Repeated session requests reuse the original timestamps.
+Trial and premium
 schedule all cards. Free schedules the stable release-scoped prefix of
 `ceil(card_count * 0.5)` cards in canonical source order. This is close to
 half, never a tiny demo, and never the full library when the source has more
 than one card.
 
 Canonical context validation, selection ID generation, and required cursor
-persistence complete before trial activation. Invalid content, unavailable
-selection entropy, or a failed cursor write therefore cannot consume an
-available trial.
+persistence complete before trial activation. The server clock is the sole
+entitlement-time authority. Clients display
+canonical timestamps and remaining time but never derive access from a local
+countdown. In `controlled_pilot`, the free prefix is exactly the bundle's
+approved stable 60-card subset; other runtime modes retain their owned release
+policy.
 
 Repository-local CloudBase trial, purchase, and recovery mutations use one
 membership-document transaction. A concurrent trial start or recovery
@@ -177,6 +186,8 @@ output.
     "content_version": "sha256:<64 lowercase hex characters>",
     "source_id": "cloudbase-dev-card-source",
     "membership_stage": "trial",
+    "trial_started_at": "2026-07-23T04:00:00.000Z",
+    "trial_expires_at": "2026-07-28T04:00:00.000Z",
     "algorithm": {
       "id": "FSRS-6",
       "library": "ts-fsrs",
@@ -205,9 +216,12 @@ output.
 cursor preserves its original phase and due time but reports
 `persisted_cursor`.
 
-The response membership stage is `trial`, `free`, or `premium`;
+The response membership stage is `trial`, `free`, `premium`, or
+`pilot_premium` in the isolated controlled-pilot runtime;
 `trial_available` must be activated before a successful response. `free`
-requires `free_subset` access, while `trial` and `premium` require `full`.
+requires `free_subset` access, while `trial`, `premium`, and `pilot_premium`
+require `full`. Trial timestamps are both null outside an active or expired
+trial history and otherwise remain the immutable server values.
 
 ## Mobile binding
 
@@ -221,7 +235,8 @@ fallback.
 If `membership_stage` differs from the bootstrap snapshot because the session
 activated or observed a newer entitlement, mobile refreshes bootstrap and
 requires the canonical stage to match before presenting the session. It never
-constructs entitlement counters or dates from the session response.
+constructs entitlement counters, timestamps, or access decisions from device
+time.
 
 Completion persists `selection_id`, selected card, server phase, exact content
 version, event ID, and installation cursor before leaving the result state. A

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-8",
+  "version": "vnext-9",
   "product_promise": "帮助中国大学生以更轻松、更低负担、但仍然可信的方式通过 CET4/CET6。",
   "source_anchors": {
     "default_learning_path": "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
@@ -184,7 +184,19 @@
       "max": 7
     },
     "trial_is_complete_experience": true,
-    "trial_start_trigger": "first_entry_counted_as_membership_trial",
+    "trial_start_trigger": "inside_the_first_successful_authenticated_learning_session_after_server_content_validation_selection_and_cursor_persistence_succeed",
+    "trial_time_authority": "server_trial_started_at_and_trial_expires_at",
+    "controlled_pilot": {
+      "classification": "pre_beta_controlled_product_pilot",
+      "scope": "cet4_ios_android_only",
+      "trial_duration_hours": 120,
+      "card_count": 120,
+      "stable_free_card_count_after_trial": 60,
+      "cohort": "30_to_50",
+      "payment_connected": false,
+      "gate_eligible": false,
+      "formal_closed_beta_thresholds_remain_1180_cards_and_301_audio_references": true
+    },
     "premium_core_value": "我被更聪明地带着过级。",
     "free_after_trial": "基础学习保留，但完整能力受限",
     "free_card_access_contract": {

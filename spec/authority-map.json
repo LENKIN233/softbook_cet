@@ -13,7 +13,8 @@
         "spec/platform-contract.json",
         "spec/product-core.json",
         "spec/membership.json",
-        "spec/runtime-boundaries.json"
+        "spec/runtime-boundaries.json",
+        "infra/cloudbase/controlled-pilot-v1-runtime-contract.md"
       ]
     },
     "release_targets_device_classes_navigation_input": {

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-15",
+  "version": "vnext-16",
   "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, external account readiness evidence, sync scope, canonical account reads, idempotent learning events, server scheduling, default sync strategy, and offline behavior.",
   "source_anchors": {
     "login_gate": "必须登入",
@@ -16,12 +16,26 @@
     "production_sms_delivery_rule": "production must use a receiver-configured non-development SMS adapter with credentials injected outside tracked files; a fixed verification code is development-only and is rejected from receiver deployment configuration"
   },
   "trial_and_purchase": {
-    "trial_starts_when": "first_entry_counted_as_membership_trial",
+    "trial_starts_when": "inside_the_first_successful_authenticated_learning_session_after_server_content_validation_selection_and_cursor_persistence_succeed",
+    "trial_atomicity_rule": "trial_started_at_and_trial_expires_at_are_written_atomically_with_the_first_valid_learning_session_cursor_before_the_session_response_is_returned",
+    "trial_duration_hours": 120,
+    "trial_time_authority": "server_only_clients_display_server_values_and_never_compute_entitlement_locally",
+    "trial_non_triggers": [
+      "login",
+      "account_page_browse",
+      "invalid_content",
+      "cursor_write_failure",
+      "learning_session_error"
+    ],
+    "trial_idempotency": "repeated_learning_session_requests_reuse_the_same_trial_started_at_and_trial_expires_at",
     "purchase_recovery_reminder": "after_membership_experience_ends",
     "web_and_app_purchase_authority": "equal",
     "closed_beta_rule": "payment_is_not_connected_for_closed_beta_receiver_operator_may_grant_or_revoke_premium_access_only_through_an_audited_server_side_operation",
     "closed_beta_client_rule": "clients_can_read_canonical_entitlement_but_cannot_self_grant_or_revoke_beta_access",
-    "closed_beta_audit_rule": "each_grant_or_revoke_is_idempotent_and_atomically_persisted_with_actor_reason_timestamp_previous_stage_and_resulting_stage_in_one_beta_entitlement_record_while_base_membership_remains_unchanged"
+    "closed_beta_audit_rule": "each_grant_or_revoke_is_idempotent_and_atomically_persisted_with_actor_reason_timestamp_previous_stage_and_resulting_stage_in_one_beta_entitlement_record_while_base_membership_remains_unchanged",
+    "controlled_pilot_rule": "payment_is_not_connected_and_continuation_access_is_granted_or_revoked_only_by_a_dry_run_first_audited_server_command_bound_to_pilot_id",
+    "controlled_pilot_audit_rule": "each_command_records_event_id_actor_reason_timestamp_previous_stage_resulting_stage_and_pilot_id_without_overwriting_base_membership",
+    "controlled_pilot_client_rule": "clients_can_read_pilot_entitlement_but_cannot_self_grant_or_revoke_it"
   },
   "external_account_readiness": {
     "classification": "implementation_hypothesis",
@@ -68,6 +82,7 @@
     ],
     "response_scope": [
       "membership_entitlement",
+      "server_authoritative_trial_started_at_and_trial_expires_at",
       "daily_progress",
       "learning_card_state",
       "nullable_learning_cursor",

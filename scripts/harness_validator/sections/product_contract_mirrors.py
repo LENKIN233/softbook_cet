@@ -1524,7 +1524,7 @@ def learning_scheduler_contract_findings(
         (
             "scheduler runtime membership",
             ("scheduler_runtime", "membership_authority"),
-            "first_session_starts_available_trial_trial_and_premium_full_free_canonical_prefix_ceil_half",
+            "first_valid_session_atomically_starts_available_trial_only_after_content_selection_and_cursor_persistence_trial_and_premium_full_free_canonical_prefix_ceil_half",
         ),
         (
             "scheduler runtime membership mutation atomicity",
@@ -3189,6 +3189,55 @@ def validate(context) -> None:
         auth["trial_and_purchase"]["trial_starts_when"],
         product["monetization"]["trial_start_trigger"],
     )
+    expected_hr45 = [
+        "account_sync_contract_is_trial_trigger_owner",
+        "login_and_account_browsing_do_not_start_trial",
+        "content_selection_and_cursor_persistence_precede_atomic_trial_start",
+        "server_trial_started_at_and_trial_expires_at_are_exactly_120_hours_apart",
+        "repeated_session_requests_are_idempotent",
+        "controlled_pilot_profile_is_cet4_ios_android_receiver_owned_and_30_to_50",
+        "controlled_pilot_bundle_is_exactly_120_approved_cards_and_60_stable_free_cards",
+        "development_candidate_dry_run_and_fixture_counts_do_not_count_as_approved_cards",
+        "all_seven_libraries_two_boxes_each_and_five_core_interactions_are_covered",
+        "all_cards_mapped_zero_duplicates_and_all_referenced_audio_has_qc",
+        "pilot_entitlement_is_operator_only_dry_run_first_audited_and_preserves_base_membership",
+        "pilot_outcome_report_is_deidentified_aggregate_and_threshold_derived",
+        "all_pilot_artifacts_are_gate_eligible_false",
+        "formal_1180_card_301_audio_whole_track_approval_is_unchanged",
+        "formal_release_publisher_and_launch_readiness_reject_pilot_artifacts",
+    ]
+    hr45 = _entry_by_id(evals.get("regressions", []), "HR-45")
+    if not hr45:
+        context.errors.append("controlled-pilot contract evals: missing HR-45")
+    elif hr45.get("must_hit") != expected_hr45:
+        context.errors.append("controlled-pilot contract evals: HR-45 must_hit drift")
+
+    expected_gt37 = [
+        "account_sync_contract_owner_and_exact_trial_trigger_mirrors",
+        "first_valid_learning_session_transaction_starts_trial",
+        "server_authoritative_trial_started_at_and_trial_expires_at",
+        "exact_120_continuous_hours_and_idempotent_retries",
+        "login_invalid_content_cursor_failure_and_session_error_do_not_consume_trial",
+        "controlled_pilot_profile_v1_exact_receiver_environment_scope",
+        "controlled_pilot_bundle_v1_exact_120_card_and_60_free_scope",
+        "pilot_content_release_v1_controlled_pilot_only",
+        "pilot_entitlement_command_v1_dry_run_apply_audit_and_state_transition",
+        "pilot_outcome_report_v1_deidentified_threshold_recomputation",
+        "exact_library_distribution_and_first_60_all_library_coverage",
+        "every_library_has_at_least_two_boxes_and_all_five_core_interactions_appear",
+        "all_120_cards_mapped_with_zero_duplicate_ids",
+        "development_source_candidate_handoff_and_dry_run_are_not_approved_content",
+        "audio_manifest_and_qc_counts_match_all_referenced_assets",
+        "profile_bundle_release_and_outcome_are_gate_eligible_false",
+        "formal_delivery_rejects_pilot_profile_and_bundle",
+        "formal_cet4_beta_remains_1180_cards_301_audio_and_whole_track_final_approval",
+        "repository_contract_validation_is_not_receiver_deployment_or_real_device_evidence",
+    ]
+    gt37 = _entry_by_id(evals.get("golden_tasks", []), "GT-37")
+    if not gt37:
+        context.errors.append("controlled-pilot contract evals: missing GT-37")
+    elif gt37.get("must_include") != expected_gt37:
+        context.errors.append("controlled-pilot contract evals: GT-37 must_include drift")
     check_equal(
         "purchase_recovery requirement-memory",
         auth["trial_and_purchase"]["purchase_recovery_reminder"],
