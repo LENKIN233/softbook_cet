@@ -796,9 +796,9 @@ test('renders correctly', async () => {
   expect(routeTabTexts).not.toEqual(
     expect.arrayContaining(['练', '位', '记', '我']),
   );
-  expect(output).toContain('从这张题继续');
-  expect(output).toContain('题面和作答位置已保留');
-  expect(output).toContain('确认后回到作答区');
+  expect(output).toContain('验证后开始今天的学习');
+  expect(output).toContain('学习位置将在验证后确定');
+  expect(output).toContain('已有进度会接上；新账号从系统第一张卡开始');
   expect(output).toContain('短信验证');
   expect(output).toContain('输入手机号');
   expect(output).toContain('输入手机号获取短码。');
@@ -852,28 +852,28 @@ test('keeps protected route auth gates attached to the selected object', async (
 
   const root = tree!.root;
 
-  expect(JSON.stringify(tree!.toJSON())).toContain('从这张题继续');
-  expect(JSON.stringify(tree!.toJSON())).toContain('题面和作答位置已保留');
+  expect(JSON.stringify(tree!.toJSON())).toContain('验证后开始今天的学习');
+  expect(JSON.stringify(tree!.toJSON())).toContain('学习位置将在验证后确定');
 
   await openRoute(root, 'space');
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('确认后进入空间');
-  expect(output).toContain('当前位置已保留');
+  expect(output).toContain('验证后打开知识空间');
+  expect(output).toContain('空间状态将在验证后读取');
   expect(output).toContain('空间');
-  expect(output).toContain('确认手机号后直接回到当前盒位');
+  expect(output).toContain('确认手机号后读取这个账户的书架、分区和卡盒');
   expect(output).not.toContain('空间 · 当前位置');
   expect(output).not.toContain('库组盒');
   expect(output).not.toContain('登录后同步');
-  expect(output).not.toContain('从这张题继续');
+  expect(output).not.toContain('验证后开始今天的学习');
   expect(output).not.toContain('当前学习');
 
   await openRoute(root, 'statistics');
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('确认后查看进展');
-  expect(output).toContain('今日节奏已保留');
+  expect(output).toContain('验证后查看今日进展');
+  expect(output).toContain('今日记录将在验证后读取');
   expect(output).toContain('统计');
-  expect(output).toContain('确认手机号后查看今天的完成');
-  expect(output).toContain('完成、回看和签到都会接上。');
+  expect(output).toContain('确认手机号后读取今天已经发生的完成');
+  expect(output).toContain('已有记录会接上；新账号从空白账页开始。');
   expect(output).not.toContain('今日进展 · 待同步');
   expect(output).not.toContain('待同步');
   expect(output).not.toContain('登录后查看空间');
@@ -3577,7 +3577,7 @@ test('replays queued membership refresh after network reconnect', async () => {
   ).toBeGreaterThanOrEqual(2);
 });
 
-test('requires explicit remote trial start from protected space', async () => {
+test('starts the remote trial automatically on the first authenticated entry', async () => {
   const fetchCalls: MockFetchCall[] = [];
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
@@ -3635,21 +3635,7 @@ test('requires explicit remote trial start from protected space', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('当前卡盒');
-  expect(output).toContain('完整物理空间需要试用或会员');
-
-  expect(
-    fetchCalls.find(
-      call =>
-        call.input === 'https://api.softbook.example/v1/membership/start-trial',
-    ),
-  ).toBeUndefined();
-
-  await ReactTestRenderer.act(async () => {
-    root
-      .findByProps({ testID: 'membership-start-trial-button' })
-      .props.onPress();
-    await flushAsyncEffects();
-  });
+  expect(output).not.toContain('完整物理空间需要试用或会员');
 
   const startTrialRequest = fetchCalls.find(
     call =>
@@ -3665,8 +3651,9 @@ test('requires explicit remote trial start from protected space', async () => {
   expect(unlockedSpaceText).toContain('回学习');
 });
 
-test('waits for server confirmation before replay unlocks remote trial', async () => {
+test('waits for server confirmation before a queued automatic trial unlocks', async () => {
   const fetchCalls: MockFetchCall[] = [];
+  const replayTrialResponse = createDeferred<ReturnType<typeof createJsonResponse>>();
   let startTrialRequestCount = 0;
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
@@ -3710,7 +3697,7 @@ test('waits for server confirmation before replay unlocks remote trial', async (
         return createJsonResponse({}, 503);
       }
 
-      return createJsonResponse(createRemoteMembershipPayload('trial'));
+      return replayTrialResponse.promise;
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -3733,16 +3720,7 @@ test('waits for server confirmation before replay unlocks remote trial', async (
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('当前卡盒');
   expect(output).toContain('完整物理空间需要试用或会员');
-  expect(startTrialRequestCount).toBe(0);
-
-  await ReactTestRenderer.act(async () => {
-    root
-      .findByProps({ testID: 'membership-start-trial-button' })
-      .props.onPress();
-    await flushAsyncEffects();
-  });
-
-  expect(startTrialRequestCount).toBe(1);
+  expect(startTrialRequestCount).toBeGreaterThanOrEqual(1);
 
   await openRoute(root, 'statistics');
 
@@ -3751,6 +3729,13 @@ test('waits for server confirmation before replay unlocks remote trial', async (
   });
 
   expect(startTrialRequestCount).toBe(2);
+  replayTrialResponse.resolve(
+    createJsonResponse(createRemoteMembershipPayload('trial')),
+  );
+
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
 
   await openRoute(root, 'mine');
 
@@ -5042,31 +5027,25 @@ test('mine page keeps profile status and route actions in one screen after login
     expect.arrayContaining(['练', '位', '记', '我']),
   );
   expect(root.findByProps({ testID: 'membership-host-card' })).toBeTruthy();
-  expect(root.findByProps({ testID: 'membership-access-strip' })).toBeTruthy();
   expect(
-    root.findAllByProps({ testID: 'membership-access-step' }),
-  ).toHaveLength(0);
-  expect(output).toContain('试用随学习开始');
-  expect(output).toContain('基础可用');
-  expect(output).toContain('开始后开放空间和回看。');
-  expect(output).not.toContain('完整卡库');
-  expect(output).not.toContain('完整空间');
-  expect(output).not.toContain('智能回看');
-  expect(output).toContain('开始试用');
-  expect(output).toContain('开会员');
+    root.findAllByProps({ testID: 'membership-access-step' }).length,
+  ).toBeGreaterThan(0);
+  expect(output).toContain('完整试用进行中');
+  expect(output).toContain('试用中');
+  expect(output).toContain('完整试用 5 天已开启');
+  expect(output).toContain('完整卡库');
+  expect(output).toContain('完整空间');
+  expect(output).toContain('智能回看');
+  expect(output).toContain('已开放');
+  expect(output).toContain('直接开通会员');
   const purchaseButtonStyle = StyleSheet.flatten(
     findPressableByTestId(root, 'membership-purchase-button').props.style,
   );
-  const startTrialButtonStyle = StyleSheet.flatten(
-    findPressableByTestId(root, 'membership-start-trial-button').props.style,
-  );
-  expect(startTrialButtonStyle.minHeight).toBeGreaterThanOrEqual(44);
-  expect(purchaseButtonStyle.minHeight).toBeGreaterThanOrEqual(44);
   expect(purchaseButtonStyle.backgroundColor).not.toBe('transparent');
   expect(purchaseButtonStyle.borderColor).not.toBe('transparent');
   expect(
-    findPressableByTestId(root, 'membership-start-trial-button'),
-  ).toBeTruthy();
+    root.findAllByProps({ testID: 'membership-start-trial-button' }),
+  ).toHaveLength(0);
   expect(
     findPressableByTestId(root, 'membership-purchase-button'),
   ).toBeTruthy();
@@ -5319,7 +5298,7 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   expect(output).toContain('已收藏');
 });
 
-test('requires explicit local trial start from protected space', async () => {
+test('starts the local trial automatically on the first authenticated entry', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -5336,21 +5315,11 @@ test('requires explicit local trial start from protected space', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('当前卡盒');
-  expect(output).toContain('完整物理空间需要试用或会员');
-
-  await ReactTestRenderer.act(async () => {
-    root
-      .findByProps({ testID: 'membership-start-trial-button' })
-      .props.onPress();
-    await flushAsyncEffects();
-  });
-
-  const unlockedOutput = JSON.stringify(tree!.toJSON());
-  expect(unlockedOutput).toContain('当前卡盒');
-  expect(unlockedOutput).toContain('当前盒桌');
-  expect(unlockedOutput).toContain('同盒卡片');
-  expect(unlockedOutput).toContain('动作');
-  expect(unlockedOutput).toContain('回学习');
+  expect(output).not.toContain('完整物理空间需要试用或会员');
+  expect(output).toContain('当前盒桌');
+  expect(output).toContain('同盒卡片');
+  expect(output).toContain('动作');
+  expect(output).toContain('回学习');
   expect(
     root.findAllByProps({ testID: 'space-overview-card-object' }).length,
   ).toBeGreaterThan(0);
@@ -5359,7 +5328,7 @@ test('requires explicit local trial start from protected space', async () => {
   ).toBeGreaterThan(0);
 });
 
-test('shows trial gate from the first gated review entry', async () => {
+test('keeps the full five-card session after automatic trial entry', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -5411,37 +5380,13 @@ test('shows trial gate from the first gated review entry', async () => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
 
-  let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('完成了 3 张卡');
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('4/5');
+  expect(output).not.toContain('完成了 3 张卡');
   expect(
-    root.findByProps({ testID: 'learning-start-review-button' }),
-  ).toBeTruthy();
-
-  await ReactTestRenderer.act(() => {
-    root
-      .findByProps({ testID: 'learning-start-review-button' })
-      .props.onPress();
-  });
-
-  await ReactTestRenderer.act(async () => {
-    await flushAsyncEffects();
-  });
-
-  output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('试用待开始');
-  expect(output).toContain('开始试用');
-
-  await ReactTestRenderer.act(async () => {
-    root
-      .findByProps({ testID: 'membership-start-trial-button' })
-      .props.onPress();
-    await flushAsyncEffects();
-  });
-
-  await openRoute(root, 'mine');
-
-  output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('完整试用进行中');
+    root.findAllByProps({ testID: 'learning-start-review-button' }),
+  ).toHaveLength(0);
+  expect(output).not.toContain('试用待开始');
 });
 
 test('starts review after membership is already unlocked', async () => {

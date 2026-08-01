@@ -599,6 +599,7 @@ function AppShell({
   const previousMembershipStage = useRef<MembershipStage>(
     membershipState.stage,
   );
+  const automaticTrialAccountRef = useRef<string | null>(null);
   const lastMembershipRefreshKey = useRef<string | null>(null);
   const pendingMembershipRefreshKey = useRef<string | null>(null);
   const persistedLearningCursor = useRef<PersistedLearningCursor | null>(null);
@@ -629,6 +630,7 @@ function AppShell({
     (error: string | null = null) => {
       lastMembershipRefreshKey.current = null;
       pendingMembershipRefreshKey.current = null;
+      automaticTrialAccountRef.current = null;
       persistedLearningCursor.current = null;
       accountBootstrapStatusRef.current =
         runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required';
@@ -2607,6 +2609,37 @@ function AppShell({
       });
   };
 
+  const beginMembershipTrialRef = useRef(beginMembershipTrial);
+  beginMembershipTrialRef.current = beginMembershipTrial;
+
+  useEffect(() => {
+    if (
+      !persistenceHydrated ||
+      authState.stage !== 'authenticated' ||
+      membershipState.stage !== 'trial_available' ||
+      membershipPendingAction !== null ||
+      (runtimeMembershipRepositoryMode === 'remote' && !canWriteAccountState)
+    ) {
+      return;
+    }
+
+    const accountKey = authState.phoneNumber;
+    if (automaticTrialAccountRef.current === accountKey) {
+      return;
+    }
+
+    automaticTrialAccountRef.current = accountKey;
+    beginMembershipTrialRef.current(null);
+  }, [
+    authState.phoneNumber,
+    authState.stage,
+    canWriteAccountState,
+    membershipPendingAction,
+    membershipState.stage,
+    persistenceHydrated,
+    runtimeMembershipRepositoryMode,
+  ]);
+
   const handleSelectRoute = (nextRoute: RouteKey) => {
     if (
       nextRoute === 'space' &&
@@ -4518,20 +4551,20 @@ function AuthGate({
       ? {
           continuityPill: '空间',
           eyebrow: '空间',
-          gateSummary: '确认手机号后直接回到当前盒位。',
-          gateTitle: '确认后进入空间',
-          retainedSummary: '书架、分区和卡盒都留在原位。',
-          retainedTitle: '当前位置已保留',
+          gateSummary: '确认手机号后读取这个账户的书架、分区和卡盒。',
+          gateTitle: '验证后打开知识空间',
+          retainedSummary: '已有位置会恢复；新账号会从系统起点建立空间。',
+          retainedTitle: '空间状态将在验证后读取',
           returnTarget: '空间',
         }
       : route.key === 'statistics'
       ? {
           continuityPill: '统计',
           eyebrow: '今日进展',
-          gateSummary: '确认手机号后查看今天的完成、回看和签到。',
-          gateTitle: '确认后查看进展',
-          retainedSummary: '完成、回看和签到都会接上。',
-          retainedTitle: '今日节奏已保留',
+          gateSummary: '确认手机号后读取今天已经发生的完成、回看和签到。',
+          gateTitle: '验证后查看今日进展',
+          retainedSummary: '已有记录会接上；新账号从空白账页开始。',
+          retainedTitle: '今日记录将在验证后读取',
           returnTarget: '今日进展',
         }
       : route.key === 'mine'
@@ -4549,10 +4582,10 @@ function AuthGate({
       : {
           continuityPill: '学习',
           eyebrow: '当前卡',
-          gateSummary: '手机号确认后，题面、进度和权益会自动接上。',
-          gateTitle: '从这张题继续',
-          retainedSummary: '确认后回到作答区。',
-          retainedTitle: '题面和作答位置已保留',
+          gateSummary: '手机号确认后读取学习进度和权益，再进入系统安排的当前卡。',
+          gateTitle: '验证后开始今天的学习',
+          retainedSummary: '已有进度会接上；新账号从系统第一张卡开始。',
+          retainedTitle: '学习位置将在验证后确定',
           returnTarget: '当前卡',
         };
 
