@@ -29,11 +29,12 @@ Referenced active specs:
   returned separately because expiry is transport state, not signed content
   identity.
 - The repository-local CloudBase endpoint, mobile parser, strict runtime keyring
-  consumer, pinned-key Ed25519 verifier, and native content-addressed cache with
-  completed-byte hashing are implemented but not deployed or wired into the
-  Learning surface. Production key values and native release injection, real
-  private-object download smoke, playback, and visible controls remain pending,
-  so the audio launch gate stays pending.
+  consumer, pinned-key Ed25519 verifier, native content-addressed cache with
+  completed-byte hashing, Learning controller, attached control, and iOS/Android
+  native playback adapters are implemented locally but not deployed or device
+  smoked. Production key values and native release injection, real private-object
+  download/playback proof, and cross-platform visual evidence remain pending, so
+  the audio launch gate stays pending.
 
 ## Card source
 
@@ -157,7 +158,13 @@ native redirect target must also remain credential-free HTTPS. Concurrent
 requests for the same digest share one in-process operation only after each
 caller's asset/download identity and declared byte length are validated.
 
-The verified manifest is now attached to the in-memory Learning session, but
-the cache is not yet called by a player and there is no playback API. Step 7,
-device smoke, cache lifecycle/eviction policy, and user-visible state remain
-follow-up work and cannot be inferred from this contract being green.
+The verified manifest is attached to the in-memory Learning session. The
+attached Learning audio chip now calls the verified cache through a bounded
+TypeScript controller, then prepares and plays the local file through
+`AVAudioPlayer` on iOS or Media3 ExoPlayer on Android only after an explicit
+tap. Card changes, backgrounding, and system interruption stop or pause without
+automatic resume; one internal preparation retry and bounded offline/error copy
+prevent native details from reaching visible state. Cross-platform private-file
+device smoke, release-key injection, cache eviction policy, screenshots, and
+physical-device playback evidence remain follow-up work and cannot be inferred
+from local compilation or this contract being green.

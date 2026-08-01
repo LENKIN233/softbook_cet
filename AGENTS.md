@@ -35,7 +35,7 @@ status: active
 - `spec/release-operational-policy.json`（仅在上线证据、外部账号 capability、SLO、备份恢复、渗透或回滚演练任务中读取；定义不得降低的正式证据阈值、外部控制面检查、gate 非替代与模拟非正式边界）
 - `infra/cloudbase/learning-events-v2-runtime-contract.md`（仅在 learning events 合同或实现任务中读取；当前为仓库内已实现、未部署的 runtime 边界）
 - `infra/cloudbase/learning-session-v1-runtime-contract.md`（仅在服务端调度或 learning session 任务中读取；当前为仓库内已实现、移动端未接线且未部署的 runtime 边界）
-- `infra/cloudbase/content-manifest-v1-runtime-contract.md`（仅在音频资源、内容 manifest 或私有下载任务中读取；当前为后端与移动解析已实现、原生缓存播放未实现且未部署的 runtime 边界）
+- `infra/cloudbase/content-manifest-v1-runtime-contract.md`（仅在音频资源、内容 manifest 或私有下载任务中读取；当前为后端、移动解析、原生缓存与显式播放适配已在仓库实现，但私有资源真机验证、发布 key 注入与部署未完成的 runtime 边界）
 - `infra/cloudbase/release-bundle-v1-runtime-contract.md`（仅在独立交付、正式内容发布、回滚或空白环境重建任务中读取；当前为 profile/bundle 校验、接收方 CloudBase adapter、统一交付命令、publisher 编排与仓库内模拟演练已实现，接收方正式演练未完成的 runtime 边界）
 - `infra/cloudbase/beta-entitlement-v1-runtime-contract.md`（仅在封闭内测会员资格发放、撤销或审计任务中读取；当前为仓库内运维命令与服务端叠加读取已实现、接收方环境未执行的 runtime 边界）
 - `infra/cloudbase/space-actions-v2-runtime-contract.md`（仅在物理空间 action、同步或调度联动任务中读取；当前为仓库内已实现、未部署的 runtime 边界）
