@@ -67,10 +67,12 @@
 - `npm --prefix apps/mobile run design-metadata-leak-scan` -> passed after removing ambiguous prose collisions and adding the exact pilot identity exception.
 - `python3 scripts/validate_harness.py` -> passed, `HARNESS VALIDATION OK`.
 - `git diff --check` -> passed.
+- `python3 scripts/validate_pr_design_gate.py --base cross/controlled-pilot-contract --head HEAD --body-file /tmp/softbook-controlled-pilot-design-pr.md` -> passed, `PR DESIGN GATE OK`.
+- `./scripts/run_local_gates --profile pr --base cross/controlled-pilot-contract --verbose` -> 31/36 checks passed. All harness, design, mobile, backend, dependency-security, evidence, and LFS checks passed. The profile remained failed because `toolchain` has the existing declared local condition, `pr-context` and two review/design checks require a live PR context, and strict repository health detected pre-existing shared-workspace/remote-governance drift (nine worktrees, eighteen topic branches, seventeen branches without upstream, and the remote `android-release` check outside its local expected set). No user worktree or branch was deleted. Report: `exports/local-gates/20260801T085321Z-e71df8f5-pr-62906/report.json`.
 - In-app browser baseline inspection: accepted mobile surface loaded at 393-point phone framing with five existing reference states.
 - In-app browser candidate inspection: four survivor anchors loaded with no page-level horizontal overflow; rendered screenshot inspected locally.
 - In-app browser promoted inspection: five phone states loaded; all had no internal horizontal or vertical overflow, no CET6 text, no page-level horizontal overflow, and all buttons measured 48 points high. Rendered screenshot inspected locally.
-- PR-specific design gate and remote required checks: pending until commit and PR creation.
+- PR-specific design gate passed locally; remote required checks remain pending until PR creation.
 
 ## Validation results
 
