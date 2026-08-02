@@ -218,8 +218,11 @@ output.
 In `controlled_pilot`, an unacknowledged positive multiple-of-five cumulative
 server sequence returns `selection: null`, `next_due_at: null`, and an exact
 `round_completion` object with schema `pilot-round-completion.v1`, opaque
-`receipt_id`, and integer `completed_count`. All other responses return
-`round_completion: null`.
+`receipt_id`, integer `completed_count`, and ordered unique `review_card_ids`.
+The IDs follow active card-source order and include exactly cards whose latest
+canonical account-and-track event projection has `answer_grade=review_needed`;
+mobile resolves only these IDs for read-only pending-round review and never
+infers or reorders them. All other responses return `round_completion: null`.
 `reason` is `catalog_new`, `due_review`, or `persisted_cursor`. A resumed
 cursor preserves its original phase and due time but reports
 `persisted_cursor`.
