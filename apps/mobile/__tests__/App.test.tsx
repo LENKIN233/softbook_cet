@@ -5435,7 +5435,7 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   expect(output).toContain('已收藏');
 });
 
-test('starts the local trial automatically on the first authenticated entry', async () => {
+test('starts the local trial only when the first valid learning card is ready', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -5465,7 +5465,7 @@ test('starts the local trial automatically on the first authenticated entry', as
   ).toBeGreaterThan(0);
 });
 
-test('keeps the full five-card session after automatic trial entry', async () => {
+test('keeps the full five-card session after first-valid-card trial entry', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
