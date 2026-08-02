@@ -287,7 +287,6 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '学习账户',
   },
 ];
-const MINE_ROUTE = ROUTES.find(route => route.key === 'mine')!;
 
 const LIGHT_PALETTE: Palette = {
   background: '#F0F0EA',
@@ -333,7 +332,6 @@ const DARK_PALETTE: Palette = {
   danger: '#F15B6E',
 };
 
-const PROTECTED_ROUTES: RouteKey[] = ['learning', 'space', 'statistics'];
 const AUTH_KEYBOARD_ACCESSORY_ID = 'auth-keyboard-accessory';
 const SMS_CODE_CELL_COUNT = 6;
 
@@ -692,7 +690,7 @@ function AppShell({
       setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
       setSpaceStateSyncState(INITIAL_SPACE_STATE_SYNC_STATE);
       startTransition(() => {
-        setActiveRoute('mine');
+        setActiveRoute('learning');
         setLearningScreen('practice');
         setSpaceScreen('overview');
       });
@@ -767,8 +765,6 @@ function AppShell({
   const deviceClass = getDeviceClass(width, height);
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
   const isAuthenticated = authState.stage === 'authenticated';
-  const routeRequiresAuth = PROTECTED_ROUTES.includes(route.key);
-  const shouldShowAuthGate = routeRequiresAuth && !isAuthenticated;
   const membershipAccess = resolveMembershipAccess(membershipState);
   const readSpaceCardState = useCallback(
     (
@@ -2867,6 +2863,11 @@ function AppShell({
             pendingMembershipRefreshKey.current = null;
           }
           applyAuthenticatedRuntimeHydration(hydration);
+          startTransition(() => {
+            setActiveRoute('learning');
+            setLearningScreen('practice');
+            setSpaceScreen('overview');
+          });
           setAuthState(current => ({
             ...current,
             authToken: getAuthAccessToken(session) ?? null,
@@ -3791,225 +3792,246 @@ function AppShell({
       ? null
       : reviewCandidateCards[pilotRoundReviewIndex] ?? null;
 
-  const content = shouldShowAuthGate ? (
-    <AuthGate
+  const content =
+    route.key === 'mine' ? (
+      <MineSurface
+        authState={authState}
+        checkedInDayKey={checkedInDayKey}
+        deviceClass={deviceClass}
+        favoriteCount={favoriteCount}
+        handlers={authHandlers}
+        isControlledPilot={isControlledPilot}
+        learningResults={learningCompletedResults}
+        membershipError={membershipError}
+        membershipGate={membershipGate}
+        membershipHandlers={membershipHandlers}
+        membershipPendingAction={membershipPendingAction}
+        membershipRepositoryMode={runtimeMembershipRepositoryMode}
+        membershipState={membershipState}
+        onGoToLearning={() => {
+          startTransition(() => {
+            setActiveRoute('learning');
+            setLearningScreen('practice');
+            setSpaceScreen('overview');
+          });
+        }}
+        onGoToSpace={() => {
+          startTransition(() => {
+            setActiveRoute('space');
+            setLearningScreen('practice');
+            setSpaceScreen('overview');
+          });
+        }}
+        onGoToStatistics={() => {
+          startTransition(() => {
+            setActiveRoute('statistics');
+            setLearningScreen('practice');
+            setSpaceScreen('overview');
+          });
+        }}
+        palette={palette}
+        learningStateSyncState={learningStateSyncState}
+        progressSyncState={progressSyncState}
+        reviewResults={reviewCompletedResults}
+        sleepingCount={sleepingCount}
+        todayKey={todayKey}
+      />
+    ) : route.key === 'learning' &&
+      isControlledPilot &&
+      pilotRoundCompletion !== null &&
+      pilotRoundReviewCard !== null ? (
+      <ControlledPilotReviewSurface
+        card={pilotRoundReviewCard}
+        currentIndex={pilotRoundReviewIndex ?? 0}
+        onBack={() => setPilotRoundReviewIndex(null)}
+        onNext={() =>
+          setPilotRoundReviewIndex(current =>
+            current === null
+              ? null
+              : Math.min(current + 1, reviewCandidateCards.length - 1),
+          )
+        }
+        palette={palette}
+        totalCount={reviewCandidateCards.length}
+      />
+    ) : route.key === 'learning' &&
+      isControlledPilot &&
+      pilotRoundCompletion !== null ? (
+      <ControlledPilotRoundCompletionSurface
+        completedCount={pilotRoundCompletion.completedCount}
+        error={pilotRoundError}
+        onContinue={handleContinuePilotRound}
+        onOpenSpace={() => {
+          startTransition(() => {
+            setActiveRoute('space');
+            setLearningScreen('practice');
+            setSpaceScreen('overview');
+          });
+        }}
+        onReview={() => {
+          if (reviewCandidateCards.length === 0) {
+            setPilotRoundError(
+              '当前没有待复习内容，可以查看 Space 或继续下一轮。',
+            );
+            return;
+          }
+          setPilotRoundError(null);
+          setPilotRoundReviewIndex(0);
+        }}
+        palette={palette}
+        pending={pilotRoundContinuePending}
+        spaceAddress={pilotRoundSpaceAddress}
+      />
+    ) : route.key === 'learning' && learningBootstrapStatus !== 'ready' ? (
+      <LearningBootstrapSurface
+        error={
+          learningBootstrapStatus === 'error' ? learningBootstrapError : null
+        }
+        onRetry={retryLearningBootstrap}
+        palette={palette}
+        status={learningBootstrapStatus}
+      />
+    ) : route.key === 'learning' &&
+      learningPhase === 'learning' &&
+      visibleLearningCards.length === 0 &&
+      learningSession?.schedulingMode !== 'server' ? (
+      <LearningSleepSurface
+        canOpenSpace={membershipAccess.completePhysicalSpace}
+        onGoToSpace={() => {
+          startTransition(() => {
+            setActiveRoute('space');
+            setLearningScreen('practice');
+            setSpaceScreen('overview');
+          });
+        }}
+        onRecoverCard={
+          recoverableSleepingCard
+            ? () => {
+                spaceHandlers.onToggleSleepState(
+                  recoverableSleepingCard.card_id,
+                );
+              }
+            : null
+        }
+        palette={palette}
+        recoverableCard={recoverableSleepingCard}
+      />
+    ) : route.key === 'learning' &&
+      learningScreen === 'result_detail' &&
+      currentLearningCard !== null &&
+      learningCardState !== null &&
+      learningCurrentResult !== null ? (
+      <LearningResultDetailSurface
+        card={currentLearningCard}
+        cardState={learningCardState}
+        currentIndex={learningIndex}
+        isLastCard={learningIndex === activeSessionCards.length - 1}
+        onAdvanceCard={learningHandlers.onAdvanceCard}
+        onBackToPractice={() => setLearningScreen('practice')}
+        palette={palette}
+        phase={learningPhase}
+        result={learningCurrentResult}
+        sessionCardCount={activeSessionCards.length}
+        sessionLabel={formatLearningSessionDisplayLabel(learningPhase)}
+      />
+    ) : route.key === 'learning' ? (
+      <LearningSurface
+        completedResults={activeCompletedResults}
+        contentManifest={learningSession?.contentManifest ?? null}
+        currentCard={currentLearningCard}
+        currentCardState={learningCardState}
+        currentIndex={learningIndex}
+        currentResult={learningCurrentResult}
+        phase={learningPhase}
+        pilotIdentityLabel={isControlledPilot ? 'CET4 受控试点' : null}
+        trialNoticeVisible={
+          isControlledPilot && pilotTrialNoticeStartedAt !== null
+        }
+        onAdvanceCard={learningHandlers.onAdvanceCard}
+        onFlip={learningHandlers.onFlip}
+        onOpenResultDetail={() => setLearningScreen('result_detail')}
+        onRestartDeck={learningHandlers.onRestartDeck}
+        onStartReview={learningHandlers.onStartReview}
+        onSelectOption={learningHandlers.onSelectOption}
+        onSelectSwipeState={learningHandlers.onSelectSwipeState}
+        onSetFlipConfidence={learningHandlers.onSetFlipConfidence}
+        onSetLockSelection={learningHandlers.onSetLockSelection}
+        onSubmitCurrentCard={learningHandlers.onSubmitCurrentCard}
+        onToggleEliminationItem={learningHandlers.onToggleEliminationItem}
+        onToggleFavorite={learningHandlers.onToggleFavorite}
+        onToggleHint={learningHandlers.onToggleHint}
+        onTogglePeek={learningHandlers.onTogglePeek}
+        palette={palette}
+        reviewCandidateCount={reviewCandidateCards.length}
+        sessionCards={activeSessionCards}
+        sessionLabel={formatLearningSessionDisplayLabel(learningPhase)}
+      />
+    ) : route.key === 'space' ? (
+      <SpaceSurface
+        cardStateById={spaceCardStateById}
+        currentLearningCard={currentLearningCard}
+        deviceClass={deviceClass}
+        onBackToOverview={() => setSpaceScreen('overview')}
+        onOpenCardList={() => setSpaceScreen('card_list')}
+        onReturnToLearning={() => {
+          startTransition(() => {
+            setActiveRoute('learning');
+            setLearningScreen('practice');
+            setSpaceScreen('overview');
+          });
+        }}
+        onToggleFavoriteTag={spaceHandlers.onToggleFavoriteTag}
+        onToggleSleepState={spaceHandlers.onToggleSleepState}
+        palette={palette}
+        screen={spaceScreen}
+        spaceCards={spaceSurfaceCards}
+        spaceGateRail={spaceGateRail}
+        spaceStatusRail={spaceStatusRail}
+        spaceSyncRail={spaceSyncRail}
+      />
+    ) : route.key === 'statistics' ? (
+      <StatisticsSurface
+        canCheckInToday={canCheckInToday}
+        deviceClass={deviceClass}
+        hasCheckedInToday={hasCheckedInToday}
+        learningResults={learningCompletedResults}
+        onCheckIn={statisticsHandlers.onCheckIn}
+        onGoToLearning={openLearningRoute}
+        onStartReview={startReviewFromStatistics}
+        palette={palette}
+        pendingReviewCount={pendingReviewCount}
+        reviewResults={reviewCompletedResults}
+        syncStatusDetail={progressSyncState.detail}
+        syncStatusLabel={progressSyncState.label}
+      />
+    ) : null;
+
+  const authenticationEntry = !persistenceHydrated ? (
+    <AuthenticationRestoringSurface palette={palette} />
+  ) : !isAuthenticated ? (
+    <AuthenticationEntrySurface
       authRepositoryMode={runtimeAuthRepositoryMode}
       authState={authState}
-      handlers={authHandlers}
-      palette={palette}
-      route={route}
-    />
-  ) : route.key === 'mine' ? (
-    <MineSurface
-      authRepositoryMode={runtimeAuthRepositoryMode}
-      authState={authState}
-      checkedInDayKey={checkedInDayKey}
-      deviceClass={deviceClass}
-      favoriteCount={favoriteCount}
       handlers={authHandlers}
       isControlledPilot={isControlledPilot}
-      learningResults={learningCompletedResults}
-      membershipError={membershipError}
-      membershipGate={membershipGate}
-      membershipHandlers={membershipHandlers}
-      membershipPendingAction={membershipPendingAction}
-      membershipRepositoryMode={runtimeMembershipRepositoryMode}
-      membershipState={membershipState}
-      onGoToLearning={() => {
-        startTransition(() => {
-          setActiveRoute('learning');
-          setLearningScreen('practice');
-          setSpaceScreen('overview');
-        });
-      }}
-      onGoToSpace={() => {
-        startTransition(() => {
-          setActiveRoute('space');
-          setLearningScreen('practice');
-          setSpaceScreen('overview');
-        });
-      }}
-      onGoToStatistics={() => {
-        startTransition(() => {
-          setActiveRoute('statistics');
-          setLearningScreen('practice');
-          setSpaceScreen('overview');
-        });
-      }}
       palette={palette}
-      learningStateSyncState={learningStateSyncState}
-      progressSyncState={progressSyncState}
-      reviewResults={reviewCompletedResults}
-      sleepingCount={sleepingCount}
-      todayKey={todayKey}
-    />
-  ) : route.key === 'learning' &&
-    isControlledPilot &&
-    pilotRoundCompletion !== null &&
-    pilotRoundReviewCard !== null ? (
-    <ControlledPilotReviewSurface
-      card={pilotRoundReviewCard}
-      currentIndex={pilotRoundReviewIndex ?? 0}
-      onBack={() => setPilotRoundReviewIndex(null)}
-      onNext={() =>
-        setPilotRoundReviewIndex(current =>
-          current === null
-            ? null
-            : Math.min(current + 1, reviewCandidateCards.length - 1),
-        )
-      }
-      palette={palette}
-      totalCount={reviewCandidateCards.length}
-    />
-  ) : route.key === 'learning' &&
-    isControlledPilot &&
-    pilotRoundCompletion !== null ? (
-    <ControlledPilotRoundCompletionSurface
-      completedCount={pilotRoundCompletion.completedCount}
-      error={pilotRoundError}
-      onContinue={handleContinuePilotRound}
-      onOpenSpace={() => {
-        startTransition(() => {
-          setActiveRoute('space');
-          setLearningScreen('practice');
-          setSpaceScreen('overview');
-        });
-      }}
-      onReview={() => {
-        if (reviewCandidateCards.length === 0) {
-          setPilotRoundError(
-            '当前没有待复习内容，可以查看 Space 或继续下一轮。',
-          );
-          return;
-        }
-        setPilotRoundError(null);
-        setPilotRoundReviewIndex(0);
-      }}
-      palette={palette}
-      pending={pilotRoundContinuePending}
-      spaceAddress={pilotRoundSpaceAddress}
-    />
-  ) : route.key === 'learning' && learningBootstrapStatus !== 'ready' ? (
-    <LearningBootstrapSurface
-      error={
-        learningBootstrapStatus === 'error' ? learningBootstrapError : null
-      }
-      onRetry={retryLearningBootstrap}
-      palette={palette}
-      status={learningBootstrapStatus}
-    />
-  ) : route.key === 'learning' &&
-    learningPhase === 'learning' &&
-    visibleLearningCards.length === 0 &&
-    learningSession?.schedulingMode !== 'server' ? (
-    <LearningSleepSurface
-      canOpenSpace={membershipAccess.completePhysicalSpace}
-      onGoToSpace={() => {
-        startTransition(() => {
-          setActiveRoute('space');
-          setLearningScreen('practice');
-          setSpaceScreen('overview');
-        });
-      }}
-      onRecoverCard={
-        recoverableSleepingCard
-          ? () => {
-              spaceHandlers.onToggleSleepState(recoverableSleepingCard.card_id);
-            }
-          : null
-      }
-      palette={palette}
-      recoverableCard={recoverableSleepingCard}
-    />
-  ) : route.key === 'learning' &&
-    learningScreen === 'result_detail' &&
-    currentLearningCard !== null &&
-    learningCardState !== null &&
-    learningCurrentResult !== null ? (
-    <LearningResultDetailSurface
-      card={currentLearningCard}
-      cardState={learningCardState}
-      currentIndex={learningIndex}
-      isLastCard={learningIndex === activeSessionCards.length - 1}
-      onAdvanceCard={learningHandlers.onAdvanceCard}
-      onBackToPractice={() => setLearningScreen('practice')}
-      palette={palette}
-      phase={learningPhase}
-      result={learningCurrentResult}
-      sessionCardCount={activeSessionCards.length}
-      sessionLabel={formatLearningSessionDisplayLabel(learningPhase)}
-    />
-  ) : route.key === 'learning' ? (
-    <LearningSurface
-      completedResults={activeCompletedResults}
-      contentManifest={learningSession?.contentManifest ?? null}
-      currentCard={currentLearningCard}
-      currentCardState={learningCardState}
-      currentIndex={learningIndex}
-      currentResult={learningCurrentResult}
-      phase={learningPhase}
-      pilotIdentityLabel={isControlledPilot ? 'CET4 受控试点' : null}
-      trialNoticeVisible={
-        isControlledPilot && pilotTrialNoticeStartedAt !== null
-      }
-      onAdvanceCard={learningHandlers.onAdvanceCard}
-      onFlip={learningHandlers.onFlip}
-      onOpenResultDetail={() => setLearningScreen('result_detail')}
-      onRestartDeck={learningHandlers.onRestartDeck}
-      onStartReview={learningHandlers.onStartReview}
-      onSelectOption={learningHandlers.onSelectOption}
-      onSelectSwipeState={learningHandlers.onSelectSwipeState}
-      onSetFlipConfidence={learningHandlers.onSetFlipConfidence}
-      onSetLockSelection={learningHandlers.onSetLockSelection}
-      onSubmitCurrentCard={learningHandlers.onSubmitCurrentCard}
-      onToggleEliminationItem={learningHandlers.onToggleEliminationItem}
-      onToggleFavorite={learningHandlers.onToggleFavorite}
-      onToggleHint={learningHandlers.onToggleHint}
-      onTogglePeek={learningHandlers.onTogglePeek}
-      palette={palette}
-      reviewCandidateCount={reviewCandidateCards.length}
-      sessionCards={activeSessionCards}
-      sessionLabel={formatLearningSessionDisplayLabel(learningPhase)}
-    />
-  ) : route.key === 'space' ? (
-    <SpaceSurface
-      cardStateById={spaceCardStateById}
-      currentLearningCard={currentLearningCard}
-      deviceClass={deviceClass}
-      onBackToOverview={() => setSpaceScreen('overview')}
-      onOpenCardList={() => setSpaceScreen('card_list')}
-      onReturnToLearning={() => {
-        startTransition(() => {
-          setActiveRoute('learning');
-          setLearningScreen('practice');
-          setSpaceScreen('overview');
-        });
-      }}
-      onToggleFavoriteTag={spaceHandlers.onToggleFavoriteTag}
-      onToggleSleepState={spaceHandlers.onToggleSleepState}
-      palette={palette}
-      screen={spaceScreen}
-      spaceCards={spaceSurfaceCards}
-      spaceGateRail={spaceGateRail}
-      spaceStatusRail={spaceStatusRail}
-      spaceSyncRail={spaceSyncRail}
-    />
-  ) : route.key === 'statistics' ? (
-    <StatisticsSurface
-      canCheckInToday={canCheckInToday}
-      deviceClass={deviceClass}
-      hasCheckedInToday={hasCheckedInToday}
-      learningResults={learningCompletedResults}
-      onCheckIn={statisticsHandlers.onCheckIn}
-      onGoToLearning={openLearningRoute}
-      onStartReview={startReviewFromStatistics}
-      palette={palette}
-      pendingReviewCount={pendingReviewCount}
-      reviewResults={reviewCompletedResults}
-      syncStatusDetail={progressSyncState.detail}
-      syncStatusLabel={progressSyncState.label}
     />
   ) : null;
+
+  if (authenticationEntry !== null) {
+    return (
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        testID="authentication-entry-boundary"
+      >
+        <StatusBar
+          barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'}
+        />
+        <AppCanvasBackdrop palette={palette} />
+        <View style={styles.safeAreaBody}>{authenticationEntry}</View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -4726,99 +4748,77 @@ function AuthStatusBadge({
   );
 }
 
-function AuthGate({
-  authRepositoryMode,
-  authState,
-  cardTestID,
-  embedded = false,
-  handlers,
-  palette,
-  route,
-}: {
-  authRepositoryMode: 'local' | 'remote';
-  authState: AuthState;
-  cardTestID?: string;
-  embedded?: boolean;
-  handlers: AuthHandlers;
-  palette: Palette;
-  route: ShellRoute;
-}) {
-  const hasSentCode = authState.stage === 'code_sent';
-  const isMineAccountGate = embedded && route.key === 'mine';
-  const isRouteObjectGate = route.key !== 'mine';
-  const isCompactAuthGate = isMineAccountGate || isRouteObjectGate;
-  const authGateContent =
-    route.key === 'space'
-      ? {
-          continuityPill: '空间',
-          eyebrow: '空间',
-          gateSummary: '确认手机号后读取这个账户的书架、分区和卡盒。',
-          gateTitle: '验证后打开知识空间',
-          retainedSummary: '已有位置会恢复；新账号会从系统起点建立空间。',
-          retainedTitle: '空间状态将在验证后读取',
-          returnTarget: '空间',
-        }
-      : route.key === 'statistics'
-      ? {
-          continuityPill: '统计',
-          eyebrow: '今日进展',
-          gateSummary: '确认手机号后读取今天已经发生的完成、回看和签到。',
-          gateTitle: '验证后查看今日进展',
-          retainedSummary: '已有记录会接上；新账号从空白账页开始。',
-          retainedTitle: '今日记录将在验证后读取',
-          returnTarget: '今日进展',
-        }
-      : route.key === 'mine'
-      ? {
-          continuityPill: '账户',
-          eyebrow: '学习账户',
-          gateSummary: '学习记录、空间位置和会员权益统一归到这个账号。',
-          gateTitle: '确认手机号',
-          retainedSummary: hasSentCode
-            ? '短码确认后可查看记录与权益。'
-            : '手机号确认后可查看记录与权益。',
-          retainedTitle: '账号归属待确认',
-          returnTarget: '我的',
-        }
-      : {
-          continuityPill: '学习',
-          eyebrow: '当前卡',
-          gateSummary:
-            '手机号确认后读取学习进度和权益，再进入系统安排的当前卡。',
-          gateTitle: '验证后开始今天的学习',
-          retainedSummary: '已有进度会接上；新账号从系统第一张卡开始。',
-          retainedTitle: '学习位置将在验证后确定',
-          returnTarget: '当前卡',
-        };
-
+function AuthenticationRestoringSurface({ palette }: { palette: Palette }) {
   return (
     <View
-      style={[
-        styles.authGateScreen,
-        embedded ? styles.authGateScreenEmbedded : null,
-        isRouteObjectGate ? styles.authGateScreenRouteObject : null,
-      ]}
-      testID={isRouteObjectGate ? 'auth-route-object-screen' : undefined}
+      style={[styles.authGateScreen, styles.authenticationEntryScreen]}
+      testID="authentication-restoring-screen"
     >
       <View
         style={[
           styles.authEntryCard,
-          embedded ? styles.authEntryCardEmbedded : null,
-          isRouteObjectGate ? styles.authEntryCardRouteObject : null,
-          isMineAccountGate ? styles.authEntryCardMine : null,
+          styles.authenticationEntryCard,
           { backgroundColor: palette.panel, borderColor: palette.border },
         ]}
-        testID={
-          cardTestID ??
-          (isRouteObjectGate ? 'auth-route-object-card' : undefined)
-        }
+      >
+        <Text style={[styles.heroEyebrow, { color: palette.textMuted }]}>
+          软书四六级
+        </Text>
+        <Text style={[styles.authGateTitle, { color: palette.text }]}>
+          正在读取账号状态
+        </Text>
+        <Text style={[styles.authGateSummary, { color: palette.textMuted }]}>
+          确认账号后再进入学习；此时不会展示产品导航，也不会开始体验计时。
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function AuthenticationEntrySurface({
+  authRepositoryMode,
+  authState,
+  handlers,
+  isControlledPilot,
+  palette,
+}: {
+  authRepositoryMode: 'local' | 'remote';
+  authState: AuthState;
+  handlers: AuthHandlers;
+  isControlledPilot: boolean;
+  palette: Palette;
+}) {
+  const hasSentCode = authState.stage === 'code_sent';
+  const isMineAccountGate = false;
+  const isRouteObjectGate = true;
+  const isCompactAuthGate = true;
+  const authGateContent = {
+    continuityPill: '账号',
+    eyebrow: isControlledPilot ? 'CET4 受控试点' : '软书四六级',
+    gateSummary: hasSentCode
+      ? '完成验证并读取账号状态后，再进入学习。'
+      : '验证手机号后，系统才会读取你的学习、Space 与资格状态。',
+    gateTitle: hasSentCode ? '输入验证码。' : '先登入，再开始学习。',
+    retainedSummary: '登入本身不会开始五天体验。',
+    retainedTitle: '账号状态将在验证后读取',
+    returnTarget: '学习',
+  };
+
+  return (
+    <View
+      style={[styles.authGateScreen, styles.authenticationEntryScreen]}
+      testID="authentication-entry-screen"
+    >
+      <View
+        style={[
+          styles.authEntryCard,
+          styles.authenticationEntryCard,
+          { backgroundColor: palette.panel, borderColor: palette.border },
+        ]}
+        testID="authentication-entry-card"
       >
         <View
-          style={[
-            styles.authObjectHeader,
-            isRouteObjectGate ? styles.authObjectHeaderRouteObject : null,
-            isMineAccountGate ? styles.authObjectHeaderMine : null,
-          ]}
+          style={[styles.authObjectHeader, styles.authObjectHeaderRouteObject]}
         >
           {isMineAccountGate ? (
             <View
@@ -5018,18 +5018,17 @@ function AuthGate({
             </View>
           </View>
           <PhoneSmsPanel
-            accountDock={isMineAccountGate}
             authState={authState}
             embedded
             handlers={handlers}
             palette={palette}
-            routeDock={isRouteObjectGate}
+            routeDock
             returnTarget={authGateContent.returnTarget}
-            title="手机号验证"
+            title={hasSentCode ? '确认手机号' : '手机号登入'}
             summary={
               authRepositoryMode === 'remote'
-                ? '用短信短码确认身份。'
-                : '输入短码确认身份。'
+                ? '使用短信验证码确认身份。'
+                : '使用验证码确认身份。'
             }
             successMessage={
               authRepositoryMode === 'remote'
@@ -5037,6 +5036,12 @@ function AuthGate({
                 : '已完成登录。'
             }
           />
+          <Text
+            style={[styles.authHint, { color: palette.textMuted }]}
+            testID="authentication-entry-navigation-note"
+          >
+            未登入时不展示学习、空间、统计和我的；账号校验成功后从学习进入。
+          </Text>
         </View>
       </View>
     </View>
@@ -5044,7 +5049,6 @@ function AuthGate({
 }
 
 function MineSurface({
-  authRepositoryMode,
   authState,
   checkedInDayKey,
   deviceClass,
@@ -5068,7 +5072,6 @@ function MineSurface({
   sleepingCount,
   todayKey,
 }: {
-  authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   checkedInDayKey: string | null;
   deviceClass: DeviceClass;
@@ -5099,8 +5102,6 @@ function MineSurface({
   const { height: viewportHeight, width: viewportWidth } =
     useWindowDimensions();
   const isCompactPhone = isCompactMineViewport(viewportWidth, viewportHeight);
-  const isAuthenticated = authState.stage === 'authenticated';
-  const hasSentCode = authState.stage === 'code_sent';
   const completedCount = learningResults.length + reviewResults.length;
   const pendingReviewCount = Math.max(
     learningResults.filter(
@@ -5109,34 +5110,23 @@ function MineSurface({
     0,
   );
   const checkedInToday = checkedInDayKey === todayKey;
-  const profileName = isAuthenticated
-    ? maskPhoneNumber(authState.phoneNumber)
-    : '待验证';
-  const profileContinuityValue = isAuthenticated ? '当前卡' : profileName;
-  const profileDetail = isAuthenticated
-    ? `${checkedInToday ? '已签到' : '未签到'} · ${completedCount} 张`
-    : '学习/空间/会员';
-  const profileIdentityLabel = isAuthenticated ? '继续位置' : '身份';
-  const profileProgressLabel = isAuthenticated ? '今日' : '同步';
-  const syncDetail = isAuthenticated
-    ? progressSyncState.state === 'error' ||
-      learningStateSyncState.state === 'error'
+  const profileName = maskPhoneNumber(authState.phoneNumber);
+  const profileContinuityValue = '当前卡';
+  const profileDetail = `${
+    checkedInToday ? '已签到' : '未签到'
+  } · ${completedCount} 张`;
+  const profileIdentityLabel = '继续位置';
+  const profileProgressLabel = '今日';
+  const syncDetail =
+    progressSyncState.state === 'error' ||
+    learningStateSyncState.state === 'error'
       ? '记录待重试'
       : progressSyncState.state === 'syncing' ||
         learningStateSyncState.state === 'syncing'
       ? '记录保存中'
-      : '记录已保存'
-    : hasSentCode
-    ? '输入验证码'
-    : '手机验证码';
-  const membershipTitle = isAuthenticated
-    ? getMembershipCardTitle(membershipState.stage)
-    : hasSentCode
-    ? '验证码已发'
-    : '待登录';
-  const accountSummary = isAuthenticated
-    ? `${profileName} · ${syncDetail}`
-    : '学习记录、空间位置和会员权益会归到同一账号。';
+      : '记录已保存';
+  const membershipTitle = getMembershipCardTitle(membershipState.stage);
+  const accountSummary = `${profileName} · ${syncDetail}`;
   const mineStatusItems = [
     { label: '完成', testID: 'mine-metric-completed', value: completedCount },
     {
@@ -5148,29 +5138,6 @@ function MineSurface({
     { label: '收藏', testID: 'mine-metric-favorites', value: favoriteCount },
     { label: '休眠', testID: 'mine-metric-sleeping', value: sleepingCount },
   ] as const;
-
-  if (!isAuthenticated) {
-    return (
-      <View
-        style={[
-          styles.mineScreen,
-          deviceClass === 'tablet' ? styles.mineScreenTablet : null,
-          isCompactPhone ? styles.mineScreenCompact : null,
-        ]}
-        testID="mine-surface"
-      >
-        <AuthGate
-          authRepositoryMode={authRepositoryMode}
-          authState={authState}
-          cardTestID="mine-profile-card"
-          embedded
-          handlers={handlers}
-          palette={palette}
-          route={MINE_ROUTE}
-        />
-      </View>
-    );
-  }
 
   return (
     <View
@@ -5457,6 +5424,26 @@ function MineSurface({
             membershipState={membershipState}
             palette={palette}
           />
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              handlers.onLogout().catch(() => undefined);
+            }}
+            style={[
+              styles.secondaryButton,
+              {
+                backgroundColor: palette.panelStrong,
+                borderColor: palette.border,
+              },
+            ]}
+            testID="auth-logout-button"
+          >
+            <Text
+              style={[styles.secondaryButtonLabel, { color: palette.text }]}
+            >
+              退出登录
+            </Text>
+          </Pressable>
         </View>
       </View>
     </View>
@@ -7371,6 +7358,12 @@ const styles = StyleSheet.create({
     paddingTop: 2,
     paddingBottom: 10,
   },
+  authenticationEntryScreen: {
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
   authEntryCard: {
     borderWidth: 1,
     borderRadius: 28,
@@ -7391,6 +7384,15 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 18,
+  },
+  authenticationEntryCard: {
+    alignSelf: 'center',
+    gap: 14,
+    justifyContent: 'flex-start',
+    maxWidth: 560,
+    paddingHorizontal: 20,
+    paddingVertical: 22,
+    width: '100%',
   },
   authEntryCardMine: {
     gap: 10,

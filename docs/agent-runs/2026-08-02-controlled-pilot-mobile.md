@@ -5,7 +5,7 @@
 - Date: 2026-08-02
 - Branch: `cross/controlled-pilot-mobile`
 - PR: https://github.com/LENKIN233/softbook_cet/pull/475 (draft, stacked on `cross/controlled-pilot-design`; contains and depends on the exact runtime commits from PR #474)
-- Summary: Wired the accepted CET4 controlled-pilot lifecycle into the shared iOS/Android React Native client: server-triggered trial notice, exact five-card completion receipt and continuation, restart-safe pending receipt, read-only pending-round review, fixed pilot identity, server-time entitlement display, and removal of all controlled-pilot payment/self-grant actions.
+- Summary: Wired the accepted CET4 controlled-pilot lifecycle into the shared iOS/Android React Native client and restored the authenticated product-entry boundary: signed-out/restoring users now see only a dedicated phone/SMS entry, while the Learning/Space/Statistics/Mine shell mounts only after session validation and account hydration.
 
 ## Referenced specs
 
@@ -14,6 +14,7 @@
 - `spec/authority-map.json`
 - `spec/product-core.json`
 - `spec/account-sync-contract.json`
+- `spec/platform-contract.json`
 - `spec/membership.json`
 - `spec/runtime-boundaries.json`
 - `spec/visual-language.json`
@@ -37,6 +38,7 @@
 - `product_truth`: The round completion object exposes exactly review, Space, and continue. Pending-round review is read-only because the server has no active selection while continuation is pending.
 - `product_truth`: Mine displays server timestamps, server-derived remaining seconds and the controlled-pilot identity. The free operational pilot has no fake purchase or self-service trial action.
 - `product_truth`: Local tests and development cards are implementation evidence only; they are not approved 120-card content, receiver deployment, device evidence, beta evidence, or launch readiness.
+- `product_truth`: The four-surface product shell is authenticated-only. Signed-out and unvalidated restoration states have a dedicated login entry and expose no Learning, Space, Statistics, Mine, or route navigation. Successful verification and account hydration enter Learning; login itself does not start the trial.
 
 ## Implementation hypothesis changed
 
@@ -45,6 +47,7 @@
 - Persisted the pending server receipt and the first-card notice marker in `user-state.v3`; v1/v2 state migrates without inventing pilot state. A pending receipt is retained across restart/offline and cleared only by a successful continue acknowledgement or a later authoritative session without that receipt for the same content/track.
 - Added a fixed CET4 pilot slip and non-blocking first-card notice to Learning, a three-action round completion surface, a read-only pending-round review surface, and a no-payment server-time entitlement card in Mine.
 - Added `pilot_premium` presentation and access handling without treating it as a purchase or overwriting base membership.
+- Replaced route-level login gates and the signed-out Mine embedding with one AppShell root boundary. Persistence restoration has a navigation-free holding state; login success and logout reset the route to Learning, while logout atomically returns to the dedicated entry.
 
 ## Workspace boundary and read scope
 
@@ -55,12 +58,14 @@
 ## Files changed
 
 - `apps/mobile/App.tsx`: lifecycle orchestration, receipt persistence/continue, read-only review routing, pilot Space gate copy, fixed Mine identity and server-time entitlement display.
+- `apps/mobile/App.tsx`: dedicated authentication/restoration entry, authenticated-only shell mounting, post-login Learning entry, and authenticated Mine logout action.
 - `apps/mobile/src/learning/ControlledPilotRoundCompletionSurface.tsx`: accepted three-action completion object and read-only pending-round review.
 - `apps/mobile/src/learning/LearningSurface.tsx`: fixed pilot identity and non-blocking first-valid-card notice.
 - `apps/mobile/src/learning/model.ts`, `sessionCore.ts`, `remoteLearningSession.ts`, `learningRepository.ts`, and `remoteCardSource.ts`: strict response/continue contracts and shared session mapping.
 - `apps/mobile/src/membership/localMembership.ts` and `membershipRepository.ts`: server remaining-time field and pilot entitlement stage.
 - `apps/mobile/src/persistence/userStateStore.ts` and `src/bootstrap/accountBootstrapHydration.ts`: restart-safe receipt/notice persistence and content-bound reconciliation.
 - `apps/mobile/__tests__/*`: parser, persistence, bootstrap, membership, UI and exact-action regression coverage.
+- `apps/mobile/e2e/maestro/ios-auth-space-gate-screenshot.yaml`, `ios-auth-statistics-gate-screenshot.yaml`, and the signed-out Mine auth-state flows: historical route-gate regressions now assert the dedicated entry and absence of all signed-out route tabs.
 - `apps/web/src/App.tsx`: exhaustive internal-acceptance label mapping for the shared `pilot_premium` membership stage so the mobile type expansion cannot break Web typecheck/build.
 
 ## Commands run
@@ -73,6 +78,9 @@
 - `python3 scripts/validate_harness.py` -> passed, `HARNESS VALIDATION OK`.
 - Prettier over changed mobile source/tests -> passed.
 - `git diff --check` -> passed.
+- Updated exact Node 22.13.0 full mobile test run -> passed, 46 suites and 445 tests, including dedicated-entry, restoration and signed-out route-absence coverage.
+- `python3 scripts/validate_maestro_selectors.py` after rewriting the obsolete route-level auth flows -> passed.
+- iPhone 17 Pro / iOS 26.5 simulator plus `ios-mine-signed-out-screenshot.yaml` -> passed: the dedicated entry/card, phone input and code action were visible; Learning, Space, Statistics and Mine route tabs were all absent.
 - Exact Node 22.13.0 PR-profile local gate run -> mobile lint/typecheck/Jest, Web lint/tests, backend 238 tests, full harness, dependency security, LFS and evidence checks passed. It surfaced the missing Web `pilot_premium` label mapping, which was fixed; targeted Web typecheck, 12 tests and production build then passed. The overall local report remains non-green because this stacked PR does not target `main`, while repository-health strict mode also reports the shared repository's 11 worktrees/20 topic branches plus the remotely configured `android-release` check. The report is not a GitHub required check or formal evidence.
 
 ## Validation results
@@ -86,29 +94,32 @@
 - `trial_remaining_seconds` is rendered from server data; the client does not subtract device time or independently determine expiry.
 - `user-state.v3` round-trips the exact receipt and notice marker; legacy migration creates neither.
 - The shared membership-stage union is now consumed exhaustively by the internal Web acceptance surface, preventing a future stage addition from silently rendering an undefined label.
+- During persistence restoration, only the account-restoration state mounts. Once restoration resolves signed out, only the dedicated login surface mounts; the phone shell and tablet shell are outside that branch.
+- Successful SMS verification hydrates the account before setting authenticated state and entering Learning. Failed verification remains on the same dedicated entry. Logout clears account runtime state and returns directly to the navigation-free entry.
 
 ## Binary evidence
 
 - Evidence manifest: N/A.
-- Archive: N/A. No simulator/device screenshot is claimed as formal or pilot evidence in this run.
+- Archive: N/A. A local iPhone 17 Pro simulator screenshot was visually inspected for this P0 entry fix, but is not committed or claimed as formal pilot evidence.
 
 ## Agent review status
 
 - Reviewer: Codex
 - Status: Passed
 - Blocking findings: none in the repository implementation.
-- Review summary: Reviewed authority separation, first-session atomic trigger mapping, receipt retention/clearing, restart and offline behavior, read-only review safety, no-payment controlled-pilot branches, exhaustive `pilot_premium` handling across shared mobile/Web types, strict parser surfaces, account-bound persistence, and design implementation mapping. The review found and prevented one unsafe approach: normal review event submission cannot run while the server is gating the next selection, so pending-round review is explicitly read-only.
+- Review summary: Reviewed authority separation, authenticated-only shell mounting, restoration/login/logout transitions, first-session atomic trigger mapping, receipt retention/clearing, restart and offline behavior, read-only review safety, no-payment controlled-pilot branches, exhaustive `pilot_premium` handling across shared mobile/Web types, strict parser surfaces, account-bound persistence, and design implementation mapping. The old route-level and Mine-embedded login pattern is removed from both implementation and active Maestro assertions.
 
 ## User-visible UI impact
 
 - Design source: `docs/design/decisions/controlled-pilot-lifecycle-decision-v1.md`, `docs/design/interaction-motion/controlled-pilot-lifecycle-v1.md`, and `docs/design/mapping/controlled-pilot-lifecycle-implementation-map-v1.md` from the separate design-only branch/PR.
 - Implementation mapping: Learning identity/start slip -> `LearningSurface`; fifth-event receipt/read-only review -> `ControlledPilotRoundCompletionSurface`; Space continuity -> completion address plus existing Space route; entitlement ledger -> controlled branch of `MembershipHostCard`.
+- Auth implementation mapping: accepted signed-out phone/code frames -> `AuthenticationEntrySurface`; account restoration -> `AuthenticationRestoringSurface`; entry-to-product transition -> the AppShell root branch; authenticated account exit -> the Mine logout action.
 - Internal Web compatibility mapping: the existing Mine membership row consumes the same semantic label, `受控试点资格`; no Web pilot route, selector, payment flow or external availability was added.
 - Q1 / Law of One: Learning continues to use the current card library tone as the single strong accent. Pilot identity and entitlement chrome are restrained secondary layers and do not introduce another competing library identity.
-- Q2 / focal path: The learning card remains focal, followed by the attached pilot slip and then shell chrome. At the boundary, the completion receipt is focal, the Space address is secondary, and continue is the sole primary action.
+- Q2 / focal path: Before authentication, the login card is the sole focal object and product navigation is absent. After authentication, the learning card remains focal, followed by the attached pilot slip and shell chrome. At the round boundary, the completion receipt is focal, the Space address is secondary, and continue is the sole primary action.
 - Q3 / silhouette: Learning preserves the accepted single-card silhouette. The boundary uses the accepted compact receipt silhouette rather than pretending to be another learning interaction.
-- Q4 / forbidden patterns: No gradient text, gamification chrome, full-width tab bar, pure black/white token override, serif, four-level self-assess, or red “再回看” state was added.
-- Q5 / containment: Compact branches cover 320-point/short-phone layouts; actions use contained cards and minimum 46/50-point controls. Automated component coverage passes; real small-screen/dynamic-type device evidence remains an external acceptance gate.
+- Q4 / forbidden patterns: No signed-out tab bar, repeated route-level login, dashboard, fake payment, gradient text, gamification chrome, pure black/white token override, serif, four-level self-assess, or red “再回看” state was added.
+- Q5 / containment: Compact branches cover 320-point/short-phone layouts; actions use contained cards and minimum 46/50-point controls. Automated component coverage and an iPhone 17 Pro simulator entry-flow check pass; real target-device small-screen/dynamic-type evidence remains an external acceptance gate.
 - Q6 / Learning-specific: No module selector was added. Existing flip remains exactly “有把握 / 再回看”; the new pending review is read-only and does not create a third self-assess model.
 - AP-22/VL-AP-07: satisfied through the separate accepted design authority, interaction/motion artifact, implementation mapping, and the six checklist answers above.
 

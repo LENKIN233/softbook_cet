@@ -3,10 +3,8 @@ name: ios-mine-auth-error-screenshot
 ---
 - extendedWaitUntil:
     visible:
-      id: 'auth-phone-input'
+      id: 'authentication-entry-screen'
     timeout: 30000
-- tapOn:
-    id: 'route-tab-mine'
 - tapOn:
     id: 'auth-phone-input'
 - inputText: '13800138000'
@@ -19,10 +17,12 @@ name: ios-mine-auth-error-screenshot
       id: 'auth-error-dock'
     timeout: 10000
 - assertVisible:
-    id: 'mine-profile-card'
+    id: 'authentication-entry-card'
 - assertVisible:
     id: 'auth-error-title'
 - assertVisible:
     id: 'auth-error-detail'
 - assertVisible:
     id: 'auth-error-retry-pill'
+- assertNotVisible:
+    id: 'route-tab-mine'

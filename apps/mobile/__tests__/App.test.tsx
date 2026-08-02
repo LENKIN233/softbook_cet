@@ -792,7 +792,7 @@ function createRemoteCatalogSession(): LearningSession {
   };
 }
 
-test('renders correctly', async () => {
+test('renders one dedicated login entry without the product shell', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -800,40 +800,49 @@ test('renders correctly', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('学习');
-  expect(output).toContain('空间');
-  expect(output).toContain('统计');
-  expect(output).toContain('我的');
-  const routeTabTexts = (
-    ['learning', 'space', 'statistics', 'mine'] as const
-  ).map(
-    route =>
-      tree!.root.findByProps({ testID: `route-tab-label-${route}` }).props
-        .children,
+  expect(output).toContain('先登入，再开始学习。');
+  expect(output).toContain(
+    '验证手机号后，系统才会读取你的学习、Space 与资格状态。',
   );
-  expect(routeTabTexts).toEqual(['学习', '空间', '统计', '我的']);
-  expect(routeTabTexts).not.toEqual(
-    expect.arrayContaining(['练', '位', '记', '我']),
-  );
-  expect(output).toContain('验证后开始今天的学习');
-  expect(output).toContain('学习位置将在验证后确定');
-  expect(output).toContain('已有进度会接上；新账号从系统第一张卡开始');
+  expect(output).toContain('账号状态将在验证后读取');
+  expect(output).toContain('登入本身不会开始五天体验。');
   expect(output).toContain('短信验证');
   expect(output).toContain('输入手机号');
   expect(output).toContain('输入手机号获取短码。');
   expect(output).toContain('待输入');
+  expect(
+    tree!.root.findAllByProps({ testID: 'route-tab-learning' }),
+  ).toHaveLength(0);
+  expect(tree!.root.findAllByProps({ testID: 'route-tab-space' })).toHaveLength(
+    0,
+  );
+  expect(
+    tree!.root.findAllByProps({ testID: 'route-tab-statistics' }),
+  ).toHaveLength(0);
+  expect(tree!.root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(
+    0,
+  );
+  expect(tree!.root.findAllByProps({ testID: 'mine-surface' })).toHaveLength(0);
+  expect(
+    tree!.root.findByProps({ testID: 'authentication-entry-boundary' }),
+  ).toBeTruthy();
+  expect(
+    tree!.root.findByProps({ testID: 'authentication-entry-screen' }),
+  ).toBeTruthy();
   expect(output).not.toContain('当前卡 · 四选一');
   expect(output).not.toContain('原位保留');
   expect(output).not.toContain('登录后保存');
   const routeObjectScreenStyle = StyleSheet.flatten(
-    tree!.root.findByProps({ testID: 'auth-route-object-screen' }).props.style,
+    tree!.root.findByProps({ testID: 'authentication-entry-screen' }).props
+      .style,
   );
-  expect(routeObjectScreenStyle.justifyContent).toBe('flex-start');
-  expect(routeObjectScreenStyle.paddingTop).toBe(2);
+  expect(routeObjectScreenStyle.justifyContent).toBe('center');
+  expect(routeObjectScreenStyle.paddingTop).toBe(20);
   const routeObjectCardStyle = StyleSheet.flatten(
-    tree!.root.findByProps({ testID: 'auth-route-object-card' }).props.style,
+    tree!.root.findByProps({ testID: 'authentication-entry-card' }).props.style,
   );
-  expect(routeObjectCardStyle.flex).toBeUndefined();
+  expect(routeObjectCardStyle.width).toBe('100%');
+  expect(routeObjectCardStyle.maxWidth).toBe(560);
   expect(routeObjectCardStyle.justifyContent).toBe('flex-start');
   expect(routeObjectCardStyle.minHeight).toBeUndefined();
   const actionStack = tree!.root.findByProps({
@@ -862,44 +871,38 @@ test('renders correctly', async () => {
   ).toBe(true);
 });
 
-test('keeps protected route auth gates attached to the selected object', async () => {
+test('keeps session restoration outside the product shell', async () => {
+  const restoreResult = createDeferred<false>();
+  (Keychain.getGenericPassword as jest.Mock).mockReturnValueOnce(
+    restoreResult.promise,
+  );
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(<App />);
   });
 
-  const root = tree!.root;
+  expect(
+    tree!.root.findByProps({ testID: 'authentication-restoring-screen' }),
+  ).toBeTruthy();
+  expect(
+    tree!.root.findAllByProps({ testID: 'route-tab-learning' }),
+  ).toHaveLength(0);
+  expect(tree!.root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(
+    0,
+  );
 
-  expect(JSON.stringify(tree!.toJSON())).toContain('验证后开始今天的学习');
-  expect(JSON.stringify(tree!.toJSON())).toContain('学习位置将在验证后确定');
+  await ReactTestRenderer.act(async () => {
+    restoreResult.resolve(false);
+    await flushAsyncEffects();
+  });
 
-  await openRoute(root, 'space');
-  let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证后打开知识空间');
-  expect(output).toContain('空间状态将在验证后读取');
-  expect(output).toContain('空间');
-  expect(output).toContain('确认手机号后读取这个账户的书架、分区和卡盒');
-  expect(output).not.toContain('空间 · 当前位置');
-  expect(output).not.toContain('库组盒');
-  expect(output).not.toContain('登录后同步');
-  expect(output).not.toContain('验证后开始今天的学习');
-  expect(output).not.toContain('当前学习');
-
-  await openRoute(root, 'statistics');
-  output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证后查看今日进展');
-  expect(output).toContain('今日记录将在验证后读取');
-  expect(output).toContain('统计');
-  expect(output).toContain('确认手机号后读取今天已经发生的完成');
-  expect(output).toContain('已有记录会接上；新账号从空白账页开始。');
-  expect(output).not.toContain('今日进展 · 待同步');
-  expect(output).not.toContain('待同步');
-  expect(output).not.toContain('登录后查看空间');
-  expect(output).not.toContain('当前学习');
+  expect(
+    tree!.root.findByProps({ testID: 'authentication-entry-screen' }),
+  ).toBeTruthy();
 });
 
-test('keeps signed-out mine as an account object instead of a learning gate', async () => {
+test('does not expose route-specific login gates while signed out', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -907,70 +910,82 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   });
 
   const root = tree!.root;
-  await openRoute(root, 'mine');
 
+  expect(
+    root.findAllByProps({ testID: 'auth-route-object-screen' }),
+  ).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'mine-profile-card' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-space' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-statistics' })).toHaveLength(
+    0,
+  );
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
+  expect(
+    root.findByProps({ testID: 'authentication-entry-card' }),
+  ).toBeTruthy();
+});
+
+test('keeps the signed-out account form outside Mine', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
   const output = JSON.stringify(tree!.toJSON());
-  const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
-  const mineProfileCardStyle = StyleSheet.flatten(mineProfileCard.props.style);
-  expect(mineProfileCardStyle.flex).toBeUndefined();
-  expect(mineProfileCardStyle.justifyContent).toBe('flex-start');
-  expect(mineProfileCardStyle.minHeight).toBeUndefined();
-  const actionStack = mineProfileCard.findByProps({
+  const authEntryCard = root.findByProps({
+    testID: 'authentication-entry-card',
+  });
+  const actionStack = authEntryCard.findByProps({
     testID: 'auth-gate-action-stack',
   });
   expect(
     actionStack.findByProps({ testID: 'auth-continuity-promise' }),
   ).toBeTruthy();
   expect(actionStack.findByProps({ testID: 'auth-sms-panel' })).toBeTruthy();
-  expect(output).toContain('确认手机号');
-  expect(output).toContain('学习记录、空间位置和会员权益统一归到这个账号。');
-  expect(output).toContain('账号归属待确认');
-  expect(output).toContain('我的');
-  expect(output).toContain('确认手机号');
+  expect(output).toContain('先登入，再开始学习。');
+  expect(output).toContain('账号状态将在验证后读取');
   expect(output).toContain('输入手机号获取短码。');
-  expect(output).not.toContain('账号承接');
-  expect(output).not.toContain('确认身份继续学');
-  expect(output).not.toContain('当前学习卡');
+  expect(root.findAllByProps({ testID: 'mine-surface' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
   expectNoUserVisibleMetadataLeakage(tree!);
-  expect(collectRenderedText(tree!.toJSON())).not.toEqual(
-    expect.arrayContaining(['我']),
-  );
   expect(
-    mineProfileCard.findByProps({ testID: 'auth-continuity-promise' }),
+    authEntryCard.findByProps({ testID: 'auth-continuity-promise' }),
   ).toBeTruthy();
   expect(
-    mineProfileCard.findByProps({ testID: 'auth-continuity-promise-pill' }),
+    authEntryCard.findByProps({ testID: 'auth-continuity-promise-pill' }),
   ).toBeTruthy();
   expect(
-    mineProfileCard.findAllByProps({ testID: 'auth-retained-ledger-row' })
-      .length,
+    authEntryCard.findAllByProps({ testID: 'auth-retained-ledger-row' }).length,
   ).toBe(0);
   expect(
-    mineProfileCard.findByProps({ testID: 'auth-phone-input' }),
+    authEntryCard.findByProps({ testID: 'auth-phone-input' }),
   ).toBeTruthy();
   expect(
-    mineProfileCard.findByProps({ testID: 'auth-request-inline-dock' }),
+    authEntryCard.findByProps({ testID: 'auth-request-inline-dock' }),
   ).toBeTruthy();
   const requestDockStyle = StyleSheet.flatten(
-    mineProfileCard.findByProps({ testID: 'auth-request-inline-dock' }).props
+    authEntryCard.findByProps({ testID: 'auth-request-inline-dock' }).props
       .style,
   );
   expect(requestDockStyle.borderWidth).toBe(1);
   const smsPanelStyle = StyleSheet.flatten(
-    mineProfileCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
+    authEntryCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
   );
   expect(smsPanelStyle.flex).toBeUndefined();
   expect(smsPanelStyle.justifyContent).toBeUndefined();
   const requestActionRowStyle = StyleSheet.flatten(
-    mineProfileCard.findByProps({ testID: 'auth-request-action-row' }).props
+    authEntryCard.findByProps({ testID: 'auth-request-action-row' }).props
       .style,
   );
   expect(requestActionRowStyle.flexDirection).toBe('column');
   const requestButtonStyle = StyleSheet.flatten(
     findPressableByTestId(root, 'auth-request-code-button').props.style,
   );
-  expect(requestButtonStyle.width).toBe('100%');
-  expect(requestButtonStyle.minWidth).toBe(0);
+  expect(requestButtonStyle.alignSelf).toBe('stretch');
+  expect(requestButtonStyle.minHeight).toBe(50);
 
   await ReactTestRenderer.act(() => {
     root
@@ -984,14 +999,14 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   expect(readyOutput).toContain('可发送');
   expect(readyOutput).toContain('发送短码');
   expect(
-    mineProfileCard.findByProps({ testID: 'auth-request-readiness-pill' }),
+    authEntryCard.findByProps({ testID: 'auth-request-readiness-pill' }),
   ).toBeTruthy();
   expect(
     findPressableByTestId(root, 'auth-request-code-button').props.disabled,
   ).toBe(false);
 });
 
-test('keeps mine code-sent state attached to the account object', async () => {
+test('keeps code-sent state inside the dedicated login entry', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -999,7 +1014,6 @@ test('keeps mine code-sent state attached to the account object', async () => {
   });
 
   const root = tree!.root;
-  await openRoute(root, 'mine');
 
   await ReactTestRenderer.act(() => {
     root
@@ -1013,26 +1027,27 @@ test('keeps mine code-sent state attached to the account object', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
+  const authEntryCard = root.findByProps({
+    testID: 'authentication-entry-card',
+  });
   expect(output).toContain('验证码已发');
   expect(output).toContain('输入验证码');
   expect(output).toContain('已发送');
   expect(output).toContain('验证码已发送');
   expect(output).toContain('确认后回到');
-  expect(output).toContain('我的');
+  expect(output).toContain('学习');
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
   expect(
-    mineProfileCard.findByProps({ testID: 'auth-code-inline-dock' }),
+    authEntryCard.findByProps({ testID: 'auth-code-inline-dock' }),
   ).toBeTruthy();
-  expect(
-    mineProfileCard.findByProps({ testID: 'auth-code-input' }),
-  ).toBeTruthy();
+  expect(authEntryCard.findByProps({ testID: 'auth-code-input' })).toBeTruthy();
   const inlineDockStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'auth-code-inline-dock' }).props.style,
   );
   expect(inlineDockStyle.borderWidth).toBe(1);
   expect(inlineDockStyle.borderRadius).toBe(20);
   const smsPanelStyle = StyleSheet.flatten(
-    mineProfileCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
+    authEntryCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
   );
   expect(smsPanelStyle.flex).toBeUndefined();
   expect(smsPanelStyle.justifyContent).toBeUndefined();
@@ -1043,8 +1058,8 @@ test('keeps mine code-sent state attached to the account object', async () => {
   const submitButtonStyle = StyleSheet.flatten(
     findPressableByTestId(root, 'auth-submit-button').props.style,
   );
-  expect(submitButtonStyle.width).toBe('100%');
-  expect(submitButtonStyle.minWidth).toBe(0);
+  expect(submitButtonStyle.alignSelf).toBe('stretch');
+  expect(submitButtonStyle.minHeight).toBe(45);
   expect(findPressableByTestId(root, 'auth-submit-button').props.disabled).toBe(
     true,
   );
@@ -1211,8 +1226,8 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expect(output).toContain('已发送到');
   expect(output).toContain('138****8000');
   expect(output).toContain('验证');
-  expect(output).toContain('继续');
-  expect(output).toContain('确认后回到当前卡。');
+  expect(output).toContain('输入验证码。');
+  expect(output).toContain('确认后回到学习。');
   expect(output).toContain('重新发送');
   expect(output).not.toContain('等待登录');
 
@@ -1230,7 +1245,7 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expect(output).toContain('检查短码后重试，当前位置不变。');
   expect(output).toContain('重新验证');
   expect(output).toContain('可重试');
-  expect(output).toContain('4-6 位短码，确认后回到当前卡。');
+  expect(output).toContain('4-6 位短码，确认后回到学习。');
   expect(root.findByProps({ testID: 'auth-error-dock' })).toBeTruthy();
   expect(root.findByProps({ testID: 'auth-error-title' })).toBeTruthy();
   expect(root.findByProps({ testID: 'auth-error-detail' })).toBeTruthy();
