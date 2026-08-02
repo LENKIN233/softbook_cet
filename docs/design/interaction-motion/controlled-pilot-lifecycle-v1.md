@@ -24,6 +24,7 @@ Authentication entry, account deletion, and Learning lifecycle states around the
 - A non-fifth confirmed event: continue the existing resolve -> settle -> continue rhythm.
 - A fifth confirmed event: resolve the card, settle it toward its Space address, then reveal the completion receipt.
 - Review and Space are secondary destinations; continue is the primary destination and only then requests the next server selection.
+- Review replaces the receipt with the ordered server-returned review cards in a read-only sequence; it creates no event and returns to the same receipt. An empty list stays on the receipt with calm “当前没有待复习内容” feedback.
 - Entitlement changes are read-only visual states reconciled from server data.
 - Account deletion opens one bottom confirmation sheet over Mine. Cancel closes it without mutation. Confirm remains in place while the service request is pending.
 - A failed deletion request keeps the sheet open and restores the confirm action. An accepted request immediately replaces the entire authenticated shell with the dedicated entry boundary and a cleanup-pending notice.

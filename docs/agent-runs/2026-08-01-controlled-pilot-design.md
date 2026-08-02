@@ -46,6 +46,7 @@
 - Added a future implementation map for the Learning identity, start slip, round boundary, Space link, exact actions, and Mine states.
 - Added one bounded account-deletion confirmation sheet, a retained-account request-failure state, and a cleanup-pending notice on the dedicated login boundary. The client does not invent deletion progress or claim completion at request acceptance.
 - Added the no-current-selection authority: a valid server `selection: null` without a round receipt is a bounded Learning availability object with optional server-provided next-due time and one refresh action, never a false completion or local restart.
+- Bound the completion receipt's review destination to exact ordered server-returned `review_card_ids`; the read-only sequence cannot infer candidates or submit learning events.
 - Narrowed the design metadata scanner so only the exact required “CET4 受控试点” product identity is allowed; other raw exam-type values remain rejected, with regression coverage.
 - No RN component, navigation, API call, entitlement calculation, timer, storage, or deployment was implemented.
 
@@ -98,6 +99,7 @@
 - AP-22/VL-AP-07 is satisfied by separate accepted design, rendered proof, motion authority, and implementation mapping. AP-23 is preserved: no four-level self-assess and no red review state.
 - The account-deletion correction separates request acceptance from worker completion, presents irreversible impact before mutation, prevents duplicate submission in the pending state, preserves authenticated state after failure, and removes the entire product shell only after `202` acceptance.
 - A null server selection can no longer be designed or implemented as `0/0` completion: the accepted object names availability, displays only a server-provided next-due time when available, and refreshes without inventing progress.
+- The completion review action now has a concrete server-owned content source instead of a button-only promise; empty review content receives calm feedback while non-empty content opens in server order.
 
 ## Agent review status
 

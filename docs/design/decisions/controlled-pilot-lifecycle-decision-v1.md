@@ -75,6 +75,7 @@ The design has seven authority-bearing state groups:
 - If content or session preparation fails, no start slip appears.
 - If authentication, session restoration, or required account hydration fails, stay on the dedicated entry boundary; never reveal or retain the four-tab shell behind an error card.
 - If the fifth event is pending confirmation, keep the resolved card state and do not show the completion receipt yet.
+- The receipt's review destination resolves only the server-returned ordered `review_card_ids`. A non-empty list opens those cards read-only in that order; an empty list reports that nothing currently needs review without inventing candidates. Missing content fails closed and keeps the receipt.
 - If an offline replay or cross-device reconciliation repeats an already-counted event, do not replay completion motion.
 - If entitlement time cannot be refreshed, display the last server-confirmed value with a quiet refresh state; do not invent remaining time.
 - If account deletion is not accepted, do not log out or clear local state. If it is accepted, do not retain any authenticated route behind the cleanup-pending notice.
