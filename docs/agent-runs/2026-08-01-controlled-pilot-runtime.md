@@ -35,6 +35,7 @@
 - `product_truth`: Controlled pilot accepts exactly 120 CET4 cards and exposes exactly the approved first 60 after trial expiration. It cannot accept CET6, development cards, formal release artifacts, expired pilot releases, or any `gate_eligible=true` artifact.
 - `product_truth`: Continued pilot access is a server-side audited overlay. It does not overwrite base membership, cannot be self-issued by a client, and never creates a payment path.
 - `product_truth`: A five-card round boundary is the positive multiple-of-five cumulative account-and-track canonical learning `server_sequence`, never day-scoped progress. The server returns no next selection until the exact authenticated receipt is acknowledged.
+- `product_truth`: The completion aperture card is the active-content card from the canonical event whose `server_sequence` equals the boundary `completed_count`; only server `space_card_id` may author its compact Space address.
 - `product_truth`: Clients receive `trial_remaining_seconds` derived against each server response time and never manufacture remaining duration from device time.
 - `product_truth`: Account deletion remains login-blocking until account, learning, Space, membership, beta/pilot entitlement, challenge and phone-only rate-limit data are removed. Clean registration is permitted only after completion.
 - `product_truth`: Local tests, dry-runs and deployment packaging are not receiver deployment, real SMS, private-audio device playback, approved 120-card content, beta evidence or launch readiness.
@@ -42,6 +43,7 @@
 ## Implementation hypothesis changed
 
 - `pilot-round-completion.v1` now includes ordered unique `review_card_ids` derived from canonical latest per-card `answer_grade=review_needed` events in active card-source order; invalid answer grades fail closed.
+- `pilot-round-completion.v1` now also includes exact `space_card_id`, derived from the unique canonical event at the boundary sequence and rejected when missing, duplicated by sequence, or outside active content.
 
 - Added `controlled_pilot` as a production-like runtime mode: v1 is disabled, real SMS/client-IP/secret requirements apply, and every content-bearing v2 route enforces an active unexpired `pilot-content-release.v1`.
 - Added a transaction boundary that couples Learning Session cursor persistence/confirmation with first-trial activation. Membership reads expire trials server-side and apply beta then pilot overlays without mutating the base timeline.
@@ -72,6 +74,7 @@
 ## Commands run
 
 - 2026-08-03 round-review authority correction: `node --test test/controlled-pilot-runtime.test.js` -> 5/5 passed; full backend `npm test` -> 238/238 passed.
+- 2026-08-03 round-Space authority correction: targeted controlled-pilot runtime -> 5/5 passed and full backend -> 238/238 passed; the fifth accepted event's card ID is returned identically across replay, midnight and second-device reads.
 
 - `node --check` for all new publisher, adapter, deploy, entitlement, API, deletion-worker and release-runtime modules -> passed.
 - `node --test infra/cloudbase/functions/softbook-api/test/controlled-pilot-publisher-v1.test.js` -> passed, 4 tests.

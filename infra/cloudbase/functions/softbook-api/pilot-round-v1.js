@@ -125,6 +125,11 @@ function createPilotRoundCompletion(input) {
     schema_version: PILOT_ROUND_COMPLETION_SCHEMA,
     receipt_id: createPilotRoundReceipt(input),
     completed_count: input.completedCount,
+    space_card_id: requirePattern(
+      input.spaceCardId,
+      CARD_ID_PATTERN,
+      'spaceCardId',
+    ),
     review_card_ids: normalizeReviewCardIds(input.reviewCardIds),
   };
 }

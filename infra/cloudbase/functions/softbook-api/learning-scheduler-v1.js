@@ -152,6 +152,7 @@ async function readLearningSession(config, input) {
         contentVersion: context.contentVersion,
         pilotId: context.pilotId,
         reviewCardIds: selectPilotRoundReviewCardIds(context),
+        spaceCardId: selectPilotRoundSpaceCardId(context),
       });
       const continuation =
         await config.store.getPilotRoundContinuation({
@@ -543,6 +544,32 @@ function selectPilotRoundReviewCardIds(context) {
       `The canonical learning event for ${card.cardId} has an invalid answer grade.`,
     );
   });
+}
+
+function selectPilotRoundSpaceCardId(context) {
+  const boundaryEvents = Object.values(
+    context.learning.eventsByCardId,
+  ).filter(
+    event =>
+      isObject(event) &&
+      event.server_sequence === context.learning.projectionServerSequence,
+  );
+  if (boundaryEvents.length !== 1) {
+    throw unavailable(
+      'The canonical round boundary card is unavailable.',
+    );
+  }
+
+  const cardId = requireCardId(
+    boundaryEvents[0].card_id,
+    'round boundary event.card_id',
+  );
+  if (!context.cardIdSet.has(cardId)) {
+    throw unavailable(
+      'The canonical round boundary card is outside active content.',
+    );
+  }
+  return cardId;
 }
 
 function createSelection(

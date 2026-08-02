@@ -220,6 +220,10 @@ test('five confirmed events create one durable server round gate until exact con
     'pilot-round-completion.v1',
   );
   assert.match(pending.body.data.round_completion.receipt_id, /^rnd_/);
+  assert.equal(
+    pending.body.data.round_completion.space_card_id,
+    lastEvent.card_id,
+  );
   assert.deepEqual(pending.body.data.round_completion.review_card_ids, [
     lastEvent.card_id,
   ]);
