@@ -13,7 +13,7 @@
 
 Adopt the `cpl-01` Attached Pilot Slip synthesis from `docs/design/search-runs/2026-08-01-controlled-pilot-lifecycle/` for iOS and Android controlled-pilot states.
 
-The design has six authority-bearing state groups:
+The design has seven authority-bearing state groups:
 
 1. Signed-out and unvalidated session-restoration states use one dedicated phone/SMS authentication surface. Learning, Space, Statistics, Mine, and the four-item navigation are not mounted or visible.
 2. After authentication and required account hydration succeed, the product shell opens at Learning. Learning shows a fixed “CET4 受控试点” identity and no track chooser.
@@ -21,6 +21,7 @@ The design has six authority-bearing state groups:
 4. After the fifth server-confirmed Learning or review event, the completed card settles into a compact Space address aperture and a receipt offers exactly review, Space, and continue, with continue dominant.
 5. Mine shows pilot identity, server-provided start/end/remaining time, and the no-payment operational-grant message. It exposes no purchase action.
 6. Account deletion is a quiet authenticated Mine action with one bounded confirmation sheet. A failed request leaves the account and shell intact; an accepted request clears the local account state and returns to the dedicated login boundary with a neutral cleanup-pending notice.
+7. A valid Learning Session with `selection: null` and no round-completion receipt is an availability state, never a completion state. It uses one bounded Learning status object, shows the server-provided next-due time when present, and offers only “重新检查”; it never shows `0/0`, “本轮已完成”, restart, or the three round-completion actions.
 
 ## Authentication Entry Contract
 
@@ -67,6 +68,7 @@ The design has six authority-bearing state groups:
 | Deletion confirmation | current shell remains mounted behind one bounded sheet | irreversible impact, cancel, confirm | immediate local wipe, hidden consequence, duplicate submit |
 | Deletion request failed | current account remains active | fixed safe failure copy and retry | logout, state loss, raw service error |
 | Deletion accepted | not mounted; dedicated login entry only | cleanup-pending notice | “删除完成”, product navigation, immediate re-login promise |
+| No current server selection | bounded availability object; next-due time if supplied | unchanged | completion receipt, `0/0`, restart, local fallback |
 
 ## Failure and Recovery
 
@@ -76,6 +78,7 @@ The design has six authority-bearing state groups:
 - If an offline replay or cross-device reconciliation repeats an already-counted event, do not replay completion motion.
 - If entitlement time cannot be refreshed, display the last server-confirmed value with a quiet refresh state; do not invent remaining time.
 - If account deletion is not accepted, do not log out or clear local state. If it is accepted, do not retain any authenticated route behind the cleanup-pending notice.
+- If the server returns no selection and no round receipt, retain the authenticated shell but replace the card area with “当前没有待处理的卡”. When `next_due_at` exists, render that absolute server-provided time as “下次可回看”; otherwise say “服务端当前没有安排新的学习卡”. The sole local action is “重新检查”, which requests a fresh Learning Session without creating progress, trial, or continuation state.
 
 ## Accepted Evidence
 

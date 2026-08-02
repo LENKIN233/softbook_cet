@@ -45,6 +45,7 @@
 - Corrected the earlier implementation hypothesis that allowed the four product destinations to exist while signed out. The dedicated entry state now owns authentication; successful authentication plus required hydration enters Learning.
 - Added a future implementation map for the Learning identity, start slip, round boundary, Space link, exact actions, and Mine states.
 - Added one bounded account-deletion confirmation sheet, a retained-account request-failure state, and a cleanup-pending notice on the dedicated login boundary. The client does not invent deletion progress or claim completion at request acceptance.
+- Added the no-current-selection authority: a valid server `selection: null` without a round receipt is a bounded Learning availability object with optional server-provided next-due time and one refresh action, never a false completion or local restart.
 - Narrowed the design metadata scanner so only the exact required “CET4 受控试点” product identity is allowed; other raw exam-type values remain rejected, with regression coverage.
 - No RN component, navigation, API call, entitlement calculation, timer, storage, or deployment was implemented.
 
@@ -77,6 +78,7 @@
 - 2026-08-03 account-deletion visual inspection: rendered the complete HTML at 1760 x 7200 in headless Chrome and inspected a cropped proof of the three added states. The modal actions remain visible at 393 x 852, the failure keeps Mine behind the sheet, and the accepted state shows no shell or navigation.
 - 2026-08-03 `npm --prefix apps/mobile run design-metadata-leak-scan` -> passed.
 - 2026-08-03 `git diff --check` -> passed.
+- 2026-08-03 no-selection correction -> decision, rendered-state handoff, interaction/motion, and implementation mapping now distinguish scheduler availability from completed Learning. The correction reuses the accepted bounded Learning status silhouette and introduces no new visual direction.
 - 2026-08-02 local browser inspection could not open the `file://` artifact because the in-app browser security policy rejected local-file navigation. No bypass was attempted; simulator/device visual evidence remains mandatory in the separate implementation PR.
 - `python3 scripts/validate_pr_design_gate.py --base cross/controlled-pilot-contract --head HEAD --body-file /tmp/softbook-controlled-pilot-design-pr.md` -> passed, `PR DESIGN GATE OK`.
 - `./scripts/run_local_gates --profile pr --base cross/controlled-pilot-contract --verbose` -> 31/36 checks passed. All harness, design, mobile, backend, dependency-security, evidence, and LFS checks passed. The profile remained failed because `toolchain` has the existing declared local condition, `pr-context` and two review/design checks require a live PR context, and strict repository health detected pre-existing shared-workspace/remote-governance drift (nine worktrees, eighteen topic branches, seventeen branches without upstream, and the remote `android-release` check outside its local expected set). No user worktree or branch was deleted. Report: `exports/local-gates/20260801T085321Z-e71df8f5-pr-62906/report.json`.
@@ -95,6 +97,7 @@
 - The corrected proof contains two dedicated signed-out authentication frames with one focal form object and no Learning / Space / Statistics / Mine navigation. Authenticated frames retain the four-item product navigation.
 - AP-22/VL-AP-07 is satisfied by separate accepted design, rendered proof, motion authority, and implementation mapping. AP-23 is preserved: no four-level self-assess and no red review state.
 - The account-deletion correction separates request acceptance from worker completion, presents irreversible impact before mutation, prevents duplicate submission in the pending state, preserves authenticated state after failure, and removes the entire product shell only after `202` acceptance.
+- A null server selection can no longer be designed or implemented as `0/0` completion: the accepted object names availability, displays only a server-provided next-due time when available, and refreshes without inventing progress.
 
 ## Agent review status
 

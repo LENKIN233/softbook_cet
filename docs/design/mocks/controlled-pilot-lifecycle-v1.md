@@ -24,6 +24,7 @@
 - Mine account deletion confirmation with the irreversible account, Learning, and Space impact visible before mutation.
 - Deletion-request failure with the authenticated account preserved and a bounded retry.
 - Dedicated login entry after an accepted deletion request, with cleanup-pending copy and no product navigation.
+- Authenticated Learning availability object for `selection: null`: “当前没有待处理的卡”, optional server-provided “下次可回看” time, and one “重新检查” action. It contains no completion metrics, restart action, or round receipt.
 
 ## Product Truth vs Implementation Hypothesis
 
@@ -41,6 +42,6 @@ Q3: Learning remains single-card and the completion frame preserves a compact ph
 
 Q4: No dashboard, reward, tutorial, fake payment, gradient text, internal language, or repeated route-level login gate.
 
-Q5: Ten 393 x 852 frames with contained content, wrapping labels, and 44-point actions.
+Q5: The existing 393 x 852 frame system also defines the no-selection object as the same contained, wrapping Learning status silhouette with a minimum 44-point retry action.
 
 Q6: No self-assess change; no red review state.
