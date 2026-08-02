@@ -150,9 +150,10 @@ than one card.
 
 Canonical context validation, selection ID generation, and required cursor
 persistence complete before trial activation. The server clock is the sole
-entitlement-time authority. Clients display
-canonical timestamps and remaining time but never derive access from a local
-countdown. In `controlled_pilot`, the free prefix is exactly the bundle's
+entitlement-time authority. Clients display canonical timestamps and the
+response's server-derived nonnegative integer `trial_remaining_seconds`, but
+never derive access or remaining duration from a local countdown. Outside an
+active trial this value is zero. In `controlled_pilot`, the free prefix is exactly the bundle's
 approved stable 60-card subset; other runtime modes retain their owned release
 policy.
 

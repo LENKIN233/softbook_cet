@@ -14,6 +14,8 @@
         "trial_started_at",
         "trial_expires_at"
       ],
+      "server_derived_response_field": "trial_remaining_seconds",
+      "remaining_seconds_rule": "server_derives_max_zero_trial_expires_at_minus_response_generated_at_on_every_membership_bootstrap_and_learning_session_read_and_returns_zero_outside_an_active_trial",
       "client_calculation_forbidden": true,
       "login_or_failed_session_must_not_start_trial": true
     },

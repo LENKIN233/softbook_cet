@@ -3189,6 +3189,13 @@ def validate(context) -> None:
         auth["trial_and_purchase"]["trial_starts_when"],
         product["monetization"]["trial_start_trigger"],
     )
+    check_equal(
+        "trial remaining time server authority",
+        membership["policy"]["trial_time_authority"].get(
+            "server_derived_response_field"
+        ),
+        "trial_remaining_seconds",
+    )
     expected_hr45 = [
         "account_sync_contract_is_trial_trigger_owner",
         "login_and_account_browsing_do_not_start_trial",
