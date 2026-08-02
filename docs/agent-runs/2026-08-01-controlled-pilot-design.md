@@ -36,6 +36,7 @@
 - `product_truth`: Login and account browsing do not start the trial. The first-valid-card notice exists only after the service has successfully prepared a real Learning Session; entitlement lasts 120 consecutive hours using server-owned timestamps.
 - `product_truth`: A round boundary is created only by each new multiple of five server-confirmed Learning or review events. The completion object offers exactly review, Space, and continue, with continue dominant.
 - `product_truth`: Space remains a physical library/group/box/card knowledge map. The completed card’s actual location explains its value without a tutorial.
+- `product_truth`: The compact completion address belongs only to server `round_completion.space_card_id`, the active-content card at the exact canonical boundary sequence. Client phase grouping and client/device timestamps cannot author that address.
 - `product_truth`: Mine displays server-owned entitlement state and explicitly states that the controlled pilot is free and continuation eligibility is operationally granted.
 - `product_truth`: Account deletion is submitted only from authenticated Mine. An accepted request queues deletion and revokes all sessions, so the client must leave the product shell immediately while accurately describing cleanup as pending; a rejected request must preserve the account and all local state.
 
@@ -47,6 +48,7 @@
 - Added one bounded account-deletion confirmation sheet, a retained-account request-failure state, and a cleanup-pending notice on the dedicated login boundary. The client does not invent deletion progress or claim completion at request acceptance.
 - Added the no-current-selection authority: a valid server `selection: null` without a round receipt is a bounded Learning availability object with optional server-provided next-due time and one refresh action, never a false completion or local restart.
 - Bound the completion receipt's review destination to exact ordered server-returned `review_card_ids`; the read-only sequence cannot infer candidates or submit learning events.
+- Bound the completion receipt's address aperture to exact server-returned `space_card_id`; this is an authority correction inside the accepted silhouette and introduces no new visual direction.
 - Narrowed the design metadata scanner so only the exact required “CET4 受控试点” product identity is allowed; other raw exam-type values remain rejected, with regression coverage.
 - No RN component, navigation, API call, entitlement calculation, timer, storage, or deployment was implemented.
 
@@ -100,6 +102,7 @@
 - The account-deletion correction separates request acceptance from worker completion, presents irreversible impact before mutation, prevents duplicate submission in the pending state, preserves authenticated state after failure, and removes the entire product shell only after `202` acceptance.
 - A null server selection can no longer be designed or implemented as `0/0` completion: the accepted object names availability, displays only a server-provided next-due time when available, and refreshes without inventing progress.
 - The completion review action now has a concrete server-owned content source instead of a button-only promise; empty review content receives calm feedback while non-empty content opens in server order.
+- The completion Space aperture now has a concrete server-owned boundary card instead of phase- or timestamp-derived client inference; the accepted compact address layout is unchanged.
 
 ## Agent review status
 

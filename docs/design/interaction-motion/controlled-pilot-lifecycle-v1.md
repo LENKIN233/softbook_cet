@@ -22,7 +22,7 @@ Authentication entry, account deletion, and Learning lifecycle states around the
 - A valid card becomes ready: show the current card and attach the start slip in the same committed visual state.
 - A valid session with no selection and no round receipt: replace the card region with the bounded availability object. “重新检查” enters the existing quiet loading state and either replaces the object with a server-selected card/receipt or restores it without celebration.
 - A non-fifth confirmed event: continue the existing resolve -> settle -> continue rhythm.
-- A fifth confirmed event: resolve the card, settle it toward its Space address, then reveal the completion receipt.
+- A fifth confirmed event: resolve only the server-returned `round_completion.space_card_id`, settle that exact card toward its Space address, then reveal the completion receipt. Offline replay, phase grouping, and device time cannot choose another card.
 - Review and Space are secondary destinations; continue is the primary destination and only then requests the next server selection.
 - Review replaces the receipt with the ordered server-returned review cards in a read-only sequence; it creates no event and returns to the same receipt. An empty list stays on the receipt with calm “当前没有待复习内容” feedback.
 - Entitlement changes are read-only visual states reconciled from server data.

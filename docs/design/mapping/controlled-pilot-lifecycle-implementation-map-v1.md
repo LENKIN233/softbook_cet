@@ -27,7 +27,7 @@
 | Fixed pilot identity | Learning and Mine header chrome | controlled-pilot profile + product copy | no selector or unavailable entry |
 | Attached start slip | Learning surface state layer | successful valid session response | never triggered by login or account browsing |
 | Completion receipt | Learning round-boundary surface | server-confirmed total completion count | shown once per new multiple of five |
-| Space aperture | receipt address region + Space route | reconciled Space state | no local filing or reordering |
+| Space aperture | receipt address region + Space route | exact `round_completion.space_card_id` resolved against active content plus reconciled Space state | actual boundary card only; no phase grouping, client-time inference, local filing or reordering |
 | Review link | pending-round read-only review destination | exact ordered `round_completion.review_card_ids` | quiet secondary action; no local inference, ordering, or event submission |
 | Continue button | Learning next-round continuation | explicit user action, then next session request | only primary action |
 | Mine time ledger | account/entitlement object | server-provided timestamps and remaining duration | client formats; does not invent eligibility |
@@ -38,7 +38,7 @@
 
 ## State Ownership
 
-- Server owns trial start/end, entitlement, confirmed completion count, next card selection, and Space state.
+- Server owns trial start/end, entitlement, confirmed completion count, the exact boundary `space_card_id`, next card selection, and Space state.
 - `selection: null` plus no `round_completion` maps to a dedicated Learning availability object. `next_due_at` may be formatted for display but not recalculated; “重新检查” performs a fresh session read. It must not reuse the deck-complete surface.
 - Client owns presentation, accessible formatting, animation interruption, and reduced-motion rendering.
 - The authentication/session coordinator owns whether the product shell may mount. Route selection is downstream of that gate and cannot expose a signed-out route-specific login state.
