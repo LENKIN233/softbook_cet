@@ -153,8 +153,11 @@ manifests, pack URLs, or audio URLs.
 
 Membership includes immutable server-authoritative `trial_started_at` and
 `trial_expires_at`. They are written only by the valid Learning Session
-transaction and are exactly 120 hours apart. Clients may present these values
-but must not use device time as entitlement authority.
+transaction and are exactly 120 hours apart. Each response also returns
+server-derived integer `trial_remaining_seconds`: the nonnegative difference
+between expiry and that response's `generated_at`, or zero outside an active
+trial. Clients may present these values but must not use device time as
+entitlement authority or invent a remaining duration.
 
 The current `import-card-source.mjs` is a development importer and rejects
 non-null release descriptors. On apply it validates and archives a replaced

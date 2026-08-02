@@ -66,6 +66,7 @@
 - `git diff --check` -> passed.
 - 2026-08-02 continuation: JSON parsing, `git diff --check`, and `python3 scripts/validate_harness.py` -> passed after adding the five-card round owner/mirror/eval checks.
 - 2026-08-02 continuation: clarified the round count as the cumulative canonical learning projection `server_sequence`; daily `progress.total_completed_count` remains daily feedback only, preventing midnight rollover from reopening or skipping a boundary.
+- 2026-08-02 continuation: bound Mine's remaining-time presentation to server-derived `trial_remaining_seconds` on membership, Bootstrap, and Learning Session reads; clients may format the value but cannot derive it from device time.
 - `./scripts/run_local_gates --profile dev --base origin/main --verbose` -> `PASSED_WITH_EXCEPTION`, 23/24 passed; only the declared toolchain exception applied, and all executed harness, mobile, Web, backend, metadata, launch-contract, and build checks passed. Report: `exports/local-gates/20260801T072526Z-5b592247-dev-54469/report.json`.
 - PR checks: pending.
 
