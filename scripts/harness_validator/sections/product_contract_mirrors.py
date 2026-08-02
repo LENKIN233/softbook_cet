@@ -3164,6 +3164,41 @@ def validate(context) -> None:
         auth["authentication"]["guest_learning_before_authentication"],
         req["authentication_policy"]["guest_learning_before_authentication"],
     )
+    for field in [
+        "dedicated_login_surface_required",
+        "authenticated_app_shell_required",
+        "signed_out_top_level_navigation_visible",
+        "signed_out_product_surfaces_reachable",
+    ]:
+        check_equal(
+            f"authentication entry gate {field}",
+            auth["authentication"][field],
+            req["authentication_policy"][field],
+        )
+    check_equal(
+        "dedicated login surface platform mirror",
+        auth["authentication"]["dedicated_login_surface_required"],
+        platform["authentication_policy"]["dedicated_login_surface_required"],
+    )
+    check_equal(
+        "signed-out product surface platform mirror",
+        auth["authentication"]["signed_out_product_surfaces_reachable"],
+        platform["authentication_policy"]["signed_out_product_surfaces_reachable"],
+    )
+    check_equal(
+        "authenticated app shell product mirror",
+        auth["authentication"]["authenticated_app_shell_required"],
+        product["multi_surface_strategy"]["authentication_model"][
+            "top_level_product_shell_requires_authentication"
+        ],
+    )
+    check_equal(
+        "signed-out navigation platform mirror",
+        auth["authentication"]["signed_out_top_level_navigation_visible"],
+        not platform["authentication_policy"][
+            "top_level_navigation_is_authenticated_only"
+        ],
+    )
     check_equal(
         "primary_login_method requirement-memory",
         auth["authentication"]["primary_login_method"],

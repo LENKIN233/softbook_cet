@@ -10,6 +10,8 @@
     "main_learning_flow_and_physical_space_remain_top_level_product_capabilities_on_all_release_targets",
     "physical_space_is_real_product_capability",
     "login_is_required_before_learning_starts",
+    "dedicated_login_surface_precedes_the_authenticated_product_shell",
+    "signed_out_users_cannot_mount_or_navigate_learning_space_statistics_or_mine",
     "phone_sms_code_is_the_primary_login_method",
     "trial_and_membership_access_rules_are_enforced",
     "confirmed_user_facing_actions_are_not_dropped",
@@ -27,6 +29,8 @@
       "keep_learning_cost_low",
       "provide_device_class_specific_ui_and_page_structure",
       "enforce_authenticated_entry_before_learning",
+      "render_one_dedicated_authentication_entry_before_mounting_the_top_level_product_shell",
+      "hide_and_disable_learning_space_statistics_mine_navigation_while_signed_out_or_session_restoration_is_unvalidated",
       "present_navigation_consistently_across_surfaces",
       "support_keyboard_shortcuts_and_mouse_on_non_touch_surfaces",
       "do_not_auto_play_audio"

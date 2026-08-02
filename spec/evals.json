@@ -735,7 +735,10 @@
       "task": "定义登录门槛",
       "must_include": [
         "login_required_before_learning",
-        "guest_learning_not_supported"
+        "guest_learning_not_supported",
+        "dedicated_login_surface",
+        "authenticated_app_shell_only",
+        "no_signed_out_top_level_navigation"
       ],
       "must_preserve_source_anchors": [
         "必须登入"
