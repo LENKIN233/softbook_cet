@@ -199,7 +199,7 @@
       "payment_connected": false,
       "round_size": 5,
       "round_completion_authority": "server_confirmed_cumulative_account_track_event_sequence_and_server_persisted_continue_acknowledgement",
-      "round_review_content_authority": "server_returned_ordered_review_card_ids_derived_from_the_canonical_latest_account_track_event_projection_at_the_unacknowledged_boundary",
+      "round_review_content_authority": "server_returned_ordered_review_card_ids_derived_from_currently_accessible_non_sleeping_cards_whose_canonical_latest_account_track_event_projection_needs_review_at_the_unacknowledged_boundary",
       "round_daily_progress_rule": "day_scoped_progress_remains_for_daily_feedback_and_never_opens_or_skips_a_round_boundary",
       "round_completion_actions": [
         "回看待复习内容",
