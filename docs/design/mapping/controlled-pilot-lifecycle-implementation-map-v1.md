@@ -28,7 +28,7 @@
 | Attached start slip | Learning surface state layer | successful valid session response | never triggered by login or account browsing |
 | Completion receipt | Learning round-boundary surface | server-confirmed total completion count | shown once per new multiple of five |
 | Space aperture | receipt address region + Space route | reconciled Space state | no local filing or reordering |
-| Review link | existing review destination | server-selected review state | quiet secondary action |
+| Review link | pending-round read-only review destination | exact ordered `round_completion.review_card_ids` | quiet secondary action; no local inference, ordering, or event submission |
 | Continue button | Learning next-round continuation | explicit user action, then next session request | only primary action |
 | Mine time ledger | account/entitlement object | server-provided timestamps and remaining duration | client formats; does not invent eligibility |
 | No-payment copy | Mine entitlement state | controlled-pilot product contract | no purchase CTA |
