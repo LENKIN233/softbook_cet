@@ -2420,9 +2420,10 @@ function AppShell({
 
         if (
           isControlledPilot &&
-          session.generatedAt !== null &&
+          session.membershipStage === 'trial' &&
           session.trialStartedAt !== null &&
-          session.generatedAt === session.trialStartedAt &&
+          session.serverSelection !== null &&
+          session.cards.length === 1 &&
           presentedTrialStartedAtRef.current !== session.trialStartedAt
         ) {
           presentedTrialStartedAtRef.current = session.trialStartedAt;

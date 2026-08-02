@@ -1947,6 +1947,176 @@ test('refreshes canonical membership when learning-session starts the trial', as
   ).toHaveLength(0);
 });
 
+test('shows the first-card trial notice once after an interrupted activation response', async () => {
+  const trialSession: LearningSession = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: TEST_CONTENT_VERSION,
+    generatedAt: '2026-08-01T00:00:05.000Z',
+    membershipStage: 'trial',
+    trialExpiresAt: '2026-08-06T00:00:00.000Z',
+    trialRemainingSeconds: 431995,
+    trialStartedAt: '2026-08-01T00:00:00.000Z',
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(trialSession, 'trial', [], false, {
+          trial_expires_at: trialSession.trialExpiresAt,
+          trial_remaining_seconds: trialSession.trialRemainingSeconds,
+          trial_started_at: trialSession.trialStartedAt,
+        }),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(trialSession);
+  await waitForLearningSurface(root);
+
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-trial-notice' }),
+  ).toBeTruthy();
+  let persistedState: string | null = null;
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    persistedState = await AsyncStorage.getItem('softbook-cet/user-state/v1');
+    if (persistedState?.includes(trialSession.trialStartedAt!)) {
+      break;
+    }
+  }
+  expect(persistedState).toContain(trialSession.trialStartedAt);
+  await ReactTestRenderer.act(() => {
+    tree!.unmount();
+  });
+
+  let restoredTree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    restoredTree = ReactTestRenderer.create(<App />);
+  });
+  await waitForLearningSurface(restoredTree!.root);
+  expect(
+    restoredTree!.root.findAllByProps({
+      testID: 'controlled-pilot-trial-notice',
+    }),
+  ).toHaveLength(0);
+  await ReactTestRenderer.act(() => {
+    restoredTree!.unmount();
+  });
+});
+
+test('waits for a valid selected card before consuming the trial notice', async () => {
+  const baseSession = createLocalLearningSession('cet4');
+  const trialTimeline = {
+    trialExpiresAt: '2026-08-06T00:00:00.000Z',
+    trialStartedAt: '2026-08-01T00:00:00.000Z',
+  };
+  const availabilitySession: LearningSession = {
+    ...baseSession,
+    cards: [],
+    contentVersion: TEST_CONTENT_VERSION,
+    generatedAt: trialTimeline.trialStartedAt,
+    membershipStage: 'trial',
+    nextDueAt: null,
+    schedulingMode: 'server',
+    serverSelection: null,
+    ...trialTimeline,
+    trialRemainingSeconds: 432000,
+  };
+  const selectedSession: LearningSession = {
+    ...availabilitySession,
+    cards: [baseSession.catalogCards[0]],
+    generatedAt: '2026-08-01T00:00:01.000Z',
+    serverSelection: {
+      cardId: baseSession.catalogCards[0].card_id,
+      dueAt: null,
+      phase: 'learning',
+      reason: 'persisted_cursor',
+      selectionId: 'sel_trial_notice_recovery_0001',
+    },
+    trialRemainingSeconds: 431999,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(availabilitySession, 'trial', [], false, {
+          trial_expires_at: trialTimeline.trialExpiresAt,
+          trial_remaining_seconds: 432000,
+          trial_started_at: trialTimeline.trialStartedAt,
+        }),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(availabilitySession);
+  expect(
+    root.findByProps({ testID: 'learning-availability-surface' }),
+  ).toBeTruthy();
+  expect(
+    root.findAllByProps({ testID: 'controlled-pilot-trial-notice' }),
+  ).toHaveLength(0);
+
+  resolvedSession = selectedSession;
+  await ReactTestRenderer.act(async () => {
+    root
+      .findByProps({ testID: 'learning-availability-refresh-button' })
+      .props.onPress();
+    await flushAsyncEffects();
+  });
+  await waitForLearningSurface(root);
+
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-trial-notice' }),
+  ).toBeTruthy();
+  await ReactTestRenderer.act(() => {
+    tree!.unmount();
+  });
+});
+
 test('revalidates at the server trial boundary without a later Session read postponing it', async () => {
   let bootstrapRequestCount = 0;
   const baseSession = createLocalLearningSession('cet4');
