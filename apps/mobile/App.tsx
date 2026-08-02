@@ -4110,6 +4110,18 @@ function AppShell({
 
   const authenticationEntry = !persistenceHydrated ? (
     <AuthenticationRestoringSurface palette={palette} />
+  ) : isAuthenticated && !isAccountStateReconciled ? (
+    <AuthenticationAccountRecoverySurface
+      error={membershipError}
+      onLogout={() => {
+        authHandlers.onLogout().catch(() => undefined);
+      }}
+      onRetry={() => {
+        retryCanonicalAccountBootstrap().catch(() => undefined);
+      }}
+      palette={palette}
+      pending={accountBootstrapStatus === 'pending'}
+    />
   ) : !isAuthenticated ? (
     <AuthenticationEntrySurface
       authRepositoryMode={runtimeAuthRepositoryMode}
@@ -4929,6 +4941,92 @@ function AuthenticationRestoringSurface({ palette }: { palette: Palette }) {
           确认账号后再进入学习；此时不会展示产品导航，也不会开始体验计时。
         </Text>
       </View>
+    </View>
+  );
+}
+
+function AuthenticationAccountRecoverySurface({
+  error,
+  onLogout,
+  onRetry,
+  palette,
+  pending,
+}: {
+  error: string | null;
+  onLogout: () => void;
+  onRetry: () => void;
+  palette: Palette;
+  pending: boolean;
+}) {
+  return (
+    <View
+      style={[styles.authGateScreen, styles.authenticationEntryScreen]}
+      testID="authentication-account-recovery-screen"
+    >
+      <ScrollView
+        contentContainerStyle={styles.authenticationEntryScrollContent}
+        showsVerticalScrollIndicator={false}
+        style={styles.authenticationEntryScroll}
+        testID="authentication-account-recovery-scroll"
+      >
+        <View
+          style={[
+            styles.authEntryCard,
+            styles.authenticationEntryCard,
+            { backgroundColor: palette.panel, borderColor: palette.border },
+          ]}
+        >
+          <Text style={[styles.heroEyebrow, { color: palette.textMuted }]}>
+            账号状态
+          </Text>
+          <Text style={[styles.authGateTitle, { color: palette.text }]}>
+            还不能进入学习
+          </Text>
+          <Text style={[styles.authGateSummary, { color: palette.textMuted }]}>
+            手机号已经验证，但学习、Space
+            与资格状态还没有读取完成。产品页面会继续保持关闭。
+          </Text>
+          {error ? (
+            <Text
+              style={[styles.authHint, { color: palette.warning }]}
+              testID="authentication-account-recovery-error"
+            >
+              {error}
+            </Text>
+          ) : null}
+          <Pressable
+            disabled={pending}
+            onPress={onRetry}
+            style={[
+              styles.primaryButton,
+              { backgroundColor: pending ? palette.border : palette.accent },
+            ]}
+            testID="authentication-account-recovery-retry"
+          >
+            <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+              {pending ? '正在读取账号' : '重新读取账号'}
+            </Text>
+          </Pressable>
+          <Pressable
+            disabled={pending}
+            onPress={onLogout}
+            style={[
+              styles.secondaryButton,
+              {
+                backgroundColor: palette.panelStrong,
+                borderColor: palette.border,
+              },
+            ]}
+            testID="authentication-account-recovery-logout"
+          >
+            <Text
+              style={[styles.secondaryButtonLabel, { color: palette.text }]}
+            >
+              退出并重新登入
+            </Text>
+          </Pressable>
+        </View>
+      </ScrollView>
     </View>
   );
 }

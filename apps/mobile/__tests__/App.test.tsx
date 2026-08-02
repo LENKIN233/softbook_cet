@@ -925,6 +925,67 @@ test('keeps session restoration outside the product shell', async () => {
   ).toBeTruthy();
 });
 
+test('keeps a verified remote session outside the product shell until initial account hydration succeeds', async () => {
+  let bootstrapAvailable = false;
+  const session = createLocalLearningSession('cet4');
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return bootstrapAvailable
+        ? createJsonResponse(createAccountBootstrapPayload(session, 'free'))
+        : createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+
+  await authenticateIntoLearningBootstrap(root);
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  expect(
+    root.findByProps({ testID: 'authentication-account-recovery-screen' }),
+  ).toBeTruthy();
+  expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-space' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-statistics' })).toHaveLength(
+    0,
+  );
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
+  expect(JSON.stringify(tree!.toJSON())).toContain('产品页面会继续保持关闭');
+
+  bootstrapAvailable = true;
+  await ReactTestRenderer.act(async () => {
+    root
+      .findByProps({ testID: 'authentication-account-recovery-retry' })
+      .props.onPress();
+    await flushAsyncEffects();
+  });
+  await resolveLearningBootstrap(session);
+  await waitForLearningSurface(root);
+
+  expect(
+    root.findAllByProps({ testID: 'authentication-account-recovery-screen' }),
+  ).toHaveLength(0);
+  expect(root.findByProps({ testID: 'route-tab-learning' })).toBeTruthy();
+});
+
 test('does not expose route-specific login gates while signed out', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
@@ -2169,8 +2230,13 @@ test('blocks product state writes until canonical bootstrap succeeds on reconnec
       root.findAllByProps({ testID: 'learning-favorite-button' }),
     ).toHaveLength(0);
     expect(
-      root.findAllByProps({ testID: 'learning-bootstrap-retry-button' }).length,
+      root.findAllByProps({
+        testID: 'authentication-account-recovery-retry',
+      }).length,
     ).toBeGreaterThan(0);
+    expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(
+      0,
+    );
     expect(
       fetchCalls.some(
         call =>
