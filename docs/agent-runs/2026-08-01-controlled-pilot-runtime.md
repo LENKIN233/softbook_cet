@@ -70,6 +70,9 @@
 - `node infra/cloudbase/test-smoke-record-lifecycle.mjs` -> passed, 11 tests.
 - `git diff --check` -> passed.
 - `./scripts/run_local_gates --profile dev --base origin/main --verbose` -> `PASSED_WITH_EXCEPTION`, 23/24 passed. The only exception is declared dev-only Node version drift (actual 25.9.0, expected 22.13.0); all executed harness, mobile, Web, backend, metadata, launch-contract and build checks passed. Report: `exports/local-gates/20260801T111943Z-9d0552d6-dev-73423/report.json`.
+- 2026-08-02 continuation: resolved an isolated exact Node 22.13.0 runtime with `npm exec --yes --package=node@22.13.0 -- node`, then reran controlled-pilot profile/bundle, publisher, runtime, deployment, entitlement and account-deletion-worker tests -> passed, 27 tests (16 pilot publication/runtime/deploy tests plus 11 entitlement/deletion tests).
+- 2026-08-02 receiver capability audit: `tcb env list --json` succeeded with CloudBase CLI 3.6.4 and returned one `NORMAL` environment classified by the provider as an `体验版` test environment. No receiver-owned `controlled-pilot-profile.v1` was available, so no receiver preflight or mutation was attempted.
+- 2026-08-02 secret-presence audit (values never read or printed): SMS provider variables and content-manifest signing key variables were absent from the process environment.
 - PR checks: pending.
 
 ## Validation results
@@ -99,12 +102,14 @@
 - No CloudBase function, collection, SMS provider, audio object, TestFlight build or Android closed-test build was changed by this run.
 - No entitlement was granted or revoked and no account was deleted externally.
 - Deployment/publication commands were validated locally in dry-run/test adapters only; real receiver apply remains gated on approved inputs, receiver access, clean exact `main` and explicit apply.
+- The read-only 2026-08-02 CloudBase account inspection found only a provider-labelled test environment. It is not accepted as the independent receiver-owned controlled-pilot environment, and it was not bound into a profile or changed.
 
 ## Risks and open questions
 
 - The contract and design PRs are stacked and still require protected product-owner approval/merge before this runtime PR can be merged and before user-visible mobile implementation can use the design as accepted authority.
 - The approved 120-card payload and all referenced audio/QC remain external content deliverables from `/Users/lenkin/programing/card make`.
 - Receiver CloudBase, real SMS, timer execution logs, account deletion drill, private audio device playback and rollback evidence remain pending and cannot be replaced with repository tests.
+- The exact deployment Node version is locally obtainable, but the receiver profile, independent pilot environment, SMS credentials and content signing keys remain absent. These are external prerequisites, not repository test failures.
 - Client work must remove remote start-trial mutations, parse the new timestamp and `pilot_premium` fields, use Learning Session as the only trigger, and implement server-confirmed five-card completion without local scheduling.
 
 ## Follow-up
