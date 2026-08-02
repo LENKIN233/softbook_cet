@@ -915,7 +915,12 @@ function AppShell({
   currentLearningCardIdRef.current = currentLearningCard?.card_id ?? null;
   const reviewCandidateCards =
     learningSession?.schedulingMode === 'server'
-      ? []
+      ? (pilotRoundCompletion?.reviewCardIds ?? []).flatMap(cardId => {
+          const card = learningSession.catalogCards.find(
+            candidate => candidate.card_id === cardId,
+          );
+          return card ? [card] : [];
+        })
       : selectReviewCards(visibleLearningCards, learningCompletedResults);
   const pendingReviewCount = reviewCandidateCards.filter(
     card =>

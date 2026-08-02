@@ -174,6 +174,7 @@ export type LearningServerMembershipStage =
 export type LearningPilotRoundCompletion = {
   completedCount: number;
   receiptId: string;
+  reviewCardIds: string[];
   schemaVersion: 'pilot-round-completion.v1';
 };
 

@@ -333,7 +333,7 @@ function parseRoundCompletion(
   if (candidate === null) return null;
   const completion = requireExactObject(
     candidate,
-    ['schema_version', 'receipt_id', 'completed_count'],
+    ['schema_version', 'receipt_id', 'completed_count', 'review_card_ids'],
     'response.data.round_completion',
   );
   const completedCount = requirePositiveSafeInteger(
@@ -346,6 +346,23 @@ function parseRoundCompletion(
   ) {
     throw new Error('Remote learning session round completion is invalid.');
   }
+  if (!Array.isArray(completion.review_card_ids)) {
+    throw new Error(
+      'Remote learning session round completion review card ids are invalid.',
+    );
+  }
+  const reviewCardIds = completion.review_card_ids.map((cardId, index) =>
+    requirePattern(
+      cardId,
+      /^\d{6}$/,
+      `response.data.round_completion.review_card_ids[${index}]`,
+    ),
+  );
+  if (new Set(reviewCardIds).size !== reviewCardIds.length) {
+    throw new Error(
+      'Remote learning session round completion review card ids must be unique.',
+    );
+  }
   return {
     completedCount,
     receiptId: requirePattern(
@@ -353,6 +370,7 @@ function parseRoundCompletion(
       ROUND_RECEIPT_PATTERN,
       'response.data.round_completion.receipt_id',
     ),
+    reviewCardIds,
     schemaVersion: 'pilot-round-completion.v1',
   };
 }

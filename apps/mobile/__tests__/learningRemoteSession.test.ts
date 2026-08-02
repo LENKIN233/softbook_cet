@@ -123,12 +123,14 @@ test('strictly maps a five-card completion and gates the next selection', () => 
     schema_version: 'pilot-round-completion.v1',
     receipt_id: `rnd_${'a'.repeat(32)}`,
     completed_count: 5,
+    review_card_ids: ['110101', '110202'],
   } as never;
 
   expect(parseRemoteLearningSessionPayload(payload, 'cet4')).toMatchObject({
     roundCompletion: {
       completedCount: 5,
       receiptId: `rnd_${'a'.repeat(32)}`,
+      reviewCardIds: ['110101', '110202'],
       schemaVersion: 'pilot-round-completion.v1',
     },
     selection: null,
@@ -144,6 +146,7 @@ test('continues a pilot round with the exact server receipt', async () => {
   const completion = {
     completedCount: 5,
     receiptId: `rnd_${'b'.repeat(32)}`,
+    reviewCardIds: [],
     schemaVersion: 'pilot-round-completion.v1' as const,
   };
   const fetchMock = jest.fn().mockResolvedValue({

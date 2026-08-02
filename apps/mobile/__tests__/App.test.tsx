@@ -2167,6 +2167,92 @@ test('renders remote null selection as availability without false completion or 
   );
 });
 
+test('opens the exact server-owned review card from a controlled-pilot round receipt', async () => {
+  const fetchCalls: MockFetchCall[] = [];
+  const baseSession = createLocalLearningSession('cet4');
+  const reviewCard = baseSession.catalogCards[1];
+  const roundCompletionSession: LearningSession = {
+    ...baseSession,
+    cards: [],
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+    nextDueAt: null,
+    roundCompletion: {
+      completedCount: 5,
+      receiptId: `rnd_${'r'.repeat(32)}`,
+      reviewCardIds: [reviewCard.card_id],
+      schemaVersion: 'pilot-round-completion.v1',
+    },
+    schedulingMode: 'server',
+    serverSelection: null,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    fetchCalls.push({ init, input });
+
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(roundCompletionSession, 'pilot_premium'),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(roundCompletionSession);
+
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(
+      root,
+      'controlled-pilot-round-review',
+    ).props.onPress();
+  });
+
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-review-surface' }),
+  ).toBeTruthy();
+  expect(JSON.stringify(tree!.toJSON())).toContain(reviewCard.front.prompt);
+  expect(JSON.stringify(tree!.toJSON())).toContain(reviewCard.analysis.summary);
+  expect(
+    fetchCalls.filter(
+      call => call.input === 'https://api.softbook.example/v2/learning/events',
+    ),
+  ).toHaveLength(0);
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(
+      root,
+      'controlled-pilot-round-review-next',
+    ).props.onPress();
+  });
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toBeTruthy();
+});
+
 test('blocks product state writes until canonical bootstrap succeeds on reconnect', async () => {
   const { emitNetInfoState } = jest.requireMock(
     '@react-native-community/netinfo',

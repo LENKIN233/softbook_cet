@@ -5,7 +5,7 @@
 - Date: 2026-08-02
 - Branch: `cross/controlled-pilot-mobile`
 - PR: https://github.com/LENKIN233/softbook_cet/pull/475 (draft, stacked on `cross/controlled-pilot-design`; contains and depends on the exact runtime commits from PR #474)
-- Summary: Wired the accepted CET4 controlled-pilot lifecycle into the shared iOS/Android React Native client, restored the authenticated product-entry boundary, and completed the real mobile account-deletion request lifecycle: signed-out/restoring users see only the dedicated phone/SMS entry, while an accepted deletion request removes the product shell and reports cleanup as pending rather than complete. The dedicated entry now also remains inside the safe area and scrolls at accessibility text sizes without exposing product navigation.
+- Summary: Wired the accepted CET4 controlled-pilot lifecycle into the shared iOS/Android React Native client, restored the authenticated product-entry boundary, and completed the real mobile account-deletion request lifecycle: signed-out/restoring users see only the dedicated phone/SMS entry, while an accepted deletion request removes the product shell and reports cleanup as pending rather than complete. The dedicated entry now also remains inside the safe area and scrolls at accessibility text sizes without exposing product navigation. The five-card completion review action now opens only the exact accessible, ordered card IDs issued by the server instead of a dead or client-inferred review list.
 
 ## Referenced specs
 
@@ -42,6 +42,7 @@
 - `product_truth`: Account deletion is available only for a real remote account. A `202` response queues cleanup and revokes all sessions but does not prove worker completion; request failure must preserve the authenticated account and local data, while acceptance must immediately exit the shell and block any “删除完成” claim.
 - `product_truth`: A valid remote `selection: null` without a `round_completion` receipt is scheduler availability, not completed Learning. Only the receipt may open the five-card completion object.
 - `product_truth`: A verified phone/session is necessary but not sufficient to mount the product shell. Initial required canonical account hydration must succeed; otherwise Learning, Space, Statistics, Mine, and navigation remain outside the rendered tree.
+- `product_truth`: A pending round's review list is server-owned. It contains only currently accessible, non-sleeping cards whose latest canonical event is `review_needed`, ordered by the active card source. The client may resolve those exact IDs for read-only review but may not infer, add, reorder, or submit learning events from the completion boundary.
 
 ## Implementation hypothesis changed
 
@@ -57,6 +58,8 @@
 - Contained the dedicated authentication card in a safe-area-owned scroll surface for small screens and Dynamic Type, allowed retained account copy to wrap instead of truncating, and preserved the one-screen/no-scroll rule for all four authenticated product surfaces.
 - Added the design-mapped Learning availability object for remote null selection: optional server-provided next-due display, one fresh-session read action, and no `0/0`, restart, local fallback, progress mutation, or round action.
 - Added the accepted pre-shell account recovery boundary for an initially unavailable canonical bootstrap. It retains the verified session, exposes retry or explicit logout, supports enlarged-text scrolling, and opens Learning only after canonical hydration succeeds.
+- Extended strict Learning Session parsing and receipt persistence with `review_card_ids`. The repository rejects duplicate, missing, inaccessible, or source-order-drifting IDs; the completion action resolves only the accepted IDs and remains read-only.
+- Migrated pending receipt persistence to `user-state.v4`; legacy v3 receipts remain resumable with an empty review list rather than inventing review content.
 
 ## Workspace boundary and read scope
 
@@ -78,6 +81,9 @@
 - `apps/mobile/App.tsx`: remote-only deletion entry, bounded confirmation/failure states, duplicate-submit lock, account cleanup, shell exit, and cleanup-pending entry notice.
 - `apps/mobile/App.tsx`: no-selection availability routing and next-due presentation before the generic local deck-complete branch.
 - `apps/mobile/App.tsx`: verified-but-unhydrated pre-shell gate, bounded retry/logout object, and safe transition into Learning after account reconciliation.
+- `apps/mobile/App.tsx`: exact server-owned round-review card resolution and read-only completion-to-review routing.
+- `apps/mobile/src/learning/model.ts`, `remoteLearningSession.ts`, and `learningRepository.ts`: strict `review_card_ids` parsing plus current-access/source-order validation.
+- `apps/mobile/src/persistence/userStateStore.ts`: `user-state.v4` receipt persistence and conservative v3 migration.
 - `apps/mobile/__tests__/*`: parser, persistence, bootstrap, membership, UI and exact-action regression coverage.
 - `apps/mobile/e2e/maestro/ios-auth-space-gate-screenshot.yaml`, `ios-auth-statistics-gate-screenshot.yaml`, and the signed-out Mine auth-state flows: historical route-gate regressions now assert the dedicated entry and absence of all signed-out route tabs.
 - `apps/mobile/e2e/maestro/ios-*.yaml`: signed-out setup now clears the iOS Keychain before application state so flows are isolated even though secure credentials survive reinstall/state clearing.
@@ -110,6 +116,8 @@
 - 2026-08-03 no-selection correction -> merged separate design-only authority commit `17bbc72`, replaced the false remote `0/0` completion/restart state with “当前没有待处理的卡”, optional server-provided next-due time, and “重新检查”. Targeted App verification passed 72/72 and full mobile verification passed 46 suites / 450 tests; TypeScript, metadata scan, dependency compatibility pretests, ESLint, Maestro selector validation, and `git diff --check` passed.
 - 2026-08-03 initial-hydration shell correction -> a verified remote session whose first canonical bootstrap is unavailable now remains on “还不能进入学习” outside the product shell. Retry can reconcile the same secure session and then enter Learning; logout returns to the dedicated phone entry. Targeted App verification passed 73/73 and full mobile verification passed 46 suites / 451 tests; TypeScript, ESLint, metadata/dependency pretests, Maestro selector validation, and `git diff --check` passed.
 - 2026-08-03 iPhone 17 Pro / iOS 26.5 simulator destructive-path smoke -> passed against a temporary localhost auth receiver: real phone/SMS entry, authenticated Mine, visible irreversible-impact confirmation, authenticated `POST /v2/account/deletion`, shell removal after `202`, absent route tabs, and cleanup-pending entry notice. Screenshots were visually inspected at `/tmp/softbook-account-deletion-confirm.png` and `/tmp/softbook-account-deletion-pending.png`; the temporary receiver is not formal pilot evidence.
+- 2026-08-03 authentication-gate priority regression -> 7 dedicated-entry cases passed: cold signed-out entry, secure-session restoration, verified-but-unhydrated recovery, route-gate absence, signed-out Mine absence, code-sent containment, and enlarged-text scrolling. Every unauthenticated case rendered zero Learning, Space, Statistics, and Mine route tabs.
+- 2026-08-03 server-owned round-review integration -> App, strict Learning Session parser/repository, and persistence tests passed (4 suites / 116 tests). The completion action opened the exact server-owned card, emitted no learning event, preserved IDs across restart, migrated v3 without inventing IDs, and rejected current-access or source-order drift. TypeScript and `git diff --check` passed.
 - Exact Node 22.13.0 PR-profile local gate run -> mobile lint/typecheck/Jest, Web lint/tests, backend 238 tests, full harness, dependency security, LFS and evidence checks passed. It surfaced the missing Web `pilot_premium` label mapping, which was fixed; targeted Web typecheck, 12 tests and production build then passed. The overall local report remains non-green because this stacked PR does not target `main`, while repository-health strict mode also reports the shared repository's 11 worktrees/20 topic branches plus the remotely configured `android-release` check. The report is not a GitHub required check or formal evidence.
 
 ## Validation results
@@ -119,9 +127,10 @@
 - Continue posts only the exact server receipt tuple and accepts only a matching acknowledged/duplicate server response.
 - The completion surface has exactly the accepted review, Space and continue actions. Continue is the only primary action; failed continue retains the receipt for retry.
 - Pending-round review performs no learning-event submission and returns to the same completion receipt.
+- Pending-round review renders only exact server receipt IDs. The mobile repository rejects IDs outside the current access prefix or active source order, and an empty list produces calm completion-page feedback rather than a fallback list.
 - Mine and restricted Space expose no purchase or self-grant action in controlled-pilot mode and clearly state that the pilot is free and eligibility is operationally granted.
 - `trial_remaining_seconds` is rendered from server data; the client does not subtract device time or independently determine expiry.
-- `user-state.v3` round-trips the exact receipt and notice marker; legacy migration creates neither.
+- `user-state.v4` round-trips the exact receipt, review IDs and notice marker; v3 migration preserves the receipt with an empty review list, while older migration creates no pilot state.
 - The shared membership-stage union is now consumed exhaustively by the internal Web acceptance surface, preventing a future stage addition from silently rendering an undefined label.
 - During persistence restoration, only the account-restoration state mounts. Once restoration resolves signed out, only the dedicated login surface mounts; the phone shell and tablet shell are outside that branch.
 - Successful SMS verification hydrates the account before setting authenticated state and entering Learning. Failed verification remains on the same dedicated entry. Logout clears account runtime state and returns directly to the navigation-free entry.

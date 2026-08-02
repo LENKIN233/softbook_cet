@@ -172,6 +172,24 @@ export function createLearningSessionRepository(
           );
         }
 
+        const reviewCardIndexes =
+          scheduled.roundCompletion?.reviewCardIds.map(cardId =>
+            source.cards.findIndex(card => card.card_id === cardId),
+          ) ?? [];
+        if (
+          reviewCardIndexes.some(
+            index => index < 0 || index >= scheduled.access.accessibleCardCount,
+          ) ||
+          reviewCardIndexes.some(
+            (index, position) =>
+              position > 0 && index <= reviewCardIndexes[position - 1],
+          )
+        ) {
+          throw new Error(
+            'Remote round review content is outside canonical accessible content.',
+          );
+        }
+
         return {
           cards: selectedCardIndex < 0 ? [] : [source.cards[selectedCardIndex]],
           catalogCards: source.cards,
