@@ -151,6 +151,7 @@ async function readLearningSession(config, input) {
         completedCount: context.learning.projectionServerSequence,
         contentVersion: context.contentVersion,
         pilotId: context.pilotId,
+        reviewCardIds: selectPilotRoundReviewCardIds(context),
       });
       const continuation =
         await config.store.getPilotRoundContinuation({
@@ -529,6 +530,18 @@ function selectNextCard(context, randomBytes) {
     nextDueAt: future[0]?.dueAt ?? null,
     selection: null,
   };
+}
+
+function selectPilotRoundReviewCardIds(context) {
+  return context.cards.flatMap(card => {
+    const event = context.learning.eventsByCardId[card.cardId];
+    if (!event) return [];
+    if (event.answer_grade === 'review_needed') return [card.cardId];
+    if (event.answer_grade === 'passed') return [];
+    throw unavailable(
+      `The canonical learning event for ${card.cardId} has an invalid answer grade.`,
+    );
+  });
 }
 
 function createSelection(

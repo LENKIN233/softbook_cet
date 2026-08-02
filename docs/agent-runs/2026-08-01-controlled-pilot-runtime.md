@@ -41,6 +41,8 @@
 
 ## Implementation hypothesis changed
 
+- `pilot-round-completion.v1` now includes ordered unique `review_card_ids` derived from canonical latest per-card `answer_grade=review_needed` events in active card-source order; invalid answer grades fail closed.
+
 - Added `controlled_pilot` as a production-like runtime mode: v1 is disabled, real SMS/client-IP/secret requirements apply, and every content-bearing v2 route enforces an active unexpired `pilot-content-release.v1`.
 - Added a transaction boundary that couples Learning Session cursor persistence/confirmation with first-trial activation. Membership reads expire trials server-side and apply beta then pilot overlays without mutating the base timeline.
 - Added a controlled-pilot publisher and CloudBase adapter that verify the exact bundle/profile, approval, zero-blocker audit, card distribution, box/catalog mapping, audio bytes, human QC records and hashes; upload/reread private audio; verify staged content; activate last; and reread the active release.
@@ -69,6 +71,8 @@
 
 ## Commands run
 
+- 2026-08-03 round-review authority correction: `node --test test/controlled-pilot-runtime.test.js` -> 5/5 passed; full backend `npm test` -> 238/238 passed.
+
 - `node --check` for all new publisher, adapter, deploy, entitlement, API, deletion-worker and release-runtime modules -> passed.
 - `node --test infra/cloudbase/functions/softbook-api/test/controlled-pilot-publisher-v1.test.js` -> passed, 4 tests.
 - `npm test` in `infra/cloudbase/functions/softbook-api` -> passed, 235 tests.
@@ -78,6 +82,7 @@
 - `./scripts/run_local_gates --profile dev --base origin/main --verbose` -> `PASSED_WITH_EXCEPTION`, 23/24 passed. The only exception is declared dev-only Node version drift (actual 25.9.0, expected 22.13.0); all executed harness, mobile, Web, backend, metadata, launch-contract and build checks passed. Report: `exports/local-gates/20260801T111943Z-9d0552d6-dev-73423/report.json`.
 - 2026-08-02 continuation: resolved an isolated exact Node 22.13.0 runtime with `npm exec --yes --package=node@22.13.0 -- node`, then reran controlled-pilot profile/bundle, publisher, runtime, deployment, entitlement and account-deletion-worker tests -> passed, 27 tests (16 pilot publication/runtime/deploy tests plus 11 entitlement/deletion tests).
 - 2026-08-02 receiver capability audit: `tcb env list --json` succeeded with CloudBase CLI 3.6.4 and returned one `NORMAL` environment classified by the provider as an `体验版` test environment. No receiver-owned `controlled-pilot-profile.v1` was available, so no receiver preflight or mutation was attempted.
+- 2026-08-02 later receiver identity recheck: `tcb env:list --json` failed closed with `No valid identity information, please use cloudbase login to login`. The earlier test-environment observation is historical only and is not current receiver capability evidence; no interactive login, receiver discovery, profile binding or mutation was attempted.
 - 2026-08-02 secret-presence audit (values never read or printed): SMS provider variables and content-manifest signing key variables were absent from the process environment.
 - 2026-08-02 five-card continuation: exact Node 22.13.0 full CloudBase API suite -> passed, 238 tests after adding the round gate, duplicate/offline replay, cross-midnight, cross-device, strict identity rejection, exact receipt acknowledgement, formal-route isolation, server remaining time and cross-instance CloudBase persistence/corruption coverage.
 - 2026-08-02 lifecycle continuation: exact Node 22.13.0 `infra/cloudbase/test-smoke-record-lifecycle.mjs` -> passed, 11 tests; `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`; `git diff --check` -> passed.
@@ -85,6 +90,8 @@
 - PR checks: pending.
 
 ## Validation results
+
+- The fifth-event receipt exposes the exact server-authoritative read-only review card IDs and remains identical across replay, midnight rollover, and a second device; the client no longer needs to infer receipt review content.
 
 - Login and all failed/empty Learning Session paths leave `trial_available` unchanged; the first valid card starts one exact 120-hour timeline and repeated session requests are idempotent.
 - At exact expiry, the server resolves to `free`; a valid 120-card pilot exposes exactly 60 cards. Formal and controlled-pilot releases are mutually rejected by the opposite runtime.
@@ -121,6 +128,7 @@
 - The approved 120-card payload and all referenced audio/QC remain external content deliverables from `/Users/lenkin/programing/card make`.
 - Receiver CloudBase, real SMS, timer execution logs, account deletion drill, private audio device playback and rollback evidence remain pending and cannot be replaced with repository tests.
 - The exact deployment Node version is locally obtainable, but the receiver profile, independent pilot environment, SMS credentials and content signing keys remain absent. These are external prerequisites, not repository test failures.
+- The current local CloudBase CLI has no valid identity. A human-authenticated receiver session is therefore required before any read-only receiver preflight can be repeated; this does not authorize use of the earlier provider-labelled test environment.
 - Mobile implementation must continue to parse server `round_completion` and `trial_remaining_seconds`, POST only the exact receipt on the explicit primary action, and never count or acknowledge a round locally.
 - Mobile wiring now exists in draft PR #475 with exact receipt persistence/continue, server-time display and no-payment pilot surfaces; it remains unmerged and does not replace receiver/device evidence.
 

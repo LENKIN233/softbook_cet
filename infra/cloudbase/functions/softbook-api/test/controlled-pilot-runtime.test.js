@@ -201,6 +201,11 @@ test('five confirmed events create one durable server round gate until exact con
       index,
       now.toISOString(),
     );
+    if (index === 4) {
+      lastEvent.answer_grade = 'review_needed';
+      lastEvent.outcome =
+        lastEvent.interaction_id === 'flip' ? 'review' : 'incorrect';
+    }
     const submitted = await submitEvents(api, session, [lastEvent]);
     assert.equal(submitted.statusCode, 200, JSON.stringify(submitted.body));
   }
@@ -215,6 +220,9 @@ test('five confirmed events create one durable server round gate until exact con
     'pilot-round-completion.v1',
   );
   assert.match(pending.body.data.round_completion.receipt_id, /^rnd_/);
+  assert.deepEqual(pending.body.data.round_completion.review_card_ids, [
+    lastEvent.card_id,
+  ]);
 
   const replay = await submitEvents(api, session, [lastEvent]);
   assert.equal(replay.statusCode, 200, JSON.stringify(replay.body));
