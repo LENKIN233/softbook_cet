@@ -34,6 +34,7 @@
 - `product_truth`: Repository development cards, external candidate rows, fixtures, and dry-run projections are not approved pilot cards. The current development-source count of ten cards therefore does not satisfy the pilot gate.
 - `product_truth`: Formal CET4 closed beta remains exactly 1,180 cards, 301 audio references, and one whole-track final approval.
 - `product_truth`: Every positive multiple of the cumulative account-and-track canonical `server_sequence` is one server-gated round boundary. Day-scoped progress is not round authority. The next card cannot be selected until the authenticated client explicitly acknowledges the exact server receipt; duplicate events, midnight rollover, restart, offline replay, and cross-device reads cannot duplicate or skip the boundary.
+- `product_truth`: The receipt's read-only review action resolves only ordered `review_card_ids` returned by the server from the canonical latest per-card event projection. The mobile client cannot infer review content from local results or expose a dead review action in server scheduling mode.
 
 ## Implementation hypothesis changed
 
@@ -43,6 +44,7 @@
 - Tightened the authentication owner/mirrors and GT-10 so future implementations cannot repeat one login gate inside each of the four product pages.
 - This PR does not implement remote persistence, a pilot publisher, entitlement storage, account-deletion cleanup, mobile wiring, deployment, approved content import, or real-device evidence.
 - The 2026-08-02 continuation adds the missing `pilot-round-continue.v1` authority: an exact authenticated idempotent command, deterministic receipt, account-scoped continuation record, and scheduler prohibition on selecting the next card before acknowledgement. Backend and mobile implementation remain in later PRs.
+- The 2026-08-03 product-flow audit adds ordered unique `review_card_ids` to `pilot-round-completion.v1`, derived from canonical latest `answer_grade=review_needed` projections in active card-source order.
 
 ## Workspace boundary and read scope
 
@@ -72,6 +74,7 @@
 - 2026-08-02 continuation: bound Mine's remaining-time presentation to server-derived `trial_remaining_seconds` on membership, Bootstrap, and Learning Session reads; clients may format the value but cannot derive it from device time.
 - 2026-08-02 continuation: recorded the runtime topic-branch implementation state and exact Learning Session/Bootstrap response fields without treating repository implementation as deployment evidence.
 - 2026-08-02 product-entry correction: added the dedicated-login/app-shell owner and mirror checks after the user rejected the four-page repeated-login flow.
+- 2026-08-03 round-review correction: JSON parsing, harness validation, and diff checks cover the new server-authoritative review-content rule; runtime and mobile remain separate later PR changes.
 - `./scripts/run_local_gates --profile dev --base origin/main --verbose` -> `PASSED_WITH_EXCEPTION`, 23/24 passed; only the declared toolchain exception applied, and all executed harness, mobile, Web, backend, metadata, launch-contract, and build checks passed. Report: `exports/local-gates/20260801T072526Z-5b592247-dev-54469/report.json`.
 - PR checks: pending.
 
@@ -83,6 +86,7 @@
 - Formal `delivery-profile.v1` and `release-bundle.v1` validators reject pilot artifacts; their 1,180/301 thresholds were not changed.
 - Outcome decisions are recomputed from aggregate counts and cannot advance when any threshold or P0 condition fails.
 - Five-card completion is now contractually fail-closed: the cumulative canonical account-and-track `server_sequence` must be a positive multiple of five, Learning Session returns no next selection at an unacknowledged boundary, and only the exact server-derived continue receipt can release scheduling.
+- The same receipt now carries deterministic ordered review card IDs, so “回看待复习内容” is functional in server mode without client-side inference or ordering.
 - Authentication is now an app-entry boundary rather than a per-route placeholder: signed-out and unvalidated-restoration states expose one dedicated phone/SMS surface and no four-tab product navigation.
 
 ## Agent review status
