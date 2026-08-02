@@ -20,6 +20,7 @@ Authentication entry, account deletion, and Learning lifecycle states around the
 - Authentication failure: retain the current form state and attach the error near its field/action; do not route to Learning, Space, Statistics, or Mine.
 - Authentication success: crossfade the entry object to authenticated Learning chrome after hydration succeeds. This transition never shows trial-start feedback by itself.
 - A valid card becomes ready: show the current card and attach the start slip in the same committed visual state.
+- A valid session with no selection and no round receipt: replace the card region with the bounded availability object. “重新检查” enters the existing quiet loading state and either replaces the object with a server-selected card/receipt or restores it without celebration.
 - A non-fifth confirmed event: continue the existing resolve -> settle -> continue rhythm.
 - A fifth confirmed event: resolve the card, settle it toward its Space address, then reveal the completion receipt.
 - Review and Space are secondary destinations; continue is the primary destination and only then requests the next server selection.
@@ -35,6 +36,7 @@ Authentication entry, account deletion, and Learning lifecycle states around the
 - Reconciliation: no repeated animation or duplicate receipt for an already-counted event.
 - Deletion pending: “正在提交删除请求…” stays inside the confirmation object; the underlying Mine surface does not change.
 - Deletion accepted: “账户删除已提交” and “数据清理完成前暂不能重新登录”; never “账户已删除”.
+- No selection: “当前没有待处理的卡”; optionally “下次可回看 · {server time}”. Never “本轮学习已走完”, `0/0`, or “重新练这轮卡”.
 
 ## Failure / Recovery State
 
@@ -43,6 +45,7 @@ Authentication entry, account deletion, and Learning lifecycle states around the
 - Space route failure: keep the completion receipt and allow retry; do not discard confirmation.
 - Entitlement refresh failure: show last-confirmed server time and a quiet retry state; never calculate a replacement locally.
 - Deletion request failure: keep the account authenticated, show “暂时无法提交删除请求。你的账户和学习数据没有改变。” and allow retry or cancel.
+- Availability refresh failure: retain the no-selection object and show the existing safe Learning retry error; do not synthesize a card, completion, or next-due time.
 
 ## Motion Intent and Timing Range
 

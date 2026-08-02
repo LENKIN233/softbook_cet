@@ -39,6 +39,7 @@
 ## State Ownership
 
 - Server owns trial start/end, entitlement, confirmed completion count, next card selection, and Space state.
+- `selection: null` plus no `round_completion` maps to a dedicated Learning availability object. `next_due_at` may be formatted for display but not recalculated; “重新检查” performs a fresh session read. It must not reuse the deck-complete surface.
 - Client owns presentation, accessible formatting, animation interruption, and reduced-motion rendering.
 - The authentication/session coordinator owns whether the product shell may mount. Route selection is downstream of that gate and cannot expose a signed-out route-specific login state.
 - Client must not start the trial, count a round locally, grant eligibility, or derive access from its own clock.
