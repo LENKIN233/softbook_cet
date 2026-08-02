@@ -570,6 +570,10 @@ function AppShell({
     useRef<PersistedUserState['pilotRoundCompletion']>(null);
   const [pilotRoundContinuePending, setPilotRoundContinuePending] =
     useState(false);
+  const pilotRoundContinueInFlight = useRef<{
+    receiptId: string;
+    sessionScopeKey: string;
+  } | null>(null);
   const [pilotRoundError, setPilotRoundError] = useState<string | null>(null);
   const [pilotRoundReviewIndex, setPilotRoundReviewIndex] = useState<
     number | null
@@ -668,6 +672,7 @@ function AppShell({
       pendingMembershipRefreshKey.current = null;
       persistedLearningCursor.current = null;
       pilotRoundCompletionRef.current = null;
+      pilotRoundContinueInFlight.current = null;
       presentedTrialStartedAtRef.current = null;
       accountBootstrapStatusRef.current =
         runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required';
@@ -3672,7 +3677,7 @@ function AppShell({
       !isControlledPilot ||
       authenticatedRuntimeContext === null ||
       pilotRoundCompletion === null ||
-      pilotRoundContinuePending
+      pilotRoundContinueInFlight.current !== null
     ) {
       return;
     }
@@ -3691,6 +3696,11 @@ function AppShell({
     }
 
     const continuationCompletion = pilotRoundCompletion;
+    const continuationRequest = {
+      receiptId: continuationCompletion.receiptId,
+      sessionScopeKey: continuationSessionScopeKey,
+    };
+    pilotRoundContinueInFlight.current = continuationRequest;
     setPilotRoundContinuePending(true);
     setPilotRoundError(null);
     learningSessionRepository
@@ -3701,12 +3711,14 @@ function AppShell({
       })
       .then(() => {
         if (
+          pilotRoundContinueInFlight.current !== continuationRequest ||
           getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !==
           continuationSessionScopeKey
         ) {
           return;
         }
 
+        pilotRoundContinueInFlight.current = null;
         pilotRoundCompletionRef.current = null;
         setPilotRoundCompletion(null);
         setPilotRoundContinuePending(false);
@@ -3720,12 +3732,14 @@ function AppShell({
       })
       .catch((error: unknown) => {
         if (
+          pilotRoundContinueInFlight.current !== continuationRequest ||
           getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !==
           continuationSessionScopeKey
         ) {
           return;
         }
 
+        pilotRoundContinueInFlight.current = null;
         setPilotRoundContinuePending(false);
         if (isRemoteAuthorizationError(error)) {
           clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(

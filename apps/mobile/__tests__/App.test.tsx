@@ -2977,11 +2977,14 @@ test('ignores a stale round-continue response after the auth session changes', a
   ).toBeTruthy();
 
   await ReactTestRenderer.act(() => {
-    findPressableByTestId(
+    const continueButton = findPressableByTestId(
       root,
       'controlled-pilot-round-continue',
-    ).props.onPress();
+    );
+    continueButton.props.onPress();
+    continueButton.props.onPress();
   });
+  expect(mockContinueRound).toHaveBeenCalledTimes(1);
   await openRoute(root, 'mine');
   await ReactTestRenderer.act(async () => {
     const mineSurface = root.find(
