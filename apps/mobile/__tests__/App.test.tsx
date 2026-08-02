@@ -2310,6 +2310,12 @@ test('opens the exact server-owned review card from a controlled-pilot round rec
     findPressableByTestId(root, 'controlled-pilot-round-space').props.onPress();
   });
   expect(root.findByProps({ testID: 'space-current-box-tray' })).toBeTruthy();
+  expect(
+    root.find(
+      node =>
+        typeof node.type === 'function' && node.type.name === 'SpaceSurface',
+    ).props.currentLearningCard.card_id,
+  ).toBe(latestRoundCard.card_id);
 
   await openRoute(root, 'learning');
   expect(

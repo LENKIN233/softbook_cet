@@ -4100,7 +4100,11 @@ function AppShell({
     ) : route.key === 'space' ? (
       <SpaceSurface
         cardStateById={spaceCardStateById}
-        currentLearningCard={currentLearningCard}
+        currentLearningCard={
+          pilotRoundCompletion !== null
+            ? pilotRoundSpaceCard
+            : currentLearningCard
+        }
         deviceClass={deviceClass}
         onBackToOverview={() => setSpaceScreen('overview')}
         onOpenCardList={() => setSpaceScreen('card_list')}

@@ -63,6 +63,7 @@
 - Extended the strict Learning Session parser, model, repository validation, completion-to-Space mapping and receipt persistence with the server-owned `space_card_id`.
 - Migrated pending receipt persistence to `user-state.v5`. Legacy v4/v3 receipts lack the server-owned Space card, so their receipt is discarded and reissued by the next authoritative Session instead of inventing review or Space content; unrelated state, including the first-card notice marker, remains available.
 - Bound continue acknowledgement handling to the exact authenticated session scope. A response or failure from an old account/session is ignored after logout, account switch, or session replacement and cannot clear or reload the new account's round.
+- Routed the completion page's Space action with the exact server-owned boundary card as `SpaceSurface` focus. The action now opens that card's real library/group/box instead of the default first box while the Learning selection is intentionally gated to null.
 
 ## Workspace boundary and read scope
 
@@ -85,6 +86,7 @@
 - `apps/mobile/App.tsx`: no-selection availability routing and next-due presentation before the generic local deck-complete branch.
 - `apps/mobile/App.tsx`: verified-but-unhydrated pre-shell gate, bounded retry/logout object, and safe transition into Learning after account reconciliation.
 - `apps/mobile/App.tsx`: exact server-owned round-review and Space-card resolution, read-only completion routing, and account/session-scoped continuation handling.
+- `apps/mobile/App.tsx`: completion-to-Space focus passes the exact boundary card into the existing physical-space continuity model rather than opening an unrelated default box.
 - `apps/mobile/src/learning/model.ts`, `remoteLearningSession.ts`, and `learningRepository.ts`: strict `review_card_ids`/`space_card_id` parsing plus access, source-order and active-content validation.
 - `apps/mobile/src/persistence/userStateStore.ts`: `user-state.v5` exact receipt persistence and conservative v4/v3 receipt retirement.
 - `apps/mobile/__tests__/*`: parser, persistence, bootstrap, membership, UI and exact-action regression coverage.
@@ -125,6 +127,7 @@
 - 2026-08-03 round continuity correction -> targeted App coverage reproduced and then prevented an old account's delayed continue acknowledgement from loading a new account's Session. Strict parser/repository/persistence coverage passed 45/45, including missing/invalid/non-active `space_card_id` rejection and conservative v4/v3 migration; TypeScript and `git diff --check` passed.
 - 2026-08-03 post-authority-merge full mobile verification -> after merging the exact contract, design and runtime Space-card authority commits, 46 suites / 460 tests passed. TypeScript, metadata/dependency pretests, Maestro selector validation and `git diff --check` passed; ESLint reported 0 errors and the same 14 pre-existing inline-style warnings.
 - 2026-08-03 post-authority-merge cross-layer verification -> full CloudBase API suite passed 238/238, `python3 scripts/validate_harness.py` returned `HARNESS VALIDATION OK`, and `git diff --check` passed on the integrated mobile branch.
+- 2026-08-03 completion-to-Space correction -> a failing integration assertion proved that “查看所在 Space” opened the Space overview with `currentLearningCard=null`, which defaulted to the first box. The action now focuses the exact server-owned boundary card. Targeted regression and full mobile verification passed: 46 suites / 460 tests, TypeScript, metadata/dependency pretests, Maestro selector validation and `git diff --check`; ESLint remained at 0 errors / 14 existing warnings.
 - Exact Node 22.13.0 PR-profile local gate run -> mobile lint/typecheck/Jest, Web lint/tests, backend 238 tests, full harness, dependency security, LFS and evidence checks passed. It surfaced the missing Web `pilot_premium` label mapping, which was fixed; targeted Web typecheck, 12 tests and production build then passed. The overall local report remains non-green because this stacked PR does not target `main`, while repository-health strict mode also reports the shared repository's 11 worktrees/20 topic branches plus the remotely configured `android-release` check. The report is not a GitHub required check or formal evidence.
 
 ## Validation results
@@ -136,6 +139,7 @@
 - Pending-round review performs no learning-event submission and returns to the same completion receipt.
 - Pending-round review renders only exact server receipt IDs. The mobile repository rejects IDs outside the current access prefix or active source order, and an empty list produces calm completion-page feedback rather than a fallback list.
 - The completion Space address resolves only `round_completion.space_card_id`, which must exist in canonical active content. Client event phase, append order and device timestamps are not used to choose it.
+- “查看所在 Space” carries that same exact card into the existing library/group/box focus model, so the receipt address and opened Space location cannot diverge.
 - Mine and restricted Space expose no purchase or self-grant action in controlled-pilot mode and clearly state that the pilot is free and eligibility is operationally granted.
 - `trial_remaining_seconds` is rendered from server data; the client does not subtract device time or independently determine expiry.
 - `user-state.v5` round-trips the exact receipt, review IDs, Space ID and notice marker. v4/v3 migration preserves unrelated state but drops the incomplete receipt until a server Session reissues current authority; older migration creates no pilot state.
