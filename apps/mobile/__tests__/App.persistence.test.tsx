@@ -196,6 +196,7 @@ function createCanonicalBootstrapPayload() {
           stage: 'premium',
           trial_duration_days: 5,
           trial_expires_at: null,
+          trial_remaining_seconds: 0,
           trial_started_at: null,
           trial_started_at_entry_count: 1,
         },
@@ -252,6 +253,7 @@ function createRemoteLearningSessionPayload(
       source_id: canonical.session.sourceId,
       membership_stage: 'premium',
       trial_expires_at: null,
+      trial_remaining_seconds: 0,
       trial_started_at: null,
       algorithm: {
         id: 'FSRS-6',
@@ -272,6 +274,7 @@ function createRemoteLearningSessionPayload(
         due_at: null,
       },
       next_due_at: null,
+      round_completion: null,
     },
   };
 }
@@ -316,6 +319,8 @@ test('restores check-in, learning cursor, favorite, and sleep state', async () =
       sourceId: session.sourceId,
       track: session.track,
     },
+    pilotRoundCompletion: null,
+    presentedTrialStartedAt: null,
     spaceCardStateById: {
       [sleepingFavoriteCard.card_id]: {
         isFavorited: true,
@@ -411,6 +416,8 @@ test('restores remote account state from canonical bootstrap before local use', 
     await createUserStateStore().save('13800138000', {
       checkedInDayKey: getChinaDayKey(),
       learningCursor: null,
+      pilotRoundCompletion: null,
+      presentedTrialStartedAt: null,
       spaceCardStateById: {},
     });
 
@@ -538,6 +545,8 @@ test('restores an exact queued check-in without treating event-derived progress 
     await createUserStateStore().save('13800138000', {
       checkedInDayKey: null,
       learningCursor: null,
+      pilotRoundCompletion: null,
+      presentedTrialStartedAt: null,
       spaceCardStateById: {},
     });
     await AsyncStorage.setItem(
@@ -968,6 +977,8 @@ test('does not persist canonical state before content version validation', async
   const originalUserState = {
     checkedInDayKey: dayKey,
     learningCursor: null,
+    pilotRoundCompletion: null,
+    presentedTrialStartedAt: null,
     spaceCardStateById: {},
   };
 
@@ -1034,7 +1045,7 @@ test('degrades corrupt user state and clears persistence on logout', async () =>
   expect(repairedUserState).not.toBeNull();
   expect(JSON.parse(repairedUserState!)).toMatchObject({
     owner_phone_number: '13800138000',
-    schema_version: 'user-state.v2',
+    schema_version: 'user-state.v3',
   });
 
   await openRoute(tree.root, 'mine');
@@ -1133,6 +1144,7 @@ test('reloads remote membership authority when restoring an auth session', async
                 stage: 'premium',
                 trial_duration_days: 5,
                 trial_expires_at: null,
+                trial_remaining_seconds: 0,
                 trial_started_at: null,
                 trial_started_at_entry_count: 1,
               },
@@ -1256,6 +1268,8 @@ test('uses bootstrap canonical space state without pushing unqueued restored sta
     await createUserStateStore().save('13800138000', {
       checkedInDayKey: null,
       learningCursor: null,
+      pilotRoundCompletion: null,
+      presentedTrialStartedAt: null,
       spaceCardStateById: {
         [canonicalSpaceCard.card_id]: {
           isFavorited: false,
@@ -1395,6 +1409,8 @@ function createUserStateStoreFixture() {
   return {
     checkedInDayKey: '2026-07-10',
     learningCursor: null,
+    pilotRoundCompletion: null,
+    presentedTrialStartedAt: null,
     spaceCardStateById: {},
   };
 }

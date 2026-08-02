@@ -51,6 +51,8 @@ export type LearningSurfacePalette = {
 
 type LearningSurfaceProps = {
   palette: LearningSurfacePalette;
+  pilotIdentityLabel?: string | null;
+  trialNoticeVisible?: boolean;
   contentManifest?: VerifiedContentManifest | null;
   sessionCards: LearningCard[];
   sessionLabel: string;
@@ -212,6 +214,8 @@ export function isCompactLearningViewport(width: number, height: number) {
 
 export function LearningSurface({
   palette,
+  pilotIdentityLabel = null,
+  trialNoticeVisible = false,
   contentManifest = null,
   sessionCards,
   sessionLabel,
@@ -556,6 +560,30 @@ export function LearningSurface({
             </View>
           </View>
         </View>
+        {pilotIdentityLabel ? (
+          <View
+            style={[
+              styles.pilotIdentitySlip,
+              {
+                backgroundColor: hexToRgba(tone.accent, 0.08),
+                borderColor: hexToRgba(tone.accent, 0.18),
+              },
+            ]}
+            testID="controlled-pilot-learning-identity"
+          >
+            <Text style={[styles.pilotIdentityLabel, { color: tone.accent }]}>
+              {pilotIdentityLabel}
+            </Text>
+            {trialNoticeVisible ? (
+              <Text
+                style={[styles.pilotTrialNotice, { color: palette.textMuted }]}
+                testID="controlled-pilot-trial-notice"
+              >
+                120 小时完整体验已从这张有效学习卡开始；时间与资格以服务端为准。
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
         {!isCompactPhone ? (
           <View
             style={[
@@ -623,10 +651,7 @@ export function LearningSurface({
 
         {audioSelection ? (
           <View style={styles.audioResourceSlot} testID="learning-audio-slot">
-            <LearningAudioPlayer
-              palette={palette}
-              selection={audioSelection}
-            />
+            <LearningAudioPlayer palette={palette} selection={audioSelection} />
           </View>
         ) : null}
 
@@ -1549,7 +1574,11 @@ function SwipeInteraction({
   );
 
   const rotate = dragX.interpolate({
-    inputRange: [-Math.max(cardWidthRef.current, 1), 0, Math.max(cardWidthRef.current, 1)],
+    inputRange: [
+      -Math.max(cardWidthRef.current, 1),
+      0,
+      Math.max(cardWidthRef.current, 1),
+    ],
     outputRange: ['-5deg', '0deg', '5deg'],
   });
   const selectedState = card.swipe_states.find(
@@ -1558,10 +1587,7 @@ function SwipeInteraction({
 
   return (
     <View
-      style={[
-        styles.swipeColumn,
-        compact ? styles.swipeColumnCompact : null,
-      ]}
+      style={[styles.swipeColumn, compact ? styles.swipeColumnCompact : null]}
     >
       <View
         style={[styles.swipeDeck, compact ? styles.swipeDeckCompact : null]}
@@ -2830,6 +2856,26 @@ const styles = StyleSheet.create({
   },
   cardAddressShelfCompact: {
     gap: 8,
+  },
+  pilotIdentitySlip: {
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+  pilotIdentityLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  pilotTrialNotice: {
+    flexShrink: 1,
+    fontSize: 11,
+    lineHeight: 16,
   },
   cardObjectAccent: {
     borderRadius: 999,

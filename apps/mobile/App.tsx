@@ -49,6 +49,10 @@ import {
   LearningSurface,
 } from './src/learning/LearningSurface';
 import {
+  ControlledPilotReviewSurface,
+  ControlledPilotRoundCompletionSurface,
+} from './src/learning/ControlledPilotRoundCompletionSurface';
+import {
   LearningCard,
   LearningCardResult,
   LearningCardState,
@@ -454,7 +458,7 @@ function AppShell({
               mode: 'remote' as const,
               ...contentManifestRuntimeConfig.remote,
             }
-          : {mode: 'disabled' as const},
+          : { mode: 'disabled' as const },
       fetchImpl: authenticatedFetch,
     };
   }, [authenticatedFetch, contentManifestRuntimeConfig, runtimeConfig]);
@@ -548,6 +552,20 @@ function AppShell({
   ] = useState(runtimeAccountBootstrapMode !== 'remote');
   const [learningSession, setLearningSession] =
     useState<LearningSession | null>(null);
+  const [pilotRoundCompletion, setPilotRoundCompletion] =
+    useState<PersistedUserState['pilotRoundCompletion']>(null);
+  const pilotRoundCompletionRef =
+    useRef<PersistedUserState['pilotRoundCompletion']>(null);
+  const [pilotRoundContinuePending, setPilotRoundContinuePending] =
+    useState(false);
+  const [pilotRoundError, setPilotRoundError] = useState<string | null>(null);
+  const [pilotRoundReviewIndex, setPilotRoundReviewIndex] = useState<
+    number | null
+  >(null);
+  const [pilotTrialNoticeStartedAt, setPilotTrialNoticeStartedAt] = useState<
+    string | null
+  >(null);
+  const presentedTrialStartedAtRef = useRef<string | null>(null);
   const [learningBootstrapStatus, setLearningBootstrapStatus] =
     useState<LearningBootstrapStatus>('idle');
   const [learningBootstrapError, setLearningBootstrapError] = useState<
@@ -633,6 +651,8 @@ function AppShell({
       lastMembershipRefreshKey.current = null;
       pendingMembershipRefreshKey.current = null;
       persistedLearningCursor.current = null;
+      pilotRoundCompletionRef.current = null;
+      presentedTrialStartedAtRef.current = null;
       accountBootstrapStatusRef.current =
         runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required';
       accountBootstrapRefreshRequired.current = false;
@@ -650,6 +670,11 @@ function AppShell({
       );
       setAuthState({ ...INITIAL_AUTH_STATE, error });
       setLearningPhase('learning');
+      setPilotRoundCompletion(null);
+      setPilotRoundContinuePending(false);
+      setPilotRoundError(null);
+      setPilotRoundReviewIndex(null);
+      setPilotTrialNoticeStartedAt(null);
       setReviewSessionCards([]);
       setReviewCompletedResults([]);
       setMembershipError(null);
@@ -1010,6 +1035,14 @@ function AppShell({
       setMembershipGate(null);
       persistedLearningCursor.current =
         hydration.persistedUserState.learningCursor;
+      pilotRoundCompletionRef.current =
+        hydration.persistedUserState.pilotRoundCompletion;
+      presentedTrialStartedAtRef.current =
+        hydration.persistedUserState.presentedTrialStartedAt;
+      setPilotRoundCompletion(
+        hydration.persistedUserState.pilotRoundCompletion,
+      );
+      setPilotTrialNoticeStartedAt(null);
       unreconciledCheckInDayKeyRef.current = hydration.pendingCheckInDayKey;
       setCheckedInDayKey(hydration.persistedUserState.checkedInDayKey);
       setSpaceCardStateById(hydration.persistedUserState.spaceCardStateById);
@@ -1550,8 +1583,7 @@ function AppShell({
           if ('terminalRejection' in result) {
             quarantinedSpaceAction = true;
             setSpaceStateSyncState({
-              detail:
-                '有一项空间操作无法应用，正在恢复服务端当前状态。',
+              detail: '有一项空间操作无法应用，正在恢复服务端当前状态。',
               label: '恢复中',
               state: 'syncing',
             });
@@ -1635,15 +1667,13 @@ function AppShell({
             });
           } else if (remainingPendingSpaceActionCount > 0) {
             setSpaceStateSyncState({
-              detail:
-                '部分空间操作仍安全保存在本机，网络恢复后会自动再试。',
+              detail: '部分空间操作仍安全保存在本机，网络恢复后会自动再试。',
               label: '待重试',
               state: 'error',
             });
           } else if (quarantinedSpaceAction) {
             setSpaceStateSyncState({
-              detail:
-                '一项空间操作未能应用，当前空间已恢复为服务端状态。',
+              detail: '一项空间操作未能应用，当前空间已恢复为服务端状态。',
               label: '已恢复',
               state: 'synced',
             });
@@ -1896,6 +1926,8 @@ function AppShell({
       .save(authState.phoneNumber, {
         checkedInDayKey,
         learningCursor: persistedLearningCursor.current,
+        pilotRoundCompletion,
+        presentedTrialStartedAt: presentedTrialStartedAtRef.current,
         spaceCardStateById,
       })
       .catch((error: unknown) => {
@@ -1909,6 +1941,7 @@ function AppShell({
     isAuthenticated,
     learningPhase,
     learningSession,
+    pilotRoundCompletion,
     persistenceHydrated,
     spaceCardStateById,
     userStateStore,
@@ -2216,6 +2249,44 @@ function AppShell({
         }
 
         if (
+          isControlledPilot &&
+          session.generatedAt !== null &&
+          session.trialStartedAt !== null &&
+          session.generatedAt === session.trialStartedAt &&
+          presentedTrialStartedAtRef.current !== session.trialStartedAt
+        ) {
+          presentedTrialStartedAtRef.current = session.trialStartedAt;
+          setPilotTrialNoticeStartedAt(session.trialStartedAt);
+        }
+
+        if (
+          isControlledPilot &&
+          session.roundCompletion !== null &&
+          session.contentVersion !== null
+        ) {
+          const completion = {
+            ...session.roundCompletion,
+            contentVersion: session.contentVersion,
+            track: session.track,
+          };
+          pilotRoundCompletionRef.current = completion;
+          setPilotRoundCompletion(completion);
+          setPilotRoundError(null);
+          setPilotRoundReviewIndex(null);
+        } else if (
+          isControlledPilot &&
+          session.contentVersion !== null &&
+          pilotRoundCompletionRef.current?.contentVersion ===
+            session.contentVersion &&
+          pilotRoundCompletionRef.current.track === session.track
+        ) {
+          pilotRoundCompletionRef.current = null;
+          setPilotRoundCompletion(null);
+          setPilotRoundError(null);
+          setPilotRoundReviewIndex(null);
+        }
+
+        if (
           runtimeAccountBootstrapMode === 'remote' &&
           accountBootstrapSnapshot !== null &&
           session.membershipStage !== null &&
@@ -2340,6 +2411,7 @@ function AppShell({
     learningBootstrapStatus,
     learningTrack,
     learningSessionRepository,
+    isControlledPilot,
     membershipState,
     readSpaceCardState,
     retryCanonicalAccountBootstrap,
@@ -2627,7 +2699,11 @@ function AppShell({
       return;
     }
 
-    setMembershipState(current => startMembershipTrial(current));
+    const startedAt = new Date();
+    const startedAtIso = startedAt.toISOString();
+    presentedTrialStartedAtRef.current = startedAtIso;
+    setPilotTrialNoticeStartedAt(startedAtIso);
+    setMembershipState(current => startMembershipTrial(current, startedAt));
   }, [
     currentLearningCard,
     learningBootstrapStatus,
@@ -3221,6 +3297,7 @@ function AppShell({
       const completedResult = learningCurrentResult;
 
       if (runtimeLearningEventsMode === 'local') {
+        setPilotTrialNoticeStartedAt(null);
         commitLearningCardAdvance(completedResult);
         setLearningStateSyncState({
           detail: '当前答题记录已记录。',
@@ -3324,6 +3401,7 @@ function AppShell({
             return;
           }
 
+          setPilotTrialNoticeStartedAt(null);
           commitLearningCardAdvance(completedResult);
           setLearningStateSyncState({
             detail: '答题记录已安全保存在本机，正在等待服务端确认。',
@@ -3381,6 +3459,53 @@ function AppShell({
       );
     },
     onRestartDeck: resetLearningDeck,
+  };
+
+  const handleContinuePilotRound = () => {
+    if (
+      !isControlledPilot ||
+      authenticatedRuntimeContext === null ||
+      pilotRoundCompletion === null ||
+      pilotRoundContinuePending
+    ) {
+      return;
+    }
+
+    setPilotRoundContinuePending(true);
+    setPilotRoundError(null);
+    learningSessionRepository
+      .continueRound(authenticatedRuntimeContext, {
+        completion: pilotRoundCompletion,
+        contentVersion: pilotRoundCompletion.contentVersion,
+        track: pilotRoundCompletion.track,
+      })
+      .then(() => {
+        pilotRoundCompletionRef.current = null;
+        setPilotRoundCompletion(null);
+        setPilotRoundContinuePending(false);
+        setPilotRoundError(null);
+        setPilotRoundReviewIndex(null);
+        setLearningSession(null);
+        setLearningCardState(null);
+        setMappedAccountBootstrapSnapshot(null);
+        setLearningBootstrapStatus('idle');
+        setLearningBootstrapError(null);
+      })
+      .catch((error: unknown) => {
+        setPilotRoundContinuePending(false);
+        if (isRemoteAuthorizationError(error)) {
+          clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
+            () => undefined,
+          );
+          return;
+        }
+        setPilotRoundError(
+          `${getUserFacingErrorMessage(
+            error,
+            '继续下一轮暂时失败。',
+          )} 当前完成凭证已保留，可稍后重试。`,
+        );
+      });
   };
 
   const spaceHandlers = {
@@ -3568,22 +3693,34 @@ function AppShell({
                   {membershipError}
                 </Text>
               ) : null}
-              <MembershipActionGroup
-                handlers={membershipHandlers}
-                membershipPendingAction={membershipPendingAction}
-                membershipRepositoryMode={runtimeMembershipRepositoryMode}
-                membershipState={membershipState}
-                palette={palette}
-              />
+              {isControlledPilot ? (
+                <Text
+                  style={[styles.authHint, { color: palette.textMuted }]}
+                  testID="controlled-pilot-space-entitlement-copy"
+                >
+                  受控试点不收费，Space 资格由服务端与运营记录决定。
+                </Text>
+              ) : (
+                <MembershipActionGroup
+                  handlers={membershipHandlers}
+                  membershipPendingAction={membershipPendingAction}
+                  membershipRepositoryMode={runtimeMembershipRepositoryMode}
+                  membershipState={membershipState}
+                  palette={palette}
+                />
+              )}
             </>
           ),
-          detail:
-            '当前保留已解锁卡片的空间预览和位置提示；完整卡片浏览、收藏/休眠调整与更多空间操作需要试用或会员。',
+          detail: isControlledPilot
+            ? '当前保留已开放卡片的位置与状态；资格变化只由服务端同步，不提供购买入口。'
+            : '当前保留已解锁卡片的空间预览和位置提示；完整卡片浏览、收藏/休眠调整与更多空间操作需要试用或会员。',
           label:
             membershipPendingAction === 'start_trial'
               ? '正在开通'
               : '完整空间受限',
-          title: '完整物理空间需要试用或会员',
+          title: isControlledPilot
+            ? 'Space 当前按试点资格开放'
+            : '完整物理空间需要试用或会员',
         }
       : null;
   const spaceStatusRail: SpaceStatusRail | null =
@@ -3637,6 +3774,22 @@ function AppShell({
               : '空间状态已同步',
         }
       : null;
+  const lastPilotRoundResult = [
+    ...learningCompletedResults,
+    ...reviewCompletedResults,
+  ].at(-1);
+  const lastPilotRoundCard = lastPilotRoundResult
+    ? learningSession?.catalogCards.find(
+        card => card.card_id === lastPilotRoundResult.cardId,
+      ) ?? null
+    : null;
+  const pilotRoundSpaceAddress = lastPilotRoundCard
+    ? `${lastPilotRoundCard.space_metadata.library} · ${lastPilotRoundCard.space_metadata.group} · ${lastPilotRoundCard.space_metadata.box}`
+    : '卡片位置已由 Space 保留，联网后可查看准确盒位。';
+  const pilotRoundReviewCard =
+    pilotRoundReviewIndex === null
+      ? null
+      : reviewCandidateCards[pilotRoundReviewIndex] ?? null;
 
   const content = shouldShowAuthGate ? (
     <AuthGate
@@ -3654,6 +3807,7 @@ function AppShell({
       deviceClass={deviceClass}
       favoriteCount={favoriteCount}
       handlers={authHandlers}
+      isControlledPilot={isControlledPilot}
       learningResults={learningCompletedResults}
       membershipError={membershipError}
       membershipGate={membershipGate}
@@ -3688,6 +3842,52 @@ function AppShell({
       reviewResults={reviewCompletedResults}
       sleepingCount={sleepingCount}
       todayKey={todayKey}
+    />
+  ) : route.key === 'learning' &&
+    isControlledPilot &&
+    pilotRoundCompletion !== null &&
+    pilotRoundReviewCard !== null ? (
+    <ControlledPilotReviewSurface
+      card={pilotRoundReviewCard}
+      currentIndex={pilotRoundReviewIndex ?? 0}
+      onBack={() => setPilotRoundReviewIndex(null)}
+      onNext={() =>
+        setPilotRoundReviewIndex(current =>
+          current === null
+            ? null
+            : Math.min(current + 1, reviewCandidateCards.length - 1),
+        )
+      }
+      palette={palette}
+      totalCount={reviewCandidateCards.length}
+    />
+  ) : route.key === 'learning' &&
+    isControlledPilot &&
+    pilotRoundCompletion !== null ? (
+    <ControlledPilotRoundCompletionSurface
+      completedCount={pilotRoundCompletion.completedCount}
+      error={pilotRoundError}
+      onContinue={handleContinuePilotRound}
+      onOpenSpace={() => {
+        startTransition(() => {
+          setActiveRoute('space');
+          setLearningScreen('practice');
+          setSpaceScreen('overview');
+        });
+      }}
+      onReview={() => {
+        if (reviewCandidateCards.length === 0) {
+          setPilotRoundError(
+            '当前没有待复习内容，可以查看 Space 或继续下一轮。',
+          );
+          return;
+        }
+        setPilotRoundError(null);
+        setPilotRoundReviewIndex(0);
+      }}
+      palette={palette}
+      pending={pilotRoundContinuePending}
+      spaceAddress={pilotRoundSpaceAddress}
     />
   ) : route.key === 'learning' && learningBootstrapStatus !== 'ready' ? (
     <LearningBootstrapSurface
@@ -3748,6 +3948,10 @@ function AppShell({
       currentIndex={learningIndex}
       currentResult={learningCurrentResult}
       phase={learningPhase}
+      pilotIdentityLabel={isControlledPilot ? 'CET4 受控试点' : null}
+      trialNoticeVisible={
+        isControlledPilot && pilotTrialNoticeStartedAt !== null
+      }
       onAdvanceCard={learningHandlers.onAdvanceCard}
       onFlip={learningHandlers.onFlip}
       onOpenResultDetail={() => setLearningScreen('result_detail')}
@@ -4579,7 +4783,8 @@ function AuthGate({
       : {
           continuityPill: '学习',
           eyebrow: '当前卡',
-          gateSummary: '手机号确认后读取学习进度和权益，再进入系统安排的当前卡。',
+          gateSummary:
+            '手机号确认后读取学习进度和权益，再进入系统安排的当前卡。',
           gateTitle: '验证后开始今天的学习',
           retainedSummary: '已有进度会接上；新账号从系统第一张卡开始。',
           retainedTitle: '学习位置将在验证后确定',
@@ -4845,6 +5050,7 @@ function MineSurface({
   deviceClass,
   favoriteCount,
   handlers,
+  isControlledPilot,
   learningResults,
   learningStateSyncState,
   membershipError,
@@ -4868,6 +5074,7 @@ function MineSurface({
   deviceClass: DeviceClass;
   favoriteCount: number;
   handlers: AuthHandlers;
+  isControlledPilot: boolean;
   learningResults: LearningCardResult[];
   learningStateSyncState: LearningStateSyncState;
   membershipError: string | null;
@@ -5243,6 +5450,7 @@ function MineSurface({
             deviceClass={deviceClass}
             focusGate={membershipGate}
             handlers={membershipHandlers}
+            isControlledPilot={isControlledPilot}
             membershipError={membershipError}
             membershipPendingAction={membershipPendingAction}
             membershipRepositoryMode={membershipRepositoryMode}
@@ -5449,6 +5657,7 @@ function MembershipHostCard({
   deviceClass,
   focusGate,
   handlers,
+  isControlledPilot,
   membershipError,
   membershipPendingAction,
   membershipRepositoryMode,
@@ -5459,6 +5668,7 @@ function MembershipHostCard({
   deviceClass: DeviceClass;
   focusGate: MembershipGate | null;
   handlers: MembershipHandlers;
+  isControlledPilot: boolean;
   membershipError: string | null;
   membershipPendingAction:
     | 'dismiss_recovery'
@@ -5484,6 +5694,89 @@ function MembershipHostCard({
       : focusGate === 'space'
       ? '完整知识空间当前需要试用或会员。开始试用或升级后，可以查看完整空间。'
       : '完整卡库当前需要试用或会员。开始试用或升级后，会放开完整卡片。';
+
+  if (isControlledPilot) {
+    return (
+      <View
+        style={[
+          styles.membershipHostCard,
+          compact ? styles.membershipHostCardCompact : null,
+          styles.pilotMembershipCard,
+          {
+            backgroundColor: palette.panelStrong,
+            borderColor: hexToRgba(palette.accent, 0.16),
+          },
+        ]}
+        testID="controlled-pilot-membership-card"
+      >
+        <View style={styles.membershipTitleRow}>
+          <Text style={[styles.membershipHostTitle, { color: palette.text }]}>
+            CET4 受控试点
+          </Text>
+          <View
+            style={[
+              styles.membershipInlineStatus,
+              {
+                backgroundColor: palette.accentSoft,
+                borderColor: hexToRgba(palette.accent, 0.1),
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.membershipInlineStatusText,
+                { color: palette.accent },
+              ]}
+              testID="controlled-pilot-membership-stage"
+            >
+              {getMembershipStatusChipLabel(membershipState.stage)}
+            </Text>
+          </View>
+        </View>
+        <Text style={[styles.membershipSummary, { color: palette.textMuted }]}>
+          受控试点不收费，继续资格由运营依据试点记录发放。
+        </Text>
+        <View style={styles.pilotMembershipTimeline}>
+          <PilotMembershipTimeRow
+            label="开始时间"
+            palette={palette}
+            testID="controlled-pilot-trial-started-at"
+            value={formatPilotServerTimestamp(membershipState.trialStartedAt)}
+          />
+          <PilotMembershipTimeRow
+            label="结束时间"
+            palette={palette}
+            testID="controlled-pilot-trial-expires-at"
+            value={formatPilotServerTimestamp(membershipState.trialExpiresAt)}
+          />
+          <PilotMembershipTimeRow
+            label="服务端剩余"
+            palette={palette}
+            testID="controlled-pilot-trial-remaining"
+            value={formatPilotRemainingSeconds(
+              membershipState.trialRemainingSeconds,
+            )}
+          />
+        </View>
+        {focusCopy ? (
+          <Text
+            style={[styles.membershipSummary, { color: palette.warning }]}
+            testID="controlled-pilot-membership-gate-copy"
+          >
+            {focusCopy.replace(
+              /开始试用或升级后[^。]*。?/,
+              '资格变化后会由服务端自动同步。',
+            )}
+          </Text>
+        ) : null}
+        {membershipError ? (
+          <Text style={[styles.authError, { color: palette.danger }]}>
+            {membershipError}
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
     <View
@@ -5774,6 +6067,31 @@ function MembershipHostCard({
   );
 }
 
+function PilotMembershipTimeRow({
+  label,
+  palette,
+  testID,
+  value,
+}: {
+  label: string;
+  palette: Palette;
+  testID: string;
+  value: string;
+}) {
+  return (
+    <View style={styles.pilotMembershipTimeRow} testID={testID}>
+      <Text
+        style={[styles.pilotMembershipTimeLabel, { color: palette.textMuted }]}
+      >
+        {label}
+      </Text>
+      <Text style={[styles.pilotMembershipTimeValue, { color: palette.text }]}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 function MembershipActionGroup({
   compact = false,
   handlers,
@@ -5868,7 +6186,8 @@ function MembershipActionGroup({
         </Pressable>
       ) : null}
     </View>
-  ) : membershipState.stage === 'premium' ? (
+  ) : membershipState.stage === 'premium' ||
+    membershipState.stage === 'pilot_premium' ? (
     <View style={styles.authActions}>
       <Text style={[styles.authSuccess, { color: palette.success }]}>
         {membershipRepositoryMode === 'remote'
@@ -6563,6 +6882,8 @@ function getMembershipCardTitle(stage: MembershipStage) {
       return '当前是基础学习态';
     case 'premium':
       return '当前是会员态';
+    case 'pilot_premium':
+      return '试点继续资格';
   }
 }
 
@@ -6576,6 +6897,8 @@ function getMembershipHostTitle(stage: MembershipStage) {
       return '基础学习保留';
     case 'premium':
       return '会员已开通';
+    case 'pilot_premium':
+      return '试点继续资格已生效';
   }
 }
 
@@ -6589,6 +6912,8 @@ function getMembershipStatusChipLabel(stage: MembershipStage) {
       return '基础态';
     case 'premium':
       return '会员态';
+    case 'pilot_premium':
+      return '试点资格';
   }
 }
 
@@ -6644,7 +6969,36 @@ function getMembershipCardSummary(
       return mode === 'remote'
         ? '会员状态已随账号生效，完整卡库、空间和回看已放开。'
         : '会员体验已开启，完整卡库、空间和回看已放开。';
+    case 'pilot_premium':
+      return '试点继续资格已由服务端生效，完整卡库、空间和回看按试点范围开放。';
   }
+}
+
+function formatPilotServerTimestamp(value: string | null) {
+  if (value === null) {
+    return '尚未开始';
+  }
+
+  return new Intl.DateTimeFormat('zh-CN', {
+    day: '2-digit',
+    hour: '2-digit',
+    hour12: false,
+    minute: '2-digit',
+    month: '2-digit',
+    timeZone: 'Asia/Shanghai',
+  }).format(new Date(value));
+}
+
+function formatPilotRemainingSeconds(seconds: number) {
+  if (seconds <= 0) {
+    return '0 小时';
+  }
+
+  const wholeHours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return minutes > 0
+    ? `${wholeHours} 小时 ${minutes} 分`
+    : `${wholeHours} 小时`;
 }
 
 const styles = StyleSheet.create({
@@ -8105,6 +8459,28 @@ const styles = StyleSheet.create({
   membershipSummary: {
     fontSize: 12,
     lineHeight: 17,
+  },
+  pilotMembershipCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+  },
+  pilotMembershipTimeline: {
+    gap: 6,
+  },
+  pilotMembershipTimeRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  pilotMembershipTimeLabel: {
+    fontSize: 11,
+  },
+  pilotMembershipTimeValue: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   membershipInlineStatus: {
     alignItems: 'center',

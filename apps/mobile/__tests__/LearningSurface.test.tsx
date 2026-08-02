@@ -51,9 +51,9 @@ test('swipe gesture commits at 25% distance or the velocity threshold', () => {
   expect(
     resolveSwipeGestureDirection({ cardWidth: 320, dx: -79, vx: -0.64 }),
   ).toBeNull();
-  expect(
-    resolveSwipeGestureDirection({ cardWidth: 320, dx: -80, vx: 0 }),
-  ).toBe('left');
+  expect(resolveSwipeGestureDirection({ cardWidth: 320, dx: -80, vx: 0 })).toBe(
+    'left',
+  );
   expect(
     resolveSwipeGestureDirection({ cardWidth: 320, dx: 79, vx: 0.65 }),
   ).toBe('right');
@@ -139,7 +139,7 @@ test('keeps verified audio as an explicit accessible chip attached to the card',
     );
   });
 
-  const control = tree!.root.findByProps({testID: 'learning-audio-control'});
+  const control = tree!.root.findByProps({ testID: 'learning-audio-control' });
   expect(control.props.accessibilityRole).toBe('button');
   expect(control.props.accessibilityLabel).toBe('播放听力');
   expect(control.props.accessibilityState).toEqual({
@@ -196,11 +196,21 @@ test('does not expose raw space metadata while learning', () => {
         onSubmitCurrentCard={jest.fn()}
         onAdvanceCard={jest.fn()}
         onRestartDeck={jest.fn()}
+        pilotIdentityLabel="CET4 受控试点"
+        trialNoticeVisible
       />,
     );
   });
 
   const output = JSON.stringify(tree!.toJSON());
+
+  expect(
+    tree!.root.findByProps({ testID: 'controlled-pilot-learning-identity' }),
+  ).toBeTruthy();
+  expect(
+    tree!.root.findByProps({ testID: 'controlled-pilot-trial-notice' }),
+  ).toBeTruthy();
+  expect(output).toContain('时间与资格以服务端为准');
 
   const progressLabel = tree!.root.findByProps({
     testID: 'learning-progress-label',

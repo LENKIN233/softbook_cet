@@ -1,7 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { LearningTrack } from '../learning/model';
-import type {SpaceCardStateValue} from '../space/spaceStateRepository';
+import type {
+  LearningPilotRoundCompletion,
+  LearningTrack,
+} from '../learning/model';
+import type { SpaceCardStateValue } from '../space/spaceStateRepository';
 
 export type PersistedSpaceCardState = SpaceCardStateValue;
 
@@ -14,6 +17,13 @@ export type PersistedLearningCursor = {
 export type PersistedUserState = {
   checkedInDayKey: string | null;
   learningCursor: PersistedLearningCursor | null;
+  pilotRoundCompletion:
+    | (LearningPilotRoundCompletion & {
+        contentVersion: string;
+        track: LearningTrack;
+      })
+    | null;
+  presentedTrialStartedAt: string | null;
   spaceCardStateById: Record<string, PersistedSpaceCardState>;
 };
 
@@ -30,7 +40,8 @@ export type UserStateStore = {
 };
 
 export const USER_STATE_STORAGE_KEY = 'softbook-cet/user-state/v1';
-const USER_STATE_SCHEMA_VERSION = 'user-state.v2';
+const USER_STATE_SCHEMA_VERSION = 'user-state.v3';
+const LEGACY_USER_STATE_SCHEMA_V2 = 'user-state.v2';
 const LEGACY_USER_STATE_SCHEMA_VERSION = 'user-state.v1';
 export const LEGACY_SPACE_STATE_TIMESTAMP = '1970-01-01T00:00:00.000Z';
 
@@ -42,6 +53,14 @@ type UserStatePayload = {
     track: LearningTrack;
   } | null;
   owner_phone_number: string;
+  pilot_round_completion: {
+    completed_count: number;
+    content_version: string;
+    receipt_id: string;
+    schema_version: 'pilot-round-completion.v1';
+    track: LearningTrack;
+  } | null;
+  presented_trial_started_at: string | null;
   schema_version: typeof USER_STATE_SCHEMA_VERSION;
   space_card_state_by_id: Record<
     string,
@@ -57,6 +76,8 @@ export function createEmptyPersistedUserState(): PersistedUserState {
   return {
     checkedInDayKey: null,
     learningCursor: null,
+    pilotRoundCompletion: null,
+    presentedTrialStartedAt: null,
     spaceCardStateById: {},
   };
 }
@@ -141,6 +162,13 @@ function serializeUserStatePayload(
 ): UserStatePayload {
   assertCheckedInDayKey(state.checkedInDayKey);
   const learningCursor = parseLearningCursor(state.learningCursor);
+  const pilotRoundCompletion = parsePilotRoundCompletion(
+    state.pilotRoundCompletion,
+  );
+  const presentedTrialStartedAt = parseOptionalCanonicalTimestamp(
+    state.presentedTrialStartedAt,
+    'presented trial start',
+  );
   const spaceCardStateById = parseSpaceCardStateMap(state.spaceCardStateById);
 
   return {
@@ -153,6 +181,16 @@ function serializeUserStatePayload(
         }
       : null,
     owner_phone_number: phoneNumber,
+    pilot_round_completion: pilotRoundCompletion
+      ? {
+          completed_count: pilotRoundCompletion.completedCount,
+          content_version: pilotRoundCompletion.contentVersion,
+          receipt_id: pilotRoundCompletion.receiptId,
+          schema_version: 'pilot-round-completion.v1',
+          track: pilotRoundCompletion.track,
+        }
+      : null,
+    presented_trial_started_at: presentedTrialStartedAt,
     schema_version: USER_STATE_SCHEMA_VERSION,
     space_card_state_by_id: Object.fromEntries(
       Object.entries(spaceCardStateById).map(([cardId, cardState]) => [
@@ -174,6 +212,7 @@ function parseUserStatePayload(payload: unknown): {
   if (
     !isObject(payload) ||
     (payload.schema_version !== USER_STATE_SCHEMA_VERSION &&
+      payload.schema_version !== LEGACY_USER_STATE_SCHEMA_V2 &&
       payload.schema_version !== LEGACY_USER_STATE_SCHEMA_VERSION)
   ) {
     throw new Error('User state payload version is invalid.');
@@ -187,12 +226,98 @@ function parseUserStatePayload(payload: unknown): {
     state: {
       checkedInDayKey: payload.checked_in_day_key,
       learningCursor: parseLearningCursorPayload(payload.learning_cursor),
+      pilotRoundCompletion:
+        payload.schema_version === USER_STATE_SCHEMA_VERSION
+          ? parsePilotRoundCompletionPayload(payload.pilot_round_completion)
+          : null,
+      presentedTrialStartedAt:
+        payload.schema_version === USER_STATE_SCHEMA_VERSION
+          ? parseOptionalCanonicalTimestamp(
+              payload.presented_trial_started_at,
+              'persisted presented trial start',
+            )
+          : null,
       spaceCardStateById: parseSpaceCardStatePayload(
         payload.space_card_state_by_id,
         payload.schema_version === LEGACY_USER_STATE_SCHEMA_VERSION,
       ),
     },
   };
+}
+
+function parsePilotRoundCompletion(
+  value: unknown,
+): PersistedUserState['pilotRoundCompletion'] {
+  if (value === null) return null;
+  if (!isObject(value)) {
+    throw new Error('Pilot round completion must be an object or null.');
+  }
+  const completion = {
+    completedCount: value.completedCount,
+    contentVersion: value.contentVersion,
+    receiptId: value.receiptId,
+    schemaVersion: value.schemaVersion,
+    track: value.track,
+  };
+  assertPilotRoundCompletion(completion);
+  return completion;
+}
+
+function parsePilotRoundCompletionPayload(
+  value: unknown,
+): PersistedUserState['pilotRoundCompletion'] {
+  if (value === null) return null;
+  if (!isObject(value)) {
+    throw new Error(
+      'Persisted pilot round completion must be an object or null.',
+    );
+  }
+  const completion = {
+    completedCount: value.completed_count,
+    contentVersion: value.content_version,
+    receiptId: value.receipt_id,
+    schemaVersion: value.schema_version,
+    track: value.track,
+  };
+  assertPilotRoundCompletion(completion);
+  return completion;
+}
+
+function assertPilotRoundCompletion(value: {
+  completedCount: unknown;
+  contentVersion: unknown;
+  receiptId: unknown;
+  schemaVersion: unknown;
+  track: unknown;
+}): asserts value is NonNullable<PersistedUserState['pilotRoundCompletion']> {
+  if (
+    value.schemaVersion !== 'pilot-round-completion.v1' ||
+    !Number.isSafeInteger(value.completedCount) ||
+    (value.completedCount as number) <= 0 ||
+    (value.completedCount as number) % 5 !== 0 ||
+    typeof value.contentVersion !== 'string' ||
+    !/^sha256:[a-f0-9]{64}$/.test(value.contentVersion) ||
+    typeof value.receiptId !== 'string' ||
+    !/^rnd_[A-Za-z0-9_-]{32,64}$/.test(value.receiptId)
+  ) {
+    throw new Error('Pilot round completion is invalid.');
+  }
+  assertLearningTrack(value.track);
+}
+
+function parseOptionalCanonicalTimestamp(
+  value: unknown,
+  label: string,
+): string | null {
+  if (value === null) return null;
+  if (
+    typeof value !== 'string' ||
+    !Number.isFinite(Date.parse(value)) ||
+    new Date(value).toISOString() !== value
+  ) {
+    throw new Error(`${label} must be a canonical timestamp or null.`);
+  }
+  return value;
 }
 
 function parseLearningCursor(value: unknown): PersistedLearningCursor | null {

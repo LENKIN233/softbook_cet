@@ -1,4 +1,5 @@
 import {
+  continueRemotePilotRound,
   createSoftbookRemoteLearningSessionConfig,
   loadRemoteLearningSession,
   parseRemoteLearningSessionPayload,
@@ -18,6 +19,7 @@ function createPayload() {
       membership_stage: 'trial',
       trial_started_at: '2026-07-24T08:00:00.000Z',
       trial_expires_at: '2026-07-29T08:00:00.000Z',
+      trial_remaining_seconds: 432000,
       algorithm: {
         id: 'FSRS-6',
         library: 'ts-fsrs',
@@ -37,6 +39,7 @@ function createPayload() {
         due_at: null,
       },
       next_due_at: null,
+      round_completion: null,
     },
   };
 }
@@ -104,12 +107,86 @@ test('accepts pilot premium without a synthetic trial timeline', () => {
   payload.data.membership_stage = 'pilot_premium';
   payload.data.trial_started_at = null as never;
   payload.data.trial_expires_at = null as never;
+  payload.data.trial_remaining_seconds = 0;
 
   expect(parseRemoteLearningSessionPayload(payload, 'cet4')).toMatchObject({
     membershipStage: 'pilot_premium',
     trialExpiresAt: null,
     trialStartedAt: null,
   });
+});
+
+test('strictly maps a five-card completion and gates the next selection', () => {
+  const payload = createPayload();
+  payload.data.selection = null as never;
+  payload.data.round_completion = {
+    schema_version: 'pilot-round-completion.v1',
+    receipt_id: `rnd_${'a'.repeat(32)}`,
+    completed_count: 5,
+  } as never;
+
+  expect(parseRemoteLearningSessionPayload(payload, 'cet4')).toMatchObject({
+    roundCompletion: {
+      completedCount: 5,
+      receiptId: `rnd_${'a'.repeat(32)}`,
+      schemaVersion: 'pilot-round-completion.v1',
+    },
+    selection: null,
+  });
+
+  payload.data.selection = createPayload().data.selection;
+  expect(() => parseRemoteLearningSessionPayload(payload, 'cet4')).toThrow(
+    'round completion must gate the next selection',
+  );
+});
+
+test('continues a pilot round with the exact server receipt', async () => {
+  const completion = {
+    completedCount: 5,
+    receiptId: `rnd_${'b'.repeat(32)}`,
+    schemaVersion: 'pilot-round-completion.v1' as const,
+  };
+  const fetchMock = jest.fn().mockResolvedValue({
+    json: async () => ({
+      data: {
+        schema_version: 'pilot-round-continue-ack.v1',
+        acknowledged_at: '2026-07-24T08:01:00.000Z',
+        completed_count: 5,
+        receipt_id: completion.receiptId,
+        status: 'acknowledged',
+      },
+    }),
+    ok: true,
+    status: 200,
+  });
+
+  await expect(
+    continueRemotePilotRound(
+      { authToken: 'current-token', phoneNumber: '13800138000' },
+      'cet4',
+      CONTENT_VERSION,
+      completion,
+      createSoftbookRemoteLearningSessionConfig({
+        apiKey: 'runtime-key',
+        baseUrl: 'https://api.softbook.example/',
+      }),
+      fetchMock,
+    ),
+  ).resolves.toMatchObject({ status: 'acknowledged' });
+
+  expect(fetchMock).toHaveBeenCalledWith(
+    'https://api.softbook.example/v2/learning/round/continue',
+    expect.objectContaining({
+      body: JSON.stringify({
+        schema_version: 'pilot-round-continue.v1',
+        track: 'cet4',
+        content_version: CONTENT_VERSION,
+        receipt_id: completion.receiptId,
+        completed_count: 5,
+      }),
+      method: 'POST',
+    }),
+  );
 });
 
 test.each([

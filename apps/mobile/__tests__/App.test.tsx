@@ -630,6 +630,7 @@ function createRemoteMembershipPayload(
     recovery_prompt_visible: boolean;
     trial_duration_days: number;
     trial_expires_at: string | null;
+    trial_remaining_seconds: number;
     trial_started_at: string | null;
     trial_started_at_entry_count: number | null;
   }> = {},
@@ -642,10 +643,9 @@ function createRemoteMembershipPayload(
         recovery_prompt_visible: false,
         stage,
         trial_duration_days: 5,
-        trial_expires_at:
-          stage === 'trial' ? '2026-08-06T00:00:00.000Z' : null,
-        trial_started_at:
-          stage === 'trial' ? '2026-08-01T00:00:00.000Z' : null,
+        trial_expires_at: stage === 'trial' ? '2026-08-06T00:00:00.000Z' : null,
+        trial_remaining_seconds: stage === 'trial' ? 432000 : 0,
+        trial_started_at: stage === 'trial' ? '2026-08-01T00:00:00.000Z' : null,
         trial_started_at_entry_count: stage === 'trial' ? 1 : null,
         ...overrides,
       },
@@ -655,7 +655,12 @@ function createRemoteMembershipPayload(
 
 function createAccountBootstrapPayload(
   session: LearningSession = createLocalLearningSession('cet4'),
-  stage: 'trial_available' | 'trial' | 'free' | 'premium' | 'pilot_premium' = 'free',
+  stage:
+    | 'trial_available'
+    | 'trial'
+    | 'free'
+    | 'premium'
+    | 'pilot_premium' = 'free',
   learningEvents: MockLearningEvent[] = [],
   checkedInToday = false,
 ) {
@@ -714,10 +719,9 @@ function createAccountBootstrapPayload(
         recovery_prompt_visible: false,
         stage,
         trial_duration_days: 5,
-        trial_expires_at:
-          stage === 'trial' ? '2026-08-06T00:00:00.000Z' : null,
-        trial_started_at:
-          stage === 'trial' ? '2026-08-01T00:00:00.000Z' : null,
+        trial_expires_at: stage === 'trial' ? '2026-08-06T00:00:00.000Z' : null,
+        trial_remaining_seconds: stage === 'trial' ? 432000 : 0,
+        trial_started_at: stage === 'trial' ? '2026-08-01T00:00:00.000Z' : null,
         trial_started_at_entry_count: stage === 'trial' ? 1 : null,
       },
       progress: {
@@ -767,8 +771,10 @@ function createRemoteCatalogSession(): LearningSession {
     cards: [remoteCard],
     contentManifest: null,
     contentVersion: TEST_CONTENT_VERSION,
+    generatedAt: '2026-07-20T10:00:00.000Z',
     membershipStage: 'free',
     nextDueAt: null,
+    roundCompletion: null,
     schedulingMode: 'server',
     serverSelection: {
       cardId: remoteCard.card_id,
@@ -781,6 +787,7 @@ function createRemoteCatalogSession(): LearningSession {
     sourceLabel: '远端 catalog 卡源',
     track: 'cet4',
     trialExpiresAt: null,
+    trialRemainingSeconds: 0,
     trialStartedAt: null,
   };
 }
@@ -3097,9 +3104,8 @@ test('does not apply a remote space action when durable mutation storage fails',
     });
 
     expect(
-      root
-        .findByProps({ testID: 'learning-favorite-button' })
-        .findByType(Text).props.children,
+      root.findByProps({ testID: 'learning-favorite-button' }).findByType(Text)
+        .props.children,
     ).toBe('收藏');
     expect(spaceActionRequests).toHaveLength(0);
   } finally {
@@ -3483,9 +3489,8 @@ test('quarantines a removed-card space action and restores canonical state', asy
   });
 
   expect(
-    root
-      .findByProps({ testID: 'learning-favorite-button' })
-      .findByType(Text).props.children,
+    root.findByProps({ testID: 'learning-favorite-button' }).findByType(Text)
+      .props.children,
   ).toBe('收藏');
 
   await openRoute(root, 'space');

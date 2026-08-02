@@ -5,6 +5,7 @@ import {
   type VerifiedContentManifest,
 } from '../audio/contentManifestRepository';
 import { LearningSession, LearningTrack } from './model';
+import type { LearningPilotRoundCompletion } from './model';
 import {
   FetchLike,
   RemoteLearningCardSourceConfig,
@@ -12,6 +13,7 @@ import {
 } from './remoteCardSource';
 import {
   RemoteLearningSessionConfig,
+  continueRemotePilotRound,
   loadRemoteLearningSession,
 } from './remoteLearningSession';
 import {
@@ -28,6 +30,19 @@ export type LearningSessionRepositoryContext = {
 };
 
 export type LearningSessionRepository = {
+  continueRound: (
+    context: LearningSessionRepositoryContext,
+    input: {
+      completion: LearningPilotRoundCompletion;
+      contentVersion: string;
+      track: LearningTrack;
+    },
+  ) => Promise<{
+    acknowledgedAt: string;
+    completedCount: number;
+    receiptId: string;
+    status: 'acknowledged' | 'duplicate';
+  }>;
   loadSession: (
     context: LearningSessionRepositoryContext,
     track: LearningTrack,
@@ -72,6 +87,26 @@ export function createLearningSessionRepository(
     );
 
   return {
+    continueRound: async (context, input) => {
+      if (
+        config.mode !== 'remote' ||
+        !config.remoteSessionConfig ||
+        !input.contentVersion ||
+        !input.completion
+      ) {
+        throw new Error(
+          'Pilot round continuation requires an exact remote server receipt.',
+        );
+      }
+      return continueRemotePilotRound(
+        context,
+        input.track,
+        input.contentVersion,
+        input.completion,
+        config.remoteSessionConfig,
+        config.fetchImpl ?? fetch,
+      );
+    },
     loadSession: async (context, track) => {
       if (config.mode === 'remote') {
         if (
@@ -142,14 +177,17 @@ export function createLearningSessionRepository(
           catalogCards: source.cards,
           contentManifest,
           contentVersion: scheduled.contentVersion,
+          generatedAt: scheduled.generatedAt,
           membershipStage: scheduled.membershipStage,
           nextDueAt: scheduled.nextDueAt,
           schedulingMode: 'server',
+          roundCompletion: scheduled.roundCompletion,
           serverSelection: scheduled.selection,
           sourceId: source.sourceId,
           sourceLabel: source.sourceLabel,
           track: source.track,
           trialExpiresAt: scheduled.trialExpiresAt,
+          trialRemainingSeconds: scheduled.trialRemainingSeconds,
           trialStartedAt: scheduled.trialStartedAt,
         };
       }

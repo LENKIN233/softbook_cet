@@ -51,6 +51,7 @@ function createSessionPayload(
       source_id: overrides.sourceId ?? 'remote-learning-cards',
       membership_stage: 'trial',
       trial_expires_at: '2026-07-29T08:00:00.000Z',
+      trial_remaining_seconds: 432000,
       trial_started_at: '2026-07-24T08:00:00.000Z',
       algorithm: {
         id: 'FSRS-6',
@@ -74,13 +75,16 @@ function createSessionPayload(
             }
           : overrides.selection,
       next_due_at: null,
+      round_completion: null,
     },
   };
 }
 
 function createRemoteRepository(
   fetchImpl: jest.Mock,
-  contentManifestConfig: Parameters<typeof createLearningSessionRepository>[0]['contentManifestConfig'] = {
+  contentManifestConfig: Parameters<
+    typeof createLearningSessionRepository
+  >[0]['contentManifestConfig'] = {
     mode: 'disabled',
   },
 ) {
@@ -258,7 +262,9 @@ test('remote repository binds a verified manifest to the canonical card source a
   expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
     'https://example.com/v1/learning/card-source?track=cet4',
     'https://example.com/v2/learning/session?track=cet4',
-    `https://example.com/v2/content/manifest?track=cet4&content_version=${encodeURIComponent(CONTENT_VERSION)}`,
+    `https://example.com/v2/content/manifest?track=cet4&content_version=${encodeURIComponent(
+      CONTENT_VERSION,
+    )}`,
   ]);
 });
 
@@ -331,7 +337,9 @@ test('remote repository rejects content-manifest access that drifts from the can
 
   await expect(
     repository.loadSession(authenticatedContext, 'cet4'),
-  ).rejects.toThrow('Content manifest access does not match the canonical learning session');
+  ).rejects.toThrow(
+    'Content manifest access does not match the canonical learning session',
+  );
 });
 
 test('remote selection null is valid and never falls back to local ordering', async () => {

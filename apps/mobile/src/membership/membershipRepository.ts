@@ -5,7 +5,7 @@ import {
   purchaseMembership,
   startMembershipTrial,
 } from './localMembership';
-import {RemoteHttpError} from '../runtime/remoteHttpError';
+import { RemoteHttpError } from '../runtime/remoteHttpError';
 
 export type MembershipRepositoryMode = 'local' | 'remote';
 
@@ -92,14 +92,19 @@ export function createMembershipRepository(
     loadState: async context => {
       if (config.mode === 'remote') {
         if (!config.remoteConfig) {
-          throw new Error('Remote membership repository requires remoteConfig.');
+          throw new Error(
+            'Remote membership repository requires remoteConfig.',
+          );
         }
 
         const fetchImpl = config.fetchImpl ?? fetch;
-        const response = await fetchImpl(config.remoteConfig.entitlementEndpoint, {
-          headers: buildRemoteMembershipHeaders(config.remoteConfig, context),
-          method: 'GET',
-        });
+        const response = await fetchImpl(
+          config.remoteConfig.entitlementEndpoint,
+          {
+            headers: buildRemoteMembershipHeaders(config.remoteConfig, context),
+            method: 'GET',
+          },
+        );
 
         if (!response.ok) {
           throw new RemoteHttpError(
@@ -110,7 +115,8 @@ export function createMembershipRepository(
 
         const payload = await response.json();
         const parsePayload =
-          config.remoteConfig.parsePayload ?? parseSoftbookRemoteMembershipPayload;
+          config.remoteConfig.parsePayload ??
+          parseSoftbookRemoteMembershipPayload;
 
         return parsePayload(payload);
       }
@@ -158,7 +164,7 @@ export function createSoftbookRemoteMembershipConfig(
     entitlementEndpoint: `${baseUrl}/v1/membership/entitlement`,
     headers: {
       'x-softbook-client': 'mobile',
-      ...(config.apiKey ? {'x-api-key': config.apiKey} : {}),
+      ...(config.apiKey ? { 'x-api-key': config.apiKey } : {}),
     },
     purchaseEndpoint: `${baseUrl}/v1/membership/purchase`,
     startTrialEndpoint: `${baseUrl}/v1/membership/start-trial`,
@@ -262,6 +268,19 @@ export function parseSoftbookRemoteMembershipPayload(
     entitlement.trial_expires_at,
     'Remote membership payload.data.entitlement.trial_expires_at',
   );
+  const trialRemainingSeconds = entitlement.trial_remaining_seconds;
+
+  if (
+    typeof trialRemainingSeconds !== 'number' ||
+    !Number.isSafeInteger(trialRemainingSeconds) ||
+    trialRemainingSeconds < 0 ||
+    (stage === 'trial' && trialRemainingSeconds === 0) ||
+    (stage !== 'trial' && trialRemainingSeconds !== 0)
+  ) {
+    throw new Error(
+      'Remote membership payload.data.entitlement.trial_remaining_seconds must match the server trial stage.',
+    );
+  }
 
   if (
     (trialStartedAt === null) !== (trialExpiresAt === null) ||
@@ -283,6 +302,7 @@ export function parseSoftbookRemoteMembershipPayload(
     stage,
     trialDurationDays,
     trialExpiresAt,
+    trialRemainingSeconds,
     trialStartedAt,
     trialStartedAtEntryCount,
   };

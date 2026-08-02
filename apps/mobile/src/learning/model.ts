@@ -1,4 +1,4 @@
-import type {VerifiedContentManifest} from '../audio/contentManifestRepository';
+import type { VerifiedContentManifest } from '../audio/contentManifestRepository';
 
 export const CORE_INTERACTION_ORDER = [
   'flip',
@@ -171,18 +171,27 @@ export type LearningServerMembershipStage =
   | 'premium'
   | 'pilot_premium';
 
+export type LearningPilotRoundCompletion = {
+  completedCount: number;
+  receiptId: string;
+  schemaVersion: 'pilot-round-completion.v1';
+};
+
 export type LearningSession = {
   catalogCards: LearningCard[];
   contentManifest: VerifiedContentManifest | null;
   contentVersion: string | null;
+  generatedAt: string | null;
   membershipStage: LearningServerMembershipStage | null;
   nextDueAt: string | null;
   schedulingMode: 'local' | 'server';
+  roundCompletion: LearningPilotRoundCompletion | null;
   serverSelection: LearningServerSelection | null;
   sourceId: string;
   sourceLabel: string;
   track: LearningTrack;
   trialExpiresAt: string | null;
+  trialRemainingSeconds: number;
   trialStartedAt: string | null;
   cards: LearningCard[];
 };

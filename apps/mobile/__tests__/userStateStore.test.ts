@@ -32,6 +32,8 @@ describe('UserStateStore', () => {
         sourceId: 'local-cet4-v1',
         track: 'cet4' as const,
       },
+      pilotRoundCompletion: null,
+      presentedTrialStartedAt: null,
       spaceCardStateById: {
         '110001': {
           isFavorited: true,
@@ -65,15 +67,52 @@ describe('UserStateStore', () => {
     );
   });
 
+  it('persists the exact pilot round receipt and first-card notice marker', async () => {
+    const { storage } = createStorage();
+    const store = createUserStateStore(storage);
+    const state = {
+      ...createEmptyPersistedUserState(),
+      pilotRoundCompletion: {
+        completedCount: 10,
+        contentVersion: `sha256:${'a'.repeat(64)}`,
+        receiptId: `rnd_${'b'.repeat(32)}`,
+        schemaVersion: 'pilot-round-completion.v1' as const,
+        track: 'cet4' as const,
+      },
+      presentedTrialStartedAt: '2026-08-01T00:00:00.000Z',
+    };
+
+    await store.save('13800138000', state);
+    await expect(store.load('13800138000')).resolves.toEqual(state);
+  });
+
+  it('migrates v2 state without inventing pilot lifecycle state', async () => {
+    const { storage } = createStorage({
+      [USER_STATE_STORAGE_KEY]: JSON.stringify({
+        checked_in_day_key: null,
+        learning_cursor: null,
+        owner_phone_number: '13800138000',
+        schema_version: 'user-state.v2',
+        space_card_state_by_id: {},
+      }),
+    });
+    const store = createUserStateStore(storage);
+
+    await expect(store.load('13800138000')).resolves.toMatchObject({
+      pilotRoundCompletion: null,
+      presentedTrialStartedAt: null,
+    });
+  });
+
   it('migrates v1 space state with a timestamp that cannot outrank server state', async () => {
-    const {storage} = createStorage({
+    const { storage } = createStorage({
       [USER_STATE_STORAGE_KEY]: JSON.stringify({
         checked_in_day_key: null,
         learning_cursor: null,
         owner_phone_number: '13800138000',
         schema_version: 'user-state.v1',
         space_card_state_by_id: {
-          '110001': {is_favorited: true, is_sleeping: false},
+          '110001': { is_favorited: true, is_sleeping: false },
         },
       }),
     });
