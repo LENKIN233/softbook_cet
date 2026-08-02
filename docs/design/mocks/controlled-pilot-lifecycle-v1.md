@@ -21,6 +21,9 @@
 - Mine during active trial with server-authoritative time display.
 - Mine after expiry/free access with no payment action and operational eligibility message.
 - Mine after operational continuation eligibility is granted, with no self-service action.
+- Mine account deletion confirmation with the irreversible account, Learning, and Space impact visible before mutation.
+- Deletion-request failure with the authenticated account preserved and a bounded retry.
+- Dedicated login entry after an accepted deletion request, with cleanup-pending copy and no product navigation.
 
 ## Product Truth vs Implementation Hypothesis
 
@@ -38,6 +41,6 @@ Q3: Learning remains single-card and the completion frame preserves a compact ph
 
 Q4: No dashboard, reward, tutorial, fake payment, gradient text, internal language, or repeated route-level login gate.
 
-Q5: Seven 393 x 852 frames with contained content, wrapping labels, and 44-point actions.
+Q5: Ten 393 x 852 frames with contained content, wrapping labels, and 44-point actions.
 
 Q6: No self-assess change; no red review state.

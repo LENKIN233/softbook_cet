@@ -222,6 +222,47 @@
     .stack i:nth-child(3) { top: 10px; left: 0; border-left: 4px solid var(--accent); }
     .free-library b { display: block; font-size: 14px; }
     .free-library span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .account-action {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 16px;
+      border: 1px solid var(--hair);
+      border-radius: 18px;
+      background: rgba(255,255,255,.64);
+      color: var(--ink-2);
+      font-size: 13px;
+      font-weight: 760;
+    }
+    .account-action span:last-child { color: var(--muted); font-weight: 650; }
+    .scrim {
+      position: absolute;
+      inset: 0;
+      z-index: 8;
+      display: flex;
+      align-items: flex-end;
+      padding: 18px;
+      background: rgba(11, 11, 20, .36);
+      backdrop-filter: blur(3px);
+    }
+    .deletion-sheet {
+      width: 100%;
+      padding: 22px;
+      border: 1px solid rgba(255,255,255,.94);
+      border-radius: 28px;
+      background: rgba(255,255,255,.97);
+      box-shadow: 0 24px 58px rgba(11,11,20,.24);
+    }
+    .deletion-sheet h2 { margin: 5px 0 0; font-size: 26px; }
+    .deletion-sheet p { margin: 10px 0 0; color: var(--ink-2); font-size: 14px; line-height: 1.55; }
+    .impact-list { margin: 15px 0; padding: 12px 14px; border-radius: 18px; background: rgba(244,242,249,.92); }
+    .impact-list div { padding: 5px 0; color: var(--ink-2); font-size: 13px; line-height: 1.35; }
+    .deletion-error { margin: 12px 0 0; padding: 11px 12px; border: 1px solid rgba(245,177,0,.28); border-radius: 15px; background: rgba(245,177,0,.09); color: var(--ink-2); font-size: 12px; line-height: 1.45; }
+    .sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 15px; }
+    .sheet-actions button { min-height: 48px; margin: 0; border-radius: 17px; }
+    .destructive { border: 1px solid var(--ink); background: var(--ink); color: #fff; font-weight: 820; }
+    .cleanup-note { border-left: 5px solid var(--amber); }
     @media (max-width: 470px) {
       .page { padding: 24px 8px 38px; }
       .proof { padding: 8px; border-radius: 28px; }
@@ -397,6 +438,87 @@
           <button class="primary">回到学习</button>
           <div class="spacer"></div>
           <nav class="nav"><span>学习</span><span>空间</span><span>统计</span><span class="active">我的</span></nav>
+        </div>
+      </article>
+
+      <article class="proof">
+        <p class="caption"><b>我的 · 删除账户</b><span>提交前确认</span></p>
+        <div class="phone account">
+          <div class="top"><span>10:08</span><span>我的</span></div>
+          <div class="identity">CET4 受控试点</div>
+          <div class="account-object">
+            <p class="account-kicker">账号与权益</p>
+            <h2>体验进行中</h2>
+            <p class="status-copy">学习记录、Space 与试点资格都绑定到当前账号。</p>
+          </div>
+          <div class="account-action"><span>删除账户</span><span>永久删除 ›</span></div>
+          <div class="spacer"></div>
+          <nav class="nav"><span>学习</span><span>空间</span><span>统计</span><span class="active">我的</span></nav>
+          <div class="scrim">
+            <section class="deletion-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+              <p class="account-kicker">不可撤销</p>
+              <h2 id="delete-title">确认删除账户？</h2>
+              <p>提交后会退出所有设备，并永久清理与当前手机号关联的数据。</p>
+              <div class="impact-list">
+                <div>学习进度与回看记录</div>
+                <div>收藏、休眠与 Space 状态</div>
+                <div>会员与受控试点继续资格</div>
+              </div>
+              <div class="sheet-actions">
+                <button class="secondary">保留账户</button>
+                <button class="destructive">确认删除账户</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </article>
+
+      <article class="proof">
+        <p class="caption"><b>删除请求 · 未提交</b><span>账户保持原状</span></p>
+        <div class="phone account">
+          <div class="top"><span>10:09</span><span>我的</span></div>
+          <div class="identity">CET4 受控试点</div>
+          <div class="account-object">
+            <p class="account-kicker">账号与权益</p>
+            <h2>体验进行中</h2>
+            <p class="status-copy">请求未被接受，当前账号仍保持登录。</p>
+          </div>
+          <div class="spacer"></div>
+          <nav class="nav"><span>学习</span><span>空间</span><span>统计</span><span class="active">我的</span></nav>
+          <div class="scrim">
+            <section class="deletion-sheet" role="dialog" aria-modal="true" aria-labelledby="retry-delete-title">
+              <p class="account-kicker">没有发生更改</p>
+              <h2 id="retry-delete-title">删除请求未提交。</h2>
+              <p>暂时无法提交删除请求。你的账户和学习数据没有改变。</p>
+              <div class="deletion-error">可以稍后重试，或先保留账户继续使用。</div>
+              <div class="sheet-actions">
+                <button class="secondary">保留账户</button>
+                <button class="destructive">重新提交</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </article>
+
+      <article class="proof">
+        <p class="caption"><b>删除请求 · 已受理</b><span>返回专门登入</span></p>
+        <div class="phone auth-entry">
+          <div class="top"><span>10:10</span><span>软书四六级</span></div>
+          <div class="auth-brand">
+            <p>CET4 受控试点</p>
+            <h2>先登入，<br>再开始学习。</h2>
+            <span>验证手机号后，系统才会读取你的学习、Space 与资格状态。</span>
+          </div>
+          <div class="entry-note cleanup-note" role="status"><strong>账户删除已提交</strong><br>数据清理完成前暂不能重新登录；完成后可使用同一手机号重新注册。</div>
+          <div class="auth-object">
+            <h3>手机号登入</h3>
+            <p>清理完成后，可在这里重新注册并进入全新账号。</p>
+            <div class="field">
+              <label>手机号</label>
+              <div class="input-shell">请输入 11 位手机号</div>
+            </div>
+            <button class="primary">获取验证码</button>
+          </div>
         </div>
       </article>
     </section>

@@ -32,6 +32,9 @@
 | Continue button | Learning next-round continuation | explicit user action, then next session request | only primary action |
 | Mine time ledger | account/entitlement object | server-provided timestamps and remaining duration | client formats; does not invent eligibility |
 | No-payment copy | Mine entitlement state | controlled-pilot product contract | no purchase CTA |
+| Account deletion row | authenticated Mine account actions | active remote auth session | secondary to learning and entitlement; unavailable while account hydration is unresolved |
+| Deletion confirmation sheet | one bounded modal/sheet state | explicit user action | names account, Learning, and Space impact; cancel and confirm only |
+| Deletion request result | pre-shell boundary or retained Mine sheet | authenticated `POST /v2/account/deletion` result | `202` exits shell with pending notice; failure preserves account and local state |
 
 ## State Ownership
 
@@ -49,6 +52,7 @@
 - Completion receipt receives a heading; the two secondary actions precede the primary continue button in reading order, while visual weight still makes continue dominant.
 - Time rows expose full date/time strings and do not rely on color.
 - All actions have at least 44-point targets and support enlarged text without horizontal scrolling.
+- The deletion sheet has an explicit heading, descriptive irreversible-impact text, initial focus on the heading, and reading order of explanation, cancel, then destructive confirmation. Pending state announces once and disables duplicate submission.
 
 ## Implementation PR Boundary
 
@@ -57,6 +61,6 @@ The implementation PR must be separate from this design-only PR. It must referen
 ## Unimplemented Gaps
 
 - Exact component names and file boundaries remain implementation hypotheses.
-- Account deletion remains an authenticated Mine action, but successful deletion must exit to the dedicated login entry before any product route can render again.
+- Receiver-environment evidence for account-deletion acceptance, worker completion, blocked re-login during cleanup, and clean re-registration remains pending.
 - Dynamic type, screen reader, weak network, offline replay, cross-device reconciliation, private audio, and device-matrix evidence remain pending.
 - No Web implementation is authorized by this map.

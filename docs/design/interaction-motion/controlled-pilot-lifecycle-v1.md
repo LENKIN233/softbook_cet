@@ -11,7 +11,7 @@
 
 ## Target Interaction
 
-Authentication entry and Learning lifecycle states around the existing card interactions: dedicated phone/SMS entry, validated shell transition, first-valid-card notice, server-confirmed fifth-event round completion, transition to review or Space, and continue to the next server-selected card.
+Authentication entry, account deletion, and Learning lifecycle states around the existing card interactions: dedicated phone/SMS entry, validated shell transition, first-valid-card notice, server-confirmed fifth-event round completion, transition to review or Space, continue to the next server-selected card, and a truthful return to the entry boundary after deletion is accepted.
 
 ## Operation Model
 
@@ -24,6 +24,8 @@ Authentication entry and Learning lifecycle states around the existing card inte
 - A fifth confirmed event: resolve the card, settle it toward its Space address, then reveal the completion receipt.
 - Review and Space are secondary destinations; continue is the primary destination and only then requests the next server selection.
 - Entitlement changes are read-only visual states reconciled from server data.
+- Account deletion opens one bottom confirmation sheet over Mine. Cancel closes it without mutation. Confirm remains in place while the service request is pending.
+- A failed deletion request keeps the sheet open and restores the confirm action. An accepted request immediately replaces the entire authenticated shell with the dedicated entry boundary and a cleanup-pending notice.
 
 ## Feedback Model
 
@@ -31,6 +33,8 @@ Authentication entry and Learning lifecycle states around the existing card inte
 - Pending event: keep resolved card feedback and a quiet “正在确认” line; no completion receipt.
 - Confirmed fifth event: “这一轮已放好” plus the actual compact address.
 - Reconciliation: no repeated animation or duplicate receipt for an already-counted event.
+- Deletion pending: “正在提交删除请求…” stays inside the confirmation object; the underlying Mine surface does not change.
+- Deletion accepted: “账户删除已提交” and “数据清理完成前暂不能重新登录”; never “账户已删除”.
 
 ## Failure / Recovery State
 
@@ -38,6 +42,7 @@ Authentication entry and Learning lifecycle states around the existing card inte
 - Event confirmation failure: keep the resolved card and offer retry through the existing sync recovery pattern.
 - Space route failure: keep the completion receipt and allow retry; do not discard confirmation.
 - Entitlement refresh failure: show last-confirmed server time and a quiet retry state; never calculate a replacement locally.
+- Deletion request failure: keep the account authenticated, show “暂时无法提交删除请求。你的账户和学习数据没有改变。” and allow retry or cancel.
 
 ## Motion Intent and Timing Range
 
@@ -47,6 +52,7 @@ Authentication entry and Learning lifecycle states around the existing card inte
 - Fifth-card settle: 180–240ms, ease-out, translate 12–18 points toward the address aperture with no rotation or scale celebration.
 - Receipt reveal: 140–190ms after settle, opacity plus at most 6 points vertical movement.
 - Route transition after explicit action: 180–260ms using the existing app transition family.
+- Deletion sheet: 180–240ms bottom settle with a simultaneous scrim fade. On accepted `202`, use the standard 180–260ms shell-to-entry crossfade; no progress animation or success celebration.
 
 Motion exists only to explain attachment, confirmation, and location. It never counts down, celebrates, or plays from a duplicate event.
 
@@ -55,6 +61,7 @@ Motion exists only to explain attachment, confirmation, and location. It never c
 - Backgrounding, route changes, or reduced motion can interrupt any transition and snap to the final committed state.
 - Returning to a confirmed completion restores the receipt without replaying settle motion.
 - Pressing a valid destination during receipt reveal completes the visual state immediately before navigation.
+- While deletion submission is pending, confirm and outside-tap dismissal are disabled. After acceptance, the shell transition cannot be interrupted back into an authenticated route.
 
 ## Reduce-Motion Fallback
 
@@ -63,6 +70,7 @@ Motion exists only to explain attachment, confirmation, and location. It never c
 - Completed card and Space aperture appear in their final positions simultaneously.
 - Receipt appears without opacity animation.
 - State meaning remains fully expressed by copy, hierarchy, and address.
+- The deletion sheet appears in its final position; accepted deletion replaces the shell instantly with the entry notice.
 
 ## Low-Burden CET Learning
 
