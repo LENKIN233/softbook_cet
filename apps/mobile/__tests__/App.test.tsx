@@ -673,6 +673,11 @@ function createAccountBootstrapPayload(
     | 'pilot_premium' = 'free',
   learningEvents: MockLearningEvent[] = [],
   checkedInToday = false,
+  membershipOverrides: Partial<{
+    trial_expires_at: string | null;
+    trial_remaining_seconds: number;
+    trial_started_at: string | null;
+  }> = {},
 ) {
   const dayKey = getChinaDayKey();
   const learningCompletedCount = learningEvents.filter(
@@ -733,6 +738,7 @@ function createAccountBootstrapPayload(
         trial_remaining_seconds: stage === 'trial' ? 432000 : 0,
         trial_started_at: stage === 'trial' ? '2026-08-01T00:00:00.000Z' : null,
         trial_started_at_entry_count: stage === 'trial' ? 1 : null,
+        ...membershipOverrides,
       },
       progress: {
         acknowledged_at: checkedInToday ? new Date().toISOString() : null,
@@ -1939,6 +1945,182 @@ test('refreshes canonical membership when learning-session starts the trial', as
   expect(
     root.findAllByProps({ testID: 'membership-start-trial-button' }),
   ).toHaveLength(0);
+});
+
+test('revalidates at the server trial boundary without a later Session read postponing it', async () => {
+  let bootstrapRequestCount = 0;
+  const baseSession = createLocalLearningSession('cet4');
+  const trialTimeline = {
+    trialExpiresAt: '2026-08-06T00:00:00.000Z',
+    trialStartedAt: '2026-08-01T00:00:00.000Z',
+  };
+  const trialSession: LearningSession = {
+    ...baseSession,
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'trial',
+    ...trialTimeline,
+    trialRemainingSeconds: 1,
+  };
+  const freeSession: LearningSession = {
+    ...trialSession,
+    membershipStage: 'free',
+    trialRemainingSeconds: 0,
+  };
+  const waitingTrialSession: LearningSession = {
+    ...trialSession,
+    cards: [],
+    nextDueAt: null,
+    schedulingMode: 'server',
+    serverSelection: null,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      const isInitialRead = bootstrapRequestCount === 1;
+      return createJsonResponse(
+        createAccountBootstrapPayload(
+          isInitialRead ? waitingTrialSession : freeSession,
+          isInitialRead ? 'trial' : 'free',
+          [],
+          false,
+          {
+            trial_expires_at: trialTimeline.trialExpiresAt,
+            trial_remaining_seconds: isInitialRead ? 1 : 0,
+            trial_started_at: trialTimeline.trialStartedAt,
+          },
+        ),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(waitingTrialSession);
+  expect(
+    root.findByProps({ testID: 'learning-availability-surface' }),
+  ).toBeTruthy();
+
+  await ReactTestRenderer.act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 650));
+  });
+  resolvedSession = trialSession;
+  await ReactTestRenderer.act(async () => {
+    root
+      .findByProps({ testID: 'learning-availability-refresh-button' })
+      .props.onPress();
+    await flushAsyncEffects();
+  });
+  await waitForLearningSurface(root);
+
+  resolvedSession = freeSession;
+  await ReactTestRenderer.act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 600));
+    await flushAsyncEffects();
+  });
+  await waitForLearningSurface(root);
+
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
+  await openRoute(root, 'mine');
+  expect(
+    root.findByProps({ testID: 'mine-membership-stage' }).props.children,
+  ).toBe('当前是基础学习态');
+  await openRoute(root, 'space');
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-space-entitlement-copy' }),
+  ).toBeTruthy();
+});
+
+test('withdraws stale pilot access when trial-boundary revalidation is unavailable', async () => {
+  let bootstrapRequestCount = 0;
+  const baseSession = createLocalLearningSession('cet4');
+  const trialSession: LearningSession = {
+    ...baseSession,
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'trial',
+    trialExpiresAt: '2026-08-06T00:00:00.000Z',
+    trialRemainingSeconds: 1,
+    trialStartedAt: '2026-08-01T00:00:00.000Z',
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      if (bootstrapRequestCount > 1) {
+        return createJsonResponse({}, 503);
+      }
+      return createJsonResponse(
+        createAccountBootstrapPayload(trialSession, 'trial', [], false, {
+          trial_expires_at: trialSession.trialExpiresAt,
+          trial_remaining_seconds: 1,
+          trial_started_at: trialSession.trialStartedAt,
+        }),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(trialSession);
+  await waitForLearningSurface(root);
+
+  await ReactTestRenderer.act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    await flushAsyncEffects();
+  });
+
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(
+    root.findByProps({ testID: 'authentication-entry-boundary' }),
+  ).toBeTruthy();
+  expect(
+    root.findByProps({ testID: 'authentication-account-recovery-retry' }),
+  ).toBeTruthy();
+  expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-space' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-statistics' })).toHaveLength(
+    0,
+  );
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
 });
 
 test('fails closed when refreshed bootstrap still disagrees with learning-session membership', async () => {

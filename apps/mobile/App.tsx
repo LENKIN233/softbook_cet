@@ -1315,6 +1315,12 @@ function AppShell({
     activeRoute === 'mine'
       ? activeRoute
       : null;
+  const retryCanonicalAccountBootstrapRef = useRef(
+    retryCanonicalAccountBootstrap,
+  );
+  useEffect(() => {
+    retryCanonicalAccountBootstrapRef.current = retryCanonicalAccountBootstrap;
+  }, [retryCanonicalAccountBootstrap]);
   const startMutationReplay = useCallback(() => {
     if (!isAuthenticated || authenticatedRuntimeContext === null) {
       return Promise.resolve();
@@ -2075,6 +2081,92 @@ function AppShell({
 
     lastMembershipRefreshKey.current = null;
   }, [activeRoute]);
+
+  useEffect(() => {
+    if (
+      !isControlledPilot ||
+      !isAuthenticated ||
+      runtimeAccountBootstrapMode !== 'remote' ||
+      membershipState.stage !== 'trial' ||
+      membershipState.trialRemainingSeconds <= 0
+    ) {
+      return;
+    }
+
+    const expirySessionScopeKey = getAuthSessionScopeKey(
+      authSessionCoordinator.getCurrentSession(),
+    );
+    if (expirySessionScopeKey === null) {
+      return;
+    }
+
+    const refreshTimer = setTimeout(() => {
+      if (
+        getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !==
+        expirySessionScopeKey
+      ) {
+        return;
+      }
+
+      accountBootstrapSnapshotRef.current = null;
+      accountBootstrapStatusRef.current = 'pending';
+      accountBootstrapHydrationSettledRef.current = false;
+      pilotRoundCompletionRef.current = null;
+      setAccountBootstrapSnapshot(null);
+      setAccountBootstrapStatus('pending');
+      setAccountBootstrapHydrationSettled(false);
+      setLearningSession(null);
+      setLearningCardState(null);
+      setMappedAccountBootstrapSnapshot(null);
+      setPilotRoundCompletion(null);
+      setPilotRoundError(null);
+      setPilotRoundReviewIndex(null);
+      setMembershipError(null);
+
+      retryCanonicalAccountBootstrapRef
+        .current()
+        .then(succeeded => {
+          if (
+            !succeeded ||
+            getAuthSessionScopeKey(
+              authSessionCoordinator.getCurrentSession(),
+            ) !== expirySessionScopeKey
+          ) {
+            return;
+          }
+
+          pilotRoundCompletionRef.current = null;
+          setPilotRoundCompletion(null);
+          setLearningBootstrapStatus('idle');
+          setLearningBootstrapError(null);
+        })
+        .catch((error: unknown) => {
+          if (
+            getAuthSessionScopeKey(
+              authSessionCoordinator.getCurrentSession(),
+            ) !== expirySessionScopeKey
+          ) {
+            return;
+          }
+
+          setMembershipError(
+            getUserFacingErrorMessage(
+              error,
+              '试用到期状态暂时无法确认，请重新检查。',
+            ),
+          );
+        });
+    }, Math.max(1, membershipState.trialRemainingSeconds) * 1000);
+
+    return () => clearTimeout(refreshTimer);
+  }, [
+    authSessionCoordinator,
+    isAuthenticated,
+    isControlledPilot,
+    membershipState.stage,
+    membershipState.trialRemainingSeconds,
+    runtimeAccountBootstrapMode,
+  ]);
 
   useEffect(() => {
     if (
