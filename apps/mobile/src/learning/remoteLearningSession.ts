@@ -333,7 +333,13 @@ function parseRoundCompletion(
   if (candidate === null) return null;
   const completion = requireExactObject(
     candidate,
-    ['schema_version', 'receipt_id', 'completed_count', 'review_card_ids'],
+    [
+      'schema_version',
+      'receipt_id',
+      'completed_count',
+      'space_card_id',
+      'review_card_ids',
+    ],
     'response.data.round_completion',
   );
   const completedCount = requirePositiveSafeInteger(
@@ -372,6 +378,11 @@ function parseRoundCompletion(
     ),
     reviewCardIds,
     schemaVersion: 'pilot-round-completion.v1',
+    spaceCardId: requirePattern(
+      completion.space_card_id,
+      /^\d{6}$/,
+      'response.data.round_completion.space_card_id',
+    ),
   };
 }
 

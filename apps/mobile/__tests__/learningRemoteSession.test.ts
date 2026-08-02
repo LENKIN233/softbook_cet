@@ -123,6 +123,7 @@ test('strictly maps a five-card completion and gates the next selection', () => 
     schema_version: 'pilot-round-completion.v1',
     receipt_id: `rnd_${'a'.repeat(32)}`,
     completed_count: 5,
+    space_card_id: '110303',
     review_card_ids: ['110101', '110202'],
   } as never;
 
@@ -132,6 +133,7 @@ test('strictly maps a five-card completion and gates the next selection', () => 
       receiptId: `rnd_${'a'.repeat(32)}`,
       reviewCardIds: ['110101', '110202'],
       schemaVersion: 'pilot-round-completion.v1',
+      spaceCardId: '110303',
     },
     selection: null,
   });
@@ -142,12 +144,39 @@ test('strictly maps a five-card completion and gates the next selection', () => 
   );
 });
 
+test('rejects a round completion without a valid server-owned Space card', () => {
+  const payload = createPayload();
+  payload.data.selection = null as never;
+  payload.data.round_completion = {
+    schema_version: 'pilot-round-completion.v1',
+    receipt_id: `rnd_${'a'.repeat(32)}`,
+    completed_count: 5,
+    review_card_ids: [],
+  } as never;
+
+  expect(() => parseRemoteLearningSessionPayload(payload, 'cet4')).toThrow(
+    'response.data.round_completion must contain only its documented fields.',
+  );
+
+  payload.data.round_completion = {
+    schema_version: 'pilot-round-completion.v1',
+    receipt_id: `rnd_${'a'.repeat(32)}`,
+    completed_count: 5,
+    review_card_ids: [],
+    space_card_id: 'not-a-card',
+  } as never;
+  expect(() => parseRemoteLearningSessionPayload(payload, 'cet4')).toThrow(
+    'response.data.round_completion.space_card_id',
+  );
+});
+
 test('continues a pilot round with the exact server receipt', async () => {
   const completion = {
     completedCount: 5,
     receiptId: `rnd_${'b'.repeat(32)}`,
     reviewCardIds: [],
     schemaVersion: 'pilot-round-completion.v1' as const,
+    spaceCardId: '110101',
   };
   const fetchMock = jest.fn().mockResolvedValue({
     json: async () => ({

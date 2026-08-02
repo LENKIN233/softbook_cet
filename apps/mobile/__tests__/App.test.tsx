@@ -18,6 +18,7 @@ import { getChinaDayKey } from '../src/shared/chinaDay';
 import App, { isCompactMineViewport } from '../App';
 
 const mockCreateLearningSessionRepository = jest.fn();
+const mockContinueRound = jest.fn();
 const mockLoadSession = jest.fn();
 const mockFetch = jest.fn();
 const TEST_CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
@@ -147,6 +148,8 @@ jest.mock('../src/learning/learningRepository', () => ({
     mockCreateLearningSessionRepository(...args);
 
     return {
+      continueRound: (...continueArgs: unknown[]) =>
+        mockContinueRound(...continueArgs),
       loadSession: (...loadArgs: unknown[]) => mockLoadSession(...loadArgs),
     };
   },
@@ -188,6 +191,13 @@ beforeEach(() => {
   resolvedSession = null;
   serverSelectionCounter = 0;
   mockCreateLearningSessionRepository.mockReset();
+  mockContinueRound.mockReset();
+  mockContinueRound.mockResolvedValue({
+    acknowledgedAt: '2026-08-03T08:00:00.000Z',
+    completedCount: 5,
+    receiptId: `rnd_${'r'.repeat(32)}`,
+    status: 'acknowledged',
+  });
   mockLoadSession.mockReset();
   mockLoadSession.mockImplementation(() => pendingSession.promise);
   mockFetch.mockReset();
@@ -2171,6 +2181,37 @@ test('opens the exact server-owned review card from a controlled-pilot round rec
   const fetchCalls: MockFetchCall[] = [];
   const baseSession = createLocalLearningSession('cet4');
   const reviewCard = baseSession.catalogCards[1];
+  const latestRoundCard = baseSession.catalogCards[2];
+  const roundLearningEvents: MockLearningEvent[] = [
+    {
+      answer_grade: 'review_needed',
+      card_id: reviewCard.card_id,
+      client_occurred_at: '2026-08-03T07:59:00.000Z',
+      content_version: TEST_CONTENT_VERSION,
+      device_cursor: { device_id: 'round-device', sequence: 1 },
+      event_id: 'round-review-event',
+      interaction_id: reviewCard.interaction_id,
+      outcome: 'review',
+      phase: 'review',
+      selection_id: 'round-review-selection',
+      used_hint: false,
+      used_peek: false,
+    },
+    {
+      answer_grade: 'passed',
+      card_id: latestRoundCard.card_id,
+      client_occurred_at: '2026-08-03T08:00:00.000Z',
+      content_version: TEST_CONTENT_VERSION,
+      device_cursor: { device_id: 'round-device', sequence: 2 },
+      event_id: 'round-learning-event',
+      interaction_id: latestRoundCard.interaction_id,
+      outcome: 'correct',
+      phase: 'learning',
+      selection_id: 'round-learning-selection',
+      used_hint: false,
+      used_peek: false,
+    },
+  ];
   const roundCompletionSession: LearningSession = {
     ...baseSession,
     cards: [],
@@ -2182,6 +2223,7 @@ test('opens the exact server-owned review card from a controlled-pilot round rec
       receiptId: `rnd_${'r'.repeat(32)}`,
       reviewCardIds: [reviewCard.card_id],
       schemaVersion: 'pilot-round-completion.v1',
+      spaceCardId: latestRoundCard.card_id,
     },
     schedulingMode: 'server',
     serverSelection: null,
@@ -2205,7 +2247,11 @@ test('opens the exact server-owned review card from a controlled-pilot round rec
     }
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
       return createJsonResponse(
-        createAccountBootstrapPayload(roundCompletionSession, 'pilot_premium'),
+        createAccountBootstrapPayload(
+          roundCompletionSession,
+          'pilot_premium',
+          roundLearningEvents,
+        ),
       );
     }
 
@@ -2223,6 +2269,14 @@ test('opens the exact server-owned review card from a controlled-pilot round rec
   expect(
     root.findByProps({ testID: 'controlled-pilot-round-completion' }),
   ).toBeTruthy();
+  expect(
+    root
+      .findByProps({ testID: 'controlled-pilot-round-space-address' })
+      .findAllByType(Text)
+      .at(-1)?.props.children,
+  ).toBe(
+    `${latestRoundCard.space_metadata.library} · ${latestRoundCard.space_metadata.group} · ${latestRoundCard.space_metadata.box}`,
+  );
 
   await ReactTestRenderer.act(() => {
     findPressableByTestId(
@@ -2248,6 +2302,173 @@ test('opens the exact server-owned review card from a controlled-pilot round rec
       'controlled-pilot-round-review-next',
     ).props.onPress();
   });
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'controlled-pilot-round-space').props.onPress();
+  });
+  expect(root.findByProps({ testID: 'space-current-box-tray' })).toBeTruthy();
+
+  await openRoute(root, 'learning');
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toBeTruthy();
+
+  resolvedSession = {
+    ...baseSession,
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+    roundCompletion: null,
+  };
+  const previousLoadCount = mockLoadSession.mock.calls.length;
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(
+      root,
+      'controlled-pilot-round-continue',
+    ).props.onPress();
+    await flushAsyncEffects();
+  });
+  await waitForLearningSurface(root);
+
+  expect(mockContinueRound).toHaveBeenCalledWith(
+    {
+      authToken: 'remote-auth-token',
+      phoneNumber: '13800138000',
+    },
+    {
+      completion: expect.objectContaining({
+        completedCount: 5,
+        receiptId: `rnd_${'r'.repeat(32)}`,
+        reviewCardIds: [reviewCard.card_id],
+        spaceCardId: latestRoundCard.card_id,
+      }),
+      contentVersion: TEST_CONTENT_VERSION,
+      track: 'cet4',
+    },
+  );
+  expect(mockLoadSession.mock.calls.length).toBeGreaterThan(previousLoadCount);
+  expect(
+    root.findAllByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toHaveLength(0);
+});
+
+test('ignores a stale round-continue response after the auth session changes', async () => {
+  const continueResponse = createDeferred<{
+    acknowledgedAt: string;
+    completedCount: number;
+    receiptId: string;
+    status: 'acknowledged';
+  }>();
+  const baseSession = createLocalLearningSession('cet4');
+  const roundCompletionSession: LearningSession = {
+    ...baseSession,
+    cards: [],
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+    nextDueAt: null,
+    roundCompletion: {
+      completedCount: 5,
+      receiptId: `rnd_${'r'.repeat(32)}`,
+      reviewCardIds: [baseSession.catalogCards[0].card_id],
+      schemaVersion: 'pilot-round-completion.v1',
+      spaceCardId: baseSession.catalogCards[0].card_id,
+    },
+    schedulingMode: 'server',
+    serverSelection: null,
+  };
+  let verifiedSessionCount = 0;
+
+  mockContinueRound.mockReturnValueOnce(continueResponse.promise);
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      const body = JSON.parse(String(init?.body)) as {
+        phone_number: string;
+      };
+      verifiedSessionCount += 1;
+      return createRemoteAuthSessionResponse(
+        body.phone_number,
+        verifiedSessionCount === 1 ? 'round-a' : 'round-b',
+      );
+    }
+    if (input === 'https://api.softbook.example/v2/auth/logout') {
+      return createJsonResponse(null, 204);
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(roundCompletionSession, 'pilot_premium'),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root, '13800138000');
+  await resolveLearningBootstrap(roundCompletionSession);
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(
+      root,
+      'controlled-pilot-round-continue',
+    ).props.onPress();
+  });
+  await openRoute(root, 'mine');
+  await ReactTestRenderer.act(async () => {
+    const mineSurface = root.find(
+      node =>
+        typeof node.type === 'function' && node.type.name === 'MineSurface',
+    );
+    await mineSurface.props.handlers.onLogout();
+    await flushAsyncEffects();
+  });
+  await authenticateIntoLearningBootstrap(root, '13900139000');
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    if (
+      root.findAllByProps({ testID: 'controlled-pilot-round-completion' })
+        .length > 0
+    ) {
+      break;
+    }
+  }
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toBeTruthy();
+  const replacementSessionLoadCount = mockLoadSession.mock.calls.length;
+
+  await ReactTestRenderer.act(async () => {
+    continueResponse.resolve({
+      acknowledgedAt: '2026-08-03T08:00:00.000Z',
+      completedCount: 5,
+      receiptId: `rnd_${'r'.repeat(32)}`,
+      status: 'acknowledged',
+    });
+    await flushAsyncEffects();
+  });
+
+  expect(mockLoadSession).toHaveBeenCalledTimes(replacementSessionLoadCount);
   expect(
     root.findByProps({ testID: 'controlled-pilot-round-completion' }),
   ).toBeTruthy();

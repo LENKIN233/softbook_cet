@@ -3569,15 +3569,36 @@ function AppShell({
       return;
     }
 
+    const continuationSession = authSessionCoordinator.getCurrentSession();
+    const continuationSessionScopeKey =
+      getAuthSessionScopeKey(continuationSession);
+    if (
+      continuationSession === null ||
+      continuationSessionScopeKey === null ||
+      continuationSession.phoneNumber !==
+        authenticatedRuntimeContext.phoneNumber
+    ) {
+      setPilotRoundError('当前登录状态不可用，请重新登录后继续下一轮。');
+      return;
+    }
+
+    const continuationCompletion = pilotRoundCompletion;
     setPilotRoundContinuePending(true);
     setPilotRoundError(null);
     learningSessionRepository
       .continueRound(authenticatedRuntimeContext, {
-        completion: pilotRoundCompletion,
-        contentVersion: pilotRoundCompletion.contentVersion,
-        track: pilotRoundCompletion.track,
+        completion: continuationCompletion,
+        contentVersion: continuationCompletion.contentVersion,
+        track: continuationCompletion.track,
       })
       .then(() => {
+        if (
+          getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !==
+          continuationSessionScopeKey
+        ) {
+          return;
+        }
+
         pilotRoundCompletionRef.current = null;
         setPilotRoundCompletion(null);
         setPilotRoundContinuePending(false);
@@ -3590,6 +3611,13 @@ function AppShell({
         setLearningBootstrapError(null);
       })
       .catch((error: unknown) => {
+        if (
+          getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !==
+          continuationSessionScopeKey
+        ) {
+          return;
+        }
+
         setPilotRoundContinuePending(false);
         if (isRemoteAuthorizationError(error)) {
           clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
@@ -3872,18 +3900,14 @@ function AppShell({
               : '空间状态已同步',
         }
       : null;
-  const lastPilotRoundResult = [
-    ...learningCompletedResults,
-    ...reviewCompletedResults,
-  ].at(-1);
-  const lastPilotRoundCard = lastPilotRoundResult
+  const pilotRoundSpaceCard = pilotRoundCompletion
     ? learningSession?.catalogCards.find(
-        card => card.card_id === lastPilotRoundResult.cardId,
+        card => card.card_id === pilotRoundCompletion.spaceCardId,
       ) ?? null
     : null;
-  const pilotRoundSpaceAddress = lastPilotRoundCard
-    ? `${lastPilotRoundCard.space_metadata.library} · ${lastPilotRoundCard.space_metadata.group} · ${lastPilotRoundCard.space_metadata.box}`
-    : '卡片位置已由 Space 保留，联网后可查看准确盒位。';
+  const pilotRoundSpaceAddress = pilotRoundSpaceCard
+    ? `${pilotRoundSpaceCard.space_metadata.library} · ${pilotRoundSpaceCard.space_metadata.group} · ${pilotRoundSpaceCard.space_metadata.box}`
+    : '卡片位置暂时无法验证，请重新加载本轮。';
   const pilotRoundReviewCard =
     pilotRoundReviewIndex === null
       ? null

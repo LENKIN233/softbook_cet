@@ -190,6 +190,16 @@ export function createLearningSessionRepository(
           );
         }
 
+        const roundSpaceCardId = scheduled.roundCompletion?.spaceCardId ?? null;
+        if (
+          roundSpaceCardId !== null &&
+          !source.cards.some(card => card.card_id === roundSpaceCardId)
+        ) {
+          throw new Error(
+            'Remote round Space card is outside canonical active content.',
+          );
+        }
+
         return {
           cards: selectedCardIndex < 0 ? [] : [source.cards[selectedCardIndex]],
           catalogCards: source.cards,

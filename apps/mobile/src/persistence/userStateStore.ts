@@ -40,7 +40,8 @@ export type UserStateStore = {
 };
 
 export const USER_STATE_STORAGE_KEY = 'softbook-cet/user-state/v1';
-const USER_STATE_SCHEMA_VERSION = 'user-state.v4';
+const USER_STATE_SCHEMA_VERSION = 'user-state.v5';
+const LEGACY_USER_STATE_SCHEMA_V4 = 'user-state.v4';
 const LEGACY_USER_STATE_SCHEMA_V3 = 'user-state.v3';
 const LEGACY_USER_STATE_SCHEMA_V2 = 'user-state.v2';
 const LEGACY_USER_STATE_SCHEMA_VERSION = 'user-state.v1';
@@ -60,6 +61,7 @@ type UserStatePayload = {
     receipt_id: string;
     review_card_ids: string[];
     schema_version: 'pilot-round-completion.v1';
+    space_card_id: string;
     track: LearningTrack;
   } | null;
   presented_trial_started_at: string | null;
@@ -190,6 +192,7 @@ function serializeUserStatePayload(
           receipt_id: pilotRoundCompletion.receiptId,
           review_card_ids: pilotRoundCompletion.reviewCardIds,
           schema_version: 'pilot-round-completion.v1',
+          space_card_id: pilotRoundCompletion.spaceCardId,
           track: pilotRoundCompletion.track,
         }
       : null,
@@ -215,6 +218,7 @@ function parseUserStatePayload(payload: unknown): {
   if (
     !isObject(payload) ||
     (payload.schema_version !== USER_STATE_SCHEMA_VERSION &&
+      payload.schema_version !== LEGACY_USER_STATE_SCHEMA_V4 &&
       payload.schema_version !== LEGACY_USER_STATE_SCHEMA_V3 &&
       payload.schema_version !== LEGACY_USER_STATE_SCHEMA_V2 &&
       payload.schema_version !== LEGACY_USER_STATE_SCHEMA_VERSION)
@@ -233,13 +237,10 @@ function parseUserStatePayload(payload: unknown): {
       pilotRoundCompletion:
         payload.schema_version === USER_STATE_SCHEMA_VERSION
           ? parsePilotRoundCompletionPayload(payload.pilot_round_completion)
-          : payload.schema_version === LEGACY_USER_STATE_SCHEMA_V3
-          ? parseLegacyPilotRoundCompletionPayload(
-              payload.pilot_round_completion,
-            )
           : null,
       presentedTrialStartedAt:
         payload.schema_version === USER_STATE_SCHEMA_VERSION ||
+        payload.schema_version === LEGACY_USER_STATE_SCHEMA_V4 ||
         payload.schema_version === LEGACY_USER_STATE_SCHEMA_V3
           ? parseOptionalCanonicalTimestamp(
               payload.presented_trial_started_at,
@@ -267,6 +268,7 @@ function parsePilotRoundCompletion(
     receiptId: value.receiptId,
     reviewCardIds: value.reviewCardIds,
     schemaVersion: value.schemaVersion,
+    spaceCardId: value.spaceCardId,
     track: value.track,
   };
   assertPilotRoundCompletion(completion);
@@ -288,27 +290,7 @@ function parsePilotRoundCompletionPayload(
     receiptId: value.receipt_id,
     reviewCardIds: value.review_card_ids,
     schemaVersion: value.schema_version,
-    track: value.track,
-  };
-  assertPilotRoundCompletion(completion);
-  return completion;
-}
-
-function parseLegacyPilotRoundCompletionPayload(
-  value: unknown,
-): PersistedUserState['pilotRoundCompletion'] {
-  if (value === null) return null;
-  if (!isObject(value)) {
-    throw new Error(
-      'Legacy persisted pilot round completion must be an object or null.',
-    );
-  }
-  const completion = {
-    completedCount: value.completed_count,
-    contentVersion: value.content_version,
-    receiptId: value.receipt_id,
-    reviewCardIds: [],
-    schemaVersion: value.schema_version,
+    spaceCardId: value.space_card_id,
     track: value.track,
   };
   assertPilotRoundCompletion(completion);
@@ -321,6 +303,7 @@ function assertPilotRoundCompletion(value: {
   receiptId: unknown;
   reviewCardIds: unknown;
   schemaVersion: unknown;
+  spaceCardId: unknown;
   track: unknown;
 }): asserts value is NonNullable<PersistedUserState['pilotRoundCompletion']> {
   if (
@@ -336,7 +319,9 @@ function assertPilotRoundCompletion(value: {
     value.reviewCardIds.some(
       cardId => typeof cardId !== 'string' || !/^\d{6}$/.test(cardId),
     ) ||
-    new Set(value.reviewCardIds).size !== value.reviewCardIds.length
+    new Set(value.reviewCardIds).size !== value.reviewCardIds.length ||
+    typeof value.spaceCardId !== 'string' ||
+    !/^\d{6}$/.test(value.spaceCardId)
   ) {
     throw new Error('Pilot round completion is invalid.');
   }

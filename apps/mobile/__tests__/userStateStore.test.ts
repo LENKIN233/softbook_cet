@@ -78,6 +78,7 @@ describe('UserStateStore', () => {
         receiptId: `rnd_${'b'.repeat(32)}`,
         reviewCardIds: ['110101', '110202'],
         schemaVersion: 'pilot-round-completion.v1' as const,
+        spaceCardId: '110303',
         track: 'cet4' as const,
       },
       presentedTrialStartedAt: '2026-08-01T00:00:00.000Z',
@@ -87,7 +88,7 @@ describe('UserStateStore', () => {
     await expect(store.load('13800138000')).resolves.toEqual(state);
   });
 
-  it('migrates v3 pilot receipts without inventing review content', async () => {
+  it('drops v3 pilot receipts instead of inventing review or Space content', async () => {
     const { storage } = createStorage({
       [USER_STATE_STORAGE_KEY]: JSON.stringify({
         checked_in_day_key: null,
@@ -108,9 +109,34 @@ describe('UserStateStore', () => {
     const store = createUserStateStore(storage);
 
     await expect(store.load('13800138000')).resolves.toMatchObject({
-      pilotRoundCompletion: {
-        reviewCardIds: [],
-      },
+      pilotRoundCompletion: null,
+    });
+  });
+
+  it('drops v4 pilot receipts without a server-owned Space card and preserves the trial notice marker', async () => {
+    const { storage } = createStorage({
+      [USER_STATE_STORAGE_KEY]: JSON.stringify({
+        checked_in_day_key: null,
+        learning_cursor: null,
+        owner_phone_number: '13800138000',
+        pilot_round_completion: {
+          completed_count: 5,
+          content_version: `sha256:${'a'.repeat(64)}`,
+          receipt_id: `rnd_${'b'.repeat(32)}`,
+          review_card_ids: ['110101'],
+          schema_version: 'pilot-round-completion.v1',
+          track: 'cet4',
+        },
+        presented_trial_started_at: '2026-08-01T00:00:00.000Z',
+        schema_version: 'user-state.v4',
+        space_card_state_by_id: {},
+      }),
+    });
+    const store = createUserStateStore(storage);
+
+    await expect(store.load('13800138000')).resolves.toMatchObject({
+      pilotRoundCompletion: null,
+      presentedTrialStartedAt: '2026-08-01T00:00:00.000Z',
     });
   });
 

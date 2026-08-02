@@ -176,6 +176,7 @@ export type LearningPilotRoundCompletion = {
   receiptId: string;
   reviewCardIds: string[];
   schemaVersion: 'pilot-round-completion.v1';
+  spaceCardId: string;
 };
 
 export type LearningSession = {

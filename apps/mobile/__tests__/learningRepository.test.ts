@@ -36,6 +36,7 @@ function createSessionPayload(
       receipt_id: string;
       review_card_ids: string[];
       schema_version: 'pilot-round-completion.v1';
+      space_card_id: string;
     } | null;
     selection?: {
       selection_id: string;
@@ -399,6 +400,7 @@ test('remote repository preserves canonical source order for round review conten
             receipt_id: `rnd_${'r'.repeat(32)}`,
             review_card_ids: reviewCardIds,
             schema_version: 'pilot-round-completion.v1',
+            space_card_id: localLearningCardRecords[2].card_id,
           },
           selection: null,
         }),
@@ -410,8 +412,41 @@ test('remote repository preserves canonical source order for round review conten
   ).resolves.toMatchObject({
     roundCompletion: {
       reviewCardIds,
+      spaceCardId: localLearningCardRecords[2].card_id,
     },
   });
+});
+
+test('rejects a round Space card outside canonical active content', async () => {
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () =>
+        createSessionPayload({
+          roundCompletion: {
+            completed_count: 5,
+            receipt_id: `rnd_${'r'.repeat(32)}`,
+            review_card_ids: [],
+            schema_version: 'pilot-round-completion.v1',
+            space_card_id: '999999',
+          },
+          selection: null,
+        }),
+    });
+  const repository = createRemoteRepository(fetchMock);
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).rejects.toThrow(
+    'Remote round Space card is outside canonical active content.',
+  );
 });
 
 test.each([
@@ -452,6 +487,7 @@ test.each([
             receipt_id: `rnd_${'r'.repeat(32)}`,
             review_card_ids: fixture.reviewCardIds,
             schema_version: 'pilot-round-completion.v1',
+            space_card_id: localLearningCardRecords[0].card_id,
           },
           selection: null,
           accessMode: fixture.accessMode,
