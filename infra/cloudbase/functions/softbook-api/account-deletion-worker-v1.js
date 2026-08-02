@@ -17,6 +17,7 @@ const ACCOUNT_KEY_COLLECTIONS = Object.freeze([
   'softbook_learning_migration_revisions',
   'softbook_learning_sessions',
   'softbook_learning_states',
+  'softbook_pilot_round_continuations',
   'softbook_space_actions',
   'softbook_space_states',
 ]);
@@ -196,6 +197,7 @@ function createMemoryAccountDeletionRepository(state) {
     ['softbook_learning_states', state.learningStates],
     ['softbook_memberships', state.memberships],
     ['softbook_pilot_entitlements', state.pilotEntitlements],
+    ['softbook_pilot_round_continuations', state.pilotRoundContinuations],
     ['softbook_space_actions', state.spaceActions],
     ['softbook_space_states', state.spaceStates],
   ]);

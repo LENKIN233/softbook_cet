@@ -42,6 +42,7 @@ const collections = [
   'softbook_learning_sessions',
   'softbook_learning_states',
   'softbook_pilot_entitlements',
+  'softbook_pilot_round_continuations',
   'softbook_space_actions',
   'softbook_space_states',
 ];

@@ -5,7 +5,7 @@
 - Date: 2026-08-01
 - Branch: `infra/controlled-pilot-runtime`
 - PR: https://github.com/LENKIN233/softbook_cet/pull/474
-- Summary: Implemented the repository-side controlled-pilot backend boundary: atomic 120-hour Learning Session trial activation, gate-isolated 120/60 pilot releases, signed private content access, audited pilot entitlement overlays, retryable account deletion, and dry-run-first receiver deployment/publication tools.
+- Summary: Implemented the repository-side controlled-pilot backend boundary: atomic 120-hour Learning Session trial activation, server-derived remaining time, server-gated five-card round receipts and idempotent continuation, gate-isolated 120/60 pilot releases, signed private content access, audited pilot entitlement overlays, retryable account deletion, and dry-run-first receiver deployment/publication tools.
 
 ## Referenced specs
 
@@ -34,6 +34,8 @@
 - `product_truth`: Login, account browsing, invalid content, selection failure and cursor persistence failure must not consume trial time. The first valid Learning Session atomically persists or confirms its server cursor and writes `trial_started_at` plus `trial_expires_at` exactly 120 continuous hours apart.
 - `product_truth`: Controlled pilot accepts exactly 120 CET4 cards and exposes exactly the approved first 60 after trial expiration. It cannot accept CET6, development cards, formal release artifacts, expired pilot releases, or any `gate_eligible=true` artifact.
 - `product_truth`: Continued pilot access is a server-side audited overlay. It does not overwrite base membership, cannot be self-issued by a client, and never creates a payment path.
+- `product_truth`: A five-card round boundary is the positive multiple-of-five cumulative account-and-track canonical learning `server_sequence`, never day-scoped progress. The server returns no next selection until the exact authenticated receipt is acknowledged.
+- `product_truth`: Clients receive `trial_remaining_seconds` derived against each server response time and never manufacture remaining duration from device time.
 - `product_truth`: Account deletion remains login-blocking until account, learning, Space, membership, beta/pilot entitlement, challenge and phone-only rate-limit data are removed. Clean registration is permitted only after completion.
 - `product_truth`: Local tests, dry-runs and deployment packaging are not receiver deployment, real SMS, private-audio device playback, approved 120-card content, beta evidence or launch readiness.
 
@@ -45,6 +47,9 @@
 - Added a dry-run-first pilot entitlement command with exact pilot/time/profile binding, compare-and-set mutation, immutable audit history, reread verification and PII-redacted public reports.
 - Added a leased, retryable account-deletion worker and deployment packaging for a separate non-HTTP timer-triggered function.
 - Added the pilot entitlement collection to provisioning, receiver preflight, identity probes and lifecycle cleanup.
+- Added `pilot-round-v1`: deterministic account/pilot/content/count receipts, strict authenticated continue commands, transactionally revalidated projection counts, immutable idempotent continuation records, a Learning Session scheduling gate and formal-runtime route isolation.
+- Added `softbook_pilot_round_continuations` to CloudBase provisioning, receiver preflight/identity probes, lifecycle cleanup and account deletion; reads accept only the CloudBase-owned `_id` beyond the exact seven-field business record.
+- Added server-derived `trial_remaining_seconds` to membership, Bootstrap and Learning Session response surfaces; it is zero outside an active trial and is not persisted as entitlement authority.
 
 ## Workspace boundary and read scope
 
@@ -59,6 +64,7 @@
 - Pilot publication/deployment: `controlled-pilot-publisher-v1.mjs`, `cloudbase-pilot-receiver-adapter.mjs`, `manage-controlled-pilot.mjs`, `deploy-controlled-pilot-runtime.mjs`, and generalized receiver deploy helpers.
 - Pilot entitlement: `pilot-entitlement-v1.mjs`, `manage-pilot-entitlement.mjs`, beta timestamp preservation, and unit/CLI tests.
 - Receiver collections/lifecycle: `deployment-safety.mjs`, `provision-softbook-nosql.mjs`, `smoke-record-lifecycle.mjs`, and lifecycle tests.
+- Five-card round authority: `pilot-round-v1.js`, `learning-scheduler-v1.js`, `index.js`, account-deletion collection coverage, and controlled-pilot/CloudBase adapter tests.
 - Runtime documentation: CloudBase README, controlled-pilot runtime contract, auth runtime contract, and this run record.
 
 ## Commands run
@@ -73,6 +79,8 @@
 - 2026-08-02 continuation: resolved an isolated exact Node 22.13.0 runtime with `npm exec --yes --package=node@22.13.0 -- node`, then reran controlled-pilot profile/bundle, publisher, runtime, deployment, entitlement and account-deletion-worker tests -> passed, 27 tests (16 pilot publication/runtime/deploy tests plus 11 entitlement/deletion tests).
 - 2026-08-02 receiver capability audit: `tcb env list --json` succeeded with CloudBase CLI 3.6.4 and returned one `NORMAL` environment classified by the provider as an `体验版` test environment. No receiver-owned `controlled-pilot-profile.v1` was available, so no receiver preflight or mutation was attempted.
 - 2026-08-02 secret-presence audit (values never read or printed): SMS provider variables and content-manifest signing key variables were absent from the process environment.
+- 2026-08-02 five-card continuation: exact Node 22.13.0 full CloudBase API suite -> passed, 238 tests after adding the round gate, duplicate/offline replay, cross-midnight, cross-device, strict identity rejection, exact receipt acknowledgement, formal-route isolation, server remaining time and cross-instance CloudBase persistence/corruption coverage.
+- 2026-08-02 lifecycle continuation: exact Node 22.13.0 `infra/cloudbase/test-smoke-record-lifecycle.mjs` -> passed, 11 tests; `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`; `git diff --check` -> passed.
 - PR checks: pending.
 
 ## Validation results
@@ -84,6 +92,8 @@
 - Deletion is retryable and idempotent, removes the login lock last, and a completed deletion permits same-phone registration from a clean state.
 - Pilot publication fails on changed audio bytes and requires each audio asset to bind an approved manifest row, human reviewer/time, ten required QC checks, per-card QC coverage and a hashed QC record.
 - Every mutating operator command defaults to dry-run and apply refuses any branch that is not clean exact `main` at `origin/main`.
+- After the fifth newly accepted canonical event, repeated and cross-device Learning Session reads return the same completion receipt with `selection=null`; duplicate event replay and China activity-day rollover do not change the cumulative boundary. Exact continue replay returns the original acknowledgement, while count, receipt, content, identity or unknown-field drift fails closed.
+- Formal/development runtime does not expose the pilot continue route. Account deletion and lifecycle cleanup include every continuation record by exact account ownership.
 
 ## Agent review status
 
@@ -110,7 +120,7 @@
 - The approved 120-card payload and all referenced audio/QC remain external content deliverables from `/Users/lenkin/programing/card make`.
 - Receiver CloudBase, real SMS, timer execution logs, account deletion drill, private audio device playback and rollback evidence remain pending and cannot be replaced with repository tests.
 - The exact deployment Node version is locally obtainable, but the receiver profile, independent pilot environment, SMS credentials and content signing keys remain absent. These are external prerequisites, not repository test failures.
-- Client work must remove remote start-trial mutations, parse the new timestamp and `pilot_premium` fields, use Learning Session as the only trigger, and implement server-confirmed five-card completion without local scheduling.
+- Client work must parse server `round_completion` and `trial_remaining_seconds`, POST only the exact receipt on the explicit primary action, and never count or acknowledge a round locally.
 
 ## Follow-up
 
