@@ -1344,7 +1344,11 @@ test('does not expose native credential storage failures inside the auth gate', 
   await authenticateIntoLearningBootstrap(tree!.root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证码暂时没通过。');
+  expect(output).toContain('登录暂时未完成');
+  expect(output).toContain('登录凭证暂时无法安全保存，登录尚未完成。');
+  expect(output).toContain('验证码已通过；请重试完成安全登录。');
+  expect(output).toContain('重新完成登录');
+  expect(output).not.toContain('验证码暂时没通过');
   expect(output).not.toContain('TurboModuleRegistry');
   expect(output).not.toContain('RNKeychain');
   expectNoUserVisibleMetadataLeakage(tree!);

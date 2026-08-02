@@ -1,6 +1,7 @@
 appId: com.softbook.cet
 name: ios-auth-screenshot
 ---
+- clearKeychain
 - clearState
 - launchApp
 - extendedWaitUntil:

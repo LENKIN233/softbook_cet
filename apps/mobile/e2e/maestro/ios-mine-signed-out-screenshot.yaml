@@ -1,6 +1,7 @@
 appId: com.softbook.cet
 name: ios-mine-signed-out-screenshot
 ---
+- clearKeychain
 - clearState
 - launchApp
 - extendedWaitUntil:

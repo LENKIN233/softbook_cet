@@ -1,6 +1,7 @@
 appId: com.softbook.cet
 name: ios-auth-space-gate-screenshot
 ---
+- clearKeychain
 - clearState
 - launchApp
 - extendedWaitUntil:

@@ -1,6 +1,7 @@
 appId: com.softbook.cet
 name: ios-auth-learning-space-statistics-smoke
 ---
+- clearKeychain
 - clearState
 - launchApp
 - extendedWaitUntil:

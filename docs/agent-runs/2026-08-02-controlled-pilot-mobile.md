@@ -48,6 +48,8 @@
 - Added a fixed CET4 pilot slip and non-blocking first-card notice to Learning, a three-action round completion surface, a read-only pending-round review surface, and a no-payment server-time entitlement card in Mine.
 - Added `pilot_premium` presentation and access handling without treating it as a purchase or overwriting base membership.
 - Replaced route-level login gates and the signed-out Mine embedding with one AppShell root boundary. Persistence restoration has a navigation-free holding state; login success and logout reset the route to Learning, while logout atomically returns to the dedicated entry.
+- Split login recovery into verification, secure-session establishment, and account-hydration failure stages. A successfully verified SMS code can no longer be blamed when Keychain persistence or required account hydration fails; the shell remains closed and the retry copy names the actual unfinished step.
+- Made every iOS Maestro flow that depends on a signed-out start clear both application state and Keychain state. This prevents a previously persisted authenticated session from bypassing the dedicated login boundary during later evidence runs.
 
 ## Workspace boundary and read scope
 
@@ -59,6 +61,7 @@
 
 - `apps/mobile/App.tsx`: lifecycle orchestration, receipt persistence/continue, read-only review routing, pilot Space gate copy, fixed Mine identity and server-time entitlement display.
 - `apps/mobile/App.tsx`: dedicated authentication/restoration entry, authenticated-only shell mounting, post-login Learning entry, and authenticated Mine logout action.
+- `apps/mobile/App.tsx`: stage-owned login failure copy and recovery actions so verification, credential persistence, and account hydration are not collapsed into one false “验证码没通过” error.
 - `apps/mobile/src/learning/ControlledPilotRoundCompletionSurface.tsx`: accepted three-action completion object and read-only pending-round review.
 - `apps/mobile/src/learning/LearningSurface.tsx`: fixed pilot identity and non-blocking first-valid-card notice.
 - `apps/mobile/src/learning/model.ts`, `sessionCore.ts`, `remoteLearningSession.ts`, `learningRepository.ts`, and `remoteCardSource.ts`: strict response/continue contracts and shared session mapping.
@@ -66,6 +69,7 @@
 - `apps/mobile/src/persistence/userStateStore.ts` and `src/bootstrap/accountBootstrapHydration.ts`: restart-safe receipt/notice persistence and content-bound reconciliation.
 - `apps/mobile/__tests__/*`: parser, persistence, bootstrap, membership, UI and exact-action regression coverage.
 - `apps/mobile/e2e/maestro/ios-auth-space-gate-screenshot.yaml`, `ios-auth-statistics-gate-screenshot.yaml`, and the signed-out Mine auth-state flows: historical route-gate regressions now assert the dedicated entry and absence of all signed-out route tabs.
+- `apps/mobile/e2e/maestro/ios-*.yaml`: signed-out setup now clears the iOS Keychain before application state so flows are isolated even though secure credentials survive reinstall/state clearing.
 - `apps/web/src/App.tsx`: exhaustive internal-acceptance label mapping for the shared `pilot_premium` membership stage so the mobile type expansion cannot break Web typecheck/build.
 
 ## Commands run
@@ -81,6 +85,9 @@
 - Updated exact Node 22.13.0 full mobile test run -> passed, 46 suites and 445 tests, including dedicated-entry, restoration and signed-out route-absence coverage.
 - `python3 scripts/validate_maestro_selectors.py` after rewriting the obsolete route-level auth flows -> passed.
 - iPhone 17 Pro / iOS 26.5 simulator plus `ios-mine-signed-out-screenshot.yaml` -> passed: the dedicated entry/card, phone input and code action were visible; Learning, Space, Statistics and Mine route tabs were all absent.
+- iPhone 17 Pro / iOS 26.5 simulator with a locally signed native build -> `ios-learning-home-screenshot.yaml` passed through phone/SMS login, Learning entry, two card interactions, navigation away and return; `ios-space-overview-screenshot.yaml` passed after explicit Keychain clearing.
+- The first unsigned simulator build reproduced a secure-session failure with `errSecMissingEntitlement`; inspector evidence confirmed the SMS verification had succeeded and Keychain persistence failed. A normal “Sign to Run Locally” rebuild restored the login path. The unsigned run is retained only as diagnostic evidence and is not claimed as device or pilot evidence.
+- Updated full mobile verification after failure-stage and Maestro isolation changes -> 46 suites / 445 tests, TypeScript, ESLint (0 errors; 14 existing inline-style warnings), metadata scans, Maestro selector validation, and `git diff --check` passed.
 - Exact Node 22.13.0 PR-profile local gate run -> mobile lint/typecheck/Jest, Web lint/tests, backend 238 tests, full harness, dependency security, LFS and evidence checks passed. It surfaced the missing Web `pilot_premium` label mapping, which was fixed; targeted Web typecheck, 12 tests and production build then passed. The overall local report remains non-green because this stacked PR does not target `main`, while repository-health strict mode also reports the shared repository's 11 worktrees/20 topic branches plus the remotely configured `android-release` check. The report is not a GitHub required check or formal evidence.
 
 ## Validation results
@@ -96,11 +103,13 @@
 - The shared membership-stage union is now consumed exhaustively by the internal Web acceptance surface, preventing a future stage addition from silently rendering an undefined label.
 - During persistence restoration, only the account-restoration state mounts. Once restoration resolves signed out, only the dedicated login surface mounts; the phone shell and tablet shell are outside that branch.
 - Successful SMS verification hydrates the account before setting authenticated state and entering Learning. Failed verification remains on the same dedicated entry. Logout clears account runtime state and returns directly to the navigation-free entry.
+- A post-verification credential persistence failure remains on the dedicated entry with “登录暂时未完成 / 验证码已通过” recovery copy and never exposes the product shell or native error metadata.
+- iOS signed-out acceptance runs now explicitly clear secure session state; `clearState` alone is no longer treated as proof of a signed-out start.
 
 ## Binary evidence
 
 - Evidence manifest: N/A.
-- Archive: N/A. A local iPhone 17 Pro simulator screenshot was visually inspected for this P0 entry fix, but is not committed or claimed as formal pilot evidence.
+- Archive: N/A. Local iPhone 17 Pro simulator screenshots for Learning, Space, Statistics, Mine, and login recovery were visually inspected, but are not committed or claimed as formal pilot evidence.
 
 ## Agent review status
 

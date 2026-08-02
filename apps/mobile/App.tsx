@@ -213,6 +213,14 @@ function getAuthStatusCopy(authState: AuthState): AuthStatusCopy {
 type AuthState = {
   authToken: string | null;
   challenge: AuthChallenge | null;
+  errorKind:
+    | 'account_hydration'
+    | 'phone'
+    | 'request_code'
+    | 'session_establishment'
+    | 'session_recovery'
+    | 'verify_code'
+    | null;
   stage: AuthStage;
   phoneNumber: string;
   pendingAction: 'request_code' | 'verify_code' | null;
@@ -338,6 +346,7 @@ const SMS_CODE_CELL_COUNT = 6;
 const INITIAL_AUTH_STATE: AuthState = {
   authToken: null,
   challenge: null,
+  errorKind: null,
   stage: 'logged_out',
   phoneNumber: '',
   pendingAction: null,
@@ -666,7 +675,11 @@ function AppShell({
       setAccountBootstrapHydrationSettled(
         accountBootstrapHydrationSettledRef.current,
       );
-      setAuthState({ ...INITIAL_AUTH_STATE, error });
+      setAuthState({
+        ...INITIAL_AUTH_STATE,
+        error,
+        errorKind: error ? 'session_recovery' : null,
+      });
       setLearningPhase('learning');
       setPilotRoundCompletion(null);
       setPilotRoundContinuePending(false);
@@ -2734,6 +2747,7 @@ function AppShell({
         challenge:
           current.phoneNumber === phoneNumber ? current.challenge : null,
         error: null,
+        errorKind: null,
         phoneNumber,
         smsCode: current.phoneNumber === phoneNumber ? current.smsCode : '',
         stage:
@@ -2748,6 +2762,7 @@ function AppShell({
         ...current,
         smsCode: value.replace(/[^\d]/g, '').slice(0, 6),
         error: null,
+        errorKind: null,
       }));
     },
     onRequestCode: () => {
@@ -2759,6 +2774,7 @@ function AppShell({
         setAuthState(current => ({
           ...current,
           error: '请输入 11 位手机号后再请求验证码。',
+          errorKind: 'phone',
         }));
         return;
       }
@@ -2767,6 +2783,7 @@ function AppShell({
       setAuthState(current => ({
         ...current,
         error: null,
+        errorKind: null,
         pendingAction: 'request_code',
       }));
 
@@ -2779,6 +2796,7 @@ function AppShell({
                   ...current,
                   challenge,
                   error: null,
+                  errorKind: null,
                   pendingAction: null,
                   smsCode: '',
                   stage: 'code_sent',
@@ -2793,6 +2811,7 @@ function AppShell({
           setAuthState(current => ({
             ...current,
             error: getUserFacingErrorMessage(error, '验证码请求暂时失败。'),
+            errorKind: 'request_code',
             pendingAction: null,
           }));
         });
@@ -2806,6 +2825,7 @@ function AppShell({
         setAuthState(current => ({
           ...current,
           error: '请先请求验证码。',
+          errorKind: 'request_code',
         }));
         return;
       }
@@ -2814,6 +2834,7 @@ function AppShell({
         setAuthState(current => ({
           ...current,
           error: '验证码请求已失效，请重新获取。',
+          errorKind: 'request_code',
           stage: 'logged_out',
         }));
         return;
@@ -2823,6 +2844,7 @@ function AppShell({
         setAuthState(current => ({
           ...current,
           error: '请输入 4-6 位验证码。',
+          errorKind: 'verify_code',
         }));
         return;
       }
@@ -2833,11 +2855,16 @@ function AppShell({
       setAuthState(current => ({
         ...current,
         error: null,
+        errorKind: null,
         pendingAction: 'verify_code',
       }));
       setMembershipError(null);
       setMembershipPendingAction(null);
 
+      let loginFailureStage:
+        | 'account_hydration'
+        | 'session_establishment'
+        | 'verify_code' = 'verify_code';
       let sessionEstablished = false;
 
       (async () => {
@@ -2846,9 +2873,11 @@ function AppShell({
           phoneNumber,
           smsCode,
         });
+        loginFailureStage = 'session_establishment';
         await authSessionCoordinator.establish(session);
         sessionEstablished = true;
 
+        loginFailureStage = 'account_hydration';
         const hydration = await loadAuthenticatedRuntimeHydration(session);
 
         return {
@@ -2873,6 +2902,7 @@ function AppShell({
             authToken: getAuthAccessToken(session) ?? null,
             challenge: null,
             error: null,
+            errorKind: null,
             pendingAction: null,
             phoneNumber: session.phoneNumber,
             smsCode: '',
@@ -2896,9 +2926,22 @@ function AppShell({
             }
           }
 
+          console.warn(
+            `[Authentication] Login failed during ${loginFailureStage}.`,
+            error,
+          );
+
+          const fallbackMessage =
+            loginFailureStage === 'verify_code'
+              ? '验证码暂时没通过。'
+              : loginFailureStage === 'session_establishment'
+              ? '登录凭证暂时无法安全保存，登录尚未完成。'
+              : '账号状态暂时无法读取，登录尚未完成。';
+
           setAuthState(current => ({
             ...current,
-            error: getUserFacingErrorMessage(error, '验证码暂时没通过。'),
+            error: getUserFacingErrorMessage(error, fallbackMessage),
+            errorKind: loginFailureStage,
             pendingAction: null,
           }));
         });
@@ -6282,12 +6325,26 @@ function PhoneSmsPanel({
     ? `短码已发送，确认后回到${returnTarget}。`
     : requestDockDetail;
   const requestStatusTone = canRequestCode ? palette.success : palette.accent;
-  const authErrorTitle = hasRequestedCode
-    ? '验证码暂时没通过'
-    : '短码暂时没发出';
-  const authErrorDetail = hasRequestedCode
-    ? '检查短码后重试，当前位置不变。'
-    : '检查手机号后重试，当前位置不变。';
+  const authErrorTitle =
+    authState.errorKind === 'session_establishment'
+      ? '登录暂时未完成'
+      : authState.errorKind === 'session_recovery'
+      ? '登录状态已结束'
+      : authState.errorKind === 'account_hydration'
+      ? '账号状态暂时没读完'
+      : hasRequestedCode
+      ? '验证码暂时没通过'
+      : '短码暂时没发出';
+  const authErrorDetail =
+    authState.errorKind === 'session_establishment'
+      ? '验证码已通过；请重试完成安全登录。'
+      : authState.errorKind === 'session_recovery'
+      ? '请重新验证手机号后进入学习。'
+      : authState.errorKind === 'account_hydration'
+      ? '验证码已通过；账号读取完成后再进入学习。'
+      : hasRequestedCode
+      ? '检查短码后重试，当前位置不变。'
+      : '检查手机号后重试，当前位置不变。';
   const codeActionTone = hasCodeError ? palette.warning : palette.accent;
   const submitCodeButtonBackground = canSubmitCode
     ? codeActionTone
@@ -6569,6 +6626,10 @@ function PhoneSmsPanel({
                 >
                   {authState.pendingAction === 'verify_code'
                     ? '正在验证'
+                    : (authState.errorKind === 'session_establishment' ||
+                        authState.errorKind === 'account_hydration') &&
+                      canSubmitCode
+                    ? '重新完成登录'
                     : hasCodeError && canSubmitCode
                     ? '重新验证'
                     : canSubmitCode
