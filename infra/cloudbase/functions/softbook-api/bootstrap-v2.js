@@ -93,7 +93,7 @@ async function readBootstrap(config, input) {
     track: input.track,
     content: serializeContent(cardSource),
     learning: normalizedLearning,
-    membership: normalizeMembership(membership),
+    membership: normalizeMembership(membership, generatedAt),
     progress: normalizedProgress,
     space: normalizedSpace,
   };
@@ -405,7 +405,7 @@ function normalizeLearningCursor(cursor, expectedTrack) {
   };
 }
 
-function normalizeMembership(value) {
+function normalizeMembership(value, generatedAt) {
   return readCanonicalState('membership', () => {
     const membership = requireObject(value, 'membership');
     const trialStartedAtEntryCount = membership.trial_started_at_entry_count;
@@ -469,10 +469,27 @@ function normalizeMembership(value) {
         'membership.trial_duration_days',
       ),
       trial_expires_at: trialExpiresAt,
+      trial_remaining_seconds: trialRemainingSeconds(
+        stage,
+        trialExpiresAt,
+        generatedAt,
+      ),
       trial_started_at: trialStartedAt,
       trial_started_at_entry_count: trialStartedAtEntryCount,
     };
   });
+}
+
+function trialRemainingSeconds(stage, expiresAt, generatedAt) {
+  if (stage !== 'trial' || expiresAt === null) return 0;
+  const generatedTimestamp = Date.parse(generatedAt);
+  if (!Number.isFinite(generatedTimestamp)) {
+    throw new Error('membership response time is invalid.');
+  }
+  return Math.max(
+    0,
+    Math.ceil((Date.parse(expiresAt) - generatedTimestamp) / 1000),
+  );
 }
 
 function createContentVersion(cardSource) {

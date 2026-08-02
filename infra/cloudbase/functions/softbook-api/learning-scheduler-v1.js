@@ -3,6 +3,10 @@ const {createEmptyCard, fsrs, Rating, State} = require('ts-fsrs');
 const {
   isContentReleaseValidForRuntime,
 } = require('./content-release-runtime');
+const {
+  createPilotRoundCompletion,
+  isRoundBoundary,
+} = require('./pilot-round-v1');
 
 const LEARNING_SESSION_SCHEMA_VERSION = 'learning-session.v1';
 const SCHEDULER_POLICY_VERSION = 'softbook-fsrs.v1';
@@ -122,6 +126,13 @@ async function readLearningSession(config, input) {
       spaceState,
       track,
     });
+    context.pilotId =
+      config.runtimeMode === 'controlled_pilot'
+        ? requireNonEmptyString(
+            cardSource.release?.pilot_id,
+            'card source.release.pilot_id',
+          )
+        : null;
     if (
       context.sessionState.learning_acknowledged_at !==
         context.learning.projectionAcknowledgedAt ||
@@ -129,6 +140,35 @@ async function readLearningSession(config, input) {
         context.learning.projectionServerSequence
     ) {
       continue;
+    }
+
+    if (
+      config.runtimeMode === 'controlled_pilot' &&
+      isRoundBoundary(context.learning.projectionServerSequence)
+    ) {
+      const roundCompletion = createPilotRoundCompletion({
+        accountKey: input.accountKey,
+        completedCount: context.learning.projectionServerSequence,
+        contentVersion: context.contentVersion,
+        pilotId: context.pilotId,
+      });
+      const continuation =
+        await config.store.getPilotRoundContinuation({
+          accountKey: input.accountKey,
+          completedCount: roundCompletion.completed_count,
+          contentVersion: context.contentVersion,
+          pilotId: context.pilotId,
+          receiptId: roundCompletion.receipt_id,
+        });
+      if (continuation === null) {
+        return serializeLearningSession(
+          context,
+          null,
+          null,
+          null,
+          roundCompletion,
+        );
+      }
     }
     const resumed = resumePersistedCursor(context);
 
@@ -520,6 +560,7 @@ function serializeLearningSession(
   selection,
   responseReason,
   nextDueAt = null,
+  roundCompletion = null,
 ) {
   const cursor = selection?.cursor ?? null;
 
@@ -532,6 +573,11 @@ function serializeLearningSession(
     membership_stage: context.membershipStage,
     trial_started_at: context.trialStartedAt,
     trial_expires_at: context.trialExpiresAt,
+    trial_remaining_seconds: trialRemainingSeconds(
+      context.membershipStage,
+      context.trialExpiresAt,
+      context.generatedAt,
+    ),
     algorithm: {
       id: SCHEDULER_ALGORITHM,
       library: SCHEDULER_LIBRARY,
@@ -553,6 +599,7 @@ function serializeLearningSession(
         }
       : null,
     next_due_at: nextDueAt,
+    round_completion: roundCompletion,
   };
 }
 
@@ -1023,6 +1070,7 @@ function validateServiceConfig(config) {
     'commitLearningSessionRead',
     'getCardSource',
     'getLearningSessionCursor',
+    'getPilotRoundContinuation',
     'getLearningState',
     'getMembership',
     'getSpaceState',
@@ -1063,6 +1111,13 @@ function normalizeTrialTimeline(membership, stage) {
     throw new Error('membership trial timeline is invalid.');
   }
   return {expiresAt, startedAt};
+}
+
+function trialRemainingSeconds(stage, expiresAt, generatedAt) {
+  if (stage !== 'trial' || expiresAt === null) return 0;
+  const remainingMilliseconds =
+    Date.parse(expiresAt) - requireValidDate(generatedAt, 'scheduler clock').getTime();
+  return Math.max(0, Math.ceil(remainingMilliseconds / 1000));
 }
 
 function isCanonicalIsoTimestamp(value) {

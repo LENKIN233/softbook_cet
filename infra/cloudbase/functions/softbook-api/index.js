@@ -55,6 +55,12 @@ const {
   normalizeStoredSpaceState,
   prepareSpaceActionCommit,
 } = require('./space-actions-v2');
+const {
+  createPilotRoundContinuationId,
+  createPilotRoundContinuationRecord,
+  createPilotRoundV1Service,
+  normalizePilotRoundContinuationRecord,
+} = require('./pilot-round-v1');
 
 const DEFAULT_SMS_CODE = '2468';
 const DEFAULT_TRIAL_DURATION_DAYS = 5;
@@ -81,6 +87,7 @@ const CLOUDBASE_COLLECTIONS = {
   authSessions: 'softbook_auth_sessions',
   betaEntitlements: 'softbook_beta_entitlements',
   pilotEntitlements: 'softbook_pilot_entitlements',
+  pilotRoundContinuations: 'softbook_pilot_round_continuations',
   cardSourceVersions: 'softbook_card_source_versions',
   cardSources: 'softbook_card_sources',
   dailyCheckIns: 'softbook_daily_check_ins',
@@ -215,6 +222,11 @@ function createSoftbookApi(options = {}) {
   config.learningSchedulerV1 = createLearningSchedulerV1Service({
     now: config.now,
     randomBytes: options.learningSchedulerRandomBytes,
+    runtimeMode,
+    store,
+  });
+  config.pilotRoundV1 = createPilotRoundV1Service({
+    now: config.now,
     runtimeMode,
     store,
   });
@@ -375,6 +387,17 @@ async function handleHttpRequest(config, request) {
       });
     }
 
+    if (
+      config.runtimeMode === 'controlled_pilot' &&
+      method === 'POST' &&
+      path === '/v2/learning/round/continue'
+    ) {
+      const session = await config.authV2.requireActiveSession(request);
+      return jsonResponse(200, {
+        data: await config.pilotRoundV1.continue({request, session}),
+      });
+    }
+
     if (method === 'GET' && path === '/v2/content/manifest') {
       const session = await config.authV2.requireActiveSession(request);
       assertContentManifestRequest(request);
@@ -428,10 +451,12 @@ async function handleHttpRequest(config, request) {
     }
 
     if (method === 'GET' && path === '/v1/membership/entitlement') {
+      const generatedAt = config.now().toISOString();
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
-            await config.store.getMembership(session.phoneNumber),
+            await config.store.getMembership(session.phoneNumber, generatedAt),
+            generatedAt,
           ),
         },
       });
@@ -439,13 +464,15 @@ async function handleHttpRequest(config, request) {
 
     if (method === 'POST' && path === '/v1/membership/start-trial') {
       assertBodyPhoneMatchesSession(request.body, session);
+      const acknowledgedAt = config.now().toISOString();
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
             await config.store.startTrial(
               session.phoneNumber,
-              config.now().toISOString(),
+              acknowledgedAt,
             ),
+            acknowledgedAt,
           ),
         },
       });
@@ -453,13 +480,15 @@ async function handleHttpRequest(config, request) {
 
     if (method === 'POST' && path === '/v1/membership/purchase') {
       assertBodyPhoneMatchesSession(request.body, session);
+      const acknowledgedAt = config.now().toISOString();
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
             await config.store.purchase(
               session.phoneNumber,
-              config.now().toISOString(),
+              acknowledgedAt,
             ),
+            acknowledgedAt,
           ),
         },
       });
@@ -467,13 +496,15 @@ async function handleHttpRequest(config, request) {
 
     if (method === 'POST' && path === '/v1/membership/dismiss-recovery') {
       assertBodyPhoneMatchesSession(request.body, session);
+      const acknowledgedAt = config.now().toISOString();
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
             await config.store.dismissRecovery(
               session.phoneNumber,
-              config.now().toISOString(),
+              acknowledgedAt,
             ),
+            acknowledgedAt,
           ),
         },
       });
@@ -656,6 +687,7 @@ function createMemoryStore() {
   const betaEntitlements = new Map();
   const memberships = new Map();
   const pilotEntitlements = new Map();
+  const pilotRoundContinuations = new Map();
   const dailyCheckIns = new Map();
   const dailyProgress = new Map();
   const learningEventCursors = new Map();
@@ -698,6 +730,7 @@ function createMemoryStore() {
       learningStates,
       memberships,
       pilotEntitlements,
+      pilotRoundContinuations,
       spaceActions,
       spaceStates,
     }),
@@ -829,6 +862,20 @@ function createMemoryStore() {
           createAccountLearningSessionKey(accountKey, track),
         ) ?? null,
       ),
+    getPilotRoundContinuation: input => {
+      const record = pilotRoundContinuations.get(
+        createPilotRoundContinuationId(input),
+      );
+      return cloneJson(
+        normalizePilotRoundContinuationRecord(record ?? null, {
+          account_key: input.accountKey,
+          completed_count: input.completedCount,
+          content_version: input.contentVersion,
+          pilot_id: input.pilotId,
+          receipt_id: input.receiptId,
+        }),
+      );
+    },
     confirmLearningSessionCursor: input =>
       runLearningTransaction(async () => {
         const key = createAccountLearningSessionKey(
@@ -1066,6 +1113,37 @@ function createMemoryStore() {
           ),
         };
       }),
+    commitPilotRoundContinuation: input =>
+      runLearningTransaction(async () => {
+        const documentId = createPilotRoundContinuationId(input);
+        const existing = normalizePilotRoundContinuationRecord(
+          pilotRoundContinuations.get(documentId) ?? null,
+          {
+            account_key: input.accountKey,
+            completed_count: input.completedCount,
+            content_version: input.contentVersion,
+            pilot_id: input.pilotId,
+            receipt_id: input.receiptId,
+          },
+        );
+        if (existing) {
+          return {accepted: true, duplicate: true, record: cloneJson(existing)};
+        }
+        const learningState = learningStates.get(
+          createAccountLearningStateKey(input.accountKey, input.track),
+        );
+        if (
+          learningState?.projection_version !== 'learning-events.v2' ||
+          maximumLearningServerSequence(
+            learningState.events_by_card_id ?? {},
+          ) !== input.completedCount
+        ) {
+          return {accepted: false, duplicate: false, record: null};
+        }
+        const record = createPilotRoundContinuationRecord(input);
+        pilotRoundContinuations.set(documentId, record);
+        return {accepted: true, duplicate: false, record: cloneJson(record)};
+      }),
     commitLearningEvents,
     getSpaceState: (phoneNumber, dayKey, options = {}) =>
       runSpaceTransaction(async () => {
@@ -1173,6 +1251,7 @@ function createMemoryStore() {
       learningStates,
       memberships,
       pilotEntitlements,
+      pilotRoundContinuations,
       spaceActions,
       spaceStates,
     }),
@@ -1188,6 +1267,9 @@ function createCloudBaseStore(options = {}) {
   const cardSources = db.collection(CLOUDBASE_COLLECTIONS.cardSources);
   const betaEntitlements = db.collection(CLOUDBASE_COLLECTIONS.betaEntitlements);
   const memberships = db.collection(CLOUDBASE_COLLECTIONS.memberships);
+  const pilotRoundContinuations = db.collection(
+    CLOUDBASE_COLLECTIONS.pilotRoundContinuations,
+  );
   const dailyCheckIns = db.collection(CLOUDBASE_COLLECTIONS.dailyCheckIns);
   const dailyProgress = db.collection(CLOUDBASE_COLLECTIONS.dailyProgress);
   const learningEventSequences = db.collection(
@@ -1357,6 +1439,22 @@ function createCloudBaseStore(options = {}) {
       const value = {...document};
       delete value._id;
       return value;
+    },
+    getPilotRoundContinuation: async input => {
+      const document = await getCloudBaseDocument(
+        pilotRoundContinuations,
+        createPilotRoundContinuationId(input),
+      );
+      if (document === null) return null;
+      const value = {...document};
+      delete value._id;
+      return normalizePilotRoundContinuationRecord(value, {
+        account_key: input.accountKey,
+        completed_count: input.completedCount,
+        content_version: input.contentVersion,
+        pilot_id: input.pilotId,
+        receipt_id: input.receiptId,
+      });
     },
     confirmLearningSessionCursor: input =>
       db.runTransaction(async transaction => {
@@ -1688,6 +1786,56 @@ function createCloudBaseStore(options = {}) {
             input.phoneNumber,
           ),
         };
+      }),
+    commitPilotRoundContinuation: input =>
+      db.runTransaction(async transaction => {
+        const transactionLearningStates = transaction.collection(
+          CLOUDBASE_COLLECTIONS.learningStates,
+        );
+        const transactionContinuations = transaction.collection(
+          CLOUDBASE_COLLECTIONS.pilotRoundContinuations,
+        );
+        const documentId = createPilotRoundContinuationId(input);
+        const [existingDocument, learningState] = await Promise.all([
+          getCloudBaseDocument(transactionContinuations, documentId),
+          getCloudBaseDocument(
+            transactionLearningStates,
+            createAccountLearningStateId(input.accountKey, input.track),
+          ),
+        ]);
+        const existingValue = existingDocument
+          ? {...existingDocument}
+          : null;
+        if (existingValue) delete existingValue._id;
+        const existing = normalizePilotRoundContinuationRecord(
+          existingValue,
+          {
+            account_key: input.accountKey,
+            completed_count: input.completedCount,
+            content_version: input.contentVersion,
+            pilot_id: input.pilotId,
+            receipt_id: input.receiptId,
+          },
+        );
+        if (existing) {
+          return {accepted: true, duplicate: true, record: existing};
+        }
+        if (
+          learningState?.projection_version !== 'learning-events.v2' ||
+          maximumLearningServerSequence(
+            learningState.events_by_card_id ?? {},
+          ) !== input.completedCount
+        ) {
+          return {accepted: false, duplicate: false, record: null};
+        }
+
+        const record = createPilotRoundContinuationRecord(input);
+        await setCloudBaseDocument(
+          transactionContinuations,
+          documentId,
+          record,
+        );
+        return {accepted: true, duplicate: false, record};
       }),
     commitLearningEvents,
     getSpaceState: async (phoneNumber, dayKey, options = {}) => {
@@ -3218,8 +3366,23 @@ function cloneMembership(membership) {
   };
 }
 
-function serializeMembershipEntitlement(entitlement) {
-  return cloneMembership(entitlement);
+function serializeMembershipEntitlement(entitlement, generatedAt = null) {
+  const value = cloneMembership(entitlement);
+  return {
+    ...value,
+    trial_remaining_seconds:
+      value.stage === 'trial' &&
+      isCanonicalIsoTimestamp(value.trial_expires_at) &&
+      isCanonicalIsoTimestamp(generatedAt)
+        ? Math.max(
+            0,
+            Math.ceil(
+              (Date.parse(value.trial_expires_at) - Date.parse(generatedAt)) /
+                1000,
+            ),
+          )
+        : 0,
+  };
 }
 
 function createAuthToken(config, phoneNumber) {

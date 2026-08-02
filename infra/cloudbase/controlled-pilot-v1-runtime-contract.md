@@ -23,7 +23,7 @@ Referenced active sources:
 
 `implementation_hypothesis`:
 
-- The repository implements fail-closed schema validators, a dry-run-first receiver publisher, controlled-pilot runtime release enforcement, audited entitlement mutation, atomic trial timestamps, and a retryable account-deletion worker plus deployment tooling.
+- The runtime topic branch implements fail-closed schema validators, a dry-run-first receiver publisher, controlled-pilot release enforcement, audited entitlement mutation, atomic trial timestamps, the five-card round gate, and a retryable account-deletion worker plus deployment tooling. Mobile wiring, externally approved content, receiver deployment and real-device evidence remain separate and incomplete.
 - The deployment tool packages the API and a separate non-HTTP deletion worker, configures the worker's idempotent one-minute timer trigger, and still requires an exact receiver environment, complete collection catalog, real secret inputs, clean exact `main`, and an explicit apply flag.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
 - None of this has been deployed to the receiver environment in this repository run. Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
@@ -32,7 +32,15 @@ Referenced active sources:
 
 Authentication alone never starts the trial. The Learning Session authority may start an available trial only after it has validated canonical content and access, selected an eligible card, persisted and confirmed the selection cursor, and is ready to return a successful session. It stores server-authoritative `trial_started_at` and `trial_expires_at` exactly 120 hours apart in the same membership transaction that changes `trial_available -> trial`.
 
-Invalid content, a missing selection, cursor write failure, failed cursor confirmation or an unsuccessful session response cannot consume the trial. Repeated or concurrent session reads are idempotent. Bootstrap exposes the canonical timestamps; clients display them and never manufacture entitlement time.
+Invalid content, a missing selection, cursor write failure, failed cursor confirmation or an unsuccessful session response cannot consume the trial. Repeated or concurrent session reads are idempotent. Membership, Bootstrap and Learning Session responses expose the canonical timestamps plus server-derived `trial_remaining_seconds`, calculated against that response's server time and set to zero outside an active trial; clients display them and never manufacture entitlement time or remaining duration.
+
+## Five-card round authority
+
+Controlled-pilot rounds are server gates, not client counters. `completed_count` is the cumulative count of newly accepted account-and-track learning or review events and equals the canonical learning projection's maximum `server_sequence`. A boundary exists only when that cumulative sequence is a positive multiple of five. Activity-day `progress.total_completed_count` remains daily feedback and is never round authority; this prevents midnight rollover from duplicating or skipping a boundary. At an unacknowledged boundary, `learning-session.v1` returns no selection or next-due time and returns one deterministic round-completion receipt bound to the authenticated account, active `pilot_id`, content version and completed count. The scheduler must not create or persist the next card cursor while that receipt is pending.
+
+The primary “继续下一轮” action calls authenticated `POST /v2/learning/round/continue` with an exact `pilot-round-continue.v1` command containing only schema version, CET4, content version, receipt ID and completed count. The server rederives the account, pilot, active release, canonical count and receipt, requires a positive multiple of five, then writes one exact `pilot-round-continue-ack.v1` record. Exact replay is idempotent; account, pilot, content, count or receipt drift fails closed. Only after this acknowledgement may a later Learning Session select the next card.
+
+The account-scoped continuation record is stored in `softbook_pilot_round_continuations`, validated exactly on every read, included in receiver provisioning/preflight/lifecycle cleanup and removed by account deletion. Duplicate learning events, offline replay, app restart and cross-device reads cannot increment, skip or acknowledge a boundary. Formal beta/production runtime does not expose the endpoint or apply this pilot gate.
 
 ## Schemas
 

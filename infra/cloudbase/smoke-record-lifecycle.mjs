@@ -37,6 +37,7 @@ const AUTH_COLLECTIONS = Object.freeze([
 ]);
 const ACCOUNT_COLLECTIONS = Object.freeze([
   "softbook_account_deletions",
+  "softbook_pilot_round_continuations",
   "softbook_daily_check_ins",
   "softbook_daily_progress",
   "softbook_learning_event_cursors",
