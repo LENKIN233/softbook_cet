@@ -1,5 +1,5 @@
 {
-  "version": "vnext-24",
+  "version": "vnext-25",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -76,7 +76,7 @@
     "remote content failures fail closed and never substitute bundled development cards",
     "an authenticated v2 content manifest binds exact published track content to URL-free audio descriptors, Ed25519 signatures, and private expiring downloads while requiring client byte-hash verification; the repository-local backend, strict runtime keyring consumer, mobile parser, Learning binding, native content-addressed cache, completed-byte hashing, attached control, bounded controller, iOS AVAudioPlayer adapter, and Android Media3 ExoPlayer adapter are implemented, while production key registration, native release injection, private-object device playback proof, cross-platform screenshots, and deployment remain pending",
     "closed beta premium access is granted or revoked only by a receiver operator through a dry-run-first command that atomically stores an idempotent audit event with the active beta grant record while leaving base membership unchanged; no client purchase or self-grant route is exposed",
-    "controlled pilot schemas and static validators are implemented locally as an isolated gate-ineligible boundary; receiver deployment, publisher execution, trial timestamp persistence, pilot entitlement storage, mobile integration, approved 120-card import, and real-device evidence remain pending"
+    "controlled pilot schemas, fail-closed validators, receiver publisher/deployment tooling, atomic trial timestamp persistence, audited pilot entitlement storage, account-deletion cleanup, cumulative five-card round receipts, and shared iOS/Android mobile integration are implemented in the repository as an isolated gate-ineligible boundary; receiver-owned profile/environment, approved 120-card and audio-QC import, publisher apply, deployment, real SMS/private-audio/account-deletion drills, and real-device evidence remain pending"
   ],
   "learning_event_runtime": {
     "classification": "implementation_hypothesis",
@@ -315,8 +315,12 @@
     "content_count_boundary": "only_formally_approved_external_card_make_payloads_count_development_source_candidate_handoff_and_dry_run_rows_do_not_count",
     "payment_connected": false,
     "gate_eligible": false,
-    "implementation_status": "schemas_static_validators_and_fail_closed_unit_tests_implemented_locally",
-    "pending_implementation": "receiver_publisher_trial_timestamp_persistence_pilot_entitlement_store_account_deletion_cleanup_mobile_wiring_approved_content_import_deployment_and_real_device_evidence",
+    "implementation_status": "repository_local_schemas_validators_receiver_publisher_and_deployment_tools_atomic_trial_timestamps_audited_entitlement_store_account_deletion_cleanup_cumulative_five_card_round_gate_and_shared_ios_android_mobile_wiring_implemented_not_deployed",
+    "trial_authority": "first_valid_learning_session_atomically_persists_or_confirms_the_server_cursor_and_starts_one_exact_120_hour_timeline_login_account_browsing_invalid_content_and_failed_session_reads_do_not_start_it",
+    "trial_client_boundary": "client_displays_server_timestamps_and_trial_remaining_seconds_without_device_clock_entitlement_calculation",
+    "round_authority": "each_positive_multiple_of_five_cumulative_account_track_canonical_learning_server_sequence_returns_one_deterministic_receipt_and_no_next_selection_until_exact_authenticated_continue_acknowledgement",
+    "mobile_round_recovery": "server_receipt_is_cached_account_locally_for_restart_and_offline_recovery_never_counted_locally_and_cleared_only_after_exact_ack_or_a_later_authoritative_same_content_track_session_without_the_receipt",
+    "pending_external_execution": "receiver_owned_profile_and_environment_approved_120_card_payload_and_audio_qc_publisher_apply_runtime_deployment_real_sms_private_audio_account_deletion_and_rollback_drills_testflight_android_closed_testing_and_real_device_evidence",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "ineligible"
   },
@@ -353,16 +357,18 @@
     },
     "user_state_store": {
       "storage": "versioned_AsyncStorage",
-      "schema": "user-state.v2",
+      "schema": "user-state.v3",
       "owner_key": "phone_number",
       "scope": [
         "daily_check_in_key",
         "learning_cursor",
         "favorite_tags",
-        "sleep_state"
+        "sleep_state",
+        "server_issued_controlled_pilot_round_receipt",
+        "presented_server_trial_start_marker"
       ],
       "corruption_behavior": "discard_invalid_payload_and_fall_back_to_empty_state",
-      "migration": "user-state.v1 space entries receive an epoch timestamp so stale restored state cannot outrank server canonical state",
+      "migration": "user-state.v1 space entries receive an epoch timestamp so stale restored state cannot outrank server canonical state; user-state.v1 and user-state.v2 create no pilot receipt or trial notice marker",
       "space_state_timestamp": "preserve the timestamp of each explicit favorite or sleep action"
     },
     "membership_state": "reload_from_server_authority_after_auth_session_restore",

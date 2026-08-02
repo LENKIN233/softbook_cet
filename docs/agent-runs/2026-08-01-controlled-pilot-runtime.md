@@ -81,6 +81,7 @@
 - 2026-08-02 secret-presence audit (values never read or printed): SMS provider variables and content-manifest signing key variables were absent from the process environment.
 - 2026-08-02 five-card continuation: exact Node 22.13.0 full CloudBase API suite -> passed, 238 tests after adding the round gate, duplicate/offline replay, cross-midnight, cross-device, strict identity rejection, exact receipt acknowledgement, formal-route isolation, server remaining time and cross-instance CloudBase persistence/corruption coverage.
 - 2026-08-02 lifecycle continuation: exact Node 22.13.0 `infra/cloudbase/test-smoke-record-lifecycle.mjs` -> passed, 11 tests; `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`; `git diff --check` -> passed.
+- 2026-08-02 truth-status continuation: updated `spec/runtime-boundaries.json` from the obsolete schemas-only state to the exact repository-local runtime/mobile implementation and still-pending external execution boundary; `jq empty`, full `python3 scripts/validate_harness.py`, and `git diff --check` passed.
 - PR checks: pending.
 
 ## Validation results
@@ -120,7 +121,8 @@
 - The approved 120-card payload and all referenced audio/QC remain external content deliverables from `/Users/lenkin/programing/card make`.
 - Receiver CloudBase, real SMS, timer execution logs, account deletion drill, private audio device playback and rollback evidence remain pending and cannot be replaced with repository tests.
 - The exact deployment Node version is locally obtainable, but the receiver profile, independent pilot environment, SMS credentials and content signing keys remain absent. These are external prerequisites, not repository test failures.
-- Client work must parse server `round_completion` and `trial_remaining_seconds`, POST only the exact receipt on the explicit primary action, and never count or acknowledge a round locally.
+- Mobile implementation must continue to parse server `round_completion` and `trial_remaining_seconds`, POST only the exact receipt on the explicit primary action, and never count or acknowledge a round locally.
+- Mobile wiring now exists in draft PR #475 with exact receipt persistence/continue, server-time display and no-payment pilot surfaces; it remains unmerged and does not replace receiver/device evidence.
 
 ## Follow-up
 
