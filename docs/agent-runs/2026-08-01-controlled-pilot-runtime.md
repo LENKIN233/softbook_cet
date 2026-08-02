@@ -41,6 +41,8 @@
 
 ## Implementation hypothesis changed
 
+- `pilot-round-completion.v1` now includes ordered unique `review_card_ids` derived from canonical latest per-card `answer_grade=review_needed` events in active card-source order; invalid answer grades fail closed.
+
 - Added `controlled_pilot` as a production-like runtime mode: v1 is disabled, real SMS/client-IP/secret requirements apply, and every content-bearing v2 route enforces an active unexpired `pilot-content-release.v1`.
 - Added a transaction boundary that couples Learning Session cursor persistence/confirmation with first-trial activation. Membership reads expire trials server-side and apply beta then pilot overlays without mutating the base timeline.
 - Added a controlled-pilot publisher and CloudBase adapter that verify the exact bundle/profile, approval, zero-blocker audit, card distribution, box/catalog mapping, audio bytes, human QC records and hashes; upload/reread private audio; verify staged content; activate last; and reread the active release.
@@ -69,6 +71,8 @@
 
 ## Commands run
 
+- 2026-08-03 round-review authority correction: `node --test test/controlled-pilot-runtime.test.js` -> 5/5 passed; full backend `npm test` -> 238/238 passed.
+
 - `node --check` for all new publisher, adapter, deploy, entitlement, API, deletion-worker and release-runtime modules -> passed.
 - `node --test infra/cloudbase/functions/softbook-api/test/controlled-pilot-publisher-v1.test.js` -> passed, 4 tests.
 - `npm test` in `infra/cloudbase/functions/softbook-api` -> passed, 235 tests.
@@ -86,6 +90,8 @@
 - PR checks: pending.
 
 ## Validation results
+
+- The fifth-event receipt exposes the exact server-authoritative read-only review card IDs and remains identical across replay, midnight rollover, and a second device; the client no longer needs to infer receipt review content.
 
 - Login and all failed/empty Learning Session paths leave `trial_available` unchanged; the first valid card starts one exact 120-hour timeline and repeated session requests are idempotent.
 - At exact expiry, the server resolves to `free`; a valid 120-card pilot exposes exactly 60 cards. Formal and controlled-pilot releases are mutually rejected by the opposite runtime.

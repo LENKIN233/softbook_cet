@@ -12,6 +12,7 @@ const ROUND_SIZE = 5;
 const CONTENT_VERSION_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const RECEIPT_PATTERN = /^rnd_[A-Za-z0-9_-]{32,64}$/;
+const CARD_ID_PATTERN = /^\d{6}$/;
 
 function createPilotRoundV1Service(options) {
   const config = {
@@ -124,7 +125,23 @@ function createPilotRoundCompletion(input) {
     schema_version: PILOT_ROUND_COMPLETION_SCHEMA,
     receipt_id: createPilotRoundReceipt(input),
     completed_count: input.completedCount,
+    review_card_ids: normalizeReviewCardIds(input.reviewCardIds),
   };
+}
+
+function normalizeReviewCardIds(value) {
+  if (!Array.isArray(value)) {
+    throw new Error('Pilot round review card ids are invalid.');
+  }
+  const seen = new Set();
+  return value.map(cardId => {
+    const normalized = requirePattern(cardId, CARD_ID_PATTERN, 'reviewCardId');
+    if (seen.has(normalized)) {
+      throw new Error('Pilot round review card ids contain duplicates.');
+    }
+    seen.add(normalized);
+    return normalized;
+  });
 }
 
 function createPilotRoundReceipt(input) {
