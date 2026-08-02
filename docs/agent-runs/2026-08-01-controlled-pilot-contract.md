@@ -35,6 +35,7 @@
 - `product_truth`: Formal CET4 closed beta remains exactly 1,180 cards, 301 audio references, and one whole-track final approval.
 - `product_truth`: Every positive multiple of the cumulative account-and-track canonical `server_sequence` is one server-gated round boundary. Day-scoped progress is not round authority. The next card cannot be selected until the authenticated client explicitly acknowledges the exact server receipt; duplicate events, midnight rollover, restart, offline replay, and cross-device reads cannot duplicate or skip the boundary.
 - `product_truth`: The receipt's read-only review action resolves only ordered `review_card_ids` returned by the server from the canonical latest per-card event projection. The mobile client cannot infer review content from local results or expose a dead review action in server scheduling mode.
+- `product_truth`: The completion aperture resolves only server-owned `space_card_id`, equal to the active-content card from the canonical event whose `server_sequence` is the exact `completed_count` boundary. Phase grouping and client/device time cannot author the shown Space address.
 
 ## Implementation hypothesis changed
 
@@ -45,6 +46,7 @@
 - This PR does not implement remote persistence, a pilot publisher, entitlement storage, account-deletion cleanup, mobile wiring, deployment, approved content import, or real-device evidence.
 - The 2026-08-02 continuation adds the missing `pilot-round-continue.v1` authority: an exact authenticated idempotent command, deterministic receipt, account-scoped continuation record, and scheduler prohibition on selecting the next card before acknowledgement. Backend and mobile implementation remain in later PRs.
 - The 2026-08-03 product-flow audit adds ordered unique `review_card_ids` to `pilot-round-completion.v1`, derived from canonical latest `answer_grade=review_needed` projections in active card-source order.
+- The 2026-08-03 completion-continuity audit adds exact `space_card_id` to `pilot-round-completion.v1`, derived from the canonical event at the boundary sequence so offline replay, cross-device reads, phase grouping and clock drift cannot misidentify the compact Space address.
 
 ## Workspace boundary and read scope
 
