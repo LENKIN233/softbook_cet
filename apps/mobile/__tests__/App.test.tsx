@@ -4,7 +4,7 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { AppState, ScrollView, StyleSheet, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
@@ -2374,6 +2374,116 @@ test('reloads the server selection when pilot continuation access is revoked', a
         typeof node.type === 'function' && node.type.name === 'LearningSurface',
     ).props.currentCard.card_id,
   ).toBe(freeAccessCard.card_id);
+});
+
+test('reconciles cross-device account and Space state when returning to the foreground', async () => {
+  let appStateListener: Parameters<typeof AppState.addEventListener>[1] | null =
+    null;
+  const originalAppStateAddEventListener = AppState.addEventListener;
+  Object.defineProperty(AppState, 'addEventListener', {
+    configurable: true,
+    value: jest.fn((_type, listener) => {
+      appStateListener = listener;
+      return { remove: jest.fn() };
+    }),
+  });
+  let bootstrapRequestCount = 0;
+  const session: LearningSession = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+  };
+  const initialBootstrap = createAccountBootstrapPayload(
+    session,
+    'pilot_premium',
+  );
+  const refreshedBootstrap = createAccountBootstrapPayload(
+    session,
+    'pilot_premium',
+  );
+  const syncedCard = session.catalogCards[0];
+  const refreshedBootstrapSpace = refreshedBootstrap.data.space as unknown as {
+    acknowledged_at: string | null;
+    states: Array<{
+      card_id: string;
+      is_favorited: boolean;
+      is_sleeping: boolean;
+      last_modified_at: string;
+    }>;
+  };
+  refreshedBootstrap.data.progress.favorite_count = 1;
+  refreshedBootstrapSpace.acknowledged_at = '2026-08-03T09:00:00.000Z';
+  refreshedBootstrapSpace.states = [
+    {
+      card_id: syncedCard.card_id,
+      is_favorited: true,
+      is_sleeping: false,
+      last_modified_at: '2026-08-03T09:00:00.000Z',
+    },
+  ];
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      return createJsonResponse(
+        bootstrapRequestCount === 1 ? initialBootstrap : refreshedBootstrap,
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  try {
+    const root = tree!.root;
+    await authenticateIntoLearningBootstrap(root);
+    await resolveLearningBootstrap(session);
+    await waitForLearningSurface(root);
+    expect(bootstrapRequestCount).toBe(1);
+    expect(appStateListener).not.toBeNull();
+
+    await ReactTestRenderer.act(async () => {
+      appStateListener?.('background');
+      appStateListener?.('active');
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        await flushAsyncEffects();
+      }
+    });
+
+    expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+    await openRoute(root, 'space');
+    expect(
+      root.find(
+        node =>
+          typeof node.type === 'function' && node.type.name === 'SpaceSurface',
+      ).props.cardStateById[syncedCard.card_id],
+    ).toMatchObject({ isFavorited: true, isSleeping: false });
+  } finally {
+    await ReactTestRenderer.act(() => {
+      tree!.unmount();
+    });
+    Object.defineProperty(AppState, 'addEventListener', {
+      configurable: true,
+      value: originalAppStateAddEventListener,
+    });
+  }
 });
 
 test('fails closed when refreshed bootstrap still disagrees with learning-session membership', async () => {
