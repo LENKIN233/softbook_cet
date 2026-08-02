@@ -32,6 +32,7 @@
 - `product_truth`: Pilot content is exactly 120 formally approved CET4 cards with an approved stable 60-card free subset, the fixed seven-library distribution, at least two boxes per library, all five core interactions, zero unmapped cards, zero duplicate IDs, and QC for every referenced audio asset.
 - `product_truth`: Repository development cards, external candidate rows, fixtures, and dry-run projections are not approved pilot cards. The current development-source count of ten cards therefore does not satisfy the pilot gate.
 - `product_truth`: Formal CET4 closed beta remains exactly 1,180 cards, 301 audio references, and one whole-track final approval.
+- `product_truth`: Every positive server-confirmed multiple of five is one server-gated round boundary. The next card cannot be selected until the authenticated client explicitly acknowledges the exact server receipt; duplicate events, restart, offline replay, and cross-device reads cannot duplicate or skip the boundary.
 
 ## Implementation hypothesis changed
 
@@ -39,6 +40,7 @@
 - Added exact schema, count, coverage, mapping, audit, timestamp, decision-threshold, and formal-delivery rejection tests.
 - Updated the product-contract harness to preserve the new Learning Session trial authority and added regression HR-45 plus golden task GT-37.
 - This PR does not implement remote persistence, a pilot publisher, entitlement storage, account-deletion cleanup, mobile wiring, deployment, approved content import, or real-device evidence.
+- The 2026-08-02 continuation adds the missing `pilot-round-continue.v1` authority: an exact authenticated idempotent command, deterministic receipt, account-scoped continuation record, and scheduler prohibition on selecting the next card before acknowledgement. Backend and mobile implementation remain in later PRs.
 
 ## Workspace boundary and read scope
 
@@ -62,6 +64,7 @@
 - `python3 scripts/validate_harness.py` -> passed, `HARNESS VALIDATION OK`.
 - `jq empty` over all modified JSON specs -> passed.
 - `git diff --check` -> passed.
+- 2026-08-02 continuation: JSON parsing, `git diff --check`, and `python3 scripts/validate_harness.py` -> passed after adding the five-card round owner/mirror/eval checks.
 - `./scripts/run_local_gates --profile dev --base origin/main --verbose` -> `PASSED_WITH_EXCEPTION`, 23/24 passed; only the declared toolchain exception applied, and all executed harness, mobile, Web, backend, metadata, launch-contract, and build checks passed. Report: `exports/local-gates/20260801T072526Z-5b592247-dev-54469/report.json`.
 - PR checks: pending.
 
@@ -72,6 +75,7 @@
 - Trial product truth is identical across owner and mirror specs, and the harness rejects future drift.
 - Formal `delivery-profile.v1` and `release-bundle.v1` validators reject pilot artifacts; their 1,180/301 thresholds were not changed.
 - Outcome decisions are recomputed from aggregate counts and cannot advance when any threshold or P0 condition fails.
+- Five-card completion is now contractually fail-closed: `total_completed_count` must be a positive multiple of five, Learning Session returns no next selection at an unacknowledged boundary, and only the exact server-derived continue receipt can release scheduling.
 
 ## Agent review status
 
@@ -94,6 +98,7 @@
 
 - The five pilot schemas are local static validators, not a deployed publisher or service implementation.
 - Trial timestamps are now product truth but current membership storage and clients have not yet been migrated; that work belongs to the later backend and mobile PRs.
+- The original runtime implementation did not yet persist round continuation or gate the scheduler; this was found during mobile implementation review and must be added before the completion UI can claim cross-device idempotency.
 - The current development card source contains only ten sample cards across CET4 and CET6, while the 120 formally approved CET4 pilot cards remain externally pending.
 - Receiver CloudBase, real SMS, private audio, TestFlight, Android closed testing, account deletion worker, and real-device evidence remain external or later-phase blockers.
 

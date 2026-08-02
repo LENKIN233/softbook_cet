@@ -33,6 +33,14 @@ Authentication alone never starts the trial. The Learning Session authority may 
 
 Invalid content, a missing selection, cursor write failure, failed cursor confirmation or an unsuccessful session response cannot consume the trial. Repeated or concurrent session reads are idempotent. Bootstrap exposes the canonical timestamps; clients display them and never manufacture entitlement time.
 
+## Five-card round authority
+
+Controlled-pilot rounds are server gates, not client counters. A boundary exists only when canonical event-derived `total_completed_count` is a positive multiple of five. At an unacknowledged boundary, `learning-session.v1` returns no selection or next-due time and returns one deterministic round-completion receipt bound to the authenticated account, active `pilot_id`, content version and completed count. The scheduler must not create or persist the next card cursor while that receipt is pending.
+
+The primary “继续下一轮” action calls authenticated `POST /v2/learning/round/continue` with an exact `pilot-round-continue.v1` command containing only schema version, CET4, content version, receipt ID and completed count. The server rederives the account, pilot, active release, canonical count and receipt, requires a positive multiple of five, then writes one exact `pilot-round-continue-ack.v1` record. Exact replay is idempotent; account, pilot, content, count or receipt drift fails closed. Only after this acknowledgement may a later Learning Session select the next card.
+
+The account-scoped continuation record is stored in `softbook_pilot_round_continuations`, validated exactly on every read, included in receiver provisioning/preflight/lifecycle cleanup and removed by account deletion. Duplicate learning events, offline replay, app restart and cross-device reads cannot increment, skip or acknowledge a boundary. Formal beta/production runtime does not expose the endpoint or apply this pilot gate.
+
 ## Schemas
 
 ### `controlled-pilot-profile.v1`
