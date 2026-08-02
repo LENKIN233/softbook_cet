@@ -1256,6 +1256,14 @@ test('keeps failed account deletion inside Mine with the account unchanged', asy
   const root = tree!.root;
   await loginIntoLearningFlow(root);
   await openRoute(root, 'mine');
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+  expect(
+    await AsyncStorage.getItem('softbook-cet/user-state/v1'),
+  ).not.toBeNull();
 
   await ReactTestRenderer.act(() => {
     findPressableByTestId(root, 'account-deletion-open').props.onPress();
@@ -1278,6 +1286,9 @@ test('keeps failed account deletion inside Mine with the account unchanged', asy
   expect(
     root.findAllByProps({ testID: 'account-deletion-pending-notice' }),
   ).toHaveLength(0);
+  await expect(
+    AsyncStorage.getItem('softbook-cet/user-state/v1'),
+  ).resolves.not.toBeNull();
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
@@ -1319,6 +1330,14 @@ test('accepted account deletion exits the shell and reports cleanup as pending',
   const root = tree!.root;
   await loginIntoLearningFlow(root);
   await openRoute(root, 'mine');
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+  expect(
+    await AsyncStorage.getItem('softbook-cet/user-state/v1'),
+  ).not.toBeNull();
 
   await ReactTestRenderer.act(() => {
     findPressableByTestId(root, 'account-deletion-open').props.onPress();
@@ -1345,6 +1364,22 @@ test('accepted account deletion exits the shell and reports cleanup as pending',
   ).toBeTruthy();
   expect(root.findAllByProps({ testID: 'mine-surface' })).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(0);
+  await expect(
+    AsyncStorage.getItem('softbook-cet/user-state/v1'),
+  ).resolves.toBeNull();
+  await expect(
+    AsyncStorage.getItem('__softbook_mutation_queue'),
+  ).resolves.toBe('[]');
+  await expect(
+    AsyncStorage.getItem('__softbook_mutation_queue:quarantine'),
+  ).resolves.toBe('[]');
+  const clearedLearningEventOutbox = JSON.parse(
+    String(
+      await AsyncStorage.getItem('__softbook_learning_event_outbox_v2'),
+    ),
+  ) as { entries: unknown[] };
+  expect(clearedLearningEventOutbox.entries).toEqual([]);
+  expect(Keychain.resetGenericPassword).toHaveBeenCalled();
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
