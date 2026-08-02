@@ -27,3 +27,7 @@ Rejected fragments include currency, totals, checkout language, perforated coupo
 ## Track Catalogue or Disabled Entry
 
 Rejected because the controlled pilot has a fixed identity. No unavailable track teaser, selector, or upsell appears.
+
+## Repeated Route-Level Login Gates
+
+Rejected because four visible product destinations that each resolve to a login card falsely imply guest navigation, duplicate one task across unrelated pages, and make Mine look like the authentication owner. Authentication is one dedicated app-entry boundary; the four-item product navigation does not exist until the session and required account hydration are valid.

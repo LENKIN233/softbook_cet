@@ -29,6 +29,7 @@
 
 - `product_truth`: The controlled pilot is a pre-beta CET4 product proof for 30–50 invited iOS and Android users. Web is internal acceptance only, payment is unavailable, and all pilot artifacts are `gate_eligible=false`.
 - `product_truth`: Trial begins only when a valid authenticated Learning Session has validated content, selected a card, persisted its cursor, and is ready to return successfully. The server writes immutable `trial_started_at` and `trial_expires_at` exactly 120 hours apart; login and failed sessions do not consume trial time.
+- `product_truth`: A dedicated phone/SMS login surface precedes the entire product shell. Before authenticated session restoration and required account hydration succeed, Learning, Space, Statistics, Mine, and their four-item navigation are neither mounted nor reachable; logout or invalidation returns to the same single entry boundary.
 - `product_truth`: Pilot content is exactly 120 formally approved CET4 cards with an approved stable 60-card free subset, the fixed seven-library distribution, at least two boxes per library, all five core interactions, zero unmapped cards, zero duplicate IDs, and QC for every referenced audio asset.
 - `product_truth`: Repository development cards, external candidate rows, fixtures, and dry-run projections are not approved pilot cards. The current development-source count of ten cards therefore does not satisfy the pilot gate.
 - `product_truth`: Formal CET4 closed beta remains exactly 1,180 cards, 301 audio references, and one whole-track final approval.
@@ -39,6 +40,7 @@
 - Added strict local validators for `controlled-pilot-profile.v1`, `controlled-pilot-bundle.v1`, `pilot-content-release.v1`, `pilot-entitlement-command.v1`, and `pilot-outcome-report.v1`.
 - Added exact schema, count, coverage, mapping, audit, timestamp, decision-threshold, and formal-delivery rejection tests.
 - Updated the product-contract harness to preserve the new Learning Session trial authority and added regression HR-45 plus golden task GT-37.
+- Tightened the authentication owner/mirrors and GT-10 so future implementations cannot repeat one login gate inside each of the four product pages.
 - This PR does not implement remote persistence, a pilot publisher, entitlement storage, account-deletion cleanup, mobile wiring, deployment, approved content import, or real-device evidence.
 - The 2026-08-02 continuation adds the missing `pilot-round-continue.v1` authority: an exact authenticated idempotent command, deterministic receipt, account-scoped continuation record, and scheduler prohibition on selecting the next card before acknowledgement. Backend and mobile implementation remain in later PRs.
 
@@ -51,6 +53,7 @@
 ## Files changed
 
 - Product truth and ownership: `spec/requirement-memory.json`, `spec/product-core.json`, `spec/account-sync-contract.json`, `spec/membership.json`, `spec/runtime-boundaries.json`, `spec/authority-map.json`, `AGENTS.md`.
+- Authentication entry mirror: `spec/platform-contract.json`, `spec/evals.json`, and `scripts/harness_validator/sections/product_contract_mirrors.py`.
 - Runtime contracts: `infra/cloudbase/controlled-pilot-v1-runtime-contract.md`, Learning Session, bootstrap, content manifest, and formal release-bundle contracts.
 - Validation: `infra/cloudbase/controlled-pilot-v1.mjs`, its backend unit test, `spec/evals.json`, and `scripts/harness_validator/sections/product_contract_mirrors.py`.
 - Durable context: this run record.
@@ -68,6 +71,7 @@
 - 2026-08-02 continuation: clarified the round count as the cumulative canonical learning projection `server_sequence`; daily `progress.total_completed_count` remains daily feedback only, preventing midnight rollover from reopening or skipping a boundary.
 - 2026-08-02 continuation: bound Mine's remaining-time presentation to server-derived `trial_remaining_seconds` on membership, Bootstrap, and Learning Session reads; clients may format the value but cannot derive it from device time.
 - 2026-08-02 continuation: recorded the runtime topic-branch implementation state and exact Learning Session/Bootstrap response fields without treating repository implementation as deployment evidence.
+- 2026-08-02 product-entry correction: added the dedicated-login/app-shell owner and mirror checks after the user rejected the four-page repeated-login flow.
 - `./scripts/run_local_gates --profile dev --base origin/main --verbose` -> `PASSED_WITH_EXCEPTION`, 23/24 passed; only the declared toolchain exception applied, and all executed harness, mobile, Web, backend, metadata, launch-contract, and build checks passed. Report: `exports/local-gates/20260801T072526Z-5b592247-dev-54469/report.json`.
 - PR checks: pending.
 
@@ -79,6 +83,7 @@
 - Formal `delivery-profile.v1` and `release-bundle.v1` validators reject pilot artifacts; their 1,180/301 thresholds were not changed.
 - Outcome decisions are recomputed from aggregate counts and cannot advance when any threshold or P0 condition fails.
 - Five-card completion is now contractually fail-closed: the cumulative canonical account-and-track `server_sequence` must be a positive multiple of five, Learning Session returns no next selection at an unacknowledged boundary, and only the exact server-derived continue receipt can release scheduling.
+- Authentication is now an app-entry boundary rather than a per-route placeholder: signed-out and unvalidated-restoration states expose one dedicated phone/SMS surface and no four-tab product navigation.
 
 ## Agent review status
 
