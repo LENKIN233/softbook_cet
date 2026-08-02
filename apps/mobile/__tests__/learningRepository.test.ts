@@ -100,6 +100,7 @@ function createRemoteRepository(
   >[0]['contentManifestConfig'] = {
     mode: 'disabled',
   },
+  runtimeMode?: 'controlled_pilot' | 'development' | 'production',
 ) {
   return createLearningSessionRepository({
     contentManifestConfig,
@@ -111,7 +112,20 @@ function createRemoteRepository(
     remoteSessionConfig: {
       endpoint: 'https://example.com/v2/learning/session',
     },
+    runtimeMode,
     fetchImpl,
+  });
+}
+
+function createControlledPilotCardRecords() {
+  return Array.from({ length: 120 }, (_, index) => {
+    const template =
+      index < 60 ? localLearningCardRecords[0] : localLearningCardRecords[2];
+    const sequence = String((index % 60) + 1).padStart(2, '0');
+    return {
+      ...template,
+      card_id: `${template.knowledge_ref}${sequence}`,
+    };
   });
 }
 
@@ -136,6 +150,102 @@ test('local learning session repository loads a usable session', async () => {
     'elimination',
     'swipe',
   ]);
+});
+
+test('controlled-pilot repository rejects a development-sized remote card source', async () => {
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSessionPayload(),
+    });
+  const repository = createRemoteRepository(
+    fetchMock,
+    { mode: 'disabled' },
+    'controlled_pilot',
+  );
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).rejects.toThrow(
+    'Controlled pilot learning content must match the exact CET4 120-card release and 60-card free boundary.',
+  );
+});
+
+test('controlled-pilot repository accepts the exact 120-card full-access boundary', async () => {
+  const cardRecords = createControlledPilotCardRecords();
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(cardRecords),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSessionPayload({ totalCardCount: 120 }),
+    });
+  const repository = createRemoteRepository(
+    fetchMock,
+    { mode: 'disabled' },
+    'controlled_pilot',
+  );
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).resolves.toMatchObject({
+    catalogCards: expect.arrayContaining([
+      expect.objectContaining({ card_id: '012101' }),
+    ]),
+  });
+});
+
+test('controlled-pilot repository accepts exactly the stable 60-card free prefix', async () => {
+  const cardRecords = createControlledPilotCardRecords();
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(cardRecords),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () =>
+        createSessionPayload({
+          accessMode: 'free_subset',
+          accessibleCardCount: 60,
+          membershipStage: 'free',
+          selection: {
+            selection_id: SELECTION_ID,
+            card_id: cardRecords[0].card_id,
+            phase: 'learning',
+            reason: 'catalog_new',
+            due_at: null,
+          },
+          totalCardCount: 120,
+        }),
+    });
+  const repository = createRemoteRepository(
+    fetchMock,
+    { mode: 'disabled' },
+    'controlled_pilot',
+  );
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).resolves.toMatchObject({
+    cards: [expect.objectContaining({ card_id: cardRecords[0].card_id })],
+    membershipStage: 'free',
+  });
 });
 
 test('local learning session repository rejects empty sessions', async () => {

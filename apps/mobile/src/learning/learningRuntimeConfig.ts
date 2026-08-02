@@ -187,6 +187,7 @@ export function resolveLearningSessionRepositoryConfig(
 
     return {
       mode: 'remote',
+      runtimeMode: resolveProductRuntimeMode(runtimeConfig),
       remoteConfig: createSoftbookRemoteLearningCardSourceConfig(
         learningSource.remote,
       ),

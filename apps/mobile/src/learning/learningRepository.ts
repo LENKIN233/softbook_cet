@@ -65,6 +65,7 @@ export type LearningSessionRepositoryConfig = {
   fetchImpl?: FetchLike;
   localSource?: LearningCardSource;
   mode: LearningRepositoryMode;
+  runtimeMode?: 'controlled_pilot' | 'development' | 'production';
   contentManifestConfig?: RemoteLearningContentManifestConfig;
   remoteConfig?: RemoteLearningCardSourceConfig;
   remoteSessionConfig?: RemoteLearningSessionConfig;
@@ -142,6 +143,19 @@ export function createLearningSessionRepository(
         ) {
           throw new Error(
             'Remote learning session does not match canonical card-source content.',
+          );
+        }
+
+        if (
+          config.runtimeMode === 'controlled_pilot' &&
+          (track !== 'cet4' ||
+            source.cards.length !== 120 ||
+            scheduled.access.totalCardCount !== 120 ||
+            scheduled.access.accessibleCardCount !==
+              (scheduled.membershipStage === 'free' ? 60 : 120))
+        ) {
+          throw new Error(
+            'Controlled pilot learning content must match the exact CET4 120-card release and 60-card free boundary.',
           );
         }
 
