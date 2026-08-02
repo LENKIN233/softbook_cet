@@ -11,11 +11,16 @@ import {
 test('starts trial only on first counted entry', () => {
   const initialState = createInitialMembershipState();
 
-  const trialState = startMembershipTrial(initialState);
+  const trialState = startMembershipTrial(
+    initialState,
+    new Date('2026-08-01T00:00:00.000Z'),
+  );
 
   expect(trialState.stage).toBe('trial');
   expect(trialState.countedEntryCount).toBe(1);
   expect(trialState.trialStartedAtEntryCount).toBe(1);
+  expect(trialState.trialStartedAt).toBe('2026-08-01T00:00:00.000Z');
+  expect(trialState.trialExpiresAt).toBe('2026-08-06T00:00:00.000Z');
   expect(startMembershipTrial(trialState)).toBe(trialState);
 });
 

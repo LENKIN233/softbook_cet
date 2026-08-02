@@ -9,7 +9,12 @@ const LEARNING_SESSION_SCHEMA_VERSION = 'learning-session.v1';
 const CONTENT_VERSION_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const SELECTION_ID_PATTERN = /^sel_[A-Za-z0-9_-]{16,128}$/;
 const CARD_ID_PATTERN = /^\d{6}$/;
-const MEMBERSHIP_STAGES = ['trial', 'free', 'premium'] as const;
+const MEMBERSHIP_STAGES = [
+  'trial',
+  'free',
+  'premium',
+  'pilot_premium',
+] as const;
 const SELECTION_PHASES = ['learning', 'review'] as const;
 const SELECTION_REASONS = [
   'persisted_cursor',
@@ -36,6 +41,8 @@ export type RemoteLearningSessionResponse = {
   selection: LearningServerSelection | null;
   sourceId: string;
   track: LearningTrack;
+  trialExpiresAt: string | null;
+  trialStartedAt: string | null;
 };
 
 export type RemoteLearningSessionConfig = {
@@ -103,6 +110,8 @@ export function parseRemoteLearningSessionPayload(
       'content_version',
       'source_id',
       'membership_stage',
+      'trial_started_at',
+      'trial_expires_at',
       'algorithm',
       'access',
       'selection',
@@ -143,6 +152,24 @@ export function parseRemoteLearningSessionPayload(
   );
   const algorithm = parseAlgorithm(data.algorithm);
   const access = parseAccess(data.access);
+  const trialStartedAt = requireOptionalRfc3339(
+    data.trial_started_at,
+    'response.data.trial_started_at',
+  );
+  const trialExpiresAt = requireOptionalRfc3339(
+    data.trial_expires_at,
+    'response.data.trial_expires_at',
+  );
+
+  if (
+    (trialStartedAt === null) !== (trialExpiresAt === null) ||
+    (trialStartedAt !== null &&
+      Date.parse(trialExpiresAt!) - Date.parse(trialStartedAt) !==
+        120 * 60 * 60 * 1000) ||
+    (membershipStage === 'trial' && trialStartedAt === null)
+  ) {
+    throw new Error('Remote learning session trial timeline is invalid.');
+  }
 
   if (
     (membershipStage === 'free' && access.mode !== 'free_subset') ||
@@ -175,6 +202,8 @@ export function parseRemoteLearningSessionPayload(
     selection,
     sourceId,
     track: expectedTrack,
+    trialExpiresAt,
+    trialStartedAt,
   };
 }
 
@@ -367,6 +396,13 @@ function requireRfc3339(candidate: unknown, contextName: string) {
     throw new Error(`${contextName} must be an RFC3339 instant.`);
   }
   return candidate;
+}
+
+function requireOptionalRfc3339(
+  candidate: unknown,
+  contextName: string,
+): string | null {
+  return candidate === null ? null : requireRfc3339(candidate, contextName);
 }
 
 function requireNonNegativeSafeInteger(

@@ -623,12 +623,14 @@ function createRemoteAuthSessionResponse(
 }
 
 function createRemoteMembershipPayload(
-  stage: 'trial_available' | 'trial' | 'free' | 'premium',
+  stage: 'trial_available' | 'trial' | 'free' | 'premium' | 'pilot_premium',
   overrides: Partial<{
     counted_entry_count: number;
     last_experience_ended_by: 'trial' | 'premium' | null;
     recovery_prompt_visible: boolean;
     trial_duration_days: number;
+    trial_expires_at: string | null;
+    trial_started_at: string | null;
     trial_started_at_entry_count: number | null;
   }> = {},
 ) {
@@ -640,6 +642,10 @@ function createRemoteMembershipPayload(
         recovery_prompt_visible: false,
         stage,
         trial_duration_days: 5,
+        trial_expires_at:
+          stage === 'trial' ? '2026-08-06T00:00:00.000Z' : null,
+        trial_started_at:
+          stage === 'trial' ? '2026-08-01T00:00:00.000Z' : null,
         trial_started_at_entry_count: stage === 'trial' ? 1 : null,
         ...overrides,
       },
@@ -649,7 +655,7 @@ function createRemoteMembershipPayload(
 
 function createAccountBootstrapPayload(
   session: LearningSession = createLocalLearningSession('cet4'),
-  stage: 'trial_available' | 'trial' | 'free' | 'premium' = 'free',
+  stage: 'trial_available' | 'trial' | 'free' | 'premium' | 'pilot_premium' = 'free',
   learningEvents: MockLearningEvent[] = [],
   checkedInToday = false,
 ) {
@@ -708,6 +714,10 @@ function createAccountBootstrapPayload(
         recovery_prompt_visible: false,
         stage,
         trial_duration_days: 5,
+        trial_expires_at:
+          stage === 'trial' ? '2026-08-06T00:00:00.000Z' : null,
+        trial_started_at:
+          stage === 'trial' ? '2026-08-01T00:00:00.000Z' : null,
         trial_started_at_entry_count: stage === 'trial' ? 1 : null,
       },
       progress: {
@@ -770,6 +780,8 @@ function createRemoteCatalogSession(): LearningSession {
     sourceId: 'remote-catalog-source',
     sourceLabel: '远端 catalog 卡源',
     track: 'cet4',
+    trialExpiresAt: null,
+    trialStartedAt: null,
   };
 }
 
@@ -3577,7 +3589,7 @@ test('replays queued membership refresh after network reconnect', async () => {
   ).toBeGreaterThanOrEqual(2);
 });
 
-test('starts the remote trial automatically on the first authenticated entry', async () => {
+test('does not start the remote trial on authentication or account navigation', async () => {
   const fetchCalls: MockFetchCall[] = [];
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
@@ -3612,10 +3624,6 @@ test('starts the remote trial automatically on the first authenticated entry', a
       );
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/start-trial') {
-      return createJsonResponse(createRemoteMembershipPayload('trial'));
-    }
-
     throw new Error(`Unexpected remote fetch: ${input}`);
   });
 
@@ -3635,25 +3643,17 @@ test('starts the remote trial automatically on the first authenticated entry', a
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('当前卡盒');
-  expect(output).not.toContain('完整物理空间需要试用或会员');
+  expect(output).toContain('完整物理空间需要试用或会员');
 
-  const startTrialRequest = fetchCalls.find(
+  const startTrialRequests = fetchCalls.filter(
     call =>
       call.input === 'https://api.softbook.example/v1/membership/start-trial',
   );
-  expect(normalizeMockHeaders(startTrialRequest?.init?.headers)).toMatchObject({
-    authorization: 'Bearer remote-auth-token',
-  });
-
-  const unlockedSpaceText = JSON.stringify(tree!.toJSON());
-  expect(unlockedSpaceText).toContain('当前盒桌');
-  expect(unlockedSpaceText).toContain('同盒卡片');
-  expect(unlockedSpaceText).toContain('回学习');
+  expect(startTrialRequests).toHaveLength(0);
 });
 
-test('waits for server confirmation before a queued automatic trial unlocks', async () => {
+test('never queues a remote trial mutation while reconnecting', async () => {
   const fetchCalls: MockFetchCall[] = [];
-  const replayTrialResponse = createDeferred<ReturnType<typeof createJsonResponse>>();
   let startTrialRequestCount = 0;
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
@@ -3684,20 +3684,13 @@ test('waits for server confirmation before a queued automatic trial unlocks', as
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
       return createJsonResponse(
-        createRemoteMembershipPayload(
-          startTrialRequestCount >= 2 ? 'trial' : 'trial_available',
-        ),
+        createRemoteMembershipPayload('trial_available'),
       );
     }
 
     if (input === 'https://api.softbook.example/v1/membership/start-trial') {
       startTrialRequestCount += 1;
-
-      if (startTrialRequestCount === 1) {
-        return createJsonResponse({}, 503);
-      }
-
-      return replayTrialResponse.promise;
+      return createJsonResponse({}, 503);
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -3720,7 +3713,7 @@ test('waits for server confirmation before a queued automatic trial unlocks', as
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('当前卡盒');
   expect(output).toContain('完整物理空间需要试用或会员');
-  expect(startTrialRequestCount).toBeGreaterThanOrEqual(1);
+  expect(startTrialRequestCount).toBe(0);
 
   await openRoute(root, 'statistics');
 
@@ -3728,10 +3721,7 @@ test('waits for server confirmation before a queued automatic trial unlocks', as
     await flushAsyncEffects();
   });
 
-  expect(startTrialRequestCount).toBe(2);
-  replayTrialResponse.resolve(
-    createJsonResponse(createRemoteMembershipPayload('trial')),
-  );
+  expect(startTrialRequestCount).toBe(0);
 
   await ReactTestRenderer.act(async () => {
     await flushAsyncEffects();
@@ -3740,14 +3730,13 @@ test('waits for server confirmation before a queued automatic trial unlocks', as
   await openRoute(root, 'mine');
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('完整试用进行中');
-  expect(output).not.toContain('试用待开始');
+  expect(output).toContain('试用待开始');
 
   const startTrialRequests = fetchCalls.filter(
     call =>
       call.input === 'https://api.softbook.example/v1/membership/start-trial',
   );
-  expect(startTrialRequests).toHaveLength(2);
+  expect(startTrialRequests).toHaveLength(0);
 });
 
 test('space surface follows the loaded session catalog instead of local fixtures', async () => {

@@ -149,6 +149,8 @@ export function createLearningSessionRepository(
           sourceId: source.sourceId,
           sourceLabel: source.sourceLabel,
           track: source.track,
+          trialExpiresAt: scheduled.trialExpiresAt,
+          trialStartedAt: scheduled.trialStartedAt,
         };
       }
 

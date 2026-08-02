@@ -50,6 +50,8 @@ function createSessionPayload(
       content_version: overrides.contentVersion ?? CONTENT_VERSION,
       source_id: overrides.sourceId ?? 'remote-learning-cards',
       membership_stage: 'trial',
+      trial_expires_at: '2026-07-29T08:00:00.000Z',
+      trial_started_at: '2026-07-24T08:00:00.000Z',
       algorithm: {
         id: 'FSRS-6',
         library: 'ts-fsrs',

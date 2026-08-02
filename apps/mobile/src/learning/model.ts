@@ -165,7 +165,11 @@ export type LearningServerSelection = {
   selectionId: string;
 };
 
-export type LearningServerMembershipStage = 'trial' | 'free' | 'premium';
+export type LearningServerMembershipStage =
+  | 'trial'
+  | 'free'
+  | 'premium'
+  | 'pilot_premium';
 
 export type LearningSession = {
   catalogCards: LearningCard[];
@@ -178,6 +182,8 @@ export type LearningSession = {
   sourceId: string;
   sourceLabel: string;
   track: LearningTrack;
+  trialExpiresAt: string | null;
+  trialStartedAt: string | null;
   cards: LearningCard[];
 };
 

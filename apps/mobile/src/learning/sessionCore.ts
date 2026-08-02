@@ -31,6 +31,8 @@ export function createLearningSession(
     sourceId,
     sourceLabel,
     track,
+    trialExpiresAt: null,
+    trialStartedAt: null,
     cards: selectSessionCards(orderedCards, cardCount),
   };
 }

@@ -60,6 +60,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     if
+      let runtimeMode = environment["SOFTBOOK_CET_RUNTIME_MODE"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+      !runtimeMode.isEmpty
+    {
+      remoteProfile["runtimeMode"] = runtimeMode
+    }
+
+    if
       let localFeatures = environment["SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES"]?.trimmingCharacters(in: .whitespacesAndNewlines),
       !localFeatures.isEmpty
     {

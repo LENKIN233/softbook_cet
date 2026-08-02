@@ -61,6 +61,8 @@ function createBootstrapFixture(): AccountBootstrapSnapshot {
         recoveryPromptVisible: false,
         stage: 'trial_available',
         trialDurationDays: 5,
+        trialExpiresAt: null,
+        trialStartedAt: null,
         trialStartedAtEntryCount: null,
       },
     },

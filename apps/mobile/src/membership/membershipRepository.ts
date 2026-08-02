@@ -189,7 +189,8 @@ export function parseSoftbookRemoteMembershipPayload(
     stage !== 'trial_available' &&
     stage !== 'trial' &&
     stage !== 'free' &&
-    stage !== 'premium'
+    stage !== 'premium' &&
+    stage !== 'pilot_premium'
   ) {
     throw new Error(
       'Remote membership payload.data.entitlement.stage must be a valid membership stage.',
@@ -253,12 +254,36 @@ export function parseSoftbookRemoteMembershipPayload(
     );
   }
 
+  const trialStartedAt = parseOptionalCanonicalTimestamp(
+    entitlement.trial_started_at,
+    'Remote membership payload.data.entitlement.trial_started_at',
+  );
+  const trialExpiresAt = parseOptionalCanonicalTimestamp(
+    entitlement.trial_expires_at,
+    'Remote membership payload.data.entitlement.trial_expires_at',
+  );
+
+  if (
+    (trialStartedAt === null) !== (trialExpiresAt === null) ||
+    (trialStartedAt !== null &&
+      Date.parse(trialExpiresAt!) - Date.parse(trialStartedAt) !==
+        trialDurationDays * 24 * 60 * 60 * 1000) ||
+    (stage === 'trial' && trialStartedAt === null) ||
+    (stage === 'trial_available' && trialStartedAt !== null)
+  ) {
+    throw new Error(
+      'Remote membership payload.data.entitlement trial timeline is invalid.',
+    );
+  }
+
   return {
     countedEntryCount,
     lastExperienceEndedBy,
     recoveryPromptVisible,
     stage,
     trialDurationDays,
+    trialExpiresAt,
+    trialStartedAt,
     trialStartedAtEntryCount,
   };
 }
@@ -330,6 +355,25 @@ function createLocalMembershipRepositoryResult(
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function parseOptionalCanonicalTimestamp(
+  value: unknown,
+  label: string,
+): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  if (
+    typeof value !== 'string' ||
+    !Number.isFinite(Date.parse(value)) ||
+    new Date(value).toISOString() !== value
+  ) {
+    throw new Error(`${label} must be a canonical ISO timestamp or null.`);
+  }
+
+  return value;
 }
 
 function trimTrailingSlash(value: string) {

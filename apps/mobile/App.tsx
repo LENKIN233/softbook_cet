@@ -84,6 +84,7 @@ import { createLearningSessionRepository } from './src/learning/learningReposito
 import { resolveContentManifestRuntimeConfig } from './src/audio/contentManifestRuntimeConfig';
 import {
   readSoftbookAppRuntimeConfig,
+  resolveProductRuntimeMode,
   resolveLearningSessionRepositoryConfig,
   resolveLearningTrack,
   type SoftbookAppRuntimeConfig,
@@ -398,6 +399,8 @@ function AppShell({
     () => resolveLearningTrack(runtimeConfig),
     [runtimeConfig],
   );
+  const productRuntimeMode = resolveProductRuntimeMode(runtimeConfig);
+  const isControlledPilot = productRuntimeMode === 'controlled_pilot';
   const authRepositoryConfig = useMemo(
     () => resolveAuthRepositoryConfig(runtimeConfig),
     [runtimeConfig],
@@ -599,7 +602,6 @@ function AppShell({
   const previousMembershipStage = useRef<MembershipStage>(
     membershipState.stage,
   );
-  const automaticTrialAccountRef = useRef<string | null>(null);
   const lastMembershipRefreshKey = useRef<string | null>(null);
   const pendingMembershipRefreshKey = useRef<string | null>(null);
   const persistedLearningCursor = useRef<PersistedLearningCursor | null>(null);
@@ -630,7 +632,6 @@ function AppShell({
     (error: string | null = null) => {
       lastMembershipRefreshKey.current = null;
       pendingMembershipRefreshKey.current = null;
-      automaticTrialAccountRef.current = null;
       persistedLearningCursor.current = null;
       accountBootstrapStatusRef.current =
         runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required';
@@ -2566,6 +2567,11 @@ function AppShell({
       return;
     }
 
+    if (isControlledPilot) {
+      setMembershipError('试用会在首张有效学习卡准备完成时由服务端自动开启。');
+      return;
+    }
+
     setMembershipPendingAction('start_trial');
     membershipRepository
       .startTrial(authenticatedRuntimeContext, membershipState)
@@ -2609,34 +2615,25 @@ function AppShell({
       });
   };
 
-  const beginMembershipTrialRef = useRef(beginMembershipTrial);
-  beginMembershipTrialRef.current = beginMembershipTrial;
-
   useEffect(() => {
     if (
-      !persistenceHydrated ||
-      authState.stage !== 'authenticated' ||
+      productRuntimeMode !== 'development' ||
+      runtimeMembershipRepositoryMode !== 'local' ||
+      learningBootstrapStatus !== 'ready' ||
+      currentLearningCard === null ||
       membershipState.stage !== 'trial_available' ||
-      membershipPendingAction !== null ||
-      (runtimeMembershipRepositoryMode === 'remote' && !canWriteAccountState)
+      membershipPendingAction !== null
     ) {
       return;
     }
 
-    const accountKey = authState.phoneNumber;
-    if (automaticTrialAccountRef.current === accountKey) {
-      return;
-    }
-
-    automaticTrialAccountRef.current = accountKey;
-    beginMembershipTrialRef.current(null);
+    setMembershipState(current => startMembershipTrial(current));
   }, [
-    authState.phoneNumber,
-    authState.stage,
-    canWriteAccountState,
+    currentLearningCard,
+    learningBootstrapStatus,
     membershipPendingAction,
     membershipState.stage,
-    persistenceHydrated,
+    productRuntimeMode,
     runtimeMembershipRepositoryMode,
   ]);
 

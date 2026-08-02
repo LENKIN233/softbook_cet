@@ -195,6 +195,8 @@ function createCanonicalBootstrapPayload() {
           recovery_prompt_visible: false,
           stage: 'premium',
           trial_duration_days: 5,
+          trial_expires_at: null,
+          trial_started_at: null,
           trial_started_at_entry_count: 1,
         },
         progress: {
@@ -249,6 +251,8 @@ function createRemoteLearningSessionPayload(
       content_version: canonical.session.contentVersion,
       source_id: canonical.session.sourceId,
       membership_stage: 'premium',
+      trial_expires_at: null,
+      trial_started_at: null,
       algorithm: {
         id: 'FSRS-6',
         library: 'ts-fsrs',
@@ -1128,6 +1132,8 @@ test('reloads remote membership authority when restoring an auth session', async
                 recovery_prompt_visible: false,
                 stage: 'premium',
                 trial_duration_days: 5,
+                trial_expires_at: null,
+                trial_started_at: null,
                 trial_started_at_entry_count: 1,
               },
             },

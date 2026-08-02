@@ -61,6 +61,11 @@ export type MutationQueueRuntimeConfig = {
   mode?: 'local' | 'remote';
 };
 
+export type ProductRuntimeMode =
+  | 'development'
+  | 'controlled_pilot'
+  | 'production';
+
 export type AccountBootstrapRuntimeConfig = {
   mode?: 'local' | 'remote';
   remote?: {
@@ -89,6 +94,7 @@ export type SoftbookAppRuntimeConfig = {
   spaceState?: SpaceStateRuntimeConfig;
   learningState?: LearningStateRuntimeConfig;
   mutationQueue?: MutationQueueRuntimeConfig;
+  runtimeMode?: ProductRuntimeMode;
 };
 
 type RemoteRuntimeFeature =
@@ -104,7 +110,7 @@ type SoftbookGlobalThis = typeof globalThis & {
   __SOFTBOOK_CET_RUNTIME_CONFIG__?: SoftbookAppRuntimeConfig;
 };
 
-function resolveRuntimeMode(
+function resolveFeatureRuntimeMode(
   mode: 'local' | 'remote' | undefined,
 ): 'local' | 'remote' {
   return mode ?? 'local';
@@ -114,8 +120,8 @@ export function assertRemoteRuntimeUsesRemoteAuth(
   runtimeConfig: SoftbookAppRuntimeConfig | undefined,
   feature: RemoteRuntimeFeature,
 ) {
-  const authMode = resolveRuntimeMode(runtimeConfig?.auth?.mode);
-  const featureMode = resolveRuntimeMode(runtimeConfig?.[feature]?.mode);
+  const authMode = resolveFeatureRuntimeMode(runtimeConfig?.auth?.mode);
+  const featureMode = resolveFeatureRuntimeMode(runtimeConfig?.[feature]?.mode);
 
   if (featureMode !== 'remote' || authMode === 'remote') {
     return;
@@ -134,6 +140,14 @@ export function assertRemoteRuntimeUsesRemoteAuth(
   throw new Error(
     `${labelByFeature[feature]} requires auth.mode to also be remote.`,
   );
+}
+
+export function resolveProductRuntimeMode(
+  runtimeConfig:
+    | SoftbookAppRuntimeConfig
+    | undefined = readSoftbookAppRuntimeConfig(),
+): ProductRuntimeMode {
+  return runtimeConfig?.runtimeMode ?? 'development';
 }
 
 export function readSoftbookAppRuntimeConfig():

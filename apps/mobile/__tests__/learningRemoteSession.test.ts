@@ -16,6 +16,8 @@ function createPayload() {
       content_version: CONTENT_VERSION,
       source_id: 'remote-learning-cards',
       membership_stage: 'trial',
+      trial_started_at: '2026-07-24T08:00:00.000Z',
+      trial_expires_at: '2026-07-29T08:00:00.000Z',
       algorithm: {
         id: 'FSRS-6',
         library: 'ts-fsrs',
@@ -69,6 +71,8 @@ test('loads and strictly maps a supported learning-session response', async () =
     },
     sourceId: 'remote-learning-cards',
     track: 'cet4',
+    trialExpiresAt: '2026-07-29T08:00:00.000Z',
+    trialStartedAt: '2026-07-24T08:00:00.000Z',
   });
   expect(fetchMock).toHaveBeenCalledWith(
     'https://api.softbook.example/v2/learning/session?track=cet4',
@@ -92,6 +96,19 @@ test('accepts a canonical empty selection with the next due time', () => {
   expect(parseRemoteLearningSessionPayload(payload, 'cet4')).toMatchObject({
     nextDueAt: '2026-07-25T08:00:00.000Z',
     selection: null,
+  });
+});
+
+test('accepts pilot premium without a synthetic trial timeline', () => {
+  const payload = createPayload();
+  payload.data.membership_stage = 'pilot_premium';
+  payload.data.trial_started_at = null as never;
+  payload.data.trial_expires_at = null as never;
+
+  expect(parseRemoteLearningSessionPayload(payload, 'cet4')).toMatchObject({
+    membershipStage: 'pilot_premium',
+    trialExpiresAt: null,
+    trialStartedAt: null,
   });
 });
 
