@@ -3195,6 +3195,9 @@ def validate(context) -> None:
         "content_selection_and_cursor_persistence_precede_atomic_trial_start",
         "server_trial_started_at_and_trial_expires_at_are_exactly_120_hours_apart",
         "repeated_session_requests_are_idempotent",
+        "five_confirmed_events_create_one_server_round_receipt_and_no_next_selection",
+        "authenticated_idempotent_continue_acknowledgement_is_required_before_next_selection",
+        "duplicate_offline_and_cross_device_replay_cannot_duplicate_or_skip_round_boundaries",
         "controlled_pilot_profile_is_cet4_ios_android_receiver_owned_and_30_to_50",
         "controlled_pilot_bundle_is_exactly_120_approved_cards_and_60_stable_free_cards",
         "development_candidate_dry_run_and_fixture_counts_do_not_count_as_approved_cards",
@@ -3218,6 +3221,9 @@ def validate(context) -> None:
         "server_authoritative_trial_started_at_and_trial_expires_at",
         "exact_120_continuous_hours_and_idempotent_retries",
         "login_invalid_content_cursor_failure_and_session_error_do_not_consume_trial",
+        "server_round_gate_uses_confirmed_total_completed_count_at_positive_multiples_of_five",
+        "pilot_round_continue_v1_is_authenticated_exact_and_idempotent",
+        "next_learning_selection_is_blocked_until_server_continue_acknowledgement",
         "controlled_pilot_profile_v1_exact_receiver_environment_scope",
         "controlled_pilot_bundle_v1_exact_120_card_and_60_free_scope",
         "pilot_content_release_v1_controlled_pilot_only",
@@ -3238,6 +3244,40 @@ def validate(context) -> None:
         context.errors.append("controlled-pilot contract evals: missing GT-37")
     elif gt37.get("must_include") != expected_gt37:
         context.errors.append("controlled-pilot contract evals: GT-37 must_include drift")
+    pilot_round = auth.get("controlled_pilot_rounds_v1", {})
+    requirement_round = req["business"]["controlled_pilot"].get(
+        "learning_round", {}
+    )
+    product_pilot = product["monetization"]["controlled_pilot"]
+    check_equal(
+        "controlled-pilot round size requirement-memory",
+        pilot_round.get("boundary_rule"),
+        "a_round_boundary_exists_only_when_server_derived_total_completed_count_is_positive_and_divisible_by_five",
+    )
+    check_equal(
+        "controlled-pilot round size product-core",
+        requirement_round.get("size"),
+        product_pilot.get("round_size"),
+    )
+    check_equal(
+        "controlled-pilot round destinations",
+        requirement_round.get("completion_destinations"),
+        [
+            "review_due_content",
+            "current_space_address",
+            "continue_next_round",
+        ],
+    )
+    check_equal(
+        "controlled-pilot round continue endpoint",
+        pilot_round.get("continue_endpoint", {}).get("path"),
+        "/v2/learning/round/continue",
+    )
+    check_equal(
+        "controlled-pilot round next selection rule",
+        product_pilot.get("round_next_selection_rule"),
+        "do_not_read_or_return_the_next_card_until_the_current_five_event_boundary_is_acknowledged",
+    )
     check_equal(
         "purchase_recovery requirement-memory",
         auth["trial_and_purchase"]["purchase_recovery_reminder"],

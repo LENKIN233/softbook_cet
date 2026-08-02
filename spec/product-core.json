@@ -194,6 +194,14 @@
       "stable_free_card_count_after_trial": 60,
       "cohort": "30_to_50",
       "payment_connected": false,
+      "round_size": 5,
+      "round_completion_authority": "server_confirmed_total_completed_count_and_server_persisted_continue_acknowledgement",
+      "round_completion_actions": [
+        "回看待复习内容",
+        "查看所在Space",
+        "继续下一轮"
+      ],
+      "round_next_selection_rule": "do_not_read_or_return_the_next_card_until_the_current_five_event_boundary_is_acknowledged",
       "gate_eligible": false,
       "formal_closed_beta_thresholds_remain_1180_cards_and_301_audio_references": true
     },

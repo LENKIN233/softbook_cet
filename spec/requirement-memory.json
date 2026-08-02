@@ -210,6 +210,17 @@
       "web_role": "internal_acceptance_only",
       "payment_connected": false,
       "continuation_access": "audited_server_operator_entitlement_only",
+      "learning_round": {
+        "size": 5,
+        "authority": "server_confirmed_learning_or_review_events_only",
+        "completion_destinations": [
+          "review_due_content",
+          "current_space_address",
+          "continue_next_round"
+        ],
+        "continuation_rule": "the_server_returns_no_next_selection_at_an_unacknowledged_five_event_boundary_and_only_selects_the_next_card_after_an_idempotent_authenticated_continue_command",
+        "replay_rule": "duplicate_events_restart_offline_replay_and_cross_device_reads_cannot_create_or_acknowledge_a_second_copy_of_the_same_round_boundary"
+      },
       "gate_eligible": false,
       "must_not_be_claimed_as": [
         "closed_beta",

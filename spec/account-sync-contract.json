@@ -37,6 +37,36 @@
     "controlled_pilot_audit_rule": "each_command_records_event_id_actor_reason_timestamp_previous_stage_resulting_stage_and_pilot_id_without_overwriting_base_membership",
     "controlled_pilot_client_rule": "clients_can_read_pilot_entitlement_but_cannot_self_grant_or_revoke_it"
   },
+  "controlled_pilot_rounds_v1": {
+    "classification": "implementation_hypothesis",
+    "contract_status": "contract_defined_backend_and_mobile_not_yet_implemented_or_deployed",
+    "scope_rule": "enabled_only_when_runtime_mode_is_controlled_pilot_and_the_active_release_is_an_unexpired_pilot_content_release_v1_for_cet4",
+    "boundary_rule": "a_round_boundary_exists_only_when_server_derived_total_completed_count_is_positive_and_divisible_by_five",
+    "session_rule": "when_the_current_boundary_has_no_server_continue_acknowledgement_learning_session_v1_returns_selection_null_next_due_at_null_and_one_round_completion_receipt_bound_to_account_pilot_content_version_and_completed_count",
+    "next_selection_rule": "the_scheduler_must_not_create_persist_or_return_the_next_selection_until_the_exact_current_round_receipt_is_acknowledged",
+    "continue_endpoint": {
+      "method": "POST",
+      "path": "/v2/learning/round/continue",
+      "authentication": "active_v2_session",
+      "request_schema": "pilot-round-continue.v1",
+      "response_schema": "pilot-round-continue-ack.v1",
+      "required_fields": [
+        "schema_version",
+        "track",
+        "content_version",
+        "receipt_id",
+        "completed_count"
+      ],
+      "identity_rule": "derive_account_and_pilot_only_from_the_active_session_and_release_and_reject_phone_number_pilot_id_counters_other_than_completed_count_and_unknown_fields"
+    },
+    "idempotency_rule": "the_exact_account_pilot_content_version_and_completed_count_boundary_has_one_deterministic_receipt_and_one_continue_record_exact_replay_returns_duplicate_while_any_payload_drift_rejects",
+    "validation_rule": "continue_requires_the_current_server_derived_count_to_equal_completed_count_requires_a_positive_multiple_of_five_and_requires_receipt_id_to_match_the_server_derived_receipt",
+    "storage_rule": "persist_one_account_scoped_gate_in_softbook_pilot_round_continuations_with_schema_version_account_key_pilot_id_content_version_completed_count_receipt_id_and_acknowledged_at_and_validate_every_read_exactly",
+    "bootstrap_rule": "bootstrap_keeps_total_completed_count_as_the_progress_authority_but_does_not_infer_that_the_current_boundary_was_continued",
+    "mobile_rule": "show_the_receipt_only_from_the_server_round_completion_object_keep_it_during_restart_or_offline_recovery_and_call_continue_only_after_the_explicit_primary_action_clients_never_count_or_acknowledge_a_round_locally",
+    "cross_device_rule": "all_devices_observe_the_same_unacknowledged_boundary_and_after_one_device_acknowledges_it_subsequent_session_reads_on_every_device_return_no_receipt_for_that_boundary",
+    "formal_release_rule": "formal_production_and_closed_beta_runtime_do_not_enable_this_pilot_endpoint_or_apply_this_pilot_gate"
+  },
   "external_account_readiness": {
     "classification": "implementation_hypothesis",
     "schema_version": "external-capability-evidence.v1",
