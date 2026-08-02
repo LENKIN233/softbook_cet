@@ -23,7 +23,7 @@ Referenced active sources:
 
 `implementation_hypothesis`:
 
-- The repository provides fail-closed schema validators before implementing a receiver publisher, entitlement mutation, outcome aggregation or remote deployment.
+- The runtime topic branch implements the receiver publisher, entitlement mutation, atomic trial start, five-card round gate, account deletion and deployment tooling. Mobile wiring, externally approved content, receiver deployment and real-device evidence remain separate and incomplete.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
 - Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
 
