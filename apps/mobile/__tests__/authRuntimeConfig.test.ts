@@ -1,4 +1,4 @@
-import {resolveAuthRepositoryConfig} from '../src/auth/authRuntimeConfig';
+import { resolveAuthRepositoryConfig } from '../src/auth/authRuntimeConfig';
 
 test('auth runtime config defaults repository mode to local', () => {
   expect(resolveAuthRepositoryConfig(undefined)).toEqual({
@@ -20,6 +20,8 @@ test('auth runtime config can switch repository mode to remote', () => {
   ).toEqual({
     mode: 'remote',
     remoteConfig: {
+      accountDeletionEndpoint:
+        'https://api.softbook.example/v2/account/deletion',
       headers: {
         'x-api-key': 'auth-key',
         'x-softbook-client': 'mobile',

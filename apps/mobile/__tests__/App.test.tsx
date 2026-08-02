@@ -1124,6 +1124,130 @@ test('uses native initial remote runtime profile before the shell mounts', async
   expect(output).not.toContain('输入验证码即可完成登录。');
 });
 
+test('keeps failed account deletion inside Mine with the account unchanged', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/account/deletion') {
+      return createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'account-deletion-open').props.onPress();
+  });
+  expect(JSON.stringify(tree!.toJSON())).toContain('确认删除账户？');
+  expect(JSON.stringify(tree!.toJSON())).toContain('Space 状态');
+
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'account-deletion-confirm').props.onPress();
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('删除请求未提交。');
+  expect(output).toContain('你的账户和学习数据没有改变。');
+  expect(output).toContain('重新提交');
+  expect(output).not.toContain('Remote auth account-deletion');
+  expect(root.findByProps({ testID: 'mine-surface' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'route-tab-learning' })).toBeTruthy();
+  expect(
+    root.findAllByProps({ testID: 'account-deletion-pending-notice' }),
+  ).toHaveLength(0);
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('accepted account deletion exits the shell and reports cleanup as pending', async () => {
+  const fetchCalls: MockFetchCall[] = [];
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    fetchCalls.push({ init, input });
+
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/account/deletion') {
+      return createJsonResponse(
+        { data: { deletion_request: { id: 'delete-123' } } },
+        202,
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'account-deletion-open').props.onPress();
+  });
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'account-deletion-confirm').props.onPress();
+    await flushAsyncEffects();
+  });
+
+  const deletionRequest = fetchCalls.find(
+    call => call.input === 'https://api.softbook.example/v2/account/deletion',
+  );
+  expect(deletionRequest?.init?.method).toBe('POST');
+  expect(normalizeMockHeaders(deletionRequest?.init?.headers)).toMatchObject({
+    authorization: 'Bearer remote-auth-token',
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('账户删除已提交');
+  expect(output).toContain('数据清理完成前暂不能重新登录');
+  expect(output).not.toContain('账户已删除');
+  expect(
+    root.findByProps({ testID: 'authentication-entry-boundary' }),
+  ).toBeTruthy();
+  expect(root.findAllByProps({ testID: 'mine-surface' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(0);
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
 test('shows remote request-code failure inside the auth gate', async () => {
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
     auth: {

@@ -1,12 +1,12 @@
-import {createAuthenticatedFetch} from '../src/auth/authenticatedFetch';
-import type {AuthRepository} from '../src/auth/authRepository';
+import { createAuthenticatedFetch } from '../src/auth/authenticatedFetch';
+import type { AuthRepository } from '../src/auth/authRepository';
 import {
   createAuthSessionCoordinator,
   type AuthSessionCoordinator,
 } from '../src/auth/authSessionCoordinator';
-import type {RemoteAuthSession} from '../src/auth/authSession';
-import type {AuthSessionStore} from '../src/persistence/authSessionStore';
-import {RemoteRequestLifecycleError} from '../src/runtime/remoteRequest';
+import type { RemoteAuthSession } from '../src/auth/authSession';
+import type { AuthSessionStore } from '../src/persistence/authSessionStore';
+import { RemoteRequestLifecycleError } from '../src/runtime/remoteRequest';
 
 function createResponse(status: number) {
   return {
@@ -36,6 +36,7 @@ function createCoordinator() {
     getCurrentSession: jest.fn(() => null),
     invalidate: jest.fn(async () => undefined),
     logout: jest.fn(),
+    requestAccountDeletion: jest.fn(async () => undefined),
     restore: jest.fn(),
     subscribeSessionScope: jest.fn(() => () => undefined),
   };
@@ -55,7 +56,7 @@ test('authenticated fetch replaces a stale authorization header', async () => {
   });
 
   await authenticatedFetch('https://api.softbook.example/resource', {
-    headers: {Authorization: 'Bearer stale-token'},
+    headers: { Authorization: 'Bearer stale-token' },
   });
 
   const headers = new Headers(fetchImpl.mock.calls[0]?.[1]?.headers);
@@ -75,7 +76,7 @@ test('authenticated fetch refreshes once and retries a 401 response', async () =
 
   await expect(
     authenticatedFetch('https://api.softbook.example/resource'),
-  ).resolves.toMatchObject({status: 200});
+  ).resolves.toMatchObject({ status: 200 });
 
   expect(coordinator.forceRefresh).toHaveBeenCalledTimes(1);
   expect(fetchImpl).toHaveBeenCalledTimes(2);
@@ -114,6 +115,7 @@ test.each([403, 401])(
     const authRepository: AuthRepository = {
       logout: jest.fn(async () => undefined),
       refreshSession: jest.fn(async () => session),
+      requestAccountDeletion: jest.fn(async () => undefined),
       requestSmsCode: jest.fn(),
       verifySmsCode: jest.fn(),
     };
@@ -130,7 +132,7 @@ test.each([403, 401])(
 
     await expect(
       authenticatedFetch('https://api.softbook.example/resource'),
-    ).resolves.toMatchObject({status});
+    ).resolves.toMatchObject({ status });
 
     expect(fetchImpl).toHaveBeenCalledTimes(status === 401 ? 2 : 1);
     expect(authSessionStore.clear).toHaveBeenCalledTimes(1);
@@ -168,7 +170,7 @@ test.each([401, 403])(
 
     await expect(request).rejects.toMatchObject<
       Partial<RemoteRequestLifecycleError>
-    >({reason: 'session_superseded', retryable: false});
+    >({ reason: 'session_superseded', retryable: false });
     expect(requestSignal?.aborted).toBe(true);
     expect(coordinator.forceRefresh).not.toHaveBeenCalled();
     expect(coordinator.invalidate).not.toHaveBeenCalled();
@@ -256,7 +258,7 @@ test('shares the same deadline across a 401 response and forced refresh', async 
   const outcome = request.catch(error => error);
   jest.advanceTimersByTime(25);
 
-  await expect(outcome).resolves.toMatchObject({reason: 'timeout'});
+  await expect(outcome).resolves.toMatchObject({ reason: 'timeout' });
   expect(fetchImpl).toHaveBeenCalledTimes(1);
   expect(coordinator.invalidate).not.toHaveBeenCalled();
   jest.useRealTimers();
@@ -305,7 +307,7 @@ test('an already-cancelled caller cannot trigger token lookup or refresh', async
     authenticatedFetch('https://api.softbook.example/resource', {
       signal: caller.signal,
     }),
-  ).rejects.toMatchObject({reason: 'caller_cancelled'});
+  ).rejects.toMatchObject({ reason: 'caller_cancelled' });
   expect(coordinator.getAccessToken).not.toHaveBeenCalled();
   expect(coordinator.forceRefresh).not.toHaveBeenCalled();
   expect(fetchImpl).not.toHaveBeenCalled();

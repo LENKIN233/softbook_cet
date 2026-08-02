@@ -229,7 +229,7 @@ Content manifest 公钥不是秘密，但 key ID 与值必须和服务端签名�
 分段 smoke 时，用 `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES=accountBootstrap,learningSource,learningState,spaceState` 让指定 surface 暂时留在本地，其它远端能力仍由同一个 `baseUrl` 派生。
 `learningState` 为远端时，`accountBootstrap` 与 `learningSource` 也必须为远端，客户端才能把实际卡源的 `content_version` 与 canonical content version 绑定；若要本地卡源，必须把这三个 feature 一起留在本地。
 
-- `auth`：手机号验证码请求 / 校验仓储
+- `auth`：手机号验证码请求 / 校验、会话撤销与账户删除请求仓储；删除仅在远端真实账户模式显示，只有服务端 `202` 会退出产品壳层并标记清理待完成
 - `accountBootstrap`：登录或会话恢复后的服务端权威账户读取；远端模式要求 `auth.mode` 也为 `remote`，完成一致性校验前阻止学习及产品状态写入
 - `learningSource`：学习卡源仓储；远端模式要求登录上下文，且 `auth.mode` 也必须是 `remote`
 - `membership`：entitlement 读取、开始试用、开通会员、恢复购买提醒状态更新；远端模式要求 `auth.mode` 也必须是 `remote`

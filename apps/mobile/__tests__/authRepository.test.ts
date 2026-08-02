@@ -3,9 +3,9 @@ import {
   createSoftbookRemoteAuthConfig,
   parseSoftbookRemoteAuthSession,
 } from '../src/auth/authRepository';
-import type {RemoteAuthSession} from '../src/auth/authSession';
-import {RemoteHttpError} from '../src/runtime/remoteHttpError';
-import {RemoteRequestLifecycleError} from '../src/runtime/remoteRequest';
+import type { RemoteAuthSession } from '../src/auth/authSession';
+import { RemoteHttpError } from '../src/runtime/remoteHttpError';
+import { RemoteRequestLifecycleError } from '../src/runtime/remoteRequest';
 
 const NOW = new Date('2026-07-20T00:00:00.000Z');
 
@@ -29,7 +29,7 @@ function createSessionPayload(overrides: Record<string, unknown> = {}) {
 }
 
 test('local auth repository binds verification to its SMS challenge', async () => {
-  const repository = createAuthRepository({mode: 'local'});
+  const repository = createAuthRepository({ mode: 'local' });
   const challenge = await repository.requestSmsCode('13800138000');
 
   expect(challenge).toEqual({
@@ -98,7 +98,7 @@ test('remote auth repository uses challenge-bound v2 verification', async () => 
   expect(fetchMock).toHaveBeenNthCalledWith(
     1,
     'https://api.softbook.example/v2/auth/request-code',
-    expect.objectContaining({method: 'POST'}),
+    expect.objectContaining({ method: 'POST' }),
   );
   expect(fetchMock).toHaveBeenNthCalledWith(
     2,
@@ -152,7 +152,7 @@ test('remote auth repository rotates refresh credentials and revokes logout', as
     1,
     'https://api.softbook.example/v2/auth/refresh',
     expect.objectContaining({
-      body: JSON.stringify({refresh_token: session.refreshToken}),
+      body: JSON.stringify({ refresh_token: session.refreshToken }),
     }),
   );
   expect(fetchMock).toHaveBeenNthCalledWith(
@@ -166,8 +166,66 @@ test('remote auth repository rotates refresh credentials and revokes logout', as
   );
 });
 
+test('remote auth repository submits account deletion with bearer auth and requires 202 acceptance', async () => {
+  const fetchMock = jest.fn(async () => ({
+    json: async () => ({ data: { deletion_request: { id: 'delete-123' } } }),
+    ok: true,
+    status: 202,
+  }));
+  const repository = createAuthRepository({
+    fetchImpl: fetchMock,
+    mode: 'remote',
+    now: () => NOW,
+    remoteConfig: createSoftbookRemoteAuthConfig({
+      baseUrl: 'https://api.softbook.example',
+    }),
+  });
+  const session = parseSoftbookRemoteAuthSession(
+    createSessionPayload(),
+    '13800138000',
+    NOW,
+  );
+
+  await expect(
+    repository.requestAccountDeletion(session),
+  ).resolves.toBeUndefined();
+  expect(fetchMock).toHaveBeenCalledWith(
+    'https://api.softbook.example/v2/account/deletion',
+    expect.objectContaining({
+      headers: expect.objectContaining({
+        Authorization: `Bearer ${session.accessToken}`,
+      }),
+      method: 'POST',
+    }),
+  );
+});
+
+test('remote auth repository does not mistake a generic success for deletion acceptance', async () => {
+  const repository = createAuthRepository({
+    fetchImpl: jest.fn(async () => ({
+      json: async () => ({}),
+      ok: true,
+      status: 200,
+    })),
+    mode: 'remote',
+    now: () => NOW,
+    remoteConfig: createSoftbookRemoteAuthConfig({
+      baseUrl: 'https://api.softbook.example',
+    }),
+  });
+  const session = parseSoftbookRemoteAuthSession(
+    createSessionPayload(),
+    '13800138000',
+    NOW,
+  );
+
+  await expect(
+    repository.requestAccountDeletion(session),
+  ).rejects.toMatchObject({ status: 200 });
+});
+
 test('remote auth challenge cannot be submitted for a different phone', async () => {
-  const repository = createAuthRepository({mode: 'local'});
+  const repository = createAuthRepository({ mode: 'local' });
   const challenge = await repository.requestSmsCode('13800138000');
 
   await expect(
@@ -182,7 +240,7 @@ test('remote auth challenge cannot be submitted for a different phone', async ()
 test('remote auth session parser rejects identity and session substitution', () => {
   expect(() =>
     parseSoftbookRemoteAuthSession(
-      createSessionPayload({phone_number: '13800138001'}),
+      createSessionPayload({ phone_number: '13800138001' }),
       '13800138000',
       NOW,
     ),
@@ -212,12 +270,12 @@ test('remote auth failures preserve the response status', async () => {
   });
 
   await expect(repository.requestSmsCode('13800138000')).rejects.toEqual(
-    expect.objectContaining<Partial<RemoteHttpError>>({status: 429}),
+    expect.objectContaining<Partial<RemoteHttpError>>({ status: 429 }),
   );
 });
 
 test('refresh requires a remote session', async () => {
-  const repository = createAuthRepository({mode: 'local'});
+  const repository = createAuthRepository({ mode: 'local' });
 
   await expect(
     repository.refreshSession({} as RemoteAuthSession),
@@ -273,7 +331,7 @@ test('remote auth timeout includes response parsing', async () => {
   const outcome = request.catch(error => error);
   jest.advanceTimersByTime(20);
 
-  await expect(outcome).resolves.toMatchObject({reason: 'timeout'});
+  await expect(outcome).resolves.toMatchObject({ reason: 'timeout' });
 });
 
 test('session cancellation aborts a pending refresh without becoming authorization failure', async () => {

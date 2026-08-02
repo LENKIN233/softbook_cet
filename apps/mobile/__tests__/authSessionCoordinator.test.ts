@@ -1,9 +1,9 @@
-import type {AuthRepository} from '../src/auth/authRepository';
-import {createAuthSessionCoordinator} from '../src/auth/authSessionCoordinator';
-import type {RemoteAuthSession} from '../src/auth/authSession';
-import type {AuthSessionStore} from '../src/persistence/authSessionStore';
-import {RemoteHttpError} from '../src/runtime/remoteHttpError';
-import {RemoteRequestLifecycleError} from '../src/runtime/remoteRequest';
+import type { AuthRepository } from '../src/auth/authRepository';
+import { createAuthSessionCoordinator } from '../src/auth/authSessionCoordinator';
+import type { RemoteAuthSession } from '../src/auth/authSession';
+import type { AuthSessionStore } from '../src/persistence/authSessionStore';
+import { RemoteHttpError } from '../src/runtime/remoteHttpError';
+import { RemoteRequestLifecycleError } from '../src/runtime/remoteRequest';
 
 const NOW = new Date('2026-07-20T00:00:00.000Z');
 
@@ -37,6 +37,7 @@ function createHarness(restoredSession: RemoteAuthSession | null = null) {
   const authRepository: AuthRepository = {
     logout: jest.fn(async () => undefined),
     refreshSession: jest.fn(async session => session),
+    requestAccountDeletion: jest.fn(async () => undefined),
     requestSmsCode: jest.fn(),
     verifySmsCode: jest.fn(),
   };
@@ -46,12 +47,12 @@ function createHarness(restoredSession: RemoteAuthSession | null = null) {
     now: () => NOW,
   });
 
-  return {authRepository, authSessionStore, coordinator};
+  return { authRepository, authSessionStore, coordinator };
 }
 
 test('restore keeps a fresh secure session without refreshing it', async () => {
   const session = createSession();
-  const {authRepository, coordinator} = createHarness(session);
+  const { authRepository, coordinator } = createHarness(session);
 
   await expect(coordinator.restore()).resolves.toEqual(session);
   expect(authRepository.refreshSession).not.toHaveBeenCalled();
@@ -66,7 +67,7 @@ test('concurrent access requests share one rotating refresh operation', async ()
     accessToken: 'access-1',
     refreshToken: 'refresh-1',
   });
-  const {authRepository, authSessionStore, coordinator} =
+  const { authRepository, authSessionStore, coordinator } =
     createHarness(session);
   let resolveRefresh: ((value: RemoteAuthSession) => void) | undefined;
   jest.mocked(authRepository.refreshSession).mockImplementation(
@@ -90,14 +91,14 @@ test('concurrent access requests share one rotating refresh operation', async ()
 });
 
 test('refresh authorization rejection clears the secure session', async () => {
-  const {authRepository, authSessionStore, coordinator} = createHarness(
-    createSession({accessTokenExpiresAt: '2026-07-20T00:00:30.000Z'}),
+  const { authRepository, authSessionStore, coordinator } = createHarness(
+    createSession({ accessTokenExpiresAt: '2026-07-20T00:00:30.000Z' }),
   );
   jest
     .mocked(authRepository.refreshSession)
     .mockRejectedValue(new RemoteHttpError('revoked', 401));
 
-  await expect(coordinator.restore()).rejects.toMatchObject({status: 401});
+  await expect(coordinator.restore()).rejects.toMatchObject({ status: 401 });
   expect(authSessionStore.clear).toHaveBeenCalledTimes(1);
   expect(coordinator.getCurrentSession()).toBeNull();
 });
@@ -106,7 +107,7 @@ test('late refresh completion cannot resurrect an invalidated session', async ()
   const session = createSession({
     accessTokenExpiresAt: '2026-07-20T00:00:30.000Z',
   });
-  const {authRepository, authSessionStore, coordinator} = createHarness();
+  const { authRepository, authSessionStore, coordinator } = createHarness();
   let resolveRefresh: ((value: RemoteAuthSession) => void) | undefined;
   jest.mocked(authRepository.refreshSession).mockImplementation(
     () =>
@@ -119,7 +120,7 @@ test('late refresh completion cannot resurrect an invalidated session', async ()
 
   await coordinator.invalidate();
   resolveRefresh?.(
-    createSession({accessToken: 'late-access', refreshToken: 'late-refresh'}),
+    createSession({ accessToken: 'late-access', refreshToken: 'late-refresh' }),
   );
 
   await expect(pendingAccess).rejects.toThrow('superseded');
@@ -137,7 +138,7 @@ test('late refresh completion cannot erase a replacement session', async () => {
     refreshToken: 'replacement-refresh',
     sessionId: 'replacement-session',
   });
-  const {authRepository, authSessionStore, coordinator} = createHarness();
+  const { authRepository, authSessionStore, coordinator } = createHarness();
   let resolveRefresh: ((value: RemoteAuthSession) => void) | undefined;
   jest.mocked(authRepository.refreshSession).mockImplementation(
     () =>
@@ -150,7 +151,7 @@ test('late refresh completion cannot erase a replacement session', async () => {
 
   await coordinator.establish(replacement);
   resolveRefresh?.(
-    createSession({accessToken: 'late-access', refreshToken: 'late-refresh'}),
+    createSession({ accessToken: 'late-access', refreshToken: 'late-refresh' }),
   );
 
   await expect(pendingAccess).rejects.toThrow('superseded');
@@ -170,7 +171,7 @@ test('late rejected refresh cannot invalidate a replacement session', async () =
     refreshToken: 'replacement-refresh',
     sessionId: 'replacement-session',
   });
-  const {authRepository, authSessionStore, coordinator} = createHarness();
+  const { authRepository, authSessionStore, coordinator } = createHarness();
   let rejectRefresh: ((reason: unknown) => void) | undefined;
   jest.mocked(authRepository.refreshSession).mockImplementation(
     () =>
@@ -184,7 +185,7 @@ test('late rejected refresh cannot invalidate a replacement session', async () =
   await coordinator.establish(replacement);
   rejectRefresh?.(new RemoteHttpError('old session revoked', 401));
 
-  await expect(pendingAccess).rejects.toMatchObject({status: 401});
+  await expect(pendingAccess).rejects.toMatchObject({ status: 401 });
   expect(authSessionStore.clear).not.toHaveBeenCalled();
   expect(coordinator.getCurrentSession()).toEqual(replacement);
 });
@@ -193,12 +194,12 @@ test('rotated credentials fail closed when secure persistence fails', async () =
   const session = createSession({
     accessTokenExpiresAt: '2026-07-20T00:00:30.000Z',
   });
-  const {authRepository, authSessionStore, coordinator} = createHarness();
+  const { authRepository, authSessionStore, coordinator } = createHarness();
   await coordinator.establish(session);
   jest
     .mocked(authRepository.refreshSession)
     .mockResolvedValue(
-      createSession({accessToken: 'access-1', refreshToken: 'refresh-1'}),
+      createSession({ accessToken: 'access-1', refreshToken: 'refresh-1' }),
     );
   jest
     .mocked(authSessionStore.save)
@@ -212,8 +213,8 @@ test('rotated credentials fail closed when secure persistence fails', async () =
 });
 
 test('temporary refresh failure keeps a still-valid access token', async () => {
-  const {authRepository, coordinator} = createHarness(
-    createSession({accessTokenExpiresAt: '2026-07-20T00:00:30.000Z'}),
+  const { authRepository, coordinator } = createHarness(
+    createSession({ accessTokenExpiresAt: '2026-07-20T00:00:30.000Z' }),
   );
   jest
     .mocked(authRepository.refreshSession)
@@ -227,7 +228,7 @@ test('temporary refresh failure keeps a still-valid access token', async () => {
 });
 
 test('logout clears local state even when server revocation is unavailable', async () => {
-  const {authRepository, authSessionStore, coordinator} = createHarness();
+  const { authRepository, authSessionStore, coordinator } = createHarness();
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
   await coordinator.establish(createSession());
   jest
@@ -243,6 +244,18 @@ test('logout clears local state even when server revocation is unavailable', asy
   warn.mockRestore();
 });
 
+test('account deletion uses the active remote session without clearing it before acceptance', async () => {
+  const session = createSession();
+  const { authRepository, authSessionStore, coordinator } = createHarness();
+  await coordinator.establish(session);
+
+  await expect(coordinator.requestAccountDeletion()).resolves.toBeUndefined();
+
+  expect(authRepository.requestAccountDeletion).toHaveBeenCalledWith(session);
+  expect(authSessionStore.clear).not.toHaveBeenCalled();
+  expect(coordinator.getCurrentSession()).toEqual(session);
+});
+
 test('publishes only logical session-scope changes', async () => {
   const session = createSession();
   const rotated = createSession({
@@ -250,13 +263,13 @@ test('publishes only logical session-scope changes', async () => {
     accessTokenExpiresAt: '2026-07-20T00:00:30.000Z',
     refreshToken: 'refresh-1',
   });
-  const {authRepository, coordinator} = createHarness();
+  const { authRepository, coordinator } = createHarness();
   jest.mocked(authRepository.refreshSession).mockResolvedValue(rotated);
   const listener = jest.fn();
   const unsubscribe = coordinator.subscribeSessionScope(listener);
 
   await coordinator.establish(
-    createSession({accessTokenExpiresAt: '2026-07-20T00:00:30.000Z'}),
+    createSession({ accessTokenExpiresAt: '2026-07-20T00:00:30.000Z' }),
   );
   await coordinator.getAccessToken();
   await coordinator.invalidate();
@@ -279,7 +292,7 @@ test('replacing a session aborts its pending refresh request', async () => {
     refreshToken: 'replacement-refresh',
     sessionId: 'replacement-session',
   });
-  const {authRepository, coordinator} = createHarness();
+  const { authRepository, coordinator } = createHarness();
   let refreshSignal: AbortSignal | undefined;
   jest.mocked(authRepository.refreshSession).mockImplementation(
     (_currentSession, requestOptions) =>
@@ -287,11 +300,8 @@ test('replacing a session aborts its pending refresh request', async () => {
         refreshSignal = requestOptions?.signal;
         requestOptions?.signal?.addEventListener(
           'abort',
-          () =>
-            reject(
-              new RemoteRequestLifecycleError('session_superseded'),
-            ),
-          {once: true},
+          () => reject(new RemoteRequestLifecycleError('session_superseded')),
+          { once: true },
         );
       }),
   );
