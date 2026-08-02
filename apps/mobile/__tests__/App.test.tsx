@@ -838,6 +838,21 @@ test('renders one dedicated login entry without the product shell', async () => 
   );
   expect(routeObjectScreenStyle.justifyContent).toBe('center');
   expect(routeObjectScreenStyle.paddingTop).toBe(20);
+  const authenticationEntryScroll = tree!.root.findByProps({
+    testID: 'authentication-entry-scroll',
+  });
+  const authenticationEntryScrollStyle = StyleSheet.flatten(
+    authenticationEntryScroll.props.style,
+  );
+  const authenticationEntryScrollContentStyle = StyleSheet.flatten(
+    authenticationEntryScroll.props.contentContainerStyle,
+  );
+  expect(authenticationEntryScrollStyle.flex).toBe(1);
+  expect(authenticationEntryScrollContentStyle.flexGrow).toBe(1);
+  expect(authenticationEntryScrollContentStyle.justifyContent).toBe('center');
+  expect(authenticationEntryScroll.props.keyboardShouldPersistTaps).toBe(
+    'handled',
+  );
   const routeObjectCardStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'authentication-entry-card' }).props.style,
   );
@@ -865,6 +880,14 @@ test('renders one dedicated login entry without the product shell', async () => 
   expect(
     tree!.root.findByProps({ testID: 'auth-continuity-promise' }),
   ).toBeTruthy();
+  expect(
+    tree!.root.findByProps({ testID: 'auth-retained-object-title' }).props
+      .numberOfLines,
+  ).toBeUndefined();
+  expect(
+    tree!.root.findByProps({ testID: 'auth-retained-object-summary' }).props
+      .numberOfLines,
+  ).toBeUndefined();
   expect(
     findPressableByTestId(tree!.root, 'auth-request-code-button').props
       .disabled,
@@ -4484,7 +4507,7 @@ test('does not expose internal metadata copy on primary surfaces', async () => {
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
-test('keeps phone primary surfaces inside one-screen app panels', async () => {
+test('keeps the dedicated login scrollable and phone product surfaces inside one-screen panels', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -4492,7 +4515,10 @@ test('keeps phone primary surfaces inside one-screen app panels', async () => {
   });
 
   const root = tree!.root;
-  expect(root.findAllByType(ScrollView)).toHaveLength(0);
+  expect(root.findAllByType(ScrollView)).toHaveLength(1);
+  expect(
+    root.findByProps({ testID: 'authentication-entry-scroll' }),
+  ).toBeTruthy();
 
   await loginIntoLearningFlow(root);
   expect(root.findAllByType(ScrollView)).toHaveLength(0);

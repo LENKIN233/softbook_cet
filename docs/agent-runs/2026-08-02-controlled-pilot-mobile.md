@@ -5,7 +5,7 @@
 - Date: 2026-08-02
 - Branch: `cross/controlled-pilot-mobile`
 - PR: https://github.com/LENKIN233/softbook_cet/pull/475 (draft, stacked on `cross/controlled-pilot-design`; contains and depends on the exact runtime commits from PR #474)
-- Summary: Wired the accepted CET4 controlled-pilot lifecycle into the shared iOS/Android React Native client, restored the authenticated product-entry boundary, and completed the real mobile account-deletion request lifecycle: signed-out/restoring users see only the dedicated phone/SMS entry, while an accepted deletion request removes the product shell and reports cleanup as pending rather than complete.
+- Summary: Wired the accepted CET4 controlled-pilot lifecycle into the shared iOS/Android React Native client, restored the authenticated product-entry boundary, and completed the real mobile account-deletion request lifecycle: signed-out/restoring users see only the dedicated phone/SMS entry, while an accepted deletion request removes the product shell and reports cleanup as pending rather than complete. The dedicated entry now also remains inside the safe area and scrolls at accessibility text sizes without exposing product navigation.
 
 ## Referenced specs
 
@@ -52,6 +52,7 @@
 - Split login recovery into verification, secure-session establishment, and account-hydration failure stages. A successfully verified SMS code can no longer be blamed when Keychain persistence or required account hydration fails; the shell remains closed and the retry copy names the actual unfinished step.
 - Made every iOS Maestro flow that depends on a signed-out start clear both application state and Keychain state. This prevents a previously persisted authenticated session from bypassing the dedicated login boundary during later evidence runs.
 - Added a remote-only Mine account-deletion action, one confirmation sheet, in-flight duplicate suppression, fixed safe failure/retry copy, strict `202` acceptance, account-bound local cleanup, and a neutral cleanup-pending notice on the dedicated login boundary.
+- Contained the dedicated authentication card in a safe-area-owned scroll surface for small screens and Dynamic Type, allowed retained account copy to wrap instead of truncating, and preserved the one-screen/no-scroll rule for all four authenticated product surfaces.
 
 ## Workspace boundary and read scope
 
@@ -74,6 +75,7 @@
 - `apps/mobile/__tests__/*`: parser, persistence, bootstrap, membership, UI and exact-action regression coverage.
 - `apps/mobile/e2e/maestro/ios-auth-space-gate-screenshot.yaml`, `ios-auth-statistics-gate-screenshot.yaml`, and the signed-out Mine auth-state flows: historical route-gate regressions now assert the dedicated entry and absence of all signed-out route tabs.
 - `apps/mobile/e2e/maestro/ios-*.yaml`: signed-out setup now clears the iOS Keychain before application state so flows are isolated even though secure credentials survive reinstall/state clearing.
+- `apps/mobile/e2e/maestro/ios-auth-scroll-accessibility.yaml`: verifies that the dedicated entry remains the only signed-out surface and that phone input, code action, and the authentication boundary note are reachable after scrolling at enlarged text sizes.
 - `apps/web/src/App.tsx`: exhaustive internal-acceptance label mapping for the shared `pilot_premium` membership stage so the mobile type expansion cannot break Web typecheck/build.
 
 ## Commands run
@@ -96,6 +98,9 @@
 - 2026-08-03 exact Node 22.13.0 rerun -> 46 suites / 450 tests, TypeScript and ESLint passed; ESLint remained at 0 errors / 14 existing warnings.
 - 2026-08-03 trigger-semantics evidence cleanup -> renamed the two local controlled-pilot tests to state the actual invariant, “first valid learning card is ready”, instead of the misleading “first authenticated entry”; targeted App verification passed 72/72 with metadata and dependency compatibility pretests.
 - 2026-08-03 current-head simulator recheck -> after starting Metro for the installed debug build, cleared Keychain and application state, then reran `ios-mine-signed-out-screenshot.yaml` on iPhone 17 Pro / iOS 26.5. The dedicated login entry, phone input and request-code action were visible; Learning, Space, Statistics and Mine tabs were all absent. `/tmp/softbook-current-login-20260803.png` was visually inspected without a LogBox/debug warning overlay and remains local, non-formal evidence.
+- 2026-08-03 Dynamic Type containment check -> `accessibility-large` first exposed a real overlap/truncation defect in the dedicated entry. After adding safe scroll containment and natural wrapping, targeted App verification passed 72/72, TypeScript passed, ESLint passed with 0 errors, and `git diff --check` passed. `ios-auth-scroll-accessibility.yaml` then passed on iPhone 17 Pro / iOS 26.5: all four route tabs remained absent and the phone input, code action, and boundary note were reachable after scrolling. `/tmp/softbook-current-login-accessibility-large-fixed-top-20260803.png` and `/tmp/softbook-current-login-accessibility-large-fixed-scrolled-20260803.png` were visually inspected and remain local, non-formal evidence.
+- 2026-08-03 standard-text regression check -> restored simulator content size to `large` and reran `ios-mine-signed-out-screenshot.yaml`; the dedicated entry/card, phone input, and code action were visible without scrolling, and all four product tabs were absent. `/tmp/softbook-current-login-standard-after-a11y-fix-20260803.png` was visually inspected and remains local, non-formal evidence.
+- 2026-08-03 post-fix full mobile verification -> 46 suites / 450 tests passed with metadata and dependency compatibility pretests; TypeScript, ESLint (0 errors), Maestro selector validation, and `git diff --check` passed.
 - 2026-08-03 iPhone 17 Pro / iOS 26.5 simulator destructive-path smoke -> passed against a temporary localhost auth receiver: real phone/SMS entry, authenticated Mine, visible irreversible-impact confirmation, authenticated `POST /v2/account/deletion`, shell removal after `202`, absent route tabs, and cleanup-pending entry notice. Screenshots were visually inspected at `/tmp/softbook-account-deletion-confirm.png` and `/tmp/softbook-account-deletion-pending.png`; the temporary receiver is not formal pilot evidence.
 - Exact Node 22.13.0 PR-profile local gate run -> mobile lint/typecheck/Jest, Web lint/tests, backend 238 tests, full harness, dependency security, LFS and evidence checks passed. It surfaced the missing Web `pilot_premium` label mapping, which was fixed; targeted Web typecheck, 12 tests and production build then passed. The overall local report remains non-green because this stacked PR does not target `main`, while repository-health strict mode also reports the shared repository's 11 worktrees/20 topic branches plus the remotely configured `android-release` check. The report is not a GitHub required check or formal evidence.
 
@@ -116,6 +121,7 @@
 - iOS signed-out acceptance runs now explicitly clear secure session state; `clearState` alone is no longer treated as proof of a signed-out start.
 - Account deletion is hidden in local-development auth, so a development reset cannot masquerade as service deletion. In remote auth it sends the active Bearer session and accepts only status `202`; status `200`, network failure, and other non-acceptance responses retain Mine and all local account state.
 - The confirmation names Learning, Space, membership, and pilot-eligibility impact before mutation. While the request is pending both cancel and confirm are disabled. After acceptance the shell is absent and the entry says “账户删除已提交 / 数据清理完成前暂不能重新登录”, never “账户已删除”.
+- Enlarged text no longer moves the login object beneath the status bar or truncates its account-state promise. The authentication boundary is the only scrollable phone entry; authenticated Learning, Space, Statistics, and Mine remain contained one-screen product surfaces.
 
 ## Binary evidence
 
@@ -140,7 +146,7 @@
 - Q2 / focal path: Before authentication, the login card is the sole focal object and product navigation is absent. After authentication, the learning card remains focal, followed by the attached pilot slip and shell chrome. At the round boundary, the completion receipt is focal, the Space address is secondary, and continue is the sole primary action.
 - Q3 / silhouette: Learning preserves the accepted single-card silhouette. The boundary uses the accepted compact receipt silhouette rather than pretending to be another learning interaction.
 - Q4 / forbidden patterns: No signed-out tab bar, repeated route-level login, dashboard, fake payment, gradient text, gamification chrome, pure black/white token override, serif, four-level self-assess, or red “再回看” state was added.
-- Q5 / containment: Compact branches cover 320-point/short-phone layouts; actions use contained cards and minimum 46/50-point controls. Automated component coverage and an iPhone 17 Pro simulator entry-flow check pass; real target-device small-screen/dynamic-type evidence remains an external acceptance gate.
+- Q5 / containment: Compact branches cover 320-point/short-phone layouts; actions use contained cards and minimum 46/50-point controls. Automated component coverage plus iPhone 17 Pro / iOS 26.5 standard and `accessibility-large` simulator entry flows pass. The enlarged entry stays below the status bar and scrolls to every required control while the product shell remains absent; real target-device small-screen/dynamic-type evidence remains an external acceptance gate.
 - Q6 / Learning-specific: No module selector was added. Existing flip remains exactly “有把握 / 再回看”; the new pending review is read-only and does not create a third self-assess model.
 - AP-22/VL-AP-07: satisfied through the separate accepted design authority, interaction/motion artifact, implementation mapping, and the six checklist answers above.
 
@@ -153,7 +159,7 @@
 - The design and contract PR stack still requires protected product-owner approval; this implementation must not bypass or replace it.
 - Real receiver environment, SMS, signed private content/audio, deletion-worker completion/blocked re-login/clean re-registration drill, weak-network/offline device run, TestFlight and Android closed-testing evidence remain pending external gates. The localhost simulator smoke proves client behavior only.
 - The approved 120-card payload and audio/QC remain external deliverables. The ten repository development cards and automated fixtures are not content-volume evidence.
-- Dynamic type and target-device visual containment are not proven by Jest and must be captured on real iOS/Android builds after receiver deployment.
+- Simulator Dynamic Type containment is now visually checked at `accessibility-large`, but target-device visual containment still must be captured on real iOS/Android builds after receiver deployment.
 
 ## Follow-up
 

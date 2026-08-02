@@ -13,6 +13,7 @@ import {
   Keyboard,
   Modal,
   Pressable,
+  ScrollView,
   Platform,
   StatusBar,
   StyleProp,
@@ -4902,39 +4903,106 @@ function AuthenticationEntrySurface({
       style={[styles.authGateScreen, styles.authenticationEntryScreen]}
       testID="authentication-entry-screen"
     >
-      <View
-        style={[
-          styles.authEntryCard,
-          styles.authenticationEntryCard,
-          { backgroundColor: palette.panel, borderColor: palette.border },
-        ]}
-        testID="authentication-entry-card"
+      <ScrollView
+        contentContainerStyle={styles.authenticationEntryScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        style={styles.authenticationEntryScroll}
+        testID="authentication-entry-scroll"
       >
         <View
-          style={[styles.authObjectHeader, styles.authObjectHeaderRouteObject]}
+          style={[
+            styles.authEntryCard,
+            styles.authenticationEntryCard,
+            { backgroundColor: palette.panel, borderColor: palette.border },
+          ]}
+          testID="authentication-entry-card"
         >
-          {isMineAccountGate ? (
-            <View
-              style={styles.authMinePassportHeader}
-              testID="auth-mine-account-header"
-            >
+          <View
+            style={[
+              styles.authObjectHeader,
+              styles.authObjectHeaderRouteObject,
+            ]}
+          >
+            {isMineAccountGate ? (
               <View
-                style={[
-                  styles.authMineAvatar,
-                  { backgroundColor: palette.accent },
-                ]}
+                style={styles.authMinePassportHeader}
+                testID="auth-mine-account-header"
               >
-                <RouteIcon active color={palette.panel} routeKey="mine" />
+                <View
+                  style={[
+                    styles.authMineAvatar,
+                    { backgroundColor: palette.accent },
+                  ]}
+                >
+                  <RouteIcon active color={palette.panel} routeKey="mine" />
+                </View>
+                <View style={styles.authMineHeaderCopy}>
+                  <View style={styles.authMineHeaderTopRow}>
+                    <Text
+                      style={[styles.heroEyebrow, { color: palette.accent }]}
+                    >
+                      {authGateContent.eyebrow}
+                    </Text>
+                    <View
+                      style={[
+                        styles.authObjectBadge,
+                        styles.authObjectBadgeMine,
+                        {
+                          backgroundColor: palette.panelStrong,
+                          borderColor: palette.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.authObjectBadgeValue,
+                          { color: palette.text },
+                        ]}
+                      >
+                        {hasSentCode ? '短码' : '手机'}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.authObjectBadgeLabel,
+                          { color: palette.textMuted },
+                        ]}
+                      >
+                        {hasSentCode ? '待确认' : '验证'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text
+                    style={[
+                      styles.authGateTitle,
+                      styles.authGateTitleMine,
+                      { color: palette.text },
+                    ]}
+                    testID="auth-gate-title"
+                  >
+                    {authGateContent.gateTitle}
+                  </Text>
+                  <Text
+                    onPress={Keyboard.dismiss}
+                    style={[
+                      styles.authGateSummary,
+                      { color: palette.textMuted },
+                    ]}
+                    testID="auth-gate-keyboard-dismiss-target"
+                  >
+                    {authGateContent.gateSummary}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.authMineHeaderCopy}>
-                <View style={styles.authMineHeaderTopRow}>
+            ) : (
+              <>
+                <View style={styles.authHeaderMeta}>
                   <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
                     {authGateContent.eyebrow}
                   </Text>
                   <View
                     style={[
                       styles.authObjectBadge,
-                      styles.authObjectBadgeMine,
                       {
                         backgroundColor: palette.panelStrong,
                         borderColor: palette.border,
@@ -4947,7 +5015,7 @@ function AuthenticationEntrySurface({
                         { color: palette.text },
                       ]}
                     >
-                      {hasSentCode ? '短码' : '手机'}
+                      {hasSentCode ? '短码已发' : '短信验证'}
                     </Text>
                     <Text
                       style={[
@@ -4955,14 +5023,14 @@ function AuthenticationEntrySurface({
                         { color: palette.textMuted },
                       ]}
                     >
-                      {hasSentCode ? '待确认' : '验证'}
+                      手机号
                     </Text>
                   </View>
                 </View>
                 <Text
                   style={[
                     styles.authGateTitle,
-                    styles.authGateTitleMine,
+                    isRouteObjectGate ? styles.authGateTitleRouteObject : null,
                     { color: palette.text },
                   ]}
                   testID="auth-gate-title"
@@ -4976,204 +5044,159 @@ function AuthenticationEntrySurface({
                 >
                   {authGateContent.gateSummary}
                 </Text>
-              </View>
-            </View>
-          ) : (
-            <>
-              <View style={styles.authHeaderMeta}>
-                <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-                  {authGateContent.eyebrow}
-                </Text>
+              </>
+            )}
+          </View>
+          <View
+            style={[
+              styles.authGateActionStack,
+              isCompactAuthGate ? styles.authGateActionStackCompact : null,
+              isMineAccountGate ? styles.authGateActionStackMine : null,
+            ]}
+            testID="auth-gate-action-stack"
+          >
+            {authState.entryNotice === 'account_deletion_pending' ? (
+              <View
+                accessibilityLiveRegion="polite"
+                style={[
+                  styles.authEntryNotice,
+                  {
+                    backgroundColor: palette.panelStrong,
+                    borderColor: hexToRgba(palette.warning, 0.28),
+                  },
+                ]}
+                testID="account-deletion-pending-notice"
+              >
                 <View
                   style={[
-                    styles.authObjectBadge,
-                    {
-                      backgroundColor: palette.panelStrong,
-                      borderColor: palette.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.authObjectBadgeValue,
-                      { color: palette.text },
-                    ]}
-                  >
-                    {hasSentCode ? '短码已发' : '短信验证'}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.authObjectBadgeLabel,
-                      { color: palette.textMuted },
-                    ]}
-                  >
-                    手机号
-                  </Text>
-                </View>
-              </View>
-              <Text
-                style={[
-                  styles.authGateTitle,
-                  isRouteObjectGate ? styles.authGateTitleRouteObject : null,
-                  { color: palette.text },
-                ]}
-                testID="auth-gate-title"
-              >
-                {authGateContent.gateTitle}
-              </Text>
-              <Text
-                onPress={Keyboard.dismiss}
-                style={[styles.authGateSummary, { color: palette.textMuted }]}
-                testID="auth-gate-keyboard-dismiss-target"
-              >
-                {authGateContent.gateSummary}
-              </Text>
-            </>
-          )}
-        </View>
-        <View
-          style={[
-            styles.authGateActionStack,
-            isCompactAuthGate ? styles.authGateActionStackCompact : null,
-            isMineAccountGate ? styles.authGateActionStackMine : null,
-          ]}
-          testID="auth-gate-action-stack"
-        >
-          {authState.entryNotice === 'account_deletion_pending' ? (
-            <View
-              accessibilityLiveRegion="polite"
-              style={[
-                styles.authEntryNotice,
-                {
-                  backgroundColor: palette.panelStrong,
-                  borderColor: hexToRgba(palette.warning, 0.28),
-                },
-              ]}
-              testID="account-deletion-pending-notice"
-            >
-              <View
-                style={[
-                  styles.authEntryNoticeAccent,
-                  { backgroundColor: palette.warning },
-                ]}
-              />
-              <View style={styles.authEntryNoticeCopy}>
-                <Text
-                  style={[styles.authEntryNoticeTitle, { color: palette.text }]}
-                >
-                  账户删除已提交
-                </Text>
-                <Text
-                  style={[
-                    styles.authEntryNoticeDetail,
-                    { color: palette.textMuted },
-                  ]}
-                >
-                  数据清理完成前暂不能重新登录；完成后可使用同一手机号重新注册。
-                </Text>
-              </View>
-            </View>
-          ) : null}
-          {authState.entryNotice === 'account_deletion_pending' ? null : (
-            <View
-              style={[
-                styles.authRetainedObject,
-                isCompactAuthGate ? styles.authRetainedObjectCompact : null,
-                isMineAccountGate ? styles.authRetainedObjectMine : null,
-                {
-                  backgroundColor: isCompactAuthGate
-                    ? hexToRgba(palette.accent, 0.045)
-                    : palette.panelStrong,
-                  borderColor: isCompactAuthGate
-                    ? hexToRgba(palette.accent, 0.12)
-                    : palette.border,
-                },
-              ]}
-              testID="auth-continuity-promise"
-            >
-              <View
-                style={[
-                  styles.authRetainedHead,
-                  isCompactAuthGate ? styles.authRetainedHeadCompact : null,
-                ]}
-              >
-                <View
-                  pointerEvents="none"
-                  style={[
-                    styles.authRetainedAccent,
-                    isCompactAuthGate ? styles.authRetainedAccentCompact : null,
-                    { backgroundColor: palette.accent },
+                    styles.authEntryNoticeAccent,
+                    { backgroundColor: palette.warning },
                   ]}
                 />
-                <View style={styles.authRetainedCopy}>
+                <View style={styles.authEntryNoticeCopy}>
                   <Text
-                    numberOfLines={1}
-                    style={[styles.authRetainedTitle, { color: palette.text }]}
-                    testID="auth-retained-object-title"
-                  >
-                    {authGateContent.retainedTitle}
-                  </Text>
-                  <Text
-                    numberOfLines={2}
                     style={[
-                      styles.authRetainedSummary,
-                      { color: palette.textMuted },
-                    ]}
-                    testID="auth-retained-object-summary"
-                  >
-                    {authGateContent.retainedSummary}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.authContinuityPromisePill,
-                    {
-                      backgroundColor: palette.panel,
-                      borderColor: hexToRgba(palette.accent, 0.16),
-                    },
-                  ]}
-                  testID="auth-continuity-promise-pill"
-                >
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.authContinuityPromiseText,
+                      styles.authEntryNoticeTitle,
                       { color: palette.text },
                     ]}
                   >
-                    {authGateContent.continuityPill}
+                    账户删除已提交
+                  </Text>
+                  <Text
+                    style={[
+                      styles.authEntryNoticeDetail,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    数据清理完成前暂不能重新登录；完成后可使用同一手机号重新注册。
                   </Text>
                 </View>
               </View>
-            </View>
-          )}
-          <PhoneSmsPanel
-            authState={authState}
-            embedded
-            handlers={handlers}
-            palette={palette}
-            routeDock
-            returnTarget={authGateContent.returnTarget}
-            title={hasSentCode ? '确认手机号' : '手机号登入'}
-            summary={
-              authRepositoryMode === 'remote'
-                ? '使用短信验证码确认身份。'
-                : '使用验证码确认身份。'
-            }
-            successMessage={
-              authRepositoryMode === 'remote'
-                ? '已完成短信验证码登录。'
-                : '已完成登录。'
-            }
-          />
-          <Text
-            style={[styles.authHint, { color: palette.textMuted }]}
-            testID="authentication-entry-navigation-note"
-          >
-            未登入时不展示学习、空间、统计和我的；账号校验成功后从学习进入。
-          </Text>
+            ) : null}
+            {authState.entryNotice === 'account_deletion_pending' ? null : (
+              <View
+                style={[
+                  styles.authRetainedObject,
+                  isCompactAuthGate ? styles.authRetainedObjectCompact : null,
+                  isMineAccountGate ? styles.authRetainedObjectMine : null,
+                  {
+                    backgroundColor: isCompactAuthGate
+                      ? hexToRgba(palette.accent, 0.045)
+                      : palette.panelStrong,
+                    borderColor: isCompactAuthGate
+                      ? hexToRgba(palette.accent, 0.12)
+                      : palette.border,
+                  },
+                ]}
+                testID="auth-continuity-promise"
+              >
+                <View
+                  style={[
+                    styles.authRetainedHead,
+                    isCompactAuthGate ? styles.authRetainedHeadCompact : null,
+                  ]}
+                >
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.authRetainedAccent,
+                      isCompactAuthGate
+                        ? styles.authRetainedAccentCompact
+                        : null,
+                      { backgroundColor: palette.accent },
+                    ]}
+                  />
+                  <View style={styles.authRetainedCopy}>
+                    <Text
+                      style={[
+                        styles.authRetainedTitle,
+                        { color: palette.text },
+                      ]}
+                      testID="auth-retained-object-title"
+                    >
+                      {authGateContent.retainedTitle}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.authRetainedSummary,
+                        { color: palette.textMuted },
+                      ]}
+                      testID="auth-retained-object-summary"
+                    >
+                      {authGateContent.retainedSummary}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.authContinuityPromisePill,
+                      {
+                        backgroundColor: palette.panel,
+                        borderColor: hexToRgba(palette.accent, 0.16),
+                      },
+                    ]}
+                    testID="auth-continuity-promise-pill"
+                  >
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.authContinuityPromiseText,
+                        { color: palette.text },
+                      ]}
+                    >
+                      {authGateContent.continuityPill}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+            <PhoneSmsPanel
+              authState={authState}
+              embedded
+              handlers={handlers}
+              palette={palette}
+              routeDock
+              returnTarget={authGateContent.returnTarget}
+              title={hasSentCode ? '确认手机号' : '手机号登入'}
+              summary={
+                authRepositoryMode === 'remote'
+                  ? '使用短信验证码确认身份。'
+                  : '使用验证码确认身份。'
+              }
+              successMessage={
+                authRepositoryMode === 'remote'
+                  ? '已完成短信验证码登录。'
+                  : '已完成登录。'
+              }
+            />
+            <Text
+              style={[styles.authHint, { color: palette.textMuted }]}
+              testID="authentication-entry-navigation-note"
+            >
+              未登入时不展示学习、空间、统计和我的；账号校验成功后从学习进入。
+            </Text>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -7725,6 +7748,13 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 20,
   },
+  authenticationEntryScroll: {
+    flex: 1,
+  },
+  authenticationEntryScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   authEntryCard: {
     borderWidth: 1,
     borderRadius: 28,
@@ -7773,6 +7803,7 @@ const styles = StyleSheet.create({
   authHeaderMeta: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     justifyContent: 'space-between',
     width: '100%',
