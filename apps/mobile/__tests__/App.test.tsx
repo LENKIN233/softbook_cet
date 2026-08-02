@@ -2123,6 +2123,89 @@ test('withdraws stale pilot access when trial-boundary revalidation is unavailab
   expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
 });
 
+test('reloads the server selection when pilot continuation access is revoked', async () => {
+  let bootstrapRequestCount = 0;
+  const baseSession = createLocalLearningSession('cet4');
+  const fullAccessCard = baseSession.catalogCards.at(-1)!;
+  const freeAccessCard = baseSession.catalogCards[0];
+  const premiumSession: LearningSession = {
+    ...baseSession,
+    cards: [fullAccessCard],
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+  };
+  const freeSession: LearningSession = {
+    ...premiumSession,
+    cards: [freeAccessCard],
+    membershipStage: 'free',
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      return createJsonResponse(
+        createAccountBootstrapPayload(
+          bootstrapRequestCount === 1 ? premiumSession : freeSession,
+          bootstrapRequestCount === 1 ? 'pilot_premium' : 'free',
+        ),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(premiumSession);
+  await waitForLearningSurface(root);
+  expect(
+    root.find(
+      node =>
+        typeof node.type === 'function' && node.type.name === 'LearningSurface',
+    ).props.currentCard.card_id,
+  ).toBe(fullAccessCard.card_id);
+
+  resolvedSession = freeSession;
+  const previousLoadCount = mockLoadSession.mock.calls.length;
+  await openRoute(root, 'mine');
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    if (mockLoadSession.mock.calls.length > previousLoadCount) {
+      break;
+    }
+  }
+  await openRoute(root, 'learning');
+  await waitForLearningSurface(root);
+
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(mockLoadSession.mock.calls.length).toBeGreaterThan(previousLoadCount);
+  expect(
+    root.find(
+      node =>
+        typeof node.type === 'function' && node.type.name === 'LearningSurface',
+    ).props.currentCard.card_id,
+  ).toBe(freeAccessCard.card_id);
+});
+
 test('fails closed when refreshed bootstrap still disagrees with learning-session membership', async () => {
   let bootstrapRequestCount = 0;
   const trialSession = {

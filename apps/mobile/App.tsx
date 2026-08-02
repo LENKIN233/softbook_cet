@@ -1078,6 +1078,10 @@ function AppShell({
   );
   const applyAuthenticatedRuntimeHydration = useCallback(
     (hydration: AuthenticatedRuntimeHydration) => {
+      const serverMembershipStageChanged =
+        accountBootstrapSnapshotRef.current !== null &&
+        hydration.accountBootstrapStatus === 'ready' &&
+        previousMembershipStage.current !== hydration.membershipState.stage;
       accountBootstrapStatusRef.current = hydration.accountBootstrapStatus;
       accountBootstrapSnapshotRef.current = hydration.accountBootstrap;
       setAccountBootstrapStatus(hydration.accountBootstrapStatus);
@@ -1109,6 +1113,17 @@ function AppShell({
       unreconciledCheckInDayKeyRef.current = hydration.pendingCheckInDayKey;
       setCheckedInDayKey(hydration.persistedUserState.checkedInDayKey);
       setSpaceCardStateById(hydration.persistedUserState.spaceCardStateById);
+      if (serverMembershipStageChanged) {
+        pilotRoundCompletionRef.current = null;
+        setLearningSession(null);
+        setLearningCardState(null);
+        setMappedAccountBootstrapSnapshot(null);
+        setPilotRoundCompletion(null);
+        setPilotRoundError(null);
+        setPilotRoundReviewIndex(null);
+        setLearningBootstrapStatus('idle');
+        setLearningBootstrapError(null);
+      }
       if (hydration.pendingCheckInDayKey !== null) {
         setProgressSyncState({
           detail: '签到已保存，等待服务端确认。',
