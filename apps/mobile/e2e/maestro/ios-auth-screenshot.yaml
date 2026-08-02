@@ -12,3 +12,11 @@ name: ios-auth-screenshot
     id: 'auth-gate-keyboard-dismiss-target'
 - assertVisible:
     id: 'auth-request-code-button'
+- assertNotVisible:
+    id: 'route-tab-learning'
+- assertNotVisible:
+    id: 'route-tab-space'
+- assertNotVisible:
+    id: 'route-tab-statistics'
+- assertNotVisible:
+    id: 'route-tab-mine'

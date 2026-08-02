@@ -8,6 +8,14 @@ name: ios-auth-learning-space-statistics-smoke
     visible:
       id: "auth-phone-input"
     timeout: 30000
+- assertNotVisible:
+    id: "route-tab-learning"
+- assertNotVisible:
+    id: "route-tab-space"
+- assertNotVisible:
+    id: "route-tab-statistics"
+- assertNotVisible:
+    id: "route-tab-mine"
 - tapOn:
     id: "auth-phone-input"
 - inputText: "13800138000"

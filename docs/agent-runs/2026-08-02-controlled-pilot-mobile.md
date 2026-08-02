@@ -109,6 +109,7 @@
 
 ## Commands run
 
+- 2026-08-03 device-level signed-out shell regression -> rebuilt and launched the current branch on iPhone 17 Pro / iOS 26.5, visually inspected the dedicated login surface, then added explicit absence assertions for `route-tab-learning`, `route-tab-space`, `route-tab-statistics`, and `route-tab-mine` to the local iOS, remote iOS, and inherited Android remote smoke boundary. `ios-auth-screenshot.yaml` passed all four negative assertions; the complete `ios-smoke.yaml` flow passed 1/1 in 46 seconds; `python3 scripts/validate_maestro_selectors.py` and `git diff --check` passed. This is simulator regression evidence only, not receiver or real-device pilot evidence.
 - Exact Node 22.13.0 TypeScript check: `node typescript/bin/tsc --noEmit -p apps/mobile/tsconfig.json` -> passed.
 - Exact Node 22.13.0 full Jest suite: `node jest/bin/jest.js --config apps/mobile/jest.config.js --runInBand` -> passed, 46 suites and 444 tests.
 - Exact Node 22.13.0 `npm --prefix apps/mobile test -- --runInBand`, including metadata and dependency compatibility pretests -> passed, 46 suites and 444 tests.
@@ -152,6 +153,7 @@
 
 ## Validation results
 
+- The signed-out app has device-level regression coverage proving that the dedicated authentication surface is visible while all four authenticated route tabs are absent. Android inherits the same remote smoke file, although this run executed it only on the iOS simulator.
 - The first-card notice is attached to the current card, has no acknowledgement action, and appears only when the controlled-pilot client observes the first server response whose generation time equals the atomic trial start time.
 - Learning Session parsing fails closed on undocumented fields, invalid trial timelines, selection/completion conflicts, malformed receipts and wrong access/stage combinations.
 - Continue posts only the exact server receipt tuple and accepts only a matching acknowledged/duplicate server response.
@@ -185,7 +187,7 @@
 ## Binary evidence
 
 - Evidence manifest: N/A.
-- Archive: N/A. Local iPhone 17 Pro simulator screenshots for Learning, Space, Statistics, Mine, and login recovery were visually inspected, but are not committed or claimed as formal pilot evidence.
+- Archive: N/A. The current dedicated login surface was additionally inspected on iPhone 17 Pro / iOS 26.5 after a clean reinstall; it contained no route navigation. Local simulator screenshots for Learning, Space, Statistics, Mine, login and recovery remain uncommitted and are not claimed as formal pilot evidence.
 
 ## Agent review status
 
