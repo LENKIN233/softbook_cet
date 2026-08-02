@@ -542,10 +542,16 @@ function StatisticsSurface({results, total}: {results: LearningCardResult[]; tot
 
 function MineSurface({phone, membership, onLogout}: {phone: string; membership: MembershipState; onLogout: () => void}) {
   const [showPrivacy, setShowPrivacy] = useState(false);
-  const stageLabel = {trial_available: '体验待自动开启', trial: '5 天体验中', free: '基础版', premium: '会员'}[membership.stage];
+  const stageLabel = {
+    trial_available: '体验待自动开启',
+    trial: '5 天体验中',
+    free: '基础版',
+    premium: '会员',
+    pilot_premium: '受控试点资格',
+  } satisfies Record<MembershipState['stage'], string>;
   return <main className="account-workbench"><section className="account-object" aria-labelledby="mine-title">
     <p className="eyebrow">账户对象</p><h1 id="mine-title">{maskPhone(phone)}</h1>
-    <div className="account-row"><span>会员状态</span><strong>{stageLabel}</strong></div>
+    <div className="account-row"><span>会员状态</span><strong>{stageLabel[membership.stage]}</strong></div>
     <div className="account-row"><span>跨端同步</span><strong>尚未连接</strong></div>
     {membership.stage === 'premium' ? <p className="notice">完整卡片库、算法与空间访问已开启。</p> : null}
     <button className="secondary" disabled>购买会员 · 尚未接入</button>

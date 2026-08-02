@@ -61,6 +61,7 @@
 - `apps/mobile/src/membership/localMembership.ts` and `membershipRepository.ts`: server remaining-time field and pilot entitlement stage.
 - `apps/mobile/src/persistence/userStateStore.ts` and `src/bootstrap/accountBootstrapHydration.ts`: restart-safe receipt/notice persistence and content-bound reconciliation.
 - `apps/mobile/__tests__/*`: parser, persistence, bootstrap, membership, UI and exact-action regression coverage.
+- `apps/web/src/App.tsx`: exhaustive internal-acceptance label mapping for the shared `pilot_premium` membership stage so the mobile type expansion cannot break Web typecheck/build.
 
 ## Commands run
 
@@ -72,6 +73,7 @@
 - `python3 scripts/validate_harness.py` -> passed, `HARNESS VALIDATION OK`.
 - Prettier over changed mobile source/tests -> passed.
 - `git diff --check` -> passed.
+- Exact Node 22.13.0 PR-profile local gate run -> mobile lint/typecheck/Jest, Web lint/tests, backend 238 tests, full harness, dependency security, LFS and evidence checks passed. It surfaced the missing Web `pilot_premium` label mapping, which was fixed; targeted Web typecheck, 12 tests and production build then passed. The overall local report remains non-green because this stacked PR does not target `main`, while repository-health strict mode also reports the shared repository's 11 worktrees/20 topic branches plus the remotely configured `android-release` check. The report is not a GitHub required check or formal evidence.
 
 ## Validation results
 
@@ -83,6 +85,7 @@
 - Mine and restricted Space expose no purchase or self-grant action in controlled-pilot mode and clearly state that the pilot is free and eligibility is operationally granted.
 - `trial_remaining_seconds` is rendered from server data; the client does not subtract device time or independently determine expiry.
 - `user-state.v3` round-trips the exact receipt and notice marker; legacy migration creates neither.
+- The shared membership-stage union is now consumed exhaustively by the internal Web acceptance surface, preventing a future stage addition from silently rendering an undefined label.
 
 ## Binary evidence
 
@@ -94,12 +97,13 @@
 - Reviewer: Codex
 - Status: Passed
 - Blocking findings: none in the repository implementation.
-- Review summary: Reviewed authority separation, first-session atomic trigger mapping, receipt retention/clearing, restart and offline behavior, read-only review safety, no-payment controlled-pilot branches, `pilot_premium` handling, strict parser surfaces, account-bound persistence, and design implementation mapping. The review found and prevented one unsafe approach: normal review event submission cannot run while the server is gating the next selection, so pending-round review is explicitly read-only.
+- Review summary: Reviewed authority separation, first-session atomic trigger mapping, receipt retention/clearing, restart and offline behavior, read-only review safety, no-payment controlled-pilot branches, exhaustive `pilot_premium` handling across shared mobile/Web types, strict parser surfaces, account-bound persistence, and design implementation mapping. The review found and prevented one unsafe approach: normal review event submission cannot run while the server is gating the next selection, so pending-round review is explicitly read-only.
 
 ## User-visible UI impact
 
 - Design source: `docs/design/decisions/controlled-pilot-lifecycle-decision-v1.md`, `docs/design/interaction-motion/controlled-pilot-lifecycle-v1.md`, and `docs/design/mapping/controlled-pilot-lifecycle-implementation-map-v1.md` from the separate design-only branch/PR.
 - Implementation mapping: Learning identity/start slip -> `LearningSurface`; fifth-event receipt/read-only review -> `ControlledPilotRoundCompletionSurface`; Space continuity -> completion address plus existing Space route; entitlement ledger -> controlled branch of `MembershipHostCard`.
+- Internal Web compatibility mapping: the existing Mine membership row consumes the same semantic label, `受控试点资格`; no Web pilot route, selector, payment flow or external availability was added.
 - Q1 / Law of One: Learning continues to use the current card library tone as the single strong accent. Pilot identity and entitlement chrome are restrained secondary layers and do not introduce another competing library identity.
 - Q2 / focal path: The learning card remains focal, followed by the attached pilot slip and then shell chrome. At the boundary, the completion receipt is focal, the Space address is secondary, and continue is the sole primary action.
 - Q3 / silhouette: Learning preserves the accepted single-card silhouette. The boundary uses the accepted compact receipt silhouette rather than pretending to be another learning interaction.
