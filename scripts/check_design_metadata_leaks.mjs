@@ -89,8 +89,8 @@ const leakagePatterns = [
     reason: 'raw semantic group/box/card label in visual design artifact',
   },
   {
-    pattern: /\bCET[46]\b(?!\/6)/i,
-    reason: 'raw CET track value in visual design artifact',
+    pattern: /\b(?:CET6|CET4(?!\s*受控试点))\b(?!\/6)/i,
+    reason: 'raw CET track value outside the approved fixed pilot identity in visual design artifact',
   },
   {
     pattern:

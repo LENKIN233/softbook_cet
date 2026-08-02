@@ -962,6 +962,49 @@ def validate(context) -> None:
                     + expected_snippet
                 )
 
+    with context.temporary_directory(prefix="pilot-identity-fixture") as fixture_root:
+        tmp_dir = fixture_root / "docs/design/mocks"
+        tmp_dir.mkdir(parents=True)
+        approved_identity_html = tmp_dir / "approved-pilot-identity.html"
+        approved_identity_html.write_text(
+            '<!doctype html><html><body><p>CET4 受控试点</p></body></html>\n',
+            encoding="utf-8",
+        )
+        approved_identity_fixture = context.run_validator(
+            "scripts/check_design_metadata_leaks.mjs",
+            "--root",
+            str(fixture_root),
+        )
+        if approved_identity_fixture.returncode != 0:
+            errors.append(
+                "design metadata scanner must allow the exact approved CET4 controlled-pilot identity"
+            )
+
+        raw_identity_html = tmp_dir / "raw-exam-type-identity.html"
+        raw_identity_html.write_text(
+            '<!doctype html><html><body><p>CET4 自选</p><p>CET6</p></body></html>\n',
+            encoding="utf-8",
+        )
+        raw_identity_fixture = context.run_validator(
+            "scripts/check_design_metadata_leaks.mjs",
+            "--root",
+            str(fixture_root),
+        )
+        raw_identity_output = raw_identity_fixture.stdout + raw_identity_fixture.stderr
+        if raw_identity_fixture.returncode == 0:
+            errors.append(
+                "design metadata scanner must continue to reject raw exam-type identities outside the approved pilot label"
+            )
+        for expected_snippet in [
+            "raw-exam-type-identity.html",
+            "raw CET track value outside the approved fixed pilot identity",
+        ]:
+            if expected_snippet not in raw_identity_output:
+                errors.append(
+                    "design metadata scanner pilot identity fixture missing expected output: "
+                    + expected_snippet
+                )
+
     with context.temporary_directory(prefix="visual-reference-fixture") as fixture_root:
         visual_reference_path = fixture_root / "docs/design/visual-reference.html"
         visual_reference_path.parent.mkdir(parents=True)
