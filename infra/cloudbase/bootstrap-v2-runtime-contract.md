@@ -106,7 +106,8 @@ Rules:
       "trial_duration_days": 5,
       "trial_started_at_entry_count": null,
       "trial_started_at": null,
-      "trial_expires_at": null
+      "trial_expires_at": null,
+      "trial_remaining_seconds": 0
     },
     "progress": {
       "acknowledged_at": null,

@@ -39,7 +39,7 @@
   },
   "controlled_pilot_rounds_v1": {
     "classification": "implementation_hypothesis",
-    "contract_status": "contract_defined_backend_and_mobile_not_yet_implemented_or_deployed",
+    "contract_status": "backend_implemented_on_runtime_topic_branch_mobile_not_yet_implemented_and_receiver_not_deployed",
     "scope_rule": "enabled_only_when_runtime_mode_is_controlled_pilot_and_the_active_release_is_an_unexpired_pilot_content_release_v1_for_cet4",
     "boundary_rule": "a_round_boundary_exists_only_when_the_canonical_account_track_learning_projection_maximum_server_sequence_is_positive_and_divisible_by_five",
     "count_authority_rule": "completed_count_is_the_cumulative_count_of_newly_accepted_account_track_learning_or_review_events_equal_to_the_projection_maximum_server_sequence_and_is_not_activity_day_progress_total_completed_count",

@@ -23,7 +23,7 @@ Referenced active sources:
 
 `implementation_hypothesis`:
 
-- The repository implements fail-closed schema validators, a dry-run-first receiver publisher, controlled-pilot runtime release enforcement, audited entitlement mutation, atomic trial timestamps, and a retryable account-deletion worker plus deployment tooling.
+- The runtime topic branch implements fail-closed schema validators, a dry-run-first receiver publisher, controlled-pilot release enforcement, audited entitlement mutation, atomic trial timestamps, the five-card round gate, and a retryable account-deletion worker plus deployment tooling. Mobile wiring, externally approved content, receiver deployment and real-device evidence remain separate and incomplete.
 - The deployment tool packages the API and a separate non-HTTP deletion worker, configures the worker's idempotent one-minute timer trigger, and still requires an exact receiver environment, complete collection catalog, real secret inputs, clean exact `main`, and an explicit apply flag.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
 - None of this has been deployed to the receiver environment in this repository run. Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
