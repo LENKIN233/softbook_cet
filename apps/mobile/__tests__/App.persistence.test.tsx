@@ -1045,7 +1045,7 @@ test('degrades corrupt user state and clears persistence on logout', async () =>
   expect(repairedUserState).not.toBeNull();
   expect(JSON.parse(repairedUserState!)).toMatchObject({
     owner_phone_number: '13800138000',
-    schema_version: 'user-state.v3',
+    schema_version: 'user-state.v4',
   });
 
   await openRoute(tree.root, 'mine');
