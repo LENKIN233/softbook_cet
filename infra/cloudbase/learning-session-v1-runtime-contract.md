@@ -218,8 +218,12 @@ output.
 In `controlled_pilot`, an unacknowledged positive multiple-of-five cumulative
 server sequence returns `selection: null`, `next_due_at: null`, and an exact
 `round_completion` object with schema `pilot-round-completion.v1`, opaque
-`receipt_id`, integer `completed_count`, and ordered unique `review_card_ids`.
-The IDs follow active card-source order and include exactly currently
+`receipt_id`, integer `completed_count`, exact `space_card_id`, and ordered
+unique `review_card_ids`. `space_card_id` is the active-content card from the
+canonical event whose `server_sequence` equals `completed_count`; mobile uses
+only this server-owned ID for the actual compact Space address and never
+infers it from phase grouping or client time. The review IDs follow active
+card-source order and include exactly currently
 accessible, non-sleeping cards whose latest canonical account-and-track event
 projection has `answer_grade=review_needed`;
 mobile resolves only these IDs for read-only pending-round review and never
