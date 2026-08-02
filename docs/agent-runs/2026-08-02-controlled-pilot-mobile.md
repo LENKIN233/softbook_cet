@@ -4,7 +4,7 @@
 
 - Date: 2026-08-02
 - Branch: `cross/controlled-pilot-mobile`
-- PR: https://github.com/LENKIN233/softbook_cet/pull/475 (draft, stacked on `infra/controlled-pilot-runtime`)
+- PR: https://github.com/LENKIN233/softbook_cet/pull/475 (draft, stacked on `cross/controlled-pilot-design`; contains and depends on the exact runtime commits from PR #474)
 - Summary: Wired the accepted CET4 controlled-pilot lifecycle into the shared iOS/Android React Native client: server-triggered trial notice, exact five-card completion receipt and continuation, restart-safe pending receipt, read-only pending-round review, fixed pilot identity, server-time entitlement display, and removal of all controlled-pilot payment/self-grant actions.
 
 ## Referenced specs
