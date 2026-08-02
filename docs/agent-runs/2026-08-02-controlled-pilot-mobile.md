@@ -109,6 +109,7 @@
 
 ## Commands run
 
+- 2026-08-03 Android device-level shell and product-flow regression -> built and installed the current debug branch on the `FGO_Packet` Android emulator (`emulator-5554`, API 30), cleared a stale emulator-wide HTTP proxy that had redirected Metro traffic to `10.0.2.2:8888`, and reran from cleared application state with `adb reverse tcp:8081 tcp:8081`. `ios-auth-screenshot.yaml` passed the dedicated phone-entry assertions plus explicit absence of Learning, Space, Statistics and Mine route tabs. The complete inherited `android-remote-smoke.yaml` then passed phone/SMS login, authenticated Learning entry, real Space favorite/sleep actions, all five interaction families, the five-card completion object, Statistics and Mine. This is local Android emulator regression evidence only; it is not receiver, real-SMS, closed-testing, target-device, or formal pilot evidence.
 - 2026-08-03 device-level signed-out shell regression -> rebuilt and launched the current branch on iPhone 17 Pro / iOS 26.5, visually inspected the dedicated login surface, then added explicit absence assertions for `route-tab-learning`, `route-tab-space`, `route-tab-statistics`, and `route-tab-mine` to the local iOS, remote iOS, and inherited Android remote smoke boundary. `ios-auth-screenshot.yaml` passed all four negative assertions; the complete `ios-smoke.yaml` flow passed 1/1 in 46 seconds; `python3 scripts/validate_maestro_selectors.py` and `git diff --check` passed. This is simulator regression evidence only, not receiver or real-device pilot evidence.
 - Exact Node 22.13.0 TypeScript check: `node typescript/bin/tsc --noEmit -p apps/mobile/tsconfig.json` -> passed.
 - Exact Node 22.13.0 full Jest suite: `node jest/bin/jest.js --config apps/mobile/jest.config.js --runInBand` -> passed, 46 suites and 444 tests.
@@ -153,7 +154,7 @@
 
 ## Validation results
 
-- The signed-out app has device-level regression coverage proving that the dedicated authentication surface is visible while all four authenticated route tabs are absent. Android inherits the same remote smoke file, although this run executed it only on the iOS simulator.
+- The signed-out app has iOS and Android simulator regression coverage proving that the dedicated authentication surface is visible while all four authenticated route tabs are absent. The complete Android inherited remote flow also proves that a successful login enters the authenticated shell and preserves Learning, Space, five-card completion, Statistics and Mine behavior; neither simulator run is formal receiver/device evidence.
 - The first-card notice is attached to the current card, has no acknowledgement action, and appears only when the controlled-pilot client observes the first server response whose generation time equals the atomic trial start time.
 - Learning Session parsing fails closed on undocumented fields, invalid trial timelines, selection/completion conflicts, malformed receipts and wrong access/stage combinations.
 - Continue posts only the exact server receipt tuple and accepts only a matching acknowledged/duplicate server response.
