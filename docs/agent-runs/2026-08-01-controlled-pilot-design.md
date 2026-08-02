@@ -5,7 +5,7 @@
 - Date: 2026-08-01
 - Branch: `cross/controlled-pilot-design`
 - PR: https://github.com/LENKIN233/softbook_cet/pull/473 (stacked against `cross/controlled-pilot-contract`)
-- Summary: Produced the separate design-only authority for the dedicated authenticated app entry, fixed CET4 controlled-pilot identity, first-valid-card non-blocking start notice, every-five-confirmed-event completion object, Learning-to-Space continuity, and no-payment Mine entitlement states.
+- Summary: Produced the separate design-only authority for the dedicated authenticated app entry, fixed CET4 controlled-pilot identity, first-valid-card non-blocking start notice, every-five-confirmed-event completion object, Learning-to-Space continuity, no-payment Mine entitlement states, and the authenticated account-deletion lifecycle.
 
 ## Referenced specs
 
@@ -37,12 +37,14 @@
 - `product_truth`: A round boundary is created only by each new multiple of five server-confirmed Learning or review events. The completion object offers exactly review, Space, and continue, with continue dominant.
 - `product_truth`: Space remains a physical library/group/box/card knowledge map. The completed card’s actual location explains its value without a tutorial.
 - `product_truth`: Mine displays server-owned entitlement state and explicitly states that the controlled pilot is free and continuation eligibility is operationally granted.
+- `product_truth`: Account deletion is submitted only from authenticated Mine. An accepted request queues deletion and revokes all sessions, so the client must leave the product shell immediately while accurately describing cleanup as pending; a rejected request must preserve the account and all local state.
 
 ## Implementation hypothesis changed
 
 - Promoted a two-step phone/SMS authentication object before the app shell, an attached pilot slip as the first-card state layer, a restrained confirmed-fifth-event settle transition, a compact completion receipt, a Space address aperture, and account entitlement rows.
 - Corrected the earlier implementation hypothesis that allowed the four product destinations to exist while signed out. The dedicated entry state now owns authentication; successful authentication plus required hydration enters Learning.
 - Added a future implementation map for the Learning identity, start slip, round boundary, Space link, exact actions, and Mine states.
+- Added one bounded account-deletion confirmation sheet, a retained-account request-failure state, and a cleanup-pending notice on the dedicated login boundary. The client does not invent deletion progress or claim completion at request acceptance.
 - Narrowed the design metadata scanner so only the exact required “CET4 受控试点” product identity is allowed; other raw exam-type values remain rejected, with regression coverage.
 - No RN component, navigation, API call, entitlement calculation, timer, storage, or deployment was implemented.
 
@@ -71,6 +73,10 @@
 - `git diff --check` -> passed.
 - 2026-08-02 authentication-entry correction: rendered dedicated phone and SMS-code entry states, updated the decision/motion/mapping/failure artifacts, and verified that neither signed-out frame contains the four-item navigation.
 - 2026-08-02 authentication-entry structure check: a read-only Node assertion passed with two signed-out frames containing no `.nav`, five authenticated frames containing `.nav`, and the 393 x 852 phone frame retained.
+- 2026-08-03 account-deletion design correction: rendered confirmation, request-failure, and accepted-request states; a read-only Node assertion passed with ten total frames, all signed-out frames free of product navigation, and all required safe copy present.
+- 2026-08-03 account-deletion visual inspection: rendered the complete HTML at 1760 x 7200 in headless Chrome and inspected a cropped proof of the three added states. The modal actions remain visible at 393 x 852, the failure keeps Mine behind the sheet, and the accepted state shows no shell or navigation.
+- 2026-08-03 `npm --prefix apps/mobile run design-metadata-leak-scan` -> passed.
+- 2026-08-03 `git diff --check` -> passed.
 - 2026-08-02 local browser inspection could not open the `file://` artifact because the in-app browser security policy rejected local-file navigation. No bypass was attempted; simulator/device visual evidence remains mandatory in the separate implementation PR.
 - `python3 scripts/validate_pr_design_gate.py --base cross/controlled-pilot-contract --head HEAD --body-file /tmp/softbook-controlled-pilot-design-pr.md` -> passed, `PR DESIGN GATE OK`.
 - `./scripts/run_local_gates --profile pr --base cross/controlled-pilot-contract --verbose` -> 31/36 checks passed. All harness, design, mobile, backend, dependency-security, evidence, and LFS checks passed. The profile remained failed because `toolchain` has the existing declared local condition, `pr-context` and two review/design checks require a live PR context, and strict repository health detected pre-existing shared-workspace/remote-governance drift (nine worktrees, eighteen topic branches, seventeen branches without upstream, and the remote `android-release` check outside its local expected set). No user worktree or branch was deleted. Report: `exports/local-gates/20260801T085321Z-e71df8f5-pr-62906/report.json`.
@@ -85,9 +91,10 @@
 - The promoted first-card state keeps the knowledge card dominant and the start notice non-blocking with no acknowledgement action.
 - The completion proof exposes exactly “回看待复习内容”, “查看所在 Space”, and “继续下一轮”; continue is the only dark primary action.
 - Active, expired/free, and operational continuation states are rendered in Mine with server-time language and no purchase action.
-- Five 393 x 852 frames are contained and use one active-library accent; pilot identity remains neutral.
+- Ten 393 x 852 frames are contained and use one active-library accent; pilot identity remains neutral.
 - The corrected proof contains two dedicated signed-out authentication frames with one focal form object and no Learning / Space / Statistics / Mine navigation. Authenticated frames retain the four-item product navigation.
 - AP-22/VL-AP-07 is satisfied by separate accepted design, rendered proof, motion authority, and implementation mapping. AP-23 is preserved: no four-level self-assess and no red review state.
+- The account-deletion correction separates request acceptance from worker completion, presents irreversible impact before mutation, prevents duplicate submission in the pending state, preserves authenticated state after failure, and removes the entire product shell only after `202` acceptance.
 
 ## Agent review status
 
@@ -108,10 +115,10 @@
 
 ## Risks and open questions
 
-- Dynamic type, screen reader, weak network, offline replay, cross-device reconciliation, and real-device reduced-motion behavior require later implementation evidence.
-- The current mobile implementation still mounts the shell before authentication and repeats login gates by route; the separate mobile implementation PR must replace that behavior before pilot use.
+- Dynamic type, screen reader, weak network, offline replay, cross-device reconciliation, account-deletion worker completion/re-registration, and real-device reduced-motion behavior require later implementation evidence.
+- Mobile implementation PR #475 now consumes the dedicated entry boundary and removes signed-out product routes; it must additionally consume this account-deletion design before pilot use.
 - Exact card copy density must be rechecked against the approved external 120-card payload when it exists.
-- The first-card slip and fifth-card receipt rely on server-authoritative boundaries that are specified but not yet wired in the mobile clients.
+- Receiver-device evidence must still prove the server-authoritative first-card, fifth-event, entitlement, and account-deletion boundaries end to end.
 - PR #472 remains blocked on the protected formal product-owner approval workflow; this stacked design PR must not be merged ahead of its contract base.
 
 ## Follow-up

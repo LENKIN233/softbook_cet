@@ -13,13 +13,14 @@
 
 Adopt the `cpl-01` Attached Pilot Slip synthesis from `docs/design/search-runs/2026-08-01-controlled-pilot-lifecycle/` for iOS and Android controlled-pilot states.
 
-The design has five authority-bearing state groups:
+The design has six authority-bearing state groups:
 
 1. Signed-out and unvalidated session-restoration states use one dedicated phone/SMS authentication surface. Learning, Space, Statistics, Mine, and the four-item navigation are not mounted or visible.
 2. After authentication and required account hydration succeed, the product shell opens at Learning. Learning shows a fixed “CET4 受控试点” identity and no track chooser.
 3. The first valid card carries a neutral attached slip stating that the experience has started; it does not block, ask for confirmation, or display a ticking countdown.
 4. After the fifth server-confirmed Learning or review event, the completed card settles into a compact Space address aperture and a receipt offers exactly review, Space, and continue, with continue dominant.
 5. Mine shows pilot identity, server-provided start/end/remaining time, and the no-payment operational-grant message. It exposes no purchase action.
+6. Account deletion is a quiet authenticated Mine action with one bounded confirmation sheet. A failed request leaves the account and shell intact; an accepted request clears the local account state and returns to the dedicated login boundary with a neutral cleanup-pending notice.
 
 ## Authentication Entry Contract
 
@@ -29,6 +30,15 @@ The design has five authority-bearing state groups:
 - While a stored session is being restored or canonical account hydration is unresolved, the app remains outside the product shell and shows a quiet bounded restoration/retry state.
 - Successful authentication and hydration enter Learning. Login alone does not start the trial; only the first valid Learning Session may do so.
 - Logout, invalidation, account deletion, or terminal session restoration failure atomically removes the product shell and returns to the same dedicated login boundary.
+
+## Account Deletion Contract
+
+- The action lives after the main Mine account and entitlement objects. It is visually secondary to learning, Space, membership state, and logout.
+- Opening the action does not mutate data. One confirmation sheet names the irreversible account, Learning, and Space impact and offers exactly “保留账户” and “确认删除账户”.
+- The destructive action is disabled while the request is in flight. Dismissal, route changes, and repeated taps cannot submit duplicate client requests.
+- A request failure keeps the authenticated shell and confirmation sheet available, preserves all local state, and offers a retry without displaying a raw service error.
+- A `202` acceptance means deletion is queued, not completed. The client clears its local authenticated state, removes the product shell, and returns to the dedicated login surface with “账户删除已提交；数据清理完成前暂不能重新登录”.
+- The client does not invent deletion progress, poll an unavailable status route, or claim completion before the service permits a new registration.
 
 ## Product Truth vs Implementation Hypothesis
 
@@ -54,6 +64,9 @@ The design has five authority-bearing state groups:
 | Free after expiry | stable free subset message only when access is affected | free state and pilot history summary | purchase button, fake premium |
 | Pilot premium | uninterrupted Learning | operationally granted eligibility | self-service grant |
 | Revoked/expired grant | server state reflected after reconciliation | calm state and support copy | destructive base-membership wording |
+| Deletion confirmation | current shell remains mounted behind one bounded sheet | irreversible impact, cancel, confirm | immediate local wipe, hidden consequence, duplicate submit |
+| Deletion request failed | current account remains active | fixed safe failure copy and retry | logout, state loss, raw service error |
+| Deletion accepted | not mounted; dedicated login entry only | cleanup-pending notice | “删除完成”, product navigation, immediate re-login promise |
 
 ## Failure and Recovery
 
@@ -62,6 +75,7 @@ The design has five authority-bearing state groups:
 - If the fifth event is pending confirmation, keep the resolved card state and do not show the completion receipt yet.
 - If an offline replay or cross-device reconciliation repeats an already-counted event, do not replay completion motion.
 - If entitlement time cannot be refreshed, display the last server-confirmed value with a quiet refresh state; do not invent remaining time.
+- If account deletion is not accepted, do not log out or clear local state. If it is accepted, do not retain any authenticated route behind the cleanup-pending notice.
 
 ## Accepted Evidence
 
@@ -80,13 +94,13 @@ Q3: Single-card Learning and library/group/box/card Space continuity remain expl
 
 Q4: No reward, dashboard, carousel, fake payment, gradient text, internal language, or signed-out four-tab navigation.
 
-Q5: 393 x 852 proof, wrapping, 44-point targets, no horizontal overflow.
+Q5: 393 x 852 proof, wrapping, 44-point targets, no horizontal overflow; the deletion sheet keeps its cancel and confirm actions visible.
 
 Q6: No new self-assess state; mint/amber authority and no-red-review rule remain unchanged.
 
 ## AP-22 / VL-AP-07
 
-The authentication-entry and Learning-visible changes have an accepted design correction, rendered proof, interaction/motion artifact, and implementation mapping. The authentication correction restores an explicit product-truth gate and does not require a new aesthetic search direction. This PR remains design-only; user-visible code must be delivered later in a separate PR.
+The authentication-entry, Learning-visible, and account-deletion changes have an accepted design correction, rendered proof, interaction/motion artifact, and implementation mapping. The account-deletion state extends the accepted Mine account object and dedicated login boundary without introducing a new surface direction. This PR remains design-only; user-visible code must be delivered later in a separate PR.
 
 ## AP-23
 
