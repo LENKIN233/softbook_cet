@@ -84,6 +84,7 @@ export type SpaceGateRail = {
   actionSlot: React.ReactNode;
   detail: string;
   label: string;
+  lockedActionCopy?: string;
   title: string;
 };
 
@@ -1439,7 +1440,8 @@ export function SpaceSurface({
                                 { color: palette.textMuted },
                               ]}
                             >
-                              试用或会员后可调整收藏和休眠状态
+                              {spaceGateRail?.lockedActionCopy ??
+                                '试用或会员后可调整收藏和休眠状态'}
                             </Text>
                           ) : (
                             <>

@@ -116,7 +116,12 @@ import {
 } from './src/space/SpaceSurface';
 import { StatisticsSurface } from './src/statistics/StatisticsSurface';
 import { getChinaDayKey } from './src/shared/chinaDay';
-import { formatLearningSessionDisplayLabel } from './src/shared/uiMetadata/displayMetadata';
+import {
+  formatLearningSessionDisplayLabel,
+  formatSpaceBoxDisplayName,
+  formatSpaceGroupDisplayName,
+  formatSpaceLibraryDisplayName,
+} from './src/shared/uiMetadata/displayMetadata';
 import { createMutationQueueRepository } from './src/sync/mutationQueueRepository';
 import { createLearningEventSyncRepository } from './src/sync/learningEventSyncRepository';
 import { createLearningEventsRepository } from './src/sync/learningEventsRepository';
@@ -299,6 +304,22 @@ const ROUTES: ShellRoute[] = [
     eyebrow: '学习账户',
   },
 ];
+
+export function getTabletShellBrand(isControlledPilot: boolean) {
+  return isControlledPilot
+    ? {
+        eyebrow: 'CET4 受控试点',
+        summary:
+          '固定试点身份；从当前卡继续，空间、统计和“我的”保留同一账号状态。',
+        title: '软书备考',
+      }
+    : {
+        eyebrow: '备考主页',
+        summary:
+          '登录后从当前卡继续；空间、统计和“我的”分别查看位置、进展和个人状态。',
+        title: '软书四六级',
+      };
+}
 
 const LIGHT_PALETTE: Palette = {
   background: '#F0F0EA',
@@ -1104,7 +1125,11 @@ function AppShell({
       previousMembershipStage.current = hydration.membershipState.stage;
       setMembershipState(hydration.membershipState);
       setMembershipError(hydration.membershipErrorMessage);
-      setMembershipGate(null);
+      setMembershipGate(currentGate =>
+        shouldClearMembershipGate(currentGate, hydration.membershipState)
+          ? null
+          : currentGate,
+      );
       persistedLearningCursor.current =
         hydration.persistedUserState.learningCursor;
       pilotRoundCompletionRef.current =
@@ -3713,7 +3738,7 @@ function AppShell({
         if (
           pilotRoundContinueInFlight.current !== continuationRequest ||
           getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !==
-          continuationSessionScopeKey
+            continuationSessionScopeKey
         ) {
           return;
         }
@@ -3734,7 +3759,7 @@ function AppShell({
         if (
           pilotRoundContinueInFlight.current !== continuationRequest ||
           getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !==
-          continuationSessionScopeKey
+            continuationSessionScopeKey
         ) {
           return;
         }
@@ -3966,6 +3991,9 @@ function AppShell({
             membershipPendingAction === 'start_trial'
               ? '正在开通'
               : '完整空间受限',
+          lockedActionCopy: isControlledPilot
+            ? '试点资格开放后可调整收藏和休眠状态'
+            : '试用或会员后可调整收藏和休眠状态',
           title: isControlledPilot
             ? 'Space 当前按试点资格开放'
             : '完整物理空间需要试用或会员',
@@ -4028,7 +4056,11 @@ function AppShell({
       ) ?? null
     : null;
   const pilotRoundSpaceAddress = pilotRoundSpaceCard
-    ? `${pilotRoundSpaceCard.space_metadata.library} · ${pilotRoundSpaceCard.space_metadata.group} · ${pilotRoundSpaceCard.space_metadata.box}`
+    ? `${formatSpaceLibraryDisplayName(
+        pilotRoundSpaceCard.space_metadata.library,
+      )} · ${formatSpaceGroupDisplayName(
+        pilotRoundSpaceCard.space_metadata.group,
+      )} · ${formatSpaceBoxDisplayName(pilotRoundSpaceCard.space_metadata.box)}`
     : '卡片位置暂时无法验证，请重新加载本轮。';
   const pilotRoundReviewCard =
     pilotRoundReviewIndex === null
@@ -4266,7 +4298,10 @@ function AppShell({
     ) : null;
 
   const authenticationEntry = !persistenceHydrated ? (
-    <AuthenticationRestoringSurface palette={palette} />
+    <AuthenticationRestoringSurface
+      isControlledPilot={isControlledPilot}
+      palette={palette}
+    />
   ) : isAuthenticated && !isAccountStateReconciled ? (
     <AuthenticationAccountRecoverySurface
       error={membershipError}
@@ -4318,6 +4353,7 @@ function AppShell({
             activeRoute={activeRoute}
             authState={authState}
             content={content}
+            isControlledPilot={isControlledPilot}
             onSelectRoute={handleSelectRoute}
             palette={palette}
             route={route}
@@ -4864,6 +4900,7 @@ function TabletShell({
   activeRoute,
   authState,
   content,
+  isControlledPilot,
   onSelectRoute,
   palette,
   route,
@@ -4871,10 +4908,13 @@ function TabletShell({
   activeRoute: RouteKey;
   authState: AuthState;
   content: React.ReactNode;
+  isControlledPilot: boolean;
   onSelectRoute: (route: RouteKey) => void;
   palette: Palette;
   route: ShellRoute;
 }) {
+  const brand = getTabletShellBrand(isControlledPilot);
+
   return (
     <View style={styles.tabletRoot}>
       <View
@@ -4884,13 +4924,13 @@ function TabletShell({
         ]}
       >
         <Text style={[styles.brandEyebrow, { color: palette.accent }]}>
-          备考主页
+          {brand.eyebrow}
         </Text>
         <Text style={[styles.brandTitle, { color: palette.text }]}>
-          软书四六级
+          {brand.title}
         </Text>
         <Text style={[styles.brandSummary, { color: palette.textMuted }]}>
-          登录后从当前卡继续；空间、统计和“我的”分别查看位置、进展和个人状态。
+          {brand.summary}
         </Text>
         <AuthStatusBadge authState={authState} palette={palette} />
         <View style={styles.sidebarNav}>
@@ -4944,6 +4984,7 @@ function TabletShell({
       <View style={styles.tabletContent}>
         <ShellHeader
           authState={authState}
+          isControlledPilot={isControlledPilot}
           onOpenAccount={() => onSelectRoute('mine')}
           palette={palette}
           route={route}
@@ -4957,12 +4998,14 @@ function TabletShell({
 
 function ShellHeader({
   authState,
+  isControlledPilot,
   onOpenAccount,
   palette,
   route,
   deviceClass,
 }: {
   authState: AuthState;
+  isControlledPilot: boolean;
   onOpenAccount: () => void;
   palette: Palette;
   route: ShellRoute;
@@ -4998,6 +5041,8 @@ function ShellHeader({
             ? '看今天完成了什么、还有多少需要回看。'
             : deviceClass === 'phone'
             ? '查看账号、试用、会员和个人学习状态。'
+            : isControlledPilot
+            ? '查看账号、服务端试用时间和受控试点资格。'
             : '左侧保留导航，右侧查看个人学习状态。'}
         </Text>
       </View>
@@ -5075,7 +5120,13 @@ function AuthStatusBadge({
   );
 }
 
-function AuthenticationRestoringSurface({ palette }: { palette: Palette }) {
+function AuthenticationRestoringSurface({
+  isControlledPilot,
+  palette,
+}: {
+  isControlledPilot: boolean;
+  palette: Palette;
+}) {
   return (
     <View
       style={[styles.authGateScreen, styles.authenticationEntryScreen]}
@@ -5089,7 +5140,7 @@ function AuthenticationRestoringSurface({ palette }: { palette: Palette }) {
         ]}
       >
         <Text style={[styles.heroEyebrow, { color: palette.textMuted }]}>
-          软书四六级
+          {isControlledPilot ? 'CET4 受控试点' : '软书四六级'}
         </Text>
         <Text style={[styles.authGateTitle, { color: palette.text }]}>
           正在读取账号状态
@@ -6366,6 +6417,7 @@ function MembershipHostCard({
       : focusGate === 'space'
       ? '完整知识空间当前需要试用或会员。开始试用或升级后，可以查看完整空间。'
       : '完整卡库当前需要试用或会员。开始试用或升级后，会放开完整卡片。';
+  const controlledPilotFocusCopy = getControlledPilotGateCopy(focusGate);
 
   if (isControlledPilot) {
     return (
@@ -6405,40 +6457,84 @@ function MembershipHostCard({
             </Text>
           </View>
         </View>
-        <Text style={[styles.membershipSummary, { color: palette.textMuted }]}>
+        <Text
+          style={[styles.membershipSummary, { color: palette.textMuted }]}
+          testID="controlled-pilot-membership-summary"
+        >
+          {getControlledPilotMembershipSummary(membershipState.stage)}
+        </Text>
+        <Text
+          style={[styles.membershipSummary, { color: palette.textMuted }]}
+          testID="controlled-pilot-no-payment-copy"
+        >
           受控试点不收费，继续资格由运营依据试点记录发放。
         </Text>
         <View style={styles.pilotMembershipTimeline}>
-          <PilotMembershipTimeRow
-            label="开始时间"
-            palette={palette}
-            testID="controlled-pilot-trial-started-at"
-            value={formatPilotServerTimestamp(membershipState.trialStartedAt)}
-          />
-          <PilotMembershipTimeRow
-            label="结束时间"
-            palette={palette}
-            testID="controlled-pilot-trial-expires-at"
-            value={formatPilotServerTimestamp(membershipState.trialExpiresAt)}
-          />
-          <PilotMembershipTimeRow
-            label="服务端剩余"
-            palette={palette}
-            testID="controlled-pilot-trial-remaining"
-            value={formatPilotRemainingSeconds(
-              membershipState.trialRemainingSeconds,
-            )}
-          />
+          {membershipState.stage === 'pilot_premium' ? null : (
+            <>
+              <PilotMembershipTimeRow
+                label="开始时间"
+                palette={palette}
+                testID="controlled-pilot-trial-started-at"
+                value={formatPilotServerTimestamp(
+                  membershipState.trialStartedAt,
+                )}
+              />
+              <PilotMembershipTimeRow
+                label="结束时间"
+                palette={palette}
+                testID="controlled-pilot-trial-expires-at"
+                value={formatPilotServerTimestamp(
+                  membershipState.trialExpiresAt,
+                )}
+              />
+              <PilotMembershipTimeRow
+                label="服务端剩余"
+                palette={palette}
+                testID="controlled-pilot-trial-remaining"
+                value={formatPilotRemainingSeconds(
+                  membershipState.trialRemainingSeconds,
+                )}
+              />
+            </>
+          )}
+          {membershipState.stage === 'free' ? (
+            <PilotMembershipTimeRow
+              label="当前内容"
+              palette={palette}
+              testID="controlled-pilot-free-content"
+              value="60 张稳定免费内容"
+            />
+          ) : null}
+          {membershipState.stage === 'pilot_premium' ? (
+            <>
+              <PilotMembershipTimeRow
+                label="资格来源"
+                palette={palette}
+                testID="controlled-pilot-entitlement-source"
+                value="受控试点运营发放"
+              />
+              <PilotMembershipTimeRow
+                label="当前状态"
+                palette={palette}
+                testID="controlled-pilot-entitlement-status"
+                value="可继续学习"
+              />
+              <PilotMembershipTimeRow
+                label="状态同步"
+                palette={palette}
+                testID="controlled-pilot-entitlement-sync"
+                value="iOS 与 Android 共用"
+              />
+            </>
+          ) : null}
         </View>
-        {focusCopy ? (
+        {controlledPilotFocusCopy ? (
           <Text
             style={[styles.membershipSummary, { color: palette.warning }]}
             testID="controlled-pilot-membership-gate-copy"
           >
-            {focusCopy.replace(
-              /开始试用或升级后[^。]*。?/,
-              '资格变化后会由服务端自动同步。',
-            )}
+            {controlledPilotFocusCopy}
           </Text>
         ) : null}
         {membershipError ? (
@@ -7607,6 +7703,34 @@ function getMembershipStatusChipLabel(stage: MembershipStage) {
   }
 }
 
+function getControlledPilotMembershipSummary(stage: MembershipStage) {
+  switch (stage) {
+    case 'trial_available':
+      return '登入不会开始体验；首张有效学习卡准备完成后，由服务端开启连续 120 小时。';
+    case 'trial':
+      return '完整学习路线已开放；时间与资格以服务端记录为准。';
+    case 'free':
+      return '五天完整体验已结束；60 张稳定免费内容继续开放，学习与 Space 状态仍保留。';
+    case 'premium':
+      return '账号已有完整学习资格；本次受控试点仍不提供购买操作。';
+    case 'pilot_premium':
+      return '继续资格已由运营发放；完整学习路线按试点范围继续开放。';
+  }
+}
+
+function getControlledPilotGateCopy(gate: MembershipGate | null) {
+  switch (gate) {
+    case null:
+      return null;
+    case 'review':
+      return '智能回看当前不在基础资格范围；资格变化后会由服务端自动同步。';
+    case 'space':
+      return '完整 Space 当前不在基础资格范围；资格变化后会由服务端自动同步。';
+    case 'library':
+      return '完整卡库当前不在基础资格范围；资格变化后会由服务端自动同步。';
+  }
+}
+
 function shouldClearMembershipGate(
   gate: MembershipGate | null,
   membershipState: MembershipState,
@@ -7684,11 +7808,16 @@ function formatPilotRemainingSeconds(seconds: number) {
     return '0 小时';
   }
 
-  const wholeHours = Math.floor(seconds / 3600);
+  const wholeDays = Math.floor(seconds / (24 * 3600));
+  const wholeHours = Math.floor((seconds % (24 * 3600)) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  return minutes > 0
-    ? `${wholeHours} 小时 ${minutes} 分`
-    : `${wholeHours} 小时`;
+  const parts = [
+    wholeDays > 0 ? `${wholeDays} 天` : null,
+    wholeHours > 0 ? `${wholeHours} 小时` : null,
+    minutes > 0 ? `${minutes} 分` : null,
+  ].filter((part): part is string => part !== null);
+
+  return parts.length > 0 ? parts.join(' ') : '不足 1 分';
 }
 
 const styles = StyleSheet.create({

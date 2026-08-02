@@ -15,7 +15,7 @@ import {
   type SoftbookRemoteRuntimeProfile,
 } from '../src/runtime/appRuntimeConfig';
 import { getChinaDayKey } from '../src/shared/chinaDay';
-import App, { isCompactMineViewport } from '../App';
+import App, { getTabletShellBrand, isCompactMineViewport } from '../App';
 
 const mockCreateLearningSessionRepository = jest.fn();
 const mockContinueRound = jest.fn();
@@ -27,6 +27,17 @@ test('Mine compact mode covers 320dp and short phone viewports', () => {
   expect(isCompactMineViewport(320, 693)).toBe(true);
   expect(isCompactMineViewport(393, 700)).toBe(true);
   expect(isCompactMineViewport(393, 850)).toBe(false);
+});
+
+test('controlled-pilot tablet brand stays fixed to the pilot identity', () => {
+  expect(getTabletShellBrand(true)).toEqual({
+    eyebrow: 'CET4 受控试点',
+    summary: '固定试点身份；从当前卡继续，空间、统计和“我的”保留同一账号状态。',
+    title: '软书备考',
+  });
+  expect(getTabletShellBrand(true)).not.toEqual(
+    expect.objectContaining({ title: '软书四六级' }),
+  );
 });
 
 function createSoftbookRemoteRuntimeConfig(
@@ -2038,6 +2049,11 @@ test('shows the first-card trial notice once after an interrupted activation res
     '受控试点不收费，继续资格由运营依据试点记录发放。',
   );
   expect(
+    root.findByProps({ testID: 'controlled-pilot-membership-summary' }).props
+      .children,
+  ).toBe('完整学习路线已开放；时间与资格以服务端记录为准。');
+  expect(JSON.stringify(tree!.toJSON())).toContain('4 天 23 小时 59 分');
+  expect(
     root.findByProps({ testID: 'controlled-pilot-trial-started-at' }),
   ).toBeTruthy();
   expect(
@@ -2271,6 +2287,84 @@ test('revalidates at the server trial boundary without a later Session read post
   expect(
     root.findByProps({ testID: 'controlled-pilot-space-entitlement-copy' }),
   ).toBeTruthy();
+});
+
+test('explains controlled-pilot free access without payment or upgrade language', async () => {
+  const freeSession: LearningSession = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'free',
+    trialExpiresAt: '2026-08-06T00:00:00.000Z',
+    trialRemainingSeconds: 0,
+    trialStartedAt: '2026-08-01T00:00:00.000Z',
+  };
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(freeSession, 'free', [], false, {
+          trial_expires_at: freeSession.trialExpiresAt,
+          trial_remaining_seconds: 0,
+          trial_started_at: freeSession.trialStartedAt,
+        }),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(freeSession);
+  await waitForLearningSurface(root);
+
+  await openRoute(root, 'mine');
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('60 张稳定免费内容');
+  expect(output).toContain(
+    '五天完整体验已结束；60 张稳定免费内容继续开放，学习与 Space 状态仍保留。',
+  );
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-free-content' }),
+  ).toBeTruthy();
+  expect(
+    root.findAllByProps({ testID: 'membership-purchase-button' }),
+  ).toHaveLength(0);
+  expect(
+    root.findAllByProps({ testID: 'membership-start-trial-button' }),
+  ).toHaveLength(0);
+
+  await openRoute(root, 'space');
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-open-card-list' }).props.onPress();
+  });
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('试点资格开放后可调整收藏和休眠状态');
+  expect(output).not.toContain('试用或会员后可调整收藏和休眠状态');
+
+  await openRoute(root, 'mine');
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain(
+    '完整 Space 当前不在基础资格范围；资格变化后会由服务端自动同步。',
+  );
+  expect(output).not.toContain('开始试用或升级');
+  expect(output).not.toContain('完整知识空间当前需要试用或会员');
 });
 
 test('withdraws stale pilot access when trial-boundary revalidation is unavailable', async () => {
@@ -2913,6 +3007,24 @@ test('opens the exact server-owned review card from a controlled-pilot round rec
         typeof node.type === 'function' && node.type.name === 'SpaceSurface',
     ).props.currentLearningCard.card_id,
   ).toBe(latestRoundCard.card_id);
+
+  await openRoute(root, 'mine');
+  const pilotPremiumOutput = JSON.stringify(tree!.toJSON());
+  expect(pilotPremiumOutput).toContain(
+    '继续资格已由运营发放；完整学习路线按试点范围继续开放。',
+  );
+  expect(pilotPremiumOutput).toContain('受控试点运营发放');
+  expect(pilotPremiumOutput).toContain('可继续学习');
+  expect(pilotPremiumOutput).toContain('iOS 与 Android 共用');
+  expect(
+    root.findAllByProps({ testID: 'controlled-pilot-trial-started-at' }),
+  ).toHaveLength(0);
+  expect(
+    root.findAllByProps({ testID: 'controlled-pilot-trial-expires-at' }),
+  ).toHaveLength(0);
+  expect(
+    root.findAllByProps({ testID: 'membership-purchase-button' }),
+  ).toHaveLength(0);
 
   await openRoute(root, 'learning');
   expect(
