@@ -4,7 +4,9 @@
   "source_anchors": {
     "authentication": {
       "login_gate": "必须登入",
-      "primary_login_method": "手机号+验证码"
+      "primary_login_method": "手机号+验证码",
+      "dedicated_login_surface": "要有专门的登入",
+      "app_shell_gate": "不登入无法进入"
     },
     "commerce": {
       "purchase_authority": "web与app购买同权"
@@ -69,7 +71,11 @@
   "authentication_policy": {
     "login_is_required_before_learning": true,
     "guest_learning_before_authentication": false,
-    "primary_login_method": "phone_sms_code"
+    "primary_login_method": "phone_sms_code",
+    "dedicated_login_surface_required": true,
+    "authenticated_app_shell_required": true,
+    "signed_out_top_level_navigation_visible": false,
+    "signed_out_product_surfaces_reachable": false
   },
   "learning_model": {
     "single_card_flow": true,
