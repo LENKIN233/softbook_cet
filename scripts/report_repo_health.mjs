@@ -16,6 +16,7 @@ const REQUIRED_CHECKS = [
   'backend-contract',
   'dependency-security',
   'ios-release',
+  'android-release',
   'repo-health',
   'evidence-archive',
   'formal-approval',
