@@ -1367,16 +1367,14 @@ test('accepted account deletion exits the shell and reports cleanup as pending',
   await expect(
     AsyncStorage.getItem('softbook-cet/user-state/v1'),
   ).resolves.toBeNull();
-  await expect(
-    AsyncStorage.getItem('__softbook_mutation_queue'),
-  ).resolves.toBe('[]');
+  await expect(AsyncStorage.getItem('__softbook_mutation_queue')).resolves.toBe(
+    '[]',
+  );
   await expect(
     AsyncStorage.getItem('__softbook_mutation_queue:quarantine'),
   ).resolves.toBe('[]');
   const clearedLearningEventOutbox = JSON.parse(
-    String(
-      await AsyncStorage.getItem('__softbook_learning_event_outbox_v2'),
-    ),
+    String(await AsyncStorage.getItem('__softbook_learning_event_outbox_v2')),
   ) as { entries: unknown[] };
   expect(clearedLearningEventOutbox.entries).toEqual([]);
   expect(Keychain.resetGenericPassword).toHaveBeenCalled();
@@ -2032,6 +2030,25 @@ test('shows the first-card trial notice once after an interrupted activation res
   expect(
     root.findByProps({ testID: 'controlled-pilot-trial-notice' }),
   ).toBeTruthy();
+  await openRoute(root, 'mine');
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-membership-card' }),
+  ).toBeTruthy();
+  expect(JSON.stringify(tree!.toJSON())).toContain(
+    '受控试点不收费，继续资格由运营依据试点记录发放。',
+  );
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-trial-started-at' }),
+  ).toBeTruthy();
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-trial-expires-at' }),
+  ).toBeTruthy();
+  expect(
+    root.findAllByProps({ testID: 'membership-purchase-button' }),
+  ).toHaveLength(0);
+  expect(
+    root.findAllByProps({ testID: 'membership-start-trial-button' }),
+  ).toHaveLength(0);
   let persistedState: string | null = null;
   for (let attempt = 0; attempt < 10; attempt += 1) {
     await ReactTestRenderer.act(async () => {
@@ -2641,7 +2658,7 @@ test('submits the server review phase with the exact active selection', async ()
 
   expect(
     root.findByProps({ testID: 'learning-progress-label' }).props.children,
-  ).toBe('本轮回看');
+  ).toBe(`本轮回看 · ${reviewSession.cards[0].space_metadata.library}`);
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
@@ -3104,10 +3121,7 @@ test('does not expose a persisted round receipt before the current server Sessio
     }
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
       return createJsonResponse(
-        createAccountBootstrapPayload(
-          roundCompletionSession,
-          'pilot_premium',
-        ),
+        createAccountBootstrapPayload(roundCompletionSession, 'pilot_premium'),
       );
     }
 
@@ -3132,7 +3146,11 @@ test('does not expose a persisted round receipt before the current server Sessio
       await flushAsyncEffects();
     });
     persistedState = await AsyncStorage.getItem('softbook-cet/user-state/v1');
-    if (persistedState?.includes(roundCompletionSession.roundCompletion!.receiptId)) {
+    if (
+      persistedState?.includes(
+        roundCompletionSession.roundCompletion!.receiptId,
+      )
+    ) {
       break;
     }
   }
@@ -4917,7 +4935,7 @@ test('does not start the remote trial on authentication or account navigation', 
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).toContain('完整物理空间需要试用或会员');
 
   const startTrialRequests = fetchCalls.filter(
@@ -4986,7 +5004,7 @@ test('never queues a remote trial mutation while reconnecting', async () => {
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).toContain('完整物理空间需要试用或会员');
   expect(startTrialRequestCount).toBe(0);
 
@@ -5088,7 +5106,7 @@ test('can unlock gated space after remote purchase', async () => {
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('完整物理空间需要试用或会员');
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(
     root.findAllByProps({ testID: 'space-gate-rail' }).length,
   ).toBeGreaterThan(0);
@@ -5102,7 +5120,7 @@ test('can unlock gated space after remote purchase', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).toContain('当前盒桌');
   expect(output).toContain('同盒卡片');
   expect(output).toContain('回学习');
@@ -5441,7 +5459,7 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).toContain('当前盒桌');
   expect(output).toContain('同盒卡片');
   expect(output).toContain('回学习');
@@ -5528,6 +5546,7 @@ test('refreshes remote entitlement again after leaving mine and reopening it', a
 });
 
 test('can unlock the learning flow after fake sms verification', async () => {
+  const firstCard = createLocalLearningSession('cet4').cards[0];
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -5538,8 +5557,11 @@ test('can unlock the learning flow after fake sms verification', async () => {
   await loginIntoLearningFlow(root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('位置已接上');
-  expect(output).toContain('本轮盒');
+  expect(output).toContain(firstCard.space_metadata.library);
+  expect(output).toContain(firstCard.space_metadata.group);
+  expect(output).toContain(firstCard.space_metadata.box);
+  expect(output).not.toContain('位置已接上');
+  expect(output).not.toContain('本轮盒');
   expect(output).not.toContain('位置保持');
   expect(output).not.toContain('位置 · 本轮盒');
   expect(output).not.toContain('当前位置 · 本轮盒');
@@ -5743,7 +5765,7 @@ test('keeps source bootstrap loading and errors attached to space', async () => 
   await resolveLearningBootstrap();
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(root.findAllByProps({ testID: 'space-status-rail' })).toHaveLength(0);
 });
 
@@ -5818,7 +5840,10 @@ test('can complete the local single-card deck and restart it', async () => {
   );
   expect(detailAnswerSlipStyle.flexGrow).toBe(1);
   expect(output).toContain('当前卡');
-  expect(output).toContain('答案留在本卡');
+  expect(output).toContain('词汇');
+  expect(output).toContain('高频词');
+  expect(output).toContain('阅读高频词');
+  expect(output).not.toContain('答案留在本卡');
   expect(output).not.toContain('结果在当前卡');
   expect(output).toContain('答案已归位');
   expect(output).toContain('你的选择和正确答案已对齐');
@@ -5995,7 +6020,9 @@ test('can start a review round from cards that need revisiting', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看');
-  expect(output).toContain('回看卡在这');
+  expect(output).toContain('听力');
+  expect(output).toContain('逻辑关系');
+  expect(output).toContain('转折关系');
   expect(output).not.toContain('回看卡已在眼前');
   expect(output).not.toContain('需要再看的卡已放到眼前');
   expect(output).toContain('however');
@@ -6061,8 +6088,8 @@ test('can check in from statistics after making learning progress', async () => 
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('学习在推进');
-  expect(output).toContain('今日节奏');
-  expect(output).toContain('可以收好今天');
+  expect(output).toContain('今日记录');
+  expect(output).toContain('今日记录已更新');
   expect(output).toContain('下一步');
   expect(output).toContain('回到学习');
   expect(output).toContain('继续学习');
@@ -6075,26 +6102,26 @@ test('can check in from statistics after making learning progress', async () => 
     root.findByProps({ testID: 'statistics-day-object' }).props.style,
   );
   expect(dayObjectStyle.flex).toBe(1);
-  expect(dayObjectStyle.justifyContent).toBe('space-between');
+  expect(dayObjectStyle.justifyContent).toBe('flex-start');
   expect(dayObjectStyle.minHeight).toBe(0);
   const progressDock = root.findByProps({
     testID: 'statistics-progress-dock',
   });
   expect(progressDock).toBeTruthy();
   const progressDockStyle = StyleSheet.flatten(progressDock.props.style);
-  expect(progressDockStyle.flex).toBe(1);
-  expect(progressDockStyle.justifyContent).toBe('space-between');
-  expect(progressDockStyle.minHeight).toBe(0);
+  expect(progressDockStyle.flexShrink).toBe(0);
+  expect(progressDockStyle.justifyContent).toBe('flex-start');
+  expect(output).not.toContain('今日目标');
   expect(
-    root.findByProps({ testID: 'statistics-progress-ratio' }).props.children,
-  ).toBe('1/1');
-  const progressFillStyle = StyleSheet.flatten(
-    root.findByProps({ testID: 'statistics-progress-fill' }).props.style,
-  );
-  expect(progressFillStyle.width).toBe('100%');
+    root.findAllByProps({ testID: 'statistics-progress-ratio' }),
+  ).toHaveLength(0);
+  expect(
+    root.findAllByProps({ testID: 'statistics-progress-fill' }),
+  ).toHaveLength(0);
   const actionDock = root.findByProps({ testID: 'statistics-action-dock' });
   const actionDockStyle = StyleSheet.flatten(actionDock.props.style);
   expect(actionDockStyle.flexShrink).toBe(0);
+  expect(actionDockStyle.marginTop).toBe('auto');
   expect(
     actionDock.findAllByProps({ testID: 'statistics-next-step-card' }).length,
   ).toBeGreaterThan(0);
@@ -6122,7 +6149,10 @@ test('can check in from statistics after making learning progress', async () => 
     root.findAllByProps({ testID: 'statistics-checkin-complete-label' }).length,
   ).toBeGreaterThan(0);
   expect(output).toContain('今日已签到');
-  expect(output).toContain('节奏已收好');
+  expect(output).toContain('今天已收好');
+  expect(output).toContain('今日学习已记录');
+  expect(output).toContain('暂不需要回看');
+  expect(output).not.toContain('首轮已收口');
   expect(output).toContain('今天已签到，记录跟着账号保存。');
   expect(output).not.toContain('今天收好');
   expect(output).not.toContain('记录完成');
@@ -6329,7 +6359,7 @@ test('mine page keeps profile status and route actions in one screen after login
     findPressableByTestId(root, 'mine-go-space').props.onPress();
   });
 
-  expect(JSON.stringify(tree!.toJSON())).toContain('当前卡盒');
+  expect(JSON.stringify(tree!.toJSON())).toContain('阅读高频词');
 
   await openRoute(root, 'mine');
 
@@ -6364,7 +6394,7 @@ test('can browse the current Space box after login', async () => {
   await startTrialFromProtectedEntry(root, 'space');
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(
     root.findAllByProps({ testID: 'space-shelf-desk' }).length,
   ).toBeGreaterThan(0);
@@ -6381,7 +6411,7 @@ test('can browse the current Space box after login', async () => {
     root.findAllByProps({ testID: 'space-return-learning' }).length,
   ).toBeGreaterThan(0);
   expect(output).toContain('正在查看同盒卡片');
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).toContain('当前位置');
   expect(output).toContain('本盒共 2 张');
   expect(root.findAllByProps({ testID: 'space-browse-rail' })).toHaveLength(0);
@@ -6581,7 +6611,7 @@ test('starts the local trial only when the first valid learning card is ready', 
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).not.toContain('完整物理空间需要试用或会员');
   expect(output).toContain('当前盒桌');
   expect(output).toContain('同盒卡片');
@@ -6753,7 +6783,9 @@ test('starts review after membership is already unlocked', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看');
-  expect(output).toContain('回看卡在这');
+  expect(output).toContain('听力');
+  expect(output).toContain('逻辑关系');
+  expect(output).toContain('转折关系');
   expect(output).not.toContain('回看卡已在眼前');
   expect(output).not.toContain('需要再看的卡已放到眼前');
 });

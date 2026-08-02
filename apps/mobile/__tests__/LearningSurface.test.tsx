@@ -215,7 +215,7 @@ test('does not expose raw space metadata while learning', () => {
   const progressLabel = tree!.root.findByProps({
     testID: 'learning-progress-label',
   });
-  expect(progressLabel.props.children).toBe('本轮学习卡');
+  expect(progressLabel.props.children).toBe('本轮学习卡 · 当前书架');
   expect(
     tree!.root.findByProps({ testID: 'learning-card-address-shelf' }),
   ).toBeTruthy();
@@ -231,8 +231,11 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('先判断，再确认解析');
   expect(output).not.toContain('先做这一张');
   expect(output).not.toContain('当前这一张');
-  expect(output).toContain('位置已接上');
-  expect(output).toContain('本轮盒');
+  expect(output).toContain('当前书架');
+  expect(output).toContain('当前分区');
+  expect(output).toContain('当前卡盒');
+  expect(output).not.toContain('位置已接上');
+  expect(output).not.toContain('本轮盒');
   expect(output).not.toContain('位置保持');
   expect(output).not.toContain('位置 · 本轮盒');
   expect(output).not.toContain('当前位置 · 本轮盒');
@@ -588,7 +591,10 @@ test('result detail reads as a resolved card without raw metadata', () => {
   expect(detailAnswerSlipStyle.justifyContent).toBe('space-between');
   expect(output).toContain('当前卡');
   expect(output).toContain('2/3');
-  expect(output).toContain('答案留在本卡');
+  expect(output).toContain(card.space_metadata.library);
+  expect(output).toContain(card.space_metadata.group);
+  expect(output).toContain(card.space_metadata.box);
+  expect(output).not.toContain('答案留在本卡');
   expect(output).not.toContain('结果在当前卡');
   expect(output).toContain('答案已归位');
   expect(output).toContain('你的选择和正确答案已对齐');

@@ -6,8 +6,11 @@ import {
 
 export {
   formatLearningSessionDisplayLabel,
+  formatSpaceBoxDisplayName,
   formatSpaceBoxLabel,
+  formatSpaceGroupDisplayName,
   formatSpaceGroupLabel,
+  formatSpaceLibraryDisplayName,
   formatSpaceLibraryLabel,
 } from '../shared/uiMetadata/displayMetadata';
 

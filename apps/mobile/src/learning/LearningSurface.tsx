@@ -16,6 +16,11 @@ import {
   resolveCardAudioDownload,
   type VerifiedContentManifest,
 } from '../audio/contentManifestRepository';
+import {
+  formatSpaceBoxDisplayName,
+  formatSpaceGroupDisplayName,
+  formatSpaceLibraryDisplayName,
+} from '../shared/uiMetadata/displayMetadata';
 
 import {
   INTERACTION_LABELS,
@@ -379,6 +384,15 @@ export function LearningSurface({
     accent: libraryTone.accent,
     accentSoft: libraryTone.accentSoft,
   };
+  const currentSpaceLibrary = formatSpaceLibraryDisplayName(
+    currentCard.space_metadata.library,
+  );
+  const currentSpaceGroup = formatSpaceGroupDisplayName(
+    currentCard.space_metadata.group,
+  );
+  const currentSpaceBox = formatSpaceBoxDisplayName(
+    currentCard.space_metadata.box,
+  );
   const progressPercent = `${Math.max(
     Math.round(((currentIndex + 1) / Math.max(sessionCards.length, 1)) * 100),
     10,
@@ -511,12 +525,10 @@ export function LearningSurface({
                 testID="learning-progress-label"
               >
                 {isCompactPhone
-                  ? `${
-                      isReviewPhase ? '本轮回看' : displaySessionLabel
-                    } · 本轮盒`
+                  ? `${currentSpaceLibrary} · ${currentSpaceBox}`
                   : isReviewPhase
-                  ? '本轮回看'
-                  : displaySessionLabel}
+                  ? `本轮回看 · ${currentSpaceLibrary}`
+                  : `${displaySessionLabel} · ${currentSpaceLibrary}`}
               </Text>
               <Text
                 style={[
@@ -608,13 +620,13 @@ export function LearningSurface({
                 numberOfLines={1}
                 style={[styles.cardLocationTitle, { color: palette.textMuted }]}
               >
-                本轮盒
+                {currentSpaceLibrary} · {currentSpaceGroup}
               </Text>
               <Text
                 numberOfLines={1}
                 style={[styles.cardLocationMeta, { color: palette.textMuted }]}
               >
-                {isReviewPhase ? '回看卡在这' : '位置已接上'}
+                {currentSpaceBox}
               </Text>
             </View>
           </View>
@@ -1889,6 +1901,13 @@ export function LearningResultDetailSurface({
   );
   const resultTone = getResultTone(result, palette);
   const detailLibraryTone = resolveLibraryTone(card.space_metadata.library);
+  const detailSpaceLibrary = formatSpaceLibraryDisplayName(
+    card.space_metadata.library,
+  );
+  const detailSpaceGroup = formatSpaceGroupDisplayName(
+    card.space_metadata.group,
+  );
+  const detailSpaceBox = formatSpaceBoxDisplayName(card.space_metadata.box);
   const resolvedRows = getResolvedAnswerRows(card, cardState);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
@@ -1953,12 +1972,10 @@ export function LearningResultDetailSurface({
                 style={[styles.learningFrameMeta, { color: palette.textMuted }]}
               >
                 {isCompactPhone
-                  ? `${
-                      phase === 'review' ? '本轮回看' : displaySessionLabel
-                    } · 本轮盒`
+                  ? `${detailSpaceLibrary} · ${detailSpaceBox}`
                   : phase === 'review'
-                  ? '本轮回看'
-                  : displaySessionLabel}
+                  ? `本轮回看 · ${detailSpaceLibrary}`
+                  : `${displaySessionLabel} · ${detailSpaceLibrary}`}
               </Text>
               <Text
                 style={[
@@ -2025,13 +2042,13 @@ export function LearningResultDetailSurface({
                 numberOfLines={1}
                 style={[styles.cardLocationTitle, { color: palette.textMuted }]}
               >
-                位置 · 本轮盒
+                {detailSpaceLibrary} · {detailSpaceGroup}
               </Text>
               <Text
                 numberOfLines={1}
                 style={[styles.cardLocationMeta, { color: palette.textMuted }]}
               >
-                答案留在本卡
+                {detailSpaceBox}
               </Text>
             </View>
             <Pressable

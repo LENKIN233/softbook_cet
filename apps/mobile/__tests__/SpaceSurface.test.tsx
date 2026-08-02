@@ -8,11 +8,6 @@ import ReactTestRenderer from 'react-test-renderer';
 
 import { createLocalLearningSession } from '../src/learning/session';
 import { SpaceSurface } from '../src/space/SpaceSurface';
-import {
-  formatSpacePathByIndex,
-  resolveSpacePosition,
-} from '../src/space/spaceMetadataDisplay';
-import type { SpaceSeedLike } from '../src/space/spaceMetadataDisplay';
 
 const palette = {
   accent: '#7C8BFF',
@@ -90,36 +85,6 @@ function expectSpaceFirstReadOrder(
   expect(boxIndex).toBeGreaterThanOrEqual(0);
   expect(addressIndex).toBeLessThan(railIndex);
   expect(railIndex).toBeLessThan(boxIndex);
-}
-
-function buildSpaceSeedLike(
-  cards: ReturnType<typeof createLocalLearningSession>['catalogCards'],
-): SpaceSeedLike {
-  const libraries: SpaceSeedLike['libraries'] = [];
-
-  for (const card of cards) {
-    let library = libraries.find(
-      item => item.libraryName === card.space_metadata.library,
-    );
-    if (!library) {
-      library = { groups: [], libraryName: card.space_metadata.library };
-      libraries.push(library);
-    }
-
-    let group = library.groups.find(
-      item => item.groupName === card.space_metadata.group,
-    );
-    if (!group) {
-      group = { boxes: [], groupName: card.space_metadata.group };
-      library.groups.push(group);
-    }
-
-    if (!group.boxes.some(box => box.boxRef === card.space_metadata.box_ref)) {
-      group.boxes.push({ boxRef: card.space_metadata.box_ref });
-    }
-  }
-
-  return { libraries };
 }
 
 test('keeps a physical Space outline when no cards are visible', () => {
@@ -335,9 +300,9 @@ test('uses a compact address clue instead of selector controls in the card list 
   expect(root.findAllByProps({ testID: 'space-library-2' })).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'space-group-1' })).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'space-box-1' })).toHaveLength(0);
-  expect(renderedText).not.toContain(currentCard.space_metadata.library);
-  expect(renderedText).not.toContain(currentCard.space_metadata.group);
-  expect(renderedText).not.toContain(currentCard.space_metadata.box);
+  expect(renderedText).toContain(currentCard.space_metadata.library);
+  expect(renderedText).toContain(currentCard.space_metadata.group);
+  expect(renderedText).toContain(currentCard.space_metadata.box);
   expect(renderedText).not.toContain(currentCard.space_metadata.box_ref);
   expect(renderedText).toContain('盒内浏览');
   expect(renderedText).toContain('当前位置');
@@ -357,15 +322,6 @@ test('defaults Space first-read focus to the current learning card box', () => {
   const currentCard = session.catalogCards.find(
     card => card.space_metadata.library !== firstLibrary,
   )!;
-  const position = resolveSpacePosition(
-    buildSpaceSeedLike(session.catalogCards),
-    currentCard,
-  )!;
-  const expectedPath = formatSpacePathByIndex(
-    position.libraryIndex,
-    position.groupIndex,
-    position.boxIndex,
-  );
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   ReactTestRenderer.act(() => {
@@ -386,8 +342,9 @@ test('defaults Space first-read focus to the current learning card box', () => {
   const root = tree!.root;
   const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
 
-  expect(expectedPath).not.toMatch(/馆|组|盒\s+\d|\d/);
-  expect(renderedText).toContain('书架 相邻书架一 分区 当前分区 卡盒 当前卡盒');
+  expect(renderedText).toContain(
+    `书架 ${currentCard.space_metadata.library} 分区 ${currentCard.space_metadata.group} 卡盒 ${currentCard.space_metadata.box}`,
+  );
   expect(renderedText).toContain('当前盒桌 打开卡盒');
   expect(renderedText).toContain('同盒卡片');
   expect(renderedText).toContain('同盒卡片都在这里');
@@ -504,6 +461,6 @@ test('does not render raw metadata values from loaded Space cards', () => {
   metadataValues.forEach(value => {
     expect(renderedText).not.toContain(value);
   });
-  expect(renderedText).toContain('书架 主书架 分区 当前分区 卡盒 当前卡盒');
+  expect(renderedText).toContain('书架 当前书架 分区 当前分区 卡盒 当前卡盒');
   expect(renderedText).not.toContain('馆 1 / 组 1 / 盒 1');
 });

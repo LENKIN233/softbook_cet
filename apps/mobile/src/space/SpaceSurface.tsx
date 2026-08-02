@@ -14,10 +14,9 @@ import {
   LearningTrack,
 } from '../learning/model';
 import {
-  formatSpacePathByIndex,
-  formatSpaceBoxLabel,
-  formatSpaceGroupLabel,
-  formatSpaceLibraryLabel,
+  formatSpaceBoxDisplayName,
+  formatSpaceGroupDisplayName,
+  formatSpaceLibraryDisplayName,
   resolveSpacePosition,
 } from './spaceMetadataDisplay';
 import { hexToRgba, resolveLibraryTone } from '../visual/tokens';
@@ -228,33 +227,6 @@ export function SpaceSurface({
     selectedBoxCards,
     currentLearningCard?.card_id ?? null,
   );
-  const selectedLibraryIndex =
-    selectedLibrary == null
-      ? 1
-      : Math.max(
-          seed.libraries.findIndex(
-            library => library.libraryName === selectedLibrary.libraryName,
-          ) + 1,
-          1,
-        );
-  const selectedGroupIndex =
-    selectedLibrary == null || selectedGroup == null
-      ? 1
-      : Math.max(
-          selectedLibrary.groups.findIndex(
-            group => group.groupName === selectedGroup.groupName,
-          ) + 1,
-          1,
-        );
-  const selectedBoxIndex =
-    selectedGroup == null || selectedBox == null
-      ? 1
-      : Math.max(
-          selectedGroup.boxes.findIndex(
-            box => box.boxRef === selectedBox.boxRef,
-          ) + 1,
-          1,
-        );
   const currentCardPosition = focusedSelection?.position ?? null;
   const selectedTone = resolveLibraryTone(selectedLibrary?.libraryName);
   const currentLibraryName = currentCardPosition
@@ -279,13 +251,25 @@ export function SpaceSurface({
   const primaryActionText = palette.primaryActionText ?? solidPanelStrong;
   const primaryActionMuted =
     palette.primaryActionMuted ?? hexToRgba(primaryActionText, 0.72);
-  const currentCardPath = currentCardPosition
-    ? formatSpacePathByIndex(
-        currentCardPosition.libraryIndex,
-        currentCardPosition.groupIndex,
-        currentCardPosition.boxIndex,
-      )
-    : null;
+  const currentCardPath =
+    currentCardPosition && currentLearningCard
+      ? `${formatSpaceLibraryDisplayName(
+          currentLearningCard.space_metadata.library,
+        )} / ${formatSpaceGroupDisplayName(
+          currentLearningCard.space_metadata.group,
+        )} / ${formatSpaceBoxDisplayName(
+          currentLearningCard.space_metadata.box,
+        )}`
+      : null;
+  const selectedLibraryDisplayName = formatSpaceLibraryDisplayName(
+    selectedLibrary?.libraryName ?? '',
+  );
+  const selectedGroupDisplayName = formatSpaceGroupDisplayName(
+    selectedGroup?.groupName ?? '',
+  );
+  const selectedBoxDisplayName = formatSpaceBoxDisplayName(
+    selectedBox?.boxName ?? '',
+  );
   const isGated = spaceGateRail !== null && spaceGateRail !== undefined;
   const stateRailStack = (
     <>
@@ -648,17 +632,17 @@ export function SpaceSurface({
                     label="书架"
                     palette={palette}
                     toneColor={selectedTone.accent}
-                    value={formatSpaceLibraryLabel(selectedLibraryIndex)}
+                    value={selectedLibraryDisplayName}
                   />
                   <AddressContextPill
                     label="分区"
                     palette={palette}
-                    value={formatSpaceGroupLabel(selectedGroupIndex)}
+                    value={selectedGroupDisplayName}
                   />
                   <AddressContextPill
                     label="卡盒"
                     palette={palette}
-                    value={formatSpaceBoxLabel(selectedBoxIndex)}
+                    value={selectedBoxDisplayName}
                   />
                   <AddressContextPill
                     label="状态"
@@ -712,7 +696,7 @@ export function SpaceSurface({
                         { color: palette.text },
                       ]}
                     >
-                      {formatSpaceLibraryLabel(selectedLibraryIndex)}
+                      {selectedLibraryDisplayName}
                     </Text>
                   </View>
                   <View
@@ -737,7 +721,7 @@ export function SpaceSurface({
                         { color: palette.text },
                       ]}
                     >
-                      {formatSpaceGroupLabel(selectedGroupIndex)}
+                      {selectedGroupDisplayName}
                     </Text>
                   </View>
                   <View
@@ -762,7 +746,7 @@ export function SpaceSurface({
                         { color: palette.text },
                       ]}
                     >
-                      {formatSpaceBoxLabel(selectedBoxIndex)}
+                      {selectedBoxDisplayName}
                     </Text>
                   </View>
                 </View>
@@ -1262,7 +1246,7 @@ export function SpaceSurface({
                         { color: selectedTone.accent },
                       ]}
                     >
-                      {formatSpaceLibraryLabel(selectedLibraryIndex)}
+                      {selectedLibraryDisplayName}
                     </Text>
                     <Text
                       style={[
@@ -1279,7 +1263,7 @@ export function SpaceSurface({
                         { color: palette.text },
                       ]}
                     >
-                      {formatSpaceGroupLabel(selectedGroupIndex)}
+                      {selectedGroupDisplayName}
                     </Text>
                     <Text
                       style={[
@@ -1296,7 +1280,7 @@ export function SpaceSurface({
                         { color: palette.text },
                       ]}
                     >
-                      {formatSpaceBoxLabel(selectedBoxIndex)}
+                      {selectedBoxDisplayName}
                     </Text>
                   </View>
                 </View>
