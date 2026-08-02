@@ -533,7 +533,8 @@ function selectNextCard(context, randomBytes) {
 }
 
 function selectPilotRoundReviewCardIds(context) {
-  return context.cards.flatMap(card => {
+  return context.accessibleCards.flatMap(card => {
+    if (context.sleepingCardIds.has(card.cardId)) return [];
     const event = context.learning.eventsByCardId[card.cardId];
     if (!event) return [];
     if (event.answer_grade === 'review_needed') return [card.cardId];
