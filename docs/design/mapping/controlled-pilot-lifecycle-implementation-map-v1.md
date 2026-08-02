@@ -20,6 +20,10 @@
 
 | Design region | Future code surface | Source of truth | Notes |
 |---|---|---|---|
+| Dedicated authentication entry | `AppShell` pre-shell branch + one authentication surface | active/restored auth session and canonical hydration status | no top-level product route is mounted or visible |
+| Phone/SMS progression | authentication surface form state | auth repository challenge and session result | one entry surface; code state replaces phone state rather than opening a product page |
+| Session restoration/retry | pre-shell restoration state | session coordinator + required bootstrap hydration | remains outside product shell until validated |
+| Authenticated shell transition | `AppShell` root boundary | valid session + required canonical hydration | enters Learning; login does not start trial |
 | Fixed pilot identity | Learning and Mine header chrome | controlled-pilot profile + product copy | no selector or unavailable entry |
 | Attached start slip | Learning surface state layer | successful valid session response | never triggered by login or account browsing |
 | Completion receipt | Learning round-boundary surface | server-confirmed total completion count | shown once per new multiple of five |
@@ -33,11 +37,14 @@
 
 - Server owns trial start/end, entitlement, confirmed completion count, next card selection, and Space state.
 - Client owns presentation, accessible formatting, animation interruption, and reduced-motion rendering.
+- The authentication/session coordinator owns whether the product shell may mount. Route selection is downstream of that gate and cannot expose a signed-out route-specific login state.
 - Client must not start the trial, count a round locally, grant eligibility, or derive access from its own clock.
 
 ## Accessibility Mapping
 
 - Identity chip is descriptive text, not a button.
+- The login screen has one heading, explicit field labels, keyboard-friendly phone/SMS inputs, visible error text, and one primary action per step. No hidden navigation destination is announced before authentication.
+- Session restoration announces one bounded progress state; failure exposes retry and return-to-login without placing focus in an unavailable product route.
 - Start slip is announced after the card heading without moving focus.
 - Completion receipt receives a heading; the two secondary actions precede the primary continue button in reading order, while visual weight still makes continue dominant.
 - Time rows expose full date/time strings and do not rely on color.
@@ -50,5 +57,6 @@ The implementation PR must be separate from this design-only PR. It must referen
 ## Unimplemented Gaps
 
 - Exact component names and file boundaries remain implementation hypotheses.
+- Account deletion remains an authenticated Mine action, but successful deletion must exit to the dedicated login entry before any product route can render again.
 - Dynamic type, screen reader, weak network, offline replay, cross-device reconciliation, private audio, and device-matrix evidence remain pending.
 - No Web implementation is authorized by this map.

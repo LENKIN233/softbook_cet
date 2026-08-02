@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>受控试点学习界面</title>
+  <title>受控试点登入与学习界面</title>
   <style>
     :root {
       --page: #efedf4;
@@ -78,6 +78,13 @@
         radial-gradient(circle at 88% 28%, rgba(34, 197, 139, .08), transparent 28%),
         rgba(250, 249, 253, .92);
     }
+    .phone.auth-entry {
+      gap: 16px;
+      background:
+        radial-gradient(circle at 16% 10%, rgba(114, 104, 170, .17), transparent 32%),
+        radial-gradient(circle at 88% 78%, rgba(255, 138, 61, .07), transparent 30%),
+        rgba(250, 249, 253, .94);
+    }
     .top { display: flex; align-items: center; justify-content: space-between; padding: 5px 2px 0; color: var(--muted); font-size: 13px; }
     .identity, .chip, .glass, .nav, .secondary, .primary {
       border: 1px solid rgba(255, 255, 255, .78);
@@ -97,6 +104,29 @@
       font-weight: 820;
     }
     .identity::before { content: ""; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: var(--ink); opacity: .72; }
+    .auth-brand { margin-top: 44px; }
+    .auth-brand p { margin: 0; color: var(--muted); font-size: 13px; font-weight: 760; letter-spacing: .04em; }
+    .auth-brand h2 { margin-top: 9px; font-size: 38px; line-height: 1.02; letter-spacing: -.035em; }
+    .auth-brand span { display: block; margin-top: 12px; color: var(--ink-2); font-size: 15px; line-height: 1.55; }
+    .auth-object {
+      margin-top: 8px;
+      padding: 22px;
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,.92);
+      background: rgba(255,255,255,.9);
+      box-shadow: 0 22px 48px rgba(18,16,36,.11), inset 0 1px 0 rgba(255,255,255,.95);
+    }
+    .auth-object h3 { margin: 0; font-size: 23px; line-height: 1.16; }
+    .auth-object > p { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .field { margin-top: 20px; }
+    .field label { display: block; margin-bottom: 8px; color: var(--ink-2); font-size: 12px; font-weight: 820; }
+    .input-shell { min-height: 54px; display: flex; align-items: center; padding: 0 15px; border: 1px solid var(--hair); border-radius: 17px; background: rgba(246,245,249,.9); color: var(--muted); font-size: 15px; }
+    .code-cells { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; }
+    .code-cell { min-width: 0; min-height: 52px; display: grid; place-items: center; border: 1px solid var(--hair); border-radius: 14px; background: rgba(246,245,249,.92); font-size: 18px; font-weight: 850; font-variant-numeric: tabular-nums; }
+    .auth-help { margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .auth-link { min-height: 44px; display: grid; place-items: center; margin-top: 6px; color: var(--ink-2); font-size: 13px; font-weight: 800; }
+    .entry-note { margin-top: auto; padding: 14px 15px; border-radius: 20px; border: 1px solid var(--hair); background: rgba(255,255,255,.62); color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .entry-note strong { color: var(--ink-2); }
     .object {
       position: relative;
       padding: 23px;
@@ -203,11 +233,56 @@
 <body>
   <main class="page">
     <header class="header">
-      <h1>受控试点学习界面</h1>
-      <p class="intro">试点身份附着在真实学习对象上；每轮结束只解释卡片去了哪里，并让用户自然继续。</p>
+      <h1>受控试点登入与学习界面</h1>
+      <p class="intro">登入是产品入口，而不是四个页面重复出现的占位卡；认证完成后才出现学习、空间、统计和我的。</p>
     </header>
 
     <section class="frames" aria-label="手机界面状态">
+      <article class="proof">
+        <p class="caption"><b>专门登入 · 手机号</b><span>主产品不可达</span></p>
+        <div class="phone auth-entry">
+          <div class="top"><span>9:41</span><span>软书四六级</span></div>
+          <div class="auth-brand">
+            <p>CET4 受控试点</p>
+            <h2>先登入，<br>再开始学习。</h2>
+            <span>验证手机号后，系统才会读取你的学习、Space 与资格状态。</span>
+          </div>
+          <div class="auth-object">
+            <h3>手机号登入</h3>
+            <p>登入本身不会开始五天体验。</p>
+            <div class="field">
+              <label>手机号</label>
+              <div class="input-shell">请输入 11 位手机号</div>
+            </div>
+            <button class="primary">获取验证码</button>
+          </div>
+          <div class="entry-note"><strong>未登入时不展示产品导航。</strong><br>学习、空间、统计和我的只在账号校验成功后出现。</div>
+        </div>
+      </article>
+
+      <article class="proof">
+        <p class="caption"><b>专门登入 · 验证码</b><span>同一入口对象</span></p>
+        <div class="phone auth-entry">
+          <div class="top"><span>9:42</span><span>软书四六级</span></div>
+          <div class="auth-brand">
+            <p>CET4 受控试点</p>
+            <h2>输入验证码。</h2>
+            <span>验证码已发送至 138****8000。</span>
+          </div>
+          <div class="auth-object">
+            <h3>确认手机号</h3>
+            <p>完成验证后读取账号状态，再进入学习。</p>
+            <div class="field">
+              <label>6 位验证码</label>
+              <div class="code-cells" aria-label="验证码"><div class="code-cell">3</div><div class="code-cell">8</div><div class="code-cell">6</div><div class="code-cell"></div><div class="code-cell"></div><div class="code-cell"></div></div>
+            </div>
+            <button class="primary">登入并进入</button>
+            <div class="auth-link">更换手机号</div>
+          </div>
+          <div class="entry-note"><strong>账号校验完成前仍停留在此。</strong><br>不会先打开任一产品页面，也不会因登入消耗体验时间。</div>
+        </div>
+      </article>
+
       <article class="proof">
         <p class="caption"><b>首个有效学习会话</b><span>非阻断通知</span></p>
         <div class="phone">

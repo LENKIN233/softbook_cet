@@ -13,18 +13,28 @@
 
 Adopt the `cpl-01` Attached Pilot Slip synthesis from `docs/design/search-runs/2026-08-01-controlled-pilot-lifecycle/` for iOS and Android controlled-pilot states.
 
-The design has four authority-bearing states:
+The design has five authority-bearing state groups:
 
-1. Learning shows a fixed “CET4 受控试点” identity and no track chooser.
-2. The first valid card carries a neutral attached slip stating that the experience has started; it does not block, ask for confirmation, or display a ticking countdown.
-3. After the fifth server-confirmed Learning or review event, the completed card settles into a compact Space address aperture and a receipt offers exactly review, Space, and continue, with continue dominant.
-4. Mine shows pilot identity, server-provided start/end/remaining time, and the no-payment operational-grant message. It exposes no purchase action.
+1. Signed-out and unvalidated session-restoration states use one dedicated phone/SMS authentication surface. Learning, Space, Statistics, Mine, and the four-item navigation are not mounted or visible.
+2. After authentication and required account hydration succeed, the product shell opens at Learning. Learning shows a fixed “CET4 受控试点” identity and no track chooser.
+3. The first valid card carries a neutral attached slip stating that the experience has started; it does not block, ask for confirmation, or display a ticking countdown.
+4. After the fifth server-confirmed Learning or review event, the completed card settles into a compact Space address aperture and a receipt offers exactly review, Space, and continue, with continue dominant.
+5. Mine shows pilot identity, server-provided start/end/remaining time, and the no-payment operational-grant message. It exposes no purchase action.
+
+## Authentication Entry Contract
+
+- Authentication is an app-entry boundary, not a content card repeated inside each product route.
+- Signed-out users see exactly one dedicated login surface with the product identity, phone number, SMS-code progression, primary action, and quiet legal/support copy.
+- The login surface has no floating product navigation, no preview of four tappable product pages, no retained-card claim, and no trial-start message.
+- While a stored session is being restored or canonical account hydration is unresolved, the app remains outside the product shell and shows a quiet bounded restoration/retry state.
+- Successful authentication and hydration enter Learning. Login alone does not start the trial; only the first valid Learning Session may do so.
+- Logout, invalidation, account deletion, or terminal session restoration failure atomically removes the product shell and returns to the same dedicated login boundary.
 
 ## Product Truth vs Implementation Hypothesis
 
-`product_truth`: trigger timing, 120 consecutive hours, fixed track, five-confirmed-event boundary, exact completion destinations, server-authoritative entitlement, no payment, and Space semantics.
+`product_truth`: dedicated authenticated app entry, trigger timing, 120 consecutive hours, fixed track, five-confirmed-event boundary, exact completion destinations, server-authoritative entitlement, no payment, and Space semantics.
 
-`implementation_hypothesis`: attached-slip component boundaries, a short settle transition, receipt layout, and account-state rows. These may change only if the accepted visual and interaction outcomes remain intact.
+`implementation_hypothesis`: a two-step phone/SMS form inside one entry surface, restoration-state composition, attached-slip component boundaries, a short settle transition, receipt layout, and account-state rows. These may change only if the accepted visual and interaction outcomes remain intact.
 
 ## Law of One
 
@@ -37,6 +47,8 @@ The design has four authority-bearing states:
 
 | State | Learning | Mine | Forbidden |
 |---|---|---|---|
+| Signed out | not mounted; dedicated login entry only | not mounted | four tabs, per-route login cards, product previews |
+| Restoring/unvalidated session | not mounted; quiet restore/retry entry state | not mounted | optimistic shell entry, stale route restoration |
 | Before valid card | no start notice | available identity only | timer, consumed-trial copy |
 | Trial active | first-card slip once; later cards keep only identity | start, end, remaining time | local calculation, urgency countdown |
 | Free after expiry | stable free subset message only when access is affected | free state and pilot history summary | purchase button, fake premium |
@@ -46,6 +58,7 @@ The design has four authority-bearing states:
 ## Failure and Recovery
 
 - If content or session preparation fails, no start slip appears.
+- If authentication, session restoration, or required account hydration fails, stay on the dedicated entry boundary; never reveal or retain the four-tab shell behind an error card.
 - If the fifth event is pending confirmation, keep the resolved card state and do not show the completion receipt yet.
 - If an offline replay or cross-device reconciliation repeats an already-counted event, do not replay completion motion.
 - If entitlement time cannot be refreshed, display the last server-confirmed value with a quiet refresh state; do not invent remaining time.
@@ -61,11 +74,11 @@ The design has four authority-bearing states:
 
 Q1: One coral library accent; pilot state stays neutral.
 
-Q2: Current card, completed-round receipt, and Mine account object are the respective focal objects.
+Q2: Authentication object, current card, completed-round receipt, and Mine account object are the respective focal objects.
 
 Q3: Single-card Learning and library/group/box/card Space continuity remain explicit.
 
-Q4: No reward, dashboard, carousel, fake payment, gradient text, or internal language.
+Q4: No reward, dashboard, carousel, fake payment, gradient text, internal language, or signed-out four-tab navigation.
 
 Q5: 393 x 852 proof, wrapping, 44-point targets, no horizontal overflow.
 
@@ -73,7 +86,7 @@ Q6: No new self-assess state; mint/amber authority and no-red-review rule remain
 
 ## AP-22 / VL-AP-07
 
-The Learning-visible change has accepted design direction, rendered proof, search-run evidence, interaction/motion artifact, and implementation mapping. This PR remains design-only; user-visible code must be delivered later in a separate PR.
+The authentication-entry and Learning-visible changes have an accepted design correction, rendered proof, interaction/motion artifact, and implementation mapping. The authentication correction restores an explicit product-truth gate and does not require a new aesthetic search direction. This PR remains design-only; user-visible code must be delivered later in a separate PR.
 
 ## AP-23
 

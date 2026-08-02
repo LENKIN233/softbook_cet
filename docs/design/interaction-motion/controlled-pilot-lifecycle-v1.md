@@ -11,10 +11,14 @@
 
 ## Target Interaction
 
-Learning lifecycle states around the existing card interactions: first-valid-card notice, server-confirmed fifth-event round completion, transition to review or Space, and continue to the next server-selected card.
+Authentication entry and Learning lifecycle states around the existing card interactions: dedicated phone/SMS entry, validated shell transition, first-valid-card notice, server-confirmed fifth-event round completion, transition to review or Space, and continue to the next server-selected card.
 
 ## Operation Model
 
+- Signed out: render only the dedicated authentication object. Phone and code steps replace each other inside that object; do not animate or reveal the four-tab shell behind it.
+- Restoring a stored session: keep one quiet entry-boundary status. Only validated authentication plus required account hydration may replace it with the Learning shell.
+- Authentication failure: retain the current form state and attach the error near its field/action; do not route to Learning, Space, Statistics, or Mine.
+- Authentication success: crossfade the entry object to authenticated Learning chrome after hydration succeeds. This transition never shows trial-start feedback by itself.
 - A valid card becomes ready: show the current card and attach the start slip in the same committed visual state.
 - A non-fifth confirmed event: continue the existing resolve -> settle -> continue rhythm.
 - A fifth confirmed event: resolve the card, settle it toward its Space address, then reveal the completion receipt.
@@ -37,6 +41,8 @@ Learning lifecycle states around the existing card interactions: first-valid-car
 
 ## Motion Intent and Timing Range
 
+- Authentication step replacement: 160–220ms crossfade or 6–10 point vertical settle; keyboard focus and field values remain stable.
+- Entry-to-shell transition: 180–260ms crossfade after validated hydration; no tab capsule moves through the signed-out frame.
 - Start slip attach: 160–220ms, ease-out, translate 8–12 points and fade from 0.7 to 1.
 - Fifth-card settle: 180–240ms, ease-out, translate 12–18 points toward the address aperture with no rotation or scale celebration.
 - Receipt reveal: 140–190ms after settle, opacity plus at most 6 points vertical movement.
@@ -52,6 +58,7 @@ Motion exists only to explain attachment, confirmation, and location. It never c
 
 ## Reduce-Motion Fallback
 
+- Phone/code steps replace with no spatial movement; entry-to-shell changes instantly after validated hydration.
 - Start slip appears attached with no movement.
 - Completed card and Space aperture appear in their final positions simultaneously.
 - Receipt appears without opacity animation.
