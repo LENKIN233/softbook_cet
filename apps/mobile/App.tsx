@@ -4069,6 +4069,7 @@ function AppShell({
       />
     ) : route.key === 'learning' &&
       isControlledPilot &&
+      learningBootstrapStatus === 'ready' &&
       pilotRoundCompletion !== null &&
       pilotRoundReviewCard !== null ? (
       <ControlledPilotReviewSurface
@@ -4087,6 +4088,7 @@ function AppShell({
       />
     ) : route.key === 'learning' &&
       isControlledPilot &&
+      learningBootstrapStatus === 'ready' &&
       pilotRoundCompletion !== null ? (
       <ControlledPilotRoundCompletionSurface
         completedCount={pilotRoundCompletion.completedCount}

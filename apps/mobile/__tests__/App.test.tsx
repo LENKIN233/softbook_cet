@@ -3025,6 +3025,130 @@ test('ignores a stale round-continue response after the auth session changes', a
   ).toBeTruthy();
 });
 
+test('does not expose a persisted round receipt before the current server Session revalidates it', async () => {
+  const baseSession = createLocalLearningSession('cet4');
+  const roundCompletionSession: LearningSession = {
+    ...baseSession,
+    cards: [],
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+    nextDueAt: null,
+    roundCompletion: {
+      completedCount: 5,
+      receiptId: `rnd_${'r'.repeat(32)}`,
+      reviewCardIds: [baseSession.catalogCards[0].card_id],
+      schemaVersion: 'pilot-round-completion.v1',
+      spaceCardId: baseSession.catalogCards[0].card_id,
+    },
+    schedulingMode: 'server',
+    serverSelection: null,
+  };
+  const nextRoundSession: LearningSession = {
+    ...baseSession,
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+    roundCompletion: null,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(
+          roundCompletionSession,
+          'pilot_premium',
+        ),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let firstTree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    firstTree = ReactTestRenderer.create(<App />);
+  });
+  await authenticateIntoLearningBootstrap(firstTree!.root);
+  await resolveLearningBootstrap(roundCompletionSession);
+  expect(
+    firstTree!.root.findByProps({
+      testID: 'controlled-pilot-round-completion',
+    }),
+  ).toBeTruthy();
+
+  let persistedState: string | null = null;
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    persistedState = await AsyncStorage.getItem('softbook-cet/user-state/v1');
+    if (persistedState?.includes(roundCompletionSession.roundCompletion!.receiptId)) {
+      break;
+    }
+  }
+  expect(persistedState).toContain(
+    roundCompletionSession.roundCompletion!.receiptId,
+  );
+  await ReactTestRenderer.act(() => {
+    firstTree!.unmount();
+  });
+
+  pendingSession = createDeferred<LearningSession>();
+  resolvedSession = null;
+  mockLoadSession.mockImplementation(() => pendingSession.promise);
+  let restoredTree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    restoredTree = ReactTestRenderer.create(<App />);
+  });
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    if (
+      restoredTree!.root.findAllByProps({
+        testID: 'controlled-pilot-round-completion',
+      }).length > 0 ||
+      restoredTree!.root.findAllByProps({
+        testID: 'learning-bootstrap-loading',
+      }).length > 0
+    ) {
+      break;
+    }
+  }
+
+  expect(
+    restoredTree!.root.findAllByProps({
+      testID: 'controlled-pilot-round-completion',
+    }),
+  ).toHaveLength(0);
+  expect(
+    restoredTree!.root.findByProps({ testID: 'learning-bootstrap-loading' }),
+  ).toBeTruthy();
+
+  await resolveLearningBootstrap(nextRoundSession);
+  await waitForLearningSurface(restoredTree!.root);
+  expect(
+    restoredTree!.root.findAllByProps({
+      testID: 'controlled-pilot-round-completion',
+    }),
+  ).toHaveLength(0);
+  await ReactTestRenderer.act(() => {
+    restoredTree!.unmount();
+  });
+});
+
 test('blocks product state writes until canonical bootstrap succeeds on reconnect', async () => {
   const { emitNetInfoState } = jest.requireMock(
     '@react-native-community/netinfo',
