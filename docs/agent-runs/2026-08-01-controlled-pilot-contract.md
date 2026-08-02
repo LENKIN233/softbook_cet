@@ -32,7 +32,7 @@
 - `product_truth`: Pilot content is exactly 120 formally approved CET4 cards with an approved stable 60-card free subset, the fixed seven-library distribution, at least two boxes per library, all five core interactions, zero unmapped cards, zero duplicate IDs, and QC for every referenced audio asset.
 - `product_truth`: Repository development cards, external candidate rows, fixtures, and dry-run projections are not approved pilot cards. The current development-source count of ten cards therefore does not satisfy the pilot gate.
 - `product_truth`: Formal CET4 closed beta remains exactly 1,180 cards, 301 audio references, and one whole-track final approval.
-- `product_truth`: Every positive server-confirmed multiple of five is one server-gated round boundary. The next card cannot be selected until the authenticated client explicitly acknowledges the exact server receipt; duplicate events, restart, offline replay, and cross-device reads cannot duplicate or skip the boundary.
+- `product_truth`: Every positive multiple of the cumulative account-and-track canonical `server_sequence` is one server-gated round boundary. Day-scoped progress is not round authority. The next card cannot be selected until the authenticated client explicitly acknowledges the exact server receipt; duplicate events, midnight rollover, restart, offline replay, and cross-device reads cannot duplicate or skip the boundary.
 
 ## Implementation hypothesis changed
 
@@ -65,6 +65,7 @@
 - `jq empty` over all modified JSON specs -> passed.
 - `git diff --check` -> passed.
 - 2026-08-02 continuation: JSON parsing, `git diff --check`, and `python3 scripts/validate_harness.py` -> passed after adding the five-card round owner/mirror/eval checks.
+- 2026-08-02 continuation: clarified the round count as the cumulative canonical learning projection `server_sequence`; daily `progress.total_completed_count` remains daily feedback only, preventing midnight rollover from reopening or skipping a boundary.
 - `./scripts/run_local_gates --profile dev --base origin/main --verbose` -> `PASSED_WITH_EXCEPTION`, 23/24 passed; only the declared toolchain exception applied, and all executed harness, mobile, Web, backend, metadata, launch-contract, and build checks passed. Report: `exports/local-gates/20260801T072526Z-5b592247-dev-54469/report.json`.
 - PR checks: pending.
 
@@ -75,7 +76,7 @@
 - Trial product truth is identical across owner and mirror specs, and the harness rejects future drift.
 - Formal `delivery-profile.v1` and `release-bundle.v1` validators reject pilot artifacts; their 1,180/301 thresholds were not changed.
 - Outcome decisions are recomputed from aggregate counts and cannot advance when any threshold or P0 condition fails.
-- Five-card completion is now contractually fail-closed: `total_completed_count` must be a positive multiple of five, Learning Session returns no next selection at an unacknowledged boundary, and only the exact server-derived continue receipt can release scheduling.
+- Five-card completion is now contractually fail-closed: the cumulative canonical account-and-track `server_sequence` must be a positive multiple of five, Learning Session returns no next selection at an unacknowledged boundary, and only the exact server-derived continue receipt can release scheduling.
 
 ## Agent review status
 

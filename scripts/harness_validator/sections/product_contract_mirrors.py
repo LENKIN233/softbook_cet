@@ -3252,7 +3252,12 @@ def validate(context) -> None:
     check_equal(
         "controlled-pilot round size requirement-memory",
         pilot_round.get("boundary_rule"),
-        "a_round_boundary_exists_only_when_server_derived_total_completed_count_is_positive_and_divisible_by_five",
+        "a_round_boundary_exists_only_when_the_canonical_account_track_learning_projection_maximum_server_sequence_is_positive_and_divisible_by_five",
+    )
+    check_equal(
+        "controlled-pilot round cumulative count authority",
+        pilot_round.get("count_authority_rule"),
+        "completed_count_is_the_cumulative_count_of_newly_accepted_account_track_learning_or_review_events_equal_to_the_projection_maximum_server_sequence_and_is_not_activity_day_progress_total_completed_count",
     )
     check_equal(
         "controlled-pilot round size product-core",
