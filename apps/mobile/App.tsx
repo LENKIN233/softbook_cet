@@ -3986,6 +3986,14 @@ function AppShell({
         status={learningBootstrapStatus}
       />
     ) : route.key === 'learning' &&
+      learningSession?.schedulingMode === 'server' &&
+      learningSession.serverSelection === null ? (
+      <LearningAvailabilitySurface
+        nextDueAt={learningSession.nextDueAt}
+        onRetry={retryLearningBootstrap}
+        palette={palette}
+      />
+    ) : route.key === 'learning' &&
       learningPhase === 'learning' &&
       visibleLearningCards.length === 0 &&
       learningSession?.schedulingMode !== 'server' ? (
@@ -4236,6 +4244,62 @@ function LearningBootstrapSurface({
           </Text>
         </View>
       )}
+    </View>
+  );
+}
+
+function LearningAvailabilitySurface({
+  nextDueAt,
+  onRetry,
+  palette,
+}: {
+  nextDueAt: string | null;
+  onRetry: () => void;
+  palette: Palette;
+}) {
+  const nextDueLabel =
+    nextDueAt === null ? null : formatPilotServerTimestamp(nextDueAt);
+
+  return (
+    <View style={styles.stateScreen} testID="learning-availability-surface">
+      <View
+        style={[
+          styles.hero,
+          { backgroundColor: palette.panel, borderColor: palette.border },
+        ]}
+      >
+        <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
+          学习安排
+        </Text>
+        <Text style={[styles.heroTitle, { color: palette.text }]}>
+          当前没有待处理的卡
+        </Text>
+        <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
+          {nextDueLabel === null
+            ? '当前没有安排新的学习卡。稍后可以重新检查。'
+            : `下一张回看预计在 ${nextDueLabel} 后出现。`}
+        </Text>
+      </View>
+      <InfoCard
+        items={[
+          nextDueLabel === null
+            ? '当前没有可进入的学习或回看内容。'
+            : `下次可回看 · ${nextDueLabel}`,
+          '当前学习进度保持不变。',
+          '重新检查会读取最新学习安排。',
+        ]}
+        palette={palette}
+        title="学习状态已保留"
+      />
+      <Pressable
+        onPress={onRetry}
+        style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+        testID="learning-availability-refresh-button"
+      >
+        <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+          重新检查
+        </Text>
+      </Pressable>
     </View>
   );
 }

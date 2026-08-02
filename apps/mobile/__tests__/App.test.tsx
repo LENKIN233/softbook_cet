@@ -2017,7 +2017,7 @@ test('submits the server review phase with the exact active selection', async ()
   ]);
 });
 
-test('keeps a remote null selection empty without local card or sleep fallback', async () => {
+test('renders remote null selection as availability without false completion or local fallback', async () => {
   const baseSession = createLocalLearningSession('cet4');
   const emptyServerSession: LearningSession = {
     ...baseSession,
@@ -2068,8 +2068,13 @@ test('keeps a remote null selection empty without local card or sleep fallback',
   }
 
   expect(
-    root.findAllByProps({ testID: 'learning-complete-summary' }).length,
-  ).toBeGreaterThan(0);
+    root.findByProps({ testID: 'learning-availability-surface' }),
+  ).toBeTruthy();
+  expect(JSON.stringify(tree!.toJSON())).toContain('当前没有待处理的卡');
+  expect(JSON.stringify(tree!.toJSON())).toContain('下次可回看');
+  expect(
+    root.findAllByProps({ testID: 'learning-complete-summary' }),
+  ).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'learning-flip-button' })).toHaveLength(
     0,
   );
@@ -2080,9 +2085,22 @@ test('keeps a remote null selection empty without local card or sleep fallback',
     root.findAllByProps({ testID: 'learning-go-space-button' }),
   ).toHaveLength(0);
 
-  await ReactTestRenderer.act(() => {
-    findPressableByTestId(root, 'learning-restart-button').props.onPress();
+  expect(
+    root.findAllByProps({ testID: 'learning-restart-button' }),
+  ).toHaveLength(0);
+
+  const previousLoadCount = mockLoadSession.mock.calls.length;
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(
+      root,
+      'learning-availability-refresh-button',
+    ).props.onPress();
+    await flushAsyncEffects();
   });
+  expect(mockLoadSession.mock.calls.length).toBeGreaterThan(previousLoadCount);
+  expect(
+    root.findByProps({ testID: 'learning-availability-surface' }),
+  ).toBeTruthy();
   expect(root.findAllByProps({ testID: 'learning-flip-button' })).toHaveLength(
     0,
   );

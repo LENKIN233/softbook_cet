@@ -40,6 +40,7 @@
 - `product_truth`: Local tests and development cards are implementation evidence only; they are not approved 120-card content, receiver deployment, device evidence, beta evidence, or launch readiness.
 - `product_truth`: The four-surface product shell is authenticated-only. Signed-out and unvalidated restoration states have a dedicated login entry and expose no Learning, Space, Statistics, Mine, or route navigation. Successful verification and account hydration enter Learning; login itself does not start the trial.
 - `product_truth`: Account deletion is available only for a real remote account. A `202` response queues cleanup and revokes all sessions but does not prove worker completion; request failure must preserve the authenticated account and local data, while acceptance must immediately exit the shell and block any “删除完成” claim.
+- `product_truth`: A valid remote `selection: null` without a `round_completion` receipt is scheduler availability, not completed Learning. Only the receipt may open the five-card completion object.
 
 ## Implementation hypothesis changed
 
@@ -53,6 +54,7 @@
 - Made every iOS Maestro flow that depends on a signed-out start clear both application state and Keychain state. This prevents a previously persisted authenticated session from bypassing the dedicated login boundary during later evidence runs.
 - Added a remote-only Mine account-deletion action, one confirmation sheet, in-flight duplicate suppression, fixed safe failure/retry copy, strict `202` acceptance, account-bound local cleanup, and a neutral cleanup-pending notice on the dedicated login boundary.
 - Contained the dedicated authentication card in a safe-area-owned scroll surface for small screens and Dynamic Type, allowed retained account copy to wrap instead of truncating, and preserved the one-screen/no-scroll rule for all four authenticated product surfaces.
+- Added the design-mapped Learning availability object for remote null selection: optional server-provided next-due display, one fresh-session read action, and no `0/0`, restart, local fallback, progress mutation, or round action.
 
 ## Workspace boundary and read scope
 
@@ -72,6 +74,7 @@
 - `apps/mobile/src/persistence/userStateStore.ts` and `src/bootstrap/accountBootstrapHydration.ts`: restart-safe receipt/notice persistence and content-bound reconciliation.
 - `apps/mobile/src/auth/authRepository.ts` and `authSessionCoordinator.ts`: authenticated `POST /v2/account/deletion`, exact `202` acceptance, and current-session coordination without clearing local state before server acceptance.
 - `apps/mobile/App.tsx`: remote-only deletion entry, bounded confirmation/failure states, duplicate-submit lock, account cleanup, shell exit, and cleanup-pending entry notice.
+- `apps/mobile/App.tsx`: no-selection availability routing and next-due presentation before the generic local deck-complete branch.
 - `apps/mobile/__tests__/*`: parser, persistence, bootstrap, membership, UI and exact-action regression coverage.
 - `apps/mobile/e2e/maestro/ios-auth-space-gate-screenshot.yaml`, `ios-auth-statistics-gate-screenshot.yaml`, and the signed-out Mine auth-state flows: historical route-gate regressions now assert the dedicated entry and absence of all signed-out route tabs.
 - `apps/mobile/e2e/maestro/ios-*.yaml`: signed-out setup now clears the iOS Keychain before application state so flows are isolated even though secure credentials survive reinstall/state clearing.
@@ -101,6 +104,7 @@
 - 2026-08-03 Dynamic Type containment check -> `accessibility-large` first exposed a real overlap/truncation defect in the dedicated entry. After adding safe scroll containment and natural wrapping, targeted App verification passed 72/72, TypeScript passed, ESLint passed with 0 errors, and `git diff --check` passed. `ios-auth-scroll-accessibility.yaml` then passed on iPhone 17 Pro / iOS 26.5: all four route tabs remained absent and the phone input, code action, and boundary note were reachable after scrolling. `/tmp/softbook-current-login-accessibility-large-fixed-top-20260803.png` and `/tmp/softbook-current-login-accessibility-large-fixed-scrolled-20260803.png` were visually inspected and remain local, non-formal evidence.
 - 2026-08-03 standard-text regression check -> restored simulator content size to `large` and reran `ios-mine-signed-out-screenshot.yaml`; the dedicated entry/card, phone input, and code action were visible without scrolling, and all four product tabs were absent. `/tmp/softbook-current-login-standard-after-a11y-fix-20260803.png` was visually inspected and remains local, non-formal evidence.
 - 2026-08-03 post-fix full mobile verification -> 46 suites / 450 tests passed with metadata and dependency compatibility pretests; TypeScript, ESLint (0 errors), Maestro selector validation, and `git diff --check` passed.
+- 2026-08-03 no-selection correction -> merged separate design-only authority commit `17bbc72`, replaced the false remote `0/0` completion/restart state with “当前没有待处理的卡”, optional server-provided next-due time, and “重新检查”. Targeted App verification passed 72/72 and full mobile verification passed 46 suites / 450 tests; TypeScript, metadata scan, dependency compatibility pretests, ESLint, Maestro selector validation, and `git diff --check` passed.
 - 2026-08-03 iPhone 17 Pro / iOS 26.5 simulator destructive-path smoke -> passed against a temporary localhost auth receiver: real phone/SMS entry, authenticated Mine, visible irreversible-impact confirmation, authenticated `POST /v2/account/deletion`, shell removal after `202`, absent route tabs, and cleanup-pending entry notice. Screenshots were visually inspected at `/tmp/softbook-account-deletion-confirm.png` and `/tmp/softbook-account-deletion-pending.png`; the temporary receiver is not formal pilot evidence.
 - Exact Node 22.13.0 PR-profile local gate run -> mobile lint/typecheck/Jest, Web lint/tests, backend 238 tests, full harness, dependency security, LFS and evidence checks passed. It surfaced the missing Web `pilot_premium` label mapping, which was fixed; targeted Web typecheck, 12 tests and production build then passed. The overall local report remains non-green because this stacked PR does not target `main`, while repository-health strict mode also reports the shared repository's 11 worktrees/20 topic branches plus the remotely configured `android-release` check. The report is not a GitHub required check or formal evidence.
 
@@ -122,6 +126,7 @@
 - Account deletion is hidden in local-development auth, so a development reset cannot masquerade as service deletion. In remote auth it sends the active Bearer session and accepts only status `202`; status `200`, network failure, and other non-acceptance responses retain Mine and all local account state.
 - The confirmation names Learning, Space, membership, and pilot-eligibility impact before mutation. While the request is pending both cancel and confirm are disabled. After acceptance the shell is absent and the entry says “账户删除已提交 / 数据清理完成前暂不能重新登录”, never “账户已删除”.
 - Enlarged text no longer moves the login object beneath the status bar or truncates its account-state promise. The authentication boundary is the only scrollable phone entry; authenticated Learning, Space, Statistics, and Mine remain contained one-screen product surfaces.
+- A remote null selection can no longer render “本轮学习已走完” or “重新练这轮卡”. Refresh performs a new Learning Session read and preserves zero progress mutation while a valid next-due time remains server-authored.
 
 ## Binary evidence
 
