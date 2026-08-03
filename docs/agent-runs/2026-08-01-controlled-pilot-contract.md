@@ -48,7 +48,7 @@
 - The 2026-08-02 continuation adds the missing `pilot-round-continue.v1` authority: an exact authenticated idempotent command, deterministic receipt, account-scoped continuation record, and scheduler prohibition on selecting the next card before acknowledgement. Backend and mobile implementation remain in later PRs.
 - The 2026-08-03 product-flow audit adds ordered unique `review_card_ids` to `pilot-round-completion.v1`, derived from canonical latest `answer_grade=review_needed` projections in active card-source order.
 - The 2026-08-03 completion-continuity audit adds exact `space_card_id` to `pilot-round-completion.v1`, derived from the canonical event at the boundary sequence so offline replay, cross-device reads, phase grouping and clock drift cannot misidentify the compact Space address.
-- The 2026-08-03 content-evidence audit replaces the summary-only pilot audit descriptor with a path/hash-bound `card-make-quality-audit-v1` scoped report contract, exact 120-card scope/corpus digests and the only permitted explained risk: disclosed synthetic training content that must not be represented as true-exam material. Publisher byte verification remains in the runtime PR.
+- The 2026-08-03 content-evidence audit replaces the summary-only pilot audit descriptor with a path/hash-bound `card-make-quality-audit-v1` scoped report contract, exact canonical ascending card-ID scope/corpus digests and the only permitted explained risk: disclosed synthetic training content that must not be represented as true-exam material. The payload's product scheduling order remains independent; publisher byte verification remains in the runtime PR.
 
 ## Workspace boundary and read scope
 
