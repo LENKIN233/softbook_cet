@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const {
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } = require('node:fs');
@@ -105,6 +106,64 @@ test('pilot verification fails closed when one approved audio byte changes', asy
         profilePath: fixture.profilePath,
       }),
     /audio asset .* SHA-256 does not match/,
+  );
+});
+
+test('pilot verification binds the detailed 120-card source-risk audit', async () => {
+  const tampered = await createFixture();
+  writeFileSync(tampered.auditPath, '{}');
+  assert.throws(
+    () =>
+      publisher.verifyControlledPilotBundleDirectory({
+        bundlePath: tampered.bundlePath,
+        profilePath: tampered.profilePath,
+      }),
+    /audit report SHA-256 does not match/,
+  );
+
+  const missingCard = await createFixture();
+  rewriteBoundAudit(missingCard, audit => {
+    const cardId = audit.scope.card_ids.pop();
+    audit.scope_summary.card_ids.pop();
+    audit.scope_summary.card_count = 119;
+    audit.scope_summary.issue_count = 119;
+    audit.scope_summary.by_severity.source_risk = 119;
+    audit.scope_summary.by_rule.synthetic_source = 119;
+    delete audit.scoped_card_issue_index[cardId];
+  });
+  assert.throws(
+    () =>
+      publisher.verifyControlledPilotBundleDirectory({
+        bundlePath: missingCard.bundlePath,
+        profilePath: missingCard.profilePath,
+      }),
+    /audit scope does not match the content payload/,
+  );
+
+  const unknownRisk = await createFixture();
+  rewriteBoundAudit(unknownRisk, audit => {
+    audit.scope_summary.by_rule.unverified_source = 1;
+  });
+  assert.throws(
+    () =>
+      publisher.verifyControlledPilotBundleDirectory({
+        bundlePath: unknownRisk.bundlePath,
+        profilePath: unknownRisk.profilePath,
+      }),
+    /rule unverified_source is not allowed/,
+  );
+
+  const wrongScopeDigest = await createFixture();
+  rewriteBundle(wrongScopeDigest.bundlePath, bundle => {
+    bundle.audit.scope_card_ids_sha256 = digestText('wrong-card-scope');
+  });
+  assert.throws(
+    () =>
+      publisher.verifyControlledPilotBundleDirectory({
+        bundlePath: wrongScopeDigest.bundlePath,
+        profilePath: wrongScopeDigest.profilePath,
+      }),
+    /audit artifact is invalid or unbound/,
   );
 });
 
@@ -286,15 +345,12 @@ async function createFixture() {
     approved_at: '2026-08-09T00:00:00.000Z',
     card_ids: content.card_records.map(card => card.card_id),
   });
-  const auditHash = writeJson(join(directory, 'audit/pilot-audit.json'), {
-    schema_version: 'controlled-pilot-audit.v1',
-    pilot_id: 'cet4-pilot-2026',
-    content_version: content.content_version,
-    card_count: 120,
-    unresolved_blockers: 0,
-    unexplained_risks: 0,
-    metadata_coverage: 1,
-  });
+  const auditPath = join(directory, 'audit/pilot-audit.json');
+  const auditCorpusDigest = digestText('card-make-corpus').slice('sha256:'.length);
+  const auditHash = writeJson(
+    auditPath,
+    detailedAuditFixture(content.card_records, auditCorpusDigest),
+  );
   const manifestHash = writeJson(join(directory, 'audio/manifest.json'), {
     schema_version: 'release-audio-manifest.v1',
     track: 'cet4',
@@ -412,9 +468,26 @@ async function createFixture() {
     audit: {
       report_path: 'audit/pilot-audit.json',
       report_sha256: auditHash,
+      audit_version: 'card-make-quality-audit-v1',
+      report_type: 'scoped_card_quality_audit',
+      scope_card_count: 120,
+      scope_card_ids_sha256: digestJson(
+        content.card_records
+          .map(card => card.card_id)
+          .sort((left, right) => left.localeCompare(right)),
+      ),
+      corpus_sha256: `sha256:${auditCorpusDigest}`,
       unresolved_blockers: 0,
       unexplained_risks: 0,
       metadata_coverage: 1,
+      explained_risks: [
+        {
+          rule_id: 'synthetic_source',
+          severity: 'source_risk',
+          card_count: 120,
+          disclosure: 'synthetic_training_content_not_true_exam',
+        },
+      ],
     },
     audio: {
       manifest_path: 'audio/manifest.json',
@@ -427,7 +500,101 @@ async function createFixture() {
     minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
     gate_eligible: false,
   });
-  return {bundlePath, firstAudioPath, profilePath};
+  return {auditPath, bundlePath, firstAudioPath, profilePath};
+}
+
+function detailedAuditFixture(cards, corpusDigest) {
+  const canonicalCards = [...cards].sort((left, right) =>
+    left.card_id.localeCompare(right.card_id),
+  );
+  const cardIds = canonicalCards.map(card => card.card_id);
+  const bySeverity = {
+    hard_blocker: 0,
+    content_risk: 0,
+    review_gap: 0,
+    source_risk: 120,
+  };
+  const byRule = Object.fromEntries(
+    [
+      'analysis_missing_or_too_short',
+      'exact_repeated_analysis',
+      'exact_repeated_front',
+      'front_leaks_analysis_conclusion',
+      'front_leaks_correct_answer',
+      'front_missing_or_too_short',
+      'generic_front_pattern',
+      'missing_quality_metadata',
+      'multiple_choice_answer_not_in_options',
+      'multiple_choice_no_options',
+      'synthetic_source',
+      'template_analysis_pattern',
+      'unverified_source',
+    ].map(rule => [rule, rule === 'synthetic_source' ? 120 : 0]),
+  );
+  return {
+    audit_version: 'card-make-quality-audit-v1',
+    corpus_fingerprint: {
+      algorithm: 'sha256',
+      card_dir: 'card_boxes_json',
+      file_count: 14,
+      card_count: 120,
+      digest: corpusDigest,
+    },
+    mode: 'read_only_non_blocking_for_legacy_corpus',
+    ok: true,
+    report_type: 'scoped_card_quality_audit',
+    scope: {
+      card_dir: 'card_boxes_json',
+      card_ids: cardIds,
+      missing_card_ids: [],
+    },
+    scope_summary: {
+      card_ids: cardIds,
+      card_count: 120,
+      issue_count: 120,
+      by_severity: bySeverity,
+      by_rule: byRule,
+    },
+    scoped_card_issue_index: Object.fromEntries(
+      canonicalCards.map(card => [
+        card.card_id,
+        {
+          file: `card_boxes_seed_${card.knowledge_ref}.json`,
+          card_id: card.card_id,
+          track: 'cet4',
+          library: card.space_metadata.library,
+          group: card.space_metadata.group,
+          box: card.space_metadata.box,
+          box_prefix: card.knowledge_ref,
+          interaction_id: card.interaction_id,
+          issue_count: 1,
+          by_severity: {
+            hard_blocker: 0,
+            content_risk: 0,
+            review_gap: 0,
+            source_risk: 1,
+          },
+          by_rule: {synthetic_source: 1},
+        },
+      ]),
+    ),
+    scoped_hard_blocker_issues: [],
+  };
+}
+
+function rewriteBoundAudit(fixture, mutate) {
+  const audit = JSON.parse(readFileSync(fixture.auditPath, 'utf8'));
+  mutate(audit);
+  const auditHash = writeJson(fixture.auditPath, audit);
+  rewriteBundle(fixture.bundlePath, bundle => {
+    bundle.audit.report_sha256 = auditHash;
+  });
+}
+
+function rewriteBundle(bundlePath, mutate) {
+  const bundle = JSON.parse(readFileSync(bundlePath, 'utf8'));
+  mutate(bundle);
+  writeJson(bundlePath, bundle);
 }
 
 async function developmentCardSource() {
@@ -476,6 +643,10 @@ function digestBytes(bytes) {
 
 function digestText(value) {
   return digestBytes(Buffer.from(value));
+}
+
+function digestJson(value) {
+  return digestText(JSON.stringify(value));
 }
 
 function cleanMain() {

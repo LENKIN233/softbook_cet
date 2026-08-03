@@ -39,6 +39,7 @@
 - `product_truth`: Clients receive `trial_remaining_seconds` derived against each server response time and never manufacture remaining duration from device time.
 - `product_truth`: Account deletion remains login-blocking until account, learning, Space, membership, beta/pilot entitlement, challenge and phone-only rate-limit data are removed. Clean registration is permitted only after completion.
 - `product_truth`: Local tests, dry-runs and deployment packaging are not receiver deployment, real SMS, private-audio device playback, approved 120-card content, beta evidence or launch readiness.
+- `product_truth`: Pilot publication binds and revalidates the exact `card make` 120-card scoped audit. Disclosed `synthetic_source` findings are permitted only as CET4 training simulations, never as true-exam provenance; omitted disclosures, unknown risks, scope drift or any blocker/content/review finding reject activation.
 
 ## Implementation hypothesis changed
 
@@ -54,6 +55,7 @@
 - Added `pilot-round-v1`: deterministic account/pilot/content/count receipts, strict authenticated continue commands, transactionally revalidated projection counts, immutable idempotent continuation records, a Learning Session scheduling gate and formal-runtime route isolation.
 - Added `softbook_pilot_round_continuations` to CloudBase provisioning, receiver preflight/identity probes, lifecycle cleanup and account deletion; reads accept only the CloudBase-owned `_id` beyond the exact seven-field business record.
 - Added server-derived `trial_remaining_seconds` to membership, Bootstrap and Learning Session response surfaces; it is zero outside an active trial and is not persisted as entitlement authority.
+- Replaced the summary-only pilot audit artifact with byte-bound validation of the detailed `card-make-quality-audit-v1`: exact card scope in canonical ascending card-ID order and digest without changing payload scheduling order, corpus digest, per-card library/box/interaction identity, zero non-source findings and exactly 120 disclosed synthetic-source findings.
 
 ## Workspace boundary and read scope
 
@@ -73,6 +75,8 @@
 
 ## Commands run
 
+- 2026-08-03 source-risk evidence correction: publisher and contract tests -> 11/11 passed; full backend `npm test` -> 239/239 passed. Coverage includes changed audit bytes, an internally rehashed 119-card scope, nonzero `unverified_source`, and a wrong ordered-card scope digest, all rejected before activation.
+- 2026-08-03 real-candidate compatibility check: regenerated a temporary scoped report from the exact 120 candidate payload IDs in the external `card make` worktree. It produced 120 canonical sorted IDs matching the payload set, 120 findings all and only `synthetic_source`, zero hard blockers/content risks/review gaps/unverified sources, and corpus digest `9208a35fbd1c81e7df422f469146c2d7f723bb04dfcba0ff4c4d9e64dc572eb2`; the temporary unapproved report was deleted after inspection.
 - 2026-08-03 round-review authority correction: `node --test test/controlled-pilot-runtime.test.js` -> 5/5 passed; full backend `npm test` -> 238/238 passed.
 - 2026-08-03 round-Space authority correction: targeted controlled-pilot runtime -> 5/5 passed and full backend -> 238/238 passed; the fifth accepted event's card ID is returned identically across replay, midnight and second-device reads.
 
@@ -102,6 +106,7 @@
 - Pilot entitlement grant/revoke rederive server stages, preserve base trial timestamps, reject event collisions and profile drift, and return only an account fingerprint.
 - Deletion is retryable and idempotent, removes the login lock last, and a completed deletion permits same-phone registration from a clean state.
 - Pilot publication fails on changed audio bytes and requires each audio asset to bind an approved manifest row, human reviewer/time, ten required QC checks, per-card QC coverage and a hashed QC record.
+- Pilot publication also rehashes the detailed content-quality report, matches its ordered 120-card scope and per-card library/box/interaction identity to the payload, binds the external corpus digest, permits only the disclosed `synthetic_source` finding for every card, and rejects every other risk rule.
 - Every mutating operator command defaults to dry-run and apply refuses any branch that is not clean exact `main` at `origin/main`.
 - After the fifth newly accepted canonical event, repeated and cross-device Learning Session reads return the same completion receipt with `selection=null`; duplicate event replay and China activity-day rollover do not change the cumulative boundary. Exact continue replay returns the original acknowledgement, while count, receipt, content, identity or unknown-field drift fails closed.
 - Formal/development runtime does not expose the pilot continue route. Account deletion and lifecycle cleanup include every continuation record by exact account ownership.

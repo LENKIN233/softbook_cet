@@ -37,6 +37,21 @@ const REQUIRED_AUDIO_QC_CHECKS = Object.freeze([
   'front_side_no_required_subtitles',
   'tts_audio_not_used_as_source_authenticity',
 ]);
+const CARD_MAKE_QUALITY_RULES = Object.freeze([
+  'analysis_missing_or_too_short',
+  'exact_repeated_analysis',
+  'exact_repeated_front',
+  'front_leaks_analysis_conclusion',
+  'front_leaks_correct_answer',
+  'front_missing_or_too_short',
+  'generic_front_pattern',
+  'missing_quality_metadata',
+  'multiple_choice_answer_not_in_options',
+  'multiple_choice_no_options',
+  'synthetic_source',
+  'template_analysis_pattern',
+  'unverified_source',
+]);
 
 export class ControlledPilotPublisherError extends Error {}
 
@@ -454,26 +469,178 @@ function assertAuditArtifact(audit, bundle, content) {
   assertExactObjectKeys(
     audit,
     [
-      'schema_version',
-      'pilot_id',
-      'content_version',
-      'card_count',
-      'unresolved_blockers',
-      'unexplained_risks',
-      'metadata_coverage',
+      'audit_version',
+      'corpus_fingerprint',
+      'mode',
+      'ok',
+      'report_type',
+      'scope',
+      'scope_summary',
+      'scoped_card_issue_index',
+      'scoped_hard_blocker_issues',
     ],
     'controlled pilot audit',
   );
+  const contentCardIds = content.card_records
+    .map(card => card.card_id)
+    .sort((left, right) => left.localeCompare(right));
   if (
-    audit.schema_version !== 'controlled-pilot-audit.v1' ||
-    audit.pilot_id !== bundle.pilot_id ||
-    audit.content_version !== content.content_version ||
-    audit.card_count !== 120 ||
-    audit.unresolved_blockers !== 0 ||
-    audit.unexplained_risks !== 0 ||
-    audit.metadata_coverage !== 1
+    audit.audit_version !== bundle.audit.audit_version ||
+    audit.report_type !== bundle.audit.report_type ||
+    audit.mode !== 'read_only_non_blocking_for_legacy_corpus' ||
+    audit.ok !== true ||
+    bundle.audit.scope_card_ids_sha256 !== digestJson(contentCardIds)
   ) {
     fail('controlled pilot audit artifact is invalid or unbound.');
+  }
+
+  assertAuditCorpusFingerprint(audit.corpus_fingerprint, bundle);
+  assertAuditScope(audit.scope, contentCardIds);
+  assertAuditScopeSummary(audit.scope_summary, contentCardIds);
+  assertAuditCardIndex(audit.scoped_card_issue_index, content);
+  if (
+    !Array.isArray(audit.scoped_hard_blocker_issues) ||
+    audit.scoped_hard_blocker_issues.length !== 0
+  ) {
+    fail('controlled pilot audit contains scoped hard blockers.');
+  }
+}
+
+function assertAuditCorpusFingerprint(value, bundle) {
+  assertExactObjectKeys(
+    value,
+    ['algorithm', 'card_dir', 'file_count', 'card_count', 'digest'],
+    'controlled pilot audit corpus fingerprint',
+  );
+  if (
+    value.algorithm !== 'sha256' ||
+    value.card_dir !== 'card_boxes_json' ||
+    !Number.isInteger(value.file_count) ||
+    value.file_count <= 0 ||
+    !Number.isInteger(value.card_count) ||
+    value.card_count < 120 ||
+    !/^[a-f0-9]{64}$/.test(value.digest) ||
+    `sha256:${value.digest}` !== bundle.audit.corpus_sha256
+  ) {
+    fail('controlled pilot audit corpus fingerprint is invalid or unbound.');
+  }
+}
+
+function assertAuditScope(value, contentCardIds) {
+  assertExactObjectKeys(
+    value,
+    ['card_dir', 'card_ids', 'missing_card_ids'],
+    'controlled pilot audit scope',
+  );
+  if (
+    value.card_dir !== 'card_boxes_json' ||
+    !sameOrderedStrings(value.card_ids, contentCardIds) ||
+    !Array.isArray(value.missing_card_ids) ||
+    value.missing_card_ids.length !== 0
+  ) {
+    fail('controlled pilot audit scope does not match the content payload.');
+  }
+}
+
+function assertAuditScopeSummary(value, contentCardIds) {
+  assertExactObjectKeys(
+    value,
+    ['card_ids', 'card_count', 'issue_count', 'by_severity', 'by_rule'],
+    'controlled pilot audit scope summary',
+  );
+  if (
+    !sameOrderedStrings(value.card_ids, contentCardIds) ||
+    value.card_count !== 120 ||
+    value.issue_count !== 120
+  ) {
+    fail('controlled pilot audit summary does not match the 120-card scope.');
+  }
+  assertExactObjectKeys(
+    value.by_severity,
+    ['hard_blocker', 'content_risk', 'review_gap', 'source_risk'],
+    'controlled pilot audit severity summary',
+  );
+  if (
+    value.by_severity.hard_blocker !== 0 ||
+    value.by_severity.content_risk !== 0 ||
+    value.by_severity.review_gap !== 0 ||
+    value.by_severity.source_risk !== 120
+  ) {
+    fail('controlled pilot audit contains unresolved or undisclosed findings.');
+  }
+  assertExactObjectKeys(
+    value.by_rule,
+    CARD_MAKE_QUALITY_RULES,
+    'controlled pilot audit rule summary',
+  );
+  for (const rule of CARD_MAKE_QUALITY_RULES) {
+    const expected = rule === 'synthetic_source' ? 120 : 0;
+    if (value.by_rule[rule] !== expected) {
+      fail(`controlled pilot audit rule ${rule} is not allowed.`);
+    }
+  }
+}
+
+function assertAuditCardIndex(value, content) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    fail('controlled pilot audit card index must be an object.');
+  }
+  const cardsById = new Map(content.card_records.map(card => [card.card_id, card]));
+  const canonicalCardIds = [...cardsById.keys()].sort((left, right) =>
+    left.localeCompare(right),
+  );
+  if (!sameOrderedStrings(Object.keys(value), canonicalCardIds)) {
+    fail('controlled pilot audit card index does not match the content payload.');
+  }
+  for (const cardId of canonicalCardIds) {
+    const card = cardsById.get(cardId);
+    const item = value[cardId];
+    assertExactObjectKeys(
+      item,
+      [
+        'file',
+        'card_id',
+        'track',
+        'library',
+        'group',
+        'box',
+        'box_prefix',
+        'interaction_id',
+        'issue_count',
+        'by_severity',
+        'by_rule',
+      ],
+      `controlled pilot audit card ${cardId}`,
+    );
+    assertExactObjectKeys(
+      item.by_severity,
+      ['hard_blocker', 'content_risk', 'review_gap', 'source_risk'],
+      `controlled pilot audit card ${cardId} severity`,
+    );
+    assertExactObjectKeys(
+      item.by_rule,
+      ['synthetic_source'],
+      `controlled pilot audit card ${cardId} rule`,
+    );
+    if (
+      typeof item.file !== 'string' ||
+      item.file.length === 0 ||
+      item.card_id !== cardId ||
+      item.track !== 'cet4' ||
+      item.library !== card.space_metadata.library ||
+      item.group !== card.space_metadata.group ||
+      item.box !== card.space_metadata.box ||
+      item.box_prefix !== card.knowledge_ref ||
+      item.interaction_id !== card.interaction_id ||
+      item.issue_count !== 1 ||
+      item.by_severity.hard_blocker !== 0 ||
+      item.by_severity.content_risk !== 0 ||
+      item.by_severity.review_gap !== 0 ||
+      item.by_severity.source_risk !== 1 ||
+      item.by_rule.synthetic_source !== 1
+    ) {
+      fail(`controlled pilot audit card ${cardId} is invalid or unbound.`);
+    }
   }
 }
 
@@ -522,6 +689,21 @@ function sameSet(left, right) {
     new Set(left).size === left.length &&
     left.every(value => right.includes(value))
   );
+}
+
+function sameOrderedStrings(left, right) {
+  return (
+    Array.isArray(left) &&
+    Array.isArray(right) &&
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
+  );
+}
+
+function digestJson(value) {
+  return `sha256:${createHash('sha256')
+    .update(JSON.stringify(value))
+    .digest('hex')}`;
 }
 
 function isCanonicalIsoTimestamp(value) {
