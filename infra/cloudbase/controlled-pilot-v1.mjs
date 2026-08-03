@@ -29,6 +29,14 @@ export const CONTROLLED_PILOT_CORE_INTERACTIONS = Object.freeze([
   'multiple_choice',
   'swipe',
 ]);
+export const CONTROLLED_PILOT_EXPLAINED_CONTENT_RISKS = Object.freeze([
+  Object.freeze({
+    rule_id: 'synthetic_source',
+    severity: 'source_risk',
+    card_count: CONTROLLED_PILOT_CARD_COUNT,
+    disclosure: 'synthetic_training_content_not_true_exam',
+  }),
+]);
 
 const IDENTIFIER_PATTERN = /^[a-z0-9][a-z0-9._-]{2,127}$/;
 const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/;
@@ -458,15 +466,37 @@ function validatePilotAudit(value) {
     [
       'report_path',
       'report_sha256',
+      'audit_version',
+      'report_type',
+      'scope_card_count',
+      'scope_card_ids_sha256',
+      'corpus_sha256',
       'unresolved_blockers',
       'unexplained_risks',
       'metadata_coverage',
+      'explained_risks',
     ],
     'audit',
+  );
+  requireExact(
+    audit.audit_version,
+    'card-make-quality-audit-v1',
+    'audit.audit_version',
+  );
+  requireExact(
+    audit.report_type,
+    'scoped_card_quality_audit',
+    'audit.report_type',
+  );
+  requireExact(
+    audit.scope_card_count,
+    CONTROLLED_PILOT_CARD_COUNT,
+    'audit.scope_card_count',
   );
   requireExact(audit.unresolved_blockers, 0, 'audit.unresolved_blockers');
   requireExact(audit.unexplained_risks, 0, 'audit.unexplained_risks');
   requireExact(audit.metadata_coverage, 1, 'audit.metadata_coverage');
+  const explainedRisks = validateExplainedContentRisks(audit.explained_risks);
   return {
     report_path: requireSafeRelativePath(audit.report_path, 'audit.report_path'),
     report_sha256: requirePattern(
@@ -474,10 +504,58 @@ function validatePilotAudit(value) {
       SHA256_PATTERN,
       'audit.report_sha256',
     ),
+    audit_version: 'card-make-quality-audit-v1',
+    report_type: 'scoped_card_quality_audit',
+    scope_card_count: CONTROLLED_PILOT_CARD_COUNT,
+    scope_card_ids_sha256: requirePattern(
+      audit.scope_card_ids_sha256,
+      SHA256_PATTERN,
+      'audit.scope_card_ids_sha256',
+    ),
+    corpus_sha256: requirePattern(
+      audit.corpus_sha256,
+      SHA256_PATTERN,
+      'audit.corpus_sha256',
+    ),
     unresolved_blockers: 0,
     unexplained_risks: 0,
     metadata_coverage: 1,
+    explained_risks: explainedRisks,
   };
+}
+
+function validateExplainedContentRisks(value) {
+  if (!Array.isArray(value) || value.length !== 1) {
+    fail('audit.explained_risks must contain exactly the synthetic-source disclosure.');
+  }
+  const risk = requireRecord(value[0], 'audit.explained_risks[0]');
+  assertExactKeys(
+    risk,
+    ['rule_id', 'severity', 'card_count', 'disclosure'],
+    'audit.explained_risks[0]',
+  );
+  const expected = CONTROLLED_PILOT_EXPLAINED_CONTENT_RISKS[0];
+  requireExact(
+    risk.rule_id,
+    expected.rule_id,
+    'audit.explained_risks[0].rule_id',
+  );
+  requireExact(
+    risk.severity,
+    expected.severity,
+    'audit.explained_risks[0].severity',
+  );
+  requireExact(
+    risk.card_count,
+    expected.card_count,
+    'audit.explained_risks[0].card_count',
+  );
+  requireExact(
+    risk.disclosure,
+    expected.disclosure,
+    'audit.explained_risks[0].disclosure',
+  );
+  return [expected];
 }
 
 function validatePilotAudio(value) {
