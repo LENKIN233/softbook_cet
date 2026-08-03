@@ -4,7 +4,7 @@
 
 - Date: 2026-08-03
 - Branch: `infra/refresh-ci-actions`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/478
 - Summary: Consolidate the stale Dependabot workflow updates for `actions/setup-node` and `ruby/setup-ruby` into one governed change with a human-readable review record.
 
 ## Referenced specs
