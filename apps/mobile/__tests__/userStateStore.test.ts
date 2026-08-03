@@ -32,6 +32,23 @@ describe('UserStateStore', () => {
         sourceId: 'local-cet4-v1',
         track: 'cet4' as const,
       },
+      localLearningState: {
+        learningResults: [
+          {
+            cardId: '110001',
+            completedAt: '2026-07-10T09:00:00.000Z',
+            interactionId: 'flip' as const,
+            isFavorited: true,
+            outcome: 'review' as const,
+            usedHint: false,
+            usedPeek: true,
+          },
+        ],
+        phase: 'learning' as const,
+        reviewResults: [],
+        sourceId: 'local-cet4-v1',
+        track: 'cet4' as const,
+      },
       pilotRoundCompletion: null,
       presentedTrialStartedAt: null,
       spaceCardStateById: {
@@ -51,6 +68,33 @@ describe('UserStateStore', () => {
     await store.save('13800138000', state);
 
     await expect(store.load('13800138000')).resolves.toEqual(state);
+  });
+
+  it('rejects duplicate local results instead of restoring an ambiguous cursor', async () => {
+    const duplicateResult = {
+      cardId: '110001',
+      completedAt: '2026-07-10T09:00:00.000Z',
+      interactionId: 'flip' as const,
+      isFavorited: false,
+      outcome: 'review' as const,
+      usedHint: false,
+      usedPeek: false,
+    };
+    const { storage } = createStorage();
+    const store = createUserStateStore(storage);
+
+    expect(() =>
+      store.save('13800138000', {
+        ...createEmptyPersistedUserState(),
+        localLearningState: {
+          learningResults: [duplicateResult, duplicateResult],
+          phase: 'learning',
+          reviewResults: [],
+          sourceId: 'local-cet4-v1',
+          track: 'cet4',
+        },
+      }),
+    ).toThrow('duplicate card ids');
   });
 
   it('does not expose one phone number state to another account', async () => {

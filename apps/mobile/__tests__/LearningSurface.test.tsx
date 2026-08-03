@@ -195,6 +195,7 @@ test('does not expose raw space metadata while learning', () => {
         onSelectSwipeState={jest.fn()}
         onSubmitCurrentCard={jest.fn()}
         onAdvanceCard={jest.fn()}
+        onOpenCompletionSpace={jest.fn()}
         onRestartDeck={jest.fn()}
         pilotIdentityLabel="CET4 受控试点"
         trialNoticeVisible
@@ -499,6 +500,7 @@ test('completion state keeps the next step primary instead of a metric dashboard
         onSelectSwipeState={jest.fn()}
         onSubmitCurrentCard={jest.fn()}
         onAdvanceCard={jest.fn()}
+        onOpenCompletionSpace={jest.fn()}
         onRestartDeck={jest.fn()}
         onStartReview={jest.fn()}
       />,
@@ -508,9 +510,9 @@ test('completion state keeps the next step primary instead of a metric dashboard
   const output = JSON.stringify(tree!.toJSON());
 
   expect(output).toContain('下一步');
-  expect(output).toContain('开始回看这 ');
-  expect(output).toContain('1');
-  expect(output).toContain(' 张卡');
+  expect(output).toContain('回看待复习内容');
+  expect(output).toContain('查看所在 Space');
+  expect(output).toContain('继续下一轮');
   expect(output).not.toContain('完成明细');
   expect(output).not.toContain('自动判对');
   expect(output).not.toContain('自动判错');

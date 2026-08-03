@@ -39,6 +39,7 @@ export function reconcileAccountBootstrap(
         ? null
         : persistedUserState.checkedInDayKey,
       learningCursor: bootstrap.learning.cursor,
+      localLearningState: persistedUserState.localLearningState,
       pilotRoundCompletion:
         persistedUserState.pilotRoundCompletion?.track === bootstrap.track &&
         persistedUserState.pilotRoundCompletion.contentVersion ===

@@ -257,6 +257,19 @@
 
 - None. No candidate card, audio, approval, QC record or 120-card export was produced or approved in this run.
 
+## 2026-08-03 leadership real-user remediation
+
+- Referenced product authority: `spec/requirement-memory.json`, `spec/product-core.json`, `spec/account-sync-contract.json`, `spec/membership.json`, `spec/interactions.json`, `spec/space-operations.json`, plus the separately accepted controlled-pilot lifecycle decision, mock, motion and implementation map already listed above.
+- `product_truth`: Remote pilot progress, round boundaries and trial authority remain server-owned. Exact same-card cross-device continuation is intentionally out of scope, but the same authenticated account must not lose locally recorded Learning, review or Space state when the internal client process restarts.
+- `product_truth`: A five-card boundary exposes only “回看待复习内容”, “查看所在 Space” and “继续下一轮”; a local engineering package may simulate those semantics but may not issue a server receipt, claim approved 120-card coverage or count its seven development cards as formal content.
+- `implementation_hypothesis`: Migrated account-isolated persistence to `user-state.v6` with a strictly validated, source/track-bound local Learning snapshot containing completed Learning results, completed review results and the active phase. Remote bootstrap remains canonical and does not consume this snapshot.
+- `implementation_hypothesis`: Local restart now derives the next visible card from durable completed results, resumes an interrupted review phase, retains Mine/Statistics counts, and rejects malformed or duplicate card results rather than restoring an ambiguous cursor.
+- `implementation_hypothesis`: The generic local completion object now uses the accepted three action labels. Its Space action focuses the actual last completed card, and local “继续下一轮” prioritizes catalog cards not shown in the prior round while preserving all five core interaction families. This is internal-flow behavior only; the formal pilot still requires the external approved 120-card source and server acknowledgement.
+- Files: `apps/mobile/App.tsx`, `src/persistence/userStateStore.ts`, `src/bootstrap/accountBootstrapHydration.ts`, `src/learning/LearningSurface.tsx`, `src/learning/sessionCore.ts`, and their App/persistence/surface/session/store tests.
+- Failure evidence before remediation: the installed internal Android package returned from the second Learning card to the first after process stop/relaunch, and Mine reset to zero while authentication survived. The generic local completion object exposed “开始回看这 1 张卡 / 重新练这轮卡” and omitted Space/continue.
+- Automated verification after remediation: TypeScript passed; ESLint completed with 0 errors and the same 14 pre-existing inline-style warnings; mobile metadata/dependency pretests passed; all 46 Jest suites / 479 tests passed; `git diff --check` passed. Rebuilt-package and installed-device reruns are recorded in the final handoff after the new commit-specific APK is produced.
+- Design checklist impact: no new visual direction was invented. The accepted completion hierarchy remains one focal receipt, exact three actions and one primary continue action; Learning retains the two-state mint/amber self-assessment; Space continuity reuses the accepted library/group/box model; no dashboard, fake payment, score ring, task center, red review state or extra tutorial was introduced.
+
 ## Risks and open questions
 
 - The design and contract PR stack still requires protected product-owner approval; this implementation must not bypass or replace it.

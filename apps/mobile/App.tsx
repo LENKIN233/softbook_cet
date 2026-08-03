@@ -63,6 +63,7 @@ import {
 import {
   createLearningCardState,
   evaluateLearningCard,
+  selectNextSessionCards,
   selectReviewCards,
 } from './src/learning/session';
 import {
@@ -664,6 +665,8 @@ function AppShell({
   const lastMembershipRefreshKey = useRef<string | null>(null);
   const pendingMembershipRefreshKey = useRef<string | null>(null);
   const persistedLearningCursor = useRef<PersistedLearningCursor | null>(null);
+  const persistedLocalLearningState =
+    useRef<PersistedUserState['localLearningState']>(null);
   const accountBootstrapStatusRef = useRef(accountBootstrapStatus);
   const accountBootstrapSnapshotRef = useRef<AccountBootstrapSnapshot | null>(
     null,
@@ -696,6 +699,7 @@ function AppShell({
       lastMembershipRefreshKey.current = null;
       pendingMembershipRefreshKey.current = null;
       persistedLearningCursor.current = null;
+      persistedLocalLearningState.current = null;
       pilotRoundCompletionRef.current = null;
       pilotRoundContinueInFlight.current = null;
       presentedTrialStartedAtRef.current = null;
@@ -1136,6 +1140,8 @@ function AppShell({
       );
       persistedLearningCursor.current =
         hydration.persistedUserState.learningCursor;
+      persistedLocalLearningState.current =
+        hydration.persistedUserState.localLearningState;
       pilotRoundCompletionRef.current =
         hydration.persistedUserState.pilotRoundCompletion;
       presentedTrialStartedAtRef.current =
@@ -2040,10 +2046,23 @@ function AppShell({
       };
     }
 
+    const nextLocalLearningState =
+      learningSession?.schedulingMode === 'local'
+        ? {
+            learningResults: learningCompletedResults,
+            phase: learningPhase,
+            reviewResults: reviewCompletedResults,
+            sourceId: learningSession.sourceId,
+            track: learningSession.track,
+          }
+        : persistedLocalLearningState.current;
+    persistedLocalLearningState.current = nextLocalLearningState;
+
     userStateStore
       .save(authState.phoneNumber, {
         checkedInDayKey,
         learningCursor: persistedLearningCursor.current,
+        localLearningState: nextLocalLearningState,
         pilotRoundCompletion,
         presentedTrialStartedAt: presentedTrialStartedAtRef.current,
         spaceCardStateById,
@@ -2058,9 +2077,11 @@ function AppShell({
     currentLearningCard,
     isAuthenticated,
     learningPhase,
+    learningCompletedResults,
     learningSession,
     pilotRoundCompletion,
     persistenceHydrated,
+    reviewCompletedResults,
     spaceCardStateById,
     userStateStore,
   ]);
@@ -2522,12 +2543,20 @@ function AppShell({
           return;
         }
 
+        const persistedLocalState = persistedLocalLearningState.current;
+        const localLearningState =
+          session.schedulingMode === 'local' &&
+          persistedLocalState !== null &&
+          persistedLocalState.sourceId === session.sourceId &&
+          persistedLocalState.track === session.track
+            ? persistedLocalState
+            : null;
         const canonicalLearningState = accountBootstrapSnapshot
           ? resolveAccountBootstrapLearningState(
               accountBootstrapSnapshot,
               session,
             )
-          : {
+          : localLearningState ?? {
               learningResults: [],
               reviewResults: [],
             };
@@ -2541,9 +2570,11 @@ function AppShell({
           session.schedulingMode === 'server' &&
           session.serverSelection?.phase === 'review'
             ? 'review'
+            : session.schedulingMode === 'local' &&
+              localLearningState?.phase === 'review'
+            ? 'review'
             : 'learning';
         setLearningPhase(scheduledPhase);
-        setReviewSessionCards(scheduledPhase === 'review' ? session.cards : []);
         setReviewCompletedResults(canonicalLearningState.reviewResults);
         const nextVisibleCards =
           session.schedulingMode === 'server'
@@ -2557,22 +2588,45 @@ function AppShell({
                   ),
                 )
                 .filter(card => !readSpaceCardState(card.card_id).isSleeping);
+        const nextReviewCards =
+          session.schedulingMode === 'local' && scheduledPhase === 'review'
+            ? selectReviewCards(
+                nextVisibleCards,
+                canonicalLearningState.learningResults,
+              )
+            : session.cards;
+        const nextPhaseCards =
+          scheduledPhase === 'review' ? nextReviewCards : nextVisibleCards;
+        setReviewSessionCards(
+          scheduledPhase === 'review' ? nextReviewCards : [],
+        );
         const restoredCursor = persistedLearningCursor.current;
         const restoredIndex =
           session.schedulingMode === 'local' &&
           restoredCursor !== null &&
           restoredCursor.sourceId === session.sourceId &&
           restoredCursor.track === session.track
-            ? nextVisibleCards.findIndex(
+            ? nextPhaseCards.findIndex(
                 card => card.card_id === restoredCursor.cardId,
               )
             : -1;
-        const nextIndex = restoredIndex >= 0 ? restoredIndex : 0;
+        const completedIndex = countCompletedCards(
+          nextPhaseCards,
+          scheduledPhase === 'review'
+            ? canonicalLearningState.reviewResults
+            : canonicalLearningState.learningResults,
+        );
+        const nextIndex =
+          session.schedulingMode === 'local' && completedIndex > 0
+            ? completedIndex
+            : restoredIndex >= 0
+            ? restoredIndex
+            : 0;
 
         setLearningIndex(nextIndex);
         setLearningCardState(
-          nextVisibleCards[nextIndex]
-            ? createTrackedLearningCardState(nextVisibleCards[nextIndex])
+          nextPhaseCards[nextIndex]
+            ? createTrackedLearningCardState(nextPhaseCards[nextIndex])
             : null,
         );
         setLearningBootstrapStatus('ready');
@@ -2612,6 +2666,7 @@ function AppShell({
     createTrackedLearningCardState,
     authenticatedRuntimeContext,
     clearAuthenticatedSession,
+    countCompletedCards,
     isAuthenticated,
     learningBootstrapStatus,
     learningTrack,
@@ -3712,7 +3767,23 @@ function AppShell({
         createTrackedLearningCardState(reviewCandidateCards[0]),
       );
     },
-    onRestartDeck: resetLearningDeck,
+    onRestartDeck: () => {
+      if (learningSession?.schedulingMode !== 'local') {
+        resetLearningDeck();
+        return;
+      }
+
+      const nextSession = {
+        ...learningSession,
+        cards: selectNextSessionCards(
+          learningSession.catalogCards,
+          learningSession.cards,
+          learningSession.cards.length,
+        ),
+      };
+      setLearningSession(nextSession);
+      resetLearningDeck(spaceCardStateById, nextSession, membershipState);
+    },
   };
 
   const handleContinuePilotRound = () => {
@@ -4074,6 +4145,20 @@ function AppShell({
         card => card.card_id === pilotRoundCompletion.spaceCardId,
       ) ?? null
     : null;
+  const localRoundBoundaryResults =
+    learningPhase === 'review'
+      ? reviewCompletedResults
+      : learningCompletedResults;
+  const localRoundSpaceCard =
+    learningSession?.schedulingMode === 'local' &&
+    localRoundBoundaryResults.length > 0
+      ? learningSession.catalogCards.find(
+          card =>
+            card.card_id ===
+            localRoundBoundaryResults[localRoundBoundaryResults.length - 1]
+              .cardId,
+        ) ?? null
+      : null;
   const pilotRoundSpaceAddress = pilotRoundSpaceCard
     ? `${formatSpaceLibraryDisplayName(
         pilotRoundSpaceCard.space_metadata.library,
@@ -4256,6 +4341,13 @@ function AppShell({
         onAdvanceCard={learningHandlers.onAdvanceCard}
         onFlip={learningHandlers.onFlip}
         onOpenResultDetail={() => setLearningScreen('result_detail')}
+        onOpenCompletionSpace={() => {
+          startTransition(() => {
+            setActiveRoute('space');
+            setLearningScreen('practice');
+            setSpaceScreen('overview');
+          });
+        }}
         onRestartDeck={learningHandlers.onRestartDeck}
         onStartReview={learningHandlers.onStartReview}
         onSelectOption={learningHandlers.onSelectOption}
@@ -4278,7 +4370,7 @@ function AppShell({
         currentLearningCard={
           pilotRoundCompletion !== null
             ? pilotRoundSpaceCard
-            : currentLearningCard
+            : currentLearningCard ?? localRoundSpaceCard
         }
         deviceClass={deviceClass}
         onBackToOverview={() => setSpaceScreen('overview')}
@@ -6736,9 +6828,7 @@ function MembershipHostCard({
                     { color: palette.accentStrong },
                   ]}
                 >
-                  {membershipPendingAction === 'purchase'
-                    ? '同步中'
-                    : '开会员'}
+                  {membershipPendingAction === 'purchase' ? '同步中' : '开会员'}
                 </Text>
               </Pressable>
             ) : null}

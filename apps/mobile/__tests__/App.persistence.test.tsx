@@ -319,6 +319,23 @@ test('restores check-in, learning cursor, favorite, and sleep state', async () =
       sourceId: session.sourceId,
       track: session.track,
     },
+    localLearningState: {
+      learningResults: [
+        {
+          cardId: sleepingFavoriteCard.card_id,
+          completedAt: '2026-07-10T09:00:00.000Z',
+          interactionId: sleepingFavoriteCard.interaction_id,
+          isFavorited: true,
+          outcome: 'confident',
+          usedHint: false,
+          usedPeek: false,
+        },
+      ],
+      phase: 'learning',
+      reviewResults: [],
+      sourceId: session.sourceId,
+      track: session.track,
+    },
     pilotRoundCompletion: null,
     presentedTrialStartedAt: null,
     spaceCardStateById: {
@@ -347,6 +364,14 @@ test('restores check-in, learning cursor, favorite, and sleep state', async () =
     tree.root.findByProps({ testID: 'mine-metric-sleeping-value' }).props
       .children,
   ).toBe('1');
+  expect(
+    tree.root.findByProps({ testID: 'mine-metric-completed-value' }).props
+      .children,
+  ).toBe('1');
+  expect(
+    tree.root.findByProps({ testID: 'mine-metric-review-value' }).props
+      .children,
+  ).toBe('0');
 });
 
 test('restores remote account state from canonical bootstrap before local use', async () => {
@@ -416,6 +441,7 @@ test('restores remote account state from canonical bootstrap before local use', 
     await createUserStateStore().save('13800138000', {
       checkedInDayKey: getChinaDayKey(),
       learningCursor: null,
+      localLearningState: null,
       pilotRoundCompletion: null,
       presentedTrialStartedAt: null,
       spaceCardStateById: {},
@@ -545,6 +571,7 @@ test('restores an exact queued check-in without treating event-derived progress 
     await createUserStateStore().save('13800138000', {
       checkedInDayKey: null,
       learningCursor: null,
+      localLearningState: null,
       pilotRoundCompletion: null,
       presentedTrialStartedAt: null,
       spaceCardStateById: {},
@@ -977,6 +1004,7 @@ test('does not persist canonical state before content version validation', async
   const originalUserState = {
     checkedInDayKey: dayKey,
     learningCursor: null,
+    localLearningState: null,
     pilotRoundCompletion: null,
     presentedTrialStartedAt: null,
     spaceCardStateById: {},
@@ -1045,7 +1073,7 @@ test('degrades corrupt user state and clears persistence on logout', async () =>
   expect(repairedUserState).not.toBeNull();
   expect(JSON.parse(repairedUserState!)).toMatchObject({
     owner_phone_number: '13800138000',
-    schema_version: 'user-state.v5',
+    schema_version: 'user-state.v6',
   });
 
   await openRoute(tree.root, 'mine');
@@ -1268,6 +1296,7 @@ test('uses bootstrap canonical space state without pushing unqueued restored sta
     await createUserStateStore().save('13800138000', {
       checkedInDayKey: null,
       learningCursor: null,
+      localLearningState: null,
       pilotRoundCompletion: null,
       presentedTrialStartedAt: null,
       spaceCardStateById: {
@@ -1409,6 +1438,7 @@ function createUserStateStoreFixture() {
   return {
     checkedInDayKey: '2026-07-10',
     learningCursor: null,
+    localLearningState: null,
     pilotRoundCompletion: null,
     presentedTrialStartedAt: null,
     spaceCardStateById: {},

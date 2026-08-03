@@ -2969,7 +2969,7 @@ test('renders remote null selection as availability without false completion or 
   ).toHaveLength(0);
 
   expect(
-    root.findAllByProps({ testID: 'learning-restart-button' }),
+    root.findAllByProps({ testID: 'learning-continue-round-button' }),
   ).toHaveLength(0);
 
   const previousLoadCount = mockLoadSession.mock.calls.length;
@@ -6139,15 +6139,17 @@ test('can complete the local single-card deck and restart it', async () => {
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮学习已走完');
   expect(output).toContain('下一步');
-  expect(output).toContain('这一轮已经完成，可以重新练这轮卡。');
-  expect(output).toContain('重新练这轮卡');
+  expect(output).toContain('查看所在 Space');
+  expect(output).toContain('继续下一轮');
   expect(output).not.toContain('当前卡组');
   expect(output).not.toContain('系统顺序');
   expect(output).not.toContain('系统顺序学习');
   expectNoUserVisibleMetadataLeakage(tree!);
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-restart-button' }).props.onPress();
+    root
+      .findByProps({ testID: 'learning-continue-round-button' })
+      .props.onPress();
   });
 
   output = JSON.stringify(tree!.toJSON());
@@ -6277,7 +6279,7 @@ test('can start a review round from cards that need revisiting', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看已走完');
-  expect(output).toContain('回到首轮重新开始');
+  expect(output).toContain('继续下一轮');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'route-tab-statistics' }).props.onPress();

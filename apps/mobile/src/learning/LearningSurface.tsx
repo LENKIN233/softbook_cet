@@ -81,6 +81,7 @@ type LearningSurfaceProps = {
   onOpenResultDetail?: () => void;
   onAdvanceCard: () => void;
   onRestartDeck: () => void;
+  onOpenCompletionSpace?: () => void;
   onStartReview?: () => void;
 };
 
@@ -244,6 +245,7 @@ export function LearningSurface({
   onOpenResultDetail,
   onAdvanceCard,
   onRestartDeck,
+  onOpenCompletionSpace,
   onStartReview,
 }: LearningSurfaceProps) {
   const { height: viewportHeight, width: viewportWidth } =
@@ -263,6 +265,7 @@ export function LearningSurface({
       sessionCards.length,
     );
     const primaryAction = getPrimaryActionColors(palette);
+    const neutralAction = getNeutralActionSurface(palette);
 
     return (
       <View style={[styles.oneScreenPage, styles.completeScreen]}>
@@ -339,24 +342,49 @@ export function LearningSurface({
             style={[styles.resultExplanationBody, { color: palette.textMuted }]}
           >
             {isReviewPhase
-              ? '回看已经结束。可以回到首轮重新开始，也可以稍后按学习节奏继续。'
+              ? '回看已经结束。可以查看卡片在 Space 里的位置，或继续下一轮。'
               : reviewCandidateCount > 0
-              ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
-              : '这一轮已经完成，可以重新练这轮卡。'}
+              ? `有 ${reviewCandidateCount} 张卡需要再看；也可以先查看 Space，或继续下一轮。`
+              : '这一轮已经完成，可以查看 Space，或继续下一轮。'}
           </Text>
           {!isReviewPhase && reviewCandidateCount > 0 && onStartReview ? (
             <Pressable
               onPress={onStartReview}
               style={[
-                styles.primaryButton,
-                { backgroundColor: palette.warning },
+                styles.secondaryButton,
+                {
+                  backgroundColor: neutralAction.surface,
+                  borderColor: neutralAction.border,
+                },
               ]}
               testID="learning-start-review-button"
             >
               <Text
-                style={[styles.primaryButtonLabel, { color: palette.panel }]}
+                style={[
+                  styles.secondaryButtonLabel,
+                  { color: palette.warning },
+                ]}
               >
-                开始回看这 {reviewCandidateCount} 张卡
+                回看待复习内容
+              </Text>
+            </Pressable>
+          ) : null}
+          {onOpenCompletionSpace ? (
+            <Pressable
+              onPress={onOpenCompletionSpace}
+              style={[
+                styles.secondaryButton,
+                {
+                  backgroundColor: neutralAction.surface,
+                  borderColor: neutralAction.border,
+                },
+              ]}
+              testID="learning-completion-space-button"
+            >
+              <Text
+                style={[styles.secondaryButtonLabel, { color: palette.text }]}
+              >
+                查看所在 Space
               </Text>
             </Pressable>
           ) : null}
@@ -366,12 +394,12 @@ export function LearningSurface({
               styles.primaryButton,
               { backgroundColor: primaryAction.surface },
             ]}
-            testID="learning-restart-button"
+            testID="learning-continue-round-button"
           >
             <Text
               style={[styles.primaryButtonLabel, { color: primaryAction.text }]}
             >
-              {isReviewPhase ? '回到首轮重新开始' : '重新练这轮卡'}
+              继续下一轮
             </Text>
           </Pressable>
         </View>

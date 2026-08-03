@@ -71,6 +71,51 @@ export function selectSessionCards(
   return selectedCards;
 }
 
+export function selectNextSessionCards(
+  availableCards: LearningCard[],
+  currentCards: LearningCard[],
+  cardCount: number = DEFAULT_LEARNING_SESSION_CARD_COUNT,
+) {
+  const currentCardIds = new Set(currentCards.map(card => card.card_id));
+  const orderedCards = orderLearningCards(availableCards);
+  const prioritizedCards = [
+    ...orderedCards.filter(card => !currentCardIds.has(card.card_id)),
+    ...orderedCards.filter(card => currentCardIds.has(card.card_id)),
+  ];
+
+  return selectSessionCardsInOrder(prioritizedCards, cardCount);
+}
+
+function selectSessionCardsInOrder(
+  orderedCards: LearningCard[],
+  cardCount: number,
+) {
+  const selectedCardIds = new Set<string>();
+  const selectedCards: LearningCard[] = [];
+
+  for (const interactionId of CORE_INTERACTION_ORDER) {
+    const nextCard = orderedCards.find(
+      card =>
+        card.interaction_id === interactionId &&
+        !selectedCardIds.has(card.card_id),
+    );
+
+    if (!nextCard) continue;
+    selectedCards.push(nextCard);
+    selectedCardIds.add(nextCard.card_id);
+    if (selectedCards.length >= cardCount) return selectedCards;
+  }
+
+  for (const card of orderedCards) {
+    if (selectedCardIds.has(card.card_id)) continue;
+    selectedCards.push(card);
+    selectedCardIds.add(card.card_id);
+    if (selectedCards.length >= cardCount) break;
+  }
+
+  return selectedCards;
+}
+
 function orderLearningCards(cards: LearningCard[]) {
   return [...cards].sort((left, right) =>
     left.card_id.localeCompare(right.card_id),
