@@ -1,5 +1,5 @@
 {
-  "version": "vnext-23",
+  "version": "vnext-24",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -10,6 +10,8 @@
     "main_learning_flow_and_physical_space_remain_top_level_product_capabilities_on_all_release_targets",
     "physical_space_is_real_product_capability",
     "login_is_required_before_learning_starts",
+    "dedicated_login_surface_precedes_the_authenticated_product_shell",
+    "signed_out_users_cannot_mount_or_navigate_learning_space_statistics_or_mine",
     "phone_sms_code_is_the_primary_login_method",
     "trial_and_membership_access_rules_are_enforced",
     "confirmed_user_facing_actions_are_not_dropped",
@@ -27,6 +29,8 @@
       "keep_learning_cost_low",
       "provide_device_class_specific_ui_and_page_structure",
       "enforce_authenticated_entry_before_learning",
+      "render_one_dedicated_authentication_entry_before_mounting_the_top_level_product_shell",
+      "hide_and_disable_learning_space_statistics_mine_navigation_while_signed_out_or_session_restoration_is_unvalidated",
       "present_navigation_consistently_across_surfaces",
       "support_keyboard_shortcuts_and_mouse_on_non_touch_surfaces",
       "do_not_auto_play_audio"
@@ -39,7 +43,8 @@
       "share_membership_entitlement_across_surfaces",
       "support_cross_device_resume_and_minimum_consistency",
       "validate_authenticated_user_context_for_learning_progress",
-      "start_trial_when_first_entry_is_counted",
+      "atomically_start_the_120_hour_trial_only_after_valid_learning_content_selection_and_cursor_persistence_succeed",
+      "return_server_authoritative_trial_started_at_and_trial_expires_at",
       "remind_for_purchase_recovery_after_membership_experience_ends"
     ]
   },
@@ -74,7 +79,8 @@
     "development-only v1 card-source and membership routes can accept an active v2 session during migration, the v1 daily and learning snapshot-write routes plus both v1 physical-space snapshot routes are always disabled, and production continues to reject every v1 route",
     "remote content failures fail closed and never substitute bundled development cards",
     "an authenticated v2 content manifest binds exact published track content to URL-free audio descriptors, Ed25519 signatures, and private expiring downloads while requiring client byte-hash verification; the repository-local backend, strict runtime keyring consumer, mobile parser, Learning binding, native content-addressed cache, completed-byte hashing, attached control, bounded controller, iOS AVAudioPlayer adapter, and Android Media3 ExoPlayer adapter are implemented, while production key registration, native release injection, private-object device playback proof, cross-platform screenshots, and deployment remain pending",
-    "closed beta premium access is granted or revoked only by a receiver operator through a dry-run-first command that atomically stores an idempotent audit event with the active beta grant record while leaving base membership unchanged; no client purchase or self-grant route is exposed"
+    "closed beta premium access is granted or revoked only by a receiver operator through a dry-run-first command that atomically stores an idempotent audit event with the active beta grant record while leaving base membership unchanged; no client purchase or self-grant route is exposed",
+    "controlled pilot schemas and static validators are implemented locally as an isolated gate-ineligible boundary; receiver deployment, publisher execution, trial timestamp persistence, pilot entitlement storage, mobile integration, approved 120-card import, and real-device evidence remain pending"
   ],
   "learning_event_runtime": {
     "classification": "implementation_hypothesis",
@@ -182,7 +188,8 @@
     "empty_selection_consistency": "selection_null_and_next_due_require_transactional_watermark_and_revision_confirmation",
     "selection_order": "eligible_persisted_cursor_then_earliest_due_review_then_canonical_catalog_new_card",
     "sleep_authority": "canonical_physical_space_excludes_sleeping_cards_without_deleting_scheduler_state",
-    "membership_authority": "first_session_starts_available_trial_trial_and_premium_full_free_canonical_prefix_ceil_half",
+    "membership_authority": "first_valid_session_atomically_starts_available_trial_only_after_content_selection_and_cursor_persistence_trial_and_premium_full_free_canonical_prefix_ceil_half",
+    "trial_time_authority": "server_trial_started_at_and_trial_expires_at_exactly_120_hours_apart_login_and_failed_sessions_never_start_trial",
     "membership_mutation_atomicity": "cloudbase_single_document_transactions_prevent_trial_or_recovery_from_downgrading_premium",
     "content_authority": "exact_normalized_content_version_and_source",
     "exact_same_card_cross_device_resume_required": false,
@@ -293,6 +300,29 @@
     "blank_environment_drill_status": "pending",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"
+  },
+  "controlled_pilot_runtime": {
+    "classification": "implementation_hypothesis",
+    "owner": "spec/account-sync-contract.json#trial_and_purchase",
+    "runtime_contract": "infra/cloudbase/controlled-pilot-v1-runtime-contract.md",
+    "runtime_mode": "controlled_pilot",
+    "scope": "cet4_ios_android_30_to_50_users_only",
+    "trial_duration_hours": 120,
+    "card_count": 120,
+    "stable_free_card_count": 60,
+    "profile_schema": "controlled-pilot-profile.v1",
+    "bundle_schema": "controlled-pilot-bundle.v1",
+    "release_schema": "pilot-content-release.v1",
+    "entitlement_command_schema": "pilot-entitlement-command.v1",
+    "outcome_report_schema": "pilot-outcome-report.v1",
+    "formal_release_boundary": "pilot_schemas_are_rejected_by_delivery_profile_release_bundle_content_release_beta_evidence_and_launch_readiness_validators",
+    "content_count_boundary": "only_formally_approved_external_card_make_payloads_count_development_source_candidate_handoff_and_dry_run_rows_do_not_count",
+    "payment_connected": false,
+    "gate_eligible": false,
+    "implementation_status": "schemas_static_validators_and_fail_closed_unit_tests_implemented_locally",
+    "pending_implementation": "receiver_publisher_trial_timestamp_persistence_pilot_entitlement_store_account_deletion_cleanup_mobile_wiring_approved_content_import_deployment_and_real_device_evidence",
+    "deployment_status": "not_deployed_by_repository_change",
+    "launch_gate_status": "ineligible"
   },
   "beta_entitlement_runtime": {
     "classification": "implementation_hypothesis",

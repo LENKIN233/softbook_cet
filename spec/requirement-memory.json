@@ -1,10 +1,12 @@
 {
-  "version": "vnext-7",
+  "version": "vnext-8",
   "purpose": "Persistent machine-readable memory of user-provided requirements from this conversation so they do not collapse during compaction or future rewrites.",
   "source_anchors": {
     "authentication": {
       "login_gate": "必须登入",
-      "primary_login_method": "手机号+验证码"
+      "primary_login_method": "手机号+验证码",
+      "dedicated_login_surface": "要有专门的登入",
+      "app_shell_gate": "不登入无法进入"
     },
     "commerce": {
       "purchase_authority": "web与app购买同权"
@@ -69,7 +71,11 @@
   "authentication_policy": {
     "login_is_required_before_learning": true,
     "guest_learning_before_authentication": false,
-    "primary_login_method": "phone_sms_code"
+    "primary_login_method": "phone_sms_code",
+    "dedicated_login_surface_required": true,
+    "authenticated_app_shell_required": true,
+    "signed_out_top_level_navigation_visible": false,
+    "signed_out_product_surfaces_reachable": false
   },
   "learning_model": {
     "single_card_flow": true,
@@ -180,7 +186,60 @@
       "max": 7
     },
     "trial_is_complete_experience": true,
-    "trial_starts_when": "first_entry_counted_as_membership_trial",
+    "trial_starts_when": "inside_the_first_successful_authenticated_learning_session_after_server_content_validation_selection_and_cursor_persistence_succeed",
+    "trial_time_authority": {
+      "source": "server",
+      "duration_hours": 120,
+      "fields": [
+        "trial_started_at",
+        "trial_expires_at"
+      ],
+      "non_triggers": [
+        "login",
+        "account_browsing",
+        "failed_content_load",
+        "failed_cursor_persistence",
+        "failed_learning_session"
+      ]
+    },
+    "controlled_pilot": {
+      "classification": "pre_beta_controlled_product_pilot",
+      "track": "cet4",
+      "card_count": 120,
+      "stable_free_card_count_after_trial": 60,
+      "cohort_min": 30,
+      "cohort_max": 50,
+      "client_surfaces": [
+        "ios",
+        "android"
+      ],
+      "web_role": "internal_acceptance_only",
+      "payment_connected": false,
+      "continuation_access": "audited_server_operator_entitlement_only",
+      "learning_round": {
+        "size": 5,
+        "authority": "server_confirmed_cumulative_account_track_event_sequence_only",
+        "daily_progress_rule": "activity_day_total_completed_count_is_not_the_round_boundary_authority",
+        "completion_destinations": [
+          "review_due_content",
+          "current_space_address",
+          "continue_next_round"
+        ],
+        "continuation_rule": "the_server_returns_no_next_selection_at_an_unacknowledged_five_event_boundary_and_only_selects_the_next_card_after_an_idempotent_authenticated_continue_command",
+        "replay_rule": "duplicate_events_restart_offline_replay_and_cross_device_reads_cannot_create_or_acknowledge_a_second_copy_of_the_same_round_boundary"
+      },
+      "gate_eligible": false,
+      "must_not_be_claimed_as": [
+        "closed_beta",
+        "public_release",
+        "launch_ready"
+      ],
+      "formal_cet4_closed_beta_threshold_unchanged": {
+        "cards": 1180,
+        "audio_references": 301,
+        "whole_track_final_approval_required": true
+      }
+    },
     "free_after_trial": "basic_learning_remains",
     "free_content_access": "near_half_of_cards",
     "premium_gates": [

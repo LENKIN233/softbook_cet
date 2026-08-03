@@ -104,7 +104,10 @@ Rules:
       "last_experience_ended_by": null,
       "recovery_prompt_visible": false,
       "trial_duration_days": 5,
-      "trial_started_at_entry_count": null
+      "trial_started_at_entry_count": null,
+      "trial_started_at": null,
+      "trial_expires_at": null,
+      "trial_remaining_seconds": 0
     },
     "progress": {
       "acknowledged_at": null,
@@ -139,11 +142,23 @@ track/source/card payload. Array order is significant; object-key order is
 canonicalized before hashing. The shared runtime/import validator rejects empty
 card arrays and duplicate card IDs before computing that version.
 
-Development content may have `release_id: null`. Production bootstrap fails
-closed with `503 content_release_unavailable` unless the content source carries
-a `content-release.v1` descriptor whose track and content version match the
-normalized payload. This endpoint returns release metadata, not card records,
-signed manifests, pack URLs, or audio URLs.
+Development content may have `release_id: null`. Formal closed-beta and release
+bootstrap fail closed with `503 content_release_unavailable` unless the content
+source carries a `content-release.v1` descriptor whose track and content
+version match the normalized payload. An isolated `runtime_mode=controlled_pilot`
+accepts only a matching `pilot-content-release.v1` with exactly 120 CET4 cards,
+the approved stable 60-card free subset, and `gate_eligible=false`; it must not
+accept a formal descriptor as a shortcut or expose pilot state to formal
+readiness. This endpoint returns release metadata, not card records, signed
+manifests, pack URLs, or audio URLs.
+
+Membership includes immutable server-authoritative `trial_started_at` and
+`trial_expires_at`. They are written only by the valid Learning Session
+transaction and are exactly 120 hours apart. Each response also returns
+server-derived integer `trial_remaining_seconds`: the nonnegative difference
+between expiry and that response's `generated_at`, or zero outside an active
+trial. Clients may present these values but must not use device time as
+entitlement authority or invent a remaining duration.
 
 The current `import-card-source.mjs` is a development importer and rejects
 non-null release descriptors. On apply it validates and archives a replaced

@@ -1,12 +1,24 @@
 {
-  "version": "vnext-6",
+  "version": "vnext-7",
   "policy": {
     "trial_goal": "让用户在 3-7 天内完整感受到内容、算法和物理空间的价值",
     "free_after_trial_goal": "保留入口和基础学习，但不再等于完整体验",
     "premium_value_expression": "smarter_guidance_plus_complete_space_plus_complete_card_library",
     "all_release_targets_must_support_purchase": true,
     "membership_entitlement_is_shared_across_ios_android_web": true,
-    "trial_start_trigger": "first_entry_counted_as_membership_trial",
+    "trial_start_trigger": "inside_the_first_successful_authenticated_learning_session_after_server_content_validation_selection_and_cursor_persistence_succeed",
+    "trial_time_authority": {
+      "source": "server",
+      "duration_hours": 120,
+      "authoritative_fields": [
+        "trial_started_at",
+        "trial_expires_at"
+      ],
+      "server_derived_response_field": "trial_remaining_seconds",
+      "remaining_seconds_rule": "server_derives_max_zero_trial_expires_at_minus_response_generated_at_on_every_membership_bootstrap_and_learning_session_read_and_returns_zero_outside_an_active_trial",
+      "client_calculation_forbidden": true,
+      "login_or_failed_session_must_not_start_trial": true
+    },
     "purchase_recovery_reminder": "after_membership_experience_ends",
     "web_and_app_purchase_authority": "equal",
     "closed_beta_entitlement": {
@@ -17,6 +29,17 @@
       "client_self_grant_forbidden": true,
       "grant_state_and_audit_history_must_share_one_atomic_record": true,
       "base_membership_must_not_be_overwritten": true
+    },
+    "controlled_pilot_entitlement": {
+      "classification": "pre_beta_controlled_pilot_only",
+      "access_state": "pilot_premium",
+      "delivery_rule": "receiver_operator_dry_run_first_grant_or_revoke_only",
+      "payment_required": false,
+      "audit_required": true,
+      "pilot_id_required": true,
+      "client_self_grant_forbidden": true,
+      "base_membership_must_not_be_overwritten": true,
+      "formal_beta_or_launch_evidence_eligible": false
     }
   },
   "states": {
@@ -25,6 +48,8 @@
         "min": 3,
         "max": 7
       },
+      "controlled_pilot_duration_hours": 120,
+      "expiration_rule": "server_compares_current_time_to_trial_expires_at_and_transitions_access_to_free",
       "access": {
         "basic_learning": true,
         "complete_card_library": true,

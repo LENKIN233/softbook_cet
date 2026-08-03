@@ -136,16 +136,26 @@ selection without deleting its learning or FSRS history. Favorite state does
 not change order.
 
 The first authenticated learning-session entry starts an available trial
-exactly once through the existing membership authority. Trial and premium
+exactly once only after canonical content validation, card selection, selection
+ID generation, and cursor persistence all succeed. The same server transaction
+writes `trial_started_at` and `trial_expires_at`, with expiration exactly 120
+continuous hours after start. Login, account browsing, invalid content, failed
+selection, failed cursor persistence, or any failed session response does not
+consume trial time. Repeated session requests reuse the original timestamps.
+Trial and premium
 schedule all cards. Free schedules the stable release-scoped prefix of
 `ceil(card_count * 0.5)` cards in canonical source order. This is close to
 half, never a tiny demo, and never the full library when the source has more
 than one card.
 
 Canonical context validation, selection ID generation, and required cursor
-persistence complete before trial activation. Invalid content, unavailable
-selection entropy, or a failed cursor write therefore cannot consume an
-available trial.
+persistence complete before trial activation. The server clock is the sole
+entitlement-time authority. Clients display canonical timestamps and the
+response's server-derived nonnegative integer `trial_remaining_seconds`, but
+never derive access or remaining duration from a local countdown. Outside an
+active trial this value is zero. In `controlled_pilot`, the free prefix is exactly the bundle's
+approved stable 60-card subset; other runtime modes retain their owned release
+policy.
 
 Repository-local CloudBase trial, purchase, and recovery mutations use one
 membership-document transaction. A concurrent trial start or recovery
@@ -177,6 +187,9 @@ output.
     "content_version": "sha256:<64 lowercase hex characters>",
     "source_id": "cloudbase-dev-card-source",
     "membership_stage": "trial",
+    "trial_started_at": "2026-07-23T04:00:00.000Z",
+    "trial_expires_at": "2026-07-28T04:00:00.000Z",
+    "trial_remaining_seconds": 432000,
     "algorithm": {
       "id": "FSRS-6",
       "library": "ts-fsrs",
@@ -195,19 +208,36 @@ output.
       "reason": "catalog_new",
       "due_at": null
     },
-    "next_due_at": null
+    "next_due_at": null,
+    "round_completion": null
   }
 }
 ```
 
 `phase` is `review` for a due or legacy review and `learning` for a new card.
+In `controlled_pilot`, an unacknowledged positive multiple-of-five cumulative
+server sequence returns `selection: null`, `next_due_at: null`, and an exact
+`round_completion` object with schema `pilot-round-completion.v1`, opaque
+`receipt_id`, integer `completed_count`, exact `space_card_id`, and ordered
+unique `review_card_ids`. `space_card_id` is the active-content card from the
+canonical event whose `server_sequence` equals `completed_count`; mobile uses
+only this server-owned ID for the actual compact Space address and never
+infers it from phase grouping or client time. The review IDs follow active
+card-source order and include exactly currently
+accessible, non-sleeping cards whose latest canonical account-and-track event
+projection has `answer_grade=review_needed`;
+mobile resolves only these IDs for read-only pending-round review and never
+infers or reorders them. All other responses return `round_completion: null`.
 `reason` is `catalog_new`, `due_review`, or `persisted_cursor`. A resumed
 cursor preserves its original phase and due time but reports
 `persisted_cursor`.
 
-The response membership stage is `trial`, `free`, or `premium`;
+The response membership stage is `trial`, `free`, `premium`, or
+`pilot_premium` in the isolated controlled-pilot runtime;
 `trial_available` must be activated before a successful response. `free`
-requires `free_subset` access, while `trial` and `premium` require `full`.
+requires `free_subset` access, while `trial`, `premium`, and `pilot_premium`
+require `full`. Trial timestamps are both null outside an active or expired
+trial history and otherwise remain the immutable server values.
 
 ## Mobile binding
 
@@ -221,7 +251,8 @@ fallback.
 If `membership_stage` differs from the bootstrap snapshot because the session
 activated or observed a newer entitlement, mobile refreshes bootstrap and
 requires the canonical stage to match before presenting the session. It never
-constructs entitlement counters or dates from the session response.
+constructs entitlement counters, timestamps, or access decisions from device
+time.
 
 Completion persists `selection_id`, selected card, server phase, exact content
 version, event ID, and installation cursor before leaving the result state. A
