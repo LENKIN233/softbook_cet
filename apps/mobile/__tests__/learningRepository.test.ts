@@ -27,7 +27,17 @@ function createSourcePayload(cardRecords = localLearningCardRecords) {
 
 function createSessionPayload(
   overrides: {
+    accessMode?: 'free_subset' | 'full';
+    accessibleCardCount?: number;
     contentVersion?: string;
+    membershipStage?: 'free' | 'trial';
+    roundCompletion?: {
+      completed_count: number;
+      receipt_id: string;
+      review_card_ids: string[];
+      schema_version: 'pilot-round-completion.v1';
+      space_card_id: string;
+    } | null;
     selection?: {
       selection_id: string;
       card_id: string;
@@ -41,6 +51,7 @@ function createSessionPayload(
 ) {
   const totalCardCount =
     overrides.totalCardCount ?? localLearningCardRecords.length;
+  const membershipStage = overrides.membershipStage ?? 'trial';
 
   return {
     data: {
@@ -49,7 +60,12 @@ function createSessionPayload(
       track: 'cet4',
       content_version: overrides.contentVersion ?? CONTENT_VERSION,
       source_id: overrides.sourceId ?? 'remote-learning-cards',
-      membership_stage: 'trial',
+      membership_stage: membershipStage,
+      trial_expires_at:
+        membershipStage === 'trial' ? '2026-07-29T08:00:00.000Z' : null,
+      trial_remaining_seconds: membershipStage === 'trial' ? 432000 : 0,
+      trial_started_at:
+        membershipStage === 'trial' ? '2026-07-24T08:00:00.000Z' : null,
       algorithm: {
         id: 'FSRS-6',
         library: 'ts-fsrs',
@@ -57,8 +73,8 @@ function createSessionPayload(
         policy_version: 'softbook-fsrs.v1',
       },
       access: {
-        mode: 'full',
-        accessible_card_count: totalCardCount,
+        mode: overrides.accessMode ?? 'full',
+        accessible_card_count: overrides.accessibleCardCount ?? totalCardCount,
         total_card_count: totalCardCount,
       },
       selection:
@@ -72,15 +88,19 @@ function createSessionPayload(
             }
           : overrides.selection,
       next_due_at: null,
+      round_completion: overrides.roundCompletion ?? null,
     },
   };
 }
 
 function createRemoteRepository(
   fetchImpl: jest.Mock,
-  contentManifestConfig: Parameters<typeof createLearningSessionRepository>[0]['contentManifestConfig'] = {
+  contentManifestConfig: Parameters<
+    typeof createLearningSessionRepository
+  >[0]['contentManifestConfig'] = {
     mode: 'disabled',
   },
+  runtimeMode?: 'controlled_pilot' | 'development' | 'production',
 ) {
   return createLearningSessionRepository({
     contentManifestConfig,
@@ -92,7 +112,20 @@ function createRemoteRepository(
     remoteSessionConfig: {
       endpoint: 'https://example.com/v2/learning/session',
     },
+    runtimeMode,
     fetchImpl,
+  });
+}
+
+function createControlledPilotCardRecords() {
+  return Array.from({ length: 120 }, (_, index) => {
+    const template =
+      index < 60 ? localLearningCardRecords[0] : localLearningCardRecords[2];
+    const sequence = String((index % 60) + 1).padStart(2, '0');
+    return {
+      ...template,
+      card_id: `${template.knowledge_ref}${sequence}`,
+    };
   });
 }
 
@@ -117,6 +150,102 @@ test('local learning session repository loads a usable session', async () => {
     'elimination',
     'swipe',
   ]);
+});
+
+test('controlled-pilot repository rejects a development-sized remote card source', async () => {
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSessionPayload(),
+    });
+  const repository = createRemoteRepository(
+    fetchMock,
+    { mode: 'disabled' },
+    'controlled_pilot',
+  );
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).rejects.toThrow(
+    'Controlled pilot learning content must match the exact CET4 120-card release and 60-card free boundary.',
+  );
+});
+
+test('controlled-pilot repository accepts the exact 120-card full-access boundary', async () => {
+  const cardRecords = createControlledPilotCardRecords();
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(cardRecords),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSessionPayload({ totalCardCount: 120 }),
+    });
+  const repository = createRemoteRepository(
+    fetchMock,
+    { mode: 'disabled' },
+    'controlled_pilot',
+  );
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).resolves.toMatchObject({
+    catalogCards: expect.arrayContaining([
+      expect.objectContaining({ card_id: '012101' }),
+    ]),
+  });
+});
+
+test('controlled-pilot repository accepts exactly the stable 60-card free prefix', async () => {
+  const cardRecords = createControlledPilotCardRecords();
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(cardRecords),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () =>
+        createSessionPayload({
+          accessMode: 'free_subset',
+          accessibleCardCount: 60,
+          membershipStage: 'free',
+          selection: {
+            selection_id: SELECTION_ID,
+            card_id: cardRecords[0].card_id,
+            phase: 'learning',
+            reason: 'catalog_new',
+            due_at: null,
+          },
+          totalCardCount: 120,
+        }),
+    });
+  const repository = createRemoteRepository(
+    fetchMock,
+    { mode: 'disabled' },
+    'controlled_pilot',
+  );
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).resolves.toMatchObject({
+    cards: [expect.objectContaining({ card_id: cardRecords[0].card_id })],
+    membershipStage: 'free',
+  });
 });
 
 test('local learning session repository rejects empty sessions', async () => {
@@ -256,7 +385,9 @@ test('remote repository binds a verified manifest to the canonical card source a
   expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
     'https://example.com/v1/learning/card-source?track=cet4',
     'https://example.com/v2/learning/session?track=cet4',
-    `https://example.com/v2/content/manifest?track=cet4&content_version=${encodeURIComponent(CONTENT_VERSION)}`,
+    `https://example.com/v2/content/manifest?track=cet4&content_version=${encodeURIComponent(
+      CONTENT_VERSION,
+    )}`,
   ]);
 });
 
@@ -329,7 +460,9 @@ test('remote repository rejects content-manifest access that drifts from the can
 
   await expect(
     repository.loadSession(authenticatedContext, 'cet4'),
-  ).rejects.toThrow('Content manifest access does not match the canonical learning session');
+  ).rejects.toThrow(
+    'Content manifest access does not match the canonical learning session',
+  );
 });
 
 test('remote selection null is valid and never falls back to local ordering', async () => {
@@ -353,6 +486,133 @@ test('remote selection null is valid and never falls back to local ordering', as
   expect(session.serverSelection).toBeNull();
   expect(session.cards).toEqual([]);
   expect(session.catalogCards).toHaveLength(localLearningCardRecords.length);
+});
+
+test('remote repository preserves canonical source order for round review content', async () => {
+  const reviewCardIds = [
+    localLearningCardRecords[0].card_id,
+    localLearningCardRecords[2].card_id,
+  ];
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () =>
+        createSessionPayload({
+          roundCompletion: {
+            completed_count: 5,
+            receipt_id: `rnd_${'r'.repeat(32)}`,
+            review_card_ids: reviewCardIds,
+            schema_version: 'pilot-round-completion.v1',
+            space_card_id: localLearningCardRecords[2].card_id,
+          },
+          selection: null,
+        }),
+    });
+  const repository = createRemoteRepository(fetchMock);
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).resolves.toMatchObject({
+    roundCompletion: {
+      reviewCardIds,
+      spaceCardId: localLearningCardRecords[2].card_id,
+    },
+  });
+});
+
+test('rejects a round Space card outside canonical active content', async () => {
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () =>
+        createSessionPayload({
+          roundCompletion: {
+            completed_count: 5,
+            receipt_id: `rnd_${'r'.repeat(32)}`,
+            review_card_ids: [],
+            schema_version: 'pilot-round-completion.v1',
+            space_card_id: '999999',
+          },
+          selection: null,
+        }),
+    });
+  const repository = createRemoteRepository(fetchMock);
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).rejects.toThrow(
+    'Remote round Space card is outside canonical active content.',
+  );
+});
+
+test.each([
+  {
+    label: 'outside current access',
+    accessMode: 'free_subset' as const,
+    accessibleCardCount: Math.ceil(localLearningCardRecords.length / 2),
+    membershipStage: 'free' as const,
+    reviewCardIds: [localLearningCardRecords.at(-1)!.card_id],
+    totalCardCount: localLearningCardRecords.length,
+  },
+  {
+    label: 'outside source order',
+    accessMode: 'full' as const,
+    accessibleCardCount: localLearningCardRecords.length,
+    membershipStage: 'trial' as const,
+    reviewCardIds: [
+      localLearningCardRecords[2].card_id,
+      localLearningCardRecords[0].card_id,
+    ],
+    totalCardCount: localLearningCardRecords.length,
+  },
+])('rejects round review content $label', async fixture => {
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () =>
+        createSessionPayload({
+          roundCompletion: {
+            completed_count: 5,
+            receipt_id: `rnd_${'r'.repeat(32)}`,
+            review_card_ids: fixture.reviewCardIds,
+            schema_version: 'pilot-round-completion.v1',
+            space_card_id: localLearningCardRecords[0].card_id,
+          },
+          selection: null,
+          accessMode: fixture.accessMode,
+          accessibleCardCount: fixture.accessibleCardCount,
+          membershipStage: fixture.membershipStage,
+          totalCardCount: fixture.totalCardCount,
+        }),
+    });
+  const repository = createRemoteRepository(fetchMock);
+
+  await expect(
+    repository.loadSession(authenticatedContext, 'cet4'),
+  ).rejects.toThrow(
+    'Remote round review content is outside canonical accessible content.',
+  );
 });
 
 test.each([

@@ -47,6 +47,23 @@ test('learning runtime config can switch repository mode to remote', () => {
   expect(config.remoteSessionConfig?.endpoint).toBe(
     'https://api.softbook.example/v2/learning/session',
   );
+  expect(config.runtimeMode).toBe('development');
+});
+
+test('learning runtime config carries controlled-pilot mode into the repository boundary', () => {
+  const config = resolveLearningSessionRepositoryConfig({
+    auth: {
+      mode: 'remote',
+      remote: { baseUrl: 'https://api.softbook.example/' },
+    },
+    learningSource: {
+      mode: 'remote',
+      remote: { baseUrl: 'https://api.softbook.example/' },
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+
+  expect(config.runtimeMode).toBe('controlled_pilot');
 });
 
 test('learning runtime config reads global runtime overrides', () => {

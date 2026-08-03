@@ -229,7 +229,7 @@ Content manifest 公钥不是秘密，但 key ID 与值必须和服务端签名�
 分段 smoke 时，用 `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES=accountBootstrap,learningSource,learningState,spaceState` 让指定 surface 暂时留在本地，其它远端能力仍由同一个 `baseUrl` 派生。
 `learningState` 为远端时，`accountBootstrap` 与 `learningSource` 也必须为远端，客户端才能把实际卡源的 `content_version` 与 canonical content version 绑定；若要本地卡源，必须把这三个 feature 一起留在本地。
 
-- `auth`：手机号验证码请求 / 校验仓储
+- `auth`：手机号验证码请求 / 校验、会话撤销与账户删除请求仓储；删除仅在远端真实账户模式显示，只有服务端 `202` 会退出产品壳层并标记清理待完成
 - `accountBootstrap`：登录或会话恢复后的服务端权威账户读取；远端模式要求 `auth.mode` 也为 `remote`，完成一致性校验前阻止学习及产品状态写入
 - `learningSource`：学习卡源仓储；远端模式要求登录上下文，且 `auth.mode` 也必须是 `remote`
 - `membership`：entitlement 读取、开始试用、开通会员、恢复购买提醒状态更新；远端模式要求 `auth.mode` 也必须是 `remote`
@@ -242,8 +242,22 @@ Content manifest 公钥不是秘密，但 key ID 与值必须和服务端签名�
 - 试用在首个计入入口开始，不在安装或注册时偷跑
 - 免费态保留基础学习，但完整卡库、完整空间和完整算法受限
 - `space` 和 `review` 受 entitlement gate 影响
-- “我的”页承接试用状态、开通会员和恢复购买提醒
+- “我的”页承接试用与权益状态；非测试运行不显示本地模拟购买入口
 
-这些是默认本地实现，用于验证产品合同；切到远端 runtime 后，真实计费与 entitlement 会由服务端合同回填。
+这些是默认本地实现，用于验证产品合同；测试环境仍可调用本地会员状态机做回归，交付给人的构建不会把该模拟能力呈现成购买。切到远端 runtime 后，真实计费与 entitlement 才由服务端合同回填。
+
+## Android 研发内部体验包
+
+```bash
+JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" \
+ANDROID_HOME="$HOME/Library/Android/sdk" \
+npm run android:internal
+```
+
+`internal` 基于 release 构建并内置 JS bundle，application ID 为
+`com.softbook.cet.internal`，可与正式包并存，禁止明文网络流量。它使用仓库 debug
+证书，仅供研发内部安装，不是 receiver 签名包、closed testing 包或正式发布证据。
+默认 runtime 仍是本地体验边界：手机号使用有效 11 位格式，固定内部短码为 `2468`；
+它不冒充真实 SMS、远端账户同步、正式 120 卡试点或私有音频交付。
 
 完整远端 profile 会先读取 `/v2/bootstrap`，再恢复会员、当日进度、学习游标和物理空间。请求只携带活动 session、track 与 day key，不发送手机号。若首次 canonical read 失败且没有已验证缓存，客户端保留仍有效的登录会话以便重试，但学习和所有产品状态写入均失败关闭；不会以本地状态或开发卡片冒充服务端真相。

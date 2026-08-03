@@ -20,6 +20,8 @@ def validate(context) -> None:
         "quotedSpaceMetadataReferencePattern",
         "quotedNestedSpaceMetadataReferencePattern",
         "rawMetadataReferencePattern",
+        "approvedPilotIdentityPattern",
+        "stripApprovedPilotIdentity",
     ]:
         check_contains("mobile metadata scanner visible TS source coverage", mobile_metadata_scanner_text, snippet)
 
@@ -486,6 +488,24 @@ def validate(context) -> None:
         (tmp_app_root / "src/learning").mkdir(parents=True)
         (tmp_app_root / "src/shared/uiMetadata").mkdir(parents=True)
         (tmp_app_root / "src/space").mkdir(parents=True)
+        (tmp_app_root / "src/learning/ApprovedPilotIdentityNoLeak.tsx").write_text(
+            "export function ApprovedPilotIdentityNoLeak() {\n"
+            "  return <Text>CET4 受控试点</Text>;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        (tmp_app_root / "src/learning/ParserFieldListNoLeak.ts").write_text(
+            "export const fields = [\n"
+            "  'status',\n"
+            "];\n",
+            encoding="utf-8",
+        )
+        (tmp_app_root / "src/learning/TypeValueNoLeak.ts").write_text(
+            "export function assertValue(value: {\n"
+            "  contentVersion: unknown;\n"
+            "}) { return value; }\n",
+            encoding="utf-8",
+        )
         (tmp_app_root / "src/learning/model.ts").write_text(
             "export const INTERACTION_LABELS = { flip: '本轮卡组' };\n",
             encoding="utf-8",
@@ -2059,6 +2079,9 @@ def validate(context) -> None:
         for unexpected_snippet in [
             "src/learning/InteractionLabelLookupNoLeak.tsx",
             "src/learning/InteractionLabelPropNoLeak.tsx",
+            "src/learning/ApprovedPilotIdentityNoLeak.tsx",
+            "src/learning/ParserFieldListNoLeak.ts",
+            "src/learning/TypeValueNoLeak.ts",
         ]:
             if unexpected_snippet in metadata_scanner_output:
                 errors.append(

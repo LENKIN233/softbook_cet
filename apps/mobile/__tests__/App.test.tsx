@@ -4,7 +4,7 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { AppState, ScrollView, StyleSheet, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
@@ -15,9 +15,10 @@ import {
   type SoftbookRemoteRuntimeProfile,
 } from '../src/runtime/appRuntimeConfig';
 import { getChinaDayKey } from '../src/shared/chinaDay';
-import App, { isCompactMineViewport } from '../App';
+import App, { getTabletShellBrand, isCompactMineViewport } from '../App';
 
 const mockCreateLearningSessionRepository = jest.fn();
+const mockContinueRound = jest.fn();
 const mockLoadSession = jest.fn();
 const mockFetch = jest.fn();
 const TEST_CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
@@ -26,6 +27,17 @@ test('Mine compact mode covers 320dp and short phone viewports', () => {
   expect(isCompactMineViewport(320, 693)).toBe(true);
   expect(isCompactMineViewport(393, 700)).toBe(true);
   expect(isCompactMineViewport(393, 850)).toBe(false);
+});
+
+test('controlled-pilot tablet brand stays fixed to the pilot identity', () => {
+  expect(getTabletShellBrand(true)).toEqual({
+    eyebrow: 'CET4 受控试点',
+    summary: '固定试点身份；从当前卡继续，空间、统计和“我的”保留同一账号状态。',
+    title: '软书备考',
+  });
+  expect(getTabletShellBrand(true)).not.toEqual(
+    expect.objectContaining({ title: '软书四六级' }),
+  );
 });
 
 function createSoftbookRemoteRuntimeConfig(
@@ -147,6 +159,8 @@ jest.mock('../src/learning/learningRepository', () => ({
     mockCreateLearningSessionRepository(...args);
 
     return {
+      continueRound: (...continueArgs: unknown[]) =>
+        mockContinueRound(...continueArgs),
       loadSession: (...loadArgs: unknown[]) => mockLoadSession(...loadArgs),
     };
   },
@@ -188,6 +202,13 @@ beforeEach(() => {
   resolvedSession = null;
   serverSelectionCounter = 0;
   mockCreateLearningSessionRepository.mockReset();
+  mockContinueRound.mockReset();
+  mockContinueRound.mockResolvedValue({
+    acknowledgedAt: '2026-08-03T08:00:00.000Z',
+    completedCount: 5,
+    receiptId: `rnd_${'r'.repeat(32)}`,
+    status: 'acknowledged',
+  });
   mockLoadSession.mockReset();
   mockLoadSession.mockImplementation(() => pendingSession.promise);
   mockFetch.mockReset();
@@ -623,12 +644,15 @@ function createRemoteAuthSessionResponse(
 }
 
 function createRemoteMembershipPayload(
-  stage: 'trial_available' | 'trial' | 'free' | 'premium',
+  stage: 'trial_available' | 'trial' | 'free' | 'premium' | 'pilot_premium',
   overrides: Partial<{
     counted_entry_count: number;
     last_experience_ended_by: 'trial' | 'premium' | null;
     recovery_prompt_visible: boolean;
     trial_duration_days: number;
+    trial_expires_at: string | null;
+    trial_remaining_seconds: number;
+    trial_started_at: string | null;
     trial_started_at_entry_count: number | null;
   }> = {},
 ) {
@@ -640,6 +664,9 @@ function createRemoteMembershipPayload(
         recovery_prompt_visible: false,
         stage,
         trial_duration_days: 5,
+        trial_expires_at: stage === 'trial' ? '2026-08-06T00:00:00.000Z' : null,
+        trial_remaining_seconds: stage === 'trial' ? 432000 : 0,
+        trial_started_at: stage === 'trial' ? '2026-08-01T00:00:00.000Z' : null,
         trial_started_at_entry_count: stage === 'trial' ? 1 : null,
         ...overrides,
       },
@@ -649,9 +676,19 @@ function createRemoteMembershipPayload(
 
 function createAccountBootstrapPayload(
   session: LearningSession = createLocalLearningSession('cet4'),
-  stage: 'trial_available' | 'trial' | 'free' | 'premium' = 'free',
+  stage:
+    | 'trial_available'
+    | 'trial'
+    | 'free'
+    | 'premium'
+    | 'pilot_premium' = 'free',
   learningEvents: MockLearningEvent[] = [],
   checkedInToday = false,
+  membershipOverrides: Partial<{
+    trial_expires_at: string | null;
+    trial_remaining_seconds: number;
+    trial_started_at: string | null;
+  }> = {},
 ) {
   const dayKey = getChinaDayKey();
   const learningCompletedCount = learningEvents.filter(
@@ -708,7 +745,11 @@ function createAccountBootstrapPayload(
         recovery_prompt_visible: false,
         stage,
         trial_duration_days: 5,
+        trial_expires_at: stage === 'trial' ? '2026-08-06T00:00:00.000Z' : null,
+        trial_remaining_seconds: stage === 'trial' ? 432000 : 0,
+        trial_started_at: stage === 'trial' ? '2026-08-01T00:00:00.000Z' : null,
         trial_started_at_entry_count: stage === 'trial' ? 1 : null,
+        ...membershipOverrides,
       },
       progress: {
         acknowledged_at: checkedInToday ? new Date().toISOString() : null,
@@ -757,8 +798,10 @@ function createRemoteCatalogSession(): LearningSession {
     cards: [remoteCard],
     contentManifest: null,
     contentVersion: TEST_CONTENT_VERSION,
+    generatedAt: '2026-07-20T10:00:00.000Z',
     membershipStage: 'free',
     nextDueAt: null,
+    roundCompletion: null,
     schedulingMode: 'server',
     serverSelection: {
       cardId: remoteCard.card_id,
@@ -770,10 +813,13 @@ function createRemoteCatalogSession(): LearningSession {
     sourceId: 'remote-catalog-source',
     sourceLabel: '远端 catalog 卡源',
     track: 'cet4',
+    trialExpiresAt: null,
+    trialRemainingSeconds: 0,
+    trialStartedAt: null,
   };
 }
 
-test('renders correctly', async () => {
+test('renders one dedicated login entry without the product shell', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -781,40 +827,64 @@ test('renders correctly', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('学习');
-  expect(output).toContain('空间');
-  expect(output).toContain('统计');
-  expect(output).toContain('我的');
-  const routeTabTexts = (
-    ['learning', 'space', 'statistics', 'mine'] as const
-  ).map(
-    route =>
-      tree!.root.findByProps({ testID: `route-tab-label-${route}` }).props
-        .children,
+  expect(output).toContain('先登入，再开始学习。');
+  expect(output).toContain(
+    '验证手机号后，系统才会读取你的学习、Space 与资格状态。',
   );
-  expect(routeTabTexts).toEqual(['学习', '空间', '统计', '我的']);
-  expect(routeTabTexts).not.toEqual(
-    expect.arrayContaining(['练', '位', '记', '我']),
-  );
-  expect(output).toContain('验证后开始今天的学习');
-  expect(output).toContain('学习位置将在验证后确定');
-  expect(output).toContain('已有进度会接上；新账号从系统第一张卡开始');
+  expect(output).toContain('账号状态将在验证后读取');
+  expect(output).toContain('登入本身不会开始五天体验。');
   expect(output).toContain('短信验证');
   expect(output).toContain('输入手机号');
   expect(output).toContain('输入手机号获取短码。');
   expect(output).toContain('待输入');
+  expect(
+    tree!.root.findAllByProps({ testID: 'route-tab-learning' }),
+  ).toHaveLength(0);
+  expect(tree!.root.findAllByProps({ testID: 'route-tab-space' })).toHaveLength(
+    0,
+  );
+  expect(
+    tree!.root.findAllByProps({ testID: 'route-tab-statistics' }),
+  ).toHaveLength(0);
+  expect(tree!.root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(
+    0,
+  );
+  expect(tree!.root.findAllByProps({ testID: 'mine-surface' })).toHaveLength(0);
+  expect(
+    tree!.root.findByProps({ testID: 'authentication-entry-boundary' }),
+  ).toBeTruthy();
+  expect(
+    tree!.root.findByProps({ testID: 'authentication-entry-screen' }),
+  ).toBeTruthy();
   expect(output).not.toContain('当前卡 · 四选一');
   expect(output).not.toContain('原位保留');
   expect(output).not.toContain('登录后保存');
   const routeObjectScreenStyle = StyleSheet.flatten(
-    tree!.root.findByProps({ testID: 'auth-route-object-screen' }).props.style,
+    tree!.root.findByProps({ testID: 'authentication-entry-screen' }).props
+      .style,
   );
-  expect(routeObjectScreenStyle.justifyContent).toBe('flex-start');
-  expect(routeObjectScreenStyle.paddingTop).toBe(2);
+  expect(routeObjectScreenStyle.justifyContent).toBe('center');
+  expect(routeObjectScreenStyle.paddingTop).toBe(20);
+  const authenticationEntryScroll = tree!.root.findByProps({
+    testID: 'authentication-entry-scroll',
+  });
+  const authenticationEntryScrollStyle = StyleSheet.flatten(
+    authenticationEntryScroll.props.style,
+  );
+  const authenticationEntryScrollContentStyle = StyleSheet.flatten(
+    authenticationEntryScroll.props.contentContainerStyle,
+  );
+  expect(authenticationEntryScrollStyle.flex).toBe(1);
+  expect(authenticationEntryScrollContentStyle.flexGrow).toBe(1);
+  expect(authenticationEntryScrollContentStyle.justifyContent).toBe('center');
+  expect(authenticationEntryScroll.props.keyboardShouldPersistTaps).toBe(
+    'handled',
+  );
   const routeObjectCardStyle = StyleSheet.flatten(
-    tree!.root.findByProps({ testID: 'auth-route-object-card' }).props.style,
+    tree!.root.findByProps({ testID: 'authentication-entry-card' }).props.style,
   );
-  expect(routeObjectCardStyle.flex).toBeUndefined();
+  expect(routeObjectCardStyle.width).toBe('100%');
+  expect(routeObjectCardStyle.maxWidth).toBe(560);
   expect(routeObjectCardStyle.justifyContent).toBe('flex-start');
   expect(routeObjectCardStyle.minHeight).toBeUndefined();
   const actionStack = tree!.root.findByProps({
@@ -838,49 +908,112 @@ test('renders correctly', async () => {
     tree!.root.findByProps({ testID: 'auth-continuity-promise' }),
   ).toBeTruthy();
   expect(
+    tree!.root.findByProps({ testID: 'auth-retained-object-title' }).props
+      .numberOfLines,
+  ).toBeUndefined();
+  expect(
+    tree!.root.findByProps({ testID: 'auth-retained-object-summary' }).props
+      .numberOfLines,
+  ).toBeUndefined();
+  expect(
     findPressableByTestId(tree!.root, 'auth-request-code-button').props
       .disabled,
   ).toBe(true);
 });
 
-test('keeps protected route auth gates attached to the selected object', async () => {
+test('keeps session restoration outside the product shell', async () => {
+  const restoreResult = createDeferred<false>();
+  (Keychain.getGenericPassword as jest.Mock).mockReturnValueOnce(
+    restoreResult.promise,
+  );
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(<App />);
   });
 
-  const root = tree!.root;
+  expect(
+    tree!.root.findByProps({ testID: 'authentication-restoring-screen' }),
+  ).toBeTruthy();
+  expect(
+    tree!.root.findAllByProps({ testID: 'route-tab-learning' }),
+  ).toHaveLength(0);
+  expect(tree!.root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(
+    0,
+  );
 
-  expect(JSON.stringify(tree!.toJSON())).toContain('验证后开始今天的学习');
-  expect(JSON.stringify(tree!.toJSON())).toContain('学习位置将在验证后确定');
+  await ReactTestRenderer.act(async () => {
+    restoreResult.resolve(false);
+    await flushAsyncEffects();
+  });
 
-  await openRoute(root, 'space');
-  let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证后打开知识空间');
-  expect(output).toContain('空间状态将在验证后读取');
-  expect(output).toContain('空间');
-  expect(output).toContain('确认手机号后读取这个账户的书架、分区和卡盒');
-  expect(output).not.toContain('空间 · 当前位置');
-  expect(output).not.toContain('库组盒');
-  expect(output).not.toContain('登录后同步');
-  expect(output).not.toContain('验证后开始今天的学习');
-  expect(output).not.toContain('当前学习');
-
-  await openRoute(root, 'statistics');
-  output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证后查看今日进展');
-  expect(output).toContain('今日记录将在验证后读取');
-  expect(output).toContain('统计');
-  expect(output).toContain('确认手机号后读取今天已经发生的完成');
-  expect(output).toContain('已有记录会接上；新账号从空白账页开始。');
-  expect(output).not.toContain('今日进展 · 待同步');
-  expect(output).not.toContain('待同步');
-  expect(output).not.toContain('登录后查看空间');
-  expect(output).not.toContain('当前学习');
+  expect(
+    tree!.root.findByProps({ testID: 'authentication-entry-screen' }),
+  ).toBeTruthy();
 });
 
-test('keeps signed-out mine as an account object instead of a learning gate', async () => {
+test('keeps a verified remote session outside the product shell until initial account hydration succeeds', async () => {
+  let bootstrapAvailable = false;
+  const session = createLocalLearningSession('cet4');
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return bootstrapAvailable
+        ? createJsonResponse(createAccountBootstrapPayload(session, 'free'))
+        : createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+
+  await authenticateIntoLearningBootstrap(root);
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+
+  expect(
+    root.findByProps({ testID: 'authentication-account-recovery-screen' }),
+  ).toBeTruthy();
+  expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-space' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-statistics' })).toHaveLength(
+    0,
+  );
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
+  expect(JSON.stringify(tree!.toJSON())).toContain('产品页面会继续保持关闭');
+
+  bootstrapAvailable = true;
+  await ReactTestRenderer.act(async () => {
+    root
+      .findByProps({ testID: 'authentication-account-recovery-retry' })
+      .props.onPress();
+    await flushAsyncEffects();
+  });
+  await resolveLearningBootstrap(session);
+  await waitForLearningSurface(root);
+
+  expect(
+    root.findAllByProps({ testID: 'authentication-account-recovery-screen' }),
+  ).toHaveLength(0);
+  expect(root.findByProps({ testID: 'route-tab-learning' })).toBeTruthy();
+});
+
+test('does not expose route-specific login gates while signed out', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -888,70 +1021,82 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   });
 
   const root = tree!.root;
-  await openRoute(root, 'mine');
 
+  expect(
+    root.findAllByProps({ testID: 'auth-route-object-screen' }),
+  ).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'mine-profile-card' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-space' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-statistics' })).toHaveLength(
+    0,
+  );
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
+  expect(
+    root.findByProps({ testID: 'authentication-entry-card' }),
+  ).toBeTruthy();
+});
+
+test('keeps the signed-out account form outside Mine', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
   const output = JSON.stringify(tree!.toJSON());
-  const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
-  const mineProfileCardStyle = StyleSheet.flatten(mineProfileCard.props.style);
-  expect(mineProfileCardStyle.flex).toBeUndefined();
-  expect(mineProfileCardStyle.justifyContent).toBe('flex-start');
-  expect(mineProfileCardStyle.minHeight).toBeUndefined();
-  const actionStack = mineProfileCard.findByProps({
+  const authEntryCard = root.findByProps({
+    testID: 'authentication-entry-card',
+  });
+  const actionStack = authEntryCard.findByProps({
     testID: 'auth-gate-action-stack',
   });
   expect(
     actionStack.findByProps({ testID: 'auth-continuity-promise' }),
   ).toBeTruthy();
   expect(actionStack.findByProps({ testID: 'auth-sms-panel' })).toBeTruthy();
-  expect(output).toContain('确认手机号');
-  expect(output).toContain('学习记录、空间位置和会员权益统一归到这个账号。');
-  expect(output).toContain('账号归属待确认');
-  expect(output).toContain('我的');
-  expect(output).toContain('确认手机号');
+  expect(output).toContain('先登入，再开始学习。');
+  expect(output).toContain('账号状态将在验证后读取');
   expect(output).toContain('输入手机号获取短码。');
-  expect(output).not.toContain('账号承接');
-  expect(output).not.toContain('确认身份继续学');
-  expect(output).not.toContain('当前学习卡');
+  expect(root.findAllByProps({ testID: 'mine-surface' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
   expectNoUserVisibleMetadataLeakage(tree!);
-  expect(collectRenderedText(tree!.toJSON())).not.toEqual(
-    expect.arrayContaining(['我']),
-  );
   expect(
-    mineProfileCard.findByProps({ testID: 'auth-continuity-promise' }),
+    authEntryCard.findByProps({ testID: 'auth-continuity-promise' }),
   ).toBeTruthy();
   expect(
-    mineProfileCard.findByProps({ testID: 'auth-continuity-promise-pill' }),
+    authEntryCard.findByProps({ testID: 'auth-continuity-promise-pill' }),
   ).toBeTruthy();
   expect(
-    mineProfileCard.findAllByProps({ testID: 'auth-retained-ledger-row' })
-      .length,
+    authEntryCard.findAllByProps({ testID: 'auth-retained-ledger-row' }).length,
   ).toBe(0);
   expect(
-    mineProfileCard.findByProps({ testID: 'auth-phone-input' }),
+    authEntryCard.findByProps({ testID: 'auth-phone-input' }),
   ).toBeTruthy();
   expect(
-    mineProfileCard.findByProps({ testID: 'auth-request-inline-dock' }),
+    authEntryCard.findByProps({ testID: 'auth-request-inline-dock' }),
   ).toBeTruthy();
   const requestDockStyle = StyleSheet.flatten(
-    mineProfileCard.findByProps({ testID: 'auth-request-inline-dock' }).props
+    authEntryCard.findByProps({ testID: 'auth-request-inline-dock' }).props
       .style,
   );
   expect(requestDockStyle.borderWidth).toBe(1);
   const smsPanelStyle = StyleSheet.flatten(
-    mineProfileCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
+    authEntryCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
   );
   expect(smsPanelStyle.flex).toBeUndefined();
   expect(smsPanelStyle.justifyContent).toBeUndefined();
   const requestActionRowStyle = StyleSheet.flatten(
-    mineProfileCard.findByProps({ testID: 'auth-request-action-row' }).props
+    authEntryCard.findByProps({ testID: 'auth-request-action-row' }).props
       .style,
   );
   expect(requestActionRowStyle.flexDirection).toBe('column');
   const requestButtonStyle = StyleSheet.flatten(
     findPressableByTestId(root, 'auth-request-code-button').props.style,
   );
-  expect(requestButtonStyle.width).toBe('100%');
-  expect(requestButtonStyle.minWidth).toBe(0);
+  expect(requestButtonStyle.alignSelf).toBe('stretch');
+  expect(requestButtonStyle.minHeight).toBe(50);
 
   await ReactTestRenderer.act(() => {
     root
@@ -965,14 +1110,14 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
   expect(readyOutput).toContain('可发送');
   expect(readyOutput).toContain('发送短码');
   expect(
-    mineProfileCard.findByProps({ testID: 'auth-request-readiness-pill' }),
+    authEntryCard.findByProps({ testID: 'auth-request-readiness-pill' }),
   ).toBeTruthy();
   expect(
     findPressableByTestId(root, 'auth-request-code-button').props.disabled,
   ).toBe(false);
 });
 
-test('keeps mine code-sent state attached to the account object', async () => {
+test('keeps code-sent state inside the dedicated login entry', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -980,7 +1125,6 @@ test('keeps mine code-sent state attached to the account object', async () => {
   });
 
   const root = tree!.root;
-  await openRoute(root, 'mine');
 
   await ReactTestRenderer.act(() => {
     root
@@ -994,26 +1138,27 @@ test('keeps mine code-sent state attached to the account object', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
+  const authEntryCard = root.findByProps({
+    testID: 'authentication-entry-card',
+  });
   expect(output).toContain('验证码已发');
   expect(output).toContain('输入验证码');
   expect(output).toContain('已发送');
   expect(output).toContain('验证码已发送');
   expect(output).toContain('确认后回到');
-  expect(output).toContain('我的');
+  expect(output).toContain('学习');
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
   expect(
-    mineProfileCard.findByProps({ testID: 'auth-code-inline-dock' }),
+    authEntryCard.findByProps({ testID: 'auth-code-inline-dock' }),
   ).toBeTruthy();
-  expect(
-    mineProfileCard.findByProps({ testID: 'auth-code-input' }),
-  ).toBeTruthy();
+  expect(authEntryCard.findByProps({ testID: 'auth-code-input' })).toBeTruthy();
   const inlineDockStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'auth-code-inline-dock' }).props.style,
   );
   expect(inlineDockStyle.borderWidth).toBe(1);
   expect(inlineDockStyle.borderRadius).toBe(20);
   const smsPanelStyle = StyleSheet.flatten(
-    mineProfileCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
+    authEntryCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
   );
   expect(smsPanelStyle.flex).toBeUndefined();
   expect(smsPanelStyle.justifyContent).toBeUndefined();
@@ -1024,14 +1169,70 @@ test('keeps mine code-sent state attached to the account object', async () => {
   const submitButtonStyle = StyleSheet.flatten(
     findPressableByTestId(root, 'auth-submit-button').props.style,
   );
-  expect(submitButtonStyle.width).toBe('100%');
-  expect(submitButtonStyle.minWidth).toBe(0);
+  expect(submitButtonStyle.alignSelf).toBe('stretch');
+  expect(submitButtonStyle.minHeight).toBe(45);
   expect(findPressableByTestId(root, 'auth-submit-button').props.disabled).toBe(
     true,
   );
   expect(output).not.toContain('未登录');
   expect(output).not.toContain('等待登录');
   expect(output).not.toContain('待登录');
+});
+
+test('can return from code entry to correct the phone without exposing the product shell', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'auth-phone-input' })
+      .props.onChangeText('13800138000');
+  });
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'auth-request-code-button' }).props.onPress();
+    await flushAsyncEffects();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'auth-code-input' }).props.onChangeText('2468');
+  });
+
+  expect(root.findByProps({ testID: 'auth-change-phone-button' })).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'auth-change-phone-button' }).props.onPress();
+  });
+
+  expect(root.findAllByProps({ testID: 'auth-code-inline-dock' })).toHaveLength(
+    0,
+  );
+  expect(root.findAllByProps({ testID: 'auth-code-input' })).toHaveLength(0);
+  expect(root.findByProps({ testID: 'auth-request-inline-dock' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'auth-phone-input' }).props.value).toBe(
+    '13800138000',
+  );
+  expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-space' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-statistics' })).toHaveLength(
+    0,
+  );
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'auth-phone-input' })
+      .props.onChangeText('13900139000');
+  });
+  expect(root.findByProps({ testID: 'auth-phone-input' }).props.value).toBe(
+    '13900139000',
+  );
+  expect(
+    findPressableByTestId(root, 'auth-request-code-button').props.disabled,
+  ).toBe(false);
 });
 
 test('reads installed runtime config when the app mounts', async () => {
@@ -1090,6 +1291,163 @@ test('uses native initial remote runtime profile before the shell mounts', async
   expect(output).not.toContain('输入验证码即可完成登录。');
 });
 
+test('keeps failed account deletion inside Mine with the account unchanged', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/account/deletion') {
+      return createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+  expect(
+    await AsyncStorage.getItem('softbook-cet/user-state/v1'),
+  ).not.toBeNull();
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'account-deletion-open').props.onPress();
+  });
+  expect(JSON.stringify(tree!.toJSON())).toContain('确认删除账户？');
+  expect(JSON.stringify(tree!.toJSON())).toContain('Space 状态');
+
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'account-deletion-confirm').props.onPress();
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('删除请求未提交。');
+  expect(output).toContain('你的账户和学习数据没有改变。');
+  expect(output).toContain('重新提交');
+  expect(output).not.toContain('Remote auth account-deletion');
+  expect(root.findByProps({ testID: 'mine-surface' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'route-tab-learning' })).toBeTruthy();
+  expect(
+    root.findAllByProps({ testID: 'account-deletion-pending-notice' }),
+  ).toHaveLength(0);
+  await expect(
+    AsyncStorage.getItem('softbook-cet/user-state/v1'),
+  ).resolves.not.toBeNull();
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('accepted account deletion exits the shell and reports cleanup as pending', async () => {
+  const fetchCalls: MockFetchCall[] = [];
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    fetchCalls.push({ init, input });
+
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/account/deletion') {
+      return createJsonResponse(
+        { data: { deletion_request: { id: 'delete-123' } } },
+        202,
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+  expect(
+    await AsyncStorage.getItem('softbook-cet/user-state/v1'),
+  ).not.toBeNull();
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'account-deletion-open').props.onPress();
+  });
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'account-deletion-confirm').props.onPress();
+    await flushAsyncEffects();
+  });
+
+  const deletionRequest = fetchCalls.find(
+    call => call.input === 'https://api.softbook.example/v2/account/deletion',
+  );
+  expect(deletionRequest?.init?.method).toBe('POST');
+  expect(normalizeMockHeaders(deletionRequest?.init?.headers)).toMatchObject({
+    authorization: 'Bearer remote-auth-token',
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('账户删除已提交');
+  expect(output).toContain('数据清理完成前暂不能重新登录');
+  expect(output).not.toContain('账户已删除');
+  expect(
+    root.findByProps({ testID: 'authentication-entry-boundary' }),
+  ).toBeTruthy();
+  expect(root.findAllByProps({ testID: 'mine-surface' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(0);
+  await expect(
+    AsyncStorage.getItem('softbook-cet/user-state/v1'),
+  ).resolves.toBeNull();
+  await expect(AsyncStorage.getItem('__softbook_mutation_queue')).resolves.toBe(
+    '[]',
+  );
+  await expect(
+    AsyncStorage.getItem('__softbook_mutation_queue:quarantine'),
+  ).resolves.toBe('[]');
+  const clearedLearningEventOutbox = JSON.parse(
+    String(await AsyncStorage.getItem('__softbook_learning_event_outbox_v2')),
+  ) as { entries: unknown[] };
+  expect(clearedLearningEventOutbox.entries).toEqual([]);
+  expect(Keychain.resetGenericPassword).toHaveBeenCalled();
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
 test('shows remote request-code failure inside the auth gate', async () => {
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
     auth: {
@@ -1142,6 +1500,71 @@ test('shows remote request-code failure inside the auth gate', async () => {
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
+test('keeps the existing code usable and reports a resend failure accurately', async () => {
+  let requestAttempt = 0;
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async input => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      requestAttempt += 1;
+      return requestAttempt === 1
+        ? createRemoteAuthChallengeResponse()
+        : createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'auth-phone-input' })
+      .props.onChangeText('13800138000');
+  });
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'auth-request-code-button' }).props.onPress();
+    await flushAsyncEffects();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'auth-code-input' }).props.onChangeText('2468');
+  });
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'auth-request-code-button' }).props.onPress();
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('短码没有重新发出');
+  expect(output).toContain('此前短码仍可继续验证，或再次发送。');
+  expect(output).not.toContain('验证码暂时没通过');
+  expect(root.findByProps({ testID: 'auth-code-input' }).props.value).toBe(
+    '2468',
+  );
+  expect(findPressableByTestId(root, 'auth-submit-button').props.disabled).toBe(
+    false,
+  );
+  expect(root.findByProps({ testID: 'auth-change-phone-button' })).toBeTruthy();
+  expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-space' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-statistics' })).toHaveLength(
+    0,
+  );
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
+});
+
 test('shows remote verify-code failure inside the auth gate', async () => {
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
     auth: {
@@ -1192,8 +1615,8 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expect(output).toContain('已发送到');
   expect(output).toContain('138****8000');
   expect(output).toContain('验证');
-  expect(output).toContain('继续');
-  expect(output).toContain('确认后回到当前卡。');
+  expect(output).toContain('输入验证码。');
+  expect(output).toContain('确认后回到学习。');
   expect(output).toContain('重新发送');
   expect(output).not.toContain('等待登录');
 
@@ -1211,7 +1634,7 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expect(output).toContain('检查短码后重试，当前位置不变。');
   expect(output).toContain('重新验证');
   expect(output).toContain('可重试');
-  expect(output).toContain('4-6 位短码，确认后回到当前卡。');
+  expect(output).toContain('4-6 位短码，确认后回到学习。');
   expect(root.findByProps({ testID: 'auth-error-dock' })).toBeTruthy();
   expect(root.findByProps({ testID: 'auth-error-title' })).toBeTruthy();
   expect(root.findByProps({ testID: 'auth-error-detail' })).toBeTruthy();
@@ -1310,7 +1733,11 @@ test('does not expose native credential storage failures inside the auth gate', 
   await authenticateIntoLearningBootstrap(tree!.root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证码暂时没通过。');
+  expect(output).toContain('登录暂时未完成');
+  expect(output).toContain('登录凭证暂时无法安全保存，登录尚未完成。');
+  expect(output).toContain('验证码已通过；请重试完成安全登录。');
+  expect(output).toContain('重新完成登录');
+  expect(output).not.toContain('验证码暂时没通过');
   expect(output).not.toContain('TurboModuleRegistry');
   expect(output).not.toContain('RNKeychain');
   expectNoUserVisibleMetadataLeakage(tree!);
@@ -1685,6 +2112,647 @@ test('refreshes canonical membership when learning-session starts the trial', as
   ).toHaveLength(0);
 });
 
+test('shows the first-card trial notice once after an interrupted activation response', async () => {
+  const trialSession: LearningSession = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: TEST_CONTENT_VERSION,
+    generatedAt: '2026-08-01T00:00:05.000Z',
+    membershipStage: 'trial',
+    trialExpiresAt: '2026-08-06T00:00:00.000Z',
+    trialRemainingSeconds: 431995,
+    trialStartedAt: '2026-08-01T00:00:00.000Z',
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(trialSession, 'trial', [], false, {
+          trial_expires_at: trialSession.trialExpiresAt,
+          trial_remaining_seconds: trialSession.trialRemainingSeconds,
+          trial_started_at: trialSession.trialStartedAt,
+        }),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(trialSession);
+  await waitForLearningSurface(root);
+
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-trial-notice' }),
+  ).toBeTruthy();
+  await openRoute(root, 'mine');
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-membership-card' }),
+  ).toBeTruthy();
+  expect(JSON.stringify(tree!.toJSON())).toContain(
+    '受控试点不收费，继续资格由运营依据试点记录发放。',
+  );
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-membership-summary' }).props
+      .children,
+  ).toBe('完整学习路线已开放；时间与资格以服务端记录为准。');
+  expect(JSON.stringify(tree!.toJSON())).toContain('4 天 23 小时 59 分');
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-trial-started-at' }),
+  ).toBeTruthy();
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-trial-expires-at' }),
+  ).toBeTruthy();
+  expect(
+    root.findAllByProps({ testID: 'membership-purchase-button' }),
+  ).toHaveLength(0);
+  expect(
+    root.findAllByProps({ testID: 'membership-start-trial-button' }),
+  ).toHaveLength(0);
+  let persistedState: string | null = null;
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    persistedState = await AsyncStorage.getItem('softbook-cet/user-state/v1');
+    if (persistedState?.includes(trialSession.trialStartedAt!)) {
+      break;
+    }
+  }
+  expect(persistedState).toContain(trialSession.trialStartedAt);
+  await ReactTestRenderer.act(() => {
+    tree!.unmount();
+  });
+
+  let restoredTree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    restoredTree = ReactTestRenderer.create(<App />);
+  });
+  await waitForLearningSurface(restoredTree!.root);
+  expect(
+    restoredTree!.root.findAllByProps({
+      testID: 'controlled-pilot-trial-notice',
+    }),
+  ).toHaveLength(0);
+  await ReactTestRenderer.act(() => {
+    restoredTree!.unmount();
+  });
+});
+
+test('waits for a valid selected card before consuming the trial notice', async () => {
+  const baseSession = createLocalLearningSession('cet4');
+  const trialTimeline = {
+    trialExpiresAt: '2026-08-06T00:00:00.000Z',
+    trialStartedAt: '2026-08-01T00:00:00.000Z',
+  };
+  const availabilitySession: LearningSession = {
+    ...baseSession,
+    cards: [],
+    contentVersion: TEST_CONTENT_VERSION,
+    generatedAt: trialTimeline.trialStartedAt,
+    membershipStage: 'trial',
+    nextDueAt: null,
+    schedulingMode: 'server',
+    serverSelection: null,
+    ...trialTimeline,
+    trialRemainingSeconds: 432000,
+  };
+  const selectedSession: LearningSession = {
+    ...availabilitySession,
+    cards: [baseSession.catalogCards[0]],
+    generatedAt: '2026-08-01T00:00:01.000Z',
+    serverSelection: {
+      cardId: baseSession.catalogCards[0].card_id,
+      dueAt: null,
+      phase: 'learning',
+      reason: 'persisted_cursor',
+      selectionId: 'sel_trial_notice_recovery_0001',
+    },
+    trialRemainingSeconds: 431999,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(availabilitySession, 'trial', [], false, {
+          trial_expires_at: trialTimeline.trialExpiresAt,
+          trial_remaining_seconds: 432000,
+          trial_started_at: trialTimeline.trialStartedAt,
+        }),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(availabilitySession);
+  expect(
+    root.findByProps({ testID: 'learning-availability-surface' }),
+  ).toBeTruthy();
+  expect(
+    root.findAllByProps({ testID: 'controlled-pilot-trial-notice' }),
+  ).toHaveLength(0);
+
+  resolvedSession = selectedSession;
+  await ReactTestRenderer.act(async () => {
+    root
+      .findByProps({ testID: 'learning-availability-refresh-button' })
+      .props.onPress();
+    await flushAsyncEffects();
+  });
+  await waitForLearningSurface(root);
+
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-trial-notice' }),
+  ).toBeTruthy();
+  await ReactTestRenderer.act(() => {
+    tree!.unmount();
+  });
+});
+
+test('revalidates at the server trial boundary without a later Session read postponing it', async () => {
+  let bootstrapRequestCount = 0;
+  const baseSession = createLocalLearningSession('cet4');
+  const trialTimeline = {
+    trialExpiresAt: '2026-08-06T00:00:00.000Z',
+    trialStartedAt: '2026-08-01T00:00:00.000Z',
+  };
+  const trialSession: LearningSession = {
+    ...baseSession,
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'trial',
+    ...trialTimeline,
+    trialRemainingSeconds: 1,
+  };
+  const freeSession: LearningSession = {
+    ...trialSession,
+    membershipStage: 'free',
+    trialRemainingSeconds: 0,
+  };
+  const waitingTrialSession: LearningSession = {
+    ...trialSession,
+    cards: [],
+    nextDueAt: null,
+    schedulingMode: 'server',
+    serverSelection: null,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      const isInitialRead = bootstrapRequestCount === 1;
+      return createJsonResponse(
+        createAccountBootstrapPayload(
+          isInitialRead ? waitingTrialSession : freeSession,
+          isInitialRead ? 'trial' : 'free',
+          [],
+          false,
+          {
+            trial_expires_at: trialTimeline.trialExpiresAt,
+            trial_remaining_seconds: isInitialRead ? 1 : 0,
+            trial_started_at: trialTimeline.trialStartedAt,
+          },
+        ),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(waitingTrialSession);
+  expect(
+    root.findByProps({ testID: 'learning-availability-surface' }),
+  ).toBeTruthy();
+
+  await ReactTestRenderer.act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 650));
+  });
+  resolvedSession = trialSession;
+  await ReactTestRenderer.act(async () => {
+    root
+      .findByProps({ testID: 'learning-availability-refresh-button' })
+      .props.onPress();
+    await flushAsyncEffects();
+  });
+  await waitForLearningSurface(root);
+
+  resolvedSession = freeSession;
+  await ReactTestRenderer.act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 600));
+    await flushAsyncEffects();
+  });
+  await waitForLearningSurface(root);
+
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
+  await openRoute(root, 'mine');
+  expect(
+    root.findByProps({ testID: 'mine-membership-stage' }).props.children,
+  ).toBe('当前是基础学习态');
+  await openRoute(root, 'space');
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-space-entitlement-copy' }),
+  ).toBeTruthy();
+});
+
+test('explains controlled-pilot free access without payment or upgrade language', async () => {
+  const freeSession: LearningSession = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'free',
+    trialExpiresAt: '2026-08-06T00:00:00.000Z',
+    trialRemainingSeconds: 0,
+    trialStartedAt: '2026-08-01T00:00:00.000Z',
+  };
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(freeSession, 'free', [], false, {
+          trial_expires_at: freeSession.trialExpiresAt,
+          trial_remaining_seconds: 0,
+          trial_started_at: freeSession.trialStartedAt,
+        }),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(freeSession);
+  await waitForLearningSurface(root);
+
+  await openRoute(root, 'mine');
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('60 张稳定免费内容');
+  expect(output).toContain(
+    '五天完整体验已结束；60 张稳定免费内容继续开放，学习与 Space 状态仍保留。',
+  );
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-free-content' }),
+  ).toBeTruthy();
+  expect(
+    root.findAllByProps({ testID: 'membership-purchase-button' }),
+  ).toHaveLength(0);
+  expect(
+    root.findAllByProps({ testID: 'membership-start-trial-button' }),
+  ).toHaveLength(0);
+
+  await openRoute(root, 'space');
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'space-open-card-list' }).props.onPress();
+  });
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('试点资格开放后可调整收藏和休眠状态');
+  expect(output).not.toContain('试用或会员后可调整收藏和休眠状态');
+
+  await openRoute(root, 'mine');
+  output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain(
+    '完整 Space 当前不在基础资格范围；资格变化后会由服务端自动同步。',
+  );
+  expect(output).not.toContain('开始试用或升级');
+  expect(output).not.toContain('完整知识空间当前需要试用或会员');
+});
+
+test('withdraws stale pilot access when trial-boundary revalidation is unavailable', async () => {
+  let bootstrapRequestCount = 0;
+  const baseSession = createLocalLearningSession('cet4');
+  const trialSession: LearningSession = {
+    ...baseSession,
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'trial',
+    trialExpiresAt: '2026-08-06T00:00:00.000Z',
+    trialRemainingSeconds: 1,
+    trialStartedAt: '2026-08-01T00:00:00.000Z',
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      if (bootstrapRequestCount > 1) {
+        return createJsonResponse({}, 503);
+      }
+      return createJsonResponse(
+        createAccountBootstrapPayload(trialSession, 'trial', [], false, {
+          trial_expires_at: trialSession.trialExpiresAt,
+          trial_remaining_seconds: 1,
+          trial_started_at: trialSession.trialStartedAt,
+        }),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(trialSession);
+  await waitForLearningSurface(root);
+
+  await ReactTestRenderer.act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    await flushAsyncEffects();
+  });
+
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(
+    root.findByProps({ testID: 'authentication-entry-boundary' }),
+  ).toBeTruthy();
+  expect(
+    root.findByProps({ testID: 'authentication-account-recovery-retry' }),
+  ).toBeTruthy();
+  expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-space' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-statistics' })).toHaveLength(
+    0,
+  );
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
+});
+
+test('reloads the server selection when pilot continuation access is revoked', async () => {
+  let bootstrapRequestCount = 0;
+  const baseSession = createLocalLearningSession('cet4');
+  const fullAccessCard = baseSession.catalogCards.at(-1)!;
+  const freeAccessCard = baseSession.catalogCards[0];
+  const premiumSession: LearningSession = {
+    ...baseSession,
+    cards: [fullAccessCard],
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+  };
+  const freeSession: LearningSession = {
+    ...premiumSession,
+    cards: [freeAccessCard],
+    membershipStage: 'free',
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      return createJsonResponse(
+        createAccountBootstrapPayload(
+          bootstrapRequestCount === 1 ? premiumSession : freeSession,
+          bootstrapRequestCount === 1 ? 'pilot_premium' : 'free',
+        ),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(premiumSession);
+  await waitForLearningSurface(root);
+  expect(
+    root.find(
+      node =>
+        typeof node.type === 'function' && node.type.name === 'LearningSurface',
+    ).props.currentCard.card_id,
+  ).toBe(fullAccessCard.card_id);
+
+  resolvedSession = freeSession;
+  const previousLoadCount = mockLoadSession.mock.calls.length;
+  await openRoute(root, 'mine');
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    if (mockLoadSession.mock.calls.length > previousLoadCount) {
+      break;
+    }
+  }
+  await openRoute(root, 'learning');
+  await waitForLearningSurface(root);
+
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(mockLoadSession.mock.calls.length).toBeGreaterThan(previousLoadCount);
+  expect(
+    root.find(
+      node =>
+        typeof node.type === 'function' && node.type.name === 'LearningSurface',
+    ).props.currentCard.card_id,
+  ).toBe(freeAccessCard.card_id);
+});
+
+test('reconciles cross-device account and Space state when returning to the foreground', async () => {
+  let appStateListener: Parameters<typeof AppState.addEventListener>[1] | null =
+    null;
+  const originalAppStateAddEventListener = AppState.addEventListener;
+  Object.defineProperty(AppState, 'addEventListener', {
+    configurable: true,
+    value: jest.fn((_type, listener) => {
+      appStateListener = listener;
+      return { remove: jest.fn() };
+    }),
+  });
+  let bootstrapRequestCount = 0;
+  const session: LearningSession = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+  };
+  const initialBootstrap = createAccountBootstrapPayload(
+    session,
+    'pilot_premium',
+  );
+  const refreshedBootstrap = createAccountBootstrapPayload(
+    session,
+    'pilot_premium',
+  );
+  const syncedCard = session.catalogCards[0];
+  const refreshedBootstrapSpace = refreshedBootstrap.data.space as unknown as {
+    acknowledged_at: string | null;
+    states: Array<{
+      card_id: string;
+      is_favorited: boolean;
+      is_sleeping: boolean;
+      last_modified_at: string;
+    }>;
+  };
+  refreshedBootstrap.data.progress.favorite_count = 1;
+  refreshedBootstrapSpace.acknowledged_at = '2026-08-03T09:00:00.000Z';
+  refreshedBootstrapSpace.states = [
+    {
+      card_id: syncedCard.card_id,
+      is_favorited: true,
+      is_sleeping: false,
+      last_modified_at: '2026-08-03T09:00:00.000Z',
+    },
+  ];
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      return createJsonResponse(
+        bootstrapRequestCount === 1 ? initialBootstrap : refreshedBootstrap,
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  try {
+    const root = tree!.root;
+    await authenticateIntoLearningBootstrap(root);
+    await resolveLearningBootstrap(session);
+    await waitForLearningSurface(root);
+    expect(bootstrapRequestCount).toBe(1);
+    expect(appStateListener).not.toBeNull();
+
+    await ReactTestRenderer.act(async () => {
+      appStateListener?.('background');
+      appStateListener?.('active');
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        await flushAsyncEffects();
+      }
+    });
+
+    expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+    await openRoute(root, 'space');
+    expect(
+      root.find(
+        node =>
+          typeof node.type === 'function' && node.type.name === 'SpaceSurface',
+      ).props.cardStateById[syncedCard.card_id],
+    ).toMatchObject({ isFavorited: true, isSleeping: false });
+  } finally {
+    await ReactTestRenderer.act(() => {
+      tree!.unmount();
+    });
+    Object.defineProperty(AppState, 'addEventListener', {
+      configurable: true,
+      value: originalAppStateAddEventListener,
+    });
+  }
+});
+
 test('fails closed when refreshed bootstrap still disagrees with learning-session membership', async () => {
   let bootstrapRequestCount = 0;
   const trialSession = {
@@ -1805,7 +2873,7 @@ test('submits the server review phase with the exact active selection', async ()
 
   expect(
     root.findByProps({ testID: 'learning-progress-label' }).props.children,
-  ).toBe('本轮回看');
+  ).toBe(`本轮回看 · ${reviewSession.cards[0].space_metadata.library}`);
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
@@ -1832,7 +2900,7 @@ test('submits the server review phase with the exact active selection', async ()
   ]);
 });
 
-test('keeps a remote null selection empty without local card or sleep fallback', async () => {
+test('renders remote null selection as availability without false completion or local fallback', async () => {
   const baseSession = createLocalLearningSession('cet4');
   const emptyServerSession: LearningSession = {
     ...baseSession,
@@ -1883,8 +2951,13 @@ test('keeps a remote null selection empty without local card or sleep fallback',
   }
 
   expect(
-    root.findAllByProps({ testID: 'learning-complete-summary' }).length,
-  ).toBeGreaterThan(0);
+    root.findByProps({ testID: 'learning-availability-surface' }),
+  ).toBeTruthy();
+  expect(JSON.stringify(tree!.toJSON())).toContain('当前没有待处理的卡');
+  expect(JSON.stringify(tree!.toJSON())).toContain('下次可回看');
+  expect(
+    root.findAllByProps({ testID: 'learning-complete-summary' }),
+  ).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'learning-flip-button' })).toHaveLength(
     0,
   );
@@ -1895,12 +2968,474 @@ test('keeps a remote null selection empty without local card or sleep fallback',
     root.findAllByProps({ testID: 'learning-go-space-button' }),
   ).toHaveLength(0);
 
-  await ReactTestRenderer.act(() => {
-    findPressableByTestId(root, 'learning-restart-button').props.onPress();
+  expect(
+    root.findAllByProps({ testID: 'learning-continue-round-button' }),
+  ).toHaveLength(0);
+
+  const previousLoadCount = mockLoadSession.mock.calls.length;
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(
+      root,
+      'learning-availability-refresh-button',
+    ).props.onPress();
+    await flushAsyncEffects();
   });
+  expect(mockLoadSession.mock.calls.length).toBeGreaterThan(previousLoadCount);
+  expect(
+    root.findByProps({ testID: 'learning-availability-surface' }),
+  ).toBeTruthy();
   expect(root.findAllByProps({ testID: 'learning-flip-button' })).toHaveLength(
     0,
   );
+});
+
+test('opens the exact server-owned review card from a controlled-pilot round receipt', async () => {
+  const fetchCalls: MockFetchCall[] = [];
+  const baseSession = createLocalLearningSession('cet4');
+  const reviewCard = baseSession.catalogCards[1];
+  const latestRoundCard = baseSession.catalogCards[2];
+  const roundLearningEvents: MockLearningEvent[] = [
+    {
+      answer_grade: 'review_needed',
+      card_id: reviewCard.card_id,
+      client_occurred_at: '2026-08-03T07:59:00.000Z',
+      content_version: TEST_CONTENT_VERSION,
+      device_cursor: { device_id: 'round-device', sequence: 1 },
+      event_id: 'round-review-event',
+      interaction_id: reviewCard.interaction_id,
+      outcome: 'review',
+      phase: 'review',
+      selection_id: 'round-review-selection',
+      used_hint: false,
+      used_peek: false,
+    },
+    {
+      answer_grade: 'passed',
+      card_id: latestRoundCard.card_id,
+      client_occurred_at: '2026-08-03T08:00:00.000Z',
+      content_version: TEST_CONTENT_VERSION,
+      device_cursor: { device_id: 'round-device', sequence: 2 },
+      event_id: 'round-learning-event',
+      interaction_id: latestRoundCard.interaction_id,
+      outcome: 'correct',
+      phase: 'learning',
+      selection_id: 'round-learning-selection',
+      used_hint: false,
+      used_peek: false,
+    },
+  ];
+  const roundCompletionSession: LearningSession = {
+    ...baseSession,
+    cards: [],
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+    nextDueAt: null,
+    roundCompletion: {
+      completedCount: 5,
+      receiptId: `rnd_${'r'.repeat(32)}`,
+      reviewCardIds: [reviewCard.card_id],
+      schemaVersion: 'pilot-round-completion.v1',
+      spaceCardId: latestRoundCard.card_id,
+    },
+    schedulingMode: 'server',
+    serverSelection: null,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    fetchCalls.push({ init, input });
+
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(
+          roundCompletionSession,
+          'pilot_premium',
+          roundLearningEvents,
+        ),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(roundCompletionSession);
+
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toBeTruthy();
+  expect(
+    root
+      .findByProps({ testID: 'controlled-pilot-round-space-address' })
+      .findAllByType(Text)
+      .at(-1)?.props.children,
+  ).toBe(
+    `${latestRoundCard.space_metadata.library} · ${latestRoundCard.space_metadata.group} · ${latestRoundCard.space_metadata.box}`,
+  );
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(
+      root,
+      'controlled-pilot-round-review',
+    ).props.onPress();
+  });
+
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-review-surface' }),
+  ).toBeTruthy();
+  expect(JSON.stringify(tree!.toJSON())).toContain(reviewCard.front.prompt);
+  expect(JSON.stringify(tree!.toJSON())).toContain(reviewCard.analysis.summary);
+  expect(
+    fetchCalls.filter(
+      call => call.input === 'https://api.softbook.example/v2/learning/events',
+    ),
+  ).toHaveLength(0);
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(
+      root,
+      'controlled-pilot-round-review-next',
+    ).props.onPress();
+  });
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'controlled-pilot-round-space').props.onPress();
+  });
+  expect(root.findByProps({ testID: 'space-current-box-tray' })).toBeTruthy();
+  expect(
+    root.find(
+      node =>
+        typeof node.type === 'function' && node.type.name === 'SpaceSurface',
+    ).props.currentLearningCard.card_id,
+  ).toBe(latestRoundCard.card_id);
+
+  await openRoute(root, 'mine');
+  const pilotPremiumOutput = JSON.stringify(tree!.toJSON());
+  expect(pilotPremiumOutput).toContain(
+    '继续资格已由运营发放；完整学习路线按试点范围继续开放。',
+  );
+  expect(pilotPremiumOutput).toContain('受控试点运营发放');
+  expect(pilotPremiumOutput).toContain('可继续学习');
+  expect(pilotPremiumOutput).toContain('iOS 与 Android 共用');
+  expect(
+    root.findAllByProps({ testID: 'controlled-pilot-trial-started-at' }),
+  ).toHaveLength(0);
+  expect(
+    root.findAllByProps({ testID: 'controlled-pilot-trial-expires-at' }),
+  ).toHaveLength(0);
+  expect(
+    root.findAllByProps({ testID: 'membership-purchase-button' }),
+  ).toHaveLength(0);
+
+  await openRoute(root, 'learning');
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toBeTruthy();
+
+  resolvedSession = {
+    ...baseSession,
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+    roundCompletion: null,
+  };
+  const previousLoadCount = mockLoadSession.mock.calls.length;
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(
+      root,
+      'controlled-pilot-round-continue',
+    ).props.onPress();
+    await flushAsyncEffects();
+  });
+  await waitForLearningSurface(root);
+
+  expect(mockContinueRound).toHaveBeenCalledWith(
+    {
+      authToken: 'remote-auth-token',
+      phoneNumber: '13800138000',
+    },
+    {
+      completion: expect.objectContaining({
+        completedCount: 5,
+        receiptId: `rnd_${'r'.repeat(32)}`,
+        reviewCardIds: [reviewCard.card_id],
+        spaceCardId: latestRoundCard.card_id,
+      }),
+      contentVersion: TEST_CONTENT_VERSION,
+      track: 'cet4',
+    },
+  );
+  expect(mockLoadSession.mock.calls.length).toBeGreaterThan(previousLoadCount);
+  expect(
+    root.findAllByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toHaveLength(0);
+});
+
+test('ignores a stale round-continue response after the auth session changes', async () => {
+  const continueResponse = createDeferred<{
+    acknowledgedAt: string;
+    completedCount: number;
+    receiptId: string;
+    status: 'acknowledged';
+  }>();
+  const baseSession = createLocalLearningSession('cet4');
+  const roundCompletionSession: LearningSession = {
+    ...baseSession,
+    cards: [],
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+    nextDueAt: null,
+    roundCompletion: {
+      completedCount: 5,
+      receiptId: `rnd_${'r'.repeat(32)}`,
+      reviewCardIds: [baseSession.catalogCards[0].card_id],
+      schemaVersion: 'pilot-round-completion.v1',
+      spaceCardId: baseSession.catalogCards[0].card_id,
+    },
+    schedulingMode: 'server',
+    serverSelection: null,
+  };
+  let verifiedSessionCount = 0;
+
+  mockContinueRound.mockReturnValueOnce(continueResponse.promise);
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      const body = JSON.parse(String(init?.body)) as {
+        phone_number: string;
+      };
+      verifiedSessionCount += 1;
+      return createRemoteAuthSessionResponse(
+        body.phone_number,
+        verifiedSessionCount === 1 ? 'round-a' : 'round-b',
+      );
+    }
+    if (input === 'https://api.softbook.example/v2/auth/logout') {
+      return createJsonResponse(null, 204);
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(roundCompletionSession, 'pilot_premium'),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root, '13800138000');
+  await resolveLearningBootstrap(roundCompletionSession);
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    const continueButton = findPressableByTestId(
+      root,
+      'controlled-pilot-round-continue',
+    );
+    continueButton.props.onPress();
+    continueButton.props.onPress();
+  });
+  expect(mockContinueRound).toHaveBeenCalledTimes(1);
+  await openRoute(root, 'mine');
+  await ReactTestRenderer.act(async () => {
+    const mineSurface = root.find(
+      node =>
+        typeof node.type === 'function' && node.type.name === 'MineSurface',
+    );
+    await mineSurface.props.handlers.onLogout();
+    await flushAsyncEffects();
+  });
+  await authenticateIntoLearningBootstrap(root, '13900139000');
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    if (
+      root.findAllByProps({ testID: 'controlled-pilot-round-completion' })
+        .length > 0
+    ) {
+      break;
+    }
+  }
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toBeTruthy();
+  const replacementSessionLoadCount = mockLoadSession.mock.calls.length;
+
+  await ReactTestRenderer.act(async () => {
+    continueResponse.resolve({
+      acknowledgedAt: '2026-08-03T08:00:00.000Z',
+      completedCount: 5,
+      receiptId: `rnd_${'r'.repeat(32)}`,
+      status: 'acknowledged',
+    });
+    await flushAsyncEffects();
+  });
+
+  expect(mockLoadSession).toHaveBeenCalledTimes(replacementSessionLoadCount);
+  expect(
+    root.findByProps({ testID: 'controlled-pilot-round-completion' }),
+  ).toBeTruthy();
+});
+
+test('does not expose a persisted round receipt before the current server Session revalidates it', async () => {
+  const baseSession = createLocalLearningSession('cet4');
+  const roundCompletionSession: LearningSession = {
+    ...baseSession,
+    cards: [],
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+    nextDueAt: null,
+    roundCompletion: {
+      completedCount: 5,
+      receiptId: `rnd_${'r'.repeat(32)}`,
+      reviewCardIds: [baseSession.catalogCards[0].card_id],
+      schemaVersion: 'pilot-round-completion.v1',
+      spaceCardId: baseSession.catalogCards[0].card_id,
+    },
+    schedulingMode: 'server',
+    serverSelection: null,
+  };
+  const nextRoundSession: LearningSession = {
+    ...baseSession,
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'pilot_premium',
+    roundCompletion: null,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createProductionRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    contentManifestPublicKeys: {
+      'content-key-1': 'a'.repeat(64),
+    },
+    runtimeMode: 'controlled_pilot',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(roundCompletionSession, 'pilot_premium'),
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let firstTree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    firstTree = ReactTestRenderer.create(<App />);
+  });
+  await authenticateIntoLearningBootstrap(firstTree!.root);
+  await resolveLearningBootstrap(roundCompletionSession);
+  expect(
+    firstTree!.root.findByProps({
+      testID: 'controlled-pilot-round-completion',
+    }),
+  ).toBeTruthy();
+
+  let persistedState: string | null = null;
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    persistedState = await AsyncStorage.getItem('softbook-cet/user-state/v1');
+    if (
+      persistedState?.includes(
+        roundCompletionSession.roundCompletion!.receiptId,
+      )
+    ) {
+      break;
+    }
+  }
+  expect(persistedState).toContain(
+    roundCompletionSession.roundCompletion!.receiptId,
+  );
+  await ReactTestRenderer.act(() => {
+    firstTree!.unmount();
+  });
+
+  pendingSession = createDeferred<LearningSession>();
+  resolvedSession = null;
+  mockLoadSession.mockImplementation(() => pendingSession.promise);
+  let restoredTree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    restoredTree = ReactTestRenderer.create(<App />);
+  });
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    if (
+      restoredTree!.root.findAllByProps({
+        testID: 'controlled-pilot-round-completion',
+      }).length > 0 ||
+      restoredTree!.root.findAllByProps({
+        testID: 'learning-bootstrap-loading',
+      }).length > 0
+    ) {
+      break;
+    }
+  }
+
+  expect(
+    restoredTree!.root.findAllByProps({
+      testID: 'controlled-pilot-round-completion',
+    }),
+  ).toHaveLength(0);
+  expect(
+    restoredTree!.root.findByProps({ testID: 'learning-bootstrap-loading' }),
+  ).toBeTruthy();
+
+  await resolveLearningBootstrap(nextRoundSession);
+  await waitForLearningSurface(restoredTree!.root);
+  expect(
+    restoredTree!.root.findAllByProps({
+      testID: 'controlled-pilot-round-completion',
+    }),
+  ).toHaveLength(0);
+  await ReactTestRenderer.act(() => {
+    restoredTree!.unmount();
+  });
 });
 
 test('blocks product state writes until canonical bootstrap succeeds on reconnect', async () => {
@@ -1966,8 +3501,13 @@ test('blocks product state writes until canonical bootstrap succeeds on reconnec
       root.findAllByProps({ testID: 'learning-favorite-button' }),
     ).toHaveLength(0);
     expect(
-      root.findAllByProps({ testID: 'learning-bootstrap-retry-button' }).length,
+      root.findAllByProps({
+        testID: 'authentication-account-recovery-retry',
+      }).length,
     ).toBeGreaterThan(0);
+    expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(
+      0,
+    );
     expect(
       fetchCalls.some(
         call =>
@@ -3085,9 +4625,8 @@ test('does not apply a remote space action when durable mutation storage fails',
     });
 
     expect(
-      root
-        .findByProps({ testID: 'learning-favorite-button' })
-        .findByType(Text).props.children,
+      root.findByProps({ testID: 'learning-favorite-button' }).findByType(Text)
+        .props.children,
     ).toBe('收藏');
     expect(spaceActionRequests).toHaveLength(0);
   } finally {
@@ -3471,9 +5010,8 @@ test('quarantines a removed-card space action and restores canonical state', asy
   });
 
   expect(
-    root
-      .findByProps({ testID: 'learning-favorite-button' })
-      .findByType(Text).props.children,
+    root.findByProps({ testID: 'learning-favorite-button' }).findByType(Text)
+      .props.children,
   ).toBe('收藏');
 
   await openRoute(root, 'space');
@@ -3577,7 +5115,7 @@ test('replays queued membership refresh after network reconnect', async () => {
   ).toBeGreaterThanOrEqual(2);
 });
 
-test('starts the remote trial automatically on the first authenticated entry', async () => {
+test('does not start the remote trial on authentication or account navigation', async () => {
   const fetchCalls: MockFetchCall[] = [];
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
@@ -3612,10 +5150,6 @@ test('starts the remote trial automatically on the first authenticated entry', a
       );
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/start-trial') {
-      return createJsonResponse(createRemoteMembershipPayload('trial'));
-    }
-
     throw new Error(`Unexpected remote fetch: ${input}`);
   });
 
@@ -3634,26 +5168,18 @@ test('starts the remote trial automatically on the first authenticated entry', a
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
-  expect(output).not.toContain('完整物理空间需要试用或会员');
+  expect(output).toContain('转折关系');
+  expect(output).toContain('完整物理空间需要试用或会员');
 
-  const startTrialRequest = fetchCalls.find(
+  const startTrialRequests = fetchCalls.filter(
     call =>
       call.input === 'https://api.softbook.example/v1/membership/start-trial',
   );
-  expect(normalizeMockHeaders(startTrialRequest?.init?.headers)).toMatchObject({
-    authorization: 'Bearer remote-auth-token',
-  });
-
-  const unlockedSpaceText = JSON.stringify(tree!.toJSON());
-  expect(unlockedSpaceText).toContain('当前盒桌');
-  expect(unlockedSpaceText).toContain('同盒卡片');
-  expect(unlockedSpaceText).toContain('回学习');
+  expect(startTrialRequests).toHaveLength(0);
 });
 
-test('waits for server confirmation before a queued automatic trial unlocks', async () => {
+test('never queues a remote trial mutation while reconnecting', async () => {
   const fetchCalls: MockFetchCall[] = [];
-  const replayTrialResponse = createDeferred<ReturnType<typeof createJsonResponse>>();
   let startTrialRequestCount = 0;
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
@@ -3684,20 +5210,13 @@ test('waits for server confirmation before a queued automatic trial unlocks', as
 
     if (input === 'https://api.softbook.example/v1/membership/entitlement') {
       return createJsonResponse(
-        createRemoteMembershipPayload(
-          startTrialRequestCount >= 2 ? 'trial' : 'trial_available',
-        ),
+        createRemoteMembershipPayload('trial_available'),
       );
     }
 
     if (input === 'https://api.softbook.example/v1/membership/start-trial') {
       startTrialRequestCount += 1;
-
-      if (startTrialRequestCount === 1) {
-        return createJsonResponse({}, 503);
-      }
-
-      return replayTrialResponse.promise;
+      return createJsonResponse({}, 503);
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -3718,9 +5237,9 @@ test('waits for server confirmation before a queued automatic trial unlocks', as
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).toContain('完整物理空间需要试用或会员');
-  expect(startTrialRequestCount).toBeGreaterThanOrEqual(1);
+  expect(startTrialRequestCount).toBe(0);
 
   await openRoute(root, 'statistics');
 
@@ -3728,10 +5247,7 @@ test('waits for server confirmation before a queued automatic trial unlocks', as
     await flushAsyncEffects();
   });
 
-  expect(startTrialRequestCount).toBe(2);
-  replayTrialResponse.resolve(
-    createJsonResponse(createRemoteMembershipPayload('trial')),
-  );
+  expect(startTrialRequestCount).toBe(0);
 
   await ReactTestRenderer.act(async () => {
     await flushAsyncEffects();
@@ -3740,14 +5256,13 @@ test('waits for server confirmation before a queued automatic trial unlocks', as
   await openRoute(root, 'mine');
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('完整试用进行中');
-  expect(output).not.toContain('试用待开始');
+  expect(output).toContain('试用待开始');
 
   const startTrialRequests = fetchCalls.filter(
     call =>
       call.input === 'https://api.softbook.example/v1/membership/start-trial',
   );
-  expect(startTrialRequests).toHaveLength(2);
+  expect(startTrialRequests).toHaveLength(0);
 });
 
 test('space surface follows the loaded session catalog instead of local fixtures', async () => {
@@ -3824,7 +5339,7 @@ test('can unlock gated space after remote purchase', async () => {
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('完整物理空间需要试用或会员');
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(
     root.findAllByProps({ testID: 'space-gate-rail' }).length,
   ).toBeGreaterThan(0);
@@ -3838,7 +5353,7 @@ test('can unlock gated space after remote purchase', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).toContain('当前盒桌');
   expect(output).toContain('同盒卡片');
   expect(output).toContain('回学习');
@@ -4177,7 +5692,7 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).toContain('当前盒桌');
   expect(output).toContain('同盒卡片');
   expect(output).toContain('回学习');
@@ -4264,6 +5779,7 @@ test('refreshes remote entitlement again after leaving mine and reopening it', a
 });
 
 test('can unlock the learning flow after fake sms verification', async () => {
+  const firstCard = createLocalLearningSession('cet4').cards[0];
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -4274,8 +5790,11 @@ test('can unlock the learning flow after fake sms verification', async () => {
   await loginIntoLearningFlow(root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('位置已接上');
-  expect(output).toContain('本轮盒');
+  expect(output).toContain(firstCard.space_metadata.library);
+  expect(output).toContain(firstCard.space_metadata.group);
+  expect(output).toContain(firstCard.space_metadata.box);
+  expect(output).not.toContain('位置已接上');
+  expect(output).not.toContain('本轮盒');
   expect(output).not.toContain('位置保持');
   expect(output).not.toContain('位置 · 本轮盒');
   expect(output).not.toContain('当前位置 · 本轮盒');
@@ -4347,7 +5866,7 @@ test('does not expose internal metadata copy on primary surfaces', async () => {
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
-test('keeps phone primary surfaces inside one-screen app panels', async () => {
+test('keeps the dedicated login scrollable and phone product surfaces inside one-screen panels', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -4355,7 +5874,10 @@ test('keeps phone primary surfaces inside one-screen app panels', async () => {
   });
 
   const root = tree!.root;
-  expect(root.findAllByType(ScrollView)).toHaveLength(0);
+  expect(root.findAllByType(ScrollView)).toHaveLength(1);
+  expect(
+    root.findByProps({ testID: 'authentication-entry-scroll' }),
+  ).toBeTruthy();
 
   await loginIntoLearningFlow(root);
   expect(root.findAllByType(ScrollView)).toHaveLength(0);
@@ -4476,7 +5998,7 @@ test('keeps source bootstrap loading and errors attached to space', async () => 
   await resolveLearningBootstrap();
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(root.findAllByProps({ testID: 'space-status-rail' })).toHaveLength(0);
 });
 
@@ -4551,7 +6073,10 @@ test('can complete the local single-card deck and restart it', async () => {
   );
   expect(detailAnswerSlipStyle.flexGrow).toBe(1);
   expect(output).toContain('当前卡');
-  expect(output).toContain('答案留在本卡');
+  expect(output).toContain('词汇');
+  expect(output).toContain('高频词');
+  expect(output).toContain('阅读高频词');
+  expect(output).not.toContain('答案留在本卡');
   expect(output).not.toContain('结果在当前卡');
   expect(output).toContain('答案已归位');
   expect(output).toContain('你的选择和正确答案已对齐');
@@ -4614,15 +6139,17 @@ test('can complete the local single-card deck and restart it', async () => {
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮学习已走完');
   expect(output).toContain('下一步');
-  expect(output).toContain('这一轮已经完成，可以重新练这轮卡。');
-  expect(output).toContain('重新练这轮卡');
+  expect(output).toContain('查看所在 Space');
+  expect(output).toContain('继续下一轮');
   expect(output).not.toContain('当前卡组');
   expect(output).not.toContain('系统顺序');
   expect(output).not.toContain('系统顺序学习');
   expectNoUserVisibleMetadataLeakage(tree!);
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-restart-button' }).props.onPress();
+    root
+      .findByProps({ testID: 'learning-continue-round-button' })
+      .props.onPress();
   });
 
   output = JSON.stringify(tree!.toJSON());
@@ -4728,7 +6255,9 @@ test('can start a review round from cards that need revisiting', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看');
-  expect(output).toContain('回看卡在这');
+  expect(output).toContain('听力');
+  expect(output).toContain('逻辑关系');
+  expect(output).toContain('转折关系');
   expect(output).not.toContain('回看卡已在眼前');
   expect(output).not.toContain('需要再看的卡已放到眼前');
   expect(output).toContain('however');
@@ -4750,7 +6279,7 @@ test('can start a review round from cards that need revisiting', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看已走完');
-  expect(output).toContain('回到首轮重新开始');
+  expect(output).toContain('继续下一轮');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'route-tab-statistics' }).props.onPress();
@@ -4794,8 +6323,8 @@ test('can check in from statistics after making learning progress', async () => 
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('学习在推进');
-  expect(output).toContain('今日节奏');
-  expect(output).toContain('可以收好今天');
+  expect(output).toContain('今日记录');
+  expect(output).toContain('今日记录已更新');
   expect(output).toContain('下一步');
   expect(output).toContain('回到学习');
   expect(output).toContain('继续学习');
@@ -4808,26 +6337,26 @@ test('can check in from statistics after making learning progress', async () => 
     root.findByProps({ testID: 'statistics-day-object' }).props.style,
   );
   expect(dayObjectStyle.flex).toBe(1);
-  expect(dayObjectStyle.justifyContent).toBe('space-between');
+  expect(dayObjectStyle.justifyContent).toBe('flex-start');
   expect(dayObjectStyle.minHeight).toBe(0);
   const progressDock = root.findByProps({
     testID: 'statistics-progress-dock',
   });
   expect(progressDock).toBeTruthy();
   const progressDockStyle = StyleSheet.flatten(progressDock.props.style);
-  expect(progressDockStyle.flex).toBe(1);
-  expect(progressDockStyle.justifyContent).toBe('space-between');
-  expect(progressDockStyle.minHeight).toBe(0);
+  expect(progressDockStyle.flexShrink).toBe(0);
+  expect(progressDockStyle.justifyContent).toBe('flex-start');
+  expect(output).not.toContain('今日目标');
   expect(
-    root.findByProps({ testID: 'statistics-progress-ratio' }).props.children,
-  ).toBe('1/1');
-  const progressFillStyle = StyleSheet.flatten(
-    root.findByProps({ testID: 'statistics-progress-fill' }).props.style,
-  );
-  expect(progressFillStyle.width).toBe('100%');
+    root.findAllByProps({ testID: 'statistics-progress-ratio' }),
+  ).toHaveLength(0);
+  expect(
+    root.findAllByProps({ testID: 'statistics-progress-fill' }),
+  ).toHaveLength(0);
   const actionDock = root.findByProps({ testID: 'statistics-action-dock' });
   const actionDockStyle = StyleSheet.flatten(actionDock.props.style);
   expect(actionDockStyle.flexShrink).toBe(0);
+  expect(actionDockStyle.marginTop).toBe('auto');
   expect(
     actionDock.findAllByProps({ testID: 'statistics-next-step-card' }).length,
   ).toBeGreaterThan(0);
@@ -4855,7 +6384,10 @@ test('can check in from statistics after making learning progress', async () => 
     root.findAllByProps({ testID: 'statistics-checkin-complete-label' }).length,
   ).toBeGreaterThan(0);
   expect(output).toContain('今日已签到');
-  expect(output).toContain('节奏已收好');
+  expect(output).toContain('今天已收好');
+  expect(output).toContain('今日学习已记录');
+  expect(output).toContain('暂不需要回看');
+  expect(output).not.toContain('首轮已收口');
   expect(output).toContain('今天已签到，记录跟着账号保存。');
   expect(output).not.toContain('今天收好');
   expect(output).not.toContain('记录完成');
@@ -5062,7 +6594,7 @@ test('mine page keeps profile status and route actions in one screen after login
     findPressableByTestId(root, 'mine-go-space').props.onPress();
   });
 
-  expect(JSON.stringify(tree!.toJSON())).toContain('当前卡盒');
+  expect(JSON.stringify(tree!.toJSON())).toContain('阅读高频词');
 
   await openRoute(root, 'mine');
 
@@ -5097,7 +6629,7 @@ test('can browse the current Space box after login', async () => {
   await startTrialFromProtectedEntry(root, 'space');
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(
     root.findAllByProps({ testID: 'space-shelf-desk' }).length,
   ).toBeGreaterThan(0);
@@ -5114,7 +6646,7 @@ test('can browse the current Space box after login', async () => {
     root.findAllByProps({ testID: 'space-return-learning' }).length,
   ).toBeGreaterThan(0);
   expect(output).toContain('正在查看同盒卡片');
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).toContain('当前位置');
   expect(output).toContain('本盒共 2 张');
   expect(root.findAllByProps({ testID: 'space-browse-rail' })).toHaveLength(0);
@@ -5298,7 +6830,7 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   expect(output).toContain('已收藏');
 });
 
-test('starts the local trial automatically on the first authenticated entry', async () => {
+test('starts the local trial only when the first valid learning card is ready', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -5314,7 +6846,7 @@ test('starts the local trial automatically on the first authenticated entry', as
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).not.toContain('完整物理空间需要试用或会员');
   expect(output).toContain('当前盒桌');
   expect(output).toContain('同盒卡片');
@@ -5328,7 +6860,7 @@ test('starts the local trial automatically on the first authenticated entry', as
   ).toBeGreaterThan(0);
 });
 
-test('keeps the full five-card session after automatic trial entry', async () => {
+test('keeps the full five-card session after first-valid-card trial entry', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -5486,7 +7018,9 @@ test('starts review after membership is already unlocked', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看');
-  expect(output).toContain('回看卡在这');
+  expect(output).toContain('听力');
+  expect(output).toContain('逻辑关系');
+  expect(output).toContain('转折关系');
   expect(output).not.toContain('回看卡已在眼前');
   expect(output).not.toContain('需要再看的卡已放到眼前');
 });

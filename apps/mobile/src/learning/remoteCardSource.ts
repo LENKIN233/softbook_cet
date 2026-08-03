@@ -65,6 +65,7 @@ export type FetchLikeResponse = {
 export type FetchLike = (
   input: string,
   init?: {
+    body?: string;
     method?: string;
     headers?: Record<string, string>;
   },

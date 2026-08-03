@@ -32,6 +32,25 @@ describe('UserStateStore', () => {
         sourceId: 'local-cet4-v1',
         track: 'cet4' as const,
       },
+      localLearningState: {
+        learningResults: [
+          {
+            cardId: '110001',
+            completedAt: '2026-07-10T09:00:00.000Z',
+            interactionId: 'flip' as const,
+            isFavorited: true,
+            outcome: 'review' as const,
+            usedHint: false,
+            usedPeek: true,
+          },
+        ],
+        phase: 'learning' as const,
+        reviewResults: [],
+        sourceId: 'local-cet4-v1',
+        track: 'cet4' as const,
+      },
+      pilotRoundCompletion: null,
+      presentedTrialStartedAt: null,
       spaceCardStateById: {
         '110001': {
           isFavorited: true,
@@ -51,6 +70,33 @@ describe('UserStateStore', () => {
     await expect(store.load('13800138000')).resolves.toEqual(state);
   });
 
+  it('rejects duplicate local results instead of restoring an ambiguous cursor', async () => {
+    const duplicateResult = {
+      cardId: '110001',
+      completedAt: '2026-07-10T09:00:00.000Z',
+      interactionId: 'flip' as const,
+      isFavorited: false,
+      outcome: 'review' as const,
+      usedHint: false,
+      usedPeek: false,
+    };
+    const { storage } = createStorage();
+    const store = createUserStateStore(storage);
+
+    expect(() =>
+      store.save('13800138000', {
+        ...createEmptyPersistedUserState(),
+        localLearningState: {
+          learningResults: [duplicateResult, duplicateResult],
+          phase: 'learning',
+          reviewResults: [],
+          sourceId: 'local-cet4-v1',
+          track: 'cet4',
+        },
+      }),
+    ).toThrow('duplicate card ids');
+  });
+
   it('does not expose one phone number state to another account', async () => {
     const { storage } = createStorage();
     const store = createUserStateStore(storage);
@@ -65,15 +111,106 @@ describe('UserStateStore', () => {
     );
   });
 
+  it('persists the exact pilot round receipt and first-card notice marker', async () => {
+    const { storage } = createStorage();
+    const store = createUserStateStore(storage);
+    const state = {
+      ...createEmptyPersistedUserState(),
+      pilotRoundCompletion: {
+        completedCount: 10,
+        contentVersion: `sha256:${'a'.repeat(64)}`,
+        receiptId: `rnd_${'b'.repeat(32)}`,
+        reviewCardIds: ['110101', '110202'],
+        schemaVersion: 'pilot-round-completion.v1' as const,
+        spaceCardId: '110303',
+        track: 'cet4' as const,
+      },
+      presentedTrialStartedAt: '2026-08-01T00:00:00.000Z',
+    };
+
+    await store.save('13800138000', state);
+    await expect(store.load('13800138000')).resolves.toEqual(state);
+  });
+
+  it('drops v3 pilot receipts instead of inventing review or Space content', async () => {
+    const { storage } = createStorage({
+      [USER_STATE_STORAGE_KEY]: JSON.stringify({
+        checked_in_day_key: null,
+        learning_cursor: null,
+        owner_phone_number: '13800138000',
+        pilot_round_completion: {
+          completed_count: 5,
+          content_version: `sha256:${'a'.repeat(64)}`,
+          receipt_id: `rnd_${'b'.repeat(32)}`,
+          schema_version: 'pilot-round-completion.v1',
+          track: 'cet4',
+        },
+        presented_trial_started_at: null,
+        schema_version: 'user-state.v3',
+        space_card_state_by_id: {},
+      }),
+    });
+    const store = createUserStateStore(storage);
+
+    await expect(store.load('13800138000')).resolves.toMatchObject({
+      pilotRoundCompletion: null,
+    });
+  });
+
+  it('drops v4 pilot receipts without a server-owned Space card and preserves the trial notice marker', async () => {
+    const { storage } = createStorage({
+      [USER_STATE_STORAGE_KEY]: JSON.stringify({
+        checked_in_day_key: null,
+        learning_cursor: null,
+        owner_phone_number: '13800138000',
+        pilot_round_completion: {
+          completed_count: 5,
+          content_version: `sha256:${'a'.repeat(64)}`,
+          receipt_id: `rnd_${'b'.repeat(32)}`,
+          review_card_ids: ['110101'],
+          schema_version: 'pilot-round-completion.v1',
+          track: 'cet4',
+        },
+        presented_trial_started_at: '2026-08-01T00:00:00.000Z',
+        schema_version: 'user-state.v4',
+        space_card_state_by_id: {},
+      }),
+    });
+    const store = createUserStateStore(storage);
+
+    await expect(store.load('13800138000')).resolves.toMatchObject({
+      pilotRoundCompletion: null,
+      presentedTrialStartedAt: '2026-08-01T00:00:00.000Z',
+    });
+  });
+
+  it('migrates v2 state without inventing pilot lifecycle state', async () => {
+    const { storage } = createStorage({
+      [USER_STATE_STORAGE_KEY]: JSON.stringify({
+        checked_in_day_key: null,
+        learning_cursor: null,
+        owner_phone_number: '13800138000',
+        schema_version: 'user-state.v2',
+        space_card_state_by_id: {},
+      }),
+    });
+    const store = createUserStateStore(storage);
+
+    await expect(store.load('13800138000')).resolves.toMatchObject({
+      pilotRoundCompletion: null,
+      presentedTrialStartedAt: null,
+    });
+  });
+
   it('migrates v1 space state with a timestamp that cannot outrank server state', async () => {
-    const {storage} = createStorage({
+    const { storage } = createStorage({
       [USER_STATE_STORAGE_KEY]: JSON.stringify({
         checked_in_day_key: null,
         learning_cursor: null,
         owner_phone_number: '13800138000',
         schema_version: 'user-state.v1',
         space_card_state_by_id: {
-          '110001': {is_favorited: true, is_sleeping: false},
+          '110001': { is_favorited: true, is_sleeping: false },
         },
       }),
     });

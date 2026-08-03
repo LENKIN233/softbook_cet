@@ -1,4 +1,4 @@
-import {RemoteHttpError} from '../runtime/remoteHttpError';
+import { RemoteHttpError } from '../runtime/remoteHttpError';
 import {
   DEFAULT_REMOTE_REQUEST_TIMEOUT_MS,
   runBoundedRemoteRequest,
@@ -33,6 +33,7 @@ export type AuthSessionPayloadParser = (
 ) => RemoteAuthSession;
 
 export type AuthRemoteConfig = {
+  accountDeletionEndpoint: string;
   headers?: Record<string, string>;
   logoutEndpoint: string;
   parseRequestCodePayload?: AuthRequestCodePayloadParser;
@@ -68,6 +69,10 @@ export type AuthRepository = {
     session: AuthSession,
     options?: AuthRepositoryRequestOptions,
   ) => Promise<void>;
+  requestAccountDeletion: (
+    session: AuthSession,
+    options?: AuthRepositoryRequestOptions,
+  ) => Promise<void>;
   refreshSession: (
     session: RemoteAuthSession,
     options?: AuthRepositoryRequestOptions,
@@ -89,6 +94,8 @@ export type SoftbookRemoteAuthRuntimeConfig = {
   baseUrl: string;
 };
 
+const LOCAL_SMS_TEST_CODE = '2468';
+
 export function createAuthRepository(
   config: AuthRepositoryConfig,
 ): AuthRepository {
@@ -103,8 +110,7 @@ export function createAuthRepository(
       cancellationSources: requestOptions?.signal
         ? [
             {
-              reason:
-                requestOptions.cancellationReason ?? 'caller_cancelled',
+              reason: requestOptions.cancellationReason ?? 'caller_cancelled',
               signal: requestOptions.signal,
             },
           ]
@@ -114,6 +120,36 @@ export function createAuthRepository(
     });
 
   return {
+    async requestAccountDeletion(session, requestOptions) {
+      if (config.mode !== 'remote' || session.mode !== 'remote') {
+        throw new Error('Account deletion requires a remote auth session.');
+      }
+
+      const remoteConfig = requireRemoteConfig(config.remoteConfig);
+      await runRemoteAuthRequest(async signal => {
+        const response = await (config.fetchImpl ?? fetch)(
+          remoteConfig.accountDeletionEndpoint,
+          {
+            headers: {
+              ...createHeaders(remoteConfig),
+              Authorization: `${session.tokenType} ${session.accessToken}`,
+            },
+            method: 'POST',
+            signal,
+          },
+        );
+
+        assertRemoteResponse(response, 'account-deletion');
+
+        if (response.status !== 202) {
+          throw new RemoteHttpError(
+            `Remote auth account-deletion returned unexpected status ${response.status}.`,
+            response.status,
+          );
+        }
+      }, requestOptions);
+    },
+
     async requestSmsCode(phoneNumber) {
       if (config.mode === 'local') {
         return {
@@ -151,6 +187,10 @@ export function createAuthRepository(
       if (config.mode === 'local') {
         if (input.challenge.mode !== 'local') {
           throw new Error('Local auth requires a local SMS challenge.');
+        }
+
+        if (input.smsCode !== LOCAL_SMS_TEST_CODE) {
+          throw new Error('验证码不正确，请重新输入。');
         }
 
         return {
@@ -212,12 +252,7 @@ export function createAuthRepository(
 
         return (
           remoteConfig.parseSessionPayload ?? parseSoftbookRemoteAuthSession
-        )(
-          await response.json(),
-          session.phoneNumber,
-          now(),
-          session.sessionId,
-        );
+        )(await response.json(), session.phoneNumber, now(), session.sessionId);
       }, requestOptions);
     },
 
@@ -252,9 +287,10 @@ export function createSoftbookRemoteAuthConfig(
   const baseUrl = trimTrailingSlash(config.baseUrl);
 
   return {
+    accountDeletionEndpoint: `${baseUrl}/v2/account/deletion`,
     headers: {
       'x-softbook-client': 'mobile',
-      ...(config.apiKey ? {'x-api-key': config.apiKey} : {}),
+      ...(config.apiKey ? { 'x-api-key': config.apiKey } : {}),
     },
     logoutEndpoint: `${baseUrl}/v2/auth/logout`,
     refreshEndpoint: `${baseUrl}/v2/auth/refresh`,

@@ -5,6 +5,7 @@ import {
   type VerifiedContentManifest,
 } from '../audio/contentManifestRepository';
 import { LearningSession, LearningTrack } from './model';
+import type { LearningPilotRoundCompletion } from './model';
 import {
   FetchLike,
   RemoteLearningCardSourceConfig,
@@ -12,6 +13,7 @@ import {
 } from './remoteCardSource';
 import {
   RemoteLearningSessionConfig,
+  continueRemotePilotRound,
   loadRemoteLearningSession,
 } from './remoteLearningSession';
 import {
@@ -28,6 +30,19 @@ export type LearningSessionRepositoryContext = {
 };
 
 export type LearningSessionRepository = {
+  continueRound: (
+    context: LearningSessionRepositoryContext,
+    input: {
+      completion: LearningPilotRoundCompletion;
+      contentVersion: string;
+      track: LearningTrack;
+    },
+  ) => Promise<{
+    acknowledgedAt: string;
+    completedCount: number;
+    receiptId: string;
+    status: 'acknowledged' | 'duplicate';
+  }>;
   loadSession: (
     context: LearningSessionRepositoryContext,
     track: LearningTrack,
@@ -50,6 +65,7 @@ export type LearningSessionRepositoryConfig = {
   fetchImpl?: FetchLike;
   localSource?: LearningCardSource;
   mode: LearningRepositoryMode;
+  runtimeMode?: 'controlled_pilot' | 'development' | 'production';
   contentManifestConfig?: RemoteLearningContentManifestConfig;
   remoteConfig?: RemoteLearningCardSourceConfig;
   remoteSessionConfig?: RemoteLearningSessionConfig;
@@ -72,6 +88,26 @@ export function createLearningSessionRepository(
     );
 
   return {
+    continueRound: async (context, input) => {
+      if (
+        config.mode !== 'remote' ||
+        !config.remoteSessionConfig ||
+        !input.contentVersion ||
+        !input.completion
+      ) {
+        throw new Error(
+          'Pilot round continuation requires an exact remote server receipt.',
+        );
+      }
+      return continueRemotePilotRound(
+        context,
+        input.track,
+        input.contentVersion,
+        input.completion,
+        config.remoteSessionConfig,
+        config.fetchImpl ?? fetch,
+      );
+    },
     loadSession: async (context, track) => {
       if (config.mode === 'remote') {
         if (
@@ -110,6 +146,19 @@ export function createLearningSessionRepository(
           );
         }
 
+        if (
+          config.runtimeMode === 'controlled_pilot' &&
+          (track !== 'cet4' ||
+            source.cards.length !== 120 ||
+            scheduled.access.totalCardCount !== 120 ||
+            scheduled.access.accessibleCardCount !==
+              (scheduled.membershipStage === 'free' ? 60 : 120))
+        ) {
+          throw new Error(
+            'Controlled pilot learning content must match the exact CET4 120-card release and 60-card free boundary.',
+          );
+        }
+
         const contentManifest = await loadContentManifestForSession({
           cards: source.cards,
           config: config.contentManifestConfig,
@@ -137,18 +186,51 @@ export function createLearningSessionRepository(
           );
         }
 
+        const reviewCardIndexes =
+          scheduled.roundCompletion?.reviewCardIds.map(cardId =>
+            source.cards.findIndex(card => card.card_id === cardId),
+          ) ?? [];
+        if (
+          reviewCardIndexes.some(
+            index => index < 0 || index >= scheduled.access.accessibleCardCount,
+          ) ||
+          reviewCardIndexes.some(
+            (index, position) =>
+              position > 0 && index <= reviewCardIndexes[position - 1],
+          )
+        ) {
+          throw new Error(
+            'Remote round review content is outside canonical accessible content.',
+          );
+        }
+
+        const roundSpaceCardId = scheduled.roundCompletion?.spaceCardId ?? null;
+        if (
+          roundSpaceCardId !== null &&
+          !source.cards.some(card => card.card_id === roundSpaceCardId)
+        ) {
+          throw new Error(
+            'Remote round Space card is outside canonical active content.',
+          );
+        }
+
         return {
           cards: selectedCardIndex < 0 ? [] : [source.cards[selectedCardIndex]],
           catalogCards: source.cards,
           contentManifest,
           contentVersion: scheduled.contentVersion,
+          generatedAt: scheduled.generatedAt,
           membershipStage: scheduled.membershipStage,
           nextDueAt: scheduled.nextDueAt,
           schedulingMode: 'server',
+          roundCompletion: scheduled.roundCompletion,
           serverSelection: scheduled.selection,
           sourceId: source.sourceId,
           sourceLabel: source.sourceLabel,
           track: source.track,
+          trialExpiresAt: scheduled.trialExpiresAt,
+          trialRemainingSeconds: scheduled.trialRemainingSeconds,
+          trialStartedAt: scheduled.trialStartedAt,
         };
       }
 

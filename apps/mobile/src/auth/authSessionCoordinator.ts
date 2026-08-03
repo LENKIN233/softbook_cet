@@ -2,9 +2,9 @@ import {
   isRemoteAuthorizationError,
   RemoteHttpError,
 } from '../runtime/remoteHttpError';
-import type {AuthSessionStore} from '../persistence/authSessionStore';
+import type { AuthSessionStore } from '../persistence/authSessionStore';
 
-import type {AuthRepository} from './authRepository';
+import type { AuthRepository } from './authRepository';
 import {
   getAuthSessionScopeKey,
   isRemoteAuthSession,
@@ -23,6 +23,7 @@ export type AuthSessionCoordinator = {
   getCurrentSession: () => AuthSession | null;
   invalidate: () => Promise<void>;
   logout: () => Promise<AuthSessionLogoutResult>;
+  requestAccountDeletion: () => Promise<void>;
   restore: () => Promise<AuthSession | null>;
   subscribeSessionScope: (
     listener: (sessionScopeKey: string | null) => void,
@@ -65,9 +66,7 @@ export function createAuthSessionCoordinator(options: {
       try {
         listener(nextScopeKey);
       } catch {
-        console.warn(
-          '[AuthSessionCoordinator] Session-scope listener failed.',
-        );
+        console.warn('[AuthSessionCoordinator] Session-scope listener failed.');
       }
     }
   };
@@ -132,10 +131,13 @@ export function createAuthSessionCoordinator(options: {
       let refreshedSession: RemoteAuthSession;
 
       try {
-        refreshedSession = await options.authRepository.refreshSession(session, {
-          cancellationReason: 'session_superseded',
-          signal: refreshAbortController.signal,
-        });
+        refreshedSession = await options.authRepository.refreshSession(
+          session,
+          {
+            cancellationReason: 'session_superseded',
+            signal: refreshAbortController.signal,
+          },
+        );
       } catch (error) {
         if (isRemoteAuthorizationError(error) && isCurrentRefresh()) {
           await invalidateWithoutMasking(error);
@@ -276,7 +278,21 @@ export function createAuthSessionCoordinator(options: {
         await invalidate();
       }
 
-      return {remoteRevocation};
+      return { remoteRevocation };
+    },
+
+    async requestAccountDeletion() {
+      const session = currentSession;
+
+      if (!session || !isRemoteAuthSession(session)) {
+        throw new RemoteHttpError(
+          'No remote auth session is available for account deletion.',
+          401,
+        );
+      }
+
+      const activeSession = await refresh(false);
+      await options.authRepository.requestAccountDeletion(activeSession);
     },
 
     async restore() {

@@ -5,7 +5,7 @@ import {
   purchaseMembership,
   startMembershipTrial,
 } from './localMembership';
-import {RemoteHttpError} from '../runtime/remoteHttpError';
+import { RemoteHttpError } from '../runtime/remoteHttpError';
 
 export type MembershipRepositoryMode = 'local' | 'remote';
 
@@ -92,14 +92,19 @@ export function createMembershipRepository(
     loadState: async context => {
       if (config.mode === 'remote') {
         if (!config.remoteConfig) {
-          throw new Error('Remote membership repository requires remoteConfig.');
+          throw new Error(
+            'Remote membership repository requires remoteConfig.',
+          );
         }
 
         const fetchImpl = config.fetchImpl ?? fetch;
-        const response = await fetchImpl(config.remoteConfig.entitlementEndpoint, {
-          headers: buildRemoteMembershipHeaders(config.remoteConfig, context),
-          method: 'GET',
-        });
+        const response = await fetchImpl(
+          config.remoteConfig.entitlementEndpoint,
+          {
+            headers: buildRemoteMembershipHeaders(config.remoteConfig, context),
+            method: 'GET',
+          },
+        );
 
         if (!response.ok) {
           throw new RemoteHttpError(
@@ -110,7 +115,8 @@ export function createMembershipRepository(
 
         const payload = await response.json();
         const parsePayload =
-          config.remoteConfig.parsePayload ?? parseSoftbookRemoteMembershipPayload;
+          config.remoteConfig.parsePayload ??
+          parseSoftbookRemoteMembershipPayload;
 
         return parsePayload(payload);
       }
@@ -158,7 +164,7 @@ export function createSoftbookRemoteMembershipConfig(
     entitlementEndpoint: `${baseUrl}/v1/membership/entitlement`,
     headers: {
       'x-softbook-client': 'mobile',
-      ...(config.apiKey ? {'x-api-key': config.apiKey} : {}),
+      ...(config.apiKey ? { 'x-api-key': config.apiKey } : {}),
     },
     purchaseEndpoint: `${baseUrl}/v1/membership/purchase`,
     startTrialEndpoint: `${baseUrl}/v1/membership/start-trial`,
@@ -189,7 +195,8 @@ export function parseSoftbookRemoteMembershipPayload(
     stage !== 'trial_available' &&
     stage !== 'trial' &&
     stage !== 'free' &&
-    stage !== 'premium'
+    stage !== 'premium' &&
+    stage !== 'pilot_premium'
   ) {
     throw new Error(
       'Remote membership payload.data.entitlement.stage must be a valid membership stage.',
@@ -253,12 +260,50 @@ export function parseSoftbookRemoteMembershipPayload(
     );
   }
 
+  const trialStartedAt = parseOptionalCanonicalTimestamp(
+    entitlement.trial_started_at,
+    'Remote membership payload.data.entitlement.trial_started_at',
+  );
+  const trialExpiresAt = parseOptionalCanonicalTimestamp(
+    entitlement.trial_expires_at,
+    'Remote membership payload.data.entitlement.trial_expires_at',
+  );
+  const trialRemainingSeconds = entitlement.trial_remaining_seconds;
+
+  if (
+    typeof trialRemainingSeconds !== 'number' ||
+    !Number.isSafeInteger(trialRemainingSeconds) ||
+    trialRemainingSeconds < 0 ||
+    (stage === 'trial' && trialRemainingSeconds === 0) ||
+    (stage !== 'trial' && trialRemainingSeconds !== 0)
+  ) {
+    throw new Error(
+      'Remote membership payload.data.entitlement.trial_remaining_seconds must match the server trial stage.',
+    );
+  }
+
+  if (
+    (trialStartedAt === null) !== (trialExpiresAt === null) ||
+    (trialStartedAt !== null &&
+      Date.parse(trialExpiresAt!) - Date.parse(trialStartedAt) !==
+        trialDurationDays * 24 * 60 * 60 * 1000) ||
+    (stage === 'trial' && trialStartedAt === null) ||
+    (stage === 'trial_available' && trialStartedAt !== null)
+  ) {
+    throw new Error(
+      'Remote membership payload.data.entitlement trial timeline is invalid.',
+    );
+  }
+
   return {
     countedEntryCount,
     lastExperienceEndedBy,
     recoveryPromptVisible,
     stage,
     trialDurationDays,
+    trialExpiresAt,
+    trialRemainingSeconds,
+    trialStartedAt,
     trialStartedAtEntryCount,
   };
 }
@@ -330,6 +375,25 @@ function createLocalMembershipRepositoryResult(
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function parseOptionalCanonicalTimestamp(
+  value: unknown,
+  label: string,
+): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  if (
+    typeof value !== 'string' ||
+    !Number.isFinite(Date.parse(value)) ||
+    new Date(value).toISOString() !== value
+  ) {
+    throw new Error(`${label} must be a canonical ISO timestamp or null.`);
+  }
+
+  return value;
 }
 
 function trimTrailingSlash(value: string) {

@@ -1,17 +1,24 @@
 appId: com.softbook.cet
 name: ios-auth-space-gate-screenshot
 ---
+- clearKeychain
 - clearState
 - launchApp
 - extendedWaitUntil:
     visible:
-      id: 'auth-phone-input'
+      id: 'authentication-entry-screen'
     timeout: 30000
-- tapOn:
-    id: 'route-tab-space'
 - assertVisible:
-    id: 'auth-gate-title'
+    id: 'authentication-entry-card'
 - assertVisible:
-    id: 'auth-retained-object-title'
+    id: 'auth-phone-input'
 - assertVisible:
     id: 'auth-request-code-button'
+- assertNotVisible:
+    id: 'route-tab-learning'
+- assertNotVisible:
+    id: 'route-tab-space'
+- assertNotVisible:
+    id: 'route-tab-statistics'
+- assertNotVisible:
+    id: 'route-tab-mine'

@@ -113,6 +113,7 @@ const renderedMetadataPropOpenPattern = new RegExp(
 
 const allowedDisplayMetadataLookupPattern =
   /\bINTERACTION_LABELS\s*\[[^\]]*\b(?:interaction_id|interactionId)\b[^\]]*\]/g;
+const approvedPilotIdentityPattern = /CET4 受控试点/g;
 
 const visibleCardContentLeakPattern =
   /\bCET[46]\b|(?:听力|阅读|写作|翻译|词汇|仔细阅读|快速阅读|学习馆|知识组|训练轨道|原盒位|卡组)|\b0\d{3,6}\b/;
@@ -134,7 +135,7 @@ const visibleStringLinePattern = new RegExp(
 );
 
 const nonVisibleDesignJargonLinePattern =
-  /^(?:import\b|export\b|type\b|interface\b|constructor\b|const\b|let\b|var\b|function\b|case\b|switch\b|if\b|return\b|[A-Za-z0-9_]+[,:])|\b(?:testID|nativeID|status|gate)\s*=/;
+  /^(?:import\b|export\b|type\b|interface\b|constructor\b|const\b|let\b|var\b|function\b|case\b|switch\b|if\b|return\b|[A-Za-z0-9_]+[,:]|['"][A-Za-z0-9_]+['"],?$)|\b(?:testID|nativeID|status|gate)\s*=/;
 
 const directDisplayMetadataPatterns = [
   {
@@ -153,6 +154,7 @@ const directDisplayMetadataPatterns = [
   },
   {
     pattern: /(?:\bCET[46]\b|学习馆|知识组|训练轨道|原盒位)/,
+    transform: stripApprovedPilotIdentity,
     reason: 'semantic space metadata term in visible copy',
   },
 ];
@@ -209,6 +211,10 @@ function hasUnclosedJsxPropExpression(text) {
 
 function stripAllowedMetadataDisplayLookups(text) {
   return text.replace(allowedDisplayMetadataLookupPattern, 'INTERACTION_LABEL');
+}
+
+function stripApprovedPilotIdentity(text) {
+  return text.replace(approvedPilotIdentityPattern, 'APPROVED_PILOT_IDENTITY');
 }
 
 function hasRawMetadataExpression(text) {
@@ -328,7 +334,8 @@ function checkDirectDisplayMetadata(filePath) {
         hasUnclosedJsxPropExpression(text)) ||
         (visiblePropTemplateOpenPattern.test(text) &&
           hasUnclosedTemplateLiteral(text))) &&
-      !hasRawMetadataExpression(text)
+      !hasRawMetadataExpression(text) &&
+      !/^(?:export\s+)?function\b/.test(text)
     ) {
       pendingVisibleCopyProp = { remainingLines: 4 };
     } else if (pendingVisibleCopyProp) {
@@ -441,7 +448,7 @@ function checkVisibleCopySourceMetadata(filePath) {
       continue;
     }
 
-    if (visibleCardContentLeakPattern.test(text)) {
+    if (visibleCardContentLeakPattern.test(stripApprovedPilotIdentity(text))) {
       findings.push({
         filePath,
         line: index + 1,

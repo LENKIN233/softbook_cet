@@ -24,13 +24,18 @@ export function createLearningSession(
     catalogCards: orderedCards,
     contentManifest: null,
     contentVersion,
+    generatedAt: null,
     membershipStage: null,
     nextDueAt: null,
     schedulingMode: 'local',
+    roundCompletion: null,
     serverSelection: null,
     sourceId,
     sourceLabel,
     track,
+    trialExpiresAt: null,
+    trialRemainingSeconds: 0,
+    trialStartedAt: null,
     cards: selectSessionCards(orderedCards, cardCount),
   };
 }
@@ -40,6 +45,51 @@ export function selectSessionCards(
   cardCount: number = DEFAULT_LEARNING_SESSION_CARD_COUNT,
 ) {
   const orderedCards = orderLearningCards(availableCards);
+  const selectedCardIds = new Set<string>();
+  const selectedCards: LearningCard[] = [];
+
+  for (const interactionId of CORE_INTERACTION_ORDER) {
+    const nextCard = orderedCards.find(
+      card =>
+        card.interaction_id === interactionId &&
+        !selectedCardIds.has(card.card_id),
+    );
+
+    if (!nextCard) continue;
+    selectedCards.push(nextCard);
+    selectedCardIds.add(nextCard.card_id);
+    if (selectedCards.length >= cardCount) return selectedCards;
+  }
+
+  for (const card of orderedCards) {
+    if (selectedCardIds.has(card.card_id)) continue;
+    selectedCards.push(card);
+    selectedCardIds.add(card.card_id);
+    if (selectedCards.length >= cardCount) break;
+  }
+
+  return selectedCards;
+}
+
+export function selectNextSessionCards(
+  availableCards: LearningCard[],
+  currentCards: LearningCard[],
+  cardCount: number = DEFAULT_LEARNING_SESSION_CARD_COUNT,
+) {
+  const currentCardIds = new Set(currentCards.map(card => card.card_id));
+  const orderedCards = orderLearningCards(availableCards);
+  const prioritizedCards = [
+    ...orderedCards.filter(card => !currentCardIds.has(card.card_id)),
+    ...orderedCards.filter(card => currentCardIds.has(card.card_id)),
+  ];
+
+  return selectSessionCardsInOrder(prioritizedCards, cardCount);
+}
+
+function selectSessionCardsInOrder(
+  orderedCards: LearningCard[],
+  cardCount: number,
+) {
   const selectedCardIds = new Set<string>();
   const selectedCards: LearningCard[] = [];
 
@@ -99,12 +149,20 @@ export function canSubmitLearningCard(
   state: LearningCardState,
 ) {
   switch (card.interaction_id) {
-    case 'flip': return state.isFlipped && state.flipConfidence !== null;
-    case 'multiple_choice': return state.selectedOptionId !== null;
-    case 'lock': return card.lock_slots.every(slot => state.lockSelections[slot.id] !== null);
-    case 'elimination': return state.eliminatedItemIds.length > 0;
-    case 'swipe': return state.swipeSelection !== null;
-    default: return false;
+    case 'flip':
+      return state.isFlipped && state.flipConfidence !== null;
+    case 'multiple_choice':
+      return state.selectedOptionId !== null;
+    case 'lock':
+      return card.lock_slots.every(
+        slot => state.lockSelections[slot.id] !== null,
+      );
+    case 'elimination':
+      return state.eliminatedItemIds.length > 0;
+    case 'swipe':
+      return state.swipeSelection !== null;
+    default:
+      return false;
   }
 }
 
@@ -125,7 +183,7 @@ export function evaluateLearningCard(
     case 'flip':
       return !state.isFlipped || state.flipConfidence === null
         ? null
-        : {...baseResult, outcome: state.flipConfidence};
+        : { ...baseResult, outcome: state.flipConfidence };
     case 'multiple_choice':
       return state.selectedOptionId === null
         ? null
@@ -180,10 +238,14 @@ export function summarizeLearningResults(
   return {
     completed: results.length,
     total: totalCards,
-    autoCorrectCount: results.filter(result => result.outcome === 'correct').length,
-    autoIncorrectCount: results.filter(result => result.outcome === 'incorrect').length,
-    confidentFlipCount: results.filter(result => result.outcome === 'confident').length,
-    reviewFlipCount: results.filter(result => result.outcome === 'review').length,
+    autoCorrectCount: results.filter(result => result.outcome === 'correct')
+      .length,
+    autoIncorrectCount: results.filter(result => result.outcome === 'incorrect')
+      .length,
+    confidentFlipCount: results.filter(result => result.outcome === 'confident')
+      .length,
+    reviewFlipCount: results.filter(result => result.outcome === 'review')
+      .length,
     hintUseCount: results.filter(result => result.usedHint).length,
     peekUseCount: results.filter(result => result.usedPeek).length,
     favoriteCount: results.filter(result => result.isFavorited).length,
@@ -196,12 +258,16 @@ export function selectReviewCards(
 ) {
   const reviewCardIds = new Set(
     results
-      .filter(result => result.outcome === 'incorrect' || result.outcome === 'review')
+      .filter(
+        result => result.outcome === 'incorrect' || result.outcome === 'review',
+      )
       .map(result => result.cardId),
   );
   return sessionCards.filter(card => reviewCardIds.has(card.card_id));
 }
 
 function areStringSetsEqual(left: string[], right: string[]) {
-  return left.length === right.length && left.every(value => right.includes(value));
+  return (
+    left.length === right.length && left.every(value => right.includes(value))
+  );
 }

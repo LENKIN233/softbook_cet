@@ -1,0 +1,51 @@
+appId: com.softbook.cet.internal
+name: android-internal-auth-learning-space-statistics-smoke
+---
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "auth-phone-input"
+    timeout: 30000
+- assertNotVisible:
+    id: "route-tab-learning"
+- assertNotVisible:
+    id: "route-tab-space"
+- assertNotVisible:
+    id: "route-tab-statistics"
+- assertNotVisible:
+    id: "route-tab-mine"
+- tapOn:
+    id: "auth-phone-input"
+- inputText: "13800138000"
+- hideKeyboard
+- tapOn:
+    id: "auth-request-code-button"
+- extendedWaitUntil:
+    visible:
+      id: "auth-code-input"
+    timeout: 10000
+- tapOn:
+    id: "auth-code-input"
+- inputText: "2468"
+- hideKeyboard
+- tapOn:
+    id: "auth-submit-button"
+- extendedWaitUntil:
+    visible:
+      id: "learning-current-card"
+    timeout: 30000
+- assertVisible:
+    id: "route-tab-learning"
+- tapOn:
+    id: "route-tab-space"
+- assertVisible:
+    id: "space-address-shelf"
+- tapOn:
+    id: "route-tab-statistics"
+- assertVisible:
+    id: "statistics-progress-dock"
+- tapOn:
+    id: "route-tab-mine"
+- assertVisible:
+    id: "mine-profile-card"

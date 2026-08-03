@@ -1,6 +1,7 @@
 appId: com.softbook.cet
 name: ios-learning-home-screenshot
 ---
+- clearKeychain
 - clearState
 - launchApp
 - extendedWaitUntil:

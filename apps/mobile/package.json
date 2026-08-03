@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
+    "android:internal": "cd android && ./gradlew :app:assembleInternal --no-daemon",
     "android:release:signed": "node ../../scripts/build_android_signed_release.mjs",
     "android:release:unsigned": "cd android && ./gradlew :app:verifyReleaseSigningBoundary :app:assembleRelease -PsoftbookRequireUnsignedRelease=true --no-daemon",
     "e2e:android:maestro": "maestro test e2e/maestro/android-remote-smoke.yaml",

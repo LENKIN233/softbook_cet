@@ -1,6 +1,7 @@
 appId: com.softbook.cet
 name: ios-space-browse-screenshot
 ---
+- clearKeychain
 - clearState
 - launchApp
 - extendedWaitUntil:

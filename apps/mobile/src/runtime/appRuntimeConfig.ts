@@ -1,5 +1,8 @@
 import type { LearningTrack } from '../learning/model';
-import type { SoftbookAppRuntimeConfig } from '../learning/learningRuntimeConfig';
+import type {
+  ProductRuntimeMode,
+  SoftbookAppRuntimeConfig,
+} from '../learning/learningRuntimeConfig';
 
 export type SoftbookRemoteRuntimeFeature =
   | 'accountBootstrap'
@@ -18,6 +21,7 @@ export type SoftbookRemoteRuntimeProfile = {
     Record<SoftbookRemoteRuntimeFeature, 'local' | 'remote'>
   >;
   learningTrack?: LearningTrack;
+  runtimeMode?: Exclude<ProductRuntimeMode, 'development'>;
 };
 
 export type SoftbookAppRuntimeConfigResolverOptions = {
@@ -60,6 +64,7 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
   learningState: {
     mode: 'local',
   },
+  runtimeMode: 'development',
 };
 
 export function resolveSoftbookAppRuntimeConfig(
@@ -86,10 +91,26 @@ export function createSoftbookRemoteRuntimeConfig(
     ...(profile.apiKey ? { apiKey: profile.apiKey } : {}),
   };
   const learningTrack = profile.learningTrack ?? 'cet4';
+  const runtimeMode = profile.runtimeMode ?? 'production';
   const accountBootstrapMode = resolveFeatureMode(profile, 'accountBootstrap');
   const learningSourceMode = resolveFeatureMode(profile, 'learningSource');
   const contentManifestMode = resolveFeatureMode(profile, 'contentManifest');
   const spaceStateMode = resolveFeatureMode(profile, 'spaceState');
+
+  if (runtimeMode === 'controlled_pilot') {
+    if (learningTrack !== 'cet4') {
+      throw new Error('Controlled pilot runtime supports CET4 only.');
+    }
+
+    const localFeature = Object.entries(profile.featureModes ?? {}).find(
+      ([, mode]) => mode === 'local',
+    );
+    if (localFeature) {
+      throw new Error(
+        `Controlled pilot runtime cannot use local feature ${localFeature[0]}.`,
+      );
+    }
+  }
 
   if (accountBootstrapMode === 'remote' && learningSourceMode === 'local') {
     throw new Error(
@@ -177,6 +198,7 @@ export function createSoftbookRemoteRuntimeConfig(
         : {
             mode: 'local',
           },
+    runtimeMode,
   };
 }
 
@@ -193,6 +215,7 @@ export function readRemoteRuntimeProfileFromEnv(
     env?.SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES,
   );
   const learningTrack = parseLearningTrack(env?.SOFTBOOK_CET_LEARNING_TRACK);
+  const runtimeMode = parseRemoteRuntimeMode(env?.SOFTBOOK_CET_RUNTIME_MODE);
 
   return {
     baseUrl,
@@ -210,6 +233,7 @@ export function readRemoteRuntimeProfileFromEnv(
       ? { featureModes: createLocalFeatureModes(localFeatures) }
       : {}),
     ...(learningTrack ? { learningTrack } : {}),
+    ...(runtimeMode ? { runtimeMode } : {}),
   };
 }
 
@@ -249,6 +273,22 @@ function parseLearningTrack(value: string | undefined): LearningTrack | null {
   }
 
   throw new Error('SOFTBOOK_CET_LEARNING_TRACK must be cet4 or cet6.');
+}
+
+function parseRemoteRuntimeMode(
+  value: string | undefined,
+): SoftbookRemoteRuntimeProfile['runtimeMode'] | null {
+  if (value === undefined || value.trim().length === 0) {
+    return null;
+  }
+
+  if (value === 'controlled_pilot' || value === 'production') {
+    return value;
+  }
+
+  throw new Error(
+    'SOFTBOOK_CET_RUNTIME_MODE must be controlled_pilot or production.',
+  );
 }
 
 function parseRuntimeFeatureList(

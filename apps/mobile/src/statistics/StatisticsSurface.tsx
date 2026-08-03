@@ -80,7 +80,7 @@ export function StatisticsSurface({
       : pendingReviewCount > 0
       ? `${pendingReviewCount} 张待回看`
       : combinedResults.length > 0
-      ? '首轮已收口'
+      ? '暂不需要回看'
       : '暂无今日进展';
   const dailyTitle = hasCheckedInToday
     ? '今天已收好'
@@ -114,31 +114,18 @@ export function StatisticsSurface({
     hasCheckedInToday && syncStatusLabel === '已记录'
       ? undefined
       : syncStatusDetail;
-  const dailyRailTarget = Math.max(
-    combinedResults.length + pendingReviewCount,
-    hasLearningProgress ? combinedResults.length : 1,
-    1,
-  );
-  const dailyRailProgress = Math.min(
-    1,
-    combinedResults.length / dailyRailTarget,
-  );
-  const dailyRailFillPercent = hasLearningProgress
-    ? Math.max(14, Math.round(dailyRailProgress * 100))
-    : 8;
-  const dailyRailFill = `${dailyRailFillPercent}%` as ViewStyle['width'];
-  const dailyRailTone = nextStepIsReview
+  const dailyLedgerTone = nextStepIsReview
     ? palette.warning
     : hasCheckedInToday
     ? palette.success
     : palette.accent;
-  const dailyRailLabel = nextStepIsReview
-    ? `${pendingReviewCount} 张回看待处理`
+  const dailyLedgerLabel = nextStepIsReview
+    ? `${pendingReviewCount} 张待回看`
     : hasCheckedInToday
-    ? '节奏已收好'
+    ? '今日学习已记录'
     : canCheckInToday
-    ? '可以收好今天'
-    : '完成一张后点亮';
+    ? '今日记录已更新'
+    : '完成一张后开始记录';
   const checkInButtonBackground = hasCheckedInToday
     ? palette.panelStrong
     : canCheckInToday
@@ -211,65 +198,33 @@ export function StatisticsSurface({
           style={[
             styles.progressDock,
             {
-              backgroundColor: hexToRgba(dailyRailTone, 0.055),
-              borderColor: hexToRgba(dailyRailTone, 0.16),
+              backgroundColor: hexToRgba(dailyLedgerTone, 0.055),
+              borderColor: hexToRgba(dailyLedgerTone, 0.16),
             },
           ]}
           testID="statistics-progress-dock"
         >
           <View style={styles.progressHeader}>
             <View style={styles.progressCopy}>
-              <Text style={[styles.progressEyebrow, { color: dailyRailTone }]}>
-                今日节奏
+              <Text
+                style={[styles.progressEyebrow, { color: dailyLedgerTone }]}
+              >
+                今日记录
               </Text>
               <Text
                 style={[styles.progressTitle, { color: palette.text }]}
                 testID="statistics-progress-label"
               >
-                {dailyRailLabel}
+                {dailyLedgerLabel}
               </Text>
             </View>
-          </View>
-          <View style={styles.progressMeter}>
-            <Text
-              style={[styles.progressRatio, { color: palette.text }]}
-              testID="statistics-progress-ratio"
-            >
-              {`${combinedResults.length}/${dailyRailTarget}`}
-            </Text>
-            <Text
-              style={[
-                styles.progressMeterCaption,
-                { color: palette.textMuted },
-              ]}
-            >
-              今日完成 / 今日目标
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.progressTrack,
-              { backgroundColor: hexToRgba(dailyRailTone, 0.12) },
-            ]}
-            testID="statistics-progress-rail"
-          >
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  backgroundColor: dailyRailTone,
-                  width: dailyRailFill,
-                },
-              ]}
-              testID="statistics-progress-fill"
-            />
           </View>
           <View
             style={[
               styles.metricLedger,
               {
-                backgroundColor: hexToRgba(dailyRailTone, 0.045),
-                borderColor: hexToRgba(dailyRailTone, 0.08),
+                backgroundColor: hexToRgba(dailyLedgerTone, 0.045),
+                borderColor: hexToRgba(dailyLedgerTone, 0.08),
               },
             ]}
             testID="statistics-metric-strip"
@@ -699,7 +654,7 @@ const styles = StyleSheet.create({
   dailyObjectCard: {
     flex: 1,
     gap: 12,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     minHeight: 0,
     paddingHorizontal: 17,
     paddingVertical: 15,
@@ -737,10 +692,9 @@ const styles = StyleSheet.create({
   progressDock: {
     borderRadius: 20,
     borderWidth: 1,
-    flex: 1,
+    flexShrink: 0,
     gap: 8,
-    justifyContent: 'space-between',
-    minHeight: 0,
+    justifyContent: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 14,
   },
@@ -765,38 +719,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 20,
   },
-  progressRatio: {
-    fontSize: 46,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-    lineHeight: 50,
-  },
-  progressMeter: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 3,
-    justifyContent: 'center',
-    minHeight: 72,
-  },
-  progressMeterCaption: {
-    fontSize: 11,
-    fontWeight: '700',
-    lineHeight: 15,
-  },
-  progressTrack: {
-    borderRadius: 999,
-    height: 9,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    borderRadius: 999,
-    height: '100%',
-  },
   actionDock: {
     borderRadius: 20,
     borderWidth: 1,
     flexShrink: 0,
     gap: 0,
+    marginTop: 'auto',
     overflow: 'visible',
     paddingHorizontal: 11,
     paddingVertical: 9,

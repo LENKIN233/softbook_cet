@@ -1,14 +1,13 @@
 appId: com.softbook.cet
 name: ios-mine-code-sent-screenshot
 ---
+- clearKeychain
 - clearState
 - launchApp
 - extendedWaitUntil:
     visible:
-      id: 'auth-phone-input'
+      id: 'authentication-entry-screen'
     timeout: 30000
-- tapOn:
-    id: 'route-tab-mine'
 - assertVisible:
     id: 'auth-phone-input'
 - tapOn:
@@ -26,3 +25,5 @@ name: ios-mine-code-sent-screenshot
     id: 'auth-code-input'
 - assertVisible:
     id: 'auth-submit-button'
+- assertNotVisible:
+    id: 'route-tab-mine'

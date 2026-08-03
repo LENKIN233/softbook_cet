@@ -3,10 +3,8 @@ name: ios-mine-verify-error-screenshot
 ---
 - extendedWaitUntil:
     visible:
-      id: 'auth-phone-input'
+      id: 'authentication-entry-screen'
     timeout: 30000
-- tapOn:
-    id: 'route-tab-mine'
 - assertVisible:
     id: 'auth-phone-input'
 - tapOn:
@@ -32,7 +30,7 @@ name: ios-mine-verify-error-screenshot
       id: 'auth-error-dock'
     timeout: 10000
 - assertVisible:
-    id: 'mine-profile-card'
+    id: 'authentication-entry-card'
 - assertVisible:
     id: 'auth-code-cells-frame'
 - assertVisible:
@@ -41,3 +39,5 @@ name: ios-mine-verify-error-screenshot
     id: 'auth-error-detail'
 - assertVisible:
     id: 'auth-error-retry-pill'
+- assertNotVisible:
+    id: 'route-tab-mine'

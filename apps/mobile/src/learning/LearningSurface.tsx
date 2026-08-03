@@ -16,6 +16,11 @@ import {
   resolveCardAudioDownload,
   type VerifiedContentManifest,
 } from '../audio/contentManifestRepository';
+import {
+  formatSpaceBoxDisplayName,
+  formatSpaceGroupDisplayName,
+  formatSpaceLibraryDisplayName,
+} from '../shared/uiMetadata/displayMetadata';
 
 import {
   INTERACTION_LABELS,
@@ -51,6 +56,8 @@ export type LearningSurfacePalette = {
 
 type LearningSurfaceProps = {
   palette: LearningSurfacePalette;
+  pilotIdentityLabel?: string | null;
+  trialNoticeVisible?: boolean;
   contentManifest?: VerifiedContentManifest | null;
   sessionCards: LearningCard[];
   sessionLabel: string;
@@ -74,6 +81,7 @@ type LearningSurfaceProps = {
   onOpenResultDetail?: () => void;
   onAdvanceCard: () => void;
   onRestartDeck: () => void;
+  onOpenCompletionSpace?: () => void;
   onStartReview?: () => void;
 };
 
@@ -212,6 +220,8 @@ export function isCompactLearningViewport(width: number, height: number) {
 
 export function LearningSurface({
   palette,
+  pilotIdentityLabel = null,
+  trialNoticeVisible = false,
   contentManifest = null,
   sessionCards,
   sessionLabel,
@@ -235,6 +245,7 @@ export function LearningSurface({
   onOpenResultDetail,
   onAdvanceCard,
   onRestartDeck,
+  onOpenCompletionSpace,
   onStartReview,
 }: LearningSurfaceProps) {
   const { height: viewportHeight, width: viewportWidth } =
@@ -254,6 +265,7 @@ export function LearningSurface({
       sessionCards.length,
     );
     const primaryAction = getPrimaryActionColors(palette);
+    const neutralAction = getNeutralActionSurface(palette);
 
     return (
       <View style={[styles.oneScreenPage, styles.completeScreen]}>
@@ -330,24 +342,49 @@ export function LearningSurface({
             style={[styles.resultExplanationBody, { color: palette.textMuted }]}
           >
             {isReviewPhase
-              ? '回看已经结束。可以回到首轮重新开始，也可以稍后按学习节奏继续。'
+              ? '回看已经结束。可以查看卡片在 Space 里的位置，或继续下一轮。'
               : reviewCandidateCount > 0
-              ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
-              : '这一轮已经完成，可以重新练这轮卡。'}
+              ? `有 ${reviewCandidateCount} 张卡需要再看；也可以先查看 Space，或继续下一轮。`
+              : '这一轮已经完成，可以查看 Space，或继续下一轮。'}
           </Text>
           {!isReviewPhase && reviewCandidateCount > 0 && onStartReview ? (
             <Pressable
               onPress={onStartReview}
               style={[
-                styles.primaryButton,
-                { backgroundColor: palette.warning },
+                styles.secondaryButton,
+                {
+                  backgroundColor: neutralAction.surface,
+                  borderColor: neutralAction.border,
+                },
               ]}
               testID="learning-start-review-button"
             >
               <Text
-                style={[styles.primaryButtonLabel, { color: palette.panel }]}
+                style={[
+                  styles.secondaryButtonLabel,
+                  { color: palette.warning },
+                ]}
               >
-                开始回看这 {reviewCandidateCount} 张卡
+                回看待复习内容
+              </Text>
+            </Pressable>
+          ) : null}
+          {onOpenCompletionSpace ? (
+            <Pressable
+              onPress={onOpenCompletionSpace}
+              style={[
+                styles.secondaryButton,
+                {
+                  backgroundColor: neutralAction.surface,
+                  borderColor: neutralAction.border,
+                },
+              ]}
+              testID="learning-completion-space-button"
+            >
+              <Text
+                style={[styles.secondaryButtonLabel, { color: palette.text }]}
+              >
+                查看所在 Space
               </Text>
             </Pressable>
           ) : null}
@@ -357,12 +394,12 @@ export function LearningSurface({
               styles.primaryButton,
               { backgroundColor: primaryAction.surface },
             ]}
-            testID="learning-restart-button"
+            testID="learning-continue-round-button"
           >
             <Text
               style={[styles.primaryButtonLabel, { color: primaryAction.text }]}
             >
-              {isReviewPhase ? '回到首轮重新开始' : '重新练这轮卡'}
+              继续下一轮
             </Text>
           </Pressable>
         </View>
@@ -375,6 +412,15 @@ export function LearningSurface({
     accent: libraryTone.accent,
     accentSoft: libraryTone.accentSoft,
   };
+  const currentSpaceLibrary = formatSpaceLibraryDisplayName(
+    currentCard.space_metadata.library,
+  );
+  const currentSpaceGroup = formatSpaceGroupDisplayName(
+    currentCard.space_metadata.group,
+  );
+  const currentSpaceBox = formatSpaceBoxDisplayName(
+    currentCard.space_metadata.box,
+  );
   const progressPercent = `${Math.max(
     Math.round(((currentIndex + 1) / Math.max(sessionCards.length, 1)) * 100),
     10,
@@ -507,12 +553,10 @@ export function LearningSurface({
                 testID="learning-progress-label"
               >
                 {isCompactPhone
-                  ? `${
-                      isReviewPhase ? '本轮回看' : displaySessionLabel
-                    } · 本轮盒`
+                  ? `${currentSpaceLibrary} · ${currentSpaceBox}`
                   : isReviewPhase
-                  ? '本轮回看'
-                  : displaySessionLabel}
+                  ? `本轮回看 · ${currentSpaceLibrary}`
+                  : `${displaySessionLabel} · ${currentSpaceLibrary}`}
               </Text>
               <Text
                 style={[
@@ -556,6 +600,30 @@ export function LearningSurface({
             </View>
           </View>
         </View>
+        {pilotIdentityLabel ? (
+          <View
+            style={[
+              styles.pilotIdentitySlip,
+              {
+                backgroundColor: hexToRgba(tone.accent, 0.08),
+                borderColor: hexToRgba(tone.accent, 0.18),
+              },
+            ]}
+            testID="controlled-pilot-learning-identity"
+          >
+            <Text style={[styles.pilotIdentityLabel, { color: tone.accent }]}>
+              {pilotIdentityLabel}
+            </Text>
+            {trialNoticeVisible ? (
+              <Text
+                style={[styles.pilotTrialNotice, { color: palette.textMuted }]}
+                testID="controlled-pilot-trial-notice"
+              >
+                120 小时完整体验已从这张有效学习卡开始；时间与资格以服务端为准。
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
         {!isCompactPhone ? (
           <View
             style={[
@@ -580,13 +648,13 @@ export function LearningSurface({
                 numberOfLines={1}
                 style={[styles.cardLocationTitle, { color: palette.textMuted }]}
               >
-                本轮盒
+                {currentSpaceLibrary} · {currentSpaceGroup}
               </Text>
               <Text
                 numberOfLines={1}
                 style={[styles.cardLocationMeta, { color: palette.textMuted }]}
               >
-                {isReviewPhase ? '回看卡在这' : '位置已接上'}
+                {currentSpaceBox}
               </Text>
             </View>
           </View>
@@ -623,10 +691,7 @@ export function LearningSurface({
 
         {audioSelection ? (
           <View style={styles.audioResourceSlot} testID="learning-audio-slot">
-            <LearningAudioPlayer
-              palette={palette}
-              selection={audioSelection}
-            />
+            <LearningAudioPlayer palette={palette} selection={audioSelection} />
           </View>
         ) : null}
 
@@ -1549,7 +1614,11 @@ function SwipeInteraction({
   );
 
   const rotate = dragX.interpolate({
-    inputRange: [-Math.max(cardWidthRef.current, 1), 0, Math.max(cardWidthRef.current, 1)],
+    inputRange: [
+      -Math.max(cardWidthRef.current, 1),
+      0,
+      Math.max(cardWidthRef.current, 1),
+    ],
     outputRange: ['-5deg', '0deg', '5deg'],
   });
   const selectedState = card.swipe_states.find(
@@ -1558,10 +1627,7 @@ function SwipeInteraction({
 
   return (
     <View
-      style={[
-        styles.swipeColumn,
-        compact ? styles.swipeColumnCompact : null,
-      ]}
+      style={[styles.swipeColumn, compact ? styles.swipeColumnCompact : null]}
     >
       <View
         style={[styles.swipeDeck, compact ? styles.swipeDeckCompact : null]}
@@ -1863,6 +1929,13 @@ export function LearningResultDetailSurface({
   );
   const resultTone = getResultTone(result, palette);
   const detailLibraryTone = resolveLibraryTone(card.space_metadata.library);
+  const detailSpaceLibrary = formatSpaceLibraryDisplayName(
+    card.space_metadata.library,
+  );
+  const detailSpaceGroup = formatSpaceGroupDisplayName(
+    card.space_metadata.group,
+  );
+  const detailSpaceBox = formatSpaceBoxDisplayName(card.space_metadata.box);
   const resolvedRows = getResolvedAnswerRows(card, cardState);
   const isPositive =
     result.outcome === 'correct' || result.outcome === 'confident';
@@ -1927,12 +2000,10 @@ export function LearningResultDetailSurface({
                 style={[styles.learningFrameMeta, { color: palette.textMuted }]}
               >
                 {isCompactPhone
-                  ? `${
-                      phase === 'review' ? '本轮回看' : displaySessionLabel
-                    } · 本轮盒`
+                  ? `${detailSpaceLibrary} · ${detailSpaceBox}`
                   : phase === 'review'
-                  ? '本轮回看'
-                  : displaySessionLabel}
+                  ? `本轮回看 · ${detailSpaceLibrary}`
+                  : `${displaySessionLabel} · ${detailSpaceLibrary}`}
               </Text>
               <Text
                 style={[
@@ -1999,13 +2070,13 @@ export function LearningResultDetailSurface({
                 numberOfLines={1}
                 style={[styles.cardLocationTitle, { color: palette.textMuted }]}
               >
-                位置 · 本轮盒
+                {detailSpaceLibrary} · {detailSpaceGroup}
               </Text>
               <Text
                 numberOfLines={1}
                 style={[styles.cardLocationMeta, { color: palette.textMuted }]}
               >
-                答案留在本卡
+                {detailSpaceBox}
               </Text>
             </View>
             <Pressable
@@ -2830,6 +2901,26 @@ const styles = StyleSheet.create({
   },
   cardAddressShelfCompact: {
     gap: 8,
+  },
+  pilotIdentitySlip: {
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+  pilotIdentityLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  pilotTrialNotice: {
+    flexShrink: 1,
+    fontSize: 11,
+    lineHeight: 16,
   },
   cardObjectAccent: {
     borderRadius: 999,

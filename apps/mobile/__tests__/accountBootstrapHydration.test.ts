@@ -61,6 +61,9 @@ function createBootstrapFixture(): AccountBootstrapSnapshot {
         recoveryPromptVisible: false,
         stage: 'trial_available',
         trialDurationDays: 5,
+        trialExpiresAt: null,
+        trialRemainingSeconds: 0,
+        trialStartedAt: null,
         trialStartedAtEntryCount: null,
       },
     },
@@ -107,6 +110,9 @@ test('reconciles same-day local state only after canonical read', () => {
         sourceId: 'stale-source',
         track: 'cet4',
       },
+      localLearningState: null,
+      pilotRoundCompletion: null,
+      presentedTrialStartedAt: null,
       spaceCardStateById: {
         [cardId]: {
           isFavorited: false,
@@ -137,6 +143,9 @@ test('preserves same-day check-in only when a durable command is pending', () =>
     {
       checkedInDayKey: bootstrap.dayKey,
       learningCursor: null,
+      localLearningState: null,
+      pilotRoundCompletion: null,
+      presentedTrialStartedAt: null,
       spaceCardStateById: {},
     },
     bootstrap,
@@ -153,6 +162,9 @@ test('discards unqueued local space state after a canonical read', () => {
     {
       checkedInDayKey: null,
       learningCursor: null,
+      localLearningState: null,
+      pilotRoundCompletion: null,
+      presentedTrialStartedAt: null,
       spaceCardStateById: {
         [cardId]: {
           isFavorited: false,
@@ -177,6 +189,9 @@ test('overlays only durable pending space actions on canonical state', () => {
     {
       checkedInDayKey: null,
       learningCursor: null,
+      localLearningState: null,
+      pilotRoundCompletion: null,
+      presentedTrialStartedAt: null,
       spaceCardStateById: {},
     },
     bootstrap,

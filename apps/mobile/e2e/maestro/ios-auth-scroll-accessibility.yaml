@@ -1,0 +1,30 @@
+appId: com.softbook.cet
+name: ios-auth-scroll-accessibility
+---
+- clearKeychain
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: 'authentication-entry-screen'
+    timeout: 30000
+- assertVisible:
+    id: 'authentication-entry-card'
+- assertNotVisible:
+    id: 'route-tab-learning'
+- assertNotVisible:
+    id: 'route-tab-space'
+- assertNotVisible:
+    id: 'route-tab-statistics'
+- assertNotVisible:
+    id: 'route-tab-mine'
+- swipe:
+    start: 50%, 80%
+    end: 50%, 20%
+    duration: 600
+- assertVisible:
+    id: 'auth-phone-input'
+- assertVisible:
+    id: 'auth-request-code-button'
+- assertVisible:
+    id: 'authentication-entry-navigation-note'

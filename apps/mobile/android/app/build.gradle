@@ -116,6 +116,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        manifestPlaceholders = [usesCleartextTraffic: "false"]
     }
     signingConfigs {
         debug {
@@ -135,9 +136,19 @@ android {
     }
     buildTypes {
         debug {
+            manifestPlaceholders = [usesCleartextTraffic: "true"]
             signingConfig signingConfigs.debug
         }
+        internal {
+            initWith release
+            applicationIdSuffix ".internal"
+            versionNameSuffix "-internal"
+            manifestPlaceholders = [usesCleartextTraffic: "false"]
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
         release {
+            manifestPlaceholders = [usesCleartextTraffic: "false"]
             if (releaseSigningConfigured) {
                 signingConfig signingConfigs.release
             }

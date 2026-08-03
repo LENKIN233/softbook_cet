@@ -51,9 +51,9 @@ test('swipe gesture commits at 25% distance or the velocity threshold', () => {
   expect(
     resolveSwipeGestureDirection({ cardWidth: 320, dx: -79, vx: -0.64 }),
   ).toBeNull();
-  expect(
-    resolveSwipeGestureDirection({ cardWidth: 320, dx: -80, vx: 0 }),
-  ).toBe('left');
+  expect(resolveSwipeGestureDirection({ cardWidth: 320, dx: -80, vx: 0 })).toBe(
+    'left',
+  );
   expect(
     resolveSwipeGestureDirection({ cardWidth: 320, dx: 79, vx: 0.65 }),
   ).toBe('right');
@@ -139,7 +139,7 @@ test('keeps verified audio as an explicit accessible chip attached to the card',
     );
   });
 
-  const control = tree!.root.findByProps({testID: 'learning-audio-control'});
+  const control = tree!.root.findByProps({ testID: 'learning-audio-control' });
   expect(control.props.accessibilityRole).toBe('button');
   expect(control.props.accessibilityLabel).toBe('播放听力');
   expect(control.props.accessibilityState).toEqual({
@@ -195,17 +195,28 @@ test('does not expose raw space metadata while learning', () => {
         onSelectSwipeState={jest.fn()}
         onSubmitCurrentCard={jest.fn()}
         onAdvanceCard={jest.fn()}
+        onOpenCompletionSpace={jest.fn()}
         onRestartDeck={jest.fn()}
+        pilotIdentityLabel="CET4 受控试点"
+        trialNoticeVisible
       />,
     );
   });
 
   const output = JSON.stringify(tree!.toJSON());
 
+  expect(
+    tree!.root.findByProps({ testID: 'controlled-pilot-learning-identity' }),
+  ).toBeTruthy();
+  expect(
+    tree!.root.findByProps({ testID: 'controlled-pilot-trial-notice' }),
+  ).toBeTruthy();
+  expect(output).toContain('时间与资格以服务端为准');
+
   const progressLabel = tree!.root.findByProps({
     testID: 'learning-progress-label',
   });
-  expect(progressLabel.props.children).toBe('本轮学习卡');
+  expect(progressLabel.props.children).toBe('本轮学习卡 · 当前书架');
   expect(
     tree!.root.findByProps({ testID: 'learning-card-address-shelf' }),
   ).toBeTruthy();
@@ -221,8 +232,11 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('先判断，再确认解析');
   expect(output).not.toContain('先做这一张');
   expect(output).not.toContain('当前这一张');
-  expect(output).toContain('位置已接上');
-  expect(output).toContain('本轮盒');
+  expect(output).toContain('当前书架');
+  expect(output).toContain('当前分区');
+  expect(output).toContain('当前卡盒');
+  expect(output).not.toContain('位置已接上');
+  expect(output).not.toContain('本轮盒');
   expect(output).not.toContain('位置保持');
   expect(output).not.toContain('位置 · 本轮盒');
   expect(output).not.toContain('当前位置 · 本轮盒');
@@ -486,6 +500,7 @@ test('completion state keeps the next step primary instead of a metric dashboard
         onSelectSwipeState={jest.fn()}
         onSubmitCurrentCard={jest.fn()}
         onAdvanceCard={jest.fn()}
+        onOpenCompletionSpace={jest.fn()}
         onRestartDeck={jest.fn()}
         onStartReview={jest.fn()}
       />,
@@ -495,9 +510,9 @@ test('completion state keeps the next step primary instead of a metric dashboard
   const output = JSON.stringify(tree!.toJSON());
 
   expect(output).toContain('下一步');
-  expect(output).toContain('开始回看这 ');
-  expect(output).toContain('1');
-  expect(output).toContain(' 张卡');
+  expect(output).toContain('回看待复习内容');
+  expect(output).toContain('查看所在 Space');
+  expect(output).toContain('继续下一轮');
   expect(output).not.toContain('完成明细');
   expect(output).not.toContain('自动判对');
   expect(output).not.toContain('自动判错');
@@ -578,7 +593,10 @@ test('result detail reads as a resolved card without raw metadata', () => {
   expect(detailAnswerSlipStyle.justifyContent).toBe('space-between');
   expect(output).toContain('当前卡');
   expect(output).toContain('2/3');
-  expect(output).toContain('答案留在本卡');
+  expect(output).toContain(card.space_metadata.library);
+  expect(output).toContain(card.space_metadata.group);
+  expect(output).toContain(card.space_metadata.box);
+  expect(output).not.toContain('答案留在本卡');
   expect(output).not.toContain('结果在当前卡');
   expect(output).toContain('答案已归位');
   expect(output).toContain('你的选择和正确答案已对齐');

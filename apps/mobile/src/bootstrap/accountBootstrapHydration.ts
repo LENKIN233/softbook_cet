@@ -39,6 +39,14 @@ export function reconcileAccountBootstrap(
         ? null
         : persistedUserState.checkedInDayKey,
       learningCursor: bootstrap.learning.cursor,
+      localLearningState: persistedUserState.localLearningState,
+      pilotRoundCompletion:
+        persistedUserState.pilotRoundCompletion?.track === bootstrap.track &&
+        persistedUserState.pilotRoundCompletion.contentVersion ===
+          bootstrap.content.version
+          ? persistedUserState.pilotRoundCompletion
+          : null,
+      presentedTrialStartedAt: persistedUserState.presentedTrialStartedAt,
       spaceCardStateById: reconciledSpaceStateById,
     },
   };

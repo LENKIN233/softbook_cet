@@ -3,6 +3,7 @@ import { resolveAccountBootstrapRepositoryConfig } from '../src/bootstrap/accoun
 import {
   resolveLearningSessionRepositoryConfig,
   resolveLearningTrack,
+  resolveProductRuntimeMode,
 } from '../src/learning/learningRuntimeConfig';
 import { resolveMembershipRepositoryConfig } from '../src/membership/membershipRuntimeConfig';
 import {
@@ -24,6 +25,7 @@ test('tracked app runtime config stays on the local safe baseline', () => {
     membership: { mode: 'local' },
     progressSync: { mode: 'local' },
     spaceState: { mode: 'local' },
+    runtimeMode: 'development',
   });
 });
 
@@ -77,6 +79,7 @@ test('remote runtime profile switches every remote-capable surface to one base u
   });
 
   expect(resolveLearningTrack(config)).toBe('cet6');
+  expect(resolveProductRuntimeMode(config)).toBe('production');
   expect(resolveAuthRepositoryConfig(config).remoteConfig).toMatchObject({
     requestCodeEndpoint: 'https://api.softbook.example/v2/auth/request-code',
     verifyCodeEndpoint: 'https://api.softbook.example/v2/auth/verify-code',
@@ -126,6 +129,36 @@ test('remote runtime profile switches every remote-capable surface to one base u
   ).toMatchObject({
     endpoint: 'https://api.softbook.example/v2/learning/events',
   });
+});
+
+test('controlled pilot runtime is fixed to CET4 with no local fallbacks', () => {
+  const config = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    learningTrack: 'cet4',
+    runtimeMode: 'controlled_pilot',
+  });
+
+  expect(resolveProductRuntimeMode(config)).toBe('controlled_pilot');
+  expect(resolveLearningTrack(config)).toBe('cet4');
+  expect(resolveLearningSessionRepositoryConfig(config).mode).toBe('remote');
+
+  expect(() =>
+    createSoftbookRemoteRuntimeConfig({
+      baseUrl: 'https://api.softbook.example',
+      learningTrack: 'cet6',
+      runtimeMode: 'controlled_pilot',
+    }),
+  ).toThrow('Controlled pilot runtime supports CET4 only.');
+
+  expect(() =>
+    createSoftbookRemoteRuntimeConfig({
+      baseUrl: 'https://api.softbook.example',
+      featureModes: {progressSync: 'local'},
+      runtimeMode: 'controlled_pilot',
+    }),
+  ).toThrow(
+    'Controlled pilot runtime cannot use local feature progressSync.',
+  );
 });
 
 test('remote runtime profile normalizes the shared base url', () => {

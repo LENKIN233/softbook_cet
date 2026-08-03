@@ -1,4 +1,9 @@
-export type MembershipStage = 'trial_available' | 'trial' | 'free' | 'premium';
+export type MembershipStage =
+  | 'trial_available'
+  | 'trial'
+  | 'free'
+  | 'premium'
+  | 'pilot_premium';
 
 export type MembershipAccess = {
   basicLearning: boolean;
@@ -13,6 +18,9 @@ export type MembershipState = {
   recoveryPromptVisible: boolean;
   stage: MembershipStage;
   trialDurationDays: number;
+  trialExpiresAt: string | null;
+  trialRemainingSeconds: number;
+  trialStartedAt: string | null;
   trialStartedAtEntryCount: number | null;
 };
 
@@ -25,6 +33,9 @@ export function createInitialMembershipState(): MembershipState {
     recoveryPromptVisible: false,
     stage: 'trial_available',
     trialDurationDays: LOCAL_TRIAL_DURATION_DAYS,
+    trialExpiresAt: null,
+    trialRemainingSeconds: 0,
+    trialStartedAt: null,
     trialStartedAtEntryCount: null,
   };
 }
@@ -34,7 +45,8 @@ export function resolveMembershipAccess(
 ): MembershipAccess {
   if (
     membershipState.stage === 'trial' ||
-    membershipState.stage === 'premium'
+    membershipState.stage === 'premium' ||
+    membershipState.stage === 'pilot_premium'
   ) {
     return {
       basicLearning: true,
@@ -54,12 +66,17 @@ export function resolveMembershipAccess(
 
 export function startMembershipTrial(
   membershipState: MembershipState,
+  startedAt: Date = new Date(),
 ): MembershipState {
   if (membershipState.stage !== 'trial_available') {
     return membershipState;
   }
 
   const countedEntryCount = membershipState.countedEntryCount + 1;
+  const trialStartedAt = startedAt.toISOString();
+  const trialExpiresAt = new Date(
+    startedAt.getTime() + LOCAL_TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
 
   return {
     ...membershipState,
@@ -67,6 +84,9 @@ export function startMembershipTrial(
     lastExperienceEndedBy: null,
     recoveryPromptVisible: false,
     stage: 'trial',
+    trialExpiresAt,
+    trialRemainingSeconds: LOCAL_TRIAL_DURATION_DAYS * 24 * 60 * 60,
+    trialStartedAt,
     trialStartedAtEntryCount: countedEntryCount,
   };
 }
@@ -83,6 +103,7 @@ export function expireMembershipTrial(
     lastExperienceEndedBy: 'trial',
     recoveryPromptVisible: true,
     stage: 'free',
+    trialRemainingSeconds: 0,
   };
 }
 
@@ -94,13 +115,17 @@ export function purchaseMembership(
     lastExperienceEndedBy: null,
     recoveryPromptVisible: false,
     stage: 'premium',
+    trialRemainingSeconds: 0,
   };
 }
 
 export function expirePremiumMembership(
   membershipState: MembershipState,
 ): MembershipState {
-  if (membershipState.stage !== 'premium') {
+  if (
+    membershipState.stage !== 'premium' &&
+    membershipState.stage !== 'pilot_premium'
+  ) {
     return membershipState;
   }
 
@@ -109,6 +134,7 @@ export function expirePremiumMembership(
     lastExperienceEndedBy: 'premium',
     recoveryPromptVisible: true,
     stage: 'free',
+    trialRemainingSeconds: 0,
   };
 }
 

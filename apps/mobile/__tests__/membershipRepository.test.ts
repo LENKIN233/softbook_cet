@@ -1,4 +1,4 @@
-import {createInitialMembershipState} from '../src/membership/localMembership';
+import { createInitialMembershipState } from '../src/membership/localMembership';
 import {
   createMembershipRepository,
   parseSoftbookRemoteMembershipPayload,
@@ -37,6 +37,9 @@ test('remote membership repository loads entitlement and posts mutations', async
             recovery_prompt_visible: false,
             stage: 'free',
             trial_duration_days: 5,
+            trial_expires_at: '2026-08-06T00:00:00.000Z',
+            trial_remaining_seconds: 0,
+            trial_started_at: '2026-08-01T00:00:00.000Z',
             trial_started_at_entry_count: 1,
           },
         },
@@ -53,6 +56,9 @@ test('remote membership repository loads entitlement and posts mutations', async
             recovery_prompt_visible: false,
             stage: 'trial',
             trial_duration_days: 5,
+            trial_expires_at: '2026-08-07T00:00:00.000Z',
+            trial_remaining_seconds: 432000,
+            trial_started_at: '2026-08-02T00:00:00.000Z',
             trial_started_at_entry_count: 3,
           },
         },
@@ -72,7 +78,8 @@ test('remote membership repository loads entitlement and posts mutations', async
         'x-softbook-client': 'mobile',
       },
       purchaseEndpoint: 'https://api.softbook.example/v1/membership/purchase',
-      startTrialEndpoint: 'https://api.softbook.example/v1/membership/start-trial',
+      startTrialEndpoint:
+        'https://api.softbook.example/v1/membership/start-trial',
     },
   });
 
@@ -108,7 +115,8 @@ test('remote membership repository requires auth token', async () => {
       entitlementEndpoint:
         'https://api.softbook.example/v1/membership/entitlement',
       purchaseEndpoint: 'https://api.softbook.example/v1/membership/purchase',
-      startTrialEndpoint: 'https://api.softbook.example/v1/membership/start-trial',
+      startTrialEndpoint:
+        'https://api.softbook.example/v1/membership/start-trial',
     },
   });
 
@@ -133,13 +141,14 @@ test('remote membership repository preserves authorization status', async () => 
       entitlementEndpoint:
         'https://api.softbook.example/v1/membership/entitlement',
       purchaseEndpoint: 'https://api.softbook.example/v1/membership/purchase',
-      startTrialEndpoint: 'https://api.softbook.example/v1/membership/start-trial',
+      startTrialEndpoint:
+        'https://api.softbook.example/v1/membership/start-trial',
     },
   });
 
   await expect(
     repository.loadState(authenticatedContext),
-  ).rejects.toMatchObject({status: 401});
+  ).rejects.toMatchObject({ status: 401 });
 });
 
 test('remote membership payload parser validates stage', () => {
@@ -152,6 +161,9 @@ test('remote membership payload parser validates stage', () => {
           recovery_prompt_visible: false,
           stage: 'invalid',
           trial_duration_days: 5,
+          trial_expires_at: null,
+          trial_remaining_seconds: 0,
+          trial_started_at: null,
           trial_started_at_entry_count: null,
         },
       },
@@ -159,4 +171,28 @@ test('remote membership payload parser validates stage', () => {
   ).toThrow(
     'Remote membership payload.data.entitlement.stage must be a valid membership stage.',
   );
+});
+
+test('remote membership accepts audited pilot access without inventing a trial timeline', () => {
+  expect(
+    parseSoftbookRemoteMembershipPayload({
+      data: {
+        entitlement: {
+          counted_entry_count: 0,
+          last_experience_ended_by: null,
+          recovery_prompt_visible: false,
+          stage: 'pilot_premium',
+          trial_duration_days: 5,
+          trial_expires_at: null,
+          trial_remaining_seconds: 0,
+          trial_started_at: null,
+          trial_started_at_entry_count: null,
+        },
+      },
+    }),
+  ).toMatchObject({
+    stage: 'pilot_premium',
+    trialExpiresAt: null,
+    trialStartedAt: null,
+  });
 });

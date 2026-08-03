@@ -1,4 +1,7 @@
 const crypto = require('node:crypto');
+const {
+  isContentReleaseValidForRuntime,
+} = require('./content-release-runtime');
 
 const {
   createLearningEventsError,
@@ -246,7 +249,7 @@ async function validateNewEvents(config, events, readContentVersion, now) {
 
     if (!contentByVersion.has(contentVersion)) {
       const content = await readContentVersion({
-        allowDevelopmentDefault: config.runtimeMode !== 'production',
+        allowDevelopmentDefault: config.runtimeMode === 'development',
         contentVersion,
         track: event.track,
       });
@@ -315,9 +318,11 @@ function validateContentSnapshot(config, content, now) {
   }
 
   if (
-    config.runtimeMode === 'production' &&
-    (content.cardSource.release === null ||
-      content.cardSource.release === undefined)
+    !isContentReleaseValidForRuntime(
+      content.cardSource,
+      config.runtimeMode,
+      now,
+    )
   ) {
     throw unknownContent(
       'Production learning events require published content.',
@@ -584,7 +589,7 @@ function requireClockValue(value) {
 }
 
 function validateConfig(config) {
-  if (!['development', 'production'].includes(config.runtimeMode)) {
+  if (!['development', 'production', 'controlled_pilot'].includes(config.runtimeMode)) {
     throw new Error(
       `Unsupported learning-events runtime mode: ${config.runtimeMode}`,
     );

@@ -325,6 +325,9 @@ describe('MutationQueueRepository', () => {
       recoveryPromptVisible: false,
       stage: 'trial_available',
       trialDurationDays: 5,
+      trialExpiresAt: null,
+      trialRemainingSeconds: 0,
+      trialStartedAt: null,
       trialStartedAtEntryCount: null,
     };
     const payload = {
@@ -382,10 +385,7 @@ describe('MutationQueueRepository', () => {
     );
   });
 
-  it.each([
-    'space_card_not_in_content',
-    'space_action_id_conflict',
-  ] as const)(
+  it.each(['space_card_not_in_content', 'space_action_id_conflict'] as const)(
     'quarantines terminal %s and continues later account mutations',
     async code => {
       const sharedStore: Record<string, string> = {};
@@ -482,10 +482,7 @@ describe('MutationQueueRepository', () => {
     );
 
     await repository.enqueueMutation('apply_space_action', spacePayload);
-    await repository.enqueueMutation(
-      'check_in_daily_progress',
-      checkInPayload,
-    );
+    await repository.enqueueMutation('check_in_daily_progress', checkInPayload);
 
     await expect(
       repository.startReplay(createSpaceReplayContext()),

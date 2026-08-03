@@ -58,6 +58,9 @@ function createBootstrapPayload(): any {
         last_experience_ended_by: null,
         recovery_prompt_visible: false,
         trial_duration_days: 5,
+        trial_expires_at: null,
+        trial_remaining_seconds: 0,
+        trial_started_at: null,
         trial_started_at_entry_count: 1,
       },
       progress: {

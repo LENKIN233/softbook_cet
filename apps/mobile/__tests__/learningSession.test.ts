@@ -4,6 +4,7 @@ import {
   createLearningCardState,
   createLocalLearningSession,
   evaluateLearningCard,
+  selectNextSessionCards,
   selectReviewCards,
 } from '../src/learning/session';
 
@@ -25,9 +26,9 @@ test('local card source can derive a usable cet6 track', () => {
 
   expect(cards.length).toBeGreaterThan(CORE_INTERACTION_ORDER.length);
   expect(cards.every(card => card.track === 'cet6')).toBe(true);
-  expect(
-    cards.every(card => card.card_id.startsWith(card.knowledge_ref)),
-  ).toBe(true);
+  expect(cards.every(card => card.card_id.startsWith(card.knowledge_ref))).toBe(
+    true,
+  );
 });
 
 test('local learning session picks one card per core interaction before duplicates', () => {
@@ -50,6 +51,30 @@ test('local learning session keeps the active track across the catalog and deck'
   expect(session.track).toBe('cet6');
   expect(session.cards.every(card => card.track === 'cet6')).toBe(true);
   expect(session.catalogCards.every(card => card.track === 'cet6')).toBe(true);
+});
+
+test('next local round prioritizes cards not shown in the previous round', () => {
+  const session = createLocalLearningSession('cet4');
+  const previousCardIds = new Set(session.cards.map(card => card.card_id));
+  const catalogCardsNotYetShown = session.catalogCards.filter(
+    card => !previousCardIds.has(card.card_id),
+  );
+
+  const nextCards = selectNextSessionCards(
+    session.catalogCards,
+    session.cards,
+    session.cards.length,
+  );
+
+  expect(nextCards).toHaveLength(session.cards.length);
+  expect(
+    catalogCardsNotYetShown.every(card =>
+      nextCards.some(nextCard => nextCard.card_id === card.card_id),
+    ),
+  ).toBe(true);
+  expect(nextCards.map(card => card.interaction_id)).toEqual(
+    CORE_INTERACTION_ORDER,
+  );
 });
 
 test('flip card supports both confident and review outcomes', () => {
@@ -144,8 +169,7 @@ test('review flow only pulls incorrect and review cards in original order', () =
     },
   ];
 
-  expect(selectReviewCards(session.cards, results).map(card => card.card_id)).toEqual([
-    flipCard.card_id,
-    lockCard.card_id,
-  ]);
+  expect(
+    selectReviewCards(session.cards, results).map(card => card.card_id),
+  ).toEqual([flipCard.card_id, lockCard.card_id]);
 });
