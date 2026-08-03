@@ -293,6 +293,8 @@ function cloneEntitlement(input) {
     recovery_prompt_visible: input.recovery_prompt_visible,
     stage: input.stage,
     trial_duration_days: input.trial_duration_days,
+    trial_expires_at: input.trial_expires_at ?? null,
+    trial_started_at: input.trial_started_at ?? null,
     trial_started_at_entry_count: input.trial_started_at_entry_count,
   };
   if (
@@ -322,6 +324,8 @@ function createInitialMembership() {
     recovery_prompt_visible: false,
     stage: 'trial_available',
     trial_duration_days: 5,
+    trial_expires_at: null,
+    trial_started_at: null,
     trial_started_at_entry_count: null,
   };
 }

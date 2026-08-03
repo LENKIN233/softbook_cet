@@ -34,6 +34,7 @@ import {
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
 const FUNCTION_NAME = 'softbook-api';
+const ACCOUNT_DELETION_WORKER_NAME = 'softbook-account-deletion-worker';
 const FUNCTION_RUNTIME = 'Nodejs20.19';
 const COMMANDS = new Set(['preflight', 'provision', 'deploy', 'publish', 'verify', 'rollback']);
 const COMMON_SECRET_ENV_NAMES = Object.freeze([
@@ -388,7 +389,15 @@ async function waitForCompleteCatalog(input) {
   return catalog;
 }
 
-async function deployReceiverFunction({env, processRunner, profile, runner}) {
+export async function deployReceiverFunction({
+  apiPath = null,
+  env,
+  includeDeletionWorker = false,
+  processRunner,
+  profile,
+  runner,
+  runtimeMode = 'production',
+}) {
   const temporaryDirectory = mkdtempSync(join(tmpdir(), 'softbook-receiver-deploy-'));
   const artifactDirectory = join(temporaryDirectory, 'function');
   const configPath = join(temporaryDirectory, 'cloudbaserc.json');
@@ -420,25 +429,52 @@ async function deployReceiverFunction({env, processRunner, profile, runner}) {
       filter: path => !path.split(sep).includes('test'),
       recursive: true,
     });
-    const runtime = buildReceiverRuntimeEnvironment(profile, env);
+    const runtime = buildReceiverRuntimeEnvironment(
+      profile,
+      env,
+      runtimeMode,
+    );
+    const functions = [
+      {
+        description:
+          runtimeMode === 'controlled_pilot'
+            ? 'Softbook CET receiver-owned controlled pilot runtime'
+            : 'Softbook CET receiver-owned closed beta runtime',
+        envVariables: runtime,
+        handler: 'index.main',
+        installDependency: false,
+        memorySize: 256,
+        name: FUNCTION_NAME,
+        runtime: FUNCTION_RUNTIME,
+        timeout: 10,
+      },
+    ];
+    if (includeDeletionWorker) {
+      functions.push({
+        description: 'Softbook CET account deletion worker',
+        envVariables: runtime,
+        handler: 'index.accountDeletionWorkerMain',
+        installDependency: false,
+        memorySize: 256,
+        name: ACCOUNT_DELETION_WORKER_NAME,
+        runtime: FUNCTION_RUNTIME,
+        timeout: 60,
+        triggers: [
+          {
+            config: '0 */1 * * * * *',
+            name: 'account-deletion-every-minute',
+            type: 'timer',
+          },
+        ],
+      });
+    }
     writeFileSync(
       configPath,
       `${JSON.stringify(
         {
           $schema: 'https://static.cloudbase.net/cli/cloudbaserc.schema.json',
           envId: profile.environment_id,
-          functions: [
-            {
-              description: 'Softbook CET receiver-owned closed beta runtime',
-              envVariables: runtime,
-              handler: 'index.main',
-              installDependency: false,
-              memorySize: 256,
-              name: FUNCTION_NAME,
-              runtime: FUNCTION_RUNTIME,
-              timeout: 10,
-            },
-          ],
+          functions,
         },
         null,
         2,
@@ -457,7 +493,7 @@ async function deployReceiverFunction({env, processRunner, profile, runner}) {
         '--dir',
         artifactDirectory,
         '--path',
-        new URL(profile.api_base_url).pathname,
+        apiPath ?? new URL(profile.api_base_url).pathname,
         '--runtime',
         FUNCTION_RUNTIME,
         '--json',
@@ -468,9 +504,52 @@ async function deployReceiverFunction({env, processRunner, profile, runner}) {
         timeoutMs: 10 * 60_000,
       },
     );
+    if (includeDeletionWorker) {
+      await runner.run(
+        [
+          '-e',
+          profile.environment_id,
+          'fn',
+          'deploy',
+          ACCOUNT_DELETION_WORKER_NAME,
+          '--force',
+          '--dir',
+          artifactDirectory,
+          '--runtime',
+          FUNCTION_RUNTIME,
+          '--json',
+        ],
+        {
+          cwd: temporaryDirectory,
+          label: 'deploy account deletion worker',
+          timeoutMs: 10 * 60_000,
+        },
+      );
+      await runner.run(
+        [
+          '-e',
+          profile.environment_id,
+          'fn',
+          'trigger',
+          'create',
+          ACCOUNT_DELETION_WORKER_NAME,
+          '--yes',
+          '--json',
+        ],
+        {
+          cwd: temporaryDirectory,
+          label: 'create account deletion timer trigger',
+          timeoutMs: 120_000,
+        },
+      );
+    }
     return {
       fixed_sms_code_present: false,
       function_name: FUNCTION_NAME,
+      function_names: functions.map(item => item.name),
+      deletion_worker_trigger: includeDeletionWorker
+        ? 'account-deletion-every-minute'
+        : null,
       runtime: FUNCTION_RUNTIME,
       runtime_variable_names: Object.keys(runtime).sort(),
     };
@@ -479,7 +558,14 @@ async function deployReceiverFunction({env, processRunner, profile, runner}) {
   }
 }
 
-export function buildReceiverRuntimeEnvironment(profile, env) {
+export function buildReceiverRuntimeEnvironment(
+  profile,
+  env,
+  runtimeMode = 'production',
+) {
+  if (!['production', 'controlled_pilot'].includes(runtimeMode)) {
+    throw new ReleaseDeliveryError('receiver runtime mode is invalid.');
+  }
   const inspection = inspectReceiverSecrets(profile, env);
   if (!inspection.ok) {
     throw new ReleaseDeliveryError(inspection.errors.join('; '));
@@ -492,7 +578,7 @@ export function buildReceiverRuntimeEnvironment(profile, env) {
     SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT: '9',
     SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS: '300',
     SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS: '90',
-    SOFTBOOK_RUNTIME_MODE: 'production',
+    SOFTBOOK_RUNTIME_MODE: runtimeMode,
     SOFTBOOK_SMS_PROVIDER: inspection.provider,
     SOFTBOOK_STORE_MODE: 'cloudbase',
   };
@@ -759,7 +845,7 @@ function requireDatabaseInstanceId(value) {
   }
 }
 
-function createProcessRunner({spawn = spawnSync} = {}) {
+export function createProcessRunner({spawn = spawnSync} = {}) {
   return {
     async run(command, args, options = {}) {
       const result = spawn(command, args, {

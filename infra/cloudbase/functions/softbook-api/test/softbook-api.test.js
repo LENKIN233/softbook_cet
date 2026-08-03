@@ -17,6 +17,13 @@ const {
   prepareSpaceActionCommit,
 } = require('../space-actions-v2');
 const {stableJsonStringify} = require('../content-manifest-v1');
+const {
+  createPilotRoundContinuationId,
+  createPilotRoundReceipt,
+} = require('../pilot-round-v1');
+const {
+  createAccountLearningStateId,
+} = require('../learning-events-v2-store');
 
 const fixedNow = new Date('2026-04-30T12:00:00.000Z');
 const CORE_INTERACTIONS = [
@@ -1030,6 +1037,81 @@ test('CloudBase learning-session cursor survives separate function instances', a
     source_id: selected.body.data.source_id,
     track: 'cet4',
   });
+});
+
+test('CloudBase pilot round continuation survives instances and validates exact records', async () => {
+  const db = createFakeCloudBaseDb();
+  const accountKey = 'a'.repeat(64);
+  const contentVersion = `sha256:${'b'.repeat(64)}`;
+  const pilotId = 'cet4-pilot-2026';
+  const completedCount = 5;
+  const receiptId = createPilotRoundReceipt({
+    accountKey,
+    completedCount,
+    contentVersion,
+    pilotId,
+  });
+  await db
+    .collection('softbook_learning_states')
+    .doc(createAccountLearningStateId(accountKey, 'cet4'))
+    .set({
+      account_key: accountKey,
+      projection_version: 'learning-events.v2',
+      events_by_card_id: Object.fromEntries(
+        Array.from({length: 5}, (_, index) => [
+          `0501${String(index + 1).padStart(2, '0')}`,
+          {server_sequence: index + 1},
+        ]),
+      ),
+      track: 'cet4',
+    });
+  const input = {
+    acknowledgedAt: fixedNow.toISOString(),
+    accountKey,
+    completedCount,
+    contentVersion,
+    pilotId,
+    receiptId,
+    track: 'cet4',
+  };
+  const firstStore = createCloudBaseStore({db});
+  const committed = await firstStore.commitPilotRoundContinuation(input);
+  assert.equal(committed.accepted, true);
+  assert.equal(committed.duplicate, false);
+
+  const secondStore = createCloudBaseStore({db});
+  const read = await secondStore.getPilotRoundContinuation(input);
+  assert.equal(read.receipt_id, receiptId);
+  const replay = await secondStore.commitPilotRoundContinuation({
+    ...input,
+    acknowledgedAt: '2026-04-30T12:01:00.000Z',
+  });
+  assert.equal(replay.duplicate, true);
+  assert.equal(replay.record.acknowledged_at, fixedNow.toISOString());
+  await db
+    .collection('softbook_learning_states')
+    .doc(createAccountLearningStateId(accountKey, 'cet4'))
+    .set({
+      account_key: accountKey,
+      projection_version: 'learning-events.v2',
+      events_by_card_id: {latest: {server_sequence: 6}},
+      track: 'cet4',
+    });
+  const lateReplay = await secondStore.commitPilotRoundContinuation({
+    ...input,
+    acknowledgedAt: '2026-04-30T12:02:00.000Z',
+  });
+  assert.equal(lateReplay.duplicate, true);
+  assert.equal(lateReplay.record.acknowledged_at, fixedNow.toISOString());
+
+  const documentId = createPilotRoundContinuationId(input);
+  db.snapshot()
+    .get('softbook_pilot_round_continuations')
+    .get(documentId).unexpected = true;
+  await assert.rejects(
+    () => secondStore.getPilotRoundContinuation(input),
+    /fields are invalid/,
+  );
 });
 
 test('transactional membership mutations cannot downgrade concurrent purchases', async () => {

@@ -28,13 +28,17 @@ Referenced active specs:
   product mutations still use `/v1` through the development migration bridge.
   This does not make the backend production-ready because production rejects
   every remaining `/v1` dependency.
-- An account deletion request creates a durable queued task. Actual user-data
-  erasure, retention policy enforcement, and deletion-provider orchestration
-  remain separate production work.
+- An account deletion request creates a durable queued task. The repository now
+  implements a leased, retryable deletion worker that removes auth sessions,
+  learning/Space state, membership, beta/pilot entitlements, SMS challenges
+  and the phone-only rate-limit key before removing the login-blocking task.
+  Receiver deployment, provider-side retention policy enforcement, monitoring
+  and real-environment drills remain separate work.
 
 ## Runtime policy
 
-The function accepts `SOFTBOOK_RUNTIME_MODE=development|production`.
+The function accepts
+`SOFTBOOK_RUNTIME_MODE=development|production|controlled_pilot`.
 
 Development mode keeps `/v1` available and supplies the existing fixed-code
 adapter when no SMS provider is injected. Production mode fails closed unless:
@@ -164,6 +168,13 @@ rotation, and single-session revocation run inside CloudBase transactions.
 Account-wide revocation enumerates the phone's sessions after the deletion task
 is durable.
 
+The separately deployed account-deletion worker runs from the same tested
+artifact under `index.accountDeletionWorkerMain`. It claims queued or expired-
+lease tasks, performs idempotent verified collection deletion, and deletes the
+task document last. The deployment tool configures a one-minute timer trigger;
+duplicate timer delivery is safe because task claims are leased and deletion
+is idempotent.
+
 Before production deployment, infrastructure work must add collection TTL
 policies for expired rate-limit and challenge records, least-privilege access,
 backup/restore coverage, and deletion-task worker monitoring.
@@ -222,9 +233,10 @@ Remaining blockers include:
   secret custody;
 - production Web origin allowlisting and gateway abuse-control review;
 - device-list and remote-device-revocation surfaces;
-- deletion worker, retention rules, provider cleanup, and completed deletion
-  drill, including an explicit post-deletion re-registration and tombstone
-  policy;
+- receiver execution/monitoring of the deletion worker, collection retention
+  rules, provider cleanup, and completed real-environment deletion drill; the
+  repository test already covers explicit post-deletion re-registration and
+  uses deletion-task removal as the no-tombstone re-registration policy;
 - mobile secure refresh-token storage, automatic refresh, logout cleanup, and
   `/v2` migration;
 - abuse, concurrency, penetration, backup, and production observability

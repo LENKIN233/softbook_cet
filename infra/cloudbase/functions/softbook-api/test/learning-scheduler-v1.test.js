@@ -25,6 +25,9 @@ function createClock() {
   let value = new Date(START_TIME);
 
   return {
+    advanceHours(hours) {
+      value = new Date(value.getTime() + hours * 60 * 60 * 1000);
+    },
     advanceMinutes(minutes) {
       value = new Date(value.getTime() + minutes * 60 * 1000);
     },
@@ -198,6 +201,7 @@ test('learning session is authenticated, strict, starts trial, and persists one 
   const {api} = createTestApi({store});
   const session = await authenticatedSession(api);
   const source = await cardSource(api, session);
+  const beforeLearning = await store.getMembership(PHONE);
   const missingAuth = await request(api, {
     method: 'GET',
     path: '/v2/learning/session',
@@ -219,6 +223,9 @@ test('learning session is authenticated, strict, starts trial, and persists one 
   );
   assert.equal(injectedBody.statusCode, 400);
   assert.equal(invalidTrack.statusCode, 400);
+  assert.equal(beforeLearning.stage, 'trial_available');
+  assert.equal(beforeLearning.trial_started_at, null);
+  assert.equal(beforeLearning.trial_expires_at, null);
 
   const first = await learningSession(api, session);
   assert.equal(first.statusCode, 200, JSON.stringify(first.body));
@@ -230,6 +237,11 @@ test('learning session is authenticated, strict, starts trial, and persists one 
   });
   assert.equal(first.body.data.schema_version, 'learning-session.v1');
   assert.equal(first.body.data.membership_stage, 'trial');
+  assert.equal(first.body.data.trial_started_at, START_TIME.toISOString());
+  assert.equal(
+    first.body.data.trial_expires_at,
+    '2026-05-05T12:00:00.000Z',
+  );
   assert.deepEqual(first.body.data.access, {
     mode: 'full',
     accessible_card_count: source.card_records.length,
@@ -251,6 +263,14 @@ test('learning session is authenticated, strict, starts trial, and persists one 
     resumed.body.data.selection.selection_id,
     first.body.data.selection.selection_id,
   );
+  assert.equal(
+    resumed.body.data.trial_started_at,
+    first.body.data.trial_started_at,
+  );
+  assert.equal(
+    resumed.body.data.trial_expires_at,
+    first.body.data.trial_expires_at,
+  );
 
   const bootstrap = await request(api, {
     headers: {authorization: `Bearer ${session.access_token}`},
@@ -265,6 +285,40 @@ test('learning session is authenticated, strict, starts trial, and persists one 
     track: 'cet4',
   });
   assert.equal(store.snapshot().learningSessions.size, 1);
+});
+
+test('trial expires at exactly 120 hours and the next session uses free access', async () => {
+  const store = createMemoryStore();
+  const {api, clock} = createTestApi({
+    authV2AccessTokenTtlSeconds: 121 * 60 * 60,
+    store,
+  });
+  const session = await authenticatedSession(api, '127.0.0.20');
+  const source = await cardSource(api, session);
+  const first = await learningSession(api, session);
+
+  assert.equal(first.statusCode, 200, JSON.stringify(first.body));
+  assert.equal(first.body.data.membership_stage, 'trial');
+  clock.advanceHours(120);
+
+  const expired = await learningSession(api, session);
+  const membership = await store.getMembership(
+    PHONE,
+    clock.now().toISOString(),
+  );
+
+  assert.equal(expired.statusCode, 200, JSON.stringify(expired.body));
+  assert.equal(expired.body.data.membership_stage, 'free');
+  assert.deepEqual(expired.body.data.access, {
+    mode: 'free_subset',
+    accessible_card_count: Math.ceil(source.card_records.length * 0.5),
+    total_card_count: source.card_records.length,
+  });
+  assert.equal(membership.stage, 'free');
+  assert.equal(membership.last_experience_ended_by, 'trial');
+  assert.equal(membership.recovery_prompt_visible, true);
+  assert.equal(membership.trial_started_at, START_TIME.toISOString());
+  assert.equal(membership.trial_expires_at, clock.now().toISOString());
 });
 
 test('accepted events advance FSRS atomically, clear matching cursor, and due review outranks new cards', async () => {
@@ -456,8 +510,12 @@ test('an initial empty selection persists a valid revision before confirmation',
   assert.equal(second.statusCode, 200, JSON.stringify(second.body));
   assert.equal(second.body.data.selection, null);
   const sessionState = [...store.snapshot().learningSessions.values()][0];
+  const membership = await store.getMembership(PHONE);
   assert.equal(sessionState.revision, 1);
   assert.equal(sessionState.cursor, null);
+  assert.equal(membership.stage, 'trial_available');
+  assert.equal(membership.trial_started_at, null);
+  assert.equal(membership.trial_expires_at, null);
 });
 
 test('concurrent session reads converge on one persisted opaque selection', async () => {
@@ -609,7 +667,7 @@ test('an empty selection remains transactionally consistent during duplicate rep
   let gate = null;
   const store = {
     ...baseStore,
-    confirmLearningSessionCursor: async input => {
+    commitLearningSessionRead: async input => {
       if (gate) {
         const activeGate = gate;
         gate = null;
@@ -617,7 +675,7 @@ test('an empty selection remains transactionally consistent during duplicate rep
         await activeGate.release.promise;
       }
 
-      return baseStore.confirmLearningSessionCursor(input);
+      return baseStore.commitLearningSessionRead(input);
     },
   };
   const {api} = createTestApi({store});
@@ -847,6 +905,8 @@ test('invalid canonical content fails before an available trial is consumed', as
   assert.equal(membership.stage, 'trial_available');
   assert.equal(membership.counted_entry_count, 0);
   assert.equal(membership.trial_started_at_entry_count, null);
+  assert.equal(membership.trial_started_at, null);
+  assert.equal(membership.trial_expires_at, null);
   assert.equal(store.snapshot().learningSessions.size, 0);
 });
 
@@ -868,6 +928,8 @@ test('selection ID failure does not consume an available trial or persist a curs
   assert.equal(failed.body.error.code, 'learning_scheduler_unavailable');
   assert.equal(membership.stage, 'trial_available');
   assert.equal(membership.counted_entry_count, 0);
+  assert.equal(membership.trial_started_at, null);
+  assert.equal(membership.trial_expires_at, null);
   assert.equal(store.snapshot().learningSessions.size, 0);
 });
 
