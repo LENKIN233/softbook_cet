@@ -269,6 +269,7 @@ const SHELL_ACCENT = '#637783';
 type AuthHandlers = {
   onChangePhone: (value: string) => void;
   onChangeCode: (value: string) => void;
+  onEditPhone: () => void;
   onRequestCode: () => void;
   onSubmitCode: () => void;
   onLogout: () => Promise<void>;
@@ -2956,6 +2957,20 @@ function AppShell({
         error: null,
         errorKind: null,
       }));
+    },
+    onEditPhone: () => {
+      setAuthState(current =>
+        current.pendingAction !== null || current.stage === 'authenticated'
+          ? current
+          : {
+              ...current,
+              challenge: null,
+              error: null,
+              errorKind: null,
+              smsCode: '',
+              stage: 'logged_out',
+            },
+      );
     },
     onRequestCode: () => {
       if (authState.pendingAction !== null) {
@@ -7377,6 +7392,20 @@ function PhoneSmsPanel({
               </Pressable>
             ) : null}
           </View>
+          <Pressable
+            accessibilityLabel="更换手机号"
+            accessibilityRole="button"
+            disabled={isPending || isAuthenticated}
+            onPress={handlers.onEditPhone}
+            style={styles.authChangePhoneButton}
+            testID="auth-change-phone-button"
+          >
+            <Text
+              style={[styles.authChangePhoneLabel, { color: palette.accent }]}
+            >
+              更换手机号
+            </Text>
+          </Pressable>
           {errorDock}
         </View>
       ) : null}
@@ -8740,6 +8769,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     lineHeight: 16,
+  },
+  authChangePhoneButton: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  authChangePhoneLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
   },
   fieldGroup: {
     gap: 6,

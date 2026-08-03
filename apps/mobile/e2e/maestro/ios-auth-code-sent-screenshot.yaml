@@ -23,3 +23,19 @@ name: ios-auth-code-sent-screenshot
     id: 'auth-code-sent-title'
 - assertVisible:
     id: 'auth-submit-button'
+- assertVisible:
+    id: 'auth-change-phone-button'
+- assertNotVisible:
+    id: 'route-tab-learning'
+- assertNotVisible:
+    id: 'route-tab-space'
+- assertNotVisible:
+    id: 'route-tab-statistics'
+- assertNotVisible:
+    id: 'route-tab-mine'
+- tapOn:
+    id: 'auth-change-phone-button'
+- assertVisible:
+    id: 'auth-phone-input'
+- assertNotVisible:
+    id: 'auth-code-input'

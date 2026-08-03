@@ -1179,6 +1179,62 @@ test('keeps code-sent state inside the dedicated login entry', async () => {
   expect(output).not.toContain('待登录');
 });
 
+test('can return from code entry to correct the phone without exposing the product shell', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'auth-phone-input' })
+      .props.onChangeText('13800138000');
+  });
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'auth-request-code-button' }).props.onPress();
+    await flushAsyncEffects();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'auth-code-input' }).props.onChangeText('2468');
+  });
+
+  expect(root.findByProps({ testID: 'auth-change-phone-button' })).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'auth-change-phone-button' }).props.onPress();
+  });
+
+  expect(root.findAllByProps({ testID: 'auth-code-inline-dock' })).toHaveLength(
+    0,
+  );
+  expect(root.findAllByProps({ testID: 'auth-code-input' })).toHaveLength(0);
+  expect(root.findByProps({ testID: 'auth-request-inline-dock' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'auth-phone-input' }).props.value).toBe(
+    '13800138000',
+  );
+  expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-space' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-statistics' })).toHaveLength(
+    0,
+  );
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'auth-phone-input' })
+      .props.onChangeText('13900139000');
+  });
+  expect(root.findByProps({ testID: 'auth-phone-input' }).props.value).toBe(
+    '13900139000',
+  );
+  expect(
+    findPressableByTestId(root, 'auth-request-code-button').props.disabled,
+  ).toBe(false);
+});
+
 test('reads installed runtime config when the app mounts', async () => {
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
     auth: {
