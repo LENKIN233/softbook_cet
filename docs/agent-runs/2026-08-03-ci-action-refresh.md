@@ -72,4 +72,4 @@
 
 ## Follow-up
 
-- Close superseded Dependabot PRs #424 and #425 after this governed PR is opened.
+- Superseded Dependabot PRs #424 and #425 were closed after governed replacement PR #478 was opened.
