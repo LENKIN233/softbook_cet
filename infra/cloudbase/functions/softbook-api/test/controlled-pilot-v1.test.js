@@ -54,6 +54,8 @@ test('controlled pilot bundle locks 120 cards, 60 free cards, all libraries, app
   assert.equal(bundle.content.free_card_count, 60);
   assert.equal(bundle.audio.referenced_asset_count, 24);
   assert.equal(bundle.audio.qc_asset_count, 24);
+  assert.equal(bundle.audit.explained_risks[0].rule_id, 'synthetic_source');
+  assert.equal(bundle.audit.explained_risks[0].card_count, 120);
   assert.equal(bundle.gate_eligible, false);
 
   assert.throws(
@@ -94,6 +96,33 @@ test('controlled pilot bundle locks 120 cards, 60 free cards, all libraries, app
         gate_eligible: true,
       }),
     /gate_eligible must be false/,
+  );
+  assert.throws(
+    () =>
+      pilot.validateControlledPilotBundle({
+        ...bundleFixture(),
+        audit: {
+          ...bundleFixture().audit,
+          explained_risks: [],
+        },
+      }),
+    /synthetic-source disclosure/,
+  );
+  assert.throws(
+    () =>
+      pilot.validateControlledPilotBundle({
+        ...bundleFixture(),
+        audit: {
+          ...bundleFixture().audit,
+          explained_risks: [
+            {
+              ...bundleFixture().audit.explained_risks[0],
+              card_count: 119,
+            },
+          ],
+        },
+      }),
+    /card_count must be 120/,
   );
 });
 
@@ -297,9 +326,22 @@ function bundleFixture() {
     audit: {
       report_path: 'audit/pilot-audit.json',
       report_sha256: digest('5'),
+      audit_version: 'card-make-quality-audit-v1',
+      report_type: 'scoped_card_quality_audit',
+      scope_card_count: 120,
+      scope_card_ids_sha256: digest('8'),
+      corpus_sha256: digest('9'),
       unresolved_blockers: 0,
       unexplained_risks: 0,
       metadata_coverage: 1,
+      explained_risks: [
+        {
+          rule_id: 'synthetic_source',
+          severity: 'source_risk',
+          card_count: 120,
+          disclosure: 'synthetic_training_content_not_true_exam',
+        },
+      ],
     },
     audio: {
       manifest_path: 'audio/manifest.json',
