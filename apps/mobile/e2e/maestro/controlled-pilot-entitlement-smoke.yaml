@@ -1,0 +1,75 @@
+appId: com.softbook.cet
+name: controlled-pilot-authenticated-entitlement-smoke
+---
+- extendedWaitUntil:
+    visible:
+      id: 'auth-phone-input'
+    timeout: 30000
+- assertNotVisible:
+    id: 'route-tab-learning'
+- assertNotVisible:
+    id: 'route-tab-space'
+- assertNotVisible:
+    id: 'route-tab-statistics'
+- assertNotVisible:
+    id: 'route-tab-mine'
+- tapOn:
+    id: 'auth-phone-input'
+- inputText: '${SOFTBOOK_CET_MAESTRO_PHONE}'
+- tapOn:
+    id: 'auth-dismiss-keyboard-button'
+    optional: true
+- hideKeyboard
+- tapOn:
+    id: 'auth-request-code-button'
+- extendedWaitUntil:
+    visible:
+      id: 'auth-code-input'
+    timeout: 10000
+- tapOn:
+    id: 'auth-code-input'
+- inputText: '${SOFTBOOK_CET_MAESTRO_CODE}'
+- tapOn:
+    id: 'auth-gate-keyboard-dismiss-target'
+- tapOn:
+    id: 'auth-submit-button'
+- extendedWaitUntil:
+    visible:
+      id: 'learning-current-card'
+    timeout: 30000
+- assertVisible:
+    id: 'controlled-pilot-learning-identity'
+- assertVisible:
+    id: 'route-tab-learning'
+- assertVisible:
+    id: 'route-tab-space'
+- assertVisible:
+    id: 'route-tab-statistics'
+- assertVisible:
+    id: 'route-tab-mine'
+- tapOn:
+    id: 'route-tab-mine'
+- extendedWaitUntil:
+    visible:
+      id: 'controlled-pilot-membership-card'
+    timeout: 10000
+- assertVisible:
+    id: 'controlled-pilot-membership-stage'
+- assertVisible:
+    id: 'controlled-pilot-membership-summary'
+- assertVisible:
+    id: 'controlled-pilot-no-payment-copy'
+- assertVisible:
+    id: 'controlled-pilot-trial-started-at'
+- assertVisible:
+    id: 'controlled-pilot-trial-expires-at'
+- assertVisible:
+    id: 'controlled-pilot-trial-remaining'
+- assertNotVisible:
+    id: 'membership-start-trial-button'
+- assertNotVisible:
+    id: 'membership-purchase-button'
+- assertVisible:
+    id: 'auth-logout-button'
+- assertVisible:
+    id: 'account-deletion-open'
