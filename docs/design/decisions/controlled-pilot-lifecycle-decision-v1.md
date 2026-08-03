@@ -32,6 +32,13 @@ The design has seven authority-bearing state groups:
 - Successful authentication and hydration enter Learning. Login alone does not start the trial; only the first valid Learning Session may do so.
 - Logout, invalidation, account deletion, or terminal session restoration failure atomically removes the product shell and returns to the same dedicated login boundary.
 
+## Content Claim Contract
+
+- The pilot identity is “CET4 受控试点”; its cards are described as CET4 preparation or training content.
+- Synthetic training material may teach exam skills and transfer to real exam work, but the card, Mine, completion receipt, research prompt, and support copy must never call it “真题”, “官方原题”, “历年原文”, or claim an unsupported past-exam frequency.
+- This wording boundary does not hide provenance: research and operator-facing explanations state that the pilot corpus is simulation-based and not true-exam material.
+- Future true-exam content, frequency statistics, price, renewal terms, or purchase claims require their own approved source/evidence and are not inferred from this pilot design.
+
 ## Account Deletion Contract
 
 - The action lives after the main Mine account and entitlement objects. It is visually secondary to learning, Space, membership state, and logout.
@@ -97,6 +104,8 @@ Q2: Authentication object, current card, completed-round receipt, and Mine accou
 Q3: Single-card Learning and library/group/box/card Space continuity remain explicit.
 
 Q4: No reward, dashboard, carousel, fake payment, gradient text, internal language, or signed-out four-tab navigation.
+
+Content-claim review: no true-exam, official-source, past-frequency, price, renewal, or purchase claim is authorized for the controlled pilot.
 
 Q5: 393 x 852 proof, wrapping, 44-point targets, no horizontal overflow; the deletion sheet keeps its cancel and confirm actions visible.
 

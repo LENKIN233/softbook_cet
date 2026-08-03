@@ -39,6 +39,7 @@
 - `product_truth`: The compact completion address belongs only to server `round_completion.space_card_id`, the active-content card at the exact canonical boundary sequence. Client phase grouping and client/device timestamps cannot author that address.
 - `product_truth`: Mine displays server-owned entitlement state and explicitly states that the controlled pilot is free and continuation eligibility is operationally granted.
 - `product_truth`: Account deletion is submitted only from authenticated Mine. An accepted request queues deletion and revokes all sessions, so the client must leave the product shell immediately while accurately describing cleanup as pending; a rejected request must preserve the account and all local state.
+- `product_truth`: The pilot corpus is presented as CET4 preparation/training content. Its disclosed simulation provenance cannot be promoted into “真题”, “官方原题”, “历年原文”, unsupported occurrence-frequency statistics, or a payment claim.
 
 ## Implementation hypothesis changed
 
@@ -51,6 +52,7 @@
 - Bound the completion receipt's address aperture to exact server-returned `space_card_id`; this is an authority correction inside the accepted silhouette and introduces no new visual direction.
 - Narrowed the design metadata scanner so only the exact required “CET4 受控试点” product identity is allowed; other raw exam-type values remain rejected, with regression coverage.
 - No RN component, navigation, API call, entitlement calculation, timer, storage, or deployment was implemented.
+- Added an explicit content-claim boundary to the accepted decision and implementation map, and removed unsupported true-exam/frequency claims from the canonical visual reference without changing its layout or interaction silhouette.
 
 ## Workspace boundary and read scope
 
@@ -68,6 +70,7 @@
 - Failure sedimentation: `docs/design/rejected/controlled-pilot-lifecycle-failures-v1.md`.
 - Metadata guard: `scripts/check_design_metadata_leaks.mjs` plus `scripts/harness_validator/sections/design_metadata_regressions.py`.
 - Durable context: this run record.
+- Canonical copy correction: `docs/design/visual-reference.html` and `docs/design/canon.md` (text only; no token, layout, hierarchy, interaction or motion change).
 
 ## Commands run
 
@@ -82,6 +85,8 @@
 - 2026-08-03 `npm --prefix apps/mobile run design-metadata-leak-scan` -> passed.
 - 2026-08-03 `git diff --check` -> passed.
 - 2026-08-03 no-selection correction -> decision, rendered-state handoff, interaction/motion, and implementation mapping now distinguish scheduler availability from completed Learning. The correction reuses the accepted bounded Learning status silhouette and introduces no new visual direction.
+- 2026-08-03 content-claim correction -> removed an unsupported “近三年真题出现频次” statistic and replaced generic “真题扩展” promises with approved CET preparation/training wording; controlled-pilot decision/mapping now forbid true-exam, official-source, unsupported frequency, price, renewal and purchase claims.
+- 2026-08-03 content-claim render check -> rendered the canonical reference at 1760 x 7200 in headless Chrome and visually inspected the typography and surface sections. The shorter training-focus line and replacement CET-training copy remain contained; no hierarchy, card silhouette, CTA, tabbar or phone-frame geometry changed.
 - 2026-08-02 local browser inspection could not open the `file://` artifact because the in-app browser security policy rejected local-file navigation. No bypass was attempted; simulator/device visual evidence remains mandatory in the separate implementation PR.
 - `python3 scripts/validate_pr_design_gate.py --base cross/controlled-pilot-contract --head HEAD --body-file /tmp/softbook-controlled-pilot-design-pr.md` -> passed, `PR DESIGN GATE OK`.
 - `./scripts/run_local_gates --profile pr --base cross/controlled-pilot-contract --verbose` -> 31/36 checks passed. All harness, design, mobile, backend, dependency-security, evidence, and LFS checks passed. The profile remained failed because `toolchain` has the existing declared local condition, `pr-context` and two review/design checks require a live PR context, and strict repository health detected pre-existing shared-workspace/remote-governance drift (nine worktrees, eighteen topic branches, seventeen branches without upstream, and the remote `android-release` check outside its local expected set). No user worktree or branch was deleted. Report: `exports/local-gates/20260801T085321Z-e71df8f5-pr-62906/report.json`.
@@ -103,6 +108,8 @@
 - A null server selection can no longer be designed or implemented as `0/0` completion: the accepted object names availability, displays only a server-provided next-due time when available, and refreshes without inventing progress.
 - The completion review action now has a concrete server-owned content source instead of a button-only promise; empty review content receives calm feedback while non-empty content opens in server order.
 - The completion Space aperture now has a concrete server-owned boundary card instead of phase- or timestamp-derived client inference; the accepted compact address layout is unchanged.
+- The visual authority no longer supplies invented past-exam frequency or true-exam expansion copy for implementation to inherit. This is a copy-only correction: Law of One, focal order, silhouettes, containment and accessibility are unchanged.
+- VL-AP-07 checklist for the copy correction: Q1 one current-library accent is unchanged; Q2 focal objects and focal→secondary→chrome order are unchanged; Q3 every existing interaction silhouette is unchanged; Q4 metadata scan found no forbidden pattern; Q5 the rendered phone frames remain contained with visible CTA/tabbar; Q6 flip remains exactly 有把握/再回看, stats keeps tabular numerals, and Learning keeps one current-card path.
 
 ## Agent review status
 

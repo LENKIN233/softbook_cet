@@ -25,6 +25,7 @@
 | Session restoration/retry | pre-shell restoration state | session coordinator + required bootstrap hydration | remains outside product shell until validated |
 | Authenticated shell transition | `AppShell` root boundary | valid session + required canonical hydration | enters Learning; login does not start trial |
 | Fixed pilot identity | Learning and Mine header chrome | controlled-pilot profile + product copy | no selector or unavailable entry |
+| Content provenance copy | Learning card context, Mine identity, research/support copy | controlled-pilot content audit disclosure | say CET4 preparation/training content; never true-exam, official-source or unsupported frequency copy |
 | Attached start slip | Learning surface state layer | successful valid session response | never triggered by login or account browsing |
 | Completion receipt | Learning round-boundary surface | server-confirmed total completion count | shown once per new multiple of five |
 | Space aperture | receipt address region + Space route | exact `round_completion.space_card_id` resolved against active content plus reconciled Space state | actual boundary card only; no phase grouping, client-time inference, local filing or reordering |
@@ -43,6 +44,7 @@
 - Client owns presentation, accessible formatting, animation interruption, and reduced-motion rendering.
 - The authentication/session coordinator owns whether the product shell may mount. Route selection is downstream of that gate and cannot expose a signed-out route-specific login state.
 - Client must not start the trial, count a round locally, grant eligibility, or derive access from its own clock.
+- Client must not derive a true-exam, official-source, past-frequency, price, renewal, or purchase claim from a card payload or generic visual reference. Controlled-pilot copy uses only the accepted CET4 preparation/training wording.
 
 ## Accessibility Mapping
 
