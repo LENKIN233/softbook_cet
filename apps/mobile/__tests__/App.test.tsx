@@ -1500,6 +1500,71 @@ test('shows remote request-code failure inside the auth gate', async () => {
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
+test('keeps the existing code usable and reports a resend failure accurately', async () => {
+  let requestAttempt = 0;
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {
+      mode: 'remote',
+      remote: {
+        baseUrl: 'https://api.softbook.example',
+      },
+    },
+  };
+
+  mockFetch.mockImplementation(async input => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      requestAttempt += 1;
+      return requestAttempt === 1
+        ? createRemoteAuthChallengeResponse()
+        : createJsonResponse({}, 503);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'auth-phone-input' })
+      .props.onChangeText('13800138000');
+  });
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'auth-request-code-button' }).props.onPress();
+    await flushAsyncEffects();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'auth-code-input' }).props.onChangeText('2468');
+  });
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({ testID: 'auth-request-code-button' }).props.onPress();
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('短码没有重新发出');
+  expect(output).toContain('此前短码仍可继续验证，或再次发送。');
+  expect(output).not.toContain('验证码暂时没通过');
+  expect(root.findByProps({ testID: 'auth-code-input' }).props.value).toBe(
+    '2468',
+  );
+  expect(findPressableByTestId(root, 'auth-submit-button').props.disabled).toBe(
+    false,
+  );
+  expect(root.findByProps({ testID: 'auth-change-phone-button' })).toBeTruthy();
+  expect(root.findAllByProps({ testID: 'route-tab-learning' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-space' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'route-tab-statistics' })).toHaveLength(
+    0,
+  );
+  expect(root.findAllByProps({ testID: 'route-tab-mine' })).toHaveLength(0);
+});
+
 test('shows remote verify-code failure inside the auth gate', async () => {
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
     auth: {

@@ -7048,7 +7048,9 @@ function PhoneSmsPanel({
   const isPending = authState.pendingAction !== null;
   const hasRequestedCode = authState.stage !== 'logged_out';
   const hasAuthError = authState.error !== null;
-  const hasCodeError = hasAuthError && hasRequestedCode;
+  const hasResendError =
+    hasAuthError && hasRequestedCode && authState.errorKind === 'request_code';
+  const hasCodeEntryError = hasAuthError && hasRequestedCode && !hasResendError;
   const isPhoneReady = isPhoneNumberReady(authState.phoneNumber);
   const canRequestCode = isPhoneReady && !isPending && !isAuthenticated;
   const canSubmitCode =
@@ -7085,6 +7087,8 @@ function PhoneSmsPanel({
       ? '登录状态已结束'
       : authState.errorKind === 'account_hydration'
       ? '账号状态暂时没读完'
+      : hasResendError
+      ? '短码没有重新发出'
       : hasRequestedCode
       ? '验证码暂时没通过'
       : '短码暂时没发出';
@@ -7095,10 +7099,12 @@ function PhoneSmsPanel({
       ? '请重新验证手机号后进入学习。'
       : authState.errorKind === 'account_hydration'
       ? '验证码已通过；账号读取完成后再进入学习。'
+      : hasResendError
+      ? '此前短码仍可继续验证，或再次发送。'
       : hasRequestedCode
       ? '检查短码后重试，当前位置不变。'
       : '检查手机号后重试，当前位置不变。';
-  const codeActionTone = hasCodeError ? palette.warning : palette.accent;
+  const codeActionTone = hasCodeEntryError ? palette.warning : palette.accent;
   const submitCodeButtonBackground = canSubmitCode
     ? codeActionTone
     : hexToRgba(codeActionTone, 0.08);
@@ -7106,7 +7112,7 @@ function PhoneSmsPanel({
     ? codeActionTone
     : hexToRgba(codeActionTone, 0.2);
   const submitCodeLabelColor = canSubmitCode
-    ? hasCodeError
+    ? hasCodeEntryError
       ? palette.warningText
       : palette.panel
     : codeActionTone;
@@ -7121,7 +7127,7 @@ function PhoneSmsPanel({
     <View
       style={[
         styles.authErrorDock,
-        hasCodeError ? styles.authErrorDockCode : null,
+        hasCodeEntryError ? styles.authErrorDockCode : null,
         {
           backgroundColor: hexToRgba(palette.warning, 0.1),
           borderColor: hexToRgba(palette.warning, 0.24),
@@ -7214,7 +7220,7 @@ function PhoneSmsPanel({
               style={[
                 styles.authCodeSentDot,
                 {
-                  backgroundColor: hasCodeError
+                  backgroundColor: hasCodeEntryError
                     ? palette.warning
                     : palette.accent,
                 },
@@ -7225,7 +7231,7 @@ function PhoneSmsPanel({
                 style={[styles.authCodeSentTitle, { color: palette.text }]}
                 testID="auth-code-sent-title"
               >
-                {hasCodeError ? '验证码待确认' : '验证码已发送'}
+                {hasCodeEntryError ? '验证码待确认' : '验证码已发送'}
               </Text>
               <Text
                 numberOfLines={1}
@@ -7270,7 +7276,7 @@ function PhoneSmsPanel({
             style={[
               styles.authCodeEntryRow,
               accountDock ? styles.authCodeEntryRowAccount : null,
-              hasCodeError ? styles.authCodeEntryRowError : null,
+              hasCodeEntryError ? styles.authCodeEntryRowError : null,
             ]}
             testID="auth-code-entry-row"
           >
@@ -7280,10 +7286,10 @@ function PhoneSmsPanel({
                 isDockedPanel ? styles.authPhoneInputDock : null,
                 accountDock ? styles.authCodeCellsFrameAccount : null,
                 {
-                  backgroundColor: hasCodeError
+                  backgroundColor: hasCodeEntryError
                     ? hexToRgba(palette.warning, 0.08)
                     : palette.panel,
-                  borderColor: hasCodeError
+                  borderColor: hasCodeEntryError
                     ? hexToRgba(palette.warning, 0.42)
                     : canSubmitCode
                     ? palette.accent
@@ -7314,12 +7320,12 @@ function PhoneSmsPanel({
                         styles.authCodeCell,
                         accountDock ? styles.authCodeCellAccount : null,
                         {
-                          backgroundColor: hasCodeError
+                          backgroundColor: hasCodeEntryError
                             ? hexToRgba(palette.warning, isFilled ? 0.16 : 0.07)
                             : isFilled
                             ? palette.panelStrong
                             : hexToRgba(palette.accent, 0.045),
-                          borderColor: hasCodeError
+                          borderColor: hasCodeEntryError
                             ? isActive
                               ? palette.warning
                               : hexToRgba(palette.warning, 0.3)
@@ -7383,7 +7389,7 @@ function PhoneSmsPanel({
                         authState.errorKind === 'account_hydration') &&
                       canSubmitCode
                     ? '重新完成登录'
-                    : hasCodeError && canSubmitCode
+                    : hasCodeEntryError && canSubmitCode
                     ? '重新验证'
                     : canSubmitCode
                     ? '完成登录'
