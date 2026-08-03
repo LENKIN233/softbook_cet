@@ -87,6 +87,9 @@
 - Added stage-specific controlled-pilot entitlement presentation: trial uses only server time, free names the stable 60-card continuation, and `pilot_premium` names the operational grant/source/sync without inventing an unstarted trial timeline.
 - Preserved a still-restricted membership gate across canonical account refresh. Hydration now clears the gate only when the newly read entitlement actually unlocks that capability, so the reason for a blocked Space/library/review action is not lost on entry to Mine.
 - Replaced the last controlled-pilot “试用或会员/升级” remnants in restricted Space/Mine copy with operational eligibility language, applied safe semantic formatting to the five-card receipt Space address, and fixed the tablet/restoration identity to the accepted pilot identity.
+- Added a standalone Android `internal` build type for same-day engineering review. It is release-style and self-contained, uses an isolated `.internal` application ID, rejects cleartext traffic, and is explicitly debug-signed rather than masquerading as a receiver release.
+- Removed the local membership purchase simulation from human-facing builds while retaining it only under Jest. The internal package therefore has no fake payment button; real remote production remains the only runtime allowed to present a purchase action.
+- Bound local SMS verification to the fixed internal test code `2468` instead of accepting any 4–6 digit input. This remains an internal login simulation and is not described as real SMS evidence.
 
 ## Workspace boundary and read scope
 
@@ -121,6 +124,9 @@
 - `apps/mobile/src/learning/learningRuntimeConfig.ts` and `learningRepository.ts`: runtime-mode propagation and exact controlled-pilot CET4 120/60 content-access validation without local fallback.
 - `apps/mobile/src/persistence/userStateStore.ts`: `user-state.v5` exact receipt persistence and conservative v4/v3 receipt retirement.
 - `apps/mobile/__tests__/*`: parser, persistence, bootstrap, membership, UI and exact-action regression coverage.
+- `apps/mobile/android/app/build.gradle`, `apps/mobile/package.json`, `apps/mobile/e2e/maestro/android-internal-smoke.yaml`, and `scripts/test_android_release_boundary.mjs`: isolated internal APK build, build-boundary assertions, and installed-package authentication/product-shell smoke.
+- `apps/mobile/src/auth/authRepository.ts`: deterministic internal verification code with rejection coverage; remote SMS behavior is unchanged.
+- `apps/mobile/README.md`: exact internal build/install boundary and non-claims.
 - `apps/mobile/e2e/maestro/ios-auth-space-gate-screenshot.yaml`, `ios-auth-statistics-gate-screenshot.yaml`, and the signed-out Mine auth-state flows: historical route-gate regressions now assert the dedicated entry and absence of all signed-out route tabs.
 - `apps/mobile/e2e/maestro/ios-*.yaml`: signed-out setup now clears the iOS Keychain before application state so flows are isolated even though secure credentials survive reinstall/state clearing.
 - `apps/mobile/e2e/maestro/ios-auth-scroll-accessibility.yaml`: verifies that the dedicated entry remains the only signed-out surface and that phone input, code action, and the authentication boundary note are reachable after scrolling at enlarged text sizes.
@@ -176,6 +182,7 @@
 - 2026-08-03 local dev gates after PM audit -> `scripts/run_local_gates --profile dev` completed 23/24 passed plus one declared dev-only toolchain exception: local Node 25.9.0 differs from the repository's exact Node 22.13.0 authority. No gate failed. Report: `exports/local-gates/20260802T221913Z-3e4304e5-dev-2635/report.json`; this local report is not a GitHub required check or formal pilot evidence.
 - 2026-08-03 controlled-pilot entitlement-language audit -> a new free-state integration first reproduced that canonical hydration cleared the active Space gate before Mine could explain it. Hydration now retains the gate unless the server entitlement truly unlocks the capability. The same integration proves free Mine states “60 张稳定免费内容”, restricted Space uses operational eligibility copy, Mine retains the exact blocked-capability explanation, and no purchase/self-start/upgrade language or action appears. Trial remaining time is formatted from the server seconds without subtracting device time; `pilot_premium` uses grant/source/status/sync rows and no synthetic “尚未开始” trial timeline. Full mobile verification passed 46 suites / 474 tests; TypeScript, quiet ESLint, mobile/design metadata scans, Maestro selector validation, harness validation and `git diff --check` passed.
 - 2026-08-03 follow-up local dev gates -> `scripts/run_local_gates --profile dev` completed 23/24 passed plus the same declared dev-only Node 25.9.0 versus exact Node 22.13.0 exception; no gate failed. Report: `exports/local-gates/20260802T224202Z-b8f007cd-dev-22295/report.json`; it is local implementation evidence only.
+- 2026-08-03 urgent engineering package audit -> source and rendered Android UI metadata scans passed; the installed package proved that the signed-out tree contains only the dedicated authentication entry and no route tabs. The local membership simulation was then removed from human-facing builds after the installed Mine screen exposed a false “直接开通会员” action. Local SMS now rejects all codes except the documented internal code. Full verification passed 46 suites / 477 tests, TypeScript and the Android release-boundary suite. The installed standalone flow passed authentication into Learning plus Space, Statistics and Mine navigation. Final APK rebuild/hash/signature inspection is recorded in the handoff artifact and remains internal evidence only.
 - Exact Node 22.13.0 PR-profile local gate run -> mobile lint/typecheck/Jest, Web lint/tests, backend 238 tests, full harness, dependency security, LFS and evidence checks passed. It surfaced the missing Web `pilot_premium` label mapping, which was fixed; targeted Web typecheck, 12 tests and production build then passed. The overall local report remains non-green because this stacked PR does not target `main`, while repository-health strict mode also reports the shared repository's 11 worktrees/20 topic branches plus the remotely configured `android-release` check. The report is not a GitHub required check or formal evidence.
 
 ## Validation results
@@ -220,8 +227,8 @@
 
 ## Binary evidence
 
-- Evidence manifest: N/A.
-- Archive: N/A. The current dedicated login surface was additionally inspected on iPhone 17 Pro / iOS 26.5 after a clean reinstall; it contained no route navigation. Local simulator screenshots for Learning, Space, Statistics, Mine, login and recovery remain uncommitted and are not claimed as formal pilot evidence.
+- Evidence manifest: generated internal-package handoff only; `gate_eligible=false` and not a launch evidence manifest.
+- Archive: the current dedicated login surface was inspected on iPhone 17 Pro / iOS 26.5 and Android API 30 after clean state; neither local simulator artifact is claimed as receiver/device/formal pilot evidence.
 
 ## Agent review status
 
@@ -254,7 +261,7 @@
 
 - The design and contract PR stack still requires protected product-owner approval; this implementation must not bypass or replace it.
 - Real receiver environment, SMS, signed private content/audio, deletion-worker completion/blocked re-login/clean re-registration drill, weak-network/offline device run, TestFlight and Android closed-testing evidence remain pending external gates. The localhost simulator smoke proves client behavior only.
-- The approved 120-card payload and audio/QC remain external deliverables. The ten repository development cards and automated fixtures are not content-volume evidence.
+- The formally approved 120-card payload and completed human audio QC remain external deliverables. The seven repository development cards and automated fixtures are not content-volume evidence; the internal APK is a product-flow review package, not the controlled-pilot content release.
 - Simulator Dynamic Type containment is now visually checked at `accessibility-large`, but target-device visual containment still must be captured on real iOS/Android builds after receiver deployment.
 
 ## Follow-up

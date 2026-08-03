@@ -44,6 +44,28 @@ test('Android ReactHost follows the application build type for dev support', () 
   assert.match(application, /useDevSupport\s*=\s*BuildConfig\.DEBUG/);
 });
 
+test('Android internal preview is standalone, isolated, and rejects cleartext traffic', () => {
+  const gradle = read('apps/mobile/android/app/build.gradle');
+  const buildTypesStart = gradle.indexOf('    buildTypes {');
+  const internalStart = gradle.indexOf('        internal {', buildTypesStart);
+  const internalBlock = gradle.slice(
+    internalStart,
+    gradle.indexOf('\n        }', internalStart) + 10,
+  );
+  const packageJson = JSON.parse(read('apps/mobile/package.json'));
+
+  assert.notEqual(internalStart, -1);
+  assert.match(internalBlock, /initWith release/);
+  assert.match(internalBlock, /applicationIdSuffix "\.internal"/);
+  assert.match(internalBlock, /versionNameSuffix "-internal"/);
+  assert.match(internalBlock, /usesCleartextTraffic: "false"/);
+  assert.match(internalBlock, /signingConfig signingConfigs\.debug/);
+  assert.equal(
+    packageJson.scripts['android:internal'],
+    'cd android && ./gradlew :app:assembleInternal --no-daemon',
+  );
+});
+
 test('Android Release CI uses JDK 17 and verifies an unsigned artifact', () => {
   const workflow = read('.github/workflows/pr-gates.yml');
   const job = workflow.slice(workflow.indexOf('  android-release:'), workflow.indexOf('\n  repo-health:'));

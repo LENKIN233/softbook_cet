@@ -512,6 +512,9 @@ function AppShell({
     [membershipRepositoryConfig],
   );
   const runtimeMembershipRepositoryMode = membershipRepositoryConfig.mode;
+  const canPurchaseMembership =
+    runtimeMembershipRepositoryMode === 'remote' ||
+    process.env.NODE_ENV === 'test';
   const progressSyncRepositoryConfig = useMemo(() => {
     const resolved = resolveProgressSyncRepositoryConfig(runtimeConfig);
 
@@ -3990,6 +3993,7 @@ function AppShell({
                 </Text>
               ) : (
                 <MembershipActionGroup
+                  canPurchase={canPurchaseMembership}
                   handlers={membershipHandlers}
                   membershipPendingAction={membershipPendingAction}
                   membershipRepositoryMode={runtimeMembershipRepositoryMode}
@@ -6433,6 +6437,10 @@ function MembershipHostCard({
       ? '完整知识空间当前需要试用或会员。开始试用或升级后，可以查看完整空间。'
       : '完整卡库当前需要试用或会员。开始试用或升级后，会放开完整卡片。';
   const controlledPilotFocusCopy = getControlledPilotGateCopy(focusGate);
+  const showLocalMembershipSimulation =
+    membershipRepositoryMode === 'local' && process.env.NODE_ENV === 'test';
+  const canPurchase =
+    membershipRepositoryMode === 'remote' || showLocalMembershipSimulation;
 
   if (isControlledPilot) {
     return (
@@ -6708,28 +6716,32 @@ function MembershipHostCard({
                   : '开始试用'}
               </Text>
             </Pressable>
-            <Pressable
-              disabled={membershipPendingAction !== null}
-              onPress={handlers.onPurchase}
-              style={[
-                styles.membershipCompactPurchaseButton,
-                {
-                  backgroundColor: hexToRgba(palette.accent, 0.075),
-                  borderColor: hexToRgba(palette.accent, 0.24),
-                },
-              ]}
-              testID="membership-purchase-button"
-            >
-              <Text
-                numberOfLines={1}
+            {canPurchase ? (
+              <Pressable
+                disabled={membershipPendingAction !== null}
+                onPress={handlers.onPurchase}
                 style={[
-                  styles.membershipCompactPurchaseLabel,
-                  { color: palette.accentStrong },
+                  styles.membershipCompactPurchaseButton,
+                  {
+                    backgroundColor: hexToRgba(palette.accent, 0.075),
+                    borderColor: hexToRgba(palette.accent, 0.24),
+                  },
                 ]}
+                testID="membership-purchase-button"
               >
-                {membershipPendingAction === 'purchase' ? '同步中' : '开会员'}
-              </Text>
-            </Pressable>
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.membershipCompactPurchaseLabel,
+                    { color: palette.accentStrong },
+                  ]}
+                >
+                  {membershipPendingAction === 'purchase'
+                    ? '同步中'
+                    : '开会员'}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       ) : (
@@ -6838,6 +6850,7 @@ function MembershipHostCard({
       ) : null}
       {isTrialAvailable ? null : (
         <MembershipActionGroup
+          canPurchase={canPurchase}
           compact={compact}
           handlers={handlers}
           membershipPendingAction={membershipPendingAction}
@@ -6876,6 +6889,7 @@ function PilotMembershipTimeRow({
 }
 
 function MembershipActionGroup({
+  canPurchase,
   compact = false,
   handlers,
   membershipPendingAction,
@@ -6883,6 +6897,7 @@ function MembershipActionGroup({
   membershipState,
   palette,
 }: {
+  canPurchase: boolean;
   compact?: boolean;
   handlers: MembershipHandlers;
   membershipPendingAction:
@@ -6916,40 +6931,47 @@ function MembershipActionGroup({
             : '开始完整试用'}
         </Text>
       </Pressable>
-      <Pressable
-        disabled={isPending}
-        onPress={handlers.onPurchase}
-        style={[
-          styles.membershipSecondaryLink,
-          { backgroundColor: palette.panel },
-        ]}
-        testID="membership-purchase-button"
-      >
-        <Text
-          style={[styles.membershipSecondaryLinkLabel, { color: palette.text }]}
+      {canPurchase ? (
+        <Pressable
+          disabled={isPending}
+          onPress={handlers.onPurchase}
+          style={[
+            styles.membershipSecondaryLink,
+            { backgroundColor: palette.panel },
+          ]}
+          testID="membership-purchase-button"
         >
-          {membershipPendingAction === 'purchase' ? '同步中' : '直接开通'}
-        </Text>
-      </Pressable>
+          <Text
+            style={[
+              styles.membershipSecondaryLinkLabel,
+              { color: palette.text },
+            ]}
+          >
+            {membershipPendingAction === 'purchase' ? '同步中' : '直接开通'}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   ) : membershipState.stage === 'trial' ? (
     <View style={styles.authActions}>
-      <Pressable
-        disabled={isPending}
-        onPress={handlers.onPurchase}
-        style={[
-          styles.primaryButton,
-          compact ? styles.membershipPrimaryActionCompact : null,
-          { backgroundColor: palette.accent },
-        ]}
-        testID="membership-purchase-button"
-      >
-        <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-          {membershipPendingAction === 'purchase'
-            ? '正在开通会员'
-            : '直接开通会员'}
-        </Text>
-      </Pressable>
+      {canPurchase ? (
+        <Pressable
+          disabled={isPending}
+          onPress={handlers.onPurchase}
+          style={[
+            styles.primaryButton,
+            compact ? styles.membershipPrimaryActionCompact : null,
+            { backgroundColor: palette.accent },
+          ]}
+          testID="membership-purchase-button"
+        >
+          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            {membershipPendingAction === 'purchase'
+              ? '正在开通会员'
+              : '直接开通会员'}
+          </Text>
+        </Pressable>
+      ) : null}
       {showLocalDebugActions ? (
         <Pressable
           disabled={isPending}
@@ -6998,22 +7020,24 @@ function MembershipActionGroup({
     </View>
   ) : (
     <View style={styles.authActions}>
-      <Pressable
-        disabled={isPending}
-        onPress={handlers.onPurchase}
-        style={[
-          styles.primaryButton,
-          compact ? styles.membershipPrimaryActionCompact : null,
-          { backgroundColor: palette.accent },
-        ]}
-        testID="membership-purchase-button"
-      >
-        <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
-          {membershipPendingAction === 'purchase'
-            ? '正在恢复购买'
-            : '恢复购买并开通会员'}
-        </Text>
-      </Pressable>
+      {canPurchase ? (
+        <Pressable
+          disabled={isPending}
+          onPress={handlers.onPurchase}
+          style={[
+            styles.primaryButton,
+            compact ? styles.membershipPrimaryActionCompact : null,
+            { backgroundColor: palette.accent },
+          ]}
+          testID="membership-purchase-button"
+        >
+          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+            {membershipPendingAction === 'purchase'
+              ? '正在恢复购买'
+              : '恢复购买并开通会员'}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

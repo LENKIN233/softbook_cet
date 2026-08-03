@@ -94,6 +94,8 @@ export type SoftbookRemoteAuthRuntimeConfig = {
   baseUrl: string;
 };
 
+const LOCAL_SMS_TEST_CODE = '2468';
+
 export function createAuthRepository(
   config: AuthRepositoryConfig,
 ): AuthRepository {
@@ -185,6 +187,10 @@ export function createAuthRepository(
       if (config.mode === 'local') {
         if (input.challenge.mode !== 'local') {
           throw new Error('Local auth requires a local SMS challenge.');
+        }
+
+        if (input.smsCode !== LOCAL_SMS_TEST_CODE) {
+          throw new Error('验证码不正确，请重新输入。');
         }
 
         return {

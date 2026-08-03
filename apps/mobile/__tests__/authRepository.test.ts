@@ -48,6 +48,19 @@ test('local auth repository binds verification to its SMS challenge', async () =
   });
 });
 
+test('local auth repository rejects a code other than the internal test code', async () => {
+  const repository = createAuthRepository({ mode: 'local' });
+  const challenge = await repository.requestSmsCode('13800138000');
+
+  await expect(
+    repository.verifySmsCode({
+      challenge,
+      phoneNumber: '13800138000',
+      smsCode: '1111',
+    }),
+  ).rejects.toThrow('验证码不正确，请重新输入。');
+});
+
 test('remote auth repository uses challenge-bound v2 verification', async () => {
   const fetchMock = jest
     .fn()
