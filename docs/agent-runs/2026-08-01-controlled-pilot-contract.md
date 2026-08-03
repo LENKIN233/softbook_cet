@@ -33,6 +33,7 @@
 - `product_truth`: Pilot content is exactly 120 formally approved CET4 cards with an approved stable 60-card free subset, the fixed seven-library distribution, at least two boxes per library, all five core interactions, zero unmapped cards, zero duplicate IDs, and QC for every referenced audio asset.
 - `product_truth`: Repository development cards, external candidate rows, fixtures, and dry-run projections are not approved pilot cards. The current development-source count of ten cards therefore does not satisfy the pilot gate.
 - `product_truth`: Formal CET4 closed beta remains exactly 1,180 cards, 301 audio references, and one whole-track final approval.
+- `product_truth`: The controlled-pilot bundle must bind the exact 120-card `card make` scoped quality audit. The current candidate's 120 disclosed `synthetic_source` findings are explained source risks, not a basis for a true-exam claim; any missing disclosure, unknown risk, scope drift, hard blocker, content risk or review gap fails publication.
 - `product_truth`: Every positive multiple of the cumulative account-and-track canonical `server_sequence` is one server-gated round boundary. Day-scoped progress is not round authority. The next card cannot be selected until the authenticated client explicitly acknowledges the exact server receipt; duplicate events, midnight rollover, restart, offline replay, and cross-device reads cannot duplicate or skip the boundary.
 - `product_truth`: The receipt's read-only review action resolves only ordered `review_card_ids` returned by the server from the canonical latest per-card event projection. The mobile client cannot infer review content from local results or expose a dead review action in server scheduling mode.
 - `product_truth`: The completion aperture resolves only server-owned `space_card_id`, equal to the active-content card from the canonical event whose `server_sequence` is the exact `completed_count` boundary. Phase grouping and client/device time cannot author the shown Space address.
@@ -47,6 +48,7 @@
 - The 2026-08-02 continuation adds the missing `pilot-round-continue.v1` authority: an exact authenticated idempotent command, deterministic receipt, account-scoped continuation record, and scheduler prohibition on selecting the next card before acknowledgement. Backend and mobile implementation remain in later PRs.
 - The 2026-08-03 product-flow audit adds ordered unique `review_card_ids` to `pilot-round-completion.v1`, derived from canonical latest `answer_grade=review_needed` projections in active card-source order.
 - The 2026-08-03 completion-continuity audit adds exact `space_card_id` to `pilot-round-completion.v1`, derived from the canonical event at the boundary sequence so offline replay, cross-device reads, phase grouping and clock drift cannot misidentify the compact Space address.
+- The 2026-08-03 content-evidence audit replaces the summary-only pilot audit descriptor with a path/hash-bound `card-make-quality-audit-v1` scoped report contract, exact 120-card scope/corpus digests and the only permitted explained risk: disclosed synthetic training content that must not be represented as true-exam material. Publisher byte verification remains in the runtime PR.
 
 ## Workspace boundary and read scope
 
@@ -77,6 +79,7 @@
 - 2026-08-02 continuation: recorded the runtime topic-branch implementation state and exact Learning Session/Bootstrap response fields without treating repository implementation as deployment evidence.
 - 2026-08-02 product-entry correction: added the dedicated-login/app-shell owner and mirror checks after the user rejected the four-page repeated-login flow.
 - 2026-08-03 round-review correction: JSON parsing, harness validation, and diff checks cover the new server-authoritative review-content rule; runtime and mobile remain separate later PR changes.
+- 2026-08-03 content-evidence audit: `node --check infra/cloudbase/controlled-pilot-v1.mjs`, the controlled-pilot contract tests (6/6), `python3 scripts/validate_harness.py`, and `git diff --check` passed. The isolated worktree reused the primary worktree's installed backend module path; its first unqualified test invocation failed only because that worktree had no local `ts-fsrs` install and is not counted as a product failure or passing run.
 - `./scripts/run_local_gates --profile dev --base origin/main --verbose` -> `PASSED_WITH_EXCEPTION`, 23/24 passed; only the declared toolchain exception applied, and all executed harness, mobile, Web, backend, metadata, launch-contract, and build checks passed. Report: `exports/local-gates/20260801T072526Z-5b592247-dev-54469/report.json`.
 - PR checks: pending.
 
@@ -84,6 +87,7 @@
 
 - Pilot profile is CET4-only, receiver-bound, limited to 30–50 users, and gate-ineligible.
 - Pilot bundle rejects any count other than 120/60 and rejects incomplete library, box, interaction, mapping, duplication, approval, audit, or audio-QC evidence.
+- Pilot bundle validation rejects an omitted, renamed or miscounted synthetic-source disclosure before the runtime publisher reads evidence bytes.
 - Trial product truth is identical across owner and mirror specs, and the harness rejects future drift.
 - Formal `delivery-profile.v1` and `release-bundle.v1` validators reject pilot artifacts; their 1,180/301 thresholds were not changed.
 - Outcome decisions are recomputed from aggregate counts and cannot advance when any threshold or P0 condition fails.
