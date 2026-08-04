@@ -4895,6 +4895,7 @@ function MineSurface({
   const { height: viewportHeight, width: viewportWidth } =
     useWindowDimensions();
   const isCompactPhone = isCompactMineViewport(viewportWidth, viewportHeight);
+  const isPhoneViewport = isPhoneMineViewport(viewportWidth, viewportHeight);
   const isAuthenticated = authState.stage === 'authenticated';
   const hasSentCode = authState.stage === 'code_sent';
   const completedCount = learningResults.length + reviewResults.length;
@@ -5180,6 +5181,7 @@ function MineSurface({
           >
             <MineActionCard
               compact={isCompactPhone}
+              condensed={isPhoneViewport}
               detail={
                 pendingReviewCount > 0
                   ? `${pendingReviewCount} 张卡等待回看`
@@ -5222,6 +5224,7 @@ function MineSurface({
             >
               <MineActionCard
                 compact={isCompactPhone}
+                condensed={isPhoneViewport}
                 detail={`${favoriteCount} 收藏 · ${sleepingCount} 休眠`}
                 label="空间"
                 onPress={onGoToSpace}
@@ -5231,6 +5234,7 @@ function MineSurface({
               />
               <MineActionCard
                 compact={isCompactPhone}
+                condensed={isPhoneViewport}
                 detail={checkedInToday ? '今日已签到' : '今日未签到'}
                 label="今日"
                 onPress={onGoToStatistics}
@@ -5260,6 +5264,7 @@ function MineSurface({
 
 function MineActionCard({
   compact,
+  condensed,
   detail,
   heroLabel,
   heroValue,
@@ -5272,6 +5277,7 @@ function MineActionCard({
   variant = 'secondary',
 }: {
   compact: boolean;
+  condensed: boolean;
   detail: string;
   heroLabel?: string;
   heroValue?: string;
@@ -5347,11 +5353,18 @@ function MineActionCard({
   );
   const primaryCenter =
     isPrimary && heroValue ? (
-      <View style={styles.mineActionPrimaryCenter} testID="mine-resume-center">
+      <View
+        style={[
+          styles.mineActionPrimaryCenter,
+          condensed ? styles.mineActionPrimaryCenterPhone : null,
+        ]}
+        testID="mine-resume-center"
+      >
         <Text
           numberOfLines={1}
           style={[
             styles.mineActionPrimaryHero,
+            condensed ? styles.mineActionPrimaryHeroPhone : null,
             { color: palette.primaryActionText },
           ]}
           testID="mine-resume-hero"
@@ -5361,7 +5374,11 @@ function MineActionCard({
         {heroLabel ? (
           <Text
             numberOfLines={1}
-            style={[styles.mineActionPrimaryHeroLabel, { color: mutedColor }]}
+            style={[
+              styles.mineActionPrimaryHeroLabel,
+              condensed ? styles.mineActionPrimaryHeroLabelPhone : null,
+              { color: mutedColor },
+            ]}
             testID="mine-resume-hero-label"
           >
             {heroLabel}
@@ -5417,6 +5434,7 @@ function MineActionCard({
         isPrimary
           ? styles.mineActionCardPrimary
           : styles.mineActionCardSecondary,
+        condensed && isPrimary ? styles.mineActionCardPrimaryPhone : null,
         compact && isPrimary ? styles.mineActionCardPrimaryCompact : null,
         compact && !isPrimary ? styles.mineActionCardSecondaryCompact : null,
         {
@@ -5434,7 +5452,7 @@ function MineActionCard({
         <>
           {primaryHeader}
           {compact ? null : primaryCenter}
-          {compact ? null : primaryMeta}
+          {condensed ? null : primaryMeta}
         </>
       ) : (
         <>
@@ -6538,6 +6556,10 @@ function getDeviceClass(width: number, height: number): DeviceClass {
 
 export function isCompactMineViewport(width: number, height: number) {
   return width <= 340 || height <= 720;
+}
+
+export function isPhoneMineViewport(width: number, height: number) {
+  return isCompactMineViewport(width, height) || Math.min(width, height) < 600;
 }
 
 function maskPhoneNumber(phoneNumber: string) {
@@ -7955,6 +7977,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 8,
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   mineActionCardPrimary: {
     alignItems: 'stretch',
@@ -7965,6 +7988,12 @@ const styles = StyleSheet.create({
     minHeight: 76,
     paddingHorizontal: 15,
     paddingVertical: 13,
+  },
+  mineActionCardPrimaryPhone: {
+    flex: 0,
+    minHeight: 128,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   mineActionCardPrimaryCompact: {
     flex: 0,
@@ -8003,15 +8032,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 62,
   },
+  mineActionPrimaryCenterPhone: {
+    gap: 2,
+    minHeight: 44,
+  },
   mineActionPrimaryHero: {
     fontSize: 34,
     fontWeight: '800',
     lineHeight: 40,
   },
+  mineActionPrimaryHeroPhone: {
+    fontSize: 30,
+    lineHeight: 34,
+  },
   mineActionPrimaryHeroLabel: {
     fontSize: 11,
     fontWeight: '800',
     lineHeight: 15,
+  },
+  mineActionPrimaryHeroLabelPhone: {
+    lineHeight: 13,
   },
   mineActionPrimaryMetaRow: {
     flexDirection: 'row',

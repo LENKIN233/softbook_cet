@@ -15,7 +15,7 @@ import {
   type SoftbookRemoteRuntimeProfile,
 } from '../src/runtime/appRuntimeConfig';
 import { getChinaDayKey } from '../src/shared/chinaDay';
-import App, { isCompactMineViewport } from '../App';
+import App, { isCompactMineViewport, isPhoneMineViewport } from '../App';
 
 const mockCreateLearningSessionRepository = jest.fn();
 const mockLoadSession = jest.fn();
@@ -26,6 +26,13 @@ test('Mine compact mode covers 320dp and short phone viewports', () => {
   expect(isCompactMineViewport(320, 693)).toBe(true);
   expect(isCompactMineViewport(393, 700)).toBe(true);
   expect(isCompactMineViewport(393, 850)).toBe(false);
+});
+
+test('Mine phone containment mode covers standard iOS and Android phones', () => {
+  expect(isPhoneMineViewport(320, 693)).toBe(true);
+  expect(isPhoneMineViewport(393, 852)).toBe(true);
+  expect(isPhoneMineViewport(412, 915)).toBe(true);
+  expect(isPhoneMineViewport(768, 1024)).toBe(false);
 });
 
 function createSoftbookRemoteRuntimeConfig(
