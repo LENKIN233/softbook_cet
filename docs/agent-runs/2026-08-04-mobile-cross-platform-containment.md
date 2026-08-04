@@ -176,8 +176,9 @@
 
 ### Corrective review status and remaining gaps
 
-- Exact-head Agent review: pending until the corrective commit is created and the PR review artifact is regenerated.
-- Required GitHub gates: pending for the corrective commit. Earlier PR #479 failures belong to the pre-correction head and are not treated as passed evidence.
+- Implementation review of `e9bb383` passed with no blocking findings. The final exact-head delivery review is repeated after this run-record-only update and recorded in PR #479.
+- `./scripts/run_local_gates --profile pr --base origin/main --pr 479 --verbose` completed 30 passed / 4 failed / 2 deferred. The failures were local environment or stale remote-context results: the workstation was on Node 25 rather than the repository Node 22 toolchain, backend dependencies were not installed, and PR #479 still referenced the pre-correction remote head/body/checks. This local report is not represented as a green required gate.
+- Required GitHub gates remain authoritative and must run against the pushed corrective exact head. Earlier PR #479 failures belong to the pre-correction head and are not treated as passed evidence.
 - The relaunch mismatch between persisted check-in and non-restored local daily result details remains a product-state persistence gap. Visible copy is now coherent, but exact result restoration needs a separate state-contract correction.
 - The Mine membership CTA still represents a local/demo commerce boundary; production purchase, SMS, CloudBase, private content, and physical-device launch evidence remain outside this UI correction.
 - Simulator/emulator screenshots are development evidence with `gate_eligible=false`; they are not launch-readiness evidence.
