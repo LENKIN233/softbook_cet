@@ -4,7 +4,7 @@
 
 - Date: 2026-08-04
 - Branch: `fix/mobile-cross-platform-containment`
-- PR: pending
+- PR: `https://github.com/LENKIN233/softbook_cet/pull/479`
 - Summary: Corrects the shared React Native Mine layout that allowed the expanded Learning shortcut metadata to cross its rounded card boundary on standard iOS and Android phone viewports. The change preserves the full expansion on tablet-sized viewports and was exercised through real native builds and the complete shared mobile flow on both platforms.
 
 ## Referenced specs
@@ -83,9 +83,10 @@
 
 ## Agent review status
 
-- Reviewer: pending exact-head Codex implementation review.
-- Status: pending.
-- Blocking findings: none identified during implementation validation; PR review remains required before merge.
+- Reviewer: Codex exact-head UI implementation review of `d9658a4ac506ee4098c19fe174de212ff90f7a7e`.
+- Status: passed.
+- Blocking findings: none.
+- Review summary: the phone predicate covers the reproduced 393–412dp viewport class while preserving the existing compact override and the tablet expansion; the intrinsic phone card height, typography, and hidden duplicate metadata remove the overflow cause before `overflow: hidden` enforces the rounded boundary. Route actions, accessibility roles, user-visible copy, membership behavior, Learning behavior, Space behavior, and tablet content remain unchanged. Unit coverage and the native iOS/Android evidence exercise both the classification and rendered result.
 
 ## User-visible UI impact
 
@@ -118,5 +119,5 @@
 
 ## Follow-up
 
-- Complete exact-head Agent review and required GitHub checks, then merge the focused fix into `main`.
+- Complete required GitHub checks, mark PR #479 ready, and merge the focused fix into `main`.
 - Add dedicated dynamic-type, dark-mode, landscape, and physical-device visual evidence before broader mobile UI acceptance.
