@@ -27,6 +27,16 @@ export function formatSpaceBoxLabel(index: number) {
     : formatNeighborLabel('相邻卡盒', normalizedIndex);
 }
 
+export function formatSpaceDisplayName(value: string, fallback: string) {
+  const normalizedValue = value.replace(/\s+/g, ' ').trim();
+
+  if (/^(?:raw|internal|test|fixture)[-_]/i.test(normalizedValue)) {
+    return fallback;
+  }
+
+  return normalizedValue || fallback;
+}
+
 function normalizeDisplayIndex(index: number) {
   return Math.max(Math.trunc(index), 1);
 }

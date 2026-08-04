@@ -121,3 +121,63 @@
 
 - Complete required GitHub checks, mark PR #479 ready, and merge the focused fix into `main`.
 - Add dedicated dynamic-type, dark-mode, landscape, and physical-device visual evidence before broader mobile UI acceptance.
+
+## 2026-08-04 screenshot rejection and corrective pass
+
+### Trigger and corrected scope
+
+- A real Android Statistics screenshot was rejected because the page still read as a nested dashboard: one full-height card contained a large progress panel, four compressed metrics, another action panel, and a dense status rail. The screenshot also captured a transient cyan touch trace from the automation/debug interaction layer. The trace was not rendered by the app, but accepting that capture as UI evidence was itself a review failure.
+- The corrective pass therefore expanded this run beyond the original Mine-only containment patch. It covers the shared phone shell, Learning and result-detail containment, Space address language, Statistics information architecture, Android surface rendering, Dynamic Type behavior, and the narrow-tablet breakpoint.
+- Product truth remains unchanged: Learning is the primary single-card flow; Statistics is a quiet low-pressure ledger; Space exposes real library / group / box context without raw identifiers; Mine remains subordinate to Learning.
+
+### Additional implementation hypothesis
+
+- Standard phone viewports use the compact Learning composition; phone classification is based on the viewport short edge and constrained dimension, while `>= 600pt` enters the tablet shell so iPad mini no longer receives the phone frame.
+- At accessibility font scales, phone route content scrolls while top and bottom chrome remain fixed. Learning/result-detail text can expand, result-answer columns stack, and Statistics actions stack vertically.
+- Android uses opaque panel tokens rather than translucent iOS-style surfaces, avoiding platform-specific rectangular compositing artifacts behind rounded objects.
+- Statistics now maps directly to the accepted quiet-ledger proof: a bounded daily object, three vertical tabular ledger rows, and one compact secondary action/status dock. The previous full-height dashboard composition and four-column metric strip were removed.
+- Inactive bottom navigation items no longer receive Android elevation. Only the active route has a raised filled state, eliminating the four-gray-bubble appearance.
+- Safe Space metadata is shown as the actual library / group / box name; raw identifiers and fixture/test metadata still fail closed to neutral display names. Favorite terminology is consistently `收藏` / `已收藏`.
+- If a relaunch restores `hasCheckedInToday` without the in-memory daily result list, Statistics now uses consistent copy (`今天已签到`; progress will be supplemented after learning) instead of the contradictory `从第一张开始` plus `已签到`. Restoring the exact per-card daily result list across a local relaunch remains an underlying persistence gap, not claimed as fixed here.
+
+### Additional files changed
+
+- `apps/mobile/App.tsx`: phone/tablet classification, accessibility scrolling, Android opaque palettes, bottom-navigation elevation, Statistics initial copy, user-visible runtime copy, Mine phone containment, and actual Space/Learning context wiring.
+- `apps/mobile/src/learning/LearningSurface.tsx`: standard-phone containment, accessibility text expansion, and stacked result-detail answer layout.
+- `apps/mobile/src/statistics/StatisticsSurface.tsx`: accepted quiet-ledger composition, vertical tabular rows, compact actions, and accessibility stacking.
+- `apps/mobile/src/space/SpaceSurface.tsx`: visible safe address names and consistent favorite terminology.
+- `apps/mobile/src/space/spaceMetadataDisplay.ts` and `apps/mobile/src/shared/uiMetadata/displayMetadata.ts`: safe name/path formatting and raw/test metadata rejection.
+- `apps/mobile/jest.setup.js`: realistic 393x852 default RN viewport instead of the oversized mock default.
+- `apps/mobile/__tests__/App.test.tsx`, `App.persistence.test.tsx`, `LearningSurface.test.tsx`, and `SpaceSurface.test.tsx`: new layout, copy, address, device-class, and persistence-visible-state coverage.
+
+### Additional validation
+
+- `npm run typecheck` -> passed.
+- `npm run lint` -> passed with 14 existing inline-style warnings and no errors.
+- `npm test -- --runInBand --silent` -> passed, 45 suites / 436 tests.
+- `npm run metadata-leak-scan` and minimatch compatibility pretests -> passed as part of the full test command.
+- `git diff --check` -> passed.
+- The required dependency-security gate exposed `GHSA-RGW5-RVV9-X895` against `brace-expansion@5.0.8`. The repository override and compatibility guards were updated to the official fixed `5.0.9`; `node scripts/validate_dependency_security.mjs` then passed with zero advisories for both mobile and CloudBase targets.
+- Android 1080x2340 / 440dpi emulator, normal font scale -> full clean-state login, actual Space address, card-list browse, favorite, sleep/restore, all five Learning interaction families, completion, Statistics check-in, Mine, and cross-route return flow passed with Maestro.
+- iPhone 17 Pro / iOS 26.5 simulator -> the same full clean-state flow passed after resetting the simulator test keychain; the existing Keychain session was explicitly identified rather than misreported as an auth regression.
+- Android font scale `2.0` -> Learning front/reveal and Statistics were opened, read, scrolled, and operated with fixed navigation; no horizontal overflow occurred and route actions remain reachable. The scale was restored to `1.0` after testing.
+- iPad mini (A17 Pro) / iOS 26.5 simulator -> real launch rendered the narrow tablet sidebar and content shell without phone chrome, horizontal overflow, or clipped auth actions.
+- Final normal-scale Android and iOS Statistics screenshots were visually compared. Neither contains the cyan interaction trace, out-of-bounds node, four-column squeeze, or inactive-tab elevation seen in the rejected capture.
+
+### Corrective UI/UX director review
+
+- Q1 Law of One: Statistics stays neutral; mint is restricted to successful daily continuity. Learning/Space retain their current-library accent and no second library identity competes on the Statistics surface.
+- Q2 First-read path: daily object -> three quiet ledger rows -> compact next/check-in/status actions -> floating chrome. The old dashboard-first path is removed.
+- Q3 Canonical silhouette: Statistics now matches the accepted `quiet ledger` proof in `docs/design/mocks/mobile-core-surface-reset-v1.html`; Learning remains a single current-card silhouette and Space retains visible hierarchy.
+- Q4 Forbidden patterns: no gradient text, achievement/gamification chrome, full-width rectangular tab bar, serif typography, raw metadata, or removed self-assess tokens. The floating capsule remains visually separate from content.
+- Q5 Containment: 393pt-class iOS, 393dp-class Android, Android 2x font scale, and iPad mini were rendered. No horizontal overflow, clipped CTA, or navigation overlap was observed; accessibility layouts use vertical scroll/stacking.
+- Q6 Surface-specific: Statistics values use `tabular-nums`; Learning remains system-sequenced; flip still exposes exactly `有把握` / `再回看`.
+- AP-22 / VL-AP-07: all four universal and both conditional questions are answered above for this corrective visual output.
+
+### Corrective review status and remaining gaps
+
+- Exact-head Agent review: pending until the corrective commit is created and the PR review artifact is regenerated.
+- Required GitHub gates: pending for the corrective commit. Earlier PR #479 failures belong to the pre-correction head and are not treated as passed evidence.
+- The relaunch mismatch between persisted check-in and non-restored local daily result details remains a product-state persistence gap. Visible copy is now coherent, but exact result restoration needs a separate state-contract correction.
+- The Mine membership CTA still represents a local/demo commerce boundary; production purchase, SMS, CloudBase, private content, and physical-device launch evidence remain outside this UI correction.
+- Simulator/emulator screenshots are development evidence with `gate_eligible=false`; they are not launch-readiness evidence.

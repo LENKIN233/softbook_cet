@@ -579,7 +579,7 @@ test('restores an exact queued check-in without treating event-derived progress 
     expect(
       tree.root
         .findAllByProps({ testID: 'statistics-sync-detail' })
-        .some(node => String(node.props.children).includes('等待服务端确认')),
+        .some(node => String(node.props.children).includes('联网后会自动更新')),
     ).toBe(true);
     expect(
       tree.root.findByProps({

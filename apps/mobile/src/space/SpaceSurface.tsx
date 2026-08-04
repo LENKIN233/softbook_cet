@@ -14,10 +14,8 @@ import {
   LearningTrack,
 } from '../learning/model';
 import {
-  formatSpacePathByIndex,
-  formatSpaceBoxLabel,
-  formatSpaceGroupLabel,
-  formatSpaceLibraryLabel,
+  formatSpaceDisplayName,
+  formatSpacePathByNames,
   resolveSpacePosition,
 } from './spaceMetadataDisplay';
 import { hexToRgba, resolveLibraryTone } from '../visual/tokens';
@@ -228,35 +226,20 @@ export function SpaceSurface({
     selectedBoxCards,
     currentLearningCard?.card_id ?? null,
   );
-  const selectedLibraryIndex =
-    selectedLibrary == null
-      ? 1
-      : Math.max(
-          seed.libraries.findIndex(
-            library => library.libraryName === selectedLibrary.libraryName,
-          ) + 1,
-          1,
-        );
-  const selectedGroupIndex =
-    selectedLibrary == null || selectedGroup == null
-      ? 1
-      : Math.max(
-          selectedLibrary.groups.findIndex(
-            group => group.groupName === selectedGroup.groupName,
-          ) + 1,
-          1,
-        );
-  const selectedBoxIndex =
-    selectedGroup == null || selectedBox == null
-      ? 1
-      : Math.max(
-          selectedGroup.boxes.findIndex(
-            box => box.boxRef === selectedBox.boxRef,
-          ) + 1,
-          1,
-        );
   const currentCardPosition = focusedSelection?.position ?? null;
   const selectedTone = resolveLibraryTone(selectedLibrary?.libraryName);
+  const visibleShelfName = formatSpaceDisplayName(
+    selectedLibrary?.libraryName ?? '',
+    '当前书架',
+  );
+  const visibleSectionName = formatSpaceDisplayName(
+    selectedGroup?.groupName ?? '',
+    '当前分区',
+  );
+  const visibleContainerName = formatSpaceDisplayName(
+    selectedBox?.boxName ?? '',
+    '当前卡盒',
+  );
   const currentLibraryName = currentCardPosition
     ? seed.libraries[currentCardPosition.libraryIndex - 1]?.libraryName
     : undefined;
@@ -279,11 +262,11 @@ export function SpaceSurface({
   const primaryActionText = palette.primaryActionText ?? solidPanelStrong;
   const primaryActionMuted =
     palette.primaryActionMuted ?? hexToRgba(primaryActionText, 0.72);
-  const currentCardPath = currentCardPosition
-    ? formatSpacePathByIndex(
-        currentCardPosition.libraryIndex,
-        currentCardPosition.groupIndex,
-        currentCardPosition.boxIndex,
+  const currentCardPath = currentLearningCard
+    ? formatSpacePathByNames(
+        currentLearningCard.space_metadata.library,
+        currentLearningCard.space_metadata.group,
+        currentLearningCard.space_metadata.box,
       )
     : null;
   const isGated = spaceGateRail !== null && spaceGateRail !== undefined;
@@ -648,17 +631,17 @@ export function SpaceSurface({
                     label="书架"
                     palette={palette}
                     toneColor={selectedTone.accent}
-                    value={formatSpaceLibraryLabel(selectedLibraryIndex)}
+                    value={visibleShelfName}
                   />
                   <AddressContextPill
                     label="分区"
                     palette={palette}
-                    value={formatSpaceGroupLabel(selectedGroupIndex)}
+                    value={visibleSectionName}
                   />
                   <AddressContextPill
                     label="卡盒"
                     palette={palette}
-                    value={formatSpaceBoxLabel(selectedBoxIndex)}
+                    value={visibleContainerName}
                   />
                   <AddressContextPill
                     label="状态"
@@ -712,7 +695,7 @@ export function SpaceSurface({
                         { color: palette.text },
                       ]}
                     >
-                      {formatSpaceLibraryLabel(selectedLibraryIndex)}
+                      {visibleShelfName}
                     </Text>
                   </View>
                   <View
@@ -737,7 +720,7 @@ export function SpaceSurface({
                         { color: palette.text },
                       ]}
                     >
-                      {formatSpaceGroupLabel(selectedGroupIndex)}
+                      {visibleSectionName}
                     </Text>
                   </View>
                   <View
@@ -762,7 +745,7 @@ export function SpaceSurface({
                         { color: palette.text },
                       ]}
                     >
-                      {formatSpaceBoxLabel(selectedBoxIndex)}
+                      {visibleContainerName}
                     </Text>
                   </View>
                 </View>
@@ -1218,7 +1201,7 @@ export function SpaceSurface({
                       {isGated
                         ? '待开放'
                         : selectedFavoriteCards.length > 0
-                        ? '已标记'
+                        ? '已收藏'
                         : '浏览中'}
                     </Text>
                   </View>
@@ -1262,7 +1245,7 @@ export function SpaceSurface({
                         { color: selectedTone.accent },
                       ]}
                     >
-                      {formatSpaceLibraryLabel(selectedLibraryIndex)}
+                      {visibleShelfName}
                     </Text>
                     <Text
                       style={[
@@ -1279,7 +1262,7 @@ export function SpaceSurface({
                         { color: palette.text },
                       ]}
                     >
-                      {formatSpaceGroupLabel(selectedGroupIndex)}
+                      {visibleSectionName}
                     </Text>
                     <Text
                       style={[
@@ -1296,7 +1279,7 @@ export function SpaceSurface({
                         { color: palette.text },
                       ]}
                     >
-                      {formatSpaceBoxLabel(selectedBoxIndex)}
+                      {visibleContainerName}
                     </Text>
                   </View>
                 </View>
@@ -1503,7 +1486,7 @@ export function SpaceSurface({
                                     { color: palette.textMuted },
                                   ]}
                                 >
-                                  {isFavorited ? '已贴标记' : '贴上标记'}
+                                  {isFavorited ? '已收藏' : '保存到收藏'}
                                 </Text>
                               </Pressable>
 

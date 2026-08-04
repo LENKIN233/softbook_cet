@@ -29,7 +29,7 @@ for (const entry of legacyMinimatchPackages(lock)) {
   const braceExpansion = requireFromMinimatch('brace-expansion');
   const bracePackage = requireFromMinimatch('brace-expansion/package.json');
 
-  assert.equal(bracePackage.version, '5.0.8');
+  assert.equal(bracePackage.version, '5.0.9');
   assert.equal(typeof braceExpansion.expand, 'function');
   for (const [pattern, expected] of expansionFixtures) {
     assert.deepEqual(
@@ -60,5 +60,5 @@ assert.equal(
 );
 
 console.log(
-  'PASS: brace-expansion@5.0.8 supports every legacy and modern minimatch path.',
+  'PASS: brace-expansion@5.0.9 supports every legacy and modern minimatch path.',
 );

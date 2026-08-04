@@ -67,14 +67,14 @@ function validatePatchedDependency(packageDirectory) {
   const bracePackage = JSON.parse(fs.readFileSync(bracePackagePath, 'utf8'));
   const braceExpansion = requireFromMinimatch('brace-expansion');
 
-  if (bracePackage.version !== '5.0.8') {
+  if (bracePackage.version !== '5.0.9') {
     throw new Error(
-      `Expected brace-expansion@5.0.8 for ${packageDirectory}; found ${bracePackage.version}.`,
+      `Expected brace-expansion@5.0.9 for ${packageDirectory}; found ${bracePackage.version}.`,
     );
   }
   if (typeof braceExpansion.expand !== 'function') {
     throw new Error(
-      `brace-expansion@5.0.8 does not expose expand for ${packageDirectory}.`,
+      `brace-expansion@5.0.9 does not expose expand for ${packageDirectory}.`,
     );
   }
 }

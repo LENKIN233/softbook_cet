@@ -1,5 +1,6 @@
 import {
   formatSpaceBoxLabel,
+  formatSpaceDisplayName,
   formatSpaceGroupLabel,
   formatSpaceLibraryLabel,
 } from '../shared/uiMetadata/displayMetadata';
@@ -7,6 +8,7 @@ import {
 export {
   formatLearningSessionDisplayLabel,
   formatSpaceBoxLabel,
+  formatSpaceDisplayName,
   formatSpaceGroupLabel,
   formatSpaceLibraryLabel,
 } from '../shared/uiMetadata/displayMetadata';
@@ -35,6 +37,20 @@ export function formatSpacePathByIndex(
   return `${formatSpaceLibraryLabel(libraryIndex)} / ${formatSpaceGroupLabel(
     groupIndex,
   )} / ${formatSpaceBoxLabel(boxIndex)}`;
+}
+
+export function formatSpacePathByNames(
+  libraryName: string,
+  groupName: string,
+  boxName: string,
+) {
+  return `${formatSpaceDisplayName(
+    libraryName,
+    '当前书架',
+  )} / ${formatSpaceDisplayName(
+    groupName,
+    '当前分区',
+  )} / ${formatSpaceDisplayName(boxName, '当前卡盒')}`;
 }
 
 export function resolveSpacePosition(
