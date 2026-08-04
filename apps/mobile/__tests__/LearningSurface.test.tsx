@@ -42,7 +42,8 @@ const palette = {
 test('learning compact mode covers 320dp and short phone viewports', () => {
   expect(isCompactLearningViewport(320, 693)).toBe(true);
   expect(isCompactLearningViewport(393, 700)).toBe(true);
-  expect(isCompactLearningViewport(393, 850)).toBe(false);
+  expect(isCompactLearningViewport(393, 850)).toBe(true);
+  expect(isCompactLearningViewport(744, 1133)).toBe(false);
 });
 
 test('swipe gesture commits at 25% distance or the velocity threshold', () => {
@@ -51,9 +52,9 @@ test('swipe gesture commits at 25% distance or the velocity threshold', () => {
   expect(
     resolveSwipeGestureDirection({ cardWidth: 320, dx: -79, vx: -0.64 }),
   ).toBeNull();
-  expect(
-    resolveSwipeGestureDirection({ cardWidth: 320, dx: -80, vx: 0 }),
-  ).toBe('left');
+  expect(resolveSwipeGestureDirection({ cardWidth: 320, dx: -80, vx: 0 })).toBe(
+    'left',
+  );
   expect(
     resolveSwipeGestureDirection({ cardWidth: 320, dx: 79, vx: 0.65 }),
   ).toBe('right');
@@ -139,7 +140,7 @@ test('keeps verified audio as an explicit accessible chip attached to the card',
     );
   });
 
-  const control = tree!.root.findByProps({testID: 'learning-audio-control'});
+  const control = tree!.root.findByProps({ testID: 'learning-audio-control' });
   expect(control.props.accessibilityRole).toBe('button');
   expect(control.props.accessibilityLabel).toBe('播放听力');
   expect(control.props.accessibilityState).toEqual({
@@ -205,24 +206,24 @@ test('does not expose raw space metadata while learning', () => {
   const progressLabel = tree!.root.findByProps({
     testID: 'learning-progress-label',
   });
-  expect(progressLabel.props.children).toBe('本轮学习卡');
+  expect(progressLabel.props.children).toContain('本轮学习卡');
   expect(
     tree!.root.findByProps({ testID: 'learning-card-address-shelf' }),
   ).toBeTruthy();
   expect(
-    tree!.root.findByProps({ testID: 'learning-card-location-strip' }),
-  ).toBeTruthy();
+    tree!.root.findAllByProps({ testID: 'learning-card-location-strip' }),
+  ).toHaveLength(0);
   expect(output).not.toContain('第 1 张');
   expect(output).not.toContain('共 7 张');
   expect(output).not.toContain('本组第');
   expect(output).not.toContain('学习进度');
   expect(output).toContain('当前卡');
-  expect(output).toContain('先读题干');
+  expect(output).not.toContain('先读题干');
   expect(output).not.toContain('先判断，再确认解析');
   expect(output).not.toContain('先做这一张');
   expect(output).not.toContain('当前这一张');
-  expect(output).toContain('位置已接上');
-  expect(output).toContain('本轮盒');
+  expect(output).toContain('当前卡盒');
+  expect(output).not.toContain('raw-learning');
   expect(output).not.toContain('位置保持');
   expect(output).not.toContain('位置 · 本轮盒');
   expect(output).not.toContain('当前位置 · 本轮盒');
@@ -249,7 +250,7 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).toContain('先把题干里的信号抓出来，再回到选项或解析确认。');
   expect(output).not.toContain('这张卡为什么出现');
   expect(output).not.toContain('该题来自当前练习安排');
-  expect(output).toContain('同盒继续');
+  expect(output).not.toContain('同盒继续');
   expect(output).not.toContain('同盒位置保持');
   expect(output).not.toContain('同盒位置已保持');
   expect(output).not.toContain('这张在：');
@@ -318,7 +319,7 @@ test('multiple choice submit is a compact action dock tied to selection state', 
     StyleSheet.flatten(
       tree!.root.findByProps({ testID: 'learning-action-dock' }).props.style,
     ).marginTop,
-  ).toBe('auto');
+  ).toBe(0);
   const optionGridStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'learning-option-grid' }).props.style,
   );
@@ -433,7 +434,7 @@ test('swipe choices stay compact enough for the one-screen phone action plane', 
 
   expect(safeChoiceStyle.minWidth).toBe(0);
   expect(safeChoiceStyle.minHeight).toBe(44);
-  expect(safeChoiceStyle.paddingVertical).toBe(6);
+  expect(safeChoiceStyle.paddingVertical).toBe(4);
   expect(safeChoiceStyle.gap).toBe(3);
   expect(safeChoiceText).toHaveLength(3);
   expect(safeChoiceLabelStyle.fontSize).toBeGreaterThanOrEqual(13);
@@ -578,7 +579,8 @@ test('result detail reads as a resolved card without raw metadata', () => {
   expect(detailAnswerSlipStyle.justifyContent).toBe('space-between');
   expect(output).toContain('当前卡');
   expect(output).toContain('2/3');
-  expect(output).toContain('答案留在本卡');
+  expect(output).toContain(card.space_metadata.box);
+  expect(output).toContain(card.space_metadata.group);
   expect(output).not.toContain('结果在当前卡');
   expect(output).toContain('答案已归位');
   expect(output).toContain('你的选择和正确答案已对齐');

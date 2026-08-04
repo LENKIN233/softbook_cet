@@ -8,7 +8,7 @@ jest.mock('react-native-blob-util', () => ({
   default: {
     config: jest.fn(),
     fs: {
-      dirs: {CacheDir: '/tmp/softbook-test-cache'},
+      dirs: { CacheDir: '/tmp/softbook-test-cache' },
       exists: jest.fn(),
       hash: jest.fn(),
       mkdir: jest.fn(),
@@ -20,10 +20,16 @@ jest.mock('react-native-blob-util', () => ({
 }));
 
 beforeEach(async () => {
+  const { Dimensions } = require('react-native');
   const AsyncStorage =
     require('@react-native-async-storage/async-storage').default;
   const NetInfo = require('@react-native-community/netinfo');
   const Keychain = require('react-native-keychain');
+
+  Dimensions.set({
+    screen: { fontScale: 1, height: 852, scale: 1, width: 393 },
+    window: { fontScale: 1, height: 852, scale: 1, width: 393 },
+  });
 
   if (typeof AsyncStorage.clear === 'function') {
     await AsyncStorage.clear();

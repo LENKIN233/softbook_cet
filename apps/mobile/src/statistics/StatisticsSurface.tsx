@@ -4,6 +4,7 @@ import {
   StyleProp,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
   ViewStyle,
 } from 'react-native';
@@ -62,10 +63,14 @@ export function StatisticsSurface({
   syncStatusDetail: string;
   syncStatusLabel: string;
 }) {
+  const { fontScale, height, width } = useWindowDimensions();
+  const usesCompactLayout =
+    deviceClass === 'phone' && (height < 800 || width < 370);
+  const usesAccessibilityLayout = fontScale >= 1.3;
   const combinedResults = [...learningResults, ...reviewResults];
   const hasLearningProgress = combinedResults.length > 0;
   const checkInTitle = hasCheckedInToday
-    ? `${combinedResults.length} 张`
+    ? '已签到'
     : canCheckInToday
     ? '可收好'
     : '待学习';
@@ -83,12 +88,16 @@ export function StatisticsSurface({
       ? '首轮已收口'
       : '暂无今日进展';
   const dailyTitle = hasCheckedInToday
-    ? '今天已收好'
+    ? hasLearningProgress
+      ? '今天已收好'
+      : '今天已签到'
     : hasLearningProgress
     ? '学习在推进'
     : '从第一张开始';
   const dailySummary = hasCheckedInToday
-    ? `完成 ${combinedResults.length} · 回看 ${reviewResults.length}`
+    ? hasLearningProgress
+      ? `完成 ${combinedResults.length} · 回看 ${reviewResults.length}`
+      : '今日记录已收好；继续学习后自动补充进度。'
     : pendingReviewCount > 0
     ? `还有 ${pendingReviewCount} 张卡需要回看，统计只安静记录，不打断学习。`
     : hasLearningProgress
@@ -135,7 +144,9 @@ export function StatisticsSurface({
   const dailyRailLabel = nextStepIsReview
     ? `${pendingReviewCount} 张回看待处理`
     : hasCheckedInToday
-    ? '节奏已收好'
+    ? hasLearningProgress
+      ? '节奏已收好'
+      : '今日已签到'
     : canCheckInToday
     ? '可以收好今天'
     : '完成一张后点亮';
@@ -159,7 +170,10 @@ export function StatisticsSurface({
     >
       <SurfaceCard
         palette={palette}
-        style={styles.dailyObjectCard}
+        style={[
+          styles.dailyObjectCard,
+          usesCompactLayout ? styles.dailyObjectCardCompact : null,
+        ]}
         testID="statistics-day-object"
       >
         <View style={styles.dailyHeader}>
@@ -219,31 +233,24 @@ export function StatisticsSurface({
         >
           <View style={styles.progressHeader}>
             <View style={styles.progressCopy}>
-              <Text style={[styles.progressEyebrow, { color: dailyRailTone }]}>
+              <Text
+                style={[styles.progressEyebrow, { color: dailyRailTone }]}
+              >
                 今日节奏
               </Text>
               <Text
+                numberOfLines={usesAccessibilityLayout ? undefined : 1}
                 style={[styles.progressTitle, { color: palette.text }]}
                 testID="statistics-progress-label"
               >
                 {dailyRailLabel}
               </Text>
             </View>
-          </View>
-          <View style={styles.progressMeter}>
             <Text
               style={[styles.progressRatio, { color: palette.text }]}
               testID="statistics-progress-ratio"
             >
               {`${combinedResults.length}/${dailyRailTarget}`}
-            </Text>
-            <Text
-              style={[
-                styles.progressMeterCaption,
-                { color: palette.textMuted },
-              ]}
-            >
-              今日完成 / 今日目标
             </Text>
           </View>
           <View
@@ -264,47 +271,31 @@ export function StatisticsSurface({
               testID="statistics-progress-fill"
             />
           </View>
-          <View
-            style={[
-              styles.metricLedger,
-              {
-                backgroundColor: hexToRgba(dailyRailTone, 0.045),
-                borderColor: hexToRgba(dailyRailTone, 0.08),
-              },
-            ]}
-            testID="statistics-metric-strip"
-          >
-            <MetricLedgerRow
-              dividerAfter
-              emphasis
-              label="今日完成"
-              palette={palette}
-              testID="statistics-metric-completed"
-              value={`${combinedResults.length}`}
-            />
-            <MetricLedgerRow
-              dividerAfter
-              label="首轮"
-              palette={palette}
-              testID="statistics-metric-learning"
-              value={`${learningResults.length}`}
-            />
-            <MetricLedgerRow
-              dividerAfter
-              label="回看"
-              palette={palette}
-              testID="statistics-metric-review"
-              value={`${reviewResults.length}`}
-            />
-            <MetricLedgerRow
-              label="待回看"
-              palette={palette}
-              testID="statistics-metric-pending-review"
-              tone={pendingReviewCount > 0 ? 'warning' : 'success'}
-              value={`${pendingReviewCount}`}
-            />
-          </View>
         </View>
+      </SurfaceCard>
+
+      <View style={styles.metricLedger} testID="statistics-metric-strip">
+        <MetricLedgerRow
+          detail={`首轮 ${learningResults.length}`}
+          label="今日完成"
+          palette={palette}
+          testID="statistics-metric-completed"
+          value={`${combinedResults.length}`}
+        />
+        <MetricLedgerRow
+          label="需要回看"
+          palette={palette}
+          testID="statistics-metric-pending-review"
+          tone={pendingReviewCount > 0 ? 'warning' : 'success'}
+          value={`${pendingReviewCount}`}
+        />
+        <MetricLedgerRow
+          label="今日回看"
+          palette={palette}
+          testID="statistics-metric-review"
+          value={`${reviewResults.length}`}
+        />
+      </View>
 
         <View
           style={[
@@ -320,6 +311,7 @@ export function StatisticsSurface({
             style={[
               styles.actionObjectRow,
               styles.nextStepRow,
+              usesAccessibilityLayout ? styles.nextStepRowAccessible : null,
               {
                 backgroundColor: 'transparent',
                 borderColor: 'transparent',
@@ -350,6 +342,9 @@ export function StatisticsSurface({
               style={[
                 styles.primaryButton,
                 styles.nextStepButton,
+                usesAccessibilityLayout
+                  ? styles.nextStepButtonAccessible
+                  : null,
                 {
                   backgroundColor: nextStepIsReview
                     ? palette.warning
@@ -394,13 +389,14 @@ export function StatisticsSurface({
                 borderColor: hexToRgba(palette.accent, 0.08),
               },
               styles.checkInDockRow,
+              usesAccessibilityLayout ? styles.checkInDockRowAccessible : null,
               deviceClass === 'tablet' ? styles.checkInDockRowTablet : null,
             ]}
             testID="statistics-checkin-card"
           >
             <View style={styles.checkInCopy}>
               <Text style={[styles.checkInTitle, { color: palette.text }]}>
-                今日记录
+                签到
               </Text>
               <Text
                 style={[styles.cardSummary, { color: palette.textMuted }]}
@@ -415,6 +411,9 @@ export function StatisticsSurface({
               style={[
                 styles.primaryButton,
                 styles.dailyPrimaryButton,
+                usesAccessibilityLayout
+                  ? styles.dailyPrimaryButtonAccessible
+                  : null,
                 {
                   backgroundColor: checkInButtonBackground,
                   borderColor: checkInButtonBorder,
@@ -449,7 +448,13 @@ export function StatisticsSurface({
           />
 
           <View style={styles.statusLedger} testID="statistics-status-ledger">
-            <View style={styles.ledgerRail} testID="statistics-ledger-rail">
+            <View
+              style={[
+                styles.ledgerRail,
+                usesAccessibilityLayout ? styles.ledgerRailAccessible : null,
+              ]}
+              testID="statistics-ledger-rail"
+            >
               <LedgerRow
                 label="回看"
                 palette={palette}
@@ -467,22 +472,19 @@ export function StatisticsSurface({
             </View>
           </View>
         </View>
-      </SurfaceCard>
     </View>
   );
 }
 
 function MetricLedgerRow({
-  dividerAfter = false,
-  emphasis = false,
+  detail,
   label,
   palette,
   testID,
   tone,
   value,
 }: {
-  dividerAfter?: boolean;
-  emphasis?: boolean;
+  detail?: string;
   label: string;
   palette: StatisticsPalette;
   testID?: string;
@@ -502,29 +504,25 @@ function MetricLedgerRow({
     <View
       style={[
         styles.metricLedgerRow,
-        emphasis ? styles.metricLedgerRowEmphasis : null,
-        dividerAfter ? styles.metricLedgerDivider : null,
         {
-          borderRightColor: hexToRgba(palette.textMuted, 0.11),
+          backgroundColor: palette.panel,
+          borderColor: palette.border,
         },
       ]}
       testID={testID}
     >
+      <View style={styles.metricCopy}>
+        <Text style={[styles.metricLabel, { color: palette.textMuted }]}>
+          {label}
+        </Text>
+        {detail ? (
+          <Text style={[styles.metricDetail, { color: palette.textMuted }]}>
+            {detail}
+          </Text>
+        ) : null}
+      </View>
       <Text
-        style={[
-          styles.metricLabel,
-          emphasis ? styles.metricLabelEmphasis : null,
-          { color: palette.textMuted },
-        ]}
-      >
-        {label}
-      </Text>
-      <Text
-        style={[
-          styles.metricValue,
-          emphasis ? styles.metricValueEmphasis : null,
-          { color: valueColor },
-        ]}
+        style={[styles.metricValue, { color: valueColor }]}
         testID={testID ? `${testID}-value` : undefined}
       >
         {value}
@@ -614,7 +612,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 6,
     paddingBottom: 8,
-    gap: 8,
+    gap: 10,
   },
   pageTablet: {
     paddingHorizontal: 24,
@@ -635,54 +633,42 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   metricLedger: {
-    alignItems: 'stretch',
-    borderRadius: 16,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 0,
-    overflow: 'hidden',
-    paddingHorizontal: 2,
-    paddingVertical: 1,
+    gap: 7,
   },
   metricLedgerRow: {
     alignItems: 'center',
-    borderRadius: 0,
-    borderWidth: 0,
-    flex: 1,
-    flexDirection: 'column',
-    gap: 1,
-    justifyContent: 'center',
-    minHeight: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    minHeight: 52,
     minWidth: 0,
-    paddingHorizontal: 3,
-    paddingVertical: 5,
-  },
-  metricLedgerRowEmphasis: {
-    flex: 1.18,
-  },
-  metricLedgerDivider: {
-    borderRightWidth: 1,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
   },
   metricValue: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '900',
     fontVariant: ['tabular-nums'],
-    lineHeight: 18,
-    textAlign: 'center',
-  },
-  metricValueEmphasis: {
-    fontSize: 19,
-    lineHeight: 22,
+    lineHeight: 28,
+    minWidth: 42,
+    textAlign: 'right',
   },
   metricLabel: {
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: '800',
-    lineHeight: 14,
-    textAlign: 'center',
+    lineHeight: 17,
   },
-  metricLabelEmphasis: {
+  metricCopy: {
+    flex: 1,
+    gap: 1,
+    minWidth: 0,
+  },
+  metricDetail: {
     fontSize: 10,
-    lineHeight: 14,
+    fontWeight: '600',
+    lineHeight: 13,
   },
   surfaceCard: {
     borderWidth: 1,
@@ -697,12 +683,13 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   dailyObjectCard: {
-    flex: 1,
-    gap: 12,
-    justifyContent: 'space-between',
-    minHeight: 0,
+    gap: 10,
     paddingHorizontal: 17,
-    paddingVertical: 15,
+    paddingVertical: 14,
+  },
+  dailyObjectCardCompact: {
+    gap: 8,
+    paddingVertical: 12,
   },
   dailyHeader: {
     alignItems: 'center',
@@ -735,17 +722,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   progressDock: {
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    flex: 1,
-    gap: 8,
-    justifyContent: 'space-between',
-    minHeight: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
+    gap: 7,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
   },
   progressHeader: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
@@ -766,22 +750,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   progressRatio: {
-    fontSize: 46,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '900',
     fontVariant: ['tabular-nums'],
-    lineHeight: 50,
-  },
-  progressMeter: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 3,
-    justifyContent: 'center',
-    minHeight: 72,
-  },
-  progressMeterCaption: {
-    fontSize: 11,
-    fontWeight: '700',
-    lineHeight: 15,
+    lineHeight: 24,
   },
   progressTrack: {
     borderRadius: 999,
@@ -797,7 +769,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexShrink: 0,
     gap: 0,
-    overflow: 'visible',
+    overflow: 'hidden',
     paddingHorizontal: 11,
     paddingVertical: 9,
   },
@@ -812,6 +784,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     paddingBottom: 8,
     paddingTop: 2,
+  },
+  nextStepRowAccessible: {
+    alignItems: 'stretch',
+    flexDirection: 'column',
   },
   actionDockDivider: {
     height: 1,
@@ -842,6 +818,10 @@ const styles = StyleSheet.create({
   checkInDockRowTablet: {
     alignItems: 'flex-start',
   },
+  checkInDockRowAccessible: {
+    alignItems: 'stretch',
+    flexDirection: 'column',
+  },
   checkInCopy: {
     flex: 1,
     gap: 5,
@@ -869,15 +849,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     paddingVertical: 8,
   },
+  dailyPrimaryButtonAccessible: {
+    alignSelf: 'stretch',
+  },
   nextStepButton: {
     borderRadius: 999,
     minWidth: 86,
     paddingHorizontal: 13,
     paddingVertical: 9,
   },
+  nextStepButtonAccessible: {
+    alignSelf: 'stretch',
+  },
   ledgerRail: {
     flexDirection: 'row',
     gap: 6,
+  },
+  ledgerRailAccessible: {
+    flexDirection: 'column',
   },
   ledgerLabel: {
     fontSize: 11,

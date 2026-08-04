@@ -13,6 +13,7 @@ import {
   Keyboard,
   Pressable,
   Platform,
+  ScrollView,
   StatusBar,
   StyleProp,
   StyleSheet,
@@ -328,6 +329,18 @@ const DARK_PALETTE: Palette = {
   danger: '#F15B6E',
 };
 
+const ANDROID_LIGHT_PALETTE: Palette = {
+  ...LIGHT_PALETTE,
+  panel: '#F9F9F4',
+  panelStrong: '#FFFFFC',
+};
+
+const ANDROID_DARK_PALETTE: Palette = {
+  ...DARK_PALETTE,
+  panel: '#191A24',
+  panelStrong: '#1F212D',
+};
+
 const PROTECTED_ROUTES: RouteKey[] = ['learning', 'space', 'statistics'];
 const AUTH_KEYBOARD_ACCESSORY_ID = 'auth-keyboard-accessory';
 const SMS_CODE_CELL_COUNT = 6;
@@ -343,8 +356,8 @@ const INITIAL_AUTH_STATE: AuthState = {
 };
 
 const INITIAL_PROGRESS_SYNC_STATE: ProgressSyncState = {
-  detail: '今天还没有需要同步的学习进展。',
-  label: '等待今日进展',
+  detail: '完成学习后自动保存。',
+  label: '暂无记录',
   state: 'idle',
 };
 
@@ -393,7 +406,14 @@ function AppShell({
   runtimeConfig: SoftbookAppRuntimeConfig | undefined;
 }) {
   const scheme = useColorScheme();
-  const palette = scheme === 'dark' ? DARK_PALETTE : LIGHT_PALETTE;
+  const palette =
+    Platform.OS === 'android'
+      ? scheme === 'dark'
+        ? ANDROID_DARK_PALETTE
+        : ANDROID_LIGHT_PALETTE
+      : scheme === 'dark'
+      ? DARK_PALETTE
+      : LIGHT_PALETTE;
   const learningTrack = useMemo(
     () => resolveLearningTrack(runtimeConfig),
     [runtimeConfig],
@@ -451,7 +471,7 @@ function AppShell({
               mode: 'remote' as const,
               ...contentManifestRuntimeConfig.remote,
             }
-          : {mode: 'disabled' as const},
+          : { mode: 'disabled' as const },
       fetchImpl: authenticatedFetch,
     };
   }, [authenticatedFetch, contentManifestRuntimeConfig, runtimeConfig]);
@@ -956,7 +976,7 @@ function AppShell({
             errorMessage: `${getUserFacingErrorMessage(
               error,
               '会员状态暂时无法读取。',
-            )} 已恢复登录；网络恢复后会重新读取服务端权益。`,
+            )} 已恢复登录；联网后会自动更新会员权益。`,
             refreshSucceeded: false,
             state: createEntitlementPendingMembershipState(),
           };
@@ -1014,7 +1034,7 @@ function AppShell({
       setSpaceCardStateById(hydration.persistedUserState.spaceCardStateById);
       if (hydration.pendingCheckInDayKey !== null) {
         setProgressSyncState({
-          detail: '签到已保存，等待服务端确认。',
+          detail: '签到已保存，联网后会自动更新。',
           label: '已排队',
           state: 'syncing',
         });
@@ -1312,9 +1332,7 @@ function AppShell({
             setLearningSession(null);
             setLearningCardState(null);
             setLearningBootstrapStatus('error');
-            setLearningBootstrapError(
-              '内容版本暂时无法重新确认，已保留答题记录且尚未上传。',
-            );
+            setLearningBootstrapError('当前内容暂时无法确认，答题记录已保留。');
             return;
           }
 
@@ -1330,7 +1348,7 @@ function AppShell({
           setLearningBootstrapError(
             getUserFacingErrorMessage(
               error,
-              '内容版本重新验证失败，已保留答题记录且尚未上传。',
+              '当前内容暂时无法确认，答题记录已保留。',
             ),
           );
           return;
@@ -1405,7 +1423,7 @@ function AppShell({
               accountBootstrapHydrationSettledRef.current = false;
               setAccountBootstrapHydrationSettled(false);
               setLearningStateSyncState({
-                detail: '答题记录已由服务端确认，正在刷新账户学习状态。',
+                detail: '答题记录已保存，正在更新学习状态。',
                 label: '同步中',
                 state: 'syncing',
               });
@@ -1424,8 +1442,7 @@ function AppShell({
                     '账户学习状态尚未刷新，重新确认后再继续下一张。',
                   );
                   setLearningStateSyncState({
-                    detail:
-                      '答题记录已由服务端确认，账户状态将在服务恢复后刷新。',
+                    detail: '答题记录已保存，联网后会自动更新学习状态。',
                     label: '待刷新',
                     state: 'error',
                   });
@@ -1549,8 +1566,7 @@ function AppShell({
           if ('terminalRejection' in result) {
             quarantinedSpaceAction = true;
             setSpaceStateSyncState({
-              detail:
-                '有一项空间操作无法应用，正在恢复服务端当前状态。',
+              detail: '这项操作未能保存，正在恢复空间状态。',
               label: '恢复中',
               state: 'syncing',
             });
@@ -1559,7 +1575,7 @@ function AppShell({
 
           replayedSpaceAction = true;
           setSpaceStateSyncState({
-            detail: '空间操作已提交，正在读取服务端确认状态。',
+            detail: '空间正在更新。',
             label: '确认中',
             state: 'syncing',
           });
@@ -1627,28 +1643,26 @@ function AppShell({
           if (!bootstrapRefreshed) {
             setSpaceStateSyncState({
               detail: quarantinedSpaceAction
-                ? '一项空间操作无法应用，且服务端状态暂时无法重新读取。'
-                : '空间操作已提交，等待重新读取服务端状态。',
+                ? '这项操作未能保存，空间暂时无法更新。'
+                : '空间已保留这项操作，联网后会自动更新。',
               label: '待确认',
               state: 'error',
             });
           } else if (remainingPendingSpaceActionCount > 0) {
             setSpaceStateSyncState({
-              detail:
-                '部分空间操作仍安全保存在本机，网络恢复后会自动再试。',
+              detail: '部分空间操作仍安全保存在本机，网络恢复后会自动再试。',
               label: '待重试',
               state: 'error',
             });
           } else if (quarantinedSpaceAction) {
             setSpaceStateSyncState({
-              detail:
-                '一项空间操作未能应用，当前空间已恢复为服务端状态。',
+              detail: '这项操作未能保存，空间已恢复到上次可用状态。',
               label: '已恢复',
               state: 'synced',
             });
           } else {
             setSpaceStateSyncState({
-              detail: '空间收藏和休眠状态已由服务端确认。',
+              detail: '收藏和休眠状态已更新。',
               label: '已同步',
               state: 'synced',
             });
@@ -1668,7 +1682,7 @@ function AppShell({
             unreconciledCheckInDayKeyRef.current = null;
             confirmedCheckInDayKeyRef.current = replayedCheckInDayKey;
             setProgressSyncState({
-              detail: '签到已由服务端确认。',
+              detail: '签到已更新。',
               label: '已同步',
               state: 'synced',
             });
@@ -2443,8 +2457,8 @@ function AppShell({
       if (!checkInNeedsCanonicalConfirmation) {
         setProgressSyncState({
           detail: checkInWasJustConfirmed
-            ? '签到已由服务端确认。'
-            : '今天的学习进展已从服务端恢复。',
+            ? '签到已更新。'
+            : '今天的学习进展已恢复。',
           label: '已同步',
           state: 'synced',
         });
@@ -2462,7 +2476,7 @@ function AppShell({
         current.label === '记录失败'
           ? current
           : {
-              detail: '服务端学习状态已恢复。',
+              detail: '学习状态已恢复。',
               label: '已同步',
               state: 'synced',
             },
@@ -2596,7 +2610,7 @@ function AppShell({
             `${getUserFacingErrorMessage(
               error,
               '试用开通暂时失败。',
-            )} 请求已记录；网络恢复并由服务端确认后会自动更新。`,
+            )} 已记录；联网后会自动更新。`,
           );
           setMembershipPendingAction(null);
           return;
@@ -2987,7 +3001,7 @@ function AppShell({
     ) => {
       if (!canWriteAccountState) {
         setSpaceStateSyncState({
-          detail: '账户状态尚未完成服务端校准，空间操作暂时不可用。',
+          detail: '账户状态确认中，请稍后再试。',
           label: '暂不可用',
           state: 'error',
         });
@@ -3020,7 +3034,7 @@ function AppShell({
         bootstrap.track !== learningTrack
       ) {
         setSpaceStateSyncState({
-          detail: '当前缺少已校准的登录或内容上下文，空间操作未保存。',
+          detail: '当前无法保存这项操作，请重新登录后再试。',
           label: '保存失败',
           state: 'error',
         });
@@ -3038,7 +3052,7 @@ function AppShell({
           authenticatedRuntimeContext.phoneNumber
       ) {
         setSpaceStateSyncState({
-          detail: '当前登录会话不可用，空间操作未保存。',
+          detail: '登录状态已失效，请重新登录后再试。',
           label: '保存失败',
           state: 'error',
         });
@@ -3068,7 +3082,7 @@ function AppShell({
 
           applyAfterDurableWrite(action);
           setSpaceStateSyncState({
-            detail: '空间操作已安全保存，等待服务端确认。',
+            detail: '操作已保留，联网后会自动更新。',
             label: '已排队',
             state: 'syncing',
           });
@@ -3255,7 +3269,7 @@ function AppShell({
           detail: learningEventRecoveryPending
             ? '正在恢复上次安全保存的答题记录，确认完成后再继续。'
             : learningSession?.contentVersion === null
-            ? '当前内容版本无法验证，本次答题未记录。'
+            ? '当前内容暂时不可用，本次答题未记录。'
             : '账户状态确认中，本次答题尚未记录，请稍后重试。',
           label: '记录受阻',
           state: 'error',
@@ -3329,7 +3343,7 @@ function AppShell({
 
           commitLearningCardAdvance(completedResult);
           setLearningStateSyncState({
-            detail: '答题记录已安全保存在本机，正在等待服务端确认。',
+            detail: '答题记录已保留，联网后会自动更新。',
             label: '待同步',
             state: 'syncing',
           });
@@ -3433,7 +3447,7 @@ function AppShell({
 
       if (authenticatedRuntimeContext === null) {
         setProgressSyncState({
-          detail: '当前缺少可用的登录上下文，暂时不能签到。',
+          detail: '当前无法签到，请重新登录后再试。',
           label: '签到失败',
           state: 'error',
         });
@@ -3446,7 +3460,7 @@ function AppShell({
 
       if (sessionScopeKey === null) {
         setProgressSyncState({
-          detail: '当前登录会话不可用，暂时不能签到。',
+          detail: '登录状态已失效，请重新登录后再试。',
           label: '签到失败',
           state: 'error',
         });
@@ -3484,7 +3498,7 @@ function AppShell({
           unreconciledCheckInDayKeyRef.current = todayKey;
           setCheckedInDayKey(todayKey);
           setProgressSyncState({
-            detail: '签到已保存，等待服务端确认。',
+            detail: '签到已保存，联网后会自动更新。',
             label: '已排队',
             state: 'syncing',
           });
@@ -4029,6 +4043,9 @@ function PhoneShell({
   palette: Palette;
   route: ShellRoute;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const usesAccessibilityLayout = fontScale >= 1.3;
+
   return (
     <View style={styles.shellRoot}>
       <PhoneTopBar
@@ -4037,7 +4054,20 @@ function PhoneShell({
         palette={palette}
         route={route}
       />
-      <View style={styles.shellContent}>{content}</View>
+      <View style={styles.shellContent}>
+        {usesAccessibilityLayout ? (
+          <ScrollView
+            contentContainerStyle={styles.shellAccessibleContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            testID="phone-accessibility-scroll"
+          >
+            {content}
+          </ScrollView>
+        ) : (
+          content
+        )}
+      </View>
       <View style={styles.phoneTabBarWrap}>
         <View
           style={[
@@ -4062,10 +4092,13 @@ function PhoneShell({
                 style={[
                   styles.phoneTabButton,
                   isActive
-                    ? {
+                    ? [
+                        styles.phoneTabButtonActive,
+                        {
                         backgroundColor: palette.activeSurface,
                         shadowColor: palette.activeSurface,
-                      }
+                        },
+                      ]
                     : null,
                 ]}
                 testID={`route-tab-${item.key}`}
@@ -4325,11 +4358,20 @@ function TabletShell({
   palette: Palette;
   route: ShellRoute;
 }) {
+  const { width } = useWindowDimensions();
+  const isNarrowTablet = width < 820;
+
   return (
-    <View style={styles.tabletRoot}>
+    <View
+      style={[
+        styles.tabletRoot,
+        isNarrowTablet ? styles.tabletRootNarrow : null,
+      ]}
+    >
       <View
         style={[
           styles.sidebar,
+          isNarrowTablet ? styles.sidebarNarrow : null,
           { backgroundColor: palette.panel, borderColor: palette.border },
         ]}
       >
@@ -4582,7 +4624,8 @@ function AuthGate({
       : {
           continuityPill: '学习',
           eyebrow: '当前卡',
-          gateSummary: '手机号确认后读取学习进度和权益，再进入系统安排的当前卡。',
+          gateSummary:
+            '手机号确认后读取学习进度和权益，再进入系统安排的当前卡。',
           gateTitle: '验证后开始今天的学习',
           retainedSummary: '已有进度会接上；新账号从系统第一张卡开始。',
           retainedTitle: '学习位置将在验证后确定',
@@ -4895,6 +4938,7 @@ function MineSurface({
   const { height: viewportHeight, width: viewportWidth } =
     useWindowDimensions();
   const isCompactPhone = isCompactMineViewport(viewportWidth, viewportHeight);
+  const isPhoneViewport = isPhoneMineViewport(viewportWidth, viewportHeight);
   const isAuthenticated = authState.stage === 'authenticated';
   const hasSentCode = authState.stage === 'code_sent';
   const completedCount = learningResults.length + reviewResults.length;
@@ -5180,6 +5224,7 @@ function MineSurface({
           >
             <MineActionCard
               compact={isCompactPhone}
+              condensed={isPhoneViewport}
               detail={
                 pendingReviewCount > 0
                   ? `${pendingReviewCount} 张卡等待回看`
@@ -5222,6 +5267,7 @@ function MineSurface({
             >
               <MineActionCard
                 compact={isCompactPhone}
+                condensed={isPhoneViewport}
                 detail={`${favoriteCount} 收藏 · ${sleepingCount} 休眠`}
                 label="空间"
                 onPress={onGoToSpace}
@@ -5231,6 +5277,7 @@ function MineSurface({
               />
               <MineActionCard
                 compact={isCompactPhone}
+                condensed={isPhoneViewport}
                 detail={checkedInToday ? '今日已签到' : '今日未签到'}
                 label="今日"
                 onPress={onGoToStatistics}
@@ -5260,6 +5307,7 @@ function MineSurface({
 
 function MineActionCard({
   compact,
+  condensed,
   detail,
   heroLabel,
   heroValue,
@@ -5272,6 +5320,7 @@ function MineActionCard({
   variant = 'secondary',
 }: {
   compact: boolean;
+  condensed: boolean;
   detail: string;
   heroLabel?: string;
   heroValue?: string;
@@ -5347,11 +5396,18 @@ function MineActionCard({
   );
   const primaryCenter =
     isPrimary && heroValue ? (
-      <View style={styles.mineActionPrimaryCenter} testID="mine-resume-center">
+      <View
+        style={[
+          styles.mineActionPrimaryCenter,
+          condensed ? styles.mineActionPrimaryCenterPhone : null,
+        ]}
+        testID="mine-resume-center"
+      >
         <Text
           numberOfLines={1}
           style={[
             styles.mineActionPrimaryHero,
+            condensed ? styles.mineActionPrimaryHeroPhone : null,
             { color: palette.primaryActionText },
           ]}
           testID="mine-resume-hero"
@@ -5361,7 +5417,11 @@ function MineActionCard({
         {heroLabel ? (
           <Text
             numberOfLines={1}
-            style={[styles.mineActionPrimaryHeroLabel, { color: mutedColor }]}
+            style={[
+              styles.mineActionPrimaryHeroLabel,
+              condensed ? styles.mineActionPrimaryHeroLabelPhone : null,
+              { color: mutedColor },
+            ]}
             testID="mine-resume-hero-label"
           >
             {heroLabel}
@@ -5417,6 +5477,7 @@ function MineActionCard({
         isPrimary
           ? styles.mineActionCardPrimary
           : styles.mineActionCardSecondary,
+        condensed && isPrimary ? styles.mineActionCardPrimaryPhone : null,
         compact && isPrimary ? styles.mineActionCardPrimaryCompact : null,
         compact && !isPrimary ? styles.mineActionCardSecondaryCompact : null,
         {
@@ -5434,7 +5495,7 @@ function MineActionCard({
         <>
           {primaryHeader}
           {compact ? null : primaryCenter}
-          {compact ? null : primaryMeta}
+          {condensed ? null : primaryMeta}
         </>
       ) : (
         <>
@@ -5554,7 +5615,7 @@ function MembershipHostCard({
           <Text
             style={[styles.membershipFocusTitle, { color: palette.warning }]}
           >
-            当前拦截点
+            升级后继续
           </Text>
           <Text style={[styles.authSummary, { color: palette.textMuted }]}>
             {focusCopy}
@@ -6533,11 +6594,15 @@ function InfoCard({
 }
 
 function getDeviceClass(width: number, height: number): DeviceClass {
-  return Math.min(width, height) >= 768 ? 'tablet' : 'phone';
+  return Math.min(width, height) >= 600 ? 'tablet' : 'phone';
 }
 
 export function isCompactMineViewport(width: number, height: number) {
   return width <= 340 || height <= 720;
+}
+
+export function isPhoneMineViewport(width: number, height: number) {
+  return isCompactMineViewport(width, height) || Math.min(width, height) < 600;
 }
 
 function maskPhoneNumber(phoneNumber: string) {
@@ -6667,6 +6732,10 @@ const styles = StyleSheet.create({
   shellContent: {
     flex: 1,
     minHeight: 0,
+  },
+  shellAccessibleContent: {
+    flexGrow: 1,
+    minHeight: '100%',
   },
   phoneTopBar: {
     alignItems: 'center',
@@ -6864,6 +6933,11 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     gap: 16,
   },
+  tabletRootNarrow: {
+    gap: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+  },
   sidebar: {
     width: 300,
     paddingHorizontal: 20,
@@ -6875,6 +6949,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 36,
     elevation: 6,
+  },
+  sidebarNarrow: {
+    borderRadius: 26,
+    gap: 13,
+    paddingHorizontal: 13,
+    paddingVertical: 16,
+    width: 220,
   },
   sidebarNav: {
     gap: 12,
@@ -7955,6 +8036,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 8,
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   mineActionCardPrimary: {
     alignItems: 'stretch',
@@ -7965,6 +8047,12 @@ const styles = StyleSheet.create({
     minHeight: 76,
     paddingHorizontal: 15,
     paddingVertical: 13,
+  },
+  mineActionCardPrimaryPhone: {
+    flex: 0,
+    minHeight: 128,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   mineActionCardPrimaryCompact: {
     flex: 0,
@@ -8003,15 +8091,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 62,
   },
+  mineActionPrimaryCenterPhone: {
+    gap: 2,
+    minHeight: 44,
+  },
   mineActionPrimaryHero: {
     fontSize: 34,
     fontWeight: '800',
     lineHeight: 40,
   },
+  mineActionPrimaryHeroPhone: {
+    fontSize: 30,
+    lineHeight: 34,
+  },
   mineActionPrimaryHeroLabel: {
     fontSize: 11,
     fontWeight: '800',
     lineHeight: 15,
+  },
+  mineActionPrimaryHeroLabelPhone: {
+    lineHeight: 13,
   },
   mineActionPrimaryMetaRow: {
     flexDirection: 'row',
@@ -8330,6 +8429,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 6,
     borderRadius: 999,
+  },
+  phoneTabButtonActive: {
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.12,
     shadowRadius: 18,

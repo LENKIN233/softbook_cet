@@ -29,6 +29,7 @@ import {
   hexToRgba,
   resolveLibraryTone,
 } from '../visual/tokens';
+import { formatSpaceDisplayName } from '../space/spaceMetadataDisplay';
 
 export type LearningSurfacePalette = {
   background: string;
@@ -207,7 +208,9 @@ function getNeutralActionSurface(palette: LearningSurfacePalette) {
 }
 
 export function isCompactLearningViewport(width: number, height: number) {
-  return width <= 340 || height <= 720;
+  const shortEdge = Math.min(width, height);
+
+  return shortEdge < 600 && (width <= 430 || height <= 880);
 }
 
 export function LearningSurface({
@@ -237,8 +240,12 @@ export function LearningSurface({
   onRestartDeck,
   onStartReview,
 }: LearningSurfaceProps) {
-  const { height: viewportHeight, width: viewportWidth } =
-    useWindowDimensions();
+  const {
+    fontScale,
+    height: viewportHeight,
+    width: viewportWidth,
+  } = useWindowDimensions();
+  const isAccessibilityText = fontScale >= 1.3;
   const isCompactPhone = isCompactLearningViewport(
     viewportWidth,
     viewportHeight,
@@ -247,6 +254,18 @@ export function LearningSurface({
   const displaySessionLabel = formatLearningSessionLabelForDisplay(
     sessionLabel,
     phase,
+  );
+  const visibleShelfName = formatSpaceDisplayName(
+    currentCard?.space_metadata.library ?? '',
+    '当前书架',
+  );
+  const visibleSectionName = formatSpaceDisplayName(
+    currentCard?.space_metadata.group ?? '',
+    '当前分区',
+  );
+  const visibleContainerName = formatSpaceDisplayName(
+    currentCard?.space_metadata.box ?? '',
+    '当前卡盒',
   );
   if (currentCard === null || currentCardState === null) {
     const summary = summarizeLearningResults(
@@ -509,7 +528,7 @@ export function LearningSurface({
                 {isCompactPhone
                   ? `${
                       isReviewPhase ? '本轮回看' : displaySessionLabel
-                    } · 本轮盒`
+                    } · ${visibleContainerName}`
                   : isReviewPhase
                   ? '本轮回看'
                   : displaySessionLabel}
@@ -577,16 +596,16 @@ export function LearningSurface({
             />
             <View style={styles.cardLocationTextWrap}>
               <Text
-                numberOfLines={1}
+                numberOfLines={isAccessibilityText ? undefined : 1}
                 style={[styles.cardLocationTitle, { color: palette.textMuted }]}
               >
-                本轮盒
+                {visibleContainerName}
               </Text>
               <Text
-                numberOfLines={1}
+                numberOfLines={isAccessibilityText ? undefined : 1}
                 style={[styles.cardLocationMeta, { color: palette.textMuted }]}
               >
-                {isReviewPhase ? '回看卡在这' : '位置已接上'}
+                {`${visibleShelfName} / ${visibleSectionName}`}
               </Text>
             </View>
           </View>
@@ -608,7 +627,9 @@ export function LearningSurface({
               </Text>
             ) : null}
             <Text
-              numberOfLines={isDenseInteraction ? 2 : 4}
+              numberOfLines={
+                isAccessibilityText ? undefined : isDenseInteraction ? 2 : 4
+              }
               style={[
                 styles.cardPrompt,
                 styles.cardPromptOneScreen,
@@ -623,10 +644,7 @@ export function LearningSurface({
 
         {audioSelection ? (
           <View style={styles.audioResourceSlot} testID="learning-audio-slot">
-            <LearningAudioPlayer
-              palette={palette}
-              selection={audioSelection}
-            />
+            <LearningAudioPlayer palette={palette} selection={audioSelection} />
           </View>
         ) : null}
 
@@ -647,7 +665,9 @@ export function LearningSurface({
             }
           >
             <Text
-              numberOfLines={supportLayer ? 1 : 2}
+              numberOfLines={
+                isAccessibilityText ? undefined : supportLayer ? 1 : 2
+              }
               style={[
                 styles.cardSupport,
                 { color: supportLayer?.tone ?? palette.text },
@@ -656,7 +676,9 @@ export function LearningSurface({
               {supportLayer?.title ?? currentCard.front.support}
             </Text>
             <Text
-              numberOfLines={supportLayer ? 3 : 2}
+              numberOfLines={
+                isAccessibilityText ? undefined : supportLayer ? 3 : 2
+              }
               style={[styles.cardContext, { color: palette.textMuted }]}
             >
               {supportLayer?.body ?? currentCard.front.context}
@@ -711,7 +733,7 @@ export function LearningSurface({
             ) : null}
             {!isDenseInteraction ? (
               <Text
-                numberOfLines={2}
+                numberOfLines={isAccessibilityText ? undefined : 2}
                 style={[styles.actionCue, { color: palette.textMuted }]}
                 testID="learning-action-cue"
               >
@@ -839,7 +861,7 @@ export function LearningSurface({
               >
                 <View style={styles.submitActionTextStack}>
                   <Text
-                    numberOfLines={1}
+                    numberOfLines={isAccessibilityText ? undefined : 1}
                     style={[
                       styles.submitActionTitle,
                       {
@@ -852,7 +874,7 @@ export function LearningSurface({
                     {submitDockCopy.title}
                   </Text>
                   <Text
-                    numberOfLines={1}
+                    numberOfLines={isAccessibilityText ? undefined : 1}
                     style={[
                       styles.submitActionDetail,
                       { color: palette.textMuted },
@@ -922,6 +944,8 @@ function InteractionBody({
   onToggleEliminationItem: (itemId: string) => void;
   onSelectSwipeState: (stateId: string) => void;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const isAccessibilityText = fontScale >= 1.3;
   const libraryTone = resolveLibraryTone(card.space_metadata.library);
   const tone = {
     accent: libraryTone.accent,
@@ -954,7 +978,9 @@ function InteractionBody({
                 翻面结果
               </Text>
               <Text
-                numberOfLines={compact ? 3 : 4}
+                numberOfLines={
+                  isAccessibilityText ? undefined : compact ? 3 : 4
+                }
                 style={[
                   styles.revealText,
                   compact ? styles.revealTextCompact : null,
@@ -1140,7 +1166,7 @@ function InteractionBody({
                     ) : null}
                   </View>
                   <Text
-                    numberOfLines={2}
+                    numberOfLines={isAccessibilityText ? undefined : 2}
                     style={[styles.optionText, { color: palette.text }]}
                   >
                     {option.text}
@@ -1271,7 +1297,9 @@ function InteractionBody({
                             )}`}
                           >
                             <Text
-                              numberOfLines={1}
+                              numberOfLines={
+                                isAccessibilityText ? undefined : 1
+                              }
                               style={[
                                 styles.choiceLabel,
                                 styles.lockChoiceLabel,
@@ -1426,6 +1454,8 @@ function SwipeInteraction({
   onCommit: (stateId: string) => void;
   palette: LearningSurfacePalette;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const isAccessibilityText = fontScale >= 1.3;
   const libraryTone = resolveLibraryTone(card.space_metadata.library);
   const tone = { accent: libraryTone.accent };
   const dragX = React.useRef(new Animated.Value(0)).current;
@@ -1549,7 +1579,11 @@ function SwipeInteraction({
   );
 
   const rotate = dragX.interpolate({
-    inputRange: [-Math.max(cardWidthRef.current, 1), 0, Math.max(cardWidthRef.current, 1)],
+    inputRange: [
+      -Math.max(cardWidthRef.current, 1),
+      0,
+      Math.max(cardWidthRef.current, 1),
+    ],
     outputRange: ['-5deg', '0deg', '5deg'],
   });
   const selectedState = card.swipe_states.find(
@@ -1558,10 +1592,7 @@ function SwipeInteraction({
 
   return (
     <View
-      style={[
-        styles.swipeColumn,
-        compact ? styles.swipeColumnCompact : null,
-      ]}
+      style={[styles.swipeColumn, compact ? styles.swipeColumnCompact : null]}
     >
       <View
         style={[styles.swipeDeck, compact ? styles.swipeDeckCompact : null]}
@@ -1651,20 +1682,20 @@ function SwipeInteraction({
           >
             <View style={styles.swipeTrailHeading}>
               <Text
-                numberOfLines={1}
+                numberOfLines={isAccessibilityText ? undefined : 1}
                 style={[styles.swipeTrailHint, { color: tone.accent }]}
               >
                 {index === 0 ? '← 左划' : '右划 →'}
               </Text>
               <Text
-                numberOfLines={1}
+                numberOfLines={isAccessibilityText ? undefined : 1}
                 style={[styles.swipeLabel, { color: palette.text }]}
               >
                 {state.label}
               </Text>
             </View>
             <Text
-              numberOfLines={1}
+              numberOfLines={isAccessibilityText ? undefined : 1}
               style={[styles.swipeText, { color: palette.textMuted }]}
             >
               {state.description}
@@ -1851,8 +1882,13 @@ export function LearningResultDetailSurface({
   sessionCardCount: number;
   sessionLabel: string;
 }) {
-  const { height: viewportHeight, width: viewportWidth } =
-    useWindowDimensions();
+  const {
+    fontScale,
+    height: viewportHeight,
+    width: viewportWidth,
+  } = useWindowDimensions();
+  const isAccessibilityText = fontScale >= 1.3;
+  const shouldStackResolvedAnswers = viewportWidth < 600;
   const isCompactPhone = isCompactLearningViewport(
     viewportWidth,
     viewportHeight,
@@ -1860,6 +1896,18 @@ export function LearningResultDetailSurface({
   const displaySessionLabel = formatLearningSessionLabelForDisplay(
     sessionLabel,
     phase,
+  );
+  const visibleShelfName = formatSpaceDisplayName(
+    card.space_metadata.library,
+    '当前书架',
+  );
+  const visibleSectionName = formatSpaceDisplayName(
+    card.space_metadata.group,
+    '当前分区',
+  );
+  const visibleContainerName = formatSpaceDisplayName(
+    card.space_metadata.box,
+    '当前卡盒',
   );
   const resultTone = getResultTone(result, palette);
   const detailLibraryTone = resolveLibraryTone(card.space_metadata.library);
@@ -1929,7 +1977,7 @@ export function LearningResultDetailSurface({
                 {isCompactPhone
                   ? `${
                       phase === 'review' ? '本轮回看' : displaySessionLabel
-                    } · 本轮盒`
+                    } · ${visibleContainerName}`
                   : phase === 'review'
                   ? '本轮回看'
                   : displaySessionLabel}
@@ -1999,13 +2047,13 @@ export function LearningResultDetailSurface({
                 numberOfLines={1}
                 style={[styles.cardLocationTitle, { color: palette.textMuted }]}
               >
-                位置 · 本轮盒
+                {visibleContainerName}
               </Text>
               <Text
                 numberOfLines={1}
                 style={[styles.cardLocationMeta, { color: palette.textMuted }]}
               >
-                答案留在本卡
+                {`${visibleShelfName} / ${visibleSectionName}`}
               </Text>
             </View>
             <Pressable
@@ -2053,7 +2101,9 @@ export function LearningResultDetailSurface({
               </Text>
             </View>
             <Text
-              numberOfLines={isCompactPhone ? 2 : 3}
+              numberOfLines={
+                isAccessibilityText ? undefined : isCompactPhone ? 2 : 3
+              }
               style={[
                 styles.detailPrompt,
                 isCompactPhone ? styles.detailPromptCompact : null,
@@ -2093,7 +2143,14 @@ export function LearningResultDetailSurface({
             </View>
           </View>
 
-          <View style={styles.detailAnswerRail}>
+          <View
+            style={[
+              styles.detailAnswerRail,
+              shouldStackResolvedAnswers
+                ? styles.detailAnswerRailStacked
+                : null,
+            ]}
+          >
             {resolvedRows.map(row => {
               const rowTone =
                 row.tone === 'success'
@@ -2108,6 +2165,9 @@ export function LearningResultDetailSurface({
                   style={[
                     styles.detailAnswerCell,
                     isCompactPhone ? styles.detailAnswerCellCompact : null,
+                    shouldStackResolvedAnswers
+                      ? styles.detailAnswerCellStacked
+                      : null,
                     {
                       backgroundColor: hexToRgba(rowTone, 0.075),
                       borderColor: hexToRgba(rowTone, 0.14),
@@ -2120,14 +2180,26 @@ export function LearningResultDetailSurface({
                   }
                 >
                   <Text
-                    numberOfLines={1}
-                    style={[styles.detailAnswerLabel, { color: rowTone }]}
+                    numberOfLines={isAccessibilityText ? undefined : 1}
+                    style={[
+                      styles.detailAnswerLabel,
+                      shouldStackResolvedAnswers
+                        ? styles.detailAnswerLabelStacked
+                        : null,
+                      { color: rowTone },
+                    ]}
                   >
                     {row.label}
                   </Text>
                   <Text
-                    numberOfLines={1}
-                    style={[styles.detailAnswerValue, { color: palette.text }]}
+                    numberOfLines={isAccessibilityText ? undefined : 2}
+                    style={[
+                      styles.detailAnswerValue,
+                      shouldStackResolvedAnswers
+                        ? styles.detailAnswerValueStacked
+                        : null,
+                      { color: palette.text },
+                    ]}
                   >
                     {row.displayText}
                   </Text>
@@ -2147,13 +2219,15 @@ export function LearningResultDetailSurface({
             ]}
           >
             <Text
-              numberOfLines={1}
+              numberOfLines={isAccessibilityText ? undefined : 1}
               style={[styles.resultExplanationTitle, { color: palette.text }]}
             >
               {card.analysis.title}
             </Text>
             <Text
-              numberOfLines={isCompactPhone ? 2 : 3}
+              numberOfLines={
+                isAccessibilityText ? undefined : isCompactPhone ? 2 : 3
+              }
               style={[
                 styles.resultExplanationBody,
                 isCompactPhone ? styles.resultExplanationBodyCompact : null,
@@ -2163,7 +2237,9 @@ export function LearningResultDetailSurface({
               {card.analysis.summary}
             </Text>
             <Text
-              numberOfLines={isCompactPhone ? 1 : 2}
+              numberOfLines={
+                isAccessibilityText ? undefined : isCompactPhone ? 1 : 2
+              }
               style={[
                 styles.detailTip,
                 isCompactPhone ? styles.detailTipCompact : null,
@@ -2681,6 +2757,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
   },
+  detailAnswerRailStacked: {
+    flexDirection: 'column',
+    gap: 5,
+  },
   detailAnswerCell: {
     borderRadius: 15,
     borderWidth: 1,
@@ -2696,15 +2776,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 5,
   },
+  detailAnswerCellStacked: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexGrow: 0,
+    minHeight: 42,
+  },
   detailAnswerLabel: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0,
   },
+  detailAnswerLabelStacked: {
+    flexShrink: 0,
+    minWidth: 54,
+  },
   detailAnswerValue: {
     fontSize: 14,
     fontWeight: '800',
     lineHeight: 18,
+  },
+  detailAnswerValueStacked: {
+    flex: 1,
+    minWidth: 0,
   },
   detailExplanationSlip: {
     borderRadius: 18,

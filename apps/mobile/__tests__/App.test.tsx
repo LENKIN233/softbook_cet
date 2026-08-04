@@ -15,7 +15,7 @@ import {
   type SoftbookRemoteRuntimeProfile,
 } from '../src/runtime/appRuntimeConfig';
 import { getChinaDayKey } from '../src/shared/chinaDay';
-import App, { isCompactMineViewport } from '../App';
+import App, { isCompactMineViewport, isPhoneMineViewport } from '../App';
 
 const mockCreateLearningSessionRepository = jest.fn();
 const mockLoadSession = jest.fn();
@@ -26,6 +26,13 @@ test('Mine compact mode covers 320dp and short phone viewports', () => {
   expect(isCompactMineViewport(320, 693)).toBe(true);
   expect(isCompactMineViewport(393, 700)).toBe(true);
   expect(isCompactMineViewport(393, 850)).toBe(false);
+});
+
+test('Mine phone containment mode covers standard iOS and Android phones', () => {
+  expect(isPhoneMineViewport(320, 693)).toBe(true);
+  expect(isPhoneMineViewport(393, 852)).toBe(true);
+  expect(isPhoneMineViewport(412, 915)).toBe(true);
+  expect(isPhoneMineViewport(768, 1024)).toBe(false);
 });
 
 function createSoftbookRemoteRuntimeConfig(
@@ -1501,14 +1508,14 @@ test('wires remote auth, learning source config, membership, progress sync, and 
     });
 
     if (
-      JSON.stringify(tree!.toJSON()).includes('今天的学习进展已从服务端恢复。')
+      JSON.stringify(tree!.toJSON()).includes('今天的学习进展已恢复。')
     ) {
       break;
     }
   }
 
   expect(JSON.stringify(tree!.toJSON())).toContain(
-    '今天的学习进展已从服务端恢复。',
+    '今天的学习进展已恢复。',
   );
   expect(
     fetchCalls.some(
@@ -1530,7 +1537,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('已同步');
-  expect(output).toContain('签到已由服务端确认。');
+  expect(output).toContain('签到已更新。');
 
   const accountBootstrapRequest = fetchCalls.find(call =>
     call.input.startsWith('https://api.softbook.example/v2/bootstrap?'),
@@ -1805,7 +1812,7 @@ test('submits the server review phase with the exact active selection', async ()
 
   expect(
     root.findByProps({ testID: 'learning-progress-label' }).props.children,
-  ).toBe('本轮回看');
+  ).toContain('本轮回看');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
@@ -2343,9 +2350,9 @@ test('space map uses the active learning session catalog', async () => {
 
   const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
   expect(renderedText).toContain('远端专属题干用于空间地图验证');
-  expect(renderedText).not.toContain('远端专属库');
-  expect(renderedText).not.toContain('远端专属组');
-  expect(renderedText).not.toContain('远端专属盒');
+  expect(renderedText).toContain('远端专属库');
+  expect(renderedText).toContain('远端专属组');
+  expect(renderedText).toContain('远端专属盒');
 });
 
 test('queues a failed explicit remote check-in without uploading progress counters', async () => {
@@ -2447,7 +2454,7 @@ test('queues a failed explicit remote check-in without uploading progress counte
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('已排队');
-  expect(output).toContain('等待服务端确认');
+  expect(output).toContain('联网后会自动更新');
   expect(checkInRequests).toHaveLength(1);
   expect(JSON.parse(String(checkInRequests[0].body))).toEqual({
     day_key: getChinaDayKey(),
@@ -2880,7 +2887,7 @@ test('replays an explicit queued check-in and confirms it through bootstrap afte
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('已同步');
-  expect(output).toContain('签到已由服务端确认。');
+  expect(output).toContain('签到已更新。');
   expect(
     fetchCalls.filter(
       call =>
@@ -3085,9 +3092,8 @@ test('does not apply a remote space action when durable mutation storage fails',
     });
 
     expect(
-      root
-        .findByProps({ testID: 'learning-favorite-button' })
-        .findByType(Text).props.children,
+      root.findByProps({ testID: 'learning-favorite-button' }).findByType(Text)
+        .props.children,
     ).toBe('收藏');
     expect(spaceActionRequests).toHaveLength(0);
   } finally {
@@ -3406,7 +3412,7 @@ test('replays a queued space action after network reconnect', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('空间状态已同步');
-  expect(output).toContain('空间收藏和休眠状态已由服务端确认。');
+  expect(output).toContain('收藏和休眠状态已更新。');
 
   expect(
     fetchCalls.filter(
@@ -3471,9 +3477,8 @@ test('quarantines a removed-card space action and restores canonical state', asy
   });
 
   expect(
-    root
-      .findByProps({ testID: 'learning-favorite-button' })
-      .findByType(Text).props.children,
+    root.findByProps({ testID: 'learning-favorite-button' }).findByType(Text)
+      .props.children,
   ).toBe('收藏');
 
   await openRoute(root, 'space');
@@ -3482,7 +3487,7 @@ test('quarantines a removed-card space action and restores canonical state', asy
   expect(output).toContain('空间状态已同步');
   expect(output).toContain('已恢复');
   expect(output).toContain(
-    '一项空间操作未能应用，当前空间已恢复为服务端状态。',
+    '这项操作未能保存，空间已恢复到上次可用状态。',
   );
   expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
   expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
@@ -3634,7 +3639,7 @@ test('starts the remote trial automatically on the first authenticated entry', a
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).not.toContain('完整物理空间需要试用或会员');
 
   const startTrialRequest = fetchCalls.find(
@@ -3653,7 +3658,8 @@ test('starts the remote trial automatically on the first authenticated entry', a
 
 test('waits for server confirmation before a queued automatic trial unlocks', async () => {
   const fetchCalls: MockFetchCall[] = [];
-  const replayTrialResponse = createDeferred<ReturnType<typeof createJsonResponse>>();
+  const replayTrialResponse =
+    createDeferred<ReturnType<typeof createJsonResponse>>();
   let startTrialRequestCount = 0;
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
@@ -3718,7 +3724,7 @@ test('waits for server confirmation before a queued automatic trial unlocks', as
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).toContain('完整物理空间需要试用或会员');
   expect(startTrialRequestCount).toBeGreaterThanOrEqual(1);
 
@@ -3765,10 +3771,10 @@ test('space surface follows the loaded session catalog instead of local fixtures
 
   const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
   expect(renderedText).toContain('远端卡片 1');
-  expect(renderedText).not.toContain('远端空间');
-  expect(renderedText).not.toContain('远端逻辑组');
+  expect(renderedText).toContain('远端空间');
+  expect(renderedText).toContain('远端逻辑组');
   expect(renderedText).not.toContain('远端词汇组');
-  expect(renderedText).not.toContain('远端盒 0020');
+  expect(renderedText).toContain('远端盒 0020');
   expect(renderedText).not.toContain('听力');
 });
 
@@ -3824,7 +3830,7 @@ test('can unlock gated space after remote purchase', async () => {
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('完整物理空间需要试用或会员');
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(
     root.findAllByProps({ testID: 'space-gate-rail' }).length,
   ).toBeGreaterThan(0);
@@ -3838,7 +3844,7 @@ test('can unlock gated space after remote purchase', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).toContain('当前盒桌');
   expect(output).toContain('同盒卡片');
   expect(output).toContain('回学习');
@@ -4177,7 +4183,7 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).toContain('当前盒桌');
   expect(output).toContain('同盒卡片');
   expect(output).toContain('回学习');
@@ -4274,30 +4280,27 @@ test('can unlock the learning flow after fake sms verification', async () => {
   await loginIntoLearningFlow(root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('位置已接上');
-  expect(output).toContain('本轮盒');
+  expect(output).toContain('转折关系');
   expect(output).not.toContain('位置保持');
   expect(output).not.toContain('位置 · 本轮盒');
   expect(output).not.toContain('当前位置 · 本轮盒');
   expect(output).not.toContain('当前馆 · 本轮盒');
   expect(output).not.toContain('位置已保持');
-  expect(output).toContain('先读题干');
+  expect(output).not.toContain('先读题干');
   expect(output).not.toContain('先判断，再确认解析');
   expect(output).toContain('账户');
   expect(output).toContain('已确认');
   expect(output).not.toContain('已登录 138****8000');
   expect(output).toContain('however');
-  const addressAperture = root.findByProps({
-    testID: 'learning-address-aperture',
-  });
-  const addressText = addressAperture.findByType(Text).props.children;
-  expect(addressText).toBe('同盒继续');
+  expect(
+    root.findAllByProps({ testID: 'learning-address-aperture' }),
+  ).toHaveLength(0);
   expect(
     root.findByProps({ testID: 'learning-card-address-shelf' }),
   ).toBeTruthy();
   expect(
-    root.findByProps({ testID: 'learning-card-location-strip' }),
-  ).toBeTruthy();
+    root.findAllByProps({ testID: 'learning-card-location-strip' }),
+  ).toHaveLength(0);
   expect(output).not.toContain('这张在：馆 1 / 组 1 / 盒 1');
   expect(output).toContain('当前卡 · ');
   expect(output).not.toContain('这张练习 · ');
@@ -4476,7 +4479,7 @@ test('keeps source bootstrap loading and errors attached to space', async () => 
   await resolveLearningBootstrap();
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(root.findAllByProps({ testID: 'space-status-rail' })).toHaveLength(0);
 });
 
@@ -4551,7 +4554,7 @@ test('can complete the local single-card deck and restart it', async () => {
   );
   expect(detailAnswerSlipStyle.flexGrow).toBe(1);
   expect(output).toContain('当前卡');
-  expect(output).toContain('答案留在本卡');
+  expect(output).toContain('阅读高频词');
   expect(output).not.toContain('结果在当前卡');
   expect(output).toContain('答案已归位');
   expect(output).toContain('你的选择和正确答案已对齐');
@@ -4728,7 +4731,7 @@ test('can start a review round from cards that need revisiting', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看');
-  expect(output).toContain('回看卡在这');
+  expect(output).toContain('转折关系');
   expect(output).not.toContain('回看卡已在眼前');
   expect(output).not.toContain('需要再看的卡已放到眼前');
   expect(output).toContain('however');
@@ -4807,17 +4810,15 @@ test('can check in from statistics after making learning progress', async () => 
   const dayObjectStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'statistics-day-object' }).props.style,
   );
-  expect(dayObjectStyle.flex).toBe(1);
-  expect(dayObjectStyle.justifyContent).toBe('space-between');
-  expect(dayObjectStyle.minHeight).toBe(0);
+  expect(dayObjectStyle.flex).toBeUndefined();
+  expect(dayObjectStyle.justifyContent).toBeUndefined();
   const progressDock = root.findByProps({
     testID: 'statistics-progress-dock',
   });
   expect(progressDock).toBeTruthy();
   const progressDockStyle = StyleSheet.flatten(progressDock.props.style);
-  expect(progressDockStyle.flex).toBe(1);
-  expect(progressDockStyle.justifyContent).toBe('space-between');
-  expect(progressDockStyle.minHeight).toBe(0);
+  expect(progressDockStyle.flex).toBeUndefined();
+  expect(progressDockStyle.minHeight).toBeUndefined();
   expect(
     root.findByProps({ testID: 'statistics-progress-ratio' }).props.children,
   ).toBe('1/1');
@@ -4825,6 +4826,11 @@ test('can check in from statistics after making learning progress', async () => 
     root.findByProps({ testID: 'statistics-progress-fill' }).props.style,
   );
   expect(progressFillStyle.width).toBe('100%');
+  const metricLedgerStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'statistics-metric-strip' }).props.style,
+  );
+  expect(metricLedgerStyle.flexDirection).toBeUndefined();
+  expect(metricLedgerStyle.gap).toBe(7);
   const actionDock = root.findByProps({ testID: 'statistics-action-dock' });
   const actionDockStyle = StyleSheet.flatten(actionDock.props.style);
   expect(actionDockStyle.flexShrink).toBe(0);
@@ -4988,30 +4994,12 @@ test('mine page keeps profile status and route actions in one screen after login
   );
   expect(mineActionRailStyle.flex).toBe(1);
   expect(root.findByProps({ testID: 'mine-resume-header' })).toBeTruthy();
-  const mineResumeCenterStyle = StyleSheet.flatten(
-    root.findByProps({ testID: 'mine-resume-center' }).props.style,
+  expect(
+    root.findAllByProps({ testID: 'mine-resume-center' }).length,
+  ).toBeGreaterThan(0);
+  expect(root.findAllByProps({ testID: 'mine-resume-meta-row' })).toHaveLength(
+    0,
   );
-  expect(mineResumeCenterStyle.flex).toBe(1);
-  expect(mineResumeCenterStyle.justifyContent).toBe('center');
-  const mineResumeMetaStyle = StyleSheet.flatten(
-    root.findByProps({ testID: 'mine-resume-meta-row' }).props.style,
-  );
-  expect(mineResumeMetaStyle.flexDirection).toBe('row');
-  expect(root.findByProps({ testID: 'mine-resume-hero' }).props.children).toBe(
-    '当前卡',
-  );
-  expect(
-    root.findByProps({ testID: 'mine-resume-hero-label' }).props.children,
-  ).toBe('从这里继续');
-  expect(
-    root.findByProps({ testID: 'mine-resume-today-value' }).props.children,
-  ).toBe('已签到 · 1 张');
-  expect(
-    root.findByProps({ testID: 'mine-resume-review-value' }).props.children,
-  ).toBe('0 张');
-  expect(
-    root.findByProps({ testID: 'mine-resume-sync-value' }).props.children,
-  ).toBe('记录已保存');
   expect(readMetricValue(root, 'mine-metric-completed')).toBe('1');
   expect(readMetricValue(root, 'mine-metric-review')).toBe('0');
   expect(readMetricValue(root, 'mine-metric-favorites')).toBe('1');
@@ -5062,7 +5050,7 @@ test('mine page keeps profile status and route actions in one screen after login
     findPressableByTestId(root, 'mine-go-space').props.onPress();
   });
 
-  expect(JSON.stringify(tree!.toJSON())).toContain('当前卡盒');
+  expect(JSON.stringify(tree!.toJSON())).toContain('阅读高频词');
 
   await openRoute(root, 'mine');
 
@@ -5097,7 +5085,7 @@ test('can browse the current Space box after login', async () => {
   await startTrialFromProtectedEntry(root, 'space');
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(
     root.findAllByProps({ testID: 'space-shelf-desk' }).length,
   ).toBeGreaterThan(0);
@@ -5114,7 +5102,7 @@ test('can browse the current Space box after login', async () => {
     root.findAllByProps({ testID: 'space-return-learning' }).length,
   ).toBeGreaterThan(0);
   expect(output).toContain('正在查看同盒卡片');
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).toContain('当前位置');
   expect(output).toContain('本盒共 2 张');
   expect(root.findAllByProps({ testID: 'space-browse-rail' })).toHaveLength(0);
@@ -5149,7 +5137,7 @@ test('can browse the current Space box after login', async () => {
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('短对话里听到 however');
   expect(output).toContain('盒内浏览');
-  expect(output).toContain('贴上标记');
+  expect(output).toContain('保存到收藏');
   expect(output).toContain('休眠');
   expect(
     root.findByProps({ testID: 'space-browse-card-locator' }),
@@ -5284,7 +5272,7 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   expect(
     root.findAllByProps({ testID: 'space-favorite-active-1' }).length,
   ).toBeGreaterThan(0);
-  expect(output).toContain('已标记');
+  expect(output).toContain('已收藏');
   expect(output).not.toContain('1 张收藏');
   expect(output).not.toContain('可收藏');
   expect(output).not.toContain('收藏标签');
@@ -5314,7 +5302,7 @@ test('starts the local trial automatically on the first authenticated entry', as
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前卡盒');
+  expect(output).toContain('转折关系');
   expect(output).not.toContain('完整物理空间需要试用或会员');
   expect(output).toContain('当前盒桌');
   expect(output).toContain('同盒卡片');
@@ -5486,7 +5474,7 @@ test('starts review after membership is already unlocked', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮回看');
-  expect(output).toContain('回看卡在这');
+  expect(output).toContain('转折关系');
   expect(output).not.toContain('回看卡已在眼前');
   expect(output).not.toContain('需要再看的卡已放到眼前');
 });
