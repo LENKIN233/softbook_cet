@@ -364,7 +364,10 @@ export function LearningSurface({
               testID="learning-start-review-button"
             >
               <Text
-                style={[styles.primaryButtonLabel, { color: palette.panel }]}
+                style={[
+                  styles.primaryButtonLabel,
+                  { color: primaryAction.text },
+                ]}
               >
                 开始回看这 {reviewCandidateCount} 张卡
               </Text>
@@ -489,7 +492,9 @@ export function LearningSurface({
           styles.studyCard,
           styles.studyCardOneScreen,
           isCompactPhone ? styles.studyCardOneScreenCompact : null,
-          currentResult === null ? styles.studyCardWorkArea : null,
+          currentResult === null && currentCard.interaction_id !== 'flip'
+            ? styles.studyCardWorkArea
+            : null,
           styles.glassCard,
           {
             backgroundColor: palette.panel,
@@ -712,6 +717,9 @@ export function LearningSurface({
               styles.interactionCard,
               styles.interactionCardOneScreen,
               styles.interactionCardEmbedded,
+              currentCard.interaction_id === 'flip'
+                ? styles.interactionCardNaturalHeight
+                : null,
               isCompactPhone ? styles.interactionCardOneScreenCompact : null,
               {
                 backgroundColor: 'transparent',
@@ -763,6 +771,9 @@ export function LearningSurface({
               styles.oneScreenDockAnchored,
               isLockInteraction ? styles.oneScreenDockCompact : null,
               isCompactPhone ? styles.oneScreenDockSmallViewport : null,
+              currentCard.interaction_id === 'flip'
+                ? styles.oneScreenDockNatural
+                : null,
             ]}
             testID="learning-action-dock"
           >
@@ -3162,6 +3173,10 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 1,
   },
+  interactionCardNaturalHeight: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   interactionCardEmbedded: {
     borderRadius: 22,
     borderWidth: 0,
@@ -3577,6 +3592,9 @@ const styles = StyleSheet.create({
   },
   oneScreenDockAnchored: {
     marginTop: 'auto',
+  },
+  oneScreenDockNatural: {
+    marginTop: 4,
   },
   oneScreenDockCompact: {
     gap: 0,

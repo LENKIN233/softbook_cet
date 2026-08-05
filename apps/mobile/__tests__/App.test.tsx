@@ -803,6 +803,16 @@ test('renders correctly', async () => {
   expect(routeTabTexts).not.toEqual(
     expect.arrayContaining(['练', '位', '记', '我']),
   );
+  const signedOutAuroraStyle = StyleSheet.flatten(
+    tree!.root.findByProps({ testID: 'app-aurora-top' }).props.style,
+  );
+  const signedOutLearningTabStyle = StyleSheet.flatten(
+    tree!.root.findByProps({ testID: 'route-tab-learning' }).props.style,
+  );
+  expect(signedOutAuroraStyle.backgroundColor).toBe(
+    'rgba(255, 138, 61, 0.13)',
+  );
+  expect(signedOutLearningTabStyle.backgroundColor).toBe('#FF8A3D');
   expect(output).toContain('验证后开始今天的学习');
   expect(output).toContain('学习位置将在验证后确定');
   expect(output).toContain('已有进度会接上；新账号从系统第一张卡开始');
@@ -1226,13 +1236,13 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   const codeCellsFrameStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'auth-code-cells-frame' }).props.style,
   );
-  expect(codeCellsFrameStyle.borderColor).toBe('rgba(201, 133, 36, 0.42)');
-  expect(codeCellsFrameStyle.backgroundColor).toBe('rgba(201, 133, 36, 0.08)');
+  expect(codeCellsFrameStyle.borderColor).toBe('rgba(245, 177, 0, 0.42)');
+  expect(codeCellsFrameStyle.backgroundColor).toBe('rgba(245, 177, 0, 0.08)');
   const submitButtonStyle = StyleSheet.flatten(
     findPressableByTestId(root, 'auth-submit-button').props.style,
   );
-  expect(submitButtonStyle.backgroundColor).toBe('#C98524');
-  expect(submitButtonStyle.borderColor).toBe('#C98524');
+  expect(submitButtonStyle.backgroundColor).toBe('#F5B100');
+  expect(submitButtonStyle.borderColor).toBe('#F5B100');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
