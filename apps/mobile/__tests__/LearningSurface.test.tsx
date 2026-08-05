@@ -255,6 +255,16 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('同盒位置已保持');
   expect(output).not.toContain('这张在：');
   expect(output).not.toContain('当前位置：');
+  expect(
+    StyleSheet.flatten(
+      tree!.root.findByProps({ testID: 'learning-current-card' }).props.style,
+    ).flexGrow,
+  ).toBe(0);
+  expect(
+    StyleSheet.flatten(
+      tree!.root.findByProps({ testID: 'learning-action-dock' }).props.style,
+    ).marginTop,
+  ).toBe(4);
   expect(output).not.toContain('馆 1 / 组 1 / 盒 1');
   expect(output).not.toContain(currentCard.space_metadata.library);
   expect(output).not.toContain(currentCard.space_metadata.group);

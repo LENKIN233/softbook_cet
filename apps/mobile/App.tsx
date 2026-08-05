@@ -122,7 +122,11 @@ import {
 import { resolveProgressSyncRepositoryConfig } from './src/sync/progressSyncRuntimeConfig';
 import { isRemoteAuthorizationError } from './src/runtime/remoteHttpError';
 import { getUserFacingErrorMessage } from './src/runtime/userFacingError';
-import { hexToRgba } from './src/visual/tokens';
+import {
+  hexToRgba,
+  LIBRARY_IDENTITY,
+  resolveLibraryTone,
+} from './src/visual/tokens';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
@@ -243,7 +247,7 @@ type AuthenticatedRuntimeHydration = {
 
 type SpaceCardState = SpaceCardStateValue;
 
-const SHELL_ACCENT = '#637783';
+const SHELL_ACCENT = LIBRARY_IDENTITY.reading;
 
 type AuthHandlers = {
   onChangePhone: (value: string) => void;
@@ -286,25 +290,25 @@ const ROUTES: ShellRoute[] = [
 const MINE_ROUTE = ROUTES.find(route => route.key === 'mine')!;
 
 const LIGHT_PALETTE: Palette = {
-  background: '#F0F0EA',
-  panel: 'rgba(255,255,250,0.84)',
-  panelStrong: 'rgba(255,255,252,0.96)',
-  border: 'rgba(18,19,26,0.11)',
-  text: '#12131A',
-  textMuted: '#626977',
+  background: '#F1F0F6',
+  panel: 'rgba(255,255,255,0.76)',
+  panelStrong: 'rgba(255,255,255,0.92)',
+  border: 'rgba(11,11,20,0.08)',
+  text: '#0B0B14',
+  textMuted: '#66667A',
   accent: SHELL_ACCENT,
   accentSoft: hexToRgba(SHELL_ACCENT, 0.12),
-  accentStrong: '#2F4650',
-  activeSurface: '#12131A',
-  activeText: '#FFFFFC',
-  primaryActionSurface: '#12131A',
-  primaryActionText: '#FFFFFC',
-  primaryActionMuted: hexToRgba('#FFFFFF', 0.74),
-  tabIdle: '#8D948D',
-  success: '#249B77',
-  warning: '#C98524',
-  warningText: '#12131A',
-  danger: '#B6545B',
+  accentStrong: hexToRgba(SHELL_ACCENT, 0.82),
+  activeSurface: SHELL_ACCENT,
+  activeText: '#0B0B14',
+  primaryActionSurface: SHELL_ACCENT,
+  primaryActionText: '#0B0B14',
+  primaryActionMuted: hexToRgba('#0B0B14', 0.66),
+  tabIdle: '#8A8A9C',
+  success: '#22C58B',
+  warning: '#F5B100',
+  warningText: '#0B0B14',
+  danger: '#F15B6E',
 };
 
 const DARK_PALETTE: Palette = {
@@ -314,14 +318,14 @@ const DARK_PALETTE: Palette = {
   border: 'rgba(238,235,218,0.1)',
   text: '#F3F0E7',
   textMuted: '#BAB6A8',
-  accent: '#AAB7AD',
-  accentSoft: hexToRgba('#AAB7AD', 0.14),
-  accentStrong: '#E0E7DC',
-  activeSurface: '#D8D7C9',
-  activeText: '#17191D',
-  primaryActionSurface: '#D8D7C9',
-  primaryActionText: '#17191D',
-  primaryActionMuted: hexToRgba('#17191D', 0.62),
+  accent: SHELL_ACCENT,
+  accentSoft: hexToRgba(SHELL_ACCENT, 0.18),
+  accentStrong: hexToRgba(SHELL_ACCENT, 0.9),
+  activeSurface: SHELL_ACCENT,
+  activeText: '#0B0B14',
+  primaryActionSurface: SHELL_ACCENT,
+  primaryActionText: '#0B0B14',
+  primaryActionMuted: hexToRgba('#0B0B14', 0.66),
   tabIdle: '#86869C',
   success: '#4FDE9C',
   warning: '#F5B100',
@@ -331,8 +335,8 @@ const DARK_PALETTE: Palette = {
 
 const ANDROID_LIGHT_PALETTE: Palette = {
   ...LIGHT_PALETTE,
-  panel: '#F9F9F4',
-  panelStrong: '#FFFFFC',
+  panel: '#FBFAFD',
+  panelStrong: '#FFFFFF',
 };
 
 const ANDROID_DARK_PALETTE: Palette = {
@@ -406,7 +410,7 @@ function AppShell({
   runtimeConfig: SoftbookAppRuntimeConfig | undefined;
 }) {
   const scheme = useColorScheme();
-  const palette =
+  const basePalette =
     Platform.OS === 'android'
       ? scheme === 'dark'
         ? ANDROID_DARK_PALETTE
@@ -757,8 +761,9 @@ function AppShell({
       userStateStore,
     ],
   );
-  const { width, height } = useWindowDimensions();
+  const { width, height, fontScale } = useWindowDimensions();
   const deviceClass = getDeviceClass(width, height);
+  const usesAccessibilityLayout = fontScale >= 1.3;
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
   const isAuthenticated = authState.stage === 'authenticated';
   const routeRequiresAuth = PROTECTED_ROUTES.includes(route.key);
@@ -848,6 +853,22 @@ function AppShell({
       ? reviewCompletedResults
       : learningCompletedResults;
   const currentLearningCard = activeSessionCards[learningIndex] ?? null;
+  const activeLibraryTone = currentLearningCard
+    ? resolveLibraryTone(currentLearningCard.space_metadata.library)
+    : null;
+  const palette: Palette = activeLibraryTone
+    ? {
+        ...basePalette,
+        accent: activeLibraryTone.accent,
+        accentSoft: activeLibraryTone.accentSoft,
+        accentStrong: activeLibraryTone.accentStrong,
+        activeSurface: activeLibraryTone.accent,
+        activeText: '#0B0B14',
+        primaryActionSurface: activeLibraryTone.accent,
+        primaryActionText: '#0B0B14',
+        primaryActionMuted: hexToRgba('#0B0B14', 0.66),
+      }
+    : basePalette;
   currentLearningCardIdRef.current = currentLearningCard?.card_id ?? null;
   const reviewCandidateCards =
     learningSession?.schedulingMode === 'server'
@@ -3618,7 +3639,10 @@ function AppShell({
                 testID="space-bootstrap-retry-button"
               >
                 <Text
-                  style={[styles.primaryButtonLabel, { color: palette.panel }]}
+                  style={[
+                    styles.primaryButtonLabel,
+                    { color: palette.primaryActionText },
+                  ]}
                 >
                   重新加载空间内容
                 </Text>
@@ -3806,6 +3830,7 @@ function AppShell({
       spaceGateRail={spaceGateRail}
       spaceStatusRail={spaceStatusRail}
       spaceSyncRail={spaceSyncRail}
+      usesAccessibilityLayout={usesAccessibilityLayout}
     />
   ) : route.key === 'statistics' ? (
     <StatisticsSurface
@@ -3913,7 +3938,12 @@ function LearningBootstrapSurface({
           style={[styles.primaryButton, { backgroundColor: palette.accent }]}
           testID="learning-bootstrap-retry-button"
         >
-          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+          <Text
+            style={[
+              styles.primaryButtonLabel,
+              { color: palette.primaryActionText },
+            ]}
+          >
             重新加载本轮卡片
           </Text>
         </Pressable>
@@ -3997,7 +4027,12 @@ function LearningSleepSurface({
           style={[styles.primaryButton, { backgroundColor: palette.accent }]}
           testID="learning-recover-sleeping-card-button"
         >
-          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+          <Text
+            style={[
+              styles.primaryButtonLabel,
+              { color: palette.primaryActionText },
+            ]}
+          >
             恢复一张可学习卡
           </Text>
         </Pressable>
@@ -4007,7 +4042,12 @@ function LearningSleepSurface({
           style={[styles.primaryButton, { backgroundColor: palette.accent }]}
           testID="learning-go-space-button"
         >
-          <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+          <Text
+            style={[
+              styles.primaryButtonLabel,
+              { color: palette.primaryActionText },
+            ]}
+          >
             去空间管理休眠卡
           </Text>
         </Pressable>
@@ -4024,7 +4064,28 @@ function AppCanvasBackdrop({ palette }: { palette: Palette }) {
         styles.appCanvasBackdrop,
         { backgroundColor: palette.background },
       ]}
-    />
+    >
+      <View
+        style={[
+          styles.appAuroraTop,
+          {
+            backgroundColor: hexToRgba(palette.accent, 0.13),
+            shadowColor: palette.accent,
+          },
+        ]}
+        testID="app-aurora-top"
+      />
+      <View
+        style={[
+          styles.appAuroraBottom,
+          {
+            backgroundColor: hexToRgba(palette.accent, 0.075),
+            shadowColor: palette.accent,
+          },
+        ]}
+        testID="app-aurora-bottom"
+      />
+    </View>
   );
 }
 
@@ -4058,6 +4119,7 @@ function PhoneShell({
         {usesAccessibilityLayout ? (
           <ScrollView
             contentContainerStyle={styles.shellAccessibleContent}
+            key={activeRoute}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             testID="phone-accessibility-scroll"
@@ -4284,7 +4346,7 @@ function PhoneTopBar({
       style={[
         styles.phoneTopBar,
         route.key === 'learning' ? styles.phoneTopBarLearning : null,
-        { backgroundColor: palette.panel, borderColor: palette.border },
+        { backgroundColor: 'transparent', borderColor: 'transparent' },
       ]}
     >
       <View style={styles.phoneTopCopy}>
@@ -5688,7 +5750,7 @@ function MembershipHostCard({
                 numberOfLines={1}
                 style={[
                   styles.membershipCompactTrialLabel,
-                  { color: palette.panel },
+                  { color: palette.primaryActionText },
                 ]}
               >
                 {membershipPendingAction === 'start_trial'
@@ -5832,6 +5894,7 @@ function MembershipHostCard({
           membershipRepositoryMode={membershipRepositoryMode}
           membershipState={membershipState}
           palette={palette}
+          quiet
         />
       )}
     </View>
@@ -5845,6 +5908,7 @@ function MembershipActionGroup({
   membershipRepositoryMode,
   membershipState,
   palette,
+  quiet = false,
 }: {
   compact?: boolean;
   handlers: MembershipHandlers;
@@ -5856,8 +5920,12 @@ function MembershipActionGroup({
   membershipRepositoryMode: 'local' | 'remote';
   membershipState: MembershipState;
   palette: Palette;
+  quiet?: boolean;
 }) {
   const isPending = membershipPendingAction !== null;
+  const actionBackground = quiet ? palette.accentSoft : palette.accent;
+  const actionBorder = quiet ? palette.accent : 'transparent';
+  const actionText = quiet ? palette.accent : palette.primaryActionText;
   const showLocalDebugActions =
     membershipRepositoryMode === 'local' && process.env.NODE_ENV === 'test';
 
@@ -5869,11 +5937,14 @@ function MembershipActionGroup({
         style={[
           styles.primaryButton,
           styles.membershipPrimaryAction,
-          { backgroundColor: palette.accent },
+          quiet ? styles.membershipQuietAction : null,
+          { backgroundColor: actionBackground, borderColor: actionBorder },
         ]}
         testID="membership-start-trial-button"
       >
-        <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+        <Text
+          style={[styles.primaryButtonLabel, { color: actionText }]}
+        >
           {membershipPendingAction === 'start_trial'
             ? '正在开通完整试用'
             : '开始完整试用'}
@@ -5903,11 +5974,14 @@ function MembershipActionGroup({
         style={[
           styles.primaryButton,
           compact ? styles.membershipPrimaryActionCompact : null,
-          { backgroundColor: palette.accent },
+          quiet ? styles.membershipQuietAction : null,
+          { backgroundColor: actionBackground, borderColor: actionBorder },
         ]}
         testID="membership-purchase-button"
       >
-        <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+        <Text
+          style={[styles.primaryButtonLabel, { color: actionText }]}
+        >
           {membershipPendingAction === 'purchase'
             ? '正在开通会员'
             : '直接开通会员'}
@@ -5966,11 +6040,14 @@ function MembershipActionGroup({
         style={[
           styles.primaryButton,
           compact ? styles.membershipPrimaryActionCompact : null,
-          { backgroundColor: palette.accent },
+          quiet ? styles.membershipQuietAction : null,
+          { backgroundColor: actionBackground, borderColor: actionBorder },
         ]}
         testID="membership-purchase-button"
       >
-        <Text style={[styles.primaryButtonLabel, { color: palette.panel }]}>
+        <Text
+          style={[styles.primaryButtonLabel, { color: actionText }]}
+        >
           {membershipPendingAction === 'purchase'
             ? '正在恢复购买'
             : '恢复购买并开通会员'}
@@ -6015,7 +6092,9 @@ function PhoneSmsPanel({
   const canRequestCode = isPhoneReady && !isPending && !isAuthenticated;
   const canSubmitCode =
     isSmsCodeReady(authState.smsCode) && !isPending && !isAuthenticated;
-  const requestCodeLabelColor = canRequestCode ? palette.panel : palette.accent;
+  const requestCodeLabelColor = canRequestCode
+    ? palette.primaryActionText
+    : palette.accent;
   const requestReadinessLabel =
     authState.pendingAction === 'request_code'
       ? '发送中'
@@ -6517,7 +6596,7 @@ function PhoneSmsPanel({
               <Text
                 style={[
                   styles.keyboardAccessoryLabel,
-                  { color: palette.panel },
+                  { color: palette.primaryActionText },
                 ]}
               >
                 完成
@@ -6724,6 +6803,29 @@ const styles = StyleSheet.create({
   },
   appCanvasBackdrop: {
     ...StyleSheet.absoluteFill,
+    overflow: 'hidden',
+  },
+  appAuroraTop: {
+    borderRadius: 999,
+    height: 360,
+    left: -160,
+    position: 'absolute',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.22,
+    shadowRadius: 80,
+    top: -190,
+    width: 480,
+  },
+  appAuroraBottom: {
+    borderRadius: 999,
+    bottom: -260,
+    height: 440,
+    position: 'absolute',
+    right: -220,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.16,
+    shadowRadius: 90,
+    width: 520,
   },
   shellRoot: {
     flex: 1,
@@ -6748,14 +6850,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     paddingVertical: 8,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0,
     shadowRadius: 16,
-    elevation: 4,
+    elevation: 0,
   },
   phoneTopBarLearning: {
     marginTop: 2,
     paddingVertical: 7,
-    shadowOpacity: 0.06,
+    shadowOpacity: 0,
     shadowRadius: 14,
   },
   phoneTopCopy: {
@@ -8393,6 +8495,11 @@ const styles = StyleSheet.create({
   membershipPrimaryActionCompact: {
     minHeight: 44,
     paddingVertical: 8,
+  },
+  membershipQuietAction: {
+    borderWidth: 1,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   membershipSecondaryLink: {
     alignItems: 'center',

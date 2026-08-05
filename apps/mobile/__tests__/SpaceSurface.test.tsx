@@ -371,6 +371,53 @@ test('defaults Space first-read focus to the current learning card box', () => {
   expect(renderedText).not.toContain('当前学习卡位于');
 });
 
+test('stacks Space objects instead of overlapping them at accessibility font sizes', () => {
+  const session = createLocalLearningSession('cet4');
+  const currentCard = session.catalogCards[0];
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={currentCard}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        spaceCards={session.catalogCards}
+        usesAccessibilityLayout
+      />,
+    );
+  });
+
+  const root = tree!.root;
+  const openBoxDeckStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'space-open-box-deck' }).props.style,
+  );
+  const cardStyles = root
+    .findAllByProps({ testID: 'space-overview-card-object' })
+    .map(card => StyleSheet.flatten(card.props.style));
+  const returnStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'space-return-learning' }).props.style,
+  );
+
+  expect(openBoxDeckStyle).toMatchObject({ flex: 0, overflow: 'visible' });
+  expect(cardStyles.length).toBeGreaterThan(1);
+  cardStyles.forEach(style => {
+    expect(style).toMatchObject({
+      height: 'auto',
+      position: 'relative',
+      width: '100%',
+    });
+  });
+  expect(returnStyle).toMatchObject({
+    alignItems: 'stretch',
+    flexDirection: 'column',
+  });
+});
+
 test('resyncs Space focus when the current learning card changes after render', () => {
   const session = createLocalLearningSession('cet4');
   const initialCard = session.catalogCards[0];

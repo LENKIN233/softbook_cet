@@ -116,6 +116,7 @@ export function SpaceSurface({
   spaceCards,
   spaceStatusRail,
   spaceSyncRail,
+  usesAccessibilityLayout = false,
 }: {
   cardStateById: Record<string, { isFavorited: boolean; isSleeping: boolean }>;
   currentLearningCard: LearningCard | null;
@@ -131,6 +132,7 @@ export function SpaceSurface({
   spaceCards: LearningCard[];
   spaceStatusRail?: SpaceStatusRail | null;
   spaceSyncRail?: SpaceSyncRail | null;
+  usesAccessibilityLayout?: boolean;
 }) {
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
   const focusedSelection = useMemo(() => {
@@ -301,11 +303,16 @@ export function SpaceSurface({
         style={[
           styles.content,
           styles.contentOneScreen,
+          usesAccessibilityLayout ? styles.contentAccessible : null,
           deviceClass === 'tablet' ? styles.contentTablet : null,
         ]}
       >
         <View
-          style={[styles.shelfDeskFrame, styles.shelfDeskFrameOneScreen]}
+          style={[
+            styles.shelfDeskFrame,
+            styles.shelfDeskFrameOneScreen,
+            usesAccessibilityLayout ? styles.shelfDeskFrameAccessible : null,
+          ]}
           testID="space-empty-state"
         >
           <SurfaceCard
@@ -561,11 +568,16 @@ export function SpaceSurface({
       style={[
         styles.content,
         styles.contentOneScreen,
+        usesAccessibilityLayout ? styles.contentAccessible : null,
         deviceClass === 'tablet' ? styles.contentTablet : null,
       ]}
     >
       <View
-        style={[styles.shelfDeskFrame, styles.shelfDeskFrameOneScreen]}
+        style={[
+          styles.shelfDeskFrame,
+          styles.shelfDeskFrameOneScreen,
+          usesAccessibilityLayout ? styles.shelfDeskFrameAccessible : null,
+        ]}
         testID="space-shelf-desk"
       >
         {hasStateRail ? (
@@ -661,6 +673,9 @@ export function SpaceSurface({
             <View
               style={[
                 styles.overviewWorkbench,
+                usesAccessibilityLayout
+                  ? styles.overviewWorkbenchAccessible
+                  : null,
                 {
                   backgroundColor: solidPanel,
                   borderColor: hexToRgba(selectedTone.accent, 0.14),
@@ -793,6 +808,7 @@ export function SpaceSurface({
                 style={[
                   styles.openBoxDeck,
                   styles.openBoxDeckUnified,
+                  usesAccessibilityLayout ? styles.openBoxDeckAccessible : null,
                   {
                     backgroundColor: neutralObjectSurface,
                     borderColor: neutralObjectBorder,
@@ -825,14 +841,38 @@ export function SpaceSurface({
                   </Text>
                 </View>
 
-                <View style={styles.openBoxDeskBody}>
-                  <View style={styles.openBoxTray}>
-                    <View style={styles.deckCardRow}>
+                <View
+                  style={[
+                    styles.openBoxDeskBody,
+                    usesAccessibilityLayout
+                      ? styles.openBoxDeskBodyAccessible
+                      : null,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.openBoxTray,
+                      usesAccessibilityLayout
+                        ? styles.openBoxTrayAccessible
+                        : null,
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.deckCardRow,
+                        usesAccessibilityLayout
+                          ? styles.deckCardRowAccessible
+                          : null,
+                      ]}
+                    >
                       {selectedOverviewDeckCards.length === 0 ? (
                         <View
                           style={[
                             styles.deckCardOverview,
                             styles.deckCardOverviewPrimary,
+                            usesAccessibilityLayout
+                              ? styles.deckCardOverviewAccessible
+                              : null,
                             {
                               backgroundColor: solidPanelStrong,
                               borderColor: palette.border,
@@ -897,6 +937,9 @@ export function SpaceSurface({
                                   : styles.deckCardOverviewTertiary,
                                 isCurrent
                                   ? styles.deckCardOverviewActive
+                                  : null,
+                                usesAccessibilityLayout
+                                  ? styles.deckCardOverviewAccessible
                                   : null,
                                 {
                                   backgroundColor: isCurrent
@@ -1060,6 +1103,9 @@ export function SpaceSurface({
                 style={[
                   styles.returnContinuity,
                   styles.returnContinuityStrip,
+                  usesAccessibilityLayout
+                    ? styles.returnContinuityAccessible
+                    : null,
                   {
                     backgroundColor: primaryActionSurface,
                     borderColor: primaryActionSurface,
@@ -1070,6 +1116,9 @@ export function SpaceSurface({
                 <View
                   style={[
                     styles.returnContinuityAccent,
+                    usesAccessibilityLayout
+                      ? styles.returnContinuityAccentAccessible
+                      : null,
                     { backgroundColor: selectedTone.accent },
                   ]}
                 />
@@ -1095,6 +1144,9 @@ export function SpaceSurface({
                 <View
                   style={[
                     styles.returnContinuityActionPill,
+                    usesAccessibilityLayout
+                      ? styles.returnContinuityActionPillAccessible
+                      : null,
                     {
                       backgroundColor: hexToRgba(
                         primaryActionText,
@@ -2046,6 +2098,9 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 8,
   },
+  contentAccessible: {
+    flex: 0,
+  },
   contentTablet: {
     paddingHorizontal: 28,
     paddingVertical: 24,
@@ -2056,6 +2111,9 @@ const styles = StyleSheet.create({
   shelfDeskFrameOneScreen: {
     flex: 1,
     gap: 8,
+  },
+  shelfDeskFrameAccessible: {
+    flex: 0,
   },
   surfaceCard: {
     borderRadius: 25,
@@ -2231,6 +2289,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 24,
     elevation: 3,
+  },
+  overviewWorkbenchAccessible: {
+    flex: 0,
+    minHeight: 0,
+    overflow: 'visible',
   },
   overviewWorkbenchAddress: {
     gap: 10,
@@ -2533,6 +2596,11 @@ const styles = StyleSheet.create({
   openBoxDeckUnified: {
     marginTop: 0,
   },
+  openBoxDeckAccessible: {
+    flex: 0,
+    minHeight: 0,
+    overflow: 'visible',
+  },
   openBoxLid: {
     alignItems: 'center',
     borderBottomWidth: 0,
@@ -2564,16 +2632,27 @@ const styles = StyleSheet.create({
     paddingBottom: 11,
     paddingTop: 4,
   },
+  openBoxDeskBodyAccessible: {
+    flex: 0,
+  },
   openBoxTray: {
     flex: 1,
     gap: 10,
     justifyContent: 'space-between',
     minWidth: 0,
   },
+  openBoxTrayAccessible: {
+    flex: 0,
+  },
   deckCardRow: {
     height: 208,
     minHeight: 208,
     position: 'relative',
+  },
+  deckCardRowAccessible: {
+    gap: 10,
+    height: 'auto',
+    minHeight: 0,
   },
   deckCard: {
     borderRadius: 18,
@@ -2607,6 +2686,16 @@ const styles = StyleSheet.create({
   deckCardOverviewActive: {
     shadowOpacity: 0.1,
     shadowRadius: 20,
+  },
+  deckCardOverviewAccessible: {
+    height: 'auto',
+    left: undefined,
+    minHeight: 244,
+    position: 'relative',
+    right: undefined,
+    top: undefined,
+    width: '100%',
+    zIndex: 0,
   },
   deckCardOverviewPrimary: {
     height: 190,
@@ -3188,6 +3277,10 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 2,
   },
+  returnContinuityAccessible: {
+    alignItems: 'stretch',
+    flexDirection: 'column',
+  },
   returnContinuityCopy: {
     flex: 1,
     gap: 3,
@@ -3197,6 +3290,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     height: 34,
     width: 4,
+  },
+  returnContinuityAccentAccessible: {
+    height: 4,
+    width: '100%',
   },
   returnContinuityCompact: {
     alignItems: 'flex-start',
@@ -3233,6 +3330,10 @@ const styles = StyleSheet.create({
     minWidth: 92,
     paddingHorizontal: 13,
     paddingVertical: 8,
+  },
+  returnContinuityActionPillAccessible: {
+    minWidth: 0,
+    width: '100%',
   },
   returnContinuityActionText: {
     fontSize: 13,

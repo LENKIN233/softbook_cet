@@ -162,6 +162,8 @@ export function StatisticsSurface({
     : palette.border;
   const checkInButtonLabelColor = hasCheckedInToday
     ? palette.accentStrong
+    : canCheckInToday
+    ? palette.primaryActionText
     : palette.panel;
 
   return (
