@@ -4,7 +4,7 @@
 
 - Date: 2026-08-05
 - Branch: `fix/mobile-aurora-interaction-hierarchy`
-- PR: pending
+- PR: `https://github.com/LENKIN233/softbook_cet/pull/480`
 - Summary: Replaces the overused black/gray mobile emphasis with the accepted Aurora canvas and one current-library identity color, repairs the Learning flip-card hierarchy, quiets competing Statistics/Mine actions, and removes the Space overlap reproduced at 200% font scale.
 
 ## Referenced specs
@@ -71,6 +71,7 @@
 - Android system font scale `2.0` and iOS Dynamic Type `accessibility-extra-large` route/accessibility flows -> passed after the Space stacking correction; system settings were restored.
 - `./scripts/run_local_gates --profile pr --base origin/main` before dependency/toolchain alignment -> partial only; mobile gates and dependency security passed, while missing Web/CloudBase installs, wrong Node/Ruby, worktree-local hooks, and absent PR context failed. This report is not claimed as green evidence.
 - Repository Node 22.13.0, Ruby 3.3.12, and Python 3.12.13 `run_local_gates --profile dev` after dependency/hook alignment -> passed, 24/24 gates.
+- `python3 scripts/validate_harness.py --format text` with exact PR context -> `HARNESS VALIDATION OK`.
 
 ## Validation results
 
@@ -88,7 +89,7 @@
 
 ## Agent review status
 
-- Reviewer: Codex UI/UX implementation review; exact-head review to be repeated after commit.
+- Reviewer: Codex exact-head UI/UX and implementation review of `65bdd2d927f97bce4c49a80e4c1814a3b7a9c199`.
 - Status: passed locally.
 - Blocking findings: none in the implemented scope.
 - Review summary: the corrected hierarchy follows the accepted current-object grammar and Law of One; the dynamic subject accent carries action/selection continuity, supporting actions are quieter, and large-text layouts remove fixed geometry before rendering rather than hiding overflow.
