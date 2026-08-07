@@ -26,7 +26,7 @@ The baseline to beat is `docs/design/mocks/mobile-core-surface-reset-v1.html`, i
 - The product should feel like trusted, low-burden CET material with physical position, not a generic flashcard or AI app.
 - Physical Space keeps library / group / box / card visible as a hierarchy.
 - The current active subject in the proof uses coral as its only strong accent.
-- Flip uses exactly two self-assess states after reveal: 有把握 and 再回看.
+- Flip uses exactly two self-assess states after reveal: 有把握 = confident / mint (#22C58B), 再回看 = review / amber (#F5B100).
 
 ## Hard Constraints
 
