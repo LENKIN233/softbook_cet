@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>软书移动端视觉方向</title>
+  <style>
+    :root {
+      --canvas: #f0cdb4;
+      --paper: #fff9ef;
+      --paper-2: #f8eddc;
+      --ink: #281a2e;
+      --muted: #766578;
+      --accent: #c8461c;
+      --accent-field: #e65f2b;
+      --accent-soft: #f9d8c2;
+      --line: rgba(40, 26, 46, .14);
+      --shadow: 0 20px 44px rgba(83, 42, 36, .16), 0 2px 8px rgba(83, 42, 36, .08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 40px 20px 70px;
+      background: #e8c6af;
+      color: var(--ink);
+      font-family: "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+    }
+    main {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 34px;
+    }
+    .phone {
+      width: 393px;
+      height: 852px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(40, 26, 46, .08);
+      border-radius: 42px;
+      background: var(--paper-2);
+      box-shadow: 0 34px 70px rgba(66, 32, 32, .22);
+    }
+    .phone::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: .2;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90' viewBox='0 0 90 90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.055'/%3E%3C/svg%3E");
+    }
+    .status {
+      height: 52px;
+      padding: 19px 24px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      font-size: 12px;
+      font-weight: 750;
+      position: relative;
+      z-index: 2;
+    }
+    .route {
+      padding: 10px 22px 12px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      position: relative;
+      z-index: 2;
+    }
+    .brand { font-size: 12px; letter-spacing: .12em; color: var(--accent); font-weight: 850; }
+    .route h1 { margin: 5px 0 0; font-size: 25px; line-height: 1; letter-spacing: -.04em; }
+    .route-meta { color: var(--muted); font-size: 12px; text-align: right; line-height: 1.5; }
+    .folio { font-variant-numeric: tabular-nums; font-weight: 850; color: var(--ink); }
+    .progress {
+      width: 52px;
+      height: 3px;
+      margin: 5px 0 0 auto;
+      background: rgba(40, 26, 46, .12);
+      position: relative;
+    }
+    .progress::after { content: ""; position: absolute; inset: 0 40% 0 0; background: var(--accent); }
+    .nav {
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      bottom: 18px;
+      height: 64px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      align-items: center;
+      border-radius: 22px;
+      border: 1px solid rgba(40, 26, 46, .11);
+      background: rgba(255, 249, 239, .96);
+      box-shadow: 0 14px 30px rgba(74, 37, 40, .14);
+      z-index: 4;
+    }
+    .nav span { text-align: center; color: #887889; font-size: 12px; font-weight: 700; }
+    .nav b { display: block; color: var(--ink); font-size: 12px; }
+    .nav b::before { content: ""; display: block; width: 18px; height: 3px; margin: 0 auto 7px; background: var(--accent); border-radius: 2px; }
+
+    /* Direction 1: editorial margin */
+    #mue-01 { background: #f6dfcd; }
+    #mue-01 .study-card {
+      height: 610px;
+      margin: 0 18px;
+      position: relative;
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      border-radius: 22px 22px 28px 22px;
+      overflow: hidden;
+      background: var(--paper);
+      border: 1px solid rgba(40, 26, 46, .11);
+      box-shadow: var(--shadow);
+      z-index: 2;
+    }
+    .margin-rail {
+      padding: 22px 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      flex-direction: column;
+      background: var(--accent-field);
+      color: var(--ink);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .16em;
+      line-height: 1.45;
+      text-align: center;
+    }
+    .margin-rail span { width: 1em; margin-bottom: 18px; }
+    .paper-content { padding: 22px 22px 0; min-width: 0; display: flex; flex-direction: column; }
+    .card-kicker { color: var(--accent); font-size: 12px; font-weight: 850; letter-spacing: .08em; }
+    .question { margin: 18px 0 0; font-size: 31px; line-height: 1.28; font-weight: 850; letter-spacing: -.035em; }
+    .excerpt {
+      margin-top: 26px;
+      padding: 20px 0 20px 18px;
+      border-left: 2px solid var(--accent-soft);
+      color: #58465d;
+      font-size: 15px;
+      line-height: 1.72;
+    }
+    .micro-tools {
+      margin-top: auto;
+      padding: 15px 0;
+      display: flex;
+      gap: 20px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+    .flip-edge {
+      margin: 0 -22px;
+      min-height: 78px;
+      padding: 17px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--ink);
+      color: #fff8ef;
+    }
+    .flip-edge small { display: block; color: #d9c8da; margin-top: 3px; }
+    .flip-edge strong { font-size: 18px; }
+    .flip-edge i { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-field); font-style: normal; font-size: 20px; }
+    .address-line {
+      position: absolute;
+      left: 62px;
+      right: 24px;
+      bottom: 97px;
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      z-index: 2;
+    }
+
+    /* Direction 2: physical index-card stack */
+    #mue-02 { background: #f3d5c0; }
+    #mue-02 .stack-wrap { height: 610px; margin: 0 20px; position: relative; z-index: 2; }
+    .stack-back { position: absolute; left: 18px; right: 18px; height: 548px; border-radius: 24px; background: #efb78f; border: 1px solid rgba(40,26,46,.1); }
+    .stack-back.one { top: 16px; transform: rotate(-2deg); }
+    .stack-back.two { top: 26px; background: #f7cab0; transform: rotate(2deg); }
+    .index-card {
+      position: absolute;
+      inset: 38px 0 0;
+      height: 548px;
+      padding: 24px;
+      border-radius: 26px;
+      background: var(--paper);
+      border: 1px solid rgba(40,26,46,.12);
+      box-shadow: var(--shadow);
+    }
+    .index-tab { position: absolute; right: 26px; top: -12px; padding: 7px 14px; border-radius: 10px 10px 0 0; background: var(--accent); color: white; font-size: 11px; font-weight: 800; }
+    .index-card .question { font-size: 27px; margin-top: 20px; }
+    .options { margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .option { min-height: 72px; padding: 14px; display: flex; align-items: center; border: 1px solid var(--line); background: #fffdf8; border-radius: 14px; font-size: 14px; font-weight: 750; }
+    .option.pick { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); color: var(--accent); }
+    .confirm { position: absolute; left: 24px; right: 24px; bottom: 24px; min-height: 58px; display: flex; align-items: center; justify-content: center; border-radius: 14px; background: var(--ink); color: #fff8ef; font-size: 16px; font-weight: 850; }
+
+    /* Direction 3: efficient answer rail */
+    #mue-03 { background: #2d1c35; color: #fff5eb; }
+    #mue-03::after { content: ""; position: absolute; width: 220px; height: 220px; right: -100px; top: 120px; border: 58px solid rgba(230,95,43,.35); border-radius: 50%; }
+    #mue-03 .brand, #mue-03 .route-meta { color: #f29a71; }
+    #mue-03 .route h1, #mue-03 .folio { color: #fff5eb; }
+    #mue-03 .progress { background: rgba(255,245,235,.2); }
+    #mue-03 .rail-card {
+      height: 610px;
+      margin: 0 18px;
+      position: relative;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      border-radius: 28px;
+      background: #fff8ed;
+      color: var(--ink);
+      box-shadow: 0 26px 50px rgba(0,0,0,.25);
+      z-index: 2;
+    }
+    .number-line { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12px; font-weight: 750; }
+    .number-line b { color: var(--accent); letter-spacing: .08em; }
+    .rail-card .question { font-size: 30px; margin-top: 34px; }
+    .answer-rail { margin-top: auto; display: grid; gap: 8px; }
+    .answer-row { min-height: 54px; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); font-weight: 750; }
+    .answer-row.pick { background: var(--accent-soft); border: 0; border-radius: 12px; color: #a93e17; }
+    #mue-03 .nav { background: #3a2742; border-color: rgba(255,255,255,.12); box-shadow: none; }
+    #mue-03 .nav span { color: #bcaabc; }
+    #mue-03 .nav b { color: #fff5eb; }
+  </style>
+</head>
+<body>
+  <main>
+    <article class="phone" id="mue-01">
+      <div class="status"><span>9:41</span><span>5G&nbsp;&nbsp;92%</span></div>
+      <header class="route">
+        <div><div class="brand">SOFTBOOK · CET</div><h1>继续学习</h1></div>
+        <div class="route-meta"><span class="folio">03 / 05</span><div class="progress"></div></div>
+      </header>
+      <section class="study-card">
+        <aside class="margin-rail"><span>当前馆</span><span>方向线索</span></aside>
+        <div class="paper-content">
+          <div class="card-kicker">短对话 · 判断方向</div>
+          <div class="question">听到 however，应该先盯哪一半信息？</div>
+          <div class="excerpt">前半句通常只是铺垫。真正改变答案方向的评价、态度或限制，往往跟在转折之后。</div>
+          <div class="micro-tools"><span>线索</span><span>提示</span><span>收藏</span></div>
+          <div class="flip-edge"><div><strong>翻到背面</strong><small>查看答案与易错点</small></div><i>↗</i></div>
+        </div>
+      </section>
+      <div class="address-line">当前馆 / 方向题 / 转折信号 / 第 3 盒</div>
+      <nav class="nav"><b>学习</b><span>空间</span><span>统计</span><span>我的</span></nav>
+    </article>
+
+    <article class="phone" id="mue-02">
+      <div class="status"><span>9:41</span><span>5G&nbsp;&nbsp;92%</span></div>
+      <header class="route">
+        <div><div class="brand">SOFTBOOK · CET</div><h1>继续学习</h1></div>
+        <div class="route-meta"><span class="folio">03 / 05</span><div class="progress"></div></div>
+      </header>
+      <section class="stack-wrap">
+        <div class="stack-back one"></div><div class="stack-back two"></div>
+        <div class="index-card">
+          <div class="index-tab">当前馆 · 第 3 盒</div>
+          <div class="card-kicker">四选一 · 方向线索</div>
+          <div class="question">however 后出现 negative evidence，作者更可能是什么态度？</div>
+          <div class="options"><div class="option">完全支持</div><div class="option pick">有所怀疑</div><div class="option">保持中立</div><div class="option">没有观点</div></div>
+          <div class="confirm">确认答案</div>
+        </div>
+      </section>
+      <nav class="nav"><b>学习</b><span>空间</span><span>统计</span><span>我的</span></nav>
+    </article>
+
+    <article class="phone" id="mue-03">
+      <div class="status"><span>9:41</span><span>5G&nbsp;&nbsp;92%</span></div>
+      <header class="route">
+        <div><div class="brand">SOFTBOOK · CET</div><h1>继续学习</h1></div>
+        <div class="route-meta"><span class="folio">03 / 05</span><div class="progress"></div></div>
+      </header>
+      <section class="rail-card">
+        <div class="number-line"><b>CURRENT · ARGUMENT</b><span>第 3 盒</span></div>
+        <div class="question">转折词之后，哪类信息更值得优先记录？</div>
+        <div class="excerpt">先找评价词，再确认作者态度。不要被转折之前的大段背景拖走。</div>
+        <div class="answer-rail"><div class="answer-row"><span>背景事实</span><span>A</span></div><div class="answer-row pick"><span>评价与态度</span><span>B</span></div><div class="answer-row"><span>例子数量</span><span>C</span></div><div class="answer-row"><span>句子长度</span><span>D</span></div></div>
+      </section>
+      <nav class="nav"><b>学习</b><span>空间</span><span>统计</span><span>我的</span></nav>
+    </article>
+  </main>
+</body>
+</html>
