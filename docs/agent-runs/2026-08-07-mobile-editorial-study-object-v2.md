@@ -4,7 +4,7 @@
 
 - Date: 2026-08-07
 - Branch: `cross/mobile-ux-redesign-v2`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/481
 - Summary: Re-audited the rejected mobile UI baseline, ran an eight-direction design search, and produced a design-only editorial current-card proposal with Learning front/back and Physical Space proof. No React Native implementation is included.
 
 ## Referenced specs
@@ -65,7 +65,9 @@
 - Design search structure: passed.
 - User-visible metadata leak scan: passed.
 - Layout inspection: three phone frames contain primary action and navigation without overlap or horizontal overflow.
-- Full repository harness: passed. PR gates remain pending until the design-only branch is committed and opened as a PR.
+- Full repository harness: passed.
+- Local PR design gate and Agent review gate: passed against the committed design-only diff and complete PR body.
+- Remote PR gates: pending on draft PR #481.
 
 ## Binary evidence
 
@@ -75,8 +77,8 @@
 ## Agent review status
 
 - Reviewer: Codex UI/UX director review plus repository agent-review gate.
-- Status: pending PR review.
-- Blocking findings: product-owner acceptance is intentionally outstanding; it blocks implementation, not the design-only proposal.
+- Status: Passed for the design-only proposal.
+- Blocking findings: none in the design evidence. Product-owner acceptance is intentionally outstanding and blocks implementation/merge.
 
 ## User-visible UI impact
 
