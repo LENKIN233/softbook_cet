@@ -136,8 +136,9 @@ Before another selection decision, a new exact revision must:
 - produce product-grade tablet layouts rather than responsive evidence frames;
 - bind an approved audio asset and native playback contract instead of
   `speechSynthesis`;
-- preserve the closed 390 × 844, 320px at 200% browser text zoom, and 1024 × 768 browser
-  floors, then pass native safe-area, IME, true native 200% text,
+- preserve the closed 390 × 844 and 320px-at-200%-browser-text floors plus the
+  single mvn-08 Lock containment check at 1024 × 768, then establish complete
+  tablet evidence and pass native safe-area, IME, true native 200% text,
   VoiceOver/TalkBack, physical-device, accessibility-state, leakage, and
   independent UI/UX review on the same exact revision.
 

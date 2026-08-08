@@ -6,9 +6,11 @@ The eight exact learner documents were checked against `product_truth`: one
 system-sequenced current task, five distinct interaction silhouettes, truthful
 feedback and recovery, library → group → box → card containment, exactly two
 flip judgements, learner/reviewer isolation, and four top-level destinations.
-Browser reflow, minimum targets, text contrast, and operability are evidence
-floors, not visual acceptance. Palette, chrome, iconography, motion, platform
-adaptation, and tablet composition remain `implementation_hypothesis`.
+Browser reflow, minimum targets, and operability are measured evidence floors,
+not visual acceptance. Text/non-text contrast remains a required floor, but this
+run did not bind a complete final-composite contrast matrix. Palette, chrome,
+iconography, motion, platform adaptation, and tablet composition remain
+`implementation_hypothesis`.
 
 ## Rejected Candidates
 

@@ -43,5 +43,7 @@ are redesigned and re-reviewed.
 Each ID binds to its own learner document and independent DOM/browser history.
 Learning/Result, Space, Statistics, Mine, and Auth are reachable within that
 document. iOS and Android are selected from an allowlisted platform query, and
-tablet was exercised at a real 1024 × 768 iframe viewport. Those facts prove the
-browser evidence boundary only; they do not prove native quality or authorize RN.
+only mvn-08's Lock state was measured at a real 1024 × 768 iframe viewport.
+Candidates 01–07 have no 1024px evidence, and mvn-08's one state is not complete
+tablet proof. Those facts prove the browser evidence boundary only; they do not
+prove native quality or authorize RN.

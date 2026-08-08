@@ -15,11 +15,17 @@
 - `spec/requirement-memory.json`
 - `spec/authority-map.json`
 - `spec/product-core.json`
+- `spec/account-sync-contract.json`
 - `spec/platform-contract.json`
+- `spec/action-surface.json`
+- `spec/card-system.json`
 - `spec/interactions.json`
 - `spec/knowledge-map.json`
 - `spec/space-operations.json`
+- `spec/membership.json`
+- `spec/runtime-boundaries.json`
 - `spec/visual-language.json`
+- `infra/cloudbase/content-manifest-v1-runtime-contract.md`
 - `docs/design/design-harness.md`
 - `docs/design/design-quarantine.md`
 - `docs/design/single-card-ux-contract.md`
@@ -41,6 +47,12 @@ surface material, accent color, radii, or panel arrangement while retaining too
 much of the same rounded-card web-demo grammar. The result repeatedly looked
 like a concept board, an internal tool, or a themed responsive page instead of
 a mature consumer app.
+
+History also shows that copy/state-only runtime changes were repeatedly treated
+as non-visual work. They are user-visible UI: adding a pending, retry, sync,
+membership, or recovery state changes hierarchy, meaning, and interaction even
+when no component geometry is added. The next authority must review those states
+and learner language with the same rigor as color and layout.
 
 Therefore the next synthesis starts with information hierarchy and native
 behavior, then adds a restrained product identity. It deliberately does not
@@ -72,26 +84,71 @@ color, icon, material, radius, sheet, rail, ratio, and motion choice is redrawn.
   sleep/wake is a reversible physical-space state.
 - Top-level order remains `学习 / 空间 / 统计 / 我的`.
 - Phone login is a successive phone-number → SMS-code gate before Learning.
+- Peek remains explicit but lightweight, favorite remains secondary, hint is
+  conditional, and sleep/wake appears only in meaningful card/Space context.
+  Membership checks and algorithmic updates are background behavior, not extra
+  learner operations.
+- Formal Trial starts on the first entry counted as the membership trial and
+  gives 3–7 days of the complete card library, algorithm, and physical Space;
+  Free keeps normal basic Learning and close to half the cards but not the
+  complete library, algorithm, or Space; Premium restores the complete
+  experience. Purchase exists on every release target and entitlement is shared
+  across iOS, Android, and Web. The controlled pilot's different first-valid-
+  session trigger is gate-ineligible and cannot replace this formal contract.
+- Closed-beta Premium may be granted or revoked only by an audited receiver
+  operator. The client can read canonical entitlement but cannot self-grant.
+- Audio is an optional card-owned medium on every release target. It never
+  autoplays or becomes a sixth interaction family; when present it has a stable
+  asset ID, hash, duration, and optional back-side transcript rather than a URL.
 - iOS and Android have equal priority; tablet receives a dedicated composition.
 - No learner surface may expose design, review, repository, data-pipeline, test,
   or implementation language.
 
-### Design Hypothesis To Prove
+### Design Hypotheses To Prove
 
-- A clear consumer-app blue can establish product trust on neutral routes,
-  while the current library color owns Learning and Space emphasis.
-- Native navigation, system typography, moderate geometry, and fewer containers
-  will read as more mature than another decorative brand metaphor.
-- Phone should be a focused vertical task flow; tablet should add context only
-  when that context helps the current task, not resemble an enterprise console.
-- Visual identity can come from disciplined color roles, type rhythm, icon
-  consistency, and interaction response instead of glass, gradients, large
-  pills, or ornamental hardware.
+- A mature consumer app can establish trust without reusing Aurora, editorial,
+  Soft Spine, or v4's brick/purple packages.
+- Phone can keep one focused task while tablet adds context only when it helps
+  that task, without becoming an enterprise console.
+- Product identity may come from several different combinations of type rhythm,
+  surface grammar, geometry, semantic color roles, native iconography, and
+  causal response. No combination is preselected by this plan.
 
-These are hypotheses. The exact token set must survive rendered comparison,
-contrast measurement, platform review, and explicit acceptance.
+The context pack locks product truth, prohibited patterns, semantic role
+separation, complete states, and evaluation axes. It does **not** lock blue,
+coral, a radius family, a container silhouette, one navigation treatment, or
+one motion language. Every exact token/system must survive rendered comparison,
+contrast measurement, platform review, formative learner testing, independent
+review, and explicit acceptance.
 
-## Proposed Visual Direction: Clear Study System
+## Exploration Frame — No Preselected Visual System
+
+The next population must include at least eight materially different systems.
+Each row below is an unselected hypothesis slot, not a direction recommendation;
+the generator may replace a slot if the replacement is more distinct while
+remaining inside product truth.
+
+| Hypothesis | Type hierarchy | Surface / geometry grammar | Color-role strategy | Navigation / adaptation | Interaction response |
+| --- | --- | --- | --- | --- | --- |
+| A — Clear Study | calm system type with measured headings | quiet tonal field, moderate corners, one focal task region | product blue on neutral routes; current-library hue owns Learning/Space | conventional native destination bar; conditional tablet rail/context | local attach/reveal with restrained native press feedback |
+| B — Focused Contrast | stronger size/weight contrast and compact context | nearly containerless page with one solid task block and crisp dividers | neutral chrome; one current-library block; no competing product accent in Learning | low-emphasis edge-to-edge destination bar; content width remains central on tablet | direct replacement and high-clarity selection marks |
+| C — Campus Utility | compact, highly legible native information rhythm | structured rows, short sections, and small-radius controls | low-chroma system role plus precise library edge/marker | labelled native destinations; tablet uses a compact platform sidebar | immediate row/slot response with clear pending states |
+| D — Spatial Layers | medium-scale type tied to parent/child labels | flat nested planes that express ownership without card stacks | related tonal steps; current object gets the only saturated library role | phone destination bar stays quiet; tablet navigation joins the ownership hierarchy | selection moves context between owning planes; no decorative travel |
+| E — Type-led Study | prompt and answer typography carry most hierarchy | minimal surfaces, bounded line measure, rules and spacing over cards | ink-first with small semantic/library accents | always-labelled native destinations; tablet preserves a content canvas rather than equal panes | text-local reveal, strike, reorder, and result attachment |
+| F — Soft Native | friendly system type with generous body rhythm | platform-native grouped surfaces, moderate softness, no floating capsule | warmer or cooler neutral foundation tested independently; restrained library tone | platform-default bar/sheet conventions; adaptive sidebar only when useful | native sheet/press/ripple behavior with gentle state transition |
+| G — Precision Grid | tabular alignment and exact task metadata rhythm | square-biased grid, 4–8px corners, hard alignment, almost no shadow | restrained chroma with high-contrast selected/focus roles | compact exact-aligned native bar/rail with visible labels | slot, option, and result movement follows grid ownership |
+| H — Object Focus | compact context plus a deliberately dominant task object | one bounded study object with an attached result/action tray; Space uses real containment | quiet page and chrome; object receives the current-library identity | stable native destinations recede; tablet context attaches to the selected object | lift/settle or morph only when it explains commit, result, or return |
+
+Material difference is judged across all five design axes and the phone/tablet
+composition, not by hue swaps. A candidate that shares another candidate's
+surface grammar, navigation, and response but changes color or panel order is a
+duplicate and is removed before hard filtering.
+
+## Candidate Hypothesis A — Clear Study System (Unselected Example)
+
+This section makes Hypothesis A concrete enough to compare; it does not give A
+priority, shortlist status, or acceptance. Hypotheses B–H must receive equally
+complete token, state, platform, and evidence treatment before comparison.
 
 ### Desired Feeling
 
@@ -101,8 +158,9 @@ luxury editorial object, or productivity admin tool.
 
 ### Color Roles
 
-Use semantic roles rather than recoloring every component with one theme color.
-The first exact values below are test values, not accepted tokens.
+Hypothesis A uses semantic roles rather than recoloring every component with one
+theme color. The first exact values below belong to A only; they are test values,
+not accepted tokens or shared constraints for B–H.
 
 | Role | Test direction | Usage boundary |
 | --- | --- | --- |
@@ -269,6 +327,36 @@ state/action → return to Learning.
   hierarchy and complete pending/error/confirmation states.
 - Avoid a stack of equal rounded cards and avoid oversized account-status pills.
 
+### Membership, Paywall, Purchase, And Restore
+
+Membership is not a fifth home route or a permanent dashboard. It appears from
+Mine for account management or as a contextual interruption when the learner
+reaches a capability outside current access. The interruption preserves the
+originating Learning card or Space location so cancel, purchase completion, or
+restore returns the learner to the same task rather than restarting the app.
+
+- State the actual Trial / Free / Premium differences: Trial lasts 3–7 days and
+  exposes the complete experience; Free keeps normal basic Learning and close
+  to half the cards but not complete Space, algorithm, or library; Premium
+  provides the complete library, Space, and algorithm. Do not invent countdown
+  urgency, fake savings, or a tiny-demo Free state.
+- Render Trial as active only after canonical entitlement reports the formal
+  first-entry trigger has occurred. Do not assume that successful login itself
+  is that trigger, and do not copy the controlled pilot's separate first-valid-
+  Learning-session rule into formal membership.
+- Prove contextual limit notice, full access comparison, purchase initiation,
+  store pending, success, cancellation, recoverable error/retry, offline,
+  entitlement refresh, and return to the originating task.
+- Prove restore initiation, pending, nothing-to-restore, success, error/retry,
+  account mismatch, and cross-device entitlement refresh. Purchase and restore
+  must exist on iOS, Android, and Web; canonical entitlement is shared.
+- A closed-beta grant is a read-only canonical entitlement in the client. No
+  learner control can grant/revoke it or impersonate the receiver operator's
+  audited operation.
+- Copy must separate membership access from authentication/transport failure.
+  Losing connectivity, cancelling the store sheet, or waiting for entitlement
+  refresh must not be rendered as account rejection or data loss.
+
 ## Interaction And Motion Contract
 
 | Family | Distinct operation shape | Causal response |
@@ -299,32 +387,50 @@ interaction family. Browser speech synthesis is excluded from product evidence;
 the final proof must bind an approved content resource, private delivery/cache
 behavior, native interruption handling, and real playback states.
 
+The product-truth fields are URL-free `asset_id`, SHA-256, duration, and an
+optional back-side transcript; front-side autoplay and required subtitles stay
+forbidden. Signed manifests, expiring private downloads, verified native cache,
+and AVAudioPlayer/Media3 adapters are current `implementation_hypothesis` under
+`infra/cloudbase/content-manifest-v1-runtime-contract.md`: repository wiring
+exists, but production keys, deployment, private-object real-device playback,
+and cross-platform visual proof remain pending. A design cannot depict those
+pending facts as shipped availability.
+
 ## Required Exact Evidence
 
 ### Design Evidence Before Selection
 
 1. Freeze one complete UX state matrix in grayscale for Auth, all five Learning
-   families, Space depth/recovery, Statistics, Mine, and membership interruption.
+   families, Space depth/recovery, Statistics, Mine, and the complete
+   membership/paywall/purchase/restore state family.
 2. Generate at least eight materially different visual systems from that same
    state matrix. Difference must be visible in type hierarchy, surface grammar,
    navigation treatment, color-role strategy, and interaction response—not
    merely hue or panel order.
 3. Hard-filter product distortion, leakage, generic glyphs, non-native chrome,
-   weak contrast, overflow, and incomplete states before pairwise review.
+   weak contrast, overflow, and incomplete states before pairwise review. In
+   addition to the fail-closed scanner, require a human semantic-copy pass that
+   rejects polished requirement/server/operator/review narration even when it
+   contains no forbidden keyword.
 4. Render each surviving exact system on iOS phone, Android phone, iPadOS, and
    Android tablet. Reviewer controls remain in physically separate documents.
 5. Add causal-motion storyboards and reduced-motion equivalents before any
    finalist can advance.
 6. Run an independent UI/UX review on the exact files. A shared P0/P1 means no
    promotion, even if one direction wins relative pairwise comparisons.
-7. Ask the product owner to accept or reject the exact learner revision. Silence,
-   a technical pass, or a relative winner is not acceptance.
-8. Run blind task tests with 6–8 representative CET4/6 students. Candidate IDs
+7. Run blind task tests with 6–8 representative CET4/6 students. Candidate IDs
    and reviewer materials remain unavailable to participants. Proposed minimums
    are: at least 80% identify the current task and next action within five
    seconds; at least 90% complete the core Learning action without instruction;
    at least 80% locate the current card and complete sleep/wake return; zero
    participants mistake the primary action for deletion, warning, or error.
+   This small cohort is a formative directional screen, not statistical proof;
+   report participant counts, task failures, quotes/paraphrases, and revisions
+   rather than generalizing percentages to the market.
+8. Ask the product owner to accept or reject the exact learner revision only
+   after the formative screen and any resulting revision has repeated the
+   applicable gates. The owner may reject at any earlier checkpoint, but silence,
+   a technical pass, or a relative winner is never acceptance.
 
 ### Native Acceptance Matrix Before Implementation Is Called Complete
 
@@ -336,13 +442,18 @@ behavior, native interruption handling, and real playback states.
 - Insets: status, cutout, home/gesture, keyboard/IME, rotation, split window,
   and predictive back.
 - States: default, pressed, selected, focus, disabled, loading, empty, offline,
-  error, retry, duplicate action, restored session, and reduced motion.
+  error, retry, duplicate action, restored session, purchase pending/cancelled/
+  successful, restore pending/none/success/error, entitlement refresh/account
+  mismatch, and reduced motion.
 - Assistive technology: VoiceOver and TalkBack names, order, state, live result,
   focus restoration, and non-color meaning.
 - Contrast: measured final composites, including disabled, focus, selected,
   library, confident mint, review amber, and error roles.
 - Leakage: visible text, accessibility tree, screenshots/OCR, deep links, query
-  strings, and every failure/recovery state.
+  strings, and every failure/recovery state. Human reviewers separately ask
+  whether every sentence helps the learner understand, act, or recover; facts
+  about servers, operators, receipts, gates, implementation, and cross-platform
+  plumbing stay internal unless their plain-language consequence is necessary.
 - Devices: real iOS and Android phones plus representative iPadOS and Android
   tablet; browser frames remain supporting evidence only.
 
@@ -353,6 +464,9 @@ library color used as correctness/error/self-assessment; Flip judgements on an
 auto-scored family; Space reduced to a list or favorite/sleep boxes; Auth with
 no operable recovery; module/statistics management replacing the current task;
 learner-visible review/internal language; or RN work before exact acceptance.
+An access limit that loses the originating task, a paywall presented as a new
+home route, a purchase/restore control shown without real target capability, or
+a client-side beta self-grant is also a P0 product distortion.
 
 Any P1 signal blocks advancement: dark brick-red primary actions; Unicode icons
 or Space represented as Home; platform variants that differ only by radius or
@@ -363,10 +477,13 @@ pass described as visual approval.
 
 ## Delivery Sequence And Stop Gates
 
-1. **History and failure freeze — complete.** Preserve v1/editorial/v3/v4 as
-   rejected or no-promotion evidence.
+1. **History and failure freeze — complete.** Preserve v1/Aurora, the
+   controlled-pilot lifecycle family, editorial, v3, and v4 as rejected,
+   scope-limited, or no-promotion evidence.
 2. **UX architecture.** Produce the grayscale state matrix and platform layouts.
-   Stop if the first read is not one task or Space loses ownership hierarchy.
+   Include Trial/Free/Premium, contextual Paywall, purchase, restore, and return
+   states. Stop if the first read is not one task, Space loses ownership
+   hierarchy, or membership interrupts without preserving task context.
 3. **Visual systems.** Build the role-based color, typography, geometry, and
    platform icon candidates. Stop any direction that reads as a web demo,
    internal tool, enterprise console, or decorative concept.
@@ -376,11 +493,16 @@ pass described as visual approval.
    formal attached-audio lifecycle.
 6. **Independent UI/UX review.** Record findings against exact artifact hashes;
    relative pairwise success cannot hide a shared blocker.
-7. **Product-owner decision.** Accept or reject one exact learner revision.
-8. **Separate design authority and mapping.** Only after acceptance, reconcile
+7. **Formative learner screen.** Run blind tasks with 6–8 representative CET4/6
+   students, record directional evidence, and repeat affected render/review
+   gates after revisions. Stop on task loss, destructive-action confusion, or
+   repeated inability to recover from Space/membership interruption.
+8. **Product-owner decision.** Accept or reject one exact learner revision only
+   after the formative screen. Earlier rejection remains allowed.
+9. **Separate design authority and mapping.** Only after acceptance, reconcile
    stale mobile visual hypotheses in the visual language and create an
    implementation mapping in a later design-only change.
-9. **Separate RN implementation.** Implement, run the native matrix, perform a
+10. **Separate RN implementation.** Implement, run the native matrix, perform a
    second independent review, and only then assess leadership readiness.
 
 ## External Principle Anchors
@@ -396,9 +518,11 @@ pass described as visual approval.
 
 ## Design Review Checklist Answers
 
-- Q1: Learning and Space use only the current library hue as the dominant route
-  accent. Product blue is subordinate there; sibling library hues are confined
-  to small true-map objects.
+- Q1: Every candidate must make the current library the one dominant Learning/
+  Space identity and prevent system, correctness, error, or self-assessment
+  roles from competing with it. Hypothesis A tests subordinate product blue;
+  B–H are free to use different neutral/system strategies. Sibling library hues
+  remain confined to small true-map objects.
 - Q2: Learning's focal object is the current CET task; Space's is the current
   box or selected contained card; Auth's is the current authentication step;
   Statistics and Mine remain supporting routes.
@@ -413,7 +537,9 @@ pass described as visual approval.
   leakage evidence is specified before later acceptance.
 - Q6: Flip remains exactly `有把握` = confident/mint and `再回看` =
   review/amber; Statistics requires tabular numerals and meaningful dates/scales;
-  Learning remains system-sequenced rather than module-first.
+  Learning remains system-sequenced rather than module-first. Membership stays
+  contextual, preserves the originating task, and exposes truthful Trial/Free/
+  Premium, purchase, and restore states rather than becoming another home route.
 
 ## Stop Boundary
 

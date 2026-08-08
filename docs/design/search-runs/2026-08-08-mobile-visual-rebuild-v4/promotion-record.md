@@ -116,14 +116,15 @@ Audio remains attached capability, and `speechSynthesis` is not a formal asset.
 Q4: No rejected v3 visual shell is promoted. Generic glyphs, cosmetic platform
 skins, and under-resolved tablet panels are newly rejected as finish claims.
 
-Q5: Browser reflow, target-size, and text-contrast floors passed 80/80 initial
-states at 320 × 844 and 200% browser text; method and fields are recorded at
+Q5: Browser reflow and active-target floors passed 80/80 initial states at
+320 × 844 and 200% browser text; method and measured fields are recorded at
 `browser-evidence.md#narrow-200-final`. The 1024 × 768 evidence remains limited
 to mvn-08 Lock. Final terminal checks for all eight iOS- and
 Android-framed 390 × 844 states passed with no horizontal overflow, CTA/nav
 clearance, 44px iOS / 48px Android active-control floors, and 2 × 2 multiple
 choice. The mvn-08 1024 × 768 tablet Lock CTA is in the first viewport at
-y=671–719 on iOS and y=689–737 on Android. Native safe-area, IME,
+y=671–719 on iOS and y=689–737 on Android. A complete final-composite contrast
+matrix, native safe-area, IME,
 VoiceOver/TalkBack, physical-device, reduced-motion, and real native 200% text
 proof remain open.
 

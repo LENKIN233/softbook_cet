@@ -15,17 +15,20 @@ for a leadership review, implementation mapping, or React Native rebuild.
   cutover. Pre-2026-07-10 visual work therefore cannot be reconstructed as
   individual commits from this active repository; its checked-in artifacts and
   implementation snapshot were reviewed instead.
-- The audit covers every post-cutover commit on all accessible refs that
-  directly changed mobile visual design, interaction presentation, responsive
-  containment, mobile visual governance, or exact mobile proof evidence.
+- The audit covers every unique post-cutover diff on all refs accessible at
+  this review revision that directly changed mobile visual design, learner-visible copy,
+  interaction presentation, responsive containment, mobile visual governance,
+  or exact mobile proof evidence. Merge commits whose relevant diff is already
+  represented by their source commit are de-duplicated rather than counted as a
+  second design decision.
 - Adjacent accepted Learning, audio, Space, Auth, and platform artifacts were
   reviewed because they constrain the next mobile design. PC Web is treated as
   its own platform authority and not copied into mobile.
 - Pure backend, release, content-production, and unrelated Web implementation
   commits were excluded. Archived legacy prose was not reopened as active truth,
   in accordance with `spec/workspace-boundary.json`.
-- The uncommitted v4 working tree is reviewed as an output family below, but it
-  is not misrepresented as part of the commit audit.
+- The v4 no-promotion cohort is bound to `4e0780a` and is reviewed as an output
+  family below; later review-correction commits do not change its candidate UI.
 
 The audit used `git log --all`, path-scoped history, `git show --stat`,
 `git show --name-status`, and content diffs rather than relying on commit
@@ -71,8 +74,18 @@ them permanent product identity.
 | Compact Mine | `f0410d7` | Added more compact branches, truncation, smaller objects, and overflow control for Mine. | Do not reuse the compressed card stack as design. Required information must reflow rather than disappear behind truncation. |
 | Real Swipe | `253ae12` | Added pointer-following gesture, distance/velocity commit, cancel return, reduced-motion behavior, accessible actions, and labelled alternatives. | Preserve the interaction mechanism and re-skin it inside the next accepted system. |
 | Native audio | `be327f7` | Connected verified card-owned playback with explicit initiation, pause/interruption, failure containment, and stop-on-card-change. | Preserve behavior; do not use browser speech synthesis or the old visual shell as replacement evidence. |
-| Flow truth | `5b59224` | Corrected signed-out Learning/Space flow and removed false progress/location assurances while still consuming the now-revoked reset mapping. | Keep truthful flow/copy; discard the visual mapping. |
-| Dedicated Auth branch | `afd083a`, `93d0219` | Designed and implemented a dedicated login gate before the app shell on a side branch not merged into `origin/main`. | The current platform spec retains the product boundary; the branch's exact UI is not mobile visual authority. |
+| Flow truth | `5b59224` | Corrected signed-out Learning/Space flow and removed false progress/location assurances while still consuming the now-revoked reset mapping. Its post-auth runtime starts Trial automatically. `60ac531` changes only the unmerged controlled pilot to first-valid-Learning-session start; it does not supersede `origin/main` or the active formal `first_entry_counted_as_membership_trial` contract. | Keep truthful signed-out flow/copy and discard the visual mapping. Do not infer one formal trigger from the pilot branch; exact learner copy waits for the owner contract/canonical state. |
+| Pre-pilot persisted-session states | `f9969f4`, `6f08942` | Added restored-session loading, logout failure, entitlement-read failure, authorization expiry, offline Space mutation recovery, and visible sync outcomes. The UX correctly preserves local work and distinguishes retryable transport from rejected identity, but copy repeatedly narrates services, servers, and synchronization. | Preserve loss prevention and recoverability; rewrite status copy and redraw the history-cutover shell. |
+| Auth/bootstrap runtime cutover | `018e77d`, `ea6c3b4` | Replaced older sessions with bounded v2 authentication and canonical account hydration. Visible states cover expired code, partial local credential cleanup, entitlement/bootstrap failure, retained login, retry, and fail-closed Learning. | Runtime truth is reusable; “服务恢复/上传本地状态/服务端权益” narration is not learner copy or visual authority. |
+| Durable Learning/daily/Space cutover | `db91a6c`, `9f23502`, `a8b4610`, `a081ce6`, `d8b45be` | Added answer-record pending/retry/confirmed, server-issued next-card gating, check-in pending/failure, Space mutation queue/confirm/recovery, and terminal conflict restoration. These commits visibly overexposed queue, server confirmation, login context, and canonical-state mechanics. | Preserve the state distinctions and no-data-loss behavior. Replace the technical status stream with task-centered consequences and recovery actions. |
+| Dedicated Auth branch | `afd083a`, `93d0219`, proof `6edd77e` | Designed, implemented, and regression-locked a dedicated login gate before the app shell on a side branch not merged into `origin/main`. | The current platform spec retains the product boundary; the branch's exact UI is not mobile visual authority. |
+| Controlled-pilot lifecycle design family | `e71df8f` / patch-identical `2f344cd`, then `17bbc72`, `2122142`, `1ce332e` | Added eight lifecycle candidates, rendered proof, motion/decision/mapping artifacts, then clarified that empty scheduling is not completion and bound review/address to server-owned cards. | Pilot state sequencing is useful. The gate-ineligible lifecycle, Aurora-derived visual package, and implementation narration cannot define formal membership or the next mobile identity. |
+| Controlled-pilot Auth/recovery branch | `538c7db`, `439a664`, `2b42b47`, `3886bda`, `1b7af2f`, `51c2157` | Separated the signed-out gate, classified hydration/login/resend failures, added large-text reflow and phone correction, and kept resend failure distinct from invalid-code state. Several screens simultaneously exposed requirement/implementation narration as learner copy. | Preserve the recovery state machine and reflow lessons. Reject the Aurora shell and rewrite all visible copy; this branch never reached `origin/main`. |
+| Controlled-pilot trial/entitlement branch | `60ac531`, `1b7cd43`, `1d014e8`, `22ec872`, `8eb3c41`, `4defd19` | Bound trial start to a valid first Learning session, revalidated expiry/entitlement, cleared stale task state, and distinguished pilot entitlement. The pilot explicitly had no payment and exposed server/operator/cross-platform implementation language. | Preserve server-owned timing and refresh semantics only. Pilot access is gate-ineligible and cannot define formal membership, purchase, or learner copy. |
+| Controlled-pilot Learning/Space continuity | `08519c7`, `a2bd1be`, `64832dc`, `a827a9b`, `03b6dce`, `96a99d0`, `1090a41`, `b8f007c` | Distinguished no scheduling from completion, kept server-owned review/round receipts, opened the correct Space card, serialized continuation, and removed invented `0/1`-style progress claims. | Reuse truthful async/continuity states. The card-heavy Aurora presentation and operational copy have no visual authority. |
+| Controlled-pilot deletion lifecycle | `25ed18f`, `f315afa` | Defined confirmation, pending, failure-with-session-preserved, and accepted-but-not-yet-finished deletion. Only a server `202` removes the product shell; failure neither logs out nor clears local data. | Preserve the high-risk state machine. Redraw the sheet and write learner language from scratch. |
+| Controlled-pilot claim integrity | `378c3d4` | Prohibited unsupported official-content, frequency, pricing, and renewal claims in the pilot experience. | Promote the honesty lesson into review; it does not endorse the branch's visuals. |
+| Controlled-pilot internal-build and local continuity | `9ec314c`, `4f3a6b6` | Hid fake purchase/restore controls when no remote purchase capability exists; kept its fixed SMS code development-only; persisted local rounds/review across restarts; and made completion offer secondary review, the owning Space card, and one primary continuation. | Preserve capability guarding, action hierarchy, and task continuity. An internal build and fixed code are never product authority, and its membership/action visuals require a fresh formal design. |
 | Cross-platform containment topic | `d9658a4` → `1978db3` → `e9bb383` → `7109472` → `42b29bb` | A Mine-only patch expanded after a real Statistics screenshot still showed a nested dashboard and contaminated automation trace. The corrective diff introduced phone/tablet classification, route scrolling at large text, Android opaque surfaces, quieter Statistics, and reduced inactive-tab elevation. | Proves earlier review scope was too narrow. Reflow and state lessons are reusable; visual result is not. |
 | Main containment merge | `4db0dfb` | Product code matches the corrective topic while run-record text changed. Statistics moved from a squeezed four-column strip to vertical ledger blocks and routes gained accessibility scrolling. | Closed some overflow, but stayed inside the later-rejected visual family. |
 | Aurora topic | `65bdd2d`, `830e063` | Added current-library coloring, Aurora blobs, transparent chrome, bright CTAs, intrinsic Flip height, and large-text Space stacking. | Large-text stacking is useful. Aurora, translucent fields, and accent-everywhere styling are rejected. |
@@ -82,6 +95,56 @@ them permanent product identity.
 | v3 record repairs | `56e85b3`, `0d9a8bd`, `5069752` | Added PR/run evidence, exact Flip token wording, and strict-gate records. | Improved auditability, not product visual quality. |
 | v3 audience-boundary incident | `de700d0` | Found that a combined proof exposed reviewer, QA, and implementation narration to the learner and assistive copy despite an earlier scanner pass; split learner and reviewer documents and strengthened scanning. | Preserve physical audience separation and fail-closed scanning as a P0 requirement. |
 | v3 freeze | `df0cf9d` | Recorded explicit product-owner rejection of the exact v3 learner/reviewer evidence pair and removed any revival path. | All fifteen directions remain rejected even if a technical review or pairwise comparison passed. |
+
+### Inspected Runtime-Only Exclusions
+
+The path scan also inspected `9794caa` (request deadlines), `d479f5f`
+(manifest/session binding), `c7f7641` (native audio cache), `da232f8` (manifest
+foundation), and `5d51962` (beta-entitlement operations). They add no unique
+learner-visible component, copy, or geometry diff, so they are runtime
+constraints rather than visual phases. `d479f5f` still constrains future audio:
+the attached control must fail closed until the selected card and approved
+URL-free descriptor match, but it contributes no visual authority.
+
+## Controlled-Pilot Side-Branch Findings
+
+The commits above live on the controlled-pilot contract/design/mobile refs, not
+on `origin/main`. They inherit the later-vetoed Aurora family: translucent
+panels, large radii, nested cards, and explanation-heavy screens. Their value is
+therefore state-machine evidence, not a visual baseline.
+
+Five high-signal commits establish the reusable boundary precisely:
+
+| Commit | Reusable UX fact | What must not be inherited |
+| --- | --- | --- |
+| `3886bda` | Dynamic Type uses scrolling, wrapping, and non-truncated titles so phone and CTA remain reachable. | The rounded glass login card and its exact composition. |
+| `1b7af2f` | Code entry offers an accessible “change phone” recovery that clears the challenge/code/error before returning to phone entry. | The exact button styling and implementation-oriented short-code copy. |
+| `51c2157` | Resend failure does not invalidate the prior code or paint the code input as wrong; submission remains available. | Any copy that equates transport failure with credential rejection. |
+| `8eb3c41` | Entitlement stages and first-valid-session timing are server-owned; the controlled pilot has no learner purchase path. | Server/operator/cross-platform narration and any attempt to generalize the pilot's time/card limits to formal membership. |
+| `f315afa` | Confirmation changes nothing; failure preserves session/data; only accepted deletion leaves the shell and shows truthful pending cleanup. | The existing modal/sheet visuals or a false “deleted” completion claim. |
+
+This side branch also gives direct evidence for the user's observed “prompt
+leakage.” Learner-visible strings included requirement and operations language
+such as “未登入时不展示学习、空间、统计和我的”, “产品页面会继续保持关闭”,
+“服务端已确认本轮 5 张卡”, “时间与资格以服务端为准”, “运营依据试点记录发放”,
+and “iOS 与 Android 共用”. These are grammatically valid strings, so the raw
+exception/token scanner cannot catch them. The next gate needs a human semantic
+copy review that asks whether each sentence helps the learner act or recover;
+status-machine facts remain internal unless the learner needs a plain-language
+consequence.
+
+Formal purchase and restore UI can be found in the history-cutover snapshot,
+but no isolated post-cutover commit establishes an independently accepted
+mobile design for it. The pilot's no-payment UI is a different, gate-ineligible
+state. Formal Paywall, purchase, restore, account mismatch, offline, and
+entitlement-refresh surfaces therefore require fresh exact design authority.
+
+Trial timing also has a scope boundary, not one merged evolution: current main
+still carries the post-auth start introduced around `5b59224`, active formal
+specs say `first_entry_counted_as_membership_trial`, and the unmerged pilot uses
+first valid Learning session from `60ac531`. The next design must consume the
+formal owner contract and canonical entitlement response; it must not borrow
+pilot timing or expose a countdown/start claim before that authority is clear.
 
 ## Design Output Inventory
 
@@ -96,6 +159,9 @@ them permanent product identity.
 | Editorial v2 | One-task emphasis and attached-result intent | Closed, unmerged, and explicitly rejected as a mobile package. |
 | Mobile visual rebuild v3 | Broad failure coverage, strict state matrix, audience separation lesson | All candidates rejected; frozen exact evidence may not be mutated or revived. |
 | Mobile visual rebuild v4 | Real browser interaction loops, exact learner/reviewer separation, stronger leakage regression, 320px/browser-200% measurements, and limited structural fragments | Eight of eight do not advance. No accepted artifact, shortlist, provisional leader, or RN authority. |
+| Controlled-pilot lifecycle search (`cpl-01`–`cpl-08`) | Empty-scheduling, first-valid-session, round-review, Space-return, and entitlement timing distinctions | Gate-ineligible pilot scope; Aurora-derived rendered family; no authority for formal membership, purchase, or the next mobile visual identity. |
+| Controlled-pilot mobile branches | Auth/recovery, entitlement refresh, round continuity, deletion truth, and honest-claim state machines | Unmerged, pilot-only, Aurora-derived, and semantically leaky; preserve behavior lessons only and rebuild visuals/copy. |
+| Membership / purchase / restore | Trial/Free/Premium product contract and a historical runtime surface | No separately accepted current mobile visual authority; formal purchase/restore must enter the next full state matrix. |
 
 ## Recurring Failure Patterns
 
@@ -138,6 +204,15 @@ them permanent product identity.
     Learning workspace title, 仔细阅读馆 context, and progress on Space and
     Statistics, making the app feel like one internal console rather than four
     distinct product routes.
+13. **Valid Chinese still leaked internal thinking.** Requirement, server,
+    operator, qualification, synchronization, and review explanations appeared
+    as polished sentences, so keyword sanitization passed while the product
+    still sounded like an implementation brief.
+14. **“No geometry change” was treated as “no UI change.”** Runtime commits
+    added or replaced authentication, hydration, queue, confirmation, retry,
+    recovery, purchase-capability, and deletion states without independent
+    visual/content review. Copy and state transitions are user-visible UI even
+    when component structure is unchanged.
 
 ## Preserve, Redraw, And Forbid
 
@@ -147,6 +222,8 @@ them permanent product identity.
 - Real Swipe commit/cancel/reduced-motion/alternate-action behavior.
 - Formal attached-audio lifecycle and card ownership.
 - Fail-closed learner error copy and physical learner/reviewer separation.
+- Controlled-pilot recovery semantics: correct-phone, resend-with-old-code,
+  hydration retry, entitlement refresh, round continuity, and deletion pending.
 - The technical strategy of removing fixed geometry and reflowing/stacking at
   large text, without hiding required information.
 - v4 structural ingredients only: reachable phone action order, quiet Space
@@ -179,6 +256,8 @@ them permanent product identity.
 - Current RN screenshots, current main code, pairwise winners, CI, local gates,
   or agent self-review used as design authority.
 - Any mixed learner/reviewer document or visible process narration.
+- Requirement/operations prose disguised as learner copy, including server,
+  operator, cross-platform implementation, gate, receipt, or review narration.
 - RN implementation before exact phone/tablet/state evidence and explicit
   product-owner acceptance.
 

@@ -13,7 +13,7 @@ mvn-07
 - Prompt: Render Continuity Path as an ordinary high-quality CET4/6 mobile product with one task, truthful feedback, physical Space continuity, platform-specific navigation, and no internal language.
 - Source context pack: `context-pack.md`
 - Artifact: `candidate-proofs/mvn-07-continuity-path.html#mvn-07`
-- Screenshots: no committed raster under the binary-evidence policy; reproducible exact browser states are recorded against the anchored Artifact at Learning, Result, Space, Auth, phone, and tablet sizes.
+- Screenshots: no committed raster under the binary-evidence policy; exact browser evidence records 320px initial Learning states, while separate 390px phone checks cover terminal Learning and representative Space/Auth paths. The available tablet query remains an unverified composition hypothesis; no 1024px measurement exists for mvn-07.
 
 ## Product Truth Fit
 
@@ -62,7 +62,7 @@ authorize RN work, claim native behavior, or replace real-device verification.
 
 ## Known Risks
 
-The withdrawn strong header and vertical path are absent. The remaining risk is that its low-contrast continuity bands may feel generic while content-heavy interactions still require a short scroll before confirmation. The exact candidate proof passed browser reflow, target-size, and text-contrast checks at 320 and 1024 CSS px, including browser 200% text. Final browser terminal testing also passed for all eight candidates in iOS- and Android-framed 390 × 844 states: no horizontal overflow, the primary CTA remained clear of navigation, active controls met the 44px iOS / 48px Android floors, and multiple choice remained 2 × 2. Native safe-area, IME, reduced-motion, VoiceOver/TalkBack, physical-device, and real native 200% text verification remain open.
+The withdrawn strong header and vertical path are absent. The remaining risk is that its low-contrast continuity bands may feel generic while content-heavy interactions still require a short scroll before confirmation. Exact browser evidence covers this candidate's initial states at 320 × 844 with browser text at 200%, plus terminal iOS- and Android-framed 390 × 844 interaction states. Those checks found no horizontal overflow or CTA/navigation overlap, met the 44px iOS / 48px Android active-control floors, and kept multiple choice 2 × 2. No 1024px or tablet-grade evidence exists for mvn-07. Contrast, native safe-area, IME, reduced-motion, VoiceOver/TalkBack, physical-device, and real native text-scaling verification remain open.
 
 ## Design Review Checklist Answers
 
@@ -79,7 +79,7 @@ becomes a sixth silhouette.
 
 Q4: The rebuilt exact revision has no gradient, gamified state, saturated header, or vertical continuity spine. Hard-filter review must now judge the quiet bands and action reach on their current merits rather than carrying forward the withdrawn failure.
 
-Q5: Exact browser reflow and target checks completed at 320 and 1024 CSS px, including browser 200% text; the 80-case narrow method is recorded in `../browser-evidence.md#narrow-200-final`. The final iOS- and Android-framed 390 × 844 terminal states for all eight candidates also have no horizontal overflow, keep the primary CTA above navigation, meet 44px iOS / 48px Android active-control floors, and keep multiple choice at 2 × 2. Native safe-area, IME, VoiceOver/TalkBack, reduced-motion, physical-device, and real native 200% text verification remain open.
+Q5: Exact browser reflow/target evidence covers initial states at 320 × 844 with browser text at 200%; the 80-case cohort method is recorded in `../browser-evidence.md#narrow-200-final`. Terminal iOS- and Android-framed 390 × 844 states also passed the recorded overflow, CTA/navigation, active-control-floor, and 2 × 2 multiple-choice checks. mvn-07 has no 1024px/tablet-grade or native acceptance evidence; contrast, safe-area, IME, VoiceOver/TalkBack, reduced-motion, physical-device, and real native text scaling remain open.
 
 Q6: The rendered Learning path is system-sequenced and offers no module picker.
 Flip result exposes exactly `有把握` and `再回看`; Statistics uses tabular

@@ -17,10 +17,15 @@
 - `spec/requirement-memory.json`
 - `spec/authority-map.json`
 - `spec/product-core.json`
+- `spec/account-sync-contract.json`
 - `spec/platform-contract.json`
+- `spec/action-surface.json`
+- `spec/card-system.json`
 - `spec/interactions.json`
 - `spec/knowledge-map.json`
 - `spec/space-operations.json`
+- `spec/membership.json`
+- `spec/runtime-boundaries.json`
 - `spec/visual-language.json`
 - `spec/workspace-boundary.json`
 - `spec/harness-architecture.json`
@@ -31,6 +36,7 @@
 - `docs/design/design-harness.md`
 - `docs/design/design-quarantine.md`
 - `docs/design/single-card-ux-contract.md`
+- `infra/cloudbase/content-manifest-v1-runtime-contract.md`
 - `docs/design/interaction-motion/learning-core-interactions-v1.md`
 - `docs/design/rejected/mobile-visual-directions-product-owner-veto-2026-08-08.md`
 
@@ -47,6 +53,12 @@
   sleep/wake is a reversible physical-zone operation.
 - Top-level order is `学习 / 空间 / 统计 / 我的`; Auth is a separate successive
   phone → code gate with recovery.
+- Trial/Free/Premium, contextual access limits, purchase/restore on every
+  release target, and shared cross-platform entitlement are product truths;
+  controlled-pilot grants remain server-audited and cannot be self-granted.
+- Peek/favorite/hint/sleep retain their contracted visibility, while membership
+  checks remain background behavior. Audio stays optional, card-owned,
+  explicit-play only, and URL-free rather than a sixth interaction family.
 - iOS and Android have equal priority. Tablet is a separate composition rather
   than a stretched phone layout.
 - Learner artifacts cannot expose reviewer, process, repository, runtime, test,
@@ -114,11 +126,14 @@ The prior provisional-leader and 8.0/10 statements were withdrawn. The old
   learner files.
 - Space browse/favorite/sleep/wake/return and Auth phone/code/error/resend/retry/
   edit/back completion.
-- iOS 390 × 844, Android 390 × 844, and real iframe 1024 × 768 tablet checks.
+- iOS 390 × 844 and Android 390 × 844 terminal checks, plus one bounded real-
+  iframe 1024 × 768 containment measurement for mvn-08 Lock only.
 - 320px, 200% text, focus order, `aria-current`, disclosure semantics, live
-  announcements, target floors, contrast, and no-overlap checks.
-- Independent UI/UX review on the exact final files. Any P0/P1 reopens the
-  rebuild rather than being documented as a later implementation gap.
+  announcements, target floors, and no-overlap checks. A complete final-
+  composite contrast matrix was not established.
+- Independent UI/UX review on the exact final files. Any P0/P1 blocks candidate
+  advancement; it does not reopen this completed no-promotion run. Only a later
+  promotion attempt starts a new synthesis/review lifecycle.
 
 ## User-visible UI impact
 
@@ -151,9 +166,10 @@ revision and its evidence is frozen. Only then may a separate RN change begin.
 - Added a browser `speechSynthesis` lifecycle only to prevent a false audio
   affordance in the design proof. It is not a formal content asset or production
   audio implementation.
-- Added short-phone and tablet composition corrections to remove measured CTA /
+- Added short-phone corrections across the cohort to remove measured CTA /
   navigation overlap while preserving text and 44px iOS / 48px Android target
-  floors.
+  floors. At tablet size, only mvn-08 Lock received a bounded correction and CTA
+  measurement; the other candidates have no measured 1024px evidence.
 - None of these hypotheses is accepted. Final independent review rejects all
   eight exact candidates and permits only a new synthesis.
 
@@ -193,7 +209,7 @@ revision and its evidence is frozen. Only then may a separate RN change begin.
 - `python3 scripts/validate_design_search_run.py --run ... --skip-templates`
 - `python3 scripts/validate_harness.py --section design_search_regressions`
 - `git diff --check`
-- Real in-app-browser interaction, layout, contrast, accessibility-state, and
+- Real in-app-browser interaction, layout, accessibility-state, and
   leakage checks against cache-busted exact learner URLs.
 
 ## Validation results
@@ -206,9 +222,9 @@ revision and its evidence is frozen. Only then may a separate RN change begin.
 - Learner metadata quarantine: passed; no visible candidate/reviewer/process
   language or quarantined real storage labels were detected.
 - Accessible visual-history audit: completed from root history cutover through
-  `origin/main@7960ebd`, rejected editorial/v3 branches, and the v4 output family. No
-  current or historical mobile visual package qualifies as replacement
-  authority.
+  `origin/main@7960ebd`, the controlled-pilot contract/design/mobile side refs,
+  rejected editorial/v3 branches, and the v4 output family. No current or
+  historical mobile visual package qualifies as replacement authority.
 - Next-synthesis proposal: independently challenged against the exact v4
   outputs and platform/product constraints. Its color, icon, material, route,
   tablet, motion, audio, accessibility, user-test, and rejection gates remain
@@ -230,9 +246,9 @@ revision and its evidence is frozen. Only then may a separate RN change begin.
   evidence.
 - 1024 × 768 mvn-08 Lock: CTA is visible at y=671–719 on iOS and y=689–737 on
   Android; other tablet candidates remain below product-grade visual quality.
-- Text contrast and semantic scoring colors passed the measured exact-browser
-  checks. Native safe-area, IME, VoiceOver/TalkBack, formal audio, and physical
-  device evidence remain open.
+- The exact browser run did not bind a complete final-composite contrast matrix.
+  Native safe-area, IME, VoiceOver/TalkBack, formal audio, and physical-device
+  evidence remain open.
 - Design-search validator: passed.
 - Design-search harness regression: passed (`HARNESS COMPLETENESS PARTIAL` is
   the expected report for the selected two-section validation scope, not a
@@ -247,13 +263,19 @@ revision and its evidence is frozen. Only then may a separate RN change begin.
   artifact cohort in the commit diff and is not final-scope validation. Exact
   ignored local report:
   `exports/local-gates/20260808T173927Z-df0cf9d0-pr-65068/report.json`.
-- The full harness, mobile lint/typecheck/Jest (45 suites / 437 tests), Web
-  lint/typecheck/Vitest/build, backend tests (206), metadata scans, contract
-  tests, evidence verification, and tracked-worktree integrity passed.
-- `pr-design-gate` and `agent-review` failed because that snapshot consumed the
-  old one-paragraph draft PR body. The replacement structured PR body is
-  separately validated locally with both validators before publication.
-- Three failures are not evidence that this design is promotable and remain
+- After all 49 files were committed and the structured remote PR body was
+  published, the same command ran against substantive exact HEAD `4e0780a`:
+  33 of 36 gates passed. Exact ignored local report:
+  `exports/local-gates/20260808T182942Z-4e0780aa-pr-37934/report.json`.
+  `pr-design-gate`, `agent-review`, complete full harness, design-scanner tests
+  (31/31), design metadata scan, mobile lint/typecheck/Jest (45 suites / 437
+  tests), Web lint/typecheck/Vitest/build, backend tests (206), evidence, and
+  repository health regression tests all passed on that committed cohort.
+- In the first snapshot, `pr-design-gate` and `agent-review` failed because it
+  consumed the old one-paragraph draft PR body. The replacement structured PR
+  body was published and both gates passed in the exact committed-cohort run.
+- The three remaining exact-scope failures are not evidence that this design is
+  promotable and remain
   explicit repository/environment blockers: local Node 25.9.0 versus required
   22.13.0 and Ruby 2.6.10 versus required 3.3.x; ten pre-existing high mobile
   dependency findings across `image-size` and `js-yaml`; and
@@ -279,10 +301,11 @@ states. Reviewer-gallery screenshots are inspection aids only.
   region, mvn-07 Space containment, and mvn-01 content/option density. Existing
   colors, icons, sheets, rails, and ratios do not carry forward as authority.
 - The next-synthesis proposal was separately challenged against all eight
-  outputs and active platform/product contracts. It keeps current-library
-  emphasis in Learning/Space, restricts product blue to subordinate use there,
-  replaces Unicode glyphs with platform icon families, removes permanent empty
-  tablet panes, and blocks route-chrome leakage. It remains a hypothesis.
+  outputs and active platform/product contracts. It now defines eight materially
+  different hypothesis slots without preselecting blue, coral, geometry,
+  navigation treatment, or motion; replaces Unicode glyphs with platform icon
+  families; removes permanent empty tablet panes; and blocks route-chrome and
+  semantic-copy leakage. Hypothesis A's product blue is an example only.
 
 ## Card make external workspace impact
 
