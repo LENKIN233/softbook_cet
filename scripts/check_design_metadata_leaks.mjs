@@ -73,6 +73,33 @@ function normalizeCamelCaseText(text) {
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 }
 
+// spec/knowledge-map.json owns these canonical library names. In learner-facing
+// UI, the public label is the canonical name plus “馆”. Mask only those exact
+// public forms before checking raw library names; group/box labels, ids,
+// metadata fields, and standalone library names remain subject to quarantine.
+const canonicalPublicLibraryLabels = [
+  '听力馆',
+  '仔细阅读馆',
+  '选词填空馆',
+  '写作馆',
+  '翻译馆',
+  '词汇馆',
+  '语法馆',
+];
+
+function maskCanonicalPublicLibraryLabels(text) {
+  return canonicalPublicLibraryLabels.reduce(
+    (masked, label) => masked.replaceAll(label, 'PUBLIC_LIBRARY_LABEL'),
+    text,
+  );
+}
+
+const rawStandaloneChineseLibraryPattern =
+  /(?<!\p{Script=Han})(?:仔细阅读|选词填空|听力|写作|翻译|词汇|语法|阅读)(?!\p{Script=Han})/u;
+
+const rawStandaloneChineseGroupOrBoxPattern =
+  /(?<!\p{Script=Han})(?:长难句关键修饰|阅读高频词|词义辨析组|语义关系盒|同义词替换|句式替换|长难句主干|逻辑关系|转折关系|主谓宾|高频词|定语)(?!\p{Script=Han})/u;
+
 const leakagePatterns = [
   {
     pattern: /#(?:5b6df5|ff8a3d|b568f5|18c4e0|f15b6e)\b/i,
@@ -85,17 +112,26 @@ const leakagePatterns = [
   },
   {
     pattern:
-      /(?:group-1|\bbox\s+id\b|\bcard\s+id\b|Detail Evidence|argument support|Current drawer|Original box|same box sibling|Very Long Detail Evidence|Long Detail Evidence|词义辨析组|语义关系盒|逻辑关系|转折关系|长难句主干|长难句关键修饰|主谓宾|定语|同义词替换|句式替换|高频词|阅读高频词)/i,
+      /(?:group-1|\bbox\s+id\b|\bcard\s+id\b|Detail Evidence|argument support|Current drawer|Original box|same box sibling|Very Long Detail Evidence|Long Detail Evidence)/i,
     reason: 'raw semantic group/box/card label in visual design artifact',
+  },
+  {
+    pattern: rawStandaloneChineseGroupOrBoxPattern,
+    reason: 'standalone raw Chinese group/box label in visual design artifact',
   },
   {
     pattern: /\bCET[46]\b(?!\/6)/i,
     reason: 'raw CET track value in visual design artifact',
   },
   {
-    pattern:
-      /(?:听力|阅读|写作|翻译|词汇|仔细阅读|快速阅读|定位词抓取|细节题|细节定位盒)/,
-    reason: 'raw Chinese library/group/box label in visual design artifact',
+    pattern: rawStandaloneChineseLibraryPattern,
+    normalize: maskCanonicalPublicLibraryLabels,
+    reason: 'standalone raw Chinese library label in visual design artifact',
+  },
+  {
+    pattern: /(?:阅读馆|快速阅读|定位词抓取|细节题|细节定位盒)/,
+    normalize: maskCanonicalPublicLibraryLabels,
+    reason: 'raw Chinese group/box or non-canonical library label in visual design artifact',
   },
   {
     pattern:
@@ -141,6 +177,29 @@ const visibleHtmlLeakagePatterns = [
   {
     pattern: /\b(?:docs|apps|scripts|spec|infra)\/[A-Za-z0-9_./-]+/i,
     reason: 'repo path in rendered visual proof',
+  },
+];
+
+const learnerSurfaceLeakagePatterns = [
+  {
+    pattern: /本(?:证明|原型|测试|审查)|服务端|本地计数|完整算法|当前知识对象|当前对象|共享同一个知识对象/,
+    reason: 'review, implementation, or data-model language in learner surface',
+  },
+  {
+    pattern: /主动作|焦点(?:已|回到|移到)|重复操作|已阻止|状态已退出|操作已收起|拥有当前卡|仍由[^。；]*拥有/,
+    reason: 'QA or state-machine narration in learner surface',
+  },
+  {
+    pattern: /第\s*\d+\s*盒/,
+    reason: 'raw numeric box reference in learner surface',
+  },
+  {
+    pattern: /(?:未越过|越过)阈值|方向键预览|回车提交|键盘可用|按\s*Escape/,
+    reason: 'test-input instruction in learner surface',
+  },
+  {
+    pattern: /认证门|自动内联解析/,
+    reason: 'internal interaction or routing label in learner surface',
   },
 ];
 
@@ -209,6 +268,115 @@ function visibleHtmlText(source) {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function structuralHtmlSource(source) {
+  return source
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[\s\S]*?<\/style>/gi, ' ');
+}
+
+function hasHtmlAttribute(attributeSource, attributeName) {
+  const attributePattern =
+    /(?:^|\s)([^\s"'<>\/=]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?/g;
+  let match;
+
+  while ((match = attributePattern.exec(attributeSource)) !== null) {
+    if (match[1].toLowerCase() === attributeName) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function learnerSurfaceMarkup(source) {
+  const values = [];
+  const templatePattern =
+    /<template\b((?:[^"'<>]|"[^"]*"|'[^']*')*)>([\s\S]*?)<\/template\s*>/gi;
+  let match;
+
+  const structuralSource = structuralHtmlSource(source);
+  while ((match = templatePattern.exec(structuralSource)) !== null) {
+    if (hasHtmlAttribute(match[1], 'data-learner-surface')) {
+      values.push(match[2]);
+    }
+  }
+
+  return values.join(' ');
+}
+
+function hasStructuralLearnerSurfaceMarker(source) {
+  const elementPattern =
+    /<([A-Za-z][A-Za-z0-9:-]*)\b((?:[^"'<>]|"[^"]*"|'[^']*')*)>/g;
+  let match;
+
+  const structuralSource = structuralHtmlSource(source);
+  while ((match = elementPattern.exec(structuralSource)) !== null) {
+    if (
+      match[1].toLowerCase() === 'main' &&
+      hasHtmlAttribute(match[2], 'data-learner-surface')
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function htmlDocumentAudience(source) {
+  const structuralSource = structuralHtmlSource(source);
+  const elementPattern =
+    /<([A-Za-z][A-Za-z0-9:-]*)\b((?:[^"'<>]|"[^"]*"|'[^']*')*)>/g;
+  const bodyAttributeSources = [];
+  let elementMatch;
+
+  while ((elementMatch = elementPattern.exec(structuralSource)) !== null) {
+    if (elementMatch[1].toLowerCase() === 'body') {
+      bodyAttributeSources.push(elementMatch[2]);
+    }
+  }
+
+  // Fail closed when malformed source contains zero or multiple structural
+  // body elements. In particular, reviewer classification must never come
+  // from a body-looking string in a comment, script, style, or attribute.
+  if (bodyAttributeSources.length !== 1) {
+    return '';
+  }
+
+  const audienceValues = [];
+  const attributePattern =
+    /(?:^|\s)([^\s"'<>\/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  let attributeMatch;
+
+  while (
+    (attributeMatch = attributePattern.exec(bodyAttributeSources[0])) !== null
+  ) {
+    if (attributeMatch[1].toLowerCase() === 'data-audience') {
+      audienceValues.push(
+        attributeMatch[2] ?? attributeMatch[3] ?? attributeMatch[4] ?? '',
+      );
+    }
+  }
+
+  if (audienceValues.length !== 1) {
+    return '';
+  }
+
+  return audienceValues[0].trim().toLowerCase();
+}
+
+function inlineScriptSource(source) {
+  const values = [];
+  const scriptPattern = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+  let match;
+
+  while ((match = scriptPattern.exec(source)) !== null) {
+    values.push(match[1]);
+  }
+
+  return values.join(' ');
 }
 
 const visibleAttributeNames = [
@@ -425,6 +593,83 @@ function scanVisibleHtmlProcessText(filePath, source) {
   return findings;
 }
 
+function scanLearnerSurfaceCopy(filePath, source) {
+  const documentAudience = htmlDocumentAudience(source);
+  const learnerTemplateMarkup = learnerSurfaceMarkup(source);
+  const hasLearnerTemplate = learnerTemplateMarkup.length > 0;
+  const hasStructuralLearnerRoot = hasStructuralLearnerSurfaceMarker(source);
+  const hasLearnerSurfaceMarker =
+    hasLearnerTemplate || hasStructuralLearnerRoot;
+
+  // A structural learner application root is publishable learner content, not
+  // a reviewer-template convenience. It must be owned by exactly one learner
+  // body. Missing, duplicate, conflicting, reviewer, or multi-body audience
+  // markup therefore fails closed before any copy-scoping decision.
+  if (hasStructuralLearnerRoot && documentAudience !== 'learner') {
+    return [
+      {
+        filePath,
+        kind: 'learner boundary',
+        line: 1,
+        reason:
+          'structural learner root requires exactly one data-audience="learner" body',
+        text: 'data-learner-surface',
+      },
+    ];
+  }
+
+  if (!hasLearnerSurfaceMarker && documentAudience !== 'learner') {
+    return [];
+  }
+
+  if (!hasLearnerSurfaceMarker) {
+    return [
+      {
+        filePath,
+        kind: 'learner boundary',
+        line: 1,
+        reason: 'learner document is missing the required data-learner-surface marker',
+        text: 'data-audience="learner"',
+      },
+    ];
+  }
+
+  const reviewerOnlyShell = documentAudience === 'reviewer';
+  const staticScope = reviewerOnlyShell ? learnerTemplateMarkup : source;
+  const scanTargets = [
+    { kind: 'learner-visible text', text: visibleHtmlText(staticScope) },
+    { kind: 'learner accessibility text', text: visibleAttributeText(staticScope) },
+  ];
+
+  // A reviewer shell may intentionally contain audit narration in its own CSS
+  // and JavaScript. Its marked learner template is still scanned above, while
+  // a learner or unmarked document fails closed across all generated/dynamic
+  // copy. The publishable preview is independently marked data-audience=learner.
+  if (!reviewerOnlyShell) {
+    scanTargets.push(
+      { kind: 'learner generated content', text: cssGeneratedText(source) },
+      { kind: 'learner dynamic copy', text: inlineScriptSource(source) },
+    );
+  }
+  const findings = [];
+
+  for (const target of scanTargets) {
+    for (const rule of learnerSurfaceLeakagePatterns) {
+      if (rule.pattern.test(target.text)) {
+        findings.push({
+          filePath,
+          kind: target.kind,
+          line: 1,
+          reason: rule.reason,
+          text: target.text.replace(/\s+/g, ' ').trim().slice(0, 220),
+        });
+      }
+    }
+  }
+
+  return findings;
+}
+
 const files = scanRoots
   .flatMap(root => walk(path.join(repoRoot, root)))
   .filter(filePath => {
@@ -439,6 +684,9 @@ const visualReferencePaths = visualReferenceFiles
 const findings = [
   ...files.flatMap(filePath =>
     scanText(filePath, fs.readFileSync(filePath, 'utf8')),
+  ),
+  ...files.flatMap(filePath =>
+    scanLearnerSurfaceCopy(filePath, fs.readFileSync(filePath, 'utf8')),
   ),
   ...visualReferencePaths.flatMap(filePath =>
     scanVisibleHtmlProcessText(filePath, fs.readFileSync(filePath, 'utf8')),

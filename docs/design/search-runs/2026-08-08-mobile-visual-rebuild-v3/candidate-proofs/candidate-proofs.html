@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>软书四六级 · 移动视觉系统对照</title>
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: light; }
+    body {
+      margin: 0;
+      background: #e5e3da;
+      color: #1f2633;
+      font-family: "PingFang SC", "Noto Sans CJK SC", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { color: inherit; font: inherit; }
+    .page-head {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 72px 28px 36px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 430px);
+      gap: 48px;
+      align-items: end;
+    }
+    .page-head .mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #475164;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .16em;
+    }
+    .page-head .mark::before { content: ""; width: 28px; height: 4px; background: #3348c8; }
+    .page-head h1 {
+      margin: 18px 0 0;
+      max-width: 780px;
+      color: #202839;
+      font-size: clamp(46px, 6vw, 78px);
+      line-height: .98;
+      letter-spacing: -.055em;
+    }
+    .page-head p { margin: 0; color: #4d5667; font-size: 16px; line-height: 1.8; }
+    .direction {
+      max-width: 1320px;
+      margin: 28px auto 84px;
+      padding: 32px 28px 44px;
+      border-top: 1px solid rgba(31, 38, 51, .18);
+    }
+    .direction-head {
+      display: grid;
+      grid-template-columns: 1fr minmax(280px, 480px);
+      gap: 40px;
+      align-items: end;
+      margin-bottom: 28px;
+    }
+    .direction-head .ordinal { color: #596274; font-size: 12px; font-weight: 800; letter-spacing: .18em; }
+    .direction-head h2 { margin: 7px 0 0; font-size: 38px; line-height: 1.08; letter-spacing: -.04em; }
+    .direction-head p { margin: 0; color: #535d6c; font-size: 14px; line-height: 1.7; }
+    .triptych { display: grid; grid-template-columns: repeat(3, 393px); gap: 30px; justify-content: center; }
+    .frame-note { margin: 0 0 10px 12px; color: #505969; font-size: 12px; font-weight: 750; letter-spacing: .08em; }
+    .device {
+      position: relative;
+      width: 393px;
+      height: 852px;
+      overflow: hidden;
+      border: 9px solid #252832;
+      border-radius: 43px;
+      box-shadow: 0 24px 48px rgba(30, 34, 43, .2), 0 5px 14px rgba(30, 34, 43, .12);
+      isolation: isolate;
+    }
+    .device .status {
+      position: absolute;
+      inset: 0 0 auto;
+      z-index: 30;
+      height: 49px;
+      padding: 13px 20px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      color: inherit;
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: .02em;
+    }
+    .device .status .system { letter-spacing: .11em; }
+    .two-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .two-choice button { min-height: 48px; border: 0; font-size: 13px; font-weight: 800; }
+    .choice-confident { color: #086b56; background: #ccebdd; }
+    .choice-review { color: #725000; background: #f5dfa3; }
+    .dot-mint, .dot-amber { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; vertical-align: 1px; }
+    .dot-mint { background: #0b8165; }
+    .dot-amber { background: #946500; }
+
+    /* 01 · bound manual */
+    .manual {
+      background: #596649;
+      color: #253024;
+      font-family: "Arial Narrow", "PingFang SC", sans-serif;
+    }
+    .manual::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: .24;
+      background-image: repeating-linear-gradient(90deg, rgba(238, 228, 190, .16) 0 1px, transparent 1px 5px);
+    }
+    .manual .status { color: #edf0df; }
+    .manual .binding {
+      position: absolute;
+      top: 52px;
+      bottom: 18px;
+      left: 14px;
+      width: 25px;
+      border: 1px solid rgba(240, 234, 209, .35);
+      background: #3648bc;
+      box-shadow: inset -4px 0 0 rgba(30, 34, 82, .2);
+    }
+    .manual .binding::after {
+      content: "";
+      position: absolute;
+      inset: 18px 9px;
+      border-left: 2px dashed rgba(245, 239, 219, .76);
+    }
+    .manual .manual-page {
+      position: absolute;
+      z-index: 2;
+      top: 54px;
+      right: 57px;
+      bottom: 18px;
+      left: 31px;
+      padding: 27px 24px 22px 29px;
+      overflow: hidden;
+      background: #f2ead3;
+      border: 1px solid #b8aa83;
+      box-shadow: 8px 8px 0 rgba(40, 50, 35, .16);
+    }
+    .manual .manual-page::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: .34;
+      background-image: repeating-linear-gradient(0deg, transparent 0 25px, rgba(70, 76, 57, .12) 25px 26px);
+    }
+    .manual .manual-page > * { position: relative; z-index: 1; }
+    .manual .manual-top { display: flex; justify-content: space-between; gap: 12px; color: #465440; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+    .manual .manual-progress { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; margin-top: 16px; color: #3b49bb; font-size: 11px; font-weight: 850; }
+    .manual .manual-progress i { height: 3px; background: #c2bda9; }
+    .manual .manual-progress i::before { content: ""; display: block; width: 32%; height: 100%; background: #3449c1; }
+    .manual .manual-question { margin-top: 54px; }
+    .manual .manual-question .kicker { color: #3449c1; font-size: 12px; font-weight: 900; letter-spacing: .12em; }
+    .manual .manual-question h3 { margin: 12px 0 0; max-width: 260px; font-size: 32px; line-height: 1.25; letter-spacing: -.035em; }
+    .manual .manual-question p { margin: 18px 0 0; max-width: 260px; color: #495445; font-size: 15px; line-height: 1.75; }
+    .manual .manual-tools { display: flex; gap: 8px; margin-top: 22px; }
+    .manual .manual-tools span { padding: 7px 9px; border: 1px solid #8c8b74; background: #eee4c9; font-size: 11px; font-weight: 760; }
+    .manual .manual-reveal {
+      position: absolute;
+      right: 22px;
+      bottom: 56px;
+      left: 29px;
+      min-height: 52px;
+      border: 0;
+      background: #3449c1;
+      color: #f6f0dc;
+      font-weight: 850;
+      letter-spacing: .04em;
+      text-align: left;
+      padding: 0 17px;
+    }
+    .manual .manual-address { position: absolute; right: 22px; bottom: 20px; left: 29px; color: #535d4d; font-size: 10px; font-weight: 760; letter-spacing: .04em; }
+    .manual .edge-index {
+      position: absolute;
+      z-index: 5;
+      top: 78px;
+      right: 0;
+      bottom: 42px;
+      width: 57px;
+      display: grid;
+      grid-template-rows: repeat(4, 1fr);
+      gap: 4px;
+    }
+    .manual .edge-index span { display: flex; align-items: center; justify-content: center; padding: 8px 4px; border-left: 1px solid rgba(247, 242, 219, .35); color: #edf0df; font-size: 11px; font-weight: 750; letter-spacing: .12em; }
+    .manual .edge-index .on { background: #3449c1; color: #f6f0dc; }
+    .manual .answer-title { margin-top: 26px; color: #3449c1; font-size: 12px; font-weight: 900; letter-spacing: .12em; }
+    .manual .manual-answer { margin: 10px 0 0; font-size: 20px; line-height: 1.55; font-weight: 850; }
+    .manual .manual-analysis { margin-top: 20px; padding: 18px 16px; border-left: 4px solid #3449c1; background: #e5dbc0; }
+    .manual .manual-analysis strong { display: block; font-size: 15px; }
+    .manual .manual-analysis p { margin: 8px 0 0; color: #465043; font-size: 13px; line-height: 1.7; }
+    .manual .two-choice { position: absolute; right: 22px; bottom: 56px; left: 29px; }
+    .manual .two-choice button { border: 1px solid rgba(64, 70, 54, .22); border-radius: 2px; }
+    .manual .cabinet {
+      position: absolute;
+      z-index: 2;
+      top: 62px;
+      right: 57px;
+      bottom: 18px;
+      left: 24px;
+      padding: 23px 20px;
+      background: #e9dfc3;
+      border: 7px solid #414b37;
+      box-shadow: inset 0 0 0 2px #9f9578;
+    }
+    .manual .cabinet h3 { margin: 0; font-size: 27px; letter-spacing: -.03em; }
+    .manual .cabinet .path { margin-top: 7px; color: #4b5745; font-size: 11px; font-weight: 750; }
+    .manual .shelf { margin-top: 26px; border-top: 11px solid #667153; padding-top: 10px; }
+    .manual .drawers { display: grid; grid-template-columns: .8fr 1.3fr .8fr; gap: 8px; }
+    .manual .drawer { min-height: 101px; padding: 13px 10px; border: 2px solid #706e58; background: #d1c5a6; color: #394233; font-size: 11px; line-height: 1.45; }
+    .manual .drawer.current { transform: translateY(13px); border-color: #3449c1; background: #f1e8cf; color: #263022; box-shadow: 0 10px 0 #3449c1; }
+    .manual .drawer b { display: block; font-size: 14px; }
+    .manual .contained-card { margin-top: 32px; padding: 17px; border-left: 9px solid #3449c1; background: #f4ecd7; box-shadow: 4px 5px 0 rgba(56, 63, 48, .16); }
+    .manual .contained-card b { display: block; font-size: 16px; }
+    .manual .contained-card p { margin: 8px 0 0; color: #4b5546; font-size: 12px; line-height: 1.55; }
+    .manual .space-tags { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 20px; }
+    .manual .space-tags span { padding: 12px; border: 1px solid #86836b; font-size: 11px; font-weight: 760; }
+    .manual .space-tags .sleep { background: #d5d0bc; color: #50594d; }
+    .manual .return { position: absolute; right: 19px; bottom: 18px; left: 19px; padding: 14px; background: #3449c1; color: #f3edd9; font-size: 13px; font-weight: 850; }
+
+    /* 02 · exam broadsheet */
+    .broadsheet { background: #eed8a8; color: #25233b; font-family: "Avenir Next Condensed", "PingFang SC", sans-serif; border-radius: 28px; }
+    .broadsheet .status { color: #25233b; }
+    .broadsheet .section-index {
+      position: absolute;
+      z-index: 5;
+      top: 49px;
+      right: 0;
+      left: 0;
+      height: 45px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid #2d2a40;
+      border-bottom: 3px solid #2d2a40;
+      background: #eed8a8;
+    }
+    .broadsheet .section-index span { display: grid; place-items: center; border-right: 1px solid #2d2a40; font-size: 11px; font-weight: 850; letter-spacing: .08em; }
+    .broadsheet .section-index .on { color: #f2e8c9; background: #2f43bd; }
+    .broadsheet .sheet {
+      position: absolute;
+      top: 94px;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      padding: 23px 22px 28px 38px;
+      overflow: hidden;
+      background: #f2e7c9;
+    }
+    .broadsheet .sheet::before { content: ""; position: absolute; top: 0; bottom: 0; left: 22px; width: 7px; background: #3044bf; }
+    .broadsheet .mastline { display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid #2d2a40; color: #4a465d; font-size: 10px; font-weight: 850; letter-spacing: .11em; }
+    .broadsheet .issue { display: grid; grid-template-columns: 58px 1fr; gap: 14px; margin-top: 26px; }
+    .broadsheet .issue-no { font-size: 52px; line-height: .9; font-weight: 900; letter-spacing: -.08em; color: #3044bf; }
+    .broadsheet .issue-copy { padding-left: 13px; border-left: 1px solid #7d786b; color: #4b4756; font-size: 12px; line-height: 1.55; }
+    .broadsheet h3 { margin: 38px 0 0; font-size: 34px; line-height: 1.16; letter-spacing: -.045em; }
+    .broadsheet .dek { margin: 15px 0 0; padding-top: 12px; border-top: 5px solid #2d2a40; color: #484455; font-size: 14px; line-height: 1.7; }
+    .broadsheet .marginalia { display: flex; justify-content: space-between; margin-top: 20px; color: #3044bf; font-size: 11px; font-weight: 850; }
+    .broadsheet .broadsheet-action { position: absolute; right: 22px; bottom: 29px; left: 38px; min-height: 54px; border: 2px solid #2d2a40; background: #3044bf; color: #f3e8c9; font-weight: 900; letter-spacing: .07em; }
+    .broadsheet .answer-rule { margin-top: 28px; padding: 12px 0 10px; border-top: 7px solid #3044bf; border-bottom: 1px solid #2d2a40; color: #3044bf; font-size: 11px; font-weight: 900; letter-spacing: .15em; }
+    .broadsheet .answer-copy { margin: 19px 0 0; font-size: 22px; line-height: 1.45; font-weight: 850; }
+    .broadsheet .column-copy { columns: 2; column-gap: 18px; column-rule: 1px solid #777162; margin-top: 18px; color: #474353; font-size: 12px; line-height: 1.68; }
+    .broadsheet .two-choice { position: absolute; right: 22px; bottom: 29px; left: 38px; }
+    .broadsheet .two-choice button { border: 2px solid #2d2a40; border-radius: 0; }
+    .broadsheet .register-title { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: end; border-bottom: 7px solid #2d2a40; padding-bottom: 12px; }
+    .broadsheet .register-title h3 { margin: 0; font-size: 31px; }
+    .broadsheet .register-title b { color: #3044bf; font-size: 43px; line-height: .8; }
+    .broadsheet .register-path { margin-top: 10px; color: #4b4756; font-size: 11px; font-weight: 800; }
+    .broadsheet .register-band { display: grid; grid-template-columns: 76px 1fr 42px; gap: 10px; padding: 14px 0; border-bottom: 1px solid #676257; align-items: center; }
+    .broadsheet .register-band > b { color: #494553; font-size: 11px; }
+    .broadsheet .register-band .slot { padding: 13px; border: 1px solid #666158; background: #e2d3ad; font-size: 12px; }
+    .broadsheet .register-band.current .slot { border: 3px solid #3044bf; background: #f4ead0; color: #25233b; font-weight: 850; }
+    .broadsheet .register-band em { color: #3044bf; font-size: 11px; font-style: normal; font-weight: 900; text-align: right; }
+    .broadsheet .clipped-card { margin-top: 17px; padding: 16px; border-top: 4px solid #3044bf; background: #e9dcb9; }
+    .broadsheet .clipped-card b { font-size: 16px; }
+    .broadsheet .clipped-card p { margin: 7px 0 0; color: #494555; font-size: 12px; line-height: 1.55; }
+    .broadsheet .register-foot { display: flex; justify-content: space-between; margin-top: 15px; color: #484455; font-size: 11px; font-weight: 760; }
+    .broadsheet .register-return { position: absolute; right: 22px; bottom: 28px; left: 38px; padding: 15px 17px; background: #3044bf; color: #f3e8c9; font-size: 13px; font-weight: 900; }
+
+    /* 03 · kinetic index */
+    .kinetic { background: #f0e95c; color: #18243d; font-family: "Arial Black", "PingFang SC", sans-serif; border-radius: 52px; }
+    .kinetic .status { color: #18243d; }
+    .kinetic .kinetic-mark { position: absolute; top: 58px; left: 22px; z-index: 5; display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 900; letter-spacing: .08em; }
+    .kinetic .kinetic-mark::before { content: ""; width: 26px; height: 9px; background: #3047cd; }
+    .kinetic .rail { position: absolute; z-index: 1; top: 101px; bottom: 170px; left: 18px; width: 23px; background: #3047cd; }
+    .kinetic .rail::after { content: "03"; position: absolute; bottom: 20px; left: 1px; color: #f4ee82; font-size: 11px; font-weight: 900; transform: rotate(90deg); }
+    .kinetic .question-block {
+      position: absolute;
+      z-index: 2;
+      top: 106px;
+      right: 21px;
+      left: 38px;
+      min-height: 493px;
+      padding: 25px 24px 112px;
+      border: 5px solid #18243d;
+      background: #d7e7f6;
+      box-shadow: 13px 13px 0 #e56f54;
+    }
+    .kinetic .question-block .serial { display: flex; justify-content: space-between; color: #3047cd; font-family: "Arial Narrow", sans-serif; font-size: 11px; font-weight: 900; letter-spacing: .13em; }
+    .kinetic .question-block h3 { margin: 47px 0 0; font-size: 37px; line-height: 1.13; letter-spacing: -.055em; }
+    .kinetic .question-block p { margin: 18px 0 0; max-width: 270px; font-family: "PingFang SC", sans-serif; font-size: 15px; font-weight: 650; line-height: 1.7; }
+    .kinetic .kinetic-tools { position: absolute; left: 24px; bottom: 23px; display: flex; gap: 8px; }
+    .kinetic .kinetic-tools span { padding: 8px 10px; border: 2px solid #18243d; background: #f5ef81; font-family: "PingFang SC", sans-serif; font-size: 11px; font-weight: 800; }
+    .kinetic .kinetic-action { position: absolute; z-index: 4; right: 21px; bottom: 170px; width: 194px; min-height: 69px; border: 5px solid #18243d; background: #3047cd; color: #f4ef8a; font-size: 16px; font-weight: 900; text-align: left; padding-left: 17px; box-shadow: 8px 8px 0 #18243d; }
+    .kinetic .kinetic-address { position: absolute; z-index: 4; bottom: 122px; left: 21px; color: #18243d; font-family: "Arial Narrow", sans-serif; font-size: 11px; font-weight: 900; }
+    .kinetic .stamp-nav { position: absolute; z-index: 5; right: 20px; bottom: 21px; left: 20px; height: 84px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .kinetic .stamp-nav span { display: grid; place-items: center; border: 3px solid #18243d; background: #f4ef7c; font-size: 11px; font-weight: 900; }
+    .kinetic .stamp-nav .on { background: #18243d; color: #f4ef7c; }
+    .kinetic .back-block { min-height: 538px; padding-bottom: 120px; }
+    .kinetic .back-block h3 { margin-top: 28px; font-size: 24px; color: #3047cd; }
+    .kinetic .back-answer { margin-top: 13px; padding: 15px; border: 4px solid #18243d; background: #f2eb79; font-family: "PingFang SC", sans-serif; font-size: 15px; font-weight: 800; line-height: 1.6; }
+    .kinetic .back-analysis { margin-top: 13px; color: #23304a; font-family: "PingFang SC", sans-serif; font-size: 12px; font-weight: 650; line-height: 1.6; }
+    .kinetic .two-choice { position: absolute; right: 21px; bottom: 133px; left: 38px; z-index: 4; }
+    .kinetic .two-choice button { border: 3px solid #18243d; border-radius: 0; box-shadow: 4px 4px 0 #18243d; }
+    .kinetic .index-board { position: absolute; z-index: 2; top: 99px; right: 20px; bottom: 121px; left: 20px; border: 5px solid #18243d; background: #d7e7f6; box-shadow: 12px 12px 0 #e56f54; padding: 22px; }
+    .kinetic .index-board h3 { margin: 0; font-size: 30px; letter-spacing: -.04em; }
+    .kinetic .board-path { margin-top: 7px; font-family: "Arial Narrow", sans-serif; font-size: 11px; font-weight: 900; }
+    .kinetic .lane { display: grid; grid-template-columns: 48px 1fr; gap: 9px; margin-top: 21px; }
+    .kinetic .lane-label { display: grid; place-items: center; padding: 8px; background: #18243d; color: #f4ef7c; font-size: 11px; letter-spacing: .08em; text-align: center; }
+    .kinetic .blocks { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .kinetic .block { min-height: 84px; padding: 10px; border: 3px solid #18243d; background: #f4ef7c; font-family: "PingFang SC", sans-serif; font-size: 11px; font-weight: 800; }
+    .kinetic .block.current { grid-row: span 2; background: #3047cd; color: #edf2f2; }
+    .kinetic .slip { margin-top: 12px; padding: 12px; border: 3px solid #18243d; background: #edf1e0; color: #18243d; }
+    .kinetic .slip b { display: block; font-size: 14px; }
+    .kinetic .slip small { display: block; margin-top: 5px; font-family: "PingFang SC", sans-serif; font-size: 11px; line-height: 1.45; }
+    .kinetic .parked { margin-top: 13px; display: flex; justify-content: space-between; padding-top: 10px; border-top: 4px solid #18243d; font-family: "PingFang SC", sans-serif; font-size: 11px; font-weight: 800; }
+
+    /* 04 · quiet instrument */
+    .instrument { background: #12353b; color: #dfecea; font-family: "SFMono-Regular", "Roboto Mono", monospace; border-color: #16292e; border-radius: 18px; }
+    .instrument::before { content: ""; position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg, rgba(193, 222, 215, .035) 0 1px, transparent 1px 7px); }
+    .instrument .status { color: #dfecea; }
+    .instrument .command-rail { position: absolute; z-index: 5; top: 50px; bottom: 0; left: 0; width: 58px; display: grid; grid-template-rows: repeat(4, 1fr); border-right: 1px solid #65807e; background: #173d43; }
+    .instrument .command-rail span { display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #536f6e; color: #a9c1bf; font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+    .instrument .command-rail .on { background: #8b9af2; color: #142e34; }
+    .instrument .instrument-body { position: absolute; z-index: 2; top: 50px; right: 0; bottom: 0; left: 58px; padding: 23px 20px 22px; }
+    .instrument .instrument-head { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; color: #aac4c1; font-size: 10px; letter-spacing: .11em; }
+    .instrument .lamp { width: 10px; height: 10px; border: 2px solid #9fb5b4; border-radius: 50%; box-shadow: 0 0 0 4px rgba(115, 132, 235, .18); background: #8b9af2; }
+    .instrument .measure { display: grid; grid-template-columns: auto 1fr auto; gap: 9px; align-items: center; margin-top: 17px; color: #c1d5d2; font-size: 10px; }
+    .instrument .measure i { height: 7px; border: 1px solid #728b89; background: repeating-linear-gradient(90deg, #7384eb 0 4px, transparent 4px 8px); }
+    .instrument .viewport { margin-top: 21px; min-height: 458px; padding: 22px 19px 112px; border: 1px solid #839c99; background: #e1eadf; color: #183238; box-shadow: inset 0 0 0 6px #274a50, inset 0 0 0 7px #7a9895; position: relative; }
+    .instrument .viewport .code { color: #4459ce; font-size: 10px; font-weight: 800; letter-spacing: .13em; }
+    .instrument .viewport h3 { margin: 44px 0 0; font-family: "Arial Narrow", "PingFang SC", sans-serif; font-size: 31px; line-height: 1.25; letter-spacing: -.03em; }
+    .instrument .viewport p { margin: 18px 0 0; font-family: "PingFang SC", sans-serif; color: #3d5355; font-size: 14px; line-height: 1.7; }
+    .instrument .viewport-tools { position: absolute; bottom: 79px; left: 19px; display: flex; gap: 8px; }
+    .instrument .viewport-tools span { padding: 7px 9px; border: 1px solid #5b7270; color: #31484a; font-family: "PingFang SC", sans-serif; font-size: 11px; font-weight: 700; }
+    .instrument .instrument-action { position: absolute; right: 18px; bottom: 18px; left: 18px; min-height: 49px; border: 1px solid #283c7e; background: #8b9af2; color: #142e34; font-size: 12px; font-weight: 900; letter-spacing: .08em; }
+    .instrument .instrument-address { margin-top: 15px; color: #b6cdca; font-family: "PingFang SC", sans-serif; font-size: 11px; line-height: 1.5; }
+    .instrument .viewport.back { min-height: 522px; padding-bottom: 128px; }
+    .instrument .viewport.back h3 { margin-top: 23px; color: #3147bf; font-size: 22px; }
+    .instrument .instrument-answer { margin-top: 13px; padding: 12px; border-left: 5px solid #4459ce; background: #cbd8cd; font-family: "PingFang SC", sans-serif; font-size: 14px; font-weight: 750; line-height: 1.6; }
+    .instrument .instrument-analysis { margin-top: 12px; font-family: "PingFang SC", sans-serif; color: #344b4d; font-size: 12px; line-height: 1.55; }
+    .instrument .two-choice { position: absolute; right: 18px; bottom: 18px; left: 18px; }
+    .instrument .two-choice button { border-radius: 2px; }
+    .instrument .route-panel { margin-top: 19px; padding: 18px; border: 1px solid #76908e; background: #e1eadf; color: #183238; min-height: 568px; }
+    .instrument .route-panel h3 { margin: 0; font-family: "Arial Narrow", "PingFang SC", sans-serif; font-size: 27px; }
+    .instrument .route-path { margin-top: 8px; color: #425b5d; font-family: "PingFang SC", sans-serif; font-size: 11px; }
+    .instrument .route-map { position: relative; margin-top: 24px; min-height: 335px; border-left: 4px solid #4459ce; }
+    .instrument .route-line { position: relative; margin: 0 0 14px 22px; padding: 12px 10px; border: 1px solid #6b8380; background: #cfdacf; font-family: "PingFang SC", sans-serif; font-size: 11px; }
+    .instrument .route-line::before { content: ""; position: absolute; left: -30px; top: 17px; width: 14px; height: 14px; border: 3px solid #4459ce; border-radius: 50%; background: #e1eadf; }
+    .instrument .route-line.current { margin-left: 34px; border: 3px solid #4459ce; background: #eef2e5; }
+    .instrument .cassette { margin-top: 10px; padding: 11px; background: #4459ce; color: #edf2e6; }
+    .instrument .standby { margin-top: 15px; display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid #7c918f; color: #41595b; font-family: "PingFang SC", sans-serif; font-size: 11px; }
+    .instrument .route-return { margin-top: 16px; padding: 14px; background: #8b9af2; color: #142e34; font-family: "PingFang SC", sans-serif; font-size: 13px; font-weight: 850; }
+
+    /* 05 · folding map */
+    .foldmap { background: #d5c7a4; color: #20344b; font-family: "Trebuchet MS", "PingFang SC", sans-serif; border-radius: 37px; }
+    .foldmap .status { color: #20344b; }
+    .foldmap .map-head { position: absolute; z-index: 4; top: 57px; right: 22px; left: 22px; display: flex; justify-content: space-between; color: #2945bf; font-size: 11px; font-weight: 900; letter-spacing: .09em; }
+    .foldmap .fold-sheet {
+      position: absolute;
+      z-index: 2;
+      top: 89px;
+      right: 19px;
+      bottom: 122px;
+      left: 19px;
+      overflow: hidden;
+      border: 2px solid #30445a;
+      background-color: #e9ddb8;
+      background-image:
+        linear-gradient(90deg, transparent 32.8%, rgba(43, 63, 80, .18) 33%, transparent 33.5%, transparent 66%, rgba(43, 63, 80, .18) 66.2%, transparent 66.7%),
+        linear-gradient(0deg, transparent 49.5%, rgba(43, 63, 80, .15) 49.8%, transparent 50.4%);
+      box-shadow: 7px 9px 0 rgba(59, 72, 60, .18);
+    }
+    .foldmap .map-route { position: absolute; top: 41px; bottom: 45px; left: 42px; width: 6px; background: #3048c8; }
+    .foldmap .map-route::before, .foldmap .map-route::after { content: ""; position: absolute; left: -7px; width: 20px; height: 20px; border: 4px solid #3048c8; border-radius: 50%; background: #e9ddb8; }
+    .foldmap .map-route::before { top: 0; }
+    .foldmap .map-route::after { bottom: 0; }
+    .foldmap .stop-label { position: absolute; top: 34px; left: 76px; color: #3048c8; font-size: 11px; font-weight: 900; letter-spacing: .1em; }
+    .foldmap .map-question { position: absolute; top: 110px; right: 24px; left: 74px; }
+    .foldmap .map-question h3 { margin: 0; font-size: 32px; line-height: 1.19; letter-spacing: -.045em; }
+    .foldmap .map-question p { margin: 17px 0 0; color: #3f5362; font-family: "PingFang SC", sans-serif; font-size: 14px; line-height: 1.75; }
+    .foldmap .map-tools { position: absolute; right: 24px; bottom: 101px; left: 74px; display: flex; justify-content: space-between; color: #2945bf; font-size: 11px; font-weight: 850; }
+    .foldmap .unfold { position: absolute; right: 0; bottom: 0; left: 33%; min-height: 66px; border: 0; border-top: 2px solid #30445a; border-left: 2px solid #30445a; background: #3048c8; color: #edf0d8; font-weight: 900; text-align: left; padding-left: 18px; }
+    .foldmap .fold-address { position: absolute; left: 17px; bottom: 16px; color: #2f4757; font-size: 10px; font-weight: 850; transform: rotate(-90deg); transform-origin: left bottom; white-space: nowrap; }
+    .foldmap .legend-nav { position: absolute; z-index: 5; right: 20px; bottom: 22px; left: 20px; height: 76px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 2px solid #294058; }
+    .foldmap .legend-nav span { position: relative; padding-top: 28px; color: #3d5261; font-size: 11px; font-weight: 850; text-align: center; }
+    .foldmap .legend-nav span::before { content: ""; position: absolute; top: -7px; left: 50%; width: 12px; height: 12px; border: 3px solid #294058; border-radius: 50%; background: #d5c7a4; transform: translateX(-50%); }
+    .foldmap .legend-nav .on { color: #2945bf; }
+    .foldmap .legend-nav .on::before { border-color: #3048c8; background: #3048c8; }
+    .foldmap .fold-sheet.back { background-color: #e9ddb8; }
+    .foldmap .map-answer { position: absolute; top: 64px; right: 25px; left: 75px; }
+    .foldmap .map-answer .label { color: #3048c8; font-size: 11px; font-weight: 900; letter-spacing: .12em; }
+    .foldmap .map-answer h3 { margin: 12px 0 0; font-size: 23px; line-height: 1.42; }
+    .foldmap .map-analysis { margin-top: 20px; padding: 15px; border: 2px solid #30445a; background: #d9cca8; font-family: "PingFang SC", sans-serif; color: #394d5a; font-size: 12px; line-height: 1.65; }
+    .foldmap .two-choice { position: absolute; right: 22px; bottom: 25px; left: 74px; }
+    .foldmap .two-choice button { border: 2px solid #30445a; border-radius: 3px; }
+    .foldmap .territory { position: absolute; inset: 48px 22px 24px; }
+    .foldmap .territory h3 { margin: 0; font-size: 26px; letter-spacing: -.03em; }
+    .foldmap .territory-path { margin-top: 7px; color: #405563; font-size: 10px; font-weight: 850; }
+    .foldmap .region { position: relative; margin-top: 23px; min-height: 359px; border: 3px solid #294058; background: #d9d1ae; padding: 16px; }
+    .foldmap .region::before { content: "当前馆"; position: absolute; top: -13px; left: 14px; padding: 3px 8px; background: #d9d1ae; color: #2945bf; font-size: 10px; font-weight: 900; }
+    .foldmap .group-route { position: relative; height: 98px; margin-top: 9px; border-left: 5px solid #3048c8; border-bottom: 5px solid #3048c8; }
+    .foldmap .group-route span { position: absolute; bottom: 10px; left: 22px; font-size: 12px; font-weight: 850; }
+    .foldmap .box-map { display: grid; grid-template-columns: .8fr 1.4fr .8fr; gap: 8px; margin-top: 13px; }
+    .foldmap .box-map div { min-height: 83px; padding: 10px; border: 2px solid #415565; background: #eee3bf; font-size: 11px; }
+    .foldmap .box-map .current { border: 4px solid #3048c8; background: #e9ddb8; font-weight: 900; }
+    .foldmap .box-map .current-stop { margin-top: 12px; min-height: 0; padding: 13px; border: 0; background: #3048c8; color: #edf0d8; font-size: 12px; font-weight: 850; }
+    .foldmap .map-state { display: flex; justify-content: space-between; margin-top: 14px; color: #3c515f; font-size: 10px; font-weight: 800; }
+
+    /* 06 · letterpress case */
+    .letterpress { background: #d8694c; color: #241d16; font-family: "Arial Black", "PingFang SC", sans-serif; border-radius: 31px; }
+    .letterpress .status { color: #241d16; }
+    .letterpress .slug-nav { position: absolute; z-index: 5; top: 54px; right: 17px; left: 17px; height: 50px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .letterpress .slug-nav span { display: grid; place-items: center; border: 3px solid #2c261c; background: #edc768; font-size: 10px; font-weight: 900; box-shadow: 3px 3px 0 #2c261c; }
+    .letterpress .slug-nav .on { background: #3346bd; color: #f4df9a; }
+    .letterpress .bed { position: absolute; z-index: 2; top: 120px; right: 19px; bottom: 21px; left: 19px; border: 7px solid #2c261c; background: #f0dfaa; box-shadow: inset 0 0 0 3px #be9c55; padding: 20px; }
+    .letterpress .press-meta { display: flex; justify-content: space-between; color: #54462c; font-family: "Arial Narrow", sans-serif; font-size: 10px; font-weight: 900; letter-spacing: .12em; }
+    .letterpress .question-slug { margin-top: 34px; min-height: 406px; padding: 25px 20px 120px; border: 5px solid #2c261c; background: #e7efe1; box-shadow: 8px 8px 0 #3346bd; position: relative; }
+    .letterpress .question-slug .small { color: #3346bd; font-size: 11px; letter-spacing: .12em; }
+    .letterpress .question-slug h3 { margin: 39px 0 0; font-size: 32px; line-height: 1.16; letter-spacing: -.045em; }
+    .letterpress .question-slug p { margin: 17px 0 0; color: #4b4738; font-family: "PingFang SC", sans-serif; font-size: 14px; font-weight: 650; line-height: 1.65; }
+    .letterpress .press-tools { position: absolute; bottom: 23px; left: 20px; display: flex; gap: 7px; }
+    .letterpress .press-tools span { padding: 8px 9px; border: 3px solid #2c261c; background: #edc768; font-family: "PingFang SC", sans-serif; font-size: 10px; font-weight: 850; }
+    .letterpress .lever { position: absolute; right: 19px; bottom: 22px; width: 189px; min-height: 61px; border: 5px solid #2c261c; background: #3346bd; color: #f1dda2; font-size: 14px; font-weight: 900; box-shadow: 6px 6px 0 #2c261c; }
+    .letterpress .press-address { position: absolute; bottom: 88px; left: 20px; color: #51462e; font-family: "PingFang SC", sans-serif; font-size: 10px; font-weight: 850; }
+    .letterpress .answer-slug { margin-top: 28px; min-height: 469px; padding: 21px 18px 113px; border: 5px solid #2c261c; background: #e7efe1; position: relative; }
+    .letterpress .answer-slug h3 { margin: 10px 0 0; color: #3346bd; font-size: 23px; line-height: 1.25; }
+    .letterpress .pressed-answer { margin-top: 14px; padding: 13px; border: 4px solid #2c261c; background: #edc768; font-family: "PingFang SC", sans-serif; font-size: 14px; font-weight: 800; line-height: 1.6; }
+    .letterpress .pressed-analysis { margin-top: 13px; color: #454233; font-family: "PingFang SC", sans-serif; font-size: 12px; line-height: 1.6; }
+    .letterpress .two-choice { position: absolute; right: 17px; bottom: 17px; left: 17px; }
+    .letterpress .two-choice button { border: 3px solid #2c261c; border-radius: 0; }
+    .letterpress .case-title { display: flex; justify-content: space-between; align-items: end; border-bottom: 5px solid #2c261c; padding-bottom: 12px; }
+    .letterpress .case-title h3 { margin: 0; font-size: 25px; }
+    .letterpress .case-title b { color: #3346bd; font-size: 42px; line-height: .8; }
+    .letterpress .case-path { margin-top: 9px; color: #51462f; font-family: "PingFang SC", sans-serif; font-size: 10px; font-weight: 850; }
+    .letterpress .type-case { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 95px); gap: 8px; margin-top: 23px; }
+    .letterpress .compartment { padding: 9px; border: 4px solid #2c261c; background: #dfc174; font-family: "PingFang SC", sans-serif; color: #4d432f; font-size: 10px; font-weight: 800; }
+    .letterpress .compartment.current { grid-column: span 2; grid-row: span 2; background: #e7efe1; border-color: #3346bd; color: #2c261c; }
+    .letterpress .raised-slug { margin-top: 17px; padding: 13px; border: 4px solid #2c261c; background: #3346bd; color: #f1dda2; font-size: 12px; box-shadow: 5px 5px 0 #2c261c; }
+    .letterpress .galley { grid-column: span 2; background: #bba56d; color: #382f23; }
+    .letterpress .case-return { position: absolute; right: 19px; bottom: 17px; left: 19px; padding: 14px; border: 4px solid #2c261c; background: #3346bd; color: #f1dda2; font-family: "PingFang SC", sans-serif; font-size: 12px; font-weight: 900; }
+
+    /* 07 · tracing notes */
+    .tracing { background: #cdd7f1; color: #28334c; font-family: "Helvetica Neue", "PingFang SC", sans-serif; border-color: #394058; border-radius: 47px; }
+    .tracing .status { color: #28334c; }
+    .tracing .trace-head { position: absolute; z-index: 6; top: 60px; right: 23px; left: 23px; display: flex; justify-content: space-between; color: #3649bc; font-size: 11px; font-weight: 800; letter-spacing: .09em; }
+    .tracing .sheet-stack { position: absolute; z-index: 2; top: 94px; right: 23px; bottom: 122px; left: 23px; }
+    .tracing .base-sheet { position: absolute; inset: 13px -7px -8px 17px; background: #374bc3; transform: rotate(2.1deg); }
+    .tracing .under-sheet { position: absolute; inset: 4px 8px 3px -8px; border: 1px solid rgba(53, 64, 94, .35); background: rgba(244, 204, 166, .84); transform: rotate(-1.6deg); }
+    .tracing .trace-sheet { position: absolute; inset: 0; padding: 25px 24px 112px; border: 1px solid rgba(55, 68, 99, .48); background: rgba(245, 241, 220, .9); box-shadow: 0 10px 20px rgba(46, 55, 86, .15); }
+    .tracing .trace-sheet::before, .tracing .trace-sheet::after { content: ""; position: absolute; top: -8px; width: 68px; height: 18px; background: rgba(239, 199, 99, .7); transform: rotate(-4deg); }
+    .tracing .trace-sheet::before { left: 23px; }
+    .tracing .trace-sheet::after { right: 19px; transform: rotate(5deg); }
+    .tracing .trace-meta { display: flex; justify-content: space-between; color: #58617a; font-size: 10px; font-weight: 800; }
+    .tracing .trace-sheet h3 { margin: 54px 0 0; font-size: 31px; line-height: 1.26; letter-spacing: -.035em; }
+    .tracing .trace-sheet p { margin: 19px 0 0; color: #4d566c; font-size: 14px; line-height: 1.75; }
+    .tracing .pencil-note { margin-top: 25px; color: #354abd; font-size: 12px; font-weight: 800; transform: rotate(-1deg); }
+    .tracing .trace-tools { position: absolute; bottom: 79px; left: 24px; display: flex; gap: 13px; color: #3e4c70; font-size: 11px; font-weight: 800; }
+    .tracing .peel { position: absolute; right: 0; bottom: 0; left: 0; min-height: 58px; border: 0; border-top: 2px dashed #3b4865; background: rgba(55, 74, 191, .94); color: #f3edd8; font-weight: 850; }
+    .tracing .ribbon-nav { position: absolute; z-index: 7; right: 25px; bottom: 26px; left: 25px; height: 68px; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 2px dashed #435071; border-bottom: 2px dashed #435071; background: #e5b38d; transform: rotate(-.8deg); }
+    .tracing .ribbon-nav span { display: grid; place-items: center; color: #4a4b60; font-size: 11px; font-weight: 800; }
+    .tracing .ribbon-nav .on { color: #f1edd9; background: #374bc3; }
+    .tracing .overlay-answer { position: absolute; inset: 23px 18px 95px; padding: 20px 19px; border: 1px solid rgba(58, 69, 96, .45); background: rgba(211, 228, 225, .91); transform: translate(10px, 14px); }
+    .tracing .overlay-answer .label { color: #354abd; font-size: 10px; font-weight: 900; letter-spacing: .12em; }
+    .tracing .overlay-answer h3 { margin: 13px 0 0; font-size: 20px; line-height: 1.45; }
+    .tracing .overlay-answer p { margin: 16px 0 0; color: #47566a; font-size: 12px; line-height: 1.65; }
+    .tracing .two-choice { position: absolute; right: 18px; bottom: 20px; left: 18px; }
+    .tracing .two-choice button { border: 1px solid rgba(52, 62, 85, .35); border-radius: 1px; }
+    .tracing .folder-stack { position: absolute; z-index: 2; top: 99px; right: 24px; bottom: 116px; left: 24px; }
+    .tracing .folder-back { position: absolute; inset: 35px -6px 2px 21px; background: #374bc3; transform: rotate(2deg); }
+    .tracing .folder-mid { position: absolute; inset: 19px 13px 13px -7px; background: #e5b38d; border: 1px solid #6a6a78; transform: rotate(-1.4deg); }
+    .tracing .folder-front { position: absolute; inset: 0; padding: 24px; border: 1px solid #59637a; background: rgba(241, 236, 211, .94); }
+    .tracing .folder-front h3 { margin: 0; font-size: 27px; }
+    .tracing .folder-path { margin-top: 8px; color: #566177; font-size: 10px; font-weight: 800; }
+    .tracing .sleeve { margin-top: 23px; padding: 18px; border: 2px solid #5a6478; background: rgba(202, 216, 231, .7); }
+    .tracing .sleeve b { color: #354abd; font-size: 13px; }
+    .tracing .pocket { margin-top: 15px; padding: 17px; border: 3px solid #354abd; background: rgba(245, 241, 219, .9); }
+    .tracing .pulled-sheet { margin: 16px 0 -35px 25px; padding: 16px; border-left: 8px solid #354abd; background: #f0ead2; box-shadow: 5px 7px 0 rgba(62, 72, 94, .16); }
+    .tracing .pulled-sheet b { display: block; color: #28334c; font-size: 15px; }
+    .tracing .pulled-sheet p { margin: 7px 0 0; color: #505a70; font-size: 11px; line-height: 1.55; }
+    .tracing .sleeve-states { display: flex; justify-content: space-between; margin-top: 54px; color: #4d5870; font-size: 10px; font-weight: 800; }
+
+    /* 08 · blueprint desk */
+    .blueprint { background: #c99a67; color: #2a241f; font-family: "DIN Alternate", "PingFang SC", sans-serif; border-color: #3a3028; border-radius: 25px; }
+    .blueprint::before { content: ""; position: absolute; inset: 0; opacity: .32; background-image: linear-gradient(rgba(77, 59, 43, .2) 1px, transparent 1px), linear-gradient(90deg, rgba(77, 59, 43, .2) 1px, transparent 1px); background-size: 18px 18px; }
+    .blueprint .status { color: #2a241f; }
+    .blueprint .desk-head { position: absolute; z-index: 5; top: 59px; right: 23px; left: 23px; display: grid; grid-template-columns: 1fr auto; align-items: center; font-size: 11px; font-weight: 900; letter-spacing: .09em; }
+    .blueprint .desk-head b { color: #1b2c72; }
+    .blueprint .pinned-plan { position: absolute; z-index: 2; top: 96px; right: 24px; bottom: 159px; left: 24px; padding: 26px 24px 112px; border: 2px solid #44382d; background-color: #eee2c3; background-image: linear-gradient(rgba(48, 70, 187, .1) 1px, transparent 1px), linear-gradient(90deg, rgba(48, 70, 187, .1) 1px, transparent 1px); background-size: 22px 22px; box-shadow: 7px 8px 0 rgba(67, 50, 37, .2); }
+    .blueprint .pin { position: absolute; width: 13px; height: 13px; border: 3px solid #3046bb; border-radius: 50%; background: #d9b681; }
+    .blueprint .pin.one { top: 9px; left: 11px; }
+    .blueprint .pin.two { top: 9px; right: 11px; }
+    .blueprint .pin.three { bottom: 9px; left: 11px; }
+    .blueprint .plan-meta { display: flex; justify-content: space-between; color: #5e594e; font-size: 10px; font-weight: 850; }
+    .blueprint .pinned-plan h3 { margin: 56px 0 0; font-size: 31px; line-height: 1.22; letter-spacing: -.04em; }
+    .blueprint .pinned-plan p { margin: 18px 0 0; color: #534e45; font-size: 14px; line-height: 1.7; }
+    .blueprint .desk-tools { margin-top: 21px; display: flex; gap: 14px; color: #3046bb; font-size: 11px; font-weight: 900; }
+    .blueprint .ruler-action { position: absolute; right: 18px; bottom: 20px; left: 18px; min-height: 57px; border: 2px solid #2f3029; background: #3046bb; color: #f0e6c7; text-align: left; padding-left: 18px; font-weight: 900; }
+    .blueprint .ruler-action::after { content: "01  02  03  04  05"; position: absolute; right: 13px; bottom: 4px; color: #c9d0f1; font-size: 8px; letter-spacing: .12em; }
+    .blueprint .coordinate { position: absolute; z-index: 3; left: 25px; bottom: 124px; color: #302b26; font-size: 10px; font-weight: 850; }
+    .blueprint .corner-index { position: absolute; z-index: 6; right: 23px; bottom: 21px; width: 182px; height: 88px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; border: 2px solid #3a3028; background: #ddb57f; }
+    .blueprint .corner-index span { display: grid; place-items: center; border-right: 1px solid #3a3028; border-bottom: 1px solid #3a3028; font-size: 10px; font-weight: 900; }
+    .blueprint .corner-index .on { background: #3046bb; color: #f0e6c7; }
+    .blueprint .back-plan h3 { margin-top: 22px; color: #3046bb; font-size: 22px; }
+    .blueprint .plan-answer { margin-top: 13px; padding: 14px; border: 2px solid #44382d; background: #d9c99f; font-size: 14px; font-weight: 800; line-height: 1.6; }
+    .blueprint .plan-analysis { margin-top: 13px; color: #4e4b43; font-size: 12px; line-height: 1.58; }
+    .blueprint .two-choice { position: absolute; right: 17px; bottom: 20px; left: 17px; }
+    .blueprint .two-choice button { border: 2px solid #44382d; border-radius: 0; }
+    .blueprint .floorplan { position: absolute; z-index: 2; top: 97px; right: 23px; bottom: 124px; left: 23px; padding: 21px; border: 3px solid #3d342b; background-color: #eee2c3; background-image: linear-gradient(rgba(48, 70, 187, .09) 1px, transparent 1px), linear-gradient(90deg, rgba(48, 70, 187, .09) 1px, transparent 1px); background-size: 18px 18px; }
+    .blueprint .floorplan h3 { margin: 0; font-size: 26px; }
+    .blueprint .floor-path { margin-top: 7px; color: #575146; font-size: 10px; font-weight: 850; }
+    .blueprint .room { margin-top: 22px; padding: 15px; border: 4px solid #3046bb; min-height: 383px; position: relative; }
+    .blueprint .room-label { position: absolute; top: -12px; left: 13px; padding: 2px 8px; background: #eee2c3; color: #3046bb; font-size: 10px; font-weight: 900; }
+    .blueprint .bay { border: 2px solid #4e463d; padding: 13px; min-height: 105px; }
+    .blueprint .bay > b { font-size: 12px; }
+    .blueprint .tables { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 7px; margin-top: 13px; }
+    .blueprint .table { min-height: 88px; padding: 9px; border: 2px solid #4e463d; background: #dcc9a0; font-size: 10px; }
+    .blueprint .table.current { border: 4px solid #3046bb; background: #f2e8cd; font-weight: 900; }
+    .blueprint .plan-card { margin-top: 11px; padding: 11px; background: #3046bb; color: #f0e6c7; }
+    .blueprint .side-room { margin-top: 14px; padding: 12px; border: 2px dashed #665e53; color: #4f4a42; font-size: 10px; font-weight: 800; }
+    .blueprint .floor-return { margin-top: 14px; padding: 13px; background: #3046bb; color: #f0e6c7; font-size: 12px; font-weight: 900; }
+
+    @media (max-width: 1260px) {
+      .triptych { grid-template-columns: 393px; }
+      .direction-head, .page-head { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="page-head">
+    <div>
+      <div class="mark">首轮 · 视觉系统对照</div>
+      <h1>同一张卡，八种完全不同的世界。</h1>
+    </div>
+    <p>每个方向都使用同一题干、同一答案与同一空间层级；差异发生在品牌结构、排印、构图、材料、导航与学习对象隐喻，而不是表面换色。</p>
+  </header>
+
+  <main>
+    <section class="direction" id="mvr-01">
+      <div class="direction-head">
+        <div><div class="ordinal">一 · 装订手册</div><h2>知识被装订，位置写在书口。</h2></div>
+        <p>书布、纸页、线装边与右侧书口索引。卡片不是漂浮面板，而是一本持续推进的备考手册中的当前页。</p>
+      </div>
+      <div class="triptych">
+        <div><div class="frame-note">学习 · 正面</div><div class="device manual">
+          <div class="status"><span>9:41</span><span class="system">◼︎ ◼︎</span></div><div class="binding"></div>
+          <nav class="edge-index" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+          <article class="manual-page"><div class="manual-top"><span>四级备考 · 当前馆</span><span>03 / 12</span></div><div class="manual-progress"><b>03</b><i></i><b>12</b></div>
+            <section class="manual-question"><div class="kicker">句意转向</div><h3>短对话里听到 however，优先盯哪一半信息？</h3><p>先抓转折，不要被前半句带跑。</p></section>
+            <div class="manual-tools"><span>提示</span><span>收藏</span></div><button class="manual-reveal" type="button">翻开答案　→</button><div class="manual-address">当前馆 / 关系组 / 第 3 盒</div>
+          </article>
+        </div></div>
+        <div><div class="frame-note">学习 · 背面</div><div class="device manual">
+          <div class="status"><span>9:41</span><span class="system">◼︎ ◼︎</span></div><div class="binding"></div>
+          <nav class="edge-index" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+          <article class="manual-page"><div class="manual-top"><span>同一张卡 · 已翻开</span><span>03 / 12</span></div><div class="answer-title">答案</div><p class="manual-answer">优先盯转折后的半句，再回头核对前面让步或铺垫的信息。</p>
+            <div class="manual-analysis"><strong>先抓态度转向，再判断答案</strong><p>however 往往把真正结论往后推。先抓后半句，能减少被前半句表面信息误导。</p></div>
+            <div class="two-choice"><button class="choice-confident" type="button"><i class="dot-mint"></i>有把握</button><button class="choice-review" type="button"><i class="dot-amber"></i>再回看</button></div><div class="manual-address">完成后仍回到当前盒</div>
+          </article>
+        </div></div>
+        <div><div class="frame-note">空间 · 当前卡归位</div><div class="device manual">
+          <div class="status"><span>9:41</span><span class="system">◼︎ ◼︎</span></div><div class="binding"></div>
+          <nav class="edge-index" aria-label="主导航"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav>
+          <section class="cabinet"><h3>当前馆的卡柜</h3><div class="path">当前馆 / 关系组 / 第 3 盒 / 当前卡</div>
+            <div class="shelf"><div class="drawers"><div class="drawer"><b>第 2 盒</b>同组相邻位置</div><div class="drawer current"><b>第 3 盒</b>当前卡在这里</div><div class="drawer"><b>第 4 盒</b>下一处知识位置</div></div></div>
+            <div class="contained-card"><b>however 后半句</b><p>短对话里听到 however，优先盯哪一半信息？</p></div>
+            <div class="space-tags"><span>★ 已收藏 · 标签</span><span class="sleep">休眠角 · 2 张</span></div><div class="return">回到学习　继续下一张</div>
+          </section>
+        </div></div>
+      </div>
+    </section>
+
+    <section class="direction" id="mvr-02">
+      <div class="direction-head">
+        <div><div class="ordinal">二 · 考试大报</div><h2>像一份被认真校勘过的试卷。</h2></div>
+        <p>粗细规则、栏线、边注与大字号题干建立资料权威；导航成为报头分栏，答案仍在同一张纸上。</p>
+      </div>
+      <div class="triptych">
+        <div><div class="frame-note">学习 · 正面</div><div class="device broadsheet"><div class="status"><span>9:41</span><span>● ●</span></div><nav class="section-index" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+          <article class="sheet"><div class="mastline"><span>软书四六级</span><span>今日第 3 张</span></div><div class="issue"><b class="issue-no">03</b><div class="issue-copy">当前馆<br>系统顺序推进<br>本轮 12 张</div></div><h3>短对话里听到 however，优先盯哪一半信息？</h3><p class="dek">先抓转折，不要被前半句带跑。考试语境里真正态度和结果常压在后半句。</p><div class="marginalia"><span>提示</span><span>收藏</span><span>位置：第 3 盒</span></div><button class="broadsheet-action" type="button">翻开答案　→</button></article>
+        </div></div>
+        <div><div class="frame-note">学习 · 背面</div><div class="device broadsheet"><div class="status"><span>9:41</span><span>● ●</span></div><nav class="section-index" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+          <article class="sheet"><div class="mastline"><span>软书四六级</span><span>同一张卡 · 背面</span></div><div class="answer-rule">答案与解析</div><p class="answer-copy">优先盯转折后的半句，再回头核对前面让步或铺垫的信息。</p><div class="column-copy">先抓态度转向，再判断答案。题目里的 however 往往不是装饰词，而是把说话人真正结论往后推。先抓后半句，能减少被前半句表面信息误导。听到转折词时先记“后半句优先”。</div><div class="two-choice"><button class="choice-confident" type="button"><i class="dot-mint"></i>有把握</button><button class="choice-review" type="button"><i class="dot-amber"></i>再回看</button></div></article>
+        </div></div>
+        <div><div class="frame-note">空间 · 当前卡归位</div><div class="device broadsheet"><div class="status"><span>9:41</span><span>● ●</span></div><nav class="section-index" aria-label="主导航"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav>
+          <section class="sheet"><div class="register-title"><h3>空间登记页</h3><b>03</b></div><div class="register-path">当前馆 / 关系组 / 第 3 盒 / 当前卡</div>
+            <div class="register-band"><b>当前馆</b><div class="slot">关系组 · 三个盒位</div><em>1</em></div><div class="register-band current"><b>当前盒</b><div class="slot">第 3 盒 · 当前卡已归位</div><em>3</em></div><div class="register-band"><b>盒内</b><div class="slot">相邻卡与回看位置</div><em>8</em></div>
+            <div class="clipped-card"><b>however 后半句</b><p>短对话里听到 however，优先盯哪一半信息？</p></div><div class="register-foot"><span>★ 收藏只是标签</span><span>休眠角 · 2 张</span></div><div class="register-return">回到学习　→</div>
+          </section>
+        </div></div>
+      </div>
+    </section>
+
+    <section class="direction" id="mvr-03">
+      <div class="direction-head">
+        <div><div class="ordinal">三 · 动能索引</div><h2>问题是一块正在轨道上前进的色块。</h2></div>
+        <p>实色平面、偏移阴影、粗边与印章式导航。没有玻璃，也没有通用白卡；学习动作被压成一个强而直接的几何节奏。</p>
+      </div>
+      <div class="triptych">
+        <div><div class="frame-note">学习 · 正面</div><div class="device kinetic"><div class="status"><span>9:41</span><span>■■</span></div><div class="kinetic-mark">当前馆 · 系统顺序</div><div class="rail"></div>
+          <article class="question-block"><div class="serial"><span>句意转向</span><span>03 / 12</span></div><h3>短对话里听到 however，优先盯哪一半信息？</h3><p>先抓转折，不要被前半句带跑。</p><div class="kinetic-tools"><span>提示</span><span>收藏</span></div></article><button class="kinetic-action" type="button">翻开答案　→</button><div class="kinetic-address">当前馆 / 关系组 / 第 3 盒</div><nav class="stamp-nav" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+        </div></div>
+        <div><div class="frame-note">学习 · 背面</div><div class="device kinetic"><div class="status"><span>9:41</span><span>■■</span></div><div class="kinetic-mark">同一张卡 · 已翻开</div><div class="rail"></div>
+          <article class="question-block back-block"><div class="serial"><span>答案</span><span>03 / 12</span></div><h3>后半句优先。</h3><div class="back-answer">优先盯转折后的半句，再回头核对前面让步或铺垫的信息。</div><div class="back-analysis">先抓态度转向，再判断答案。however 往往把真正结论往后推，先抓后半句能减少表面信息误导。</div></article><div class="two-choice"><button class="choice-confident" type="button"><i class="dot-mint"></i>有把握</button><button class="choice-review" type="button"><i class="dot-amber"></i>再回看</button></div><nav class="stamp-nav" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+        </div></div>
+        <div><div class="frame-note">空间 · 当前卡归位</div><div class="device kinetic"><div class="status"><span>9:41</span><span>■■</span></div><div class="kinetic-mark">空间索引 · 当前馆</div>
+          <section class="index-board"><h3>卡片在轨道里有位置。</h3><div class="board-path">当前馆 / 关系组 / 第 3 盒 / 当前卡</div><div class="lane"><div class="lane-label">关系组</div><div class="blocks"><div class="block">第 2 盒<br>相邻位置</div><div class="block current">第 3 盒<div class="slip"><b>当前卡</b><small>however 后半句</small></div></div><div class="block">第 4 盒<br>下一位置</div></div></div><div class="parked"><span>★ 收藏标签</span><span>休眠轨 · 2 张</span></div></section><nav class="stamp-nav" aria-label="主导航"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav>
+        </div></div>
+      </div>
+    </section>
+
+    <section class="direction" id="mvr-04">
+      <div class="direction-head">
+        <div><div class="ordinal">四 · 静默仪器</div><h2>像一台只做一件事的精密设备。</h2></div>
+        <p>深色搪瓷、标尺、状态灯与左侧命令键。它追求极端操作清晰，也诚实暴露“过冷、过黑、过技术”的风险。</p>
+      </div>
+      <div class="triptych">
+        <div><div class="frame-note">学习 · 正面</div><div class="device instrument"><div class="status"><span>9:41</span><span>•••</span></div><nav class="command-rail" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><main class="instrument-body"><div class="instrument-head"><span>当前馆 · 单卡推进</span><i class="lamp"></i></div><div class="measure"><b>03</b><i></i><b>12</b></div>
+          <article class="viewport"><div class="code">句意转向</div><h3>短对话里听到 however，优先盯哪一半信息？</h3><p>先抓转折，不要被前半句带跑。</p><div class="viewport-tools"><span>提示</span><span>收藏</span></div><button class="instrument-action" type="button">翻开答案　→</button></article><div class="instrument-address">当前位置　当前馆 / 关系组 / 第 3 盒</div></main>
+        </div></div>
+        <div><div class="frame-note">学习 · 背面</div><div class="device instrument"><div class="status"><span>9:41</span><span>•••</span></div><nav class="command-rail" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><main class="instrument-body"><div class="instrument-head"><span>同一张卡 · 已翻开</span><i class="lamp"></i></div>
+          <article class="viewport back"><div class="code">答案</div><h3>先抓态度转向，再判断答案</h3><div class="instrument-answer">优先盯转折后的半句，再回头核对前面让步或铺垫的信息。</div><div class="instrument-analysis">however 往往把真正结论往后推。先抓后半句，能减少被前半句表面信息误导。</div><div class="two-choice"><button class="choice-confident" type="button"><i class="dot-mint"></i>有把握</button><button class="choice-review" type="button"><i class="dot-amber"></i>再回看</button></div></article></main>
+        </div></div>
+        <div><div class="frame-note">空间 · 当前卡归位</div><div class="device instrument"><div class="status"><span>9:41</span><span>•••</span></div><nav class="command-rail" aria-label="主导航"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav><main class="instrument-body"><div class="instrument-head"><span>位置通路 · 当前馆</span><i class="lamp"></i></div>
+          <section class="route-panel"><h3>当前卡已入盒。</h3><div class="route-path">当前馆 / 关系组 / 第 3 盒 / 当前卡</div><div class="route-map"><div class="route-line">当前馆 · 主通路</div><div class="route-line">关系组 · 当前通道</div><div class="route-line current">第 3 盒 · 当前卡槽<div class="cassette">however 后半句</div></div></div><div class="standby"><span>★ 收藏标记</span><span>休眠位 · 2 张</span></div><div class="route-return">回到学习　→</div></section></main>
+        </div></div>
+      </div>
+    </section>
+
+    <section class="direction" id="mvr-05">
+      <div class="direction-head">
+        <div><div class="ordinal">五 · 折叠地图</div><h2>学习是当前位置，空间是缩放后的全图。</h2></div>
+        <p>折线、路径、站点与地图图例把卡片位置讲清楚；它也故意检验一个危险边界：空间感是否会抢走题干的主位。</p>
+      </div>
+      <div class="triptych">
+        <div><div class="frame-note">学习 · 正面</div><div class="device foldmap"><div class="status"><span>9:41</span><span>● ─</span></div><div class="map-head"><span>当前馆 · 今日路线</span><span>03 / 12</span></div>
+          <article class="fold-sheet"><div class="map-route"></div><div class="stop-label">当前停靠点 · 句意转向</div><section class="map-question"><h3>短对话里听到 however，优先盯哪一半信息？</h3><p>先抓转折，不要被前半句带跑。</p></section><div class="map-tools"><span>提示</span><span>收藏</span></div><button class="unfold" type="button">展开答案　→</button><div class="fold-address">当前馆 / 关系组 / 第 3 盒</div></article><nav class="legend-nav" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+        </div></div>
+        <div><div class="frame-note">学习 · 背面</div><div class="device foldmap"><div class="status"><span>9:41</span><span>● ─</span></div><div class="map-head"><span>同一停靠点 · 已展开</span><span>03 / 12</span></div>
+          <article class="fold-sheet back"><div class="map-route"></div><section class="map-answer"><div class="label">答案</div><h3>优先盯转折后的半句，再回头核对前面让步或铺垫的信息。</h3><div class="map-analysis"><b>先抓态度转向，再判断答案</b><br>however 往往把真正结论往后推。先抓后半句，能减少被前半句表面信息误导。</div></section><div class="two-choice"><button class="choice-confident" type="button"><i class="dot-mint"></i>有把握</button><button class="choice-review" type="button"><i class="dot-amber"></i>再回看</button></div></article><nav class="legend-nav" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+        </div></div>
+        <div><div class="frame-note">空间 · 当前卡归位</div><div class="device foldmap"><div class="status"><span>9:41</span><span>● ─</span></div><div class="map-head"><span>空间全图 · 当前馆</span><span>当前位置</span></div>
+          <section class="fold-sheet"><div class="territory"><h3>从当前卡缩放到它的家。</h3><div class="territory-path">当前馆 / 关系组 / 第 3 盒 / 当前卡</div><div class="region"><div class="group-route"><span>关系组 · 当前路径</span></div><div class="box-map"><div>第 2 盒<br>相邻位置</div><div class="current">第 3 盒<div class="current-stop">● 当前卡 · however 后半句</div></div><div>第 4 盒<br>下一位置</div></div><div class="map-state"><span>★ 收藏 · 标记</span><span>休眠袋 · 2 张</span></div></div></div></section><nav class="legend-nav" aria-label="主导航"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav>
+        </div></div>
+      </div>
+    </section>
+
+    <section class="direction" id="mvr-06">
+      <div class="direction-head">
+        <div><div class="ordinal">六 · 活字格</div><h2>每张知识卡，都是一块能被放回格位的活字。</h2></div>
+        <p>粗重活字、压印、排字床和格盘建立强物件感；它刻意推到表达边界，以判断何时会从可信资料滑向玩具。</p>
+      </div>
+      <div class="triptych">
+        <div><div class="frame-note">学习 · 正面</div><div class="device letterpress"><div class="status"><span>9:41</span><span>■ ■</span></div><nav class="slug-nav" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+          <main class="bed"><div class="press-meta"><span>当前馆 · 03</span><span>本轮 12 张</span></div><article class="question-slug"><div class="small">句意转向</div><h3>短对话里听到 however，优先盯哪一半信息？</h3><p>先抓转折，不要被前半句带跑。</p><div class="press-tools"><span>提示</span><span>收藏</span></div></article><div class="press-address">当前馆 / 关系组 / 第 3 盒</div><button class="lever" type="button">压出答案　→</button></main>
+        </div></div>
+        <div><div class="frame-note">学习 · 背面</div><div class="device letterpress"><div class="status"><span>9:41</span><span>■ ■</span></div><nav class="slug-nav" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+          <main class="bed"><div class="press-meta"><span>同一块活字 · 背面</span><span>03 / 12</span></div><article class="answer-slug"><h3>先抓态度转向，再判断答案</h3><div class="pressed-answer">优先盯转折后的半句，再回头核对前面让步或铺垫的信息。</div><div class="pressed-analysis">however 往往把真正结论往后推。先抓后半句，能减少被前半句表面信息误导。</div><div class="two-choice"><button class="choice-confident" type="button"><i class="dot-mint"></i>有把握</button><button class="choice-review" type="button"><i class="dot-amber"></i>再回看</button></div></article></main>
+        </div></div>
+        <div><div class="frame-note">空间 · 当前卡归位</div><div class="device letterpress"><div class="status"><span>9:41</span><span>■ ■</span></div><nav class="slug-nav" aria-label="主导航"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav>
+          <section class="bed"><div class="case-title"><h3>当前馆的活字格</h3><b>03</b></div><div class="case-path">当前馆 / 关系组 / 第 3 盒 / 当前卡</div><div class="type-case"><div class="compartment">第 2 盒</div><div class="compartment current">第 3 盒<div class="raised-slug">当前卡 · however 后半句</div></div><div class="compartment">第 4 盒</div><div class="compartment">同盒卡</div><div class="compartment galley">休眠排盘 · 2 张</div></div><div class="case-return">★ 收藏只是压印标记　·　回到学习 →</div></section>
+        </div></div>
+      </div>
+    </section>
+
+    <section class="direction" id="mvr-07">
+      <div class="direction-head">
+        <div><div class="ordinal">七 · 描图纸笔记</div><h2>答案覆盖在原题上，理解发生在同一位置。</h2></div>
+        <p>描图纸、胶带、铅笔批注与套袋；半透明来自纸张叠合而不是玻璃模糊，让问题与解析保持因果对齐。</p>
+      </div>
+      <div class="triptych">
+        <div><div class="frame-note">学习 · 正面</div><div class="device tracing"><div class="status"><span>9:41</span><span>○ ○</span></div><div class="trace-head"><span>当前馆 · 今日第 3 张</span><span>03 / 12</span></div>
+          <div class="sheet-stack"><div class="base-sheet"></div><div class="under-sheet"></div><article class="trace-sheet"><div class="trace-meta"><span>句意转向</span><span>当前页</span></div><h3>短对话里听到 however，优先盯哪一半信息？</h3><p>先抓转折，不要被前半句带跑。</p><div class="pencil-note">批注：真正结论通常向后落。</div><div class="trace-tools"><span>提示</span><span>收藏</span></div><button class="peel" type="button">拉出答案层　→</button></article></div><nav class="ribbon-nav" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+        </div></div>
+        <div><div class="frame-note">学习 · 背面</div><div class="device tracing"><div class="status"><span>9:41</span><span>○ ○</span></div><div class="trace-head"><span>答案层 · 与原题对齐</span><span>03 / 12</span></div>
+          <div class="sheet-stack"><div class="base-sheet"></div><div class="under-sheet"></div><article class="trace-sheet"><div class="trace-meta"><span>原题仍在底层</span><span>已翻开</span></div><h3 style="opacity:.34">短对话里听到 however，优先盯哪一半信息？</h3><section class="overlay-answer"><div class="label">答案</div><h3>优先盯转折后的半句，再回头核对前面铺垫。</h3><p><b>先抓态度转向，再判断答案。</b><br>however 往往把真正结论往后推，先抓后半句能减少表面信息误导。</p><div class="two-choice"><button class="choice-confident" type="button"><i class="dot-mint"></i>有把握</button><button class="choice-review" type="button"><i class="dot-amber"></i>再回看</button></div></section></article></div><nav class="ribbon-nav" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+        </div></div>
+        <div><div class="frame-note">空间 · 当前卡归位</div><div class="device tracing"><div class="status"><span>9:41</span><span>○ ○</span></div><div class="trace-head"><span>空间套袋 · 当前馆</span><span>当前位置</span></div>
+          <section class="folder-stack"><div class="folder-back"></div><div class="folder-mid"></div><div class="folder-front"><h3>一张卡，套在四层地址里。</h3><div class="folder-path">当前馆 / 关系组 / 第 3 盒 / 当前卡</div><div class="sleeve"><b>关系组 · 当前套袋</b><div class="pocket">第 3 盒 · 当前卡袋<div class="pulled-sheet"><b>however 后半句</b><p>短对话里听到 however，优先盯哪一半信息？</p></div></div><div class="sleeve-states"><span>★ 收藏角标</span><span>后袋休眠 · 2 张</span></div></div></div></section><nav class="ribbon-nav" aria-label="主导航"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav>
+        </div></div>
+      </div>
+    </section>
+
+    <section class="direction" id="mvr-08">
+      <div class="direction-head">
+        <div><div class="ordinal">八 · 蓝图书桌</div><h2>卡片是一张被钉住的学习图，空间是它的平面图。</h2></div>
+        <p>暖木板、网格纸、图钉与标尺；通过坐标和嵌套房间表达归属，同时避免把界面做成工程软件。</p>
+      </div>
+      <div class="triptych">
+        <div><div class="frame-note">学习 · 正面</div><div class="device blueprint"><div class="status"><span>9:41</span><span>+ +</span></div><div class="desk-head"><span>当前馆 · 学习图</span><b>03 / 12</b></div>
+          <article class="pinned-plan"><i class="pin one"></i><i class="pin two"></i><i class="pin three"></i><div class="plan-meta"><span>句意转向</span><span>当前卡</span></div><h3>短对话里听到 however，优先盯哪一半信息？</h3><p>先抓转折，不要被前半句带跑。</p><div class="desk-tools"><span>提示</span><span>收藏</span></div><button class="ruler-action" type="button">滑开标尺，看答案　→</button></article><div class="coordinate">当前馆 / 关系组 / 第 3 盒</div><nav class="corner-index" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+        </div></div>
+        <div><div class="frame-note">学习 · 背面</div><div class="device blueprint"><div class="status"><span>9:41</span><span>+ +</span></div><div class="desk-head"><span>同一张学习图 · 已展开</span><b>03 / 12</b></div>
+          <article class="pinned-plan back-plan"><i class="pin one"></i><i class="pin two"></i><i class="pin three"></i><div class="plan-meta"><span>答案</span><span>坐标不变</span></div><h3>先抓态度转向，再判断答案</h3><div class="plan-answer">优先盯转折后的半句，再回头核对前面让步或铺垫的信息。</div><div class="plan-analysis">however 往往把真正结论往后推。先抓后半句，能减少被前半句表面信息误导。</div><div class="two-choice"><button class="choice-confident" type="button"><i class="dot-mint"></i>有把握</button><button class="choice-review" type="button"><i class="dot-amber"></i>再回看</button></div></article><nav class="corner-index" aria-label="主导航"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav>
+        </div></div>
+        <div><div class="frame-note">空间 · 当前卡归位</div><div class="device blueprint"><div class="status"><span>9:41</span><span>+ +</span></div><div class="desk-head"><span>空间平面图 · 当前馆</span><b>当前位置</b></div>
+          <section class="floorplan"><h3>卡片有一间明确的房。</h3><div class="floor-path">当前馆 / 关系组 / 第 3 盒 / 当前卡</div><div class="room"><span class="room-label">当前馆</span><div class="bay"><b>关系组 · 当前区域</b><div class="tables"><div class="table">第 2 盒</div><div class="table current">第 3 盒<div class="plan-card">当前卡<br>however 后半句</div></div><div class="table">第 4 盒</div></div></div><div class="side-room">★ 收藏是角旗　·　休眠室 2 张，唤醒后回到学习流</div><div class="floor-return">回到学习　→</div></div></section><nav class="corner-index" aria-label="主导航"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav>
+        </div></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
