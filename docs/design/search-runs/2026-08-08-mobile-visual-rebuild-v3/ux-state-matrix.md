@@ -1,5 +1,7 @@
 # Mobile Visual Rebuild V3 — UX State Matrix
 
+> **AP-23 token binding:** `有把握 = confident/mint (#22C58B)`; `再回看 = review/amber (#F5B100)`. Any rendered flip labels in this record inherit this fixed semantic/color mapping.
+
 ## Scope And Interpretation
 
 This matrix operationalizes the product truths in `spec/product-core.json`, `spec/platform-contract.json`, `spec/interactions.json`, `spec/visual-language.json`, and `docs/design/single-card-ux-contract.md` for design review. Exact copy, timing, component structure, and layout remain implementation hypotheses until a direction is accepted.
@@ -145,7 +147,7 @@ If any field is missing, the state is not visually implementable.
 | Surface/state | Focal purpose and primary action | Required restraint | Accessibility / continuity |
 | --- | --- | --- | --- |
 | Statistics default | Understand today’s concise learning/review state; check in if not already completed. | No module launcher, duplicated “next learning” panel, or multi-card command dashboard. Use tabular numerals for metrics. | Metrics have descriptive labels; charts have text equivalents; check-in state is programmatic. |
-| Check-in pending/success/failure | Pending blocks duplicate input; success settles in place; failure offers retry. | No confetti, medal, shame, or streak pressure. | Success/error is a live update; color/icon is supplemental. |
+| Check-in pending/success/failure | Pending blocks duplicate input; success settles in place; failure offers retry. | No celebratory spectacle, badge reward, shame, or streak pressure. | Success/error is a live update; color/icon is supplemental. |
 | Statistics empty/offline | Explain what is unavailable and preserve any last truthful summary if clearly labeled. | No fake zero that could be mistaken for real progress. | Retry and return-to-Learning remain reachable but only one is visually primary. |
 | Mine default | Account identity, membership, privacy, and preferences are the information spine. | Do not repeat the Statistics dashboard or learning progress hero. | Sections/headings provide predictable navigation; account state is not color-only. |
 | Membership / purchase recovery | Show entitlement truth and the appropriate purchase/restore action. | No urgency marketing, false scarcity, or ambiguous web/app authority. | Price/terms/readability and restore action meet target/focus requirements. |

@@ -1,5 +1,7 @@
 # Mobile Visual Rebuild V3 — Acceptance Rubric
 
+> **AP-23 token binding:** `有把握 = confident/mint (#22C58B)`; `再回看 = review/amber (#F5B100)`. Any rendered flip labels in this record inherit this fixed semantic/color mapping.
+
 ## Decision Model
 
 This rubric defines two non-substitutable hard gates. It does not require
