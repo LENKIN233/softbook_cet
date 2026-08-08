@@ -1,5 +1,13 @@
 # Mobile Visual Rebuild V3 — Fragment Harvest
 
+> **Product-owner rejection — 2026-08-08**
+> The product owner rejected the exact `mvr-15` visual direction. The learner
+> SHA `41a2143a…` and reviewer SHA `13bc7dff…` remain frozen historical failure
+> evidence; the Soft Spine palette, mark, address aperture, cut-corner object,
+> layered edge, light chrome, and composition must not be reused as a visual
+> package or consumed by React Native. Technical observations below remain
+> auditable but cannot confer authority.
+
 > **P0-09 quarantine correction — 2026-08-08**
 > The previously frozen proof `98c1b28c…` is invalidated as current evidence.
 > Its review cockpit and learner surface shared one page, and reviewer/QA/
@@ -8,8 +16,8 @@
 > not scanned. It must not be used for leadership demo, implementation, or
 > acceptance. The final learner preview (`41a2143a…`) and reviewer harness
 > (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
-> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
-> remains `candidate_exploration` because the human gates are still open.
+> fresh code-native P0/P1 review. The old SHA remains quarantined. The later
+> product-owner rejection controls the lifecycle of the repaired pair.
 
 
 ## Phase 2 Final Correction Delta — Invalidated Historical Snapshot
@@ -45,9 +53,10 @@ in the quarantine notice above. No acceptance or promotion is inferred.
 ## Source Run
 
 `2026-08-08-mobile-visual-rebuild-v3`, Generations 1 through 3. The first
-fourteen visual directions were rejected after rendered review. `mvr-15` is a
-conditional direction-level survivor only. This record preserves structural
-learning and promising identity fragments; it does not promote a visual system.
+fourteen visual directions were rejected after rendered review; the product
+owner subsequently rejected `mvr-15`. V3 ends with no survivor. This record
+preserves historical structural observations but does not promote a visual
+system or authorize reuse of the rejected Soft Spine package.
 
 ## Phase 1 Harvest Snapshot — Historical
 
@@ -135,22 +144,22 @@ fragment.
 
 ## Synthesis Inputs
 
-- Preserve `mvr-15`'s development-fixture-bound answer -> inline analysis -> continuation
-  path and `mvr-10`'s ordering as a regression baseline; preserve explicit
+- Preserve the product-contract answer -> inline analysis -> continuation path
+  and `mvr-10`'s ordering as a behavioral regression baseline; preserve explicit
   audio separately on the repository-owned development flip fixture.
-- Test `mvr-15`'s address aperture and layered continuity with `mvr-14`'s
-  lock-row progression across all five canonical silhouettes.
-- Keep Softbook light chrome and geometry stable while one collection stays
-  indigo, another stays rose, and semantic states remain independently named.
+- Preserve `mvr-14`'s lock-row progression only as a structural test across the
+  five canonical silhouettes. Do not carry `mvr-15`'s address aperture,
+  layered edge, mark, palette, light chrome, or cut-corner object into a new
+  visual direction.
 - Preserve the HTML's exact core contrast, responsive width/type-scale matrix,
   tablet compositions, audio recovery, flip gate, and sleep/wake-error states.
-- Correct answer truth, the full-width bottom bar, focus contrast, base type,
-  audio clock truth, and palette-led collection identity before owner review.
-- Require explicit product-owner acceptance before promotion. After acceptance,
-  run real-user, assistive-technology, and native-platform validation in the
-  separate implementation/release stage.
+- The historical HTML corrections remain useful regression evidence, but the
+  corrected visual result is rejected and cannot be mutated into acceptance.
+- Require a materially different exact replacement and explicit product-owner
+  acceptance before promotion. Only then may a separate implementation stage
+  begin native/device/assistive-technology validation.
 
-## Phase 2 Current Harvest Conclusion
+## Final Harvest Conclusion
 
 - `mvr-15` now renders the previously harvested `mvr-14` lock progression and
   completes it with distinct elimination and swipe silhouettes; all five are
@@ -166,6 +175,7 @@ fragment.
   expanded Auth, membership, audio, and P0-17 evaluation/assessment/favorite/
   sleep-wake pending/error/retry states without turning the product into a
   dashboard or discarding committed truth.
-- Final independent technical review passes. The specified representative-
-  person studies and exact product-owner acceptance are still required before
-  Phase A promotion; Phase B RN/device/AT/runtime evidence remains unstarted.
+- Final independent technical review passed the exact repaired pair. The
+  product owner then rejected the visual direction, so none of its visual
+  fragments may be promoted or used as RN authority. Representative-person
+  studies were not run, and Phase B must not start from this candidate.

@@ -1,5 +1,14 @@
 # Agent Run Record: Mobile visual rebuild v3
 
+> **Product-owner rejection — 2026-08-08**
+> The product owner rejected the exact `mvr-15` visual direction after the
+> repaired pair passed technical review. Learner SHA `41a2143a…` and reviewer
+> SHA `13bc7dff…` remain frozen historical rejection evidence; they must not be
+> edited in place, promoted, mapped, or consumed by React Native. This Phase 0
+> governance reconciliation was performed on
+> `cross/mobile-visual-rebuild-v4` without changing either HTML file or any v4
+> design artifact.
+
 > **P0-09 quarantine correction — 2026-08-08**
 > The previously frozen proof `98c1b28c…` is invalidated as current evidence.
 > Its review cockpit and learner surface shared one page, and reviewer/QA/
@@ -8,8 +17,8 @@
 > not scanned. It must not be used for leadership demo, implementation, or
 > acceptance. The final learner preview (`41a2143a…`) and reviewer harness
 > (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
-> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
-> remains `candidate_exploration` because the human gates are still open.
+> fresh code-native P0/P1 review. The old SHA remains quarantined. The later
+> product-owner rejection controls the lifecycle of the repaired pair.
 
 
 ## Task summary
@@ -24,7 +33,10 @@
   invalidated the combined proof after reviewer/QA/implementation language was
   found in learner-visible and assistive copy. Phase 3 separates the learner
   preview from the reviewer harness, rewrites contaminated copy, and expands
-  the quarantine scanner; React Native remains unchanged.
+  the quarantine scanner; React Native remains unchanged. The product owner
+  subsequently rejected the exact repaired visual direction. Phase 0 now marks
+  all dependent v3 governance records `rejected`, freezes both final SHAs, and
+  blocks RN consumption while retaining the technical history.
 
 ## Referenced specs
 
@@ -63,7 +75,10 @@
 ## Implementation hypothesis changed
 
 - Aurora glass, lilac canvas, VisionOS capsule chrome, oversized universal radii, fixed neutral-heavy palette, and the closed orange editorial direction are treated as rejected implementation hypotheses rather than product truth.
-- The replacement visual system remains `candidate_exploration` until independent review and explicit product-owner acceptance. This design-only branch does not authorize React Native implementation.
+- The exact `mvr-15` replacement visual system is now `rejected` by the product
+  owner. Its navy/rose/lime palette, Soft Spine mark, light chrome, address
+  aperture, cut-corner layered object, and composition are failed
+  implementation hypotheses, not product truth or RN authority.
 - Governance is split into two non-substitutable gates: Phase A accepts an exact
   code-native design proof after semantic/keyboard/focus/live-state review,
   platform composition hypotheses, representative-user testing, independent
@@ -115,6 +130,10 @@
   and correct canonical user-visible labels without making those artifacts
   current design authority.
 - `docs/agent-runs/2026-08-08-mobile-visual-rebuild-v3.md`: this durable run record.
+- Phase 0 owner-decision reconciliation updates only existing v3/mvr-15
+  governance Markdown, the active mobile veto, and the two relevant README
+  indexes. No learner/reviewer HTML, React Native file, or v4 design directory
+  is changed.
 
 ## Commands run
 
@@ -210,6 +229,19 @@
 
 ## Validation results
 
+- Phase 0 owner-decision reconciliation: targeted v3 design-search validation
+  passed; metadata-leak scanning passed; `git diff --check` passed; learner SHA
+  remained
+  `41a2143a5c011f08b4dd5cdedf04044e7836fc96dba254a9b0309ad430516722`;
+  reviewer SHA remained
+  `13bc7dff3cab1f699155d9a1143be266916b1562fe49873aa717d510e48820eb`;
+  and the reconciliation produced no HTML, React Native, or tracked v4 diff.
+- The full design-search regression harness was also invoked during concurrent
+  v4 authoring. Its v3 checks passed after the required canonical
+  `## Surviving Candidates` heading was preserved, but the aggregate command
+  remained non-green because the concurrently created, untracked v4 run was
+  still incomplete. That transient v4 failure is outside this Phase 0 edit and
+  must be rerun when v4 authoring finishes.
 - Design-search structure validation: passed for the complete run.
 - Metadata quarantine test suite: 20/20 passed after adding learner-template,
   dynamic-copy, reviewer-shell separation, reviewer-only CSS/JavaScript
@@ -268,8 +300,9 @@
 - Status: the old Phase 2 technical PASS is invalidated by P0-09. The repaired
   split passed a new independent review on learner SHA `41a2143a…` and reviewer
   SHA `13bc7dff…`: P0-09 PASS, code-native P0 findings 0, and code-native P1
-  findings 0. This closes the leakage quarantine only; the candidate remains
-  `candidate_exploration`, not accepted or promoted authority.
+  findings 0. This closes the leakage quarantine only. The product owner later
+  rejected the visual direction, so the candidate is `rejected`, not accepted
+  or promoted authority.
 - Current independent technical observations: all 29 frames passed at 100%,
   130%, 160%, and 200% with zero horizontal overflow, control-text clipping,
   navigation escape, or visible target below 44 x 44; all visible controls were
@@ -277,18 +310,17 @@
   async preservation, and console checks passed. Auth announces
   `已打开手机号登录` without leaking the previous hall. These observations are
   bound to the current pair and do not transfer acceptance from the old SHA.
-- Blocking formal Phase A findings: `P0-01`, `P0-04`, `P1-01`, `P1-03`, and
-  `P1-07` require representative-person studies; `P0-10` requires an exact
-  product-owner decision. No self-review or green validator may substitute for
-  those gates.
-- Deferred Phase B findings: React Native was not changed. Real iOS, Android,
-  tablet, safe area/IME/back, VoiceOver/TalkBack, native async/persistence, and
-  release validation belong to a separate implementation PR after design
-  acceptance; they are not prerequisites that force RN work before Phase A.
+- Final Phase A disposition: representative-person studies were not run, and
+  `P0-10` is an explicit product-owner rejection. No self-review, technical
+  PASS, pairwise ranking, or green validator may reverse it.
+- Phase B is prohibited for `mvr-15`. React Native was not changed. Native
+  platform, assistive-technology, async/persistence, and release validation may
+  resume only after a materially different exact replacement is accepted.
 
 ## User-visible UI impact
 
-- Design-only. This branch can freeze rejected authority and propose a replacement direction, but it makes no user-visible React Native change.
+- Design-governance only. This reconciliation freezes rejected authority and
+  makes no user-visible React Native change.
 
 ## Card make external workspace impact
 
@@ -306,7 +338,8 @@
   substitute for a green strict PR profile. The open-PR strict rerun reaches
   34/36; dependency security and local sandbox repo-health remain explicit
   blockers, so draft PR `#482` must not merge.
-- Product-owner acceptance is intentionally unresolved; no agent may self-promote a candidate to implementation authority.
+- The product owner rejected `mvr-15`; no agent may relabel, mutate, or
+  self-promote it into implementation authority.
 - Prototype-only P2 constraints: the displayed 45-second verification-code
   resend state is time-compressed for testability, and `#557BBE` is restricted
   to non-text graphics because it does not meet 4.5:1 as small body text.
@@ -315,11 +348,10 @@
 
 ## Follow-up
 
-- Run representative-user first-read/task/result testing on the exact proof,
-  complete the Phase A evidence record, and present the exact `mvr-15` HTML
-  revision to the product owner. Only after an explicit acceptance that names
-  the candidate and commit may a separate implementation branch and PR begin
-  for iOS, Android, and tablet React Native work plus real-device testing.
+- Do not run further promotion work or RN implementation from `mvr-15`. Start a
+  materially different design-only replacement search with new evidence; only
+  after explicit product-owner acceptance of that exact replacement may a
+  separate iOS/Android/tablet React Native implementation lifecycle begin.
 - Resolve or formally govern the dependency-security baseline, obtain a valid
   strict repo-health result outside the local sandbox failure, wait for remote
   required checks, and complete repository review before any merge decision.

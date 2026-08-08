@@ -1,5 +1,13 @@
 # Mobile Visual Rebuild V3 — No-Promotion Record
 
+> **Product-owner rejection — 2026-08-08**
+> The product owner rejected the exact `mvr-15` visual direction. The final
+> learner proof (`41a2143a…`) and reviewer harness (`13bc7dff…`) remain frozen
+> historical rejection evidence; their technical PASS does not create design
+> or implementation authority. The old combined SHA `98c1b28c…` remains
+> quarantined for P0-09 leakage. No proof may be edited in place or consumed by
+> React Native.
+
 > **P0-09 quarantine correction — 2026-08-08**
 > The previously frozen proof `98c1b28c…` is invalidated as current evidence.
 > Its review cockpit and learner surface shared one page, and reviewer/QA/
@@ -8,8 +16,8 @@
 > not scanned. It must not be used for leadership demo, implementation, or
 > acceptance. The final learner preview (`41a2143a…`) and reviewer harness
 > (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
-> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
-> remains `candidate_exploration` because the human gates are still open.
+> fresh code-native P0/P1 review. The old SHA remains quarantined. The later
+> product-owner rejection controls the lifecycle of the repaired pair.
 
 
 ## Phase 2 Final Correction Delta — Invalidated Historical Snapshot
@@ -37,30 +45,30 @@ exceptions.
 The historical independent final review of that corrected revision passed every
 implementation- and browser-verifiable Phase A P0/P1 item before P0-09
 invalidated the combined artifact. The overall Phase A verdict remains
-**blocked**: the representative-person tests required by
-`P0-01`, `P0-04`, `P1-01`, `P1-03`, and `P1-07` have not run, and `P0-10`
-lacks an exact product-owner acceptance decision. Therefore no artifact is
-accepted or promoted. RN was not changed; real iOS/Android/tablet, safe
-area/IME/back, VoiceOver/TalkBack, native async/persistence, and release
-evidence remain Phase B after design acceptance.
+**rejected** for this candidate: the product owner subsequently rejected the
+exact visual direction under `P0-10`. The representative-person tests required
+by `P0-01`, `P0-04`, `P1-01`, `P1-03`, and `P1-07` were not run before that
+decision. Therefore no artifact is accepted or promoted. RN was not changed,
+and no Phase B work may start from `mvr-15`.
 
 ## Promoted Artifact
 
-No accepted visual artifact is created or updated. The run remains
-`candidate_exploration`; implementation is not authorized.
+No accepted visual artifact is created or updated. The run and `mvr-15` are
+`rejected`; implementation is not authorized.
 
 ## Winning Candidate
 
-The winning search candidate is `mvr-15`, but only as a conditional shortlist
-leader. It is not a promoted winner, accepted artifact, final survivor, or
-implementation authority. Explicit product-owner acceptance of the exact proof
-is unresolved.
+There is no winning candidate. `mvr-15` was the historical conditional pairwise
+leader, but the product-owner rejection supersedes that technical ranking. It
+is not a promoted winner, accepted artifact, final survivor, or implementation
+authority.
 
 ## Baseline Comparison
 
-`mvr-15` beats the rejected `mvr-10` and `mvr-14` direction baselines on CET4/6
-task clarity, brand/current-collection separation, Learning-Space continuity,
-explicit audio, auto-scored/flip separation, and physical Space legibility.
+The historical pairwise review ranked `mvr-15` above rejected `mvr-10` and
+`mvr-14` on several technical and structural criteria. That comparison is
+retained for audit only; the product-owner visual decision rejects `mvr-15` and
+prevents the ranking from becoming a baseline or promotion.
 
 The current code-native proof also improves materially over its own pre-code
 raster snapshot: it now contains exact contrast values, 320 / 360 / 393 / 430
@@ -88,9 +96,10 @@ remaining browser-verifiable defect.
 - `mvr-10`: 2 x 2 answer -> registered result -> inline analysis -> continuation.
 - `mvr-14`: vertical lock progression, settled explanation, and hierarchy through
   containment/elevation.
-- `mvr-15`: stable light brand chrome, address aperture, layered-object
-  continuity, explicit audio, cross-library role separation, favorite tag, and
-  in-holder sleep zone remain conditional synthesis inputs.
+- `mvr-15`: its operable proof remains useful only as historical evidence that
+  explicit audio, correct assessment scoping, favorite tag, and in-holder sleep
+  can coexist. Its palette, Soft Spine mark, light chrome, address aperture,
+  cut-corner object, layered edge, and composition are rejected as a package.
 
 These are search inputs, not promoted components.
 
@@ -128,18 +137,11 @@ not represent formal content approval.
 
 ## Implementation Mapping Expectations
 
-If the exact design is later accepted, a separate implementation PR must map
-the current task, interaction-specific action, inline result/analysis,
-continuation, quiet address, bounded four-destination navigation, and current
-library -> group -> holder -> object Space hierarchy. It must preserve explicit
-audio on the development flip/audio fixture, truthful auto-scored states on the
-development choice fixture, stable spine/address continuity, favorite as a tag,
-and sleep as a zone inside the active holder.
-
-Production RN mapping and physical-device execution follow design acceptance;
-they are not prerequisites used to force early implementation of an unaccepted
-artifact. Product-owner acceptance would close only the exact Phase A design
-decision. It would not approve implementation merge or release.
+There is no implementation mapping expectation for `mvr-15`: the exact design
+has been rejected and must not be revived through an implementation PR. A new,
+materially different exact replacement must first be accepted in a separate
+design lifecycle. Only that future accepted artifact may define an RN mapping
+and later physical-device execution.
 
 ## Unimplemented Gaps
 
@@ -172,24 +174,23 @@ evidence, but they do not block design work by requiring implementation first.
 Phase A proof cannot substitute for them, and product-owner design acceptance
 does not waive them.
 
-## Current Unresolved Gates
+## Final Gate Disposition
 
 - Independent technical design/UX/accessibility/platform-composition review of
   the corrected exact HTML revision passed. It does not substitute for the
-  required representative-person studies or owner decision.
+  product-owner visual decision, which is now `reject`.
 - Representative-person task recognition, blurred-silhouette, no-logo,
   hierarchy, and result/feedback-comprehension testing has not been run.
-- The product owner has not accepted the exact candidate and proof revision.
-- RN was not changed. Real iOS/Android/tablet, safe area/IME/back,
-  VoiceOver/TalkBack, native async/persistence, and release evidence remain
-  mandatory Phase B gates after design acceptance.
+- The product owner rejected the exact candidate; there is no accepted scope
+  and no remaining path to promotion inside v3.
+- RN was not changed and must not consume this proof. Native/device/assistive-
+  technology work resumes only after a different mobile direction is accepted.
 
 ## Failure Sedimentation
 
-- Candidate index and mutation log retain fourteen rejected directions and the
-  conditional `mvr-15` outcome.
-- Hard-filter and pairwise records preserve the shortlist win without converting
-  it into acceptance.
+- Candidate index and mutation log retain all fifteen rejected directions.
+- Hard-filter and pairwise records preserve the historical shortlist result
+  while making the later product-owner rejection controlling.
 - Generated pre-code sketches are excluded from ordinary Git and from the
   durable evidence set.
 - The post-code review records both the newly closed HTML scope and the six
@@ -251,5 +252,6 @@ picker is introduced; Statistics remains outside this direction proof.
 - Q6: truthful auto-scoring, exact two-choice flip assessment, restrained
   Statistics, and no primary module picker are present.
 
-No promotion follows from this delta. Independent technical review passed;
-representative-person evidence and exact product-owner acceptance remain open.
+No promotion follows from this delta. Independent technical review passed, but
+the product owner rejected the visual direction. The exact proof is frozen as
+failure evidence and must not enter RN.

@@ -116,10 +116,11 @@ Promotion is not justified unless the winning candidate beats the baseline on pr
 - `2026-08-07-mobile-editorial-reset/` on closed, unmerged PR `#481`: its orange
   editorial recommendation never received product-owner acceptance and is also
   vetoed.
-- `2026-08-08-mobile-visual-rebuild-v3/`: candidate exploration only. No
-  candidate becomes accepted through rendering, ranking, reviewer recommendation,
-  or merge alone; the exact rendered direction needs explicit product-owner
-  acceptance before a separate implementation PR.
+- `2026-08-08-mobile-visual-rebuild-v3/`: rejected historical search. The
+  product owner explicitly rejected the exact `mvr-15` learner result after its
+  repaired proof pair passed technical review. Its learner SHA `41a2143a…` and
+  reviewer SHA `13bc7dff…` are frozen rejection evidence; no ranking, green
+  validator, in-place mutation, merge, or implementation may revive them.
 
 The binding lifecycle record is
 `../rejected/mobile-visual-directions-product-owner-veto-2026-08-08.md`.

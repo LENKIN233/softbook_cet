@@ -1,5 +1,12 @@
 # Generation 3 — MVR 15 vs MVR 10
 
+> **Product-owner rejection — 2026-08-08**
+> This pairwise record is historical. The product owner subsequently rejected
+> the exact `mvr-15` visual direction represented by learner SHA `41a2143a…`
+> and reviewer SHA `13bc7dff…`. That decision supersedes the conditional
+> pairwise ranking. The exact proof pair remains frozen failure evidence and
+> must not authorize React Native or be edited in place.
+
 > **P0-09 quarantine correction — 2026-08-08**
 > The previously frozen proof `98c1b28c…` is invalidated as current evidence.
 > Its review cockpit and learner surface shared one page, and reviewer/QA/
@@ -8,8 +15,8 @@
 > not scanned. It must not be used for leadership demo, implementation, or
 > acceptance. The final learner preview (`41a2143a…`) and reviewer harness
 > (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
-> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
-> remains `candidate_exploration` because the human gates are still open.
+> fresh code-native P0/P1 review. The old SHA remains quarantined. The later
+> product-owner rejection controls the lifecycle of the repaired pair.
 
 
 ## Pair
@@ -26,10 +33,11 @@ for product-owner acceptance.
 
 ## Winner
 
-`mvr-15` wins this pair for the conditional shortlist only. It is not promoted,
-not accepted, not a final survivor, and not implementation authority.
+`mvr-15` won this historical pair for the conditional technical shortlist only.
+The later product-owner rejection controls the final lifecycle: neither
+candidate is a survivor, accepted artifact, or implementation authority.
 
-## Phase 3 Fresh Review Delta — Current Evidence
+## Phase 3 Fresh Review Delta — Historical Technical Evidence
 
 The pairwise winner is unchanged, but the Phase 1 `mvr-15` blocker language in
 the record below is historical. The repaired pair preserves the Phase 2
@@ -50,12 +58,11 @@ Lock/Elimination result CTA handoff; Swipe threshold/cancel/keyboard/reduced-
 motion paths; and the 8/12/20-plus-pill product-radius system with named
 hardware/graphic evidence exceptions.
 
-New independent final technical review of the current pair passed every
+New independent final technical review of the exact repaired pair passed every
 implementation- and browser-verifiable Phase A P0/P1 item. The pairwise win
-still does not equal acceptance or promotion. Representative-person study
-evidence and an exact product-owner decision remain Phase A blockers. RN was not
-changed; real iOS/Android/tablet, safe area/IME/back, VoiceOver/TalkBack, native
-async/persistence, and release evidence remain Phase B.
+did not equal acceptance or promotion. Representative-person studies were not
+run before the product owner rejected the visual direction. RN was not changed,
+and no native/platform/release work may proceed from `mvr-15`.
 
 ## Phase 1 Pairwise Record — Historical
 
@@ -164,12 +171,12 @@ does not follow state, and collection identity remains too palette-led.
   design proof receives explicit product-owner acceptance; those checks belong
   to the later implementation/release stage.
 
-## Current Pairwise Disposition
+## Final Pairwise Disposition
 
-`mvr-15` remains the conditional pairwise winner because Phase 2 preserves its
-role separation and Learning-Space continuity while making the retained
-interaction order truthful and completing the named design-proof scope. The
-final pair (`41a2143a…` / `13bc7dff…`) passed a new independent technical
-review; representative-person testing and exact product-owner acceptance are
-still required before Phase A promotion.
-No Phase B implementation or release conclusion is drawn from this comparison.
+`mvr-15` remains only the historical conditional pairwise winner because Phase
+2 preserved its role separation and Learning-Space continuity while making the
+retained interaction order truthful and completing the named design-proof
+scope. The final pair (`41a2143a…` / `13bc7dff…`) passed a new independent
+technical review, after which the product owner rejected the visual direction.
+The comparison cannot be promoted, revived, or consumed by implementation; no
+Phase B conclusion is drawn from it.

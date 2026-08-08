@@ -1,5 +1,12 @@
 # Mobile Visual Rebuild V3 — Hard Filter Results
 
+> **Product-owner rejection — 2026-08-08**
+> The exact `mvr-15` direction represented by learner SHA `41a2143a…` and
+> reviewer SHA `13bc7dff…` is `rejected`. The narrow technical hard-filter PASS
+> and pairwise result remain historical evidence only; they cannot reverse the
+> owner veto, authorize React Native, or justify editing the frozen proofs. The
+> old combined SHA `98c1b28c…` remains separately quarantined for P0-09.
+
 > **P0-09 quarantine correction — 2026-08-08**
 > The previously frozen proof `98c1b28c…` is invalidated as current evidence.
 > Its review cockpit and learner surface shared one page, and reviewer/QA/
@@ -8,8 +15,8 @@
 > not scanned. It must not be used for leadership demo, implementation, or
 > acceptance. The final learner preview (`41a2143a…`) and reviewer harness
 > (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
-> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
-> remains `candidate_exploration` because the human gates are still open.
+> fresh code-native P0/P1 review. The old SHA remains quarantined. The later
+> product-owner rejection controls the lifecycle of the repaired pair.
 
 
 ## Phase 2 Final Correction Delta — Invalidated Historical Snapshot
@@ -48,10 +55,10 @@ blockers.
   extra product-surface radii.
 - The historical independent final review passed every implementation- and
   browser-verifiable Phase A P0/P1 item on that corrected revision before P0-09
-  invalidated it. Formal Phase A remains blocked
-  by the specified representative-person studies (`P0-01`, `P0-04`, `P1-01`,
-  `P1-03`, `P1-07`) and exact product-owner acceptance (`P0-10`), so `mvr-15`
-  remains `candidate_exploration`, not accepted or promoted.
+  invalidated it. The repaired pair later passed a fresh technical review, but
+  the product owner rejected the exact visual direction under `P0-10`.
+  `mvr-15` is therefore `rejected`, not accepted or promoted. The specified
+  representative-person studies were not run before that decision.
 - React Native was not changed. Real iOS/Android/tablet, safe area/IME/back,
   VoiceOver/TalkBack, native async/persistence, and release evidence remain
   Phase B gates after design acceptance.
@@ -94,6 +101,11 @@ implementation.
 
 ## Surviving Candidates
 
+The validator-facing classification below preserves the candidates that
+historically survived the narrow hard filter long enough for comparison. It is
+not their final lifecycle: all three were later visually rejected, including
+`mvr-15` by explicit product-owner decision.
+
 - `mvr-10` survived only the narrow structural filter long enough for pairwise
   review: it kept the 2 x 2 option silhouette, preserved answer state, and put
   result plus useful analysis before continuation. It did not survive final
@@ -101,7 +113,7 @@ implementation.
 - `mvr-14` survived only the narrow structural filter long enough for pairwise
   review: its lock rows, settled state, and contained Space hierarchy remained
   legible. It did not survive final visual review.
-- `mvr-15` conditionally survives the direction-level filter through
+- `mvr-15` historically survived the direction-level technical filter through
   `candidate-proofs/mvr-15-review-harness.html#mvr-15`: light brand chrome remains
   separate from the current rose collection and separate indigo collection; its
   address aperture and layered current object persist into Space; audio is
@@ -112,9 +124,11 @@ implementation.
   never on the pre-code raster sketches.
 
 `mvr-10` and `mvr-14` remain historical narrow-filter survivors that were
-visually rejected. `mvr-15` is only a conditional search survivor: it is not an
-accepted direction, final survivor, or implementation authority. These
-classifications preserve the actual filter -> comparison -> review sequence.
+visually rejected. `mvr-15` also has a historical conditional technical result,
+but the subsequent product-owner veto makes its final lifecycle `rejected`.
+There is no current survivor, accepted direction, or implementation authority.
+These records preserve the actual filter -> comparison -> technical review ->
+owner rejection sequence.
 
 ## Product Truth Violations
 
@@ -200,10 +214,10 @@ Phase B evidence gates stated at the end remain active.
 
 ## Current Hard-Filter Disposition
 
-`mvr-15` still wins only the conditional direction-level filter. Phase 2 removes
-the recorded HTML defects and fills the named surface/interaction proof gaps;
-a new independent review passes that exact scope on final learner SHA
-`41a2143a…` and reviewer SHA `13bc7dff…`. Representative-person evidence and an
-exact product-owner decision remain Phase A blockers; no green validator or
-pairwise win substitutes for them. Phase B native evidence remains wholly
-unstarted and cannot be inferred from this design proof.
+`mvr-15` historically won only the conditional direction-level technical
+filter. Phase 2 removed the recorded HTML defects and filled the named
+surface/interaction proof gaps; a new independent review passed that exact
+scope on learner SHA `41a2143a…` and reviewer SHA `13bc7dff…`. The product owner
+then rejected the visual direction. No green validator or pairwise win may
+substitute for that decision. The proof is frozen failure evidence and must not
+advance to Phase B or React Native.

@@ -1,5 +1,15 @@
 # Mobile Visual Rebuild V3 — Candidate Index
 
+> **Product-owner rejection — 2026-08-08**
+> The product owner explicitly rejected the `mvr-15` visual direction after
+> reviewing the exact learner-facing result, describing the overall UI/UX as
+> extremely poor and its colors as unlike a normal application. This decision
+> supersedes the earlier conditional technical shortlist. The learner proof
+> (`41a2143a…`) and reviewer harness (`13bc7dff…`) remain immutable historical
+> rejection evidence; they are not implementation authority and must not be
+> edited in place or consumed by React Native. The old combined proof
+> (`98c1b28c…`) remains separately quarantined for P0-09 leakage.
+
 > **P0-09 quarantine correction — 2026-08-08**
 > The previously frozen proof `98c1b28c…` is invalidated as current evidence.
 > Its review cockpit and learner surface shared one page, and reviewer/QA/
@@ -8,15 +18,15 @@
 > not scanned. It must not be used for leadership demo, implementation, or
 > acceptance. The final learner preview (`41a2143a…`) and reviewer harness
 > (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
-> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
-> remains `candidate_exploration` because the human gates are still open.
+> fresh code-native P0/P1 review. The old SHA remains quarantined. The later
+> product-owner rejection controls the lifecycle of the repaired pair.
 
 
 ## Lifecycle
 
-- Run status: `candidate_exploration`
+- Run status: `rejected`
 - Implementation authority: none
-- Product-owner decision: unresolved
+- Product-owner decision: `reject mvr-15`
 - Shared context: `context-pack.md`
 - Strict gate: `acceptance-rubric.md`
 - Critical state inventory: `ux-state-matrix.md`
@@ -24,7 +34,8 @@
   Generation 3's earlier conditional technical result was invalidated by a
   P0-09 learner-copy leak. Fresh independent review passed the final repaired
   learner/reviewer pair for P0-09 and all code-native P0/P1 checks;
-  representative-user and product-owner gates remain unresolved.
+  representative-user evidence remains unrun, and the product owner has now
+  rejected the exact direction. Technical PASS does not restore it.
 
 Generation 1 attempted eight object models, but strict rendered review found
 that the population collapsed into a paper/object-heavy family and produced no
@@ -67,7 +78,7 @@ against separate indigo and rose collection identities.
 
 | Candidate | Search pole | Structural proposition | Evidence | Current status |
 | --- | --- | --- | --- | --- |
-| `mvr-15` | stable brand role + object continuity | light brand chrome, address aperture, layered current object, explicit audio, nested physical Space | learner preview: `candidate-proofs/mvr-15-soft-spine.html#mvr-15`; reviewer harness: `candidate-proofs/mvr-15-review-harness.html#mvr-15` | `candidate_exploration`; old SHA `98c1b28c…` remains quarantined; final pair passed fresh P0-09 and code-native P0/P1 review, while representative-user evidence and exact product-owner acceptance remain open |
+| `mvr-15` | stable brand role + object continuity | light brand chrome, address aperture, layered current object, explicit audio, nested physical Space | learner preview: `candidate-proofs/mvr-15-soft-spine.html#mvr-15`; reviewer harness: `candidate-proofs/mvr-15-review-harness.html#mvr-15` | `rejected` by the product owner; exact pair remains frozen failure evidence, not RN authority; old SHA `98c1b28c…` remains quarantined |
 
 ## Fragment Harvest
 
@@ -78,11 +89,11 @@ against separate indigo and rose collection identities.
   inline explanation, and clearly transferred continuation; the containment and
   elevation cues also help keep the Space hierarchy legible. Do not carry the
   poster palette, diagonal shell, or flag navigation.
-- From `mvr-15`: retain the stable light brand chrome, address aperture,
-  layered-object continuity, explicit audio, auto-scored result without flip
-  self-assessment, in-box sleep zone, and cross-library role separation for
-  continued proof. These fragments remain conditional until the missing gates
-  and product-owner decision are closed.
+- From `mvr-15`: preserve only the historical observation that explicit audio,
+  auto-scored result without flip self-assessment, and an in-box sleep zone can
+  be represented in one operable proof. The Soft Spine visual package — its
+  palette, light chrome, address aperture, cut-corner object, layered edge, and
+  associated composition — is rejected and is not a reusable design source.
 - These are borrowable structural fragments, not accepted components or visual
   authority. They require complete visual re-expression and the full gate in a
   later generation.
@@ -94,11 +105,10 @@ different metaphors. Rendered review found that `mvr-01`, `mvr-02`, `mvr-05`,
 `mvr-06`, `mvr-07`, and `mvr-08` share too much paper/object ancestry; the first
 population therefore fails the materially-different threshold even though the
 individual HTML structures differ. Generation 2 increased structural variety,
-but its six directions still failed product fit or visual-quality gates. A
-later generation must move beyond both the original paper family and the new
-metaphor-first treatments. `mvr-15` is materially different because it starts
-from stable brand roles and one continuous operable object rather than a named
-material. That difference supports conditional shortlisting, not acceptance.
+but its six directions still failed product fit or visual-quality gates.
+`mvr-15` was materially different enough for a historical conditional
+comparison, but the product owner rejected the exact result. V3 therefore ends
+with no survivor and no accepted mobile visual baseline.
 
 ## Scope Warning
 
@@ -114,6 +124,7 @@ The historical Phase A P0/P1 result on frozen SHA `98c1b28c…` is invalidated b
 P0-09. A new independent review passed the final repaired pair on exact SHAs
 `41a2143a…` and `13bc7dff…`; this is a new result, not a transfer of the old
 PASS. Representative-user task, silhouette, hierarchy, no-logo and
-feedback-comprehension studies plus exact product-owner acceptance remain
-unresolved. Real native assistive-technology and platform validation follow a
-later implementation PR after design acceptance.
+feedback-comprehension studies were not run before the owner decision. The
+owner rejection is final for this exact candidate: the proof must not advance
+to native implementation or Phase B. A new replacement search must establish a
+different exact artifact and obtain explicit product-owner acceptance first.

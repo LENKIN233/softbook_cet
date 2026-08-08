@@ -1,5 +1,15 @@
 # Soft Spine
 
+> **Product-owner rejection — 2026-08-08**
+> The product owner explicitly rejected this exact visual direction after
+> reviewing the learner-facing result, describing the overall UI/UX as
+> extremely poor and the colors as unlike a normal application. The exact
+> learner SHA `41a2143a…` and reviewer SHA `13bc7dff…` are frozen as historical
+> rejection evidence. Their technical checks remain auditable but cannot
+> authorize implementation. Do not edit these proofs in place, cite this
+> candidate as accepted, or use it to begin React Native work. The old combined
+> SHA `98c1b28c…` remains separately quarantined for P0-09 leakage.
+
 > **P0-09 quarantine correction — 2026-08-08**
 > The previously frozen proof `98c1b28c…` is invalidated as current evidence.
 > Its review cockpit and learner surface shared one page, and reviewer/QA/
@@ -8,13 +18,23 @@
 > not scanned. It must not be used for leadership demo, implementation, or
 > acceptance. The final learner preview (`41a2143a…`) and reviewer harness
 > (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
-> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
-> remains `candidate_exploration` because the human gates are still open.
+> fresh code-native P0/P1 review. The old SHA remains quarantined. The later
+> product-owner rejection controls the lifecycle of the repaired pair.
 
 
 ## Candidate ID
 
 mvr-15
+
+## Product-Owner Decision
+
+- Lifecycle status: `rejected`.
+- Accepted scope: none.
+- Implementation authority: none.
+- Decision consequence: the former conditional technical shortlist is
+  superseded. Re-entry requires a materially different exact replacement proof
+  and a new explicit product-owner acceptance; agent review, pairwise ranking,
+  validator PASS, or in-place mutation cannot reverse this rejection.
 
 ## Provenance
 
@@ -75,9 +95,10 @@ native-platform, or formal content evidence.
 
 The earlier `conditional_survivor` technical classification is invalidated for
 the contaminated SHA. A new independent review passed the repaired split on
-the exact current hashes for P0-09 and all code-native P0/P1 checks. It remains
-`candidate_exploration`: it is not accepted, not a final survivor, and not
-implementation authority because the human gates remain open.
+the exact current hashes for P0-09 and all code-native P0/P1 checks. The product
+owner subsequently rejected the visual direction. Its current lifecycle is
+therefore `rejected`, not `candidate_exploration`; the technical PASS remains
+historical evidence only and creates no implementation authority.
 
 ## Aesthetic Thesis
 
@@ -244,26 +265,26 @@ Native authorization; no RN file is changed by this candidate.
   iOS/Android/tablet, VoiceOver/TalkBack, switch, or physical-device evidence.
 - Representative-person task recognition, blurred-silhouette, no-logo,
   hierarchy, and result/feedback-comprehension studies have not been run.
-- Product-owner acceptance of these exact proof files is unresolved.
+- The product owner rejected the exact visual direction represented by these
+  proof files; there is no accepted scope.
 - Excluded generated sketches cannot support any P0-08 claim.
 
 ## Review Disposition
 
-- Status: `candidate_exploration_after_p0_09_repair`.
+- Status: `rejected_after_product_owner_review`.
 - The previous technical PASS for frozen revision `98c1b28c…` is superseded:
   P0-09 was a false negative because learner-visible dynamic and assistive copy
   was outside scanner coverage. A new independent review passed the repaired
   learner/reviewer split on the exact hashes above; this is a new result rather
   than a transfer of the superseded PASS.
-- Blocking formal Phase A design promotion: `P0-01`, `P0-04`, `P1-01`,
-  `P1-03`, and `P1-07` still require representative-person studies, and
-  `P0-10` requires an explicit product-owner decision naming the exact candidate
-  and proof revision. The candidate therefore remains unaccepted and
-  unpromoted; no reviewer or green gate can substitute for those decisions.
-- Phase B starts only after design acceptance in a separate implementation PR.
-  RN parity, real iOS/Android/tablet, safe area/IME/back, VoiceOver/TalkBack,
-  native async/persistence, and release gates remain mandatory there, but they
-  are not Phase A promotion prerequisites. No RN code was changed here.
+- Formal Phase A design promotion is closed for this candidate: `P0-10` records
+  an explicit rejection, not an unresolved acceptance gate. Unrun
+  representative-person studies remain an evidence limitation but cannot
+  reverse the owner decision.
+- Phase B must not start from `mvr-15`. RN parity, real iOS/Android/tablet,
+  safe area/IME/back, VoiceOver/TalkBack, native async/persistence, and release
+  work apply only after a different exact design is accepted in a separate
+  lifecycle. No RN code was changed here.
 
 ## Design Review Checklist Answers
 

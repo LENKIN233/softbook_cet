@@ -1,5 +1,12 @@
 # Mobile Visual Rebuild V3 — Mutation Log
 
+> **Product-owner rejection — 2026-08-08**
+> After the final repaired pair passed its technical review, the product owner
+> rejected the exact `mvr-15` visual direction. Learner SHA `41a2143a…` and
+> reviewer SHA `13bc7dff…` are frozen as historical rejection evidence. The
+> conditional mutation result is superseded; do not mutate these proofs in
+> place, promote them, or use them to begin React Native work.
+
 > **P0-09 quarantine correction — 2026-08-08**
 > The previously frozen proof `98c1b28c…` is invalidated as current evidence.
 > Its review cockpit and learner surface shared one page, and reviewer/QA/
@@ -8,8 +15,8 @@
 > not scanned. It must not be used for leadership demo, implementation, or
 > acceptance. The final learner preview (`41a2143a…`) and reviewer harness
 > (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
-> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
-> remains `candidate_exploration` because the human gates are still open.
+> fresh code-native P0/P1 review. The old SHA remains quarantined. The later
+> product-owner rejection controls the lifecycle of the repaired pair.
 
 
 ## Phase 2 Final Correction Delta — Invalidated Historical Snapshot
@@ -36,9 +43,10 @@ graphic evidence exceptions.
 
 The historical independent technical review passed every implementation- and
 browser-verifiable Phase A P0/P1 item, but P0-09 later invalidated that combined
-artifact. The fresh current-pair verdict is recorded in the notice above. The
-run remains `candidate_exploration` because representative-person evidence and
-an exact product-owner decision are still missing from Phase A.
+artifact. The fresh repaired pair passed a separate technical review, after
+which the product owner rejected the visual direction. The run is now
+`rejected`; representative-person evidence was not collected and no Phase B
+work may start from `mvr-15`.
 
 ## Failure Signal
 
@@ -135,7 +143,7 @@ excluded sketches, stress-tests stable brand chrome across
 collections, omission of flip self-assessment from auto-scored multiple choice,
 favorite attached to the card, and sleep inside the active box.
 
-## Generation 3 Result
+## Generation 3 Technical Result — Historical
 
 An independent reviewer marked `mvr-15` a `conditional_survivor` of the narrow
 direction-level filter. It beats `mvr-10` in pairwise review because task
@@ -165,6 +173,12 @@ corrected proof is independently reviewed and explicitly accepted.
 The preceding two paragraphs are the preserved Phase 1 strict-review verdict
 and corrective brief.
 
+The later product-owner review rejected the repaired Soft Spine visual result,
+including its perceived palette and overall application quality. This
+supersedes the conditional technical shortlist. The Soft Spine mark, light
+chrome, navy/rose/lime package, address aperture, cut-corner object, layered
+edge, and composition are not valid mutation inputs for a future direction.
+
 ## Phase 2 Correction Result — Invalidated Historical Snapshot
 
 The corrective mutation closed the six recorded defects and the missing
@@ -174,6 +188,7 @@ SHA-256 was
 That combined artifact is now invalidated and quarantined by P0-09. The separate
 current pair (`41a2143a…` / `13bc7dff…`) passed a new independent P0-09 and
 code-native P0/P1 review. It still does not create an accepted winner: the
-specified representative-person studies have not occurred and the product
-owner has not accepted the exact revision. Phase B native and release
-verification follows only after those Phase A gates close.
+specified representative-person studies did not occur and the product owner
+rejected the exact revision. Phase B native and release verification must not
+proceed from this candidate. A materially different exact replacement requires
+its own search, review, and explicit owner acceptance.

@@ -1,5 +1,12 @@
 # MVR-15 Independent UI/UX Review Matrix
 
+> **Product-owner rejection — 2026-08-08**
+> The product owner rejected the exact `mvr-15` visual direction after the
+> repaired pair passed technical review. Learner SHA `41a2143a…` and reviewer
+> SHA `13bc7dff…` remain frozen historical rejection evidence. This human
+> decision supersedes the conditional technical recommendation and forbids RN
+> consumption or in-place mutation of the proof pair.
+
 > **P0-09 quarantine correction — 2026-08-08**
 > The previously frozen proof `98c1b28c…` is invalidated as current evidence.
 > Its review cockpit and learner surface shared one page, and reviewer/QA/
@@ -8,21 +15,22 @@
 > not scanned. It must not be used for leadership demo, implementation, or
 > acceptance. The final learner preview (`41a2143a…`) and reviewer harness
 > (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
-> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
-> remains `candidate_exploration` because the human gates are still open.
+> fresh code-native P0/P1 review. The old SHA remains quarantined. The later
+> product-owner rejection controls the lifecycle of the repaired pair.
 
 
 ## Current Verdict
 
-`mvr-15` remains `candidate_exploration`. It is not accepted, not promoted, and
-does not authorize implementation.
+`mvr-15` is `rejected` by the product owner. It is not accepted, not promoted,
+and does not authorize implementation.
 
 The old SHA `98c1b28c…` is `quarantined` and its P0-09 classification is FAIL.
 The repaired learner preview (`41a2143a…`) and reviewer harness (`13bc7dff…`)
 passed a new independent P0-09 boundary/leakage review and a new code-native
-P0/P1 review. No earlier technical PASS transfers to the new pair.
+P0/P1 review. No earlier technical PASS transfers to the new pair, and the new
+technical PASS does not override the later product-owner rejection.
 
-### Phase 3 Fresh Independent Review — Current Pair
+### Phase 3 Fresh Independent Review — Frozen Technical Evidence
 
 - Exact learner SHA:
   `41a2143a5c011f08b4dd5cdedf04044e7836fc96dba254a9b0309ad430516722`.
@@ -44,9 +52,10 @@ P0/P1 review. No earlier technical PASS transfers to the new pair.
   CSS/JavaScript remains outside learner scope only when reviewer audience is
   explicit; the real pair has an automated dependency and template-parity
   check.
-- Boundary of this result: representative-person studies, exact product-owner
-  acceptance, React Native parity, real native platform/assistive technology,
-  and release evidence remain open. This result does not promote the candidate.
+- Boundary of this result: representative-person studies were not run and the
+  product owner rejected the visual direction. React Native parity, native
+  platform/assistive-technology, and release work must not start from this
+  candidate. This result does not promote it.
 
 ### Phase 2 Final Correction Delta — Invalidated Historical Snapshot
 
@@ -340,7 +349,7 @@ blockers in C, then repeat independent design review and request an explicit
 product-owner decision. Do not call the current candidate accepted or promoted,
 and do not begin RN implementation from this unaccepted artifact.
 
-## Phase 2 Checklist And Recommendation — Current
+## Phase 2 Checklist — Historical Technical Result
 
 - Q1: stable brand chrome/spine/address and public library naming provide a
   non-color cue alongside each current-library hue; independent technical
@@ -363,9 +372,9 @@ and do not begin RN implementation from this unaccepted artifact.
   `有把握` / `再回看`; Statistics remains a restrained today ledger; no primary
   module picker is introduced.
 
-Retain `mvr-15` as a corrected conditional search leader. Its frozen revision
-passes the independent technical Phase A review, but the overall Phase A verdict
-remains **blocked** by `P0-01`, `P0-04`, `P0-10`, `P1-01`, `P1-03`, and
-`P1-07`. Do not call it accepted or promoted. Run the specified representative-
-person studies and obtain the exact product-owner decision before Phase A
-promotion; only then may a separate RN implementation PR begin Phase B.
+The repaired pair passed this independent technical review, but the product
+owner subsequently rejected the visual direction under `P0-10`. The final
+lifecycle is therefore **rejected**, not conditionally blocked. Do not call it
+accepted or promoted, do not run Phase B from it, and do not edit the frozen
+proofs into a new candidate. A materially different replacement requires its
+own exact proof and explicit product-owner acceptance.
