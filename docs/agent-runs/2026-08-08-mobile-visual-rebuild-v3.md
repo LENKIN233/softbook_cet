@@ -1,5 +1,17 @@
 # Agent Run Record: Mobile visual rebuild v3
 
+> **P0-09 quarantine correction — 2026-08-08**
+> The previously frozen proof `98c1b28c…` is invalidated as current evidence.
+> Its review cockpit and learner surface shared one page, and reviewer/QA/
+> implementation language leaked into visible and assistive product copy. The
+> old metadata-check PASS was a false negative because inline dynamic copy was
+> not scanned. It must not be used for leadership demo, implementation, or
+> acceptance. The final learner preview (`41a2143a…`) and reviewer harness
+> (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
+> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
+> remains `candidate_exploration` because the human gates are still open.
+
+
 ## Task summary
 
 - Date: 2026-08-08
@@ -8,7 +20,11 @@
 - Summary: Freeze the product-owner-rejected mobile visual directions, run a
   design-only search for materially different mobile systems, record the Phase
   1 strict-review failure, and correct the exact `mvr-15` code-native proof in
-  Phase 2 without changing React Native.
+  Phase 2 without changing React Native. A later P0-09 incident review
+  invalidated the combined proof after reviewer/QA/implementation language was
+  found in learner-visible and assistive copy. Phase 3 separates the learner
+  preview from the reviewer harness, rewrites contaminated copy, and expands
+  the quarantine scanner; React Native remains unchanged.
 
 ## Referenced specs
 
@@ -76,7 +92,8 @@
 - `docs/design/search-runs/2026-08-08-mobile-visual-rebuild-v3/**`: complete
   design-search context, rubric, UX matrix, 15 candidate records, rendered
   proofs, rejection evidence, pairwise reviews, conditional shortlist record,
-  and code-native `mvr-15` proof.
+  learner-only `mvr-15` preview, and explicit reviewer-only harness. The old
+  combined proof SHA is retained only as quarantined historical evidence.
 - `docs/design/rejected/mobile-visual-directions-product-owner-veto-2026-08-08.md`
   and related lifecycle/index files: freeze Aurora/lilac/capsule and closed
   orange editorial directions as rejected hypotheses.
@@ -85,7 +102,14 @@
   authority.
 - `scripts/check_design_metadata_leaks.mjs` and
   `scripts/test_check_design_metadata_leaks.mjs`: cover canonical user-visible
-  labels while retaining quarantine enforcement.
+  labels and scan marked learner templates, CSS-generated content, and inline
+  dynamic/assistive copy for semantic review, QA, implementation,
+  state-machine, test-input, and numeric-box leakage; fail closed when an
+  explicit learner page lacks a real structural marker; and enforce the current
+  preview/harness dependency and template-parity boundary.
+- `docs/design/design-quarantine.md`: define explicit learner/reviewer audience,
+  structural learner-surface markers, scanner scope, and the rule that a
+  learner route must never consume reviewer evidence.
 - Historical mobile/PC-web mock and candidate-proof files plus their decision,
   mapping, rejection, and index records: quarantine revoked mobile authority
   and correct canonical user-visible labels without making those artifacts
@@ -112,8 +136,31 @@
   focus and route-live recovery; Lock/Elimination post-result CTA handoff; and
   Swipe below-threshold, past-threshold, cancel, keyboard, and reduced-motion
   button-alternative paths. A final semantic correction prevents dedicated Auth
-  from announcing the previously visited hall; it now announces `身份认证` while
-  the product header and navigation remain hidden.
+  from announcing the previously visited hall; it now announces
+  `已打开手机号登录` while the product header and navigation remain hidden.
+- P0-09 incident browser audit -> **FAIL on historical SHA `98c1b28c…`**:
+  the page exposed 64 reviewer controls and 29 proof labels to the learner/
+  leadership route; the cloned app template also exposed `本证明`, `服务端`,
+  `当前知识对象`, QA focus/duplicate-action narration, platform IME assertions,
+  and desktop test-input instructions. The old scanner PASS was a false
+  negative because it removed inline scripts before checking dynamic copy.
+- Phase 3 repair -> moved the 29-frame/state cockpit to
+  `candidate-proofs/mvr-15-review-harness.html`, created standalone learner-only
+  `candidate-proofs/mvr-15-soft-spine.html`, removed all learner-preview
+  dependency on the reviewer harness (including `fetch`, dynamic script
+  execution, reviewer controls, and reviewer-only CSS), and rewrote visual plus
+  ARIA live copy around the learner task, result, and recovery.
+- Repaired proof digests -> learner preview
+  `41a2143a5c011f08b4dd5cdedf04044e7836fc96dba254a9b0309ad430516722`;
+  reviewer harness
+  `13bc7dff3cab1f699155d9a1143be266916b1562fe49873aa717d510e48820eb`.
+- Repaired learner route browser audit -> exactly one `.app-shell`, zero audit
+  header/control/proof/ledger nodes, no page overflow on iOS or Android, and no
+  visible target below 44 x 44. Real operations covered wrong answer, analysis,
+  Space, favorite, sleep, Statistics, Mine, logout, phone entry, and short-code
+  request. The reviewer harness was driven through every interaction and state
+  family while visible, accessibility-attribute, and live-region copy was
+  scanned for the incident vocabulary; no recurrence was found.
 - Frozen proof digest -> `shasum -a 256 .../mvr-15-soft-spine.html` returned
   `98c1b28c6cf87d85bd92fe637a8789f59975bae83907246497294d1f72f87471`.
 - Proof-frame count -> `rg -o 'class="proof-card' ... | wc -l` returned `29`.
@@ -137,8 +184,8 @@
 - After selecting Node 22.13.0 and Ruby 3.3.12 and rebuilding the locked mobile,
   web, and backend dependency trees,
   `./scripts/run_local_gates --profile dev --base origin/main` -> 24/24 passed.
-  Its ignored, local-only report is
-  `exports/local-gates/20260808T101825Z-7960ebd2-dev-812/report.json`; it does
+  The final post-repair ignored, local-only report is
+  `exports/local-gates/20260808T134518Z-50697527-dev-85356/report.json`; it does
   not replace the strict PR profile, which must be rerun with open-PR context.
 - `node --test scripts/test_check_design_metadata_leaks.mjs` -> final result
   recorded below.
@@ -153,7 +200,9 @@
   authenticated `gh pr create` was used as the permitted fallback and created
   draft PR `#482` against `main`.
 - Final `./scripts/run_local_gates --profile pr --base origin/main` with open PR
-  context -> 34/36 passed. `pr-design-gate` and `agent-review` pass after the
+  context -> 34/36 passed; ignored report
+  `exports/local-gates/20260808T134534Z-50697527-pr-86489/report.json`.
+  `pr-design-gate` and `agent-review` pass after the
   exact checklist/body and AP-23 token evidence corrections. Remaining failures
   are the unchanged mobile dependency-security baseline (10 high advisories) and
   the local macOS sandbox repo-health worktree lookup (`fatal: not a git
@@ -162,9 +211,12 @@
 ## Validation results
 
 - Design-search structure validation: passed for the complete run.
-- Metadata quarantine test suite: passed.
-- Metadata quarantine validation: passed; no raw production metadata was added
-  to user-visible proof pixels.
+- Metadata quarantine test suite: 20/20 passed after adding learner-template,
+  dynamic-copy, reviewer-shell separation, reviewer-only CSS/JavaScript
+  non-leakage, missing-marker and fake-marker fail-closed, exact pair boundary
+  and template parity, and numeric-box regression cases.
+- Metadata quarantine validation: passed on the repaired artifact set. This
+  supersedes the historical false-negative result for SHA `98c1b28c…`.
 - Harness design-search regression validation: passed.
 - Diff hygiene check: passed.
 - Real browser composition/state audit: completed for the explicitly claimed
@@ -187,7 +239,9 @@
   implementation- and browser-verifiable Phase A P0/P1 item on frozen SHA
   `98c1b28c…`; none of these results substitutes for required representative-
   person studies or exact product-owner acceptance, and none confers promotion,
-  implementation authority, or release readiness.
+  implementation authority, or release readiness. This historical result is
+  invalidated by the later P0-09 incident and cannot be cited as current
+  evidence for the repaired pair.
 - Local dev gates: 24/24 passed after the pinned runtime and locked dependency
   rebuild described above. The final open-PR strict profile is 34/36 and remains
   non-green only on the unchanged mobile dependency-security baseline and local
@@ -196,8 +250,12 @@
 ## Binary evidence
 
 - Evidence manifest: N/A for the candidate branch; ordinary Git stores the
-  inspectable HTML proof. The frozen `mvr-15` HTML proof SHA-256 is
-  `98c1b28c6cf87d85bd92fe637a8789f59975bae83907246497294d1f72f87471`.
+  inspectable HTML proof. Historical SHA
+  `98c1b28c6cf87d85bd92fe637a8789f59975bae83907246497294d1f72f87471`
+  is quarantined. Current learner-preview SHA is
+  `41a2143a5c011f08b4dd5cdedf04044e7836fc96dba254a9b0309ad430516722`;
+  reviewer-harness SHA is
+  `13bc7dff3cab1f699155d9a1143be266916b1562fe49873aa717d510e48820eb`.
   Generated pre-code sketches are deliberately absent from ordinary Git and do
   not count as evidence.
 - Archive: N/A.
@@ -207,15 +265,18 @@
 - Reviewer coverage: independent design-search, strict UI/UX/accessibility,
   platform composition, semantic/keyboard/focus/live, state recovery, and final
   code-native proof review. The final reviewer did not author the proof.
-- Status: Phase 2 passes the independent technical Phase A review for every
-  implementation- and browser-verifiable P0/P1 item. `mvr-15` remains a
-  conditional shortlist candidate, not accepted or promoted authority.
-- Final technical observations: all 29 frames passed at 100%, 130%, 160%, and
-  200% with zero horizontal overflow, control-text clipping, navigation escape,
-  or visible target below 44 x 44; tablet workspace utilization was 72.4%–96.5%;
-  all 191 visible controls were named; contrast, roles/states, keyboard,
-  reduced-motion, focus/live recovery, async preservation, and console checks
-  passed. Auth announces `身份认证` without leaking the previous hall.
+- Status: the old Phase 2 technical PASS is invalidated by P0-09. The repaired
+  split passed a new independent review on learner SHA `41a2143a…` and reviewer
+  SHA `13bc7dff…`: P0-09 PASS, code-native P0 findings 0, and code-native P1
+  findings 0. This closes the leakage quarantine only; the candidate remains
+  `candidate_exploration`, not accepted or promoted authority.
+- Current independent technical observations: all 29 frames passed at 100%,
+  130%, 160%, and 200% with zero horizontal overflow, control-text clipping,
+  navigation escape, or visible target below 44 x 44; all visible controls were
+  named; contrast, roles/states, keyboard, reduced-motion, focus/live recovery,
+  async preservation, and console checks passed. Auth announces
+  `已打开手机号登录` without leaking the previous hall. These observations are
+  bound to the current pair and do not transfer acceptance from the old SHA.
 - Blocking formal Phase A findings: `P0-01`, `P0-04`, `P1-01`, `P1-03`, and
   `P1-07` require representative-person studies; `P0-10` requires an exact
   product-owner decision. No self-review or green validator may substitute for

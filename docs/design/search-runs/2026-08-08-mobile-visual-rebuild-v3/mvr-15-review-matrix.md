@@ -1,11 +1,54 @@
 # MVR-15 Independent UI/UX Review Matrix
 
+> **P0-09 quarantine correction — 2026-08-08**
+> The previously frozen proof `98c1b28c…` is invalidated as current evidence.
+> Its review cockpit and learner surface shared one page, and reviewer/QA/
+> implementation language leaked into visible and assistive product copy. The
+> old metadata-check PASS was a false negative because inline dynamic copy was
+> not scanned. It must not be used for leadership demo, implementation, or
+> acceptance. The final learner preview (`41a2143a…`) and reviewer harness
+> (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
+> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
+> remains `candidate_exploration` because the human gates are still open.
+
+
 ## Current Verdict
 
 `mvr-15` remains `candidate_exploration`. It is not accepted, not promoted, and
 does not authorize implementation.
 
-### Phase 2 Final Correction Delta — Current
+The old SHA `98c1b28c…` is `quarantined` and its P0-09 classification is FAIL.
+The repaired learner preview (`41a2143a…`) and reviewer harness (`13bc7dff…`)
+passed a new independent P0-09 boundary/leakage review and a new code-native
+P0/P1 review. No earlier technical PASS transfers to the new pair.
+
+### Phase 3 Fresh Independent Review — Current Pair
+
+- Exact learner SHA:
+  `41a2143a5c011f08b4dd5cdedf04044e7836fc96dba254a9b0309ad430516722`.
+- Exact reviewer SHA:
+  `13bc7dff3cab1f699155d9a1143be266916b1562fe49873aa717d510e48820eb`.
+- Verdict: P0-09 PASS; code-native P0 findings 0; code-native P1 findings 0.
+- Boundary evidence: the learner file is self-contained, declares learner
+  audience, mounts one app and zero reviewer nodes, and has no fetch, dynamic
+  execution, style/script, or DOM dependency on the reviewer harness. The
+  reviewer file declares reviewer audience; its marked learner template is
+  byte-identical to the learner preview template.
+- Real browser evidence: the current pair passed the complete choice -> result
+  -> Space -> return -> next-card path, Statistics/check-in, Mine/logout, phone
+  and short-code request, all reviewer states, console checks, 44 x 44 targets,
+  and the 29-frame 100/130/160/200% containment audit without prompt/reviewer
+  leakage or horizontal overflow.
+- Scanner evidence: 20/20 regression tests plus full-tree metadata scanning
+  pass. Learner documents fail closed on missing or fake markers; reviewer-only
+  CSS/JavaScript remains outside learner scope only when reviewer audience is
+  explicit; the real pair has an automated dependency and template-parity
+  check.
+- Boundary of this result: representative-person studies, exact product-owner
+  acceptance, React Native parity, real native platform/assistive technology,
+  and release evidence remain open. This result does not promote the candidate.
+
+### Phase 2 Final Correction Delta — Invalidated Historical Snapshot
 
 Phase 2 corrects the six Phase 1 HTML blockers and the later-discovered surface
 coverage gaps. The current code-native proof now provides:
@@ -36,8 +79,9 @@ coverage gaps. The current code-native proof now provides:
   objects, plus pills, with device shells, iOS IME top corners, keycaps, and
   circular icons explicitly named as hardware/graphic evidence exceptions.
 
-Independent final review of this exact revision is complete. Every
-implementation- and browser-verifiable Phase A P0/P1 item passed. Formal Phase
+The historical independent review of that now-invalidated revision was
+complete and reported every implementation- and browser-verifiable Phase A
+P0/P1 item as passed. Formal Phase
 A promotion remains **blocked**, however, because `P0-01`, `P0-04`, `P0-10`,
 `P1-01`, `P1-03`, and `P1-07` require representative-person studies or an
 explicit product-owner decision that no agent or automated test may fabricate.
@@ -72,8 +116,9 @@ too heavily on hue plus generic labels. Product-owner acceptance remains open.
 
 | Ref | Evidence role | Durable observation |
 | --- | --- | --- |
-| C | [`mvr-15-soft-spine.html`](candidate-proofs/mvr-15-soft-spine.html#mvr-15) | Current code-native, operable design proof. It binds the choice and flip/audio states to repository-owned development fixtures, supplies responsive and state controls, and is the only current candidate-bound evidence. Development fixtures do not represent formal content approval. |
-| C2 | Same candidate-bound HTML, Phase 2 final correction; SHA-256 `98c1b28c6cf87d85bd92fe637a8789f59975bae83907246497294d1f72f87471` | Current 29-frame revision adds truthful two-card choice progression, result return, five fixture-bound silhouettes and richer async/gesture states, live Statistics/Mine, dedicated Auth, membership, truthful audio timing, bounded navigation, exact iOS and Android 320/360/393/430 frames, and the recorded 100/130/160/200% audit. Independent final technical review passed. |
+| C | [`mvr-15-soft-spine.html`](candidate-proofs/mvr-15-soft-spine.html#mvr-15) | Learner-only operable preview; SHA-256 `41a2143a5c011f08b4dd5cdedf04044e7836fc96dba254a9b0309ad430516722`. It mounts exactly one app and no reviewer cockpit. |
+| C2 | [`mvr-15-review-harness.html`](candidate-proofs/mvr-15-review-harness.html#mvr-15) | Explicit reviewer-only 29-frame/state harness; SHA-256 `13bc7dff3cab1f699155d9a1143be266916b1562fe49873aa717d510e48820eb`. It is not a learner or leadership-demo route. |
+| H | Historical combined proof; SHA-256 `98c1b28c6cf87d85bd92fe637a8789f59975bae83907246497294d1f72f87471` | Invalidated and quarantined after P0-09 semantic leakage was found. Its previous metadata and technical-pass conclusions do not transfer to C/C2. |
 
 Early generated pre-code sketches were reviewed transiently, then excluded from
 ordinary Git under the binary-evidence policy. They are not part of this durable
@@ -157,7 +202,7 @@ recorded at the top and in `Phase 2 Current Gate Summary` below.
 | P0-06 | closed in HTML scope | Space shows current ownership, favorite, sleep, wake, and wake-error presentation without inventing a second collection. Runtime/server truth remains downstream. |
 | P0-07 | partial | Learning ↔ Space actions are present, but exact identity/back-stack behavior belongs to implementation validation. |
 | P0-08 | closed for development-fixture design proof | C uses repository-owned development fixtures. This is not formal content approval; A and B remain non-compliant composition sketches. |
-| P0-09 | pass | The current metadata-leak checker passes. |
+| P0-09 | invalidated historical pass | The old checker missed dynamic and assistive learner copy. The old SHA is quarantined; the separate current pair passed a new review recorded above. |
 | P0-10 | blocker | No product-owner acceptance exists and no promotion is claimed. |
 | P0-11 | closed in HTML scope | 320 / 360 / 393 / 430 and both tablet orientations are present. Native safe-area, IME, and device behavior remain downstream. |
 | P0-12 | blocker | 100–200% switching and reflow are present, but the base type hierarchy is undersized. |
@@ -209,7 +254,7 @@ Before the product owner can accept the exact design candidate:
 
 This stage does not require production RN code or physical-device execution.
 
-## Phase 2 Current Gate Summary
+## Phase 2 Historical Gate Summary — Superseded By P0-09 Quarantine
 
 | Gate area | Current Phase 2 status |
 | --- | --- |

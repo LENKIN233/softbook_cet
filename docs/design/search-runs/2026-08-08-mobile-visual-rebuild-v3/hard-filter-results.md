@@ -1,8 +1,20 @@
 # Mobile Visual Rebuild V3 — Hard Filter Results
 
-## Phase 2 Final Correction Delta — Current
+> **P0-09 quarantine correction — 2026-08-08**
+> The previously frozen proof `98c1b28c…` is invalidated as current evidence.
+> Its review cockpit and learner surface shared one page, and reviewer/QA/
+> implementation language leaked into visible and assistive product copy. The
+> old metadata-check PASS was a false negative because inline dynamic copy was
+> not scanned. It must not be used for leadership demo, implementation, or
+> acceptance. The final learner preview (`41a2143a…`) and reviewer harness
+> (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
+> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
+> remains `candidate_exploration` because the human gates are still open.
 
-This section governs the current `mvr-15` HTML revision. The Phase 1 findings
+
+## Phase 2 Final Correction Delta — Invalidated Historical Snapshot
+
+This section records the formerly current `mvr-15` HTML revision. The Phase 1 findings
 below remain verbatim as failure sedimentation and must not be read as current
 blockers.
 
@@ -10,8 +22,8 @@ blockers.
   result-to-Space return, full-width navigation, weak focus/base type, an audio
   clock detached from state, palette-only identity, dead Statistics/Mine routes,
   and missing lock/elimination/swipe/Auth/membership proof.
-- Phase 2 corrects those findings in the code-native HTML scope. The current
-  proof has truthful correct/incorrect choice flow and next-card progression,
+- Phase 2 corrected those findings in the code-native HTML scope. That
+  historical proof had truthful correct/incorrect choice flow and next-card progression,
   preserved result return, bounded live navigation, all five repository-bound
   silhouettes, truthful audio states/clock, restrained Statistics and Mine,
   dedicated Auth, membership states, a double focus treatment, and stable
@@ -34,8 +46,9 @@ blockers.
   focal objects, plus pills. Device shells, the iOS IME top edge, keycaps, and
   circular icons are named hardware/graphic evidence exceptions rather than
   extra product-surface radii.
-- Independent final review passed every implementation- and browser-verifiable
-  Phase A P0/P1 item on the corrected revision. Formal Phase A remains blocked
+- The historical independent final review passed every implementation- and
+  browser-verifiable Phase A P0/P1 item on that corrected revision before P0-09
+  invalidated it. Formal Phase A remains blocked
   by the specified representative-person studies (`P0-01`, `P0-04`, `P1-01`,
   `P1-03`, `P1-07`) and exact product-owner acceptance (`P0-10`), so `mvr-15`
   remains `candidate_exploration`, not accepted or promoted.
@@ -89,7 +102,7 @@ implementation.
   review: its lock rows, settled state, and contained Space hierarchy remained
   legible. It did not survive final visual review.
 - `mvr-15` conditionally survives the direction-level filter through
-  `candidate-proofs/mvr-15-soft-spine.html#mvr-15`: light brand chrome remains
+  `candidate-proofs/mvr-15-review-harness.html#mvr-15`: light brand chrome remains
   separate from the current rose collection and separate indigo collection; its
   address aperture and layered current object persist into Space; audio is
   explicit in the separate development-fixture flip state; development-fixture
@@ -189,7 +202,8 @@ Phase B evidence gates stated at the end remain active.
 
 `mvr-15` still wins only the conditional direction-level filter. Phase 2 removes
 the recorded HTML defects and fills the named surface/interaction proof gaps;
-independent technical review passes that exact scope. Representative-person
-evidence and an exact product-owner decision remain Phase A blockers; no green
-validator or pairwise win substitutes for them. Phase B native evidence remains
-wholly unstarted and cannot be inferred from this design proof.
+a new independent review passes that exact scope on final learner SHA
+`41a2143a…` and reviewer SHA `13bc7dff…`. Representative-person evidence and an
+exact product-owner decision remain Phase A blockers; no green validator or
+pairwise win substitutes for them. Phase B native evidence remains wholly
+unstarted and cannot be inferred from this design proof.

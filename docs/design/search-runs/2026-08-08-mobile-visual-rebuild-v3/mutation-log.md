@@ -1,12 +1,24 @@
 # Mobile Visual Rebuild V3 — Mutation Log
 
-## Phase 2 Final Correction Delta — Current
+> **P0-09 quarantine correction — 2026-08-08**
+> The previously frozen proof `98c1b28c…` is invalidated as current evidence.
+> Its review cockpit and learner surface shared one page, and reviewer/QA/
+> implementation language leaked into visible and assistive product copy. The
+> old metadata-check PASS was a false negative because inline dynamic copy was
+> not scanned. It must not be used for leadership demo, implementation, or
+> acceptance. The final learner preview (`41a2143a…`) and reviewer harness
+> (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
+> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
+> remains `candidate_exploration` because the human gates are still open.
+
+
+## Phase 2 Final Correction Delta — Invalidated Historical Snapshot
 
 The chronological Phase 1 mutation history below is preserved unchanged. Its
 six strict HTML blockers and missing-surface findings explain why Phase 2 was
 required; they are not current blockers after the final correction.
 
-Phase 2 now provides truthful two-card choice progression and result return,
+Phase 2 provided truthful two-card choice progression and result return,
 bounded live navigation, all five repository-bound silhouettes, truthful audio
 timing, revised focus/type/contrast and non-color identity, live Statistics and
 Mine, dedicated Auth, membership states, and 29 named frames at frozen revision
@@ -22,12 +34,11 @@ handoff; Swipe below/past threshold, cancel, keyboard, and reduced-motion button
 paths; and the 8/12/20-plus-pill product radius system with named hardware/
 graphic evidence exceptions.
 
-Independent final technical review passed every implementation- and browser-
-verifiable Phase A P0/P1 item. The run remains `candidate_exploration` because
-representative-person evidence and an exact product-owner decision are still
-missing from Phase A. RN was not changed, and Phase B real iOS/Android/tablet,
-safe area/IME/back, VoiceOver/TalkBack, native async/persistence, and release
-evidence remain unstarted.
+The historical independent technical review passed every implementation- and
+browser-verifiable Phase A P0/P1 item, but P0-09 later invalidated that combined
+artifact. The fresh current-pair verdict is recorded in the notice above. The
+run remains `candidate_exploration` because representative-person evidence and
+an exact product-owner decision are still missing from Phase A.
 
 ## Failure Signal
 
@@ -115,7 +126,7 @@ The pre-code generated-sketch iteration exposed a P0-08 error: its English
 audio-question copy is not a repository-owned development fixture. Those
 sketches were excluded from ordinary Git and the durable evidence set and cannot
 become final proof. Generation 3 corrects
-the evidence in `candidate-proofs/mvr-15-soft-spine.html#mvr-15`: the
+the evidence in `candidate-proofs/mvr-15-review-harness.html#mvr-15`: the
 repository-owned development choice fixture supplies the rose auto-scored
 multiple-choice and Space states, while the repository-owned development flip
 fixture supplies an independent indigo flip/audio state. Development fixtures
@@ -154,13 +165,15 @@ corrected proof is independently reviewed and explicitly accepted.
 The preceding two paragraphs are the preserved Phase 1 strict-review verdict
 and corrective brief.
 
-## Phase 2 Correction Result
+## Phase 2 Correction Result — Invalidated Historical Snapshot
 
-The corrective mutation is implemented in the current code-native HTML scope.
-It closes the six recorded defects and the missing interaction/surface proof
-gaps without changing RN. Frozen proof SHA-256 is
+The corrective mutation closed the six recorded defects and the missing
+interaction/surface proof gaps without changing RN. Its former frozen proof
+SHA-256 was
 `98c1b28c6cf87d85bd92fe637a8789f59975bae83907246497294d1f72f87471`.
-That completion does not create an accepted winner: independent final technical
-review passed, but the specified representative-person studies have not
-occurred and the product owner has not accepted the exact revision. Phase B
-native and release verification follows only after those Phase A gates close.
+That combined artifact is now invalidated and quarantined by P0-09. The separate
+current pair (`41a2143a…` / `13bc7dff…`) passed a new independent P0-09 and
+code-native P0/P1 review. It still does not create an accepted winner: the
+specified representative-person studies have not occurred and the product
+owner has not accepted the exact revision. Phase B native and release
+verification follows only after those Phase A gates close.

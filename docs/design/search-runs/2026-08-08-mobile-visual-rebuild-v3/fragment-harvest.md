@@ -1,13 +1,26 @@
 # Mobile Visual Rebuild V3 — Fragment Harvest
 
-## Phase 2 Final Correction Delta — Current
+> **P0-09 quarantine correction — 2026-08-08**
+> The previously frozen proof `98c1b28c…` is invalidated as current evidence.
+> Its review cockpit and learner surface shared one page, and reviewer/QA/
+> implementation language leaked into visible and assistive product copy. The
+> old metadata-check PASS was a false negative because inline dynamic copy was
+> not scanned. It must not be used for leadership demo, implementation, or
+> acceptance. The final learner preview (`41a2143a…`) and reviewer harness
+> (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
+> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
+> remains `candidate_exploration` because the human gates are still open.
+
+
+## Phase 2 Final Correction Delta — Invalidated Historical Snapshot
 
 The Phase 1 harvest below is preserved as the input to the corrective mutation.
 Its statements that answer truth, base type/focus, full-width navigation,
 audio-clock truth, lock/elimination/swipe, or Statistics/Mine/Auth/membership are
-still missing are historical and are superseded by this current delta.
+still missing are historical and are superseded by the later repair and fresh
+current-pair review recorded in the quarantine notice.
 
-Phase 2 keeps the harvested Soft Spine object/address grammar and now supplies
+Phase 2 kept the harvested Soft Spine object/address grammar and supplied
 truthful two-card choice progression/result return, bounded live navigation, all
 five repository-bound silhouettes, a truthful audio state/clock, revised type/
 focus/contrast, live Statistics/Mine, dedicated Auth, membership states, and 29
@@ -16,7 +29,7 @@ named frames at frozen revision `98c1b28c…`. iOS and Android each have exact
 no horizontal overflow and no visible interactive target below 44 x 44; the 393 x 852
 Statistics frame measured 11.8% unexplained blank area.
 
-The current harvest also includes P0-17 pending/error/retry and preserved truth
+That historical harvest also included P0-17 pending/error/retry and preserved truth
 for evaluation, assessment, favorite, and sleep/wake; expanded Auth correction/
 expiry/resend/cooldown/network recovery; focus and route-live restoration;
 Lock/Elimination result CTA handoff; and Swipe threshold/cancel/keyboard/reduced-
@@ -24,12 +37,10 @@ motion alternatives. Product radii are limited to 8/12/20 plus pill, with device
 shells, iOS IME corners, keycaps, and circular icons named as hardware/graphic
 evidence exceptions.
 
-Independent final review passed every implementation- and browser-verifiable
-Phase A P0/P1 item on the corrected proof. No acceptance or promotion is
-inferred: representative-person study evidence and an exact product-owner
-decision remain Phase A blockers. RN was not changed; real platform/device,
-VoiceOver/TalkBack, native async/persistence, and release evidence remain Phase
-B after design acceptance.
+The historical independent review passed every implementation- and
+browser-verifiable Phase A P0/P1 item on that corrected proof, but P0-09 later
+invalidated the combined artifact. The fresh current-pair verdict is recorded
+in the quarantine notice above. No acceptance or promotion is inferred.
 
 ## Source Run
 

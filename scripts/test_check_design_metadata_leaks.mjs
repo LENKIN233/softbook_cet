@@ -57,6 +57,143 @@ test('explicit root reports a fixture leak relative to that root', () => {
   });
 });
 
+test('learner surface rejects review language emitted by inline script', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/dynamic-learner-leak.html'),
+      '<!doctype html><template data-learner-surface><main>继续学习</main></template><script>status.textContent = "主动作已转为下一张";</script>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /QA or state-machine narration in learner surface/);
+    assert.match(result.stderr, /learner dynamic copy/);
+  });
+});
+
+test('learner surface rejects proof copy and raw numeric box references', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/static-learner-leak.html'),
+      '<!doctype html><template data-learner-surface><main><p>本证明不展示真实号码</p><span>第 3 盒</span></main></template>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /review, implementation, or data-model language in learner surface/);
+    assert.match(result.stderr, /raw numeric box reference in learner surface/);
+  });
+});
+
+test('reviewer-only notes stay allowed outside a marked learner surface', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/reviewer-shell.html'),
+      '<!doctype html><body data-audience="reviewer"><aside>主动作与第 3 盒的内部审查说明</aside><template data-learner-surface><main>确认后查看解析</main></template></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 0, result.stderr);
+  });
+});
+
+test('reviewer-only CSS and JavaScript stay outside learner-copy scope', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/reviewer-dynamic-shell.html'),
+      '<!doctype html><body data-audience="reviewer"><style>.reviewer::before{content:"主动作"}</style><aside id="reviewer">审查说明</aside><template data-learner-surface><main>确认后查看解析</main></template><script>document.querySelector("#reviewer").textContent="主动作已转为复审";</script></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /PASS: No metadata leaks detected/);
+  });
+});
+
+test('an unmarked mixed shell fails closed across static and dynamic copy', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/unmarked-mixed-shell.html'),
+      '<!doctype html><aside>第 3 盒的内部审查说明</aside><template data-learner-surface><main>确认后查看解析</main></template><script>status.textContent="主动作已转为下一张";</script>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /raw numeric box reference in learner surface/);
+    assert.match(result.stderr, /QA or state-machine narration in learner surface/);
+  });
+});
+
+test('an explicit learner document fails when its learner-surface marker is missing', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/unmarked-learner.html'),
+      '<!doctype html><body data-audience="learner"><main>继续学习</main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /missing the required data-learner-surface marker/);
+    assert.match(result.stderr, /learner boundary/);
+  });
+});
+
+test('a learner comment cannot impersonate a learner-surface marker', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/comment-marker-learner.html'),
+      '<!doctype html><body data-audience="learner"><!-- <template data-learner-surface>fake</template> --><main>继续学习</main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /missing the required data-learner-surface marker/);
+  });
+});
+
+test('a script string cannot impersonate a learner-surface marker', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/script-marker-learner.html'),
+      '<!doctype html><body data-audience="learner"><main>继续学习</main><script>const fake = "<template data-learner-surface>fake</template>";</script></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /missing the required data-learner-surface marker/);
+  });
+});
+
+test('mvr-15 learner preview stays isolated and template-aligned with its reviewer harness', () => {
+  const proofRoot = path.join(
+    root,
+    'docs/design/search-runs/2026-08-08-mobile-visual-rebuild-v3/candidate-proofs',
+  );
+  const preview = fs.readFileSync(path.join(proofRoot, 'mvr-15-soft-spine.html'), 'utf8');
+  const reviewer = fs.readFileSync(path.join(proofRoot, 'mvr-15-review-harness.html'), 'utf8');
+  const learnerTemplate = source =>
+    source.match(
+      /<template\b[^>]*\bdata-learner-surface(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?[^>]*>([\s\S]*?)<\/template>/i,
+    )?.[1];
+
+  assert.match(preview, /<body\b[^>]*\bdata-audience="learner"/i);
+  assert.match(reviewer, /<body\b[^>]*\bdata-audience="reviewer"/i);
+  assert.doesNotMatch(
+    preview,
+    /fetch\s*\(|\bFunction\s*\(|mvr-15-review-harness|control-deck|proof-section|contrast-ledger/,
+  );
+  assert.ok(learnerTemplate(preview), 'preview learner template is required');
+  assert.equal(learnerTemplate(preview), learnerTemplate(reviewer));
+});
+
 test('canonical public library labels pass as learner-facing names', () => {
   withFixture(fixtureRoot => {
     const publicLabels = [

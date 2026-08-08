@@ -1,5 +1,17 @@
 # Mobile Visual Rebuild V3 — Candidate Index
 
+> **P0-09 quarantine correction — 2026-08-08**
+> The previously frozen proof `98c1b28c…` is invalidated as current evidence.
+> Its review cockpit and learner surface shared one page, and reviewer/QA/
+> implementation language leaked into visible and assistive product copy. The
+> old metadata-check PASS was a false negative because inline dynamic copy was
+> not scanned. It must not be used for leadership demo, implementation, or
+> acceptance. The final learner preview (`41a2143a…`) and reviewer harness
+> (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
+> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
+> remains `candidate_exploration` because the human gates are still open.
+
+
 ## Lifecycle
 
 - Run status: `candidate_exploration`
@@ -8,10 +20,11 @@
 - Shared context: `context-pack.md`
 - Strict gate: `acceptance-rubric.md`
 - Critical state inventory: `ux-state-matrix.md`
-- Independent rendered review: Generations 1 and 2 produced no visual survivor;
-  Generation 3 has one conditional direction-level survivor. Its exact Phase 2
-  HTML passed the independent technical Phase A review, while representative-
-  user and product-owner gates remain unresolved.
+- Independent rendered review: Generations 1 and 2 produced no visual survivor.
+  Generation 3's earlier conditional technical result was invalidated by a
+  P0-09 learner-copy leak. Fresh independent review passed the final repaired
+  learner/reviewer pair for P0-09 and all code-native P0/P1 checks;
+  representative-user and product-owner gates remain unresolved.
 
 Generation 1 attempted eight object models, but strict rendered review found
 that the population collapsed into a paper/object-heavy family and produced no
@@ -54,7 +67,7 @@ against separate indigo and rose collection identities.
 
 | Candidate | Search pole | Structural proposition | Evidence | Current status |
 | --- | --- | --- | --- | --- |
-| `mvr-15` | stable brand role + object continuity | light brand chrome, address aperture, layered current object, explicit audio, nested physical Space | `candidate-proofs/mvr-15-soft-spine.html#mvr-15` | conditional survivor; frozen SHA `98c1b28c…` passes independent technical Phase A review, but representative-user evidence and exact product-owner acceptance remain blockers |
+| `mvr-15` | stable brand role + object continuity | light brand chrome, address aperture, layered current object, explicit audio, nested physical Space | learner preview: `candidate-proofs/mvr-15-soft-spine.html#mvr-15`; reviewer harness: `candidate-proofs/mvr-15-review-harness.html#mvr-15` | `candidate_exploration`; old SHA `98c1b28c…` remains quarantined; final pair passed fresh P0-09 and code-native P0/P1 review, while representative-user evidence and exact product-owner acceptance remain open |
 
 ## Fragment Harvest
 
@@ -89,7 +102,7 @@ material. That difference supports conditional shortlisting, not acceptance.
 
 ## Scope Warning
 
-For `mvr-15`, the code-native HTML now covers all five interaction silhouettes,
+For `mvr-15`, the reviewer-only harness covers all five interaction silhouettes,
 Auth, Statistics, Mine, membership, two repository-owned development fixtures,
 async/error recovery, focus/live behavior, exact contrast, exact iOS/Android
 320 / 360 / 393 / 430 widths, 100–200% scaling, and dedicated tablet
@@ -97,9 +110,10 @@ compositions. Development fixtures do not represent formal content approval.
 Early generated composition sketches were excluded from ordinary Git and do
 not count as evidence.
 
-Independent final review passed the implementation- and browser-verifiable
-Phase A P0/P1 scope on frozen SHA `98c1b28c…`. Representative-user task,
-silhouette, hierarchy, no-logo and feedback-comprehension studies plus exact
-product-owner acceptance remain unresolved. Real native assistive-technology
-and platform validation follow a later implementation PR after design
-acceptance.
+The historical Phase A P0/P1 result on frozen SHA `98c1b28c…` is invalidated by
+P0-09. A new independent review passed the final repaired pair on exact SHAs
+`41a2143a…` and `13bc7dff…`; this is a new result, not a transfer of the old
+PASS. Representative-user task, silhouette, hierarchy, no-logo and
+feedback-comprehension studies plus exact product-owner acceptance remain
+unresolved. Real native assistive-technology and platform validation follow a
+later implementation PR after design acceptance.

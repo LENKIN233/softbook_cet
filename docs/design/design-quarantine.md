@@ -54,6 +54,32 @@ Contextual exceptions are allowed only inside clearly marked reviewer-only
 sections. They must never appear in screen chrome, card content, empty states,
 error states, loading states, paywall states, onboarding, or rendered mock copy.
 
+## Learner And Reviewer Boundary
+
+A publishable learner preview must declare `data-audience="learner"` on its
+document body and mark the copied or templated application root with
+`data-learner-surface`. Declaring learner audience without a learner-surface
+marker fails closed; omission is not an exception to scanning.
+
+A reviewer harness must declare `data-audience="reviewer"`. Reviewer-only
+notes, controls, generated CSS content, and scripts may remain outside the
+marked learner surface, but the embedded learner template itself is scanned as
+user-visible copy. Unmarked mixed learner/reviewer documents fail closed.
+
+The learner route must be self-contained with respect to review machinery. It
+must not fetch, import, parse, clone, or execute a reviewer harness or its
+scripts and styles. If a reviewer harness embeds the learner surface, parity
+must be protected by a single-source build or an automated equivalence check;
+the allowed dependency direction is reviewer evidence consuming a learner
+artifact or shared build source, never a learner route consuming reviewer
+evidence.
+
+The quarantine scanner covers learner-visible markup, accessibility
+attributes, CSS-generated strings, and inline dynamic copy. A reviewer-shell
+exception applies only when the reviewer audience is explicit; it does not
+weaken scanning of the marked learner template or any independent learner
+preview.
+
 ## Canonical Public Library Labels
 
 `spec/knowledge-map.json` owns the canonical library names. In learner-facing

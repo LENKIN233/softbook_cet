@@ -1,5 +1,17 @@
 # Generation 3 — MVR 15 vs MVR 10
 
+> **P0-09 quarantine correction — 2026-08-08**
+> The previously frozen proof `98c1b28c…` is invalidated as current evidence.
+> Its review cockpit and learner surface shared one page, and reviewer/QA/
+> implementation language leaked into visible and assistive product copy. The
+> old metadata-check PASS was a false negative because inline dynamic copy was
+> not scanned. It must not be used for leadership demo, implementation, or
+> acceptance. The final learner preview (`41a2143a…`) and reviewer harness
+> (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
+> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
+> remains `candidate_exploration` because the human gates are still open.
+
+
 ## Pair
 
 - Candidate A: `mvr-15`
@@ -17,26 +29,28 @@ for product-owner acceptance.
 `mvr-15` wins this pair for the conditional shortlist only. It is not promoted,
 not accepted, not a final survivor, and not implementation authority.
 
-## Phase 2 Final Correction Delta — Current Evidence
+## Phase 3 Fresh Review Delta — Current Evidence
 
 The pairwise winner is unchanged, but the Phase 1 `mvr-15` blocker language in
-the record below is historical. Phase 2 corrects answer/continuation/result
+the record below is historical. The repaired pair preserves the Phase 2
+corrections to answer/continuation/result
 return, full-width navigation, focus/type/contrast, audio-clock truth, and
 palette-only identity; it also adds all five repository-bound silhouettes, live
 Statistics/Mine, dedicated Auth, membership states, and 29 named frames at
-frozen revision `98c1b28c…`. iOS and Android each have exact 320 / 360 / 393 /
-430 frames. Recorded 100%, 130%, 160%, and 200% audits found no horizontal
+the current reviewer SHA `13bc7dff…`, with the separate learner SHA
+`41a2143a…`. iOS and Android each have exact 320 / 360 / 393 / 430 frames.
+Fresh 100%, 130%, 160%, and 200% audits found no horizontal
 overflow and no visible interactive target below 44 x 44; the Statistics reference frame
 measured 11.8% unexplained blank area.
 
-The current evidence further adds P0-17 evaluation/assessment/favorite/sleep-
+The current evidence includes P0-17 evaluation/assessment/favorite/sleep-
 wake pending/error/retry with preserved committed truth; expanded Auth invalid/
 expired/resend/cooldown/network recovery; focus and route-live restoration;
 Lock/Elimination result CTA handoff; Swipe threshold/cancel/keyboard/reduced-
 motion paths; and the 8/12/20-plus-pill product-radius system with named
 hardware/graphic evidence exceptions.
 
-Independent final technical review of the corrected revision passed every
+New independent final technical review of the current pair passed every
 implementation- and browser-verifiable Phase A P0/P1 item. The pairwise win
 still does not equal acceptance or promotion. Representative-person study
 evidence and an exact product-owner decision remain Phase A blockers. RN was not
@@ -52,7 +66,8 @@ describes Phase 1 rather than the current artifact.
 
 ## Visual Evidence
 
-- Candidate A: `candidate-proofs/mvr-15-soft-spine.html#mvr-15`
+- Candidate A learner preview: `candidate-proofs/mvr-15-soft-spine.html#mvr-15`
+- Candidate A reviewer harness: `candidate-proofs/mvr-15-review-harness.html#mvr-15`
 - Candidate B:
   `candidate-proofs/mutation-candidate-proofs.html#mvr-10`
 
@@ -154,7 +169,7 @@ does not follow state, and collection identity remains too palette-led.
 `mvr-15` remains the conditional pairwise winner because Phase 2 preserves its
 role separation and Learning-Space continuity while making the retained
 interaction order truthful and completing the named design-proof scope. The
-corrected artifact passed independent final technical review; representative-
-person testing and exact product-owner acceptance are still required before
-Phase A promotion.
+final pair (`41a2143a…` / `13bc7dff…`) passed a new independent technical
+review; representative-person testing and exact product-owner acceptance are
+still required before Phase A promotion.
 No Phase B implementation or release conclusion is drawn from this comparison.

@@ -1,5 +1,17 @@
 # Soft Spine
 
+> **P0-09 quarantine correction — 2026-08-08**
+> The previously frozen proof `98c1b28c…` is invalidated as current evidence.
+> Its review cockpit and learner surface shared one page, and reviewer/QA/
+> implementation language leaked into visible and assistive product copy. The
+> old metadata-check PASS was a false negative because inline dynamic copy was
+> not scanned. It must not be used for leadership demo, implementation, or
+> acceptance. The final learner preview (`41a2143a…`) and reviewer harness
+> (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
+> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
+> remains `candidate_exploration` because the human gates are still open.
+
+
 ## Candidate ID
 
 mvr-15
@@ -17,10 +29,17 @@ mvr-15
   density, or gamification.
 - Source context pack: `context-pack.md`
 - Artifact: `candidate-proofs/mvr-15-soft-spine.html#mvr-15`
-- Frozen artifact SHA-256:
-  `98c1b28c6cf87d85bd92fe637a8789f59975bae83907246497294d1f72f87471`
-- Screenshots: none committed; the durable code-native HTML contains the exact
-  29-frame iOS, Android, and tablet composition matrix.
+- Learner-only preview: `candidate-proofs/mvr-15-soft-spine.html#mvr-15`; SHA-256
+  `41a2143a5c011f08b4dd5cdedf04044e7836fc96dba254a9b0309ad430516722`.
+- Reviewer-only harness: `candidate-proofs/mvr-15-review-harness.html#mvr-15`;
+  SHA-256
+  `13bc7dff3cab1f699155d9a1143be266916b1562fe49873aa717d510e48820eb`.
+- Invalidated historical proof SHA-256:
+  `98c1b28c6cf87d85bd92fe637a8789f59975bae83907246497294d1f72f87471`.
+  It failed P0-09 after semantic leakage was found and is not current evidence.
+- Screenshots: none committed; the reviewer-only harness contains the 29-frame
+  iOS, Android, and tablet composition matrix, while the learner preview mounts
+  exactly one operable app and no review cockpit.
 - Excluded sketches: generated pre-code images contained invented English
   audio-question copy, were removed from the durable repository evidence set,
   and cannot satisfy P0-08 or serve as final proof.
@@ -54,9 +73,11 @@ The proof also covers membership states without starting trial time from page
 browsing. These are operable browser design states, not React Native, backend,
 native-platform, or formal content evidence.
 
-Independent review classifies this as a `conditional_survivor` of the narrow
-direction-level filter only. It is not accepted, not a final survivor, and not
-implementation authority.
+The earlier `conditional_survivor` technical classification is invalidated for
+the contaminated SHA. A new independent review passed the repaired split on
+the exact current hashes for P0-09 and all code-native P0/P1 checks. It remains
+`candidate_exploration`: it is not accepted, not a final survivor, and not
+implementation authority because the human gates remain open.
 
 ## Aesthetic Thesis
 
@@ -135,7 +156,7 @@ limited to 8 px controls, 12 px surfaces, 20 px focal objects, plus pills;
 device shells, the iOS IME top edge, keycaps, and circular icons are named
 hardware/graphic evidence exceptions.
 
-## Phase 1 Baseline → Phase 2 Correction
+## Phase 1 Baseline → Phase 2 Correction — Invalidated Historical Snapshot
 
 Phase 1 correctly failed strict review: empty/wrong/correct choice states all
 collapsed into the same success result; `下一张` recycled the same task; result ->
@@ -156,9 +177,9 @@ below 44 x 44; the 393 x 852 Statistics frame measured 11.8% unexplained blank
 area. Phase 2 also adds the P0-17, Auth recovery, focus/route-live,
 Lock/Elimination CTA-handoff, Swipe gesture/equivalent-input, and radius evidence
 described above. The final semantic pass also stops dedicated Auth announcements
-from inheriting the previously visited hall: Auth now announces `身份认证` while
-its product header and navigation remain unmounted. These are browser-proof observations, not native or release
-evidence.
+from inheriting the previously visited hall: Auth now announces
+`已打开手机号登录` while its product header and navigation remain unmounted.
+These are browser-proof observations, not native or release evidence.
 
 ## Motion Causality
 
@@ -228,12 +249,12 @@ Native authorization; no RN file is changed by this candidate.
 
 ## Review Disposition
 
-- Status: `conditional_survivor_after_independent_direction_review`.
-- Independent final review of frozen revision `98c1b28c…` passed every
-  implementation- and browser-verifiable Phase A P0/P1 item. The 29-frame proof
-  passed 100/130/160/200% reflow, target, clipping, contrast, semantic,
-  keyboard, reduced-motion, focus/live, tablet-workspace, state-recovery, and
-  console checks.
+- Status: `candidate_exploration_after_p0_09_repair`.
+- The previous technical PASS for frozen revision `98c1b28c…` is superseded:
+  P0-09 was a false negative because learner-visible dynamic and assistive copy
+  was outside scanner coverage. A new independent review passed the repaired
+  learner/reviewer split on the exact hashes above; this is a new result rather
+  than a transfer of the superseded PASS.
 - Blocking formal Phase A design promotion: `P0-01`, `P0-04`, `P1-01`,
   `P1-03`, and `P1-07` still require representative-person studies, and
   `P0-10` requires an explicit product-owner decision naming the exact candidate

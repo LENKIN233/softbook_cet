@@ -1,6 +1,18 @@
 # Mobile Visual Rebuild V3 — No-Promotion Record
 
-## Phase 2 Final Correction Delta — Current
+> **P0-09 quarantine correction — 2026-08-08**
+> The previously frozen proof `98c1b28c…` is invalidated as current evidence.
+> Its review cockpit and learner surface shared one page, and reviewer/QA/
+> implementation language leaked into visible and assistive product copy. The
+> old metadata-check PASS was a false negative because inline dynamic copy was
+> not scanned. It must not be used for leadership demo, implementation, or
+> acceptance. The final learner preview (`41a2143a…`) and reviewer harness
+> (`13bc7dff…`) passed a fresh independent P0-09 boundary/leakage review and
+> fresh code-native P0/P1 review. The old SHA remains quarantined. `mvr-15`
+> remains `candidate_exploration` because the human gates are still open.
+
+
+## Phase 2 Final Correction Delta — Invalidated Historical Snapshot
 
 The no-promotion decision is unchanged, but the current reason is no longer the
 six Phase 1 HTML defects. Phase 2 corrects those defects and adds truthful
@@ -22,9 +34,10 @@ Product UI radii converge on 8/12/20 plus pill; device shells, iOS IME corners,
 keycaps, and circular icons are explicitly named hardware/graphic evidence
 exceptions.
 
-Independent final review of this corrected revision passed every
-implementation- and browser-verifiable Phase A P0/P1 item. The overall Phase A
-verdict remains **blocked**: the representative-person tests required by
+The historical independent final review of that corrected revision passed every
+implementation- and browser-verifiable Phase A P0/P1 item before P0-09
+invalidated the combined artifact. The overall Phase A verdict remains
+**blocked**: the representative-person tests required by
 `P0-01`, `P0-04`, `P1-01`, `P1-03`, and `P1-07` have not run, and `P0-10`
 lacks an exact product-owner acceptance decision. Therefore no artifact is
 accepted or promoted. RN was not changed; real iOS/Android/tablet, safe
@@ -100,8 +113,10 @@ HTML; independent technical review passed the replacement.
   `candidate-proofs/candidate-proofs.html#mvr-08`
 - `candidate-proofs/mutation-candidate-proofs.html#mvr-09` through
   `candidate-proofs/mutation-candidate-proofs.html#mvr-14`
-- Current exact candidate evidence:
+- Current exact learner evidence:
   `candidate-proofs/mvr-15-soft-spine.html#mvr-15`
+- Current exact reviewer evidence:
+  `candidate-proofs/mvr-15-review-harness.html#mvr-15`
 - `external-prototype.md` records the same evidence boundary and no-promotion
   status.
 

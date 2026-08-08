@@ -180,6 +180,29 @@ const visibleHtmlLeakagePatterns = [
   },
 ];
 
+const learnerSurfaceLeakagePatterns = [
+  {
+    pattern: /本(?:证明|原型|测试|审查)|服务端|本地计数|完整算法|当前知识对象|当前对象|共享同一个知识对象/,
+    reason: 'review, implementation, or data-model language in learner surface',
+  },
+  {
+    pattern: /主动作|焦点(?:已|回到|移到)|重复操作|已阻止|状态已退出|操作已收起|拥有当前卡|仍由[^。；]*拥有/,
+    reason: 'QA or state-machine narration in learner surface',
+  },
+  {
+    pattern: /第\s*\d+\s*盒/,
+    reason: 'raw numeric box reference in learner surface',
+  },
+  {
+    pattern: /(?:未越过|越过)阈值|方向键预览|回车提交|键盘可用|按\s*Escape/,
+    reason: 'test-input instruction in learner surface',
+  },
+  {
+    pattern: /认证门|自动内联解析/,
+    reason: 'internal interaction or routing label in learner surface',
+  },
+];
+
 const namedHtmlEntities = {
   amp: '&',
   bull: ' · ',
@@ -245,6 +268,50 @@ function visibleHtmlText(source) {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function structuralHtmlSource(source) {
+  return source
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[\s\S]*?<\/style>/gi, ' ');
+}
+
+function learnerSurfaceMarkup(source) {
+  const values = [];
+  const templatePattern =
+    /<template\b[^>]*\bdata-learner-surface(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?[^>]*>([\s\S]*?)<\/template>/gi;
+  let match;
+
+  const structuralSource = structuralHtmlSource(source);
+  while ((match = templatePattern.exec(structuralSource)) !== null) {
+    values.push(match[1]);
+  }
+
+  return values.join(' ');
+}
+
+function htmlDocumentAudience(source) {
+  const bodyAttributes = source.match(/<body\b([^>]*)>/i)?.[1] ?? '';
+  const audience = bodyAttributes.match(
+    /\bdata-audience\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>]+))/i,
+  );
+
+  return (audience?.[1] ?? audience?.[2] ?? audience?.[3] ?? '')
+    .trim()
+    .toLowerCase();
+}
+
+function inlineScriptSource(source) {
+  const values = [];
+  const scriptPattern = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+  let match;
+
+  while ((match = scriptPattern.exec(source)) !== null) {
+    values.push(match[1]);
+  }
+
+  return values.join(' ');
 }
 
 const visibleAttributeNames = [
@@ -461,6 +528,62 @@ function scanVisibleHtmlProcessText(filePath, source) {
   return findings;
 }
 
+function scanLearnerSurfaceCopy(filePath, source) {
+  const documentAudience = htmlDocumentAudience(source);
+  const hasLearnerSurfaceMarker = learnerSurfaceMarkup(source).length > 0;
+
+  if (!hasLearnerSurfaceMarker && documentAudience !== 'learner') {
+    return [];
+  }
+
+  if (!hasLearnerSurfaceMarker) {
+    return [
+      {
+        filePath,
+        kind: 'learner boundary',
+        line: 1,
+        reason: 'learner document is missing the required data-learner-surface marker',
+        text: 'data-audience="learner"',
+      },
+    ];
+  }
+
+  const reviewerOnlyShell = documentAudience === 'reviewer';
+  const staticScope = reviewerOnlyShell ? learnerSurfaceMarkup(source) : source;
+  const scanTargets = [
+    { kind: 'learner-visible text', text: visibleHtmlText(staticScope) },
+    { kind: 'learner accessibility text', text: visibleAttributeText(staticScope) },
+  ];
+
+  // A reviewer shell may intentionally contain audit narration in its own CSS
+  // and JavaScript. Its marked learner template is still scanned above, while
+  // a learner or unmarked document fails closed across all generated/dynamic
+  // copy. The publishable preview is independently marked data-audience=learner.
+  if (!reviewerOnlyShell) {
+    scanTargets.push(
+      { kind: 'learner generated content', text: cssGeneratedText(source) },
+      { kind: 'learner dynamic copy', text: inlineScriptSource(source) },
+    );
+  }
+  const findings = [];
+
+  for (const target of scanTargets) {
+    for (const rule of learnerSurfaceLeakagePatterns) {
+      if (rule.pattern.test(target.text)) {
+        findings.push({
+          filePath,
+          kind: target.kind,
+          line: 1,
+          reason: rule.reason,
+          text: target.text.replace(/\s+/g, ' ').trim().slice(0, 220),
+        });
+      }
+    }
+  }
+
+  return findings;
+}
+
 const files = scanRoots
   .flatMap(root => walk(path.join(repoRoot, root)))
   .filter(filePath => {
@@ -475,6 +598,9 @@ const visualReferencePaths = visualReferenceFiles
 const findings = [
   ...files.flatMap(filePath =>
     scanText(filePath, fs.readFileSync(filePath, 'utf8')),
+  ),
+  ...files.flatMap(filePath =>
+    scanLearnerSurfaceCopy(filePath, fs.readFileSync(filePath, 'utf8')),
   ),
   ...visualReferencePaths.flatMap(filePath =>
     scanVisibleHtmlProcessText(filePath, fs.readFileSync(filePath, 'utf8')),
