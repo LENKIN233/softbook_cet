@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mobile visual rebuild v4 — reviewer gallery</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #eef2f6;
+      color: #172033;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; }
+    button, select { font: inherit; }
+    .review-bar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      gap: 14px;
+      padding: 18px clamp(16px, 3vw, 38px);
+      border-bottom: 1px solid #cfd7e3;
+      background: rgba(255,255,255,.97);
+    }
+    .review-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+    h1 { margin: 0; font-size: clamp(1.1rem, 2vw, 1.55rem); line-height: 1.2; }
+    .boundary { margin: 4px 0 0; color: #5c6779; font-size: .83rem; }
+    .verdict { margin: 8px 0 0; color: #8c2f24; font-size: .86rem; font-weight: 800; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: end; }
+    .control { display: grid; gap: 5px; color: #4f5d70; font-size: .75rem; font-weight: 700; }
+    .segmented { display: flex; gap: 3px; padding: 3px; border: 1px solid #cbd4e0; border-radius: 9px; background: #f2f5f9; }
+    .segmented button, select {
+      min-height: 36px;
+      border: 0;
+      border-radius: 6px;
+      padding: 0 12px;
+      color: #425066;
+      background: transparent;
+      cursor: pointer;
+    }
+    .segmented button[aria-pressed="true"] { color: #fff; background: #285ba7; }
+    select { border: 1px solid #cbd4e0; background: #fff; }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 26px;
+      padding: 26px clamp(16px, 3vw, 38px) 70px;
+      max-width: 1500px;
+      margin: auto;
+    }
+    .candidate {
+      min-width: 0;
+      margin: 0;
+      padding: 14px;
+      border: 1px solid #cfd7e3;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 8px 26px rgba(31,43,61,.07);
+    }
+    figcaption { display: flex; justify-content: space-between; gap: 12px; margin: 0 0 12px; font-size: .84rem; }
+    figcaption strong { color: #1f4f91; }
+    figcaption span { color: #657186; }
+    .frame-stage {
+      --frame-w: 390px;
+      --frame-h: 844px;
+      --frame-scale: .72;
+      position: relative;
+      width: calc(var(--frame-w) * var(--frame-scale));
+      height: calc(var(--frame-h) * var(--frame-scale));
+      max-width: 100%;
+      margin: 0 auto;
+      overflow: hidden;
+      border: 1px solid #b9c4d2;
+      border-radius: 9px;
+      background: #fff;
+    }
+    .frame-stage.tablet {
+      --frame-w: 1024px;
+      --frame-h: 768px;
+      --frame-scale: .52;
+      border-radius: 6px;
+    }
+    .frame-stage.narrow {
+      --frame-w: 320px;
+      --frame-h: 844px;
+      --frame-scale: .72;
+    }
+    iframe {
+      display: block;
+      width: var(--frame-w);
+      height: var(--frame-h);
+      border: 0;
+      transform: scale(var(--frame-scale));
+      transform-origin: left top;
+      background: #fff;
+    }
+    .candidate-link { color: #285ba7; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    @media (max-width: 1050px) {
+      .gallery { grid-template-columns: 1fr; }
+      .frame-stage.tablet { --frame-scale: .62; }
+    }
+    @media (max-width: 700px) {
+      .review-heading { display: block; }
+      .gallery { padding-inline: 10px; }
+      .candidate { padding: 10px; }
+      .frame-stage { --frame-scale: min(1, calc((100vw - 42px) / 390)); }
+      .frame-stage.tablet { --frame-scale: calc((100vw - 42px) / 1024); }
+    }
+  </style>
+</head>
+<body data-audience="reviewer">
+  <header class="review-bar">
+    <div class="review-heading">
+      <div>
+        <h1>Mobile visual rebuild v4</h1>
+        <p class="boundary">Reviewer-only comparison. Each frame loads a physically separate learner document.</p>
+        <p class="verdict">No advance · 8/8 rejected · comparison evidence only · not selected</p>
+      </div>
+      <span id="case-label" class="boundary" aria-live="polite"></span>
+    </div>
+    <div class="controls" aria-label="Review controls">
+      <div class="control"><span>Platform</span><div class="segmented" data-control="platform"><button type="button" data-value="ios" aria-pressed="true">iOS</button><button type="button" data-value="android" aria-pressed="false">Android</button></div></div>
+      <div class="control"><span>Viewport</span><div class="segmented" data-control="viewport"><button type="button" data-value="phone" aria-pressed="true">390 × 844</button><button type="button" data-value="narrow" aria-pressed="false">320 × 844</button><button type="button" data-value="tablet" aria-pressed="false">1024 × 768</button></div></div>
+      <div class="control"><label for="route">Route</label><select id="route"><option value="learning">Learning</option><option value="space">Space</option><option value="stats">Statistics</option><option value="mine">Mine</option><option value="auth">Auth</option></select></div>
+      <div class="control"><label for="interaction">Interaction</label><select id="interaction"><option value="flip">Flip</option><option value="multiple_choice">Multiple choice</option><option value="lock">Lock</option><option value="elimination">Elimination</option><option value="swipe">Swipe</option></select></div>
+      <div class="control"><span>Text</span><div class="segmented" data-control="text"><button type="button" data-value="normal" aria-pressed="true">100%</button><button type="button" data-value="large" aria-pressed="false">200%</button></div></div>
+    </div>
+  </header>
+
+  <main class="gallery" id="gallery"></main>
+
+  <script>
+    (() => {
+      const candidates = [
+        ['mvn-01', 'Native Focus', 'mvn-01-native-focus.html'],
+        ['mvn-02', 'Exam Canvas', 'mvn-02-exam-canvas.html'],
+        ['mvn-03', 'Library Rail', 'mvn-03-library-rail.html'],
+        ['mvn-04', 'Focus Header', 'mvn-04-focus-header.html'],
+        ['mvn-05', 'Action Sheet', 'mvn-05-action-sheet.html'],
+        ['mvn-06', 'Structured Blocks', 'mvn-06-structured-blocks.html'],
+        ['mvn-07', 'Continuity Path', 'mvn-07-continuity-path.html'],
+        ['mvn-08', 'Adaptive Workspace', 'mvn-08-adaptive-workspace.html'],
+      ];
+      const state = { platform: 'ios', viewport: 'phone', route: 'learning', interaction: 'flip', text: 'normal' };
+      const reviewQuery = new URLSearchParams(location.search);
+      const allow = {
+        platform: new Set(['ios', 'android']),
+        viewport: new Set(['phone', 'narrow', 'tablet']),
+        route: new Set(['learning', 'space', 'stats', 'mine', 'auth']),
+        interaction: new Set(['flip', 'multiple_choice', 'lock', 'elimination', 'swipe']),
+        text: new Set(['normal', 'large']),
+      };
+      Object.keys(allow).forEach((key) => {
+        const value = reviewQuery.get(key);
+        if (allow[key].has(value)) state[key] = value;
+      });
+      const gallery = document.querySelector('#gallery');
+      candidates.forEach(([id, name, file]) => {
+        const figure = document.createElement('figure');
+        figure.className = 'candidate';
+        figure.dataset.candidate = id;
+        figure.innerHTML = `<figcaption><span><strong>${id}</strong> · ${name}</span><a class="candidate-link" href="${file}" target="_blank" rel="noreferrer">open exact learner</a></figcaption><div class="frame-stage"><iframe title="${id} ${name} learner proof" loading="lazy" src="about:blank"></iframe></div>`;
+        gallery.append(figure);
+      });
+
+      const makeUrl = (file) => {
+        const params = new URLSearchParams({ platform: state.platform, view: state.route, interaction: state.interaction });
+        if (state.text === 'large') params.set('text', 'large');
+        return `${file}?${params}`;
+      };
+      const refresh = () => {
+        document.querySelectorAll('.candidate').forEach((figure, index) => {
+          const stage = figure.querySelector('.frame-stage');
+          stage.classList.toggle('tablet', state.viewport === 'tablet');
+          stage.classList.toggle('narrow', state.viewport === 'narrow');
+          const iframe = figure.querySelector('iframe');
+          const next = makeUrl(candidates[index][2]);
+          if (iframe.getAttribute('src') !== next) iframe.setAttribute('src', next);
+          figure.querySelector('.candidate-link').href = next;
+        });
+        document.querySelector('#case-label').textContent = `${state.platform} · ${state.viewport} · ${state.route} · ${state.interaction} · ${state.text === 'large' ? '200%' : '100%'}`;
+      };
+      document.querySelectorAll('[data-control]').forEach((group) => {
+        group.querySelectorAll('button[data-value]').forEach((button) => {
+          button.setAttribute('aria-pressed', String(button.dataset.value === state[group.dataset.control]));
+        });
+        group.addEventListener('click', (event) => {
+          const button = event.target.closest('button[data-value]');
+          if (!button) return;
+          group.querySelectorAll('button').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+          state[group.dataset.control] = button.dataset.value;
+          refresh();
+        });
+      });
+      document.querySelector('#route').value = state.route;
+      document.querySelector('#interaction').value = state.interaction;
+      document.querySelector('#route').addEventListener('change', (event) => { state.route = event.target.value; refresh(); });
+      document.querySelector('#interaction').addEventListener('change', (event) => { state.interaction = event.target.value; refresh(); });
+      refresh();
+    })();
+  </script>
+</body>
+</html>

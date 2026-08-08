@@ -125,6 +125,24 @@ Promotion is not justified unless the winning candidate beats the baseline on pr
 The binding lifecycle record is
 `../rejected/mobile-visual-directions-product-owner-veto-2026-08-08.md`.
 
+## Current Mobile Search
+
+- `2026-08-08-mobile-visual-rebuild-v4/`: completed design-only no-promotion
+  record on draft PR `#483`. Its first shared-DOM revision was withdrawn. Eight physically
+  separate exact learner documents now close the earlier truthfulness and basic
+  browser-operability defects, but all remain blocked by shared P1 visual,
+  platform, motion, recovery-depth, Space, tablet, and formal-audio gaps. No
+  candidate advances, no design authority exists, and RN remains forbidden.
+  Only mvn-05 phone action, mvn-07 Space containment, mvn-08 tablet structure,
+  and mvn-01's subordinate content/2 × 2 density may inform a new synthesis;
+  product-owner selection of any replacement remains unresolved.
+  Durable recurring failures and their reuse boundaries are sedimented in
+  `../rejected/mobile-visual-rebuild-v4-no-promotion-2026-08-08.md`.
+  The accessible visual commit/output audit is
+  `2026-08-08-mobile-visual-rebuild-v4/visual-history-audit.md`; the proposed
+  route for a new, non-authoritative synthesis is
+  `2026-08-08-mobile-visual-rebuild-v4/next-synthesis-plan.md`.
+
 ## Stop Conditions
 
 Stop a run when one of these is true:

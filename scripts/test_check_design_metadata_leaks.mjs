@@ -144,11 +144,25 @@ test('an explicit learner document fails when its learner-surface marker is miss
   });
 });
 
+test('an explicit learner document accepts a structural app-root marker', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/main-marker-learner.html'),
+      '<!doctype html><body data-audience="learner"><main data-learner-surface>继续学习</main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /PASS: No metadata leaks detected/);
+  });
+});
+
 test('a learner comment cannot impersonate a learner-surface marker', () => {
   withFixture(fixtureRoot => {
     fs.writeFileSync(
       path.join(fixtureRoot, 'docs/design/mocks/comment-marker-learner.html'),
-      '<!doctype html><body data-audience="learner"><!-- <template data-learner-surface>fake</template> --><main>继续学习</main></body>\n',
+      '<!doctype html><body data-audience="learner"><!-- <main data-learner-surface>fake</main> --><main>继续学习</main></body>\n',
     );
 
     const result = runScanner(['--root', fixtureRoot]);
@@ -162,13 +176,168 @@ test('a script string cannot impersonate a learner-surface marker', () => {
   withFixture(fixtureRoot => {
     fs.writeFileSync(
       path.join(fixtureRoot, 'docs/design/mocks/script-marker-learner.html'),
-      '<!doctype html><body data-audience="learner"><main>继续学习</main><script>const fake = "<template data-learner-surface>fake</template>";</script></body>\n',
+      '<!doctype html><body data-audience="learner"><main>继续学习</main><script>const fake = "<main data-learner-surface>fake</main>";</script></body>\n',
     );
 
     const result = runScanner(['--root', fixtureRoot]);
 
     assert.equal(result.status, 1);
     assert.match(result.stderr, /missing the required data-learner-surface marker/);
+  });
+});
+
+test('style and attribute strings cannot impersonate a learner-surface marker', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/string-marker-learner.html'),
+      '<!doctype html><body data-audience="learner"><style>.fake::after{content:"<main data-learner-surface>"}</style><main title="data-learner-surface">继续学习</main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /missing the required data-learner-surface marker/);
+  });
+});
+
+test('a nested element cannot impersonate the learner application root', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/nested-marker-learner.html'),
+      '<!doctype html><body data-audience="learner"><main><span data-learner-surface>继续学习</span></main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /missing the required data-learner-surface marker/);
+  });
+});
+
+test('reviewer shells reject structural learner roots outside marked templates', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/reviewer-main-marker.html'),
+      '<!doctype html><body data-audience="reviewer"><main data-learner-surface>主动作与第 3 盒的内部审查说明</main><template data-learner-surface><p>确认后查看解析</p></template></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stderr,
+      /structural learner root requires exactly one data-audience="learner" body/,
+    );
+  });
+});
+
+test('duplicate audience attributes cannot detach a structural learner root', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/duplicate-audience-learner.html'),
+      '<!doctype html><body data-audience="learner" data-audience="reviewer"><main data-learner-surface>第 3 盒</main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stderr,
+      /structural learner root requires exactly one data-audience="learner" body/,
+    );
+    assert.match(result.stderr, /learner boundary/);
+  });
+});
+
+test('missing audience cannot detach a structural learner root', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/missing-audience-learner.html'),
+      '<!doctype html><body><main data-learner-surface>第 3 盒</main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stderr,
+      /structural learner root requires exactly one data-audience="learner" body/,
+    );
+    assert.match(result.stderr, /learner boundary/);
+  });
+});
+
+test('multiple bodies cannot detach a structural learner root', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/multi-body-learner-root.html'),
+      '<!doctype html><body data-audience="reviewer"></body><body data-audience="learner"><main data-learner-surface>主动作已转为下一张</main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stderr,
+      /structural learner root requires exactly one data-audience="learner" body/,
+    );
+    assert.match(result.stderr, /learner boundary/);
+  });
+});
+
+test('a comment cannot impersonate the reviewer body audience', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/comment-reviewer-audience.html'),
+      '<!doctype html><!-- <body data-audience="reviewer"> --><body data-audience="learner"><main data-learner-surface>主动作已转为下一张</main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /QA or state-machine narration in learner surface/);
+  });
+});
+
+test('a script or style string cannot impersonate the reviewer body audience', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/dynamic-reviewer-audience.html'),
+      '<!doctype html><script>const fake = "<body data-audience=reviewer>";</script><style>.fake::before{content:"<body data-audience=reviewer>"}</style><body data-audience="learner"><main data-learner-surface>第 3 盒</main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /raw numeric box reference in learner surface/);
+  });
+});
+
+test('an attribute string cannot impersonate the reviewer body audience', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/attribute-reviewer-audience.html'),
+      '<!doctype html><html data-fake="<body data-audience=reviewer>"><body data-audience="learner"><main data-learner-surface>认证门</main></body></html>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /internal interaction or routing label in learner surface/);
+  });
+});
+
+test('multiple structural body audiences fail closed instead of selecting reviewer', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/duplicate-body-audience.html'),
+      '<!doctype html><body data-audience="reviewer"><template data-learner-surface><main>确认后查看解析</main></template></body><body data-audience="learner"><main>主动作已转为下一张</main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /QA or state-machine narration in learner surface/);
   });
 });
 

@@ -277,29 +277,94 @@ function structuralHtmlSource(source) {
     .replace(/<style\b[\s\S]*?<\/style>/gi, ' ');
 }
 
+function hasHtmlAttribute(attributeSource, attributeName) {
+  const attributePattern =
+    /(?:^|\s)([^\s"'<>\/=]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?/g;
+  let match;
+
+  while ((match = attributePattern.exec(attributeSource)) !== null) {
+    if (match[1].toLowerCase() === attributeName) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function learnerSurfaceMarkup(source) {
   const values = [];
   const templatePattern =
-    /<template\b[^>]*\bdata-learner-surface(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?[^>]*>([\s\S]*?)<\/template>/gi;
+    /<template\b((?:[^"'<>]|"[^"]*"|'[^']*')*)>([\s\S]*?)<\/template\s*>/gi;
   let match;
 
   const structuralSource = structuralHtmlSource(source);
   while ((match = templatePattern.exec(structuralSource)) !== null) {
-    values.push(match[1]);
+    if (hasHtmlAttribute(match[1], 'data-learner-surface')) {
+      values.push(match[2]);
+    }
   }
 
   return values.join(' ');
 }
 
-function htmlDocumentAudience(source) {
-  const bodyAttributes = source.match(/<body\b([^>]*)>/i)?.[1] ?? '';
-  const audience = bodyAttributes.match(
-    /\bdata-audience\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>]+))/i,
-  );
+function hasStructuralLearnerSurfaceMarker(source) {
+  const elementPattern =
+    /<([A-Za-z][A-Za-z0-9:-]*)\b((?:[^"'<>]|"[^"]*"|'[^']*')*)>/g;
+  let match;
 
-  return (audience?.[1] ?? audience?.[2] ?? audience?.[3] ?? '')
-    .trim()
-    .toLowerCase();
+  const structuralSource = structuralHtmlSource(source);
+  while ((match = elementPattern.exec(structuralSource)) !== null) {
+    if (
+      match[1].toLowerCase() === 'main' &&
+      hasHtmlAttribute(match[2], 'data-learner-surface')
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function htmlDocumentAudience(source) {
+  const structuralSource = structuralHtmlSource(source);
+  const elementPattern =
+    /<([A-Za-z][A-Za-z0-9:-]*)\b((?:[^"'<>]|"[^"]*"|'[^']*')*)>/g;
+  const bodyAttributeSources = [];
+  let elementMatch;
+
+  while ((elementMatch = elementPattern.exec(structuralSource)) !== null) {
+    if (elementMatch[1].toLowerCase() === 'body') {
+      bodyAttributeSources.push(elementMatch[2]);
+    }
+  }
+
+  // Fail closed when malformed source contains zero or multiple structural
+  // body elements. In particular, reviewer classification must never come
+  // from a body-looking string in a comment, script, style, or attribute.
+  if (bodyAttributeSources.length !== 1) {
+    return '';
+  }
+
+  const audienceValues = [];
+  const attributePattern =
+    /(?:^|\s)([^\s"'<>\/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  let attributeMatch;
+
+  while (
+    (attributeMatch = attributePattern.exec(bodyAttributeSources[0])) !== null
+  ) {
+    if (attributeMatch[1].toLowerCase() === 'data-audience') {
+      audienceValues.push(
+        attributeMatch[2] ?? attributeMatch[3] ?? attributeMatch[4] ?? '',
+      );
+    }
+  }
+
+  if (audienceValues.length !== 1) {
+    return '';
+  }
+
+  return audienceValues[0].trim().toLowerCase();
 }
 
 function inlineScriptSource(source) {
@@ -530,7 +595,28 @@ function scanVisibleHtmlProcessText(filePath, source) {
 
 function scanLearnerSurfaceCopy(filePath, source) {
   const documentAudience = htmlDocumentAudience(source);
-  const hasLearnerSurfaceMarker = learnerSurfaceMarkup(source).length > 0;
+  const learnerTemplateMarkup = learnerSurfaceMarkup(source);
+  const hasLearnerTemplate = learnerTemplateMarkup.length > 0;
+  const hasStructuralLearnerRoot = hasStructuralLearnerSurfaceMarker(source);
+  const hasLearnerSurfaceMarker =
+    hasLearnerTemplate || hasStructuralLearnerRoot;
+
+  // A structural learner application root is publishable learner content, not
+  // a reviewer-template convenience. It must be owned by exactly one learner
+  // body. Missing, duplicate, conflicting, reviewer, or multi-body audience
+  // markup therefore fails closed before any copy-scoping decision.
+  if (hasStructuralLearnerRoot && documentAudience !== 'learner') {
+    return [
+      {
+        filePath,
+        kind: 'learner boundary',
+        line: 1,
+        reason:
+          'structural learner root requires exactly one data-audience="learner" body',
+        text: 'data-learner-surface',
+      },
+    ];
+  }
 
   if (!hasLearnerSurfaceMarker && documentAudience !== 'learner') {
     return [];
@@ -549,7 +635,7 @@ function scanLearnerSurfaceCopy(filePath, source) {
   }
 
   const reviewerOnlyShell = documentAudience === 'reviewer';
-  const staticScope = reviewerOnlyShell ? learnerSurfaceMarkup(source) : source;
+  const staticScope = reviewerOnlyShell ? learnerTemplateMarkup : source;
   const scanTargets = [
     { kind: 'learner-visible text', text: visibleHtmlText(staticScope) },
     { kind: 'learner accessibility text', text: visibleAttributeText(staticScope) },
