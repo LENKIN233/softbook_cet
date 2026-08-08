@@ -4,7 +4,7 @@
 
 - Date: 2026-08-08
 - Branch: `cross/mobile-visual-rebuild-v3`
-- PR: pending
+- PR: `https://github.com/LENKIN233/softbook_cet/pull/482` (draft)
 - Summary: Freeze the product-owner-rejected mobile visual directions, run a
   design-only search for materially different mobile systems, record the Phase
   1 strict-review failure, and correct the exact `mvr-15` code-native proof in
@@ -149,6 +149,9 @@
 - Initial `gh auth status` failed because the stored `LENKIN233` token was
   invalid. A final recheck succeeded with the active `LENKIN233` account and
   `repo` / `workflow` scopes, so publication is no longer auth-blocked.
+- GitHub App PR creation returned `403 Resource not accessible by integration`;
+  authenticated `gh pr create` was used as the permitted fallback and created
+  draft PR `#482` against `main`.
 
 ## Validation results
 
@@ -240,9 +243,8 @@
 - Prototype-only P2 constraints: the displayed 45-second verification-code
   resend state is time-compressed for testability, and `#557BBE` is restricted
   to non-text graphics because it does not meet 4.5:1 as small body text.
-- GitHub authentication is restored. Before the publication step the branch
-  remains uncommitted and no PR exists; this line must be updated with the
-  created PR in the same delivery flow.
+- GitHub authentication is restored; the design-only branch is committed,
+  pushed, and attached to draft PR `#482`.
 
 ## Follow-up
 
@@ -251,6 +253,5 @@
   revision to the product owner. Only after an explicit acceptance that names
   the candidate and commit may a separate implementation branch and PR begin
   for iOS, Android, and tablet React Native work plus real-device testing.
-- Intentionally stage the design-only scope, commit, push, open a draft PR,
-  rerun the strict PR profile with open-PR context, and complete repository
+- Rerun the strict PR profile with open-PR context and complete repository
   review before any merge decision.
