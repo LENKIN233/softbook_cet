@@ -45,3 +45,14 @@ Each artifact must state:
 - screenshot or rendered asset reference;
 - design review checklist answers;
 - known unimplemented or unproven gaps.
+
+## Explicitly Rejected / Historical Proof
+
+- `mobile-core-surface-reset-v1.html`: product-owner vetoed on 2026-08-08. It is
+  retained only to explain the failed Aurora/mobile-reset direction and cannot
+  satisfy the design-artifact gate.
+- `mobile-editorial-study-object-v2.html` from closed, unmerged PR `#481`: never
+  accepted and explicitly excluded from the next mobile implementation.
+
+See
+`../rejected/mobile-visual-directions-product-owner-veto-2026-08-08.md`.

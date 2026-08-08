@@ -22,6 +22,11 @@ Existing documents are not automatically trusted because they live under
 `docs/design/`. Their authority comes from manifest status, accepted lifecycle
 evidence, and passing this quarantine gate.
 
+An explicit product-owner veto moves the named artifact and its dependent proof,
+mapping, and promotion record to `rejected`. A later candidate, branch, internal
+ranking, or self-review cannot reverse that state. Re-entry requires explicit
+product-owner acceptance of the exact replacement artifact.
+
 ## Quarantine Triggers
 
 A design artifact must be quarantined when it contains any user-visible copy or
@@ -48,6 +53,26 @@ visual label that names internal machinery:
 Contextual exceptions are allowed only inside clearly marked reviewer-only
 sections. They must never appear in screen chrome, card content, empty states,
 error states, loading states, paywall states, onboarding, or rendered mock copy.
+
+## Canonical Public Library Labels
+
+`spec/knowledge-map.json` owns the canonical library names. In learner-facing
+UI, and only with the public `馆` suffix, these seven labels are product copy
+rather than metadata leakage:
+
+- `听力馆`
+- `仔细阅读馆`
+- `选词填空馆`
+- `写作馆`
+- `翻译馆`
+- `词汇馆`
+- `语法馆`
+
+This exception is intentionally narrow. A standalone canonical library name,
+any real group or box label, numeric card/box references, metadata fields, and
+English storage labels remain quarantined. The scanner masks only the seven
+exact public forms before applying the existing raw-label rules; it does not
+weaken group, box, id, or process-term protection.
 
 ## Audit Scope
 

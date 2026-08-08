@@ -73,6 +73,33 @@ function normalizeCamelCaseText(text) {
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 }
 
+// spec/knowledge-map.json owns these canonical library names. In learner-facing
+// UI, the public label is the canonical name plus “馆”. Mask only those exact
+// public forms before checking raw library names; group/box labels, ids,
+// metadata fields, and standalone library names remain subject to quarantine.
+const canonicalPublicLibraryLabels = [
+  '听力馆',
+  '仔细阅读馆',
+  '选词填空馆',
+  '写作馆',
+  '翻译馆',
+  '词汇馆',
+  '语法馆',
+];
+
+function maskCanonicalPublicLibraryLabels(text) {
+  return canonicalPublicLibraryLabels.reduce(
+    (masked, label) => masked.replaceAll(label, 'PUBLIC_LIBRARY_LABEL'),
+    text,
+  );
+}
+
+const rawStandaloneChineseLibraryPattern =
+  /(?<!\p{Script=Han})(?:仔细阅读|选词填空|听力|写作|翻译|词汇|语法|阅读)(?!\p{Script=Han})/u;
+
+const rawStandaloneChineseGroupOrBoxPattern =
+  /(?<!\p{Script=Han})(?:长难句关键修饰|阅读高频词|词义辨析组|语义关系盒|同义词替换|句式替换|长难句主干|逻辑关系|转折关系|主谓宾|高频词|定语)(?!\p{Script=Han})/u;
+
 const leakagePatterns = [
   {
     pattern: /#(?:5b6df5|ff8a3d|b568f5|18c4e0|f15b6e)\b/i,
@@ -85,17 +112,26 @@ const leakagePatterns = [
   },
   {
     pattern:
-      /(?:group-1|\bbox\s+id\b|\bcard\s+id\b|Detail Evidence|argument support|Current drawer|Original box|same box sibling|Very Long Detail Evidence|Long Detail Evidence|词义辨析组|语义关系盒|逻辑关系|转折关系|长难句主干|长难句关键修饰|主谓宾|定语|同义词替换|句式替换|高频词|阅读高频词)/i,
+      /(?:group-1|\bbox\s+id\b|\bcard\s+id\b|Detail Evidence|argument support|Current drawer|Original box|same box sibling|Very Long Detail Evidence|Long Detail Evidence)/i,
     reason: 'raw semantic group/box/card label in visual design artifact',
+  },
+  {
+    pattern: rawStandaloneChineseGroupOrBoxPattern,
+    reason: 'standalone raw Chinese group/box label in visual design artifact',
   },
   {
     pattern: /\bCET[46]\b(?!\/6)/i,
     reason: 'raw CET track value in visual design artifact',
   },
   {
-    pattern:
-      /(?:听力|阅读|写作|翻译|词汇|仔细阅读|快速阅读|定位词抓取|细节题|细节定位盒)/,
-    reason: 'raw Chinese library/group/box label in visual design artifact',
+    pattern: rawStandaloneChineseLibraryPattern,
+    normalize: maskCanonicalPublicLibraryLabels,
+    reason: 'standalone raw Chinese library label in visual design artifact',
+  },
+  {
+    pattern: /(?:阅读馆|快速阅读|定位词抓取|细节题|细节定位盒)/,
+    normalize: maskCanonicalPublicLibraryLabels,
+    reason: 'raw Chinese group/box or non-canonical library label in visual design artifact',
   },
   {
     pattern:

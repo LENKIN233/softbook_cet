@@ -1,5 +1,10 @@
 # Mobile Core Surface Reset Decision v1
 
+> **Lifecycle: `rejected`.** Product-owner acceptance is revoked as of
+> 2026-08-08. This file is historical evidence only and must not authorize mobile
+> implementation. See
+> `docs/design/rejected/mobile-visual-directions-product-owner-veto-2026-08-08.md`.
+
 ## 当前任务引用的 spec
 
 - `spec/requirement-memory.json`
@@ -18,11 +23,14 @@
 
 ## Implementation Hypothesis
 
-Current RN screens are behavior prototypes and real-app evidence. They are not visual authority. Future RN implementation should consume this decision, the rendered proof, and the mapping record after this design-only PR is accepted.
+Historical, now rejected: the proposal treated current RN screens as behavior
+prototypes and asked a later RN implementation to consume this decision, proof,
+and mapping. The 2026-08-08 veto cancels that consumption path.
 
 ## Decision
 
-Adopt the `msr-01` Study Object Rail synthesis from `docs/design/search-runs/2026-06-30-mobile-app-quality-reset/`.
+Historical decision, now revoked: adopt the `msr-01` Study Object Rail synthesis
+from `docs/design/search-runs/2026-06-30-mobile-app-quality-reset/`.
 
 The app grammar is:
 
@@ -79,4 +87,6 @@ Q6: Learning does not make module selection the main path. Statistics uses tabul
 
 ## Status
 
-Accepted for design-only planning after search-run validation. This file does not authorize same-PR RN implementation.
+Rejected by the product owner after review of the real iOS and Android result.
+The earlier design-only promotion is revoked. Neither this decision, its mock,
+its mapping, nor its search run may authorize RN implementation.

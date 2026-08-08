@@ -108,6 +108,22 @@ Every search run must name the accepted baseline it is trying to beat. For Space
 
 Promotion is not justified unless the winning candidate beats the baseline on product-truth fit and at least one soft objective without regressing layout, accessibility, mapping, or implementation authority.
 
+## Explicitly Rejected Mobile Runs
+
+- `2026-06-30-mobile-app-quality-reset/`: its internal `msr-01` promotion was
+  revoked by the product owner on 2026-08-08. The whole run is historical
+  failure evidence, not a baseline to polish or consume.
+- `2026-08-07-mobile-editorial-reset/` on closed, unmerged PR `#481`: its orange
+  editorial recommendation never received product-owner acceptance and is also
+  vetoed.
+- `2026-08-08-mobile-visual-rebuild-v3/`: candidate exploration only. No
+  candidate becomes accepted through rendering, ranking, reviewer recommendation,
+  or merge alone; the exact rendered direction needs explicit product-owner
+  acceptance before a separate implementation PR.
+
+The binding lifecycle record is
+`../rejected/mobile-visual-directions-product-owner-veto-2026-08-08.md`.
+
 ## Stop Conditions
 
 Stop a run when one of these is true:

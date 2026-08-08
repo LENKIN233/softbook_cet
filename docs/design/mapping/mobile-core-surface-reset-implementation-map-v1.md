@@ -1,5 +1,10 @@
 # Mobile Core Surface Reset Implementation Map v1
 
+> **Lifecycle: `rejected_non_authority`.** This historical mapping is blocked
+> from implementation by
+> `docs/design/rejected/mobile-visual-directions-product-owner-veto-2026-08-08.md`.
+> Its prior future-facing instructions are retained only as failure evidence.
+
 ## 当前任务引用的 spec
 
 - `spec/product-core.json`
@@ -21,42 +26,46 @@
 
 ## Product Truth
 
-This map does not authorize implementation by itself. Future implementation PRs must reference this mapping and an accepted artifact, declare gaps, and prove the result with real simulator screenshots.
+This map no longer authorizes implementation, alone or in combination with its
+former decision and proof. Future mobile implementation PRs must not reference
+it as their design source.
 
 ## Implementation Hypothesis
 
-The existing mobile app should be restructured around a shared object grammar rather than separately polishing each screen.
+Historical, now rejected: restructure the mobile app around this shared object
+grammar rather than separately polishing each screen.
 
-## App Shell Mapping
+## Historical App Shell Mapping
 
-| Region | Design role | Future code surface |
+| Region | Historical design role | Then-targeted code surface (revoked) |
 |---|---|---|
 | Floating top context | quiet current route and active library context | mobile shell around `LearningSurface`, `SpaceSurface`, statistics, and mine surfaces |
 | Floating nav capsule | top-level Learning / Space / Statistics / Mine navigation without full-width bottom tabbar | mobile app navigation shell |
 | Page background | Aurora Glass atmosphere with one active library accent where applicable | mobile visual token layer |
 
-## Learning Mapping
+## Historical Learning Mapping
 
-| Region | Design role | Future code surface |
+| Region | Historical design role | Then-targeted code surface (revoked) |
 |---|---|---|
 | Current object plane | one addressed current card as the focal object | `apps/mobile/src/learning/LearningSurface.tsx` |
 | Action plane | interaction-specific operation area beneath or attached to the card | `LearningSurface` interaction branches |
 | Tool plane | hint, peek, favorite as secondary attached tools | `LearningSurface` tool controls |
 | Address aperture | compact library / group / box / card context | Learning state model plus Space continuity link |
 
-## Detail Mapping
+## Historical Detail Mapping
 
-| Region | Design role | Future code surface |
+| Region | Historical design role | Then-targeted code surface (revoked) |
 |---|---|---|
 | Resolved object | same card object after answer | `LearningSurface` result state |
 | Answer slip | explanation, correctness, and recovery attached to object | result-detail substate in Learning flow |
 | Continue CTA | primary next-card continuation | Learning progression action |
 
-Detail must not be implemented as a separate report page or a vertical article. It is a resolved state of the current object.
+The revoked mapping treated Detail as a resolved current-object state rather
+than a separate report page or vertical article.
 
-## Space Mapping
+## Historical Space Mapping
 
-| Region | Design role | Future code surface |
+| Region | Historical design role | Then-targeted code surface (revoked) |
 |---|---|---|
 | Address shelf | current library / group / box path | `apps/mobile/src/space/SpaceSurface.tsx` |
 | Current box | first-read physical container | `SpaceSurface` current focus |
@@ -64,23 +73,23 @@ Detail must not be implemented as a separate report page or a vertical article. 
 | Tag and sleep state | favorite as tag, sleep as zone | Space state UI and supported operations |
 | Return path | continue Learning from current context | Space to Learning transition |
 
-## Statistics Mapping
+## Historical Statistics Mapping
 
-| Region | Design role | Future code surface |
+| Region | Historical design role | Then-targeted code surface (revoked) |
 |---|---|---|
 | Daily object | quiet learning-day state | statistics surface |
 | Ledger rows | tabular numbers with low visual weight | statistics list/table components |
 | No primary dashboard | stats do not compete with Learning | route-level composition |
 
-## Mine Mapping
+## Historical Mine Mapping
 
-| Region | Design role | Future code surface |
+| Region | Historical design role | Then-targeted code surface (revoked) |
 |---|---|---|
 | Account object | login and membership state as one quiet card | mine/profile surface |
 | Account rows | phone, membership, restore purchase, route status | profile/account controls |
 | Membership action | clear but non-invasive primary command | membership entry |
 
-## Required Future Implementation Evidence
+## Historical Evidence Expectations
 
 - Real simulator screenshots for Learning, Detail, Space, Statistics, and Mine.
 - Explicit gap table comparing RN output to `docs/design/mocks/mobile-core-surface-reset-v1.html`.
@@ -88,25 +97,45 @@ Detail must not be implemented as a separate report page or a vertical article. 
 - Confirmation that Learning remains one-screen and does not require vertical scrolling for the main task.
 - Confirmation that Space preserves library / group / box / card hierarchy.
 
-## 2026-08-01 Acceptance Correction Evidence
+## Historical 2026-08-01 Implementation Evidence (Revoked As Authority)
 
-- `apps/mobile/App.tsx` no longer tells an unknown signed-out user that a card, box position, or daily rhythm has already been retained. The accepted account object now says that account state will be read after verification and explicitly distinguishes an existing account from a new account.
-- The first authenticated counted entry now starts `trial_available -> trial` automatically. Local mode updates immediately; remote mode waits for validated account state, uses the authenticated membership repository, and preserves the existing queued-retry/server-ack boundary.
-- `apps/mobile/__tests__/App.test.tsx` covers local automatic start, remote automatic start with authorization, failed-start queue/replay, and the resulting five-card session.
-- The iOS simulator at the accepted phone frame rendered the corrected neutral auth object without horizontal overflow, clipped CTA, or covered navigation. The screenshot remained local evidence and was not committed as ordinary Git content.
+- At that time, `apps/mobile/App.tsx` stopped telling an unknown signed-out user
+  that a card, box position, or daily rhythm had already been retained. The
+  then-implemented account object said that account state would be read after
+  verification and distinguished an existing account from a new account.
+- At that time, the first authenticated counted entry started
+  `trial_available -> trial` automatically. Local mode updated immediately;
+  remote mode waited for validated account state, used the authenticated
+  membership repository, and preserved the existing queued-retry/server-ack
+  boundary.
+- `apps/mobile/__tests__/App.test.tsx` historically covered local automatic
+  start, remote automatic start with authorization, failed-start queue/replay,
+  and the resulting five-card session.
+- A historical iOS simulator run at the then-used phone frame rendered the
+  neutral auth object without horizontal overflow, clipped CTA, or covered
+  navigation. The screenshot remained local evidence and was not committed as
+  ordinary Git content.
 
-These corrections use the already accepted reset decision and mock. They do not claim that every future implementation-evidence item above is now complete.
+Those observations described the then-implemented state only. The decision,
+mock, mapping, evidence, and checklist below are now revoked as visual
+authority; none authorizes or constrains future user-visible UI.
 
-## Design Review Checklist Answers
+## Historical Design Review Checklist Answers (Revoked)
 
-Q1: Future implementation must name the current library per screen and keep one strong accent. The reset proof uses the active library with coral.
+Q1: The historical checklist answer said the active library should be named per
+screen and one coral accent should remain dominant. This answer is revoked.
 
-Q2: Future implementation must identify the focal object for each surface and preserve object -> attached state -> chrome.
+Q2: The historical checklist answer identified object -> attached state ->
+chrome as its focal hierarchy. This answer is revoked.
 
-Q3: Future implementation must preserve Learning current-card silhouette and Space hierarchy silhouette.
+Q3: The historical checklist answer used a Learning current-card silhouette and
+a Space hierarchy silhouette. This answer is revoked.
 
-Q4: Future implementation must avoid forbidden design patterns and removed self-assess tokens.
+Q4: The historical checklist answer claimed avoidance of then-forbidden patterns
+and removed self-assess tokens. This answer is revoked.
 
-Q5: Future implementation must prove phone containment with simulator screenshots.
+Q5: The historical checklist answer relied on simulator screenshots for phone
+containment. This answer is revoked.
 
-Q6: Future implementation must keep Learning system-sequenced, Statistics tabular, and flip self-assess exactly two states.
+Q6: The historical checklist answer kept Learning system-sequenced, Statistics
+tabular, and flip self-assessment at two states. This answer is revoked.

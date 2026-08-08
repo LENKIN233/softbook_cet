@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>软书四六级 · 六种新视觉语言</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #d9d5cb;
+      color: #182024;
+    }
+    body { margin: 0; min-width: 1240px; background: #d9d5cb; }
+    button { font: inherit; cursor: default; }
+    .page-head { padding: 50px 64px 34px; background: #172428; color: #f8f1df; }
+    .page-head .softbook { display: flex; align-items: center; gap: 11px; font-size: 14px; font-weight: 800; letter-spacing: .08em; }
+    .page-head .softbook-mark { width: 30px; height: 22px; position: relative; display: inline-block; }
+    .page-head .softbook-mark::before,
+    .page-head .softbook-mark::after { content: ""; position: absolute; inset-block: 0; width: 12px; transform: skew(-16deg); }
+    .page-head .softbook-mark::before { left: 1px; background: #f1c94c; }
+    .page-head .softbook-mark::after { right: 1px; background: #57bdb3; }
+    .page-head h1 { margin: 18px 0 8px; font-size: 42px; line-height: 1.08; letter-spacing: -.04em; }
+    .page-head p { margin: 0; max-width: 680px; color: #cbd3cf; font-size: 17px; line-height: 1.7; }
+    .concept { padding: 42px 64px 54px; border-bottom: 1px solid #a9a59b; }
+    .concept:nth-of-type(odd) { background: #e8e4da; }
+    .concept:nth-of-type(even) { background: #dcd8ce; }
+    .concept-head { width: 1243px; margin: 0 auto 22px; display: grid; grid-template-columns: 58px 220px 1fr; align-items: end; gap: 18px; }
+    .concept-head .num { font-size: 13px; font-weight: 900; letter-spacing: .1em; padding-bottom: 7px; border-bottom: 4px solid currentColor; }
+    .concept-head h2 { margin: 0; font-size: 27px; letter-spacing: -.03em; }
+    .concept-head p { margin: 0; color: #596266; font-size: 15px; line-height: 1.5; }
+    .triptych { display: grid; grid-template-columns: repeat(3, 393px); gap: 32px; justify-content: center; }
+    .frame-label { margin: 0 0 9px; font-size: 12px; font-weight: 800; letter-spacing: .08em; color: #515a5e; }
+    .phone { width: 393px; height: 852px; position: relative; overflow: hidden; isolation: isolate; box-shadow: 0 22px 44px rgba(29, 35, 36, .18); }
+    .status { height: 34px; padding: 13px 22px 0; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 20; font-size: 12px; font-weight: 800; letter-spacing: .02em; }
+    .status .system { display: flex; gap: 7px; align-items: center; }
+    .status .battery { width: 18px; height: 9px; border: 1.6px solid currentColor; display: inline-block; position: relative; }
+    .status .battery::after { content: ""; position: absolute; right: -4px; top: 2px; width: 2px; height: 3px; background: currentColor; }
+    .status .battery::before { content: ""; position: absolute; inset: 1px; width: 11px; background: currentColor; }
+    .safe-bottom { position: absolute; bottom: 6px; left: 50%; width: 112px; height: 4px; transform: translateX(-50%); background: currentColor; border-radius: 3px; opacity: .75; z-index: 30; }
+    .subtle { font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+    .tiny { font-size: 11px; font-weight: 700; }
+    .hidden-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    /* 09 — campus arcade */
+    .arcade { --coral: #a63d32; --coral-dark: #71251f; --limestone: #f3dcb0; --sun: #f2c84b; --blue: #2c7181; --ink: #173137; background: #f3dcb0; color: var(--ink); }
+    .arc-top { height: 58px; margin: 8px 20px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--coral); }
+    .arc-word { display: flex; align-items: center; gap: 9px; font-weight: 900; }
+    .arc-sun { width: 26px; height: 26px; background: var(--sun); border: 6px solid var(--coral); border-bottom: 0; border-radius: 24px 24px 0 0; position: relative; }
+    .arc-sun::after { content: ""; width: 7px; height: 7px; position: absolute; bottom: -8px; right: -9px; background: var(--blue); }
+    .arc-progress { font-variant-numeric: tabular-nums; font-weight: 900; color: var(--coral-dark); }
+    .arc-main { position: absolute; inset: 108px 18px 84px; }
+    .arc-address { position: absolute; top: -7px; left: 16px; z-index: 4; background: var(--coral); color: #fff8eb; padding: 8px 13px; font-size: 11px; font-weight: 900; letter-spacing: .06em; }
+    .arc-bay { height: 536px; padding: 66px 34px 24px; border: 11px solid var(--coral); border-bottom-width: 18px; border-radius: 160px 160px 10px 10px; background: #fff4da; position: relative; box-shadow: inset 0 -18px 0 rgba(166,61,50,.09); }
+    .arc-bay::before, .arc-bay::after { content: ""; position: absolute; bottom: -18px; width: 14px; height: 74px; background: var(--coral-dark); }
+    .arc-bay::before { left: 42px; }
+    .arc-bay::after { right: 42px; }
+    .arc-kicker { color: var(--coral-dark); font-size: 13px; font-weight: 900; letter-spacing: .08em; }
+    .arc-bay h3 { margin: 22px 0 12px; font-size: 29px; line-height: 1.34; letter-spacing: -.035em; }
+    .arc-bay .support { margin: 0; max-width: 270px; color: #4c5755; font-size: 15px; line-height: 1.65; }
+    .arc-tools { margin-top: 22px; display: flex; gap: 10px; }
+    .arc-tool { min-height: 44px; padding: 0 13px; border: 2px solid #8e6b52; background: transparent; color: #3b302a; font-weight: 800; }
+    .arc-threshold { position: absolute; left: 25px; right: 25px; bottom: 24px; min-height: 58px; border: 0; background: var(--coral-dark); color: #fff7e7; font-weight: 900; font-size: 17px; box-shadow: 0 7px 0 var(--sun); }
+    .arc-analysis { margin-top: 9px; padding-top: 14px; border-top: 4px solid var(--coral); }
+    .arc-analysis h3 { margin: 0 0 8px; font-size: 23px; line-height: 1.25; }
+    .arc-answer { color: var(--coral-dark); font-size: 15px; font-weight: 900; line-height: 1.55; }
+    .arc-explain { margin: 9px 0 0; font-size: 13px; line-height: 1.55; color: #3f4c49; }
+    .arc-assess { position: absolute; left: 22px; right: 22px; bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .arc-assess button { min-height: 52px; border: 2px solid #274c43; background: #bfe6ce; color: #153d32; font-weight: 900; }
+    .arc-assess button:last-child { border-color: #754514; background: #f2c56a; color: #432707; }
+    .arc-nav { position: absolute; left: 18px; right: 18px; bottom: 22px; height: 50px; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 4px solid var(--coral); background: #f3dcb0; }
+    .arc-nav span { display: grid; place-items: center; font-size: 12px; font-weight: 800; border-right: 1px solid #b88a6a; }
+    .arc-nav span:last-child { border-right: 0; }
+    .arc-nav .on { color: #fff; background: var(--coral); }
+    .arc-space-title { margin: 11px 22px 0; display: flex; align-items: end; justify-content: space-between; }
+    .arc-space-title h3 { font-size: 31px; margin: 0; }
+    .arc-campus { margin: 20px 20px 0; height: 520px; position: relative; background: #e8bf75; border-bottom: 22px solid #62856e; overflow: hidden; }
+    .arc-campus::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 72px; background: #f3c943; clip-path: polygon(0 0,100% 0,100% 22%,0 100%); }
+    .arc-building { position: absolute; inset: 72px 24px 26px; padding: 30px 18px 18px; background: #f9e7bd; border: 9px solid var(--coral); }
+    .arc-building > b { display: block; font-size: 14px; color: var(--coral-dark); }
+    .arc-wing { margin-top: 22px; height: 275px; padding: 20px; border-left: 22px solid var(--coral); background: #d4a660; }
+    .arc-wing > b { color: #3f2018; }
+    .arc-room { margin-top: 15px; height: 196px; padding: 18px; background: #fff4da; border-top: 12px solid var(--coral-dark); position: relative; }
+    .arc-seat { margin-top: 15px; height: 76px; background: var(--coral); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 16px; font-weight: 900; }
+    .arc-seat small { display: block; margin-top: 4px; color: #ffe8d2; }
+    .arc-rest { position: absolute; left: 12px; bottom: 14px; width: 52px; min-height: 48px; border: 2px dashed #7a4c2f; background: #f5cf8d; color: #4d2d16; font-size: 11px; font-weight: 900; padding: 0 4px; }
+    .arc-return { position: absolute; right: 12px; bottom: 14px; width: 106px; min-height: 48px; border: 0; background: var(--coral-dark); color: #fff; font-size: 11px; font-weight: 900; padding: 0 6px; }
+
+    /* 10 — woven field */
+    .woven { --mulberry: #7f2857; --mulberry-dark: #55183b; --turq: #0a8e84; --melon: #ef806a; --sand: #f0d49e; --ink: #2a2430; background: #f0d49e; color: var(--ink); }
+    .loom-head { height: 68px; margin: 6px 18px 0; display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 12px; border-bottom: 8px double var(--mulberry); }
+    .loom-mark { width: 36px; height: 36px; background: conic-gradient(from 45deg, var(--turq) 0 25%, transparent 25% 50%, var(--melon) 50% 75%, transparent 75%); transform: rotate(45deg); }
+    .loom-head strong { font-size: 17px; }
+    .loom-count { font-weight: 900; font-variant-numeric: tabular-nums; color: var(--mulberry-dark); }
+    .loom-field { position: absolute; left: 20px; right: 20px; top: 122px; bottom: 91px; background: repeating-linear-gradient(90deg, #f8e7bd 0 8px, #e5bf80 8px 11px); clip-path: polygon(4% 0,96% 0,100% 3%,97% 6%,100% 9%,97% 12%,100% 15%,97% 18%,100% 21%,97% 24%,100% 27%,97% 30%,100% 33%,97% 36%,100% 39%,97% 42%,100% 45%,97% 48%,100% 51%,97% 54%,100% 57%,97% 60%,100% 63%,97% 66%,100% 69%,97% 72%,100% 75%,97% 78%,100% 81%,97% 84%,100% 87%,97% 90%,100% 93%,96% 100%,4% 100%,0 97%,3% 94%,0 91%,3% 88%,0 85%,3% 82%,0 79%,3% 76%,0 73%,3% 70%,0 67%,3% 64%,0 61%,3% 58%,0 55%,3% 52%,0 49%,3% 46%,0 43%,3% 40%,0 37%,3% 34%,0 31%,3% 28%,0 25%,3% 22%,0 19%,3% 16%,0 13%,3% 10%,0 7%,4% 0); padding: 27px 29px 24px; }
+    .loom-selvedge { height: 13px; background: repeating-linear-gradient(90deg, var(--turq) 0 16px, var(--melon) 16px 27px, #f7d460 27px 38px); margin-bottom: 21px; }
+    .loom-label { color: var(--mulberry-dark); font-size: 12px; font-weight: 900; letter-spacing: .09em; }
+    .loom-field h3 { margin: 15px 0 18px; font-size: 23px; line-height: 1.38; }
+    .loom-options { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+    .loom-options button { min-height: 66px; border: 0; border-left: 10px solid var(--mulberry); background: #f8eccf; color: #332735; text-align: left; padding: 10px 12px; font-weight: 900; box-shadow: inset 0 -4px 0 #c59a57; }
+    .loom-options button b { color: var(--mulberry); margin-right: 6px; }
+    .loom-options .chosen { background: var(--mulberry); color: #fff; border-left-color: var(--turq); }
+    .loom-options .chosen b { color: #fff; }
+    .loom-hint { margin-top: 17px; padding: 11px 12px; border-top: 3px dashed #986a35; border-bottom: 3px dashed #986a35; color: #59472e; font-size: 13px; line-height: 1.5; }
+    .loom-result { padding: 14px 15px; background: #c9e3c5; border-left: 12px solid #1b654b; color: #143b31; font-weight: 900; }
+    .loom-analysis { margin-top: 13px; padding: 14px 0; border-block: 7px double var(--mulberry); }
+    .loom-analysis h3 { margin: 0 0 8px; font-size: 21px; }
+    .loom-analysis p { margin: 0; font-size: 13px; line-height: 1.55; }
+    .loom-next { width: 100%; min-height: 54px; margin-top: 16px; border: 0; background: #1b654b; color: #fff; font-weight: 900; }
+    .loom-nav { position: absolute; left: 18px; right: 18px; bottom: 19px; height: 58px; display: grid; grid-template-columns: repeat(4, 1fr); background: repeating-linear-gradient(90deg, #e9c47f 0 7px, #f6dda9 7px 12px); border: 5px solid var(--mulberry-dark); }
+    .loom-nav span { display: grid; place-items: center; font-size: 11px; font-weight: 900; }
+    .loom-nav .on { background: var(--mulberry); color: #fff; }
+    .weave-space { position: absolute; inset: 111px 18px 88px; background: #e8c987; border: 9px solid var(--mulberry); padding: 18px; overflow: hidden; }
+    .weave-space h3 { margin: 0; font-size: 28px; }
+    .roll { margin-top: 17px; height: 473px; border-left: 36px solid var(--mulberry-dark); background: repeating-linear-gradient(0deg, #f5deaf 0 12px, #ddad6a 12px 16px); padding: 19px; }
+    .roll-label { background: #fff0ca; padding: 10px; font-weight: 900; }
+    .panel { margin-top: 16px; height: 300px; padding: 15px; background: var(--turq); color: #092f2b; border-right: 18px solid var(--melon); }
+    .panel > b { color: #fff; }
+    .pocket { margin-top: 13px; height: 213px; padding: 15px; background: #f7dfaa; border: 8px dashed var(--mulberry); }
+    .swatch { margin-top: 16px; height: 78px; padding: 12px; background: var(--mulberry); color: #fff; display: flex; justify-content: space-between; align-items: center; font-weight: 900; }
+    .weave-actions { margin-top: 13px; display: flex; gap: 10px; }
+    .weave-actions button { min-height: 48px; border: 3px solid var(--mulberry-dark); background: #f7dfaa; color: var(--mulberry-dark); font-weight: 900; flex: 1; }
+    .weave-actions button:last-child { background: var(--mulberry-dark); color: #fff; }
+
+    /* 11 — ceramic rack */
+    .ceramic { --cobalt: #174e93; --cobalt-dark: #0d3262; --guava: #e85d75; --clay: #ecc693; --cream: #fae7bd; --ink: #1b2a36; background: #d7b077; color: var(--ink); }
+    .cer-head { height: 60px; margin: 9px 20px 0; display: flex; justify-content: space-between; align-items: center; }
+    .cer-brand { display: flex; gap: 7px; align-items: center; font-weight: 900; }
+    .studs { display: flex; gap: 4px; }
+    .studs i { width: 10px; height: 10px; background: var(--guava); border-radius: 50%; box-shadow: 0 2px 0 #9f3449; }
+    .studs i:nth-child(2) { background: #f0c65a; }
+    .studs i:nth-child(3) { background: #4fae9f; }
+    .cer-progress { font-weight: 900; font-variant-numeric: tabular-nums; color: var(--cobalt-dark); }
+    .cer-rail { position: absolute; top: 130px; left: 0; right: 0; height: 26px; background: #263a3d; box-shadow: inset 0 6px 0 #697d78, 0 8px 0 rgba(50,40,30,.18); }
+    .cer-tile { position: absolute; left: 34px; right: 34px; top: 98px; height: 496px; padding: 66px 32px 30px; background: var(--cream); border: 7px solid var(--cobalt); clip-path: polygon(0 6%,10% 0,90% 0,100% 9%,96% 92%,86% 100%,9% 98%,0 88%); filter: drop-shadow(0 18px 0 rgba(71,47,26,.2)); }
+    .cer-tile::before { content: ""; position: absolute; top: 16px; left: 50%; width: 23px; height: 23px; transform: translateX(-50%); background: var(--guava); border: 5px solid #fff3d4; border-radius: 50%; box-shadow: 0 3px 0 #9b3547; }
+    .cer-tag { color: var(--cobalt-dark); font-size: 12px; font-weight: 900; letter-spacing: .08em; }
+    .cer-tile h3 { margin: 24px 0 13px; font-size: 28px; line-height: 1.35; letter-spacing: -.035em; }
+    .cer-tile p { margin: 0; color: #4d5757; font-size: 14px; line-height: 1.55; }
+    .cer-stud-action { position: absolute; left: 70px; right: 70px; top: 623px; min-height: 62px; border: 0; background: var(--cobalt-dark); color: #fff; font-size: 17px; font-weight: 900; clip-path: polygon(7% 0,93% 0,100% 50%,93% 100%,7% 100%,0 50%); box-shadow: 0 9px 0 #8e6943; }
+    .cer-result-tile { height: 536px; padding-top: 54px; }
+    .cer-answer { padding-bottom: 14px; border-bottom: 8px solid var(--cobalt); color: var(--cobalt-dark); font-size: 16px; font-weight: 900; line-height: 1.5; }
+    .cer-explain h3 { margin: 15px 0 8px; font-size: 21px; }
+    .cer-explain p { font-size: 13px; line-height: 1.48; }
+    .cer-assess { display: flex; gap: 14px; position: absolute; left: 50px; right: 50px; top: 656px; }
+    .cer-assess button { flex: 1; min-height: 54px; border: 5px solid #275c4b; background: #b9dbc7; color: #173d33; font-weight: 900; transform: rotate(-1.5deg); }
+    .cer-assess button:last-child { border-color: #6d4619; background: #eabc65; color: #422a0b; transform: rotate(1.5deg); }
+    .cer-nav { position: absolute; left: 24px; right: 24px; bottom: 20px; height: 55px; display: flex; justify-content: space-between; align-items: center; border-top: 9px solid #263a3d; }
+    .cer-nav span { width: 74px; min-height: 44px; display: grid; place-items: center; font-size: 11px; font-weight: 900; color: #31484b; }
+    .cer-nav .on { background: var(--cobalt); color: #fff; clip-path: polygon(8% 0,92% 0,100% 18%,96% 88%,86% 100%,10% 95%,0 80%,0 12%); }
+    .rack-title { margin: 13px 23px 0; display: flex; justify-content: space-between; align-items: end; }
+    .rack-title h3 { margin: 0; font-size: 30px; }
+    .rack-wall { position: absolute; inset: 116px 20px 91px; background: #c49a63; border-left: 22px solid #273c3f; padding: 20px; }
+    .rack { height: 486px; padding: 18px; background: #e1b97e; border-block: 16px solid #273c3f; }
+    .rack > b { color: var(--cobalt-dark); }
+    .bay { margin-top: 18px; padding: 16px; height: 326px; background: var(--cobalt); color: #fff; clip-path: polygon(0 0,94% 0,100% 12%,100% 100%,6% 100%,0 90%); }
+    .tray { margin-top: 15px; height: 230px; padding: 14px; background: #f1d29e; border: 10px solid var(--cobalt-dark); color: #1c2c34; }
+    .marker { margin: 14px 3px 0; height: 82px; padding: 16px; background: #fce8bd; border-left: 18px solid var(--cobalt); box-shadow: 0 10px 0 rgba(38,39,32,.22); display: flex; justify-content: space-between; align-items: center; font-weight: 900; }
+    .rack-actions { margin-top: 20px; display: grid; grid-template-columns: 1fr 1.5fr; gap: 12px; }
+    .rack-actions button { min-height: 50px; border: 4px solid var(--cobalt-dark); background: var(--cream); color: var(--cobalt-dark); font-weight: 900; }
+    .rack-actions button:last-child { background: var(--cobalt-dark); color: #fff; }
+
+    /* 12 — rhythm ribbon */
+    .ribbon { --rose: #8d285c; --rose-dark: #58163a; --sea: #25a995; --yellow: #f1ca52; --cream: #ffe4a8; --ink: #192e31; background: #62cabb; color: var(--ink); }
+    .rib-brand { position: absolute; top: 43px; left: 22px; right: 22px; height: 47px; display: flex; align-items: center; justify-content: space-between; z-index: 6; }
+    .rib-brand strong { display: flex; gap: 8px; align-items: center; }
+    .rib-cutmark { width: 27px; height: 24px; background: var(--yellow); clip-path: polygon(0 0,42% 0,42% 62%,100% 62%,100% 100%,0 100%); }
+    .rib-count { font-weight: 900; font-variant-numeric: tabular-nums; }
+    .rib-band { position: absolute; left: -70px; right: -70px; top: 106px; height: 595px; transform: rotate(-4deg); background: var(--rose); clip-path: polygon(5% 0,100% 0,94% 100%,0 100%); padding: 34px 91px; color: #fff; }
+    .rib-band::before { content: ""; position: absolute; left: 68px; right: 68px; top: 20px; height: 9px; background: repeating-linear-gradient(90deg, var(--yellow) 0 22px, transparent 22px 36px, #fff 36px 43px, transparent 43px 68px); }
+    .rib-band > * { transform: rotate(4deg); }
+    .rib-label { margin-top: 9px; font-size: 12px; font-weight: 900; letter-spacing: .08em; color: #ffe0ef; }
+    .rib-band h3 { margin: 19px 0 17px; font-size: 23px; line-height: 1.38; max-width: 300px; }
+    .rib-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .rib-options button { min-height: 64px; border: 0; background: #ffe4a8; color: #4d1936; text-align: left; padding: 12px; font-weight: 900; clip-path: polygon(0 0,92% 0,100% 24%,96% 100%,5% 100%,0 76%); }
+    .rib-options .chosen { background: #fff; box-shadow: inset 0 0 0 5px var(--yellow); }
+    .rib-result { background: #b8e4c9; color: #173f35; padding: 12px 15px; border-left: 12px solid #186148; font-weight: 900; }
+    .rib-analysis { margin-top: 12px; border-left: 12px solid var(--yellow); padding: 8px 0 8px 13px; }
+    .rib-analysis h3 { margin: 0 0 6px; font-size: 21px; }
+    .rib-analysis p { margin: 0; font-size: 13px; line-height: 1.48; color: #fff0f5; }
+    .rib-pull { position: absolute; left: 91px; right: 91px; bottom: 31px; min-height: 55px; border: 0; background: #173f35; color: #fff; font-weight: 900; clip-path: polygon(0 0,87% 0,100% 50%,87% 100%,0 100%,8% 50%); }
+    .rib-nav { position: absolute; left: 22px; right: 22px; bottom: 20px; height: 54px; display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+    .rib-nav span { display: grid; place-items: end center; padding-bottom: 8px; border-top: 9px solid #275f60; font-size: 11px; font-weight: 900; }
+    .rib-nav .on { border-top-width: 20px; border-color: var(--rose-dark); color: var(--rose-dark); }
+    .rib-space-head { position: absolute; top: 48px; left: 24px; right: 24px; z-index: 4; display: flex; justify-content: space-between; align-items: end; }
+    .rib-space-head h3 { margin: 0; font-size: 31px; }
+    .reel-field { position: absolute; inset: 105px 0 87px; overflow: hidden; background: #f5d875; }
+    .reel { position: absolute; width: 445px; height: 445px; left: -26px; top: 20px; border: 58px solid var(--rose); border-radius: 50%; background: #62cabb; display: grid; place-items: center; }
+    .run { width: 275px; height: 275px; border: 39px solid var(--rose-dark); border-radius: 50%; background: #f5d875; display: grid; place-items: center; }
+    .loop { width: 175px; height: 175px; border: 25px solid #fff0bc; border-radius: 50%; background: var(--rose); display: grid; place-items: center; color: #fff; text-align: center; font-weight: 900; }
+    .measure { width: 98px; min-height: 64px; padding: 12px 8px; background: var(--yellow); color: var(--rose-dark); clip-path: polygon(0 0,86% 0,100% 50%,86% 100%,0 100%,12% 50%); }
+    .rib-crumbs { position: absolute; left: 23px; right: 23px; top: 486px; display: flex; gap: 7px; flex-wrap: wrap; }
+    .rib-crumbs span { background: var(--rose-dark); color: #fff; padding: 8px 10px; font-size: 11px; font-weight: 900; }
+    .rib-space-actions { position: absolute; left: 22px; right: 22px; bottom: 21px; display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; }
+    .rib-space-actions button { min-height: 50px; border: 0; background: #fff0bc; color: var(--rose-dark); font-weight: 900; }
+    .rib-space-actions button:last-child { background: var(--rose-dark); color: #fff; }
+
+    /* 13 — acoustic chambers */
+    .sonic { --cobalt: #3343a6; --cobalt-dark: #202a73; --coral: #e45d55; --sand: #ebcb82; --mint: #2a8061; --ink: #19263b; background: #f0d8a7; color: var(--ink); }
+    .son-head { position: absolute; top: 45px; left: 23px; right: 23px; display: flex; align-items: center; justify-content: space-between; z-index: 10; }
+    .son-brand { display: flex; align-items: center; gap: 10px; font-weight: 900; }
+    .son-mark { width: 31px; height: 31px; border: 7px solid var(--coral); border-radius: 50%; position: relative; }
+    .son-mark::after { content: ""; position: absolute; width: 8px; height: 8px; background: var(--sand); right: -9px; bottom: -3px; border-radius: 50%; }
+    .son-count { font-variant-numeric: tabular-nums; font-weight: 900; color: var(--cobalt-dark); }
+    .chamber { position: absolute; width: 610px; height: 610px; left: -108px; top: 99px; border: 44px solid rgba(51,67,166,.22); border-radius: 50%; display: grid; place-items: center; }
+    .chamber::before { content: ""; position: absolute; width: 476px; height: 476px; border: 34px solid rgba(51,67,166,.38); border-radius: 50%; }
+    .chamber::after { content: ""; position: absolute; width: 356px; height: 356px; border: 27px solid var(--cobalt); border-radius: 50%; }
+    .son-center { width: 304px; height: 304px; border-radius: 50%; background: #f7e8c6; position: relative; z-index: 3; padding: 45px 36px; text-align: center; box-shadow: inset 0 0 0 6px var(--cobalt-dark); }
+    .son-label { color: var(--cobalt-dark); font-size: 11px; font-weight: 900; letter-spacing: .08em; }
+    .son-center h3 { margin: 21px 0 10px; font-size: 23px; line-height: 1.35; }
+    .son-center p { margin: 0; font-size: 13px; line-height: 1.45; color: #4e5158; }
+    .son-mouth { position: absolute; left: 63px; right: 63px; top: 638px; min-height: 59px; border: 0; background: var(--cobalt-dark); color: #fff; font-size: 17px; font-weight: 900; border-radius: 0 30px 30px 0; box-shadow: -11px 0 0 var(--coral); }
+    .son-resolved .chamber { top: 92px; width: 590px; height: 590px; }
+    .son-resolved .son-center { width: 326px; height: 326px; padding: 31px 31px; }
+    .son-answer { color: var(--cobalt-dark); font-size: 14px; font-weight: 900; line-height: 1.42; }
+    .son-explain { margin-top: 12px; padding-top: 10px; border-top: 4px solid var(--cobalt); }
+    .son-explain h3 { margin: 0 0 6px; font-size: 18px; }
+    .son-explain p { margin: 0; font-size: 12px; line-height: 1.4; }
+    .son-assess { position: absolute; left: 47px; right: 47px; top: 641px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .son-assess button { min-height: 55px; border: 4px solid #1c614b; background: #b8dec8; color: #174233; font-weight: 900; border-radius: 28px 0 0 28px; }
+    .son-assess button:last-child { border-color: #744714; background: #efbd61; color: #432604; border-radius: 0 28px 28px 0; }
+    .son-nav { position: absolute; left: 23px; right: 23px; bottom: 19px; height: 55px; display: flex; align-items: center; justify-content: space-between; border-top: 3px solid var(--cobalt-dark); }
+    .son-nav span { position: relative; width: 70px; padding-top: 18px; text-align: center; font-size: 11px; font-weight: 900; }
+    .son-nav span::before { content: ""; position: absolute; top: -8px; left: 50%; width: 13px; height: 13px; transform: translateX(-50%); border-radius: 50%; background: #f0d8a7; border: 3px solid var(--cobalt-dark); }
+    .son-nav .on::before { background: var(--cobalt); box-shadow: 0 0 0 6px #f0d8a7; }
+    .son-space-title { position: absolute; left: 24px; right: 24px; top: 48px; z-index: 5; display: flex; justify-content: space-between; align-items: end; }
+    .son-space-title h3 { margin: 0; font-size: 31px; }
+    .hall { position: absolute; width: 610px; height: 610px; left: -108px; top: 105px; border: 56px solid rgba(51,67,166,.28); border-radius: 50%; display: grid; place-items: center; }
+    .channel { width: 430px; height: 430px; border: 42px solid var(--cobalt); border-radius: 50%; display: grid; place-items: center; }
+    .box-chamber { width: 278px; height: 278px; border: 31px solid #f5e0af; border-radius: 50%; background: var(--cobalt-dark); color: #fff; display: grid; place-items: center; text-align: center; font-weight: 900; }
+    .disc { width: 112px; height: 112px; border-radius: 50%; display: grid; place-items: center; padding: 12px; background: var(--coral); color: #fff; box-shadow: 0 0 0 12px var(--sand); }
+    .son-hierarchy { position: absolute; top: 548px; left: 27px; right: 27px; display: flex; justify-content: space-between; color: var(--cobalt-dark); font-size: 11px; font-weight: 900; }
+    .son-space-actions { position: absolute; left: 27px; right: 27px; bottom: 88px; display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; }
+    .son-space-actions button { min-height: 50px; border: 3px solid var(--cobalt-dark); background: var(--sand); color: var(--cobalt-dark); font-weight: 900; border-radius: 25px; }
+    .son-space-actions button:last-child { background: var(--cobalt-dark); color: #fff; }
+
+    /* 14 — signal terrace */
+    .signal { --coral: #a83d32; --coral-dark: #72231d; --blue: #2855c7; --lemon: #e7d436; --cyan: #08707d; --ink: #122634; background: #e7d436; color: var(--ink); }
+    .sig-head { height: 69px; margin-top: 4px; padding: 0 20px; display: grid; grid-template-columns: 39px 1fr auto; align-items: center; gap: 11px; background: #f6edb8; border-bottom: 10px solid var(--coral); }
+    .sig-mark { width: 32px; height: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .sig-mark i { background: var(--blue); }
+    .sig-mark i:nth-child(2), .sig-mark i:nth-child(3) { background: var(--lemon); }
+    .sig-head strong { font-size: 17px; }
+    .sig-count { font-weight: 900; font-variant-numeric: tabular-nums; color: var(--coral-dark); }
+    .sig-stage { position: absolute; inset: 113px 0 79px; overflow: hidden; background: #f6edb8; }
+    .sig-task { height: 217px; padding: 28px 27px; background: var(--coral); color: #fff; clip-path: polygon(0 0,100% 0,100% 80%,78% 80%,78% 100%,0 100%); }
+    .sig-task .sig-label { font-size: 12px; font-weight: 900; letter-spacing: .08em; color: #ffe0ce; }
+    .sig-task h3 { margin: 19px 0 0; max-width: 320px; font-size: 26px; line-height: 1.32; }
+    .sig-steps { margin-top: -11px; padding-left: 24px; }
+    .sig-slot { min-height: 66px; display: grid; grid-template-columns: 64px 1fr 46px; align-items: center; margin-bottom: 8px; background: #fff8cf; border-left: 15px solid var(--coral-dark); color: #283031; font-weight: 900; }
+    .sig-slot:nth-child(2) { margin-left: 18px; }
+    .sig-slot:nth-child(3) { margin-left: 36px; }
+    .sig-slot span { padding-left: 12px; font-size: 12px; color: var(--coral-dark); }
+    .sig-slot b { font-size: 15px; }
+    .sig-slot i { width: 28px; height: 28px; background: var(--lemon); clip-path: polygon(0 0,100% 50%,0 100%); }
+    .sig-check { margin: 15px 22px 0 auto; width: 205px; min-height: 55px; border: 0; background: var(--coral-dark); color: #fff; font-weight: 900; clip-path: polygon(0 0,100% 0,100% 100%,13% 100%); }
+    .sig-unlocked { height: 145px; padding: 20px 25px; background: var(--cyan); color: #fff; clip-path: polygon(0 0,100% 0,100% 76%,24% 76%,24% 100%,0 100%); }
+    .sig-unlocked b { display: block; font-size: 22px; }
+    .sig-unlocked p { margin: 8px 0 0; font-size: 13px; line-height: 1.48; max-width: 315px; }
+    .sig-explain { margin: 12px 24px 0; border-left: 12px solid var(--coral); padding: 5px 0 5px 14px; }
+    .sig-explain h3 { margin: 0 0 7px; font-size: 21px; }
+    .sig-explain p { margin: 0; font-size: 13px; line-height: 1.47; }
+    .sig-next { margin: 14px 21px 0 auto; width: 190px; min-height: 54px; border: 0; background: var(--coral-dark); color: #fff; font-weight: 900; clip-path: polygon(0 0,100% 0,100% 100%,15% 100%); }
+    .sig-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 78px; display: grid; grid-template-columns: repeat(4,1fr); background: #f6edb8; }
+    .sig-nav span { display: grid; place-items: center; border-right: 5px solid var(--ink); font-size: 11px; font-weight: 900; }
+    .sig-nav span:last-child { border-right: 0; }
+    .sig-nav .on { background: var(--coral); color: #fff; }
+    .sig-space-head { height: 77px; padding: 13px 22px; display: flex; justify-content: space-between; align-items: center; background: var(--coral); color: #fff; }
+    .sig-space-head h3 { margin: 0; font-size: 31px; }
+    .terraces { position: absolute; inset: 111px 0 78px; background: #f6edb8; overflow: hidden; }
+    .field { position: absolute; left: 0; right: 0; top: 0; height: 555px; background: var(--coral); clip-path: polygon(0 0,100% 0,100% 100%,0 72%); padding: 25px; color: #fff; }
+    .terrace { margin-top: 30px; width: 316px; height: 385px; background: #f0ce55; color: #332512; padding: 22px; clip-path: polygon(0 0,100% 0,100% 82%,78% 82%,78% 100%,0 100%); }
+    .court { margin-top: 27px; width: 252px; height: 238px; background: #f6edb8; border: 14px solid var(--coral-dark); padding: 15px; }
+    .sig-cardmark { margin-top: 17px; height: 91px; background: var(--coral); color: #fff; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: 900; clip-path: polygon(0 0,90% 0,100% 28%,100% 100%,0 100%); }
+    .sig-space-actions { position: absolute; left: 21px; right: 21px; bottom: 19px; display: grid; grid-template-columns: 1fr 1.55fr; gap: 10px; }
+    .sig-space-actions button { min-height: 51px; border: 5px solid var(--coral-dark); background: var(--lemon); color: var(--coral-dark); font-weight: 900; }
+    .sig-space-actions button:last-child { background: var(--coral-dark); color: #fff; }
+  </style>
+</head>
+<body>
+  <header class="page-head">
+    <div class="softbook"><span class="softbook-mark"></span>软书四六级</div>
+    <h1>六种新视觉语言</h1>
+    <p>同一条“任务—理解—归位”路径，以六种不同的对象、节奏与空间重新组织。每组依次展示学习正面、同屏理解与空间归位。</p>
+  </header>
+
+  <section class="concept" id="mvr-09">
+    <div class="concept-head"><span class="num">09</span><h2>校园回廊</h2><p>空间本身就是学习容器；当前任务住进一个被占用的开间。</p></div>
+    <div class="triptych">
+      <div><p class="frame-label">学习 · 正面</p><div class="phone arcade">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div>
+        <header class="arc-top"><div class="arc-word"><i class="arc-sun"></i>软书四六级</div><div class="arc-progress">07 / 18</div></header>
+        <main class="arc-main"><div class="arc-address">当前馆 · 当前组 · 当前盒</div><article class="arc-bay"><div class="arc-kicker">这张练习 · 听出转折</div><h3>短对话里听到 however，优先盯哪一半信息？</h3><p class="support">先抓转折，不要被前半句带跑。</p><div class="arc-tools"><button class="arc-tool">提示</button><button class="arc-tool">收藏</button></div><button class="arc-threshold">查看解析</button></article></main>
+        <nav class="arc-nav"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+      <div><p class="frame-label">学习 · 同屏理解</p><div class="phone arcade">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div>
+        <header class="arc-top"><div class="arc-word"><i class="arc-sun"></i>软书四六级</div><div class="arc-progress">07 / 18</div></header>
+        <main class="arc-main"><div class="arc-address">当前馆 · 当前组 · 当前盒</div><article class="arc-bay"><div class="arc-kicker">解析已展开</div><div class="arc-analysis"><h3>先抓态度转向，再判断答案</h3><div class="arc-answer">优先盯转折后的半句，再回头核对前面让步或铺垫的信息。</div><p class="arc-explain">题目里的 however 往往不是装饰词，而是把说话人真正结论往后推。先抓后半句，能减少被前半句表面信息误导。</p></div><div class="arc-assess"><button>✓ 有把握</button><button>↻ 再回看</button></div></article></main>
+        <nav class="arc-nav"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+      <div><p class="frame-label">空间 · 归位</p><div class="phone arcade">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div>
+        <div class="arc-space-title"><div><span class="subtle">软书四六级</span><h3>空间</h3></div><span class="subtle">当前馆</span></div>
+        <div class="arc-campus"><div class="arc-building"><b>馆 · 一座学习楼</b><div class="arc-wing"><b>组 · 东侧回廊</b><div class="arc-room"><b>盒 · 当前开间</b><div class="arc-seat"><span>这张卡<small>已收藏 · 学习中</small></span><span>★</span></div><button class="arc-rest">暂休</button><button class="arc-return">回到这张练习</button></div></div></div></div>
+        <nav class="arc-nav"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+    </div>
+  </section>
+
+  <section class="concept" id="mvr-10">
+    <div class="concept-head"><span class="num">10</span><h2>经纬织场</h2><p>一次操作补上一根纬线，理解在同一块织物上变得完整。</p></div>
+    <div class="triptych">
+      <div><p class="frame-label">学习 · 正面</p><div class="phone woven">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="loom-head"><i class="loom-mark"></i><strong>软书四六级</strong><span class="loom-count">11 / 18</span></header>
+        <main class="loom-field"><div class="loom-selvedge"></div><div class="loom-label">当前馆 · 四选一</div><h3>The committee postponed the vote because several details were still ____.</h3><div class="loom-options"><button><b>A</b> urgent</button><button><b>B</b> unclear</button><button><b>C</b> formal</button><button><b>D</b> similar</button></div><div class="loom-hint">选出最符合句意的词。投票被推迟，说明关键信息还没有清楚。</div></main>
+        <nav class="loom-nav"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+      <div><p class="frame-label">学习 · 同屏理解</p><div class="phone woven">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="loom-head"><i class="loom-mark"></i><strong>软书四六级</strong><span class="loom-count">11 / 18</span></header>
+        <main class="loom-field"><div class="loom-selvedge"></div><div class="loom-result">✓ 回答正确 · B unclear</div><div class="loom-analysis"><h3>先顺着因果看语义</h3><p>因为“细节还不清楚”才会推迟投票。urgent 和 formal 都能修饰 details，但和 postpone the vote 的因果不成立。</p></div><div class="loom-options" style="margin-top:12px"><button><b>A</b> urgent</button><button class="chosen"><b>B</b> unclear</button><button><b>C</b> formal</button><button><b>D</b> similar</button></div><button class="loom-next">下一张</button></main>
+        <nav class="loom-nav"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+      <div><p class="frame-label">空间 · 归位</p><div class="phone woven">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="loom-head"><i class="loom-mark"></i><strong>空间</strong><span class="loom-count">当前馆</span></header>
+        <main class="weave-space"><h3>经纬墙</h3><div class="roll"><div class="roll-label">馆 · 当前卷</div><div class="panel"><b>组 · 当前织面</b><div class="pocket"><b>盒 · 当前口袋</b><div class="swatch"><span>这张卡<br><small>已收藏 · 学习中</small></span><span>★</span></div><div class="weave-actions"><button>暂休</button><button>回到这张练习</button></div></div></div></div></main>
+        <nav class="loom-nav"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+    </div>
+  </section>
+
+  <section class="concept" id="mvr-11">
+    <div class="concept-head"><span class="num">11</span><h2>陶瓷磁架</h2><p>知识是一枚有重量的陶瓷标记，被交到手上，也能准确归架。</p></div>
+    <div class="triptych">
+      <div><p class="frame-label">学习 · 正面</p><div class="phone ceramic">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="cer-head"><div class="cer-brand"><span class="studs"><i></i><i></i><i></i></span>软书四六级</div><span class="cer-progress">07 / 18</span></header><div class="cer-rail"></div>
+        <article class="cer-tile"><div class="cer-tag">当前馆 · 听出转折</div><h3>短对话里听到 however，优先盯哪一半信息？</h3><p>先抓转折，不要被前半句带跑。</p><p style="margin-top:22px;color:#174e93;font-weight:900">当前盒 · 这张卡</p></article><button class="cer-stud-action">查看解析</button>
+        <nav class="cer-nav"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+      <div><p class="frame-label">学习 · 同屏理解</p><div class="phone ceramic">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="cer-head"><div class="cer-brand"><span class="studs"><i></i><i></i><i></i></span>软书四六级</div><span class="cer-progress">07 / 18</span></header><div class="cer-rail"></div>
+        <article class="cer-tile cer-result-tile"><div class="cer-answer">优先盯转折后的半句，再回头核对前面让步或铺垫的信息。</div><div class="cer-explain"><h3>先抓态度转向，再判断答案</h3><p>题目里的 however 往往不是装饰词，而是把说话人真正结论往后推。先抓后半句，能减少被前半句表面信息误导。</p></div></article><div class="cer-assess"><button>✓ 有把握</button><button>↻ 再回看</button></div>
+        <nav class="cer-nav"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+      <div><p class="frame-label">空间 · 归位</p><div class="phone ceramic">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="rack-title"><div><span class="subtle">软书四六级</span><h3>空间</h3></div><span class="cer-progress">当前馆</span></header>
+        <main class="rack-wall"><div class="rack"><b>馆 · 磁架</b><div class="bay"><b>组 · 当前架湾</b><div class="tray"><b>盒 · 当前托盘</b><div class="marker"><span>这张卡<br><small>学习中</small></span><span>★</span></div><div class="rack-actions"><button>移入暂休</button><button>回到这张练习</button></div></div></div></div></main>
+        <nav class="cer-nav"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+    </div>
+  </section>
+
+  <section class="concept" id="mvr-12">
+    <div class="concept-head"><span class="num">12</span><h2>连续节奏带</h2><p>只放大当前一拍；结果先落在这一拍里，下一拍才被拉近。</p></div>
+    <div class="triptych">
+      <div><p class="frame-label">学习 · 正面</p><div class="phone ribbon">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="rib-brand"><strong><i class="rib-cutmark"></i>软书四六级</strong><span class="rib-count">11 / 18</span></header>
+        <main class="rib-band"><div class="rib-label">当前馆 · 当前一拍</div><h3>The committee postponed the vote because several details were still ____.</h3><div class="rib-options"><button>A · urgent</button><button>B · unclear</button><button>C · formal</button><button>D · similar</button></div><p class="tiny" style="margin-top:18px;color:#ffe7f2">选择后，解析会在这一拍内展开。</p></main>
+        <nav class="rib-nav"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+      <div><p class="frame-label">学习 · 同屏理解</p><div class="phone ribbon">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="rib-brand"><strong><i class="rib-cutmark"></i>软书四六级</strong><span class="rib-count">11 / 18</span></header>
+        <main class="rib-band"><div class="rib-result">✓ 回答正确 · B unclear</div><div class="rib-analysis"><h3>先顺着因果看语义</h3><p>因为“细节还不清楚”才会推迟投票。urgent 和 formal 都能修饰 details，但和 postpone the vote 的因果不成立。</p></div><div class="rib-options" style="margin-top:14px"><button>A · urgent</button><button class="chosen">B · unclear</button><button>C · formal</button><button>D · similar</button></div><button class="rib-pull">下一张</button></main>
+        <nav class="rib-nav"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+      <div><p class="frame-label">空间 · 归位</p><div class="phone ribbon">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="rib-space-head"><div><span class="subtle">软书四六级</span><h3>空间</h3></div><span class="rib-count">当前馆</span></header>
+        <main class="reel-field"><div class="reel"><div class="run"><div class="loop"><div class="measure">这张卡<br><small>学习中</small></div></div></div></div><div class="rib-crumbs"><span>馆 · 当前卷</span><span>组 · 当前带</span><span>盒 · 当前环</span><span>卡 · 这一拍</span></div><div class="rib-space-actions"><button>暂休一拍</button><button>回到这张练习</button></div></main>
+        <nav class="rib-nav"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+    </div>
+  </section>
+
+  <section class="concept" id="mvr-13">
+    <div class="concept-head"><span class="num">13</span><h2>声学腔体</h2><p>声音只是内容资源；腔体负责聚焦、揭示与空间归属。</p></div>
+    <div class="triptych">
+      <div><p class="frame-label">学习 · 正面</p><div class="phone sonic">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="son-head"><div class="son-brand"><i class="son-mark"></i>软书四六级</div><span class="son-count">07 / 18</span></header>
+        <main class="chamber"><article class="son-center"><div class="son-label">当前馆 · 这张练习</div><h3>短对话里听到 however，优先盯哪一半信息？</h3><p>先抓转折，不要被前半句带跑。</p></article></main><button class="son-mouth">查看解析</button>
+        <nav class="son-nav"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+      <div><p class="frame-label">学习 · 同屏理解</p><div class="phone sonic son-resolved">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="son-head"><div class="son-brand"><i class="son-mark"></i>软书四六级</div><span class="son-count">07 / 18</span></header>
+        <main class="chamber"><article class="son-center"><div class="son-answer">优先盯转折后的半句，再回头核对前面让步或铺垫的信息。</div><div class="son-explain"><h3>先抓态度转向，再判断答案</h3><p>题目里的 however 往往不是装饰词，而是把说话人真正结论往后推。先抓后半句，能减少被前半句表面信息误导。</p></div></article></main><div class="son-assess"><button>✓ 有把握</button><button>↻ 再回看</button></div>
+        <nav class="son-nav"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+      <div><p class="frame-label">空间 · 归位</p><div class="phone sonic">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="son-space-title"><div><span class="subtle">软书四六级</span><h3>空间</h3></div><span class="son-count">当前馆</span></header>
+        <main class="hall"><div class="channel"><div class="box-chamber"><div><span>当前盒</span><div class="disc">这张卡<br><small>★ 已收藏</small></div></div></div></div></main><div class="son-hierarchy"><span>馆 · 声场</span><span>组 · 通道</span><span>盒 · 腔体</span><span>卡 · 圆片</span></div><div class="son-space-actions"><button>移入暂休</button><button>回到这张练习</button></div>
+        <nav class="son-nav"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+    </div>
+  </section>
+
+  <section class="concept" id="mvr-14">
+    <div class="concept-head"><span class="num">14</span><h2>信号阶地</h2><p>不模拟任何材料；用平面、阶差与硬边把任务、结果和归属分开。</p></div>
+    <div class="triptych">
+      <div><p class="frame-label">学习 · 正面</p><div class="phone signal">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="sig-head"><span class="sig-mark"><i></i><i></i><i></i><i></i></span><strong>软书四六级</strong><span class="sig-count">09 / 18</span></header>
+        <main class="sig-stage"><section class="sig-task"><span class="sig-label">当前馆 · 句子结构</span><h3>把句子主干锁出来，三个槽位都对才开锁。</h3></section><div class="sig-steps"><div class="sig-slot"><span>主语</span><b>The policy</b><i></i></div><div class="sig-slot"><span>谓语</span><b>reduces</b><i></i></div><div class="sig-slot"><span>宾语</span><b>test anxiety</b><i></i></div></div><button class="sig-check">检查组合</button></main>
+        <nav class="sig-nav"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+      <div><p class="frame-label">学习 · 同屏理解</p><div class="phone signal">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="sig-head"><span class="sig-mark"><i></i><i></i><i></i><i></i></span><strong>软书四六级</strong><span class="sig-count">09 / 18</span></header>
+        <main class="sig-stage"><section class="sig-unlocked"><b>✓ 已解开</b><p>The policy / reduces / test anxiety</p></section><div class="sig-explain"><h3>开锁的关键是别让修饰词抢主干</h3><p>很多真题长句会把时间、方式和插入解释塞进句中。先锁主语、谓语、宾语，剩下修饰再慢慢挂回去，理解压力会明显下降。</p></div><div class="sig-steps" style="margin-top:14px"><div class="sig-slot"><span>主语</span><b>The policy</b><i></i></div><div class="sig-slot"><span>谓语</span><b>reduces</b><i></i></div><div class="sig-slot"><span>宾语</span><b>test anxiety</b><i></i></div></div><button class="sig-next">下一张</button></main>
+        <nav class="sig-nav"><span class="on">学习</span><span>空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+      <div><p class="frame-label">空间 · 归位</p><div class="phone signal">
+        <div class="status"><span>9:41</span><span class="system">5G <i class="battery"></i></span></div><header class="sig-space-head"><div><span class="subtle">软书四六级</span><h3>空间</h3></div><span class="subtle">当前馆</span></header>
+        <main class="terraces"><div class="field"><b>馆 · 当前色场</b><div class="terrace"><b>组 · 当前阶地</b><div class="court"><b>盒 · 当前方场</b><div class="sig-cardmark"><span>这张卡<br><small>学习中</small></span><span>★</span></div></div></div></div><div class="sig-space-actions"><button>移入暂休</button><button>回到这张练习</button></div></main>
+        <nav class="sig-nav"><span>学习</span><span class="on">空间</span><span>统计</span><span>我的</span></nav><i class="safe-bottom"></i>
+      </div></div>
+    </div>
+  </section>
+  <script>
+    const selectedConcept = document.getElementById(window.location.hash.slice(1));
+    if (selectedConcept) {
+      document.querySelector('.page-head').style.display = 'none';
+      document.querySelectorAll('.concept').forEach((concept) => {
+        concept.style.display = concept === selectedConcept ? 'block' : 'none';
+      });
+      window.requestAnimationFrame(() => window.scrollTo(0, 0));
+    }
+  </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-9",
+  "version": "vnext-10",
   "active_documents": [
     {
       "path": "AGENTS.md",
@@ -755,6 +755,30 @@
       "depends_on": [
         "docs/design/design-harness.md",
         "docs/design/briefs/learning-space-worldview.md"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/rejected/mobile-visual-directions-product-owner-veto-2026-08-08.md",
+      "authority": "design_rejection_record",
+      "audience": [
+        "agent",
+        "designer",
+        "engineer",
+        "reviewer"
+      ],
+      "load_when": [
+        "mobile_visual_design_task",
+        "mobile_user_facing_ui_implementation",
+        "mobile_design_review_task",
+        "major_redesign_task"
+      ],
+      "depends_on": [
+        "spec/authority-map.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md",
+        "docs/design/design-quarantine.md",
+        "docs/design/single-card-ux-contract.md"
       ],
       "status": "active"
     },
