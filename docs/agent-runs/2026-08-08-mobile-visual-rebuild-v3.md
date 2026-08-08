@@ -152,6 +152,12 @@
 - GitHub App PR creation returned `403 Resource not accessible by integration`;
   authenticated `gh pr create` was used as the permitted fallback and created
   draft PR `#482` against `main`.
+- Final `./scripts/run_local_gates --profile pr --base origin/main` with open PR
+  context -> 34/36 passed. `pr-design-gate` and `agent-review` pass after the
+  exact checklist/body and AP-23 token evidence corrections. Remaining failures
+  are the unchanged mobile dependency-security baseline (10 high advisories) and
+  the local macOS sandbox repo-health worktree lookup (`fatal: not a git
+  repository` inside the strict sandbox). This is not a green PR profile.
 
 ## Validation results
 
@@ -182,10 +188,10 @@
   `98c1b28c…`; none of these results substitutes for required representative-
   person studies or exact product-owner acceptance, and none confers promotion,
   implementation authority, or release readiness.
-- Local dev gates: 24/24 passed only after the pinned runtime and locked
-  dependency rebuild described above. The earlier strict PR-profile result
-  remains 22/36 passed, 12 failed, and 2 deferred and is not green; it must be
-  rerun when open-PR context is available.
+- Local dev gates: 24/24 passed after the pinned runtime and locked dependency
+  rebuild described above. The final open-PR strict profile is 34/36 and remains
+  non-green only on the unchanged mobile dependency-security baseline and local
+  sandbox repo-health lookup described above.
 
 ## Binary evidence
 
@@ -236,9 +242,9 @@
   five-silhouette hypotheses. It may still fail native safe areas, IME/back,
   dynamic type, screen-reader, long-content, network, or persistence behavior.
 - The local 24/24 dev profile is useful repository feedback but is not a
-  substitute for a green strict PR profile; the earlier strict result and its
-  environment/dependency/security/PR-context/repo-health boundary remain
-  explicit until rerun with an open PR.
+  substitute for a green strict PR profile. The open-PR strict rerun reaches
+  34/36; dependency security and local sandbox repo-health remain explicit
+  blockers, so draft PR `#482` must not merge.
 - Product-owner acceptance is intentionally unresolved; no agent may self-promote a candidate to implementation authority.
 - Prototype-only P2 constraints: the displayed 45-second verification-code
   resend state is time-compressed for testability, and `#557BBE` is restricted
@@ -253,5 +259,6 @@
   revision to the product owner. Only after an explicit acceptance that names
   the candidate and commit may a separate implementation branch and PR begin
   for iOS, Android, and tablet React Native work plus real-device testing.
-- Rerun the strict PR profile with open-PR context and complete repository
-  review before any merge decision.
+- Resolve or formally govern the dependency-security baseline, obtain a valid
+  strict repo-health result outside the local sandbox failure, wait for remote
+  required checks, and complete repository review before any merge decision.
