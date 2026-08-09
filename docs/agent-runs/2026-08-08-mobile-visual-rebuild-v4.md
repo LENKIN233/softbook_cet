@@ -344,6 +344,14 @@ permission to inherit editorial, shelf-desk, answer-slip, or ledger structures.
 Runtime validation/selection/cursor predicates remain internal and are not
 future learner copy.
 
+The exact-commit follow-up also found that the context pack's soft objectives
+still preferred modest radii, restrained depth, and one memorable non-color
+location cue. Those are visual-system choices, not candidate-independent UX
+measures. They were removed; the soft objectives now measure task recognition,
+body readability, platform familiarity, recovery clarity, and origin/return
+continuity, while later candidates must vary radius, depth, and brand-expression
+axes at equal completeness.
+
 These corrections do not accept a design, create a visual direction, or
 authorize RN. They make the completed failure record safe as constraint and
 provenance input for a separately reviewed design-only phase.

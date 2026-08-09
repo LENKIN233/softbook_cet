@@ -248,10 +248,12 @@ evidence, not visual authority.
 
 ## Soft Objectives
 
-Prefer an ordinary trustworthy consumer-app appearance, immediate task
-recognition, comfortable 16px-or-larger body text, modest radii, restrained depth,
-platform familiarity, and one memorable non-color location cue. These are
-weighted goals, not permission to change product truth.
+Measure immediate task recognition, comfortable 16px-or-larger body legibility,
+platform interaction familiarity, recovery clarity, and origin/return
+continuity. Do not preselect a radius family, flat or layered depth, a location
+device, or another brand-expression mechanism here. A later visual population
+must vary those axes at equal completeness rather than treating one as the
+preferred grayscale architecture.
 
 ## Source Artifacts
 
