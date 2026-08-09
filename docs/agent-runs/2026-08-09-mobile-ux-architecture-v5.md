@@ -4,7 +4,7 @@
 
 - Date: 2026-08-09
 - Branch: `cross/mobile-ux-architecture-v5`
-- PR: pending; stacked on draft PR `#483`
+- PR: draft `#484`; stacked on draft PR `#483`
 - Parent design checkpoint: corrected v4 commit `de3bd5c5a23a70e2ca3c165613ea04a2f07da2b1`, independently classified `completed_no_promotion`
 - Summary: design-only correction and evidence pass for the mobile UX architecture. It replaces false browser outcomes, hidden tablet reflow, blended access profiles, omitted check-in behavior, compound evidence overclaims, and incomplete state accounting with a fail-closed 160-state + 13-combination contract, four platform learner documents, two physically separate access documents, and frozen browser evidence.
 - Current result: `architecture_gate_blocked_with_browser_subset_verified`. No visual system, accepted design, native completion, leadership readiness, or React Native authority is created.
