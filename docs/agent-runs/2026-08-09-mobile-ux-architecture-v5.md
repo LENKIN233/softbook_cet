@@ -112,7 +112,7 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 - Native, store, canonical service, real audio, real receiver operations, 200% text, OS reduced motion, IME, VoiceOver/TalkBack, cutout/safe-area, and PC Web per-state evidence: blocked.
 - Local full-section harness: `HARNESS VALIDATION OK`; `HARNESS COMPLETENESS PARTIAL (mode=local, selected=15)` is the expected local-mode report and does not substitute for remote required checks.
 - `git diff --check`: passed.
-- Final independent frozen-hash architecture review: pending.
+- Final independent frozen-hash architecture review of strict-4 commit `bd3ed0f54350b252f1554872de5a07cd09f97232`: `pass_exact_architecture_browser_subset`; P0 `0`, P1 `0`. The overall architecture gate remains blocked.
 
 ## Binary evidence
 
@@ -126,8 +126,8 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 - Pre-commit evidence audit: `pass_precommit_evidence_audit` on flow hash `e21efa673ec301640392acc76781872d1fe0cd3f4dac29a76454cdd045f5b102`; P0 `0`, P1 `0`. It independently recomputed `38/10/8/8` exact platform cells, `14/5/5/5` presentation-only observations, `12` shared cells, all `160 + 13` IDs, all frozen hashes, and the blocked canonical-origin rows.
 - Exact review of strict-3 commit `2a09309e3b2bc85003d2e68b5a65196f4e9c0fcd`: `fail_architecture_checkpoint`; P0 `0`, P1 `1`. The residual finding was the shared iOS global stack and a real double-Back/no-visible-change path. Strict-4 corrected that finding and re-ran all platform browser scenarios affected by the shared script hash.
 - Reviewer: independent exact-hash subagent
-- Status: pending
-- Blocking findings: pending
+- Status: `pass_exact_architecture_browser_subset` on strict-4 commit `bd3ed0f54350b252f1554872de5a07cd09f97232`; P0 `0`, P1 `0`
+- Blocking findings: none inside the exact browser subset. Required ledger, native, PC Web, visual-system, and product-owner gates remain blocked.
 
 ## Design review checklist
 
@@ -158,7 +158,6 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 
 ## Follow-up
 
-1. Complete independent review of the frozen exact hashes and address any P0/P1 findings.
-2. Keep the PR draft and the visual-search gate blocked.
-3. Produce the remaining Tier-2 browser/native/PC Web evidence and obtain explicit product-owner architecture acceptance.
-4. Only then start equal-completeness visual-system exploration; do not begin React Native implementation before an exact visual artifact is accepted and mapped.
+1. Keep the PR draft and the visual-search gate blocked.
+2. Produce the remaining Tier-2 browser/native/PC Web evidence and obtain explicit product-owner architecture acceptance.
+3. Only then start equal-completeness visual-system exploration; do not begin React Native implementation before an exact visual artifact is accepted and mapped.

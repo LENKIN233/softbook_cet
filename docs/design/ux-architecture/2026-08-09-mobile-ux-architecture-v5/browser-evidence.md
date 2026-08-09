@@ -49,6 +49,8 @@ These are regression results, not a declaration that all 160 semantic states are
 
 Exact review of strict-3 commit `2a09309e3b2bc85003d2e68b5a65196f4e9c0fcd` then found one residual P1: a single global iOS stack made the first App Back appear inert after `Learning → 查看所在空间 → 回到学习 → Space tab`. Strict-4 replaced that stack with destination-owned route-local stacks. The exact failed path was replayed again: returning to Space restored the same card, one App Back moved visibly to `选择一个馆`, focus moved to that heading, and the root exposed no further Back control. No top-level tab was popped.
 
+Independent exact review of strict-4 commit `bd3ed0f54350b252f1554872de5a07cd09f97232` returned `pass_exact_architecture_browser_subset`, P0 `0`, P1 `0`. That verdict closes the corrected browser subset only. It does not change the overall blocked architecture gate or create visual, native, implementation, or leadership readiness.
+
 ## Auth, session entry, and Trial presentation
 
 Exact iOS phone replay at `390×844`:

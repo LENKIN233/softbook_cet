@@ -83,6 +83,7 @@
         <tbody>
           <tr><td>Exact architecture transcript</td><td class="status status--covered">Covered for 160 + 13 rows</td><td>Text architecture only; it proves no target capability.</td></tr>
           <tr><td>Browser learner scenarios</td><td class="status status--covered">Corrected subset replayed at frozen hashes</td><td>Proves only the exact DOM semantics, browser interactions, containment, and scenario transitions recorded in <code>browser-evidence.md</code>.</td></tr>
+          <tr><td>Independent exact review</td><td class="status status--covered">P0 0 / P1 0 on <code>bd3ed0f</code></td><td>Passed only as an architecture browser subset; the overall gate remains blocked.</td></tr>
           <tr><td>Formal / managed profile separation</td><td class="status status--covered">Separate sources replayed at phone and tablet widths</td><td>Formal commerce and read-only access do not share a profile switch; neither browser proof establishes a canonical entitlement.</td></tr>
           <tr><td>Native iOS / Android / tablet</td><td class="status status--blocked">No accepted evidence</td><td>Safe area, IME, System/Predictive Back, VoiceOver/TalkBack, store, audio, and process restore remain open.</td></tr>
           <tr><td>PC Web per-state parity</td><td class="status status--blocked">Mapping incomplete</td><td>Accepted Focused Workbench remains separate authority; mobile composition cannot substitute.</td></tr>

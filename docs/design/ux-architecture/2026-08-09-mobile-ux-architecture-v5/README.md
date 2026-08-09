@@ -4,8 +4,9 @@
 
 - Current status: `architecture_gate_blocked_with_browser_subset_verified`.
 - Parent review: exact corrected v4 planning commit `de3bd5c5a23a70e2ca3c165613ea04a2f07da2b1` passed independent scope review as `completed_no_promotion`.
+- Strict-4 exact review: commit `bd3ed0f54350b252f1554872de5a07cd09f97232` passed as `pass_exact_architecture_browser_subset`, with P0 `0` and P1 `0`.
 - This directory is design-only. It does not accept a visual system, authorize React Native work, prove native behavior, or establish leadership readiness.
-- The corrected browser subset, per-state fail-closed ledger, and exact evidence record now exist. The next visual-search phase remains blocked by uncovered required states, all native evidence, PC Web per-state mapping, independent frozen-hash review, and product-owner acceptance.
+- The corrected browser subset, per-state fail-closed ledger, and exact evidence record now exist. The next visual-search phase remains blocked by uncovered required states, all native evidence, PC Web per-state mapping, and product-owner acceptance.
 
 The final goal remains one explicitly accepted, mature CET4/6 consumer product that is genuinely usable on iOS, Android, representative tablets, and PC Web. A grayscale artifact is only a way to remove UX ambiguity before visual exploration; it is not the product finish line.
 
