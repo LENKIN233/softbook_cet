@@ -1,0 +1,3368 @@
+{
+  "schema_version": "mobile-ux-batch1-manifest-schema-catalog.v1",
+  "catalog_id": "mobile-ux-architecture-v5-batch1-future-manifest-schema-catalog",
+  "classification": "implementation_hypothesis",
+  "subject_class": "schema_definition_only",
+  "candidate_status": "candidate_incomplete",
+  "coverage_effect": "none_pre_execution",
+  "instance_subtree_status": {
+    "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests",
+    "required_state": "absent_until_future_protected_manifest_freeze_decision",
+    "observed_state": "absent",
+    "instance_count": 0
+  },
+  "manifest_type_definitions": [
+    {
+      "schema_id": "future-cp-ba-platform-browser-scenario-v1",
+      "semantic_validator_id": "future-cp-ba-platform-browser-scenario-v1",
+      "checkpoint_id": "CP-BA",
+      "manifest_role": "scenario_cohort",
+      "evidence_class": "platform_browser_presentation_only",
+      "required_common_fields": [
+        "schema_version",
+        "manifest_id",
+        "reservation_ref",
+        "subject_commit",
+        "source_hashes",
+        "checkpoint_id",
+        "scenario_id",
+        "lane_id",
+        "target_ids",
+        "product_profile_subject",
+        "membership_stage",
+        "intended_origin",
+        "provider_lane",
+        "matrix_row_id",
+        "exact_scope_requirement_ref",
+        "service_subject_discriminator",
+        "content_subject_discriminator",
+        "system_subject_discriminator",
+        "exact_obligation_binding_ids",
+        "environment_refs",
+        "privacy_safe_account_slots",
+        "build_refs",
+        "content_refs",
+        "role_confirmation_refs",
+        "execution_window_with_utc_clock_and_expiry",
+        "compatibility_subject",
+        "registry_subject_digest",
+        "protected_freeze_decision_ref",
+        "expected_and_observed_results",
+        "raw_artifact_records",
+        "exception_records",
+        "cached_result_ignored_and_recomputed"
+      ],
+      "required_type_fields": [
+        "stress_matrix_ids",
+        "overflow_and_clipping_result",
+        "focus_replay_result",
+        "learner_leak_scan_result",
+        "platform_browser_slot_ref"
+      ],
+      "result_policy": "fail_closed_no_pass_before_future_validator_execution_and_independent_verification",
+      "definition_status": "future_schema_contract_reserved_not_implemented",
+      "forbidden_fields": [
+        "credential_or_token",
+        "private_key",
+        "temporary_private_download_url",
+        "raw_phone_or_email",
+        "device_serial_udid_android_id_mac_or_hostname",
+        "hash_derived_directly_from_device_identifier"
+      ],
+      "authority_effect": "none_until_implemented_reviewed_frozen_and_instantiated",
+      "subject_discriminator_contract": {
+        "required": [
+          "target_ids",
+          "product_profile_subject",
+          "membership_stage",
+          "intended_origin",
+          "provider_lane",
+          "matrix_row_id",
+          "exact_scope_requirement_ref",
+          "service_subject_discriminator",
+          "content_subject_discriminator",
+          "system_subject_discriminator"
+        ]
+      },
+      "binding_policy": "manifest_id_must_resolve_one_reservation_with_exact_checkpoint_scenario_target_profile_provider_and_matrix_row_binding"
+    },
+    {
+      "schema_id": "future-cp-ba-shared-access-scenario-v1",
+      "semantic_validator_id": "future-cp-ba-shared-access-scenario-v1",
+      "checkpoint_id": "CP-BA",
+      "manifest_role": "scenario_cohort",
+      "evidence_class": "shared_access_profile_browser_presentation_only",
+      "required_common_fields": [
+        "schema_version",
+        "manifest_id",
+        "reservation_ref",
+        "subject_commit",
+        "source_hashes",
+        "checkpoint_id",
+        "scenario_id",
+        "lane_id",
+        "target_ids",
+        "product_profile_subject",
+        "membership_stage",
+        "intended_origin",
+        "provider_lane",
+        "matrix_row_id",
+        "exact_scope_requirement_ref",
+        "service_subject_discriminator",
+        "content_subject_discriminator",
+        "system_subject_discriminator",
+        "exact_obligation_binding_ids",
+        "environment_refs",
+        "privacy_safe_account_slots",
+        "build_refs",
+        "content_refs",
+        "role_confirmation_refs",
+        "execution_window_with_utc_clock_and_expiry",
+        "compatibility_subject",
+        "registry_subject_digest",
+        "protected_freeze_decision_ref",
+        "expected_and_observed_results",
+        "raw_artifact_records",
+        "exception_records",
+        "cached_result_ignored_and_recomputed"
+      ],
+      "required_type_fields": [
+        "access_subject_ref",
+        "shared_profile_replay_result",
+        "platform_credit_false",
+        "responsive_containment_result",
+        "learner_leak_scan_result"
+      ],
+      "result_policy": "fail_closed_no_pass_before_future_validator_execution_and_independent_verification",
+      "definition_status": "future_schema_contract_reserved_not_implemented",
+      "forbidden_fields": [
+        "credential_or_token",
+        "private_key",
+        "temporary_private_download_url",
+        "raw_phone_or_email",
+        "device_serial_udid_android_id_mac_or_hostname",
+        "hash_derived_directly_from_device_identifier"
+      ],
+      "authority_effect": "none_until_implemented_reviewed_frozen_and_instantiated",
+      "subject_discriminator_contract": {
+        "required": [
+          "target_ids",
+          "product_profile_subject",
+          "membership_stage",
+          "intended_origin",
+          "provider_lane",
+          "matrix_row_id",
+          "exact_scope_requirement_ref",
+          "service_subject_discriminator",
+          "content_subject_discriminator",
+          "system_subject_discriminator"
+        ]
+      },
+      "binding_policy": "manifest_id_must_resolve_one_reservation_with_exact_checkpoint_scenario_target_profile_provider_and_matrix_row_binding"
+    },
+    {
+      "schema_id": "future-cp-ba-aggregation-v1",
+      "semantic_validator_id": "future-cp-ba-aggregation-v1",
+      "checkpoint_id": "CP-BA",
+      "manifest_role": "checkpoint_aggregation",
+      "evidence_class": "browser_architecture_checkpoint_aggregation",
+      "required_common_fields": [
+        "schema_version",
+        "manifest_id",
+        "reservation_ref",
+        "subject_commit",
+        "source_hashes",
+        "checkpoint_id",
+        "aggregate_id",
+        "target_ids",
+        "product_profile_subjects",
+        "membership_stage_partition",
+        "intended_origin_partition",
+        "provider_lanes",
+        "matrix_row_ids",
+        "exact_scope_requirement_refs",
+        "service_subject_discriminators",
+        "content_subject_discriminators",
+        "system_subject_discriminators",
+        "registry_subject_digest",
+        "protected_freeze_decision_ref",
+        "aggregation_execution_window_with_utc_clock_and_expiry",
+        "independent_aggregation_verifier_ref",
+        "child_manifest_records",
+        "single_frozen_compatibility_map",
+        "exception_records",
+        "cached_result_ignored_and_recomputed"
+      ],
+      "required_type_fields": [
+        "required_platform_and_shared_matrix",
+        "child_compatibility_keys",
+        "recomputed_browser_architecture_result",
+        "independent_aggregation_verifier_confirmation"
+      ],
+      "result_policy": "fail_closed_no_pass_before_future_validator_execution_and_independent_verification",
+      "definition_status": "future_schema_contract_reserved_not_implemented",
+      "forbidden_fields": [
+        "credential_or_token",
+        "private_key",
+        "temporary_private_download_url",
+        "raw_phone_or_email",
+        "device_serial_udid_android_id_mac_or_hostname",
+        "hash_derived_directly_from_device_identifier",
+        "raw_artifact_records",
+        "raw_evidence",
+        "measurements",
+        "copied_observed_results",
+        "multiple_compatibility_maps",
+        "implicit_compatibility_map"
+      ],
+      "authority_effect": "none_until_implemented_reviewed_frozen_and_instantiated",
+      "subject_discriminator_contract": {
+        "required": [
+          "target_ids",
+          "product_profile_subjects",
+          "membership_stage_partition",
+          "intended_origin_partition",
+          "provider_lanes",
+          "matrix_row_ids",
+          "exact_scope_requirement_refs",
+          "service_subject_discriminators",
+          "content_subject_discriminators",
+          "system_subject_discriminators"
+        ]
+      },
+      "binding_policy": "manifest_id_must_resolve_one_reservation_and_revalidate_every_child_record_against_one_frozen_compatibility_map"
+    },
+    {
+      "schema_id": "future-cp-cs-scenario-v1",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "evidence_class": "canonical_service_scenario",
+      "required_common_fields": [
+        "schema_version",
+        "manifest_id",
+        "reservation_ref",
+        "subject_commit",
+        "source_hashes",
+        "checkpoint_id",
+        "scenario_id",
+        "lane_id",
+        "target_ids",
+        "product_profile_subject",
+        "membership_stage",
+        "intended_origin",
+        "provider_lane",
+        "matrix_row_id",
+        "exact_scope_requirement_ref",
+        "service_subject_discriminator",
+        "content_subject_discriminator",
+        "system_subject_discriminator",
+        "exact_obligation_binding_ids",
+        "environment_refs",
+        "privacy_safe_account_slots",
+        "build_refs",
+        "content_refs",
+        "role_confirmation_refs",
+        "execution_window_with_utc_clock_and_expiry",
+        "compatibility_subject",
+        "registry_subject_digest",
+        "protected_freeze_decision_ref",
+        "expected_and_observed_results",
+        "raw_artifact_records",
+        "exception_records",
+        "cached_result_ignored_and_recomputed"
+      ],
+      "required_type_fields": [
+        "scenario_domain",
+        "canonical_command_or_read",
+        "canonical_baseline_identity",
+        "canonical_acknowledgement",
+        "canonical_refresh_or_reconciliation",
+        "provider_result_when_applicable",
+        "operator_and_verifier_confirmations"
+      ],
+      "result_policy": "fail_closed_no_pass_before_future_validator_execution_and_independent_verification",
+      "definition_status": "future_schema_contract_reserved_not_implemented",
+      "forbidden_fields": [
+        "credential_or_token",
+        "private_key",
+        "temporary_private_download_url",
+        "raw_phone_or_email",
+        "device_serial_udid_android_id_mac_or_hostname",
+        "hash_derived_directly_from_device_identifier"
+      ],
+      "authority_effect": "none_until_implemented_reviewed_frozen_and_instantiated",
+      "domain_required_fields": [
+        "scenario_domain",
+        "canonical_command_or_read",
+        "canonical_baseline_identity",
+        "canonical_acknowledgement",
+        "canonical_refresh_or_reconciliation",
+        "provider_result_when_applicable"
+      ],
+      "scenario_domain_contracts": [
+        {
+          "scenario_id": "cs-auth-sms-session",
+          "scenario_domain": "authentication",
+          "required_domain_fields": [
+            "sms_provider_session_ref",
+            "authentication_transition",
+            "session_identity_rotation_result"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/account-sync-contract.json",
+              "locator_kind": "json_pointer",
+              "locator": "/authentication",
+              "raw_sha256": "3c90237d4e5c252fd6b713eb2521f2a09dc5ee8ba247997d68df7ca66e2dd43f"
+            },
+            {
+              "path": "infra/cloudbase/auth-v2-runtime-contract.md",
+              "locator_kind": "heading",
+              "locator": "Runtime policy",
+              "raw_sha256": "49ed555c110ef1d3f560a4bae2e9ad0802b762bfdeeb8d0ed34864b180b24a72"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "cs-receiver-service-harness"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "pre_authentication"
+          ],
+          "allowed_exact_provider_lanes": [
+            "sms_provider"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        },
+        {
+          "scenario_id": "cs-bootstrap-entitlement-origin",
+          "scenario_domain": "bootstrap_entitlement_origin",
+          "required_domain_fields": [
+            "bootstrap_snapshot_ref",
+            "entitlement_stage_result",
+            "origin_resolution_result"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/account-sync-contract.json",
+              "locator_kind": "json_pointer",
+              "locator": "/canonical_read",
+              "raw_sha256": "3c90237d4e5c252fd6b713eb2521f2a09dc5ee8ba247997d68df7ca66e2dd43f"
+            },
+            {
+              "path": "spec/membership.json",
+              "locator_kind": "json_pointer",
+              "locator": "/states",
+              "raw_sha256": "36c95434da787556052b5aeb12e3efd27bff43cede500b9f70b24c9f7d9ae7c0"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "cs-receiver-service-harness"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "formal_account_access"
+          ],
+          "allowed_exact_provider_lanes": [
+            "receiver_runtime"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        },
+        {
+          "scenario_id": "cs-learning-session-selection",
+          "scenario_domain": "learning_session_selection",
+          "required_domain_fields": [
+            "selection_id",
+            "cursor_revision",
+            "selection_reason",
+            "selection_content_subject"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/account-sync-contract.json",
+              "locator_kind": "json_pointer",
+              "locator": "/server_scheduler_v1",
+              "raw_sha256": "3c90237d4e5c252fd6b713eb2521f2a09dc5ee8ba247997d68df7ca66e2dd43f"
+            },
+            {
+              "path": "infra/cloudbase/learning-session-v1-runtime-contract.md",
+              "locator_kind": "heading",
+              "locator": "Selection",
+              "raw_sha256": "0068a78b3cbacc11a8b964ea97dc4a9abaccc9670a242850d67d1df451ba4e61"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "cs-receiver-service-harness"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "formal_account_access"
+          ],
+          "allowed_exact_provider_lanes": [
+            "receiver_runtime"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        },
+        {
+          "scenario_id": "cs-learning-completion-events",
+          "scenario_domain": "learning_completion_events",
+          "required_domain_fields": [
+            "learning_event_id",
+            "selection_id",
+            "acknowledgement_class",
+            "projection_watermark"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/account-sync-contract.json",
+              "locator_kind": "json_pointer",
+              "locator": "/learning_events_v2",
+              "raw_sha256": "3c90237d4e5c252fd6b713eb2521f2a09dc5ee8ba247997d68df7ca66e2dd43f"
+            },
+            {
+              "path": "infra/cloudbase/learning-events-v2-runtime-contract.md",
+              "locator_kind": "heading",
+              "locator": "Acknowledgement",
+              "raw_sha256": "5083356a00c811b19756d87adfd1c4f4d3d4ad9b39f1c9e3b9755cd417fd4ab0"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "cs-receiver-service-harness"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "formal_account_access"
+          ],
+          "allowed_exact_provider_lanes": [
+            "receiver_runtime"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        },
+        {
+          "scenario_id": "cs-daily-checkin",
+          "scenario_domain": "daily_checkin",
+          "required_domain_fields": [
+            "account_slot_ref",
+            "utc_day_key",
+            "checkin_transition_result"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/account-sync-contract.json",
+              "locator_kind": "json_pointer",
+              "locator": "/daily_check_in_v2",
+              "raw_sha256": "3c90237d4e5c252fd6b713eb2521f2a09dc5ee8ba247997d68df7ca66e2dd43f"
+            },
+            {
+              "path": "spec/runtime-boundaries.json",
+              "locator_kind": "json_pointer",
+              "locator": "/daily_check_in_runtime",
+              "raw_sha256": "a69d9d22cac694bc67e7e64e9537b96b2a23a94fae14afa9e5b3d6241a2eff88"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "cs-receiver-service-harness"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "formal_account_access"
+          ],
+          "allowed_exact_provider_lanes": [
+            "receiver_runtime"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        },
+        {
+          "scenario_id": "cs-space-actions",
+          "scenario_domain": "space_actions",
+          "required_domain_fields": [
+            "space_action_id",
+            "card_id",
+            "action_kind",
+            "canonical_projection_result"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/account-sync-contract.json",
+              "locator_kind": "json_pointer",
+              "locator": "/physical_space_actions_v2",
+              "raw_sha256": "3c90237d4e5c252fd6b713eb2521f2a09dc5ee8ba247997d68df7ca66e2dd43f"
+            },
+            {
+              "path": "infra/cloudbase/space-actions-v2-runtime-contract.md",
+              "locator_kind": "heading",
+              "locator": "Canonical Projection",
+              "raw_sha256": "51c66d5dbd59733fa7a760e90dc548c5d60438521e9f9cbc51685802a44907be"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "cs-receiver-service-harness"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "formal_account_access"
+          ],
+          "allowed_exact_provider_lanes": [
+            "receiver_runtime"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        },
+        {
+          "scenario_id": "cs-formal-commerce-ios",
+          "scenario_domain": "formal_commerce",
+          "required_domain_fields": [
+            "ios_store_transaction_ref",
+            "entitlement_transition",
+            "restore_result"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/account-sync-contract.json",
+              "locator_kind": "json_pointer",
+              "locator": "/trial_and_purchase",
+              "raw_sha256": "3c90237d4e5c252fd6b713eb2521f2a09dc5ee8ba247997d68df7ca66e2dd43f"
+            },
+            {
+              "path": "spec/membership.json",
+              "locator_kind": "json_pointer",
+              "locator": "/policy",
+              "raw_sha256": "36c95434da787556052b5aeb12e3efd27bff43cede500b9f70b24c9f7d9ae7c0"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "cs-ios-phone-client"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "formal_commerce_ios"
+          ],
+          "allowed_exact_provider_lanes": [
+            "ios_store"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        },
+        {
+          "scenario_id": "cs-formal-commerce-android",
+          "scenario_domain": "formal_commerce",
+          "required_domain_fields": [
+            "android_store_transaction_ref",
+            "entitlement_transition",
+            "restore_result"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/account-sync-contract.json",
+              "locator_kind": "json_pointer",
+              "locator": "/trial_and_purchase",
+              "raw_sha256": "3c90237d4e5c252fd6b713eb2521f2a09dc5ee8ba247997d68df7ca66e2dd43f"
+            },
+            {
+              "path": "spec/membership.json",
+              "locator_kind": "json_pointer",
+              "locator": "/policy",
+              "raw_sha256": "36c95434da787556052b5aeb12e3efd27bff43cede500b9f70b24c9f7d9ae7c0"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "cs-android-phone-client"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "formal_commerce_android"
+          ],
+          "allowed_exact_provider_lanes": [
+            "android_store"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        },
+        {
+          "scenario_id": "cs-formal-commerce-web",
+          "scenario_domain": "formal_commerce",
+          "required_domain_fields": [
+            "web_payment_transaction_ref",
+            "entitlement_transition",
+            "restore_result"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/account-sync-contract.json",
+              "locator_kind": "json_pointer",
+              "locator": "/trial_and_purchase",
+              "raw_sha256": "3c90237d4e5c252fd6b713eb2521f2a09dc5ee8ba247997d68df7ca66e2dd43f"
+            },
+            {
+              "path": "spec/membership.json",
+              "locator_kind": "json_pointer",
+              "locator": "/policy",
+              "raw_sha256": "36c95434da787556052b5aeb12e3efd27bff43cede500b9f70b24c9f7d9ae7c0"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "web-desktop-primary"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "formal_commerce_web"
+          ],
+          "allowed_exact_provider_lanes": [
+            "web_payment_provider"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        },
+        {
+          "scenario_id": "cs-receiver-managed-access",
+          "scenario_domain": "receiver_managed_access",
+          "required_domain_fields": [
+            "managed_grant_ref",
+            "managed_entitlement_read",
+            "audit_record_ref"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/membership.json",
+              "locator_kind": "json_pointer",
+              "locator": "/policy/closed_beta_entitlement",
+              "raw_sha256": "36c95434da787556052b5aeb12e3efd27bff43cede500b9f70b24c9f7d9ae7c0"
+            },
+            {
+              "path": "infra/cloudbase/beta-entitlement-v1-runtime-contract.md",
+              "locator_kind": "heading",
+              "locator": "Audit and mutation rules",
+              "raw_sha256": "515d3928050e397ac8fcbb61ad76681265a12010752a04a409f8ff89776fc3e1"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "cs-receiver-service-harness"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "receiver_managed"
+          ],
+          "allowed_exact_provider_lanes": [
+            "receiver_operator"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        },
+        {
+          "scenario_id": "cs-private-content-audio",
+          "scenario_domain": "private_content_audio",
+          "required_domain_fields": [
+            "signed_audio_manifest_ref",
+            "private_content_subject",
+            "entitlement_read_result",
+            "playback_authorization_result"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/interactions.json",
+              "locator_kind": "json_pointer",
+              "locator": "/audio_resource_contract",
+              "raw_sha256": "05d2b4c091c342abccae5060daa14746ba8157a4e7b3da2e4a2c70195b47ed29"
+            },
+            {
+              "path": "infra/cloudbase/content-manifest-v1-runtime-contract.md",
+              "locator_kind": "heading",
+              "locator": "Client acceptance",
+              "raw_sha256": "a100552106bb21ae3aa4184df34faabd91abc2e47870d0d299d82c870e810ab3"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "cs-receiver-service-harness"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "entitled_private_content"
+          ],
+          "allowed_exact_provider_lanes": [
+            "receiver_private_content"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        },
+        {
+          "scenario_id": "cs-cross-device-reconciliation",
+          "scenario_domain": "cross_device_reconciliation",
+          "required_domain_fields": [
+            "ios_client_subject",
+            "android_client_subject",
+            "web_client_subject",
+            "reconciliation_watermarks"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/account-sync-contract.json",
+              "locator_kind": "json_pointer",
+              "locator": "/default_sync_strategy",
+              "raw_sha256": "3c90237d4e5c252fd6b713eb2521f2a09dc5ee8ba247997d68df7ca66e2dd43f"
+            },
+            {
+              "path": "spec/platform-contract.json",
+              "locator_kind": "json_pointer",
+              "locator": "/continuity_and_sync",
+              "raw_sha256": "076673e73ed777ca54bd853cb0135ecbfd585d8b869e772e6a988a379a8ed262"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "cs-ios-phone-client",
+            "cs-android-phone-client",
+            "web-desktop-primary"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "formal_account_access"
+          ],
+          "allowed_exact_provider_lanes": [
+            "receiver_runtime"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        },
+        {
+          "scenario_id": "cs-statistics-canonical-read",
+          "scenario_domain": "statistics_canonical_read",
+          "required_domain_fields": [
+            "statistics_account_subject",
+            "canonical_statistics_snapshot",
+            "projection_watermark"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/account-sync-contract.json",
+              "locator_kind": "json_pointer",
+              "locator": "/canonical_read",
+              "raw_sha256": "3c90237d4e5c252fd6b713eb2521f2a09dc5ee8ba247997d68df7ca66e2dd43f"
+            },
+            {
+              "path": "spec/product-core.json",
+              "locator_kind": "json_pointer",
+              "locator": "/multi_surface_strategy",
+              "raw_sha256": "386b655a1e73babf81390650c34ab7fbea36b224148d8c36527da3a60588d81a"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "cs-receiver-service-harness"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "formal_account_access"
+          ],
+          "allowed_exact_provider_lanes": [
+            "receiver_runtime"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        },
+        {
+          "scenario_id": "cs-account-lifecycle",
+          "scenario_domain": "account_lifecycle",
+          "required_domain_fields": [
+            "logout_transition_result",
+            "delete_account_transition_result",
+            "originating_session_guard_result"
+          ],
+          "semantic_owner_and_runtime_refs": [
+            {
+              "path": "spec/account-sync-contract.json",
+              "locator_kind": "json_pointer",
+              "locator": "/authentication",
+              "raw_sha256": "3c90237d4e5c252fd6b713eb2521f2a09dc5ee8ba247997d68df7ca66e2dd43f"
+            },
+            {
+              "path": "spec/runtime-boundaries.json",
+              "locator_kind": "json_pointer",
+              "locator": "/minimum_responsibility_split",
+              "raw_sha256": "a69d9d22cac694bc67e7e64e9537b96b2a23a94fae14afa9e5b3d6241a2eff88"
+            }
+          ],
+          "allowed_exact_target_ids": [
+            "cs-receiver-service-harness"
+          ],
+          "allowed_exact_product_profile_subjects": [
+            "formal_account_access"
+          ],
+          "allowed_exact_provider_lanes": [
+            "receiver_runtime"
+          ],
+          "wildcard_allowed": false,
+          "status": "exact_domain_contract_defined_values_pending"
+        }
+      ],
+      "subject_discriminator_contract": {
+        "required": [
+          "target_ids",
+          "product_profile_subject",
+          "membership_stage",
+          "intended_origin",
+          "provider_lane",
+          "matrix_row_id",
+          "exact_scope_requirement_ref",
+          "service_subject_discriminator",
+          "content_subject_discriminator",
+          "system_subject_discriminator"
+        ]
+      },
+      "binding_policy": "manifest_id_must_resolve_one_reservation_with_exact_checkpoint_scenario_target_profile_provider_and_matrix_row_binding"
+    },
+    {
+      "schema_id": "future-cp-cs-aggregation-v1",
+      "semantic_validator_id": "future-cp-cs-aggregation-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "checkpoint_aggregation",
+      "evidence_class": "canonical_service_checkpoint_aggregation",
+      "required_common_fields": [
+        "schema_version",
+        "manifest_id",
+        "reservation_ref",
+        "subject_commit",
+        "source_hashes",
+        "checkpoint_id",
+        "aggregate_id",
+        "target_ids",
+        "product_profile_subjects",
+        "membership_stage_partition",
+        "intended_origin_partition",
+        "provider_lanes",
+        "matrix_row_ids",
+        "exact_scope_requirement_refs",
+        "service_subject_discriminators",
+        "content_subject_discriminators",
+        "system_subject_discriminators",
+        "registry_subject_digest",
+        "protected_freeze_decision_ref",
+        "aggregation_execution_window_with_utc_clock_and_expiry",
+        "independent_aggregation_verifier_ref",
+        "child_manifest_records",
+        "single_frozen_compatibility_map",
+        "exception_records",
+        "cached_result_ignored_and_recomputed"
+      ],
+      "required_type_fields": [
+        "required_canonical_service_scenario_matrix",
+        "child_compatibility_keys",
+        "recomputed_canonical_service_result",
+        "independent_aggregation_verifier_confirmation"
+      ],
+      "result_policy": "fail_closed_no_pass_before_future_validator_execution_and_independent_verification",
+      "definition_status": "future_schema_contract_reserved_not_implemented",
+      "forbidden_fields": [
+        "credential_or_token",
+        "private_key",
+        "temporary_private_download_url",
+        "raw_phone_or_email",
+        "device_serial_udid_android_id_mac_or_hostname",
+        "hash_derived_directly_from_device_identifier",
+        "raw_artifact_records",
+        "raw_evidence",
+        "measurements",
+        "copied_observed_results",
+        "multiple_compatibility_maps",
+        "implicit_compatibility_map"
+      ],
+      "authority_effect": "none_until_implemented_reviewed_frozen_and_instantiated",
+      "subject_discriminator_contract": {
+        "required": [
+          "target_ids",
+          "product_profile_subjects",
+          "membership_stage_partition",
+          "intended_origin_partition",
+          "provider_lanes",
+          "matrix_row_ids",
+          "exact_scope_requirement_refs",
+          "service_subject_discriminators",
+          "content_subject_discriminators",
+          "system_subject_discriminators"
+        ]
+      },
+      "binding_policy": "manifest_id_must_resolve_one_reservation_and_revalidate_every_child_record_against_one_frozen_compatibility_map"
+    },
+    {
+      "schema_id": "future-cp-web-browser-scenario-v1",
+      "semantic_validator_id": "future-cp-web-browser-scenario-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "evidence_class": "pc_web_browser_behavior",
+      "required_common_fields": [
+        "schema_version",
+        "manifest_id",
+        "reservation_ref",
+        "subject_commit",
+        "source_hashes",
+        "checkpoint_id",
+        "scenario_id",
+        "lane_id",
+        "target_ids",
+        "product_profile_subject",
+        "membership_stage",
+        "intended_origin",
+        "provider_lane",
+        "matrix_row_id",
+        "exact_scope_requirement_ref",
+        "service_subject_discriminator",
+        "content_subject_discriminator",
+        "system_subject_discriminator",
+        "exact_obligation_binding_ids",
+        "environment_refs",
+        "privacy_safe_account_slots",
+        "build_refs",
+        "content_refs",
+        "role_confirmation_refs",
+        "execution_window_with_utc_clock_and_expiry",
+        "compatibility_subject",
+        "registry_subject_digest",
+        "protected_freeze_decision_ref",
+        "expected_and_observed_results",
+        "raw_artifact_records",
+        "exception_records",
+        "cached_result_ignored_and_recomputed"
+      ],
+      "required_type_fields": [
+        "matrix_row_id",
+        "browser_system_slot_ref",
+        "viewport_result",
+        "input_result",
+        "focus_replay_result"
+      ],
+      "result_policy": "fail_closed_no_pass_before_future_validator_execution_and_independent_verification",
+      "definition_status": "future_schema_contract_reserved_not_implemented",
+      "forbidden_fields": [
+        "credential_or_token",
+        "private_key",
+        "temporary_private_download_url",
+        "raw_phone_or_email",
+        "device_serial_udid_android_id_mac_or_hostname",
+        "hash_derived_directly_from_device_identifier"
+      ],
+      "authority_effect": "none_until_implemented_reviewed_frozen_and_instantiated",
+      "subject_discriminator_contract": {
+        "required": [
+          "target_ids",
+          "product_profile_subject",
+          "membership_stage",
+          "intended_origin",
+          "provider_lane",
+          "matrix_row_id",
+          "exact_scope_requirement_ref",
+          "service_subject_discriminator",
+          "content_subject_discriminator",
+          "system_subject_discriminator"
+        ]
+      },
+      "binding_policy": "manifest_id_must_resolve_one_reservation_with_exact_checkpoint_scenario_target_profile_provider_and_matrix_row_binding"
+    },
+    {
+      "schema_id": "future-cp-web-accessibility-scenario-v1",
+      "semantic_validator_id": "future-cp-web-accessibility-scenario-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "evidence_class": "pc_web_manual_accessibility",
+      "required_common_fields": [
+        "schema_version",
+        "manifest_id",
+        "reservation_ref",
+        "subject_commit",
+        "source_hashes",
+        "checkpoint_id",
+        "scenario_id",
+        "lane_id",
+        "target_ids",
+        "product_profile_subject",
+        "membership_stage",
+        "intended_origin",
+        "provider_lane",
+        "matrix_row_id",
+        "exact_scope_requirement_ref",
+        "service_subject_discriminator",
+        "content_subject_discriminator",
+        "system_subject_discriminator",
+        "exact_obligation_binding_ids",
+        "environment_refs",
+        "privacy_safe_account_slots",
+        "build_refs",
+        "content_refs",
+        "role_confirmation_refs",
+        "execution_window_with_utc_clock_and_expiry",
+        "compatibility_subject",
+        "registry_subject_digest",
+        "protected_freeze_decision_ref",
+        "expected_and_observed_results",
+        "raw_artifact_records",
+        "exception_records",
+        "cached_result_ignored_and_recomputed"
+      ],
+      "required_type_fields": [
+        "assistive_technology_ref",
+        "accessible_name_result",
+        "focus_order_and_return_result",
+        "zoom_reflow_result",
+        "reduced_motion_result"
+      ],
+      "result_policy": "fail_closed_no_pass_before_future_validator_execution_and_independent_verification",
+      "definition_status": "future_schema_contract_reserved_not_implemented",
+      "forbidden_fields": [
+        "credential_or_token",
+        "private_key",
+        "temporary_private_download_url",
+        "raw_phone_or_email",
+        "device_serial_udid_android_id_mac_or_hostname",
+        "hash_derived_directly_from_device_identifier"
+      ],
+      "authority_effect": "none_until_implemented_reviewed_frozen_and_instantiated",
+      "subject_discriminator_contract": {
+        "required": [
+          "target_ids",
+          "product_profile_subject",
+          "membership_stage",
+          "intended_origin",
+          "provider_lane",
+          "matrix_row_id",
+          "exact_scope_requirement_ref",
+          "service_subject_discriminator",
+          "content_subject_discriminator",
+          "system_subject_discriminator"
+        ]
+      },
+      "binding_policy": "manifest_id_must_resolve_one_reservation_with_exact_checkpoint_scenario_target_profile_provider_and_matrix_row_binding"
+    },
+    {
+      "schema_id": "future-cp-web-service-scenario-v1",
+      "semantic_validator_id": "future-cp-web-service-scenario-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "evidence_class": "pc_web_canonical_service",
+      "required_common_fields": [
+        "schema_version",
+        "manifest_id",
+        "reservation_ref",
+        "subject_commit",
+        "source_hashes",
+        "checkpoint_id",
+        "scenario_id",
+        "lane_id",
+        "target_ids",
+        "product_profile_subject",
+        "membership_stage",
+        "intended_origin",
+        "provider_lane",
+        "matrix_row_id",
+        "exact_scope_requirement_ref",
+        "service_subject_discriminator",
+        "content_subject_discriminator",
+        "system_subject_discriminator",
+        "exact_obligation_binding_ids",
+        "environment_refs",
+        "privacy_safe_account_slots",
+        "build_refs",
+        "content_refs",
+        "role_confirmation_refs",
+        "execution_window_with_utc_clock_and_expiry",
+        "compatibility_subject",
+        "registry_subject_digest",
+        "protected_freeze_decision_ref",
+        "expected_and_observed_results",
+        "raw_artifact_records",
+        "exception_records",
+        "cached_result_ignored_and_recomputed"
+      ],
+      "required_type_fields": [
+        "cp_cs_dependency_manifest_ref",
+        "canonical_baseline_identity",
+        "canonical_acknowledgement",
+        "canonical_refresh_or_reconciliation",
+        "pc_web_projection_result"
+      ],
+      "result_policy": "fail_closed_no_pass_before_future_validator_execution_and_independent_verification",
+      "definition_status": "future_schema_contract_reserved_not_implemented",
+      "forbidden_fields": [
+        "credential_or_token",
+        "private_key",
+        "temporary_private_download_url",
+        "raw_phone_or_email",
+        "device_serial_udid_android_id_mac_or_hostname",
+        "hash_derived_directly_from_device_identifier"
+      ],
+      "authority_effect": "none_until_implemented_reviewed_frozen_and_instantiated",
+      "subject_discriminator_contract": {
+        "required": [
+          "target_ids",
+          "product_profile_subject",
+          "membership_stage",
+          "intended_origin",
+          "provider_lane",
+          "matrix_row_id",
+          "exact_scope_requirement_ref",
+          "service_subject_discriminator",
+          "content_subject_discriminator",
+          "system_subject_discriminator"
+        ]
+      },
+      "binding_policy": "manifest_id_must_resolve_one_reservation_with_exact_checkpoint_scenario_target_profile_provider_and_matrix_row_binding"
+    },
+    {
+      "schema_id": "future-cp-web-commerce-scenario-v1",
+      "semantic_validator_id": "future-cp-web-commerce-scenario-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "evidence_class": "pc_web_formal_commerce",
+      "required_common_fields": [
+        "schema_version",
+        "manifest_id",
+        "reservation_ref",
+        "subject_commit",
+        "source_hashes",
+        "checkpoint_id",
+        "scenario_id",
+        "lane_id",
+        "target_ids",
+        "product_profile_subject",
+        "membership_stage",
+        "intended_origin",
+        "provider_lane",
+        "matrix_row_id",
+        "exact_scope_requirement_ref",
+        "service_subject_discriminator",
+        "content_subject_discriminator",
+        "system_subject_discriminator",
+        "exact_obligation_binding_ids",
+        "environment_refs",
+        "privacy_safe_account_slots",
+        "build_refs",
+        "content_refs",
+        "role_confirmation_refs",
+        "execution_window_with_utc_clock_and_expiry",
+        "compatibility_subject",
+        "registry_subject_digest",
+        "protected_freeze_decision_ref",
+        "expected_and_observed_results",
+        "raw_artifact_records",
+        "exception_records",
+        "cached_result_ignored_and_recomputed"
+      ],
+      "required_type_fields": [
+        "payment_provider_ref",
+        "provider_or_store_result",
+        "canonical_entitlement_refresh",
+        "origin_return_result"
+      ],
+      "result_policy": "fail_closed_no_pass_before_future_validator_execution_and_independent_verification",
+      "definition_status": "future_schema_contract_reserved_not_implemented",
+      "forbidden_fields": [
+        "credential_or_token",
+        "private_key",
+        "temporary_private_download_url",
+        "raw_phone_or_email",
+        "device_serial_udid_android_id_mac_or_hostname",
+        "hash_derived_directly_from_device_identifier"
+      ],
+      "authority_effect": "none_until_implemented_reviewed_frozen_and_instantiated",
+      "subject_discriminator_contract": {
+        "required": [
+          "target_ids",
+          "product_profile_subject",
+          "membership_stage",
+          "intended_origin",
+          "provider_lane",
+          "matrix_row_id",
+          "exact_scope_requirement_ref",
+          "service_subject_discriminator",
+          "content_subject_discriminator",
+          "system_subject_discriminator"
+        ]
+      },
+      "binding_policy": "manifest_id_must_resolve_one_reservation_with_exact_checkpoint_scenario_target_profile_provider_and_matrix_row_binding"
+    },
+    {
+      "schema_id": "future-cp-web-managed-access-scenario-v1",
+      "semantic_validator_id": "future-cp-web-managed-access-scenario-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "evidence_class": "pc_web_receiver_managed_access",
+      "required_common_fields": [
+        "schema_version",
+        "manifest_id",
+        "reservation_ref",
+        "subject_commit",
+        "source_hashes",
+        "checkpoint_id",
+        "scenario_id",
+        "lane_id",
+        "target_ids",
+        "product_profile_subject",
+        "membership_stage",
+        "intended_origin",
+        "provider_lane",
+        "matrix_row_id",
+        "exact_scope_requirement_ref",
+        "service_subject_discriminator",
+        "content_subject_discriminator",
+        "system_subject_discriminator",
+        "exact_obligation_binding_ids",
+        "environment_refs",
+        "privacy_safe_account_slots",
+        "build_refs",
+        "content_refs",
+        "role_confirmation_refs",
+        "execution_window_with_utc_clock_and_expiry",
+        "compatibility_subject",
+        "registry_subject_digest",
+        "protected_freeze_decision_ref",
+        "expected_and_observed_results",
+        "raw_artifact_records",
+        "exception_records",
+        "cached_result_ignored_and_recomputed"
+      ],
+      "required_type_fields": [
+        "base_membership_ref",
+        "managed_grant_or_revoke_result",
+        "receiver_managed_environment_ref",
+        "read_only_access_projection_result"
+      ],
+      "result_policy": "fail_closed_no_pass_before_future_validator_execution_and_independent_verification",
+      "definition_status": "future_schema_contract_reserved_not_implemented",
+      "forbidden_fields": [
+        "credential_or_token",
+        "private_key",
+        "temporary_private_download_url",
+        "raw_phone_or_email",
+        "device_serial_udid_android_id_mac_or_hostname",
+        "hash_derived_directly_from_device_identifier"
+      ],
+      "authority_effect": "none_until_implemented_reviewed_frozen_and_instantiated",
+      "subject_discriminator_contract": {
+        "required": [
+          "target_ids",
+          "product_profile_subject",
+          "membership_stage",
+          "intended_origin",
+          "provider_lane",
+          "matrix_row_id",
+          "exact_scope_requirement_ref",
+          "service_subject_discriminator",
+          "content_subject_discriminator",
+          "system_subject_discriminator"
+        ]
+      },
+      "binding_policy": "manifest_id_must_resolve_one_reservation_with_exact_checkpoint_scenario_target_profile_provider_and_matrix_row_binding"
+    },
+    {
+      "schema_id": "future-cp-web-audio-scenario-v1",
+      "semantic_validator_id": "future-cp-web-audio-scenario-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "evidence_class": "pc_web_private_content_audio",
+      "required_common_fields": [
+        "schema_version",
+        "manifest_id",
+        "reservation_ref",
+        "subject_commit",
+        "source_hashes",
+        "checkpoint_id",
+        "scenario_id",
+        "lane_id",
+        "target_ids",
+        "product_profile_subject",
+        "membership_stage",
+        "intended_origin",
+        "provider_lane",
+        "matrix_row_id",
+        "exact_scope_requirement_ref",
+        "service_subject_discriminator",
+        "content_subject_discriminator",
+        "system_subject_discriminator",
+        "exact_obligation_binding_ids",
+        "environment_refs",
+        "privacy_safe_account_slots",
+        "build_refs",
+        "content_refs",
+        "role_confirmation_refs",
+        "execution_window_with_utc_clock_and_expiry",
+        "compatibility_subject",
+        "registry_subject_digest",
+        "protected_freeze_decision_ref",
+        "expected_and_observed_results",
+        "raw_artifact_records",
+        "exception_records",
+        "cached_result_ignored_and_recomputed"
+      ],
+      "required_type_fields": [
+        "signed_private_manifest_ref",
+        "approved_content_release_ref",
+        "private_download_result",
+        "attached_playback_result"
+      ],
+      "result_policy": "fail_closed_no_pass_before_future_validator_execution_and_independent_verification",
+      "definition_status": "future_schema_contract_reserved_not_implemented",
+      "forbidden_fields": [
+        "credential_or_token",
+        "private_key",
+        "temporary_private_download_url",
+        "raw_phone_or_email",
+        "device_serial_udid_android_id_mac_or_hostname",
+        "hash_derived_directly_from_device_identifier"
+      ],
+      "authority_effect": "none_until_implemented_reviewed_frozen_and_instantiated",
+      "subject_discriminator_contract": {
+        "required": [
+          "target_ids",
+          "product_profile_subject",
+          "membership_stage",
+          "intended_origin",
+          "provider_lane",
+          "matrix_row_id",
+          "exact_scope_requirement_ref",
+          "service_subject_discriminator",
+          "content_subject_discriminator",
+          "system_subject_discriminator"
+        ]
+      },
+      "binding_policy": "manifest_id_must_resolve_one_reservation_with_exact_checkpoint_scenario_target_profile_provider_and_matrix_row_binding"
+    },
+    {
+      "schema_id": "future-cp-web-aggregation-v1",
+      "semantic_validator_id": "future-cp-web-aggregation-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "checkpoint_aggregation",
+      "evidence_class": "pc_web_checkpoint_aggregation",
+      "required_common_fields": [
+        "schema_version",
+        "manifest_id",
+        "reservation_ref",
+        "subject_commit",
+        "source_hashes",
+        "checkpoint_id",
+        "aggregate_id",
+        "target_ids",
+        "product_profile_subjects",
+        "membership_stage_partition",
+        "intended_origin_partition",
+        "provider_lanes",
+        "matrix_row_ids",
+        "exact_scope_requirement_refs",
+        "service_subject_discriminators",
+        "content_subject_discriminators",
+        "system_subject_discriminators",
+        "registry_subject_digest",
+        "protected_freeze_decision_ref",
+        "aggregation_execution_window_with_utc_clock_and_expiry",
+        "independent_aggregation_verifier_ref",
+        "child_manifest_records",
+        "single_frozen_compatibility_map",
+        "exception_records",
+        "cached_result_ignored_and_recomputed"
+      ],
+      "required_type_fields": [
+        "required_12_matrix_rows",
+        "cp_ba_dependency_ref",
+        "cp_cs_dependency_ref",
+        "child_compatibility_keys",
+        "recomputed_pc_web_result",
+        "independent_aggregation_verifier_confirmation"
+      ],
+      "result_policy": "fail_closed_no_pass_before_future_validator_execution_and_independent_verification",
+      "definition_status": "future_schema_contract_reserved_not_implemented",
+      "forbidden_fields": [
+        "credential_or_token",
+        "private_key",
+        "temporary_private_download_url",
+        "raw_phone_or_email",
+        "device_serial_udid_android_id_mac_or_hostname",
+        "hash_derived_directly_from_device_identifier",
+        "raw_artifact_records",
+        "raw_evidence",
+        "measurements",
+        "copied_observed_results",
+        "multiple_compatibility_maps",
+        "implicit_compatibility_map"
+      ],
+      "authority_effect": "none_until_implemented_reviewed_frozen_and_instantiated",
+      "subject_discriminator_contract": {
+        "required": [
+          "target_ids",
+          "product_profile_subjects",
+          "membership_stage_partition",
+          "intended_origin_partition",
+          "provider_lanes",
+          "matrix_row_ids",
+          "exact_scope_requirement_refs",
+          "service_subject_discriminators",
+          "content_subject_discriminators",
+          "system_subject_discriminators"
+        ]
+      },
+      "binding_policy": "manifest_id_must_resolve_one_reservation_and_revalidate_every_child_record_against_one_frozen_compatibility_map"
+    }
+  ],
+  "reservations": [
+    {
+      "manifest_id": "manifest-ba-ios-phone-v1",
+      "checkpoint_id": "CP-BA",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "ba-platform-browser-architecture",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/ios-phone.scenario.v1.json",
+      "semantic_validator_id": "future-cp-ba-platform-browser-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-BA",
+        "scenario_id": "ba-platform-browser-architecture",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-ba-platform-browser"
+        ],
+        "target_ids": [
+          "ba-ios-phone-browser"
+        ],
+        "product_profile_subjects": [
+          "standard_access"
+        ],
+        "provider_lanes": [
+          "local_browser_document_renderer"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-local-browser-document-renderer"
+        ],
+        "content_subject_requirement_ids": [],
+        "system_subject_requirement_ids": [
+          "ba-ios-phone-browser"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/0"
+    },
+    {
+      "manifest_id": "manifest-ba-android-phone-v1",
+      "checkpoint_id": "CP-BA",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "ba-platform-browser-architecture",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/android-phone.scenario.v1.json",
+      "semantic_validator_id": "future-cp-ba-platform-browser-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-BA",
+        "scenario_id": "ba-platform-browser-architecture",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-ba-platform-browser"
+        ],
+        "target_ids": [
+          "ba-android-phone-browser"
+        ],
+        "product_profile_subjects": [
+          "standard_access"
+        ],
+        "provider_lanes": [
+          "local_browser_document_renderer"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-local-browser-document-renderer"
+        ],
+        "content_subject_requirement_ids": [],
+        "system_subject_requirement_ids": [
+          "ba-android-phone-browser"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/1"
+    },
+    {
+      "manifest_id": "manifest-ba-ipados-v1",
+      "checkpoint_id": "CP-BA",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "ba-platform-browser-architecture",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/ipados.scenario.v1.json",
+      "semantic_validator_id": "future-cp-ba-platform-browser-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-BA",
+        "scenario_id": "ba-platform-browser-architecture",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-ba-platform-browser"
+        ],
+        "target_ids": [
+          "ba-ipados-browser"
+        ],
+        "product_profile_subjects": [
+          "standard_access"
+        ],
+        "provider_lanes": [
+          "local_browser_document_renderer"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-local-browser-document-renderer"
+        ],
+        "content_subject_requirement_ids": [],
+        "system_subject_requirement_ids": [
+          "ba-ipados-browser"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/2"
+    },
+    {
+      "manifest_id": "manifest-ba-android-tablet-v1",
+      "checkpoint_id": "CP-BA",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "ba-platform-browser-architecture",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/android-tablet.scenario.v1.json",
+      "semantic_validator_id": "future-cp-ba-platform-browser-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-BA",
+        "scenario_id": "ba-platform-browser-architecture",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-ba-platform-browser"
+        ],
+        "target_ids": [
+          "ba-android-tablet-browser"
+        ],
+        "product_profile_subjects": [
+          "standard_access"
+        ],
+        "provider_lanes": [
+          "local_browser_document_renderer"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-local-browser-document-renderer"
+        ],
+        "content_subject_requirement_ids": [],
+        "system_subject_requirement_ids": [
+          "ba-android-tablet-browser"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/3"
+    },
+    {
+      "manifest_id": "manifest-ba-formal-access-v1",
+      "checkpoint_id": "CP-BA",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "ba-formal-access-shared-browser",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/formal-access.scenario.v1.json",
+      "semantic_validator_id": "future-cp-ba-shared-access-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-BA",
+        "scenario_id": "ba-formal-access-shared-browser",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-ba-shared-formal-access"
+        ],
+        "target_ids": [
+          "ba-formal-access-shared-browser"
+        ],
+        "product_profile_subjects": [
+          "formal_commerce"
+        ],
+        "provider_lanes": [
+          "local_browser_document_renderer"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-local-browser-document-renderer"
+        ],
+        "content_subject_requirement_ids": [
+          "formal-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "ba-formal-access-shared-browser"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/4"
+    },
+    {
+      "manifest_id": "manifest-ba-managed-access-v1",
+      "checkpoint_id": "CP-BA",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "ba-managed-access-shared-browser",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/managed-access.scenario.v1.json",
+      "semantic_validator_id": "future-cp-ba-shared-access-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-BA",
+        "scenario_id": "ba-managed-access-shared-browser",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-ba-shared-managed-access"
+        ],
+        "target_ids": [
+          "ba-managed-access-shared-browser"
+        ],
+        "product_profile_subjects": [
+          "receiver_managed"
+        ],
+        "provider_lanes": [
+          "local_browser_document_renderer"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-local-browser-document-renderer"
+        ],
+        "content_subject_requirement_ids": [
+          "managed-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "ba-managed-access-shared-browser"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/5"
+    },
+    {
+      "manifest_id": "manifest-cp-ba-aggregate-v1",
+      "checkpoint_id": "CP-BA",
+      "manifest_role": "checkpoint_aggregation",
+      "aggregate_id": "cp-ba-aggregate",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/aggregate.v1.json",
+      "semantic_validator_id": "future-cp-ba-aggregation-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-BA",
+        "scenario_id": null,
+        "aggregate_id": "cp-ba-aggregate",
+        "lane_ids": [
+          "cp-ba-platform-browser",
+          "cp-ba-shared-formal-access",
+          "cp-ba-shared-managed-access"
+        ],
+        "target_ids": [
+          "ba-ios-phone-browser",
+          "ba-android-phone-browser",
+          "ba-ipados-browser",
+          "ba-android-tablet-browser",
+          "ba-formal-access-shared-browser",
+          "ba-managed-access-shared-browser"
+        ],
+        "product_profile_subjects": [
+          "standard_access",
+          "formal_commerce",
+          "receiver_managed"
+        ],
+        "provider_lanes": [
+          "local_browser_document_renderer"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-local-browser-document-renderer"
+        ],
+        "content_subject_requirement_ids": [
+          "formal-entitlement-configuration-subject",
+          "managed-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "ba-ios-phone-browser",
+          "ba-android-phone-browser",
+          "ba-ipados-browser",
+          "ba-android-tablet-browser",
+          "ba-formal-access-shared-browser",
+          "ba-managed-access-shared-browser"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/6"
+    },
+    {
+      "manifest_id": "manifest-cs-auth-sms-session-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-auth-sms-session",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/auth-sms-session.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-auth-sms-session",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-auth-sms-session"
+        ],
+        "target_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "product_profile_subjects": [
+          "pre_authentication"
+        ],
+        "provider_lanes": [
+          "sms_provider"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-sms-provider"
+        ],
+        "content_subject_requirement_ids": [],
+        "system_subject_requirement_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-auth-sms-session"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-auth-sms-session"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/7"
+    },
+    {
+      "manifest_id": "manifest-cs-bootstrap-entitlement-origin-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-bootstrap-entitlement-origin",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/bootstrap-entitlement-origin.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-bootstrap-entitlement-origin",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-bootstrap-entitlement-origin"
+        ],
+        "target_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "product_profile_subjects": [
+          "formal_account_access"
+        ],
+        "provider_lanes": [
+          "receiver_runtime"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-receiver-runtime"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject",
+          "formal-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-bootstrap-entitlement-origin"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-bootstrap-entitlement-origin"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/8"
+    },
+    {
+      "manifest_id": "manifest-cs-learning-session-selection-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-learning-session-selection",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/learning-session-selection.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-learning-session-selection",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-learning-session-selection"
+        ],
+        "target_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "product_profile_subjects": [
+          "formal_account_access"
+        ],
+        "provider_lanes": [
+          "receiver_runtime"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-receiver-runtime"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject",
+          "formal-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-learning-session-selection"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-learning-session-selection"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/9"
+    },
+    {
+      "manifest_id": "manifest-cs-learning-completion-events-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-learning-completion-events",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/learning-completion-events.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-learning-completion-events",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-learning-completion-events"
+        ],
+        "target_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "product_profile_subjects": [
+          "formal_account_access"
+        ],
+        "provider_lanes": [
+          "receiver_runtime"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-receiver-runtime"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-learning-completion-events"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-learning-completion-events"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/10"
+    },
+    {
+      "manifest_id": "manifest-cs-daily-checkin-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-daily-checkin",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/daily-checkin.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-daily-checkin",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-daily-checkin"
+        ],
+        "target_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "product_profile_subjects": [
+          "formal_account_access"
+        ],
+        "provider_lanes": [
+          "receiver_runtime"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-receiver-runtime"
+        ],
+        "content_subject_requirement_ids": [],
+        "system_subject_requirement_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-daily-checkin"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-daily-checkin"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/11"
+    },
+    {
+      "manifest_id": "manifest-cs-space-actions-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-space-actions",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/space-actions.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-space-actions",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-space-actions"
+        ],
+        "target_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "product_profile_subjects": [
+          "formal_account_access"
+        ],
+        "provider_lanes": [
+          "receiver_runtime"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-receiver-runtime"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-space-actions"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-space-actions"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/12"
+    },
+    {
+      "manifest_id": "manifest-cs-formal-commerce-ios-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-formal-commerce-ios",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/formal-commerce-ios.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-formal-commerce-ios",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-formal-commerce-ios"
+        ],
+        "target_ids": [
+          "cs-ios-phone-client"
+        ],
+        "product_profile_subjects": [
+          "formal_commerce_ios"
+        ],
+        "provider_lanes": [
+          "ios_store"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-ios-store"
+        ],
+        "content_subject_requirement_ids": [
+          "formal-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "cs-ios-phone-client"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-formal-commerce-ios"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-formal-commerce-ios"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/13"
+    },
+    {
+      "manifest_id": "manifest-cs-formal-commerce-android-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-formal-commerce-android",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/formal-commerce-android.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-formal-commerce-android",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-formal-commerce-android"
+        ],
+        "target_ids": [
+          "cs-android-phone-client"
+        ],
+        "product_profile_subjects": [
+          "formal_commerce_android"
+        ],
+        "provider_lanes": [
+          "android_store"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-android-store"
+        ],
+        "content_subject_requirement_ids": [
+          "formal-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "cs-android-phone-client"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-formal-commerce-android"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-formal-commerce-android"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/14"
+    },
+    {
+      "manifest_id": "manifest-cs-formal-commerce-web-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-formal-commerce-web",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/formal-commerce-web.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-formal-commerce-web",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-formal-commerce-web"
+        ],
+        "target_ids": [
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "formal_commerce_web"
+        ],
+        "provider_lanes": [
+          "web_payment_provider"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-web-payment-provider"
+        ],
+        "content_subject_requirement_ids": [
+          "formal-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-formal-commerce-web"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-formal-commerce-web"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/15"
+    },
+    {
+      "manifest_id": "manifest-cs-receiver-managed-access-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-receiver-managed-access",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/receiver-managed-access.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-receiver-managed-access",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-receiver-managed-access"
+        ],
+        "target_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "product_profile_subjects": [
+          "receiver_managed"
+        ],
+        "provider_lanes": [
+          "receiver_operator"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-receiver-operator"
+        ],
+        "content_subject_requirement_ids": [
+          "managed-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-receiver-managed-access"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-receiver-managed-access"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/16"
+    },
+    {
+      "manifest_id": "manifest-cs-private-content-audio-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-private-content-audio",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/private-content-audio.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-private-content-audio",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-private-content-audio"
+        ],
+        "target_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "product_profile_subjects": [
+          "entitled_private_content"
+        ],
+        "provider_lanes": [
+          "receiver_private_content"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-receiver-private-content"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject",
+          "private-audio-manifest-subject",
+          "private-content-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-private-content-audio"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-private-content-audio"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/17"
+    },
+    {
+      "manifest_id": "manifest-cs-cross-device-reconciliation-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-cross-device-reconciliation",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/cross-device-reconciliation.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-cross-device-reconciliation",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-cross-device-reconciliation"
+        ],
+        "target_ids": [
+          "cs-ios-phone-client",
+          "cs-android-phone-client",
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "formal_account_access"
+        ],
+        "provider_lanes": [
+          "receiver_runtime"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-receiver-runtime"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject",
+          "formal-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "cs-ios-phone-client",
+          "cs-android-phone-client",
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-cross-device-reconciliation"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-cross-device-reconciliation"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/18"
+    },
+    {
+      "manifest_id": "manifest-cs-statistics-canonical-read-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-statistics-canonical-read",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/statistics-canonical-read.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-statistics-canonical-read",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-statistics-canonical-read"
+        ],
+        "target_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "product_profile_subjects": [
+          "formal_account_access"
+        ],
+        "provider_lanes": [
+          "receiver_runtime"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-receiver-runtime"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-statistics-canonical-read"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-statistics-canonical-read"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/19"
+    },
+    {
+      "manifest_id": "manifest-cs-account-lifecycle-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "cs-account-lifecycle",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/account-lifecycle.scenario.v1.json",
+      "semantic_validator_id": "future-cp-cs-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": "cs-account-lifecycle",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cs-account-lifecycle"
+        ],
+        "target_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "product_profile_subjects": [
+          "formal_account_access"
+        ],
+        "provider_lanes": [
+          "receiver_runtime"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-receiver-runtime"
+        ],
+        "content_subject_requirement_ids": [
+          "formal-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "cs-receiver-service-harness"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-account-lifecycle"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-account-lifecycle"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/20"
+    },
+    {
+      "manifest_id": "manifest-cp-cs-aggregate-v1",
+      "checkpoint_id": "CP-CS",
+      "manifest_role": "checkpoint_aggregation",
+      "aggregate_id": "cp-cs-aggregate",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-cs/aggregate.v1.json",
+      "semantic_validator_id": "future-cp-cs-aggregation-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-CS",
+        "scenario_id": null,
+        "aggregate_id": "cp-cs-aggregate",
+        "lane_ids": [
+          "cs-auth-sms-session",
+          "cs-bootstrap-entitlement-origin",
+          "cs-learning-session-selection",
+          "cs-learning-completion-events",
+          "cs-daily-checkin",
+          "cs-space-actions",
+          "cs-formal-commerce-ios",
+          "cs-formal-commerce-android",
+          "cs-formal-commerce-web",
+          "cs-receiver-managed-access",
+          "cs-private-content-audio",
+          "cs-cross-device-reconciliation",
+          "cs-statistics-canonical-read",
+          "cs-account-lifecycle"
+        ],
+        "target_ids": [
+          "cs-receiver-service-harness",
+          "cs-ios-phone-client",
+          "cs-android-phone-client",
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "pre_authentication",
+          "formal_account_access",
+          "formal_commerce_ios",
+          "formal_commerce_android",
+          "formal_commerce_web",
+          "receiver_managed",
+          "entitled_private_content"
+        ],
+        "provider_lanes": [
+          "sms_provider",
+          "receiver_runtime",
+          "ios_store",
+          "android_store",
+          "web_payment_provider",
+          "receiver_operator",
+          "receiver_private_content"
+        ],
+        "matrix_row_ids": [],
+        "service_subject_discriminators": [
+          "provider-lane-sms-provider",
+          "provider-lane-receiver-runtime",
+          "provider-lane-ios-store",
+          "provider-lane-android-store",
+          "provider-lane-web-payment-provider",
+          "provider-lane-receiver-operator",
+          "provider-lane-receiver-private-content"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject",
+          "formal-entitlement-configuration-subject",
+          "managed-entitlement-configuration-subject",
+          "private-audio-manifest-subject",
+          "private-content-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "cs-receiver-service-harness",
+          "cs-ios-phone-client",
+          "cs-android-phone-client",
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [
+          "membership-stage-cs-auth-sms-session",
+          "membership-stage-cs-bootstrap-entitlement-origin",
+          "membership-stage-cs-learning-session-selection",
+          "membership-stage-cs-learning-completion-events",
+          "membership-stage-cs-daily-checkin",
+          "membership-stage-cs-space-actions",
+          "membership-stage-cs-formal-commerce-ios",
+          "membership-stage-cs-formal-commerce-android",
+          "membership-stage-cs-formal-commerce-web",
+          "membership-stage-cs-receiver-managed-access",
+          "membership-stage-cs-private-content-audio",
+          "membership-stage-cs-cross-device-reconciliation",
+          "membership-stage-cs-statistics-canonical-read",
+          "membership-stage-cs-account-lifecycle"
+        ],
+        "intended_origin_requirement_ids": [
+          "intended-origin-cs-auth-sms-session",
+          "intended-origin-cs-bootstrap-entitlement-origin",
+          "intended-origin-cs-learning-session-selection",
+          "intended-origin-cs-learning-completion-events",
+          "intended-origin-cs-daily-checkin",
+          "intended-origin-cs-space-actions",
+          "intended-origin-cs-formal-commerce-ios",
+          "intended-origin-cs-formal-commerce-android",
+          "intended-origin-cs-formal-commerce-web",
+          "intended-origin-cs-receiver-managed-access",
+          "intended-origin-cs-private-content-audio",
+          "intended-origin-cs-cross-device-reconciliation",
+          "intended-origin-cs-statistics-canonical-read",
+          "intended-origin-cs-account-lifecycle"
+        ],
+        "exact_scope_requirement_ids": [],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/21"
+    },
+    {
+      "manifest_id": "manifest-web-viewport-01-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-VIEWPORT-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/viewport-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-browser-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-WEB",
+        "scenario_id": "PW-VIEWPORT-01",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-web-pw-viewport-01"
+        ],
+        "target_ids": [
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "pc_web_standard"
+        ],
+        "provider_lanes": [
+          "local_web_browser"
+        ],
+        "matrix_row_ids": [
+          "PW-VIEWPORT-01"
+        ],
+        "service_subject_discriminators": [
+          "provider-lane-local-web-browser"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [
+          "exact-scope-pw-viewport-01"
+        ],
+        "matrix_row_binding": {
+          "applicability": "required",
+          "matrix_row_id": "PW-VIEWPORT-01"
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/22"
+    },
+    {
+      "manifest_id": "manifest-web-viewport-02-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-VIEWPORT-02",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/viewport-02.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-browser-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-WEB",
+        "scenario_id": "PW-VIEWPORT-02",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-web-pw-viewport-02"
+        ],
+        "target_ids": [
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "pc_web_standard"
+        ],
+        "provider_lanes": [
+          "local_web_browser"
+        ],
+        "matrix_row_ids": [
+          "PW-VIEWPORT-02"
+        ],
+        "service_subject_discriminators": [
+          "provider-lane-local-web-browser"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [
+          "exact-scope-pw-viewport-02"
+        ],
+        "matrix_row_binding": {
+          "applicability": "required",
+          "matrix_row_id": "PW-VIEWPORT-02"
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/23"
+    },
+    {
+      "manifest_id": "manifest-web-zoom-01-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-ZOOM-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/zoom-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-accessibility-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-WEB",
+        "scenario_id": "PW-ZOOM-01",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-web-pw-zoom-01"
+        ],
+        "target_ids": [
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "pc_web_accessibility"
+        ],
+        "provider_lanes": [
+          "local_web_browser"
+        ],
+        "matrix_row_ids": [
+          "PW-ZOOM-01"
+        ],
+        "service_subject_discriminators": [
+          "provider-lane-local-web-browser"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [
+          "exact-scope-pw-zoom-01"
+        ],
+        "matrix_row_binding": {
+          "applicability": "required",
+          "matrix_row_id": "PW-ZOOM-01"
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/24"
+    },
+    {
+      "manifest_id": "manifest-web-keyboard-01-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-KEYBOARD-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/keyboard-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-accessibility-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-WEB",
+        "scenario_id": "PW-KEYBOARD-01",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-web-pw-keyboard-01"
+        ],
+        "target_ids": [
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "pc_web_accessibility"
+        ],
+        "provider_lanes": [
+          "local_web_browser"
+        ],
+        "matrix_row_ids": [
+          "PW-KEYBOARD-01"
+        ],
+        "service_subject_discriminators": [
+          "provider-lane-local-web-browser"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [
+          "exact-scope-pw-keyboard-01"
+        ],
+        "matrix_row_binding": {
+          "applicability": "required",
+          "matrix_row_id": "PW-KEYBOARD-01"
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/25"
+    },
+    {
+      "manifest_id": "manifest-web-mouse-01-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-MOUSE-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/mouse-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-browser-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-WEB",
+        "scenario_id": "PW-MOUSE-01",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-web-pw-mouse-01"
+        ],
+        "target_ids": [
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "pc_web_standard"
+        ],
+        "provider_lanes": [
+          "local_web_browser"
+        ],
+        "matrix_row_ids": [
+          "PW-MOUSE-01"
+        ],
+        "service_subject_discriminators": [
+          "provider-lane-local-web-browser"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [
+          "exact-scope-pw-mouse-01"
+        ],
+        "matrix_row_binding": {
+          "applicability": "required",
+          "matrix_row_id": "PW-MOUSE-01"
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/26"
+    },
+    {
+      "manifest_id": "manifest-web-focus-01-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-FOCUS-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/focus-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-accessibility-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-WEB",
+        "scenario_id": "PW-FOCUS-01",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-web-pw-focus-01"
+        ],
+        "target_ids": [
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "pc_web_accessibility"
+        ],
+        "provider_lanes": [
+          "local_web_browser"
+        ],
+        "matrix_row_ids": [
+          "PW-FOCUS-01"
+        ],
+        "service_subject_discriminators": [
+          "provider-lane-local-web-browser"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [
+          "exact-scope-pw-focus-01"
+        ],
+        "matrix_row_binding": {
+          "applicability": "required",
+          "matrix_row_id": "PW-FOCUS-01"
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/27"
+    },
+    {
+      "manifest_id": "manifest-web-motion-01-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-MOTION-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/motion-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-accessibility-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-WEB",
+        "scenario_id": "PW-MOTION-01",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-web-pw-motion-01"
+        ],
+        "target_ids": [
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "pc_web_accessibility"
+        ],
+        "provider_lanes": [
+          "local_web_browser"
+        ],
+        "matrix_row_ids": [
+          "PW-MOTION-01"
+        ],
+        "service_subject_discriminators": [
+          "provider-lane-local-web-browser"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [
+          "exact-scope-pw-motion-01"
+        ],
+        "matrix_row_binding": {
+          "applicability": "required",
+          "matrix_row_id": "PW-MOTION-01"
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/28"
+    },
+    {
+      "manifest_id": "manifest-web-screenreader-01-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-SCREENREADER-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/screenreader-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-accessibility-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-WEB",
+        "scenario_id": "PW-SCREENREADER-01",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-web-pw-screenreader-01"
+        ],
+        "target_ids": [
+          "web-desktop-secondary"
+        ],
+        "product_profile_subjects": [
+          "pc_web_accessibility"
+        ],
+        "provider_lanes": [
+          "local_web_browser"
+        ],
+        "matrix_row_ids": [
+          "PW-SCREENREADER-01"
+        ],
+        "service_subject_discriminators": [
+          "provider-lane-local-web-browser"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-secondary"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [
+          "exact-scope-pw-screenreader-01"
+        ],
+        "matrix_row_binding": {
+          "applicability": "required",
+          "matrix_row_id": "PW-SCREENREADER-01"
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/29"
+    },
+    {
+      "manifest_id": "manifest-web-service-01-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-SERVICE-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/service-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-service-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-WEB",
+        "scenario_id": "PW-SERVICE-01",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-web-pw-service-01"
+        ],
+        "target_ids": [
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "formal_account_access"
+        ],
+        "provider_lanes": [
+          "receiver_runtime"
+        ],
+        "matrix_row_ids": [
+          "PW-SERVICE-01"
+        ],
+        "service_subject_discriminators": [
+          "provider-lane-receiver-runtime"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject",
+          "formal-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [
+          "exact-scope-pw-service-01"
+        ],
+        "matrix_row_binding": {
+          "applicability": "required",
+          "matrix_row_id": "PW-SERVICE-01"
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/30"
+    },
+    {
+      "manifest_id": "manifest-web-commerce-01-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-COMMERCE-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/commerce-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-commerce-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-WEB",
+        "scenario_id": "PW-COMMERCE-01",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-web-pw-commerce-01"
+        ],
+        "target_ids": [
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "formal_commerce_web"
+        ],
+        "provider_lanes": [
+          "web_payment_provider"
+        ],
+        "matrix_row_ids": [
+          "PW-COMMERCE-01"
+        ],
+        "service_subject_discriminators": [
+          "provider-lane-web-payment-provider"
+        ],
+        "content_subject_requirement_ids": [
+          "formal-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [
+          "exact-scope-pw-commerce-01"
+        ],
+        "matrix_row_binding": {
+          "applicability": "required",
+          "matrix_row_id": "PW-COMMERCE-01"
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/31"
+    },
+    {
+      "manifest_id": "manifest-web-beta-01-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-BETA-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/beta-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-managed-access-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-WEB",
+        "scenario_id": "PW-BETA-01",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-web-pw-beta-01"
+        ],
+        "target_ids": [
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "receiver_managed"
+        ],
+        "provider_lanes": [
+          "receiver_operator"
+        ],
+        "matrix_row_ids": [
+          "PW-BETA-01"
+        ],
+        "service_subject_discriminators": [
+          "provider-lane-receiver-operator"
+        ],
+        "content_subject_requirement_ids": [
+          "managed-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [
+          "exact-scope-pw-beta-01"
+        ],
+        "matrix_row_binding": {
+          "applicability": "required",
+          "matrix_row_id": "PW-BETA-01"
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/32"
+    },
+    {
+      "manifest_id": "manifest-web-audio-01-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-AUDIO-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/audio-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-audio-scenario-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-WEB",
+        "scenario_id": "PW-AUDIO-01",
+        "aggregate_id": null,
+        "lane_ids": [
+          "cp-web-pw-audio-01"
+        ],
+        "target_ids": [
+          "web-desktop-primary"
+        ],
+        "product_profile_subjects": [
+          "private_content"
+        ],
+        "provider_lanes": [
+          "receiver_private_content"
+        ],
+        "matrix_row_ids": [
+          "PW-AUDIO-01"
+        ],
+        "service_subject_discriminators": [
+          "provider-lane-receiver-private-content"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject",
+          "private-audio-manifest-subject",
+          "private-content-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-primary"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [
+          "exact-scope-pw-audio-01"
+        ],
+        "matrix_row_binding": {
+          "applicability": "required",
+          "matrix_row_id": "PW-AUDIO-01"
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/33"
+    },
+    {
+      "manifest_id": "manifest-cp-web-aggregate-v1",
+      "checkpoint_id": "CP-WEB",
+      "manifest_role": "checkpoint_aggregation",
+      "aggregate_id": "cp-web-aggregate",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/aggregate.v1.json",
+      "semantic_validator_id": "future-cp-web-aggregation-v1",
+      "schema_status": "reserved_schema_definition_only",
+      "instance_status": "absent_required",
+      "exact_binding": {
+        "checkpoint_id": "CP-WEB",
+        "scenario_id": null,
+        "aggregate_id": "cp-web-aggregate",
+        "lane_ids": [
+          "cp-web-pw-viewport-01",
+          "cp-web-pw-viewport-02",
+          "cp-web-pw-zoom-01",
+          "cp-web-pw-keyboard-01",
+          "cp-web-pw-mouse-01",
+          "cp-web-pw-focus-01",
+          "cp-web-pw-motion-01",
+          "cp-web-pw-screenreader-01",
+          "cp-web-pw-service-01",
+          "cp-web-pw-commerce-01",
+          "cp-web-pw-beta-01",
+          "cp-web-pw-audio-01"
+        ],
+        "target_ids": [
+          "web-desktop-primary",
+          "web-desktop-secondary"
+        ],
+        "product_profile_subjects": [
+          "pc_web_standard",
+          "pc_web_accessibility",
+          "formal_account_access",
+          "formal_commerce_web",
+          "receiver_managed",
+          "private_content"
+        ],
+        "provider_lanes": [
+          "local_web_browser",
+          "receiver_runtime",
+          "web_payment_provider",
+          "receiver_operator",
+          "receiver_private_content"
+        ],
+        "matrix_row_ids": [
+          "PW-VIEWPORT-01",
+          "PW-VIEWPORT-02",
+          "PW-ZOOM-01",
+          "PW-KEYBOARD-01",
+          "PW-MOUSE-01",
+          "PW-FOCUS-01",
+          "PW-MOTION-01",
+          "PW-SCREENREADER-01",
+          "PW-SERVICE-01",
+          "PW-COMMERCE-01",
+          "PW-BETA-01",
+          "PW-AUDIO-01"
+        ],
+        "service_subject_discriminators": [
+          "provider-lane-local-web-browser",
+          "provider-lane-receiver-runtime",
+          "provider-lane-web-payment-provider",
+          "provider-lane-receiver-operator",
+          "provider-lane-receiver-private-content"
+        ],
+        "content_subject_requirement_ids": [
+          "content-release-subject",
+          "formal-entitlement-configuration-subject",
+          "managed-entitlement-configuration-subject",
+          "private-audio-manifest-subject",
+          "private-content-entitlement-configuration-subject"
+        ],
+        "system_subject_requirement_ids": [
+          "web-desktop-primary",
+          "web-desktop-secondary"
+        ],
+        "membership_stage_requirement_ids": [],
+        "intended_origin_requirement_ids": [],
+        "exact_scope_requirement_ids": [
+          "exact-scope-pw-viewport-01",
+          "exact-scope-pw-viewport-02",
+          "exact-scope-pw-zoom-01",
+          "exact-scope-pw-keyboard-01",
+          "exact-scope-pw-mouse-01",
+          "exact-scope-pw-focus-01",
+          "exact-scope-pw-motion-01",
+          "exact-scope-pw-screenreader-01",
+          "exact-scope-pw-service-01",
+          "exact-scope-pw-commerce-01",
+          "exact-scope-pw-beta-01",
+          "exact-scope-pw-audio-01"
+        ],
+        "matrix_row_binding": {
+          "applicability": "not_applicable_non_cp_web_scenario_or_checkpoint_aggregate",
+          "matrix_row_id": null
+        }
+      },
+      "exact_binding_status": "schema_bound_values_pending_instance_absent",
+      "reservation_ref": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json#/reservations/34"
+    }
+  ],
+  "authority": {
+    "freeze": false,
+    "provision": false,
+    "execution": false,
+    "evidence": false,
+    "aggregation": false,
+    "promotion": false,
+    "visual": false,
+    "implementation": false,
+    "native": false,
+    "release": false
+  },
+  "scenario_required_common_fields": [
+    "schema_version",
+    "manifest_id",
+    "reservation_ref",
+    "subject_commit",
+    "source_hashes",
+    "checkpoint_id",
+    "scenario_id",
+    "lane_id",
+    "target_ids",
+    "product_profile_subject",
+    "membership_stage",
+    "intended_origin",
+    "provider_lane",
+    "matrix_row_id",
+    "exact_scope_requirement_ref",
+    "service_subject_discriminator",
+    "content_subject_discriminator",
+    "system_subject_discriminator",
+    "exact_obligation_binding_ids",
+    "environment_refs",
+    "privacy_safe_account_slots",
+    "build_refs",
+    "content_refs",
+    "role_confirmation_refs",
+    "execution_window_with_utc_clock_and_expiry",
+    "compatibility_subject",
+    "registry_subject_digest",
+    "protected_freeze_decision_ref",
+    "expected_and_observed_results",
+    "raw_artifact_records",
+    "exception_records",
+    "cached_result_ignored_and_recomputed"
+  ],
+  "aggregation_required_common_fields": [
+    "schema_version",
+    "manifest_id",
+    "reservation_ref",
+    "subject_commit",
+    "source_hashes",
+    "checkpoint_id",
+    "aggregate_id",
+    "target_ids",
+    "product_profile_subjects",
+    "membership_stage_partition",
+    "intended_origin_partition",
+    "provider_lanes",
+    "matrix_row_ids",
+    "exact_scope_requirement_refs",
+    "service_subject_discriminators",
+    "content_subject_discriminators",
+    "system_subject_discriminators",
+    "registry_subject_digest",
+    "protected_freeze_decision_ref",
+    "aggregation_execution_window_with_utc_clock_and_expiry",
+    "independent_aggregation_verifier_ref",
+    "child_manifest_records",
+    "single_frozen_compatibility_map",
+    "exception_records",
+    "cached_result_ignored_and_recomputed"
+  ],
+  "aggregation_child_manifest_record_contract": {
+    "required_fields": [
+      "child_manifest_path",
+      "byte_size",
+      "sha256",
+      "schema_version",
+      "evidence_class",
+      "recomputed_result",
+      "expires_at"
+    ],
+    "revalidation_required": true,
+    "raw_evidence_copy_forbidden": true,
+    "compatibility_rule": "every_child_must_resolve_through_the_single_frozen_compatibility_map"
+  },
+  "compatibility_map_contract": {
+    "cardinality": "exactly_one_per_aggregation_manifest",
+    "frozen": true,
+    "required_fields": [
+      "compatibility_map_id",
+      "subject_commit",
+      "target_profile_provider_matrix",
+      "child_manifest_ids",
+      "frozen_at",
+      "expires_at",
+      "sha256"
+    ],
+    "multiple_or_implicit_maps_forbidden": true
+  },
+  "registry_sources": [
+    {
+      "checkpoint_id": "CP-BA",
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-ba.registry.v2.proposal.json",
+      "raw_sha256": "247ff9d3de23e31f3e37e35e9a53fd0fe1edc24bc2d93ca4468a5a2571338491"
+    },
+    {
+      "checkpoint_id": "CP-CS",
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-cs.registry.v2.proposal.json",
+      "raw_sha256": "8819358f978a1c573067d468531744b2fd900864d3317542e741bffae2f2bdfa"
+    },
+    {
+      "checkpoint_id": "CP-WEB",
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-web.registry.v2.proposal.json",
+      "raw_sha256": "cc0b4aa3f73b36318d00e28f1514115f10dec78fd21c8948f1c3030d2699da60"
+    }
+  ]
+}

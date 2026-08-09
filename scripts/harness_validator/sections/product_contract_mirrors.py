@@ -3020,8 +3020,14 @@ def launch_evidence_contract_findings(
         "'scripts/test_harness_module_boundaries.py'",
         "'scripts/test_validate_mobile_ux_batch0_decision.mjs'",
         "'scripts/test_validate_mobile_ux_batch1_registry.mjs'",
+        "'scripts/test_validate_mobile_ux_batch1_freeze_candidate.mjs'",
+        "'scripts/test_mobile_ux_batch1_manifest_contract.mjs'",
         "'scripts/validate_mobile_ux_batch0_decision.mjs'",
         "'scripts/validate_mobile_ux_batch1_registry.mjs'",
+        "'scripts/validate_mobile_ux_batch1_freeze_candidate.mjs'",
+        "'scripts/validate_mobile_ux_batch1_execution_manifest.mjs'",
+        "'scripts/validate_state_evidence_ledger.mjs'",
+        "'scripts/lib/mobile_ux_batch1_manifest_contract.mjs'",
         "'scripts/validate_pr_design_gate.py'",
         "'spec/account-sync-contract.json'",
         "'spec/authority-map.json'",
@@ -3029,6 +3035,7 @@ def launch_evidence_contract_findings(
         "'spec/release-operational-policy.json'",
         "'spec/runtime-boundaries.json'",
         "'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/'",
+        "'docs/agent-runs/2026-08-10-mobile-ux-batch1-v2-schema-definition.md'",
     ]:
         if sensitive_path not in classifier_text:
             findings.append(

@@ -108,6 +108,15 @@ jobs:
       - name: Validate Mobile UX Batch 1 preparation registry
         run: node scripts/validate_mobile_ux_batch1_registry.mjs --require-tracked --json
 
+      - name: Test Mobile UX Batch 1 v2 freeze-candidate schema
+        run: node --test scripts/test_validate_mobile_ux_batch1_freeze_candidate.mjs
+
+      - name: Test Mobile UX Batch 1 manifest contracts
+        run: node --test scripts/test_mobile_ux_batch1_manifest_contract.mjs
+
+      - name: Validate Mobile UX Batch 1 v2 schema definition
+        run: node scripts/validate_mobile_ux_batch1_freeze_candidate.mjs --require-tracked --json
+
       - name: Validate harness contract
         run: python3 scripts/validate_harness.py --skip-remote-guard
 

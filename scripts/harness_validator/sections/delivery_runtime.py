@@ -423,6 +423,11 @@ def validate(context) -> None:
     batch0_validator_test_path = ROOT / "scripts/test_validate_mobile_ux_batch0_decision.mjs"
     batch1_validator_path = ROOT / "scripts/validate_mobile_ux_batch1_registry.mjs"
     batch1_validator_test_path = ROOT / "scripts/test_validate_mobile_ux_batch1_registry.mjs"
+    batch1_v2_validator_path = ROOT / "scripts/validate_mobile_ux_batch1_freeze_candidate.mjs"
+    batch1_v2_validator_test_path = ROOT / "scripts/test_validate_mobile_ux_batch1_freeze_candidate.mjs"
+    batch1_manifest_contract_path = ROOT / "scripts/lib/mobile_ux_batch1_manifest_contract.mjs"
+    batch1_manifest_validator_path = ROOT / "scripts/validate_mobile_ux_batch1_execution_manifest.mjs"
+    batch1_manifest_test_path = ROOT / "scripts/test_mobile_ux_batch1_manifest_contract.mjs"
     for path in [
         formal_workflow_path,
         formal_classifier_path,
@@ -431,6 +436,11 @@ def validate(context) -> None:
         batch0_validator_test_path,
         batch1_validator_path,
         batch1_validator_test_path,
+        batch1_v2_validator_path,
+        batch1_v2_validator_test_path,
+        batch1_manifest_contract_path,
+        batch1_manifest_validator_path,
+        batch1_manifest_test_path,
     ]:
         if not path.exists():
             errors.append(f"missing formal approval artifact: {path.relative_to(ROOT)}")
@@ -504,6 +514,159 @@ def validate(context) -> None:
                 if not isinstance(unresolved_count, int) or unresolved_count <= 0:
                     errors.append(
                         "Mobile UX Batch 1 preparation must retain at least one unresolved input"
+                    )
+    if batch1_v2_validator_path.exists():
+        batch1_v2_validation = run_command(
+            "node",
+            str(batch1_v2_validator_path),
+            "--require-tracked",
+            "--json",
+        )
+        if batch1_v2_validation is None or batch1_v2_validation.returncode != 0:
+            diagnostic = (
+                batch1_v2_validation.stderr.strip()
+                if batch1_v2_validation is not None
+                else "validator did not execute"
+            )
+            errors.append(
+                f"Mobile UX Batch 1 v2 schema-definition validation failed: {diagnostic}"
+            )
+        else:
+            try:
+                batch1_v2_result = json.loads(batch1_v2_validation.stdout)
+            except (TypeError, json.JSONDecodeError) as exc:
+                errors.append(
+                    f"Mobile UX Batch 1 v2 validator did not emit valid JSON: {exc}"
+                )
+            else:
+                if not isinstance(batch1_v2_result, dict):
+                    errors.append("Mobile UX Batch 1 v2 validator JSON must be an object")
+                    batch1_v2_result = {}
+                expected_batch1_v2_result = {
+                    "artifact_valid": True,
+                    "subject_class": "schema_definition_only",
+                    "candidate_status": "candidate_incomplete",
+                    "subject_digest": (
+                        "f08c84f879700f143f550557f0eb445f1b7a6eb06cc4708e5edeffd53b15b9f1"
+                    ),
+                    "partition_semantic_digests": {
+                        "CP-BA": (
+                            "42fdc33b292e0d495d8fa020a2e2678342072d6e06b27e2e514c4e75682a20fc"
+                        ),
+                        "CP-CS": (
+                            "8584126140ef551565b4c595589ff1c5a6ff337d0c36d379de81680c646bf876"
+                        ),
+                        "CP-WEB": (
+                            "be423c7983e5817cbce5cf33303283a764e10107212bee6041cd872da5ac7cc8"
+                        ),
+                    },
+                    "binding_id_count": 796,
+                    "migrated_instance_count": 115,
+                    "unique_requirement_count": 88,
+                    "pending_instance_count": 114,
+                    "historical_v1_migrated_instance_count": 115,
+                    "historical_v1_resolved_instance_count": 1,
+                    "historical_v1_pending_instance_count": 114,
+                    "current_v2_requirement_count": 145,
+                    "current_v2_pending_requirement_count": 145,
+                    "current_v2_requirement_inventory_digest": (
+                        "fdf9cd8b0477fd4ef7fa24c109ff85f1adcd9e5d0164647a8687503ec3237fce"
+                    ),
+                    "unresolved_migration_digest": (
+                        "e35033e32eee9d6042e5a52b110529b430a1c90be35691909d2e5a9418612d94"
+                    ),
+                    "reference_contracts_digest": (
+                        "32e8bbf1a371b02d4c138480b63bf3a40398651092922f357b07d6d093bbcc4e"
+                    ),
+                    "manifest_type_definitions_digest": (
+                        "a8baeb8ffa627558ad1b144be186ab76edbc42149875fd45f640b042211baaa6"
+                    ),
+                    "manifest_reservations_digest": (
+                        "fda8c728ee4010631cf19b1f355bed226521ea1fbc375349db34b6cc55f52e1f"
+                    ),
+                    "cp_cs_domain_contracts_digest": (
+                        "837fd738a0745669c49bba520ba3670472af70c41c15a05ed52f17169704be13"
+                    ),
+                    "cp_cs_domain_source_anchor_count": 28,
+                    "freeze_readiness": "blocked_candidate_incomplete",
+                    "manifest_freeze_eligible": False,
+                    "freeze_authorized": False,
+                    "decision_status": "not_evaluated",
+                    "gate_effect": "none",
+                    "gate_eligible": False,
+                    "evidence_eligible": False,
+                    "provisioning_authorized": False,
+                    "execution_authorized": False,
+                    "collection_authorized": False,
+                    "aggregation_authorized": False,
+                    "promotion_authorized": False,
+                    "visual_exploration_authorized": False,
+                    "implementation_authorized": False,
+                    "native_acceptance_authorized": False,
+                    "release_authorized": False,
+                    "allowed_next_action": (
+                        "resolve_blockers_then_exact_review_before_future_protected_"
+                        "manifest_freeze_decision"
+                    ),
+                }
+                for field, expected in expected_batch1_v2_result.items():
+                    if batch1_v2_result.get(field) != expected:
+                        errors.append(
+                            "Mobile UX Batch 1 v2 schema-definition output "
+                            f"{field}: expected {expected!r}, "
+                            f"got {batch1_v2_result.get(field)!r}"
+                        )
+                if batch1_v2_result.get("total_child_obligation_record_count") != 519:
+                    errors.append(
+                        "Mobile UX Batch 1 v2 schema definition must contain exactly "
+                        "519 checkpoint partition records"
+                    )
+                if batch1_v2_result.get("checkpoint_obligation_counts") != {
+                    "CP-BA": 173,
+                    "CP-CS": 173,
+                    "CP-WEB": 173,
+                }:
+                    errors.append(
+                        "Mobile UX Batch 1 v2 schema definition must retain exactly "
+                        "173 ordered obligations in each checkpoint"
+                    )
+                if batch1_v2_result.get("planned_manifest_count") != 35:
+                    errors.append(
+                        "Mobile UX Batch 1 v2 manifest schema catalog must reserve exactly "
+                        "35 future manifests"
+                    )
+                if batch1_v2_result.get("manifest_type_definition_count") != 12:
+                    errors.append(
+                        "Mobile UX Batch 1 v2 manifest schema catalog must define exactly "
+                        "12 type-specific contracts"
+                    )
+                expected_pw_rows = {
+                    "PW-VIEWPORT-01": "a17c79d0088b9b67497248a7870776f34c36feb5d6dff70cf7df34e2ac68012b",
+                    "PW-VIEWPORT-02": "37f3b91640677ee5f29c0aec06134d02c4f96c46b560cd385022c7b328fce408",
+                    "PW-ZOOM-01": "11eae24e308033cca1ed2b2866255da780849f1336899bf2ebadb19087dc4e4b",
+                    "PW-KEYBOARD-01": "370bca85be8213231cfcfe786fbb837540c033dc2ffd0001a35e87cd597c726f",
+                    "PW-MOUSE-01": "08fdde61ab0730f23b00e6291cab8afec85a4b0a44a901097672470d85ba7aae",
+                    "PW-FOCUS-01": "1abf5a713963254cc399ca35cacb0248c90d22305bd5c3cf23ca2e062c8b7bc8",
+                    "PW-MOTION-01": "e0b1f41174b12ed69485392373b870ab8fe6de97bcf8827cc51bb21c039006c2",
+                    "PW-SCREENREADER-01": "ff3e5782c6b6587e9b7911b7f3aea36833f6e536c75ce80b4395b1ac3e664bf7",
+                    "PW-SERVICE-01": "433ca9d303a2201afc57b0e701f0eb7b8f0458762e5e6f95392c217f1d56199c",
+                    "PW-COMMERCE-01": "410090a04d6bf584e019f157dee9ecdf51326d2f17db097bcfcd56561163a105",
+                    "PW-BETA-01": "52c56c436fd4982a8dda647c834004a4286342617d5bdaded78902df02869545",
+                    "PW-AUDIO-01": "09eda941b9d4031a4d688a0c6a67f8744d4fc623e09682d2947ae17cfd3f6167",
+                }
+                actual_pw_rows = batch1_v2_result.get("pc_web_row_binding_digests")
+                expected_pw_row_contracts = {
+                    row_id: {
+                        "exact_scope_status": "owner_value_pending",
+                        "obligation_count": 1,
+                        "digest": digest,
+                    }
+                    for row_id, digest in expected_pw_rows.items()
+                }
+                if actual_pw_rows != expected_pw_row_contracts:
+                    errors.append(
+                        "Mobile UX Batch 1 v2 PC Web rows must retain the exact ordered "
+                        "12-row, one-obligation pending-scope contracts"
                     )
     if formal_workflow_path.exists():
         formal_workflow_text = formal_workflow_path.read_text(encoding="utf-8")

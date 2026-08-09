@@ -205,9 +205,19 @@ class DeliveryContext(ReadOnlyContext):
                 batch1_validator = (
                     self.root / "scripts" / "validate_mobile_ux_batch1_registry.mjs"
                 ).resolve()
+                batch1_v2_validator = (
+                    self.root
+                    / "scripts"
+                    / "validate_mobile_ux_batch1_freeze_candidate.mjs"
+                ).resolve()
                 if script == batch0_validator and len(args) == 2:
                     return
                 if script == batch1_validator and tuple(args[2:]) == (
+                    "--require-tracked",
+                    "--json",
+                ):
+                    return
+                if script == batch1_v2_validator and tuple(args[2:]) == (
                     "--require-tracked",
                     "--json",
                 ):

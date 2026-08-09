@@ -574,6 +574,9 @@ def validate(context) -> None:
     for snippet in [
         "node --test scripts/test_validate_mobile_ux_batch1_registry.mjs",
         "node scripts/validate_mobile_ux_batch1_registry.mjs --require-tracked --json",
+        "node --test scripts/test_validate_mobile_ux_batch1_freeze_candidate.mjs",
+        "node --test scripts/test_mobile_ux_batch1_manifest_contract.mjs",
+        "node scripts/validate_mobile_ux_batch1_freeze_candidate.mjs --require-tracked --json",
     ]:
         check_contains("Mobile UX Batch 1 PR gate", workflow_text, snippet)
 
@@ -585,6 +588,17 @@ def validate(context) -> None:
         "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-ba.registry.v1.json",
         "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-cs.registry.v1.json",
         "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-web.registry.v1.json",
+        "scripts/validate_mobile_ux_batch1_freeze_candidate.mjs",
+        "scripts/test_validate_mobile_ux_batch1_freeze_candidate.mjs",
+        "scripts/lib/mobile_ux_batch1_manifest_contract.mjs",
+        "scripts/validate_mobile_ux_batch1_execution_manifest.mjs",
+        "scripts/test_mobile_ux_batch1_manifest_contract.mjs",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/registry-set.v2.proposal.json",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-ba.registry.v2.proposal.json",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-cs.registry.v2.proposal.json",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-web.registry.v2.proposal.json",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json",
+        "docs/agent-runs/2026-08-10-mobile-ux-batch1-v2-schema-definition.md",
     ]:
         if not (ROOT / relative_path).is_file():
             errors.append(f"missing Mobile UX Batch 1 governance artifact: {relative_path}")

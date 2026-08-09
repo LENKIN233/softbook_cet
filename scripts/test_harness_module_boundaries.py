@@ -136,6 +136,12 @@ class HarnessModuleBoundaryTests(unittest.TestCase):
                 ROOT / "scripts" / "validate_mobile_ux_batch1_registry.mjs",
                 ("--require-tracked", "--json"),
             ),
+            (
+                ROOT
+                / "scripts"
+                / "validate_mobile_ux_batch1_freeze_candidate.mjs",
+                ("--require-tracked", "--json"),
+            ),
         )
 
         for validator, arguments in validators:

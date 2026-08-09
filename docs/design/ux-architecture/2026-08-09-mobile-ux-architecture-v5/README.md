@@ -19,6 +19,13 @@
   preparation decision. Schema v1 is intrinsically ineligible for manifest
   freeze, has `gate_effect=none`, and cannot be consumed by evidence, visual,
   implementation, native, or release workflows.
+- Batch 1 v2 successor: the exact `8f4f82b…` preparation-only decision passed,
+  so `batch-1/registry-set.v2.proposal.json`, three 173-record child proposals,
+  and `manifest-schema-catalog.v1.json` now define the next fail-closed schema.
+  The proposal migrates all 115 physical unresolved v1 objects, reserves 35
+  absent future manifests, and defines 12 future manifest types. It remains
+  `candidate_incomplete`; no protected manifest freeze, provisioning,
+  evidence, visual, implementation, native, release, or merge authority exists.
 - Parent review: exact corrected v4 planning commit `de3bd5c5a23a70e2ca3c165613ea04a2f07da2b1` passed independent scope review as `completed_no_promotion`.
 - Strict-4 exact review: commit `bd3ed0f54350b252f1554872de5a07cd09f97232` historically passed as `pass_exact_architecture_browser_subset`, with P0 `0` and P1 `0`. A later strict-5 real-use replay found that Flip reveal had left focus on `body`; strict-5 corrects and replays that focus path. Independent exact-delta review of commit `d5b9250ad255215830ff21fe7e1651797234b79a` returned `PASS_EXACT_STRICT5_DELTA`, P0 `0`, P1 `0`. Neither verdict extends beyond its browser subset.
 - Exact governance/boundary review of correction commit `c447590790e1f0041f7d04f10deb4470a7b290d0` failed with P0 `0`, P1 `3`: an unchecked ledger divider, missing state-to-evidence-section relevance binding, and PC Web's incomplete binding to its semantic source contract. Exact adversarial and boundary/records reviews of correction commit `6950638d52a15aa4ff60597dbeaa376a1ec4f06b` both passed with P0 `0`, P1 `0`; the overall architecture gate remains blocked.
@@ -80,6 +87,14 @@ The active chain for this phase is:
   cohort remain unresolved; no personal or workstation inventory is stored.
   It creates no manifest, evidence, checkpoint result, visual authority, or
   execution permission.
+  Its separate v2 proposal expands all three checkpoint inventories to 173
+  explicit records each, preserves all 115 historical v1 unresolved instances,
+  separately accounts for current v2 blockers, adds the two missing
+  canonical-service lanes and the independent managed-access overlay, and
+  defines fillable scenario/aggregation contracts without creating manifest
+  instances. PC Web execution-row scopes remain owner-pending; the complete
+  173-state semantic-region mapping is setup-only and grants no execution or
+  coverage credit.
 - `grayscale-reviewer-matrix.html`: reviewer-only entry point. It is never learner UI.
 
 ## Stop boundary

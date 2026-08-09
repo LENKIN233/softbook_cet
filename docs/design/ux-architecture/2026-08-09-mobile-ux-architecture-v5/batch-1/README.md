@@ -119,20 +119,78 @@ coverage, planned-path collisions and traversal, ancestor symlink escape,
 premature manifest creation, resolved assignments, foreign origin URL labels,
 index-only state, working-tree drift, and non-regular or non-HEAD targets.
 
+## v2 schema-definition-only successor
+
+The protected preparation decision for exact head
+`8f4f82b35b660d9a775d6551e530fe6703c3ac54` succeeded through workflow
+`31326457854`, environment `18348068326`, and deployment `5821110397` at
+`2026-08-09T17:30:24Z`. Its scope permits this successor schema definition
+only. It does not authorize a manifest freeze, provisioning, execution,
+evidence, visual exploration, implementation, native acceptance, release, or
+merge.
+
+The five `*.v2.proposal.json` / catalog artifacts are deliberately
+`schema_definition_only` and `candidate_incomplete`:
+
+- each checkpoint has exactly 173 ordered records, for 519 records total;
+  wildcard selectors are forbidden;
+- CP-BA keeps the exact Tier-2 ID set blocked for owner decision, binds the
+  proposed 91-state managed profile separately, and prevents shared access
+  from receiving platform credit;
+- CP-CS expands the original 12 selectors, adds isolated Statistics canonical
+  read and account-lifecycle lanes, retains exactly 16 owner-backed
+  checkpoint exclusions, gives cross-device rows three required iOS/Android/Web
+  targets, and adds a separate 91-state managed-access overlay;
+- CP-WEB gives every obligation a non-executing semantic-region mapping. All
+  12 behavior/accessibility/service/commerce/managed/audio execution-row
+  scopes remain explicit owner-value blockers; `COV-13` binds the 12-row
+  matrix as an AND condition but cannot satisfy any row's unresolved scope;
+- the catalog reserves 35 future manifest paths and defines 12 type-specific
+  future contracts. Scenario contracts bind raw evidence, while aggregation
+  contracts bind and revalidate exact child manifests without copying raw
+  evidence. The entire `execution-manifests/` subtree remains absent;
+- all 115 physical v1 unresolved objects are migrated one by one rather than
+  hidden behind a unique-token count. Their 88 classification tokens retain
+  exact repo-resolvable, machine-local privacy-safe, external resource, human
+  confirmation, and protected-decision history. The exact `8f4f82b` decision
+  resolves only the historical preparation requirement; a separate current
+  requirement registry includes every newly introduced v2 blocker and keeps
+  all 145 typed values pending while keeping freeze/downstream authority
+  false;
+- privacy contracts prohibit credentials, private keys, temporary private
+  URLs, raw phone/email/account identity, device serial/UDID/Android ID/MAC/
+  hostname/home-path identifiers, and hashes directly derived from device
+  identifiers. Physical-device requirements split the future random system
+  slot from the independently bound build reference.
+- Every checkpoint lane binds resolvable target/profile/provider,
+  environment/account/build/content, role, execution-window, and compatibility
+  requirements. External resources use subtype-specific contracts rather than
+  one generic environment object, and the 16 CP-CS exclusions each bind an
+  exact owner source/hash plus an obligation-specific rationale. Every
+  repository document used as semantic support, including all 28 CP-CS domain
+  anchors, is bound to an exact path, locator, and raw SHA-256; tracked mode
+  additionally requires a regular `100644` HEAD blob whose worktree bytes still
+  match HEAD.
+
+`node scripts/validate_mobile_ux_batch1_freeze_candidate.mjs --json` validates
+the proposal but must continue to report `candidate_incomplete`,
+`freeze_readiness=blocked_candidate_incomplete`,
+`manifest_freeze_eligible=false`, `decision_status=not_evaluated`, and every
+authority flag as `false`. Its domain-separated subject digest and the three
+reviewed partition digests protect the exact mappings; they do not prove that
+any external resource or human assignment exists.
+
 ## Required next transition
 
-1. Commit and independently review these exact preparation bytes.
-2. Obtain a fresh protected product-owner decision that accepts only this
-   exact-head preparation schema. That decision must not claim manifest freeze,
-   provisioning, evidence, visual, implementation, native, or release authority.
-3. In a separate successor schema, resolve the state-to-lane partitions and
-   privacy-safe role/resource/cohort references, define type-specific manifest
-   validators, and submit those different exact bytes to a separate protected
-   freeze decision. The partition must explicitly decide whether managed
-   access needs its own complete Learning/Space scenario set; formal-access
-   evidence may not silently fill managed-access cells.
-4. Only after that later freeze decision may isolated evidence manifests be
-   created and evidence collection be considered.
+1. Independently review the exact v2 schema-definition bytes and keep their
+   partition digests frozen.
+2. Resolve the explicit owner-value, human-role, privacy-safe system-slot,
+   external environment/account/build/content, schedule, and compatibility-key
+   blockers without creating manifests or collecting checkpoint evidence.
+3. Submit a complete, different exact candidate to a future protected manifest
+   freeze decision. The current preparation decision cannot satisfy that gate.
+4. Only when that later decision explicitly authorizes the relevant action may
+   isolated manifest instances be created or evidence collection begin.
 
 `CP-BA` retains only its separately bound historical browser subset;
 `CP-CS`, `CP-WEB`, `CP-VA`, `CP-NFA`, and `CP-RLR` remain blocked. The final
