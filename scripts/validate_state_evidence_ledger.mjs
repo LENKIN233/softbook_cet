@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,9 +19,13 @@ export const SOURCE_COHORT =
 export const BASELINE_FACTS_SHA256 =
   '5c90dfba3548a95ab271d723efd672d1074a632c39d1a808c2ba6986e3172afc';
 export const CONTRACT_IDENTITY_SHA256 =
-  '95af9dfb8a7bb9f5efc3f234765208514055a7df0569a96bac4ed82878b920dc';
+  '323c9f6eb4fbaf30296bde988f1a029c7c223c7a98326e5c90baef871d06746a';
 export const COV_OWNER_AUTHORITY_SHA256 =
-  'efbf93b9d20425a5c4b298014245ccbb6549a6c3f5d7c9699897403ee68bdcf1';
+  '714e619cdd6b8846f8dfbc41060729dc93ada5701c7c38fd025acf3975766688';
+export const CONTRACT_DOCUMENT_SHA256 =
+  'f753ca396ee2870a35d9a4fa2696a0b070ff2a60c2a414b6ba1be7777abbb0f4';
+export const LEDGER_SEMANTIC_IDENTITY_SHA256 =
+  '78ffea9f84f41d732fec6ddc118100b2c47e2e5b81acd1124527cbd5968ccc60';
 
 const LEGACY_HEADERS = [
   'State',
@@ -61,18 +67,38 @@ const COVERED_RESULTS = new Set([
   'covered_shared_browser_scenario',
 ]);
 
-const ALLOWED_RESULTS = new Set([
-  ...COVERED_RESULTS,
+const PLATFORM_BROWSER_RESULTS = new Set([
+  'covered_browser_scenario',
   'observed_browser_presentation_only',
   'blocked_not_rendered',
   'blocked_not_replayed',
   'blocked_partial_scenario',
   'blocked_origin_unproven',
   'failed_browser_scenario',
-  'blocked_native',
-  'blocked_pc_web_mapping',
   'not_applicable_with_authority',
 ]);
+
+const SHARED_BROWSER_RESULTS = new Set([
+  'covered_shared_browser_scenario',
+  'observed_browser_presentation_only',
+  'blocked_not_rendered',
+  'blocked_not_replayed',
+  'blocked_partial_scenario',
+  'blocked_origin_unproven',
+  'failed_browser_scenario',
+  'not_applicable_with_authority',
+]);
+
+const RESULT_ALLOWLISTS = [
+  new Set(['covered_exact_transcript']),
+  PLATFORM_BROWSER_RESULTS,
+  PLATFORM_BROWSER_RESULTS,
+  PLATFORM_BROWSER_RESULTS,
+  PLATFORM_BROWSER_RESULTS,
+  SHARED_BROWSER_RESULTS,
+  new Set(['blocked_native', 'not_applicable_with_authority']),
+  new Set(['blocked_pc_web_mapping', 'not_applicable_with_authority']),
+];
 
 const COV_OWNERS = new Map([
   ['COV-01', 'A-SHELL+A-NAV'],
@@ -86,7 +112,7 @@ const COV_OWNERS = new Map([
   ['COV-09', 'A-MEMBER+A-BETA'],
   ['COV-10', 'A-SPACE+A-PLATFORM+A-LEARN'],
   ['COV-11', 'A-AUDIO+A-LEARN+A-PLATFORM'],
-  ['COV-12', 'A-SHELL+A-MEMBER+A-PLATFORM'],
+  ['COV-12', 'A-SHELL+A-MEMBER+A-PLATFORM+A-VISUAL'],
   ['COV-13', 'A-WEB+A-PLATFORM'],
 ]);
 
@@ -157,6 +183,186 @@ function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
 }
 
+function normalizeDocument(markdown) {
+  return markdown.replace(/\r\n/g, '\n').trimEnd();
+}
+
+export function contractDocumentDigest(markdown) {
+  return sha256(normalizeDocument(markdown));
+}
+
+export function ledgerSemanticIdentityDigest(markdown) {
+  const parsed = parseLedger(markdown);
+  const proseWithoutMachineTable = [
+    ...parsed.lines.slice(0, parsed.headerIndex),
+    ...parsed.lines.slice(parsed.endIndex),
+  ]
+    .filter((line) => !line.startsWith('- Frozen ledger semantic identity digest:'))
+    .join('\n');
+  return sha256(normalizeDocument(proseWithoutMachineTable));
+}
+
+function isContainedPath(parent, candidate) {
+  const relative = path.relative(parent, candidate);
+  return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
+}
+
+function githubHeadingAnchors(markdown) {
+  const anchors = new Set();
+  const occurrences = new Map();
+  for (const line of markdown.split('\n')) {
+    const match = line.match(/^#{1,6}\s+(.+?)\s*#*\s*$/);
+    if (!match) continue;
+    const base = match[1]
+      .replace(/<[^>]*>/g, '')
+      .replace(/[`*_~]/g, '')
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s-]/gu, '')
+      .trim()
+      .replace(/\s+/g, '-');
+    if (!base) continue;
+    const count = occurrences.get(base) ?? 0;
+    occurrences.set(base, count + 1);
+    anchors.add(count === 0 ? base : `${base}-${count}`);
+  }
+  return anchors;
+}
+
+export function evidencePointerErrors(pointerCell, { repoRoot, stateId, sourceCommit }) {
+  const errors = [];
+  const raw = pointerCell.trim();
+  if (!/^`[^`\r\n]+`(?:; `[^`\r\n]+`)*$/.test(raw)) {
+    return [`${stateId} Evidence pointer has invalid reference-list syntax.`];
+  }
+
+  const root = path.resolve(repoRoot);
+  let realRoot;
+  try {
+    realRoot = realpathSync(root);
+  } catch {
+    return [`${stateId} Evidence pointer repository root does not exist.`];
+  }
+  const ledgerDirectory = path.resolve(root, path.dirname(LEDGER_RELATIVE_PATH));
+  const references = [...raw.matchAll(/`([^`]+)`/g)].map((match) => match[1]);
+
+  for (const reference of references) {
+    const hashIndex = reference.indexOf('#');
+    if (hashIndex !== reference.lastIndexOf('#')) {
+      errors.push(`${stateId} Evidence pointer ${reference} contains multiple anchors.`);
+      continue;
+    }
+    const relativeFile = hashIndex < 0 ? reference : reference.slice(0, hashIndex);
+    const anchor = hashIndex < 0 ? '' : reference.slice(hashIndex + 1);
+    const pathSegments = relativeFile.split('/');
+    if (
+      !relativeFile ||
+      path.isAbsolute(relativeFile) ||
+      /^[A-Za-z]:/.test(relativeFile) ||
+      relativeFile.includes('\\') ||
+      relativeFile.includes('?') ||
+      relativeFile.includes('\0') ||
+      pathSegments.some((segment) => segment === '' || segment === '.' || segment === '..')
+    ) {
+      errors.push(`${stateId} Evidence pointer ${reference} is not a safe repository-relative reference.`);
+      continue;
+    }
+
+    const candidate = path.resolve(ledgerDirectory, relativeFile);
+    if (!isContainedPath(root, candidate)) {
+      errors.push(`${stateId} Evidence pointer ${reference} escapes the repository root.`);
+      continue;
+    }
+    if (!existsSync(candidate)) {
+      errors.push(`${stateId} Evidence pointer ${reference} does not exist.`);
+      continue;
+    }
+    if (!lstatSync(candidate).isFile()) {
+      errors.push(`${stateId} Evidence pointer ${reference} is not a regular file.`);
+      continue;
+    }
+    const realCandidate = realpathSync(candidate);
+    if (!isContainedPath(realRoot, realCandidate)) {
+      errors.push(`${stateId} Evidence pointer ${reference} resolves outside the repository root.`);
+      continue;
+    }
+
+    const currentContent = readFileSync(candidate, 'utf8');
+    let anchorIsWellFormed = true;
+    if (!anchor) {
+      if (path.basename(relativeFile) !== path.basename(CONTRACT_RELATIVE_PATH)) {
+        errors.push(`${stateId} Evidence pointer ${reference} must include an exact heading anchor.`);
+      }
+    } else if (!/^[\p{L}\p{N}][\p{L}\p{N}-]*$/u.test(anchor)) {
+      errors.push(`${stateId} Evidence pointer ${reference} has malformed heading anchor ${anchor}.`);
+      anchorIsWellFormed = false;
+    } else if (!githubHeadingAnchors(currentContent).has(anchor)) {
+      errors.push(`${stateId} Evidence pointer ${reference} has no matching heading anchor.`);
+    }
+
+    if (!/^[0-9a-f]{40}$/.test(sourceCommit ?? '')) {
+      errors.push(`${stateId} Evidence pointer ${reference} has no valid source-cohort commit binding.`);
+      continue;
+    }
+    const repoRelative = path.relative(root, candidate).split(path.sep).join('/');
+    const objectSpec = `${sourceCommit}:${repoRelative}`;
+    const objectType = spawnSync('git', ['-C', root, 'cat-file', '-t', objectSpec], {
+      encoding: 'utf8',
+    });
+    if (objectType.status !== 0 || objectType.stdout.trim() !== 'blob') {
+      errors.push(
+        `${stateId} Evidence pointer ${reference} is not a tracked blob in source commit ${sourceCommit}.`,
+      );
+      continue;
+    }
+    if (anchor && anchorIsWellFormed) {
+      const snapshot = spawnSync('git', ['-C', root, 'show', objectSpec], {
+        encoding: 'utf8',
+        maxBuffer: 5 * 1024 * 1024,
+      });
+      if (snapshot.status !== 0 || !githubHeadingAnchors(snapshot.stdout).has(anchor)) {
+        errors.push(
+          `${stateId} Evidence pointer ${reference} has no matching heading anchor in source commit ${sourceCommit}.`,
+        );
+      }
+    }
+  }
+  return errors;
+}
+
+const SOURCE_COHORT_PATTERN =
+  /^build=([a-z0-9][a-z0-9._-]*);commit=([0-9a-f]{40});service=([a-z0-9][a-z0-9._-]*)$/;
+
+function sourceCommitFromCohort(value) {
+  return value.match(SOURCE_COHORT_PATTERN)?.[2] ?? null;
+}
+
+export function sourceCohortErrors(value, { repoRoot, headRef = 'HEAD' }) {
+  const errors = [];
+  const match = value.match(SOURCE_COHORT_PATTERN);
+  if (!match) return [`Source cohort has invalid syntax: ${value}.`];
+
+  const commit = match[2];
+  const exists = spawnSync(
+    'git',
+    ['-C', path.resolve(repoRoot), 'cat-file', '-e', `${commit}^{commit}`],
+    { encoding: 'utf8' },
+  );
+  if (exists.status !== 0) {
+    errors.push(`Source cohort commit ${commit} does not exist as a commit object.`);
+    return errors;
+  }
+
+  const reachable = spawnSync(
+    'git',
+    ['-C', path.resolve(repoRoot), 'merge-base', '--is-ancestor', commit, headRef],
+    { encoding: 'utf8' },
+  );
+  if (reachable.status !== 0) {
+    errors.push(`Source cohort commit ${commit} is not reachable from ${headRef}.`);
+  }
+  return errors;
+}
+
 function parseAuthorityShorthand(markdown) {
   const authorities = new Map();
   for (const line of markdown.split('\n')) {
@@ -221,9 +427,12 @@ export function parseContract(markdown) {
     const identity = stateIdentity(cells[0] ?? '');
     if (!identity) continue;
 
-    const owner = identity.id.startsWith('COV-')
-      ? COV_OWNERS.get(identity.id)
-      : normalizeOwner(cells[1] ?? '');
+    const owner = normalizeOwner(cells[1] ?? '');
+    if (identity.id.startsWith('COV-') && owner !== COV_OWNERS.get(identity.id)) {
+      throw new Error(
+        `${identity.id} COV owner mismatch: expected ${COV_OWNERS.get(identity.id)}, found ${owner}.`,
+      );
+    }
     assertKnownOwner({ owner, authorities, stateId: identity.id });
     if (states.has(identity.id)) throw new Error(`Duplicate contract state ${identity.id}.`);
     states.set(identity.id, { ...identity, owner });
@@ -253,6 +462,12 @@ export function parseContract(markdown) {
   if (identityDigest !== CONTRACT_IDENTITY_SHA256) {
     throw new Error(
       `Contract ID/title/owner identity changed: expected ${CONTRACT_IDENTITY_SHA256}, found ${identityDigest}.`,
+    );
+  }
+  const documentDigest = contractDocumentDigest(markdown);
+  if (documentDigest !== CONTRACT_DOCUMENT_SHA256) {
+    throw new Error(
+      `Contract document semantic identity changed: expected ${CONTRACT_DOCUMENT_SHA256}, found ${documentDigest}.`,
     );
   }
 
@@ -289,6 +504,58 @@ export function deriveCurrentResult(row) {
     : 'blocked_required_target';
 }
 
+export function deriveGateBoundary(rows) {
+  return rows.every((row) => deriveCurrentResult(row) === 'covered_required_targets')
+    ? 'architecture_evidence_matrix_complete_owner_acceptance_pending'
+    : 'architecture_gate_blocked';
+}
+
+function expectedGateSection(rows) {
+  const boundary = deriveGateBoundary(rows);
+  if (boundary === 'architecture_evidence_matrix_complete_owner_acceptance_pending') {
+    return [
+      '## Gate result',
+      '',
+      `- Derived gate boundary: \`${boundary}\`.`,
+      '',
+      'The architecture evidence matrix is **complete, with owner acceptance still pending**. Completeness cannot pass the architecture checkpoint automatically: an independent frozen review and explicit product-owner acceptance of the exact cohort remain required.',
+    ].join('\n');
+  }
+  return [
+    '## Gate result',
+    '',
+    `- Derived gate boundary: \`${boundary}\`.`,
+    '',
+    'The architecture gate remains **blocked** while any required Tier 2 device-class result, forced cross-state result, native final-acceptance result, or PC Web parity mapping is blocked. Changing a cell requires an exact evidence pointer and an independent frozen-hash review; source availability or a locally simulated timer is insufficient.',
+  ].join('\n');
+}
+
+function gateBoundaryChecks(markdown, rows, errors) {
+  const lines = markdown.split('\n');
+  const headingIndexes = lines
+    .map((line, index) => (line === '## Gate result' ? index : -1))
+    .filter((index) => index >= 0);
+  if (headingIndexes.length !== 1) {
+    errors.push(`Expected exactly one Gate result section, found ${headingIndexes.length}.`);
+    return;
+  }
+  const start = headingIndexes[0];
+  let end = lines.length;
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (lines[index].startsWith('## ')) {
+      end = index;
+      break;
+    }
+  }
+  const actual = lines.slice(start, end).join('\n').trimEnd();
+  const expected = expectedGateSection(rows);
+  if (actual !== expected) {
+    errors.push(
+      `Gate result prose does not match derived boundary ${deriveGateBoundary(rows)}.`,
+    );
+  }
+}
+
 function expectedTestCase(stateId) {
   return `UXSTATE::${stateId}::${TARGET_ENVIRONMENT_PROFILE}`;
 }
@@ -323,6 +590,8 @@ function machineMarkerChecks(markdown, errors) {
     `- Frozen fact digest: \`${BASELINE_FACTS_SHA256}\`.`,
     `- Frozen contract ID/title/owner digest: \`${CONTRACT_IDENTITY_SHA256}\`.`,
     `- Frozen COV owner authority digest: \`${COV_OWNER_AUTHORITY_SHA256}\`.`,
+    `- Frozen contract document semantic digest: \`${CONTRACT_DOCUMENT_SHA256}\`.`,
+    `- Frozen ledger semantic identity digest: \`${LEDGER_SEMANTIC_IDENTITY_SHA256}\`.`,
     `- Target environment profile: \`${TARGET_ENVIRONMENT_PROFILE}\`.`,
     `- Frozen source cohort: \`${SOURCE_COHORT}\`.`,
   ];
@@ -331,7 +600,12 @@ function machineMarkerChecks(markdown, errors) {
   }
 }
 
-export function validateLedger({ ledgerMarkdown, contractMarkdown }) {
+export function validateLedger({
+  ledgerMarkdown,
+  contractMarkdown,
+  repoRoot = process.cwd(),
+  headRef = 'HEAD',
+}) {
   const errors = [];
   let parsed;
   let contractStates;
@@ -363,6 +637,9 @@ export function validateLedger({ ledgerMarkdown, contractMarkdown }) {
   }
 
   const seen = new Set();
+  const seenTestCases = new Set();
+  const sourceCohorts = new Set();
+  const pointerValidationCache = new Map();
   for (const row of parsed.rows) {
     if (seen.has(row.id)) errors.push(`Duplicate ledger state ${row.id}.`);
     seen.add(row.id);
@@ -386,10 +663,30 @@ export function validateLedger({ ledgerMarkdown, contractMarkdown }) {
       const result = stripCode(row.cells[index]);
       if (hasBareNotApplicable(result)) {
         errors.push(`${row.id} ${RESULT_COLUMNS[index - 1]} uses bare N/A.`);
-      } else if (!ALLOWED_RESULTS.has(result)) {
-        errors.push(`${row.id} ${RESULT_COLUMNS[index - 1]} has unknown result ${result}.`);
+      } else if (!RESULT_ALLOWLISTS[index - 1].has(result)) {
+        errors.push(
+          `${row.id} ${RESULT_COLUMNS[index - 1]} result ${result} is not allowed in this column.`,
+        );
       }
     }
+
+    const rowSourceCohort = stripCode(row.cells[14]);
+    const sourceCommit = sourceCommitFromCohort(rowSourceCohort);
+    const pointerCacheKey = `${sourceCommit ?? '<invalid>'}\u001f${row.cells[9]}`;
+    let pointerErrorSuffixes = pointerValidationCache.get(pointerCacheKey);
+    if (!pointerErrorSuffixes) {
+      const directPointerErrors = evidencePointerErrors(row.cells[9], {
+        repoRoot,
+        stateId: row.id,
+        sourceCommit,
+      });
+      const statePrefix = `${row.id} `;
+      pointerErrorSuffixes = directPointerErrors.map((error) =>
+        error.startsWith(statePrefix) ? error.slice(statePrefix.length) : error,
+      );
+      pointerValidationCache.set(pointerCacheKey, pointerErrorSuffixes);
+    }
+    errors.push(...pointerErrorSuffixes.map((error) => `${row.id} ${error}`));
 
     if (stripCode(row.cells[1]) !== 'covered_exact_transcript') {
       errors.push(`${row.id} transcript result changed from the frozen exact fact.`);
@@ -411,6 +708,11 @@ export function validateLedger({ ledgerMarkdown, contractMarkdown }) {
       }
     });
 
+    const testCase = stripCode(row.cells[13]);
+    if (seenTestCases.has(testCase)) errors.push(`Duplicate machine test case ${testCase}.`);
+    seenTestCases.add(testCase);
+    sourceCohorts.add(rowSourceCohort);
+
     if (resultValues(row).includes('not_applicable_with_authority')) {
       if (stripCode(row.cells[15]) !== 'blocked_required_target') {
         errors.push(`${row.id} N/A-like target did not fail closed.`);
@@ -422,6 +724,16 @@ export function validateLedger({ ledgerMarkdown, contractMarkdown }) {
     if (!seen.has(stateId)) errors.push(`Contract state ${stateId} is absent from the ledger.`);
   }
 
+  for (const sourceCohort of sourceCohorts) {
+    for (const error of sourceCohortErrors(sourceCohort, { repoRoot, headRef })) {
+      errors.push(`Build / commit / service cohort: ${error}`);
+    }
+  }
+
+  if (parsed.rows.every((row) => row.cells.length === MACHINE_HEADERS.length)) {
+    gateBoundaryChecks(ledgerMarkdown, parsed.rows, errors);
+  }
+
   const digest = factsDigest(parsed.rows);
   if (digest !== BASELINE_FACTS_SHA256) {
     errors.push(
@@ -429,7 +741,14 @@ export function validateLedger({ ledgerMarkdown, contractMarkdown }) {
     );
   }
 
-  return { errors, rowCount: parsed.rows.length, digest };
+  const semanticDigest = ledgerSemanticIdentityDigest(ledgerMarkdown);
+  if (semanticDigest !== LEDGER_SEMANTIC_IDENTITY_SHA256) {
+    errors.push(
+      `Ledger document semantic identity changed: expected ${LEDGER_SEMANTIC_IDENTITY_SHA256}, found ${semanticDigest}.`,
+    );
+  }
+
+  return { errors, rowCount: parsed.rows.length, digest, semanticDigest };
 }
 
 function divider(columns) {
@@ -440,7 +759,12 @@ function renderRow(cells) {
   return `| ${cells.join(' | ')} |`;
 }
 
-export function renderLedger({ ledgerMarkdown, contractMarkdown }) {
+export function renderLedger({
+  ledgerMarkdown,
+  contractMarkdown,
+  repoRoot = process.cwd(),
+  headRef = 'HEAD',
+}) {
   const parsed = parseLedger(ledgerMarkdown);
   const contractStates = parseContract(contractMarkdown);
 
@@ -454,6 +778,35 @@ export function renderLedger({ ledgerMarkdown, contractMarkdown }) {
     throw new Error(
       `Refusing to render changed facts: expected ${BASELINE_FACTS_SHA256}, found ${digest}.`,
     );
+  }
+  const semanticDigest = ledgerSemanticIdentityDigest(ledgerMarkdown);
+  if (semanticDigest !== LEDGER_SEMANTIC_IDENTITY_SHA256) {
+    throw new Error(
+      `Refusing to render changed ledger semantics: expected ${LEDGER_SEMANTIC_IDENTITY_SHA256}, found ${semanticDigest}.`,
+    );
+  }
+  const gateErrors = [];
+  gateBoundaryChecks(ledgerMarkdown, parsed.rows, gateErrors);
+  if (gateErrors.length > 0) throw new Error(`Refusing to render: ${gateErrors.join(' ')}`);
+  const pointerValidationCache = new Map();
+  for (const row of parsed.rows) {
+    const pointerCacheKey = row.cells[9];
+    let pointerErrors = pointerValidationCache.get(pointerCacheKey);
+    if (!pointerErrors) {
+      pointerErrors = evidencePointerErrors(row.cells[9], {
+        repoRoot,
+        stateId: row.id,
+        sourceCommit: sourceCommitFromCohort(SOURCE_COHORT),
+      });
+      pointerValidationCache.set(pointerCacheKey, pointerErrors);
+    }
+    if (pointerErrors.length > 0) {
+      throw new Error(`Refusing to render: ${pointerErrors.join(' ')}`);
+    }
+  }
+  const cohortErrors = sourceCohortErrors(SOURCE_COHORT, { repoRoot, headRef });
+  if (cohortErrors.length > 0) {
+    throw new Error(`Refusing to render: ${cohortErrors.join(' ')}`);
   }
 
   const renderedRows = parsed.rows.map((row) => {
@@ -492,13 +845,13 @@ async function runCli() {
   ]);
 
   if (write) {
-    const rendered = renderLedger({ ledgerMarkdown, contractMarkdown });
+    const rendered = renderLedger({ ledgerMarkdown, contractMarkdown, repoRoot: root });
     await writeFile(ledgerPath, rendered);
     process.stdout.write(`WROTE ${LEDGER_RELATIVE_PATH}\n`);
     return;
   }
 
-  const result = validateLedger({ ledgerMarkdown, contractMarkdown });
+  const result = validateLedger({ ledgerMarkdown, contractMarkdown, repoRoot: root });
   if (result.errors.length > 0) {
     for (const error of result.errors) process.stderr.write(`ERROR: ${error}\n`);
     process.exitCode = 1;

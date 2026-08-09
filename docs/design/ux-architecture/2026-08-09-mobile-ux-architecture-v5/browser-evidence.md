@@ -108,8 +108,16 @@ repository design path, so it is not production-route leakage evidence and
 cannot close a shipped URL-surface requirement. Native large text, real 200%
 browser zoom, assistive technology, canonical origin/commit, and process
 restoration remain blocked. The strict-4 exact-review verdict remains a
-historical result, not a claim that it caught this later defect; strict-5 still
-requires its own exact-diff review before any current-source subset is promoted.
+historical result, not a claim that it caught this later defect. Independent
+exact-delta review of strict-5 commit
+`d5b9250ad255215830ff21fe7e1651797234b79a` against parent
+`a6cead00f3ccd178647c150693ef408e1d5a92f6` returned
+`PASS_EXACT_STRICT5_DELTA`, P0 `0`, P1 `0`. The reviewer independently replayed
+Flip reveal focus on all four platform documents, rechecked iOS pending/result
+focus, recomputed strict-4 and strict-5 hashes, measured `overflowX=0`, and found
+no learner-copy leak match. This verdict closes only that exact browser delta;
+native, service, PC Web, 200% zoom, assistive-technology, visual, and owner gates
+remain blocked.
 
 ## Auth, session entry, and Trial presentation
 

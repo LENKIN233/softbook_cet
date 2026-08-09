@@ -99,6 +99,7 @@ Every ledger row names at least one of these anchors. Shorthand reduces repetiti
 | `A-BETA` | `spec/membership.json#policy.closed_beta_entitlement`; beta-entitlement runtime contract |
 | `A-PLATFORM` | `spec/platform-contract.json#device_classes`, `#v1_parity`, `#interaction_fidelity_policy` |
 | `A-WEB` | `docs/design/decisions/pc-web-core-surface-decision-v1.md` |
+| `A-VISUAL` | `spec/visual-language.json#product_truth.user_visible_metadata_leakage_is_blocker`; `docs/design/design-quarantine.md#learner-and-reviewer-boundary` for rejected-artifact non-inheritance and learner/reviewer exposure separation |
 
 ## Ledger field rules
 
@@ -419,21 +420,21 @@ Each of the following must be proven on iOS phone, Android phone, iPadOS tablet,
 
 ### Tier 3 — forced cross-state combinations
 
-| Coverage ID | Required combination | Pass condition |
-| --- | --- | --- |
-| `COV-01 Session × origin` | Cold launch, restored session, deep link, foreground return, and expired session against Auth, Learning, Space, and membership origins | The exact safe origin/return target survives or falls back to its owning route with a learner-safe explanation |
-| `COV-02 Connectivity × mutation` | Online, offline-before-action, lost-during-pending, retry, exact duplicate, process recovery, and post-ack refresh failure for Learning completion, daily check-in, favorite, sleep/wake, purchase, and restore | No duplicate commit, false success, cross-account/day replay, local replacement selection, or lost learner object |
-| `COV-03 Family × lifecycle` | Five interaction families across ready, manipulation/selection, submit pending, resolved, interruption, restore, and long content | Each family stays materially distinct while sharing truthful completion/recovery |
-| `COV-04 Accessibility text × Four-choice` | Default text, platform large text, and 200% equivalent with normal and unusually long approved options | No clipping/overlap/horizontal page scroll; any 2 × 2 to one-column exception is separately rendered, tested, and explicitly accepted before use |
-| `COV-05 Motion/input × family` | Default and reduced motion; touch, VoiceOver/TalkBack, switch/keyboard alternatives; PC Web keyboard/mouse | Same labelled meaning, focus recovery, and commit value without gesture-only or hover-only completion |
-| `COV-06 Membership × origin` | Trial-not-started, Trial, Free, Premium against Learning, Space, and Mine origins | Access truth is canonical; cancellation/error/success returns to the exact object; runtime predicates never enter copy |
-| `COV-07 Store outcome × refresh` | Pending, cancelled, error, offline, store-success-entitlement-pending, canonical success, and app restart | No second-purchase pressure or Premium claim before canonical access; origin is restored after refresh |
-| `COV-08 Restore × account` | Current account with purchase, nothing to restore, store/account mismatch, offline, cross-device refresh, and restart | No client entitlement transfer/fabrication; plain recovery and same-origin return |
-| `COV-09 Formal commerce × closed beta` | The same Mine/access-limit entry under formal and receiver-owned profiles | Formal targets retain purchase/restore; beta exposes read-only canonical access only; profiles never blend |
-| `COV-10 Space depth × adaptation` | Library/group/box/card, selected sleeping card, pending mutation, and Learning return across phone, tablet portrait/landscape, split window | Ownership, selection, scroll, allowed action, and return target survive expansion/collapse |
-| `COV-11 Audio × card lifecycle` | Audio present/absent, all playback states, system interruption, route return, card commit, and resource failure | Audio remains attached, explicit, truthful, optional where permitted, and never becomes a sixth family/global player |
-| `COV-12 Copy × exposure channel` | Every failure/recovery and membership state across visual text, accessibility tree, DOM, URL/deep link, screenshot/OCR, logs shown in product, and reviewer/learner document boundary | Zero internal key, predicate, review narration, implementation language, or reviewer control in learner evidence |
-| `COV-13 PC Web parity` | Every Tier 1 semantic state mapped to the accepted PC Web authority; high-risk Tier 2 flows exercised with keyboard/mouse and focus | No shared capability/state omission; PC composition remains independent and current evidence is cited |
+| Coverage ID | Owner | Required combination | Pass condition |
+| --- | --- | --- | --- |
+| `COV-01 Session × origin` | `A-SHELL`, `A-NAV` | Cold launch, restored session, deep link, foreground return, and expired session against Auth, Learning, Space, and membership origins | The exact safe origin/return target survives or falls back to its owning route with a learner-safe explanation |
+| `COV-02 Connectivity × mutation` | `A-SHELL`, `A-LEARN`, `A-CHECKIN`, `A-SPACE`, `A-MEMBER` | Online, offline-before-action, lost-during-pending, retry, exact duplicate, process recovery, and post-ack refresh failure for Learning completion, daily check-in, favorite, sleep/wake, purchase, and restore | No duplicate commit, false success, cross-account/day replay, local replacement selection, or lost learner object |
+| `COV-03 Family × lifecycle` | `A-INTERACT`, `A-LEARN` | Five interaction families across ready, manipulation/selection, submit pending, resolved, interruption, restore, and long content | Each family stays materially distinct while sharing truthful completion/recovery |
+| `COV-04 Accessibility text × Four-choice` | `A-INTERACT`, `A-PLATFORM` | Default text, platform large text, and 200% equivalent with normal and unusually long approved options | No clipping/overlap/horizontal page scroll; any 2 × 2 to one-column exception is separately rendered, tested, and explicitly accepted before use |
+| `COV-05 Motion/input × family` | `A-INTERACT`, `A-PLATFORM`, `A-WEB` | Default and reduced motion; touch, VoiceOver/TalkBack, switch/keyboard alternatives; PC Web keyboard/mouse | Same labelled meaning, focus recovery, and commit value without gesture-only or hover-only completion |
+| `COV-06 Membership × origin` | `A-MEMBER`, `A-LEARN`, `A-SPACE`, `A-MINE` | Trial-not-started, Trial, Free, Premium against Learning, Space, and Mine origins | Access truth is canonical; cancellation/error/success returns to the exact object; runtime predicates never enter copy |
+| `COV-07 Store outcome × refresh` | `A-MEMBER`, `A-PLATFORM`, `A-SHELL` | Pending, cancelled, error, offline, store-success-entitlement-pending, canonical success, and app restart | No second-purchase pressure or Premium claim before canonical access; origin is restored after refresh |
+| `COV-08 Restore × account` | `A-MEMBER`, `A-SHELL`, `A-PLATFORM` | Current account with purchase, nothing to restore, store/account mismatch, offline, cross-device refresh, and restart | No client entitlement transfer/fabrication; plain recovery and same-origin return |
+| `COV-09 Formal commerce × closed beta` | `A-MEMBER`, `A-BETA` | The same Mine/access-limit entry under formal and receiver-owned profiles | Formal targets retain purchase/restore; beta exposes read-only canonical access only; profiles never blend |
+| `COV-10 Space depth × adaptation` | `A-SPACE`, `A-PLATFORM`, `A-LEARN` | Library/group/box/card, selected sleeping card, pending mutation, and Learning return across phone, tablet portrait/landscape, split window | Ownership, selection, scroll, allowed action, and return target survive expansion/collapse |
+| `COV-11 Audio × card lifecycle` | `A-AUDIO`, `A-LEARN`, `A-PLATFORM` | Audio present/absent, all playback states, system interruption, route return, card commit, and resource failure | Audio remains attached, explicit, truthful, optional where permitted, and never becomes a sixth family/global player |
+| `COV-12 Copy × exposure channel` | `A-SHELL`, `A-MEMBER`, `A-PLATFORM`, `A-VISUAL` | Every failure/recovery and membership state across visual text, accessibility tree, DOM, URL/deep link, screenshot/OCR, logs shown in product, and reviewer/learner document boundary | Zero internal key, predicate, review narration, implementation language, or reviewer control in learner evidence |
+| `COV-13 PC Web parity` | `A-WEB`, `A-PLATFORM` | Every Tier 1 semantic state mapped to the accepted PC Web authority; high-risk Tier 2 flows exercised with keyboard/mouse and focus | No shared capability/state omission; PC composition remains independent and current evidence is cited |
 
 ### Required viewport and system stress
 

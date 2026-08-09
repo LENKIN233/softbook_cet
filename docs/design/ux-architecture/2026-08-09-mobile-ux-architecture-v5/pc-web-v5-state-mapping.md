@@ -7,7 +7,8 @@
 - Semantic source: `docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/grayscale-ux-state-contract.md`.
 - Scope: all 160 semantic state IDs plus all 13 forced cross-state coverage IDs.
 - Frozen contract state ID/title digest: `34d3ef69cdf7019e6492efc0dd499ffe570908c2756f1fc48f016f8da1492f8f`.
-- Frozen PC Web mapping identity digest: `224ec1683007717ac5dc45ac70127e6b9d98aa90e392c982a6687b5fbdc930a6`.
+- Frozen PC Web mapping identity digest: `b356f3d56115c443b2d89496733378b1c44886d16d69ec6a7623038ec9ea479b`.
+- Frozen PC Web document semantic digest: `0ccdb12d193dd29d4eac8cbfbe3dd308391cb551a2d0e8a6aa34205d6ce8cd73`.
 - This artifact maps required meaning to the accepted PC Web regions. It does not change `state-evidence-ledger.md`, any gate layer, implementation authority, or release readiness.
 - Every result is fail-closed. Existing source, unit tests, or a broad historical browser note is context only; without an exact v5 state replay and pointer, the row remains `blocked_*`.
 - No mobile or tablet composition is inherited. The accepted PC Web structure remains a route rail, one center focal workbench, and a bounded context rail; Space alone specializes those regions as tree, current box, and inspector.
@@ -19,6 +20,7 @@
 - `spec/authority-map.json`
 - `spec/platform-contract.json`
 - `spec/runtime-boundaries.json`
+- `spec/visual-language.json`
 - `docs/design/decisions/pc-web-core-surface-decision-v1.md`
 - `docs/design/mapping/pc-web-core-implementation-map-v1.md`
 - `docs/design/mapping/pc-web-core-implementation-evidence-v1.md`
@@ -49,6 +51,7 @@
 | A-STATS | `docs/design/decisions/pc-web-core-surface-decision-v1.md#statistics` | Accepted quiet dated ledger |
 | A-MINE | `docs/design/decisions/pc-web-core-surface-decision-v1.md#mine-and-membership` | Accepted account, membership, limitation, purchase, and restore ownership |
 | A-INPUT | `docs/design/decisions/pc-web-core-surface-decision-v1.md#input-and-motion` | Accepted keyboard, mouse, focus, and reduced-motion meaning |
+| A-VISUAL | `spec/visual-language.json` | Authority-owned blocker for user-visible metadata, prompt, runtime, reviewer, repository, and implementation-language leakage |
 | E-SHELL | `docs/design/mapping/pc-web-core-implementation-map-v1.md#shared-shell-mapping` | Planned shell-region responsibilities |
 | E-AUTH | `docs/design/mapping/pc-web-core-implementation-map-v1.md#auth-mapping` | Planned Auth responsibilities |
 | E-LEARN | `docs/design/mapping/pc-web-core-implementation-map-v1.md#learning-mapping` | Planned five-family and result responsibilities |
@@ -257,7 +260,7 @@
 | `COV-09` | Formal commerce × closed beta | `center workbench / account object` | Keep purchase and restore in formal commerce while beta remains read-only and operator-free. | A-MINE, E-MINE, G-ACCESS | `blocked_cross_state_evidence_missing` | Physically separate formal and receiver-owned Web builds and evidence. |
 | `COV-10` | Space depth × adaptation | `space / tree rail + current box workbench + inspector` | Preserve ownership, selection, pending mutation, and Learning return across wide and constrained Web windows. | A-SPACE, E-SPACE, E-FUTURE, G-RUNTIME | `blocked_cross_state_evidence_missing` | Exact depth, mutation, 1024-width, 200%-zoom, and return matrix. |
 | `COV-11` | Audio × card lifecycle | `context rail / audio chip` | Keep present, absent, playback, interruption, route return, commit, and failure states attached to one card. | A-LEARN, E-AUDIO, G-AUDIO | `blocked_cross_state_evidence_missing` | Verified private audio and full browser media lifecycle record. |
-| `COV-12` | Copy × exposure channel | `whole pcw-01 contract` | Scan visible text, accessibility tree, DOM, URL, screenshots, product logs, and learner/reviewer separation for internal language. | A-SHELL, A-INPUT, E-FUTURE | `blocked_cross_state_evidence_missing` | Exact state corpus scan plus screenshot/OCR and accessibility evidence. |
+| `COV-12` | Copy × exposure channel | `whole pcw-01 contract` | Scan visible text, accessibility tree, DOM, URL, screenshots, product logs, and learner/reviewer separation for internal language. | A-VISUAL, A-SHELL, A-INPUT, E-FUTURE | `blocked_cross_state_evidence_missing` | Exact state corpus scan plus screenshot/OCR and accessibility evidence. |
 | `COV-13` | PC Web parity | `whole pcw-01 contract` | Map every semantic state to accepted regions and exercise high-risk flows with keyboard, mouse, focus, and independent PC composition. | A-SHELL, A-AUTH, A-LEARN, A-SPACE, A-STATS, A-MINE, A-INPUT, E-FUTURE | `blocked_cross_state_evidence_missing` | Close every required row and the execution matrix below with exact current pointers. |
 
 ## PC Web execution matrix
@@ -281,4 +284,4 @@ All rows are execution requirements, not results. Each future record must bind t
 
 ## Completion rule for this artifact
 
-This mapping is complete as a fail-closed inventory when its dedicated validator passes. That validator result does not change any architecture, design, delivery, or release gate. A future row may move away from `blocked_*` only with an exact current browser evidence pointer and any required canonical, provider, receiver, or manual accessibility evidence; such a change requires a separately authorized update to this artifact and its evidence, not an inference from mobile proofs.
+This mapping is complete as a fail-closed inventory when its dedicated validator passes. That validator result does not change any architecture, design, delivery, or release gate. The validator freezes the complete normative document, including status, result meanings, nonpromotion rules, execution requirements, completion text, and any appended prose; changing those bytes requires an explicit digest update and review. A future row may move away from `blocked_*` only with an exact current browser evidence pointer and any required canonical, provider, receiver, or manual accessibility evidence; such a change requires a separately authorized update to this artifact and its evidence, not an inference from mobile proofs.

@@ -43,6 +43,23 @@ ALLOWED_RESULTS = {
     "blocked_cross_state_evidence_missing",
 }
 
+EXPECTED_RESULT_MEANINGS = {
+    "blocked_exact_v5_browser_missing": "A relevant PC Web surface exists or has broad historical evidence, but no exact frozen v5 browser replay proves this row.",
+    "blocked_pc_web_implementation_missing": "The required PC Web state or branch is not implemented in the current evidence.",
+    "blocked_canonical_service_missing": "The row requires canonical service origin, acknowledgement, durability, reconciliation, or lifecycle truth that local Web state cannot prove.",
+    "blocked_external_store_missing": "The row requires a real Web payment/store/provider outcome and canonical entitlement refresh.",
+    "blocked_beta_environment_missing": "The row requires receiver-owned grant/revoke/read evidence from the closed-beta environment.",
+    "blocked_manual_accessibility_missing": "The row requires exact zoom, keyboard/switch, focus, reduced-motion, or named screen-reader evidence.",
+    "blocked_cross_state_evidence_missing": "The forced combination lacks one exact current evidence record spanning all named dimensions.",
+}
+
+COMPLETION_BOUNDARY_TEXT = (
+    "This mapping is complete as a fail-closed inventory when its dedicated validator passes.",
+    "That validator result does not change any architecture, design, delivery, or release gate.",
+    "The validator freezes the complete normative document, including status, result meanings, nonpromotion rules, execution requirements, completion text, and any appended prose; changing those bytes requires an explicit digest update and review.",
+    "A future row may move away from `blocked_*` only with an exact current browser evidence pointer and any required canonical, provider, receiver, or manual accessibility evidence; such a change requires a separately authorized update to this artifact and its evidence, not an inference from mobile proofs.",
+)
+
 ALLOWED_REGIONS = {
     "auth object",
     "auth object -> center workbench",
@@ -78,6 +95,7 @@ REQUIRED_REGISTRY_CODES = {
     "A-STATS",
     "A-MINE",
     "A-INPUT",
+    "A-VISUAL",
     "E-SHELL",
     "E-AUTH",
     "E-LEARN",
@@ -114,16 +132,25 @@ CONTRACT_STATE_IDENTITY_SHA256 = (
     "34d3ef69cdf7019e6492efc0dd499ffe570908c2756f1fc48f016f8da1492f8f"
 )
 PC_WEB_MAPPING_IDENTITY_SHA256 = (
-    "224ec1683007717ac5dc45ac70127e6b9d98aa90e392c982a6687b5fbdc930a6"
+    "b356f3d56115c443b2d89496733378b1c44886d16d69ec6a7623038ec9ea479b"
+)
+PC_WEB_DOCUMENT_SEMANTIC_SHA256 = (
+    "0ccdb12d193dd29d4eac8cbfbe3dd308391cb551a2d0e8a6aa34205d6ce8cd73"
+)
+
+DOCUMENT_SEMANTIC_MARKER_RE = re.compile(
+    r"(?m)^- Frozen PC Web document semantic digest: `[0-9a-f]{64}`\.$"
 )
 
 REQUIRED_TEXT = (
+    "- Status: `design_only_pc_web_state_mapping`.",
     "Accepted direction: `pcw-01 Focused Workbench`",
     "Scope: all 160 semantic state IDs plus all 13 forced cross-state coverage IDs.",
     "It does not change `state-evidence-ledger.md`, any gate layer, implementation authority, or release readiness.",
     "No row proves canonical service acknowledgement, payment/store behavior, receiver-managed access, deployment, final visual quality, or leadership readiness.",
     f"Frozen contract state ID/title digest: `{CONTRACT_STATE_IDENTITY_SHA256}`.",
     f"Frozen PC Web mapping identity digest: `{PC_WEB_MAPPING_IDENTITY_SHA256}`.",
+    f"Frozen PC Web document semantic digest: `{PC_WEB_DOCUMENT_SEMANTIC_SHA256}`.",
     "`1440×900`",
     "`1024`",
     "`200%`",
@@ -206,6 +233,17 @@ def sha256(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def document_semantic_digest(mapping_text: str) -> str:
+    """Freeze every normative byte while avoiding a self-referential digest."""
+    normalized = mapping_text.replace("\r\n", "\n")
+    normalized, replacements = DOCUMENT_SEMANTIC_MARKER_RE.subn(
+        "- Frozen PC Web document semantic digest: `<self>`.", normalized
+    )
+    if replacements != 1:
+        return "invalid-semantic-digest-marker"
+    return sha256(normalized)
+
+
 def parse_contract_states(contract_text: str) -> list[tuple[str, str]]:
     states: list[tuple[str, str]] = []
     for line in contract_text.splitlines():
@@ -266,6 +304,23 @@ def parse_registry(
             errors.append(f"duplicate evidence registry code: {code}")
         registry[code] = RegistryEntry(code=code, pointer=pointer, use=use)
     return registry, errors
+
+
+def parse_result_meanings(result_section: str) -> tuple[dict[str, str], list[str]]:
+    meanings: dict[str, str] = {}
+    errors: list[str] = []
+    for line in result_section.splitlines():
+        if not re.match(r"^\|\s*`blocked_", line):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) != 2:
+            errors.append("result-code row must contain exactly Result and Meaning")
+            continue
+        result = strip_code(cells[0])
+        if result in meanings:
+            errors.append(f"duplicate result-code definition: {result}")
+        meanings[result] = cells[1]
+    return meanings, errors
 
 
 def heading_slugs(text: str) -> set[str]:
@@ -462,6 +517,27 @@ def validate(mapping_text: str, contract_text: str, root: Path = ROOT) -> list[s
         if required not in mapping_text:
             errors.append(f"mapping is missing required boundary or matrix marker: {required}")
 
+    status_lines = re.findall(r"(?m)^- Status: `([^`]+)`\.$", mapping_text)
+    if status_lines != ["design_only_pc_web_state_mapping"]:
+        errors.append(
+            "mapping must declare exactly one design_only_pc_web_state_mapping status"
+        )
+
+    result_text = section(mapping_text, "Result codes", "Semantic state mapping")
+    result_meanings, result_errors = parse_result_meanings(result_text)
+    errors.extend(result_errors)
+    if set(result_meanings) != set(EXPECTED_RESULT_MEANINGS):
+        errors.append("result-code definitions must exactly match the fail-closed registry")
+    for result, expected_meaning in EXPECTED_RESULT_MEANINGS.items():
+        actual_meaning = result_meanings.get(result)
+        if actual_meaning is not None and actual_meaning != expected_meaning:
+            errors.append(f"{result} meaning changed from the fail-closed definition")
+
+    completion_text = section(mapping_text, "Completion rule for this artifact", None)
+    for boundary in COMPLETION_BOUNDARY_TEXT:
+        if boundary not in completion_text:
+            errors.append(f"completion/nonpromotion boundary is missing: {boundary}")
+
     contract_states = parse_contract_states(contract_text)
     contract_digest = contract_state_identity_digest(contract_states)
     if contract_digest != CONTRACT_STATE_IDENTITY_SHA256:
@@ -500,6 +576,9 @@ def validate(mapping_text: str, contract_text: str, root: Path = ROOT) -> list[s
     cov_rows, cov_parse_errors = parse_mapping_rows(cov_text)
     errors.extend(cov_parse_errors)
     errors.extend(validate_rows(cov_rows, cov_expected, registry, "COV mapping"))
+    cov_12 = next((row for row in cov_rows if row.state_id == "COV-12"), None)
+    if cov_12 is None or "A-VISUAL" not in cov_12.pointers:
+        errors.append("COV-12 must cite A-VISUAL as its metadata-leak authority owner")
 
     matrix_text = section(mapping_text, "PC Web execution matrix", "Completion rule for this artifact")
     matrix_rows, matrix_errors = parse_execution_matrix(matrix_text)
@@ -532,6 +611,13 @@ def validate(mapping_text: str, contract_text: str, root: Path = ROOT) -> list[s
         errors.append(
             "PC Web mapping identity changed: "
             f"expected {PC_WEB_MAPPING_IDENTITY_SHA256}, found {identity_digest}"
+        )
+
+    semantic_digest = document_semantic_digest(mapping_text)
+    if semantic_digest != PC_WEB_DOCUMENT_SEMANTIC_SHA256:
+        errors.append(
+            "PC Web document semantic identity changed: "
+            f"expected {PC_WEB_DOCUMENT_SEMANTIC_SHA256}, found {semantic_digest}"
         )
 
     return errors
@@ -584,6 +670,28 @@ def run_self_tests(mapping_text: str, contract_text: str) -> list[str]:
     )
     substituted_contract = contract_text.replace(
         "| `SHELL-01 Cold launch` |", "| `FAKE-01 Cold launch` |", 1
+    )
+
+    status_promoted = mapping_text.replace(
+        "- Status: `design_only_pc_web_state_mapping`.",
+        "- Status: `accepted_release_authority`.",
+        1,
+    )
+    result_meaning_promoted = mapping_text.replace(
+        "A relevant PC Web surface exists or has broad historical evidence, but no exact frozen v5 browser replay proves this row.",
+        "This row proves PC Web parity and release readiness.",
+        1,
+    )
+    completion_promoted = mapping_text.replace(
+        "That validator result does not change any architecture, design, delivery, or release gate.",
+        "That validator result passes CP-WEB and release readiness.",
+        1,
+    )
+    release_claim_appended = mapping_text + "\nFormally passes release readiness.\n"
+    cov_12_without_visual = mapping_text.replace(
+        "A-VISUAL, A-SHELL, A-INPUT, E-FUTURE",
+        "A-SHELL, A-INPUT, E-FUTURE",
+        1,
     )
 
     mutations = (
@@ -650,6 +758,36 @@ def run_self_tests(mapping_text: str, contract_text: str) -> list[str]:
             mapping_text.replace(audio_matrix_row, hollow_matrix_row, 1),
             contract_text,
             "Environment must not be empty",
+        ),
+        (
+            "status promotion",
+            status_promoted,
+            contract_text,
+            "PC Web document semantic identity changed",
+        ),
+        (
+            "result meaning promotion",
+            result_meaning_promoted,
+            contract_text,
+            "meaning changed from the fail-closed definition",
+        ),
+        (
+            "completion promotion",
+            completion_promoted,
+            contract_text,
+            "completion/nonpromotion boundary is missing",
+        ),
+        (
+            "appended release claim",
+            release_claim_appended,
+            contract_text,
+            "PC Web document semantic identity changed",
+        ),
+        (
+            "COV-12 missing visual owner",
+            cov_12_without_visual,
+            contract_text,
+            "COV-12 must cite A-VISUAL",
         ),
     )
 

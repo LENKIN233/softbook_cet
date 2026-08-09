@@ -196,6 +196,85 @@ Checkpoints that necessarily cover mutually exclusive subjects use two levels:
    and no required scenario is blocked, failed, expired, silently omitted, or
    marked `N/A` without an exact owner-backed authority reason.
 
+### Aggregation compatibility boundary
+
+An aggregation manifest is not permission to combine otherwise incompatible
+cohorts. The authority-owned required-scenario matrix must enumerate every
+dimension that is allowed to vary between child manifests. The proposed
+allowed matrix-varying dimensions are limited to:
+
+- scenario/state ID and the canonical command/event/selection instance used to
+  exercise that scenario;
+- formal-commerce versus receiver-managed profile/origin, provider/store lane,
+  declared service-environment lane, and non-secret product/provider test-account
+  reference;
+- target client platform lane, device/OS/browser, orientation/window mode,
+  input method, display/text/motion setting, and assistive technology; and
+- child execution timestamps that remain wholly inside the aggregation
+  validity window.
+
+Each varying value must match one exact required-matrix row. A matrix row may
+select a platform-specific client build only through the aggregation manifest's
+frozen client-build map; it cannot supply an arbitrary build. No field varies
+merely because it appears in a child manifest, and an unenumerated dimension or
+value is incompatible rather than implicitly optional.
+
+Every child in one aggregation must share one immutable compatibility key. The
+aggregation manifest freezes that key directly and does not derive it by
+majority or intersection. It contains:
+
+- the full reachable repository commit and every applicable source-artifact
+  path plus SHA-256;
+- a backend-deployment map that pins the exact environment identity and
+  deployment/version/hash for every declared service-environment lane;
+- a release/content map that pins the release/bundle/content and
+  private-content/audio-manifest identities and hashes for every lane where
+  those subjects are applicable;
+- the active runtime-contract versions/hashes and the applicable product,
+  platform, membership, and release-policy versions/hashes;
+- a client-build map that pins the exact corresponding build identity, version,
+  signing class, distribution channel, and deployment hash for each required
+  platform/provider lane; and
+- one aggregation validity window, expiry rule, and clock/time-zone basis that
+  contains every child execution window and is still valid when the aggregate
+  is recomputed.
+
+Platform/provider lanes may therefore use their different *corresponding*
+builds only when those builds were frozen together in the compatibility key.
+Two child manifests that disagree on repository/source bytes, the backend or
+content subject pinned for their declared lane, runtime contract, policy, the
+build pinned for their lane, or aggregation validity window are incompatible
+even if their individual results passed. Changing the required matrix,
+compatibility key, backend-deployment map, release/content map,
+client-build map, or validity window creates a new aggregation subject and
+invalidates the old aggregate.
+
+For every referenced child, the aggregation validator must independently:
+
+1. resolve the declared manifest path as a normalized repository-relative path,
+   reject absolute paths, traversal, and symlink escape, and require the
+   expected regular-file/tracking class;
+2. read the referenced bytes and recompute their SHA-256 rather than trusting a
+   declared digest;
+3. validate the child schema and evidence class, revalidate its raw evidence
+   pointers/hashes under the applicable semantic validator, and recompute its
+   result, expiry, and independent-verifier eligibility;
+4. compare every immutable child field with the aggregation compatibility key
+   and the exact backend, content, and client-build entries pinned for that
+   child's matrix lanes;
+5. bind every allowed varying field to exactly one required-matrix row, rejecting
+   duplicate coverage, undeclared values, and one child used for multiple rows;
+   and
+6. recompute aggregate coverage and status from the authority-owned matrix and
+   validated child results without accepting cached child or aggregate status.
+
+A missing, unreadable, unhashable, untracked-when-required, unrecomputable,
+expired, incompatible, duplicated, or undeclared child fails the aggregation
+closed. A validator that cannot interpret a required field or type also fails
+closed; it must not downgrade that field to `N/A`, omit the child, or preserve a
+previous pass. These are proposed contract requirements only and have no gate
+effect or promotion effect until accepted through the authority path above.
+
 The single `launch-release-candidate.v1` cohort rule belongs only to `CP-RLR`
 and its registered formal gate reports. A pre-release `CP-CS` aggregation is not
 a launch cohort and cannot be renamed or promoted into one. If canonical-service
