@@ -154,6 +154,18 @@ test('accepts the exact schema-definition-only proposal and reports no authority
     assert.equal(result.historical_v1_pending_instance_count, 114);
     assert.equal(result.current_v2_requirement_count, 145);
     assert.equal(result.current_v2_pending_requirement_count, 145);
+    assert.equal(result.successor_transition_stage_count, 4);
+    assert.equal(result.successor_transition_post_designation_requirement_count, 9);
+    assert.match(result.successor_transition_contract_digest, /^[0-9a-f]{64}$/);
+    assert.equal(result.decision_authority_bootstrap_status, 'not_implemented');
+    assert.equal(result.decision_instance_count, 0);
+    assert.equal(result.approval_receipt_count, 0);
+    assert.equal(result.preparation_approval_receipt_status, 'missing');
+    assert.equal(result.trusted_staged_same_pr_path_status, 'not_implemented');
+    assert.equal(
+      result.allowed_next_action,
+      'implement_trusted_governance_and_R0_B2_materialization_validators_obtain_protected_validity_policy_and_legacy_receipt_migration_approval',
+    );
     assert.deepEqual(
       Object.fromEntries(
         Object.entries(result.pc_web_row_binding_digests).map(([rowId, row]) => [
@@ -179,9 +191,40 @@ test('accepts the exact schema-definition-only proposal and reports no authority
     assert.equal(result.freeze_readiness, 'blocked_candidate_incomplete');
     assert.equal(result.manifest_freeze_eligible, false);
     assert.match(result.subject_digest, /^[0-9a-f]{64}$/);
+    assert.deepEqual(
+      {
+        reservation_activation_authorized: result.reservation_activation_authorized,
+        manifest_creation_authorized: result.manifest_creation_authorized,
+        data_manifest_population_authorized: result.data_manifest_population_authorized,
+        architecture_acceptance_authorized: result.architecture_acceptance_authorized,
+        checkpoint_coverage_authorized: result.checkpoint_coverage_authorized,
+        leadership_readiness_authorized: result.leadership_readiness_authorized,
+      },
+      {
+        reservation_activation_authorized: false,
+        manifest_creation_authorized: false,
+        data_manifest_population_authorized: false,
+        architecture_acceptance_authorized: false,
+        checkpoint_coverage_authorized: false,
+        leadership_readiness_authorized: false,
+      },
+      'validator result must surface every newly canonicalized authority dimension as false',
+    );
     for (const [key, value] of Object.entries(result)) {
       if (/(?:authorized|eligible)$/.test(key)) assert.equal(value, false, key);
     }
+    const cli = spawnSync(
+      process.execPath,
+      [path.join(SOURCE_ROOT, 'scripts/validate_mobile_ux_batch1_freeze_candidate.mjs'), '--root', root],
+      {cwd: root, encoding: 'utf8'},
+    );
+    assert.equal(cli.status, 0, cli.stderr || cli.stdout);
+    assert.ok(
+      cli.stdout.includes(
+        'NON-CLAIM: schema_definition_only authorizes none; all 16 canonical authority dimensions remain false: freeze, reservation_activation, manifest_creation, provision, execution, evidence, data_manifest_population, aggregation, promotion, architecture_acceptance, checkpoint_coverage, visual, implementation, native, release, leadership_readiness',
+      ),
+      cli.stdout,
+    );
     assert.equal(
       fs.existsSync(path.join(root, BATCH1_DIRECTORY, 'execution-manifests')),
       false,
@@ -200,6 +243,632 @@ test('rejects an existing empty reserved execution-manifest root', () =>
       assert.throws(
         () => validateUnreviewedFixture(root),
         /execution manifest root must be absent before a protected freeze decision/,
+      ),
+  ));
+
+test('rejects successor-transition cycles, authority substitution, and recursive compatibility inputs', async (t) => {
+  const cases = [
+    [
+      'R0 is not exact 136 resolved and 9 pending',
+      (contract) => { contract.stages[0].resolved_requirement_count = 135; },
+      /R0 resolved count/,
+    ],
+    [
+      'D1 attempts to designate the current schema bytes',
+      (contract) => { contract.stages[1].decision_subject = 'current_candidate_schema_approval'; },
+      /D1 decision subject/,
+    ],
+    [
+      'D1 drops manifest creation from its non-authorization list',
+      (contract) => { contract.stages[1].does_not_authorize.shift(); },
+      /D1 non-authorization/,
+    ],
+    [
+      'D1 decision drops architecture acceptance from its non-claims',
+      (contract) => {
+        contract.stages[1].required_decision_non_claims =
+          contract.stages[1].required_decision_non_claims.filter(
+            (claim) => claim !== 'architecture_acceptance',
+          );
+      },
+      /D1 decision non-claims/,
+    ],
+    [
+      'D1 decision drops data-manifest population from its non-claims',
+      (contract) => {
+        contract.stages[1].required_decision_non_claims =
+          contract.stages[1].required_decision_non_claims.filter(
+            (claim) => claim !== 'data_manifest_population',
+          );
+      },
+      /D1 decision non-claims/,
+    ],
+    [
+      'D1 decision attempts to skip B2',
+      (contract) => { contract.stages[1].required_decision_allowed_next_action = 'freeze_now'; },
+      /D1 decision next action/,
+    ],
+    [
+      'unimplemented authority bootstrap is falsely marked ready',
+      (contract) => { contract.decision_authority_bootstrap.current_status = 'implemented'; },
+      /authority bootstrap status/,
+    ],
+    [
+      'current candidate skips governance bootstrap',
+      (contract) => { contract.decision_authority_bootstrap.current_allowed_next_action = 'start_D1'; },
+      /current governance bootstrap action/,
+    ],
+    [
+      'decision head is allowed to supply its own trusted validator',
+      (contract) => {
+        contract.decision_authority_bootstrap.required_trusted_base_capabilities =
+          contract.decision_authority_bootstrap.required_trusted_base_capabilities.filter(
+            (value) => value !== 'trusted_base_validator_not_loaded_from_decision_head',
+          );
+      },
+      /trusted authority bootstrap capabilities/,
+    ],
+    [
+      'sensitive-only classifier is allowed to authorize designation',
+      (contract) => {
+        contract.decision_authority_bootstrap.current_workflow_or_classifier_may_authorize_designation = true;
+      },
+      /must remain false|current classifier designation authority/,
+    ],
+    [
+      'mixed decision classes in one exact-head change set are permitted',
+      (contract) => {
+        contract.decision_separation_requirements
+          .mixed_new_decision_classes_in_same_exact_head_change_set_forbidden = false;
+      },
+      /decision separation mixed_new_decision_classes/,
+    ],
+    [
+      'schema hard-codes different PRs instead of trusted staged subject separation',
+      (contract) => {
+        contract.decision_separation_requirements.pull_request_separation_policy =
+          'different_pull_requests_required';
+      },
+      /pull request separation policy/,
+    ],
+    [
+      'D1 and F3 approval reuse is permitted',
+      (contract) => {
+        contract.decision_separation_requirements
+          .designation_and_final_freeze_approval_ids_must_differ = false;
+      },
+      /decision separation designation_and_final_freeze_approval_ids/,
+    ],
+    [
+      'D1 and F3 exact subject digest reuse is permitted',
+      (contract) => {
+        contract.decision_separation_requirements
+          .designation_and_final_freeze_subject_digests_must_differ = false;
+      },
+      /decision separation designation_and_final_freeze_subject_digests/,
+    ],
+    [
+      'future decision artifacts may be symlinks',
+      (contract) => { contract.decision_instance_contract.intent_file_constraints.symlink_forbidden = false; },
+      /decision symlink prohibition/,
+    ],
+    [
+      'future decision artifact path traverses',
+      (contract) => { contract.decision_instance_contract.instances[0].intent_artifact_path = '../decision.json'; },
+      /decision instance\[0\] artifact path/,
+    ],
+    [
+      'future decision artifact mode becomes executable',
+      (contract) => { contract.decision_instance_contract.intent_file_constraints.git_mode = '100755'; },
+      /decision file mode/,
+    ],
+    [
+      'decision commit SHA type contract is weakened',
+      (contract) => { contract.decision_instance_contract.field_type_contracts.commit_sha.regex_id = 'any_string'; },
+      /decision field type commit_sha\.regex_id/,
+    ],
+    [
+      'F3 decision-instance mask grants execution',
+      (contract) => { contract.decision_instance_contract.instances[1].required_authority_mask.execution = true; },
+      /decision instance\[1\] authority mask\.execution/,
+    ],
+    [
+      'approval receipt algorithm drifts',
+      (contract) => { contract.approval_receipt_contract.approval_instance_digest_contract.algorithm = 'sha512'; },
+      /approval receipt algorithm/,
+    ],
+    [
+      'approval receipt domain drifts',
+      (contract) => { contract.approval_receipt_contract.approval_instance_digest_contract.domain_separator += '-changed'; },
+      /approval receipt domain/,
+    ],
+    [
+      'approval receipt canonical encoding drifts',
+      (contract) => { contract.approval_receipt_contract.approval_instance_digest_contract.canonical_value_encoding = 'plain_json'; },
+      /approval receipt canonical encoding/,
+    ],
+    [
+      'approval receipt projection order drifts',
+      (contract) => {
+        const projection = contract.approval_receipt_contract.approval_instance_digest_contract
+          .generic_ordered_projection_fields;
+        [projection[0], projection[1]] = [projection[1], projection[0]];
+      },
+      /approval receipt generic projection/,
+    ],
+    [
+      'D1 approval receipt omits designated cohort SHA',
+      (contract) => {
+        contract.approval_receipt_contract.approval_instance_digest_contract
+          .class_specific_ordered_projection_fields.cohort_designation.pop();
+      },
+      /D1 receipt cohort projection/,
+    ],
+    [
+      'approval receipt formula stops binding class-specific projection',
+      (contract) => {
+        contract.approval_receipt_contract.approval_instance_digest_contract.digest_formula =
+          'lowercase_hex_sha256(generic_ordered_projection)';
+      },
+      /approval receipt formula/,
+    ],
+    [
+      'approval receipt recomputation becomes optional',
+      (contract) => {
+        contract.approval_receipt_contract.approval_instance_digest_contract
+          .recompute_and_compare_required = false;
+      },
+      /approval receipt recomputation/,
+    ],
+    [
+      'staged parent omits immutable reviewer ID',
+      (contract) => {
+        contract.staged_parent_contract.tuple_fields =
+          contract.staged_parent_contract.tuple_fields.filter(
+            (field) => field !== 'parent_reviewer_immutable_id',
+          );
+      },
+      /staged parent tuple/,
+    ],
+    [
+      'staged parent no longer proves ancestry',
+      (contract) => { contract.staged_parent_contract.validation_rules.shift(); },
+      /staged parent validation rules/,
+    ],
+    [
+      'opaque parent digest is accepted',
+      (contract) => { contract.staged_parent_contract.opaque_parent_digest_without_exact_tuple_forbidden = false; },
+      /opaque parent digest prohibition/,
+    ],
+    [
+      'missing preparation receipt is falsely materialized',
+      (contract) => { contract.staged_parent_contract.current_preparation_receipt.status = 'present'; },
+      /preparation receipt status/,
+    ],
+    [
+      'D1 parent chain mutates to F3',
+      (contract) => { contract.staged_parent_contract.required_chains[0].parent_decision_class = 'manifest_freeze'; },
+      /staged parent chain\[0\]\.parent_decision_class/,
+    ],
+    [
+      'D1 omits its machine-readable decision class',
+      (contract) => {
+        contract.stages[1].required_decision_intent_fields =
+          contract.stages[1].required_decision_intent_fields.filter((field) => field !== 'decision_class');
+      },
+      /D1 decision intent fields/,
+    ],
+    [
+      'B2 permits drift in the 136 R0-resolved requirements',
+      (contract) => { contract.stages[2].immutable_requirement_drift_rule = 'drift_allowed'; },
+      /B2 immutable drift rule/,
+    ],
+    [
+      'B2 expands the exact nine mutable requirements',
+      (contract) => { contract.stages[2].mutable_requirement_count = 10; },
+      /B2 mutable requirement count/,
+    ],
+    [
+      'designation-bound build allows an arbitrary value class',
+      (contract) => {
+        contract.designation_bound_build_contract.allowed_value_class = 'receiver_supplied_build_key';
+      },
+      /build allowed value class/,
+    ],
+    [
+      'designation-bound build omits the digest domain',
+      (contract) => {
+        contract.designation_bound_build_contract.required_value_fields =
+          contract.designation_bound_build_contract.required_value_fields.filter(
+            (field) => field !== 'designation_subject_digest_domain',
+          );
+      },
+      /build required value fields/,
+    ],
+    [
+      'compatibility derivation algorithm drifts',
+      (contract) => { contract.compatibility_derivation_contract.hash_algorithm = 'sha512'; },
+      /compatibility hash algorithm/,
+    ],
+    [
+      'compatibility derivation version drifts',
+      (contract) => { contract.compatibility_derivation_contract.schema_version += '.v2'; },
+      /compatibility derivation schema/,
+    ],
+    [
+      'binding bundle domain drifts',
+      (contract) => { contract.compatibility_derivation_contract.binding_bundle.domain_separator += '-changed'; },
+      /binding bundle domain/,
+    ],
+    [
+      'binding bundle omits designation digest domain',
+      (contract) => {
+        contract.compatibility_derivation_contract.binding_bundle.ordered_subject_fields =
+          contract.compatibility_derivation_contract.binding_bundle.ordered_subject_fields.filter(
+            (field) => field !== 'designation_subject_digest_domain',
+          );
+      },
+      /binding bundle ordered subject fields/,
+    ],
+    [
+      'binding bundle omits designated cohort SHA',
+      (contract) => {
+        contract.compatibility_derivation_contract.binding_bundle.ordered_subject_fields =
+          contract.compatibility_derivation_contract.binding_bundle.ordered_subject_fields.filter(
+            (field) => field !== 'designated_cohort_sha256',
+          );
+      },
+      /binding bundle ordered subject fields/,
+    ],
+    [
+      'compatibility input order drifts',
+      (contract) => {
+        const fields = contract.compatibility_derivation_contract.per_output_derivations[0].ordered_input_fields;
+        [fields[1], fields[2]] = [fields[2], fields[1]];
+      },
+      /compatibility output\[0\] inputs/,
+    ],
+    [
+      'compatibility output omits designation digest domain',
+      (contract) => {
+        contract.compatibility_derivation_contract.per_output_derivations[0].ordered_input_fields =
+          contract.compatibility_derivation_contract.per_output_derivations[0].ordered_input_fields.filter(
+            (field) => field !== 'designation_subject_digest_domain',
+          );
+      },
+      /compatibility output\[0\] inputs/,
+    ],
+    [
+      'compatibility output consumes its own output',
+      (contract) => {
+        contract.compatibility_derivation_contract.per_output_derivations[0].ordered_input_fields[4] =
+          'compatibility_key_output';
+      },
+      /compatibility output\[0\] inputs/,
+    ],
+    [
+      'binding bundle permits self-hash input',
+      (contract) => {
+        contract.compatibility_derivation_contract.binding_bundle.forbidden_subject_fields.shift();
+      },
+      /binding bundle forbidden recursive inputs/,
+    ],
+    [
+      'compatibility output domain drifts',
+      (contract) => { contract.compatibility_derivation_contract.per_output_derivations[0].domain_separator += '-changed'; },
+      /compatibility output\[0\] domain separator/,
+    ],
+    [
+      'compatibility output ID drifts',
+      (contract) => { contract.compatibility_derivation_contract.per_output_derivations[0].output_id += '-changed'; },
+      /compatibility output\[0\] output ID/,
+    ],
+    [
+      'one compatibility output is omitted',
+      (contract) => { contract.compatibility_derivation_contract.per_output_derivations.pop(); },
+      /exactly five outputs/,
+    ],
+    [
+      'arbitrary compatibility values become allowed',
+      (contract) => {
+        contract.compatibility_derivation_contract.arbitrary_or_synthetic_compatibility_values_forbidden = false;
+      },
+      /arbitrary compatibility value policy/,
+    ],
+    [
+      'cached compatibility values skip recomputation',
+      (contract) => { contract.compatibility_derivation_contract.cached_value_without_recomputation_forbidden = false; },
+      /cache recomputation policy/,
+    ],
+    [
+      'three CP-BA components no longer compose one map',
+      (contract) => { contract.compatibility_derivation_contract.cp_ba_single_map_derivation.output_map_cardinality = 3; },
+      /CP-BA compatibility map cardinality/,
+    ],
+    [
+      'CP-BA component order drifts',
+      (contract) => {
+        contract.compatibility_derivation_contract.cp_ba_single_map_derivation
+          .ordered_component_requirement_ids.reverse();
+      },
+      /CP-BA compatibility map components/,
+    ],
+    [
+      'B2 claims freeze eligibility before F3',
+      (contract) => { contract.stages[2].manifest_freeze_eligible_after_stage = true; },
+      /must remain false|B2 freeze eligibility/,
+    ],
+    [
+      'F3 final decision is allowed to self-reference inside subject bytes',
+      (contract) => { contract.stages[3].final_freeze_self_reference_forbidden = false; },
+      /F3 self-reference prohibition/,
+    ],
+    [
+      'F3 decision subject contains its own approval',
+      (contract) => {
+        contract.stages[3].decision_subject = 'complete_successor_bytes_including_F3_approval';
+      },
+      /F3 decision subject/,
+    ],
+    [
+      'F3 omits the parent designation approval-instance digest',
+      (contract) => {
+        contract.stages[3].required_decision_intent_fields =
+          contract.stages[3].required_decision_intent_fields.filter(
+            (field) => field !== 'parent_designation_approval_instance_digest',
+          );
+      },
+      /F3 decision intent fields/,
+    ],
+    [
+      'F3 uses a generic authorization effect',
+      (contract) => { contract.stages[3].required_decision_gate_effect = 'authorize_named_actions'; },
+      /F3 decision gate effect/,
+    ],
+    [
+      'F3 authority matrix grants execution',
+      (contract) => { contract.stages[3].required_decision_authority_matrix.execution = true; },
+      /F3 decision authority matrix\.execution/,
+    ],
+    [
+      'F3 authority matrix grants manifest creation',
+      (contract) => { contract.stages[3].required_decision_authority_matrix.manifest_creation = true; },
+      /F3 decision authority matrix\.manifest_creation/,
+    ],
+    [
+      'F3 drops data population from its non-claims',
+      (contract) => {
+        contract.stages[3].required_decision_non_claims =
+          contract.stages[3].required_decision_non_claims.filter(
+            (claim) => claim !== 'data_manifest_population',
+          );
+      },
+      /F3 decision non-claims/,
+    ],
+    [
+      'F3 drops manifest creation from its non-claims',
+      (contract) => {
+        contract.stages[3].required_decision_non_claims =
+          contract.stages[3].required_decision_non_claims.filter(
+            (claim) => claim !== 'manifest_creation',
+          );
+      },
+      /F3 decision non-claims/,
+    ],
+    [
+      'F3 reservation activation creates the manifest root',
+      (contract) => { contract.stages[3].manifest_root_state_after_decision = 'present'; },
+      /F3 post-decision manifest root/,
+    ],
+    [
+      'F3 reservation activation mutates the frozen catalog',
+      (contract) => { contract.stages[3].catalog_metadata_mutation_forbidden = false; },
+      /F3 catalog mutation prohibition/,
+    ],
+    [
+      'F3 permits frozen subject drift after approval',
+      (contract) => { contract.stages[3].frozen_subject_artifacts_immutable_after_F3 = false; },
+      /F3 frozen subject immutability/,
+    ],
+    [
+      'F3 next action includes execution',
+      (contract) => { contract.stages[3].required_decision_allowed_next_action = 'freeze_and_execute'; },
+      /F3 decision next action/,
+    ],
+    [
+      'F3 removes separate evidence authority',
+      (contract) => { contract.stages[3].separate_authority_requirements.pop(); },
+      /F3 separate authority requirements/,
+    ],
+    [
+      'F3 falls back to generic explicit-action authorization',
+      (contract) => { contract.stages[3].authorization_rule = 'authorize_whatever_decision_names'; },
+      /F3 authorization rule/,
+    ],
+    [
+      'current preparation approval substitutes for D1',
+      (contract) => { contract.forbidden_decision_substitutions.shift(); },
+      /forbidden_decision_substitutions/,
+    ],
+    [
+      'schema-definition approval substitutes for F3',
+      (contract) => {
+        contract.forbidden_decision_substitutions =
+          contract.forbidden_decision_substitutions.filter(
+            (value) => value !== 'schema_definition_approval_for_final_manifest_freeze',
+          );
+      },
+      /forbidden_decision_substitutions/,
+    ],
+  ];
+  for (const [name, mutate, pattern] of cases) {
+    await t.test(name, () =>
+      withFixture(
+        {
+          mutate(root) {
+            const value = readJson(root, ROOT_PATH);
+            mutate(value.successor_transition_contract);
+            writeJson(root, ROOT_PATH, value);
+          },
+        },
+        (root) => assert.throws(() => validateUnreviewedFixture(root), pattern),
+      ));
+  }
+});
+
+test('rejects second-round authority, provenance, lifecycle, and canonical-binding drift', async (t) => {
+  const cases = [
+    ['post-approval workflow data leaks into a preapproval intent', (c) => c.stages[1].required_decision_intent_fields.push('workflow_run_id'), /D1 decision intent fields/],
+    ['a receipt may become part of its own approval subject', (c) => { c.decision_instance_contract.decision_lifecycle_contract.receipt_cannot_be_subject_artifact_of_same_approval = false; }, /decision lifecycle receipt_cannot_be_subject_artifact_of_same_approval/],
+    ['a receipt no longer binds the exact intent bytes', (c) => { c.decision_instance_contract.decision_lifecycle_contract.receipt_must_bind_intent_path_and_raw_sha256 = false; }, /decision lifecycle receipt_must_bind_intent_path_and_raw_sha256/],
+    ['receipt materialization no longer requires external success', (c) => { c.decision_instance_contract.decision_lifecycle_contract.receipt_materialization_requires_verified_external_success_event = false; }, /decision lifecycle receipt_materialization_requires_verified_external_success_event/],
+    ['legacy schema approval is assigned a non-null parent', (c) => { c.decision_instance_contract.legacy_preparation_bootstrap_contract.root_parent_approval_tuple = {}; }, /legacy root parent/],
+    ['legacy receipt migration fabricates current authority', (c) => { c.decision_instance_contract.legacy_preparation_bootstrap_contract.materialization_authorized = true; }, /materialization_authorized must remain false/],
+    ['legacy migration permits fabricated values', (c) => { c.decision_instance_contract.legacy_preparation_bootstrap_contract.fabricated_intent_or_receipt_values_forbidden = false; }, /legacy fabrication policy/],
+    ['legacy migration collapses its two protected event chains', (c) => c.decision_instance_contract.legacy_preparation_bootstrap_contract.required_two_event_chains.pop(), /legacy two event chains/],
+    ['legacy event chains may substitute for each other', (c) => { c.decision_instance_contract.legacy_preparation_bootstrap_contract.event_chains_must_not_share_or_substitute_head_run_deployment_approval_or_event_ref = false; }, /legacy event separation/],
+    ['legacy receipt authority loses its explicit field binding', (c) => c.decision_instance_contract.legacy_preparation_bootstrap_contract.migrated_receipt_exact_field_bindings.splice(1, 1), /legacy migrated receipt field bindings/],
+    ['decision subject artifact order drifts', (c) => c.decision_instance_contract.subject_digest_contract.exact_ordered_artifact_paths.reverse(), /decision subject exact artifact paths/],
+    ['decision subject mode becomes executable', (c) => { c.decision_instance_contract.subject_digest_contract.required_git_mode = '100755'; }, /decision subject mode/],
+    ['decision subject digest formula omits raw artifact records', (c) => { c.decision_instance_contract.subject_digest_contract.digest_formula = 'lowercase_hex_sha256(subject_commit)'; }, /decision subject digest formula/],
+    ['decision subject need not precede approval head', (c) => { c.decision_instance_contract.subject_digest_contract.subject_commit_must_be_ancestor_of_approval_target_head = false; }, /decision subject subject_commit_must_be_ancestor/],
+    ['decision subject bytes may drift at approval head', (c) => { c.decision_instance_contract.subject_digest_contract.all_subject_artifact_bytes_must_be_unchanged_at_approval_target_head = false; }, /decision subject all_subject_artifact_bytes/],
+    ['decision subject record drops byte length', (c) => c.decision_instance_contract.subject_digest_contract.artifact_record_required_fields.splice(2, 1), /decision subject artifact record fields/],
+    ['executable commit regex accepts arbitrary strings', (c) => { c.decision_instance_contract.regex_registry.entries.lowercase_hex_exact_40 = Buffer.from('^.+$').toString('base64'); }, /regex lowercase_hex_exact_40 source/],
+    ['intent digest field is mapped to a generic string', (c) => { c.decision_instance_contract.intent_field_type_map.designation_subject_digest = 'non_empty_string'; }, /intent field type map\.designation_subject_digest/],
+    ['canonical authority mask loses leadership readiness', (c) => c.decision_instance_contract.authority_mask_keys.pop(), /authority mask keys/],
+    ['canonical authority mask omits manifest creation', (c) => { c.decision_instance_contract.authority_mask_keys = c.decision_instance_contract.authority_mask_keys.filter((key) => key !== 'manifest_creation'); }, /authority mask keys/],
+    ['authority policy loses one canonical key', (c) => c.authority_key_policy.canonical_decision_authority_keys.pop(), /canonical decision authority keys/],
+    ['legacy authority policy no longer defaults one key false', (c) => c.authority_key_policy.legacy_missing_keys_default_false.pop(), /legacy missing authority keys/],
+    ['D1 authority grants reservation activation', (c) => { c.decision_instance_contract.instances[0].required_authority_mask.reservation_activation = true; }, /decision instance\[0\] authority mask\.reservation_activation/],
+    ['D1 authority grants manifest creation', (c) => { c.decision_instance_contract.instances[0].required_authority_mask.manifest_creation = true; }, /decision instance\[0\] authority mask\.manifest_creation/],
+    ['D1 authority grants data-manifest population', (c) => { c.decision_instance_contract.instances[0].required_authority_mask.data_manifest_population = true; }, /decision instance\[0\] authority mask\.data_manifest_population/],
+    ['D1 authority grants architecture acceptance', (c) => { c.decision_instance_contract.instances[0].required_authority_mask.architecture_acceptance = true; }, /decision instance\[0\] authority mask\.architecture_acceptance/],
+    ['D1 authority grants checkpoint coverage', (c) => { c.decision_instance_contract.instances[0].required_authority_mask.checkpoint_coverage = true; }, /decision instance\[0\] authority mask\.checkpoint_coverage/],
+    ['D1 authority grants leadership readiness', (c) => { c.decision_instance_contract.instances[0].required_authority_mask.leadership_readiness = true; }, /decision instance\[0\] authority mask\.leadership_readiness/],
+    ['successor global authority grants execution', (c) => { c.authority.execution = true; }, /authority\.execution must remain false/],
+    ['staged parent tuple accepts an extra opaque field', (c) => c.staged_parent_contract.tuple_fields.push('parent_opaque'), /staged parent tuple/],
+    ['staged parent source binding is swapped', (c) => { c.staged_parent_contract.ordered_value_source_bindings[0] = 'parent_approval_target_head_sha=child_head'; }, /staged parent value sources/],
+    ['staged parent decision bytes may drift', (c) => { c.staged_parent_contract.validation_rules = c.staged_parent_contract.validation_rules.filter((v) => v !== 'parent_decision_artifact_raw_bytes_must_be_unchanged_at_child_head'); }, /staged parent validation rules/],
+    ['root parent sentinel stops being JSON null', (c) => { c.staged_parent_contract.root_parent_rules.canonical_root_parent_sentinel = 'empty_object'; }, /root parent sentinel/],
+    ['build value designation source can be caller supplied', (c) => { c.designation_bound_build_contract.ordered_value_source_bindings[0].source = 'caller'; }, /build value source\[0\]\.source/],
+    ['build source-closure domain drifts', (c) => { c.designation_bound_build_contract.source_closure_digest_contract.domain_separator += '-changed'; }, /source closure domain/],
+    ['build source-closure order becomes filesystem order', (c) => { c.designation_bound_build_contract.source_closure_digest_contract.record_order = 'filesystem_order'; }, /source closure record order rule/],
+    ['build source closure may be empty', (c) => { c.designation_bound_build_contract.source_closure_digest_contract.minimum_record_count = 0; }, /source closure minimum count/],
+    ['build source records permit extra keys', (c) => { c.designation_bound_build_contract.source_closure_record_exact_keys_required = false; }, /build exact source record keys/],
+    ['build recipe enumeration need not equal resolved closure', (c) => { c.designation_bound_build_contract.build_recipe_contract.resolved_source_closure_records_must_exactly_equal_recipe_enumeration = false; }, /build closure equality/],
+    ['build sandbox permits one ambient input', (c) => c.designation_bound_build_contract.build_recipe_contract.sandbox_forbidden_inputs.pop(), /build sandbox forbidden inputs/],
+    ['build output path is caller selected', (c) => { c.designation_bound_build_contract.build_recipe_contract.exact_build_output_path = 'artifacts/other.tar'; }, /build output path/],
+    ['clean build reproducibility is optional', (c) => { c.designation_bound_build_contract.build_recipe_contract.clean_rebuild_output_raw_sha256_must_match = false; }, /build clean reproducibility/],
+    ['window persists a real immutable issuer ID', (c) => { c.execution_window_contract.exact_value_keys[5] = 'schedule_issuer_immutable_id'; }, /execution window keys/],
+    ['window pseudonym accepts a reviewer identifier', (c) => { c.execution_window_contract.field_type_map.schedule_issuer_principal_pseudonym = 'reviewer_immutable_id'; }, /execution window field type schedule_issuer_principal_pseudonym/],
+    ['window allows real identity persistence', (c) => { c.execution_window_contract.schedule_issuer_real_immutable_id_must_not_be_persisted = false; }, /real identity persistence prohibition/],
+    ['window event digest drops canonical projection', (c) => { c.execution_window_contract.schedule_event_digest_contract.digest_formula = 'sha256(raw_json)'; }, /execution window event digest formula/],
+    ['window temporal expiry rule is removed', (c) => c.execution_window_contract.temporal_rules.pop(), /execution window temporal rules/],
+    ['window remote equality omits the event digest', (c) => c.execution_window_contract.trusted_schedule_event_exact_equality_fields.pop(), /execution window remote equality/],
+    ['binding bundle designation source is caller supplied', (c) => { c.compatibility_derivation_contract.binding_bundle.value_source_bindings[0].source = 'caller'; }, /binding bundle value source\[0\]\.source/],
+    ['compatibility requirement ID need not equal its output contract', (c) => { c.compatibility_derivation_contract.per_output_input_value_source_contract.compatibility_requirement_id_must_equal_per_output_requirement_id = false; }, /compatibility output value source compatibility_requirement_id/],
+    ['CP-BA map input is not recomputed from D1', (c) => { c.compatibility_derivation_contract.cp_ba_single_map_derivation.ordered_input_value_source_bindings[0].source = 'caller'; }, /CP-BA map value source\[0\]\.source/],
+    ['CP-BA map output field drifts', (c) => { c.compatibility_derivation_contract.cp_ba_single_map_derivation.output_field = 'map'; }, /CP-BA map output field/],
+    ['B2 metadata permits extra keys', (c) => { c.stages[2].binding_metadata_exact_key_set_required = false; }, /B2 binding metadata exact keys/],
+    ['B2 metadata omits the persisted CP-BA map', (c) => c.stages[2].required_binding_metadata_fields.pop(), /B2 binding metadata/],
+    ['B2 metadata map source is caller supplied', (c) => { c.stages[2].required_binding_metadata_value_sources.at(-1); c.stages[2].required_binding_metadata_value_sources[c.stages[2].required_binding_metadata_value_sources.length - 1] = 'cp_ba_compatibility_map_digest=caller'; }, /B2 binding metadata value sources/],
+    ['F3 no longer freezes exact B2 metadata', (c) => { c.stages[3].frozen_b2_binding_metadata_fields_ref = '#/other'; }, /F3 frozen B2 metadata ref/],
+    ['remote repository is not bound to event chain', (c) => c.approval_receipt_contract.external_event_contract.exact_receipt_value_source_bindings.shift(), /external event receipt value sources/],
+    ['canonical repository literal drifts to a fork', (c) => { c.approval_receipt_contract.external_event_contract.required_repository_full_name = 'fork/softbook_cet'; }, /external event canonical repository/],
+    ['fork PR or event substitution is permitted', (c) => { c.approval_receipt_contract.external_event_contract.fork_pull_request_or_event_substitution_forbidden = false; }, /external repository fork_pull_request_or_event_substitution_forbidden/],
+    ['remote approval may target another repository or PR', (c) => { c.approval_receipt_contract.external_event_contract.approval_target_head_must_belong_to_exact_repository_and_pull_request = false; }, /external event approval_target_head_must_belong/],
+    ['workflow run head may differ from approval target', (c) => { c.approval_receipt_contract.external_event_contract.workflow_run_head_sha_must_equal_approval_target_head_sha = false; }, /external event workflow_run_head_sha_must_equal/],
+    ['trusted base need not be an ancestor', (c) => { c.approval_receipt_contract.external_event_contract.trusted_base_sha_must_be_ancestor_of_approval_target_head_sha = false; }, /external event trusted_base_sha_must_be_ancestor/],
+    ['protected PR base ref drifts from main', (c) => { c.approval_receipt_contract.external_event_contract.required_pull_request_base_ref = 'refs/heads/dev'; }, /external event protected base ref/],
+    ['intent or receipt may self-supply the trust anchor', (c) => { c.approval_receipt_contract.external_event_contract.intent_or_receipt_supplied_trusted_base_forbidden = false; }, /external event intent_or_receipt_supplied_trusted_base_forbidden/],
+    ['workflow classifier or validator bytes may come from decision head', (c) => { c.approval_receipt_contract.external_event_contract.trusted_workflow_classifier_and_validator_bytes_must_be_loaded_from_trusted_base_sha = false; }, /external event trusted_workflow_classifier_and_validator_bytes/],
+    ['remote event digest hashes unstable raw JSON', (c) => { c.approval_receipt_contract.external_event_contract.event_chain_digest_contract.digest_formula = 'sha256(raw_json)'; }, /external event digest formula/],
+    ['remote workflow may fail', (c) => { c.approval_receipt_contract.external_event_contract.required_workflow_conclusion = 'any'; }, /external event workflow conclusion/],
+    ['protected environment name drifts', (c) => { c.approval_receipt_contract.external_event_contract.required_environment_name = 'staging'; }, /external event environment name/],
+    ['immutable reviewer identity drifts', (c) => { c.approval_receipt_contract.external_event_contract.required_reviewer_immutable_id = 'github:other#1'; }, /external event reviewer/],
+    ['receipt use skips one invalidation result', (c) => { c.approval_receipt_contract.use_time_validation_contract.every_invalidation_condition_must_evaluate_false = false; }, /receipt use-time every_invalidation_condition/],
+    ['validity policy is falsely marked available', (c) => { c.decision_instance_contract.decision_validity_policy_contract.current_status = 'ready'; }, /validity policy status/],
+    ['unknown invalidation IDs do not fail closed', (c) => { c.decision_instance_contract.decision_validity_policy_contract.unknown_condition_id_must_fail_closed = false; }, /validity unknown_condition_id/],
+    ['schema invents an owner TTL', (c) => { c.decision_instance_contract.decision_validity_policy_contract.class_policy_slots.cohort_designation.max_validity_seconds = 31536000; }, /validity cohort_designation max duration/],
+    ['cohort digest becomes an arbitrary nonce', (c) => { c.decision_instance_contract.designated_cohort_identity_contract.digest_formula = 'sha256(random_nonce)'; }, /cohort identity digest formula/],
+    ['cohort identity domain drifts', (c) => { c.decision_instance_contract.designated_cohort_identity_contract.domain_separator += '-changed'; }, /cohort identity domain/],
+    ['cohort ID syntax regex accepts arbitrary strings', (c) => { c.decision_instance_contract.regex_registry.entries.syntactic_opaque_designated_cohort_id_v1 = Buffer.from('^.+$').toString('base64'); }, /regex syntactic_opaque_designated_cohort_id_v1 source/],
+    ['cohort privacy validator is falsely implemented', (c) => { c.decision_instance_contract.designated_cohort_identity_contract.protected_privacy_classification_validator_status = 'implemented'; }, /cohort privacy validator status/],
+    ['cohort non-PII attestation gate is removed', (c) => { c.decision_instance_contract.designated_cohort_identity_contract.protected_non_pii_attestation_required_before_d1_use = false; }, /cohort non-PII attestation gate/],
+    ['builder runtime identity is falsely implemented', (c) => { c.designation_bound_build_contract.build_recipe_contract.builder_runtime_identity_status = 'implemented'; }, /builder runtime identity status/],
+    ['builder runtime identity omits archive normalization profile', (c) => c.designation_bound_build_contract.build_recipe_contract.builder_runtime_identity_required_fields.pop(), /builder runtime identity fields/],
+    ['recipe and lock may fall outside the source closure', (c) => { c.designation_bound_build_contract.build_recipe_contract.recipe_and_toolchain_lock_must_be_members_of_source_closure = false; }, /recipe and lock source-closure membership/],
+    ['preexisting output may enter the build source closure', (c) => { c.designation_bound_build_contract.build_recipe_contract.build_output_path_must_not_be_member_of_source_closure = false; }, /build output source-closure exclusion/],
+    ['schema falsely claims current cross-environment reproducibility', (c) => { c.designation_bound_build_contract.build_recipe_contract.hermeticity_and_cross_environment_reproducibility_claim_currently_allowed = true; }, /hermeticity_and_cross_environment_reproducibility_claim_currently_allowed must remain false|current hermeticity claim/],
+    ['builder identity materialization blocker is removed', (c) => { c.designation_bound_build_contract.build_recipe_contract.materialization_blocked_until_builder_identity_and_archive_normalization_implemented = false; }, /builder identity materialization blocker/],
+    ['R0 B2 materialization validator is falsely implemented', (c) => { c.decision_authority_bootstrap.r0_b2_materialization_validator_status = 'implemented'; }, /R0\/B2 materialization validator status/],
+    ['R0 proceeds without the materialization validator', (c) => { c.decision_authority_bootstrap.r0_must_not_proceed_before_materialization_validator = false; }, /R0 materialization validator gate/],
+  ];
+  for (const [name, mutate, pattern] of cases) {
+    await t.test(name, () =>
+      withFixture(
+        {
+          mutate(root) {
+            const value = readJson(root, ROOT_PATH);
+            mutate(value.successor_transition_contract);
+            writeJson(root, ROOT_PATH, value);
+          },
+        },
+        (root) => assert.throws(() => validateUnreviewedFixture(root), pattern),
+      ));
+  }
+});
+
+test('rejects omission of a newly disclosed fail-closed global blocker', () =>
+  withFixture(
+    {
+      mutate(root) {
+        const value = readJson(root, ROOT_PATH);
+        value.global_blockers = value.global_blockers.filter(
+          (blocker) => blocker !== 'protected_decision_validity_policy_and_evaluator_missing',
+        );
+        writeJson(root, ROOT_PATH, value);
+      },
+    },
+    (root) => assert.throws(() => validateUnreviewedFixture(root), /global_blockers/),
+  ));
+
+test('rejects arbitrary compatibility value classes in the current typed registry', () =>
+  withFixture(
+    {
+      mutate(root) {
+        const value = readJson(root, ROOT_PATH);
+        value.current_requirement_registry.requirements_by_id[
+          'compatibility-cp-ba-platform-browser'
+        ].allowed_value_class = 'receiver_or_owner_arbitrary_key';
+        recomputeCurrentRequirementInventory(value);
+        writeJson(root, ROOT_PATH, value);
+      },
+    },
+    (root) =>
+      assert.throws(
+        () => validateUnreviewedFixture(root),
+        /reviewed current requirement inventory digest|registry allowed value class/,
+      ),
+  ));
+
+test('rejects current materialization of a reserved future decision artifact', () =>
+  withFixture(
+    {
+      mutate(root) {
+        const decisionPath = path.join(
+          root,
+          'docs/design/decisions/mobile-ux-batch1-cohort-designation-v1.json',
+        );
+        fs.mkdirSync(path.dirname(decisionPath), {recursive: true});
+        fs.writeFileSync(decisionPath, '{}\n');
+      },
+    },
+    (root) =>
+      assert.throws(
+        () => validateUnreviewedFixture(root),
+        /future decision artifact must be absent before freeze/,
       ),
   ));
 
@@ -544,6 +1213,25 @@ test('rejects current-requirement semantic laundering even when its self digest 
         requirement.subject_discriminator.reviewed_compatibility_cohort = 'self_recomputed_laundering';
       },
     ],
+    [
+      'CP-BA build reintroduces the final-freeze dependency cycle',
+      (registry) => {
+        registry.requirements_by_id['build-cp-ba-browser-documents']
+          .subject_discriminator.candidate.reason_code = 'future_manifest_decision_commit_missing';
+      },
+    ],
+    [
+      'one current requirement is prematurely marked resolved',
+      (registry) => {
+        registry.requirements_by_id['window-cp-ba'].status = 'typed_value_resolved';
+      },
+    ],
+    [
+      'one current requirement gains freeze authority',
+      (registry) => {
+        registry.requirements_by_id['window-cp-ba'].authority.freeze = true;
+      },
+    ],
   ];
   for (const [name, mutate] of cases) {
     await t.test(name, () =>
@@ -559,7 +1247,7 @@ test('rejects current-requirement semantic laundering even when its self digest 
         (root) =>
           assert.throws(
             () => validateUnreviewedFixture(root),
-            /reviewed current requirement inventory digest|subject_discriminator|allowed_value_class/,
+            /reviewed current requirement inventory digest|subject_discriminator|allowed_value_class|status|must remain false/,
           ),
       ));
   }

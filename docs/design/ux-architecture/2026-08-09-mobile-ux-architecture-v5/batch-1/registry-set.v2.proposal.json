@@ -32,16 +32,24 @@
       "CP-WEB": "cba6f75f9c7574a58c9ee2f744991ec2154385c6ca328b46be6522e652e09696"
     },
     "does_not_authorize": [
+      "cohort_designation",
+      "manifest_creation",
+      "reservation_activation",
       "freeze",
+      "final_manifest_freeze",
       "provision",
       "execution",
       "evidence",
+      "data_manifest_population",
       "aggregation",
       "promotion",
+      "architecture_acceptance",
+      "checkpoint_coverage_or_pass",
       "visual",
       "implementation",
       "native",
-      "release"
+      "release",
+      "leadership_readiness"
     ]
   },
   "child_registries": [
@@ -81,10 +89,1855 @@
   "global_blockers": [
     "owner_exact_tier2_id_set_missing",
     "external_and_human_bindings_unresolved",
+    "trusted_decision_authority_bootstrap_not_implemented",
+    "r0_b2_materialization_validator_not_implemented",
+    "protected_decision_validity_policy_and_evaluator_missing",
+    "legacy_preparation_receipt_migration_authorization_missing",
+    "protected_cohort_designation_missing",
+    "post_designation_build_windows_and_compatibility_bindings_missing",
     "future_manifest_freeze_decision_missing",
     "exact_compatibility_keys_missing",
     "execution_manifest_subtree_must_remain_absent"
   ],
+  "successor_transition_contract": {
+    "schema_version": "mobile-ux-batch1-successor-transition.v1",
+    "contract_status": "future_sequence_defined_current_candidate_unchanged",
+    "current_candidate_invariants": {
+      "requirement_registry_ref": "#/current_requirement_registry",
+      "requirement_count": 145,
+      "pending_requirement_count": 145,
+      "required_requirement_status": "typed_value_pending",
+      "authority_state": "all_false",
+      "execution_manifest_root": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests",
+      "execution_manifest_root_required_state": "absent"
+    },
+    "ordered_stage_ids": [
+      "R0_resolution_successor",
+      "D1_protected_cohort_designation",
+      "B2_post_designation_binding_successor",
+      "F3_final_manifest_freeze_decision"
+    ],
+    "post_designation_requirement_ids_by_kind": {
+      "build": [
+        "build-cp-ba-browser-documents"
+      ],
+      "execution_window": [
+        "window-cp-ba",
+        "window-cp-cs",
+        "window-cp-web"
+      ],
+      "compatibility": [
+        "compatibility-cp-ba-platform-browser",
+        "compatibility-cp-ba-shared-formal",
+        "compatibility-cp-ba-shared-managed",
+        "compatibility-cp-cs-aggregate",
+        "compatibility-cp-web-aggregate"
+      ]
+    },
+    "designation_bound_build_contract": {
+      "schema_version": "mobile-ux-batch1-designation-bound-build.v1",
+      "requirement_id": "build-cp-ba-browser-documents",
+      "allowed_value_class": "designation_bound_source_closure_build_value_v1",
+      "required_value_fields": [
+        "designation_subject_commit",
+        "designation_subject_digest_domain",
+        "designation_subject_digest",
+        "designated_cohort_id",
+        "designated_cohort_sha256",
+        "designation_approval_instance_digest",
+        "build_recipe_id",
+        "build_recipe_raw_sha256",
+        "toolchain_lock_raw_sha256",
+        "build_output_role",
+        "source_closure_records",
+        "source_closure_digest",
+        "build_output_artifact"
+      ],
+      "ordered_value_source_bindings": [
+        {
+          "field_id": "designation_subject_commit",
+          "source": "exact_D1_decision_intent.designation_subject_commit"
+        },
+        {
+          "field_id": "designation_subject_digest_domain",
+          "source": "exact_D1_decision_intent.designation_subject_digest_domain"
+        },
+        {
+          "field_id": "designation_subject_digest",
+          "source": "exact_D1_decision_intent.designation_subject_digest"
+        },
+        {
+          "field_id": "designated_cohort_id",
+          "source": "exact_D1_decision_intent.designated_cohort_id"
+        },
+        {
+          "field_id": "designated_cohort_sha256",
+          "source": "exact_D1_decision_intent.designated_cohort_sha256"
+        },
+        {
+          "field_id": "designation_approval_instance_digest",
+          "source": "recomputed_D1_approval_receipt.approval_instance_digest"
+        },
+        {
+          "field_id": "build_recipe_id",
+          "source": "designation_bound_build_contract.build_recipe_contract.build_recipe_id"
+        },
+        {
+          "field_id": "build_recipe_raw_sha256",
+          "source": "recomputed_raw_sha256_of_recipe_path_blob_at_designation_subject_commit"
+        },
+        {
+          "field_id": "toolchain_lock_raw_sha256",
+          "source": "recomputed_raw_sha256_of_toolchain_lock_path_blob_at_designation_subject_commit"
+        },
+        {
+          "field_id": "build_output_role",
+          "source": "designation_bound_build_contract.build_recipe_contract.build_output_role"
+        },
+        {
+          "field_id": "source_closure_records",
+          "source": "recomputed_exact_build_recipe_source_closure_records_at_designation_subject_commit"
+        },
+        {
+          "field_id": "source_closure_digest",
+          "source": "recomputed_source_closure_digest_from_exact_ordered_source_closure_records"
+        },
+        {
+          "field_id": "build_output_artifact",
+          "source": "recomputed_clean_hermetic_build_output_artifact_at_exact_build_output_path"
+        }
+      ],
+      "all_value_fields_must_equal_exact_sources": true,
+      "exact_value_keys_required": true,
+      "source_closure_record_required_fields": [
+        "path",
+        "git_mode",
+        "byte_length",
+        "raw_sha256"
+      ],
+      "source_closure_record_exact_keys_required": true,
+      "required_git_mode": "100644",
+      "source_closure_must_match_designated_subject": true,
+      "untracked_or_dirty_source_forbidden": true,
+      "recompute_build_output_on_any_source_drift": true,
+      "source_closure_digest_contract": {
+        "algorithm": "sha256",
+        "version": "v1",
+        "domain_separator": "softbook-cet/mobile-ux-batch1-build-source-closure/v1",
+        "canonical_value_encoding": "RFC8785_JCS",
+        "projection_container": "array_of_two_element_field_id_and_canonical_value_tuples",
+        "ordered_record_fields": [
+          "path",
+          "git_mode",
+          "byte_length",
+          "raw_sha256"
+        ],
+        "path_normalization": "repository_relative_posix_nfc_no_dot_segments",
+        "record_order": "normalized_path_utf8_ascending",
+        "minimum_record_count": 1,
+        "normalized_paths_must_be_unique": true,
+        "tracked_regular_blob_required": true,
+        "symlink_forbidden": true,
+        "record_bytes_source": "exact_designation_subject_commit",
+        "digest_formula": "lowercase_hex_sha256(utf8(domain_separator)+NUL+utf8(RFC8785_JCS(ordered_record_tuple_arrays)))",
+        "output_field": "source_closure_digest",
+        "output_format": "lowercase_hex_sha256_64",
+        "recompute_and_compare_required": true
+      },
+      "build_output_digest_contract": {
+        "algorithm": "sha256",
+        "version": "v1",
+        "artifact_record_required_fields": [
+          "path",
+          "git_mode",
+          "byte_length",
+          "raw_sha256"
+        ],
+        "artifact_record_exact_keys_required": true,
+        "path_normalization": "repository_relative_posix_nfc_no_dot_segments",
+        "required_git_mode": "100644",
+        "regular_file_required": true,
+        "symlink_forbidden": true,
+        "digest_formula": "lowercase_hex_sha256(raw_file_bytes)",
+        "output_field": "build_output_artifact.raw_sha256",
+        "output_format": "lowercase_hex_sha256_64",
+        "recompute_length_and_digest_from_raw_bytes_required": true
+      },
+      "build_recipe_contract": {
+        "build_recipe_id": "cp-ba-browser-documents-hermetic-build-v1",
+        "future_recipe_path": "scripts/build_mobile_ux_batch1_cp_ba_browser_documents.mjs",
+        "recipe_path_must_be_tracked_regular_100644_at_designation_subject": true,
+        "recipe_raw_sha256_must_be_recomputed": true,
+        "toolchain_lock_path": "package-lock.json",
+        "toolchain_lock_must_be_tracked_regular_100644_at_designation_subject": true,
+        "toolchain_lock_raw_sha256_must_be_recomputed": true,
+        "build_output_role": "cp-ba-browser-documents",
+        "exact_build_output_path": "artifacts/mobile-ux-batch1/cp-ba-browser-documents.tar",
+        "source_closure_enumeration_rule": "recipe_deterministically_enumerates_complete_input_path_set_at_designation_subject",
+        "resolved_source_closure_records_must_exactly_equal_recipe_enumeration": true,
+        "hermetic_invocation_inputs": [
+          "source_closure_records_and_exact_raw_bytes",
+          "source_closure_digest",
+          "build_recipe_raw_sha256",
+          "toolchain_lock_raw_sha256"
+        ],
+        "sandbox_forbidden_inputs": [
+          "undeclared_file_reads",
+          "network_access",
+          "ambient_environment_variables",
+          "wall_clock_time",
+          "unseeded_randomness"
+        ],
+        "builder_runtime_identity_status": "not_implemented",
+        "builder_runtime_identity_required_fields": [
+          "builder_image_digest",
+          "runtime_version",
+          "operating_system",
+          "architecture",
+          "locale",
+          "timezone",
+          "archive_metadata_normalization_profile"
+        ],
+        "archive_metadata_normalization_status": "not_implemented",
+        "recipe_and_toolchain_lock_must_be_members_of_source_closure": true,
+        "build_output_path_must_not_be_member_of_source_closure": true,
+        "clean_build_output_path_must_be_absent_before_invocation": true,
+        "output_must_be_derived_only_from_hermetic_invocation_inputs": true,
+        "clean_rebuild_output_raw_sha256_must_match": true,
+        "hermeticity_and_cross_environment_reproducibility_claim_currently_allowed": false,
+        "materialization_blocked_until_builder_identity_and_archive_normalization_implemented": true,
+        "recipe_status": "future_not_implemented",
+        "arbitrary_tracked_file_cannot_substitute_for_build_output": true
+      }
+    },
+    "execution_window_contract": {
+      "schema_version": "mobile-ux-batch1-canonical-execution-window.v1",
+      "requirement_ids": [
+        "window-cp-ba",
+        "window-cp-cs",
+        "window-cp-web"
+      ],
+      "allowed_value_class": "canonical_utc_execution_window_value_v1",
+      "exact_value_keys": [
+        "window_requirement_id",
+        "start_at_utc",
+        "end_at_utc",
+        "expires_at_utc",
+        "schedule_issuer_authority_ref",
+        "schedule_issuer_principal_pseudonym",
+        "schedule_issued_at_utc",
+        "schedule_event_ref",
+        "schedule_event_sha256"
+      ],
+      "exact_value_keys_required": true,
+      "canonical_projection_container": "array_of_two_element_field_id_and_canonical_value_tuples",
+      "ordered_projection_fields": [
+        "window_requirement_id",
+        "start_at_utc",
+        "end_at_utc",
+        "expires_at_utc",
+        "schedule_issuer_authority_ref",
+        "schedule_issuer_principal_pseudonym",
+        "schedule_issued_at_utc",
+        "schedule_event_ref",
+        "schedule_event_sha256"
+      ],
+      "timestamp_normalization": "rfc3339_utc_second_precision_Z",
+      "field_type_map": {
+        "window_requirement_id": "non_empty_string",
+        "start_at_utc": "rfc3339_timestamp",
+        "end_at_utc": "rfc3339_timestamp",
+        "expires_at_utc": "rfc3339_timestamp",
+        "schedule_issuer_authority_ref": "non_empty_string",
+        "schedule_issuer_principal_pseudonym": "campaign_scoped_hmac_principal_pseudonym",
+        "schedule_issued_at_utc": "rfc3339_timestamp",
+        "schedule_event_ref": "non_empty_string",
+        "schedule_event_sha256": "sha256"
+      },
+      "value_semantics": "protected_owner_operator_proposed_not_derived",
+      "schedule_source_authority": "protected_owner_operator_schedule_event",
+      "schedule_issuer_pseudonym_source": "verified_human_role_confirmation_v1.campaign_scoped_principal_pseudonym",
+      "schedule_issuer_real_immutable_id_must_not_be_persisted": true,
+      "pseudonym_mapping_must_remain_off_repository": true,
+      "trusted_remote_event_may_verify_real_identity_without_persisting_it": true,
+      "trusted_schedule_event_lookup_required": true,
+      "trusted_schedule_event_exact_equality_fields": [
+        "window_requirement_id",
+        "start_at_utc",
+        "end_at_utc",
+        "expires_at_utc",
+        "schedule_issuer_authority_ref",
+        "schedule_issuer_principal_pseudonym",
+        "schedule_issued_at_utc",
+        "schedule_event_ref",
+        "schedule_event_sha256"
+      ],
+      "schedule_event_digest_contract": {
+        "algorithm": "sha256",
+        "version": "v1",
+        "domain_separator": "softbook-cet/mobile-ux-batch1-protected-schedule-event/v1",
+        "canonical_value_encoding": "RFC8785_JCS",
+        "projection_container": "array_of_two_element_field_id_and_canonical_value_tuples",
+        "ordered_projection_fields": [
+          "window_requirement_id",
+          "start_at_utc",
+          "end_at_utc",
+          "expires_at_utc",
+          "schedule_issuer_authority_ref",
+          "schedule_issuer_principal_pseudonym",
+          "schedule_issued_at_utc",
+          "schedule_event_ref"
+        ],
+        "projection_values_must_equal_verified_schedule_event": true,
+        "digest_formula": "lowercase_hex_sha256(utf8(domain_separator)+NUL+utf8(RFC8785_JCS(ordered_projection_tuple_array)))",
+        "output_field": "schedule_event_sha256",
+        "output_format": "lowercase_hex_sha256_64",
+        "recompute_and_compare_required": true
+      },
+      "schedule_event_must_be_unrevoked_and_unexpired_at_binding_and_F3_use": true,
+      "window_requirement_id_must_equal_registry_requirement_id": true,
+      "temporal_rules": [
+        "schedule_issued_at_utc_not_after_F3_decided_at",
+        "F3_decided_at_strictly_before_start_at_utc",
+        "start_at_utc_strictly_before_end_at_utc",
+        "end_at_utc_not_after_expires_at_utc",
+        "not_expired_at_binding_use_time"
+      ],
+      "f3_binding_rule": "exact_window_values_are_part_of_B2_subject_reviewed_by_F3_without_execution_authority",
+      "compatibility_digest_effect": "representational_identity_only_not_schedule_authority",
+      "recompute_canonical_projection_on_any_value_drift": true
+    },
+    "compatibility_derivation_contract": {
+      "schema_version": "mobile-ux-batch1-deterministic-compatibility.v1",
+      "hash_algorithm": "sha256",
+      "canonical_value_encoding": "RFC8785_JCS",
+      "ordered_input_container": "array_of_two_element_field_id_and_canonical_value_tuples",
+      "ordered_input_tuple_fields": [
+        "field_id",
+        "canonical_value"
+      ],
+      "digest_formula": "lowercase_hex_sha256(utf8(domain_separator)+NUL+utf8(RFC8785_JCS(ordered_input_tuples)))",
+      "output_format": "lowercase_hex_sha256_64",
+      "binding_bundle": {
+        "bundle_id": "batch1-post-designation-binding-bundle-v1",
+        "domain_separator": "softbook-cet/mobile-ux-batch1-binding-bundle/v1",
+        "ordered_subject_fields": [
+          "designation_subject_commit",
+          "designation_subject_digest_domain",
+          "designation_subject_digest",
+          "designated_cohort_id",
+          "designated_cohort_sha256",
+          "designation_approval_instance_digest",
+          "build-cp-ba-browser-documents",
+          "window-cp-ba",
+          "window-cp-cs",
+          "window-cp-web"
+        ],
+        "source_requirement_ids": [
+          "build-cp-ba-browser-documents",
+          "window-cp-ba",
+          "window-cp-cs",
+          "window-cp-web"
+        ],
+        "source_closure_rule": "exact_D1_subject_plus_designation_bound_build_and_three_exact_windows_only",
+        "forbidden_subject_fields": [
+          "binding_bundle_digest",
+          "compatibility_key_output",
+          "compatibility_map_output",
+          "final_freeze_subject_commit",
+          "final_freeze_subject_digest",
+          "final_manifest_freeze_decision_ref"
+        ],
+        "value_source_bindings": [
+          {
+            "field_id": "designation_subject_commit",
+            "source": "exact_D1_intent.designation_subject_commit"
+          },
+          {
+            "field_id": "designation_subject_digest_domain",
+            "source": "exact_D1_intent.designation_subject_digest_domain"
+          },
+          {
+            "field_id": "designation_subject_digest",
+            "source": "exact_D1_intent.designation_subject_digest"
+          },
+          {
+            "field_id": "designated_cohort_id",
+            "source": "exact_D1_intent.designated_cohort_id"
+          },
+          {
+            "field_id": "designated_cohort_sha256",
+            "source": "exact_D1_intent.designated_cohort_sha256"
+          },
+          {
+            "field_id": "designation_approval_instance_digest",
+            "source": "recomputed_D1_receipt.approval_instance_digest"
+          },
+          {
+            "field_id": "build-cp-ba-browser-documents",
+            "source": "exact_resolved_requirement_value.build-cp-ba-browser-documents"
+          },
+          {
+            "field_id": "window-cp-ba",
+            "source": "exact_canonical_window_requirement_value.window-cp-ba"
+          },
+          {
+            "field_id": "window-cp-cs",
+            "source": "exact_canonical_window_requirement_value.window-cp-cs"
+          },
+          {
+            "field_id": "window-cp-web",
+            "source": "exact_canonical_window_requirement_value.window-cp-web"
+          }
+        ],
+        "derivation_formula_ref": "#/successor_transition_contract/compatibility_derivation_contract/digest_formula",
+        "output_field": "binding_bundle_digest",
+        "output_format": "lowercase_hex_sha256_64",
+        "recompute_and_compare_required": true,
+        "recompute_on_any_subject_drift": true
+      },
+      "per_output_derivations": [
+        {
+          "requirement_id": "compatibility-cp-ba-platform-browser",
+          "output_id": "compat-key-cp-ba-platform-browser-v1",
+          "domain_separator": "softbook-cet/mobile-ux-batch1-compatibility/cp-ba-platform-browser/v1",
+          "ordered_input_fields": [
+            "designation_subject_commit",
+            "designation_subject_digest_domain",
+            "designation_subject_digest",
+            "binding_bundle_digest",
+            "compatibility_requirement_id"
+          ],
+          "derivation_formula_ref": "#/successor_transition_contract/compatibility_derivation_contract/digest_formula",
+          "output_value_class": "deterministic_compatibility_sha256_value_v1",
+          "compatibility_requirement_id_must_equal_requirement_id": true,
+          "recompute_on_any_input_drift": true
+        },
+        {
+          "requirement_id": "compatibility-cp-ba-shared-formal",
+          "output_id": "compat-key-cp-ba-shared-formal-v1",
+          "domain_separator": "softbook-cet/mobile-ux-batch1-compatibility/cp-ba-shared-formal/v1",
+          "ordered_input_fields": [
+            "designation_subject_commit",
+            "designation_subject_digest_domain",
+            "designation_subject_digest",
+            "binding_bundle_digest",
+            "compatibility_requirement_id"
+          ],
+          "derivation_formula_ref": "#/successor_transition_contract/compatibility_derivation_contract/digest_formula",
+          "output_value_class": "deterministic_compatibility_sha256_value_v1",
+          "compatibility_requirement_id_must_equal_requirement_id": true,
+          "recompute_on_any_input_drift": true
+        },
+        {
+          "requirement_id": "compatibility-cp-ba-shared-managed",
+          "output_id": "compat-key-cp-ba-shared-managed-v1",
+          "domain_separator": "softbook-cet/mobile-ux-batch1-compatibility/cp-ba-shared-managed/v1",
+          "ordered_input_fields": [
+            "designation_subject_commit",
+            "designation_subject_digest_domain",
+            "designation_subject_digest",
+            "binding_bundle_digest",
+            "compatibility_requirement_id"
+          ],
+          "derivation_formula_ref": "#/successor_transition_contract/compatibility_derivation_contract/digest_formula",
+          "output_value_class": "deterministic_compatibility_sha256_value_v1",
+          "compatibility_requirement_id_must_equal_requirement_id": true,
+          "recompute_on_any_input_drift": true
+        },
+        {
+          "requirement_id": "compatibility-cp-cs-aggregate",
+          "output_id": "compat-key-cp-cs-aggregate-v1",
+          "domain_separator": "softbook-cet/mobile-ux-batch1-compatibility/cp-cs-aggregate/v1",
+          "ordered_input_fields": [
+            "designation_subject_commit",
+            "designation_subject_digest_domain",
+            "designation_subject_digest",
+            "binding_bundle_digest",
+            "compatibility_requirement_id"
+          ],
+          "derivation_formula_ref": "#/successor_transition_contract/compatibility_derivation_contract/digest_formula",
+          "output_value_class": "deterministic_compatibility_sha256_value_v1",
+          "compatibility_requirement_id_must_equal_requirement_id": true,
+          "recompute_on_any_input_drift": true
+        },
+        {
+          "requirement_id": "compatibility-cp-web-aggregate",
+          "output_id": "compat-key-cp-web-aggregate-v1",
+          "domain_separator": "softbook-cet/mobile-ux-batch1-compatibility/cp-web-aggregate/v1",
+          "ordered_input_fields": [
+            "designation_subject_commit",
+            "designation_subject_digest_domain",
+            "designation_subject_digest",
+            "binding_bundle_digest",
+            "compatibility_requirement_id"
+          ],
+          "derivation_formula_ref": "#/successor_transition_contract/compatibility_derivation_contract/digest_formula",
+          "output_value_class": "deterministic_compatibility_sha256_value_v1",
+          "compatibility_requirement_id_must_equal_requirement_id": true,
+          "recompute_on_any_input_drift": true
+        }
+      ],
+      "per_output_input_value_source_contract": {
+        "ordered_bindings": [
+          {
+            "field_id": "designation_subject_commit",
+            "source": "exact_D1_intent.designation_subject_commit"
+          },
+          {
+            "field_id": "designation_subject_digest_domain",
+            "source": "exact_D1_intent.designation_subject_digest_domain"
+          },
+          {
+            "field_id": "designation_subject_digest",
+            "source": "exact_D1_intent.designation_subject_digest"
+          },
+          {
+            "field_id": "binding_bundle_digest",
+            "source": "recomputed_binding_bundle.binding_bundle_digest"
+          },
+          {
+            "field_id": "compatibility_requirement_id",
+            "source": "exact_literal_equal_to_current_derivation.requirement_id"
+          }
+        ],
+        "designation_fields_must_equal_exact_D1_intent": true,
+        "binding_bundle_digest_must_equal_recomputed_bundle": true,
+        "compatibility_requirement_id_must_equal_per_output_requirement_id": true
+      },
+      "cp_ba_single_map_derivation": {
+        "output_map_id": "compatibility-map-cp-ba-v1",
+        "domain_separator": "softbook-cet/mobile-ux-batch1-compatibility-map/cp-ba/v1",
+        "ordered_component_requirement_ids": [
+          "compatibility-cp-ba-platform-browser",
+          "compatibility-cp-ba-shared-formal",
+          "compatibility-cp-ba-shared-managed"
+        ],
+        "ordered_input_fields": [
+          "designation_subject_commit",
+          "designation_subject_digest_domain",
+          "designation_subject_digest",
+          "binding_bundle_digest",
+          "compatibility-cp-ba-platform-browser",
+          "compatibility-cp-ba-shared-formal",
+          "compatibility-cp-ba-shared-managed"
+        ],
+        "derivation_formula_ref": "#/successor_transition_contract/compatibility_derivation_contract/digest_formula",
+        "ordered_input_value_source_bindings": [
+          {
+            "field_id": "designation_subject_commit",
+            "source": "exact_D1_decision_intent.designation_subject_commit"
+          },
+          {
+            "field_id": "designation_subject_digest_domain",
+            "source": "exact_D1_decision_intent.designation_subject_digest_domain"
+          },
+          {
+            "field_id": "designation_subject_digest",
+            "source": "exact_D1_decision_intent.designation_subject_digest"
+          },
+          {
+            "field_id": "binding_bundle_digest",
+            "source": "recomputed_binding_bundle.binding_bundle_digest"
+          },
+          {
+            "field_id": "compatibility-cp-ba-platform-browser",
+            "source": "derived_output.compat-key-cp-ba-platform-browser-v1"
+          },
+          {
+            "field_id": "compatibility-cp-ba-shared-formal",
+            "source": "derived_output.compat-key-cp-ba-shared-formal-v1"
+          },
+          {
+            "field_id": "compatibility-cp-ba-shared-managed",
+            "source": "derived_output.compat-key-cp-ba-shared-managed-v1"
+          }
+        ],
+        "all_ordered_input_values_must_equal_exact_sources": true,
+        "binding_bundle_digest_must_equal_recomputed_bundle": true,
+        "component_values_must_equal_recomputed_per_output_values": true,
+        "output_field": "cp_ba_compatibility_map_digest",
+        "output_value_class": "lowercase_hex_sha256_64",
+        "persistence_location": "B2_required_binding_metadata",
+        "recompute_and_compare_required": true,
+        "single_persisted_output_required": true,
+        "f3_subject_must_include_exact_persisted_output": true,
+        "output_map_cardinality": 1,
+        "recompute_on_any_component_or_bundle_drift": true
+      },
+      "arbitrary_or_synthetic_compatibility_values_forbidden": true,
+      "cached_value_without_recomputation_forbidden": true
+    },
+    "decision_authority_bootstrap": {
+      "current_status": "not_implemented",
+      "current_classifier_capability": "sensitive_boolean_only",
+      "required_trusted_base_capabilities": [
+        "decision_class_validation_for_schema_definition_cohort_designation_and_manifest_freeze",
+        "exact_decision_subject_validation",
+        "single_decision_class_per_event_validation",
+        "mixed_decision_class_same_exact_head_change_set_fail_closed",
+        "distinct_workflow_deployment_and_approval_event_validation",
+        "approval_instance_digest_and_parent_chain_validation",
+        "preapproval_intent_and_postapproval_receipt_lifecycle_validation",
+        "decision_subject_artifact_record_digest_recomputation",
+        "designated_cohort_identity_digest_recomputation",
+        "protected_cohort_id_privacy_classification_attestation_validation",
+        "decision_validity_policy_enforcement",
+        "r0_b2_resolved_record_materialization_validation",
+        "trusted_remote_github_event_chain_validation",
+        "decision_expiry_and_invalidation_recomputation_at_use_time",
+        "trusted_base_validator_not_loaded_from_decision_head",
+        "trusted_staged_same_pull_request_subject_separation_validation"
+      ],
+      "r0_b2_materialization_validator_status": "not_implemented",
+      "required_resolved_record_schema_status": "not_implemented",
+      "r0_must_not_proceed_before_materialization_validator": true,
+      "current_allowed_next_action": "implement_trusted_governance_and_R0_B2_materialization_validators_obtain_protected_validity_policy_and_legacy_receipt_migration_approval",
+      "designation_must_not_proceed_before_bootstrap": true,
+      "current_workflow_or_classifier_may_authorize_designation": false,
+      "current_workflow_or_classifier_may_authorize_final_manifest_freeze": false
+    },
+    "decision_instance_contract": {
+      "schema_version": "mobile-ux-batch1-decision-instance.v1",
+      "current_instance_count": 0,
+      "current_status": "absent_required",
+      "intent_exact_key_set_required": true,
+      "intent_file_constraints": {
+        "regular_file_required": true,
+        "git_mode": "100644",
+        "tracked_required": true,
+        "symlink_forbidden": true,
+        "head_and_worktree_bytes_must_match": true
+      },
+      "receipt_file_constraints": {
+        "regular_file_required": true,
+        "git_mode": "100644",
+        "tracked_required_after_materialization": true,
+        "symlink_forbidden": true,
+        "must_be_absent_from_approval_target_head": true,
+        "materialization_commit_must_descend_from_approval_target_head": true
+      },
+      "field_type_contracts": {
+        "decision_id": {
+          "type": "string",
+          "regex_id": "batch1_exact_decision_id_v1"
+        },
+        "decision_class": {
+          "type": "string",
+          "regex_id": "schema_definition_or_cohort_designation_or_manifest_freeze"
+        },
+        "contract_version": {
+          "type": "string",
+          "regex_id": "literal_v1"
+        },
+        "repository": {
+          "type": "string",
+          "regex_id": "github_owner_and_repository"
+        },
+        "pull_request": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "commit_sha": {
+          "type": "string",
+          "regex_id": "lowercase_hex_exact_40"
+        },
+        "sha256": {
+          "type": "string",
+          "regex_id": "lowercase_hex_exact_64"
+        },
+        "positive_integer": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "rfc3339_timestamp": {
+          "type": "string",
+          "regex_id": "rfc3339_utc_timestamp"
+        },
+        "non_empty_string_array": {
+          "type": "array",
+          "minimum_items": 1,
+          "unique_items": true,
+          "item_type": "string"
+        },
+        "non_empty_string": {
+          "type": "string",
+          "minimum_length": 1
+        },
+        "designated_cohort_id": {
+          "type": "string",
+          "regex_id": "syntactic_opaque_designated_cohort_id_v1",
+          "maximum_length": 64
+        },
+        "campaign_scoped_hmac_principal_pseudonym": {
+          "type": "string",
+          "regex_id": "campaign_scoped_hmac_principal_pseudonym_v1"
+        },
+        "repository_path": {
+          "type": "string",
+          "regex_id": "repository_relative_posix_path"
+        },
+        "reviewer_immutable_id": {
+          "type": "string",
+          "regex_id": "github_immutable_reviewer_id"
+        },
+        "nullable_sha256": {
+          "type": "string_or_null",
+          "non_null_regex_id": "lowercase_hex_exact_64"
+        },
+        "authority_mask": {
+          "type": "object",
+          "exact_boolean_keys_ref": "#/successor_transition_contract/decision_instance_contract/authority_mask_keys"
+        },
+        "subject_artifact_records": {
+          "type": "array",
+          "exact_item_keys_ref": "#/successor_transition_contract/decision_instance_contract/subject_digest_contract/artifact_record_required_fields",
+          "minimum_items": 1
+        },
+        "object_or_null": {
+          "type": "object_or_null"
+        }
+      },
+      "regex_registry": {
+        "validator_id": "javascript_regexp_full_match_v1",
+        "source_encoding": "base64_utf8_regex_source",
+        "entries": {
+          "batch1_exact_decision_id_v1": "Xihtb2JpbGUtdXgtYmF0Y2gxLShwcmVwYXJhdGlvbnxjb2hvcnQtZGVzaWduYXRpb258bWFuaWZlc3QtZnJlZXplKS12MSkk",
+          "schema_definition_or_cohort_designation_or_manifest_freeze": "XihzY2hlbWFfZGVmaW5pdGlvbnxjb2hvcnRfZGVzaWduYXRpb258bWFuaWZlc3RfZnJlZXplKSQ=",
+          "literal_v1": "XnYxJA==",
+          "github_owner_and_repository": "XltBLVphLXowLTlfLi1dKy9bQS1aYS16MC05Xy4tXSsk",
+          "lowercase_hex_exact_40": "XlswLTlhLWZdezQwfSQ=",
+          "lowercase_hex_exact_64": "XlswLTlhLWZdezY0fSQ=",
+          "rfc3339_utc_timestamp": "XlswLTldezR9LVswLTldezJ9LVswLTldezJ9VFswLTldezJ9OlswLTldezJ9OlswLTldezJ9WiQ=",
+          "repository_relative_posix_path": "Xig/IS8pKD8hLiooPzpefC8pXC5cLj8oPzovfCQpKVtBLVphLXowLTkuXy8tXSsk",
+          "github_immutable_reviewer_id": "XmdpdGh1YjpbQS1aYS16MC05Xy4tXSsjWzAtOV0rJA==",
+          "syntactic_opaque_designated_cohort_id_v1": "XmNldCg0fDYpLVthLXowLTldezEsMTZ9KD86LVthLXowLTldezEsMTZ9KXswLDN9JA==",
+          "campaign_scoped_hmac_principal_pseudonym_v1": "XmhtYWMtc2hhMjU2OlswLTlhLWZdezY0fSQ="
+        }
+      },
+      "authority_mask_keys": [
+        "freeze",
+        "reservation_activation",
+        "manifest_creation",
+        "provision",
+        "execution",
+        "evidence",
+        "data_manifest_population",
+        "aggregation",
+        "promotion",
+        "architecture_acceptance",
+        "checkpoint_coverage",
+        "visual",
+        "implementation",
+        "native",
+        "release",
+        "leadership_readiness"
+      ],
+      "field_type_map_key_encoding": "literal_field_name_except_authority_encoded_as_field__authority",
+      "intent_field_type_map": {
+        "decision_id": "decision_id",
+        "decision_class": "decision_class",
+        "contract_version": "contract_version",
+        "repository": "repository",
+        "pull_request": "pull_request",
+        "preparation_subject_commit": "commit_sha",
+        "preparation_subject_digest_domain": "non_empty_string",
+        "preparation_subject_digest": "sha256",
+        "preparation_subject_artifact_records": "subject_artifact_records",
+        "designation_subject_commit": "commit_sha",
+        "designation_subject_digest_domain": "non_empty_string",
+        "designation_subject_digest": "sha256",
+        "designation_subject_artifact_records": "subject_artifact_records",
+        "designated_cohort_id": "designated_cohort_id",
+        "designated_cohort_sha256": "sha256",
+        "final_freeze_subject_commit": "commit_sha",
+        "final_freeze_subject_digest_domain": "non_empty_string",
+        "final_freeze_subject_digest": "sha256",
+        "final_freeze_subject_artifact_records": "subject_artifact_records",
+        "parent_preparation_approval_instance_digest": "nullable_sha256",
+        "parent_designation_approval_instance_digest": "nullable_sha256",
+        "gate_effect": "non_empty_string",
+        "field__authority": "authority_mask",
+        "allowed_next_action": "non_empty_string",
+        "non_claims": "non_empty_string_array",
+        "expires_at": "rfc3339_timestamp",
+        "invalidation_conditions": "non_empty_string_array"
+      },
+      "receipt_field_type_map": {
+        "decision_id": "decision_id",
+        "decision_class": "decision_class",
+        "contract_version": "contract_version",
+        "repository": "repository",
+        "pull_request": "pull_request",
+        "approval_target_head_sha": "commit_sha",
+        "decision_artifact_path": "repository_path",
+        "decision_artifact_raw_sha256": "sha256",
+        "subject_commit": "commit_sha",
+        "subject_digest_domain": "non_empty_string",
+        "subject_digest": "sha256",
+        "designated_cohort_id": "designated_cohort_id",
+        "designated_cohort_sha256": "sha256",
+        "workflow_path": "repository_path",
+        "trusted_base_sha": "commit_sha",
+        "workflow_run_id": "positive_integer",
+        "run_attempt": "positive_integer",
+        "workflow_conclusion": "non_empty_string",
+        "deployment_id": "positive_integer",
+        "deployment_state": "non_empty_string",
+        "environment_id": "positive_integer",
+        "environment_name": "non_empty_string",
+        "approval_id": "positive_integer",
+        "approval_state": "non_empty_string",
+        "protected_authority_event_ref": "non_empty_string",
+        "authority_event_sha256": "sha256",
+        "reviewer_immutable_id": "reviewer_immutable_id",
+        "decided_at": "rfc3339_timestamp",
+        "gate_effect": "non_empty_string",
+        "field__authority": "authority_mask",
+        "allowed_next_action": "non_empty_string",
+        "non_claims": "non_empty_string_array",
+        "expires_at": "rfc3339_timestamp",
+        "invalidation_conditions": "non_empty_string_array",
+        "parent_approval_tuple": "object_or_null",
+        "approval_instance_digest": "sha256"
+      },
+      "subject_digest_contract": {
+        "schema_version": "mobile-ux-batch1-decision-subject-digest.v1",
+        "algorithm": "sha256",
+        "version": "v1",
+        "canonical_value_encoding": "RFC8785_JCS",
+        "projection_container": "array_of_two_element_field_id_and_canonical_value_tuples",
+        "artifact_record_required_fields": [
+          "path",
+          "git_mode",
+          "byte_length",
+          "raw_sha256"
+        ],
+        "exact_ordered_artifact_paths": [
+          "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/registry-set.v2.proposal.json",
+          "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-ba.registry.v2.proposal.json",
+          "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-cs.registry.v2.proposal.json",
+          "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-web.registry.v2.proposal.json",
+          "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/manifest-schema-catalog.v1.json"
+        ],
+        "path_normalization": "repository_relative_posix_nfc_no_dot_segments",
+        "required_git_mode": "100644",
+        "tracked_regular_blob_at_subject_commit_required": true,
+        "symlink_forbidden": true,
+        "byte_length_and_raw_sha256_recomputed_from_subject_commit_bytes": true,
+        "artifact_record_order_must_equal_exact_path_order": true,
+        "subject_commit_must_be_ancestor_of_approval_target_head": true,
+        "all_subject_artifact_bytes_must_be_unchanged_at_approval_target_head": true,
+        "digest_formula": "lowercase_hex_sha256(utf8(subject_digest_domain)+NUL+utf8(RFC8785_JCS(ordered_artifact_record_tuple_arrays)))",
+        "output_format": "lowercase_hex_sha256_64",
+        "recompute_and_compare_required": true
+      },
+      "designated_cohort_identity_contract": {
+        "schema_version": "mobile-ux-batch1-designated-cohort-identity.v1",
+        "applies_to_decision_class": "cohort_designation",
+        "algorithm": "sha256",
+        "version": "v1",
+        "domain_separator": "softbook-cet/mobile-ux-batch1-designated-cohort/v1",
+        "canonical_value_encoding": "RFC8785_JCS",
+        "projection_container": "array_of_two_element_field_id_and_canonical_value_tuples",
+        "ordered_projection_fields": [
+          "designation_subject_commit",
+          "designation_subject_digest_domain",
+          "designation_subject_digest",
+          "designated_cohort_id"
+        ],
+        "ordered_projection_value_sources": [
+          "designation_subject_commit=exact_D1_intent.designation_subject_commit",
+          "designation_subject_digest_domain=exact_D1_intent.designation_subject_digest_domain",
+          "designation_subject_digest=exact_D1_intent.designation_subject_digest",
+          "designated_cohort_id=exact_D1_intent.designated_cohort_id"
+        ],
+        "subject_fields_must_pass_subject_digest_contract": true,
+        "designated_cohort_id_type_ref": "#/successor_transition_contract/decision_instance_contract/field_type_contracts/designated_cohort_id",
+        "cohort_id_regex_semantics": "syntax_only_not_privacy_proof",
+        "protected_privacy_classification_validator_status": "not_implemented",
+        "protected_non_pii_attestation_required_before_d1_use": true,
+        "digest_formula": "lowercase_hex_sha256(utf8(domain_separator)+NUL+utf8(RFC8785_JCS(ordered_projection_tuple_array)))",
+        "output_field": "designated_cohort_sha256",
+        "output_format": "lowercase_hex_sha256_64",
+        "recompute_and_compare_required": true,
+        "arbitrary_or_owner_supplied_digest_forbidden": true
+      },
+      "decision_validity_policy_contract": {
+        "schema_version": "mobile-ux-batch1-decision-validity-policy.v1",
+        "current_status": "owner_policy_missing",
+        "protected_policy_artifact_ref": null,
+        "protected_policy_artifact_raw_sha256": null,
+        "condition_evaluator_registry_status": "not_implemented",
+        "condition_evaluator_registry_ref": null,
+        "condition_evaluator_registry_raw_sha256": null,
+        "required_decision_classes": [
+          "cohort_designation",
+          "manifest_freeze"
+        ],
+        "required_class_policy_fields": [
+          "max_validity_seconds",
+          "ordered_invalidation_condition_ids"
+        ],
+        "class_policy_slots": {
+          "cohort_designation": {
+            "status": "unavailable_owner_policy_required",
+            "max_validity_seconds": null,
+            "ordered_invalidation_condition_ids": null
+          },
+          "manifest_freeze": {
+            "status": "unavailable_owner_policy_required",
+            "max_validity_seconds": null,
+            "ordered_invalidation_condition_ids": null
+          }
+        },
+        "minimum_required_condition_ids_by_class": {
+          "cohort_designation": [
+            "approval_event_chain_invalid",
+            "decision_subject_bytes_or_digest_drift",
+            "parent_approval_instance_invalid",
+            "designated_cohort_identity_digest_mismatch",
+            "protected_validity_policy_invalid_or_expired"
+          ],
+          "manifest_freeze": [
+            "approval_event_chain_invalid",
+            "decision_subject_bytes_or_digest_drift",
+            "parent_approval_instance_invalid",
+            "post_designation_binding_subject_drift",
+            "protected_validity_policy_invalid_or_expired"
+          ]
+        },
+        "expires_at_must_not_exceed_decided_at_plus_class_max_validity_seconds": true,
+        "invalidation_conditions_must_exactly_equal_class_ordered_condition_ids": true,
+        "unknown_condition_id_must_fail_closed": true,
+        "unimplemented_condition_evaluator_must_fail_closed": true,
+        "d1_receipt_use_currently_allowed": false,
+        "f3_receipt_use_currently_allowed": false,
+        "protected_owner_policy_and_evaluator_required_before_d1_or_f3_use": true
+      },
+      "decision_lifecycle_contract": {
+        "intent_must_preexist_external_approval_event": true,
+        "intent_must_be_tracked_in_approval_target_head": true,
+        "intent_must_not_contain_post_approval_event_fields": true,
+        "post_approval_event_fields": [
+          "workflow_run_id",
+          "run_attempt",
+          "workflow_conclusion",
+          "deployment_id",
+          "deployment_state",
+          "approval_id",
+          "approval_state",
+          "protected_authority_event_ref",
+          "authority_event_sha256",
+          "reviewer_immutable_id",
+          "decided_at",
+          "approval_instance_digest"
+        ],
+        "receipt_must_bind_intent_path_and_raw_sha256": true,
+        "receipt_must_be_absent_from_approval_target_head": true,
+        "receipt_cannot_be_subject_artifact_of_same_approval": true,
+        "receipt_materialization_requires_verified_external_success_event": true,
+        "receipt_commit_must_descend_from_approval_target_head": true
+      },
+      "legacy_preparation_bootstrap_contract": {
+        "decision_class": "schema_definition",
+        "decision_id": "mobile-ux-batch1-preparation-v1",
+        "historical_preapproval_intent_status": "did_not_exist_at_approved_head",
+        "historical_decision_artifact_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/registry-set.v1.json",
+        "historical_decision_artifact_raw_sha256": "f51f8fc849edacc9e22517266468caff1333d6d12c1a3265cf9a85eec381c982",
+        "historical_approval_target_head_sha": "8f4f82b35b660d9a775d6551e530fe6703c3ac54",
+        "historical_authority_source_ref": "#/preparation_authority_ref",
+        "legacy_receipt_subject": {
+          "subject_commit": "8f4f82b35b660d9a775d6551e530fe6703c3ac54",
+          "subject_digest_domain": "softbook-cet/mobile-ux-batch1-legacy-preparation-subject/v1",
+          "subject_digest": "015aa8075bcdaabc85f3b768b033175224483729d7a1b52a8ef361b5ae51eb78",
+          "artifact_records": [
+            {
+              "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/registry-set.v1.json",
+              "git_mode": "100644",
+              "byte_length": 25900,
+              "raw_sha256": "f51f8fc849edacc9e22517266468caff1333d6d12c1a3265cf9a85eec381c982"
+            }
+          ],
+          "digest_contract": {
+            "algorithm": "sha256",
+            "version": "v1",
+            "canonical_value_encoding": "RFC8785_JCS",
+            "projection_container": "array_of_two_element_field_id_and_canonical_value_tuples",
+            "artifact_record_ordered_fields": [
+              "path",
+              "git_mode",
+              "byte_length",
+              "raw_sha256"
+            ],
+            "exact_ordered_artifact_paths": [
+              "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/registry-set.v1.json"
+            ],
+            "digest_formula": "lowercase_hex_sha256(utf8(subject_digest_domain)+NUL+utf8(RFC8785_JCS(ordered_artifact_record_tuple_arrays)))",
+            "output_format": "lowercase_hex_sha256_64"
+          },
+          "recompute_from_historical_commit_blob_required": true
+        },
+        "migrated_receipt_fixed_values": {
+          "gate_effect": "none",
+          "required_authority_mask": {
+            "freeze": false,
+            "reservation_activation": false,
+            "manifest_creation": false,
+            "provision": false,
+            "execution": false,
+            "evidence": false,
+            "data_manifest_population": false,
+            "aggregation": false,
+            "promotion": false,
+            "architecture_acceptance": false,
+            "checkpoint_coverage": false,
+            "visual": false,
+            "implementation": false,
+            "native": false,
+            "release": false,
+            "leadership_readiness": false
+          },
+          "allowed_next_action": "implement_R0_B2_materialization_validator_and_prepare_R0_resolution_proposal_only",
+          "non_claims": [
+            "cohort_designation",
+            "manifest_freeze",
+            "manifest_creation",
+            "reservation_activation",
+            "provisioning",
+            "execution",
+            "evidence_collection",
+            "data_manifest_population",
+            "aggregation",
+            "promotion",
+            "architecture_acceptance",
+            "checkpoint_coverage_or_pass",
+            "visual_authority",
+            "implementation",
+            "native_acceptance",
+            "release",
+            "leadership_readiness"
+          ],
+          "expires_at_value_source": "protected_legacy_receipt_migration_contract.expires_at",
+          "invalidation_conditions": [
+            "historical_remote_event_chain_invalid",
+            "historical_subject_blob_mode_length_or_raw_sha256_drift",
+            "historical_preparation_scope_mismatch",
+            "legacy_receipt_migration_contract_expired_or_invalidated"
+          ]
+        },
+        "migrated_receipt_values_must_equal_fixed_values_and_protected_migration_contract": true,
+        "migrated_receipt_exact_field_bindings": [
+          "receipt.gate_effect=migrated_receipt_fixed_values.gate_effect",
+          "receipt.authority=migrated_receipt_fixed_values.required_authority_mask",
+          "receipt.allowed_next_action=migrated_receipt_fixed_values.allowed_next_action",
+          "receipt.non_claims=migrated_receipt_fixed_values.non_claims",
+          "receipt.expires_at=protected_legacy_receipt_migration_contract.expires_at",
+          "receipt.invalidation_conditions=migrated_receipt_fixed_values.invalidation_conditions"
+        ],
+        "future_receipt_path": "docs/design/decisions/mobile-ux-batch1-preparation-v1.approval-receipt.json",
+        "root_parent_approval_tuple": null,
+        "one_time_migration_contract_status": "not_implemented",
+        "separate_migration_authorization_record_required": true,
+        "required_two_event_chains": [
+          "historical_8f4_schema_definition_approval_event_chain",
+          "future_protected_legacy_receipt_migration_authorization_event_chain"
+        ],
+        "event_chains_must_not_share_or_substitute_head_run_deployment_approval_or_event_ref": true,
+        "trusted_remote_event_reverification_required": true,
+        "materialization_authorized": false,
+        "fabricated_intent_or_receipt_values_forbidden": true,
+        "allowed_next_action": "implement_trusted_governance_and_R0_B2_materialization_validators_obtain_protected_validity_policy_and_legacy_receipt_migration_approval"
+      },
+      "instances": [
+        {
+          "stage_id": "D1_protected_cohort_designation",
+          "intent_artifact_path": "docs/design/decisions/mobile-ux-batch1-cohort-designation-v1.json",
+          "approval_receipt_path": "docs/design/decisions/mobile-ux-batch1-cohort-designation-v1.approval-receipt.json",
+          "decision_id": "mobile-ux-batch1-cohort-designation-v1",
+          "decision_class": "cohort_designation",
+          "contract_version": "v1",
+          "required_intent_fields_ref": "#/successor_transition_contract/stages/1/required_decision_intent_fields",
+          "subject_commit_field": "designation_subject_commit",
+          "subject_digest_domain_field": "designation_subject_digest_domain",
+          "subject_digest_field": "designation_subject_digest",
+          "subject_artifact_records_field": "designation_subject_artifact_records",
+          "parent_approval_instance_digest_field": "parent_preparation_approval_instance_digest",
+          "required_subject_stage_output_id": "R0_resolution_successor",
+          "required_subject_digest_domain": "softbook-cet/mobile-ux-batch1-designation-subject/v1",
+          "required_gate_effect": "none",
+          "required_authority_mask": {
+            "freeze": false,
+            "reservation_activation": false,
+            "manifest_creation": false,
+            "provision": false,
+            "execution": false,
+            "evidence": false,
+            "data_manifest_population": false,
+            "aggregation": false,
+            "promotion": false,
+            "architecture_acceptance": false,
+            "checkpoint_coverage": false,
+            "visual": false,
+            "implementation": false,
+            "native": false,
+            "release": false,
+            "leadership_readiness": false
+          },
+          "required_non_claims_ref": "#/successor_transition_contract/stages/1/required_decision_non_claims",
+          "required_allowed_next_action": "produce_B2_designation_bound_binding_successor_only",
+          "expiry_required": true,
+          "current_intent_status": "absent",
+          "current_receipt_status": "absent"
+        },
+        {
+          "stage_id": "F3_final_manifest_freeze_decision",
+          "intent_artifact_path": "docs/design/decisions/mobile-ux-batch1-manifest-freeze-v1.json",
+          "approval_receipt_path": "docs/design/decisions/mobile-ux-batch1-manifest-freeze-v1.approval-receipt.json",
+          "decision_id": "mobile-ux-batch1-manifest-freeze-v1",
+          "decision_class": "manifest_freeze",
+          "contract_version": "v1",
+          "required_intent_fields_ref": "#/successor_transition_contract/stages/3/required_decision_intent_fields",
+          "subject_commit_field": "final_freeze_subject_commit",
+          "subject_digest_domain_field": "final_freeze_subject_digest_domain",
+          "subject_digest_field": "final_freeze_subject_digest",
+          "subject_artifact_records_field": "final_freeze_subject_artifact_records",
+          "parent_approval_instance_digest_field": "parent_designation_approval_instance_digest",
+          "required_subject_stage_output_id": "B2_post_designation_binding_successor",
+          "required_subject_digest_domain": "softbook-cet/mobile-ux-batch1-final-freeze-subject/v1",
+          "required_gate_effect": "batch1_exact_manifest_freeze_and_reservation_activation_only",
+          "required_authority_mask": {
+            "freeze": true,
+            "reservation_activation": true,
+            "manifest_creation": false,
+            "provision": false,
+            "execution": false,
+            "evidence": false,
+            "data_manifest_population": false,
+            "aggregation": false,
+            "promotion": false,
+            "architecture_acceptance": false,
+            "checkpoint_coverage": false,
+            "visual": false,
+            "implementation": false,
+            "native": false,
+            "release": false,
+            "leadership_readiness": false
+          },
+          "required_non_claims_ref": "#/successor_transition_contract/stages/3/required_decision_non_claims",
+          "required_allowed_next_action": "mark_exact_catalog_reservations_active_for_later_separate_authorization_without_manifest_creation_population_execution_or_evidence",
+          "expiry_required": true,
+          "current_intent_status": "absent",
+          "current_receipt_status": "absent"
+        }
+      ]
+    },
+    "approval_receipt_contract": {
+      "schema_version": "mobile-ux-batch1-approval-receipt.v1",
+      "current_receipt_count": 0,
+      "current_status": "absent_required",
+      "receipt_exact_key_set_required": true,
+      "required_common_fields": [
+        "decision_id",
+        "decision_class",
+        "contract_version",
+        "repository",
+        "pull_request",
+        "approval_target_head_sha",
+        "decision_artifact_path",
+        "decision_artifact_raw_sha256",
+        "subject_commit",
+        "subject_digest_domain",
+        "subject_digest",
+        "workflow_path",
+        "trusted_base_sha",
+        "workflow_run_id",
+        "run_attempt",
+        "workflow_conclusion",
+        "deployment_id",
+        "deployment_state",
+        "environment_id",
+        "environment_name",
+        "approval_id",
+        "approval_state",
+        "protected_authority_event_ref",
+        "authority_event_sha256",
+        "reviewer_immutable_id",
+        "decided_at",
+        "parent_approval_tuple",
+        "approval_instance_digest"
+      ],
+      "decision_class_specific_required_fields": {
+        "schema_definition": [
+          "gate_effect",
+          "authority",
+          "allowed_next_action",
+          "non_claims",
+          "expires_at",
+          "invalidation_conditions"
+        ],
+        "cohort_designation": [
+          "designated_cohort_id",
+          "designated_cohort_sha256",
+          "gate_effect",
+          "authority",
+          "allowed_next_action",
+          "non_claims",
+          "expires_at",
+          "invalidation_conditions"
+        ],
+        "manifest_freeze": [
+          "gate_effect",
+          "authority",
+          "allowed_next_action",
+          "non_claims",
+          "expires_at",
+          "invalidation_conditions"
+        ]
+      },
+      "intent_receipt_exact_equality_contract": {
+        "common_equal_fields": [
+          "decision_id",
+          "decision_class",
+          "contract_version",
+          "repository",
+          "pull_request",
+          "gate_effect",
+          "authority",
+          "allowed_next_action",
+          "non_claims",
+          "expires_at",
+          "invalidation_conditions"
+        ],
+        "class_specific_subject_field_pairs": {
+          "schema_definition": [
+            "legacy_receipt_subject.subject_commit=subject_commit",
+            "legacy_receipt_subject.subject_digest_domain=subject_digest_domain",
+            "legacy_receipt_subject.subject_digest=subject_digest"
+          ],
+          "cohort_designation": [
+            "designation_subject_commit=subject_commit",
+            "designation_subject_digest_domain=subject_digest_domain",
+            "designation_subject_digest=subject_digest",
+            "designated_cohort_id=designated_cohort_id",
+            "designated_cohort_sha256=designated_cohort_sha256"
+          ],
+          "manifest_freeze": [
+            "final_freeze_subject_commit=subject_commit",
+            "final_freeze_subject_digest_domain=subject_digest_domain",
+            "final_freeze_subject_digest=subject_digest"
+          ]
+        },
+        "decision_artifact_path_must_equal_instance_or_legacy_contract_path": true,
+        "decision_artifact_raw_sha256_must_equal_recomputed_intent_or_legacy_artifact_bytes": true,
+        "non_root_intent_parent_digest_must_equal_receipt_parent_tuple_digest": true
+      },
+      "external_event_contract": {
+        "provider": "github",
+        "trusted_remote_lookup_required": true,
+        "required_repository_full_name": "LENKIN233/softbook_cet",
+        "trusted_origin_repository_identity": "github.com/LENKIN233/softbook_cet",
+        "github_https_or_ssh_origin_must_normalize_to_trusted_repository_identity": true,
+        "repository_must_equal_required_literal_and_trusted_root_origin": true,
+        "fork_pull_request_or_event_substitution_forbidden": true,
+        "trusted_workflow_path": ".github/workflows/formal-approval.yml",
+        "required_workflow_conclusion": "success",
+        "required_deployment_state": "success",
+        "required_approval_state": "approved",
+        "required_environment_id": 18348068326,
+        "required_environment_name": "formal-product-owner-approval",
+        "required_reviewer_immutable_id": "github:LENKIN233#113219944",
+        "required_pull_request_base_ref": "refs/heads/main",
+        "exact_receipt_value_source_bindings": [
+          "repository=verified_remote_event_chain.repository_full_name",
+          "pull_request=verified_remote_event_chain.pull_request_number",
+          "approval_target_head_sha=verified_remote_event_chain.workflow_head_sha",
+          "workflow_path=verified_remote_event_chain.workflow_path",
+          "trusted_base_sha=verified_remote_event_chain.pull_request_base_sha",
+          "workflow_run_id=verified_remote_event_chain.workflow_run_id",
+          "run_attempt=verified_remote_event_chain.run_attempt",
+          "workflow_conclusion=verified_remote_event_chain.workflow_conclusion",
+          "deployment_id=verified_remote_event_chain.deployment_id",
+          "deployment_state=verified_remote_event_chain.deployment_state",
+          "environment_id=verified_remote_event_chain.environment_id",
+          "environment_name=verified_remote_event_chain.environment_name",
+          "approval_id=verified_remote_event_chain.approval_id",
+          "approval_state=verified_remote_event_chain.approval_state",
+          "protected_authority_event_ref=verified_remote_event_chain.protected_authority_event_ref",
+          "authority_event_sha256=recomputed_event_chain_digest",
+          "reviewer_immutable_id=verified_remote_event_chain.reviewer_immutable_id",
+          "decided_at=verified_remote_event_chain.decided_at"
+        ],
+        "all_exact_receipt_values_must_equal_sources": true,
+        "approval_target_head_must_belong_to_exact_repository_and_pull_request": true,
+        "workflow_run_head_sha_must_equal_approval_target_head_sha": true,
+        "trusted_base_sha_must_equal_verified_pull_request_base_sha": true,
+        "pull_request_base_ref_must_equal_required_protected_ref": true,
+        "remote_must_confirm_base_was_protected_main_base_for_same_event_chain": true,
+        "trusted_base_sha_must_be_ancestor_of_approval_target_head_sha": true,
+        "approval_target_head_must_descend_from_trusted_base_sha": true,
+        "trusted_workflow_classifier_and_validator_bytes_must_be_loaded_from_trusted_base_sha": true,
+        "trusted_workflow_classifier_and_validator_raw_sha256_must_match_exact_base_blobs": true,
+        "intent_or_receipt_supplied_trusted_base_forbidden": true,
+        "event_chain_digest_contract": {
+          "algorithm": "sha256",
+          "version": "v1",
+          "domain_separator": "softbook-cet/mobile-ux-batch1-protected-approval-event-chain/v1",
+          "canonical_value_encoding": "RFC8785_JCS",
+          "projection_container": "array_of_two_element_field_id_and_canonical_value_tuples",
+          "ordered_projection_fields": [
+            "repository",
+            "pull_request",
+            "approval_target_head_sha",
+            "workflow_path",
+            "trusted_base_sha",
+            "workflow_run_id",
+            "run_attempt",
+            "workflow_conclusion",
+            "deployment_id",
+            "deployment_state",
+            "environment_id",
+            "environment_name",
+            "approval_id",
+            "approval_state",
+            "protected_authority_event_ref",
+            "reviewer_immutable_id",
+            "decided_at"
+          ],
+          "projection_values_must_come_from_same_verified_remote_event_chain": true,
+          "digest_formula": "lowercase_hex_sha256(utf8(domain_separator)+NUL+utf8(RFC8785_JCS(ordered_projection_tuple_array)))",
+          "output_field": "authority_event_sha256",
+          "output_format": "lowercase_hex_sha256_64",
+          "recompute_and_compare_required": true
+        },
+        "event_ref_and_canonical_digest_must_match_verified_remote_chain": true,
+        "event_chain_digest_repository_field_must_equal_required_literal": true,
+        "workflow_run_attempt_deployment_environment_approval_must_be_same_verified_event_chain": true
+      },
+      "use_time_validation_contract": {
+        "expires_at_must_be_after_decided_at": true,
+        "use_or_child_decision_time_must_be_before_expires_at": true,
+        "invalidation_conditions_must_be_recomputed_at_use_time": true,
+        "every_invalidation_condition_must_evaluate_false": true,
+        "cached_validity_result_forbidden": true,
+        "remote_event_chain_must_still_be_valid": true
+      },
+      "approval_instance_digest_contract": {
+        "algorithm": "sha256",
+        "version": "v1",
+        "domain_separator": "softbook-cet/mobile-ux-batch1-approval-instance/v1",
+        "canonical_value_encoding": "RFC8785_JCS",
+        "projection_container": "array_of_two_element_field_id_and_canonical_value_tuples",
+        "projection_tuple_fields": [
+          "field_id",
+          "canonical_value"
+        ],
+        "generic_ordered_projection_fields": [
+          "decision_id",
+          "decision_class",
+          "contract_version",
+          "repository",
+          "pull_request",
+          "approval_target_head_sha",
+          "decision_artifact_path",
+          "decision_artifact_raw_sha256",
+          "subject_commit",
+          "subject_digest_domain",
+          "subject_digest",
+          "workflow_path",
+          "trusted_base_sha",
+          "workflow_run_id",
+          "run_attempt",
+          "workflow_conclusion",
+          "deployment_id",
+          "deployment_state",
+          "environment_id",
+          "environment_name",
+          "approval_id",
+          "approval_state",
+          "protected_authority_event_ref",
+          "authority_event_sha256",
+          "reviewer_immutable_id",
+          "decided_at",
+          "parent_approval_tuple"
+        ],
+        "class_specific_ordered_projection_fields": {
+          "schema_definition": [
+            "gate_effect",
+            "authority",
+            "allowed_next_action",
+            "non_claims",
+            "expires_at",
+            "invalidation_conditions"
+          ],
+          "cohort_designation": [
+            "designated_cohort_id",
+            "designated_cohort_sha256",
+            "gate_effect",
+            "authority",
+            "allowed_next_action",
+            "non_claims",
+            "expires_at",
+            "invalidation_conditions"
+          ],
+          "manifest_freeze": [
+            "gate_effect",
+            "authority",
+            "allowed_next_action",
+            "non_claims",
+            "expires_at",
+            "invalidation_conditions"
+          ]
+        },
+        "projection_construction_rule": "append_generic_field_tuples_in_declared_order_then_exact_decision_class_specific_field_tuples_in_declared_order",
+        "object_property_order_must_not_define_projection_order": true,
+        "digest_formula": "lowercase_hex_sha256(utf8(domain_separator)+NUL+utf8(RFC8785_JCS(concatenated_ordered_projection_tuple_array)))",
+        "output_format": "lowercase_hex_sha256_64",
+        "recompute_and_compare_required": true
+      }
+    },
+    "staged_parent_contract": {
+      "schema_version": "mobile-ux-batch1-staged-parent.v1",
+      "tuple_fields": [
+        "parent_approval_target_head_sha",
+        "parent_receipt_materialization_commit_sha",
+        "parent_decision_artifact_path",
+        "parent_decision_artifact_raw_sha256",
+        "parent_receipt_path",
+        "parent_receipt_raw_sha256",
+        "parent_subject_digest_domain",
+        "parent_subject_digest",
+        "parent_workflow_run_id",
+        "parent_run_attempt",
+        "parent_deployment_id",
+        "parent_environment_id",
+        "parent_environment_name",
+        "parent_reviewer_immutable_id",
+        "parent_decided_at",
+        "parent_approval_instance_digest"
+      ],
+      "tuple_exact_key_set_required": true,
+      "ordered_value_source_bindings": [
+        "parent_approval_target_head_sha=verified_parent_receipt.approval_target_head_sha",
+        "parent_receipt_materialization_commit_sha=verified_commit_containing_exact_parent_receipt_bytes",
+        "parent_decision_artifact_path=verified_parent_receipt.decision_artifact_path",
+        "parent_decision_artifact_raw_sha256=verified_parent_receipt.decision_artifact_raw_sha256",
+        "parent_receipt_path=required_chain.parent_receipt_path",
+        "parent_receipt_raw_sha256=sha256(raw_parent_receipt_bytes_at_materialization_commit)",
+        "parent_subject_digest_domain=verified_parent_receipt.subject_digest_domain",
+        "parent_subject_digest=verified_parent_receipt.subject_digest",
+        "parent_workflow_run_id=verified_parent_receipt.workflow_run_id",
+        "parent_run_attempt=verified_parent_receipt.run_attempt",
+        "parent_deployment_id=verified_parent_receipt.deployment_id",
+        "parent_environment_id=verified_parent_receipt.environment_id",
+        "parent_environment_name=verified_parent_receipt.environment_name",
+        "parent_reviewer_immutable_id=verified_parent_receipt.reviewer_immutable_id",
+        "parent_decided_at=verified_parent_receipt.decided_at",
+        "parent_approval_instance_digest=recomputed_parent_receipt.approval_instance_digest"
+      ],
+      "all_parent_tuple_values_must_equal_exact_sources": true,
+      "validation_rules": [
+        "parent_approval_target_head_must_be_ancestor_of_child_approval_target_head",
+        "parent_receipt_materialization_commit_must_be_ancestor_of_child_approval_target_head",
+        "parent_subject_bytes_and_digest_must_be_unchanged_at_child_head",
+        "parent_decision_artifact_raw_bytes_must_be_unchanged_at_child_head",
+        "parent_receipt_raw_bytes_must_be_unchanged_at_child_head",
+        "parent_receipt_fields_and_digest_must_recompute_exactly",
+        "parent_decision_class_must_match_required_chain_stage",
+        "child_must_bind_full_parent_tuple_not_only_parent_digest",
+        "child_intent_parent_approval_instance_digest_must_equal_parent_tuple_digest"
+      ],
+      "opaque_parent_digest_without_exact_tuple_forbidden": true,
+      "root_parent_rules": {
+        "root_decision_class": "schema_definition",
+        "required_parent_approval_tuple_value": null,
+        "canonical_root_parent_sentinel": "json_null",
+        "root_parent_allowed_only_for_schema_definition": true,
+        "non_root_parent_tuple_must_be_non_null": true
+      },
+      "current_preparation_receipt": {
+        "artifact_path": "docs/design/decisions/mobile-ux-batch1-preparation-v1.approval-receipt.json",
+        "status": "missing",
+        "materialization_status": "not_implemented",
+        "blocker": "trusted_governance_bootstrap_and_legacy_receipt_migration_contract_approval_required",
+        "historical_intent_status": "did_not_exist_at_approved_head",
+        "materialization_authorized": false,
+        "fabricated_values_forbidden": true
+      },
+      "required_chains": [
+        {
+          "child_decision_class": "cohort_designation",
+          "parent_decision_class": "schema_definition",
+          "parent_receipt_path": "docs/design/decisions/mobile-ux-batch1-preparation-v1.approval-receipt.json"
+        },
+        {
+          "child_decision_class": "manifest_freeze",
+          "parent_decision_class": "cohort_designation",
+          "parent_receipt_path": "docs/design/decisions/mobile-ux-batch1-cohort-designation-v1.approval-receipt.json"
+        }
+      ]
+    },
+    "decision_separation_requirements": {
+      "designation_and_final_freeze_exact_heads_must_differ": true,
+      "designation_and_final_freeze_subject_digests_must_differ": true,
+      "designation_and_final_freeze_workflow_run_ids_must_differ": true,
+      "designation_and_final_freeze_deployment_ids_must_differ": true,
+      "designation_and_final_freeze_approval_ids_must_differ": true,
+      "designation_and_final_freeze_authority_event_refs_must_differ": true,
+      "designation_and_final_freeze_authority_event_sha256_must_differ": true,
+      "each_approval_event_exact_decision_class_count": 1,
+      "mixed_new_decision_classes_in_same_exact_head_change_set_forbidden": true,
+      "final_freeze_must_bind_designation_approval_instance_digest": true,
+      "trusted_same_pr_prior_approved_head_must_be_ancestor": true,
+      "trusted_same_pr_parent_subject_must_be_unchanged": true,
+      "pull_request_separation_policy": "distinct_pr_or_trusted_staged_same_pr_subject",
+      "trusted_staged_same_pr_path_status": "not_implemented"
+    },
+    "stages": [
+      {
+        "stage_id": "R0_resolution_successor",
+        "ordinal": 1,
+        "input_subject": "current_candidate_exact_bytes",
+        "required_resolution_set": "all_current_requirement_ids_except_post_designation_requirement_ids",
+        "resolved_requirement_count": 136,
+        "pending_requirement_count": 9,
+        "output_subject": "resolution_successor_distinct_exact_bytes",
+        "must_be_distinct_from": [
+          "current_candidate_exact_bytes"
+        ],
+        "gate_effect": "none",
+        "manifest_root_state": "absent",
+        "authority": {
+          "freeze": false,
+          "provision": false,
+          "execution": false,
+          "evidence": false,
+          "aggregation": false,
+          "promotion": false,
+          "visual": false,
+          "implementation": false,
+          "native": false,
+          "release": false
+        }
+      },
+      {
+        "stage_id": "D1_protected_cohort_designation",
+        "ordinal": 2,
+        "input_subject": "resolution_successor_exact_bytes",
+        "required_decision_type": "protected_cohort_designation",
+        "decision_subject": "preexisting_resolution_successor_exact_commit_and_digest",
+        "required_decision_intent_fields": [
+          "decision_id",
+          "decision_class",
+          "contract_version",
+          "repository",
+          "pull_request",
+          "designation_subject_commit",
+          "designation_subject_digest_domain",
+          "designation_subject_digest",
+          "designation_subject_artifact_records",
+          "designated_cohort_id",
+          "designated_cohort_sha256",
+          "parent_preparation_approval_instance_digest",
+          "gate_effect",
+          "authority",
+          "allowed_next_action",
+          "non_claims",
+          "expires_at",
+          "invalidation_conditions"
+        ],
+        "decision_intent_contract_ref": "#/successor_transition_contract/decision_instance_contract/instances/0",
+        "designated_cohort_identity_contract_ref": "#/successor_transition_contract/decision_instance_contract/designated_cohort_identity_contract",
+        "approval_receipt_contract_ref": "#/successor_transition_contract/approval_receipt_contract",
+        "current_intent_status": "missing",
+        "current_receipt_status": "missing",
+        "decision_event_must_be_external_to_subject_bytes": true,
+        "receipt_must_not_be_in_same_approval_subject": true,
+        "decision_event_must_be_distinct_from_final_manifest_freeze": true,
+        "gate_effect": "none",
+        "does_not_authorize": [
+          "manifest_creation",
+          "reservation_activation",
+          "provisioning",
+          "execution",
+          "evidence_collection",
+          "data_manifest_population",
+          "aggregation",
+          "promotion",
+          "architecture_acceptance",
+          "checkpoint_coverage_or_pass",
+          "visual_authority",
+          "implementation",
+          "native_acceptance",
+          "release",
+          "leadership_readiness",
+          "final_manifest_freeze"
+        ],
+        "required_decision_non_claims": [
+          "manifest_creation",
+          "reservation_activation",
+          "provisioning",
+          "execution",
+          "evidence_collection",
+          "data_manifest_population",
+          "aggregation",
+          "promotion",
+          "architecture_acceptance",
+          "checkpoint_coverage_or_pass",
+          "visual_authority",
+          "implementation",
+          "native_acceptance",
+          "release",
+          "leadership_readiness",
+          "final_manifest_freeze"
+        ],
+        "required_decision_allowed_next_action": "produce_B2_designation_bound_binding_successor_only",
+        "manifest_root_state": "absent",
+        "authority": {
+          "freeze": false,
+          "provision": false,
+          "execution": false,
+          "evidence": false,
+          "aggregation": false,
+          "promotion": false,
+          "visual": false,
+          "implementation": false,
+          "native": false,
+          "release": false
+        }
+      },
+      {
+        "stage_id": "B2_post_designation_binding_successor",
+        "ordinal": 3,
+        "input_subject": "resolution_successor_exact_bytes_plus_external_cohort_designation",
+        "required_prior_decision_type": "protected_cohort_designation",
+        "required_bindings_source": "exact_protected_designated_cohort",
+        "exact_requirement_ids_ref": "#/successor_transition_contract/post_designation_requirement_ids_by_kind",
+        "mutable_requirement_count": 9,
+        "immutable_requirement_count": 136,
+        "immutable_requirement_set": "all_current_requirement_ids_except_post_designation_requirement_ids",
+        "immutable_requirement_drift_rule": "requires_new_D1_protected_cohort_designation",
+        "allowed_non_requirement_changes": [
+          "designation_decision_binding",
+          "derived_requirement_inventory_digest",
+          "derived_pending_and_resolved_counts",
+          "derived_blocker_accounting",
+          "derived_candidate_status"
+        ],
+        "required_binding_metadata_fields": [
+          "designation_subject_commit",
+          "designation_subject_digest_domain",
+          "designation_subject_digest",
+          "designated_cohort_id",
+          "designated_cohort_sha256",
+          "designation_approval_instance_digest",
+          "build_source_closure_digest",
+          "binding_bundle_digest",
+          "cp_ba_compatibility_map_digest"
+        ],
+        "binding_metadata_exact_key_set_required": true,
+        "required_binding_metadata_value_sources": [
+          "designation_subject_commit=exact_D1_intent.designation_subject_commit",
+          "designation_subject_digest_domain=exact_D1_intent.designation_subject_digest_domain",
+          "designation_subject_digest=exact_D1_intent.designation_subject_digest",
+          "designated_cohort_id=exact_D1_intent.designated_cohort_id",
+          "designated_cohort_sha256=exact_D1_intent.designated_cohort_sha256",
+          "designation_approval_instance_digest=recomputed_D1_receipt.approval_instance_digest",
+          "build_source_closure_digest=resolved_build_value.source_closure_digest",
+          "binding_bundle_digest=recomputed_binding_bundle.binding_bundle_digest",
+          "cp_ba_compatibility_map_digest=recomputed_compatibility_map_cp_ba_v1_output"
+        ],
+        "all_binding_metadata_values_must_equal_exact_sources": true,
+        "resolved_requirement_count": 145,
+        "pending_requirement_count": 0,
+        "build_contract_ref": "#/successor_transition_contract/designation_bound_build_contract",
+        "build_recipe_must_be_implemented_before_B2": true,
+        "compatibility_derivation_contract_ref": "#/successor_transition_contract/compatibility_derivation_contract",
+        "compatibility_key_policy": "deterministic_sha256_recomputed_from_designation_bound_source_closure",
+        "synthetic_compatibility_key_forbidden": true,
+        "output_subject": "complete_successor_distinct_exact_bytes",
+        "must_be_distinct_from": [
+          "current_candidate_exact_bytes",
+          "resolution_successor_exact_bytes"
+        ],
+        "candidate_status_after_stage": "complete_candidate_pending_final_manifest_freeze",
+        "manifest_freeze_eligible_after_stage": false,
+        "manifest_instance_count_after_stage": 0,
+        "gate_effect": "none",
+        "manifest_root_state": "absent",
+        "authority": {
+          "freeze": false,
+          "provision": false,
+          "execution": false,
+          "evidence": false,
+          "aggregation": false,
+          "promotion": false,
+          "visual": false,
+          "implementation": false,
+          "native": false,
+          "release": false
+        }
+      },
+      {
+        "stage_id": "F3_final_manifest_freeze_decision",
+        "ordinal": 4,
+        "input_subject": "complete_successor_exact_bytes",
+        "required_decision_type": "protected_manifest_freeze",
+        "decision_subject": "preexisting_complete_successor_exact_commit_and_digest",
+        "required_decision_intent_fields": [
+          "decision_id",
+          "decision_class",
+          "contract_version",
+          "repository",
+          "pull_request",
+          "final_freeze_subject_commit",
+          "final_freeze_subject_digest_domain",
+          "final_freeze_subject_digest",
+          "final_freeze_subject_artifact_records",
+          "parent_designation_approval_instance_digest",
+          "gate_effect",
+          "authority",
+          "allowed_next_action",
+          "non_claims",
+          "expires_at",
+          "invalidation_conditions"
+        ],
+        "decision_intent_contract_ref": "#/successor_transition_contract/decision_instance_contract/instances/1",
+        "approval_receipt_contract_ref": "#/successor_transition_contract/approval_receipt_contract",
+        "frozen_b2_binding_metadata_fields_ref": "#/successor_transition_contract/stages/2/required_binding_metadata_fields",
+        "current_intent_status": "missing",
+        "current_receipt_status": "missing",
+        "decision_event_must_be_external_to_subject_bytes": true,
+        "receipt_must_not_be_in_same_approval_subject": true,
+        "decision_event_must_be_distinct_from_cohort_designation": true,
+        "final_freeze_self_reference_forbidden": true,
+        "gate_effect_before_decision": "none",
+        "manifest_root_state_before_decision": "absent",
+        "reservation_activation_semantics": "post_event_receipt_gate_effect_eligibility_marker_only_no_frozen_subject_mutation",
+        "reservation_activation_record": "verified_F3_approval_receipt_gate_effect",
+        "frozen_subject_artifacts_immutable_after_F3": true,
+        "catalog_metadata_mutation_forbidden": true,
+        "any_frozen_subject_artifact_drift_invalidates_F3": true,
+        "manifest_root_state_after_decision": "absent",
+        "manifest_instance_count_after_decision": 0,
+        "required_decision_gate_effect": "batch1_exact_manifest_freeze_and_reservation_activation_only",
+        "required_decision_authority_matrix": {
+          "freeze": true,
+          "reservation_activation": true,
+          "manifest_creation": false,
+          "provision": false,
+          "execution": false,
+          "evidence": false,
+          "data_manifest_population": false,
+          "aggregation": false,
+          "promotion": false,
+          "architecture_acceptance": false,
+          "checkpoint_coverage": false,
+          "visual": false,
+          "implementation": false,
+          "native": false,
+          "release": false,
+          "leadership_readiness": false
+        },
+        "required_decision_non_claims": [
+          "manifest_creation",
+          "provisioning",
+          "execution",
+          "evidence_collection",
+          "data_manifest_population",
+          "aggregation",
+          "promotion",
+          "architecture_acceptance",
+          "checkpoint_coverage_or_pass",
+          "visual_authority",
+          "implementation",
+          "native_acceptance",
+          "release",
+          "leadership_readiness"
+        ],
+        "required_decision_allowed_next_action": "mark_exact_catalog_reservations_active_for_later_separate_authorization_without_manifest_creation_population_execution_or_evidence",
+        "separate_authority_requirements": [
+          "manifest_creation_requires_separate_execution_authority",
+          "data_manifest_population_requires_separate_execution_authority",
+          "checkpoint_evidence_collection_requires_separate_evidence_authority"
+        ],
+        "authorization_rule": "freeze_and_reservation_marking_only_no_manifest_creation_provision_execution_or_evidence_authority",
+        "authority": {
+          "freeze": false,
+          "provision": false,
+          "execution": false,
+          "evidence": false,
+          "aggregation": false,
+          "promotion": false,
+          "visual": false,
+          "implementation": false,
+          "native": false,
+          "release": false
+        }
+      }
+    ],
+    "forbidden_decision_substitutions": [
+      "current_preparation_authority_for_cohort_designation",
+      "current_preparation_authority_for_final_manifest_freeze",
+      "schema_definition_approval_for_cohort_designation",
+      "schema_definition_approval_for_final_manifest_freeze",
+      "cohort_designation_for_final_manifest_freeze"
+    ],
+    "final_freeze_decision_ref_forbidden_in_subject_requirement_values": true,
+    "authority_key_policy": {
+      "canonical_decision_authority_keys": [
+        "freeze",
+        "reservation_activation",
+        "manifest_creation",
+        "provision",
+        "execution",
+        "evidence",
+        "data_manifest_population",
+        "aggregation",
+        "promotion",
+        "architecture_acceptance",
+        "checkpoint_coverage",
+        "visual",
+        "implementation",
+        "native",
+        "release",
+        "leadership_readiness"
+      ],
+      "legacy_current_authority_object_keys": [
+        "freeze",
+        "provision",
+        "execution",
+        "evidence",
+        "aggregation",
+        "promotion",
+        "visual",
+        "implementation",
+        "native",
+        "release"
+      ],
+      "legacy_missing_keys_default_false": [
+        "reservation_activation",
+        "manifest_creation",
+        "data_manifest_population",
+        "architecture_acceptance",
+        "checkpoint_coverage",
+        "leadership_readiness"
+      ],
+      "successor_contract_global_and_stage_authority_must_resolve_all_canonical_keys_false": true
+    },
+    "authority": {
+      "freeze": false,
+      "provision": false,
+      "execution": false,
+      "evidence": false,
+      "aggregation": false,
+      "promotion": false,
+      "visual": false,
+      "implementation": false,
+      "native": false,
+      "release": false
+    }
+  },
   "authority": {
     "freeze": false,
     "provision": false,
@@ -1785,20 +3638,26 @@
         "contract_id": "protected-decision-or-compatibility-ref-v1",
         "category": "must_remain_unresolved",
         "required_fields": [
-          "exact_subject_commit_or_compatibility_cohort",
+          "exact_subject_commit_or_designated_compatibility_cohort",
           "protected_authority_event_ref",
           "authority_event_sha256",
+          "compatibility_derivation_contract_ref_when_compatibility",
           "validity_window"
         ],
         "forbidden_fields": [
           "repo_self_approval",
           "synthetic_compatibility_key",
+          "receiver_supplied_arbitrary_compatibility_key",
+          "owner_supplied_arbitrary_compatibility_key",
+          "compatibility_output_as_derivation_input",
+          "final_freeze_subject_as_compatibility_input",
           "credential",
           "token"
         ],
         "privacy_rules": [
           "protected_decision_cannot_be_self_attested_in_repository",
-          "compatibility_key_waits_for_exact_frozen_cohort"
+          "compatibility_value_is_recomputed_by_versioned_sha256_derivation_only",
+          "compatibility_derivation_waits_for_exact_protected_designated_cohort_and_binding_bundle"
         ],
         "status": "typed_pending",
         "authority": {
@@ -2331,7 +4190,7 @@
           "platform": "browser_documents",
           "candidate": {
             "kind": "unresolved",
-            "reason_code": "future_manifest_decision_commit_missing"
+            "reason_code": "protected_cohort_designation_missing"
           }
         },
         "source_binding": {
@@ -2340,7 +4199,7 @@
           "locator": "/build_requirements/0",
           "raw_sha256": "f51f8fc849edacc9e22517266468caff1333d6d12c1a3265cf9a85eec381c982"
         },
-        "allowed_value_class": "receiver_or_owner_supplied_typed_value",
+        "allowed_value_class": "designation_bound_source_closure_build_value_v1",
         "pending_value_ref": null,
         "pending_values": [],
         "status": "typed_value_pending",
@@ -2514,7 +4373,7 @@
           "locator": "/compatibility_key_requirements/0",
           "raw_sha256": "f51f8fc849edacc9e22517266468caff1333d6d12c1a3265cf9a85eec381c982"
         },
-        "allowed_value_class": "receiver_or_owner_supplied_typed_value",
+        "allowed_value_class": "deterministic_compatibility_sha256_value_v1",
         "pending_value_ref": null,
         "pending_values": [],
         "status": "typed_value_pending",
@@ -2548,7 +4407,7 @@
           "locator": "/compatibility_key_requirements/1",
           "raw_sha256": "f51f8fc849edacc9e22517266468caff1333d6d12c1a3265cf9a85eec381c982"
         },
-        "allowed_value_class": "receiver_or_owner_supplied_typed_value",
+        "allowed_value_class": "deterministic_compatibility_sha256_value_v1",
         "pending_value_ref": null,
         "pending_values": [],
         "status": "typed_value_pending",
@@ -2582,7 +4441,7 @@
           "locator": "/compatibility_key_requirements/2",
           "raw_sha256": "f51f8fc849edacc9e22517266468caff1333d6d12c1a3265cf9a85eec381c982"
         },
-        "allowed_value_class": "receiver_or_owner_supplied_typed_value",
+        "allowed_value_class": "deterministic_compatibility_sha256_value_v1",
         "pending_value_ref": null,
         "pending_values": [],
         "status": "typed_value_pending",
@@ -2616,7 +4475,7 @@
           "locator": "/compatibility_key_requirements/3",
           "raw_sha256": "f51f8fc849edacc9e22517266468caff1333d6d12c1a3265cf9a85eec381c982"
         },
-        "allowed_value_class": "receiver_or_owner_supplied_typed_value",
+        "allowed_value_class": "deterministic_compatibility_sha256_value_v1",
         "pending_value_ref": null,
         "pending_values": [],
         "status": "typed_value_pending",
@@ -2650,7 +4509,7 @@
           "locator": "/compatibility_key_requirements/4",
           "raw_sha256": "f51f8fc849edacc9e22517266468caff1333d6d12c1a3265cf9a85eec381c982"
         },
-        "allowed_value_class": "receiver_or_owner_supplied_typed_value",
+        "allowed_value_class": "deterministic_compatibility_sha256_value_v1",
         "pending_value_ref": null,
         "pending_values": [],
         "status": "typed_value_pending",
@@ -6346,7 +8205,7 @@
           "locator": "/execution_window_requirements/0",
           "raw_sha256": "f51f8fc849edacc9e22517266468caff1333d6d12c1a3265cf9a85eec381c982"
         },
-        "allowed_value_class": "receiver_or_owner_supplied_typed_value",
+        "allowed_value_class": "canonical_utc_execution_window_value_v1",
         "pending_value_ref": null,
         "pending_values": [],
         "status": "typed_value_pending",
@@ -6381,7 +8240,7 @@
           "locator": "/execution_window_requirements/1",
           "raw_sha256": "f51f8fc849edacc9e22517266468caff1333d6d12c1a3265cf9a85eec381c982"
         },
-        "allowed_value_class": "receiver_or_owner_supplied_typed_value",
+        "allowed_value_class": "canonical_utc_execution_window_value_v1",
         "pending_value_ref": null,
         "pending_values": [],
         "status": "typed_value_pending",
@@ -6416,7 +8275,7 @@
           "locator": "/execution_window_requirements/2",
           "raw_sha256": "f51f8fc849edacc9e22517266468caff1333d6d12c1a3265cf9a85eec381c982"
         },
-        "allowed_value_class": "receiver_or_owner_supplied_typed_value",
+        "allowed_value_class": "canonical_utc_execution_window_value_v1",
         "pending_value_ref": null,
         "pending_values": [],
         "status": "typed_value_pending",
@@ -8298,7 +10157,7 @@
       }
     ],
     "inventory_digest_domain_separator": "mobile-ux-batch1-current-requirement-registry.v1",
-    "inventory_digest": "fdf9cd8b0477fd4ef7fa24c109ff85f1adcd9e5d0164647a8687503ec3237fce",
+    "inventory_digest": "c73e4fa89967298bc01dbdb4476028e462f5d57ab64705c1fcc88d99c4a96dac",
     "authority": {
       "freeze": false,
       "provision": false,

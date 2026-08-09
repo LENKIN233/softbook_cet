@@ -547,7 +547,7 @@ def validate(context) -> None:
                     "subject_class": "schema_definition_only",
                     "candidate_status": "candidate_incomplete",
                     "subject_digest": (
-                        "f08c84f879700f143f550557f0eb445f1b7a6eb06cc4708e5edeffd53b15b9f1"
+                        "df8d1bb25b4a38b1c23c84fe8ffddc7c4b9013ce4228b6c975dfb3bcb2256793"
                     ),
                     "partition_semantic_digests": {
                         "CP-BA": (
@@ -570,13 +570,23 @@ def validate(context) -> None:
                     "current_v2_requirement_count": 145,
                     "current_v2_pending_requirement_count": 145,
                     "current_v2_requirement_inventory_digest": (
-                        "fdf9cd8b0477fd4ef7fa24c109ff85f1adcd9e5d0164647a8687503ec3237fce"
+                        "c73e4fa89967298bc01dbdb4476028e462f5d57ab64705c1fcc88d99c4a96dac"
                     ),
+                    "successor_transition_stage_count": 4,
+                    "successor_transition_post_designation_requirement_count": 9,
+                    "successor_transition_contract_digest": (
+                        "c8e697352ec66e58fd48c4f8432c87ba97c869a29a0c45bfa812e5e179c58504"
+                    ),
+                    "decision_authority_bootstrap_status": "not_implemented",
+                    "decision_instance_count": 0,
+                    "approval_receipt_count": 0,
+                    "preparation_approval_receipt_status": "missing",
+                    "trusted_staged_same_pr_path_status": "not_implemented",
                     "unresolved_migration_digest": (
                         "e35033e32eee9d6042e5a52b110529b430a1c90be35691909d2e5a9418612d94"
                     ),
                     "reference_contracts_digest": (
-                        "32e8bbf1a371b02d4c138480b63bf3a40398651092922f357b07d6d093bbcc4e"
+                        "357e6aadaf6c474c4eb0fe89847d3b952604401a3bd95f58e12ef3ca6ee862cb"
                     ),
                     "manifest_type_definitions_digest": (
                         "a8baeb8ffa627558ad1b144be186ab76edbc42149875fd45f640b042211baaa6"
@@ -591,6 +601,8 @@ def validate(context) -> None:
                     "freeze_readiness": "blocked_candidate_incomplete",
                     "manifest_freeze_eligible": False,
                     "freeze_authorized": False,
+                    "reservation_activation_authorized": False,
+                    "manifest_creation_authorized": False,
                     "decision_status": "not_evaluated",
                     "gate_effect": "none",
                     "gate_eligible": False,
@@ -598,15 +610,20 @@ def validate(context) -> None:
                     "provisioning_authorized": False,
                     "execution_authorized": False,
                     "collection_authorized": False,
+                    "data_manifest_population_authorized": False,
                     "aggregation_authorized": False,
                     "promotion_authorized": False,
+                    "architecture_acceptance_authorized": False,
+                    "checkpoint_coverage_authorized": False,
                     "visual_exploration_authorized": False,
                     "implementation_authorized": False,
                     "native_acceptance_authorized": False,
                     "release_authorized": False,
+                    "leadership_readiness_authorized": False,
                     "allowed_next_action": (
-                        "resolve_blockers_then_exact_review_before_future_protected_"
-                        "manifest_freeze_decision"
+                        "implement_trusted_governance_and_R0_B2_materialization_"
+                        "validators_obtain_protected_validity_policy_and_legacy_"
+                        "receipt_migration_approval"
                     ),
                 }
                 for field, expected in expected_batch1_v2_result.items():

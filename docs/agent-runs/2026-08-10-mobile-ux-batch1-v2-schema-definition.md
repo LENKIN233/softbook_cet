@@ -7,7 +7,10 @@
 - PR: draft `#484`, targeting `main`
 - Summary: after the exact `8f4f82b35b660d9a775d6551e530fe6703c3ac54`
   preparation-only decision succeeded, define and validate a separate v2
-  successor proposal for `CP-BA`, `CP-CS`, and `CP-WEB`.
+  successor proposal for `CP-BA`, `CP-CS`, and `CP-WEB`. A late independent
+  review then found that the original successor instructions were circular;
+  this run now also defines a fail-closed `R0 → D1 → B2 → F3` transition
+  contract without performing any of those future stages.
 - Authority boundary: this run defines schemas and explicit blockers only. It
   does not freeze a manifest, provision an account/device/environment, create
   an execution manifest, collect evidence, accept architecture or visuals,
@@ -99,6 +102,41 @@
   bindings, a static fail-closed validator, an always-blocked pre-freeze
   execution-manifest validator, adversarial tests, formal-scope protection,
   CI, and Harness integration.
+- Replaced the circular "resolve build/compatibility, then freeze" instruction
+  with four distinct future subjects: `R0` resolves exactly 136 requirements
+  and leaves nine designation-dependent values pending; `D1` externally
+  designates that pre-existing cohort with zero downstream authority; `B2`
+  changes only those nine values and derived summaries; `F3` may authorize only
+  the exact manifest freeze and reservation activation. Activation is an
+  eligibility marker in the post-event receipt; it leaves the frozen five files
+  and manifest root unchanged. Manifest creation or population, provisioning,
+  execution, evidence, aggregation, promotion, architecture,
+  visual, implementation, native, release, and leadership authority all remain
+  separate and false.
+- Added deterministic SHA-256/RFC 8785 compatibility derivation over a
+  designation-bound source closure, five per-output identities, and one CP-BA
+  compatibility map. The canonical inputs include the digest domain, cohort
+  identity and digest, exact build closure, and three execution windows; any
+  input drift requires recomputation.
+- Defined future D1/F3 pre-approval decision-intent and post-event receipt
+  contracts with fixed paths and modes, exact key sets, class-specific canonical
+  projections, domain-separated approval-instance digests, full parent tuples,
+  ancestor and unchanged-parent requirements, one active decision class per
+  event, expiry, and 16-key maximum authority masks. The external chain is bound
+  to the canonical `LENKIN233/softbook_cet` repository, its verified protected
+  `main` PR base, and workflow/validator bytes loaded from that exact base. The
+  existing protected workflow cannot authenticate those semantics, so bootstrap
+  is explicitly `not_implemented`, all decision-intent and receipt counts are
+  zero, and the preparation receipt is explicitly missing.
+- The historical `8f4f82b` approval had no pre-approval Batch 1 intent. Its
+  future receipt is therefore a blocked one-time migration that must bind both
+  the old schema approval and a new protected migration-authorization event;
+  this run neither invents the missing intent nor authorizes materialization.
+- Decision-validity owner policy, privacy classification for cohort labels, and
+  the R0/B2 materialization validator remain explicitly unimplemented. Build
+  source/recipe bindings and canonical window values are defined, but cross-OS
+  reproducibility and privacy cannot be inferred from syntax; both remain
+  materializer prerequisites rather than passed claims.
 
 ## Workspace boundary and read scope
 
@@ -143,7 +181,11 @@
   manifest-path-absence, and privacy-boundary checks were run while assembling
   the v2 proposal.
 - `node --test scripts/test_mobile_ux_batch1_manifest_contract.mjs
-  scripts/test_validate_mobile_ux_batch1_freeze_candidate.mjs` passed `96/96`.
+  scripts/test_validate_mobile_ux_batch1_freeze_candidate.mjs` passed
+  `259/259` (`28` manifest-contract plus `231` freeze-candidate tests),
+  including transition-cycle, compatibility-canonicalization,
+  decision/receipt digest, parent-chain, single-active-class, and maximum-
+  authority attacks.
 - The exported v2 validator API passed against the real repository with
   `requireTracked=false` and reviewed-digest enforcement. That pre-commit mode
   is fixture-only and is not counted as tracked or gate evidence.
@@ -151,9 +193,10 @@
   `node --test scripts/test_classify_formal_approval_scope.mjs` passed `44/44`;
   `python3 scripts/test_harness_module_boundaries.py` passed `19/19`; and
   `git diff --check` passed.
-- Post-commit tracked validation, complete Harness, and the first PR-profile
-  local-gate attempt are recorded below. Remote required checks remain pending
-  until the final record update is pushed.
+- The exported validator passed against the real root with reviewed-digest
+  enforcement; its tracked-mode positive path is also covered by temporary-
+  repository commit tests. The real-root tracked run, complete Harness, remote
+  approval, and required checks must be repeated on the final clean commit.
 
 ## Validation results
 
@@ -169,30 +212,41 @@
   evidence-archive checks all passed. Those results close the preparation
   checkpoint only and do not establish any product, visual, native, or release
   acceptance.
+- The later schema-definition-only approval for exact head
+  `1b032e98f783c0f31c2dc9dbc97473b87caf92d1` used workflow run
+  `31331114616`, environment `18348068326`, deployment `5821976647`, and
+  succeeded at `2026-08-09T19:18:57Z`. PR-gates run `31331115671` completed at
+  `2026-08-09T19:56:17Z`; all 12 strict `main` required contexts, including iOS
+  and Android release checks, were successful. These results are a superseded
+  baseline: the transition defect was found afterwards, and none of these
+  events can approve the corrected exact bytes or act as D1/F3 authority.
 - Final five-artifact subject digest:
-  `f08c84f879700f143f550557f0eb445f1b7a6eb06cc4708e5edeffd53b15b9f1`.
-  Raw SHA-256 values are root `f26d54a04a7931a348f041726b6246e5a17898725f2306a245e3214b7dfe6ed3`,
+  `df8d1bb25b4a38b1c23c84fe8ffddc7c4b9013ce4228b6c975dfb3bcb2256793`.
+  Raw SHA-256 values are root `58966c8df9e9f5a5a7f6711a048317b78a2300d3a003e1dd6bdd238c0e928c03`,
   CP-BA `247ff9d3de23e31f3e37e35e9a53fd0fe1edc24bc2d93ca4468a5a2571338491`,
   CP-CS `8819358f978a1c573067d468531744b2fd900864d3317542e741bffae2f2bdfa`,
   CP-WEB `cc0b4aa3f73b36318d00e28f1514115f10dec78fd21c8948f1c3030d2699da60`,
   and catalog `814088a2b709e0d31a5a1d96d3bc29e17dc47849fdcd44f1785162d452ac5b1b`.
 - Independent canonical partition digests are CP-BA `42fdc33b292e...`, CP-CS
   `8584126140ef...`, and CP-WEB `be423c7983e5...`. Current requirements remain
-  `145/145` pending with digest `fdf9cd8b0477...`; historical migration remains
+  `145/145` pending with digest `c73e4fa89967...`; historical migration remains
   `115/1/114` with digest `e35033e32eee...`; reference contracts remain
-  `32e8bbf1a371...`.
+  `357e6aadaf6c...`. The successor transition digest is
+  `c8e697352ec66e58fd48c4f8432c87ba97c869a29a0c45bfa812e5e179c58504`.
 - Catalog validation fixes exactly 35 reservations, 12 type definitions, 14
   CP-CS domain contracts, and 28 exact domain source anchors across 12 source
   files. The type, reservation, and domain digests are respectively
   `a8baeb8ffa62...`, `fda8c728ee40...`, and `837fd738a074...`.
-- The pre-commit adversarial suites passed `96/96`, classifier tests passed
+- The corrected adversarial suites passed `259/259`, classifier tests passed
   `44/44`, Harness boundary tests passed `19/19`, and all five scripts passed
   syntax checks.
 - Signed schema commit `f40dbfb85e347684f021a1e8e8eb8500e0b7e67d` passed
   `node scripts/validate_mobile_ux_batch1_freeze_candidate.mjs
   --require-tracked --json`; every candidate and semantic source resolved to a
   regular `100644` HEAD blob with clean worktree bytes. The tracked output
-  retained the exact `f08c84f8...` subject and every false authority flag.
+  retained the earlier exact `f08c84f8...` subject and every false authority
+  flag. It is now a superseded baseline rather than validation of the corrected
+  transition bytes.
 - On the same clean commit, `python3 scripts/validate_harness.py
   --skip-remote-guard` passed all 15 selected sections as the expected local
   partial result; the PR-profile runner's full Harness then passed all 15
@@ -208,8 +262,22 @@
   Mobile lint/typecheck/Jest, backend `206/206`, design/metadata scanners,
   dependency/evidence checks, Git LFS, and both Harness modes passed. No other
   worktree or branch was removed to manufacture a local health pass.
-- A corrected-toolchain rerun, exact remote checks, and protected decision are
-  still pending the final record-only commit and push.
+- A corrected-toolchain PR-profile rerun on the superseded `1b032e98` baseline
+  produced `34/36` gates with the repository policy exception allowed; the sole
+  strict failure was repository health observing the shared clone's four
+  worktrees and 30 topic branches. Report:
+  `exports/local-gates/20260809T191526Z-1b032e98-pr-31667/report.json`. No user
+  worktree or branch was removed to manufacture a local pass.
+- For the corrected candidate, the validator reports four future stages, nine
+  designation-dependent requirements, bootstrap `not_implemented`, zero
+  decision intents, zero approval receipts, missing preparation receipt, and
+  same-PR staged validation `not_implemented`. It validates 151 current 16-key
+  authority masks as all false, exports every one of those 16 dimensions as an
+  explicit non-authorized result, and preserves 11 explicit global blockers.
+  The only allowed next action is
+  `implement_trusted_governance_and_R0_B2_materialization_validators_obtain_protected_validity_policy_and_legacy_receipt_migration_approval`.
+  Exact new-head protected approval and all 12 remote required checks remain
+  pending until the final commit and push.
 
 ## Agent review status
 
@@ -242,12 +310,32 @@
   accepted despite the catalog claiming the subtree was absent. The helper now
   rejects an existing empty directory, file, normal symlink, and dangling
   symlink; only a genuinely absent root passes.
-- Final pre-commit exact review: P0 `0`, P1 `0`, P2 `0`; independent recounts
+- Baseline pre-commit exact review: P0 `0`, P1 `0`, P2 `0`; independent recounts
   matched 519 obligations, 796 bindings, 31 lanes, three aggregate unions,
   `145/145`, `115/1/114`, `35/12/14/28`, all 12 COV-13-only PC Web row digests,
   and every false authority flag. This is a technical schema verdict only; it
   grants no freeze, evidence, architecture, visual, native, release, or merge
   authority.
+- A later successor-transition review found a real P1 circularity: the proposed
+  build and five compatibility values depended on a future designation/freeze,
+  while that freeze required those values to be complete. The first repair was
+  rejected, not waived. Exact review reported P0 `0`, P1 `3` (arbitrary
+  compatibility values, incomplete D1 non-claims, and unbounded F3 authority).
+  Authority review independently reported P0 `0`, P1 `3`, P2 `2` (declarative
+  rather than executable decision schemas, opaque parent linkage, unbounded F3,
+  insufficient instance/ancestry attacks, and a misleading next action).
+- The final repair closes those findings with the deterministic binding bundle,
+  intent/receipt lifecycle, full staged parent tuple, canonical protected-base
+  event chain, complete D1 zero-authority mask, F3 freeze-and-reservation-only
+  ceiling, and bootstrap-first stop boundary. Final independent exact review:
+  P0 `0`, P1 `0`, P2 `0`; it recomputed all six final digests and the exact
+  `519 + 31 + 145 = 695` records, verified 11 blockers, 259/259 tests, all 16
+  exported authority dimensions false, Harness pins, and documentation truth.
+  Final independent authority/transition review: P0 `0`, P1 `0`, P2 `0`; it
+  verified canonical repository/protected-base provenance, the external event
+  chain, fail-closed legacy migration, validity/materializer blockers, D1/F3
+  masks and non-claims, and receipt-only reservation activation without
+  manifest creation or frozen-subject mutation.
 - Self-review findings already corrected before exact review: unique-token
   counts were expanded to all 115 physical instances; exact mapping digests
   replaced count-only validation; cross-device rows require iOS, Android, and
@@ -278,21 +366,39 @@
 - Membership-stage and intended-origin values, privacy-safe slots, real
   environments/accounts/builds/content, human role confirmations, schedules,
   and compatibility keys remain unresolved.
+- The 145 current blockers classify as 24 strictly repository-semantic values,
+  two Tier-2 labels still tied to owner choice, 41 other protected owner
+  choices, 16 operator/evidence-owner assignments, 17 independent reviewer or
+  verifier assignments, three execution windows, 36 real/external resources,
+  one future protected BA build, and five derived compatibility outputs.
+- The trusted governance bootstrap and a materialized preparation approval
+  receipt do not yet exist. The current sensitive-boolean workflow cannot
+  authenticate D1/F3 decision class, exact subject, canonical approval digest,
+  or parent chain; therefore R0/D1/B2/F3 execution remains blocked.
 - A future complete candidate needs independent exact review and a distinct
-  protected manifest-freeze decision. This preparation decision cannot be
-  reused.
+  exact protected manifest-freeze event. This preparation/schema decision
+  cannot be reused. Even F3 may only freeze and activate reservations; manifest
+  creation, population, execution, and evidence still need separate authority.
 - `CP-CS`, `CP-WEB`, `CP-VA`, `CP-NFA`, and `CP-RLR` remain blocked; the mature
   iOS/Android/tablet/PC-Web product remains the final goal.
 
 ## Follow-up
 
-1. Commit this validation record, push the exact descendant head, rerun the
-   PR-profile mirror with the repository toolchain, and wait for all remote
-   required checks and the separate protected schema-definition-only decision.
-2. Resolve the declared owner and external inputs without provisioning or
-   evidence collection unless separately authorized.
-3. Submit a complete exact candidate to a future protected manifest-freeze
-   decision.
-4. Only after a successful freeze may manifest creation and isolated evidence
-   work be considered; visual exploration still waits for architecture
-   acceptance.
+1. Complete independent exact/authority review, commit this corrected schema
+   and run record, push the exact descendant head, rerun the clean tracked
+   validator/Harness, and wait for the new schema-definition-only protected
+   approval plus all 12 required checks.
+2. In a separate governed change, implement the trusted decision-class,
+   exact-subject, approval-instance-digest, parent-chain, and R0/B2
+   materialization validators; obtain the protected validity/privacy policy and
+   a separate legacy-receipt migration approval. Only then may the historical
+   preparation receipt be materialized from both verified event chains. Do not
+   proceed to R0 or D1 before those controls are approved and loaded from the
+   exact protected PR base.
+3. Produce R0 by resolving the 136 pre-designation inputs, then obtain a
+   distinct D1 cohort-designation event; produce B2 by changing only the nine
+   designation-bound requirements and derived summaries.
+4. Submit the complete B2 exact subject to a distinct F3 manifest-freeze event.
+   Even after F3, manifest creation/population, provision, execution, evidence,
+   architecture, visual, native, release, and leadership readiness remain
+   separately gated.
