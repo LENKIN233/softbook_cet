@@ -19,6 +19,7 @@ const EXACT_SENSITIVE_PATHS = new Set([
   'scripts/test_classify_formal_approval_scope.mjs',
   'scripts/test_harness_module_boundaries.py',
   'scripts/test_validate_mobile_ux_batch0_decision.mjs',
+  'scripts/test_validate_mobile_ux_batch1_registry.mjs',
   'scripts/report_repo_health.mjs',
   'scripts/test_report_repo_health.mjs',
   'scripts/harness_validator/sections/product_contract_mirrors.py',
@@ -27,6 +28,7 @@ const EXACT_SENSITIVE_PATHS = new Set([
   'scripts/lib/strict_json.mjs',
   'scripts/validate_launch_readiness.mjs',
   'scripts/validate_mobile_ux_batch0_decision.mjs',
+  'scripts/validate_mobile_ux_batch1_registry.mjs',
   'scripts/test_validate_launch_readiness.mjs',
   'scripts/validate_pr_design_gate.py',
   'scripts/harness_validator/sections/governance_contracts.py',
@@ -44,6 +46,7 @@ const EXACT_SENSITIVE_PATHS = new Set([
 const SENSITIVE_PREFIXES = [
   '.github/workflows/',
   'docs/agent-runs/evidence/',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/',
   'docs/release/',
   'security/reports/',
 ];
@@ -165,6 +168,7 @@ function readGitHubFiles(file, expectedCountValue) {
   }
 
   const paths = [];
+  const currentFilenames = new Set();
   for (const fileEntry of files) {
     if (
       !fileEntry ||
@@ -174,6 +178,10 @@ function readGitHubFiles(file, expectedCountValue) {
     ) {
       throw new Error('GitHub changed-file entry is malformed');
     }
+    if (currentFilenames.has(fileEntry.filename)) {
+      throw new Error(`GitHub changed-file list contains duplicate filename: ${fileEntry.filename}`);
+    }
+    currentFilenames.add(fileEntry.filename);
     paths.push(fileEntry.filename);
     if (fileEntry.previous_filename !== undefined) {
       if (
@@ -184,6 +192,11 @@ function readGitHubFiles(file, expectedCountValue) {
       }
       paths.push(fileEntry.previous_filename);
     }
+  }
+  if (currentFilenames.size !== expectedCount) {
+    throw new Error(
+      `GitHub changed-file unique count is incomplete: expected ${expectedCount}, received ${currentFilenames.size}`,
+    );
   }
   return paths;
 }

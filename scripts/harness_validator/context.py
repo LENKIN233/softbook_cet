@@ -197,14 +197,24 @@ class DeliveryContext(ReadOnlyContext):
             return
 
         if executable == "node":
-            allowed = (
-                self.root / "scripts" / "validate_mobile_ux_batch0_decision.mjs"
-            ).resolve()
-            if len(args) != 2 or Path(args[1]).resolve() != allowed:
-                raise CapabilityError(
-                    f"delivery Node validator is not allowlisted: {args!r}"
-                )
-            return
+            if len(args) >= 2:
+                script = Path(args[1]).resolve()
+                batch0_validator = (
+                    self.root / "scripts" / "validate_mobile_ux_batch0_decision.mjs"
+                ).resolve()
+                batch1_validator = (
+                    self.root / "scripts" / "validate_mobile_ux_batch1_registry.mjs"
+                ).resolve()
+                if script == batch0_validator and len(args) == 2:
+                    return
+                if script == batch1_validator and tuple(args[2:]) == (
+                    "--require-tracked",
+                    "--json",
+                ):
+                    return
+            raise CapabilityError(
+                f"delivery Node validator is not allowlisted: {args!r}"
+            )
 
         raise CapabilityError(f"delivery command is not allowlisted: {args!r}")
 

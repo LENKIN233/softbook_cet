@@ -3019,13 +3019,16 @@ def launch_evidence_contract_findings(
         "'scripts/lib/strict_json.mjs'",
         "'scripts/test_harness_module_boundaries.py'",
         "'scripts/test_validate_mobile_ux_batch0_decision.mjs'",
+        "'scripts/test_validate_mobile_ux_batch1_registry.mjs'",
         "'scripts/validate_mobile_ux_batch0_decision.mjs'",
+        "'scripts/validate_mobile_ux_batch1_registry.mjs'",
         "'scripts/validate_pr_design_gate.py'",
         "'spec/account-sync-contract.json'",
         "'spec/authority-map.json'",
         "'spec/doc-manifest.json'",
         "'spec/release-operational-policy.json'",
         "'spec/runtime-boundaries.json'",
+        "'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/'",
     ]:
         if sensitive_path not in classifier_text:
             findings.append(

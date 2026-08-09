@@ -27,6 +27,16 @@ const BATCH0_PROTECTED_PATHS = [
   'scripts/validate_pr_design_gate.py',
 ];
 
+const BATCH1_PROTECTED_PATHS = [
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/README.md',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/registry-set.v1.json',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-ba.registry.v1.json',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-cs.registry.v1.json',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-web.registry.v1.json',
+  'scripts/test_validate_mobile_ux_batch1_registry.mjs',
+  'scripts/validate_mobile_ux_batch1_registry.mjs',
+];
+
 test('ordinary implementation changes do not require formal approval', () => {
   const result = classifyFormalApprovalScope([
     'apps/mobile/src/learning/LearningSurface.tsx',
@@ -73,6 +83,29 @@ test('each Batch 0 decision subject and design gate guard is sensitive alone', a
       assert.deepEqual(result.invalid_paths, []);
     });
   }
+});
+
+test('each Batch 1 preparation subject and guard is sensitive alone', async t => {
+  for (const protectedPath of BATCH1_PROTECTED_PATHS) {
+    await t.test(protectedPath, () => {
+      const result = classifyFormalApprovalScope([protectedPath]);
+
+      assert.equal(result.sensitive, true);
+      assert.deepEqual(result.changed_paths, [protectedPath]);
+      assert.deepEqual(result.matched_paths, [protectedPath]);
+      assert.deepEqual(result.invalid_paths, []);
+    });
+  }
+});
+
+test('Batch 1 protection does not overmatch similarly named directories', () => {
+  const result = classifyFormalApprovalScope([
+    'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-10/registry-set.v1.json',
+    'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1ish/registry-set.v1.json',
+  ]);
+
+  assert.equal(result.sensitive, false);
+  assert.deepEqual(result.matched_paths, []);
 });
 
 test('a Batch 0 protected path remains sensitive when mixed with UI changes', () => {
@@ -174,6 +207,34 @@ test('GitHub file input fails closed when API pagination is truncated', t => {
   assert.match(result.stderr, /changed-file list is incomplete/);
 });
 
+test('GitHub file input fails closed on duplicate filenames across pages', t => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-formal-scope-'));
+  t.after(() => fs.rmSync(tmp, { force: true, recursive: true }));
+  const files = path.join(tmp, 'files.json');
+  fs.writeFileSync(
+    files,
+    JSON.stringify([
+      [{ filename: 'apps/mobile/package.json' }],
+      [{ filename: 'apps/mobile/package.json' }],
+    ]),
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.join(ROOT, 'scripts', 'classify_formal_approval_scope.mjs'),
+      '--github-files',
+      files,
+      '--expected-count',
+      '2',
+    ],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /contains duplicate filename/);
+});
+
 test('GitHub file input rejects the API safety limit', t => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-formal-scope-'));
   t.after(() => fs.rmSync(tmp, { force: true, recursive: true }));
@@ -240,6 +301,42 @@ test('GitHub rename cannot move a Batch 0 decision out of protected scope', t =>
       [
         {
           filename: 'docs/archive/mobile-ux-checkpoint-layering-decision-v1.md',
+          previous_filename: protectedPath,
+        },
+      ],
+    ]),
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.join(ROOT, 'scripts', 'classify_formal_approval_scope.mjs'),
+      '--github-files',
+      files,
+      '--expected-count',
+      '1',
+    ],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.sensitive, true);
+  assert.deepEqual(parsed.matched_paths, [protectedPath]);
+});
+
+test('GitHub rename cannot move a Batch 1 registry out of protected scope', t => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-formal-scope-'));
+  t.after(() => fs.rmSync(tmp, { force: true, recursive: true }));
+  const files = path.join(tmp, 'files.json');
+  const protectedPath =
+    'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/registry-set.v1.json';
+  fs.writeFileSync(
+    files,
+    JSON.stringify([
+      [
+        {
+          filename: 'docs/archive/mobile-ux-batch1-registry-set.v1.json',
           previous_filename: protectedPath,
         },
       ],

@@ -5,11 +5,20 @@
 - Current status: `architecture_gate_blocked_with_browser_subset_verified`.
 - Checkpoint-layering decision: the separate protected decision record
   `docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md` accepts
-  the six-layer topology and Batch 1 manifest-preparation boundary only if the
-  exact head of pull request `#484` containing its bound bytes passes
-  `formal-product-owner-approval`. It accepts no execution registry or
-  checkpoint manifest, permits no evidence collection, and does not open visual
-  exploration.
+  the six-layer topology and Batch 1 manifest-preparation boundary. Its exact
+  activation head `ac7e124f0385cf100b74a6b24e44ad3b3dad1ec8` passed the
+  exact-head validator, protected product-owner review, and aggregate
+  `formal-approval` in workflow run `31322774545`. It accepts no execution
+  registry or checkpoint manifest, permits no evidence collection, and does
+  not open visual exploration.
+- Batch 1 preparation: `batch-1/registry-set.v1.json` and its three isolated
+  child registries are structurally valid but contain 88 unresolved authority,
+  partition, role/resource/cohort inputs. The historical Batch 0 activation is
+  only their preparation basis: because this change modifies the protected
+  classifier, the current bytes require a fresh exact-head protected
+  preparation decision. Schema v1 is intrinsically ineligible for manifest
+  freeze, has `gate_effect=none`, and cannot be consumed by evidence, visual,
+  implementation, native, or release workflows.
 - Parent review: exact corrected v4 planning commit `de3bd5c5a23a70e2ca3c165613ea04a2f07da2b1` passed independent scope review as `completed_no_promotion`.
 - Strict-4 exact review: commit `bd3ed0f54350b252f1554872de5a07cd09f97232` historically passed as `pass_exact_architecture_browser_subset`, with P0 `0` and P1 `0`. A later strict-5 real-use replay found that Flip reveal had left focus on `body`; strict-5 corrects and replays that focus path. Independent exact-delta review of commit `d5b9250ad255215830ff21fe7e1651797234b79a` returned `PASS_EXACT_STRICT5_DELTA`, P0 `0`, P1 `0`. Neither verdict extends beyond its browser subset.
 - Exact governance/boundary review of correction commit `c447590790e1f0041f7d04f10deb4470a7b290d0` failed with P0 `0`, P1 `3`: an unchecked ledger divider, missing state-to-evidence-section relevance binding, and PC Web's incomplete binding to its semantic source contract. Exact adversarial and boundary/records reviews of correction commit `6950638d52a15aa4ff60597dbeaa376a1ec4f06b` both passed with P0 `0`, P1 `0`; the overall architecture gate remains blocked.
@@ -63,6 +72,14 @@ The active chain for this phase is:
   `CP-BA / CP-CS / CP-WEB` owner/matrix/manifest preparation, forbids evidence
   collection, and keeps `CP-VA` blocked.
 - `pc-web-v5-state-mapping.md`: fail-closed mapping of all 160 semantic states and 13 forced combinations to the accepted `pcw-01` Focused Workbench authority and future evidence; its complete semantic source contract, status, result meanings, completion boundary, rows, matrix, and appended prose are integrity-bound.
+- `batch-1/`: preparation-only common resource bundle plus isolated `CP-BA`,
+  `CP-CS`, and `CP-WEB` registries. The bundle records exact Batch 0 activation
+  provenance as historical basis, source and child hashes, 173 source-universe
+  obligations, 12 canonical-service scenarios, 12 PC Web rows, and 33 future
+  manifest identities. Exact state-to-lane partitioning and every role/resource
+  cohort remain unresolved; no personal or workstation inventory is stored.
+  It creates no manifest, evidence, checkpoint result, visual authority, or
+  execution permission.
 - `grayscale-reviewer-matrix.html`: reviewer-only entry point. It is never learner UI.
 
 ## Stop boundary

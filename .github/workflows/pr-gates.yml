@@ -102,6 +102,12 @@ jobs:
           --head-sha "${{ github.event.pull_request.head.sha }}"
           --json
 
+      - name: Test Mobile UX Batch 1 registry validator
+        run: node --test scripts/test_validate_mobile_ux_batch1_registry.mjs
+
+      - name: Validate Mobile UX Batch 1 preparation registry
+        run: node scripts/validate_mobile_ux_batch1_registry.mjs --require-tracked --json
+
       - name: Validate harness contract
         run: python3 scripts/validate_harness.py --skip-remote-guard
 

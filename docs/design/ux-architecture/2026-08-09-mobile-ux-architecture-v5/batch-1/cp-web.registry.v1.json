@@ -1,0 +1,299 @@
+{
+  "schema_version": "mobile-ux-batch1-cp-web-registry.v1",
+  "registry_id": "mobile-ux-architecture-v5-batch1-cp-web",
+  "classification": "implementation_hypothesis",
+  "subject_class": "registry_preparation",
+  "checkpoint_id": "CP-WEB",
+  "source_universe_binding": {
+    "scope_ref": "all_173_ledger_obligations",
+    "binding_kind": "source_universe_only",
+    "per_obligation_lane_partition": {
+      "kind": "unresolved",
+      "requirement_id": "cp-web-exact-state-to-matrix-partition",
+      "reason_code": "exact_state_to_lane_partition_missing"
+    }
+  },
+  "semantic_owner_anchors": [
+    "spec/product-core.json",
+    "spec/platform-contract.json",
+    "spec/account-sync-contract.json",
+    "spec/action-surface.json",
+    "spec/card-system.json",
+    "spec/interactions.json",
+    "spec/knowledge-map.json",
+    "spec/space-operations.json",
+    "spec/box-catalog.json",
+    "spec/membership.json",
+    "spec/visual-language.json"
+  ],
+  "accepted_design_authority_refs": [
+    "docs/design/decisions/pc-web-core-surface-decision-v1.md"
+  ],
+  "fail_closed_mapping_refs": [
+    "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/pc-web-v5-state-mapping.md"
+  ],
+  "evidence_owner_assignment": {
+    "kind": "unresolved",
+    "requirement_id": "role-cp-web-evidence-owner",
+    "reason_code": "explicit_role_confirmation_missing"
+  },
+  "independent_behavior_reviewer_assignment": {
+    "kind": "unresolved",
+    "requirement_id": "role-cp-web-independent-behavior-reviewer",
+    "reason_code": "independent_human_confirmation_missing"
+  },
+  "independent_accessibility_reviewer_assignment": {
+    "kind": "unresolved",
+    "requirement_id": "role-cp-web-independent-accessibility-reviewer",
+    "reason_code": "independent_human_confirmation_missing"
+  },
+  "build_reference": {
+    "kind": "unresolved",
+    "requirement_id": "build-cp-web-production-like",
+    "reason_code": "deployable_build_digest_missing"
+  },
+  "deployment_reference": {
+    "kind": "unresolved",
+    "requirement_id": "deployment-cp-web-production-like",
+    "reason_code": "deployment_identity_missing"
+  },
+  "matrix_registry": [
+    {
+      "matrix_id": "PW-VIEWPORT-01",
+      "target_requirement_id": "web-desktop-primary",
+      "environment_requirement_id": "env-local-browser-readonly",
+      "reviewer_role_id": "role-cp-web-independent-behavior-reviewer",
+      "account_requirement_ids": ["account-runtime-primary"],
+      "build_requirement_id": "build-cp-web-production-like",
+      "content_requirement_ids": ["content-release-subject"],
+      "execution_window_requirement_id": "window-cp-web",
+      "compatibility_key_requirement_id": "compatibility-cp-web-aggregate",
+      "planned_manifest_id": "manifest-web-viewport-01-v1"
+    },
+    {
+      "matrix_id": "PW-VIEWPORT-02",
+      "target_requirement_id": "web-desktop-primary",
+      "environment_requirement_id": "env-local-browser-readonly",
+      "reviewer_role_id": "role-cp-web-independent-behavior-reviewer",
+      "account_requirement_ids": ["account-runtime-primary"],
+      "build_requirement_id": "build-cp-web-production-like",
+      "content_requirement_ids": ["content-release-subject"],
+      "execution_window_requirement_id": "window-cp-web",
+      "compatibility_key_requirement_id": "compatibility-cp-web-aggregate",
+      "planned_manifest_id": "manifest-web-viewport-02-v1"
+    },
+    {
+      "matrix_id": "PW-ZOOM-01",
+      "target_requirement_id": "web-desktop-primary",
+      "environment_requirement_id": "env-local-browser-readonly",
+      "reviewer_role_id": "role-cp-web-independent-accessibility-reviewer",
+      "account_requirement_ids": ["account-runtime-primary"],
+      "build_requirement_id": "build-cp-web-production-like",
+      "content_requirement_ids": ["content-release-subject"],
+      "execution_window_requirement_id": "window-cp-web",
+      "compatibility_key_requirement_id": "compatibility-cp-web-aggregate",
+      "planned_manifest_id": "manifest-web-zoom-01-v1"
+    },
+    {
+      "matrix_id": "PW-KEYBOARD-01",
+      "target_requirement_id": "web-desktop-primary",
+      "environment_requirement_id": "env-local-browser-readonly",
+      "reviewer_role_id": "role-cp-web-independent-accessibility-reviewer",
+      "account_requirement_ids": ["account-runtime-primary"],
+      "build_requirement_id": "build-cp-web-production-like",
+      "content_requirement_ids": ["content-release-subject"],
+      "execution_window_requirement_id": "window-cp-web",
+      "compatibility_key_requirement_id": "compatibility-cp-web-aggregate",
+      "planned_manifest_id": "manifest-web-keyboard-01-v1"
+    },
+    {
+      "matrix_id": "PW-MOUSE-01",
+      "target_requirement_id": "web-desktop-primary",
+      "environment_requirement_id": "env-local-browser-readonly",
+      "reviewer_role_id": "role-cp-web-independent-behavior-reviewer",
+      "account_requirement_ids": ["account-runtime-primary"],
+      "build_requirement_id": "build-cp-web-production-like",
+      "content_requirement_ids": ["content-release-subject"],
+      "execution_window_requirement_id": "window-cp-web",
+      "compatibility_key_requirement_id": "compatibility-cp-web-aggregate",
+      "planned_manifest_id": "manifest-web-mouse-01-v1"
+    },
+    {
+      "matrix_id": "PW-FOCUS-01",
+      "target_requirement_id": "web-desktop-primary",
+      "environment_requirement_id": "env-local-browser-readonly",
+      "reviewer_role_id": "role-cp-web-independent-accessibility-reviewer",
+      "account_requirement_ids": ["account-runtime-primary"],
+      "build_requirement_id": "build-cp-web-production-like",
+      "content_requirement_ids": ["content-release-subject"],
+      "execution_window_requirement_id": "window-cp-web",
+      "compatibility_key_requirement_id": "compatibility-cp-web-aggregate",
+      "planned_manifest_id": "manifest-web-focus-01-v1"
+    },
+    {
+      "matrix_id": "PW-MOTION-01",
+      "target_requirement_id": "web-desktop-primary",
+      "environment_requirement_id": "env-local-browser-readonly",
+      "reviewer_role_id": "role-cp-web-independent-accessibility-reviewer",
+      "account_requirement_ids": ["account-runtime-primary"],
+      "build_requirement_id": "build-cp-web-production-like",
+      "content_requirement_ids": ["content-release-subject"],
+      "execution_window_requirement_id": "window-cp-web",
+      "compatibility_key_requirement_id": "compatibility-cp-web-aggregate",
+      "planned_manifest_id": "manifest-web-motion-01-v1"
+    },
+    {
+      "matrix_id": "PW-SCREENREADER-01",
+      "target_requirement_id": "web-desktop-secondary",
+      "environment_requirement_id": "env-local-browser-readonly",
+      "reviewer_role_id": "role-cp-web-independent-accessibility-reviewer",
+      "account_requirement_ids": ["account-runtime-primary"],
+      "build_requirement_id": "build-cp-web-production-like",
+      "content_requirement_ids": ["content-release-subject"],
+      "execution_window_requirement_id": "window-cp-web",
+      "compatibility_key_requirement_id": "compatibility-cp-web-aggregate",
+      "planned_manifest_id": "manifest-web-screenreader-01-v1"
+    },
+    {
+      "matrix_id": "PW-SERVICE-01",
+      "target_requirement_id": "web-desktop-primary",
+      "environment_requirement_id": "env-receiver-staging",
+      "reviewer_role_id": "role-cp-web-independent-behavior-reviewer",
+      "account_requirement_ids": ["account-runtime-primary"],
+      "build_requirement_id": "build-cp-web-production-like",
+      "content_requirement_ids": ["content-release-subject", "formal-entitlement-configuration-subject"],
+      "execution_window_requirement_id": "window-cp-web",
+      "compatibility_key_requirement_id": "compatibility-cp-web-aggregate",
+      "planned_manifest_id": "manifest-web-service-01-v1"
+    },
+    {
+      "matrix_id": "PW-COMMERCE-01",
+      "target_requirement_id": "web-desktop-primary",
+      "environment_requirement_id": "env-web-payment-sandbox",
+      "reviewer_role_id": "role-cp-web-independent-behavior-reviewer",
+      "account_requirement_ids": ["account-runtime-primary", "account-web-payment"],
+      "build_requirement_id": "build-cp-web-production-like",
+      "content_requirement_ids": ["formal-entitlement-configuration-subject"],
+      "execution_window_requirement_id": "window-cp-web",
+      "compatibility_key_requirement_id": "compatibility-cp-web-aggregate",
+      "planned_manifest_id": "manifest-web-commerce-01-v1"
+    },
+    {
+      "matrix_id": "PW-BETA-01",
+      "target_requirement_id": "web-desktop-primary",
+      "environment_requirement_id": "env-receiver-managed-access-staging",
+      "reviewer_role_id": "role-cp-web-independent-behavior-reviewer",
+      "account_requirement_ids": ["account-runtime-primary", "account-receiver-managed-access"],
+      "build_requirement_id": "build-cp-web-production-like",
+      "content_requirement_ids": ["managed-entitlement-configuration-subject"],
+      "execution_window_requirement_id": "window-cp-web",
+      "compatibility_key_requirement_id": "compatibility-cp-web-aggregate",
+      "planned_manifest_id": "manifest-web-beta-01-v1"
+    },
+    {
+      "matrix_id": "PW-AUDIO-01",
+      "target_requirement_id": "web-desktop-primary",
+      "environment_requirement_id": "env-private-content-staging",
+      "reviewer_role_id": "role-cp-web-independent-accessibility-reviewer",
+      "account_requirement_ids": ["account-runtime-primary", "account-private-content"],
+      "build_requirement_id": "build-cp-web-production-like",
+      "content_requirement_ids": ["content-release-subject", "private-audio-manifest-subject", "private-content-entitlement-configuration-subject"],
+      "execution_window_requirement_id": "window-cp-web",
+      "compatibility_key_requirement_id": "compatibility-cp-web-aggregate",
+      "planned_manifest_id": "manifest-web-audio-01-v1"
+    }
+  ],
+  "planned_manifest_registry": [
+    {
+      "manifest_id": "manifest-web-viewport-01-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-VIEWPORT-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/viewport-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-browser-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-web-viewport-02-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-VIEWPORT-02",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/viewport-02.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-browser-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-web-zoom-01-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-ZOOM-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/zoom-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-accessibility-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-web-keyboard-01-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-KEYBOARD-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/keyboard-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-accessibility-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-web-mouse-01-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-MOUSE-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/mouse-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-browser-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-web-focus-01-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-FOCUS-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/focus-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-accessibility-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-web-motion-01-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-MOTION-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/motion-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-accessibility-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-web-screenreader-01-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-SCREENREADER-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/screenreader-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-accessibility-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-web-service-01-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-SERVICE-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/service-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-service-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-web-commerce-01-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-COMMERCE-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/commerce-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-commerce-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-web-beta-01-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-BETA-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/beta-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-managed-access-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-web-audio-01-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "PW-AUDIO-01",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/audio-01.scenario.v1.json",
+      "semantic_validator_id": "future-cp-web-audio-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-cp-web-aggregate-v1",
+      "manifest_role": "checkpoint_aggregation",
+      "scenario_id": "cp-web-aggregate",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-web/aggregate.v1.json",
+      "semantic_validator_id": "future-cp-web-aggregation-v1"
+    }
+  ]
+}

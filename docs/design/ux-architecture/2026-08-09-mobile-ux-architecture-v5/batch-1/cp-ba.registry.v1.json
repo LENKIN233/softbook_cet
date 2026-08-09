@@ -1,0 +1,193 @@
+{
+  "schema_version": "mobile-ux-batch1-cp-ba-registry.v1",
+  "registry_id": "mobile-ux-architecture-v5-batch1-cp-ba",
+  "classification": "implementation_hypothesis",
+  "subject_class": "registry_preparation",
+  "checkpoint_id": "CP-BA",
+  "source_universe_binding": {
+    "scope_ref": "all_173_ledger_obligations",
+    "binding_kind": "source_universe_only",
+    "per_obligation_lane_partition": {
+      "kind": "unresolved",
+      "requirement_id": "cp-ba-exact-state-to-lane-partition",
+      "reason_code": "exact_state_to_lane_partition_missing"
+    }
+  },
+  "semantic_owner_anchors": [
+    "spec/product-core.json",
+    "spec/platform-contract.json",
+    "spec/account-sync-contract.json",
+    "spec/action-surface.json",
+    "spec/card-system.json",
+    "spec/interactions.json",
+    "spec/knowledge-map.json",
+    "spec/space-operations.json",
+    "spec/box-catalog.json",
+    "spec/membership.json",
+    "spec/visual-language.json"
+  ],
+  "evidence_owner_assignment": {
+    "kind": "unresolved",
+    "requirement_id": "role-cp-ba-evidence-owner",
+    "reason_code": "explicit_role_confirmation_missing"
+  },
+  "independent_verifier_assignment": {
+    "kind": "unresolved",
+    "requirement_id": "role-cp-ba-independent-browser-reviewer",
+    "reason_code": "independent_human_confirmation_missing"
+  },
+  "target_ids": [
+    "ba-ios-phone-browser",
+    "ba-android-phone-browser",
+    "ba-ipados-browser",
+    "ba-android-tablet-browser",
+    "ba-formal-access-shared-browser",
+    "ba-managed-access-shared-browser"
+  ],
+  "scenario_registry": [
+    {
+      "scenario_id": "ba-platform-browser-architecture",
+      "evidence_class": "platform_browser_presentation_only",
+      "state_scope": "p0_browser_architecture_state_set",
+      "lane_disposition": "browser_only_out_of_lane_blockers_retained",
+      "target_ids": [
+        "ba-ios-phone-browser",
+        "ba-android-phone-browser",
+        "ba-ipados-browser",
+        "ba-android-tablet-browser"
+      ],
+      "stress_matrix_ids": [
+        "phone-width-320",
+        "phone-width-360",
+        "phone-width-390-or-393",
+        "phone-width-430",
+        "phone-landscape",
+        "tablet-portrait",
+        "tablet-landscape",
+        "tablet-split-window",
+        "keyboard-or-ime-constrained",
+        "text-default",
+        "text-large-accessibility",
+        "text-200-percent-equivalent",
+        "focus-keyboard",
+        "motion-reduced",
+        "contrast-high",
+        "input-labelled-alternative"
+      ],
+      "forced_combination_scope": "all_13_source_combinations_partition_pending",
+      "environment_requirement_id": "env-local-browser-readonly",
+      "build_requirement_id": "build-cp-ba-browser-documents",
+      "execution_window_requirement_id": "window-cp-ba",
+      "compatibility_key_requirement_id": "compatibility-cp-ba-platform-browser",
+      "planned_manifest_ids": [
+        "manifest-ba-ios-phone-v1",
+        "manifest-ba-android-phone-v1",
+        "manifest-ba-ipados-v1",
+        "manifest-ba-android-tablet-v1"
+      ]
+    },
+    {
+      "scenario_id": "ba-formal-access-shared-browser",
+      "evidence_class": "shared_access_profile_browser_presentation_only",
+      "state_scope": "formal_commerce_access_states_shared_only",
+      "lane_disposition": "shared_browser_only_platform_cells_blocked",
+      "target_ids": ["ba-formal-access-shared-browser"],
+      "stress_matrix_ids": [
+        "phone-width-320",
+        "phone-width-430",
+        "phone-landscape",
+        "tablet-portrait",
+        "tablet-landscape",
+        "tablet-split-window",
+        "text-200-percent-equivalent",
+        "focus-keyboard",
+        "motion-reduced",
+        "contrast-high",
+        "input-labelled-alternative"
+      ],
+      "forced_combination_scope": "formal_access_applicable_subset_partition_pending",
+      "environment_requirement_id": "env-local-browser-readonly",
+      "build_requirement_id": "build-cp-ba-browser-documents",
+      "execution_window_requirement_id": "window-cp-ba",
+      "compatibility_key_requirement_id": "compatibility-cp-ba-shared-formal",
+      "planned_manifest_ids": ["manifest-ba-formal-access-v1"]
+    },
+    {
+      "scenario_id": "ba-managed-access-shared-browser",
+      "evidence_class": "shared_access_profile_browser_presentation_only",
+      "state_scope": "receiver_managed_access_states_shared_only",
+      "lane_disposition": "shared_browser_only_platform_cells_blocked",
+      "target_ids": ["ba-managed-access-shared-browser"],
+      "stress_matrix_ids": [
+        "phone-width-320",
+        "phone-width-430",
+        "phone-landscape",
+        "tablet-portrait",
+        "tablet-landscape",
+        "tablet-split-window",
+        "text-200-percent-equivalent",
+        "focus-keyboard",
+        "motion-reduced",
+        "contrast-high",
+        "input-labelled-alternative"
+      ],
+      "forced_combination_scope": "managed_access_applicable_subset_partition_pending",
+      "environment_requirement_id": "env-local-browser-readonly",
+      "build_requirement_id": "build-cp-ba-browser-documents",
+      "execution_window_requirement_id": "window-cp-ba",
+      "compatibility_key_requirement_id": "compatibility-cp-ba-shared-managed",
+      "planned_manifest_ids": ["manifest-ba-managed-access-v1"]
+    }
+  ],
+  "planned_manifest_registry": [
+    {
+      "manifest_id": "manifest-ba-ios-phone-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "ba-platform-browser-architecture",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/ios-phone.scenario.v1.json",
+      "semantic_validator_id": "future-cp-ba-platform-browser-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-ba-android-phone-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "ba-platform-browser-architecture",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/android-phone.scenario.v1.json",
+      "semantic_validator_id": "future-cp-ba-platform-browser-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-ba-ipados-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "ba-platform-browser-architecture",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/ipados.scenario.v1.json",
+      "semantic_validator_id": "future-cp-ba-platform-browser-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-ba-android-tablet-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "ba-platform-browser-architecture",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/android-tablet.scenario.v1.json",
+      "semantic_validator_id": "future-cp-ba-platform-browser-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-ba-formal-access-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "ba-formal-access-shared-browser",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/formal-access.scenario.v1.json",
+      "semantic_validator_id": "future-cp-ba-shared-access-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-ba-managed-access-v1",
+      "manifest_role": "scenario_cohort",
+      "scenario_id": "ba-managed-access-shared-browser",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/managed-access.scenario.v1.json",
+      "semantic_validator_id": "future-cp-ba-shared-access-scenario-v1"
+    },
+    {
+      "manifest_id": "manifest-cp-ba-aggregate-v1",
+      "manifest_role": "checkpoint_aggregation",
+      "scenario_id": "cp-ba-aggregate",
+      "planned_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/execution-manifests/cp-ba/aggregate.v1.json",
+      "semantic_validator_id": "future-cp-ba-aggregation-v1"
+    }
+  ]
+}

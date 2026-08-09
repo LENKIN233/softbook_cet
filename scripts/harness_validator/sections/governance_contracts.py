@@ -571,6 +571,24 @@ def validate(context) -> None:
         if not (ROOT / relative_path).is_file():
             errors.append(f"missing Mobile UX Batch 0 governance artifact: {relative_path}")
 
+    for snippet in [
+        "node --test scripts/test_validate_mobile_ux_batch1_registry.mjs",
+        "node scripts/validate_mobile_ux_batch1_registry.mjs --require-tracked --json",
+    ]:
+        check_contains("Mobile UX Batch 1 PR gate", workflow_text, snippet)
+
+    for relative_path in [
+        "scripts/validate_mobile_ux_batch1_registry.mjs",
+        "scripts/test_validate_mobile_ux_batch1_registry.mjs",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/README.md",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/registry-set.v1.json",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-ba.registry.v1.json",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-cs.registry.v1.json",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-web.registry.v1.json",
+    ]:
+        if not (ROOT / relative_path).is_file():
+            errors.append(f"missing Mobile UX Batch 1 governance artifact: {relative_path}")
+
     ap20 = find_by_id(harness["anti_patterns"], "AP-20")
     if ap20:
         check_equal("AP-20 name", "treat_main_as_normal_development_branch", ap20["name"])

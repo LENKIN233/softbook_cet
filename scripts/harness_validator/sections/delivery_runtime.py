@@ -421,12 +421,16 @@ def validate(context) -> None:
     formal_classifier_test_path = ROOT / formal_approval_gate["scope_classifier_test_path"]
     batch0_validator_path = ROOT / "scripts/validate_mobile_ux_batch0_decision.mjs"
     batch0_validator_test_path = ROOT / "scripts/test_validate_mobile_ux_batch0_decision.mjs"
+    batch1_validator_path = ROOT / "scripts/validate_mobile_ux_batch1_registry.mjs"
+    batch1_validator_test_path = ROOT / "scripts/test_validate_mobile_ux_batch1_registry.mjs"
     for path in [
         formal_workflow_path,
         formal_classifier_path,
         formal_classifier_test_path,
         batch0_validator_path,
         batch0_validator_test_path,
+        batch1_validator_path,
+        batch1_validator_test_path,
     ]:
         if not path.exists():
             errors.append(f"missing formal approval artifact: {path.relative_to(ROOT)}")
@@ -439,6 +443,68 @@ def validate(context) -> None:
                 else "validator did not execute"
             )
             errors.append(f"Mobile UX Batch 0 static subject validation failed: {diagnostic}")
+    if batch1_validator_path.exists():
+        batch1_validation = run_command(
+            "node",
+            str(batch1_validator_path),
+            "--require-tracked",
+            "--json",
+        )
+        if batch1_validation is None or batch1_validation.returncode != 0:
+            diagnostic = (
+                batch1_validation.stderr.strip()
+                if batch1_validation is not None
+                else "validator did not execute"
+            )
+            errors.append(f"Mobile UX Batch 1 preparation validation failed: {diagnostic}")
+        else:
+            try:
+                batch1_result = json.loads(batch1_validation.stdout)
+            except (TypeError, json.JSONDecodeError) as exc:
+                errors.append(f"Mobile UX Batch 1 validator did not emit valid JSON: {exc}")
+            else:
+                if not isinstance(batch1_result, dict):
+                    errors.append("Mobile UX Batch 1 validator JSON must be an object")
+                    batch1_result = {}
+                expected_batch1_result = {
+                    "artifact_valid": True,
+                    "subject_class": "registry_preparation",
+                    "current_authority_state": (
+                        "requires_new_exact_head_protected_preparation_decision"
+                    ),
+                    "next_stage_readiness": "blocked_unresolved_inputs",
+                    "freeze_readiness": "ineligible_preparation_schema",
+                    "manifest_freeze_eligible": False,
+                    "schema_transition_required": True,
+                    "decision_status": "not_evaluated",
+                    "gate_effect": "none",
+                    "gate_eligible": False,
+                    "evidence_eligible": False,
+                    "provisioning_authorized": False,
+                    "execution_authorized": False,
+                    "collection_authorized": False,
+                    "aggregation_authorized": False,
+                    "promotion_authorized": False,
+                    "visual_exploration_authorized": False,
+                    "implementation_authorized": False,
+                    "native_acceptance_authorized": False,
+                    "release_authorized": False,
+                    "allowed_next_action": (
+                        "obtain_exact_head_preparation_approval_then_create_separate_"
+                        "freeze_candidate_schema"
+                    ),
+                }
+                for field, expected in expected_batch1_result.items():
+                    if batch1_result.get(field) != expected:
+                        errors.append(
+                            "Mobile UX Batch 1 preparation output "
+                            f"{field}: expected {expected!r}, got {batch1_result.get(field)!r}"
+                        )
+                unresolved_count = batch1_result.get("unresolved_input_count")
+                if not isinstance(unresolved_count, int) or unresolved_count <= 0:
+                    errors.append(
+                        "Mobile UX Batch 1 preparation must retain at least one unresolved input"
+                    )
     if formal_workflow_path.exists():
         formal_workflow_text = formal_workflow_path.read_text(encoding="utf-8")
         for snippet in [
