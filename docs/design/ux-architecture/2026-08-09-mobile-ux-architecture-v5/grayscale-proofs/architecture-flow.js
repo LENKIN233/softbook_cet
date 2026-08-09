@@ -371,7 +371,7 @@
     if (model.phase === "revealed") {
       return `
         <div class="interaction">
-          <div class="support-region">
+          <div class="support-region" tabindex="-1" data-reveal-focus>
             <strong>解释</strong>
             <p>Although 引出让步关系，主句表达的结果没有因此改变。</p>
           </div>
@@ -1506,7 +1506,7 @@
     }
     if (action === "reveal") {
       model.phase = "revealed";
-      render({ focusHeading: false });
+      render({ focusSelector: "[data-reveal-focus]", preserveFocus: false });
       announce("解释已展开。 ");
     }
     if (action === "assess") {

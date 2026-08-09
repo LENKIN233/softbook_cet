@@ -74,6 +74,8 @@
       <article class="artifact"><h3>State contract</h3><p>Authority, origin, return target, learner intent, action, commit truth, and recovery.</p><a href="./grayscale-ux-state-contract.md">Open state contract</a></article>
       <article class="artifact"><h3>Per-state evidence ledger</h3><p>One row per state. Current exact browser cells: iOS 38, Android phone 10, iPadOS 8, Android tablet 8, shared access 12. Canonical-success presentations are counted separately as blocked observations; all native and PC Web cells remain blocked.</p><a href="./state-evidence-ledger.md">Open evidence ledger</a></article>
       <article class="artifact"><h3>Exact browser evidence</h3><p>Frozen hashes, operated paths, measured breakpoints, and explicit browser/native limits.</p><a href="./browser-evidence.md">Open browser evidence</a></article>
+      <article class="artifact"><h3>Checkpoint contract proposal</h3><p>Six fail-closed evidence subjects with explicit owner, cohort, claim, and non-claim boundaries. Product-owner decision is still pending.</p><a href="./checkpoint-contract.md">Open checkpoint proposal</a></article>
+      <article class="artifact"><h3>PC Web state mapping</h3><p>All 160 semantic states and 13 forced combinations mapped to the accepted Focused Workbench authority; every implementation/evidence result remains blocked.</p><a href="./pc-web-v5-state-mapping.md">Open PC Web mapping</a></article>
     </div>
 
     <h2>Current evidence boundary</h2>
@@ -83,10 +85,10 @@
         <tbody>
           <tr><td>Exact architecture transcript</td><td class="status status--covered">Covered for 160 + 13 rows</td><td>Text architecture only; it proves no target capability.</td></tr>
           <tr><td>Browser learner scenarios</td><td class="status status--covered">Corrected subset replayed at frozen hashes</td><td>Proves only the exact DOM semantics, browser interactions, containment, and scenario transitions recorded in <code>browser-evidence.md</code>.</td></tr>
-          <tr><td>Independent exact review</td><td class="status status--covered">P0 0 / P1 0 on <code>bd3ed0f</code></td><td>Passed only as an architecture browser subset; the overall gate remains blocked.</td></tr>
+          <tr><td>Independent exact review</td><td class="status status--pending">Strict-5 delta review pending</td><td>Strict-4 historically returned P0 0 / P1 0 on <code>bd3ed0f</code>, but a later real-use replay found and corrected a Flip focus-loss defect. The historical verdict is not current-source approval.</td></tr>
           <tr><td>Formal / managed profile separation</td><td class="status status--covered">Separate sources replayed at phone and tablet widths</td><td>Formal commerce and read-only access do not share a profile switch; neither browser proof establishes a canonical entitlement.</td></tr>
           <tr><td>Native iOS / Android / tablet</td><td class="status status--blocked">No accepted evidence</td><td>Safe area, IME, System/Predictive Back, VoiceOver/TalkBack, store, audio, and process restore remain open.</td></tr>
-          <tr><td>PC Web per-state parity</td><td class="status status--blocked">Mapping incomplete</td><td>Accepted Focused Workbench remains separate authority; mobile composition cannot substitute.</td></tr>
+          <tr><td>PC Web per-state parity</td><td class="status status--blocked">Mapping complete; evidence absent</td><td>All 160 + 13 obligations now map to the accepted Focused Workbench, while implementation, exact browser, canonical service, accessibility, payment, and receiver evidence remain blocked. Mobile composition cannot substitute.</td></tr>
           <tr><td>Visual system</td><td class="status status--blocked">Not started</td><td>Grayscale architecture cannot select palette, type, radius, material, icon, motion, or candidate lineage.</td></tr>
         </tbody>
       </table>

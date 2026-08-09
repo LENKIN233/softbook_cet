@@ -2,16 +2,17 @@
 
 ## Evidence boundary
 
-- Replay window: `2026-08-09 11:52–13:46 CST`.
+- Strict-4 baseline replay window: `2026-08-09 11:52–13:46 CST`.
+- Strict-5 delta replay window: `2026-08-09 15:58–16:14 CST`.
 - Browser surface: Codex in-app Chromium, using real fill, click, pointer drag, keyboard, browser Back/Forward, focus, viewport, accessibility-tree, screenshot, and layout-measurement paths.
-- Served source: a fresh read-only HTTP process rooted at this worktree on `http://127.0.0.1:4175/`.
+- Served sources: fresh read-only HTTP processes rooted at this worktree on `http://127.0.0.1:4175/` for strict-4 and `http://127.0.0.1:4173/` for the strict-5 delta.
 - Result class: `browser_scenario` only. It can support rendered learner semantics, interaction transitions, focus behavior, navigation snapshots, and responsive containment. It cannot prove canonical service acknowledgement, process recovery, native safe areas, native IME, System/Predictive Back, VoiceOver/TalkBack, native audio, store SDK behavior, PC Web parity, or release readiness.
 - No DOM or application-state mutation was used to manufacture a pass. Learner transitions came from visible controls or a real pointer drag. Read-only page evaluation measured only geometry, focus, text, state attributes, and overflow.
-- The platform HTML files use versioned CSS/JS references (`v=ux-architecture-v5-strict-4`) so the frozen replay cannot silently reuse an earlier cached stylesheet or flow script.
+- The current platform HTML files use versioned flow references (`v=ux-architecture-v5-strict-5`) so the delta replay cannot silently reuse strict-4 JavaScript.
 
 The architecture gate remains blocked. This is a corrected grayscale architecture subset, not a visual candidate, implementation mapping, native product, or approval to enter React Native implementation.
 
-## Frozen source hashes
+## Strict-4 baseline source hashes (historical cohort)
 
 | Artifact | SHA-256 |
 | --- | --- |
@@ -28,6 +29,25 @@ The architecture gate remains blocked. This is a corrected grayscale architectur
 | `access-profile-proofs/access-proofs.css` | `aad2ef81fb1eb0055fde76a8505281d12f30a7bac6705cb646a162440d88ed41` |
 | `grayscale-ux-state-contract.md` | `72f1f7b3290d92c24e35c4f0268ddcdc770fdd8074cce086eedf65139af9d5e7` |
 | `platform-architecture.md` | `7fbddae5ce3821ad487201607e646cfb806cffebb2932b299e9b92eddadcb4d8` |
+
+The table above remains the exact source cohort referenced by the existing
+per-state ledger cells. It is not a hash claim about the current strict-5
+working tree.
+
+## Strict-5 delta source hashes
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `grayscale-proofs/architecture-flow.js` | `5919d900d4eaea7c71dc35ad35f95005b729f7b6e2cfdc98f6e4f54953c5df7f` |
+| `grayscale-proofs/architecture.css` | `9d5d851a2349b6aa78e4ea11d4b80e57e2eb4fe4b5d9d0c52c09a044612001e3` |
+| `grayscale-proofs/ios-phone.html` | `004ceb82688c9f7abf797437994b607e9a48226a037ca1cc8a791d5c0e6483ec` |
+| `grayscale-proofs/android-phone.html` | `8dabbd4e52c3506fef1a64fc9dcbaa6cab2571b96f7989cad4cd108f1818028f` |
+| `grayscale-proofs/ipados-tablet.html` | `89b9fd2b29619b35f9ba727f85fd6d8d4901890ea46eedee2586dcb9094165de` |
+| `grayscale-proofs/android-tablet.html` | `c8fe48f90d0cbf5a59fd08ee1f0f77b3cab87f475d664511616af4f1d4a8a6d3` |
+
+Strict-5 changes only the Flip reveal focus target and the four flow-script
+cache keys. The delta observations below are current-source evidence; they do
+not silently migrate unaffected strict-4 ledger cells into a new cohort.
 
 ## Failed parent checkpoint and strict corrections
 
@@ -50,6 +70,46 @@ These are regression results, not a declaration that all 160 semantic states are
 Exact review of strict-3 commit `2a09309e3b2bc85003d2e68b5a65196f4e9c0fcd` then found one residual P1: a single global iOS stack made the first App Back appear inert after `Learning → 查看所在空间 → 回到学习 → Space tab`. Strict-4 replaced that stack with destination-owned route-local stacks. The exact failed path was replayed again: returning to Space restored the same card, one App Back moved visibly to `选择一个馆`, focus moved to that heading, and the root exposed no further Back control. No top-level tab was popped.
 
 Independent exact review of strict-4 commit `bd3ed0f54350b252f1554872de5a07cd09f97232` returned `pass_exact_architecture_browser_subset`, P0 `0`, P1 `0`. That verdict closes the corrected browser subset only. It does not change the overall blocked architecture gate or create visual, native, implementation, or leadership readiness.
+
+## Strict-5 focus correction and delta replay
+
+The later real-use replay found one accessibility defect that the strict-4
+review had missed: activating `查看解释` replaced the invoking button but left
+focus on `body`. A keyboard or screen-reader learner therefore lost the current
+explanation position even though the explanation was visibly rendered.
+
+Strict-5 makes the revealed explanation region programmatically focusable,
+moves focus to it after the render, and cache-busts the shared flow script in
+all four platform documents. Real activation then produced the focused text
+`解释 Although 引出让步关系，主句表达的结果没有因此改变。` on iOS phone,
+Android phone, iPadOS, and Android tablet. Pending completion still focused the
+busy result region and resolved completion still focused the result region.
+
+The same strict-5 session also repeated the following through learner controls:
+
+- all five iOS families at `390×844`, including Four-choice empty-submit and
+  selection states, Lock wrong-order/no-next plus explanation/adjust/correct,
+  Elimination learner-vs-correct removals, and Swipe short-drag return plus
+  keyboard wrong-direction context;
+- Learning → exact Space card, favorite pending/resolved, sleep
+  pending/resolved, Learning replacement of the sleeping current card, the
+  destination-local iOS Space return stack, and visible
+  `library → group → box → card` traversal;
+- Android phone portrait plus `844×390` landscape, iPadOS `1024×768` plus
+  `761×768` constrained window, and Android tablet `1024×768` plus `761×768`
+  constrained window;
+- visible learner text, accessibility labels/descriptions, document titles,
+  and console output across all four platform documents.
+
+Every recorded strict-5 state had `overflowX=0`, no measured overflowing
+element, and no learner-visible/internal-process match. Console errors and
+warnings were both zero. The local proof URL deliberately contains the
+repository design path, so it is not production-route leakage evidence and
+cannot close a shipped URL-surface requirement. Native large text, real 200%
+browser zoom, assistive technology, canonical origin/commit, and process
+restoration remain blocked. The strict-4 exact-review verdict remains a
+historical result, not a claim that it caught this later defect; strict-5 still
+requires its own exact-diff review before any current-source subset is promoted.
 
 ## Auth, session entry, and Trial presentation
 
@@ -129,7 +189,22 @@ All values are CSS pixels. `overflowX` is `documentElement.scrollWidth - clientW
 | Android tablet ready `1024×768` | rail `160`; main `w=760`; minimum target `48`; `overflowX=0` |
 | Android tablet compact `800×768` / `761×768` | nav `w=560`; main widths `764` / `725`; `overflowX=0` |
 
-The page runtime emitted no console errors during the completed strict replay. Responsive containment alone is not per-state platform coverage. Native insets, display zoom, 200% text, real keyboards, OS reduced motion, assistive technology, and cutout/notch devices remain blocked.
+Strict-5 delta geometry rechecked the changed flow at iOS phone `390×844`,
+Android phone `390×844` and `844×390`, iPadOS `1024×768` and `761×768`, and
+Android tablet `1024×768` and `761×768`. Every delta viewport measured
+`overflowX=0`. Android phone landscape retained a `72×374` rail and a `48`
+minimum target. Expanded iPadOS retained `208` navigation, `760` ready main,
+and `436 + 320` result tracks; expanded Android tablet retained `160`
+navigation and a `760` ready main. Both constrained tablet documents stacked
+main/context at `725` width with a `560` bottom navigation; minimum targets
+remained `44` for iPadOS and `48` for Android tablet. No actionable or text
+node intersected the constrained-window navigation at the recorded scroll
+position.
+
+The page runtime emitted no console errors during either completed replay.
+Responsive containment alone is not per-state platform coverage. Native
+insets, display zoom, 200% text, real keyboards, OS reduced motion, assistive
+technology, and cutout/notch devices remain blocked.
 
 ## Shared access-profile browser proof
 

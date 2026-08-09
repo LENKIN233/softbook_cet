@@ -4,9 +4,9 @@
 
 - Current status: `architecture_gate_blocked_with_browser_subset_verified`.
 - Parent review: exact corrected v4 planning commit `de3bd5c5a23a70e2ca3c165613ea04a2f07da2b1` passed independent scope review as `completed_no_promotion`.
-- Strict-4 exact review: commit `bd3ed0f54350b252f1554872de5a07cd09f97232` passed as `pass_exact_architecture_browser_subset`, with P0 `0` and P1 `0`.
+- Strict-4 exact review: commit `bd3ed0f54350b252f1554872de5a07cd09f97232` historically passed as `pass_exact_architecture_browser_subset`, with P0 `0` and P1 `0`. A later strict-5 real-use replay found that Flip reveal had left focus on `body`; strict-5 corrects and replays that focus path. The historical verdict must not be read as having caught the later defect.
 - This directory is design-only. It does not accept a visual system, authorize React Native work, prove native behavior, or establish leadership readiness.
-- The corrected browser subset, per-state fail-closed ledger, and exact evidence record now exist. The next visual-search phase remains blocked by uncovered required states, all native evidence, PC Web per-state mapping, and product-owner acceptance.
+- The corrected browser subset, per-state fail-closed ledger, six-layer checkpoint proposal, and PC Web state mapping now exist. The next visual-search phase remains blocked by uncovered required states, canonical service evidence, PC Web implementation/exact replay, all native evidence, and product-owner acceptance.
 
 The final goal remains one explicitly accepted, mature CET4/6 consumer product that is genuinely usable on iOS, Android, representative tablets, and PC Web. A grayscale artifact is only a way to remove UX ambiguity before visual exploration; it is not the product finish line.
 
@@ -45,6 +45,9 @@ The active chain for this phase is:
 - `access-profile-proofs/`: physically separate formal-commerce and read-only managed-access learner scenarios.
 - `state-evidence-ledger.md`: explicit per-state coverage/result map; absence is a gate failure.
 - `browser-evidence.md`: frozen hashes plus exact viewport, interaction, focus, leakage, and reflow observations; browser-only by definition.
+- `checkpoint-contract.md`: proposed six-layer checkpoint contract with owner, entry/exit, claim/non-claim, cohort, and fail-closed rules. It has no gate effect until explicit product-owner acceptance.
+- `checkpoint-layering-decision-proposal.md`: unanswered product-owner decision proposal; it is not an approval record.
+- `pc-web-v5-state-mapping.md`: fail-closed mapping of all 160 semantic states and 13 forced combinations to the accepted `pcw-01` Focused Workbench authority and future evidence.
 - `grayscale-reviewer-matrix.html`: reviewer-only entry point. It is never learner UI.
 
 ## Stop boundary
