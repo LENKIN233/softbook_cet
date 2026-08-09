@@ -6,9 +6,10 @@
 - Branch: `cross/mobile-ux-architecture-v5`
 - PR: draft `#484`, targeting `main`
 - Summary: verified the historical protected Batch 0 activation on exact head
-  `ac7e124f0385cf100b74a6b24e44ad3b3dad1ec8`, then prepared a structurally
-  validated and execution-ineligible registry bundle for `CP-BA`, `CP-CS`, and
-  `CP-WEB`.
+  `ac7e124f0385cf100b74a6b24e44ad3b3dad1ec8`, then prepared and exact-reviewed
+  a structurally validated, execution-ineligible registry bundle for `CP-BA`,
+  `CP-CS`, and `CP-WEB`. The exact registry implementation subject is
+  `b822f457c9cf3c788234d2abdc8ab43df77feb1a`.
 - Authority boundary: Batch 0 is only the preparation basis. This change also
   changes the protected classifier, so current bytes require a new exact-head
   protected preparation decision. No manifest freeze, provisioning, evidence
@@ -86,6 +87,10 @@
 - Added an exact-schema validator and a 61-test adversarial suite. Schema v1 is
   intrinsically `ineligible_preparation_schema`; it cannot be promoted in
   place to a freeze candidate.
+- Aligned the repository-health required-check mirror with the already
+  authoritative `android-release` check and added both missing-check and
+  unexpected-check fail-closed regressions. This does not weaken shared
+  worktree, branch, upstream, or remote-protection checks.
 - Apart from historical protected decision-owner provenance, stored no
   candidate execution-role collaborator identity, workstation/browser
   fingerprint, personal device identifier, account identifier, credential, or
@@ -116,6 +121,8 @@
 - `scripts/test_classify_formal_approval_scope.mjs`
 - `scripts/validate_mobile_ux_batch1_registry.mjs`
 - `scripts/test_validate_mobile_ux_batch1_registry.mjs`
+- `scripts/report_repo_health.mjs`
+- `scripts/test_report_repo_health.mjs`
 - `scripts/harness_validator/context.py`
 - `scripts/harness_validator/sections/delivery_runtime.py`
 - `scripts/harness_validator/sections/governance_contracts.py`
@@ -137,8 +144,35 @@
   `python3 -m py_compile` for modified harness modules -> passed.
 - `jq -e .` / `jq -S .` for all four registry JSON files -> passed.
 - `git diff HEAD --check` and scoped stale-claim/privacy scans -> passed.
-- `node scripts/validate_mobile_ux_batch1_registry.mjs --require-tracked --json`,
-  the full local harness, and remote checks -> pending the exact commit.
+- `node scripts/validate_mobile_ux_batch1_registry.mjs --require-tracked --json`
+  on exact subject `b822f457…` -> passed with 88 unresolved inputs and all
+  authority flags false.
+- `python3 scripts/validate_harness.py --skip-remote-guard` on exact subject
+  `b822f457…` -> `HARNESS VALIDATION OK`; local completeness remained partial
+  by contract.
+- Exact Node `22.13.0`, Ruby `3.3.12`, and Python `3.12.13` were selected; clean
+  dependency installs were performed for `apps/web` and
+  `infra/cloudbase/functions/softbook-api` without tracked-file changes.
+- Web lint, typecheck, 12 tests, and production build -> passed; backend tests
+  -> 206/206 passed; dependency security policy -> passed with the two existing
+  time-bounded `image-size` exceptions only.
+- `./scripts/run_local_gates --profile pr --base origin/main --pr 484` on exact
+  subject `b822f457…` -> 31 passed, 1 passed with governed exception, 2 failed,
+  and 2 deferred. Toolchain, Batch 1, mobile, Web, backend, dependency, and full
+  Harness gates passed. The PR-context gate failed because remote PR `#484`
+  still pointed to `ac7e124…`; PR design and Agent review therefore deferred.
+  Repository health first exposed stale worktree metadata and the missing
+  authoritative `android-release` mirror.
+- `git worktree prune --dry-run --verbose`, followed by
+  `git worktree prune --verbose`, removed only ten prunable administrative
+  entries whose gitdir targets no longer existed; it did not delete worktree
+  directories, branches, files, or stashes.
+- `node scripts/test_report_repo_health.mjs` after the Android mirror alignment
+  -> passed, including missing and unexpected status-check regressions. A live
+  read-only remote report then accepted the exact 12-check protection set; the
+  remaining local findings are the intentionally strict shared-workspace
+  limits (4 valid worktrees, 30 topic branches, and 30 branches without
+  upstream).
 
 ## Validation results
 
@@ -156,17 +190,27 @@
   `manifest_freeze_eligible=false`; `decision_status=not_evaluated`;
   `gate_effect=none`; all authority flags false.
 - Batch 1 adversarial validator tests: 61/61 passed.
-- Classifier and harness boundary tests passed on the working tree and will be
-  re-run with exact tracked-mode validation and the full local harness after
-  the exact commit. Exact frozen reviews, remote required checks, and protected
-  preparation approval remain pending.
+- Classifier and harness boundary tests passed on exact subject `b822f457…`.
+- Independent exact semantic review:
+  `PASS_EXACT_SEMANTIC_B822`, P0=0 and P1=0.
+- Independent exact adversarial review:
+  `PASS_EXACT_ADVERSARIAL_B822`, P0=0, P1=0, and P2=0.
+- Exact harness/record review passed the validator, CI wiring, command
+  allowlists, 17/17 file inventory, and Harness boundaries, but correctly
+  returned P1=1 because this record still described already completed exact
+  work as pending. This follow-up corrects that record-fidelity defect and the
+  independently confirmed Android repository-health mirror drift. The
+  follow-up commit still requires fresh exact-head review.
+- Remote required checks and a new protected preparation-only decision remain
+  pending; no local result substitutes for them.
 
 ## Agent review status
 
-- Reviewer: independent harness/records, semantic-authority, and adversarial
-  precommit reviewers; final exact-head reviewers pending.
-- Status: precommit review passed; blocked pending exact commit, final
-  exact-head reviews, remote checks, and protected preparation approval.
+- Reviewer: independent harness/records, semantic-authority, adversarial, and
+  repository-health reviewers.
+- Status: exact registry implementation review passed; the record/governance
+  follow-up is blocked pending its own exact-head re-review, remote checks, and
+  protected preparation approval.
 - Preliminary record/harness review: CI and harness wiring passed after exact
   argument allowlisting; record-shape and README-mirror findings were corrected.
 - Preliminary semantic review: failed because the first draft reused the Batch
@@ -182,7 +226,20 @@
   `PASS_PRECOMMIT_SEMANTIC`, harness/records `PASS_PRECOMMIT`, and adversarial
   security `PASS_PRECOMMIT`; each reported P0=0 and P1=0. The adversarial
   reviewer also reported P2=0 after duplicate-page fail-closed hardening.
-- Final exact-head semantic and adversarial reviews: pending.
+- Exact registry implementation semantic review:
+  `PASS_EXACT_SEMANTIC_B822` on `b822f457…`; P0=0, P1=0.
+- Exact registry implementation adversarial review:
+  `PASS_EXACT_ADVERSARIAL_B822` on `b822f457…`; P0=0, P1=0, P2=0.
+- Exact harness/record review on `b822f457…`: P0=0, P1=1 solely for stale
+  pending language in this record; all executable/harness checks passed. This
+  record update is the remediation.
+- Independent Android repository-health alignment review: `APPLY_EXACT_PATCH`;
+  P0=0, P1=0. It confirmed the remote 12-check set and advised preserving the
+  shared-workspace failures instead of deleting user branches or weakening the
+  validator.
+- Final exact-head review of this record/governance follow-up: pending at the
+  time this commit is created; its immutable verdict will be recorded in the
+  PR body.
 
 ## Binary evidence
 
@@ -202,6 +259,12 @@
 ## Risks and open questions
 
 - Current exact bytes have no protected preparation authority.
+- Remote PR `#484` still points to `ac7e124…` until this reviewed follow-up is
+  pushed, so PR-context and PR-body gates cannot yet validate the local head.
+- The shared local repository intentionally exceeds the isolated-runner
+  repository-health limits (4 valid worktrees, 30 topic branches, and 30
+  branches without upstream). No active worktree or user branch was removed to
+  manufacture a local pass; remote CI must verify the isolated checkout.
 - The source-universe binding is not an exact state-to-lane registry.
 - Actual role confirmations, physical devices, receiver/provider environments,
   non-secret account references, signed builds/deployments, approved
@@ -215,9 +278,10 @@
 
 ## Follow-up
 
-1. Create an exact commit, run tracked validation and the full local harness,
-   and obtain independent exact-byte semantic and adversarial reviews.
-2. Obtain a fresh protected preparation-only decision for that exact head.
+1. Commit this record/governance follow-up, repeat tracked validation and obtain
+   fresh independent exact-head review.
+2. Push that exact head, update PR `#484`, and require all remote checks plus a
+   fresh protected preparation-only decision for the identical head.
 3. Build a separate freeze-candidate schema with exact state-to-lane
    partitions and privacy-safe confirmed cohort references.
 4. Only after a separate protected freeze decision may isolated evidence
