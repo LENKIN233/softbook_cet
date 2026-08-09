@@ -1,22 +1,26 @@
 ---
-status: proposed_pending_product_owner_decision
+status: resolved_iff_separate_protected_decision_is_active
 classification: implementation_hypothesis
 decision_owner: product_owner
-decision_recorded: false
-gate_effect: none
+decision_recorded: docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md
+gate_effect: delegated_to_exact_head_protected_decision
 ---
 
 # Mobile UX Checkpoint Layering Decision Proposal v1
 
 ## Decision status
 
-**No decision has been accepted.** This document asks the product owner to
-accept, reject, or amend the six-layer contract in `checkpoint-contract.md`.
-It is not an approval record and cannot authorize visual exploration,
-implementation, native evidence promotion, merge, release, or leadership
-presentation.
+This proposal is not an approval record. Its questions are answered by the
+separate protected record
+`docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md`. That
+record becomes effective only when the exact head of pull request `#484`
+containing its bound bytes passes the protected product-owner environment.
+Until then no decision is accepted. Even after activation, the record
+authorizes Batch 1 owner/matrix/manifest preparation only; it does not authorize
+provisioning, evidence collection, visual exploration, implementation, native
+evidence promotion, release, or leadership presentation.
 
-Until an authenticated owner decision exists, the active result remains:
+Unless that authenticated owner decision is active, the result remains:
 
 `architecture_gate_blocked_with_browser_subset_verified`
 
@@ -85,10 +89,12 @@ Adopt the six checkpoint subjects defined in `checkpoint-contract.md`:
 5. Native Final Acceptance (`CP-NFA`)
 6. Release / Leadership Readiness (`CP-RLR`)
 
-Permit `CP-BA`, `CP-CS`, and `CP-WEB` evidence collection to proceed in
-parallel. Require a separate product-owner architecture decision, bound to exact
-checkpoint manifests and explicit remaining blockers, before opening
-equal-completeness visual exploration. Keep native final acceptance after an
+Permit `CP-BA`, `CP-CS`, and `CP-WEB` exact owner, target, environment,
+scenario, and evidence-manifest preparation to proceed in parallel. Require a
+separate protected product-owner decision to freeze those execution registries
+before collecting evidence. Then require a separate product-owner architecture
+decision, bound to exact checkpoint manifests and explicit remaining blockers,
+before opening equal-completeness visual exploration. Keep native final acceptance after an
 accepted visual artifact and implementation mapping. Keep formal release and
 leadership readiness bound to the existing launch release candidate and release
 operational policy. `CP-CS` uses one aggregation manifest over strictly isolated
@@ -99,10 +105,12 @@ combination, capability, and parent-scope closure with zero carried blocker or
 gap; only exact owner-backed `not_applicable_with_authority` results may be
 excluded.
 
-Acceptance of this proposal would change checkpoint terminology and sequencing
-only. It would not alter any current ledger cell, current PR status, product
-truth, visual acceptance, implementation authorization, native result, or
-release result.
+The current protected answer accepts checkpoint terminology, sequencing, and
+manifest-preparation scope only. Because actual operators, independent
+verifiers, and exact target/environment/scenario matrices remain unfrozen, it
+does not authorize evidence collection. It does not alter any current ledger
+cell, current PR status, product truth, visual acceptance, implementation
+authorization, native result, or release result.
 
 ## Native carrier recommendation
 
@@ -148,14 +156,16 @@ The product owner has **not** authorized this evidence build through this file.
    owner-required release platform, state, and forced combination. Only exact
    owner-backed `not_applicable_with_authority` may be excluded.
 
-## Required future decision record
+## Required decision-record contract
 
 An accepted/rejected decision must be recorded separately and bind at least:
 
 - decision ID and contract version;
-- exact repository commit and `checkpoint-contract.md` SHA-256;
+- exact approval-subject pull request, evidence-baseline commit, and
+  `checkpoint-contract.md` SHA-256;
 - exact accepted/rejected scope and checkpoint dependencies;
-- named evidence manifests and remaining blockers;
+- named evidence manifests and remaining blockers when execution is authorized;
+  a topology-only decision must instead bind their absence and forbid execution;
 - for `CP-CS`, the authority-owned scenario matrix, aggregation-manifest hash,
   every isolated scenario-manifest hash, exact semantic owner anchors, evidence
   operator, independent verifier, decision owner, and authentication mechanism;
@@ -168,12 +178,21 @@ An accepted/rejected decision must be recorded separately and bind at least:
 An agent-authored edit to this proposal, a PR description, a review comment, or
 a `verified_by` field is not that decision.
 
-## Interim rule
+The protected Batch 0 answer accepts the roles and separation rule in question
+4 but does not invent or freeze missing people, accounts, environments, or
+matrices. Question 4 remains open at execution level, and question 5 remains
+open until an exact architecture subject exists. Until another protected
+decision binds those exact registries, the only allowed follow-up is their
+preparation and review.
 
-Until the future decision record exists:
+## Rule while the protected decision is inactive
+
+Unless the separate decision record is active for its exact protected head:
 
 - keep all six checkpoints fail-closed;
-- preserve the strict-4 browser subset only as `partial_verified` evidence;
+- preserve the exact strict-4 browser base plus the independently reviewed
+  strict-5 Flip-focus delta only as `partial_verified` evidence; the delta does
+  not migrate untouched strict-4 ledger cells into a new cohort;
 - keep every `CP-CS` profile/provider/account/environment/window scenario
   isolated and do not create or imply a launch cohort;
 - do not start visual candidates or implementation from this proposal;

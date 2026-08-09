@@ -4,10 +4,12 @@
 import argparse
 import json
 import os
+import posixpath
 import re
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -80,6 +82,13 @@ DESIGN_ARTIFACT_PREFIXES = (
     "docs/design/mocks/",
     "docs/design/storyboards/",
 )
+NON_VISUAL_GOVERNANCE_ARTIFACTS = {
+    "docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+}
+REPOSITORY_GITHUB_HOSTS = {"github.com", "www.github.com"}
+REPOSITORY_RAW_HOSTS = {"raw.githubusercontent.com", "raw.github.com"}
+REPOSITORY_PATH_PREFIX = "/lenkin233/softbook_cet"
+URL_RE = re.compile(r"https?://[^\s`<>]+", re.IGNORECASE)
 VISUAL_OUTPUT_FILES = {
     "docs/design/visual-reference.html",
 }
@@ -551,7 +560,7 @@ def validate_checklist_evidence(
 
 
 def referenced_same_pr_design_artifact(value: str, changed_files: list[str]) -> list[str]:
-    referenced_paths = set(extract_doc_artifact_paths(value))
+    referenced_paths = set(extract_visual_authority_artifact_paths(value))
     referenced = []
     for path in changed_files:
         if not path.startswith(DESIGN_ARTIFACT_PREFIXES):
@@ -562,11 +571,70 @@ def referenced_same_pr_design_artifact(value: str, changed_files: list[str]) -> 
 
 
 def extract_doc_artifact_paths(value: str) -> list[str]:
-    return [match.group(1) for match in CONCRETE_DOC_ARTIFACT_RE.finditer(value)]
+    paths = [
+        match.group(1)
+        for match in CONCRETE_DOC_ARTIFACT_RE.finditer(URL_RE.sub(" ", value))
+    ]
+    for url in extract_urls(value):
+        repository_path = current_repository_url_path(url)
+        if repository_path is None:
+            continue
+        marker_index = repository_path.lower().rfind("/docs/design/")
+        if marker_index < 0:
+            continue
+        candidate = posixpath.normpath(repository_path[marker_index + 1 :]).lower()
+        match = CONCRETE_DOC_ARTIFACT_RE.fullmatch(candidate)
+        if match:
+            paths.append(match.group(1))
+    return paths
+
+
+def extract_visual_authority_artifact_paths(value: str) -> list[str]:
+    return [
+        path
+        for path in extract_doc_artifact_paths(value)
+        if path not in NON_VISUAL_GOVERNANCE_ARTIFACTS
+    ]
+
+
+def extract_urls(value: str) -> list[str]:
+    return [
+        match.group(0).rstrip(".,;:)]}")
+        for match in URL_RE.finditer(value)
+    ]
+
+
+def current_repository_url_path(value: str) -> str | None:
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return None
+    host = (parsed.hostname or "").lower().rstrip(".")
+    decoded_path = unquote(parsed.path).replace("\\", "/")
+    normalized_path = posixpath.normpath(f"/{decoded_path.lstrip('/')}").lower()
+    if host not in REPOSITORY_GITHUB_HOSTS | REPOSITORY_RAW_HOSTS:
+        return None
+    if normalized_path != REPOSITORY_PATH_PREFIX and not normalized_path.startswith(
+        f"{REPOSITORY_PATH_PREFIX}/"
+    ):
+        return None
+    return normalized_path
 
 
 def has_external_url(value: str) -> bool:
-    return bool(re.search(r"https?://\S+", value))
+    return any(
+        current_repository_url_path(url) is None
+        for url in extract_urls(value)
+    )
+
+
+def has_only_non_visual_governance_sources(value: str) -> bool:
+    artifact_paths = extract_doc_artifact_paths(value)
+    return (
+        bool(artifact_paths)
+        and not has_external_url(value)
+        and all(path in NON_VISUAL_GOVERNANCE_ARTIFACTS for path in artifact_paths)
+    )
 
 
 def has_concrete_source(value: str, markers: tuple[str, ...]) -> bool:
@@ -574,7 +642,7 @@ def has_concrete_source(value: str, markers: tuple[str, ...]) -> bool:
         return True
     return any(
         marker_matches_path(marker, path)
-        for path in extract_doc_artifact_paths(value)
+        for path in extract_visual_authority_artifact_paths(value)
         for marker in markers
     )
 
@@ -662,6 +730,11 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
         elif "*" in design_artifact or "task_local_design_brief" in design_artifact:
             errors.append(
                 "Design artifact must name a concrete accepted artifact or external URL, not a wildcard or task-local placeholder"
+            )
+        elif has_only_non_visual_governance_sources(design_artifact):
+            errors.append(
+                "Design artifact names only governance/non-visual documents, which cannot satisfy visual authority; "
+                "name a separately accepted visual artifact or linked external design file"
             )
         elif has_directory_reference_without_file(design_artifact, ACCEPTED_SOURCE_MARKERS):
             errors.append(

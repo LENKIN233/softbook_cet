@@ -128,6 +128,16 @@ class HarnessModuleBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(CapabilityError, "outside full mode"):
             context.run_command("gh", "api", "repos/LENKIN233/softbook_cet")
 
+    def test_delivery_context_allows_only_the_static_batch0_node_validator(self):
+        context = DeliveryContext(root=ROOT, mode="local", section="delivery_runtime")
+        validator = ROOT / "scripts" / "validate_mobile_ux_batch0_decision.mjs"
+
+        result = context.run_command("node", str(validator))
+        self.assertIsNotNone(result)
+
+        with self.assertRaisesRegex(CapabilityError, "not allowlisted"):
+            context.run_command("node", str(ROOT / "scripts" / "other.mjs"))
+
     def test_fixture_section_rejects_direct_remote_or_process_capabilities(self):
         body = "import subprocess\nsubprocess.run(['gh', 'api'])\n"
         with self.section_module(body) as path:

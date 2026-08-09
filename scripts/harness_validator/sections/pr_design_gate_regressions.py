@@ -178,6 +178,175 @@ def validate(context) -> None:
             + web_ui_valid_case.stderr
         )
 
+    non_visual_governance_only_case = run_design_gate_case(
+        """
+    ## 设计稿来源（用户可见 UI 如适用）
+
+    - Design artifact: docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md
+    - Interaction/motion artifact: N/A
+    - Physical space artifact: N/A
+    - Implementation mapping: apps/mobile/src/visual/tokens.ts
+    - Unimplemented design gaps: No known gaps.
+
+    ## design_review_checklist（如适用）
+
+    - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
+    - Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+    - AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+    - AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
+    """,
+        [
+            "apps/mobile/src/visual/tokens.ts",
+            "docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+        ],
+    )
+    if non_visual_governance_only_case.returncode == 0:
+        errors.append(
+            "validate_pr_design_gate.py must reject non-visual governance decisions as sole visual authority"
+        )
+    else:
+        non_visual_governance_output = (
+            non_visual_governance_only_case.stdout
+            + non_visual_governance_only_case.stderr
+        )
+        for snippet in ["governance/non-visual", "cannot satisfy visual authority"]:
+            if snippet not in non_visual_governance_output:
+                errors.append(
+                    "validate_pr_design_gate.py governance rejection must explain that non-visual governance cannot satisfy visual authority: "
+                    + snippet
+                )
+
+    governance_plus_visual_authority_case = run_design_gate_case(
+        """
+    ## 设计稿来源（用户可见 UI 如适用）
+
+    - Design artifact: docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md; docs/design/visual-reference.html
+    - Interaction/motion artifact: N/A
+    - Physical space artifact: N/A
+    - Implementation mapping: apps/mobile/src/visual/tokens.ts
+    - Unimplemented design gaps: No known gaps.
+
+    ## design_review_checklist（如适用）
+
+    - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
+    - Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+    - AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+    - AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
+    """,
+        [
+            "apps/mobile/src/visual/tokens.ts",
+            "docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+        ],
+    )
+    if governance_plus_visual_authority_case.returncode != 0:
+        errors.append(
+            "validate_pr_design_gate.py should ignore non-visual governance documents when a separate accepted visual artifact satisfies visual authority: "
+            + governance_plus_visual_authority_case.stdout
+            + governance_plus_visual_authority_case.stderr
+        )
+
+    def visual_tokens_body(design_artifact: str) -> str:
+        return f"""
+    ## 设计稿来源（用户可见 UI 如适用）
+
+    - Design artifact: {design_artifact}
+    - Interaction/motion artifact: N/A
+    - Physical space artifact: N/A
+    - Implementation mapping: apps/mobile/src/visual/tokens.ts
+    - Unimplemented design gaps: No known gaps.
+
+    ## design_review_checklist（如适用）
+
+    - Universal Q1-Q4: Q1 Law of One current library reading; Q2 focal object current card; Q3 silhouette matches accepted contract; Q4 forbidden_design_patterns none.
+    - Conditional Q5-Q6: Q5 phone viewport containment not applicable or safe-area preserved; Q6 learning flip stats module rules unchanged.
+    - AP-22: AP-22 design review checklist was answered before render with six questions recorded.
+    - AP-23: AP-23 keeps two-state self-assess policy: 有把握 mint / 再回看 amber.
+    """
+
+    governance_repository_urls = [
+        "https://github.com/LENKIN233/softbook_cet/blob/main/docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+        "https://www.github.com/LENKIN233/softbook_cet/raw/main/docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+        "https://raw.githubusercontent.com/LENKIN233/softbook_cet/main/docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+        "https://github.com/LENKIN233/softbook_cet/blob/main/docs%2Fdesign%2Fdecisions%2Fmobile-ux-checkpoint-layering-decision-v1.md",
+        "https://raw.githubusercontent.com/LENKIN233/softbook_cet/main/docs/design/visual-reference.html/../decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+        "https://github.com/x/../LENKIN233/softbook_cet/blob/main/docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+        "https://github.com/LENKIN233/softbook_cet/blob/tmp/../main/docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+        "https://github.com/x/%2e%2e/LENKIN233/softbook_cet/blob/main/docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+        "https://github.com./LENKIN233/softbook_cet/blob/main/docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+        "https://github.com/x/%5c../LENKIN233/softbook_cet/blob/main/docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+    ]
+    for governance_repository_url in governance_repository_urls:
+        governance_repository_url_case = run_design_gate_case(
+            visual_tokens_body(governance_repository_url),
+            ["apps/mobile/src/visual/tokens.ts"],
+        )
+        if governance_repository_url_case.returncode == 0:
+            errors.append(
+                "validate_pr_design_gate.py must normalize and reject a repository URL that resolves to the non-visual governance decision: "
+                + governance_repository_url
+            )
+        else:
+            governance_repository_url_output = (
+                governance_repository_url_case.stdout
+                + governance_repository_url_case.stderr
+            )
+            for snippet in ["governance/non-visual", "cannot satisfy visual authority"]:
+                if snippet not in governance_repository_url_output:
+                    errors.append(
+                        "validate_pr_design_gate.py repository-URL governance rejection must explain the visual-authority boundary: "
+                        + snippet
+                    )
+
+    governance_github_url = governance_repository_urls[0]
+    governance_url_plus_local_visual_case = run_design_gate_case(
+        visual_tokens_body(
+            governance_github_url + "; docs/design/visual-reference.html"
+        ),
+        ["apps/mobile/src/visual/tokens.ts"],
+    )
+    if governance_url_plus_local_visual_case.returncode != 0:
+        errors.append(
+            "validate_pr_design_gate.py should let a separate local visual artifact satisfy authority beside a non-visual governance repository URL: "
+            + governance_url_plus_local_visual_case.stdout
+            + governance_url_plus_local_visual_case.stderr
+        )
+
+    repository_visual_url_case = run_design_gate_case(
+        visual_tokens_body(
+            "https://github.com/LENKIN233/softbook_cet/blob/main/docs/design/visual-reference.html"
+        ),
+        ["apps/mobile/src/visual/tokens.ts"],
+    )
+    if repository_visual_url_case.returncode != 0:
+        errors.append(
+            "validate_pr_design_gate.py should treat a current-repository URL as its local accepted visual artifact rather than as generic external authority: "
+            + repository_visual_url_case.stdout
+            + repository_visual_url_case.stderr
+        )
+
+    external_visual_url = "https://www.figma.com/design/softbook/accepted-visual"
+    external_visual_url_case = run_design_gate_case(
+        visual_tokens_body(external_visual_url),
+        ["apps/mobile/src/visual/tokens.ts"],
+    )
+    if external_visual_url_case.returncode != 0:
+        errors.append(
+            "validate_pr_design_gate.py should continue to allow a true external visual artifact URL: "
+            + external_visual_url_case.stdout
+            + external_visual_url_case.stderr
+        )
+
+    governance_url_plus_external_visual_case = run_design_gate_case(
+        visual_tokens_body(governance_github_url + "; " + external_visual_url),
+        ["apps/mobile/src/visual/tokens.ts"],
+    )
+    if governance_url_plus_external_visual_case.returncode != 0:
+        errors.append(
+            "validate_pr_design_gate.py should let a true external visual artifact satisfy authority beside a non-visual governance repository URL: "
+            + governance_url_plus_external_visual_case.stdout
+            + governance_url_plus_external_visual_case.stderr
+        )
+
     visual_output_artifact_paths = [
         "docs/design/visual-reference.html",
         "docs/design/interaction-motion/learning-motion-v1.md",

@@ -555,6 +555,21 @@ def validate(context) -> None:
         local_gate_catalog_text,
         '"learning-events-contract-tests"',
     )
+    for snippet in [
+        "node --test scripts/test_validate_mobile_ux_batch0_decision.mjs",
+        "node scripts/validate_mobile_ux_batch0_decision.mjs",
+        "--repository \"${{ github.repository }}\"",
+        "--pull-request \"${{ github.event.pull_request.number }}\"",
+        "--head-sha \"${{ github.event.pull_request.head.sha }}\"",
+    ]:
+        check_contains("Mobile UX Batch 0 PR gate", workflow_text, snippet)
+
+    for relative_path in [
+        "scripts/validate_mobile_ux_batch0_decision.mjs",
+        "scripts/test_validate_mobile_ux_batch0_decision.mjs",
+    ]:
+        if not (ROOT / relative_path).is_file():
+            errors.append(f"missing Mobile UX Batch 0 governance artifact: {relative_path}")
 
     ap20 = find_by_id(harness["anti_patterns"], "AP-20")
     if ap20:

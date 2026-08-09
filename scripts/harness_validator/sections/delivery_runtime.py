@@ -419,9 +419,26 @@ def validate(context) -> None:
     formal_workflow_path = ROOT / formal_approval_gate["workflow_path"]
     formal_classifier_path = ROOT / formal_approval_gate["scope_classifier_path"]
     formal_classifier_test_path = ROOT / formal_approval_gate["scope_classifier_test_path"]
-    for path in [formal_workflow_path, formal_classifier_path, formal_classifier_test_path]:
+    batch0_validator_path = ROOT / "scripts/validate_mobile_ux_batch0_decision.mjs"
+    batch0_validator_test_path = ROOT / "scripts/test_validate_mobile_ux_batch0_decision.mjs"
+    for path in [
+        formal_workflow_path,
+        formal_classifier_path,
+        formal_classifier_test_path,
+        batch0_validator_path,
+        batch0_validator_test_path,
+    ]:
         if not path.exists():
             errors.append(f"missing formal approval artifact: {path.relative_to(ROOT)}")
+    if batch0_validator_path.exists():
+        batch0_validation = run_command("node", str(batch0_validator_path))
+        if batch0_validation is None or batch0_validation.returncode != 0:
+            diagnostic = (
+                batch0_validation.stderr.strip()
+                if batch0_validation is not None
+                else "validator did not execute"
+            )
+            errors.append(f"Mobile UX Batch 0 static subject validation failed: {diagnostic}")
     if formal_workflow_path.exists():
         formal_workflow_text = formal_workflow_path.read_text(encoding="utf-8")
         for snippet in [

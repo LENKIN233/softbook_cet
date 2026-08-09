@@ -3005,10 +3005,22 @@ def launch_evidence_contract_findings(
         else ""
     )
     for sensitive_path in [
+        "'docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md'",
+        "'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/browser-evidence.md'",
+        "'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/checkpoint-contract.md'",
+        "'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/checkpoint-layering-decision-proposal.md'",
+        "'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/pc-web-v5-state-mapping.md'",
+        "'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/state-evidence-ledger.md'",
+        "'scripts/harness_validator/context.py'",
         "'scripts/harness_validator/sections/product_contract_mirrors.py'",
+        "'scripts/harness_validator/sections/pr_design_gate_regressions.py'",
         "'scripts/harness_validator/sections/truth_mirrors.py'",
         "'scripts/lib/launch_evidence_contract.mjs'",
         "'scripts/lib/strict_json.mjs'",
+        "'scripts/test_harness_module_boundaries.py'",
+        "'scripts/test_validate_mobile_ux_batch0_decision.mjs'",
+        "'scripts/validate_mobile_ux_batch0_decision.mjs'",
+        "'scripts/validate_pr_design_gate.py'",
         "'spec/account-sync-contract.json'",
         "'spec/authority-map.json'",
         "'spec/doc-manifest.json'",

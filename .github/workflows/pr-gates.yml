@@ -87,6 +87,21 @@ jobs:
       - name: Test formal approval scope classifier
         run: node --test scripts/test_classify_formal_approval_scope.mjs
 
+      - name: Test Mobile UX Batch 0 decision validator
+        run: node --test scripts/test_validate_mobile_ux_batch0_decision.mjs
+
+      - name: Validate Mobile UX Batch 0 static subject
+        run: node scripts/validate_mobile_ux_batch0_decision.mjs
+
+      - name: Validate PR 484 exact-head Batch 0 subject
+        if: github.event_name == 'pull_request' && github.event.pull_request.number == 484
+        run: >-
+          node scripts/validate_mobile_ux_batch0_decision.mjs
+          --repository "${{ github.repository }}"
+          --pull-request "${{ github.event.pull_request.number }}"
+          --head-sha "${{ github.event.pull_request.head.sha }}"
+          --json
+
       - name: Validate harness contract
         run: python3 scripts/validate_harness.py --skip-remote-guard
 

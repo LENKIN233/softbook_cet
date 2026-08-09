@@ -1,8 +1,8 @@
 ---
-status: proposed_not_accepted
+status: governed_by_protected_product_owner_decision
 classification: implementation_hypothesis
-product_owner_acceptance: pending
-gate_effect: none_until_explicit_acceptance
+product_owner_acceptance: effective_iff_bound_exact_head_protected_approval_passes
+gate_effect: batch_0_topology_and_batch_1_manifest_preparation_only_when_decision_active
 scope: mobile_ux_checkpoint_layering
 ---
 
@@ -105,10 +105,13 @@ The six checkpoints are distinct evidence subjects:
 5. `CP-NFA` — Native Final Acceptance
 6. `CP-RLR` — Release / Leadership Readiness
 
-`CP-BA`, `CP-CS`, and `CP-WEB` may gather evidence in parallel. A future
-product-owner architecture decision must name exactly which accepted results
-and explicitly blocked gaps permit entry to visual exploration. `CP-VA` may
-then select an accepted visual artifact and implementation mapping. `CP-NFA`
+`CP-BA`, `CP-CS`, and `CP-WEB` may prepare exact execution registries in
+parallel. Evidence gathering begins only after a protected product-owner
+decision freezes actual operators, independent verifiers, targets,
+environments, scenarios, and manifest identities. A future product-owner
+architecture decision must then name exactly which accepted results and
+explicitly blocked gaps permit entry to visual exploration. `CP-VA` may then
+select an accepted visual artifact and implementation mapping. `CP-NFA`
 requires a mapped build on real target systems. `CP-RLR` requires one formal
 launch release candidate cohort and every registered release gate.
 
@@ -118,11 +121,18 @@ contract version, subject commit, evidence manifest hash, and decision status.
 
 ### Proposed execution batches
 
-- Batch 0, serial: accept or amend this layering proposal, name each owner, and
-  freeze the target/evidence cohort definitions. This batch does not change any
+- Batch 0A, serial: accept or amend this layering proposal and its role and
+  separation rules. This batch does not fill missing identities or change any
   ledger cell.
-- Batch 1, parallel: gather `CP-BA`, `CP-CS`, and `CP-WEB` evidence in their
-  own manifests. No lane may borrow another lane's evidence class.
+- Batch 0B, parallel preparation: draft exact actual-owner/verifier,
+  target-device/OS/browser, service-environment, provider/account, scenario,
+  and manifest registries for `CP-BA`, `CP-CS`, and `CP-WEB`. No provisioning,
+  evidence execution, collection, aggregation, or promotion is permitted.
+- Manifest decision, serial: the product owner freezes or rejects those exact
+  registries through the protected authority path.
+- Batch 1, parallel after that decision: gather `CP-BA`, `CP-CS`, and `CP-WEB`
+  evidence in their own manifests. No lane may borrow another lane's evidence
+  class.
 - Architecture decision, serial: the product owner accepts or rejects an exact
   architecture subject and names every carried blocker plus the only allowed
   next action.
@@ -135,7 +145,8 @@ contract version, subject commit, evidence manifest hash, and decision status.
   and execute `CP-RLR` through its registered formal gates.
 
 Provisioning of external accounts, device access, and receiver-owned staging
-may begin early, but provisioning is not checkpoint evidence by itself.
+may begin only when a separate authority explicitly permits it; the current
+Batch 0 decision does not. Provisioning is never checkpoint evidence by itself.
 
 ## Checkpoint state terms
 
@@ -688,7 +699,10 @@ re-run on the exact mapped candidate build.
 
 ## Current status under this proposal
 
-- `CP-BA`: `partial_verified` for the exact strict-4 browser subset only.
+- `CP-BA`: `partial_verified` for the exact strict-4 browser base plus the
+  independently reviewed strict-5 Flip-focus delta only. The strict-5 delta
+  corrects and replays the affected focus path; it does not silently migrate
+  untouched strict-4 ledger cells into a new cohort.
 - `CP-CS`: `blocked`.
 - `CP-WEB`: `blocked`.
 - `CP-VA`: `blocked` and not started under an accepted architecture decision.

@@ -12,6 +12,15 @@ Implementation work should reference a decision when a direction has been accept
 - `learning-space-platform-layout-v1.md`: accepts phone / tablet / pc web layout separation for Learning and Space.
 - `pc-web-core-surface-decision-v1.md`: accepts the Focused Workbench direction for PC Web Learning, Space, Statistics, Mine, authentication, and membership-gate surfaces.
 
+## Protected Governance Decisions
+
+- `mobile-ux-checkpoint-layering-decision-v1.md`: accepts the six-checkpoint
+  topology and Batch 1 owner/matrix/manifest-preparation boundary only when the
+  exact head of pull request `#484` containing the record passes the protected
+  `formal-product-owner-approval` environment. It permits no evidence collection
+  and does not accept architecture evidence, a visual direction, implementation,
+  native behavior, release, or leadership readiness.
+
 ## Explicitly Rejected / Non-Authority
 
 - `mobile-core-surface-reset-v1.md`: product-owner vetoed on 2026-08-08; the
