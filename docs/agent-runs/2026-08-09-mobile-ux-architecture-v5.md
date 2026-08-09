@@ -85,7 +85,7 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 - `docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/access-profile-proofs/`: physically separate formal-commerce and managed read-only learner documents.
 - `scripts/check_design_metadata_leaks.mjs`: fail-closed scanning for UX-architecture external learner scripts and learner comments.
 - `scripts/test_check_design_metadata_leaks.mjs`: external-script, learner-comment, reviewer-process, and raw-metadata regressions.
-- `apps/mobile/package.json` and `apps/mobile/package-lock.json`: force transitive `js-yaml@4.3.1`, the first release outside the reported vulnerable 3.x/4.x ranges.
+- `apps/mobile/package.json` and `apps/mobile/package-lock.json`: preserve consumer-declared major compatibility while routing 3.x consumers to fixed `js-yaml@3.15.1` and 4.x consumers to fixed `js-yaml@4.3.1`.
 - `security/dependency-audit-policy.json`: time-bounded exceptions, expiring `2026-08-16`, for the two unpatched `image-size` advisories reachable only through Metro's repository-controlled build inputs.
 - `docs/agent-runs/2026-08-09-mobile-ux-architecture-v5.md`: this record.
 
@@ -120,8 +120,8 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 - Native, store, canonical service, real audio, real receiver operations, 200% text, OS reduced motion, IME, VoiceOver/TalkBack, cutout/safe-area, and PC Web per-state evidence: blocked.
 - Local full-section harness: `HARNESS VALIDATION OK`; `HARNESS COMPLETENESS PARTIAL (mode=local, selected=15)` is the expected local-mode report and does not substitute for remote required checks.
 - Full harness command required by the PR review gate: `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`.
-- Dependency security: `js-yaml` was deduplicated to fixed `4.3.1`; the policy validator passed with no CloudBase findings and exactly two governed `image-size` advisories. GitHub lists no patched `image-size` release, so both exceptions expire on `2026-08-16` and must be removed as soon as upstream publishes a fix. The repository contains no tracked `ICNS`, `HEIF`, `HEIC`, or `JXL` asset that can reach the vulnerable parsers.
-- Mobile regression after the override: lint passed, typecheck passed, and all `45` suites / `437` tests passed.
+- Dependency security: each transitive `js-yaml` consumer remains inside its declared major range (`3.15.1` or `4.3.1`); the policy validator passed with no CloudBase findings and exactly two governed `image-size` advisories. GitHub lists no patched `image-size` release, so both exceptions expire on `2026-08-16` and must be removed as soon as upstream publishes a fix. The repository contains no tracked `ICNS`, `HEIF`, `HEIC`, or `JXL` asset that can reach the vulnerable parsers.
+- Mobile regression after the targeted overrides, repeated under CI's Node `22.13.0`: lint passed, typecheck passed, and all `45` suites / `437` tests passed.
 - `git diff --check`: passed.
 - Final independent frozen-hash architecture review of strict-4 commit `bd3ed0f54350b252f1554872de5a07cd09f97232`: `pass_exact_architecture_browser_subset`; P0 `0`, P1 `0`. The overall architecture gate remains blocked.
 
