@@ -128,6 +128,44 @@ class HarnessModuleBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(CapabilityError, "outside full mode"):
             context.run_command("gh", "api", "repos/LENKIN233/softbook_cet")
 
+    def test_delivery_context_allows_only_static_mobile_ux_node_validators(self):
+        context = DeliveryContext(root=ROOT, mode="local", section="delivery_runtime")
+        validators = (
+            (ROOT / "scripts" / "validate_mobile_ux_batch0_decision.mjs", ()),
+            (
+                ROOT / "scripts" / "validate_mobile_ux_batch1_registry.mjs",
+                ("--require-tracked", "--json"),
+            ),
+            (
+                ROOT
+                / "scripts"
+                / "validate_mobile_ux_batch1_freeze_candidate.mjs",
+                ("--require-tracked", "--json"),
+            ),
+        )
+
+        for validator, arguments in validators:
+            with self.subTest(validator=validator.name):
+                result = context.run_command("node", str(validator), *arguments)
+                self.assertIsNotNone(result)
+
+        with self.assertRaisesRegex(CapabilityError, "not allowlisted"):
+            context.run_command("node", str(ROOT / "scripts" / "other.mjs"))
+
+        with self.assertRaisesRegex(CapabilityError, "not allowlisted"):
+            context.run_command(
+                "node",
+                str(ROOT / "scripts" / "validate_mobile_ux_batch1_registry.mjs"),
+            )
+
+        with self.assertRaisesRegex(CapabilityError, "not allowlisted"):
+            context.run_command(
+                "node",
+                str(ROOT / "scripts" / "validate_mobile_ux_batch1_registry.mjs"),
+                "--consumer",
+                "evidence-collector",
+            )
+
     def test_fixture_section_rejects_direct_remote_or_process_capabilities(self):
         body = "import subprocess\nsubprocess.run(['gh', 'api'])\n"
         with self.section_module(body) as path:

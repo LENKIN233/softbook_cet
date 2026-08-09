@@ -3005,15 +3005,37 @@ def launch_evidence_contract_findings(
         else ""
     )
     for sensitive_path in [
+        "'docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md'",
+        "'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/browser-evidence.md'",
+        "'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/checkpoint-contract.md'",
+        "'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/checkpoint-layering-decision-proposal.md'",
+        "'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/pc-web-v5-state-mapping.md'",
+        "'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/state-evidence-ledger.md'",
+        "'scripts/harness_validator/context.py'",
         "'scripts/harness_validator/sections/product_contract_mirrors.py'",
+        "'scripts/harness_validator/sections/pr_design_gate_regressions.py'",
         "'scripts/harness_validator/sections/truth_mirrors.py'",
         "'scripts/lib/launch_evidence_contract.mjs'",
         "'scripts/lib/strict_json.mjs'",
+        "'scripts/test_harness_module_boundaries.py'",
+        "'scripts/test_validate_mobile_ux_batch0_decision.mjs'",
+        "'scripts/test_validate_mobile_ux_batch1_registry.mjs'",
+        "'scripts/test_validate_mobile_ux_batch1_freeze_candidate.mjs'",
+        "'scripts/test_mobile_ux_batch1_manifest_contract.mjs'",
+        "'scripts/validate_mobile_ux_batch0_decision.mjs'",
+        "'scripts/validate_mobile_ux_batch1_registry.mjs'",
+        "'scripts/validate_mobile_ux_batch1_freeze_candidate.mjs'",
+        "'scripts/validate_mobile_ux_batch1_execution_manifest.mjs'",
+        "'scripts/validate_state_evidence_ledger.mjs'",
+        "'scripts/lib/mobile_ux_batch1_manifest_contract.mjs'",
+        "'scripts/validate_pr_design_gate.py'",
         "'spec/account-sync-contract.json'",
         "'spec/authority-map.json'",
         "'spec/doc-manifest.json'",
         "'spec/release-operational-policy.json'",
         "'spec/runtime-boundaries.json'",
+        "'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/'",
+        "'docs/agent-runs/2026-08-10-mobile-ux-batch1-v2-schema-definition.md'",
     ]:
         if sensitive_path not in classifier_text:
             findings.append(

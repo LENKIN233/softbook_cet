@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mobile UX Architecture v5 · Reviewer Matrix</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --page: #eeeeee;
+      --surface: #fdfdfd;
+      --ink: #1b1b1b;
+      --muted: #626262;
+      --line: #c4c4c4;
+      --strong: #292929;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--page); color: var(--ink); line-height: 1.5; }
+    main { width: min(1180px, 100%); margin: 0 auto; padding: 32px 20px 80px; }
+    header { max-width: 820px; margin-bottom: 28px; }
+    h1 { margin: 0 0 10px; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.05; }
+    h2 { margin-top: 40px; }
+    p { max-width: 78ch; }
+    .muted { color: var(--muted); }
+    .notice { padding: 16px; border: 2px solid var(--strong); background: var(--surface); font-weight: 700; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .artifact { display: grid; gap: 10px; padding: 18px; border: 1px solid var(--line); background: var(--surface); }
+    .artifact h3, .artifact p { margin: 0; }
+    .artifact a { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 10px 14px; border: 1px solid var(--strong); background: var(--strong); color: #fdfdfd; font-weight: 700; text-decoration: none; }
+    .table-wrap { max-width: 100%; overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+    table { width: 100%; min-width: 780px; border-collapse: collapse; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #e2e2e2; }
+    tr:last-child td { border-bottom: 0; }
+    .status { font-weight: 800; }
+    .status--covered::before { content: "✓ "; }
+    .status--blocked::before { content: "× "; }
+    .status--pending::before { content: "… "; }
+    ul { padding-left: 22px; }
+    @media (max-width: 720px) {
+      .grid { grid-template-columns: 1fr; }
+      main { padding-inline: 14px; }
+    }
+  </style>
+</head>
+<body data-audience="reviewer">
+  <main>
+    <header>
+      <p class="muted">Mobile UX Architecture v5</p>
+      <h1>Grayscale reviewer matrix</h1>
+      <p>Reviewer-only entry point for architecture, evidence, leakage, continuity, and cross-device review. None of this page is learner UI.</p>
+    </header>
+
+    <p class="notice">Current decision: architecture gate blocked with a corrected browser subset verified. Visual acceptance, native completion, implementation authority, leadership readiness, and React Native work are all forbidden.</p>
+
+    <h2>Core learner documents</h2>
+    <div class="grid">
+      <article class="artifact"><h3>iOS phone</h3><p>Apple phone composition; 44pt floor; bounded bottom navigation.</p><a href="./grayscale-proofs/ios-phone.html">Open learner document</a></article>
+      <article class="artifact"><h3>Android phone</h3><p>48dp floor; phone landscape rail hypothesis; Back remains native-pending.</p><a href="./grayscale-proofs/android-phone.html">Open learner document</a></article>
+      <article class="artifact"><h3>iPadOS tablet</h3><p>Sidebar at expanded width; compact collapse; conditional attached context.</p><a href="./grayscale-proofs/ipados-tablet.html">Open learner document</a></article>
+      <article class="artifact"><h3>Android tablet</h3><p>Narrow navigation rail at expanded width; compact collapse; conditional context.</p><a href="./grayscale-proofs/android-tablet.html">Open learner document</a></article>
+    </div>
+
+    <h2>Physically separate access profiles</h2>
+    <div class="grid">
+      <article class="artifact"><h3>Formal commerce subset</h3><p>Free-origin comparison, purchase unavailable/retry, restore-none, and exact cancel return. No local Premium claim.</p><a href="./access-profile-proofs/access-standard.html">Open standard access</a></article>
+      <article class="artifact"><h3>Read-only managed access subset</h3><p>Base access and additional complete access remain separate. There is no purchase, restore, self-grant, or self-revoke control.</p><a href="./access-profile-proofs/access-managed.html">Open managed access</a></article>
+    </div>
+
+    <h2>Exact state accounting</h2>
+    <p>The state contract contains 160 semantic states, including 30 independently testable states across the five interaction families and nine explicit lightweight check-in states, plus 13 forced cross-state combinations. Ten rows were added by splitting compound obligations that previously allowed partial evidence to look complete. Domain summaries are not evidence. The per-state ledger is the only coverage accounting source.</p>
+    <div class="grid">
+      <article class="artifact"><h3>State contract</h3><p>Authority, origin, return target, learner intent, action, commit truth, and recovery.</p><a href="./grayscale-ux-state-contract.md">Open state contract</a></article>
+      <article class="artifact"><h3>Per-state evidence ledger</h3><p>One row per state. Current exact browser cells: iOS 38, Android phone 10, iPadOS 8, Android tablet 8, shared access 12. Canonical-success presentations are counted separately as blocked observations; all native and PC Web cells remain blocked.</p><a href="./state-evidence-ledger.md">Open evidence ledger</a></article>
+      <article class="artifact"><h3>Exact browser evidence</h3><p>Frozen hashes, operated paths, measured breakpoints, and explicit browser/native limits.</p><a href="./browser-evidence.md">Open browser evidence</a></article>
+      <article class="artifact"><h3>Checkpoint contract proposal</h3><p>Six fail-closed evidence subjects with explicit owner, cohort, claim, and non-claim boundaries. Product-owner decision is still pending.</p><a href="./checkpoint-contract.md">Open checkpoint proposal</a></article>
+      <article class="artifact"><h3>PC Web state mapping</h3><p>All 160 semantic states and 13 forced combinations mapped to the accepted Focused Workbench authority; every implementation/evidence result remains blocked.</p><a href="./pc-web-v5-state-mapping.md">Open PC Web mapping</a></article>
+    </div>
+
+    <h2>Current evidence boundary</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Evidence class</th><th>Current result</th><th>What it means</th></tr></thead>
+        <tbody>
+          <tr><td>Exact architecture transcript</td><td class="status status--covered">Covered for 160 + 13 rows</td><td>Text architecture only; it proves no target capability.</td></tr>
+          <tr><td>Browser learner scenarios</td><td class="status status--covered">Corrected subset replayed at frozen hashes</td><td>Proves only the exact DOM semantics, browser interactions, containment, and scenario transitions recorded in <code>browser-evidence.md</code>.</td></tr>
+          <tr><td>Independent exact browser review</td><td class="status status--covered">Strict-5 delta: P0 0 / P1 0</td><td><code>d5b9250</code> returned <code>PASS_EXACT_STRICT5_DELTA</code> after independent four-platform focus, containment, hash, and learner-copy replay. This closes only the exact browser delta; the architecture, native, PC Web, visual, and owner gates remain blocked.</td></tr>
+          <tr><td>Independent exact governance review</td><td class="status status--covered">6950638: P0 0 / P1 0</td><td>After <code>c447590</code> failed with three P1 findings, exact adversarial and boundary/records reviews of <code>6950638</code> both passed. Divider injection, unrelated real evidence sections, source-contract drift, prior governance mutations, and cohort stitching all fail closed. This is technical scope review only; product-owner acceptance remains pending.</td></tr>
+          <tr><td>Formal / managed profile separation</td><td class="status status--covered">Separate sources replayed at phone and tablet widths</td><td>Formal commerce and read-only access do not share a profile switch; neither browser proof establishes a canonical entitlement.</td></tr>
+          <tr><td>Native iOS / Android / tablet</td><td class="status status--blocked">No accepted evidence</td><td>Safe area, IME, System/Predictive Back, VoiceOver/TalkBack, store, audio, and process restore remain open.</td></tr>
+          <tr><td>PC Web per-state parity</td><td class="status status--blocked">Mapping complete; evidence absent</td><td>All 160 + 13 obligations now map to the accepted Focused Workbench, while implementation, exact browser, canonical service, accessibility, payment, and receiver evidence remain blocked. Mobile composition cannot substitute.</td></tr>
+          <tr><td>Visual system</td><td class="status status--blocked">Not started</td><td>Grayscale architecture cannot select palette, type, radius, material, icon, motion, or candidate lineage.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Required real-use replay</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Path</th><th>Required actions</th><th>Pass condition</th></tr></thead>
+        <tbody>
+          <tr><td>Auth and Trial boundary</td><td>Invalid phone → valid phone → code error → resend restraint → login → Learning-session pending → first card.</td><td>Inputs/focus recover; login alone does not start Trial; only successful Learning entry changes access.</td></tr>
+          <tr><td>Five families</td><td>Flip → Four-choice → Lock wrong/correct → Elimination wrong/correct → Swipe short cancel/wrong/correct.</td><td>Each stays distinct; pending precedes accepted result; wrong Lock cannot continue before correction; accepted auto-scored outcomes expose exactly one continuation.</td></tr>
+          <tr><td>Learning ↔ Space</td><td>Open exact location → favorite pending/accepted → sleep pending/accepted → return without wake.</td><td>Knowledge ownership remains stable; a sleeping current card is excluded and Learning requests a new selection.</td></tr>
+          <tr><td>Simple check-in</td><td>Available → pending → acknowledgement → refresh/reconciled. Separately force an uncertain prior outcome and retry the same retained command to prove exact-duplicate acknowledgement; then exercise offline queue, retry, matching restart recovery, and stale account/day rejection.</td><td>One explicit day action only; no streak/reward/counter fabrication, duplicate transition, or cross-account/day replay.</td></tr>
+          <tr><td>Formal access</td><td>Learning limit and Space limit → compare → cancel → purchase unavailable/retry → restore none.</td><td>No local Premium claim; exact origin and current access survive every branch.</td></tr>
+          <tr><td>Managed access</td><td>Open access detail → refresh pending → active/absent/error → return.</td><td>No commerce/self-grant code or control; base access is not overwritten.</td></tr>
+          <tr><td>Reflow and platform mapping</td><td>320/360/390/430, phone landscape, 761/800/1024 tablet, reduced motion.</td><td>No page overflow, hidden clipping, covered action, permanent empty pane, or unauthorized Four-choice single-column exception.</td></tr>
+          <tr><td>Focus and Back</td><td>Rerendered selections/tools, Auth pending status, result/correction focus, dialog trap/Escape/invoker return, one-step Space Back, iOS tab-local Back, Android top-level Back, and scroll/focus restoration.</td><td>No focus loss, top-level iOS pop, double Back, route loop, silent pending dismissal, or incorrect origin.</td></tr>
+          <tr><td>Audience boundary</td><td>Visible copy, AT names, DOM, source comments, external JS, URL, and reviewer separation.</td><td>Zero runtime predicate, internal key, reviewer guidance, test/process narration, or hidden profile switch.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Stop conditions</h2>
+    <ul>
+      <li>Any incorrect scoring, false commit, lost origin, hidden overflow, or learner-source review note is P0.</li>
+      <li>Any blocked required ledger row keeps the architecture gate blocked.</li>
+      <li>Browser success never closes native, store, attached-audio, or release evidence.</li>
+      <li>Only a frozen-hash independent review plus explicit product-owner acceptance may open equal-completeness visual exploration.</li>
+    </ul>
+  </main>
+</body>
+</html>

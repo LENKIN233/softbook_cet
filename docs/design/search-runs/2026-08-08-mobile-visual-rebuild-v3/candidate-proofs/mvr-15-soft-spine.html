@@ -1,0 +1,2562 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>软书四六级 · 学习</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+      --brand-ink: #0a1e4d;
+      --brand-locator: #587000;
+      --brand-locator-bright: #b7df16;
+      --chrome-bg: #f4f8ff;
+      --surface: #fbfcff;
+      --on-strong: #fdfefe;
+      --surface-soft: #edf3fc;
+      --text: #0a1e4d;
+      --text-muted: #465775;
+      --border: #6e8fcb;
+      --border-strong: #557bbe;
+
+      --tone-a: #073fad;
+      --tone-a-deep: #032b82;
+      --tone-a-soft: #e6efff;
+      --tone-b: #a70f50;
+      --tone-b-deep: #7f0d3e;
+      --tone-b-soft: #fff0f6;
+
+      --confident: #22c58b;
+      --confident-ink: #073b29;
+      --review: #f5b100;
+      --review-ink: #4b3200;
+      --success: #11643a;
+      --success-bg: #e5f6eb;
+      --review-bg: #fff0c7;
+      --error: #b3261e;
+      --error-bg: #fff1f0;
+
+      --shadow: 0 24px 70px rgba(10, 30, 77, .14);
+      --radius-control: 8px;
+      --radius-surface: 12px;
+      --radius-object: 20px;
+      --radius-pill: 999px;
+      --radius-spine: 12px 20px 20px 12px;
+      --type-scale: 1;
+    }
+
+    html { background: #e9eef7; }
+    body {
+      margin: 0;
+      min-width: 280px;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 7% 3%, rgba(183, 223, 22, .16), transparent 23rem),
+        linear-gradient(180deg, #edf3fb 0, #e5ebf5 100%);
+      color: var(--text);
+    }
+
+    button, input, select, summary { font: inherit; }
+    button { touch-action: manipulation; }
+    button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
+      outline: 2px solid var(--surface);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 5px var(--brand-ink);
+    }
+
+    .device {
+      position: relative;
+      width: var(--device-width, 393px);
+      height: var(--device-height, 852px);
+      max-width: 100%;
+      overflow: hidden;
+      container-type: size;
+      border: 2px solid var(--on-strong);
+      border-radius: 28px;
+      background: var(--chrome-bg);
+      box-shadow: var(--shadow), inset 0 0 0 1px rgba(85, 123, 190, .22);
+      isolation: isolate;
+    }
+    .device[data-platform="android"] { border-radius: 16px; }
+    .device--interactive { margin-inline: auto; transition: width .22s ease, height .22s ease; }
+    .device--tablet { border-radius: 20px; }
+    .device-note {
+      margin: 11px 0 0;
+      max-width: var(--device-width, 393px);
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .app-shell {
+      --library: var(--tone-a);
+      --library-deep: var(--tone-a-deep);
+      --library-soft: var(--tone-a-soft);
+      width: 100%;
+      height: 100%;
+      position: relative;
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      overflow: hidden;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 80% 8%, color-mix(in srgb, var(--library) 8%, transparent), transparent 31%),
+        var(--chrome-bg);
+      font-size: calc(16px * var(--type-scale));
+      line-height: 1.45;
+    }
+    .app-shell .device-note { font-size: calc(13px * var(--type-scale)); }
+    .app-shell[data-tone="tone-b"] {
+      --library: var(--tone-b);
+      --library-deep: var(--tone-b-deep);
+      --library-soft: var(--tone-b-soft);
+    }
+    .app-shell[data-tone="brand"] {
+      --library: var(--brand-ink);
+      --library-deep: #07183c;
+      --library-soft: var(--surface-soft);
+    }
+    .system-bar {
+      min-height: 34px;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      padding: 8px 18px 3px;
+      color: var(--brand-ink);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 820;
+      font-variant-numeric: tabular-nums;
+    }
+    .system-glyphs { display: flex; align-items: center; gap: 5px; }
+    .signal-bars { display: inline-flex; align-items: end; gap: 2px; height: 12px; }
+    .signal-bars i { width: 3px; border-radius: 1px 1px 0 0; background: currentColor; }
+    .signal-bars i:nth-child(1) { height: 4px; }
+    .signal-bars i:nth-child(2) { height: 6px; }
+    .signal-bars i:nth-child(3) { height: 9px; }
+    .signal-bars i:nth-child(4) { height: 12px; }
+    .battery { width: 20px; height: 10px; padding: 1px; border: 1.5px solid currentColor; border-radius: 2px; }
+    .battery::before { content: ""; display: block; width: 80%; height: 100%; background: currentColor; }
+
+    .brand-bar {
+      min-width: 0;
+      min-height: 64px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 12px;
+      padding: 8px 18px 10px;
+      background: rgba(244, 248, 255, .84);
+    }
+    .brand-lockup { display: flex; align-items: center; gap: 9px; margin-right: auto; color: var(--brand-ink); }
+    .brand-lockup strong { font-size: calc(18px * var(--type-scale)); letter-spacing: -.04em; }
+    .brand-symbol { width: 30px; height: 34px; flex: 0 0 auto; overflow: visible; }
+    .brand-symbol path { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+    .brand-symbol circle { fill: var(--brand-locator-bright); stroke: var(--brand-ink); stroke-width: 1.4; }
+    .library-chip {
+      min-height: 30px;
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: var(--radius-control);
+      background: var(--library);
+      color: var(--on-strong);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 820;
+    }
+    .progress-count {
+      color: var(--text);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 760;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .progress-count b { color: var(--brand-locator); font-size: 1.25em; }
+
+    .app-content {
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+      padding: 0 16px 18px;
+    }
+    .screen { display: none; min-width: 0; }
+    .app-shell[data-screen="learning"] .screen-learning,
+    .app-shell[data-screen="result"] .screen-result,
+    .app-shell[data-screen="space"] .screen-space,
+    .app-shell[data-screen="audio"] .screen-audio,
+    .app-shell[data-screen="stats"] .screen-stats,
+    .app-shell[data-screen="profile"] .screen-profile,
+    .app-shell[data-screen="auth"] .screen-auth,
+    .app-shell[data-screen="lock"] .screen-lock,
+    .app-shell[data-screen="elimination"] .screen-elimination,
+    .app-shell[data-screen="swipe"] .screen-swipe { display: block; }
+    .app-shell[data-screen="auth"] { grid-template-rows: auto minmax(0, 1fr); }
+    .app-shell[data-screen="auth"] .brand-bar,
+    .app-shell[data-screen="auth"] .app-nav { display: none; }
+    .app-shell[data-screen="stats"] .progress-count,
+    .app-shell[data-screen="profile"] .progress-count { display: none; }
+
+    .location-strip {
+      min-width: 0;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 13px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-control);
+      background: rgba(255, 255, 255, .82);
+      color: var(--text);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 730;
+    }
+    .location-strip__path { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+    .location-strip__path i { color: var(--border-strong); font-style: normal; }
+    .location-strip button {
+      min-width: 44px;
+      min-height: 44px;
+      margin: -8px -12px -8px 0;
+      padding: 7px 10px;
+      border: 0;
+      background: transparent;
+      color: var(--library);
+      font-size: inherit;
+      font-weight: 820;
+      cursor: pointer;
+    }
+
+    .soft-spine-wrap { position: relative; min-width: 0; padding-right: 14px; }
+    .soft-spine-wrap::before,
+    .soft-spine-wrap::after {
+      content: "";
+      position: absolute;
+      inset: 8px 4px 8px 18px;
+      z-index: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-spine);
+      background: var(--surface);
+      transform: translateX(4px);
+    }
+    .soft-spine-wrap::after { transform: translateX(9px); opacity: .72; }
+    .knowledge-pin {
+      position: absolute;
+      right: 0;
+      top: 46%;
+      z-index: 4;
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 3px solid var(--brand-ink);
+      border-radius: 50%;
+      background: var(--surface);
+      box-shadow: 0 0 0 2px var(--surface);
+    }
+    .knowledge-pin::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: var(--brand-locator-bright); }
+
+    .learning-card,
+    .sound-card {
+      position: relative;
+      z-index: 2;
+      min-width: 0;
+      padding: 23px 18px 20px;
+      border-radius: var(--radius-spine);
+      background: linear-gradient(145deg, var(--library) 0%, var(--library-deep) 100%);
+      color: var(--on-strong);
+      box-shadow: 0 14px 34px color-mix(in srgb, var(--library) 24%, transparent);
+      clip-path: polygon(0 0, 92% 0, 100% 8%, 100% 92%, 92% 100%, 0 100%);
+    }
+    .learning-card { min-height: 430px; }
+    .card-kicker {
+      margin: 0 0 12px;
+      color: #e4ecff;
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 740;
+      letter-spacing: .02em;
+    }
+    .app-shell[data-tone="tone-b"] .card-kicker { color: #ffe2ee; }
+    .support-context {
+      margin: 14px 0 0;
+      padding: 10px 12px;
+      border-left: 3px solid rgba(255, 255, 255, .82);
+      background: rgba(255, 255, 255, .08);
+      color: var(--on-strong);
+      font-size: calc(13px * var(--type-scale));
+      line-height: 1.55;
+    }
+    .learning-card h2,
+    .sound-card h2 {
+      margin: 0 0 16px;
+      font-size: calc(24px * var(--type-scale));
+      line-height: 1.25;
+      letter-spacing: -.035em;
+      overflow-wrap: anywhere;
+    }
+
+    .audio-control {
+      min-width: 0;
+      min-height: 68px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, .72);
+      border-radius: var(--radius-surface);
+      background: rgba(0, 18, 76, .16);
+      color: var(--on-strong);
+      text-align: left;
+      cursor: pointer;
+    }
+    .audio-control__button {
+      width: 46px;
+      min-width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--surface);
+      color: var(--library);
+      font-size: calc(18px * var(--type-scale));
+      font-weight: 900;
+    }
+    .audio-control__body { min-width: 0; }
+    .waveform { height: 20px; display: flex; align-items: center; gap: 2px; overflow: hidden; }
+    .waveform i { width: 3px; min-width: 2px; border-radius: 2px; background: currentColor; }
+    .waveform i:nth-child(4n+1) { height: 7px; }
+    .waveform i:nth-child(4n+2) { height: 15px; }
+    .waveform i:nth-child(4n+3) { height: 20px; }
+    .waveform i:nth-child(4n) { height: 11px; }
+    .audio-control__meta {
+      margin-top: 3px;
+      font-size: calc(13px * var(--type-scale));
+      font-variant-numeric: tabular-nums;
+      white-space: normal;
+    }
+    .audio-state {
+      max-width: 72px;
+      color: var(--on-strong);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 780;
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+    .app-shell[data-audio="loading"] .waveform { opacity: .45; animation: pulse 1s ease-in-out infinite alternate; }
+    .app-shell[data-audio="playing"] .waveform i { animation: wave .85s ease-in-out infinite alternate; }
+    .app-shell[data-audio="error"] .audio-control { border-color: var(--on-strong); background: #7b1515; }
+    .audio-control:disabled { cursor: wait; opacity: .82; }
+    .flip-back-state { display: none; }
+    .app-shell[data-flip="back"] .flip-front-state { display: none; }
+    .app-shell[data-flip="back"] .flip-back-state { display: block; }
+    .flip-answer {
+      margin: 0 0 14px;
+      padding: 13px;
+      border-left: 4px solid rgba(255, 255, 255, .9);
+      background: rgba(255, 255, 255, .10);
+      color: var(--on-strong);
+      font-size: calc(14px * var(--type-scale));
+      font-weight: 780;
+      line-height: 1.55;
+    }
+    .flip-analysis h2 { margin-bottom: 10px; font-size: calc(21px * var(--type-scale)); }
+    .flip-analysis p { margin: 0 0 10px; color: var(--on-strong); font-size: calc(13px * var(--type-scale)); line-height: 1.55; }
+    @keyframes pulse { to { opacity: 1; } }
+    @keyframes wave { to { transform: scaleY(.45); } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+    .option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+    .option {
+      min-width: 0;
+      min-height: 74px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-content: start;
+      gap: 9px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, .72);
+      border-radius: var(--radius-control);
+      background: rgba(255, 255, 255, .055);
+      color: var(--on-strong);
+      text-align: left;
+      cursor: pointer;
+    }
+    .option:hover, .option[aria-pressed="true"] { background: rgba(255, 255, 255, .18); border-width: 2px; padding: 11px; }
+    .option__key {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 850;
+    }
+    .option__text { min-width: 0; padding-top: 3px; font-size: calc(13px * var(--type-scale)); line-height: 1.4; overflow-wrap: anywhere; }
+
+    .learning-grid { min-width: 0; }
+    .session-context {
+      margin-top: 12px;
+      padding: 13px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-surface);
+      background: var(--surface);
+    }
+    .session-context h3 { margin: 0 0 6px; font-size: calc(13px * var(--type-scale)); }
+    .session-context p { margin: 0; color: var(--text-muted); font-size: calc(13px * var(--type-scale)); line-height: 1.55; }
+    .context-meter { height: 7px; margin: 11px 0 7px; border-radius: var(--radius-pill); background: #dce5f6; overflow: hidden; }
+    .context-meter i { display: block; width: 40%; height: 100%; background: var(--library); }
+    .screen-learning .session-context {
+      margin-top: 10px;
+      padding: 0 2px;
+      border: 0;
+      background: transparent;
+    }
+    .screen-learning .session-context h3 { margin: 0; color: var(--text-muted); font-size: calc(13px * var(--type-scale)); font-weight: 720; }
+    .screen-learning .session-context p,
+    .screen-learning .session-context .context-meter { display: none; }
+    .screen-result .session-context { display: none; }
+    .primary-action,
+    .secondary-action {
+      width: 100%;
+      min-height: 48px;
+      margin-top: 12px;
+      padding: calc(10px * var(--type-scale)) 16px;
+      border: 2px solid var(--library);
+      border-radius: var(--radius-control);
+      background: var(--library);
+      color: var(--on-strong);
+      font-size: calc(15px * var(--type-scale));
+      font-weight: 820;
+      cursor: pointer;
+    }
+    .secondary-action { background: var(--surface); color: var(--library); }
+    .primary-action:disabled,
+    .secondary-action:disabled {
+      border-color: var(--border);
+      background: var(--surface-soft);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      opacity: 1;
+    }
+    .evaluation-error {
+      display: none;
+      margin: 10px 0 0;
+      padding: 10px 11px;
+      border-left: 4px solid var(--error);
+      background: var(--error-bg);
+      color: var(--error);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 760;
+      line-height: 1.5;
+    }
+    .app-shell[data-submit-state="error"] .screen-learning .evaluation-error { display: block; }
+
+    .result-grid { min-width: 0; }
+    .result-card {
+      position: relative;
+      min-width: 0;
+      padding: 20px 19px;
+      border: 1px solid var(--border);
+      border-left: 7px solid var(--library);
+      border-radius: var(--radius-surface);
+      background: var(--surface);
+      box-shadow: 8px 8px 0 var(--library-soft), 9px 9px 0 var(--border);
+    }
+    .result-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 14px;
+      border-bottom: 1px dashed var(--border-strong);
+      color: var(--success);
+      font-size: calc(20px * var(--type-scale));
+      font-weight: 860;
+    }
+    .result-status i {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--success);
+      color: var(--on-strong);
+      font-style: normal;
+    }
+    .app-shell[data-result="wrong"] .result-status { color: var(--error); }
+    .app-shell[data-result="wrong"] .result-status i { background: var(--error); }
+    .picked-answer-section { display: none; }
+    .app-shell[data-result="wrong"] .picked-answer-section { display: block; }
+    .analysis-section { padding: 16px 0; border-bottom: 1px dashed var(--border-strong); }
+    .analysis-section:last-child { border-bottom: 0; padding-bottom: 0; }
+    .analysis-section h3 { margin: 0 0 8px; font-size: calc(13px * var(--type-scale)); }
+    .analysis-section p { margin: 0; color: var(--text); font-size: calc(13px * var(--type-scale)); line-height: 1.65; overflow-wrap: anywhere; }
+    .correct-answer {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      align-items: start;
+      gap: 10px;
+      color: var(--text);
+    }
+    .correct-answer b {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--library);
+      color: var(--on-strong);
+    }
+    .evidence-quote { padding-left: 15px; border-left: 4px solid var(--border-strong); }
+    .result-context { margin-top: 14px; }
+    .feedback-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .feedback-row button {
+      min-height: 48px;
+      padding: calc(8px * var(--type-scale)) 8px;
+      border: 2px solid var(--confident-ink);
+      border-radius: var(--radius-control);
+      background: var(--confident);
+      color: var(--confident-ink);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 830;
+      cursor: pointer;
+    }
+    .feedback-row button:last-child { border-color: var(--review-ink); background: var(--review); color: var(--review-ink); }
+    .feedback-row button:disabled { cursor: not-allowed; opacity: .76; }
+    .assess-status {
+      display: none;
+      margin: 10px 0 0;
+      padding: 9px 10px;
+      border-left: 4px solid var(--border-strong);
+      background: var(--surface-soft);
+      color: var(--text);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 760;
+      line-height: 1.5;
+    }
+    .app-shell[data-assess="pending"] .screen-audio .assess-status,
+    .app-shell[data-assess="error"] .screen-audio .assess-status,
+    .app-shell[data-assess="recorded"] .screen-audio .assess-status { display: block; }
+    .app-shell[data-assess="error"] .screen-audio .assess-status { border-color: var(--error); background: var(--error-bg); color: var(--error); }
+    .app-shell[data-assess="recorded"] .screen-audio .assess-status { border-color: var(--success); background: var(--success-bg); color: var(--success); }
+    .assess-retry { display: none; }
+    .app-shell[data-assess="error"] .screen-audio .assess-retry { display: block; }
+    .flip-next { display: none; }
+    .app-shell[data-assess="recorded"] .screen-audio .flip-next { display: block; }
+
+    .space-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 2px 0 13px;
+      font-size: calc(23px * var(--type-scale));
+      letter-spacing: -.035em;
+    }
+    .space-title svg { width: 28px; height: 28px; color: var(--brand-ink); }
+    .space-title svg,
+    .hierarchy-label svg,
+    .sleep-zone__head svg {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .space-canvas {
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+    }
+    .hierarchy-label {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 10px;
+      color: var(--text);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 800;
+    }
+    .hierarchy-label svg { width: 20px; height: 20px; color: var(--library); }
+    .space-group {
+      min-width: 0;
+      margin-top: 0;
+      padding: 0 0 0 10px;
+      border: 0;
+      border-left: 3px solid var(--library);
+      border-radius: 0;
+      background: transparent;
+    }
+    .box-area {
+      min-width: 0;
+      margin-top: 8px;
+      padding: 10px;
+      border: 2px solid var(--library);
+      border-radius: var(--radius-surface);
+      background: var(--surface);
+    }
+    .box-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .box-header .hierarchy-label { padding-inline: 0; }
+    .box-count { color: var(--text-muted); font-size: calc(13px * var(--type-scale)); font-weight: 760; }
+    .owned-card {
+      min-width: 0;
+      margin-top: 8px;
+      padding: 15px;
+      border-radius: var(--radius-surface);
+      background: linear-gradient(145deg, var(--library), var(--library-deep));
+      color: var(--on-strong);
+      box-shadow: 5px 5px 0 var(--library-soft), 6px 6px 0 var(--border);
+    }
+    .owned-card__kicker { color: #e3ecff; font-size: calc(13px * var(--type-scale)); font-weight: 750; }
+    .owned-card h3 { margin: 8px 0; font-size: calc(17px * var(--type-scale)); line-height: 1.35; }
+    .owned-card p { margin: 0; font-size: calc(13px * var(--type-scale)); line-height: 1.5; }
+    .owned-card__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+    .owned-card__actions button {
+      min-width: 44px;
+      min-height: 44px;
+      padding: 8px 11px;
+      border: 1px solid rgba(255, 255, 255, .78);
+      border-radius: var(--radius-control);
+      background: rgba(255, 255, 255, .08);
+      color: var(--on-strong);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .owned-card__actions button[aria-pressed="true"] { background: var(--surface); color: var(--library); }
+    .owned-card__actions button:disabled { cursor: wait; opacity: .74; }
+    .owned-card .favorite-state {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-left: 4px solid rgba(255, 255, 255, .78);
+      background: rgba(0, 0, 0, .14);
+      color: var(--on-strong);
+      font-weight: 760;
+    }
+    .app-shell[data-favorite-op="error"] .favorite-state { border-color: #ffd1cf; background: #7b1515; }
+    .sleep-zone {
+      min-width: 0;
+      margin-top: 13px;
+      padding: 13px 0 0;
+      border: 0;
+      border-top: 1px solid var(--border-strong);
+      border-radius: 0;
+      background: transparent;
+    }
+    .sleep-zone__head { display: flex; align-items: center; gap: 9px; color: var(--text); font-weight: 830; }
+    .sleep-zone__head svg { width: 23px; height: 23px; color: var(--library); }
+    .sleep-zone p { margin: 5px 0 0 32px; color: var(--text-muted); font-size: calc(13px * var(--type-scale)); line-height: 1.5; }
+    .sleep-state { margin-top: 10px; padding: 9px 10px; border-left: 4px solid var(--border-strong); color: var(--text); font-size: calc(13px * var(--type-scale)); font-weight: 740; }
+    .app-shell[data-sleep="sleeping"] .sleep-state { border-color: var(--review-ink); background: var(--review-bg); color: var(--review-ink); }
+    .app-shell[data-sleep-op="sleep-error"] .sleep-state,
+    .app-shell[data-sleep-op="wake-error"] .sleep-state { border-color: var(--error); background: var(--error-bg); color: var(--error); }
+    .sleeping-card {
+      display: none;
+      min-width: 0;
+      margin-top: 12px;
+      padding: 12px;
+      border: 2px solid var(--library);
+      border-left-width: 7px;
+      border-radius: var(--radius-control);
+      background: var(--surface);
+      color: var(--text);
+    }
+    .sleeping-card span { color: var(--text-muted); font-size: calc(13px * var(--type-scale)); font-weight: 760; }
+    .sleeping-card strong { display: block; margin-top: 6px; font-size: calc(13px * var(--type-scale)); line-height: 1.45; overflow-wrap: anywhere; }
+    .sleeping-card p { margin: 5px 0 0; color: var(--text); }
+    .sleeping-card button {
+      width: 100%;
+      min-height: 44px;
+      margin-top: 10px;
+      padding: calc(8px * var(--type-scale)) 10px;
+      border: 2px solid var(--library);
+      border-radius: var(--radius-control);
+      background: var(--library);
+      color: var(--on-strong);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 820;
+      cursor: pointer;
+    }
+    .app-shell[data-sleep="sleeping"] .owned-card { display: none; }
+    .app-shell[data-sleep="sleeping"] .sleeping-card { display: block; }
+    .owned-card__actions [data-action="sleep"]:disabled,
+    .sleeping-card [data-action="wake"]:disabled { cursor: wait; opacity: .72; }
+    .space-actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
+    .space-actions button {
+      min-height: 48px;
+      padding: calc(8px * var(--type-scale)) 9px;
+      border: 2px solid var(--library);
+      border-radius: var(--radius-control);
+      background: var(--surface);
+      color: var(--library);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 830;
+      cursor: pointer;
+    }
+    .space-actions button:last-child { background: var(--library); color: var(--on-strong); }
+
+    .app-nav {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 2px;
+      margin: 0 12px max(10px, env(safe-area-inset-bottom));
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-surface);
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+      box-shadow: 0 8px 18px rgba(10, 30, 77, .12);
+    }
+    .app-nav button {
+      position: relative;
+      min-width: 44px;
+      min-height: 48px;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 2px;
+      padding: 5px 2px;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 760;
+      cursor: pointer;
+    }
+    .app-nav button[aria-current="page"] { color: var(--brand-ink); }
+    .app-nav button[aria-current="page"]::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 1px;
+      width: 24px;
+      height: 3px;
+      transform: translateX(-50%);
+      border-radius: 2px;
+      background: var(--brand-locator);
+    }
+    .app-nav svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .platform-inset,
+    .ime-panel { pointer-events: none; }
+    .platform-inset { position: absolute; z-index: 20; left: 50%; bottom: 2px; transform: translateX(-50%); }
+    .device[data-platform="ios"] .platform-inset span { display: block; width: 108px; height: 4px; border-radius: 3px; background: var(--brand-ink); opacity: .86; }
+    .device[data-platform="android"] .platform-inset { left: 16px; bottom: 8px; transform: none; color: var(--brand-ink); font-size: 22px; font-weight: 900; }
+    .device[data-platform="android"] .platform-inset span::before { content: "‹"; }
+    .device[data-platform="android"] .app-nav { border-radius: var(--radius-surface); margin-bottom: 8px; }
+    .device[data-platform="ios"] .app-nav { border-radius: var(--radius-surface); margin-bottom: 12px; padding-bottom: 8px; }
+    .ime-panel {
+      display: none;
+      position: absolute;
+      z-index: 18;
+      inset-inline: 0;
+      bottom: 0;
+      height: 166px;
+      padding: 14px 16px 22px;
+      border-top: 1px solid var(--border);
+      background: var(--surface-soft);
+      color: var(--text-muted);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 760;
+    }
+    .device[data-keyboard="visible"] .ime-panel { display: block; }
+    .device[data-keyboard="visible"] .app-content { padding-bottom: 184px; }
+    .device[data-platform="ios"] .ime-panel { border-radius: 18px 18px 0 0; box-shadow: 0 -10px 24px rgba(10, 30, 77, .10); }
+    .device[data-platform="android"] .ime-panel { height: 148px; border-radius: 0; background: #e8edf7; }
+    .ime-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 10px; }
+    .ime-keys i { height: 31px; border-radius: 6px; background: var(--surface); border: 1px solid var(--border); }
+    .ime-caption { display: none; }
+
+    .brand-surface-header {
+      margin: 2px 0 16px;
+      padding-left: 14px;
+      border-left: 6px solid var(--brand-locator-bright);
+    }
+    .brand-surface-header p {
+      margin: 0 0 4px;
+      color: var(--text-muted);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 780;
+    }
+    .brand-surface-header h2 {
+      margin: 0;
+      color: var(--brand-ink);
+      font-size: calc(26px * var(--type-scale));
+      line-height: 1.2;
+      letter-spacing: -.04em;
+    }
+    .screen-stats { min-height: calc(100cqh - 180px); }
+    .stats-layout,
+    .profile-layout,
+    .auth-layout,
+    .atlas-layout { min-width: 0; }
+    .stats-layout { min-height: calc(100cqh - 180px); display: grid; grid-template-rows: auto minmax(470px, 1fr); gap: 14px; }
+    .today-spine,
+    .account-object,
+    .membership-fold,
+    .auth-gate,
+    .atlas-workspace,
+    .atlas-brief {
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-surface);
+      background: var(--surface);
+    }
+    .today-spine {
+      position: relative;
+      overflow: hidden;
+      min-height: 470px;
+      display: flex;
+      flex-direction: column;
+      padding: 18px;
+      border-left: 7px solid var(--brand-ink);
+      box-shadow: 7px 7px 0 var(--surface-soft), 8px 8px 0 var(--border);
+    }
+    .today-spine::after {
+      content: "";
+      position: absolute;
+      right: 14px;
+      top: 14px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--brand-locator-bright);
+      box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--brand-ink);
+    }
+    .today-spine h3 { margin: 0; font-size: calc(20px * var(--type-scale)); }
+    .stats-summary { margin: 6px 26px 16px 0; color: var(--text-muted); font-size: calc(13px * var(--type-scale)); line-height: 1.55; }
+    .stats-ledger { margin: 0; border-block: 1px solid var(--border); }
+    .stats-ledger > div {
+      min-height: 48px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 14px;
+      padding: 8px 2px;
+      border-bottom: 1px solid color-mix(in srgb, var(--border) 48%, transparent);
+    }
+    .stats-ledger > div:last-child { border-bottom: 0; }
+    .stats-ledger dt { color: var(--text-muted); font-size: calc(13px * var(--type-scale)); font-weight: 730; }
+    .stats-ledger dd { margin: 0; color: var(--brand-ink); font-size: calc(22px * var(--type-scale)); font-weight: 860; font-variant-numeric: tabular-nums; }
+    .app-shell[data-stats="review"] .stats-ledger [data-stat="pending"] dd { color: var(--review-ink); }
+    .stats-next { margin-top: auto; }
+    .checkin-slot {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+      padding: 2px;
+      color: var(--text-muted);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 730;
+    }
+    .checkin-slot button {
+      min-width: 44px;
+      min-height: 44px;
+      margin-left: auto;
+      padding: 8px 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-control);
+      background: var(--surface);
+      color: var(--brand-ink);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .checkin-slot button:disabled { background: var(--surface-soft); color: var(--text-muted); cursor: wait; }
+    .stats-error { display: none; color: var(--error); }
+    .app-shell[data-stats="failure"] .stats-error { display: inline; }
+
+    .profile-layout { display: grid; gap: 14px; }
+    .account-object { padding: 18px; border-top: 6px solid var(--brand-ink); }
+    .account-id { display: flex; align-items: center; gap: 12px; }
+    .account-avatar {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--brand-ink);
+      color: var(--on-strong);
+      font-size: calc(19px * var(--type-scale));
+      font-weight: 850;
+    }
+    .account-id h3 { margin: 0; font-size: calc(19px * var(--type-scale)); }
+    .account-id p { margin: 4px 0 0; color: var(--success); font-size: calc(13px * var(--type-scale)); font-weight: 760; }
+    .continuity-copy { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: calc(13px * var(--type-scale)); line-height: 1.55; }
+    .membership-fold { overflow: hidden; }
+    .membership-fold summary {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 15px;
+      color: var(--brand-ink);
+      font-size: calc(15px * var(--type-scale));
+      font-weight: 830;
+      cursor: pointer;
+      list-style: none;
+    }
+    .membership-fold summary::-webkit-details-marker { display: none; }
+    .membership-fold summary::after { content: "+"; margin-left: auto; font-size: 22px; }
+    .membership-fold[open] summary::after { content: "−"; }
+    .membership-body { padding: 0 15px 15px; border-top: 1px solid var(--border); }
+    .membership-stage { margin: 14px 0 4px; color: var(--brand-ink); font-size: calc(18px * var(--type-scale)); font-weight: 850; }
+    .membership-copy { margin: 0; color: var(--text-muted); font-size: calc(13px * var(--type-scale)); line-height: 1.55; }
+    .membership-error { display: none; margin: 10px 0 0; color: var(--error); font-size: calc(13px * var(--type-scale)); font-weight: 740; }
+    .app-shell[data-membership="error"] .membership-error { display: block; }
+    .membership-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .membership-actions button,
+    .logout-action {
+      min-width: 44px;
+      min-height: 44px;
+      padding: 8px 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-control);
+      background: var(--surface);
+      color: var(--brand-ink);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .membership-actions button:disabled { background: var(--surface-soft); color: var(--text-muted); cursor: wait; }
+    .app-shell[data-membership="trial-ready"] .membership-actions,
+    .app-shell[data-membership="premium"] .membership-actions { display: none; }
+    .logout-action { width: 100%; margin-top: 2px; color: var(--error); border-color: color-mix(in srgb, var(--error) 55%, var(--surface)); }
+
+    .screen-auth { min-height: 100%; }
+    .auth-layout { min-height: 100%; display: grid; align-content: center; gap: 16px; padding-block: 12px; }
+    .auth-intro { padding: 4px 4px 0; }
+    .auth-lockup { display: flex; align-items: center; gap: 12px; color: var(--brand-ink); }
+    .auth-lockup .brand-symbol { width: 42px; height: 48px; }
+    .auth-lockup strong { font-size: calc(26px * var(--type-scale)); letter-spacing: -.045em; }
+    .auth-intro h2 { margin: 18px 0 8px; font-size: calc(25px * var(--type-scale)); line-height: 1.25; }
+    .auth-intro p { margin: 0; color: var(--text-muted); font-size: calc(13px * var(--type-scale)); line-height: 1.6; }
+    .auth-gate { padding: 18px; border-top: 6px solid var(--brand-ink); }
+    .auth-step { margin: 0 0 14px; color: var(--text-muted); font-size: calc(13px * var(--type-scale)); font-weight: 780; }
+    .auth-field { display: grid; gap: 6px; margin-top: 12px; color: var(--brand-ink); font-size: calc(13px * var(--type-scale)); font-weight: 780; }
+    .auth-field input {
+      width: 100%;
+      min-height: 48px;
+      padding: 10px 12px;
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-control);
+      background: var(--surface);
+      color: var(--text);
+      font-size: calc(16px * var(--type-scale));
+    }
+    .auth-field input:disabled { background: var(--surface-soft); color: var(--text-muted); }
+    .auth-code-field { display: none; }
+    .app-shell[data-auth="code-requested"] .auth-code-field,
+    .app-shell[data-auth="code-expired"] .auth-code-field,
+    .app-shell[data-auth="resending"] .auth-code-field,
+    .app-shell[data-auth="resend-cooldown"] .auth-code-field,
+    .app-shell[data-auth="verifying"] .auth-code-field,
+    .app-shell[data-auth="verify-error"] .auth-code-field,
+    .app-shell[data-auth="verify-network-error"] .auth-code-field { display: grid; }
+    .app-shell[data-auth="phone-invalid"] .auth-phone { border-color: var(--error); background: var(--error-bg); }
+    .auth-live { min-height: 40px; margin: 12px 0 0; color: var(--text-muted); font-size: calc(13px * var(--type-scale)); line-height: 1.5; }
+    .app-shell[data-auth="phone-invalid"] .auth-live,
+    .app-shell[data-auth="request-error"] .auth-live,
+    .app-shell[data-auth="request-network-error"] .auth-live,
+    .app-shell[data-auth="verify-error"] .auth-live,
+    .app-shell[data-auth="verify-network-error"] .auth-live,
+    .app-shell[data-auth="code-expired"] .auth-live,
+    .app-shell[data-auth="hydration-error"] .auth-live { color: var(--error); font-weight: 740; }
+    .auth-secondary {
+      width: 100%;
+      min-height: 44px;
+      margin-top: 8px;
+      border: 0;
+      background: transparent;
+      color: var(--brand-ink);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .app-shell[data-auth="phone-empty"] .auth-secondary,
+    .app-shell[data-auth="phone-invalid"] .auth-secondary,
+    .app-shell[data-auth="phone-valid"] .auth-secondary,
+    .app-shell[data-auth="requesting"] .auth-secondary,
+    .app-shell[data-auth="hydrating"] .auth-secondary { display: none; }
+    .app-shell[data-auth="hydrating"] .auth-field,
+    .app-shell[data-auth="hydration-error"] .auth-field { display: none; }
+
+    .atlas-layout { display: grid; gap: 14px; }
+    .atlas-brief { padding: 16px; border-left: 6px solid var(--library); }
+    .atlas-kicker { margin: 0 0 8px; color: var(--library); font-size: calc(13px * var(--type-scale)); font-weight: 820; }
+    .atlas-brief h2 { margin: 0; font-size: calc(22px * var(--type-scale)); line-height: 1.3; letter-spacing: -.03em; }
+    .atlas-support { margin: 10px 0 0; color: var(--text-muted); font-size: calc(13px * var(--type-scale)); line-height: 1.55; }
+    .atlas-support b { color: var(--text); }
+    .atlas-workspace { padding: 15px; }
+    .atlas-status { display: none; margin: 0 0 12px; padding: 10px 12px; border-left: 4px solid var(--success); background: var(--success-bg); color: var(--success); font-size: calc(13px * var(--type-scale)); font-weight: 820; }
+    .app-shell[data-lock-result="correct"] .screen-lock .atlas-status,
+    .app-shell[data-lock-result="editing"] .screen-lock .atlas-status,
+    .app-shell[data-elimination-result="correct"] .screen-elimination .atlas-status,
+    .app-shell[data-swipe-result="correct"] .screen-swipe .atlas-status,
+    .app-shell[data-lock-result="wrong"] .screen-lock .atlas-status,
+    .app-shell[data-elimination-result="wrong"] .screen-elimination .atlas-status,
+    .app-shell[data-swipe-result="wrong"] .screen-swipe .atlas-status { display: block; }
+    .app-shell[data-lock-result="wrong"] .screen-lock .atlas-status,
+    .app-shell[data-elimination-result="wrong"] .screen-elimination .atlas-status,
+    .app-shell[data-swipe-result="wrong"] .screen-swipe .atlas-status { border-color: var(--error); background: var(--error-bg); color: var(--error); }
+    .app-shell[data-lock-result="editing"] .screen-lock .atlas-status { border-color: var(--review-ink); background: var(--review-bg); color: var(--review-ink); }
+    .atlas-analysis { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .app-shell[data-lock-result="correct"] .screen-lock .atlas-analysis,
+    .app-shell[data-elimination-result="correct"] .screen-elimination .atlas-analysis,
+    .app-shell[data-elimination-result="wrong"] .screen-elimination .atlas-analysis,
+    .app-shell[data-swipe-result="correct"] .screen-swipe .atlas-analysis,
+    .app-shell[data-swipe-result="wrong"] .screen-swipe .atlas-analysis { display: block; }
+    .atlas-analysis h3 { margin: 0 0 7px; font-size: calc(17px * var(--type-scale)); }
+    .atlas-analysis p { margin: 0 0 8px; color: var(--text-muted); font-size: calc(13px * var(--type-scale)); line-height: 1.6; }
+    .lock-rail { position: relative; display: grid; gap: 8px; padding-left: 12px; }
+    .lock-rail::before { content: ""; position: absolute; left: 2px; inset-block: 18px; width: 3px; background: var(--border); }
+    .lock-row {
+      position: relative;
+      min-height: 64px;
+      display: grid;
+      grid-template-columns: minmax(72px, .4fr) minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0 8px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      font-size: calc(13px * var(--type-scale));
+      font-weight: 800;
+    }
+    .lock-row::before { content: ""; position: absolute; left: -15px; width: 11px; height: 11px; border: 2px solid var(--library); border-radius: 50%; background: var(--surface); }
+    .lock-row select {
+      min-width: 0;
+      width: 100%;
+      min-height: 48px;
+      padding: 8px 34px 8px 10px;
+      border: 2px solid var(--border-strong);
+      border-radius: var(--radius-control);
+      background: var(--surface);
+      color: var(--text);
+      font-size: calc(13px * var(--type-scale));
+    }
+    .app-shell[data-lock-result="wrong"] .lock-row[data-row-state="wrong"] select { border-color: var(--error); background: var(--error-bg); }
+    .app-shell[data-lock-result="editing"] .lock-row[data-row-state="wrong"] select { border-color: var(--error); background: var(--error-bg); }
+    .app-shell[data-lock-result="wrong"] .lock-row[data-row-state="correct"] select,
+    .app-shell[data-lock-result="editing"] .lock-row[data-row-state="correct"] select,
+    .app-shell[data-lock-result="correct"] .lock-row select { border-color: var(--success); background: var(--success-bg); }
+    .lock-row-note { display: none; grid-column: 2; color: var(--error); font-size: calc(13px * var(--type-scale)); font-weight: 730; }
+    .app-shell[data-lock-result="wrong"] .lock-row[data-row-state="wrong"] .lock-row-note { display: block; }
+    .app-shell[data-lock-result="editing"] .lock-row[data-row-state="wrong"] .lock-row-note { display: block; }
+    .elimination-source { margin: 0 0 14px; padding: 12px; border-left: 4px solid var(--library); background: var(--surface-soft); color: var(--text); font-size: calc(14px * var(--type-scale)); line-height: 1.6; }
+    .elimination-list { display: grid; gap: 8px; }
+    .elimination-fragment {
+      min-height: 52px;
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 11px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-control);
+      background: var(--surface);
+      color: var(--text);
+      text-align: left;
+      font-size: calc(13px * var(--type-scale));
+      cursor: pointer;
+    }
+    .elimination-fragment i { width: 24px; height: 2px; background: var(--border-strong); }
+    .elimination-fragment[aria-pressed="true"] span { text-decoration: line-through 3px var(--library); text-decoration-skip-ink: none; color: var(--text-muted); }
+    .elimination-fragment[aria-pressed="true"] i { background: var(--library); }
+    .elimination-fragment::after { color: var(--text-muted); font-size: calc(13px * var(--type-scale)); font-weight: 800; }
+    .elimination-fragment[data-mark="your"]::after { content: "你剥离的"; color: var(--error); }
+    .elimination-fragment[data-mark="missed"]::after { content: "应剥离"; color: var(--error); }
+    .elimination-fragment[data-mark="right"]::after { content: "应剥离"; color: var(--success); }
+    .app-shell[data-elimination-result="wrong"] .elimination-fragment[data-mark="missed"] { border-color: var(--error); background: var(--error-bg); }
+    .swipe-stack { position: relative; min-height: 264px; overflow: hidden; padding: 0 12px 18px; }
+    .swipe-stack::before,
+    .swipe-stack::after { content: ""; position: absolute; inset: 18px 25px 0; border: 1px solid var(--border); border-radius: var(--radius-surface); background: var(--surface-soft); }
+    .swipe-stack::before { transform: translateY(10px) scale(.96); }
+    .swipe-stack::after { transform: translateY(20px) scale(.91); opacity: .7; }
+    .swipe-trails { position: absolute; inset: 0 8px 20px; z-index: 1; display: flex; align-items: center; justify-content: space-between; color: var(--library); font-size: calc(13px * var(--type-scale)); font-weight: 850; }
+    .swipe-trails span:last-child { color: var(--error); }
+    .swipe-card { position: relative; z-index: 2; min-height: 238px; display: grid; align-content: center; padding: 22px 18px; border-radius: var(--radius-spine); background: linear-gradient(145deg, var(--library), var(--library-deep)); color: var(--on-strong); box-shadow: 0 12px 28px color-mix(in srgb, var(--library) 24%, transparent); cursor: grab; touch-action: pan-y; user-select: none; transition: transform .22s ease; }
+    .swipe-card:active { cursor: grabbing; }
+    .app-shell[data-swipe-phase="preview-left"] .swipe-card { transform: translateX(-46px) rotate(-2deg); }
+    .app-shell[data-swipe-phase="preview-right"] .swipe-card { transform: translateX(46px) rotate(2deg); }
+    .app-shell[data-swipe-phase="cancelled"] .swipe-card { transform: translateX(0) rotate(0); }
+    .swipe-card p { margin: 0 0 8px; font-size: calc(13px * var(--type-scale)); font-weight: 760; }
+    .swipe-card h3 { margin: 0; font-size: calc(23px * var(--type-scale)); line-height: 1.3; }
+    .swipe-gesture-status { margin: 0 0 10px; color: var(--text-muted); font-size: calc(13px * var(--type-scale)); line-height: 1.55; }
+    .swipe-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 10px; }
+    .swipe-actions button { min-height: 52px; padding: 8px 10px; border: 2px solid var(--library); border-radius: var(--radius-control); background: var(--surface); color: var(--library); font-size: calc(13px * var(--type-scale)); font-weight: 830; cursor: pointer; }
+    .swipe-actions button:last-child { border-color: var(--error); color: var(--error); }
+    .app-shell[data-motion="full"] .swipe-actions { display: none; }
+    .app-shell[data-motion="reduced"] .swipe-trails { display: none; }
+    .app-shell[data-motion="reduced"] .swipe-card { pointer-events: none; transform: none !important; box-shadow: none; }
+    .app-shell[data-swipe-result="correct"] .swipe-actions,
+    .app-shell[data-swipe-result="wrong"] .swipe-actions { display: none; }
+    .atlas-next { display: none; }
+    .app-shell[data-lock-result="correct"] .screen-lock .atlas-next,
+    .app-shell[data-elimination-result="correct"] .screen-elimination .atlas-next,
+    .app-shell[data-elimination-result="wrong"] .screen-elimination .atlas-next,
+    .app-shell[data-swipe-result="correct"] .screen-swipe .atlas-next,
+    .app-shell[data-swipe-result="wrong"] .screen-swipe .atlas-next { display: block; }
+    .app-shell[data-lock-result="correct"] .screen-lock [data-action="lock-submit"],
+    .app-shell[data-elimination-result="correct"] .screen-elimination [data-action="elimination-submit"],
+    .app-shell[data-elimination-result="wrong"] .screen-elimination [data-action="elimination-submit"] { display: none; }
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+
+    /* 320 px becomes a true one-column task rather than squeezing answer text. */
+    @container (max-width: 350px) {
+      .brand-bar { padding-inline: 12px; }
+      .app-content { padding-inline: 11px; }
+      .option-grid { grid-template-columns: 1fr; }
+      .learning-card, .sound-card { padding-inline: 15px; }
+      .audio-control { grid-template-columns: auto minmax(0, 1fr); }
+      .audio-state { grid-column: 2; max-width: none; text-align: left; }
+      .feedback-row, .space-actions, .swipe-actions { grid-template-columns: 1fr; }
+      .lock-row { grid-template-columns: 1fr; }
+      .lock-row-note { grid-column: 1; }
+    }
+
+    /* Tablet: the card becomes a field inside a composed canvas; it is never a phone column beside a sidebar. */
+    @container (min-width: 700px) {
+      .system-bar { padding-inline: 26px; min-height: 40px; }
+      .brand-bar { min-height: 76px; padding: 10px 28px 14px; border-bottom: 1px solid var(--border); }
+      .brand-lockup strong { font-size: calc(22px * var(--type-scale)); }
+      .brand-symbol { width: 36px; height: 40px; }
+      .app-content { padding: 22px 28px 26px; }
+      .location-strip { margin-bottom: 20px; padding-inline: 16px; }
+
+      .learning-grid,
+      .sound-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(230px, .75fr);
+        gap: 22px;
+        align-items: start;
+      }
+      .learning-card, .sound-card { min-height: 570px; padding: 34px 30px 28px; }
+      .learning-card h2, .sound-card h2 { max-width: 760px; font-size: calc(30px * var(--type-scale)); }
+      .audio-control { max-width: 720px; }
+      .option-grid { margin-top: 22px; gap: 14px; }
+      .option { min-height: 98px; }
+      .session-context { margin-top: 0; padding: 20px; }
+      .screen-learning .session-context,
+      .screen-result .session-context {
+        display: block;
+        margin-top: 0;
+        padding: 20px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-surface);
+        background: var(--surface);
+      }
+      .screen-learning .session-context h3,
+      .screen-result .session-context h3 { margin: 0 0 6px; color: var(--text); font-size: calc(13px * var(--type-scale)); font-weight: 760; }
+      .screen-learning .session-context p,
+      .screen-learning .session-context .context-meter,
+      .screen-result .session-context p,
+      .screen-result .session-context .context-meter { display: block; }
+      .primary-action { margin-top: 18px; }
+
+      .result-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) minmax(230px, .65fr);
+        gap: 24px;
+        align-items: start;
+      }
+      .result-card { min-height: 570px; padding: 30px; }
+      .result-card__analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+      .result-card__analysis-grid .analysis-section:nth-child(2) { border-bottom: 0; }
+      .result-context { margin-top: 0; }
+
+      .space-canvas {
+        display: grid;
+        grid-template-columns: minmax(190px, .6fr) minmax(0, 1.4fr);
+        gap: 18px;
+        min-height: 570px;
+        padding: 0;
+      }
+      .space-library-column { padding: 6px 12px 6px 2px; border-right: 1px solid var(--border); }
+      .space-group { margin-top: 16px; padding: 0 0 0 14px; }
+      .box-area { margin-top: 0; padding: 18px; }
+      .box-owned-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(210px, .75fr); gap: 18px; align-items: stretch; }
+      .owned-card, .sleep-zone { margin-top: 0; }
+      .app-shell[data-sleep="sleeping"] .sleep-zone { grid-column: 1 / -1; }
+      .space-actions { grid-column: 1 / -1; }
+
+      .stats-layout,
+      .profile-layout,
+      .auth-layout,
+      .atlas-layout {
+        display: grid;
+        grid-template-columns: minmax(0, .82fr) minmax(300px, 1.18fr);
+        gap: 24px;
+        align-items: start;
+      }
+      .stats-layout { min-height: 570px; grid-template-rows: 1fr; }
+      .screen-stats { min-height: 570px; }
+      .stats-layout .brand-surface-header,
+      .profile-layout .brand-surface-header { margin-top: 20px; }
+      .today-spine { min-height: 470px; padding: 28px; }
+      .profile-layout { grid-template-columns: minmax(0, 1fr) minmax(300px, .86fr); }
+      .profile-layout .profile-primary { grid-column: 1; }
+      .membership-fold { grid-column: 2; grid-row: 1 / span 2; }
+      .profile-layout .logout-action { grid-column: 2; }
+      .auth-layout { min-height: 650px; align-items: center; padding-inline: 24px; }
+      .auth-intro { padding: 28px; }
+      .auth-gate { padding: 28px; }
+      .atlas-layout { grid-template-columns: minmax(260px, .72fr) minmax(0, 1.28fr); }
+      .atlas-brief, .atlas-workspace { min-height: 500px; padding: 26px; }
+      .atlas-brief { display: grid; align-content: center; }
+      .screen-elimination .atlas-workspace { display: grid; grid-template-columns: minmax(0, .8fr) minmax(300px, 1.2fr); gap: 20px; align-items: start; }
+      .screen-elimination .elimination-source { margin: 0; }
+      .screen-swipe .atlas-workspace { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(240px, .8fr); gap: 20px; align-items: start; }
+      .screen-swipe .swipe-result-column { min-height: 100%; display: flex; flex-direction: column; justify-content: center; }
+
+      .app-nav { width: min(560px, calc(100% - 48px)); justify-self: center; margin: 0 0 14px; padding-inline: 12px; }
+      .app-nav button { min-height: 62px; }
+      .app-nav svg { width: 27px; height: 27px; }
+    }
+
+    @container (min-width: 1000px) {
+      .app-content { padding-inline: 42px; }
+      .learning-grid, .sound-grid { grid-template-columns: minmax(0, 1.7fr) minmax(280px, .6fr); gap: 32px; }
+      .learning-card, .sound-card { min-height: 470px; display: grid; grid-template-columns: 1.02fr .98fr; grid-template-rows: auto auto 1fr; column-gap: 28px; }
+      .learning-card .card-kicker, .learning-card h2, .sound-card .card-kicker, .sound-card h2 { grid-column: 1; }
+      .learning-card .support-context { grid-column: 1; align-self: start; }
+      .learning-card .option-grid, .sound-card .audio-control { grid-column: 2; grid-row: 1 / 4; margin-top: 0; align-self: start; }
+      .result-card { min-height: 470px; }
+      .space-canvas { min-height: 470px; grid-template-columns: 250px minmax(0, 1fr); }
+      .box-owned-grid { grid-template-columns: minmax(0, 1.5fr) minmax(260px, .7fr); }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { min-width: 280px; min-height: 100%; margin: 0; }
+    body {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: #e9eef7;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    #product-stage {
+      width: 100%;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 0;
+    }
+    #product-stage > .device {
+      width: min(393px, 100vw, 46.127dvh) !important;
+      height: auto !important;
+      max-width: 100vw !important;
+      max-height: 100dvh !important;
+      aspect-ratio: 393 / 852;
+      margin: 0 !important;
+    }
+    @media (max-width: 393px) {
+      #product-stage > .device {
+        border-inline: 0 !important;
+        border-radius: 0 !important;
+      }
+    }
+
+  </style>
+</head>
+<body id="mvr-15" data-audience="learner">
+  <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M3.5 5.2c3.3-.8 5.9-.2 8.5 1.8v13c-2.6-2-5.2-2.6-8.5-1.8zM20.5 5.2c-3.3-.8-5.9-.2-8.5 1.8v13c2.6-2 5.2-2.6 8.5-1.8z"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5zM4.5 12l7.5 4 7.5-4M4.5 16l7.5 4 7.5-4"/></symbol>
+    <symbol id="i-stats" viewBox="0 0 24 24"><path d="M4 20V10h4v10M10 20V4h4v16M16 20v-7h4v7M2.5 20.5h19"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9ZM3.5 21c.7-4.3 3.5-6.5 8.5-6.5s7.8 2.2 8.5 6.5"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24"><path d="M3 21h18M5 19V9h14v10M3 9h18L12 3zM8 12v4M12 12v4M16 12v4"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4zM4 7v10l8 4 8-4V7M12 11v10"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 15.2A8.4 8.4 0 0 1 8.8 4a8.5 8.5 0 1 0 11.2 11.2Z"/></symbol>
+  </svg>
+  <main id="product-stage" aria-label="软书四六级学习体验">
+    <div class="device device--interactive" id="interactiveDevice" data-platform="ios" data-screen="learning" data-tone="tone-b" style="--device-width:393px;--device-height:852px"></div>
+  </main>
+
+  <template id="appTemplate" data-learner-surface>
+    <div class="app-shell" data-screen="learning" data-tone="tone-b" data-audio="idle" data-sleep="active" data-sleep-op="idle" data-favorite="on" data-favorite-op="idle" data-favorite-target="on" data-flip="front" data-assess="idle" data-assess-pick="" data-task-index="0" data-pick="" data-result="none" data-submit-state="idle" data-space-origin="learning" data-return-screen="learning" data-object-kind="choice" data-requested-route="" data-last-learning="learning" data-stats="progress" data-membership="trial-ready" data-membership-op="idle" data-auth="phone-empty" data-lock-result="idle" data-lock-subject="" data-lock-verb="" data-lock-object="" data-elimination-result="idle" data-elimination-picks="" data-swipe-result="idle" data-swipe-phase="idle" data-motion="full">
+      <div class="system-bar"><span class="system-time">9:41</span><span class="system-glyphs"><span class="signal-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span aria-hidden="true">⌁</span><span class="battery" aria-hidden="true"></span></span></div>
+      <header class="brand-bar">
+        <div class="brand-lockup">
+          <svg class="brand-symbol" width="30" height="34" viewBox="0 0 32 36" aria-hidden="true"><path d="M2 5 13 1v29L2 34ZM30 5 19 1v29l11 4ZM13 1l6 3v26l-6 0Z"/><circle cx="25.5" cy="29.5" r="5"/></svg>
+          <strong>软书</strong>
+        </div>
+        <span class="library-chip">词汇馆</span>
+        <span class="progress-count"><b>12</b> / 30</span>
+      </header>
+      <div class="app-content">
+        <section class="screen screen-learning" aria-label="选择答案">
+          <div class="location-strip"><span class="location-strip__path"><span class="location-library">词汇馆</span> <i>›</i> 当前分组 <i>›</i> 当前盒</span><button type="button" data-action="show-space">查看位置 ›</button></div>
+          <div class="learning-grid">
+            <div class="soft-spine-wrap">
+              <span class="knowledge-pin" aria-label="当前卡片位置"></span>
+              <article class="learning-card">
+                <p class="card-kicker">词义辨析</p>
+                <h2 class="choice-prompt">The committee postponed the vote because several details were still ____.</h2>
+                <p class="support-context"><b class="choice-support">选出最符合句意的词。</b><br><span class="choice-context">投票被推迟，说明关键信息还没有清楚。</span></p>
+                <div class="option-grid" role="group" aria-label="答案选项">
+                  <button class="option" type="button" data-choice="A" aria-pressed="false"><span class="option__key">A</span><span class="option__text">urgent</span></button>
+                  <button class="option" type="button" data-choice="B" aria-pressed="false"><span class="option__key">B</span><span class="option__text">unclear</span></button>
+                  <button class="option" type="button" data-choice="C" aria-pressed="false"><span class="option__key">C</span><span class="option__text">formal</span></button>
+                  <button class="option" type="button" data-choice="D" aria-pressed="false"><span class="option__key">D</span><span class="option__text">similar</span></button>
+                </div>
+              </article>
+            </div>
+            <aside>
+              <div class="session-context"><h3>完成本题</h3><p>确认答案后即可查看解析。</p><div class="context-meter" aria-label="今日进度 40%"><i></i></div><p>12 / 30 · 当前盒</p></div>
+              <p class="evaluation-error" role="alert">暂时无法提交，请重试。</p>
+              <button class="primary-action" type="button" data-action="submit" disabled aria-disabled="true" aria-busy="false">确认答案</button>
+            </aside>
+          </div>
+        </section>
+
+        <section class="screen screen-result" aria-label="答案解析">
+          <div class="location-strip"><span class="location-strip__path"><span class="location-library">词汇馆</span> <i>›</i> 当前分组 <i>›</i> 当前盒</span><button type="button" data-action="show-space">查看位置 ›</button></div>
+          <div class="result-grid">
+            <article class="result-card">
+              <div class="result-status" role="status" aria-live="polite"><i class="result-mark" aria-hidden="true">✓</i><span class="result-label">答对了</span></div>
+              <div class="result-card__analysis-grid">
+                <section class="analysis-section picked-answer-section"><h3>你的答案</h3><div class="correct-answer"><b class="picked-key">A</b><p class="picked-text">urgent</p></div></section>
+                <section class="analysis-section"><h3>正确答案</h3><div class="correct-answer"><b class="answer-key">B</b><p class="answer-text">unclear</p></div></section>
+                <section class="analysis-section"><h3 class="analysis-title">先顺着因果看语义</h3><p class="evidence-quote analysis-summary">因为“细节还不清楚”才会推迟投票。urgent 和 formal 都能修饰 details，但和 postpone the vote 的因果不成立。</p></section>
+                <section class="analysis-section"><h3>考试提示</h3><p class="analysis-tip">四选一别孤立看词，先把它塞回原句，看前后逻辑是不是闭合。</p></section>
+                <section class="analysis-section"><h3>本题小结</h3><p>先看句意因果，再检查词语搭配。</p></section>
+              </div>
+            </article>
+            <aside class="result-context">
+              <div class="session-context"><h3>进度已保存</h3><p><span class="location-library">词汇馆</span> · 当前分组 · 当前盒</p><div class="context-meter" aria-label="今日进度 43%"><i style="width:43%"></i></div><p>13 / 30</p></div>
+              <button class="primary-action" type="button" data-action="next">下一张</button>
+            </aside>
+          </div>
+        </section>
+
+        <section class="screen screen-space" aria-label="学习空间">
+          <h2 class="space-title"><svg width="28" height="28" aria-hidden="true"><use href="#i-building"/></svg><span class="space-library-name">词汇馆</span></h2>
+          <div class="space-canvas">
+            <div class="space-library-column">
+              <div class="space-group"><div class="hierarchy-label"><svg width="20" height="20" aria-hidden="true"><use href="#i-folder"/></svg>当前分组</div><p class="device-note">这里收着你正在学习的卡片。</p></div>
+            </div>
+            <div class="box-area">
+              <div class="box-header"><div class="hierarchy-label"><svg width="20" height="20" aria-hidden="true"><use href="#i-box"/></svg>当前盒</div><span class="box-count">1 张</span></div>
+              <div class="box-owned-grid">
+                <article class="owned-card">
+                  <span class="owned-card__kicker space-item-kicker">词义辨析</span>
+                  <h3 class="space-item-prompt">The committee postponed the vote because several details were still ____.</h3>
+                  <p class="space-item-answer"><b>B</b> · unclear</p>
+                  <div class="owned-card__actions"><button type="button" data-action="favorite" aria-pressed="true" aria-busy="false">✓ 已收藏</button><button type="button" data-action="sleep" aria-busy="false">移入睡眠区</button></div>
+                  <p class="favorite-state" role="status" aria-live="polite">已加入收藏。</p>
+                </article>
+                <section class="sleep-zone" aria-live="polite">
+                  <div class="sleep-zone__head"><svg width="23" height="23" aria-hidden="true"><use href="#i-moon"/></svg>睡眠区</div>
+                  <p>移入后，这张卡会暂时离开学习，随时可以唤醒。</p>
+                  <div class="sleep-state">这张卡会继续出现在学习中。</div>
+                  <article class="sleeping-card">
+                    <span class="space-item-kicker">词义辨析</span>
+                    <strong class="space-item-prompt">The committee postponed the vote because several details were still ____.</strong>
+                    <p class="space-item-answer"><b>B</b> · unclear</p>
+                    <button type="button" data-action="wake" aria-busy="false">唤醒卡片</button>
+                  </article>
+                </section>
+                <div class="space-actions"><button type="button" data-action="back-learning">返回学习</button></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen screen-audio" aria-label="音频翻面卡">
+          <div class="location-strip"><span class="location-strip__path"><span class="location-library">听力馆</span> <i>›</i> 当前分组 <i>›</i> 当前盒</span><button type="button" data-action="show-space">查看位置 ›</button></div>
+          <div class="sound-grid learning-grid">
+            <div class="soft-spine-wrap">
+              <span class="knowledge-pin" aria-label="当前卡片位置"></span>
+              <article class="sound-card">
+                <div class="flip-front-state">
+                  <p class="card-kicker">听力判断</p>
+                  <h2>短对话里听到 however，优先盯哪一半信息？</h2>
+                  <p class="support-context"><b>先抓转折，不要被前半句带跑。</b><br>考试语境里真正态度和结果常压在 however 后半句。</p>
+                  <button class="audio-control" type="button" data-action="audio" aria-label="播放当前卡音频" aria-pressed="false" aria-busy="false">
+                    <span class="audio-control__button" aria-hidden="true">▶</span>
+                    <span class="audio-control__body"><span class="waveform" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="audio-control__meta">00:00 / 00:02</span></span>
+                    <span class="audio-state" aria-live="polite">待播放</span>
+                  </button>
+                </div>
+                <div class="flip-back-state flip-analysis">
+                  <p class="card-kicker">翻面答案</p>
+                  <p class="flip-answer">优先盯转折后的半句，再回头核对前面让步或铺垫的信息。</p>
+                  <h2>先抓态度转向，再判断答案</h2>
+                  <p>题目里的 however 往往不是装饰词，而是把说话人真正结论往后推。先抓后半句，能减少被前半句表面信息误导。</p>
+                  <p><b>考试提示：</b>听到转折词时先记“后半句优先”，再看选项有没有只复述前半句。</p>
+                </div>
+              </article>
+            </div>
+            <aside>
+              <div class="flip-front-state"><div class="session-context"><h3>先听，再翻面</h3><p>听完后翻面查看答案。</p><div class="context-meter" aria-label="音频已准备"><i style="width:100%"></i></div><p>音频已就绪</p></div><button class="primary-action" type="button" data-action="flip">翻到背面</button></div>
+              <div class="flip-back-state"><div class="session-context"><h3>翻面后</h3><p>根据刚才的判断选择掌握情况，再继续学习。</p></div><div class="feedback-row" aria-label="掌握情况"><button class="pill confident" type="button" data-action="self-assess" data-value="confident" aria-pressed="false">有把握</button><button class="pill review" type="button" data-action="self-assess" data-value="review" aria-pressed="false">再回看</button></div><p class="assess-status" role="status" aria-live="polite"></p><button class="primary-action assess-retry" type="button" data-action="assess-retry">重试保存</button><button class="primary-action flip-next" type="button" data-action="flip-next">下一张</button></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="screen screen-stats" aria-label="今日学习统计">
+          <div class="stats-layout">
+            <div class="stats-primary">
+              <header class="brand-surface-header"><p>今日账页</p><h2>把今天学过的，安静地收好</h2></header>
+              <p class="device-note stats-side-note">今天的完成、待回看与复习进度都在这里。</p>
+            </div>
+            <article class="today-spine">
+              <h3>今日学习</h3>
+              <p class="stats-summary">今天已完成 5 张，继续下一张。</p>
+              <dl class="stats-ledger">
+                <div data-stat="completed"><dt>完成</dt><dd>5</dd></div>
+                <div data-stat="pending"><dt>待回看</dt><dd>0</dd></div>
+                <div data-stat="reviewed"><dt>今日回看</dt><dd>0</dd></div>
+              </dl>
+              <button class="primary-action stats-next" type="button" data-action="stats-next">继续学习</button>
+              <div class="checkin-slot" aria-live="polite">
+                <span class="checkin-message">今天可以收好一次学习记录。</span>
+                <span class="stats-error">刚才没有收好，进度仍然安全。</span>
+                <button type="button" data-action="checkin" aria-busy="false">收好今天</button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="screen screen-profile" aria-label="我的账号与权益">
+          <div class="profile-layout">
+            <div class="profile-primary">
+              <header class="brand-surface-header"><p>我的</p><h2>账号与学习权益</h2></header>
+              <article class="account-object">
+                <div class="account-id"><span class="account-avatar" aria-hidden="true">软</span><div><h3>手机号 1•• •••• ••••</h3><p>✓ 身份已确认</p></div></div>
+                <p class="continuity-copy">上次学习进度已恢复，可以从刚才的位置继续。</p>
+                <button class="primary-action" type="button" data-action="continue-learning">继续当前学习</button>
+              </article>
+            </div>
+            <details class="membership-fold" open>
+              <summary>会员权益</summary>
+              <div class="membership-body">
+                <p class="membership-stage">试用尚未开始</p>
+                <p class="membership-copy">完成首次学习后开始试用，现在查看不会计时。</p>
+                <p class="membership-error" role="alert">会员权益暂时无法更新，请稍后重试。</p>
+                <div class="membership-actions"><button type="button" data-action="purchase" aria-busy="false">购买会员</button><button type="button" data-action="restore" aria-busy="false">恢复购买</button></div>
+              </div>
+            </details>
+            <button class="logout-action" type="button" data-action="logout">退出登录</button>
+          </div>
+        </section>
+
+        <section class="screen screen-auth" aria-label="手机号登录">
+          <div class="auth-layout">
+            <div class="auth-intro">
+              <div class="auth-lockup"><svg class="brand-symbol" width="42" height="48" viewBox="0 0 32 36" aria-hidden="true"><path d="M2 5 13 1v29L2 34ZM30 5 19 1v29l11 4ZM13 1l6 3v26l-6 0Z"/><circle cx="25.5" cy="29.5" r="5"/></svg><strong>Softbook</strong></div>
+              <h2>登录后继续上次学习</h2>
+              <p>学习进度和收藏会自动同步。</p>
+            </div>
+            <form class="auth-gate" novalidate>
+              <p class="auth-step">手机号短码登录</p>
+              <label class="auth-field">手机号
+                <input class="auth-phone" type="tel" inputmode="numeric" autocomplete="off" maxlength="11" placeholder="输入 11 位手机号">
+              </label>
+              <label class="auth-field auth-code-field">短码
+                <input class="auth-code" type="text" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="输入 4–6 位短码">
+              </label>
+              <p class="auth-live" role="status" aria-live="polite">请输入 11 位手机号获取短码。</p>
+              <button class="primary-action auth-primary" type="button" data-action="auth-primary" disabled aria-disabled="true" aria-busy="false">获取短码</button>
+              <button class="auth-secondary" type="button" data-action="auth-secondary">修改手机号</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="screen screen-lock" aria-label="找出句子主干">
+          <div class="location-strip"><span class="location-strip__path">仔细阅读馆 <i>›</i> 当前分组 <i>›</i> 当前盒</span><button type="button" data-action="show-space">查看位置 ›</button></div>
+          <div class="atlas-layout">
+            <article class="atlas-brief">
+              <p class="atlas-kicker">句子主干</p>
+              <h2>把句子主干锁出来，三个槽位都对才开锁。</h2>
+              <p class="atlas-support"><b>先抓主语，再找谓语和核心宾语。</b><br>复杂修饰里先保住 S + V + O，读长句会轻很多。</p>
+            </article>
+            <section class="atlas-workspace">
+              <p class="atlas-status" role="status" aria-live="polite">三行都已确认。</p>
+              <div class="lock-rail">
+                <label class="lock-row" data-lock-row="subject" data-row-state="idle"><span>S · 主语</span><select data-lock-select="subject"><option value="">选择主语</option><option>The policy</option><option>reduces</option><option>test anxiety</option></select><small class="lock-row-note">这一行仍锁定，请重新选择。</small></label>
+                <label class="lock-row" data-lock-row="verb" data-row-state="idle"><span>V · 谓语</span><select data-lock-select="verb"><option value="">选择谓语</option><option>test anxiety</option><option>The policy</option><option>reduces</option></select><small class="lock-row-note">这一行仍锁定，请重新选择。</small></label>
+                <label class="lock-row" data-lock-row="object" data-row-state="idle"><span>O · 宾语</span><select data-lock-select="object"><option value="">选择宾语</option><option>reduces</option><option>test anxiety</option><option>during revision</option></select><small class="lock-row-note">这一行仍锁定，请重新选择。</small></label>
+              </div>
+              <button class="primary-action" type="button" data-action="lock-submit" disabled aria-disabled="true">确认主干</button>
+              <div class="atlas-analysis"><h3>开锁的关键是别让修饰词抢主干</h3><p>很多真题长句会把时间、方式和插入解释塞进句中。先锁主语、谓语、宾语，剩下修饰再慢慢挂回去，理解压力会明显下降。</p><p><b>考试提示：</b>如果一句话太长，先问自己“是谁做了什么”，再补其他成分。</p></div>
+              <button class="primary-action atlas-next" type="button" data-action="atlas-next" data-next-screen="elimination">下一张</button>
+            </section>
+          </div>
+        </section>
+
+        <section class="screen screen-elimination" aria-label="去掉修饰成分">
+          <div class="location-strip"><span class="location-strip__path">仔细阅读馆 <i>›</i> 当前分组 <i>›</i> 当前盒</span><button type="button" data-action="show-space">查看位置 ›</button></div>
+          <div class="atlas-layout">
+            <article class="atlas-brief">
+              <p class="atlas-kicker">保留句干</p>
+              <h2>点掉应删除的干扰成分，保留句干。</h2>
+              <p class="atlas-support"><b>目标句：The students who review in short bursts usually remember the pattern before the test.</b><br>先把修饰成分剥掉，再回到主谓宾。</p>
+            </article>
+            <section class="atlas-workspace">
+              <p class="elimination-source">The students who review in short bursts usually remember the pattern before the test.</p>
+              <div class="elimination-result-column">
+                <p class="atlas-status" role="status" aria-live="polite">已保留句干。</p>
+                <div class="elimination-list" aria-label="可剥离文本片段">
+                  <button class="elimination-fragment" type="button" data-fragment="A" aria-pressed="false"><i aria-hidden="true"></i><span>who review in short bursts</span></button>
+                  <button class="elimination-fragment" type="button" data-fragment="B" aria-pressed="false"><i aria-hidden="true"></i><span>usually</span></button>
+                  <button class="elimination-fragment" type="button" data-fragment="C" aria-pressed="false"><i aria-hidden="true"></i><span>the pattern</span></button>
+                  <button class="elimination-fragment" type="button" data-fragment="D" aria-pressed="false"><i aria-hidden="true"></i><span>before the test</span></button>
+                </div>
+                <button class="primary-action" type="button" data-action="elimination-submit" disabled aria-disabled="true">确认剥离</button>
+                <div class="atlas-analysis"><h3>去干扰不是乱删，是先保骨架</h3><p>这句的句干是 The students remember the pattern。定语从句、频率副词和时间状语都能先剥离，帮助你看清核心结构。</p><p><b>考试提示：</b>做细节判断时，先保住主干，才能更快判断选项是不是偷换信息。</p></div>
+                <button class="primary-action atlas-next" type="button" data-action="atlas-next" data-next-screen="swipe">下一张</button>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="screen screen-swipe" aria-label="判断表达是否适用">
+          <div class="location-strip"><span class="location-strip__path">词汇馆 <i>›</i> 当前分组 <i>›</i> 当前盒</span><button type="button" data-action="show-space">查看位置 ›</button></div>
+          <div class="atlas-layout">
+            <article class="atlas-brief">
+              <p class="atlas-kicker">表达判断</p>
+              <h2>be likely to do 在表达转换里更接近哪一侧？</h2>
+              <p class="atlas-support"><b>判断这个表达能否直接用于转换。</b><br>别把 likely 误读成“喜欢”，它更常表达概率。</p>
+            </article>
+            <section class="atlas-workspace">
+              <div class="swipe-stack"><div class="swipe-trails" aria-hidden="true"><span>← 可直接套用</span><span>容易误用 →</span></div><article class="swipe-card" tabindex="0" role="slider" aria-label="判断 be likely to do 是否适用" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0" aria-valuetext="尚未选择；向左为可直接套用，向右为容易误用"><p>当前表达</p><h3>be likely to do</h3></article></div>
+              <div class="swipe-result-column">
+                <p class="atlas-status" role="status" aria-live="polite">判断正确。</p>
+                <p class="swipe-gesture-status" role="status" aria-live="polite">左右滑动选择，也可以点击下方选项。</p>
+                <div class="swipe-actions" aria-label="表达判断"><button type="button" data-swipe-choice="left">← 可直接套用</button><button type="button" data-swipe-choice="right">容易误用 →</button></div>
+                <div class="atlas-analysis"><h3>先稳住高频句式替换的中文落点</h3><p>be likely to do 先落到“很可能……”最稳。如果把 likely 误解成 like，表达会直接偏题。</p><p><b>考试提示：</b>表达转换高频结构时，优先记“最稳的中文落点”，比背一串近义表达更有用。</p></div>
+                <button class="primary-action atlas-next" type="button" data-action="atlas-next" data-next-screen="learning">下一张</button>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+      <nav class="app-nav" aria-label="主导航">
+        <button type="button" data-route="learning" aria-current="page"><svg width="24" height="24" aria-hidden="true"><use href="#i-book"/></svg><span>学习</span></button>
+        <button type="button" data-route="space"><svg width="24" height="24" aria-hidden="true"><use href="#i-layers"/></svg><span>空间</span></button>
+        <button type="button" data-route="stats"><svg width="24" height="24" aria-hidden="true"><use href="#i-stats"/></svg><span>统计</span></button>
+        <button type="button" data-route="profile"><svg width="24" height="24" aria-hidden="true"><use href="#i-user"/></svg><span>我的</span></button>
+      </nav>
+      <div class="platform-inset" aria-hidden="true"><span></span></div>
+      <div class="ime-panel" aria-hidden="true"><span class="ime-caption"></span><span class="ime-keys"><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+      <p class="route-intent visually-hidden" role="status" aria-live="polite"></p>
+    </div>
+  </template>
+
+  <script>
+    (() => {
+      const productDevice = document.querySelector('#interactiveDevice');
+      if (productDevice) productDevice.dataset.platform = new URLSearchParams(location.search).get('platform') === 'android' ? 'android' : 'ios';
+      const template = document.querySelector('#appTemplate');
+      const allDevices = [...document.querySelectorAll('.device')];
+      const swipeDrags = new WeakMap();
+      const state = {
+        route: 'learning',
+        audio: 'idle',
+        sleep: 'active',
+        sleepOp: 'idle',
+        favorite: 'on',
+        favoriteOp: 'idle',
+        favoriteTarget: 'on',
+        motion: 'full',
+        font: 1
+      };
+      const learningScreens = new Set(['learning', 'result', 'audio', 'lock', 'elimination', 'swipe']);
+      const choiceDeck = [
+        {
+          prompt: 'The committee postponed the vote because several details were still ____.',
+          options: [['A', 'urgent'], ['B', 'unclear'], ['C', 'formal'], ['D', 'similar']],
+          answer: 'B',
+          support: '选出最符合句意的词。',
+          context: '投票被推迟，说明关键信息还没有清楚。',
+          analysis: {
+            title: '先顺着因果看语义',
+            summary: '因为“细节还不清楚”才会推迟投票。urgent 和 formal 都能修饰 details，但和 postpone the vote 的因果不成立。',
+            tip: '四选一别孤立看词，先把它塞回原句，看前后逻辑是不是闭合。'
+          }
+        },
+        {
+          prompt: 'The article offers a ____ explanation of why many students lose points on the first pass.',
+          options: [['A', 'compelling'], ['B', 'casual'], ['C', 'equal'], ['D', 'silent']],
+          answer: 'A',
+          support: '优先选能和 explanation 形成高频搭配的词。',
+          context: '句子强调“解释有说服力”，不是“解释很复杂”。',
+          analysis: {
+            title: '高频词要连着搭配一起记',
+            summary: 'compelling explanation 表达“很有说服力的解释”，和文章论证语境更贴。其他选项和 explanation 的组合都不自然。',
+            tip: '做词义辨析时，别只背中文义，常见搭配才决定你能不能在真题里选对。'
+          }
+        }
+      ];
+      const labels = {
+        route: { learning: '学习', result: '解析', space: '空间', audio: '听力判断', lock: '句子主干', elimination: '保留句干', swipe: '表达判断', stats: '统计', profile: '我的', auth: '手机号登录' },
+        audio: { idle: '待播放', loading: '正在加载…', playing: '播放中', paused: '已暂停', error: '加载失败 · 重试' },
+        audioTime: { idle: '00:00 / 00:02', loading: '--:-- / 00:02', playing: '00:01 / 00:02', paused: '00:01 / 00:02', error: '--:-- / 00:02' },
+        audioAction: { idle: '播放当前卡音频', loading: '音频正在加载', playing: '暂停当前卡音频', paused: '继续播放当前卡音频', error: '音频加载失败，重试' },
+        sleep: { active: '这张卡会继续出现在学习中。', sleeping: '这张卡暂不进入学习，随时可以唤醒。' },
+        sleepOp: {
+          'sleep-pending': '正在移入睡眠区…',
+          'sleep-error': '暂时没能移入，请重试。',
+          'wake-pending': '正在唤醒…',
+          'wake-error': '暂时没能唤醒，请重试。'
+        }
+      };
+      const statsBook = {
+        empty: { values: ['0', '0', '0'], summary: '今天还没有开始；第一张会建立今日账页。', action: '开始第一张', checkin: '完成 1 张后可收好今天。' },
+        progress: { values: ['5', '0', '0'], summary: '今天已完成 5 张，继续下一张。', action: '继续学习', checkin: '今天可以收好一次学习记录。' },
+        review: { values: ['5', '2', '1'], summary: '有两张需要再看一遍，先把薄弱点收回来。', action: '开始回看', checkin: '回看完成后也可以收好今天。' },
+        'checkin-pending': { values: ['5', '0', '0'], summary: '今天已完成 5 张，继续下一张。', action: '继续学习', checkin: '正在收好今天的学习记录…' },
+        success: { values: ['5', '0', '0'], summary: '今天的学习记录已经收好。', action: '继续学习', checkin: '✓ 今日已签到' },
+        failure: { values: ['5', '0', '0'], summary: '学习进度仍然安全，可以继续。', action: '继续学习', checkin: '' }
+      };
+      const lockAnswer = { subject: 'The policy', verb: 'reduces', object: 'test anxiety' };
+      const eliminationAnswer = ['A', 'B', 'D'];
+
+      function taskFor(app) {
+        return choiceDeck[Number(app.dataset.taskIndex || 0)] || choiceDeck[0];
+      }
+
+      function optionText(task, key) {
+        return task.options.find(option => option[0] === key)?.[1] || '';
+      }
+
+      function objectForScreen(screen, fallback = 'choice') {
+        if (screen === 'audio') return 'sound';
+        if (screen === 'lock') return 'lock';
+        if (screen === 'elimination') return 'elimination';
+        if (screen === 'swipe') return 'swipe';
+        if (screen === 'learning' || screen === 'result') return 'choice';
+        return fallback;
+      }
+
+      function libraryFor(app) {
+        const screen = app.dataset.screen;
+        const kind = screen === 'space' ? app.dataset.objectKind : objectForScreen(screen, app.dataset.objectKind);
+        if (screen === 'stats') return '今日账页';
+        if (screen === 'profile') return '个人账户';
+        if (screen === 'auth') return '身份认证';
+        if (kind === 'sound') return '听力馆';
+        if (kind === 'lock' || kind === 'elimination') return '仔细阅读馆';
+        return '词汇馆';
+      }
+
+      function announce(app, message) {
+        const live = app.querySelector('.route-intent');
+        if (!live) return;
+        live.textContent = '';
+        window.requestAnimationFrame(() => { live.textContent = message; });
+      }
+
+      function focusTarget(app, selector) {
+        window.requestAnimationFrame(() => {
+          const target = app.querySelector(selector);
+          if (!target) return;
+          if (!target.matches('button, input, select, textarea, a[href], [tabindex]')) target.setAttribute('tabindex', '-1');
+          target.focus({ preventScroll: false });
+        });
+      }
+
+      function focusScreenStart(app, screen) {
+        const targets = {
+          learning: '.screen-learning .choice-prompt',
+          result: '.screen-result .result-status',
+          space: '.screen-space .space-title',
+          audio: '.screen-audio .card-kicker',
+          lock: '.screen-lock .atlas-kicker',
+          elimination: '.screen-elimination .atlas-kicker',
+          swipe: '.screen-swipe .atlas-kicker',
+          stats: '.screen-stats .brand-surface-header h2',
+          profile: '.screen-profile .brand-surface-header h2',
+          auth: '.screen-auth .auth-phone'
+        };
+        focusTarget(app, targets[screen] || '.app-content');
+      }
+
+      function showScreen(app, screen) {
+        app.dataset.screen = screen;
+        if (learningScreens.has(screen)) {
+          app.dataset.lastLearning = screen;
+          app.dataset.objectKind = objectForScreen(screen, app.dataset.objectKind);
+        }
+        syncChrome(app);
+        const screenAnnouncement = screen === 'auth'
+          ? '已打开手机号登录。'
+          : `已进入${labels.route[screen] || screen}；${libraryFor(app)}。`;
+        announce(app, screenAnnouncement);
+        focusScreenStart(app, screen);
+      }
+
+      function goToCurrentLearning(app) {
+        showScreen(app, learningScreens.has(app.dataset.lastLearning) ? app.dataset.lastLearning : 'learning');
+      }
+
+      function renderChoice(app) {
+        const task = taskFor(app);
+        app.querySelectorAll('.choice-prompt').forEach(node => node.textContent = task.prompt);
+        app.querySelectorAll('.choice-support').forEach(node => node.textContent = task.support);
+        app.querySelectorAll('.choice-context').forEach(node => node.textContent = task.context);
+        app.querySelectorAll('.option').forEach((button, index) => {
+          const option = task.options[index];
+          button.dataset.choice = option[0];
+          button.querySelector('.option__key').textContent = option[0];
+          button.querySelector('.option__text').textContent = option[1];
+          button.setAttribute('aria-pressed', String(app.dataset.pick === option[0]));
+        });
+        app.querySelectorAll('.answer-key').forEach(node => node.textContent = task.answer);
+        app.querySelectorAll('.answer-text').forEach(node => node.textContent = optionText(task, task.answer));
+        app.querySelectorAll('.analysis-title').forEach(node => node.textContent = task.analysis.title);
+        app.querySelectorAll('.analysis-summary').forEach(node => node.textContent = task.analysis.summary);
+        app.querySelectorAll('.analysis-tip').forEach(node => node.textContent = task.analysis.tip);
+        syncChoiceControls(app);
+      }
+
+      function syncChoiceControls(app) {
+        const pending = app.dataset.submitState === 'pending';
+        const failed = app.dataset.submitState === 'error';
+        const hasPick = Boolean(app.dataset.pick);
+        app.querySelectorAll('.option').forEach(button => { button.disabled = pending; });
+        app.querySelectorAll('[data-action="submit"]').forEach(button => {
+          button.disabled = !hasPick || pending;
+          button.setAttribute('aria-disabled', String(!hasPick || pending));
+          button.setAttribute('aria-busy', String(pending));
+          button.textContent = pending ? '正在判定…' : failed ? '重试判定' : '确认答案';
+        });
+      }
+
+      function renderResult(app) {
+        const task = taskFor(app);
+        const pick = app.dataset.pick || task.answer;
+        const correct = pick === task.answer;
+        app.dataset.pick = pick;
+        app.dataset.result = correct ? 'correct' : 'wrong';
+        app.dataset.submitState = 'idle';
+        app.dataset.objectKind = 'choice';
+        app.dataset.lastLearning = 'result';
+        app.dataset.screen = 'result';
+        app.querySelectorAll('.result-mark').forEach(node => node.textContent = correct ? '✓' : '×');
+        app.querySelectorAll('.result-label').forEach(node => node.textContent = correct ? '答对了' : '答错了');
+        app.querySelectorAll('.picked-key').forEach(node => node.textContent = pick);
+        app.querySelectorAll('.picked-text').forEach(node => node.textContent = optionText(task, pick));
+        renderChoice(app);
+        syncChrome(app);
+        announce(app, `${correct ? '答对了' : '答错了'}，解析已展开。`);
+        focusScreenStart(app, 'result');
+      }
+
+      function resetChoice(app, index = Number(app.dataset.taskIndex || 0)) {
+        app.dataset.taskIndex = String(index);
+        app.dataset.pick = '';
+        app.dataset.result = 'none';
+        app.dataset.submitState = 'idle';
+        app.dataset.screen = 'learning';
+        app.dataset.lastLearning = 'learning';
+        app.dataset.objectKind = 'choice';
+        resetAssessment(app);
+        renderChoice(app);
+        syncChrome(app);
+      }
+
+      function resetAssessment(app) {
+        app.dataset.assess = 'idle';
+        app.dataset.assessPick = '';
+        app.dataset.flip = 'front';
+        renderAssessment(app);
+      }
+
+      function renderAssessment(app) {
+        const mode = app.dataset.assess;
+        const pick = app.dataset.assessPick;
+        app.querySelectorAll('[data-action="self-assess"]').forEach(node => {
+          const selected = node.dataset.value === pick;
+          node.disabled = mode !== 'idle';
+          node.setAttribute('aria-pressed', String(selected));
+          node.setAttribute('aria-busy', String(mode === 'pending' && selected));
+          const label = node.dataset.value === 'confident' ? '有把握' : '再回看';
+          node.textContent = selected && mode === 'recorded' ? `✓ ${label}` : selected && mode === 'pending' ? `… ${label}` : label;
+        });
+        const status = app.querySelector('.assess-status');
+        if (status) {
+          const label = pick === 'confident' ? '有把握' : '再回看';
+          status.textContent = mode === 'pending'
+            ? `正在保存“${label}”…`
+            : mode === 'error'
+              ? `“${label}”还没保存，请重试。`
+              : mode === 'recorded'
+                ? `已记下“${label}”，可以继续下一张。`
+                : '';
+        }
+        app.querySelectorAll('[data-action="assess-retry"]').forEach(node => {
+          node.disabled = mode === 'pending';
+          node.setAttribute('aria-busy', String(mode === 'pending'));
+        });
+      }
+
+      function beginAssessmentCommit(app, pick = app.dataset.assessPick) {
+        if (!pick || app.dataset.assess === 'pending') return;
+        app.dataset.assessPick = pick;
+        app.dataset.assess = 'pending';
+        renderAssessment(app);
+        window.setTimeout(() => {
+          if (app.dataset.assess !== 'pending') return;
+          app.dataset.assess = 'recorded';
+          renderAssessment(app);
+          announce(app, '已记下掌握情况，可以继续下一张。');
+          focusTarget(app, '.screen-audio .flip-next');
+        }, 650);
+      }
+
+      function renderSpaceIdentity(app) {
+        const kind = app.dataset.objectKind;
+        let kicker;
+        let prompt;
+        let answer;
+        if (kind === 'sound') {
+          kicker = '听力判断';
+          prompt = '短对话里听到 however，优先盯哪一半信息？';
+          answer = app.dataset.flip === 'back'
+            ? '优先盯转折后的半句，再回头核对前面让步或铺垫的信息。'
+            : '仍在正面，返回后可继续听音频并翻面。';
+        } else if (kind === 'lock') {
+          kicker = '句子主干';
+          prompt = '把句子主干锁出来，三个槽位都对才开锁。';
+          answer = 'S · The policy　V · reduces　O · test anxiety';
+        } else if (kind === 'elimination') {
+          kicker = '保留句干';
+          prompt = '点掉应删除的干扰成分，保留句干。';
+          answer = '保留句干：The students remember the pattern.';
+        } else if (kind === 'swipe') {
+          kicker = '表达判断';
+          prompt = 'be likely to do 在表达转换里更接近哪一侧？';
+          answer = '可直接套用 · 表达“很可能做某事”。';
+        } else {
+          const task = taskFor(app);
+          kicker = '词义辨析';
+          prompt = task.prompt;
+          answer = `${task.answer} · ${optionText(task, task.answer)}`;
+        }
+        app.querySelectorAll('.space-item-kicker').forEach(node => node.textContent = kicker);
+        app.querySelectorAll('.space-item-prompt').forEach(node => node.textContent = prompt);
+        app.querySelectorAll('.space-item-answer').forEach(node => node.textContent = answer);
+        const returnLabels = { sound: '返回听力判断', lock: '返回句子主干', elimination: '返回保留句干', swipe: '返回表达判断' };
+        const returnLabel = returnLabels[kind] || (app.dataset.returnScreen === 'result' ? '返回解析' : app.dataset.returnScreen === 'stats' ? '返回统计' : app.dataset.returnScreen === 'profile' ? '返回我的' : '返回学习');
+        app.querySelectorAll('[data-action="back-learning"]').forEach(node => node.textContent = returnLabel);
+        app.querySelectorAll('.space-library-name').forEach(node => node.textContent = libraryFor(app));
+      }
+
+      function renderFavorite(app) {
+        app.dataset.favorite = state.favorite;
+        app.dataset.favoriteOp = state.favoriteOp;
+        app.dataset.favoriteTarget = state.favoriteTarget;
+        app.dataset.motion = state.motion;
+        const committed = state.favorite === 'on';
+        const pending = state.favoriteOp === 'pending';
+        const failed = state.favoriteOp === 'error';
+        const targetOn = state.favoriteTarget === 'on';
+        app.querySelectorAll('[data-action="favorite"]').forEach(button => {
+          button.disabled = pending;
+          button.setAttribute('aria-disabled', String(pending));
+          button.setAttribute('aria-busy', String(pending));
+          button.setAttribute('aria-pressed', String(committed));
+          button.textContent = pending
+            ? targetOn ? '正在收藏…' : '正在取消…'
+            : failed
+              ? targetOn ? '重试收藏' : '重试取消收藏'
+              : committed ? '✓ 已收藏' : '收藏';
+        });
+        app.querySelectorAll('.favorite-state').forEach(node => {
+          node.textContent = pending
+            ? `${targetOn ? '正在收藏' : '正在取消收藏'}…`
+            : failed
+              ? '保存失败，请重试。'
+              : committed
+                ? '已加入收藏。'
+                : '尚未收藏。';
+        });
+      }
+
+      function beginFavoriteOperation(app, target = state.favorite === 'on' ? 'off' : 'on') {
+        if (state.favoriteOp === 'pending') return;
+        state.favoriteTarget = target;
+        state.favoriteOp = 'pending';
+        syncStates();
+        window.setTimeout(() => {
+          if (state.favoriteOp !== 'pending') return;
+          state.favorite = state.favoriteTarget;
+          state.favoriteOp = 'idle';
+          syncStates();
+          announce(app, state.favorite === 'on' ? '已加入收藏。' : '已取消收藏。');
+          focusTarget(app, '.screen-space [data-action="favorite"]');
+        }, 650);
+      }
+
+      function renderSleep(app) {
+        app.dataset.sleep = state.sleep;
+        app.dataset.sleepOp = state.sleepOp;
+        const pending = state.sleepOp === 'sleep-pending' || state.sleepOp === 'wake-pending';
+        const message = labels.sleepOp[state.sleepOp] || labels.sleep[state.sleep];
+        app.querySelectorAll('.sleep-state').forEach(node => node.textContent = message);
+        app.querySelectorAll('[data-action="sleep"]').forEach(button => {
+          button.disabled = pending;
+          button.setAttribute('aria-disabled', String(pending));
+          button.setAttribute('aria-busy', String(state.sleepOp === 'sleep-pending'));
+          button.textContent = state.sleepOp === 'sleep-pending'
+            ? '正在移入…'
+            : state.sleepOp === 'sleep-error'
+              ? '重试移入睡眠区'
+              : state.sleep === 'sleeping' ? '已在睡眠区' : '移入睡眠区';
+        });
+        app.querySelectorAll('[data-action="wake"]').forEach(button => {
+          button.disabled = pending;
+          button.setAttribute('aria-disabled', String(pending));
+          button.setAttribute('aria-busy', String(state.sleepOp === 'wake-pending'));
+          button.textContent = state.sleepOp === 'wake-pending'
+            ? '正在唤醒…'
+            : state.sleepOp === 'wake-error' ? '重试唤醒' : '唤醒卡片';
+        });
+      }
+
+      function beginSleepOperation(app, kind) {
+        if (state.sleepOp === 'sleep-pending' || state.sleepOp === 'wake-pending') return;
+        state.sleepOp = kind === 'sleep' ? 'sleep-pending' : 'wake-pending';
+        syncStates();
+        window.setTimeout(() => {
+          if (kind === 'sleep' && state.sleepOp !== 'sleep-pending') return;
+          if (kind === 'wake' && state.sleepOp !== 'wake-pending') return;
+          state.sleep = kind === 'sleep' ? 'sleeping' : 'active';
+          state.sleepOp = 'idle';
+          syncStates();
+          announce(app, kind === 'sleep' ? '已移入睡眠区。' : '已唤醒，这张卡会再次出现在学习中。');
+          focusTarget(app, kind === 'sleep' ? '.screen-space [data-action="wake"]' : '.screen-space [data-action="sleep"]');
+        }, 650);
+      }
+
+      function enterSpace(app) {
+        if (app.dataset.screen !== 'space') {
+          app.dataset.spaceOrigin = app.dataset.screen;
+          app.dataset.returnScreen = app.dataset.screen;
+          app.dataset.objectKind = objectForScreen(app.dataset.screen, app.dataset.objectKind);
+        }
+        app.dataset.screen = 'space';
+        renderSpaceIdentity(app);
+        syncChrome(app);
+        announce(app, `已进入空间；当前卡位于${libraryFor(app)}的当前盒。`);
+        focusScreenStart(app, 'space');
+      }
+
+      function returnFromSpace(app) {
+        showScreen(app, app.dataset.returnScreen || app.dataset.spaceOrigin || 'learning');
+      }
+
+      function renderStats(app) {
+        const value = statsBook[app.dataset.stats] || statsBook.progress;
+        app.querySelectorAll('.stats-ledger dd').forEach((node, index) => node.textContent = value.values[index]);
+        app.querySelectorAll('.stats-summary').forEach(node => node.textContent = value.summary);
+        app.querySelectorAll('[data-action="stats-next"]').forEach(node => node.textContent = value.action);
+        app.querySelectorAll('.checkin-message').forEach(node => node.textContent = value.checkin);
+        app.querySelectorAll('[data-action="checkin"]').forEach(button => {
+          const pending = app.dataset.stats === 'checkin-pending';
+          button.hidden = app.dataset.stats === 'empty' || app.dataset.stats === 'success';
+          button.disabled = pending;
+          button.setAttribute('aria-busy', String(pending));
+          button.textContent = pending ? '正在收好…' : app.dataset.stats === 'failure' ? '重试签到' : '收好今天';
+        });
+      }
+
+      function renderMembership(app) {
+        const stage = app.dataset.membership;
+        const content = {
+          'trial-ready': ['试用尚未开始', '完成首次学习后开始试用，现在查看不会计时。'],
+          'trial-active': ['试用进行中', '剩余时间会显示在会员权益中。'],
+          free: ['免费计划', '基础学习保持可用；升级后可使用更多学习内容和功能。'],
+          premium: ['会员已开放', '完整学习内容和会员功能已生效。'],
+          error: ['免费计划', '暂时无法加载会员权益，请重试购买或恢复。']
+        }[stage] || ['试用尚未开始', '完成首次学习后开始试用，现在查看不会计时。'];
+        app.querySelectorAll('.membership-stage').forEach(node => node.textContent = content[0]);
+        app.querySelectorAll('.membership-copy').forEach(node => node.textContent = content[1]);
+        const pending = app.dataset.membershipOp !== 'idle';
+        app.querySelectorAll('.membership-actions button').forEach(button => {
+          button.disabled = pending;
+          button.setAttribute('aria-busy', String(pending));
+        });
+        app.querySelectorAll('[data-action="purchase"]').forEach(button => button.textContent = app.dataset.membershipOp === 'purchase' ? '购买处理中…' : stage === 'error' ? '重试购买' : '购买会员');
+        app.querySelectorAll('[data-action="restore"]').forEach(button => button.textContent = app.dataset.membershipOp === 'restore' ? '正在恢复…' : '恢复购买');
+      }
+
+      function setAuthState(app, next) {
+        app.dataset.auth = next;
+        renderAuth(app);
+      }
+
+      function clearAuthInputs(app) {
+        app.querySelector('.auth-phone').value = '';
+        app.querySelector('.auth-code').value = '';
+      }
+
+      function renderAuth(app) {
+        const mode = app.dataset.auth;
+        const phone = app.querySelector('.auth-phone');
+        const code = app.querySelector('.auth-code');
+        const primary = app.querySelector('[data-action="auth-primary"]');
+        const secondary = app.querySelector('[data-action="auth-secondary"]');
+        const live = app.querySelector('.auth-live');
+        const phoneDigits = phone?.value.replace(/\D/g, '') || '';
+        const phoneReady = mode === 'phone-valid' || /^1[3-9]\d{9}$/.test(phoneDigits);
+        const codeReady = (code?.value.replace(/\D/g, '').length || 0) >= 4;
+        const copy = {
+          'phone-empty': '请输入 11 位手机号获取短码。',
+          'phone-invalid': '手机号格式不正确；请检查 11 位号码后再发送。',
+          'phone-valid': '手机号已填写，可以获取短码。',
+          requesting: '正在发送短码…',
+          'code-requested': '短码已发送；输入 4–6 位后完成登录。',
+          'code-expired': '短码已过期，请重新发送。',
+          resending: '正在重新发送短码…',
+          'resend-cooldown': '短码已重新发送，45 秒后可再次发送。',
+          verifying: '正在验证…',
+          'request-error': '发送失败，请重试或修改手机号。',
+          'request-network-error': '网络中断，请检查网络后重试。',
+          'verify-error': '短码不正确，请修改后重试。',
+          'verify-network-error': '网络中断，请检查网络后重试验证。',
+          hydrating: '登录成功，正在恢复学习进度…',
+          'hydration-error': '登录成功，但学习进度暂未恢复。',
+          ready: '登录成功，学习进度已恢复。'
+        }[mode] || '';
+        live.textContent = copy;
+        const busy = mode === 'requesting' || mode === 'resending' || mode === 'verifying' || mode === 'hydrating';
+        let label = '获取短码';
+        let disabled = !phoneReady;
+        if (mode === 'phone-invalid') { label = '检查手机号'; disabled = true; }
+        if (mode === 'requesting') { label = '正在发送…'; disabled = true; }
+        if (mode === 'code-requested') { label = '完成登录'; disabled = !codeReady; }
+        if (mode === 'code-expired') { label = '重新发送短码'; disabled = false; }
+        if (mode === 'resending') { label = '正在重发…'; disabled = true; }
+        if (mode === 'resend-cooldown') { label = '45 秒后可重发'; disabled = true; }
+        if (mode === 'verifying') { label = '正在验证…'; disabled = true; }
+        if (mode === 'request-error' || mode === 'request-network-error') { label = '重试发送'; disabled = false; }
+        if (mode === 'verify-error') { label = '重新验证'; disabled = !codeReady; }
+        if (mode === 'verify-network-error') { label = '重试验证'; disabled = !codeReady; }
+        if (mode === 'hydrating') { label = '正在恢复…'; disabled = true; }
+        if (mode === 'hydration-error') { label = '重试恢复'; disabled = false; }
+        primary.textContent = label;
+        primary.disabled = disabled;
+        primary.setAttribute('aria-disabled', String(disabled));
+        primary.setAttribute('aria-busy', String(busy));
+        phone.disabled = busy || ['code-requested', 'code-expired', 'resend-cooldown', 'verify-error', 'verify-network-error', 'hydrating'].includes(mode);
+        code.disabled = ['verifying', 'resending', 'resend-cooldown', 'code-expired'].includes(mode);
+        secondary.textContent = mode === 'hydration-error' ? '退出当前账号' : '修改手机号';
+        if (mode === 'phone-valid' && !phone.value) phone.placeholder = '号码格式已确认';
+        else phone.placeholder = '输入 11 位手机号';
+      }
+
+      function syncLock(app) {
+        const values = { subject: app.dataset.lockSubject, verb: app.dataset.lockVerb, object: app.dataset.lockObject };
+        const complete = Object.values(values).every(Boolean);
+        const allCorrect = Object.keys(lockAnswer).every(key => values[key] === lockAnswer[key]);
+        const result = app.dataset.lockResult;
+        app.querySelectorAll('[data-lock-select]').forEach(select => {
+          const key = select.dataset.lockSelect;
+          if (select.value !== values[key]) select.value = values[key] || '';
+          const row = select.closest('.lock-row');
+          row.dataset.rowState = result === 'idle' ? 'idle' : values[key] === lockAnswer[key] ? 'correct' : 'wrong';
+        });
+        const submit = app.querySelector('[data-action="lock-submit"]');
+        submit.disabled = !complete;
+        submit.setAttribute('aria-disabled', String(!complete));
+        const status = app.querySelector('.screen-lock .atlas-status');
+        status.textContent = result === 'correct'
+          ? '主语、谓语和宾语都已确认。'
+          : result === 'editing' && allCorrect
+            ? '三个槽位已修正，请再次确认。'
+            : '还有行保持锁定；正确行已经保留，请修改错误行。';
+      }
+
+      function syncElimination(app) {
+        const picks = app.dataset.eliminationPicks ? app.dataset.eliminationPicks.split(',').filter(Boolean) : [];
+        app.querySelectorAll('.elimination-fragment').forEach(button => {
+          const key = button.dataset.fragment;
+          const selected = picks.includes(key);
+          button.setAttribute('aria-pressed', String(selected));
+          button.removeAttribute('data-mark');
+          if (app.dataset.eliminationResult === 'wrong') {
+            if (selected && !eliminationAnswer.includes(key)) button.dataset.mark = 'your';
+            else if (!selected && eliminationAnswer.includes(key)) button.dataset.mark = 'missed';
+            else if (selected) button.dataset.mark = 'right';
+          }
+        });
+        const submit = app.querySelector('[data-action="elimination-submit"]');
+        submit.disabled = picks.length === 0;
+        submit.setAttribute('aria-disabled', String(picks.length === 0));
+        const status = app.querySelector('.screen-elimination .atlas-status');
+        status.textContent = app.dataset.eliminationResult === 'correct' ? '剥离正确，句干已经清楚。' : '剥离结果需要调整：已同时标出你的选择和应剥离项。';
+      }
+
+      function syncSwipe(app) {
+        const status = app.querySelector('.screen-swipe .atlas-status');
+        status.textContent = app.dataset.swipeResult === 'correct' ? '判断正确：可直接套用。' : '判断错误：likely 表达概率，不是 like。';
+        const card = app.querySelector('.swipe-card');
+        const phase = app.dataset.swipePhase || 'idle';
+        if (card) {
+          const reduced = app.dataset.motion === 'reduced';
+          const value = app.dataset.swipeResult === 'correct' || phase === 'preview-left' ? '-1' : app.dataset.swipeResult === 'wrong' || phase === 'preview-right' ? '1' : '0';
+          const valueText = app.dataset.swipeResult === 'correct'
+            ? '已提交：可直接套用'
+            : app.dataset.swipeResult === 'wrong'
+              ? '已提交：容易误用'
+              : phase === 'preview-left'
+                ? '预览：可直接套用；尚未提交'
+                : phase === 'preview-right'
+                  ? '预览：容易误用；尚未提交'
+                  : '尚未选择；向左为可直接套用，向右为容易误用';
+          card.tabIndex = reduced ? -1 : 0;
+          card.setAttribute('aria-hidden', String(reduced));
+          card.setAttribute('aria-valuenow', value);
+          card.setAttribute('aria-valuetext', valueText);
+        }
+        const gesture = app.querySelector('.swipe-gesture-status');
+        if (gesture) {
+          gesture.textContent = app.dataset.motion === 'reduced'
+            ? '动态效果已减少，请使用下方按钮作答。'
+            : phase === 'preview-left'
+              ? '松手选择“可直接套用”。'
+              : phase === 'preview-right'
+                ? '松手选择“容易误用”。'
+                : phase === 'cancelled'
+                  ? '没有选择，卡片已回到原位。'
+                  : '左右滑动选择，也可以点击下方选项。';
+        }
+      }
+
+      function cancelSwipe(app) {
+        const card = app.querySelector('.swipe-card');
+        if (card) card.style.transform = '';
+        app.dataset.swipePhase = 'cancelled';
+        syncSwipe(app);
+        announce(app, '没有选择，卡片已回到原位。');
+        window.setTimeout(() => {
+          if (app.dataset.swipePhase !== 'cancelled') return;
+          app.dataset.swipePhase = 'idle';
+          syncSwipe(app);
+        }, 500);
+      }
+
+      function commitSwipe(app, choice) {
+        const card = app.querySelector('.swipe-card');
+        if (card) card.style.transform = '';
+        app.dataset.swipePhase = 'committed';
+        app.dataset.swipeResult = choice === 'left' ? 'correct' : 'wrong';
+        syncSwipe(app);
+        announce(app, app.dataset.swipeResult === 'correct' ? '判断正确，解析已展开。' : '判断错误，解析已展开。');
+        focusTarget(app, '.screen-swipe .atlas-next');
+      }
+
+      function mount(device) {
+        device.append(template.content.cloneNode(true));
+        const app = device.querySelector('.app-shell');
+        const initialScreen = device.dataset.screen || 'learning';
+        app.dataset.screen = initialScreen;
+        app.dataset.lastLearning = learningScreens.has(initialScreen) ? initialScreen : 'learning';
+        app.dataset.objectKind = objectForScreen(initialScreen, 'choice');
+        if (device.dataset.authState) app.dataset.auth = device.dataset.authState;
+        app.dataset.audio = state.audio;
+        app.dataset.sleep = state.sleep;
+        app.dataset.sleepOp = state.sleepOp;
+        app.dataset.favorite = state.favorite;
+        app.dataset.favoriteOp = state.favoriteOp;
+        app.dataset.favoriteTarget = state.favoriteTarget;
+        app.style.setProperty('--type-scale', state.font);
+        if (device.dataset.platform === 'android') device.querySelector('.system-time').textContent = '3:42';
+        renderChoice(app);
+        if (initialScreen === 'result') {
+          app.dataset.pick = taskFor(app).answer;
+          renderResult(app);
+        } else if (initialScreen === 'audio') {
+          app.dataset.objectKind = 'sound';
+          app.dataset.returnScreen = 'audio';
+        } else if (initialScreen === 'space') {
+          app.dataset.objectKind = 'choice';
+          renderSpaceIdentity(app);
+        }
+        renderStats(app);
+        renderMembership(app);
+        renderAuth(app);
+        renderAssessment(app);
+        renderFavorite(app);
+        renderSleep(app);
+        syncLock(app);
+        syncElimination(app);
+        syncSwipe(app);
+        syncChrome(app);
+      }
+
+      function syncChrome(app) {
+        const screen = app.dataset.screen;
+        const kind = screen === 'space' ? app.dataset.objectKind : objectForScreen(screen, app.dataset.objectKind);
+        const isBrand = screen === 'stats' || screen === 'profile' || screen === 'auth';
+        app.dataset.tone = isBrand ? 'brand' : (kind === 'sound' || kind === 'lock' || kind === 'elimination') ? 'tone-a' : 'tone-b';
+        const library = libraryFor(app);
+        app.querySelector('.library-chip').textContent = library;
+        app.querySelectorAll('.location-library').forEach(node => node.textContent = library);
+        if (screen === 'space') app.querySelectorAll('.space-library-name').forEach(node => node.textContent = library);
+        const navButtons = [...app.querySelectorAll('.app-nav button')];
+        navButtons.forEach(button => button.removeAttribute('aria-current'));
+        const activeRoute = screen === 'space' ? 'space' : screen === 'stats' ? 'stats' : screen === 'profile' ? 'profile' : learningScreens.has(screen) ? 'learning' : '';
+        const active = app.querySelector(`.app-nav button[data-route="${activeRoute}"]`);
+        if (active) active.setAttribute('aria-current', 'page');
+      }
+
+      function syncStates() {
+        document.querySelectorAll('.app-shell').forEach(app => {
+          app.dataset.audio = state.audio;
+          app.dataset.motion = state.motion;
+          app.style.setProperty('--type-scale', state.font);
+          app.querySelectorAll('.audio-state').forEach(node => node.textContent = labels.audio[state.audio]);
+          app.querySelectorAll('.audio-control__meta').forEach(node => node.textContent = labels.audioTime[state.audio]);
+          app.querySelectorAll('.audio-control__button').forEach(node => node.textContent = state.audio === 'playing' ? 'Ⅱ' : state.audio === 'loading' ? '…' : state.audio === 'error' ? '↻' : '▶');
+          app.querySelectorAll('.audio-control').forEach(node => {
+            node.disabled = state.audio === 'loading';
+            node.setAttribute('aria-busy', String(state.audio === 'loading'));
+            node.setAttribute('aria-pressed', String(state.audio === 'playing'));
+            node.setAttribute('aria-label', labels.audioAction[state.audio]);
+          });
+          syncChoiceControls(app);
+          renderStats(app);
+          renderMembership(app);
+          renderAuth(app);
+          renderAssessment(app);
+          renderFavorite(app);
+          renderSleep(app);
+          syncLock(app);
+          syncElimination(app);
+          syncSwipe(app);
+          syncChrome(app);
+        });
+      }
+
+      allDevices.forEach(mount);
+
+      document.addEventListener('input', event => {
+        const app = event.target.closest('.app-shell');
+        if (!app) return;
+        if (event.target.classList.contains('auth-phone')) {
+          if (['phone-empty', 'phone-invalid', 'phone-valid'].includes(app.dataset.auth)) {
+            const digits = event.target.value.replace(/\D/g, '');
+            app.dataset.auth = digits.length === 11 ? (/^1[3-9]\d{9}$/.test(digits) ? 'phone-valid' : 'phone-invalid') : 'phone-empty';
+          }
+          renderAuth(app);
+        }
+        if (event.target.classList.contains('auth-code')) renderAuth(app);
+      });
+
+      document.addEventListener('change', event => {
+        const select = event.target.closest('select[data-lock-select]');
+        if (!select) return;
+        const app = select.closest('.app-shell');
+        const key = select.dataset.lockSelect;
+        if (key === 'subject') app.dataset.lockSubject = select.value;
+        if (key === 'verb') app.dataset.lockVerb = select.value;
+        if (key === 'object') app.dataset.lockObject = select.value;
+        if (app.dataset.lockResult !== 'idle') app.dataset.lockResult = 'editing';
+        syncLock(app);
+      });
+
+      document.addEventListener('pointerdown', event => {
+        const card = event.target.closest('.swipe-card');
+        if (!card) return;
+        const app = card.closest('.app-shell');
+        if (!app || app.dataset.motion === 'reduced' || app.dataset.swipeResult !== 'idle') return;
+        swipeDrags.set(card, { id: event.pointerId, startX: event.clientX, startY: event.clientY, dx: 0, dy: 0 });
+        card.setPointerCapture?.(event.pointerId);
+        card.style.transition = 'none';
+        app.dataset.swipePhase = 'dragging';
+        syncSwipe(app);
+      });
+
+      document.addEventListener('pointermove', event => {
+        const card = event.target.closest('.swipe-card');
+        const drag = card ? swipeDrags.get(card) : null;
+        if (!card || !drag || drag.id !== event.pointerId) return;
+        const app = card.closest('.app-shell');
+        drag.dx = event.clientX - drag.startX;
+        drag.dy = event.clientY - drag.startY;
+        if (Math.abs(drag.dy) > Math.abs(drag.dx) + 12) {
+          card.style.transform = '';
+          app.dataset.swipePhase = 'dragging';
+        } else {
+          const travel = Math.max(-112, Math.min(112, drag.dx));
+          card.style.transform = `translateX(${travel}px) rotate(${travel / 34}deg)`;
+          app.dataset.swipePhase = Math.abs(drag.dx) < 24 ? 'dragging' : drag.dx < 0 ? 'preview-left' : 'preview-right';
+        }
+        syncSwipe(app);
+      });
+
+      function finishSwipePointer(event, forcedCancel = false) {
+        const card = event.target.closest('.swipe-card');
+        const drag = card ? swipeDrags.get(card) : null;
+        if (!card || !drag || drag.id !== event.pointerId) return;
+        const app = card.closest('.app-shell');
+        swipeDrags.delete(card);
+        card.releasePointerCapture?.(event.pointerId);
+        card.style.transition = '';
+        const verticalIntent = Math.abs(drag.dy) > Math.abs(drag.dx) + 12;
+        if (forcedCancel || verticalIntent || Math.abs(drag.dx) < 72) cancelSwipe(app);
+        else commitSwipe(app, drag.dx < 0 ? 'left' : 'right');
+      }
+
+      document.addEventListener('pointerup', event => finishSwipePointer(event));
+      document.addEventListener('pointercancel', event => finishSwipePointer(event, true));
+
+      document.addEventListener('keydown', event => {
+        const card = event.target.closest('.swipe-card');
+        if (!card) return;
+        const app = card.closest('.app-shell');
+        if (!app || app.dataset.motion === 'reduced' || app.dataset.swipeResult !== 'idle') return;
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+          event.preventDefault();
+          app.dataset.swipePhase = event.key === 'ArrowLeft' ? 'preview-left' : 'preview-right';
+          syncSwipe(app);
+            announce(app, event.key === 'ArrowLeft' ? '可直接套用。' : '容易误用。');
+        }
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          cancelSwipe(app);
+        }
+        if (event.key === 'Enter' && (app.dataset.swipePhase === 'preview-left' || app.dataset.swipePhase === 'preview-right')) {
+          event.preventDefault();
+          commitSwipe(app, app.dataset.swipePhase === 'preview-left' ? 'left' : 'right');
+        }
+      });
+
+      document.addEventListener('click', event => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        const app = button.closest('.app-shell');
+        if (!app) return;
+        if (button.classList.contains('option')) {
+          if (app.dataset.submitState === 'pending') return;
+          app.dataset.pick = button.dataset.choice;
+          app.querySelectorAll('.option').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
+          syncChoiceControls(app);
+          return;
+        }
+        if (button.dataset.action === 'audio') {
+          if (state.audio === 'loading') return;
+          const wasError = state.audio === 'error';
+          state.audio = state.audio === 'playing' ? 'paused' : wasError ? 'loading' : 'playing';
+          syncStates();
+          if (wasError) {
+            window.setTimeout(() => {
+              if (state.audio !== 'loading') return;
+              state.audio = 'playing';
+              syncStates();
+            }, 650);
+          }
+        }
+        if (button.dataset.action === 'flip') { app.dataset.flip = 'back'; }
+        if (button.dataset.action === 'self-assess') {
+          beginAssessmentCommit(app, button.dataset.value);
+        }
+        if (button.dataset.action === 'assess-retry') beginAssessmentCommit(app);
+        if (button.dataset.action === 'flip-next') resetChoice(app, (Number(app.dataset.taskIndex || 0) + 1) % choiceDeck.length);
+        if (button.dataset.action === 'submit') {
+          if (!app.dataset.pick || app.dataset.submitState === 'pending') return;
+          app.dataset.submitState = 'pending';
+          syncChoiceControls(app);
+          window.setTimeout(() => {
+            if (app.dataset.submitState !== 'pending') return;
+            renderResult(app);
+          }, 650);
+        }
+        if (button.dataset.action === 'show-space') enterSpace(app);
+        if (button.dataset.action === 'back-learning') returnFromSpace(app);
+        if (button.dataset.action === 'next') resetChoice(app, (Number(app.dataset.taskIndex || 0) + 1) % choiceDeck.length);
+        if (button.dataset.route === 'space') enterSpace(app);
+        if (button.dataset.route === 'learning') {
+          goToCurrentLearning(app);
+        }
+        if (button.dataset.route === 'stats') showScreen(app, 'stats');
+        if (button.dataset.route === 'profile') showScreen(app, 'profile');
+        if (button.dataset.action === 'stats-next') {
+          if (app.dataset.stats === 'empty') {
+            resetChoice(app, 0);
+          } else if (app.dataset.stats === 'review') {
+            app.dataset.flip = 'front';
+            app.dataset.assess = 'idle';
+            showScreen(app, 'audio');
+          } else {
+            goToCurrentLearning(app);
+          }
+        }
+        if (button.dataset.action === 'continue-learning') goToCurrentLearning(app);
+        if (button.dataset.action === 'checkin') {
+          if (app.dataset.stats === 'checkin-pending') return;
+          app.dataset.stats = 'checkin-pending';
+          renderStats(app);
+          window.setTimeout(() => {
+            if (app.dataset.stats !== 'checkin-pending') return;
+            app.dataset.stats = 'success';
+            renderStats(app);
+            announce(app, '今日学习记录已收好。');
+            focusTarget(app, '.screen-stats [data-action="stats-next"]');
+          }, 650);
+        }
+        if (button.dataset.action === 'purchase' || button.dataset.action === 'restore') {
+          if (app.dataset.membershipOp !== 'idle') return;
+          app.dataset.membershipOp = button.dataset.action;
+          renderMembership(app);
+          window.setTimeout(() => {
+            if (app.dataset.membershipOp === 'idle') return;
+            app.dataset.membershipOp = 'idle';
+            app.dataset.membership = 'premium';
+            renderMembership(app);
+            announce(app, '会员权益已开放。');
+            focusTarget(app, '.screen-profile .membership-stage');
+          }, 650);
+        }
+        if (button.dataset.action === 'logout') {
+          clearAuthInputs(app);
+          setAuthState(app, 'phone-empty');
+          showScreen(app, 'auth');
+        }
+        if (button.dataset.action === 'auth-secondary') {
+          if (app.dataset.auth === 'hydration-error') {
+            clearAuthInputs(app);
+            setAuthState(app, 'phone-empty');
+            announce(app, '已退出当前账号；请重新输入手机号。');
+          } else {
+            const digits = app.querySelector('.auth-phone').value.replace(/\D/g, '');
+            setAuthState(app, digits.length === 11 ? (/^1[3-9]\d{9}$/.test(digits) ? 'phone-valid' : 'phone-invalid') : 'phone-empty');
+            app.querySelector('.auth-phone').disabled = false;
+            announce(app, '可以修改手机号。');
+          }
+          focusTarget(app, '.auth-phone');
+        }
+        if (button.dataset.action === 'auth-primary') {
+          const mode = app.dataset.auth;
+          if (mode === 'requesting' || mode === 'resending' || mode === 'resend-cooldown' || mode === 'verifying' || mode === 'hydrating') return;
+          if (mode === 'phone-empty' || mode === 'phone-valid' || mode === 'request-error' || mode === 'request-network-error') {
+            setAuthState(app, 'requesting');
+            announce(app, '正在发送短码。');
+            window.setTimeout(() => {
+              if (app.dataset.auth !== 'requesting') return;
+              setAuthState(app, 'code-requested');
+              announce(app, '短码已发送，请输入短码。');
+              focusTarget(app, '.auth-code');
+            }, 650);
+          } else if (mode === 'code-expired') {
+            setAuthState(app, 'resending');
+            announce(app, '正在重新发送短码。');
+            window.setTimeout(() => {
+              if (app.dataset.auth !== 'resending') return;
+              setAuthState(app, 'resend-cooldown');
+              announce(app, '短码已重新发送。');
+              window.setTimeout(() => {
+                if (app.dataset.auth !== 'resend-cooldown') return;
+                setAuthState(app, 'code-requested');
+                announce(app, '请输入新的短码。');
+                focusTarget(app, '.auth-code');
+              }, 650);
+            }, 650);
+          } else if (mode === 'code-requested' || mode === 'verify-error' || mode === 'verify-network-error') {
+            setAuthState(app, 'verifying');
+            announce(app, '正在验证短码。');
+            window.setTimeout(() => {
+              if (app.dataset.auth !== 'verifying') return;
+              setAuthState(app, 'hydrating');
+              announce(app, '登录成功，正在恢复学习进度。');
+              window.setTimeout(() => {
+                if (app.dataset.auth !== 'hydrating') return;
+                setAuthState(app, 'ready');
+                goToCurrentLearning(app);
+              }, 650);
+            }, 650);
+          } else if (mode === 'hydration-error') {
+            setAuthState(app, 'hydrating');
+            announce(app, '正在重新恢复学习进度。');
+            window.setTimeout(() => {
+              if (app.dataset.auth !== 'hydrating') return;
+              setAuthState(app, 'ready');
+              goToCurrentLearning(app);
+            }, 650);
+          }
+        }
+        if (button.dataset.action === 'lock-submit') {
+          const correct = app.dataset.lockSubject === lockAnswer.subject && app.dataset.lockVerb === lockAnswer.verb && app.dataset.lockObject === lockAnswer.object;
+          app.dataset.lockResult = correct ? 'correct' : 'wrong';
+          syncLock(app);
+          announce(app, correct ? '主干已确认，可以继续下一张。' : '还有部分不正确，请修改后重试。');
+          focusTarget(app, correct ? '.screen-lock .atlas-next' : '.screen-lock .lock-row[data-row-state="wrong"] select');
+        }
+        if (button.classList.contains('elimination-fragment')) {
+          const picks = app.dataset.eliminationPicks ? app.dataset.eliminationPicks.split(',').filter(Boolean) : [];
+          const key = button.dataset.fragment;
+          const next = picks.includes(key) ? picks.filter(item => item !== key) : [...picks, key];
+          app.dataset.eliminationPicks = next.sort().join(',');
+          app.dataset.eliminationResult = 'idle';
+          syncElimination(app);
+        }
+        if (button.dataset.action === 'elimination-submit') {
+          const picks = app.dataset.eliminationPicks ? app.dataset.eliminationPicks.split(',').filter(Boolean).sort() : [];
+          app.dataset.eliminationResult = picks.join(',') === eliminationAnswer.join(',') ? 'correct' : 'wrong';
+          syncElimination(app);
+          announce(app, app.dataset.eliminationResult === 'correct' ? '剥离正确，可以继续下一张。' : '还有部分需要调整，请修改后重试。');
+          focusTarget(app, '.screen-elimination .atlas-next');
+        }
+        if (button.dataset.swipeChoice) {
+          commitSwipe(app, button.dataset.swipeChoice);
+        }
+        if (button.dataset.action === 'atlas-next') {
+          const next = button.dataset.nextScreen;
+          if (next === 'learning') resetChoice(app, (Number(app.dataset.taskIndex || 0) + 1) % choiceDeck.length);
+          else {
+            if (next === 'swipe') {
+              app.dataset.swipeResult = 'idle';
+              app.dataset.swipePhase = 'idle';
+            }
+            showScreen(app, next);
+          }
+        }
+        if (button.dataset.action === 'favorite') {
+          beginFavoriteOperation(app, state.favoriteOp === 'error' ? state.favoriteTarget : state.favorite === 'on' ? 'off' : 'on');
+        }
+        if (button.dataset.action === 'sleep') {
+          beginSleepOperation(app, 'sleep');
+        }
+        if (button.dataset.action === 'wake') {
+          beginSleepOperation(app, 'wake');
+        }
+      });
+
+      syncStates();
+    })();
+  </script>
+</body>
+</html>

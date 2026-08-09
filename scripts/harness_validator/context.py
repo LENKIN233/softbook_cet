@@ -196,6 +196,36 @@ class DeliveryContext(ReadOnlyContext):
                 raise CapabilityError(f"delivery Python validator is not allowlisted: {script}")
             return
 
+        if executable == "node":
+            if len(args) >= 2:
+                script = Path(args[1]).resolve()
+                batch0_validator = (
+                    self.root / "scripts" / "validate_mobile_ux_batch0_decision.mjs"
+                ).resolve()
+                batch1_validator = (
+                    self.root / "scripts" / "validate_mobile_ux_batch1_registry.mjs"
+                ).resolve()
+                batch1_v2_validator = (
+                    self.root
+                    / "scripts"
+                    / "validate_mobile_ux_batch1_freeze_candidate.mjs"
+                ).resolve()
+                if script == batch0_validator and len(args) == 2:
+                    return
+                if script == batch1_validator and tuple(args[2:]) == (
+                    "--require-tracked",
+                    "--json",
+                ):
+                    return
+                if script == batch1_v2_validator and tuple(args[2:]) == (
+                    "--require-tracked",
+                    "--json",
+                ):
+                    return
+            raise CapabilityError(
+                f"delivery Node validator is not allowlisted: {args!r}"
+            )
+
         raise CapabilityError(f"delivery command is not allowlisted: {args!r}")
 
 

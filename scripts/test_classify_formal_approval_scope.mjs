@@ -12,6 +12,38 @@ import { classifyFormalApprovalScope } from './classify_formal_approval_scope.mj
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
+const BATCH0_PROTECTED_PATHS = [
+  'docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/browser-evidence.md',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/checkpoint-contract.md',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/checkpoint-layering-decision-proposal.md',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/pc-web-v5-state-mapping.md',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/state-evidence-ledger.md',
+  'scripts/harness_validator/context.py',
+  'scripts/harness_validator/sections/pr_design_gate_regressions.py',
+  'scripts/test_validate_mobile_ux_batch0_decision.mjs',
+  'scripts/test_harness_module_boundaries.py',
+  'scripts/validate_mobile_ux_batch0_decision.mjs',
+  'scripts/validate_pr_design_gate.py',
+];
+
+const BATCH1_PROTECTED_PATHS = [
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/README.md',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/registry-set.v1.json',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-ba.registry.v1.json',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-cs.registry.v1.json',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-web.registry.v1.json',
+  'scripts/test_validate_mobile_ux_batch1_registry.mjs',
+  'scripts/validate_mobile_ux_batch1_registry.mjs',
+  'scripts/test_validate_mobile_ux_batch1_freeze_candidate.mjs',
+  'scripts/test_mobile_ux_batch1_manifest_contract.mjs',
+  'scripts/validate_mobile_ux_batch1_freeze_candidate.mjs',
+  'scripts/validate_mobile_ux_batch1_execution_manifest.mjs',
+  'scripts/validate_state_evidence_ledger.mjs',
+  'scripts/lib/mobile_ux_batch1_manifest_contract.mjs',
+  'docs/agent-runs/2026-08-10-mobile-ux-batch1-v2-schema-definition.md',
+];
+
 test('ordinary implementation changes do not require formal approval', () => {
   const result = classifyFormalApprovalScope([
     'apps/mobile/src/learning/LearningSurface.tsx',
@@ -45,6 +77,63 @@ test('launch records, evidence, validators, and workflows require approval', () 
 
   assert.equal(result.sensitive, true);
   assert.deepEqual(result.matched_paths, [...changed].sort());
+});
+
+test('each Batch 0 decision subject and design gate guard is sensitive alone', async t => {
+  for (const protectedPath of BATCH0_PROTECTED_PATHS) {
+    await t.test(protectedPath, () => {
+      const result = classifyFormalApprovalScope([protectedPath]);
+
+      assert.equal(result.sensitive, true);
+      assert.deepEqual(result.changed_paths, [protectedPath]);
+      assert.deepEqual(result.matched_paths, [protectedPath]);
+      assert.deepEqual(result.invalid_paths, []);
+    });
+  }
+});
+
+test('each Batch 1 preparation subject and guard is sensitive alone', async t => {
+  for (const protectedPath of BATCH1_PROTECTED_PATHS) {
+    await t.test(protectedPath, () => {
+      const result = classifyFormalApprovalScope([protectedPath]);
+
+      assert.equal(result.sensitive, true);
+      assert.deepEqual(result.changed_paths, [protectedPath]);
+      assert.deepEqual(result.matched_paths, [protectedPath]);
+      assert.deepEqual(result.invalid_paths, []);
+    });
+  }
+});
+
+test('Batch 1 protection does not overmatch similarly named directories', () => {
+  const result = classifyFormalApprovalScope([
+    'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-10/registry-set.v1.json',
+    'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1ish/registry-set.v1.json',
+  ]);
+
+  assert.equal(result.sensitive, false);
+  assert.deepEqual(result.matched_paths, []);
+});
+
+test('a Batch 0 protected path remains sensitive when mixed with UI changes', () => {
+  const protectedPath =
+    'docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md';
+  const uiPath = 'apps/mobile/src/learning/LearningSurface.tsx';
+  const result = classifyFormalApprovalScope([uiPath, protectedPath]);
+
+  assert.equal(result.sensitive, true);
+  assert.deepEqual(result.changed_paths, [uiPath, protectedPath].sort());
+  assert.deepEqual(result.matched_paths, [protectedPath]);
+});
+
+test('Batch 0 exact paths reject similarly named path and suffix spoofs', () => {
+  const result = classifyFormalApprovalScope([
+    'docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md.bak',
+    'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/checkpoint-contract.md/child',
+  ]);
+
+  assert.equal(result.sensitive, false);
+  assert.deepEqual(result.matched_paths, []);
 });
 
 test('renamed sensitive paths remain sensitive through previous filenames', () => {
@@ -125,6 +214,34 @@ test('GitHub file input fails closed when API pagination is truncated', t => {
   assert.match(result.stderr, /changed-file list is incomplete/);
 });
 
+test('GitHub file input fails closed on duplicate filenames across pages', t => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-formal-scope-'));
+  t.after(() => fs.rmSync(tmp, { force: true, recursive: true }));
+  const files = path.join(tmp, 'files.json');
+  fs.writeFileSync(
+    files,
+    JSON.stringify([
+      [{ filename: 'apps/mobile/package.json' }],
+      [{ filename: 'apps/mobile/package.json' }],
+    ]),
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.join(ROOT, 'scripts', 'classify_formal_approval_scope.mjs'),
+      '--github-files',
+      files,
+      '--expected-count',
+      '2',
+    ],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /contains duplicate filename/);
+});
+
 test('GitHub file input rejects the API safety limit', t => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-formal-scope-'));
   t.after(() => fs.rmSync(tmp, { force: true, recursive: true }));
@@ -177,6 +294,78 @@ test('GitHub file input includes previous rename paths', t => {
 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(JSON.parse(result.stdout).sensitive, true);
+});
+
+test('GitHub rename cannot move a Batch 0 decision out of protected scope', t => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-formal-scope-'));
+  t.after(() => fs.rmSync(tmp, { force: true, recursive: true }));
+  const files = path.join(tmp, 'files.json');
+  const protectedPath =
+    'docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md';
+  fs.writeFileSync(
+    files,
+    JSON.stringify([
+      [
+        {
+          filename: 'docs/archive/mobile-ux-checkpoint-layering-decision-v1.md',
+          previous_filename: protectedPath,
+        },
+      ],
+    ]),
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.join(ROOT, 'scripts', 'classify_formal_approval_scope.mjs'),
+      '--github-files',
+      files,
+      '--expected-count',
+      '1',
+    ],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.sensitive, true);
+  assert.deepEqual(parsed.matched_paths, [protectedPath]);
+});
+
+test('GitHub rename cannot move a Batch 1 registry out of protected scope', t => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-formal-scope-'));
+  t.after(() => fs.rmSync(tmp, { force: true, recursive: true }));
+  const files = path.join(tmp, 'files.json');
+  const protectedPath =
+    'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/registry-set.v1.json';
+  fs.writeFileSync(
+    files,
+    JSON.stringify([
+      [
+        {
+          filename: 'docs/archive/mobile-ux-batch1-registry-set.v1.json',
+          previous_filename: protectedPath,
+        },
+      ],
+    ]),
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.join(ROOT, 'scripts', 'classify_formal_approval_scope.mjs'),
+      '--github-files',
+      files,
+      '--expected-count',
+      '1',
+    ],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.sensitive, true);
+  assert.deepEqual(parsed.matched_paths, [protectedPath]);
 });
 
 test('approval workflow classifies with trusted base code before protected approval', () => {

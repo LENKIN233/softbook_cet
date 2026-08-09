@@ -64,10 +64,17 @@ const checks = [
   'backend-contract',
   'dependency-security',
   'ios-release',
+  'android-release',
   'repo-health',
   'evidence-archive',
   'formal-approval',
 ];
+if (process.env.MISSING_ANDROID_RELEASE === 'true') {
+  checks.splice(checks.indexOf('android-release'), 1);
+}
+if (process.env.EXTRA_REQUIRED_CHECK === 'true') {
+  checks.push('unexpected-check');
+}
 if (args[0] === 'repo' && args[1] === 'view') {
   process.stdout.write(JSON.stringify({nameWithOwner: 'LENKIN233/softbook_cet'}));
 } else if (args[0] === 'api') {
@@ -189,7 +196,7 @@ if (args[0] === 'repo' && args[1] === 'view') {
     allow_rebase_merge: false,
   });
 
-  for (const [environment, expectedCode] of [
+  for (const [environment, expectedCode, expectedCheck] of [
     [{FORMAL_ADMIN_BYPASS: 'true'}, 'formal_approval_admin_bypass_enabled'],
     [{FORMAL_REVIEWER_MISSING: 'true'}, 'formal_approval_reviewer_drift'],
     [{FORMAL_EXTRA_TEAM: 'true'}, 'formal_approval_reviewer_drift'],
@@ -202,6 +209,16 @@ if (args[0] === 'repo' && args[1] === 'view') {
     [{AUTO_MERGE_DISABLED: 'true'}, 'auto_merge_disabled'],
     [{DELETE_BRANCH_DISABLED: 'true'}, 'merged_branch_auto_delete_disabled'],
     [{MERGE_METHOD_DRIFT: 'true'}, 'merge_methods_not_squash_only'],
+    [
+      {MISSING_ANDROID_RELEASE: 'true'},
+      'required_status_check_missing',
+      'android-release',
+    ],
+    [
+      {EXTRA_REQUIRED_CHECK: 'true'},
+      'unexpected_required_status_check',
+      'unexpected-check',
+    ],
     [{BRANCH_PROTECTION_FORBIDDEN: 'true'}, 'branch_protection_unavailable'],
     [{BRANCH_PROTECTION_MISSING: 'true'}, 'main_branch_unprotected'],
   ]) {
@@ -213,6 +230,10 @@ if (args[0] === 'repo' && args[1] === 'view') {
     const driftReport = JSON.parse(driftResult.stdout);
     assert.notEqual(driftResult.status, 0, `${expectedCode} must fail`);
     assert.ok(driftReport.errors.some(error => error.code === expectedCode));
+    if (expectedCheck) {
+      const finding = driftReport.errors.find(error => error.code === expectedCode);
+      assert.equal(finding.check, expectedCheck);
+    }
     if (expectedCode === 'branch_protection_unavailable') {
       const finding = driftReport.errors.find(error => error.code === expectedCode);
       assert.equal(finding.http_status, 403);

@@ -40,6 +40,7 @@ const scanRoots = [
   'docs/design/mocks',
   'docs/design/storyboards',
   'docs/design/search-runs',
+  'docs/design/ux-architecture',
 ];
 
 const visualReferenceFiles = ['docs/design/visual-reference.html'];
@@ -52,6 +53,8 @@ const excludedPathPatterns = [
 ];
 
 const textFilePattern = /\.(html|md|svg)$/;
+const learnerScriptFilePattern = /\.(m?js)$/;
+const learnerScriptRoots = ['docs/design/ux-architecture'];
 
 const metadataFieldPattern =
   /\b(?:space_metadata|spaceMetadata|box_ref|boxRef|template_box_prefix|templateBoxPrefix|box_id|boxId|track_availability|trackAvailability|resolved_box_prefixes|resolvedBoxPrefixes|card_template|cardTemplate|card_counts|cardCounts|template_track_placeholder|templateTrackPlaceholder|knowledge_ref|knowledgeRef|interaction_id|interactionId|auto_scoring|autoScoring|answer_key|answerKey|correct_option|correctOption|lock_pattern|lockPattern|correct_items|correctItems|correct_state|correctState|card_id|cardId|source_id|sourceId|source_label|sourceLabel|catalogCards|completedAt|usedHint|usedPeek|card_records|cardRecords|flipConfidence|selectedOptionId|lockSelections|eliminatedItemIds|swipeSelection|auth_token|authToken|access_token|accessToken|accessTokenExpiresAt|refresh_token|refreshToken|refreshExpiresAt|challenge_id|challengeId|session_id|sessionId|selection_id|selectionId|scheduler_version|schedulerVersion|scheduler_by_card_id|schedulerByCardId|next_due_at|nextDueAt|learning_acknowledged_at|learningAcknowledgedAt|token_type|tokenType|sms_code|phone_number|day_key|completed_at|used_hint|used_peek|is_favorited|is_sleeping|last_modified_at|lastModifiedAt|checked_in_today|favorite_count|learning_completed_count|pending_review_count|review_completed_count|sleeping_count|total_completed_count|counted_entry_count|countedEntryCount|last_experience_ended_by|recovery_prompt_visible|recoveryPromptVisible|trial_duration_days|trial_started_at_entry_count|trialStartedAtEntryCount|acknowledgedAt|sync_daily_progress|sync_space_state|sync_learning_state|start_membership_trial|refresh_membership|__softbook_mutation_queue|__softbook_learning_event_outbox_v1|__softbook_learning_event_outbox_v2|retryCount|apiKey|apiKeyHeader|baseUrl|remoteConfig|requestCodeEndpoint|verifyCodeEndpoint|dismissRecoveryEndpoint|entitlementEndpoint|purchaseEndpoint|startTrialEndpoint|trackQueryParam|contentManifest|contentManifestPublicKeys|__SOFTBOOK_CET_REMOTE_RUNTIME_PROFILE__|SOFTBOOK_CET_REMOTE_BASE_URL|SOFTBOOK_CET_REMOTE_API_KEY|SOFTBOOK_CET_CONTENT_MANIFEST_PUBLIC_KEYS|SOFTBOOK_CET_LEARNING_TRACK|SOFTBOOK_CET_AUTH_TOKEN|SOFTBOOK_CET_TEST_PHONE|SOFTBOOK_CET_TEST_CODE|SOFTBOOK_CET_SMOKE_ISOLATED_PHONE|SOFTBOOK_CET_SMOKE_WRITE|SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS|SOFTBOOK_CET_EXPECT_INITIAL_STAGE|SOFTBOOK_CET_EXPECT_START_TRIAL_STAGE|SOFTBOOK_CET_EXPECT_PURCHASE_STAGE|SOFTBOOK_CET_IOS_LAUNCH|SOFTBOOK_CET_IOS_DEVICE|SOFTBOOK_CET_IOS_SIMULATOR|SOFTBOOK_CET_IOS_BUNDLE_ID|SOFTBOOK_CET_METRO_PORT|SOFTBOOK_CET_STOP_METRO_ON_EXIT|SOFTBOOK_CET_MANUAL_TEST_PHONE|SOFTBOOK_CET_IOS_MAESTRO_FLOW|SOFTBOOK_CET_MAESTRO_PHONE|SOFTBOOK_CET_MAESTRO_CODE|IOS_SIMULATOR|IOS_DEVICE|IOS_BUNDLE_ID|METRO_PORT|STOP_METRO_ON_EXIT|SMS_CODE|MANUAL_TEST_PHONE|MAESTRO_FLOW|MAESTRO_PHONE|MAESTRO_CODE|CLOUDBASE_COLLECTIONS|cardSources|dailyProgress|learningStates|learningSessions|memberships|spaceStates|softbook_card_sources|softbook_daily_progress|softbook_learning_states|softbook_learning_sessions|softbook_memberships|softbook_space_states|getCardSource|getMembership|startTrial|dismissRecovery|saveDailyProgress|saveLearningState|saveSpaceState|acknowledged_at|updated_at|events_by_card_id|states_by_card_id|documentId|eventsByCardId|statesByCardId|server_sequence|eventObject|stateObject|not_found|invalid_api_key|invalid_sms_code|invalid_track|DOCUMENT_NOT_EXIST|invalid_card_source|missing_auth_token|invalid_auth_token|expired_auth_token|phone_number_mismatch|internal_error|invalid_request|invalid_json|isBase64Encoded|tokenSecret|tokenTtlSeconds|issuedAt|encodedPayload|expectedSignature|leftBuffer|rightBuffer|trial_available|lock_slots|elimination_items|swipe_states|optionIds|lockSlots|eliminationItems|swipeStates|defaultCardSource|expectedTrack|hintLayer|headers|httpMethod|rawPath|rawQueryString|queryStringParameters|queryString|pathname|v1Index|fieldName|statusCode|requestContext|defaultApi|overrideValue|envValue|storeMode|DEFAULT_SMS_CODE|DEFAULT_TRIAL_DURATION_DAYS|DEFAULT_TOKEN_TTL_SECONDS|DEFAULT_CARD_SOURCE|getDefaultApi|createSoftbookApi|handleCloudBaseEvent|handleHttpRequest|handleRequestCode|handleVerifyCode|handleLearningCardSource|sendJson|createAuthToken|verifyAuthToken|httpError|getHeader|requireObjectBody|requireObject|requireArray|requirePhoneNumber|requireBoolean|requireIsoTimestamp|requireAuthSession|requireNonEmptyString|requireDayKey|requireNonNegativeInteger|requireInteractionId|requireLearningOutcome|requireEnum|parseJson|resolveTokenTtlSeconds|isApiKeyAllowed|assertBodyPhoneMatchesSession|signTokenPayload|base64UrlEncode|base64UrlDecode|safeEqual|parseDailyProgressSnapshot|parseLearningStateSnapshot|parseSpaceStateSnapshot|acknowledgedResponse|parseCloudBaseEvent|parseEventBody|normalizeApiPath|normalizeHeaders|normalizeQuery|parseQueryString|toCloudBaseResponse|jsonResponse|errorResponse|createDefaultStore|createMemoryStore|createCloudBaseStore|createCloudBaseDatabase|getCloudBaseMembership|saveCloudBaseMembership|deserializeMembershipDocument|createInitialMembership|cloneMembership|serializeMembershipEntitlement|getCloudBaseDocument|setCloudBaseDocument|isCloudBaseDocumentMissingError|createCloudBaseDocumentId|getCardRecordsForTrack|CET4_CARD_RECORDS|CET6_CARD_RECORDS|createDefaultCardSource|cloneCardSource|serializeCardSourceResponse|validateCardSourceForImport|normalizeCardSource|normalizeCardRecord|requireCardSourceObject|requireCardSourceArray|requireCardSourceString|requireCardSourcePattern|requireCardSourceTrack|cardSourceError|cloneJson|DEFAULT_ENV_ID|COLLECTION_NAME|DEFAULT_TRACKS|ENV_ID|FUNCTION_NAME|HTTP_PATH|DEFAULT_OUTPUT|DEFAULT_FLOW_DIR|useIsolatedPhone|phoneNumber|smsCode|authTokenFromEnv|enableWrites|enableMembershipMutations|expectedInitialStage|expectedStartTrialStage|expectedPurchaseStage|authHeaders|remoteHeaders|returnedPhoneNumber|requestSmsCode|verifySmsCode|syncDailyProgress|syncLearningState|syncSpaceState|postJson|REQUIRED_CORE_INTERACTIONS|missingInteractions|validateCardRecord|assertPattern|assertTrack|assertArrayLength|assertNonEmptyArray|assertCoreInteractionCoverage|loadMembershipEntitlement|loadLearningCardSource|runMembershipMutation|assertExpectedStage|expectedStage|startMembershipTrial|purchaseMembership|dismissMembershipRecovery|parseEntitlement|assertOk|assertObject|assertString|assertNonNegativeInteger|assertPositiveInteger|normalizeBaseUrl|todayKey|createIsolatedPhoneNumber|firstCard|returnedTrack|itemIds|featureModes|learningTrack|learningSource|progressSync|spaceState|learningState|track)\b/i;
@@ -73,6 +76,33 @@ function normalizeCamelCaseText(text) {
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 }
 
+// spec/knowledge-map.json owns these canonical library names. In learner-facing
+// UI, the public label is the canonical name plus “馆”. Mask only those exact
+// public forms before checking raw library names; group/box labels, ids,
+// metadata fields, and standalone library names remain subject to quarantine.
+const canonicalPublicLibraryLabels = [
+  '听力馆',
+  '仔细阅读馆',
+  '选词填空馆',
+  '写作馆',
+  '翻译馆',
+  '词汇馆',
+  '语法馆',
+];
+
+function maskCanonicalPublicLibraryLabels(text) {
+  return canonicalPublicLibraryLabels.reduce(
+    (masked, label) => masked.replaceAll(label, 'PUBLIC_LIBRARY_LABEL'),
+    text,
+  );
+}
+
+const rawStandaloneChineseLibraryPattern =
+  /(?<!\p{Script=Han})(?:仔细阅读|选词填空|听力|写作|翻译|词汇|语法|阅读)(?!\p{Script=Han})/u;
+
+const rawStandaloneChineseGroupOrBoxPattern =
+  /(?<!\p{Script=Han})(?:长难句关键修饰|阅读高频词|词义辨析组|语义关系盒|同义词替换|句式替换|长难句主干|逻辑关系|转折关系|主谓宾|高频词|定语)(?!\p{Script=Han})/u;
+
 const leakagePatterns = [
   {
     pattern: /#(?:5b6df5|ff8a3d|b568f5|18c4e0|f15b6e)\b/i,
@@ -85,17 +115,26 @@ const leakagePatterns = [
   },
   {
     pattern:
-      /(?:group-1|\bbox\s+id\b|\bcard\s+id\b|Detail Evidence|argument support|Current drawer|Original box|same box sibling|Very Long Detail Evidence|Long Detail Evidence|词义辨析组|语义关系盒|逻辑关系|转折关系|长难句主干|长难句关键修饰|主谓宾|定语|同义词替换|句式替换|高频词|阅读高频词)/i,
+      /(?:group-1|\bbox\s+id\b|\bcard\s+id\b|Detail Evidence|argument support|Current drawer|Original box|same box sibling|Very Long Detail Evidence|Long Detail Evidence)/i,
     reason: 'raw semantic group/box/card label in visual design artifact',
+  },
+  {
+    pattern: rawStandaloneChineseGroupOrBoxPattern,
+    reason: 'standalone raw Chinese group/box label in visual design artifact',
   },
   {
     pattern: /\bCET[46]\b(?!\/6)/i,
     reason: 'raw CET track value in visual design artifact',
   },
   {
-    pattern:
-      /(?:听力|阅读|写作|翻译|词汇|仔细阅读|快速阅读|定位词抓取|细节题|细节定位盒)/,
-    reason: 'raw Chinese library/group/box label in visual design artifact',
+    pattern: rawStandaloneChineseLibraryPattern,
+    normalize: maskCanonicalPublicLibraryLabels,
+    reason: 'standalone raw Chinese library label in visual design artifact',
+  },
+  {
+    pattern: /(?:阅读馆|快速阅读|定位词抓取|细节题|细节定位盒)/,
+    normalize: maskCanonicalPublicLibraryLabels,
+    reason: 'raw Chinese group/box or non-canonical library label in visual design artifact',
   },
   {
     pattern:
@@ -141,6 +180,29 @@ const visibleHtmlLeakagePatterns = [
   {
     pattern: /\b(?:docs|apps|scripts|spec|infra)\/[A-Za-z0-9_./-]+/i,
     reason: 'repo path in rendered visual proof',
+  },
+];
+
+const learnerSurfaceLeakagePatterns = [
+  {
+    pattern: /本(?:证明|原型|测试|审查)|服务端|本地计数|完整算法|当前知识对象|当前对象|共享同一个知识对象/,
+    reason: 'review, implementation, or data-model language in learner surface',
+  },
+  {
+    pattern: /主动作|焦点(?:已|回到|移到)|重复操作|已阻止|状态已退出|操作已收起|拥有当前卡|仍由[^。；]*拥有/,
+    reason: 'QA or state-machine narration in learner surface',
+  },
+  {
+    pattern: /第\s*\d+\s*盒/,
+    reason: 'raw numeric box reference in learner surface',
+  },
+  {
+    pattern: /(?:未越过|越过)阈值|方向键预览|回车提交|键盘可用|按\s*Escape/,
+    reason: 'test-input instruction in learner surface',
+  },
+  {
+    pattern: /认证门|自动内联解析/,
+    reason: 'internal interaction or routing label in learner surface',
   },
 ];
 
@@ -209,6 +271,115 @@ function visibleHtmlText(source) {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function structuralHtmlSource(source) {
+  return source
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[\s\S]*?<\/style>/gi, ' ');
+}
+
+function hasHtmlAttribute(attributeSource, attributeName) {
+  const attributePattern =
+    /(?:^|\s)([^\s"'<>\/=]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?/g;
+  let match;
+
+  while ((match = attributePattern.exec(attributeSource)) !== null) {
+    if (match[1].toLowerCase() === attributeName) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function learnerSurfaceMarkup(source) {
+  const values = [];
+  const templatePattern =
+    /<template\b((?:[^"'<>]|"[^"]*"|'[^']*')*)>([\s\S]*?)<\/template\s*>/gi;
+  let match;
+
+  const structuralSource = structuralHtmlSource(source);
+  while ((match = templatePattern.exec(structuralSource)) !== null) {
+    if (hasHtmlAttribute(match[1], 'data-learner-surface')) {
+      values.push(match[2]);
+    }
+  }
+
+  return values.join(' ');
+}
+
+function hasStructuralLearnerSurfaceMarker(source) {
+  const elementPattern =
+    /<([A-Za-z][A-Za-z0-9:-]*)\b((?:[^"'<>]|"[^"]*"|'[^']*')*)>/g;
+  let match;
+
+  const structuralSource = structuralHtmlSource(source);
+  while ((match = elementPattern.exec(structuralSource)) !== null) {
+    if (
+      match[1].toLowerCase() === 'main' &&
+      hasHtmlAttribute(match[2], 'data-learner-surface')
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function htmlDocumentAudience(source) {
+  const structuralSource = structuralHtmlSource(source);
+  const elementPattern =
+    /<([A-Za-z][A-Za-z0-9:-]*)\b((?:[^"'<>]|"[^"]*"|'[^']*')*)>/g;
+  const bodyAttributeSources = [];
+  let elementMatch;
+
+  while ((elementMatch = elementPattern.exec(structuralSource)) !== null) {
+    if (elementMatch[1].toLowerCase() === 'body') {
+      bodyAttributeSources.push(elementMatch[2]);
+    }
+  }
+
+  // Fail closed when malformed source contains zero or multiple structural
+  // body elements. In particular, reviewer classification must never come
+  // from a body-looking string in a comment, script, style, or attribute.
+  if (bodyAttributeSources.length !== 1) {
+    return '';
+  }
+
+  const audienceValues = [];
+  const attributePattern =
+    /(?:^|\s)([^\s"'<>\/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+  let attributeMatch;
+
+  while (
+    (attributeMatch = attributePattern.exec(bodyAttributeSources[0])) !== null
+  ) {
+    if (attributeMatch[1].toLowerCase() === 'data-audience') {
+      audienceValues.push(
+        attributeMatch[2] ?? attributeMatch[3] ?? attributeMatch[4] ?? '',
+      );
+    }
+  }
+
+  if (audienceValues.length !== 1) {
+    return '';
+  }
+
+  return audienceValues[0].trim().toLowerCase();
+}
+
+function inlineScriptSource(source) {
+  const values = [];
+  const scriptPattern = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+  let match;
+
+  while ((match = scriptPattern.exec(source)) !== null) {
+    values.push(match[1]);
+  }
+
+  return values.join(' ');
 }
 
 const visibleAttributeNames = [
@@ -352,27 +523,44 @@ function cssGeneratedText(source) {
 
 function scanText(filePath, source) {
   const suffix = path.extname(filePath).toLowerCase();
+  const explicitReviewerHtml =
+    suffix === '.html' && htmlDocumentAudience(source) === 'reviewer';
+  const visibleRules = explicitReviewerHtml
+    ? leakagePatterns
+    : [...leakagePatterns, ...visibleHtmlLeakagePatterns];
   const scanTargets =
     suffix === '.html' || suffix === '.svg'
       ? [
           {
             kind: 'visible text',
             text: visibleHtmlText(source),
-            rules: [...leakagePatterns, ...visibleHtmlLeakagePatterns],
+            rules: visibleRules,
           },
           {
             kind: 'accessibility text',
             text: visibleAttributeText(source),
-            rules: [...leakagePatterns, ...visibleHtmlLeakagePatterns],
+            rules: visibleRules,
           },
           {
             kind: 'generated content',
             text: cssGeneratedText(source),
-            rules: [...leakagePatterns, ...visibleHtmlLeakagePatterns],
+            rules: visibleRules,
           },
           { kind: 'source token', text: source, rules: leakagePatterns },
         ]
-      : [{ kind: 'markdown text', text: source, rules: leakagePatterns }];
+      : suffix === '.js' || suffix === '.mjs'
+        ? [
+            {
+              kind: 'learner script source',
+              text: source,
+              rules: [
+                ...leakagePatterns,
+                ...visibleHtmlLeakagePatterns,
+                ...learnerSurfaceLeakagePatterns,
+              ],
+            },
+          ]
+        : [{ kind: 'markdown text', text: source, rules: leakagePatterns }];
   const findings = [];
 
   for (const target of scanTargets) {
@@ -425,6 +613,103 @@ function scanVisibleHtmlProcessText(filePath, source) {
   return findings;
 }
 
+function scanLearnerSurfaceCopy(filePath, source) {
+  const documentAudience = htmlDocumentAudience(source);
+  const learnerTemplateMarkup = learnerSurfaceMarkup(source);
+  const hasLearnerTemplate = learnerTemplateMarkup.length > 0;
+  const hasStructuralLearnerRoot = hasStructuralLearnerSurfaceMarker(source);
+  const hasLearnerSurfaceMarker =
+    hasLearnerTemplate || hasStructuralLearnerRoot;
+
+  // A structural learner application root is publishable learner content, not
+  // a reviewer-template convenience. It must be owned by exactly one learner
+  // body. Missing, duplicate, conflicting, reviewer, or multi-body audience
+  // markup therefore fails closed before any copy-scoping decision.
+  if (hasStructuralLearnerRoot && documentAudience !== 'learner') {
+    return [
+      {
+        filePath,
+        kind: 'learner boundary',
+        line: 1,
+        reason:
+          'structural learner root requires exactly one data-audience="learner" body',
+        text: 'data-learner-surface',
+      },
+    ];
+  }
+
+  if (!hasLearnerSurfaceMarker && documentAudience !== 'learner') {
+    return [];
+  }
+
+  if (!hasLearnerSurfaceMarker) {
+    return [
+      {
+        filePath,
+        kind: 'learner boundary',
+        line: 1,
+        reason: 'learner document is missing the required data-learner-surface marker',
+        text: 'data-audience="learner"',
+      },
+    ];
+  }
+
+  const reviewerOnlyShell = documentAudience === 'reviewer';
+  const staticScope = reviewerOnlyShell ? learnerTemplateMarkup : source;
+  const scanTargets = [
+    { kind: 'learner-visible text', text: visibleHtmlText(staticScope) },
+    { kind: 'learner accessibility text', text: visibleAttributeText(staticScope) },
+  ];
+
+  // A reviewer shell may intentionally contain audit narration in its own CSS
+  // and JavaScript. Its marked learner template is still scanned above, while
+  // a learner or unmarked document fails closed across all generated/dynamic
+  // copy. The publishable preview is independently marked data-audience=learner.
+  if (!reviewerOnlyShell) {
+    scanTargets.push(
+      { kind: 'learner generated content', text: cssGeneratedText(source) },
+      { kind: 'learner dynamic copy', text: inlineScriptSource(source) },
+    );
+  }
+  const findings = [];
+
+  const relativePath = path.relative(repoRoot, filePath).replaceAll(path.sep, '/');
+  if (
+    documentAudience === 'learner' &&
+    relativePath.startsWith('docs/design/ux-architecture/')
+  ) {
+    const commentPattern = /<!--([\s\S]*?)-->/g;
+    let commentMatch;
+    while ((commentMatch = commentPattern.exec(source)) !== null) {
+      const commentText = commentMatch[1].replace(/\s+/g, ' ').trim();
+      if (!commentText) continue;
+      findings.push({
+        filePath,
+        kind: 'learner source boundary',
+        line: source.slice(0, commentMatch.index).split(/\r?\n/).length,
+        reason: 'learner architecture document contains non-rendered commentary',
+        text: commentText.slice(0, 220),
+      });
+    }
+  }
+
+  for (const target of scanTargets) {
+    for (const rule of learnerSurfaceLeakagePatterns) {
+      if (rule.pattern.test(target.text)) {
+        findings.push({
+          filePath,
+          kind: target.kind,
+          line: 1,
+          reason: rule.reason,
+          text: target.text.replace(/\s+/g, ' ').trim().slice(0, 220),
+        });
+      }
+    }
+  }
+
+  return findings;
+}
+
 const files = scanRoots
   .flatMap(root => walk(path.join(repoRoot, root)))
   .filter(filePath => {
@@ -432,12 +717,51 @@ const files = scanRoots
     return !excludedPathPatterns.some(pattern => pattern.test(relativePath));
   });
 
+const learnerScriptFiles = [
+  ...new Set(
+    files
+      .filter(filePath => path.extname(filePath).toLowerCase() === '.html')
+      .flatMap(filePath => {
+        const source = fs.readFileSync(filePath, 'utf8');
+        if (htmlDocumentAudience(source) !== 'learner') return [];
+
+        const referencedScripts = [];
+        const scriptSourcePattern = /<script\b[^>]*\bsrc\s*=\s*(["'])([^"']+)\1[^>]*>/gi;
+        let match;
+        while ((match = scriptSourcePattern.exec(source)) !== null) {
+          const rawSource = match[2].trim();
+          if (!rawSource || /^(?:[a-z]+:)?\/\//i.test(rawSource)) continue;
+          const cleanSource = rawSource.split(/[?#]/, 1)[0];
+          const resolvedPath = path.resolve(path.dirname(filePath), cleanSource);
+          const relativePath = path.relative(repoRoot, resolvedPath);
+          const isInLearnerScriptRoot = learnerScriptRoots.some(root =>
+            relativePath === root || relativePath.startsWith(`${root}${path.sep}`),
+          );
+          if (
+            isInLearnerScriptRoot &&
+            learnerScriptFilePattern.test(resolvedPath) &&
+            fs.existsSync(resolvedPath)
+          ) {
+            referencedScripts.push(resolvedPath);
+          }
+        }
+        return referencedScripts;
+      }),
+  ),
+];
+
 const visualReferencePaths = visualReferenceFiles
   .map(filePath => path.join(repoRoot, filePath))
   .filter(filePath => fs.existsSync(filePath));
 
 const findings = [
   ...files.flatMap(filePath =>
+    scanText(filePath, fs.readFileSync(filePath, 'utf8')),
+  ),
+  ...files.flatMap(filePath =>
+    scanLearnerSurfaceCopy(filePath, fs.readFileSync(filePath, 'utf8')),
+  ),
+  ...learnerScriptFiles.flatMap(filePath =>
     scanText(filePath, fs.readFileSync(filePath, 'utf8')),
   ),
   ...visualReferencePaths.flatMap(filePath =>

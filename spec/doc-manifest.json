@@ -1,5 +1,5 @@
 {
-  "version": "vnext-9",
+  "version": "vnext-10",
   "active_documents": [
     {
       "path": "AGENTS.md",
@@ -405,6 +405,33 @@
       "status": "active"
     },
     {
+      "path": "docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+      "authority": "protected_product_owner_governance_decision",
+      "audience": [
+        "agent",
+        "designer",
+        "engineer",
+        "reviewer"
+      ],
+      "load_when": [
+        "mobile_ux_checkpoint_task",
+        "mobile_visual_design_task",
+        "cross_platform_evidence_task",
+        "design_review_task"
+      ],
+      "depends_on": [
+        "spec/authority-map.json",
+        "spec/repo-delivery-contract.json",
+        "spec/visual-language.json",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/checkpoint-contract.md",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/checkpoint-layering-decision-proposal.md",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/state-evidence-ledger.md",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/browser-evidence.md",
+        "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/pc-web-v5-state-mapping.md"
+      ],
+      "status": "active"
+    },
+    {
       "path": "docs/design/mapping/learning-space-implementation-map-v1.md",
       "authority": "implementation_mapping",
       "audience": [
@@ -755,6 +782,30 @@
       "depends_on": [
         "docs/design/design-harness.md",
         "docs/design/briefs/learning-space-worldview.md"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/rejected/mobile-visual-directions-product-owner-veto-2026-08-08.md",
+      "authority": "design_rejection_record",
+      "audience": [
+        "agent",
+        "designer",
+        "engineer",
+        "reviewer"
+      ],
+      "load_when": [
+        "mobile_visual_design_task",
+        "mobile_user_facing_ui_implementation",
+        "mobile_design_review_task",
+        "major_redesign_task"
+      ],
+      "depends_on": [
+        "spec/authority-map.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md",
+        "docs/design/design-quarantine.md",
+        "docs/design/single-card-ux-contract.md"
       ],
       "status": "active"
     },

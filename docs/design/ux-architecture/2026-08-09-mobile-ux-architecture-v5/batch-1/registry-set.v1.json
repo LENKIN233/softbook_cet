@@ -1,0 +1,737 @@
+{
+  "schema_version": "mobile-ux-batch1-registry-set.v1",
+  "registry_id": "mobile-ux-architecture-v5-batch1",
+  "classification": "implementation_hypothesis",
+  "subject_class": "registry_preparation",
+  "phase": "batch_0b_preparation_only",
+  "repository": "LENKIN233/softbook_cet",
+  "preparation_basis_activation": {
+    "decision_path": "docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+    "decision_sha256": "2c0ab641f1ebc465db963af5b18db8ea8fa9a4eb3fceb196a340c3474c8054dd",
+    "batch0_subject_digest": "92507e6f4f8fe523c83ab21ddae42dc119c4ed172393705d3d671c431673755b",
+    "approval_instance_digest": "583b7c571292b4f4fcdddf0982da34245471d047a8c5d42cb86c7520ee5224a7",
+    "approval_head": "ac7e124f0385cf100b74a6b24e44ad3b3dad1ec8",
+    "pull_request": 484,
+    "workflow_run_id": 31322774545,
+    "deployment_id": 5820417644,
+    "environment_id": 18348068326,
+    "decision_owner": "github:LENKIN233#113219944",
+    "deployment_success_at": "2026-08-09T16:04:58Z"
+  },
+  "current_authority_requirement": {
+    "kind": "unresolved",
+    "requirement_id": "current-exact-head-protected-preparation-decision",
+    "reason_code": "sensitive_classifier_drift_requires_new_exact_head_approval"
+  },
+  "source_bindings": [
+    {
+      "path": "docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md",
+      "sha256": "2c0ab641f1ebc465db963af5b18db8ea8fa9a4eb3fceb196a340c3474c8054dd"
+    },
+    {
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/checkpoint-contract.md",
+      "sha256": "c7ec113f1b57fa40d8e246d117a04d99fd7734338368375632cf1ccb9ae18c0c"
+    },
+    {
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/grayscale-ux-state-contract.md",
+      "sha256": "465adb4d50e85ab06c1f48eb151dffa2f3dbcc797e0fdaedfaf7f99c99dcbf8c"
+    },
+    {
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/state-evidence-ledger.md",
+      "sha256": "d3a1ad9a5f53e058faee3ca6e00357ba518665efbbd371986d6e61c3a269c381"
+    },
+    {
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/platform-architecture.md",
+      "sha256": "7fbddae5ce3821ad487201607e646cfb806cffebb2932b299e9b92eddadcb4d8"
+    },
+    {
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/pc-web-v5-state-mapping.md",
+      "sha256": "508571e9d3bf6832da53cbfd197e7c09d04acc4a7ae16b8ce8212f784e8e0157"
+    },
+    {
+      "path": "docs/design/decisions/pc-web-core-surface-decision-v1.md",
+      "sha256": "e8edf63053e2ff8616accf18720b893254a2c14a8025243662eb1c3859ba30fc"
+    },
+    {
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/grayscale-proofs/ios-phone.html",
+      "sha256": "004ceb82688c9f7abf797437994b607e9a48226a037ca1cc8a791d5c0e6483ec"
+    },
+    {
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/grayscale-proofs/android-phone.html",
+      "sha256": "8dabbd4e52c3506fef1a64fc9dcbaa6cab2571b96f7989cad4cd108f1818028f"
+    },
+    {
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/grayscale-proofs/ipados-tablet.html",
+      "sha256": "89b9fd2b29619b35f9ba727f85fd6d8d4901890ea46eedee2586dcb9094165de"
+    },
+    {
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/grayscale-proofs/android-tablet.html",
+      "sha256": "c8fe48f90d0cbf5a59fd08ee1f0f77b3cab87f475d664511616af4f1d4a8a6d3"
+    },
+    {
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/access-profile-proofs/access-standard.html",
+      "sha256": "368ee171b1a737fef413afbe1341f256384ce931be22e547ab9682b31f294d8d"
+    },
+    {
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/access-profile-proofs/access-managed.html",
+      "sha256": "d25b447fde5f45ad629a04e00e034a2eb87b605f5ebd3a83586806713109199e"
+    },
+    {
+      "path": "apps/mobile/ios/SoftbookCET.xcodeproj/project.pbxproj",
+      "sha256": "8b307e3f2cc1b0803ba2cbf3c4888942b88beee7df010d76ef7de376152e3d54"
+    },
+    {
+      "path": "apps/mobile/android/app/build.gradle",
+      "sha256": "165f883baa291246578a2bb6ccf0783959fee221beaf806b4324f3fa058d2208"
+    },
+    {
+      "path": "apps/web/package.json",
+      "sha256": "f0a9d04e0bb973dc447460dc0c538615297314cda6525b7abf716c9b24335872"
+    },
+    {
+      "path": "infra/cloudbase/functions/softbook-api/package.json",
+      "sha256": "759654f3ce6f3caf4256869fd384c68bb4bc9f53f7f3a015cbab0100ef8fdb62"
+    },
+    {
+      "path": "spec/requirement-memory.json",
+      "sha256": "cf380a69dac0b9a6866cddf6b4ef6d539ef55b1a719c024318ce131e048c1aba"
+    },
+    {
+      "path": "spec/authority-map.json",
+      "sha256": "f102e3a1240e1d82b187113a4e8ef417b9ccc17fdb59201ca90d8093a6c667df"
+    },
+    {
+      "path": "spec/product-core.json",
+      "sha256": "386b655a1e73babf81390650c34ab7fbea36b224148d8c36527da3a60588d81a"
+    },
+    {
+      "path": "spec/platform-contract.json",
+      "sha256": "076673e73ed777ca54bd853cb0135ecbfd585d8b869e772e6a988a379a8ed262"
+    },
+    {
+      "path": "spec/account-sync-contract.json",
+      "sha256": "3c90237d4e5c252fd6b713eb2521f2a09dc5ee8ba247997d68df7ca66e2dd43f"
+    },
+    {
+      "path": "spec/action-surface.json",
+      "sha256": "ff8ec445feab69ec085e023d4c74f98c8290c04425a0cd8fbc8322140bb90edd"
+    },
+    {
+      "path": "spec/card-system.json",
+      "sha256": "e511e3f66458bd116667a7e1a434496c308d72f41a6c9f7f66473abc5379ea4e"
+    },
+    {
+      "path": "spec/interactions.json",
+      "sha256": "05d2b4c091c342abccae5060daa14746ba8157a4e7b3da2e4a2c70195b47ed29"
+    },
+    {
+      "path": "spec/knowledge-map.json",
+      "sha256": "f57e9bc895bd9b281300d23af1fd5f83223aaadc3051420a9828e3fc0f38525e"
+    },
+    {
+      "path": "spec/space-operations.json",
+      "sha256": "e30b6df752abfc9b8fa1e941c21654836723f8d9066a02a0840f4932d6c0b971"
+    },
+    {
+      "path": "spec/box-catalog.json",
+      "sha256": "301b336f68b50be9d3ef75861a336dc65c42e549f78b552a62d6280d712be42a"
+    },
+    {
+      "path": "spec/membership.json",
+      "sha256": "36c95434da787556052b5aeb12e3efd27bff43cede500b9f70b24c9f7d9ae7c0"
+    },
+    {
+      "path": "spec/runtime-boundaries.json",
+      "sha256": "a69d9d22cac694bc67e7e64e9537b96b2a23a94fae14afa9e5b3d6241a2eff88"
+    },
+    {
+      "path": "spec/visual-language.json",
+      "sha256": "1e509f0059ffe208930bccb331046c5b389e57bfdc10ee55c42486d8101042f7"
+    },
+    {
+      "path": "infra/cloudbase/auth-v2-runtime-contract.md",
+      "sha256": "49ed555c110ef1d3f560a4bae2e9ad0802b762bfdeeb8d0ed34864b180b24a72"
+    },
+    {
+      "path": "infra/cloudbase/bootstrap-v2-runtime-contract.md",
+      "sha256": "70a36fc05aedef4ca951bf13aec4d8a3af8f2df2213fb1ba48393e0c952925b9"
+    },
+    {
+      "path": "infra/cloudbase/learning-events-v2-runtime-contract.md",
+      "sha256": "5083356a00c811b19756d87adfd1c4f4d3d4ad9b39f1c9e3b9755cd417fd4ab0"
+    },
+    {
+      "path": "infra/cloudbase/learning-session-v1-runtime-contract.md",
+      "sha256": "0068a78b3cbacc11a8b964ea97dc4a9abaccc9670a242850d67d1df451ba4e61"
+    },
+    {
+      "path": "infra/cloudbase/space-actions-v2-runtime-contract.md",
+      "sha256": "51c66d5dbd59733fa7a760e90dc548c5d60438521e9f9cbc51685802a44907be"
+    },
+    {
+      "path": "infra/cloudbase/content-manifest-v1-runtime-contract.md",
+      "sha256": "a100552106bb21ae3aa4184df34faabd91abc2e47870d0d299d82c870e810ab3"
+    },
+    {
+      "path": "infra/cloudbase/beta-entitlement-v1-runtime-contract.md",
+      "sha256": "515d3928050e397ac8fcbb61ad76681265a12010752a04a409f8ff89776fc3e1"
+    },
+    {
+      "path": "docs/release/external-account-readiness.v1.json",
+      "sha256": "ecfc1cdb7351ad591da20412929b20fd7aabc0fc3e609988b277e8efa604b1d6"
+    },
+    {
+      "path": "spec/release-operational-policy.json",
+      "sha256": "f4f637437cee30b39cc6939ee2015128f89b72a4361f0d63ceaa4396a1f85d1d"
+    },
+    {
+      "path": "spec/repo-delivery-contract.json",
+      "sha256": "598036a12f63dc7e7e1045d65f9a829b84d8ad6e449fe2de84bd06f6bc324ce4"
+    },
+    {
+      "path": "spec/agent-harness.json",
+      "sha256": "a5d6074cc8234ab7ce1e899dd94133599d88f01df99d308457f3ba5f01eadbbc"
+    },
+    {
+      "path": "spec/evals.json",
+      "sha256": "c70a822937d34df243e9a2525ab8f5f1c09f4c861756295fc88a21e4462bbfee"
+    }
+  ],
+  "semantic_scope": {
+    "scope_id": "all_173_ledger_obligations",
+    "semantic_state_count": 160,
+    "forced_combination_count": 13,
+    "contract_id_title_owner_digest": "323c9f6eb4fbaf30296bde988f1a029c7c223c7a98326e5c90baef871d06746a",
+    "contract_semantic_digest": "f753ca396ee2870a35d9a4fa2696a0b070ff2a60c2a414b6ba1be7777abbb0f4",
+    "ledger_semantic_digest": "19d168a05e67c5b22502360dd55f7bd688633869f7b4389f9d78688779bcd1ca",
+    "pc_web_mapping_identity_digest": "b356f3d56115c443b2d89496733378b1c44886d16d69ec6a7623038ec9ea479b"
+  },
+  "required_roles": [
+    {
+      "role_id": "role-cp-ba-evidence-owner",
+      "checkpoint_id": "CP-BA",
+      "assignment": {
+        "kind": "unresolved",
+        "reason_code": "explicit_role_confirmation_missing"
+      }
+    },
+    {
+      "role_id": "role-cp-ba-independent-browser-reviewer",
+      "checkpoint_id": "CP-BA",
+      "assignment": {
+        "kind": "unresolved",
+        "reason_code": "independent_human_confirmation_missing"
+      }
+    },
+    {
+      "role_id": "role-cp-cs-aggregation-owner",
+      "checkpoint_id": "CP-CS",
+      "assignment": {
+        "kind": "unresolved",
+        "reason_code": "explicit_role_confirmation_missing"
+      }
+    },
+    {
+      "role_id": "role-cp-cs-independent-aggregation-verifier",
+      "checkpoint_id": "CP-CS",
+      "assignment": {
+        "kind": "unresolved",
+        "reason_code": "independent_human_confirmation_missing"
+      }
+    },
+    {
+      "role_id": "role-cp-web-evidence-owner",
+      "checkpoint_id": "CP-WEB",
+      "assignment": {
+        "kind": "unresolved",
+        "reason_code": "explicit_role_confirmation_missing"
+      }
+    },
+    {
+      "role_id": "role-cp-web-independent-behavior-reviewer",
+      "checkpoint_id": "CP-WEB",
+      "assignment": {
+        "kind": "unresolved",
+        "reason_code": "independent_human_confirmation_missing"
+      }
+    },
+    {
+      "role_id": "role-cp-web-independent-accessibility-reviewer",
+      "checkpoint_id": "CP-WEB",
+      "assignment": {
+        "kind": "unresolved",
+        "reason_code": "independent_human_confirmation_missing"
+      }
+    }
+  ],
+  "target_requirements": [
+    {
+      "target_id": "ba-ios-phone-browser",
+      "checkpoint_id": "CP-BA",
+      "target_class": "platform_framed_browser_document",
+      "platform_composition": "ios_phone",
+      "document_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/grayscale-proofs/ios-phone.html",
+      "candidate_system": {
+        "kind": "unresolved",
+        "reason_code": "browser_system_identity_missing"
+      }
+    },
+    {
+      "target_id": "ba-android-phone-browser",
+      "checkpoint_id": "CP-BA",
+      "target_class": "platform_framed_browser_document",
+      "platform_composition": "android_phone",
+      "document_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/grayscale-proofs/android-phone.html",
+      "candidate_system": {
+        "kind": "unresolved",
+        "reason_code": "browser_system_identity_missing"
+      }
+    },
+    {
+      "target_id": "ba-ipados-browser",
+      "checkpoint_id": "CP-BA",
+      "target_class": "platform_framed_browser_document",
+      "platform_composition": "ipados_tablet",
+      "document_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/grayscale-proofs/ipados-tablet.html",
+      "candidate_system": {
+        "kind": "unresolved",
+        "reason_code": "browser_system_identity_missing"
+      }
+    },
+    {
+      "target_id": "ba-android-tablet-browser",
+      "checkpoint_id": "CP-BA",
+      "target_class": "platform_framed_browser_document",
+      "platform_composition": "android_tablet",
+      "document_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/grayscale-proofs/android-tablet.html",
+      "candidate_system": {
+        "kind": "unresolved",
+        "reason_code": "browser_system_identity_missing"
+      }
+    },
+    {
+      "target_id": "ba-formal-access-shared-browser",
+      "checkpoint_id": "CP-BA",
+      "target_class": "shared_access_profile_browser_document",
+      "platform_composition": "shared_formal_access_profile",
+      "document_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/access-profile-proofs/access-standard.html",
+      "candidate_system": {
+        "kind": "unresolved",
+        "reason_code": "browser_system_identity_missing"
+      }
+    },
+    {
+      "target_id": "ba-managed-access-shared-browser",
+      "checkpoint_id": "CP-BA",
+      "target_class": "shared_access_profile_browser_document",
+      "platform_composition": "shared_managed_access_profile",
+      "document_path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/access-profile-proofs/access-managed.html",
+      "candidate_system": {
+        "kind": "unresolved",
+        "reason_code": "browser_system_identity_missing"
+      }
+    },
+    {
+      "target_id": "cs-ios-phone-client",
+      "checkpoint_id": "CP-CS",
+      "target_class": "real_client_system",
+      "platform_composition": "ios_phone",
+      "document_path": "apps/mobile/ios/SoftbookCET.xcodeproj/project.pbxproj",
+      "candidate_system": {
+        "kind": "unresolved",
+        "reason_code": "physical_device_and_build_identity_missing"
+      }
+    },
+    {
+      "target_id": "cs-android-phone-client",
+      "checkpoint_id": "CP-CS",
+      "target_class": "real_client_system",
+      "platform_composition": "android_phone",
+      "document_path": "apps/mobile/android/app/build.gradle",
+      "candidate_system": {
+        "kind": "unresolved",
+        "reason_code": "physical_device_and_build_identity_missing"
+      }
+    },
+    {
+      "target_id": "cs-ipados-client",
+      "checkpoint_id": "CP-CS",
+      "target_class": "real_client_system",
+      "platform_composition": "ipados_tablet",
+      "document_path": "apps/mobile/ios/SoftbookCET.xcodeproj/project.pbxproj",
+      "candidate_system": {
+        "kind": "unresolved",
+        "reason_code": "physical_device_and_build_identity_missing"
+      }
+    },
+    {
+      "target_id": "cs-android-tablet-client",
+      "checkpoint_id": "CP-CS",
+      "target_class": "real_client_system",
+      "platform_composition": "android_tablet",
+      "document_path": "apps/mobile/android/app/build.gradle",
+      "candidate_system": {
+        "kind": "unresolved",
+        "reason_code": "physical_device_and_build_identity_missing"
+      }
+    },
+    {
+      "target_id": "cs-receiver-service-harness",
+      "checkpoint_id": "CP-CS",
+      "target_class": "receiver_owned_canonical_service_harness",
+      "platform_composition": "canonical_service_non_ui",
+      "document_path": "infra/cloudbase/functions/softbook-api/package.json",
+      "candidate_system": {
+        "kind": "unresolved",
+        "reason_code": "receiver_service_harness_identity_missing"
+      }
+    },
+    {
+      "target_id": "web-desktop-primary",
+      "checkpoint_id": "CP-WEB",
+      "target_class": "desktop_web_browser",
+      "platform_composition": "pc_web_focused_workbench",
+      "document_path": "apps/web/package.json",
+      "candidate_system": {
+        "kind": "unresolved",
+        "reason_code": "browser_system_identity_missing"
+      }
+    },
+    {
+      "target_id": "web-desktop-secondary",
+      "checkpoint_id": "CP-WEB",
+      "target_class": "desktop_web_browser",
+      "platform_composition": "pc_web_focused_workbench",
+      "document_path": "apps/web/package.json",
+      "candidate_system": {
+        "kind": "unresolved",
+        "reason_code": "browser_system_identity_missing"
+      }
+    }
+  ],
+  "environment_requirements": [
+    {
+      "environment_id": "env-local-browser-readonly",
+      "environment_class": "local_read_only_browser",
+      "profile": "architecture_only",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "browser_environment_identity_missing"
+      }
+    },
+    {
+      "environment_id": "env-receiver-staging",
+      "environment_class": "receiver_owned_staging",
+      "profile": "shared_account_runtime",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "receiver_owned_deployment_missing"
+      }
+    },
+    {
+      "environment_id": "env-sms-provider-sandbox",
+      "environment_class": "provider_sandbox",
+      "profile": "authentication",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "provider_sandbox_missing"
+      }
+    },
+    {
+      "environment_id": "env-ios-store-sandbox",
+      "environment_class": "provider_sandbox",
+      "profile": "formal_commerce_ios",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "provider_sandbox_missing"
+      }
+    },
+    {
+      "environment_id": "env-android-store-sandbox",
+      "environment_class": "provider_sandbox",
+      "profile": "formal_commerce_android",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "provider_sandbox_missing"
+      }
+    },
+    {
+      "environment_id": "env-web-payment-sandbox",
+      "environment_class": "provider_sandbox",
+      "profile": "formal_commerce_web",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "provider_sandbox_missing"
+      }
+    },
+    {
+      "environment_id": "env-receiver-managed-access-staging",
+      "environment_class": "receiver_owned_staging",
+      "profile": "receiver_managed",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "receiver_owned_managed_access_environment_missing"
+      }
+    },
+    {
+      "environment_id": "env-private-content-staging",
+      "environment_class": "receiver_owned_staging",
+      "profile": "private_content_audio",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "private_content_deployment_missing"
+      }
+    }
+  ],
+  "provider_account_requirements": [
+    {
+      "account_requirement_id": "account-runtime-primary",
+      "profile": "shared_account_runtime",
+      "provider_class": "receiver_account",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "non_secret_test_account_reference_missing"
+      }
+    },
+    {
+      "account_requirement_id": "account-runtime-secondary",
+      "profile": "shared_account_runtime",
+      "provider_class": "receiver_account",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "non_secret_test_account_reference_missing"
+      }
+    },
+    {
+      "account_requirement_id": "account-sms-provider",
+      "profile": "authentication",
+      "provider_class": "sms_provider",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "provider_account_reference_missing"
+      }
+    },
+    {
+      "account_requirement_id": "account-ios-store",
+      "profile": "formal_commerce_ios",
+      "provider_class": "ios_store",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "provider_account_reference_missing"
+      }
+    },
+    {
+      "account_requirement_id": "account-android-store",
+      "profile": "formal_commerce_android",
+      "provider_class": "android_store",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "provider_account_reference_missing"
+      }
+    },
+    {
+      "account_requirement_id": "account-web-payment",
+      "profile": "formal_commerce_web",
+      "provider_class": "web_payment_provider",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "provider_account_reference_missing"
+      }
+    },
+    {
+      "account_requirement_id": "account-receiver-managed-access",
+      "profile": "receiver_managed",
+      "provider_class": "receiver_operator_account",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "receiver_operator_account_reference_missing"
+      }
+    },
+    {
+      "account_requirement_id": "account-private-content",
+      "profile": "private_content_audio",
+      "provider_class": "receiver_content_account",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "receiver_content_account_reference_missing"
+      }
+    }
+  ],
+  "build_requirements": [
+    {
+      "build_requirement_id": "build-cp-ba-browser-documents",
+      "checkpoint_id": "CP-BA",
+      "platform": "browser_documents",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "future_manifest_decision_commit_missing"
+      }
+    },
+    {
+      "build_requirement_id": "build-cp-cs-ios",
+      "checkpoint_id": "CP-CS",
+      "platform": "ios",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "artifact_signing_and_distribution_identity_missing"
+      }
+    },
+    {
+      "build_requirement_id": "build-cp-cs-android",
+      "checkpoint_id": "CP-CS",
+      "platform": "android",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "artifact_signing_and_distribution_identity_missing"
+      }
+    },
+    {
+      "build_requirement_id": "build-cp-cs-service-harness",
+      "checkpoint_id": "CP-CS",
+      "platform": "receiver_service_harness",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "receiver_service_harness_build_missing"
+      }
+    },
+    {
+      "build_requirement_id": "build-cp-web-production-like",
+      "checkpoint_id": "CP-WEB",
+      "platform": "pc_web",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "deployable_build_digest_missing"
+      }
+    }
+  ],
+  "content_subject_requirements": [
+    {
+      "content_requirement_id": "content-release-subject",
+      "profile": "shared_account_runtime",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "approved_content_release_identity_missing"
+      }
+    },
+    {
+      "content_requirement_id": "private-audio-manifest-subject",
+      "profile": "private_content_audio",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "signed_private_audio_manifest_missing"
+      }
+    },
+    {
+      "content_requirement_id": "formal-entitlement-configuration-subject",
+      "profile": "formal_account_access",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "formal_entitlement_configuration_missing"
+      }
+    },
+    {
+      "content_requirement_id": "managed-entitlement-configuration-subject",
+      "profile": "receiver_managed",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "receiver_entitlement_configuration_missing"
+      }
+    },
+    {
+      "content_requirement_id": "private-content-entitlement-configuration-subject",
+      "profile": "private_content_audio",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "private_content_entitlement_configuration_missing"
+      }
+    }
+  ],
+  "execution_window_requirements": [
+    {
+      "window_requirement_id": "window-cp-ba",
+      "checkpoint_id": "CP-BA",
+      "clock_basis": "UTC",
+      "window_plan": {
+        "kind": "unresolved",
+        "reason_code": "operator_and_verifier_schedule_missing"
+      }
+    },
+    {
+      "window_requirement_id": "window-cp-cs",
+      "checkpoint_id": "CP-CS",
+      "clock_basis": "UTC",
+      "window_plan": {
+        "kind": "unresolved",
+        "reason_code": "environment_and_account_schedule_missing"
+      }
+    },
+    {
+      "window_requirement_id": "window-cp-web",
+      "checkpoint_id": "CP-WEB",
+      "clock_basis": "UTC",
+      "window_plan": {
+        "kind": "unresolved",
+        "reason_code": "build_deployment_and_reviewer_schedule_missing"
+      }
+    }
+  ],
+  "compatibility_key_requirements": [
+    {
+      "compatibility_key_requirement_id": "compatibility-cp-ba-platform-browser",
+      "checkpoint_id": "CP-BA",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "exact_compatibility_key_missing"
+      }
+    },
+    {
+      "compatibility_key_requirement_id": "compatibility-cp-ba-shared-formal",
+      "checkpoint_id": "CP-BA",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "exact_compatibility_key_missing"
+      }
+    },
+    {
+      "compatibility_key_requirement_id": "compatibility-cp-ba-shared-managed",
+      "checkpoint_id": "CP-BA",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "exact_compatibility_key_missing"
+      }
+    },
+    {
+      "compatibility_key_requirement_id": "compatibility-cp-cs-aggregate",
+      "checkpoint_id": "CP-CS",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "exact_compatibility_key_missing"
+      }
+    },
+    {
+      "compatibility_key_requirement_id": "compatibility-cp-web-aggregate",
+      "checkpoint_id": "CP-WEB",
+      "candidate": {
+        "kind": "unresolved",
+        "reason_code": "exact_compatibility_key_missing"
+      }
+    }
+  ],
+  "checkpoint_registry_bindings": [
+    {
+      "checkpoint_id": "CP-BA",
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-ba.registry.v1.json",
+      "sha256": "ac4c4f33b63938ac8d92bf75e8b99866c9f12d662ffc3509cd3826765bf8cb84"
+    },
+    {
+      "checkpoint_id": "CP-CS",
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-cs.registry.v1.json",
+      "sha256": "dcbc64c5ddeb23408c546819dd65c50d629931633fb859787c3605b2aa77add2"
+    },
+    {
+      "checkpoint_id": "CP-WEB",
+      "path": "docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/cp-web.registry.v1.json",
+      "sha256": "cba6f75f9c7574a58c9ee2f744991ec2154385c6ca328b46be6522e652e09696"
+    }
+  ]
+}

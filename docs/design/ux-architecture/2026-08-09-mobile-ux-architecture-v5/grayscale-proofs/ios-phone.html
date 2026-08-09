@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <title>软书四六级 · iOS</title>
+  <link rel="stylesheet" href="./architecture.css?v=ux-architecture-v5-strict-4">
+</head>
+<body class="platform-ios platform-phone" data-audience="learner">
+  <div class="app-frame phone-frame ios-frame platform-shell">
+    <header class="top-bar ios-navigation-bar">
+      <button class="text-action" type="button" data-back hidden>返回</button>
+      <div class="top-bar__title">
+        <p class="top-bar__eyebrow" data-subtitle>登录</p>
+        <h1 data-title>软书四六级</h1>
+      </div>
+      <span aria-hidden="true"></span>
+    </header>
+
+    <main data-view data-learner-surface></main>
+
+    <nav class="bottom-nav ios-tab-bar" aria-label="主要功能" data-main-nav hidden>
+      <button class="tab-button" type="button" data-route="learning">学习</button>
+      <button class="tab-button" type="button" data-route="space">空间</button>
+      <button class="tab-button" type="button" data-route="statistics">统计</button>
+      <button class="tab-button" type="button" data-route="mine">我的</button>
+    </nav>
+  </div>
+
+  <div data-sheet-root></div>
+  <p class="live-region" aria-live="polite" aria-atomic="true" data-live></p>
+  <script src="./architecture-flow.js?v=ux-architecture-v5-strict-5"></script>
+</body>
+</html>

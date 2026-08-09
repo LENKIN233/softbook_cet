@@ -7,8 +7,21 @@ import { pathToFileURL } from 'node:url';
 const GITHUB_FILES_API_LIMIT = 3000;
 const EXACT_SENSITIVE_PATHS = new Set([
   '.github/workflows/formal-approval.yml',
+  'docs/design/decisions/mobile-ux-checkpoint-layering-decision-v1.md',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/browser-evidence.md',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/checkpoint-contract.md',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/checkpoint-layering-decision-proposal.md',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/pc-web-v5-state-mapping.md',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/state-evidence-ledger.md',
   'scripts/classify_formal_approval_scope.mjs',
+  'scripts/harness_validator/context.py',
+  'scripts/harness_validator/sections/pr_design_gate_regressions.py',
   'scripts/test_classify_formal_approval_scope.mjs',
+  'scripts/test_harness_module_boundaries.py',
+  'scripts/test_validate_mobile_ux_batch0_decision.mjs',
+  'scripts/test_validate_mobile_ux_batch1_registry.mjs',
+  'scripts/test_validate_mobile_ux_batch1_freeze_candidate.mjs',
+  'scripts/test_mobile_ux_batch1_manifest_contract.mjs',
   'scripts/report_repo_health.mjs',
   'scripts/test_report_repo_health.mjs',
   'scripts/harness_validator/sections/product_contract_mirrors.py',
@@ -16,9 +29,17 @@ const EXACT_SENSITIVE_PATHS = new Set([
   'scripts/lib/launch_evidence_contract.mjs',
   'scripts/lib/strict_json.mjs',
   'scripts/validate_launch_readiness.mjs',
+  'scripts/validate_mobile_ux_batch0_decision.mjs',
+  'scripts/validate_mobile_ux_batch1_registry.mjs',
+  'scripts/validate_mobile_ux_batch1_freeze_candidate.mjs',
+  'scripts/validate_mobile_ux_batch1_execution_manifest.mjs',
+  'scripts/validate_state_evidence_ledger.mjs',
+  'scripts/lib/mobile_ux_batch1_manifest_contract.mjs',
   'scripts/test_validate_launch_readiness.mjs',
+  'scripts/validate_pr_design_gate.py',
   'scripts/harness_validator/sections/governance_contracts.py',
   'scripts/harness_validator/sections/delivery_runtime.py',
+  'docs/agent-runs/2026-08-10-mobile-ux-batch1-v2-schema-definition.md',
   'spec/agent-harness.json',
   'spec/account-sync-contract.json',
   'spec/authority-map.json',
@@ -32,6 +53,7 @@ const EXACT_SENSITIVE_PATHS = new Set([
 const SENSITIVE_PREFIXES = [
   '.github/workflows/',
   'docs/agent-runs/evidence/',
+  'docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/batch-1/',
   'docs/release/',
   'security/reports/',
 ];
@@ -153,6 +175,7 @@ function readGitHubFiles(file, expectedCountValue) {
   }
 
   const paths = [];
+  const currentFilenames = new Set();
   for (const fileEntry of files) {
     if (
       !fileEntry ||
@@ -162,6 +185,10 @@ function readGitHubFiles(file, expectedCountValue) {
     ) {
       throw new Error('GitHub changed-file entry is malformed');
     }
+    if (currentFilenames.has(fileEntry.filename)) {
+      throw new Error(`GitHub changed-file list contains duplicate filename: ${fileEntry.filename}`);
+    }
+    currentFilenames.add(fileEntry.filename);
     paths.push(fileEntry.filename);
     if (fileEntry.previous_filename !== undefined) {
       if (
@@ -172,6 +199,11 @@ function readGitHubFiles(file, expectedCountValue) {
       }
       paths.push(fileEntry.previous_filename);
     }
+  }
+  if (currentFilenames.size !== expectedCount) {
+    throw new Error(
+      `GitHub changed-file unique count is incomplete: expected ${expectedCount}, received ${currentFilenames.size}`,
+    );
   }
   return paths;
 }
