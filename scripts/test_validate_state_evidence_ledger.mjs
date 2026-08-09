@@ -121,6 +121,14 @@ expectError(
   mutateFirstRowCell(
     ledgerMarkdown,
     9,
+    '`browser-evidence.md#responsive-and-platform-measurements`',
+  ),
+  'Evidence pointer policy mismatch',
+);
+expectError(
+  mutateFirstRowCell(
+    ledgerMarkdown,
+    9,
     '`browser-evidence.md#strict-5-focus-correction-and-delta-replay`',
   ),
   'has no matching heading anchor in source commit',
@@ -206,6 +214,15 @@ assert.equal(
 
 const firstRow = parsed.lines[parsed.rows[0].lineIndex];
 expectError(ledgerMarkdown.replace(`${firstRow}\n`, ''), 'Expected 173 rows');
+
+const dividerLine = parsed.lines[parsed.headerIndex + 1];
+expectError(
+  ledgerMarkdown.replace(
+    dividerLine,
+    '<div data-gate="accepted">Release and owner acceptance passed.</div>',
+  ),
+  'Machine ledger divider mismatch',
+);
 
 const cov12 = parsed.rows.find((row) => row.id === 'COV-12');
 assert.equal(

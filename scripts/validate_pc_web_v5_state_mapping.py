@@ -131,11 +131,14 @@ REQUIRED_MATRIX_IDS = {
 CONTRACT_STATE_IDENTITY_SHA256 = (
     "34d3ef69cdf7019e6492efc0dd499ffe570908c2756f1fc48f016f8da1492f8f"
 )
+CONTRACT_DOCUMENT_SEMANTIC_SHA256 = (
+    "f753ca396ee2870a35d9a4fa2696a0b070ff2a60c2a414b6ba1be7777abbb0f4"
+)
 PC_WEB_MAPPING_IDENTITY_SHA256 = (
     "b356f3d56115c443b2d89496733378b1c44886d16d69ec6a7623038ec9ea479b"
 )
 PC_WEB_DOCUMENT_SEMANTIC_SHA256 = (
-    "0ccdb12d193dd29d4eac8cbfbe3dd308391cb551a2d0e8a6aa34205d6ce8cd73"
+    "1a64a78eb9c1fe1990a553a1c9bf98062903f9c72605818a8362b89396ae241d"
 )
 
 DOCUMENT_SEMANTIC_MARKER_RE = re.compile(
@@ -149,6 +152,7 @@ REQUIRED_TEXT = (
     "It does not change `state-evidence-ledger.md`, any gate layer, implementation authority, or release readiness.",
     "No row proves canonical service acknowledgement, payment/store behavior, receiver-managed access, deployment, final visual quality, or leadership readiness.",
     f"Frozen contract state ID/title digest: `{CONTRACT_STATE_IDENTITY_SHA256}`.",
+    f"Frozen source contract semantic digest: `{CONTRACT_DOCUMENT_SEMANTIC_SHA256}`.",
     f"Frozen PC Web mapping identity digest: `{PC_WEB_MAPPING_IDENTITY_SHA256}`.",
     f"Frozen PC Web document semantic digest: `{PC_WEB_DOCUMENT_SEMANTIC_SHA256}`.",
     "`1440×900`",
@@ -242,6 +246,10 @@ def document_semantic_digest(mapping_text: str) -> str:
     if replacements != 1:
         return "invalid-semantic-digest-marker"
     return sha256(normalized)
+
+
+def contract_document_semantic_digest(contract_text: str) -> str:
+    return sha256(contract_text.replace("\r\n", "\n").rstrip())
 
 
 def parse_contract_states(contract_text: str) -> list[tuple[str, str]]:
@@ -539,6 +547,12 @@ def validate(mapping_text: str, contract_text: str, root: Path = ROOT) -> list[s
             errors.append(f"completion/nonpromotion boundary is missing: {boundary}")
 
     contract_states = parse_contract_states(contract_text)
+    contract_document_digest = contract_document_semantic_digest(contract_text)
+    if contract_document_digest != CONTRACT_DOCUMENT_SEMANTIC_SHA256:
+        errors.append(
+            "Source contract document semantic identity changed: "
+            f"expected {CONTRACT_DOCUMENT_SEMANTIC_SHA256}, found {contract_document_digest}"
+        )
     contract_digest = contract_state_identity_digest(contract_states)
     if contract_digest != CONTRACT_STATE_IDENTITY_SHA256:
         errors.append(
@@ -671,6 +685,11 @@ def run_self_tests(mapping_text: str, contract_text: str) -> list[str]:
     substituted_contract = contract_text.replace(
         "| `SHELL-01 Cold launch` |", "| `FAKE-01 Cold launch` |", 1
     )
+    semantic_contract_drift = contract_text.replace(
+        "Understand that the product is opening, without seeing a false signed-in shell",
+        "Choose any study module from a dashboard",
+        1,
+    )
 
     status_promoted = mapping_text.replace(
         "- Status: `design_only_pc_web_state_mapping`.",
@@ -736,6 +755,12 @@ def run_self_tests(mapping_text: str, contract_text: str) -> list[str]:
             substituted_mapping,
             substituted_contract,
             "Contract state ID/title identity changed",
+        ),
+        (
+            "source contract semantic drift",
+            mapping_text,
+            semantic_contract_drift,
+            "Source contract document semantic identity changed",
         ),
         (
             "semantic hollowing",

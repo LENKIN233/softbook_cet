@@ -7,8 +7,9 @@
 - Semantic source: `docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/grayscale-ux-state-contract.md`.
 - Scope: all 160 semantic state IDs plus all 13 forced cross-state coverage IDs.
 - Frozen contract state ID/title digest: `34d3ef69cdf7019e6492efc0dd499ffe570908c2756f1fc48f016f8da1492f8f`.
+- Frozen source contract semantic digest: `f753ca396ee2870a35d9a4fa2696a0b070ff2a60c2a414b6ba1be7777abbb0f4`.
 - Frozen PC Web mapping identity digest: `b356f3d56115c443b2d89496733378b1c44886d16d69ec6a7623038ec9ea479b`.
-- Frozen PC Web document semantic digest: `0ccdb12d193dd29d4eac8cbfbe3dd308391cb551a2d0e8a6aa34205d6ce8cd73`.
+- Frozen PC Web document semantic digest: `1a64a78eb9c1fe1990a553a1c9bf98062903f9c72605818a8362b89396ae241d`.
 - This artifact maps required meaning to the accepted PC Web regions. It does not change `state-evidence-ledger.md`, any gate layer, implementation authority, or release readiness.
 - Every result is fail-closed. Existing source, unit tests, or a broad historical browser note is context only; without an exact v5 state replay and pointer, the row remains `blocked_*`.
 - No mobile or tablet composition is inherited. The accepted PC Web structure remains a route rail, one center focal workbench, and a bounded context rail; Space alone specializes those regions as tree, current box, and inspector.

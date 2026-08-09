@@ -25,7 +25,9 @@ export const COV_OWNER_AUTHORITY_SHA256 =
 export const CONTRACT_DOCUMENT_SHA256 =
   'f753ca396ee2870a35d9a4fa2696a0b070ff2a60c2a414b6ba1be7777abbb0f4';
 export const LEDGER_SEMANTIC_IDENTITY_SHA256 =
-  '78ffea9f84f41d732fec6ddc118100b2c47e2e5b81acd1124527cbd5968ccc60';
+  '19d168a05e67c5b22502360dd55f7bd688633869f7b4389f9d78688779bcd1ca';
+export const EVIDENCE_POINTER_POLICY_SHA256 =
+  '67418efe86aa3cc6a17dfec51227d676e7ec301d74d10934d0bb20865aa29384';
 
 const LEGACY_HEADERS = [
   'State',
@@ -116,6 +118,52 @@ const COV_OWNERS = new Map([
   ['COV-13', 'A-WEB+A-PLATFORM'],
 ]);
 
+const DEFAULT_EVIDENCE_POINTER = '`grayscale-ux-state-contract.md`';
+const EVIDENCE_POINTER_STATE_POLICIES = [
+  {
+    pointer: '`browser-evidence.md#auth-session-entry-and-trial-presentation`',
+    stateIds: `
+      SHELL-03 AUTH-01 AUTH-03 AUTH-04 AUTH-05 AUTH-09 AUTH-11 AUTH-12
+      LEARN-01 LEARN-02 MEM-02
+    `.trim().split(/\s+/),
+  },
+  {
+    pointer: '`browser-evidence.md#five-interaction-families`',
+    stateIds: `
+      LEARN-07 LEARN-08 LEARN-09 LEARN-13
+      FLIP-01 FLIP-03 FLIP-04 FLIP-05 FLIP-06
+      CHOICE-01 CHOICE-02 CHOICE-03 CHOICE-04 CHOICE-05
+      LOCK-01 LOCK-02 LOCK-03 LOCK-04 LOCK-05
+      ELIM-01 ELIM-02 ELIM-03 ELIM-04 ELIM-05
+      SWIPE-01 SWIPE-02 SWIPE-03 SWIPE-04 SWIPE-05 SWIPE-06 AUDIO-00
+    `.trim().split(/\s+/),
+  },
+  {
+    pointer: '`browser-evidence.md#learning-and-space-continuity`',
+    stateIds: `
+      TOOL-05 TOOL-06 TOOL-07 TOOL-08
+      SPACE-01 SPACE-02 SPACE-03 SPACE-04 SPACE-05 SPACE-07 SPACE-08 SPACE-11
+    `.trim().split(/\s+/),
+  },
+  {
+    pointer:
+      '`browser-evidence.md#platform-navigation-behavior`; `browser-evidence.md#learning-and-space-continuity`',
+    stateIds: ['SHELL-08'],
+  },
+  {
+    pointer: '`browser-evidence.md#shared-access-profile-browser-proof`',
+    stateIds: `
+      SPACE-14 MEM-03 PAY-01 PAY-02 BUY-02 BUY-04
+      RESTORE-01 RESTORE-02 RESTORE-03
+      BETA-01 BETA-03 BETA-04 COV-09
+    `.trim().split(/\s+/),
+  },
+  {
+    pointer: '`browser-evidence.md#simple-check-in`',
+    stateIds: `STATS-02 CHECKIN-01 CHECKIN-02 CHECKIN-03 CHECKIN-04 CHECKIN-05`.split(/\s+/),
+  },
+];
+
 const EXPECTED_SEMANTIC_STATE_COUNT = 160;
 const EXPECTED_COV_STATE_COUNT = 13;
 
@@ -152,6 +200,12 @@ export function parseLedger(markdown) {
   if (headerIndex < 0) throw new Error('Per-state ledger table header was not found.');
 
   const headers = splitMarkdownRow(lines[headerIndex]);
+  const expectedDivider = divider(MACHINE_HEADERS);
+  if (lines[headerIndex + 1] !== expectedDivider) {
+    throw new Error(
+      `Machine ledger divider mismatch: expected ${expectedDivider}, found ${lines[headerIndex + 1] ?? '<missing>'}.`,
+    );
+  }
   const rows = [];
   let endIndex = headerIndex + 2;
 
@@ -195,11 +249,40 @@ export function ledgerSemanticIdentityDigest(markdown) {
   const parsed = parseLedger(markdown);
   const proseWithoutMachineTable = [
     ...parsed.lines.slice(0, parsed.headerIndex),
+    ...parsed.lines.slice(parsed.headerIndex, parsed.headerIndex + 2),
     ...parsed.lines.slice(parsed.endIndex),
   ]
     .filter((line) => !line.startsWith('- Frozen ledger semantic identity digest:'))
     .join('\n');
   return sha256(normalizeDocument(proseWithoutMachineTable));
+}
+
+function expectedEvidencePointers(contractStates) {
+  const expected = new Map(
+    [...contractStates.keys()].map((stateId) => [stateId, DEFAULT_EVIDENCE_POINTER]),
+  );
+  const explicitlyMapped = new Set();
+  for (const { pointer, stateIds } of EVIDENCE_POINTER_STATE_POLICIES) {
+    for (const stateId of stateIds) {
+      if (!contractStates.has(stateId)) {
+        throw new Error(`Evidence pointer policy names unknown state ${stateId}.`);
+      }
+      if (explicitlyMapped.has(stateId)) {
+        throw new Error(`Evidence pointer policy duplicates state ${stateId}.`);
+      }
+      explicitlyMapped.add(stateId);
+      expected.set(stateId, pointer);
+    }
+  }
+  return expected;
+}
+
+function evidencePointerPolicyDigest(expectedPointers) {
+  return sha256(
+    [...expectedPointers.entries()]
+      .map(([stateId, pointer]) => `${stateId}\u001f${pointer}`)
+      .join('\n'),
+  );
 }
 
 function isContainedPath(parent, candidate) {
@@ -592,6 +675,7 @@ function machineMarkerChecks(markdown, errors) {
     `- Frozen COV owner authority digest: \`${COV_OWNER_AUTHORITY_SHA256}\`.`,
     `- Frozen contract document semantic digest: \`${CONTRACT_DOCUMENT_SHA256}\`.`,
     `- Frozen ledger semantic identity digest: \`${LEDGER_SEMANTIC_IDENTITY_SHA256}\`.`,
+    `- Frozen state-to-evidence pointer policy digest: \`${EVIDENCE_POINTER_POLICY_SHA256}\`.`,
     `- Target environment profile: \`${TARGET_ENVIRONMENT_PROFILE}\`.`,
     `- Frozen source cohort: \`${SOURCE_COHORT}\`.`,
   ];
@@ -619,6 +703,19 @@ export function validateLedger({
     contractStates = parseContract(contractMarkdown);
   } catch (error) {
     return { errors: [error.message], rowCount: parsed.rows.length };
+  }
+
+  let expectedPointers;
+  try {
+    expectedPointers = expectedEvidencePointers(contractStates);
+  } catch (error) {
+    return { errors: [error.message], rowCount: parsed.rows.length };
+  }
+  const pointerPolicyDigest = evidencePointerPolicyDigest(expectedPointers);
+  if (pointerPolicyDigest !== EVIDENCE_POINTER_POLICY_SHA256) {
+    errors.push(
+      `State-to-evidence pointer policy changed: expected ${EVIDENCE_POINTER_POLICY_SHA256}, found ${pointerPolicyDigest}.`,
+    );
   }
 
   machineMarkerChecks(ledgerMarkdown, errors);
@@ -671,6 +768,12 @@ export function validateLedger({
     }
 
     const rowSourceCohort = stripCode(row.cells[14]);
+    const expectedPointer = expectedPointers.get(row.id);
+    if (row.cells[9] !== expectedPointer) {
+      errors.push(
+        `${row.id} Evidence pointer policy mismatch: expected ${expectedPointer}, found ${row.cells[9]}.`,
+      );
+    }
     const sourceCommit = sourceCommitFromCohort(rowSourceCohort);
     const pointerCacheKey = `${sourceCommit ?? '<invalid>'}\u001f${row.cells[9]}`;
     let pointerErrorSuffixes = pointerValidationCache.get(pointerCacheKey);
@@ -767,6 +870,7 @@ export function renderLedger({
 }) {
   const parsed = parseLedger(ledgerMarkdown);
   const contractStates = parseContract(contractMarkdown);
+  const expectedPointers = expectedEvidencePointers(contractStates);
 
   if (parsed.rows.length !== 173 || contractStates.size !== 173) {
     throw new Error(
@@ -790,6 +894,11 @@ export function renderLedger({
   if (gateErrors.length > 0) throw new Error(`Refusing to render: ${gateErrors.join(' ')}`);
   const pointerValidationCache = new Map();
   for (const row of parsed.rows) {
+    if (row.cells[9] !== expectedPointers.get(row.id)) {
+      throw new Error(
+        `Refusing to render: ${row.id} Evidence pointer policy mismatch.`,
+      );
+    }
     const pointerCacheKey = row.cells[9];
     let pointerErrors = pointerValidationCache.get(pointerCacheKey);
     if (!pointerErrors) {

@@ -5,6 +5,7 @@
 - Current status: `architecture_gate_blocked_with_browser_subset_verified`.
 - Parent review: exact corrected v4 planning commit `de3bd5c5a23a70e2ca3c165613ea04a2f07da2b1` passed independent scope review as `completed_no_promotion`.
 - Strict-4 exact review: commit `bd3ed0f54350b252f1554872de5a07cd09f97232` historically passed as `pass_exact_architecture_browser_subset`, with P0 `0` and P1 `0`. A later strict-5 real-use replay found that Flip reveal had left focus on `body`; strict-5 corrects and replays that focus path. Independent exact-delta review of commit `d5b9250ad255215830ff21fe7e1651797234b79a` returned `PASS_EXACT_STRICT5_DELTA`, P0 `0`, P1 `0`. Neither verdict extends beyond its browser subset.
+- Exact governance/boundary review of correction commit `c447590790e1f0041f7d04f10deb4470a7b290d0` failed with P0 `0`, P1 `3`: an unchecked ledger divider, missing state-to-evidence-section relevance binding, and PC Web's incomplete binding to its semantic source contract. All three are corrected in the current delta, which remains unreviewed until frozen again.
 - This directory is design-only. It does not accept a visual system, authorize React Native work, prove native behavior, or establish leadership readiness.
 - The corrected browser subset, per-state fail-closed ledger, six-layer checkpoint proposal, and PC Web state mapping now exist. The next visual-search phase remains blocked by uncovered required states, canonical service evidence, PC Web implementation/exact replay, all native evidence, and product-owner acceptance.
 
@@ -43,11 +44,11 @@ The active chain for this phase is:
 - `platform-architecture.md`: iOS phone, Android phone, iPadOS, and Android tablet composition/behavior contract, with PC Web parity boundaries.
 - `grayscale-proofs/`: four physically separate learner documents for representative cross-device browser scenarios.
 - `access-profile-proofs/`: physically separate formal-commerce and read-only managed-access learner scenarios.
-- `state-evidence-ledger.md`: explicit per-state coverage/result map with column-specific result classes, source-commit-resolved pointers, semantic integrity digests, and an owner-controlled derived gate boundary; absence is a gate failure.
+- `state-evidence-ledger.md`: explicit per-state coverage/result map with column-specific result classes, a frozen state-to-evidence-section policy, source-commit-resolved pointers, validated table structure, semantic integrity digests, and an owner-controlled derived gate boundary; absence is a gate failure.
 - `browser-evidence.md`: frozen hashes plus exact viewport, interaction, focus, leakage, and reflow observations; browser-only by definition.
 - `checkpoint-contract.md`: proposed six-layer checkpoint contract with owner, entry/exit, claim/non-claim, cohort, and fail-closed rules. It has no gate effect until explicit product-owner acceptance.
 - `checkpoint-layering-decision-proposal.md`: unanswered product-owner decision proposal; it is not an approval record.
-- `pc-web-v5-state-mapping.md`: fail-closed mapping of all 160 semantic states and 13 forced combinations to the accepted `pcw-01` Focused Workbench authority and future evidence; its status, result meanings, completion boundary, rows, matrix, and appended prose are integrity-bound.
+- `pc-web-v5-state-mapping.md`: fail-closed mapping of all 160 semantic states and 13 forced combinations to the accepted `pcw-01` Focused Workbench authority and future evidence; its complete semantic source contract, status, result meanings, completion boundary, rows, matrix, and appended prose are integrity-bound.
 - `grayscale-reviewer-matrix.html`: reviewer-only entry point. It is never learner UI.
 
 ## Stop boundary
