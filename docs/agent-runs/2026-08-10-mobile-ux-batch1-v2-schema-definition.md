@@ -151,9 +151,9 @@
   `node --test scripts/test_classify_formal_approval_scope.mjs` passed `44/44`;
   `python3 scripts/test_harness_module_boundaries.py` passed `19/19`; and
   `git diff --check` passed.
-- The tracked validator, complete Harness, local gate profiles, and remote
-  required checks remain explicitly pending until these new paths exist in a
-  clean exact HEAD.
+- Post-commit tracked validation, complete Harness, and the first PR-profile
+  local-gate attempt are recorded below. Remote required checks remain pending
+  until the final record update is pushed.
 
 ## Validation results
 
@@ -187,8 +187,29 @@
   `a8baeb8ffa62...`, `fda8c728ee40...`, and `837fd738a074...`.
 - The pre-commit adversarial suites passed `96/96`, classifier tests passed
   `44/44`, Harness boundary tests passed `19/19`, and all five scripts passed
-  syntax checks. Tracked/full/remote results are still pending the clean commit
-  and must be appended rather than inferred from these fixture-mode results.
+  syntax checks.
+- Signed schema commit `f40dbfb85e347684f021a1e8e8eb8500e0b7e67d` passed
+  `node scripts/validate_mobile_ux_batch1_freeze_candidate.mjs
+  --require-tracked --json`; every candidate and semantic source resolved to a
+  regular `100644` HEAD blob with clean worktree bytes. The tracked output
+  retained the exact `f08c84f8...` subject and every false authority flag.
+- On the same clean commit, `python3 scripts/validate_harness.py
+  --skip-remote-guard` passed all 15 selected sections as the expected local
+  partial result; the PR-profile runner's full Harness then passed all 15
+  sections with `complete=true` and `remote_guard_executed=true`.
+  `scripts/test_validate_harness_runner.py` also passed `21/21`.
+- The first PR-profile local-gate attempt completed 30 passed gates, one
+  dependency exception already allowed by repository policy, two deferred
+  review gates, and three environment/context failures. The failures were:
+  shell selection used Node `25.9.0` and Ruby `2.6.10` instead of the installed
+  Node `22.13.0` / Ruby `3.3.12`; PR `#484` still pointed at the previous remote
+  head because this commit had not been pushed; and strict repository health
+  observed the shared developer clone's four worktrees and 30 topic branches.
+  Mobile lint/typecheck/Jest, backend `206/206`, design/metadata scanners,
+  dependency/evidence checks, Git LFS, and both Harness modes passed. No other
+  worktree or branch was removed to manufacture a local health pass.
+- A corrected-toolchain rerun, exact remote checks, and protected decision are
+  still pending the final record-only commit and push.
 
 ## Agent review status
 
@@ -265,8 +286,9 @@
 
 ## Follow-up
 
-1. Commit these exact bytes, then run the tracked validator, complete Harness,
-   local gates, and remote required checks on the clean exact HEAD.
+1. Commit this validation record, push the exact descendant head, rerun the
+   PR-profile mirror with the repository toolchain, and wait for all remote
+   required checks and the separate protected schema-definition-only decision.
 2. Resolve the declared owner and external inputs without provisioning or
    evidence collection unless separately authorized.
 3. Submit a complete exact candidate to a future protected manifest-freeze
