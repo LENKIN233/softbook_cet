@@ -56,7 +56,8 @@ No mvn-03 rail or mvn-01 shell is carried into the recommended synthesis.
 
 ## Borrowable Fragments
 
-Only explicit, readable location text may be reconsidered inside Space itself.
+No visual fragment is borrowed. The candidate-independent requirement is that
+Space location is understandable without a persistent decorative rail.
 
 ## Rejected Fragments
 

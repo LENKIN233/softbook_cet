@@ -40,14 +40,16 @@ libraries, complete recovery, formal audio, or native behavior.
 
 ## Visual System Fit
 
-mvn-08 has the stronger structural seed but an enterprise-workspace tone,
-purple-gray/system/brick color conflict, Unicode glyphs, and empty lower pane.
-mvn-05 has better phone action hierarchy but weaker tablet composition.
+mvn-08 gives the stronger relative evidence for separating tablet task and
+context, but its enterprise-workspace tone, purple-gray/system/brick color
+conflict, Unicode glyphs, and empty lower pane block advancement. mvn-05 has
+better phone action hierarchy but weaker tablet composition. Neither supplies
+a structural seed for later work.
 
 ## Implementation Mapping
 
-Use mvn-08 only as a tablet relationship hypothesis and mvn-05 only as a phone
-action-region hypothesis in a newly drawn synthesis. Neither maps directly to RN.
+Neither the tablet relationship nor phone action-region composition maps to a
+new synthesis or directly to RN.
 
 ## Rationale
 
@@ -56,8 +58,8 @@ a shortlist or design selection.
 
 ## Borrowable Fragments
 
-Combine mvn-08's tablet task/context allocation with mvn-05's phone action
-ownership, then redraw palette, icons, ratios, motion, and recovery states.
+No visual fragment is borrowed. Re-derive phone reach and conditional tablet
+context from product and platform requirements.
 
 ## Rejected Fragments
 

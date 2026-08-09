@@ -47,8 +47,8 @@ accepted causal motion.
 
 ## Implementation Mapping
 
-Only mvn-05's phone prompt/action relationship may be redrawn in a new
-synthesis. Neither exact sheet nor block system authorizes implementation.
+Neither phone prompt/action composition nor block system carries forward or
+authorizes implementation.
 
 ## Rationale
 
@@ -57,8 +57,8 @@ findings still reject both candidates.
 
 ## Borrowable Fragments
 
-Retain the phone action-region relationship from mvn-05, not its exact palette,
-sheet height, radius, or tablet scale.
+No visual fragment is borrowed. Thumb reach and clear action ownership are
+candidate-independent requirements whose geometry must be re-derived.
 
 ## Rejected Fragments
 

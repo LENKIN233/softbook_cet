@@ -133,9 +133,11 @@ The binding lifecycle record is
   browser-operability defects, but all remain blocked by shared P1 visual,
   platform, motion, recovery-depth, Space, tablet, and formal-audio gaps. No
   candidate advances, no design authority exists, and RN remains forbidden.
-  Only mvn-05 phone action, mvn-07 Space containment, mvn-08 tablet structure,
-  and mvn-01's subordinate content/2 × 2 density may inform a new synthesis;
-  product-owner selection of any replacement remains unresolved.
+  No v4 candidate or named combination supplies a new synthesis skeleton.
+  Only candidate-independent requirements—reachable phone action, legible
+  Space ownership, conditional tablet context, and readable four-choice/body
+  rhythm—may inform a newly derived architecture; product-owner selection of
+  any replacement remains unresolved.
   Durable recurring failures and their reuse boundaries are sedimented in
   `../rejected/mobile-visual-rebuild-v4-no-promotion-2026-08-08.md`.
   The accessible visual commit/output audit is

@@ -51,11 +51,12 @@ maps more simply. Neither is implementation authority.
 ## Rationale
 
 One dominant task wins this narrow comparison. Neither exact system contributes
-a preferred fragment over the mvn-05/mvn-07 phone synthesis ingredients.
+a preferred fragment.
 
 ## Borrowable Fragments
 
-Retain only stable geometry for local feedback, not the page-level block system.
+No visual fragment is borrowed. Local feedback must attach to the affected
+choice, but its geometry is re-derived.
 
 ## Rejected Fragments
 

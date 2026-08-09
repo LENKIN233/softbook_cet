@@ -55,7 +55,8 @@ Android. Native safe-area, IME, VoiceOver/TalkBack, physical-device, and real
 native 200% text verification remain open.
 
 All eight candidates remain blocked from advancement by the shared P1 gaps in
-`strict-review.md`. No candidate, score, ranking, or earlier leader is carried
-forward. The primary next-generation skeleton is mvn-05 phone action + mvn-07
-Space containment + mvn-08 tablet pane separation. mvn-01 contributes only
-subordinate 2 × 2 option density and body-text scale, never its palette or shell.
+`strict-review.md`. No candidate, score, ranking, earlier leader, or combined
+candidate skeleton is carried forward. The next architecture keeps only
+candidate-independent requirements—reachable phone action, legible Space
+ownership, conditional tablet context, and readable four-choice/body rhythm—
+and must derive new geometry rather than trace any v4 document.

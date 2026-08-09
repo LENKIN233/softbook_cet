@@ -13,7 +13,8 @@ narrow relative judgement only; it does not pass the shared P1 advancement gate.
 ## Winner
 
 mvn-05 — relative winner for reachable phone action ownership only. mvn-07
-retains the stronger quiet hierarchy ingredient; neither advances.
+produces quieter relative hierarchy evidence; neither supplies an ingredient or
+advances.
 
 ## Visual Evidence
 
@@ -46,19 +47,18 @@ under-resolved tablet finish, and design-proof-only audio.
 
 ## Implementation Mapping
 
-The two phone ingredients can map to current task/action/context regions only
-after synthesis. Neither exact document authorizes implementation.
+Neither phone composition maps to later task/action/context regions or
+authorizes implementation.
 
 ## Rationale
 
-Action ownership wins the narrow phone comparison, while mvn-07's quieter
-hierarchy remains equally valuable for synthesis. This is ingredient selection,
-not candidate advancement.
+Action ownership wins the narrow phone comparison. This is diagnostic
+comparison evidence, not fragment selection or candidate advancement.
 
 ## Borrowable Fragments
 
-Combine mvn-05 prompt/action-region order with mvn-07 task/context quieting in a
-new exact phone composition.
+No visual fragment is borrowed. The next phone architecture independently
+proves reachable action and subordinate context.
 
 ## Rejected Fragments
 

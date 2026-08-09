@@ -25,8 +25,9 @@
 - Promotion decision:
   `docs/design/search-runs/2026-08-08-mobile-visual-rebuild-v4/promotion-record.md`.
 - Result: all eight exact candidates failed advancement. `mvn-08` is only the
-  relative comparison winner and a possible tablet-structure input. It is not
-  a shortlist, accepted design, baseline, or implementation authority.
+  narrow relative comparison winner and diagnostic evidence that tablet
+  adaptation needs a stronger test. It is not a reusable structure input,
+  shortlist, accepted design, baseline, or implementation authority.
 
 This file is the durable failure sink required by the design-search harness.
 Merging it may preserve rejected evidence; it cannot promote a candidate or
@@ -65,32 +66,32 @@ into accepted visual language.
 
 ## Rejected Candidate Boundaries
 
-- `mvn-01`: do not reuse the generic shell or glyph navigation; only its text
-  scale and 2 × 2 density may be reconsidered.
+- `mvn-01`: do not reuse the generic shell, glyph navigation, text scale,
+  density, or geometry. Its tested 2 × 2 state is evidence only.
 - `mvn-02`: do not reuse the clipped/weak Space rail or low-emphasis action
   hierarchy.
 - `mvn-03`: do not revive the already-vetoed rail/spine premise.
 - `mvn-04`: do not reuse the dated peach-brown palette or nested-sheet stack.
-- `mvn-05`: do not stretch the phone action sheet into its oversized tablet
-  composition; only the phone action-region logic may be reconsidered.
+- `mvn-05`: do not reuse the phone action sheet or its oversized tablet
+  composition. Thumb reach remains a requirement, not a fragment.
 - `mvn-06`: do not reuse the form-like block system as a product direction.
-- `mvn-07`: do not treat its weak Learning shell as accepted; only the Space
-  containment relationship may be reconsidered.
+- `mvn-07`: do not treat its weak Learning shell or Space composition as
+  accepted. Legible ownership remains a requirement, not a fragment.
 - `mvn-08`: do not call the enterprise-like workspace, purple-gray/brick
-  palette, glyph icons, or empty lower pane a winning design. Only its tablet
-  master-detail relationship may enter a new synthesis as a hypothesis.
+  palette, glyph icons, or empty lower pane a winning design. Conditional
+  tablet context must be re-derived without tracing its master-detail shell.
 
 ## Next Synthesis Entry Criteria
 
-A new run may start from the mvn-08 tablet relationship, mvn-05 phone action
-region, mvn-07 Space containment, and mvn-01 content density only after they are
-redrawn into one visual system. It must then prove:
+A new run starts from product and platform requirements, not named v4
+candidates. It must re-derive and then prove:
 
 - one mature palette and one platform-quality icon grammar;
 - all five Learning silhouettes and causal/reduced motion;
 - complete Auth recovery and all-library Space depth;
 - formal audio boundaries;
-- phone, Android, and all required tablet compositions;
+- iOS phone, Android phone, iPadOS, and Android tablet compositions, plus
+  semantic/capability parity with the separately accepted PC Web direction;
 - native large text, safe area, IME, VoiceOver/TalkBack, and physical-device
   evidence;
 - independent UI/UX advancement review and explicit product-owner acceptance.

@@ -66,10 +66,12 @@ inherit the following visual packages:
 - v4's generic glyphs, mixed accent systems, cosmetic platform skins, equal
   panels, browser-only tablet workspaces, or browser speech synthesis.
 
-The v4 fragments that may inform structure are limited to mvn-05's reachable
-phone action order, mvn-07's Space containment, mvn-08's task/context separation
-on tablet, and mvn-01's default 2 × 2 option density and body scale. Every exact
-color, icon, material, radius, sheet, rail, ratio, and motion choice is redrawn.
+No v4 candidate or named combination supplies the next structure. The audit
+retains only candidate-independent requirements: the phone action must be
+reachable, Space containment must make ownership legible, tablet context must
+appear only when useful, and the four-choice silhouette must remain readable.
+The next architecture must derive its geometry again from those requirements;
+it must not trace mvn-01, mvn-05, mvn-07, or mvn-08.
 
 ## Product Truth Versus Design Hypothesis
 
@@ -88,19 +90,28 @@ color, icon, material, radius, sheet, rail, ratio, and motion choice is redrawn.
   conditional, and sleep/wake appears only in meaningful card/Space context.
   Membership checks and algorithmic updates are background behavior, not extra
   learner operations.
-- Formal Trial starts on the first entry counted as the membership trial and
+- Formal Trial starts on the first entry counted as the membership trial. The
+  specific operational definition in the same owner contract and the formal
+  learning-session runtime is the first successful authenticated Learning-
+  session entry after canonical context validation, selection generation, and
+  required cursor persistence; successful login alone does not consume it. It
   gives 3–7 days of the complete card library, algorithm, and physical Space;
   Free keeps normal basic Learning and close to half the cards but not the
   complete library, algorithm, or Space; Premium restores the complete
   experience. Purchase exists on every release target and entitlement is shared
-  across iOS, Android, and Web. The controlled pilot's different first-valid-
-  session trigger is gate-ineligible and cannot replace this formal contract.
+  across iOS, Android, and Web. Controlled-pilot limits and entitlement rules
+  remain gate-ineligible, but the successful Learning-session trigger is also
+  present in the formal owner/runtime and is not pilot-only.
 - Closed-beta Premium may be granted or revoked only by an audited receiver
   operator. The client can read canonical entitlement but cannot self-grant.
 - Audio is an optional card-owned medium on every release target. It never
   autoplays or becomes a sixth interaction family; when present it has a stable
   asset ID, hash, duration, and optional back-side transcript rather than a URL.
-- iOS and Android have equal priority; tablet receives a dedicated composition.
+- Release targets remain iOS, Android, and Web. iOS and Android have equal
+  mobile priority; iPadOS and Android tablet receive dedicated compositions.
+  The separately accepted PC Web direction remains its own platform authority;
+  this mobile phase must record parity against it and cannot claim release-
+  target completeness on mobile evidence alone.
 - No learner surface may expose design, review, repository, data-pipeline, test,
   or implementation language.
 
@@ -123,120 +134,36 @@ review, and explicit acceptance.
 
 ## Exploration Frame — No Preselected Visual System
 
-The next population must include at least eight materially different systems.
-Each row below is an unselected hypothesis slot, not a direction recommendation;
-the generator may replace a slot if the replacement is more distinct while
-remaining inside product truth.
+The grayscale architecture gate happens before candidate naming, palette,
+radius, material, icon family, or motion selection. This plan intentionally
+contains no expanded example candidate: giving one slot concrete colors and
+geometry before the other seven creates an anchor even when it is labelled
+“unselected.”
 
-| Hypothesis | Type hierarchy | Surface / geometry grammar | Color-role strategy | Navigation / adaptation | Interaction response |
-| --- | --- | --- | --- | --- | --- |
-| A — Clear Study | calm system type with measured headings | quiet tonal field, moderate corners, one focal task region | product blue on neutral routes; current-library hue owns Learning/Space | conventional native destination bar; conditional tablet rail/context | local attach/reveal with restrained native press feedback |
-| B — Focused Contrast | stronger size/weight contrast and compact context | nearly containerless page with one solid task block and crisp dividers | neutral chrome; one current-library block; no competing product accent in Learning | low-emphasis edge-to-edge destination bar; content width remains central on tablet | direct replacement and high-clarity selection marks |
-| C — Campus Utility | compact, highly legible native information rhythm | structured rows, short sections, and small-radius controls | low-chroma system role plus precise library edge/marker | labelled native destinations; tablet uses a compact platform sidebar | immediate row/slot response with clear pending states |
-| D — Spatial Layers | medium-scale type tied to parent/child labels | flat nested planes that express ownership without card stacks | related tonal steps; current object gets the only saturated library role | phone destination bar stays quiet; tablet navigation joins the ownership hierarchy | selection moves context between owning planes; no decorative travel |
-| E — Type-led Study | prompt and answer typography carry most hierarchy | minimal surfaces, bounded line measure, rules and spacing over cards | ink-first with small semantic/library accents | always-labelled native destinations; tablet preserves a content canvas rather than equal panes | text-local reveal, strike, reorder, and result attachment |
-| F — Soft Native | friendly system type with generous body rhythm | platform-native grouped surfaces, moderate softness, no floating capsule | warmer or cooler neutral foundation tested independently; restrained library tone | platform-default bar/sheet conventions; adaptive sidebar only when useful | native sheet/press/ripple behavior with gentle state transition |
-| G — Precision Grid | tabular alignment and exact task metadata rhythm | square-biased grid, 4–8px corners, hard alignment, almost no shadow | restrained chroma with high-contrast selected/focus roles | compact exact-aligned native bar/rail with visible labels | slot, option, and result movement follows grid ownership |
-| H — Object Focus | compact context plus a deliberately dominant task object | one bounded study object with an attached result/action tray; Space uses real containment | quiet page and chrome; object receives the current-library identity | stable native destinations recede; tablet context attaches to the selected object | lift/settle or morph only when it explains commit, result, or return |
+After the grayscale state matrix passes, generate at least eight systems at the
+same level of completeness. Each one must specify and render all five axes:
 
-Material difference is judged across all five design axes and the phone/tablet
-composition, not by hue swaps. A candidate that shares another candidate's
-surface grammar, navigation, and response but changes color or panel order is a
-duplicate and is removed before hard filtering.
+| Axis | Required proof |
+| --- | --- |
+| Type hierarchy | prompt, exam body, answer, analysis, support, and numeric scale |
+| Surface / geometry | focal object, containment, result attachment, and long-content reflow |
+| Semantic color roles | product/system, current library, correctness, error, focus, confident, and review without collisions |
+| Navigation / adaptation | iOS phone, Android phone, iPadOS, and Android tablet behavior and composition |
+| Interaction response | pressed, selected, pending, result, retry, causal motion, and reduced motion |
 
-## Candidate Hypothesis A — Clear Study System (Unselected Example)
+All eight receive complete token, state, platform, and evidence treatment before
+pairwise comparison. Material difference is judged across all five axes and the
+phone/tablet composition, not by hue swaps. A candidate that shares another
+candidate's surface grammar, navigation, and response but changes color or panel
+order is a duplicate and is removed before hard filtering.
 
-This section makes Hypothesis A concrete enough to compare; it does not give A
-priority, shortlist status, or acceptance. Hypotheses B–H must receive equally
-complete token, state, platform, and evidence treatment before comparison.
-
-### Desired Feeling
-
-The app should feel calm, capable, contemporary, and encouraging: a trustworthy
-CET coach for university students, not a school worksheet, game dashboard,
-luxury editorial object, or productivity admin tool.
-
-### Color Roles
-
-Hypothesis A uses semantic roles rather than recoloring every component with one
-theme color. The first exact values below belong to A only; they are test values,
-not accepted tokens or shared constraints for B–H.
-
-| Role | Test direction | Usage boundary |
-| --- | --- | --- |
-| Product/system primary | clear medium blue around `#316DFF` | Auth, neutral-route primary actions, account/system links; not a second dominant Learning accent |
-| Page | very light blue-gray around `#F7F9FC` | main field; never pure white over the whole app |
-| Surface | white and low-chroma blue-gray tiers | content grouping with borders or tonal separation, not nested card stacks |
-| Primary ink | deep blue-navy around `#172033` | headings and body; avoid harsh pure black |
-| Secondary ink | cool slate around `#667085` | supporting copy only; never tiny low-contrast instructions |
-| Current library | its stable library hue family | current task, selected option, current Space path, and strongest route-local action |
-| Confident | mint, current reference `#22C58B` | Flip `有把握` only; label and selected mark remain visible without color |
-| Review | amber, current reference `#F5B100` | Flip `再回看` only; never red or punishment language |
-| Error | accessible red role | local failure plus recovery copy; never a full-screen wash |
-| Focus | high-contrast platform focus role | keyboard/assistive focus; does not replace selection semantics |
-
-Learning and Space obey the Law of One: the current library is the dominant
-route accent. Product blue becomes subordinate there. Statistics, Mine, and
-Auth may use product blue because no library identity owns those routes. Sibling
-library hues appear only as small map objects in a true Space overview.
-
-For the current 仔细阅读馆 prototype, test the existing coral identity as a
-tonal system rather than a large saturated fill: a pale current-library
-container, a strong coral edge/mark, and either dark ink or a separately tested
-dark coral CTA. White-on-bright-orange is not assumed to pass contrast.
-Do not inherit v4's dark brick-red family: across all eight candidates it made
-the primary action feel dated, destructive, or enterprise-like. Keep only the
-stable coral hue-family meaning and redraw tone/chroma with deep navy on-color.
-
-Two existing semantic collisions require dedicated proof: 选词填空馆 identity
-versus confident mint, and 语法馆 identity versus review amber. The library and
-Flip states must differ through tone/chroma, label, icon, control shape, and
-location. A shared hue alone is never sufficient.
-
-### Typography
-
-- iOS uses the platform system text family and Dynamic Type behavior; Android
-  uses the platform system/Material type family and scalable text.
-- Chinese body copy starts at a comfortable native body size; supporting copy
-  is not reduced to 11–12px to make a frame fit.
-- Use at most three weights in one screen. Hierarchy comes from size, spacing,
-  and position before extra weight or color.
-- Use stable platform weights such as 400/500/600/700; do not depend on
-  browser-only intermediate values whose native rendering varies.
-- English exam text receives generous line height and a bounded readable line
-  length. Statistics uses tabular numerals and a meaningful date/scale axis.
-- Do not import a novelty display face as the mobile identity. The product must
-  still look intentional with system fonts at large accessibility sizes.
-
-### Shape, Surface, And Depth
-
-- Start with 12–16px containers and 8–12px controls; reserve full pills for
-  short chips, segmented choices, and the two Flip judgements.
-- One screen has at most one focal container. Supporting information uses
-  spacing, type hierarchy, and fine dividers before receiving another card.
-- Replace the universal floating capsule with platform-normal bottom navigation.
-- Prefer one page field, one focal task region, and one attached result region.
-  Avoid a card inside a card inside another tinted card.
-- Use thin borders and tonal surfaces before shadow. One subtle elevation level
-  is enough for a temporary sheet or lifted current object.
-- No glass blur, luminous blobs, gradient text, giant empty hero regions, black
-  selected capsules, fake device chrome, or decorative connector lines.
-
-The existing floating-capsule and universal-radius guidance is a rejected mobile
-implementation hypothesis, not product truth. If the exact replacement is
-accepted, the later design-only authority update must reconcile that stale
-guidance before implementation.
-
-### Icon System
-
-- No Unicode symbols, emoji, or improvised line drawings.
-- iOS maps the four destinations and actions to one coherent SF Symbols family;
-  Android maps them to one coherent Material Symbols family.
-- The semantic mapping stays stable across platforms, while fill, stroke,
-  selected treatment, ripple/press response, and optical sizing follow the
-  platform.
-- Every icon has a learner-facing accessible name. Color is not the only
-  selected, favorite, sleep, playing, or error signal.
+The product may ultimately use a system typeface, a bespoke type system, sharp
+or soft geometry, flat or layered surfaces, or a warm or cool neutral field.
+None is preferred here. The only pre-candidate color facts are semantic product
+truth: stable library identities, exactly `有把握` mint / `再回看` amber for Flip,
+and distinct correctness/error/focus roles. The existing Aurora tokens and
+floating-capsule rules remain stale mobile hypotheses and may not constrain the
+new population.
 
 ## Platform Composition
 
@@ -341,9 +268,12 @@ restore returns the learner to the same task rather than restarting the app.
   provides the complete library, Space, and algorithm. Do not invent countdown
   urgency, fake savings, or a tiny-demo Free state.
 - Render Trial as active only after canonical entitlement reports the formal
-  first-entry trigger has occurred. Do not assume that successful login itself
-  is that trigger, and do not copy the controlled pilot's separate first-valid-
-  Learning-session rule into formal membership.
+  successful Learning-session trigger has occurred. Successful login alone is
+  insufficient; failed context validation, selection generation, or cursor
+  persistence must not consume the trial.
+- Keep validation, selection-generation, and cursor-persistence predicates in
+  the runtime boundary. Learner copy reports only access status, consequence,
+  and recovery; it never narrates those internal predicates.
 - Prove contextual limit notice, full access comparison, purchase initiation,
   store pending, success, cancellation, recoverable error/retry, offline,
   entitlement refresh, and return to the originating task.
@@ -412,8 +342,10 @@ pending facts as shipped availability.
    addition to the fail-closed scanner, require a human semantic-copy pass that
    rejects polished requirement/server/operator/review narration even when it
    contains no forbidden keyword.
-4. Render each surviving exact system on iOS phone, Android phone, iPadOS, and
-   Android tablet. Reviewer controls remain in physically separate documents.
+4. Render each surviving exact mobile system on iOS phone, Android phone,
+   iPadOS, and Android tablet. Reviewer controls remain in physically separate
+   documents. Separately verify semantic/capability parity with the accepted PC
+   Web direction; mobile proof cannot replace PC Web evidence or vice versa.
 5. Add causal-motion storyboards and reduced-motion equivalents before any
    finalist can advance.
 6. Run an independent UI/UX review on the exact files. A shared P0/P1 means no
@@ -457,6 +389,16 @@ pending facts as shipped availability.
 - Devices: real iOS and Android phones plus representative iPadOS and Android
   tablet; browser frames remain supporting evidence only.
 
+### Cross-Release-Target Parity
+
+- The accepted PC Web Focused Workbench remains the PC Web design authority and
+  must not be copied into mobile as an enterprise rail/workbench.
+- The shared grayscale state ledger covers Auth, Learning, Space, Statistics,
+  Mine, membership, purchase/restore, and audio semantics across iOS, Android,
+  and Web, while each device class keeps its own composition and input model.
+- Final leadership readiness requires native mobile evidence plus current PC
+  Web keyboard/mouse, focus, responsive, purchase/restore, and parity evidence.
+
 ## Immediate Rejection Signals
 
 Any P0 signal stops the revision: two equal accent systems in Learning/Space;
@@ -483,7 +425,8 @@ pass described as visual approval.
 2. **UX architecture.** Produce the grayscale state matrix and platform layouts.
    Include Trial/Free/Premium, contextual Paywall, purchase, restore, and return
    states. Stop if the first read is not one task, Space loses ownership
-   hierarchy, or membership interrupts without preserving task context.
+   hierarchy, membership interrupts without preserving task context, or the
+   shared ledger forgets PC Web parity.
 3. **Visual systems.** Build the role-based color, typography, geometry, and
    platform icon candidates. Stop any direction that reads as a web demo,
    internal tool, enterprise console, or decorative concept.
@@ -518,11 +461,10 @@ pass described as visual approval.
 
 ## Design Review Checklist Answers
 
-- Q1: Every candidate must make the current library the one dominant Learning/
-  Space identity and prevent system, correctness, error, or self-assessment
-  roles from competing with it. Hypothesis A tests subordinate product blue;
-  B–H are free to use different neutral/system strategies. Sibling library hues
-  remain confined to small true-map objects.
+- Q1: Every later candidate must make the current library the one dominant
+  Learning/Space identity and prevent system, correctness, error, or self-
+  assessment roles from competing with it. No product color is preselected in
+  this plan; sibling library hues remain confined to small true-map objects.
 - Q2: Learning's focal object is the current CET task; Space's is the current
   box or selected contained card; Auth's is the current authentication step;
   Statistics and Mine remain supporting routes.

@@ -12,8 +12,9 @@ narrow relative judgement only; it does not pass the shared P1 advancement gate.
 
 ## Winner
 
-mvn-08 — relative winner for tablet task/context separation only. mvn-07 retains
-the stronger quiet phone hierarchy ingredient; neither advances.
+mvn-08 — relative winner for tablet task/context separation only. mvn-07 gives
+quieter relative phone hierarchy evidence; neither supplies an ingredient or
+advances.
 
 ## Visual Evidence
 
@@ -46,18 +47,18 @@ difference, motion, recovery completeness, and formal audio.
 
 ## Implementation Mapping
 
-Only the cross-device division of responsibility is useful: mvn-07 phone
-hierarchy and mvn-08 tablet panes. No current component maps directly to RN.
+No cross-device composition is carried forward and no current component maps
+directly to RN.
 
 ## Rationale
 
-Tablet separation wins this narrow comparison. The result supports a synthesis
-split, not an overall candidate winner.
+Tablet separation wins this narrow comparison. The result is diagnostic only,
+not a synthesis split or overall candidate winner.
 
 ## Borrowable Fragments
 
-Borrow mvn-07's phone task/context quieting and mvn-08's tablet pane separation;
-redesign everything else.
+No visual fragment is borrowed. The next architecture independently proves
+subordinate phone context and conditional tablet context.
 
 ## Rejected Fragments
 

@@ -56,6 +56,10 @@
 - Trial/Free/Premium, contextual access limits, purchase/restore on every
   release target, and shared cross-platform entitlement are product truths;
   controlled-pilot grants remain server-audited and cannot be self-granted.
+  The formal counted Trial entry is operationally the first successful
+  authenticated Learning-session entry after canonical validation, selection
+  generation, and cursor persistence; successful login alone does not consume
+  Trial.
 - Peek/favorite/hint/sleep retain their contracted visibility, while membership
   checks remain background behavior. Audio stays optional, card-owned,
   explicit-play only, and URL-free rather than a sixth interaction family.
@@ -295,17 +299,70 @@ states. Reviewer-gallery screenshots are inspection aids only.
 - First shared-DOM revision: independently rejected.
 - Final exact eight-document cohort: independently reviewed; **no candidate
   qualifies**.
-- `mvn-08` is only the relative comparison winner and tablet structure seed.
-  It is not promoted, accepted, shortlisted, or authorized for implementation.
-- Suggested synthesis ingredients are mvn-08 tablet shell, mvn-05 phone action
-  region, mvn-07 Space containment, and mvn-01 content/option density. Existing
-  colors, icons, sheets, rails, and ratios do not carry forward as authority.
+- `mvn-08` is only the narrow final pairwise result. It is not a reusable
+  ingredient, promoted candidate, accepted artifact, shortlist entry, tablet
+  seed, or implementation authority.
+- No v4 candidate or named combination supplies the next synthesis skeleton.
+  Only candidate-independent requirements—reachable phone action, legible Space
+  ownership, conditional tablet context, and readable four-choice/body rhythm—
+  carry forward; their geometry must be derived again.
 - The next-synthesis proposal was separately challenged against all eight
-  outputs and active platform/product contracts. It now defines eight materially
-  different hypothesis slots without preselecting blue, coral, geometry,
-  navigation treatment, or motion; replaces Unicode glyphs with platform icon
-  families; removes permanent empty tablet panes; and blocks route-chrome and
-  semantic-copy leakage. Hypothesis A's product blue is an example only.
+  outputs and active platform/product contracts. It now requires a later
+  population of at least eight materially different, equally complete systems
+  without preselecting blue, coral, geometry, navigation treatment, or motion;
+  requires platform icon families instead of Unicode glyphs; removes permanent
+  empty tablet panes; and blocks route-chrome and semantic-copy leakage. A
+  follow-up audit removed the expanded blue example so no candidate receives
+  extra detail before the grayscale gate.
+
+### 2026-08-09 final-goal preservation re-review
+
+Before opening the proposed grayscale UX-architecture phase, the previous step
+was reviewed again against the final goal: one explicitly accepted mature CET
+mobile design, followed by real iOS/Android/tablet implementation and current PC
+Web parity evidence. The re-review found four ways the record could bias or
+truncate that goal despite its correct no-promotion verdict:
+
+1. several documents still described mvn-05 + mvn-07 + mvn-08, with mvn-01
+   tuning, as a primary or reusable skeleton;
+2. an expanded “unselected” blue candidate gave one future direction concrete
+   color and geometry before the other seven;
+3. Trial timing was incorrectly framed as pilot-only even though the formal
+   owner and Learning-session runtime already define the counted entry after
+   canonical validation, selection generation, and cursor persistence; and
+4. the plan covered mobile variants without explicitly preserving semantic and
+   capability parity with the separately accepted PC Web direction.
+
+The record now removes all named-candidate geometry, order, ratio, color, and
+composition inputs; keeps only candidate-independent product/platform tests;
+starts the next phase with a neutral grayscale state contract; corrects the
+formal Trial trigger and treats successful login alone as insufficient; and
+adds PC Web parity as a final-target boundary. A final phrase scan also removed
+residual references to mvn-08 as a tablet “input” or “structural seed,” two
+pairwise “ingredient” labels, one “synthesis-input” label, and the context pack's
+permission to inherit editorial, shelf-desk, answer-slip, or ledger structures.
+Runtime validation/selection/cursor predicates remain internal and are not
+future learner copy.
+
+These corrections do not accept a design, create a visual direction, or
+authorize RN. They make the completed failure record safe as constraint and
+provenance input for a separately reviewed design-only phase.
+
+Re-review validation on the corrected working cohort:
+
+- `git diff --check`: passed;
+- `node --test scripts/test_check_design_metadata_leaks.mjs`: 31/31 passed;
+- `node scripts/check_design_metadata_leaks.mjs`: passed;
+- `python3 scripts/validate_design_search_run.py`: passed; and
+- `python3 scripts/validate_harness.py`: passed.
+
+Independent reviewer `visual_commit_audit` then re-reviewed the corrected exact
+working cohort. Status: **Passed**, with no P0/P1, for the
+`completed_no_promotion` record only. The reviewer confirmed that historical
+composition/order/metaphor and every mvn fragment remain diagnostic provenance,
+the Trial runtime predicate cannot become learner copy, and the lifecycle still
+creates no accepted design, promotion, or RN authority. The reviewer modified
+no files.
 
 ## Card make external workspace impact
 

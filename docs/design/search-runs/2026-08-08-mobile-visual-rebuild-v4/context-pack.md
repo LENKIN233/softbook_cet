@@ -22,7 +22,9 @@
   architecture and evaluation input; the completed run retained it as
   provenance after all eight candidates failed advancement.
 - Scope: architecture and evaluation constraints for iOS phone, Android phone,
-  and touch tablet. The pack itself does not create a visual candidate.
+  and touch tablet, plus semantic parity with the separately accepted PC Web
+  direction. The pack itself does not create a visual candidate and mobile
+  evidence cannot establish all-release-target completion.
 - Authority: this pack cannot change the product, interaction, spatial, or
   platform owners named by `spec/authority-map.json`.
 - There is no accepted replacement mobile direction. The current RN screens,
@@ -99,7 +101,7 @@ The following claims are non-negotiable and come from owner specs:
 | Exact phone margins, pane ratios, breakpoints, and motion timing | `implementation_hypothesis` | Record as measurable candidate choices with rollback conditions. |
 | Brand expression through one accent, a non-color cue, or both | `implementation_hypothesis` | Test only after the grayscale hierarchy passes. |
 
-## Historical Evidence To Carry Forward
+## Historical Evidence — Diagnostic Only
 
 The pre-cutover blind audit indexed 391 visual artifacts from 2026-06-26 to
 2026-07-06, then compared them with the later v3 run. The history shows
@@ -112,16 +114,21 @@ recurring systems, not isolated bad screenshots:
 - the same phone shell copied onto Learning, Space, Statistics, and Mine;
 - a phone frame enlarged into tablet instead of a tablet composition.
 
-No historical full screen is eligible for revival. The following structural
-fragments may be re-tested in grayscale, without importing their styling:
+No historical full screen, structure, order, object metaphor, or fragment is
+eligible for revival. The comparison exposes only candidate-independent tests
+that must be re-derived from active product and platform authority:
 
-- the quieter editorial hierarchy of the 2026-06-30 Learning and Detail
-  references;
-- the Space shelf-desk relationship between parent context, current container,
-  current card, and siblings;
-- the answer-slip sequence `result → reason → next`;
-- a quiet daily Statistics ledger rather than an analytics dashboard;
-- complete authentication, pending, error, retry, and continuity behavior.
+- the current Learning task dominates supporting context;
+- Space makes parent/child ownership and the current object understandable;
+- registered result, explanation, and continuation preserve the accepted
+  Learning rhythm without becoming equal competing panels;
+- Statistics remains subordinate to Learning and presents truthful dated
+  activity without becoming an analytics dashboard; and
+- authentication, pending, error, retry, and continuity behavior is complete.
+
+The editorial hierarchy, shelf-desk relationship, answer-slip composition, and
+ledger treatment that exposed those tests remain rejected historical geometry.
+They may not be traced, reordered, or lightly restyled in grayscale.
 
 The v3 direction is not a seed for v4. Its address and continuity ideas may be
 translated back into an abstract UX requirement only. Its faux device chrome,
@@ -282,7 +289,8 @@ clearance from navigation, 44px iOS / 48px Android control floors, and 2 × 2
 multiple choice; mvn-08's 1024 × 768 tablet Lock CTA stayed in the first viewport
 at y=671–719 on iOS and y=689–737 on Android. Native safe-area, IME,
 VoiceOver/TalkBack, physical-device, and real native 200% text verification
-remain open. Only mvn-05 phone action, mvn-07 Space containment, and mvn-08
-tablet structure form the primary synthesis skeleton; mvn-01's 2 × 2 option
-density and body-text scale are subordinate tuning without its palette or shell.
-No current candidate, ranking, or fragment has design authority.
+remain open. No v4 candidate or named combination forms a synthesis skeleton.
+Only candidate-independent requirements remain: reachable phone action,
+legible Space ownership, conditional tablet context, and readable four-choice/
+body rhythm. The next architecture must re-derive their geometry. No current
+candidate, ranking, or fragment has design authority.

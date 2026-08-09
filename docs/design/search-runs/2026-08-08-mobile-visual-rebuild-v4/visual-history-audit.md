@@ -74,14 +74,14 @@ them permanent product identity.
 | Compact Mine | `f0410d7` | Added more compact branches, truncation, smaller objects, and overflow control for Mine. | Do not reuse the compressed card stack as design. Required information must reflow rather than disappear behind truncation. |
 | Real Swipe | `253ae12` | Added pointer-following gesture, distance/velocity commit, cancel return, reduced-motion behavior, accessible actions, and labelled alternatives. | Preserve the interaction mechanism and re-skin it inside the next accepted system. |
 | Native audio | `be327f7` | Connected verified card-owned playback with explicit initiation, pause/interruption, failure containment, and stop-on-card-change. | Preserve behavior; do not use browser speech synthesis or the old visual shell as replacement evidence. |
-| Flow truth | `5b59224` | Corrected signed-out Learning/Space flow and removed false progress/location assurances while still consuming the now-revoked reset mapping. Its post-auth runtime starts Trial automatically. `60ac531` changes only the unmerged controlled pilot to first-valid-Learning-session start; it does not supersede `origin/main` or the active formal `first_entry_counted_as_membership_trial` contract. | Keep truthful signed-out flow/copy and discard the visual mapping. Do not infer one formal trigger from the pilot branch; exact learner copy waits for the owner contract/canonical state. |
+| Flow truth | `5b59224` | Corrected signed-out Learning/Space flow and removed false progress/location assurances while still consuming the now-revoked reset mapping. Its older UI helper starts Trial after authentication, but formal main already contains the more specific `server_scheduler_v1.selection_contract.membership_rule`: the first successful authenticated Learning-session entry starts Trial only after canonical validation, selection generation, and cursor persistence. | Keep truthful signed-out flow/copy and discard the visual mapping. Treat the older post-auth helper as runtime drift, not formal learner truth; successful login alone must not be shown as consuming Trial. |
 | Pre-pilot persisted-session states | `f9969f4`, `6f08942` | Added restored-session loading, logout failure, entitlement-read failure, authorization expiry, offline Space mutation recovery, and visible sync outcomes. The UX correctly preserves local work and distinguishes retryable transport from rejected identity, but copy repeatedly narrates services, servers, and synchronization. | Preserve loss prevention and recoverability; rewrite status copy and redraw the history-cutover shell. |
 | Auth/bootstrap runtime cutover | `018e77d`, `ea6c3b4` | Replaced older sessions with bounded v2 authentication and canonical account hydration. Visible states cover expired code, partial local credential cleanup, entitlement/bootstrap failure, retained login, retry, and fail-closed Learning. | Runtime truth is reusable; “服务恢复/上传本地状态/服务端权益” narration is not learner copy or visual authority. |
 | Durable Learning/daily/Space cutover | `db91a6c`, `9f23502`, `a8b4610`, `a081ce6`, `d8b45be` | Added answer-record pending/retry/confirmed, server-issued next-card gating, check-in pending/failure, Space mutation queue/confirm/recovery, and terminal conflict restoration. These commits visibly overexposed queue, server confirmation, login context, and canonical-state mechanics. | Preserve the state distinctions and no-data-loss behavior. Replace the technical status stream with task-centered consequences and recovery actions. |
 | Dedicated Auth branch | `afd083a`, `93d0219`, proof `6edd77e` | Designed, implemented, and regression-locked a dedicated login gate before the app shell on a side branch not merged into `origin/main`. | The current platform spec retains the product boundary; the branch's exact UI is not mobile visual authority. |
 | Controlled-pilot lifecycle design family | `e71df8f` / patch-identical `2f344cd`, then `17bbc72`, `2122142`, `1ce332e` | Added eight lifecycle candidates, rendered proof, motion/decision/mapping artifacts, then clarified that empty scheduling is not completion and bound review/address to server-owned cards. | Pilot state sequencing is useful. The gate-ineligible lifecycle, Aurora-derived visual package, and implementation narration cannot define formal membership or the next mobile identity. |
 | Controlled-pilot Auth/recovery branch | `538c7db`, `439a664`, `2b42b47`, `3886bda`, `1b7af2f`, `51c2157` | Separated the signed-out gate, classified hydration/login/resend failures, added large-text reflow and phone correction, and kept resend failure distinct from invalid-code state. Several screens simultaneously exposed requirement/implementation narration as learner copy. | Preserve the recovery state machine and reflow lessons. Reject the Aurora shell and rewrite all visible copy; this branch never reached `origin/main`. |
-| Controlled-pilot trial/entitlement branch | `60ac531`, `1b7cd43`, `1d014e8`, `22ec872`, `8eb3c41`, `4defd19` | Bound trial start to a valid first Learning session, revalidated expiry/entitlement, cleared stale task state, and distinguished pilot entitlement. The pilot explicitly had no payment and exposed server/operator/cross-platform implementation language. | Preserve server-owned timing and refresh semantics only. Pilot access is gate-ineligible and cannot define formal membership, purchase, or learner copy. |
+| Controlled-pilot trial/entitlement branch | `60ac531`, `1b7cd43`, `1d014e8`, `22ec872`, `8eb3c41`, `4defd19` | Bound trial start to a valid first Learning session, matching the formal main scheduler's counted-entry timing while adding pilot-only entitlement limits; it also revalidated expiry/entitlement, cleared stale task state, and exposed server/operator/cross-platform implementation language. | Preserve the formal owner/runtime timing and refresh semantics. Pilot access limits remain gate-ineligible and cannot define formal membership, purchase, or learner copy. |
 | Controlled-pilot Learning/Space continuity | `08519c7`, `a2bd1be`, `64832dc`, `a827a9b`, `03b6dce`, `96a99d0`, `1090a41`, `b8f007c` | Distinguished no scheduling from completion, kept server-owned review/round receipts, opened the correct Space card, serialized continuation, and removed invented `0/1`-style progress claims. | Reuse truthful async/continuity states. The card-heavy Aurora presentation and operational copy have no visual authority. |
 | Controlled-pilot deletion lifecycle | `25ed18f`, `f315afa` | Defined confirmation, pending, failure-with-session-preserved, and accepted-but-not-yet-finished deletion. Only a server `202` removes the product shell; failure neither logs out nor clears local data. | Preserve the high-risk state machine. Redraw the sheet and write learner language from scratch. |
 | Controlled-pilot claim integrity | `378c3d4` | Prohibited unsupported official-content, frequency, pricing, and renewal claims in the pilot experience. | Promote the honesty lesson into review; it does not endorse the branch's visuals. |
@@ -120,7 +120,7 @@ Five high-signal commits establish the reusable boundary precisely:
 | `3886bda` | Dynamic Type uses scrolling, wrapping, and non-truncated titles so phone and CTA remain reachable. | The rounded glass login card and its exact composition. |
 | `1b7af2f` | Code entry offers an accessible “change phone” recovery that clears the challenge/code/error before returning to phone entry. | The exact button styling and implementation-oriented short-code copy. |
 | `51c2157` | Resend failure does not invalidate the prior code or paint the code input as wrong; submission remains available. | Any copy that equates transport failure with credential rejection. |
-| `8eb3c41` | Entitlement stages and first-valid-session timing are server-owned; the controlled pilot has no learner purchase path. | Server/operator/cross-platform narration and any attempt to generalize the pilot's time/card limits to formal membership. |
+| `8eb3c41` | Entitlement stages and counted Learning-session timing are server-owned; the controlled pilot has no learner purchase path. | Server/operator/cross-platform narration and any attempt to generalize the pilot's time/card limits to formal membership. |
 | `f315afa` | Confirmation changes nothing; failure preserves session/data; only accepted deletion leaves the shell and shows truthful pending cleanup. | The existing modal/sheet visuals or a false “deleted” completion claim. |
 
 This side branch also gives direct evidence for the user's observed “prompt
@@ -139,12 +139,17 @@ mobile design for it. The pilot's no-payment UI is a different, gate-ineligible
 state. Formal Paywall, purchase, restore, account mismatch, offline, and
 entitlement-refresh surfaces therefore require fresh exact design authority.
 
-Trial timing also has a scope boundary, not one merged evolution: current main
-still carries the post-auth start introduced around `5b59224`, active formal
-specs say `first_entry_counted_as_membership_trial`, and the unmerged pilot uses
-first valid Learning session from `60ac531`. The next design must consume the
-formal owner contract and canonical entitlement response; it must not borrow
-pilot timing or expose a countdown/start claim before that authority is clear.
+Trial timing is operationally resolved inside the active owner rather than by
+the pilot branch. `spec/account-sync-contract.json#trial_and_purchase` retains
+the abstract phrase `first_entry_counted_as_membership_trial`, while the same
+owner's formal `server_scheduler_v1.selection_contract.membership_rule` and
+`infra/cloudbase/learning-session-v1-runtime-contract.md` define that counted
+entry as the first successful authenticated Learning-session entry after
+canonical context validation, selection generation, and required cursor
+persistence. Successful login alone does not consume Trial. The older main UI
+helper around `5b59224` and the pilot branch are implementation history, not a
+second product trigger; learner UI consumes canonical entitlement and never
+invents a start or countdown locally.
 
 ## Design Output Inventory
 
@@ -158,7 +163,7 @@ pilot timing or expose a countdown/start claim before that authority is clear.
 | PC Web core | Its own accepted keyboard/workbench platform direction | PC Web only. A rail/workbench must not be copied into phone or tablet as an enterprise console. |
 | Editorial v2 | One-task emphasis and attached-result intent | Closed, unmerged, and explicitly rejected as a mobile package. |
 | Mobile visual rebuild v3 | Broad failure coverage, strict state matrix, audience separation lesson | All candidates rejected; frozen exact evidence may not be mutated or revived. |
-| Mobile visual rebuild v4 | Real browser interaction loops, exact learner/reviewer separation, stronger leakage regression, 320px/browser-200% measurements, and limited structural fragments | Eight of eight do not advance. No accepted artifact, shortlist, provisional leader, or RN authority. |
+| Mobile visual rebuild v4 | Real browser interaction loops, exact learner/reviewer separation, stronger leakage regression, 320px/browser-200% measurements, and diagnostic structural failures | Eight of eight do not advance. No visual fragment, accepted artifact, shortlist, provisional leader, or RN authority. |
 | Controlled-pilot lifecycle search (`cpl-01`–`cpl-08`) | Empty-scheduling, first-valid-session, round-review, Space-return, and entitlement timing distinctions | Gate-ineligible pilot scope; Aurora-derived rendered family; no authority for formal membership, purchase, or the next mobile visual identity. |
 | Controlled-pilot mobile branches | Auth/recovery, entitlement refresh, round continuity, deletion truth, and honest-claim state machines | Unmerged, pilot-only, Aurora-derived, and semantically leaky; preserve behavior lessons only and rebuild visuals/copy. |
 | Membership / purchase / restore | Trial/Free/Premium product contract and a historical runtime surface | No separately accepted current mobile visual authority; formal purchase/restore must enter the next full state matrix. |
@@ -226,9 +231,9 @@ pilot timing or expose a countdown/start claim before that authority is clear.
   hydration retry, entitlement refresh, round continuity, and deletion pending.
 - The technical strategy of removing fixed geometry and reflowing/stacking at
   large text, without hiding required information.
-- v4 structural ingredients only: reachable phone action order, quiet Space
-  containment, conditional tablet context separation, and subordinate default
-  option/body density.
+- Candidate-independent requirements only: reachable phone action, legible
+  Space containment, conditional tablet context, and readable four-choice/body
+  density. No v4 candidate geometry or named combination is inherited.
 
 ### Redraw
 
@@ -263,8 +268,8 @@ pilot timing or expose a countdown/start claim before that authority is clear.
 
 ## Audit Consequence
 
-The next round must not repair `origin/main@7960ebd` or combine the three
-rejected packages. It must establish a new role-based palette, platform-native
+The next round must not repair `origin/main@7960ebd`, combine the three rejected
+packages, or trace a skeleton from named v4 candidates. It must establish a new role-based palette, platform-native
 navigation/iconography, route-specific information architecture, focused phone
 composition, conditional tablet context, complete recovery states, and formal
 audio/motion evidence. The actionable proposal is `next-synthesis-plan.md`.

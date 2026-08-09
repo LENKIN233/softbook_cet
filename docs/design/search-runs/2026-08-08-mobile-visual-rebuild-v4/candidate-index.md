@@ -22,23 +22,21 @@ ratio in this run remains an `implementation_hypothesis`.
 
 | ID | Design system | Hard-filter status | Current use |
 | --- | --- | --- | --- |
-| mvn-01 | Native Focus | comparison-only; shared P1 blocked | subordinate 2 × 2 density/body-scale ingredient; shell rejected |
+| mvn-01 | Native Focus | comparison-only; shared P1 blocked | tested-state evidence; shell and geometry rejected |
 | mvn-02 | Exam Canvas | comparison-only; shared P1 blocked | continuous-content evidence |
 | mvn-03 | Library Rail | comparison-only; shared P1 blocked | rail-risk evidence |
 | mvn-04 | Focus Header | comparison-only; shared P1 blocked | compact-header evidence |
-| mvn-05 | Action Sheet | comparison-only; shared P1 blocked | phone action-region ingredient |
+| mvn-05 | Action Sheet | comparison-only; shared P1 blocked | action-reach diagnostic evidence |
 | mvn-06 | Structured Blocks | comparison-only; shared P1 blocked | density-risk evidence |
-| mvn-07 | Continuity Path | comparison-only; shared P1 blocked | quiet phone-hierarchy ingredient |
-| mvn-08 | Adaptive Workspace | comparison-only; shared P1 blocked | tablet pane ingredient |
+| mvn-07 | Continuity Path | comparison-only; shared P1 blocked | Space-ownership diagnostic evidence |
+| mvn-08 | Adaptive Workspace | comparison-only; shared P1 blocked | tablet-allocation diagnostic evidence |
 
 All eight are retained only as quarantined comparison evidence after the bounded
 product-truth/browser checks; none met the blueprint's complete survival or
 advancement bar. None is a provisional leader or accepted design. The next
-synthesis may use mvn-05 phone
-action, mvn-07 Space containment, and mvn-08 tablet structure as its primary
-skeleton, with mvn-01's 2 × 2 density/body scale only as subordinate tuning and
-without its palette or shell, after the shared P1 blockers in `strict-review.md`
-are redesigned and re-reviewed.
+architecture must start from product and platform requirements, not one or more
+named candidates. Comparison observations survive only as diagnostic evidence;
+no v4 geometry, ordering, ratio, or visual rhythm is carried forward.
 
 Each ID binds to its own learner document and independent DOM/browser history.
 Learning/Result, Space, Statistics, Mine, and Auth are reachable within that

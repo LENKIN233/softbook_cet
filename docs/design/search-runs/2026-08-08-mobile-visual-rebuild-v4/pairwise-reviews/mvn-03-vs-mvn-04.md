@@ -56,7 +56,8 @@ endorsement of mvn-04 and does not produce a reusable shell.
 
 ## Borrowable Fragments
 
-At most, preserve the idea that current context can be compact and labeled.
+No visual fragment is borrowed. Current context must remain compact and
+understandable, with newly derived geometry.
 
 ## Rejected Fragments
 

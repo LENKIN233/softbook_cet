@@ -50,13 +50,13 @@ comparison authorizes no RN mapping.
 
 ## Rationale
 
-Tablet allocation wins this narrow comparison. Only the separation of
-navigation, task, and context is harvestable; mvn-08 itself remains P1 blocked.
+Tablet allocation wins this narrow comparison, but mvn-08 remains P1 blocked
+and contributes no reusable composition.
 
 ## Borrowable Fragments
 
-Borrow mvn-08's tablet pane separation as a synthesis ingredient, then redraw
-icons, spacing, ratios, motion, and state behavior.
+No visual fragment is borrowed. The candidate-independent requirement is that
+tablet context appears only when useful and never obscures the current task.
 
 ## Rejected Fragments
 

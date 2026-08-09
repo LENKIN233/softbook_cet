@@ -52,13 +52,12 @@ new accepted synthesis and formal motion/audio evidence.
 ## Rationale
 
 Clearer task ownership wins this narrow comparison, while shared P1 issues
-block both. Only mvn-01's content and 2 × 2 density may remain subordinate
-synthesis input; neither shell carries forward.
+block both. Neither density nor shell carries forward.
 
 ## Borrowable Fragments
 
-Retain only mvn-01's controlled content density and the idea that context stays
-subordinate.
+No visual fragment is borrowed. The candidate-independent requirement is that
+context stays subordinate and the canonical choice silhouette remains readable.
 
 ## Rejected Fragments
 

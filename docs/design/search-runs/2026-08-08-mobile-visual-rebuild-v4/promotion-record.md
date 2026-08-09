@@ -15,9 +15,9 @@ search, not a promoted artifact.
 ## Winning Candidate
 
 No candidate qualifies for promotion. For validator-connected comparison
-provenance, mvn-08 is named only as the strongest relative tablet ingredient;
-it is not a run winner, selected design, advancement result, or implementation
-authority.
+provenance, mvn-08 is named only as the narrow final pairwise result; it is not
+a reusable ingredient, run winner, selected design, advancement result, or
+implementation authority.
 
 ## Product Truth And Implementation Hypothesis
 
@@ -36,19 +36,13 @@ all retain the shared P1 blockers recorded in `strict-review.md`.
 
 ## Borrowed Fragments
 
-No fragment is promoted. A later synthesis may experimentally borrow:
-
-- mvn-01's 2 × 2 option density and body-text scale as subordinate tuning only;
-- mvn-05's reachable phone prompt/action-region order;
-- mvn-07's Space containment and quiet contextual hierarchy;
-- mvn-08's tablet shell with navigation/task/context pane separation.
-
-The synthesis must redraw their exact colors, icons, sheets, bands, rails,
-spacing, and ratios and undergo a new exact review. mvn-01 is not a fourth
-visual direction: its palette and shell are rejected. The primary skeleton is
-still mvn-05 phone action + mvn-07 Space containment + mvn-08 tablet structure.
-The complete non-authoritative gate and platform plan is
-`next-synthesis-plan.md`.
+No fragment is promoted and no named combination supplies a later skeleton.
+The comparison retains only candidate-independent requirements: reachable
+phone action, legible Space ownership, conditional tablet context, and readable
+four-choice/body rhythm. A later synthesis must derive new geometry from those
+requirements, redraw every color, icon, surface, ratio, and motion choice, and
+undergo a new exact review. The complete non-authoritative gate and platform
+plan is `next-synthesis-plan.md`.
 
 ## Rejected Fragments
 
@@ -67,7 +61,8 @@ pin, saturated slab, black capsule, fake device, and review-cockpit fragments.
 - `candidate-proofs/reviewer-gallery.html`
 - `external-prototype.md`
 
-These are comparison and synthesis-input evidence only, not promoted proof.
+These are retrospective diagnostic and comparison evidence only, not synthesis
+inputs or promoted proof.
 
 ## Implementation Mapping Expectations
 
@@ -104,9 +99,9 @@ Q1: Current-library identity and Law of One remain `product_truth`; the suggeste
 synthesis must keep sibling-library colors subordinate. No candidate palette is
 accepted.
 
-Q2: mvn-05 contributes phone action hierarchy, mvn-07 contributes Space
-containment, and mvn-08 contributes tablet structure. mvn-01 contributes only
-2 × 2 option density and body-text scale, without its palette or shell. No exact
+Q2: No v4 focal object or composition is carried forward. The next architecture
+must independently prove a reachable phone action, legible Space containment,
+conditional tablet context, and readable four-choice/body rhythm. No exact
 focal object passes the shared P1 advancement gate.
 
 Q3: The exact browser cohort implements flip, 2 × 2 choice, vertical lock,

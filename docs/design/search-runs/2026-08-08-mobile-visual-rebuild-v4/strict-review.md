@@ -108,18 +108,13 @@ This bracket is retrospective comparison evidence only. It does not create a
 survivor, shortlist, provisional leader, accepted artifact, or implementation
 authority. Extra pairwise files remain diagnostic probes outside this bracket.
 
-The only recommended next-generation ingredients are:
-
-- mvn-01: 2 × 2 option density and body-text scale, subordinate tuning only;
-- mvn-05: reachable phone prompt/action-region order;
-- mvn-07: Space containment and quiet contextual hierarchy;
-- mvn-08: tablet shell with navigation/task/context pane separation.
-
-Those fragments must be recomposed into a new exact synthesis. Their current
-colors, icons, sheets, bands, rails, spacing, and ratios do not carry forward as
-authority. mvn-01 is not a fourth visual direction: its palette and shell are
-explicitly excluded, while mvn-05 phone action, mvn-07 Space containment, and
-mvn-08 tablet structure remain the primary skeleton.
+There are no recommended candidate fragments or combined candidate skeleton.
+The only retained inputs are candidate-independent requirements exposed by the
+comparison: reachable phone action, legible Space ownership, conditional tablet
+context, and readable four-choice/body rhythm. The next architecture must
+derive new geometry from product truth and platform behavior rather than trace
+an mvn document. All current colors, icons, sheets, bands, rails, spacing,
+ratios, and motion remain rejected hypotheses.
 
 ## Required Next Synthesis Gate
 

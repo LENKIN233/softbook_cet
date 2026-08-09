@@ -55,12 +55,12 @@ unmapped.
 
 The bounded current task wins this narrow phone comparison. That relative result
 does not outweigh the shared P1 blockers and contributes no preferred synthesis
-ingredient over mvn-05/mvn-07 phone work.
+fragment.
 
 ## Borrowable Fragments
 
-Retain only the evidence that a task boundary can improve recognition. Do not
-copy either exact surface into the next synthesis.
+No visual fragment is borrowed. The candidate-independent requirement is that
+the current task remains recognizable; derive its geometry again.
 
 ## Rejected Fragments
 

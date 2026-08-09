@@ -29,10 +29,10 @@ therefore records only a quarantined diagnostic comparison cohort:
 - mvn-02: continuous content-order evidence;
 - mvn-03: explicit location-rail evidence and spine-risk evidence;
 - mvn-04: compact header/work-surface evidence;
-- mvn-05: phone prompt/action-region ingredient;
+- mvn-05: phone action-reach diagnostic evidence;
 - mvn-06: structured-block evidence and density-risk evidence;
-- mvn-07: quiet phone hierarchy and low-weight continuity ingredient;
-- mvn-08: adaptive tablet pane ingredient.
+- mvn-07: Space-ownership and hierarchy diagnostic evidence;
+- mvn-08: adaptive tablet-allocation diagnostic evidence.
 
 The IDs above are validator-visible comparison participants, not product or
 advancement survivors. Their pairwise files are retrospective diagnostic
@@ -43,7 +43,7 @@ promoted, accepted, implementation-ready, or authorized for RN.
 
 | Candidate | Strict UI/UX director verdict | Advancement |
 | --- | --- | --- |
-| mvn-01 | Generic study-app shell and weak brand recognition. Retain only its 2 × 2 option density and body-text scale as a subordinate synthesis ingredient; do not carry its color or shell. | No advance |
+| mvn-01 | Generic study-app shell and weak brand recognition. Its 2 × 2 state only confirms that the canonical silhouette can fit at the tested size; do not carry its density, color, shell, or geometry. | No advance |
 | mvn-02 | Weak action emphasis, with a clipped or undiscoverable Space-rail risk. | No advance |
 | mvn-03 | Vetoed decorative spine; hard reject at the visual-direction checkpoint, while retained only in the historical comparison graph. | No advance |
 | mvn-04 | Dated palette, nested sheets, and cross-route visual mismatch. | No advance |
@@ -106,12 +106,12 @@ closed browser floor is not native-device acceptance.
 
 ## Notes For Mutation
 
-Do not polish an existing candidate into authority. Build a new synthesis from
-mvn-05's reachable phone action region, mvn-07's Space containment, and
-mvn-08's tablet shell/pane separation. Use mvn-01's 2 × 2 option density and
-body-text scale only as a subordinate tuning ingredient, never as a fourth
-visual direction and never with its palette or shell. Replace placeholder iconography, design causal
+Do not polish an existing candidate into authority or combine named candidates
+into a hidden promoted skeleton. Re-derive the next architecture from product-
+level tests: reachable phone action, legible Space ownership, conditional
+tablet context, and readable four-choice/body rhythm. Replace placeholder iconography, design causal
 motion, complete pending/error/retry states and full Space deep links, raise the
 tablet composition to product quality, bind an approved audio asset, preserve
 the closed browser reflow floors, then complete native verification and
-independent review. No other fragment is carried forward by default.
+independent review. No v4 geometry or visual fragment is carried forward by
+default.
