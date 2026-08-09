@@ -102,7 +102,14 @@ function createPinnedExactSubject(t) {
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.copyFileSync(source, destination);
   }
-  git(root, 'add', DECISION_PATH, ...BOUND_FILES.map(item => item.path));
+  write(root, '.batch0-pinned-fixture', 'pinned exact subject fixture\n');
+  git(
+    root,
+    'add',
+    '.batch0-pinned-fixture',
+    DECISION_PATH,
+    ...BOUND_FILES.map(item => item.path),
+  );
   git(root, 'commit', '-qm', 'exact pinned Batch 0 subject');
   return { root, head: git(root, 'rev-parse', 'HEAD') };
 }
