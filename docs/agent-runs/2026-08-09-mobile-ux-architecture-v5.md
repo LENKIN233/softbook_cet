@@ -6,7 +6,7 @@
 - Branch: `cross/mobile-ux-architecture-v5`
 - PR: draft `#484`; stacked on draft PR `#483`
 - Parent design checkpoint: corrected v4 commit `de3bd5c5a23a70e2ca3c165613ea04a2f07da2b1`, independently classified `completed_no_promotion`
-- Summary: design-only correction and evidence pass for the mobile UX architecture. It replaces false browser outcomes, hidden tablet reflow, blended access profiles, omitted check-in behavior, compound evidence overclaims, and incomplete state accounting with a fail-closed 160-state + 13-combination contract, four platform learner documents, two physically separate access documents, and frozen browser evidence.
+- Summary: design-architecture correction and evidence pass plus narrowly scoped CI security remediation. The architecture work replaces false browser outcomes, hidden tablet reflow, blended access profiles, omitted check-in behavior, compound evidence overclaims, and incomplete state accounting with a fail-closed 160-state + 13-combination contract, four platform learner documents, two physically separate access documents, and frozen browser evidence. The CI remediation upgrades the fixable `js-yaml` advisory and records two short-lived, fail-closed `image-size` exceptions because upstream currently publishes no patched release.
 - Current result: `architecture_gate_blocked_with_browser_subset_verified`. No visual system, accepted design, native completion, leadership readiness, or React Native authority is created.
 
 The final goal remains one explicitly accepted, mature CET4/6 consumer product that is genuinely usable on iOS, Android, representative tablets, and PC Web. This checkpoint removes architecture ambiguity; it is not the finish line.
@@ -71,7 +71,7 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 - Active truth/source read: the referenced specs and accepted design/runtime artifacts above, corrected v4 design history, the v5 worktree, and relevant delivery/harness scripts.
 - Generated/dependency/cache/archive read: none used as product truth. Browser runtime support code was inspected only to operate the approved in-app browser API.
 - External workspace read: none. `/Users/lenkin/programing/card make` was not read or changed.
-- No `apps/mobile`, native project, backend, content payload, release evidence, or deployment file was changed.
+- No mobile application source, native project, backend, content payload, release evidence, or deployment file was changed. `apps/mobile/package.json` and `package-lock.json` changed only to resolve the transitive `js-yaml` advisory; the dependency security policy changed to govern the unpatched build-time `image-size` advisories.
 
 ## Files changed
 
@@ -85,6 +85,8 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 - `docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/access-profile-proofs/`: physically separate formal-commerce and managed read-only learner documents.
 - `scripts/check_design_metadata_leaks.mjs`: fail-closed scanning for UX-architecture external learner scripts and learner comments.
 - `scripts/test_check_design_metadata_leaks.mjs`: external-script, learner-comment, reviewer-process, and raw-metadata regressions.
+- `apps/mobile/package.json` and `apps/mobile/package-lock.json`: force transitive `js-yaml@4.3.1`, the first release outside the reported vulnerable 3.x/4.x ranges.
+- `security/dependency-audit-policy.json`: time-bounded exceptions, expiring `2026-08-16`, for the two unpatched `image-size` advisories reachable only through Metro's repository-controlled build inputs.
 - `docs/agent-runs/2026-08-09-mobile-ux-architecture-v5.md`: this record.
 
 ## Commands run
@@ -96,6 +98,12 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 - Real in-app-browser click/fill/keypress/pointer-drag/Back/Forward/viewport/screenshot/layout replay against cache-busted URLs.
 - `shasum -a 256` for every frozen proof source.
 - `python3 scripts/validate_harness.py --mode local`.
+- `python3 scripts/validate_harness.py`.
+- `npm install --package-lock-only --ignore-scripts` and `npm ci` in `apps/mobile`.
+- `npm ls js-yaml image-size --all`.
+- `node scripts/test_validate_dependency_security.mjs && node scripts/validate_dependency_security.mjs`.
+- tracked-asset boundary scan for `ICNS / HEIF / HEIC / JXL` inputs.
+- `npm run lint -- --quiet`, `npm run typecheck`, and `npm test -- --runInBand --watchAll=false` in `apps/mobile`.
 - `git diff --check`.
 
 ## Validation results
@@ -111,6 +119,9 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 - Four-choice remained 2×2 at 320 and 360; statistics date numerals compute to `tabular-nums`.
 - Native, store, canonical service, real audio, real receiver operations, 200% text, OS reduced motion, IME, VoiceOver/TalkBack, cutout/safe-area, and PC Web per-state evidence: blocked.
 - Local full-section harness: `HARNESS VALIDATION OK`; `HARNESS COMPLETENESS PARTIAL (mode=local, selected=15)` is the expected local-mode report and does not substitute for remote required checks.
+- Full harness command required by the PR review gate: `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`.
+- Dependency security: `js-yaml` was deduplicated to fixed `4.3.1`; the policy validator passed with no CloudBase findings and exactly two governed `image-size` advisories. GitHub lists no patched `image-size` release, so both exceptions expire on `2026-08-16` and must be removed as soon as upstream publishes a fix. The repository contains no tracked `ICNS`, `HEIF`, `HEIC`, or `JXL` asset that can reach the vulnerable parsers.
+- Mobile regression after the override: lint passed, typecheck passed, and all `45` suites / `437` tests passed.
 - `git diff --check`: passed.
 - Final independent frozen-hash architecture review of strict-4 commit `bd3ed0f54350b252f1554872de5a07cd09f97232`: `pass_exact_architecture_browser_subset`; P0 `0`, P1 `0`. The overall architecture gate remains blocked.
 
@@ -151,6 +162,7 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 ## Risks and open questions
 
 - Required ledger rows remain blocked; therefore the architecture gate remains blocked.
+- The two `image-size` exceptions are not a zero-vulnerability claim. They are limited to Metro's build-time use of repository-controlled local assets, expire on `2026-08-16`, and deliberately fail closed if upstream resolves the advisory or the exception is not removed/reassessed by then.
 - Native iOS/Android/tablet evidence and PC Web per-state parity are absent.
 - Formal store success/cancel/account mismatch and canonical entitlement refresh are absent.
 - Free limits, real Trial persistence, membership-end recovery, audio-present lifecycle, offline/retry/duplicate/process-restore, large text, reduced motion, and assistive technology require exact evidence.

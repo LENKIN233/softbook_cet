@@ -4,7 +4,22 @@
     {
       "id": "mobile",
       "path": "apps/mobile",
-      "allowed_advisories": []
+      "allowed_advisories": [
+        {
+          "id": "GHSA-5p2g-fcmc-qvqq",
+          "package": "image-size",
+          "severity": "high",
+          "expires_on": "2026-08-16",
+          "reason": "Metro 0.84.3 uses image-size only while bundling repository-controlled local assets; the shipped mobile runtime does not expose this parser to network or learner input, and the repository contains no tracked JXL, HEIF, or HEIC assets. GitHub lists no patched image-size release as of 2026-08-09. Remove this exception immediately when an upstream patched release is available."
+        },
+        {
+          "id": "GHSA-w3rx-r6r6-pgpr",
+          "package": "image-size",
+          "severity": "high",
+          "expires_on": "2026-08-16",
+          "reason": "Metro 0.84.3 uses image-size only while bundling repository-controlled local assets; the shipped mobile runtime does not expose this parser to network or learner input, and the repository contains no tracked ICNS assets. GitHub lists no patched image-size release as of 2026-08-09. Remove this exception immediately when an upstream patched release is available."
+        }
+      ]
     },
     {
       "id": "cloudbase-api",
