@@ -105,6 +105,7 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 - Full metadata scanner: `PASS: No metadata leaks detected in design visual artifacts.`
 - Exact state accounting: 160 semantic state rows + 13 COV rows, no duplicate/missing IDs. Parent browser-cell counts were retired after the strict review found platform inflation; conservative frozen-source coverage is iOS phone `38`, Android phone `10`, iPadOS `8`, Android tablet `8`, and shared access-profile browser `12`. A further `14/5/5/5` platform presentations were operated but remain blocked because the browser adapter cannot prove canonical origin/commit truth; check-in acknowledgement/reconciliation/exact-retry remain blocked.
 - Frozen browser replay: passed for the exact subset recorded in `browser-evidence.md`; page runtime console errors `0`.
+- Frozen strict-3 review found one remaining iOS global-stack P1. Strict-4 replaced it with destination-owned route-local stacks, then re-ran the exact failed path. `Learning → 查看所在空间 → 回到学习 → Space tab → App Back` now moves visibly to the Space root on the first activation, exposes no root Back control, and never pops a top-level iOS tab.
 - iOS 320/360/390/430, iOS landscape, Android 390/430, Android landscape, iPadOS 761/800/1024, Android tablet 761/800/1024, and shared access 320/1024 all measured `overflowX=0`.
 - iOS minimum operated target floor: `44`; Android and shared-access floor: `48`.
 - Four-choice remained 2×2 at 320 and 360; statistics date numerals compute to `tabular-nums`.
@@ -123,6 +124,7 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 
 - Pre-commit behavior audit: `pass_precommit_behavior_audit` on strict-3; P0 `0`, P1 `0`. It rechecked Lock correction, Elimination/Swipe answer context, Auth focus, platform Back, Space focus/scroll restoration, sleeping-card replacement, and the removal of the false post-success check-in repeat control.
 - Pre-commit evidence audit: `pass_precommit_evidence_audit` on flow hash `e21efa673ec301640392acc76781872d1fe0cd3f4dac29a76454cdd045f5b102`; P0 `0`, P1 `0`. It independently recomputed `38/10/8/8` exact platform cells, `14/5/5/5` presentation-only observations, `12` shared cells, all `160 + 13` IDs, all frozen hashes, and the blocked canonical-origin rows.
+- Exact review of strict-3 commit `2a09309e3b2bc85003d2e68b5a65196f4e9c0fcd`: `fail_architecture_checkpoint`; P0 `0`, P1 `1`. The residual finding was the shared iOS global stack and a real double-Back/no-visible-change path. Strict-4 corrected that finding and re-ran all platform browser scenarios affected by the shared script hash.
 - Reviewer: independent exact-hash subagent
 - Status: pending
 - Blocking findings: pending

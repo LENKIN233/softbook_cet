@@ -149,6 +149,8 @@
 
   const navigationStack = [];
   const navigationForwardStack = [];
+  const routeNavigationStacks = Object.fromEntries(Object.keys(routeNames).map((route) => [route, []]));
+  const routeNavigationForwardStacks = Object.fromEntries(Object.keys(routeNames).map((route) => [route, []]));
   let historyPosition = 0;
   let resendTimer = 0;
   let sessionTimer = 0;
@@ -952,28 +954,38 @@
     model.learningLocation = { ...snapshot.location };
   }
 
-  function navigationSnapshot() {
-    const activeFocus = describeFocus();
+  function navigationSnapshot(route = model.route) {
+    const isCurrentRoute = route === model.route;
+    const activeFocus = isCurrentRoute ? describeFocus() : null;
     const focus = activeFocus?.kind === "attribute" && activeFocus.attribute === "data-route" && activeFocus.value !== model.route
       ? { kind: "id", value: `${model.route}-title` }
-      : activeFocus;
+      : activeFocus ?? { kind: "id", value: `${route}-title` };
     return {
-      route: model.route,
+      route,
       spaceDepth: model.spaceDepth,
       chosenLibrary: model.chosenLibrary,
       chosenGroup: model.chosenGroup,
       chosenBox: model.chosenBox,
       chosenCard: model.chosenCard,
       focus,
-      scrollX: window.scrollX,
-      scrollY: window.scrollY,
+      scrollX: isCurrentRoute ? window.scrollX : 0,
+      scrollY: isCurrentRoute ? window.scrollY : 0,
     };
   }
 
-  function pushNavigationSnapshot() {
-    navigationStack.push(navigationSnapshot());
-    if (navigationStack.length > navigationLimit) navigationStack.shift();
-    navigationForwardStack.length = 0;
+  function navigationStacksFor(route = model.route) {
+    if (usesTopLevelHistory) return { backStack: navigationStack, forwardStack: navigationForwardStack };
+    return {
+      backStack: routeNavigationStacks[route],
+      forwardStack: routeNavigationForwardStacks[route],
+    };
+  }
+
+  function pushNavigationSnapshot(snapshot = navigationSnapshot(), route = model.route) {
+    const { backStack, forwardStack } = navigationStacksFor(route);
+    backStack.push(snapshot);
+    if (backStack.length > navigationLimit) backStack.shift();
+    forwardStack.length = 0;
     if (!usesTopLevelHistory) return;
     historyPosition += 1;
     try {
@@ -1015,10 +1027,11 @@
   }
 
   function restorePreviousNavigation() {
-    const snapshot = navigationStack.pop();
+    const { backStack, forwardStack } = navigationStacksFor();
+    const snapshot = backStack.pop();
     if (!snapshot) return false;
-    navigationForwardStack.push(navigationSnapshot());
-    if (navigationForwardStack.length > navigationLimit) navigationForwardStack.shift();
+    forwardStack.push(navigationSnapshot());
+    if (forwardStack.length > navigationLimit) forwardStack.shift();
     applyNavigationSnapshot(snapshot);
     if (model.route === "learning" && model.currentCardExcluded) {
       model.learningOrigin = null;
@@ -1034,10 +1047,11 @@
   }
 
   function restoreNextNavigation() {
-    const snapshot = navigationForwardStack.pop();
+    const { backStack, forwardStack } = navigationStacksFor();
+    const snapshot = forwardStack.pop();
     if (!snapshot) return false;
-    navigationStack.push(navigationSnapshot());
-    if (navigationStack.length > navigationLimit) navigationStack.shift();
+    backStack.push(navigationSnapshot());
+    if (backStack.length > navigationLimit) backStack.shift();
     applyNavigationSnapshot(snapshot);
     if (model.route === "learning" && model.currentCardExcluded) {
       model.learningOrigin = null;
@@ -1061,7 +1075,7 @@
       editPhone();
       return;
     }
-    if (!navigationStack.length) return;
+    if (!navigationStacksFor().backStack.length) return;
     if (!usesTopLevelHistory) {
       restorePreviousNavigation();
       return;
@@ -1336,7 +1350,7 @@
     if (model.learningOrigin && !model.currentCardExcluded) restoreLearningSnapshot(model.learningOrigin);
     const needsReplacement = model.currentCardExcluded;
     model.learningOrigin = null;
-    if (!navigate({ route: "learning" })) return;
+    if (!navigate({ route: "learning" }, { record: usesTopLevelHistory })) return;
     if (needsReplacement) requestLearningSession("replacement");
   }
 
@@ -1393,6 +1407,8 @@
       model.access = "not-started";
       navigationStack.length = 0;
       navigationForwardStack.length = 0;
+      Object.values(routeNavigationStacks).forEach((stack) => { stack.length = 0; });
+      Object.values(routeNavigationForwardStacks).forEach((stack) => { stack.length = 0; });
       historyPosition = 0;
       try {
         window.history.replaceState({ position: 0 }, "", window.location.href);
@@ -1610,14 +1626,24 @@
     }
     if (action === "open-space") {
       model.learningOrigin = learningSnapshot();
-      navigate({
+      const destination = {
         route: "space",
         spaceDepth: "card",
         chosenLibrary: model.learningLocation.library,
         chosenGroup: model.learningLocation.group,
         chosenBox: model.learningLocation.box,
         chosenCard: model.learningLocation.card,
-      });
+      };
+      if (!usesTopLevelHistory) {
+        const previousSpace = navigationSnapshot("space");
+        const opensDifferentSpacePosition = previousSpace.spaceDepth !== destination.spaceDepth
+          || previousSpace.chosenLibrary !== destination.chosenLibrary
+          || previousSpace.chosenGroup !== destination.chosenGroup
+          || previousSpace.chosenBox !== destination.chosenBox
+          || previousSpace.chosenCard !== destination.chosenCard;
+        if (opensDifferentSpacePosition) pushNavigationSnapshot(previousSpace, "space");
+      }
+      navigate(destination, { record: usesTopLevelHistory });
     }
     if (action === "return-learning") returnToLearning();
     if (action === "toggle-sleep") beginSleep();
