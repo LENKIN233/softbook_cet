@@ -57,6 +57,74 @@ test('explicit root reports a fixture leak relative to that root', () => {
   });
 });
 
+test('ux architecture external learner scripts are scanned fail closed', () => {
+  withFixture(fixtureRoot => {
+    const architectureRoot = path.join(
+      fixtureRoot,
+      'docs/design/ux-architecture/example/grayscale-proofs',
+    );
+    fs.mkdirSync(architectureRoot, {recursive: true});
+    fs.writeFileSync(
+      path.join(architectureRoot, 'learner-copy.js'),
+      'status.textContent = "服务端状态已恢复";\n',
+    );
+    fs.writeFileSync(
+      path.join(architectureRoot, 'learner.html'),
+      '<!doctype html><body data-audience="learner"><main data-learner-surface>继续学习</main><script src="./learner-copy.js"></script></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /ux-architecture\/example\/grayscale-proofs\/learner-copy\.js/);
+    assert.match(result.stderr, /review, implementation, or data-model language/);
+    assert.match(result.stderr, /learner script source/);
+  });
+});
+
+test('ux architecture reviewer-only external scripts stay outside learner-copy scope', () => {
+  withFixture(fixtureRoot => {
+    const architectureRoot = path.join(
+      fixtureRoot,
+      'docs/design/ux-architecture/example/reviewer',
+    );
+    fs.mkdirSync(architectureRoot, {recursive: true});
+    fs.writeFileSync(
+      path.join(architectureRoot, 'reviewer-copy.js'),
+      'reviewer.textContent = "runtime implementation review and browser evidence";\n',
+    );
+    fs.writeFileSync(
+      path.join(architectureRoot, 'reviewer.html'),
+      '<!doctype html><body data-audience="reviewer"><main id="reviewer">Review</main><script src="./reviewer-copy.js"></script></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /PASS: No metadata leaks detected/);
+  });
+});
+
+test('ux architecture learner comments cannot carry reviewer guidance', () => {
+  withFixture(fixtureRoot => {
+    const architectureRoot = path.join(
+      fixtureRoot,
+      'docs/design/ux-architecture/example/grayscale-proofs',
+    );
+    fs.mkdirSync(architectureRoot, {recursive: true});
+    fs.writeFileSync(
+      path.join(architectureRoot, 'learner.html'),
+      '<!doctype html><body data-audience="learner"><!-- semantic color review note --><main data-learner-surface>继续学习</main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /learner architecture document contains non-rendered commentary/);
+    assert.match(result.stderr, /learner source boundary/);
+  });
+});
+
 test('learner surface rejects review language emitted by inline script', () => {
   withFixture(fixtureRoot => {
     fs.writeFileSync(
@@ -97,6 +165,34 @@ test('reviewer-only notes stay allowed outside a marked learner surface', () => 
     const result = runScanner(['--root', fixtureRoot]);
 
     assert.equal(result.status, 0, result.stderr);
+  });
+});
+
+test('explicit reviewer documents may render process review language', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/reviewer-process.html'),
+      '<!doctype html><body data-audience="reviewer"><main>runtime implementation review and browser evidence</main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /PASS: No metadata leaks detected/);
+  });
+});
+
+test('explicit reviewer documents still reject raw metadata', () => {
+  withFixture(fixtureRoot => {
+    fs.writeFileSync(
+      path.join(fixtureRoot, 'docs/design/mocks/reviewer-metadata.html'),
+      '<!doctype html><body data-audience="reviewer"><main>box_id</main></body>\n',
+    );
+
+    const result = runScanner(['--root', fixtureRoot]);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /raw metadata field name/);
   });
 });
 

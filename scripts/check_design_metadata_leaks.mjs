@@ -40,6 +40,7 @@ const scanRoots = [
   'docs/design/mocks',
   'docs/design/storyboards',
   'docs/design/search-runs',
+  'docs/design/ux-architecture',
 ];
 
 const visualReferenceFiles = ['docs/design/visual-reference.html'];
@@ -52,6 +53,8 @@ const excludedPathPatterns = [
 ];
 
 const textFilePattern = /\.(html|md|svg)$/;
+const learnerScriptFilePattern = /\.(m?js)$/;
+const learnerScriptRoots = ['docs/design/ux-architecture'];
 
 const metadataFieldPattern =
   /\b(?:space_metadata|spaceMetadata|box_ref|boxRef|template_box_prefix|templateBoxPrefix|box_id|boxId|track_availability|trackAvailability|resolved_box_prefixes|resolvedBoxPrefixes|card_template|cardTemplate|card_counts|cardCounts|template_track_placeholder|templateTrackPlaceholder|knowledge_ref|knowledgeRef|interaction_id|interactionId|auto_scoring|autoScoring|answer_key|answerKey|correct_option|correctOption|lock_pattern|lockPattern|correct_items|correctItems|correct_state|correctState|card_id|cardId|source_id|sourceId|source_label|sourceLabel|catalogCards|completedAt|usedHint|usedPeek|card_records|cardRecords|flipConfidence|selectedOptionId|lockSelections|eliminatedItemIds|swipeSelection|auth_token|authToken|access_token|accessToken|accessTokenExpiresAt|refresh_token|refreshToken|refreshExpiresAt|challenge_id|challengeId|session_id|sessionId|selection_id|selectionId|scheduler_version|schedulerVersion|scheduler_by_card_id|schedulerByCardId|next_due_at|nextDueAt|learning_acknowledged_at|learningAcknowledgedAt|token_type|tokenType|sms_code|phone_number|day_key|completed_at|used_hint|used_peek|is_favorited|is_sleeping|last_modified_at|lastModifiedAt|checked_in_today|favorite_count|learning_completed_count|pending_review_count|review_completed_count|sleeping_count|total_completed_count|counted_entry_count|countedEntryCount|last_experience_ended_by|recovery_prompt_visible|recoveryPromptVisible|trial_duration_days|trial_started_at_entry_count|trialStartedAtEntryCount|acknowledgedAt|sync_daily_progress|sync_space_state|sync_learning_state|start_membership_trial|refresh_membership|__softbook_mutation_queue|__softbook_learning_event_outbox_v1|__softbook_learning_event_outbox_v2|retryCount|apiKey|apiKeyHeader|baseUrl|remoteConfig|requestCodeEndpoint|verifyCodeEndpoint|dismissRecoveryEndpoint|entitlementEndpoint|purchaseEndpoint|startTrialEndpoint|trackQueryParam|contentManifest|contentManifestPublicKeys|__SOFTBOOK_CET_REMOTE_RUNTIME_PROFILE__|SOFTBOOK_CET_REMOTE_BASE_URL|SOFTBOOK_CET_REMOTE_API_KEY|SOFTBOOK_CET_CONTENT_MANIFEST_PUBLIC_KEYS|SOFTBOOK_CET_LEARNING_TRACK|SOFTBOOK_CET_AUTH_TOKEN|SOFTBOOK_CET_TEST_PHONE|SOFTBOOK_CET_TEST_CODE|SOFTBOOK_CET_SMOKE_ISOLATED_PHONE|SOFTBOOK_CET_SMOKE_WRITE|SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS|SOFTBOOK_CET_EXPECT_INITIAL_STAGE|SOFTBOOK_CET_EXPECT_START_TRIAL_STAGE|SOFTBOOK_CET_EXPECT_PURCHASE_STAGE|SOFTBOOK_CET_IOS_LAUNCH|SOFTBOOK_CET_IOS_DEVICE|SOFTBOOK_CET_IOS_SIMULATOR|SOFTBOOK_CET_IOS_BUNDLE_ID|SOFTBOOK_CET_METRO_PORT|SOFTBOOK_CET_STOP_METRO_ON_EXIT|SOFTBOOK_CET_MANUAL_TEST_PHONE|SOFTBOOK_CET_IOS_MAESTRO_FLOW|SOFTBOOK_CET_MAESTRO_PHONE|SOFTBOOK_CET_MAESTRO_CODE|IOS_SIMULATOR|IOS_DEVICE|IOS_BUNDLE_ID|METRO_PORT|STOP_METRO_ON_EXIT|SMS_CODE|MANUAL_TEST_PHONE|MAESTRO_FLOW|MAESTRO_PHONE|MAESTRO_CODE|CLOUDBASE_COLLECTIONS|cardSources|dailyProgress|learningStates|learningSessions|memberships|spaceStates|softbook_card_sources|softbook_daily_progress|softbook_learning_states|softbook_learning_sessions|softbook_memberships|softbook_space_states|getCardSource|getMembership|startTrial|dismissRecovery|saveDailyProgress|saveLearningState|saveSpaceState|acknowledged_at|updated_at|events_by_card_id|states_by_card_id|documentId|eventsByCardId|statesByCardId|server_sequence|eventObject|stateObject|not_found|invalid_api_key|invalid_sms_code|invalid_track|DOCUMENT_NOT_EXIST|invalid_card_source|missing_auth_token|invalid_auth_token|expired_auth_token|phone_number_mismatch|internal_error|invalid_request|invalid_json|isBase64Encoded|tokenSecret|tokenTtlSeconds|issuedAt|encodedPayload|expectedSignature|leftBuffer|rightBuffer|trial_available|lock_slots|elimination_items|swipe_states|optionIds|lockSlots|eliminationItems|swipeStates|defaultCardSource|expectedTrack|hintLayer|headers|httpMethod|rawPath|rawQueryString|queryStringParameters|queryString|pathname|v1Index|fieldName|statusCode|requestContext|defaultApi|overrideValue|envValue|storeMode|DEFAULT_SMS_CODE|DEFAULT_TRIAL_DURATION_DAYS|DEFAULT_TOKEN_TTL_SECONDS|DEFAULT_CARD_SOURCE|getDefaultApi|createSoftbookApi|handleCloudBaseEvent|handleHttpRequest|handleRequestCode|handleVerifyCode|handleLearningCardSource|sendJson|createAuthToken|verifyAuthToken|httpError|getHeader|requireObjectBody|requireObject|requireArray|requirePhoneNumber|requireBoolean|requireIsoTimestamp|requireAuthSession|requireNonEmptyString|requireDayKey|requireNonNegativeInteger|requireInteractionId|requireLearningOutcome|requireEnum|parseJson|resolveTokenTtlSeconds|isApiKeyAllowed|assertBodyPhoneMatchesSession|signTokenPayload|base64UrlEncode|base64UrlDecode|safeEqual|parseDailyProgressSnapshot|parseLearningStateSnapshot|parseSpaceStateSnapshot|acknowledgedResponse|parseCloudBaseEvent|parseEventBody|normalizeApiPath|normalizeHeaders|normalizeQuery|parseQueryString|toCloudBaseResponse|jsonResponse|errorResponse|createDefaultStore|createMemoryStore|createCloudBaseStore|createCloudBaseDatabase|getCloudBaseMembership|saveCloudBaseMembership|deserializeMembershipDocument|createInitialMembership|cloneMembership|serializeMembershipEntitlement|getCloudBaseDocument|setCloudBaseDocument|isCloudBaseDocumentMissingError|createCloudBaseDocumentId|getCardRecordsForTrack|CET4_CARD_RECORDS|CET6_CARD_RECORDS|createDefaultCardSource|cloneCardSource|serializeCardSourceResponse|validateCardSourceForImport|normalizeCardSource|normalizeCardRecord|requireCardSourceObject|requireCardSourceArray|requireCardSourceString|requireCardSourcePattern|requireCardSourceTrack|cardSourceError|cloneJson|DEFAULT_ENV_ID|COLLECTION_NAME|DEFAULT_TRACKS|ENV_ID|FUNCTION_NAME|HTTP_PATH|DEFAULT_OUTPUT|DEFAULT_FLOW_DIR|useIsolatedPhone|phoneNumber|smsCode|authTokenFromEnv|enableWrites|enableMembershipMutations|expectedInitialStage|expectedStartTrialStage|expectedPurchaseStage|authHeaders|remoteHeaders|returnedPhoneNumber|requestSmsCode|verifySmsCode|syncDailyProgress|syncLearningState|syncSpaceState|postJson|REQUIRED_CORE_INTERACTIONS|missingInteractions|validateCardRecord|assertPattern|assertTrack|assertArrayLength|assertNonEmptyArray|assertCoreInteractionCoverage|loadMembershipEntitlement|loadLearningCardSource|runMembershipMutation|assertExpectedStage|expectedStage|startMembershipTrial|purchaseMembership|dismissMembershipRecovery|parseEntitlement|assertOk|assertObject|assertString|assertNonNegativeInteger|assertPositiveInteger|normalizeBaseUrl|todayKey|createIsolatedPhoneNumber|firstCard|returnedTrack|itemIds|featureModes|learningTrack|learningSource|progressSync|spaceState|learningState|track)\b/i;
@@ -520,27 +523,44 @@ function cssGeneratedText(source) {
 
 function scanText(filePath, source) {
   const suffix = path.extname(filePath).toLowerCase();
+  const explicitReviewerHtml =
+    suffix === '.html' && htmlDocumentAudience(source) === 'reviewer';
+  const visibleRules = explicitReviewerHtml
+    ? leakagePatterns
+    : [...leakagePatterns, ...visibleHtmlLeakagePatterns];
   const scanTargets =
     suffix === '.html' || suffix === '.svg'
       ? [
           {
             kind: 'visible text',
             text: visibleHtmlText(source),
-            rules: [...leakagePatterns, ...visibleHtmlLeakagePatterns],
+            rules: visibleRules,
           },
           {
             kind: 'accessibility text',
             text: visibleAttributeText(source),
-            rules: [...leakagePatterns, ...visibleHtmlLeakagePatterns],
+            rules: visibleRules,
           },
           {
             kind: 'generated content',
             text: cssGeneratedText(source),
-            rules: [...leakagePatterns, ...visibleHtmlLeakagePatterns],
+            rules: visibleRules,
           },
           { kind: 'source token', text: source, rules: leakagePatterns },
         ]
-      : [{ kind: 'markdown text', text: source, rules: leakagePatterns }];
+      : suffix === '.js' || suffix === '.mjs'
+        ? [
+            {
+              kind: 'learner script source',
+              text: source,
+              rules: [
+                ...leakagePatterns,
+                ...visibleHtmlLeakagePatterns,
+                ...learnerSurfaceLeakagePatterns,
+              ],
+            },
+          ]
+        : [{ kind: 'markdown text', text: source, rules: leakagePatterns }];
   const findings = [];
 
   for (const target of scanTargets) {
@@ -653,6 +673,26 @@ function scanLearnerSurfaceCopy(filePath, source) {
   }
   const findings = [];
 
+  const relativePath = path.relative(repoRoot, filePath).replaceAll(path.sep, '/');
+  if (
+    documentAudience === 'learner' &&
+    relativePath.startsWith('docs/design/ux-architecture/')
+  ) {
+    const commentPattern = /<!--([\s\S]*?)-->/g;
+    let commentMatch;
+    while ((commentMatch = commentPattern.exec(source)) !== null) {
+      const commentText = commentMatch[1].replace(/\s+/g, ' ').trim();
+      if (!commentText) continue;
+      findings.push({
+        filePath,
+        kind: 'learner source boundary',
+        line: source.slice(0, commentMatch.index).split(/\r?\n/).length,
+        reason: 'learner architecture document contains non-rendered commentary',
+        text: commentText.slice(0, 220),
+      });
+    }
+  }
+
   for (const target of scanTargets) {
     for (const rule of learnerSurfaceLeakagePatterns) {
       if (rule.pattern.test(target.text)) {
@@ -677,6 +717,39 @@ const files = scanRoots
     return !excludedPathPatterns.some(pattern => pattern.test(relativePath));
   });
 
+const learnerScriptFiles = [
+  ...new Set(
+    files
+      .filter(filePath => path.extname(filePath).toLowerCase() === '.html')
+      .flatMap(filePath => {
+        const source = fs.readFileSync(filePath, 'utf8');
+        if (htmlDocumentAudience(source) !== 'learner') return [];
+
+        const referencedScripts = [];
+        const scriptSourcePattern = /<script\b[^>]*\bsrc\s*=\s*(["'])([^"']+)\1[^>]*>/gi;
+        let match;
+        while ((match = scriptSourcePattern.exec(source)) !== null) {
+          const rawSource = match[2].trim();
+          if (!rawSource || /^(?:[a-z]+:)?\/\//i.test(rawSource)) continue;
+          const cleanSource = rawSource.split(/[?#]/, 1)[0];
+          const resolvedPath = path.resolve(path.dirname(filePath), cleanSource);
+          const relativePath = path.relative(repoRoot, resolvedPath);
+          const isInLearnerScriptRoot = learnerScriptRoots.some(root =>
+            relativePath === root || relativePath.startsWith(`${root}${path.sep}`),
+          );
+          if (
+            isInLearnerScriptRoot &&
+            learnerScriptFilePattern.test(resolvedPath) &&
+            fs.existsSync(resolvedPath)
+          ) {
+            referencedScripts.push(resolvedPath);
+          }
+        }
+        return referencedScripts;
+      }),
+  ),
+];
+
 const visualReferencePaths = visualReferenceFiles
   .map(filePath => path.join(repoRoot, filePath))
   .filter(filePath => fs.existsSync(filePath));
@@ -687,6 +760,9 @@ const findings = [
   ),
   ...files.flatMap(filePath =>
     scanLearnerSurfaceCopy(filePath, fs.readFileSync(filePath, 'utf8')),
+  ),
+  ...learnerScriptFiles.flatMap(filePath =>
+    scanText(filePath, fs.readFileSync(filePath, 'utf8')),
   ),
   ...visualReferencePaths.flatMap(filePath =>
     scanVisibleHtmlProcessText(filePath, fs.readFileSync(filePath, 'utf8')),

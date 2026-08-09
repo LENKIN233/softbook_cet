@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>软书四六级 · 学习</title>
+    <link rel="stylesheet" href="./access-proofs.css" />
+    <script src="./access-standard.js" defer></script>
+  </head>
+  <body data-audience="learner">
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
+
+    <div class="app-shell">
+      <header class="app-header">
+        <p class="brand">软书四六级</p>
+        <p class="route-name" aria-live="polite">学习</p>
+      </header>
+
+      <nav class="primary-nav" aria-label="主要页面">
+        <button class="nav-action" type="button" aria-current="page">学习</button>
+        <button class="nav-action" type="button">空间</button>
+        <button class="nav-action" type="button">统计</button>
+        <button class="nav-action" type="button">我的</button>
+      </nav>
+
+      <main class="page-main" id="main-content" data-learner-surface tabindex="-1">
+        <section class="page-section learning-page" aria-labelledby="learning-heading">
+          <div class="section-heading">
+            <p class="eyebrow">仔细阅读馆 · 继续学习</p>
+            <h1 class="section-title" id="learning-heading">找出句子的主干</h1>
+            <p class="section-copy">基础学习可以继续；完整分析需要完整访问。</p>
+          </div>
+
+          <article class="study-card">
+            <p class="address">仔细阅读馆 / 句子结构区 / 主谓学习盒 / 让步句主干</p>
+            <p class="prompt" lang="en">Although the task was difficult, the team continued.</p>
+            <p class="card-copy">先找出“谁做了什么”，再判断前半句对主句有什么影响。</p>
+            <div class="answer-row">
+              <button class="button" type="button">标出主干</button>
+              <button class="quiet-action access-entry" type="button">查看完整分析</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="page-section space-page" aria-labelledby="space-heading" hidden>
+          <div class="section-heading">
+            <p class="eyebrow">你的学习空间</p>
+            <h1 class="section-title" id="space-heading">这张卡片放在哪里</h1>
+            <p class="section-copy">卡片保留在所属学习盒中；当前位置没有改变。</p>
+          </div>
+
+          <article class="space-card">
+            <p class="address">仔细阅读馆 / 句子结构区 / 主谓学习盒</p>
+            <div class="space-path">
+              <article class="space-object">
+                <strong>主谓学习盒</strong>
+                <span>认识句子中“谁做了什么”</span>
+              </article>
+              <article class="space-object">
+                <strong>让步句主干</strong>
+                <span>当前卡片 · 完整位置暂不可查看</span>
+              </article>
+            </div>
+            <div class="space-actions">
+              <button class="button access-entry" type="button">查看完整位置</button>
+              <button class="quiet-action" type="button">返回学习</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="page-section statistics-page" aria-labelledby="statistics-heading" hidden>
+          <div class="section-heading">
+            <p class="eyebrow">最近活动</p>
+            <h1 class="section-title" id="statistics-heading">8 月 9 日</h1>
+            <p class="section-copy">完成了一次学习。</p>
+          </div>
+          <article class="message-card">这条学习记录已保留。</article>
+        </section>
+
+        <section class="page-section mine-page" aria-labelledby="mine-heading" hidden>
+          <div class="section-heading">
+            <p class="eyebrow">账号与访问</p>
+            <h1 class="section-title" id="mine-heading">我的</h1>
+            <p class="section-copy">学习进度、空间位置和会员访问随账号保留。</p>
+          </div>
+          <div class="account-grid">
+            <article class="account-card">
+              <strong>当前访问</strong>
+              <p>基础学习可用，已开放的卡片可以继续学习。</p>
+            </article>
+            <article class="account-card">
+              <strong>完整访问</strong>
+              <p>包含完整卡片、完整学习安排和完整空间。</p>
+              <button class="quiet-action access-entry" type="button">查看访问方式</button>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="dialog-layer" role="dialog" aria-modal="true" aria-labelledby="comparison-heading" aria-describedby="comparison-copy" hidden>
+      <section class="dialog-panel" tabindex="-1">
+        <div class="dialog-heading">
+          <p class="eyebrow">访问详情</p>
+          <h2 id="comparison-heading">继续使用完整学习与空间</h2>
+          <p class="dialog-copy" id="comparison-copy">返回时会留在你刚才的位置。</p>
+        </div>
+
+        <div class="comparison">
+          <article class="compare-card">
+            <strong>当前可用</strong>
+            <ul class="detail-list">
+              <li>基础学习可以继续</li>
+              <li>接近一半的卡片可学</li>
+              <li>已开放的位置仍可查看</li>
+            </ul>
+          </article>
+          <article class="compare-card">
+            <strong>完整访问</strong>
+            <ul class="detail-list">
+              <li>完整卡片库</li>
+              <li>完整学习安排</li>
+              <li>完整学习空间</li>
+            </ul>
+          </article>
+        </div>
+
+        <p class="detail-line exact-place">当前位置：仔细阅读馆 / 句子结构区 / 主谓学习盒 / 让步句主干</p>
+        <div class="message-card result-message" role="status" aria-live="polite">选择下一步。你的现有访问不会因此改变。</div>
+
+        <div class="dialog-actions">
+          <button class="button buy-action" type="button">继续购买</button>
+          <button class="quiet-action restore-action" type="button">找回已有购买</button>
+          <button class="quiet-action close-action" type="button">取消，返回当前学习</button>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
