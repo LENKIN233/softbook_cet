@@ -9,6 +9,7 @@
   const title = document.querySelector("[data-title]");
   const subtitle = document.querySelector("[data-subtitle]");
   const appFrame = document.querySelector(".app-frame");
+  const usesTopLevelHistory = body.classList.contains("platform-android");
 
   const families = ["flip", "choice", "lock", "elimination", "swipe"];
   const familyNames = {
@@ -110,7 +111,8 @@
     lockWords: [],
     strikes: [],
     pendingOutcome: null,
-    acceptedOutcome: null,
+    resolvedOutcome: null,
+    lockExplanationOpen: false,
     hintOpen: false,
     peekOpen: false,
     inlineError: "",
@@ -141,6 +143,8 @@
     restoreBusy: false,
     restoreResult: "",
     accountBusy: false,
+    checkInState: "idle",
+    checkInConfirmed: false,
   };
 
   const navigationStack = [];
@@ -149,6 +153,7 @@
   let resendTimer = 0;
   let sessionTimer = 0;
   let completionTimer = 0;
+  let checkInTimer = 0;
 
   function announce(message) {
     live.textContent = "";
@@ -251,6 +256,7 @@
               </div>
               <button class="primary-action" type="submit" ${sending ? "disabled" : ""}>${sending ? "正在发送…" : "获取验证码"}</button>
             </form>
+            ${sending ? `<p class="status-message" role="status" tabindex="-1" data-auth-pending>正在发送验证码…</p>` : ""}
             <p class="quiet-copy">继续即表示你已阅读并同意用户协议与隐私政策。</p>
           </div>
         </section>`;
@@ -285,6 +291,8 @@
             <button class="text-action" type="button" data-action="resend" ${resendDisabled ? "disabled" : ""}>${resendLabel}</button>
             <button class="text-action" type="button" data-action="edit-phone" ${model.authBusy ? "disabled" : ""}>修改手机号</button>
           </div>
+          ${verifying ? `<p class="status-message" role="status" tabindex="-1" data-auth-pending>正在确认验证码…</p>` : ""}
+          ${resending ? `<p class="status-message" role="status" tabindex="-1" data-auth-pending>正在重新发送验证码…</p>` : ""}
         </div>
       </section>`;
   }
@@ -323,17 +331,27 @@
   function pendingBlock() {
     return `
       <section class="support-region" role="status" tabindex="-1" data-completion-status>
-        <strong>正在保存这次作答…</strong>
+        <strong>正在核对这次作答…</strong>
         <p>请稍候，当前选择会保留在这一张。</p>
       </section>`;
   }
 
-  function resultBlock(message, explanation) {
+  function resultBlock(message, explanation, { canAdvance = false } = {}) {
     return `
       <section class="result-region" aria-labelledby="result-title" tabindex="-1" data-result-focus>
         <h3 id="result-title">${message}</h3>
         <p>${explanation}</p>
-        <button class="primary-action" type="button" data-action="next">下一张</button>
+        ${canAdvance ? `<button class="primary-action" type="button" data-action="next">下一张</button>` : ""}
+      </section>`;
+  }
+
+  function correctionBlock(title, explanation, action, actionLabel, extra = "") {
+    return `
+      <section class="correction-region" aria-labelledby="correction-title" tabindex="-1" data-correction-focus>
+        <h3 id="correction-title">${title}</h3>
+        <p>${explanation}</p>
+        ${extra}
+        <button class="primary-action" type="button" data-action="${action}">${actionLabel}</button>
       </section>`;
   }
 
@@ -342,9 +360,10 @@
     if (model.phase === "result") {
       return resultBlock(
         "已保存",
-        model.acceptedOutcome.answer === "confident"
+        model.resolvedOutcome.answer === "confident"
           ? "保持当前节奏，继续下一张。"
           : "这张会在合适的时候再次出现。",
+        { canAdvance: true },
       );
     }
     if (model.phase === "revealed") {
@@ -376,7 +395,7 @@
     ];
     return options
       .map(([value, label]) => {
-        const selected = model.acceptedOutcome.answer === value;
+        const selected = model.resolvedOutcome.answer === value;
         const correct = value === "however";
         const stateLabel = selected && correct
           ? "你的答案，正确"
@@ -399,8 +418,9 @@
           ${choiceResultOptions()}
         </div>
         ${resultBlock(
-          model.acceptedOutcome.correct ? "回答正确" : "这次答案不正确",
+          model.resolvedOutcome.correct ? "回答正确" : "这次答案不正确",
           "前句说明困难，后句仍继续，however 最能表达这一转折。",
+          { canAdvance: true },
         )}`;
     }
 
@@ -420,22 +440,47 @@
       </div>`;
   }
 
+  function lockRows(words = model.lockWords) {
+    if (!words.length) return `<p class="quiet-copy lock-empty">依次选择下方语块</p>`;
+    return `
+      <div class="lock-rows" aria-label="已选择的顺序">
+        ${words.map((word, index) => `
+          <div class="lock-row">
+            <span class="lock-row__icon" aria-hidden="true"></span>
+            <strong>${index + 1}</strong>
+            <span>${word}</span>
+          </div>`).join("")}
+      </div>`;
+  }
+
   function lockInteraction() {
     if (model.phase === "pending") return pendingBlock();
+    if (model.phase === "correction") {
+      return `
+        <div class="interaction">
+          ${lockRows(model.resolvedOutcome.answer)}
+          ${correctionBlock(
+            "顺序还需要调整",
+            "保留了你刚才的排列。可以回到这一张调整，也可以先查看为什么。",
+            "adjust-lock",
+            "调整顺序",
+            `<button class="secondary-action" type="button" data-action="show-lock-explanation" aria-expanded="${model.lockExplanationOpen}">${model.lockExplanationOpen ? "收起解释" : "查看解释"}</button>${model.lockExplanationOpen ? `<div class="attached-explanation"><strong>排列提示</strong><p>先放 Although 引出的让步部分，再放 the team continued 这条主线。</p></div>` : ""}`,
+          )}
+        </div>`;
+    }
     if (model.phase === "result") {
-      return resultBlock(
-        model.acceptedOutcome.correct ? "顺序正确" : "这次顺序不正确",
-        model.acceptedOutcome.correct
-          ? "让步从句在前，主句随后给出仍然继续的结果。"
-          : "正确顺序是 Although / the task was difficult / the team / continued。",
-      );
+      return `
+        ${lockRows(model.resolvedOutcome.answer)}
+        ${resultBlock(
+          "顺序正确",
+          "让步从句在前，主句随后给出仍然继续的结果。",
+          { canAdvance: true },
+        )}`;
     }
     const words = ["Although", "the task was difficult", "the team", "continued"];
     return `
       <div class="interaction">
-        <div class="slot-board" aria-label="已选择的顺序">
-          ${model.lockWords.length ? model.lockWords.map((word, index) => `<div class="slot"><strong>${index + 1}.</strong> ${word}</div>`).join("") : `<div class="slot quiet-copy">依次选择下方语块</div>`}
-        </div>
+        ${lockRows()}
         <div class="tile-row" role="group" aria-label="可选语块">
           ${words.map((word) => `<button class="tile" type="button" data-lock-word="${word}" ${model.lockWords.includes(word) ? "disabled" : ""}>${word}</button>`).join("")}
         </div>
@@ -449,10 +494,29 @@
 
   function eliminationInteraction() {
     if (model.phase === "pending") return pendingBlock();
+    if (model.phase === "result" && !model.resolvedOutcome.correct) {
+      return `
+        <div class="answer-comparison" aria-label="划掉内容对比">
+          <div class="answer-comparison__group">
+            <strong>你实际划掉的内容</strong>
+            <div class="answer-tags">${model.resolvedOutcome.answer.map((piece) => `<span class="answer-tag"><small>你的选择</small>${piece}</span>`).join("")}</div>
+          </div>
+          <div class="answer-comparison__group">
+            <strong>这题应划掉的内容</strong>
+            <div class="answer-tags">${eliminationAnswer.map((piece) => `<span class="answer-tag"><small>应划掉</small>${piece}</span>`).join("")}</div>
+          </div>
+        </div>
+        ${resultBlock(
+          "这次保留的主干不正确",
+          "去掉让步部分后，主干应保留为 the team continued。",
+          { canAdvance: true },
+        )}`;
+    }
     if (model.phase === "result") {
       return resultBlock(
-        model.acceptedOutcome.correct ? "主干已找到" : "这次保留的主干不正确",
+        "主干已找到",
         "去掉让步部分后，主干应保留为 the team continued。",
+        { canAdvance: true },
       );
     }
     const pieces = ["Although", "the task was difficult", "the team", "continued"];
@@ -472,17 +536,36 @@
 
   function swipeInteraction() {
     if (model.phase === "pending") return pendingBlock();
+    if (model.phase === "result" && !model.resolvedOutcome.correct) {
+      const learnerMeaning = model.resolvedOutcome.answer === "left" ? "不符合" : "符合";
+      return `
+        <div class="answer-comparison answer-comparison--columns" aria-label="判断方向对比">
+          <div class="answer-comparison__group"><strong>你的判断</strong><p><span class="direction-label">向${model.resolvedOutcome.answer === "left" ? "左" : "右"}</span>${learnerMeaning}</p></div>
+          <div class="answer-comparison__group"><strong>正确判断</strong><p><span class="direction-label">向右</span>符合</p></div>
+        </div>
+        ${resultBlock(
+          "这次判断不正确",
+          "Although 表示即使存在困难，后面的行动仍然继续。",
+          { canAdvance: true },
+        )}`;
+    }
     if (model.phase === "result") {
       return resultBlock(
-        model.acceptedOutcome.correct ? "判断正确" : "这次判断不正确",
+        "判断正确",
         "Although 表示即使存在困难，后面的行动仍然继续。",
+        { canAdvance: true },
       );
     }
     return `
       <div class="interaction">
         <div class="swipe-stage">
-          <div class="swipe-object" tabindex="0" role="group" aria-label="可左右滑动的判断卡片" data-swipe-object>
-            <strong>这句话表达让步关系。</strong>
+          <div class="swipe-trails" aria-hidden="true"><span>← 不符合</span><span>符合 →</span></div>
+          <div class="swipe-deck">
+            <div class="swipe-card swipe-card--back swipe-card--far" aria-hidden="true"></div>
+            <div class="swipe-card swipe-card--back swipe-card--near" aria-hidden="true"></div>
+            <div class="swipe-object swipe-card swipe-card--top" tabindex="0" role="group" aria-label="最上方判断卡片。向左是不符合，向右是符合" data-swipe-object>
+              <strong>这句话表达让步关系。</strong>
+            </div>
           </div>
           <div class="swipe-labels">
             <button class="secondary-action" type="button" data-swipe="left">不符合</button>
@@ -619,6 +702,26 @@
   }
 
   function statisticsView() {
+    const state = model.checkInState;
+    const pending = ["pending", "retry-pending", "refresh-pending"].includes(state);
+    let checkInContent = `
+      <div class="check-in-status"><strong>今天尚未签到。</strong><p>签到只确认今天已经开始学习。</p></div>
+      <button class="primary-action" type="button" data-action="check-in" aria-pressed="false">签到</button>`;
+    if (state === "pending") {
+      checkInContent = `<div class="check-in-status" role="status" tabindex="-1" data-check-in-status><strong>正在确认今天的签到…</strong><p>请稍候，确认完成前无需再次操作。</p></div>`;
+    } else if (state === "queued") {
+      checkInContent = `
+        <div class="check-in-status" role="status" tabindex="-1" data-check-in-status><strong>暂时无法连接，已保留这次签到。</strong><p>${navigator.onLine ? "连接已恢复，可以重试。" : "恢复连接后重试即可。"}</p></div>
+        <button class="primary-action" type="button" data-action="retry-check-in">重试</button>`;
+    } else if (state === "retry-pending") {
+      checkInContent = `<div class="check-in-status" role="status" tabindex="-1" data-check-in-status><strong>正在重新提交已保留的签到…</strong><p>完成后会再次更新状态。</p></div>`;
+    } else if (state === "refresh-pending") {
+      checkInContent = `<div class="check-in-status" role="status" tabindex="-1" data-check-in-status><strong>今天的签到已确认，正在更新状态…</strong><p>请稍候，不需要再次操作。</p></div>`;
+    } else if (state === "reconciled") {
+      checkInContent = `
+        <div class="check-in-status" role="status" tabindex="-1" data-check-in-status><strong>签到状态已更新：今天已经确认。</strong><p>保留的签到与当前状态一致。</p></div>
+        <button class="secondary-action" type="button" data-action="refresh-check-in">刷新状态</button>`;
+    }
     return `
       <section class="surface" aria-labelledby="statistics-title">
         <header class="surface-header">
@@ -626,6 +729,11 @@
           <h2 id="statistics-title" tabindex="-1">最近完成的学习</h2>
           <p>按日期回看已经完成的任务。</p>
         </header>
+        <article class="panel check-in-panel" aria-labelledby="check-in-title" aria-busy="${pending}">
+          <p class="eyebrow">今天</p>
+          <h3 id="check-in-title">学习签到</h3>
+          ${checkInContent}
+        </article>
         <ol class="timeline" aria-label="最近学习记录">
           <li class="timeline-row"><strong>8 月 9 日</strong><small>完成四选一与翻面练习</small></li>
           <li class="timeline-row"><strong>8 月 8 日</strong><small>完成滑动练习</small></li>
@@ -637,7 +745,7 @@
   function accessLabel() {
     if (model.access === "premium") return "完整体验";
     if (model.access === "free") return "基础体验";
-    if (model.access === "trial") return "试用中";
+    if (model.access === "trial") return "完整试用 · 剩余 7 天";
     return "尚未开始试用";
   }
 
@@ -646,7 +754,9 @@
       ? "基础学习仍可继续，完整空间与更多内容需要完整体验。"
       : model.access === "not-started"
         ? "进入学习并准备好第一张后，才会开始完整试用。"
-        : "当前可以使用完整学习、空间与复习能力。";
+        : model.access === "trial"
+          ? "本次试用有效至 8 月 16 日 23:59；结束后基础学习仍可继续。"
+          : "当前可以使用完整学习、空间与复习能力。";
     return `
       <section class="surface" aria-labelledby="mine-title">
         <header class="surface-header">
@@ -761,8 +871,8 @@
       context.innerHTML = "";
       return;
     }
-    if (model.route === "learning" && model.phase === "result" && model.acceptedOutcome) {
-      context.innerHTML = `<section class="panel"><p class="eyebrow">本张要点</p><h3>${model.learningLocation.card}</h3><p>${model.acceptedOutcome.explanation}</p></section>`;
+    if (model.route === "learning" && ["result", "correction"].includes(model.phase) && model.resolvedOutcome) {
+      context.innerHTML = `<section class="panel"><p class="eyebrow">本张要点</p><h3>${model.learningLocation.card}</h3><p>${model.resolvedOutcome.explanation}</p></section>`;
       return;
     }
     if (model.route === "space" && model.spaceDepth !== "libraries") {
@@ -802,7 +912,8 @@
     model.lockWords = [];
     model.strikes = [];
     model.pendingOutcome = null;
-    model.acceptedOutcome = null;
+    model.resolvedOutcome = null;
+    model.lockExplanationOpen = false;
     model.inlineError = "";
     model.hintOpen = false;
     model.peekOpen = false;
@@ -817,7 +928,8 @@
       lockWords: [...model.lockWords],
       strikes: [...model.strikes],
       pendingOutcome: model.pendingOutcome ? { ...model.pendingOutcome } : null,
-      acceptedOutcome: model.acceptedOutcome ? { ...model.acceptedOutcome } : null,
+      resolvedOutcome: model.resolvedOutcome ? { ...model.resolvedOutcome } : null,
+      lockExplanationOpen: model.lockExplanationOpen,
       hintOpen: model.hintOpen,
       peekOpen: model.peekOpen,
       location: { ...model.learningLocation },
@@ -833,13 +945,18 @@
     model.lockWords = [...snapshot.lockWords];
     model.strikes = [...snapshot.strikes];
     model.pendingOutcome = snapshot.pendingOutcome ? { ...snapshot.pendingOutcome } : null;
-    model.acceptedOutcome = snapshot.acceptedOutcome ? { ...snapshot.acceptedOutcome } : null;
+    model.resolvedOutcome = snapshot.resolvedOutcome ? { ...snapshot.resolvedOutcome } : null;
+    model.lockExplanationOpen = Boolean(snapshot.lockExplanationOpen);
     model.hintOpen = snapshot.hintOpen;
     model.peekOpen = snapshot.peekOpen;
     model.learningLocation = { ...snapshot.location };
   }
 
   function navigationSnapshot() {
+    const activeFocus = describeFocus();
+    const focus = activeFocus?.kind === "attribute" && activeFocus.attribute === "data-route" && activeFocus.value !== model.route
+      ? { kind: "id", value: `${model.route}-title` }
+      : activeFocus;
     return {
       route: model.route,
       spaceDepth: model.spaceDepth,
@@ -847,6 +964,9 @@
       chosenGroup: model.chosenGroup,
       chosenBox: model.chosenBox,
       chosenCard: model.chosenCard,
+      focus,
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
     };
   }
 
@@ -854,6 +974,7 @@
     navigationStack.push(navigationSnapshot());
     if (navigationStack.length > navigationLimit) navigationStack.shift();
     navigationForwardStack.length = 0;
+    if (!usesTopLevelHistory) return;
     historyPosition += 1;
     try {
       window.history.pushState({ position: historyPosition }, "", window.location.href);
@@ -869,6 +990,13 @@
     model.chosenGroup = snapshot.chosenGroup;
     model.chosenBox = snapshot.chosenBox;
     model.chosenCard = snapshot.chosenCard;
+  }
+
+  function renderNavigationSnapshot(snapshot) {
+    render({ focusDescriptor: snapshot.focus, focusHeading: true, preserveFocus: false });
+    later(() => {
+      window.scrollTo({ left: snapshot.scrollX ?? 0, top: snapshot.scrollY ?? 0, behavior: "auto" });
+    }, 0);
   }
 
   function navigate(next, { record = true, focusHeading = true } = {}) {
@@ -901,7 +1029,7 @@
       restoreLearningSnapshot(model.learningOrigin);
       model.learningOrigin = null;
     }
-    render({ focusHeading: true, preserveFocus: false });
+    renderNavigationSnapshot(snapshot);
     return true;
   }
 
@@ -916,7 +1044,7 @@
       requestLearningSession("replacement");
       return true;
     }
-    render({ focusHeading: true, preserveFocus: false });
+    renderNavigationSnapshot(snapshot);
     return true;
   }
 
@@ -934,6 +1062,10 @@
       return;
     }
     if (!navigationStack.length) return;
+    if (!usesTopLevelHistory) {
+      restorePreviousNavigation();
+      return;
+    }
     try {
       window.history.back();
     } catch {
@@ -947,15 +1079,16 @@
       announce("请先完成或关闭当前窗口。 ");
       return;
     }
+    const recordTopLevel = usesTopLevelHistory;
     if (route === "learning" && model.currentCardExcluded) {
-      if (navigate({ route: "learning" })) requestLearningSession("replacement");
+      if (navigate({ route: "learning" }, { record: recordTopLevel })) requestLearningSession("replacement");
       return;
     }
     if (route === "learning" && model.learningOrigin) {
       restoreLearningSnapshot(model.learningOrigin);
       model.learningOrigin = null;
     }
-    navigate({ route });
+    navigate({ route }, { record: recordTopLevel });
   }
 
   function startResendCountdown(seconds = 5) {
@@ -1012,23 +1145,25 @@
   }
 
   function beginCompletion(outcome) {
-    if (model.phase === "pending" || model.phase === "result") return;
+    if (["pending", "result", "correction"].includes(model.phase)) return;
     window.clearTimeout(completionTimer);
     model.pendingOutcome = { ...outcome };
     model.phase = "pending";
     render({ focusSelector: "[data-completion-status]", preserveFocus: false });
-    announce("正在保存这次作答。 ");
+    announce("正在核对这次作答。 ");
     completionTimer = later(() => {
       if (model.phase !== "pending" || !model.pendingOutcome) return;
-      model.acceptedOutcome = { ...model.pendingOutcome };
+      model.resolvedOutcome = { ...model.pendingOutcome };
       model.pendingOutcome = null;
-      model.phase = "result";
+      model.phase = model.resolvedOutcome.advanceable ? "result" : "correction";
       const learningIsVisible = model.route === "learning";
       render({
-        focusSelector: learningIsVisible ? "[data-result-focus]" : "",
+        focusSelector: learningIsVisible
+          ? model.phase === "result" ? "[data-result-focus]" : "[data-correction-focus]"
+          : "",
         preserveFocus: !learningIsVisible,
       });
-      if (learningIsVisible) announce("这次作答已保存。 ");
+      if (learningIsVisible) announce(model.phase === "result" ? "这次作答已保存。 " : "请在这一张继续调整。 ");
     }, 520);
   }
 
@@ -1037,8 +1172,76 @@
     beginCompletion({
       answer: direction,
       correct: direction === "right",
+      advanceable: true,
       explanation: "Although 表示即使存在困难，后面的行动仍然继续。",
     });
+  }
+
+  function renderCheckInState() {
+    const visible = model.route === "statistics";
+    render({
+      focusSelector: visible ? "[data-check-in-status]" : "",
+      preserveFocus: !visible,
+    });
+  }
+
+  function finishCheckIn(nextState, message, delay = 480) {
+    window.clearTimeout(checkInTimer);
+    checkInTimer = later(() => {
+      model.checkInState = nextState;
+      if (["acknowledged", "reconciled"].includes(nextState)) model.checkInConfirmed = true;
+      renderCheckInState();
+      if (model.route === "statistics") announce(message);
+    }, delay);
+  }
+
+  function beginCheckIn() {
+    if (model.checkInState !== "idle") return;
+    if (!navigator.onLine) {
+      model.checkInState = "queued";
+      renderCheckInState();
+      announce("暂时无法连接，已保留这次签到。 ");
+      return;
+    }
+    model.checkInState = "pending";
+    renderCheckInState();
+    announce("正在确认今天的签到。 ");
+    window.clearTimeout(checkInTimer);
+    checkInTimer = later(() => {
+      model.checkInConfirmed = true;
+      model.checkInState = "refresh-pending";
+      renderCheckInState();
+      if (model.route === "statistics") announce("今天的签到已确认，正在更新状态。 ");
+      finishCheckIn("reconciled", "签到状态已更新：今天已经确认。 ");
+    }, 480);
+  }
+
+  function retryCheckIn() {
+    if (model.checkInState !== "queued") return;
+    if (!navigator.onLine) {
+      renderCheckInState();
+      announce("仍然无法连接，签到继续保留。 ");
+      return;
+    }
+    model.checkInState = "retry-pending";
+    renderCheckInState();
+    announce("正在重新提交已保留的签到。 ");
+    window.clearTimeout(checkInTimer);
+    checkInTimer = later(() => {
+      model.checkInConfirmed = true;
+      model.checkInState = "refresh-pending";
+      renderCheckInState();
+      if (model.route === "statistics") announce("正在更新签到状态。 ");
+      finishCheckIn("reconciled", "签到状态已更新：今天已经确认。 ");
+    }, 480);
+  }
+
+  function refreshCheckIn() {
+    if (!model.checkInConfirmed || !["acknowledged", "reconciled"].includes(model.checkInState)) return;
+    model.checkInState = "refresh-pending";
+    renderCheckInState();
+    announce("正在更新签到状态。 ");
+    finishCheckIn("reconciled", "签到状态已更新：今天已经确认。 ");
   }
 
   function bindSwipe() {
@@ -1197,6 +1400,9 @@
         // Signed-out rendering remains correct without a history marker.
       }
       if (kind === "delete") model.phone = "";
+      window.clearTimeout(checkInTimer);
+      model.checkInState = "idle";
+      model.checkInConfirmed = false;
       renderSheet();
       render({ focusSelector: "#phone", preserveFocus: false });
     }, 520);
@@ -1216,7 +1422,7 @@
       }
       model.authError = "";
       model.authBusy = "send";
-      render({ preserveFocus: false });
+      render({ focusSelector: "[data-auth-pending]", preserveFocus: false });
       later(() => {
         if (model.authBusy !== "send") return;
         model.authBusy = "";
@@ -1240,7 +1446,7 @@
       }
       model.authError = "";
       model.authBusy = "verify";
-      render({ preserveFocus: false });
+      render({ focusSelector: "[data-auth-pending]", preserveFocus: false });
       later(() => {
         if (model.authBusy !== "verify") return;
         window.clearTimeout(resendTimer);
@@ -1273,7 +1479,7 @@
     if (action === "resend") {
       if (model.authBusy || model.resendRemaining > 0) return;
       model.authBusy = "resend";
-      render({ preserveFocus: false });
+      render({ focusSelector: "[data-auth-pending]", preserveFocus: false });
       later(() => {
         if (model.authBusy !== "resend") return;
         model.authBusy = "";
@@ -1293,6 +1499,7 @@
       beginCompletion({
         answer,
         correct: null,
+        advanceable: true,
         explanation: answer === "confident" ? "保持当前节奏，继续下一张。" : "这张会在合适的时候再次出现。",
       });
     }
@@ -1302,9 +1509,11 @@
         render({ focusSelector: "[data-action=submit-choice]", preserveFocus: false });
         announce(model.inlineError);
       } else {
+        const correct = model.selected === "however";
         beginCompletion({
           answer: model.selected,
-          correct: model.selected === "however",
+          correct,
+          advanceable: true,
           explanation: "前句说明困难，后句仍继续，however 最能表达这一转折。",
         });
       }
@@ -1319,12 +1528,14 @@
         render({ focusSelector: "[data-action=submit-lock]", preserveFocus: false });
         announce(model.inlineError);
       } else {
+        const correct = arraysEqual(model.lockWords, lockAnswer);
         beginCompletion({
           answer: [...model.lockWords],
-          correct: arraysEqual(model.lockWords, lockAnswer),
-          explanation: arraysEqual(model.lockWords, lockAnswer)
+          correct,
+          advanceable: correct,
+          explanation: correct
             ? "让步从句在前，主句随后给出仍然继续的结果。"
-            : "正确顺序是 Although / the task was difficult / the team / continued。",
+            : "刚才的排列已保留，可以在这一张继续调整。",
         });
       }
     }
@@ -1338,14 +1549,53 @@
         render({ focusSelector: "[data-action=submit-elimination]", preserveFocus: false });
         announce(model.inlineError);
       } else {
+        const correct = sameSet(model.strikes, eliminationAnswer);
         beginCompletion({
           answer: [...model.strikes],
-          correct: sameSet(model.strikes, eliminationAnswer),
+          correct,
+          advanceable: true,
           explanation: "去掉让步部分后，主干应保留为 the team continued。",
         });
       }
     }
-    if (action === "next") requestLearningSession("next");
+    if (action === "retry-choice") {
+      model.phase = "ready";
+      model.resolvedOutcome = null;
+      model.inlineError = "";
+      render({ focusSelector: "[data-choice]", preserveFocus: false });
+      announce("可以重新选择。 ");
+    }
+    if (action === "adjust-lock") {
+      model.phase = "ready";
+      model.resolvedOutcome = null;
+      model.inlineError = "";
+      model.lockExplanationOpen = false;
+      render({ focusSelector: model.lockWords.length ? "[data-action=undo-lock]" : "[data-lock-word]", preserveFocus: false });
+      announce("可以调整刚才的顺序。 ");
+    }
+    if (action === "show-lock-explanation") {
+      model.lockExplanationOpen = !model.lockExplanationOpen;
+      render({ focusSelector: "[data-action=show-lock-explanation]", preserveFocus: false });
+      announce(model.lockExplanationOpen ? "解释已展开。 " : "解释已收起。 ");
+    }
+    if (action === "retry-elimination") {
+      model.phase = "ready";
+      model.resolvedOutcome = null;
+      model.inlineError = "";
+      render({ focusSelector: "[data-strike]", preserveFocus: false });
+      announce("可以重新调整划掉的内容。 ");
+    }
+    if (action === "retry-swipe") {
+      model.phase = "ready";
+      model.resolvedOutcome = null;
+      model.selected = "";
+      render({ focusSelector: "[data-swipe-object]", preserveFocus: false });
+      announce("可以重新判断。 ");
+    }
+    if (action === "next" && model.phase === "result" && model.resolvedOutcome?.advanceable) requestLearningSession("next");
+    if (action === "check-in") beginCheckIn();
+    if (action === "retry-check-in") retryCheckIn();
+    if (action === "refresh-check-in") refreshCheckIn();
     if (action === "hint") {
       model.hintOpen = !model.hintOpen;
       render();
@@ -1475,6 +1725,7 @@
   });
 
   window.addEventListener("popstate", (event) => {
+    if (!usesTopLevelHistory) return;
     if (model.sheet) {
       if (isSheetBusy()) {
         try {
@@ -1510,6 +1761,19 @@
     } else if (targetPosition > historyPosition) {
       historyPosition = targetPosition;
       restoreNextNavigation();
+    }
+  });
+
+  window.addEventListener("online", () => {
+    if (model.signedIn && model.route === "statistics" && model.checkInState === "queued") {
+      render({ focusSelector: "[data-check-in-status]", preserveFocus: false });
+      announce("连接已恢复，可以重试签到。 ");
+    }
+  });
+
+  window.addEventListener("offline", () => {
+    if (model.signedIn && model.route === "statistics" && model.checkInState === "queued") {
+      render({ focusSelector: "[data-check-in-status]", preserveFocus: false });
     }
   });
 

@@ -6,7 +6,7 @@
 - Branch: `cross/mobile-ux-architecture-v5`
 - PR: pending; stacked on draft PR `#483`
 - Parent design checkpoint: corrected v4 commit `de3bd5c5a23a70e2ca3c165613ea04a2f07da2b1`, independently classified `completed_no_promotion`
-- Summary: design-only correction and evidence pass for the mobile UX architecture. It replaces false browser outcomes, hidden tablet reflow, blended access profiles, and incomplete state accounting with a fail-closed 141-state + 13-combination contract, four platform learner documents, two physically separate access documents, and frozen browser evidence.
+- Summary: design-only correction and evidence pass for the mobile UX architecture. It replaces false browser outcomes, hidden tablet reflow, blended access profiles, omitted check-in behavior, compound evidence overclaims, and incomplete state accounting with a fail-closed 160-state + 13-combination contract, four platform learner documents, two physically separate access documents, and frozen browser evidence.
 - Current result: `architecture_gate_blocked_with_browser_subset_verified`. No visual system, accepted design, native completion, leadership readiness, or React Native authority is created.
 
 The final goal remains one explicitly accepted, mature CET4/6 consumer product that is genuinely usable on iOS, Android, representative tablets, and PC Web. This checkpoint removes architecture ambiguity; it is not the finish line.
@@ -76,7 +76,7 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 ## Files changed
 
 - `docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/README.md`: final-goal, authority, truth/hypothesis, artifact map, and stop boundary.
-- `docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/grayscale-ux-state-contract.md`: 141 semantic states and 13 forced combinations.
+- `docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/grayscale-ux-state-contract.md`: 160 semantic states and 13 forced combinations, including nine explicit simple-check-in states and ten split compound obligations.
 - `docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/platform-architecture.md`: four mobile/tablet browser composition contracts plus explicit native and PC Web boundaries.
 - `docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/state-evidence-ledger.md`: one fail-closed row per state/combination, with exact browser cells and all native/PC Web cells still blocked.
 - `docs/design/ux-architecture/2026-08-09-mobile-ux-architecture-v5/browser-evidence.md`: frozen hashes, operated flows, measured breakpoints, pre-correction failures, and non-claims.
@@ -103,7 +103,7 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 - JavaScript syntax: passed for `architecture-flow.js`, `access-standard.js`, and `access-managed.js`.
 - Metadata scanner regression: `36/36` passed, including referenced external learner-script scanning and reviewer-only external-script separation.
 - Full metadata scanner: `PASS: No metadata leaks detected in design visual artifacts.`
-- Exact state accounting: 141 semantic state rows + 13 COV rows, no duplicate/missing IDs; exact browser cells currently iOS `83`, Android phone `27`, iPadOS `35`, Android tablet `27`.
+- Exact state accounting: 160 semantic state rows + 13 COV rows, no duplicate/missing IDs. Parent browser-cell counts were retired after the strict review found platform inflation; conservative frozen-source coverage is iOS phone `38`, Android phone `10`, iPadOS `8`, Android tablet `8`, and shared access-profile browser `12`. A further `14/5/5/5` platform presentations were operated but remain blocked because the browser adapter cannot prove canonical origin/commit truth; check-in acknowledgement/reconciliation/exact-retry remain blocked.
 - Frozen browser replay: passed for the exact subset recorded in `browser-evidence.md`; page runtime console errors `0`.
 - iOS 320/360/390/430, iOS landscape, Android 390/430, Android landscape, iPadOS 761/800/1024, Android tablet 761/800/1024, and shared access 320/1024 all measured `overflowX=0`.
 - iOS minimum operated target floor: `44`; Android and shared-access floor: `48`.
@@ -121,6 +121,8 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 
 ## Agent review status
 
+- Pre-commit behavior audit: `pass_precommit_behavior_audit` on strict-3; P0 `0`, P1 `0`. It rechecked Lock correction, Elimination/Swipe answer context, Auth focus, platform Back, Space focus/scroll restoration, sleeping-card replacement, and the removal of the false post-success check-in repeat control.
+- Pre-commit evidence audit: `pass_precommit_evidence_audit` on flow hash `e21efa673ec301640392acc76781872d1fe0cd3f4dac29a76454cdd045f5b102`; P0 `0`, P1 `0`. It independently recomputed `38/10/8/8` exact platform cells, `14/5/5/5` presentation-only observations, `12` shared cells, all `160 + 13` IDs, all frozen hashes, and the blocked canonical-origin rows.
 - Reviewer: independent exact-hash subagent
 - Status: pending
 - Blocking findings: pending
@@ -129,10 +131,10 @@ The final goal remains one explicitly accepted, mature CET4/6 consumer product t
 
 - Q1 — Current library / Law of One: the learner path is `仔细阅读馆`. This architecture proof deliberately defines no accent or palette, so Law-of-One color binding is unproved and visual acceptance remains blocked.
 - Q2 — Focal object / first read: Learning is one current card; first read is card task → bounded attached tools/result → platform chrome. Auth, Space, access, and confirmation states each keep one state-appropriate focal object. Browser screenshots and accessibility trees confirm the grayscale hierarchy, but not final visual quality.
-- Q3 — Canonical silhouette: Flip reveal + two judgements, 2×2 Four-choice, ordered Lock, marked-text Elimination, and two-direction Swipe are materially distinct. Space retains hierarchy rather than becoming a flat list or progress bucket.
+- Q3 — Canonical silhouette: Flip reveal + two judgements, 2×2 Four-choice, vertical leading-lock rows, marked-text Elimination, and a stacked Swipe deck with explicit directional trails are materially distinct. Space retains hierarchy rather than becoming a flat list or progress bucket.
 - Q4 — Forbidden patterns: no gradient text, gamification chrome, full-width phone tabbar, pure `#000/#fff`, serif UI, four-level self-assess, or auto-scored reuse of self-assess tokens remains in learner proofs. The grayscale palette itself is explicitly non-promotable and cannot answer the user's final color/theme requirement.
 - Q5 — Containment: browser measurements show no horizontal page overflow, permanent empty tablet pane, clipped CTA, or covered navigation at the recorded widths. CSS reads all four safe-area env values, but real native safe-area/IME/cutout evidence remains blocked.
-- Q6 — Surface-specific: Flip exposes exactly `有把握 / 再回看`; Statistics uses `tabular-nums` for dated records and no check-in fiction; Learning exposes no module-selection primary path.
+- Q6 — Surface-specific: Flip exposes exactly `有把握 / 再回看`; Statistics uses `tabular-nums` for dated records and a lightweight explicit check-in without streak, reward, or learner-supplied progress counters; Learning exposes no module-selection primary path.
 
 ## User-visible UI impact
 

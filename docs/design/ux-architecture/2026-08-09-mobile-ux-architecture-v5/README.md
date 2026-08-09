@@ -38,7 +38,7 @@ The active chain for this phase is:
 
 ## Artifact map
 
-- `grayscale-ux-state-contract.md`: 141 semantic states and 13 forced cross-state combinations.
+- `grayscale-ux-state-contract.md`: 160 semantic states and 13 forced cross-state combinations. Nine rows add the explicit lightweight check-in family; ten more replace compound rows whose two branches require different evidence.
 - `platform-architecture.md`: iOS phone, Android phone, iPadOS, and Android tablet composition/behavior contract, with PC Web parity boundaries.
 - `grayscale-proofs/`: four physically separate learner documents for representative cross-device browser scenarios.
 - `access-profile-proofs/`: physically separate formal-commerce and read-only managed-access learner scenarios.

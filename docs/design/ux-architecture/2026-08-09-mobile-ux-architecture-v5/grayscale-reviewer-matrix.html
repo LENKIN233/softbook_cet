@@ -69,10 +69,10 @@
     </div>
 
     <h2>Exact state accounting</h2>
-    <p>The state contract contains 141 semantic states, including 28 states across the five interaction families, plus 13 forced cross-state combinations. Domain summaries are not evidence. The per-state ledger is the only coverage accounting source.</p>
+    <p>The state contract contains 160 semantic states, including 30 independently testable states across the five interaction families and nine explicit lightweight check-in states, plus 13 forced cross-state combinations. Ten rows were added by splitting compound obligations that previously allowed partial evidence to look complete. Domain summaries are not evidence. The per-state ledger is the only coverage accounting source.</p>
     <div class="grid">
       <article class="artifact"><h3>State contract</h3><p>Authority, origin, return target, learner intent, action, commit truth, and recovery.</p><a href="./grayscale-ux-state-contract.md">Open state contract</a></article>
-      <article class="artifact"><h3>Per-state evidence ledger</h3><p>One row per state and explicit iOS, Android, tablet, native, and PC Web result.</p><a href="./state-evidence-ledger.md">Open evidence ledger</a></article>
+      <article class="artifact"><h3>Per-state evidence ledger</h3><p>One row per state. Current exact browser cells: iOS 38, Android phone 10, iPadOS 8, Android tablet 8, shared access 12. Canonical-success presentations are counted separately as blocked observations; all native and PC Web cells remain blocked.</p><a href="./state-evidence-ledger.md">Open evidence ledger</a></article>
       <article class="artifact"><h3>Exact browser evidence</h3><p>Frozen hashes, operated paths, measured breakpoints, and explicit browser/native limits.</p><a href="./browser-evidence.md">Open browser evidence</a></article>
     </div>
 
@@ -81,7 +81,7 @@
       <table>
         <thead><tr><th>Evidence class</th><th>Current result</th><th>What it means</th></tr></thead>
         <tbody>
-          <tr><td>Exact architecture transcript</td><td class="status status--covered">Covered for 141 + 13 rows</td><td>Text architecture only; it proves no target capability.</td></tr>
+          <tr><td>Exact architecture transcript</td><td class="status status--covered">Covered for 160 + 13 rows</td><td>Text architecture only; it proves no target capability.</td></tr>
           <tr><td>Browser learner scenarios</td><td class="status status--covered">Corrected subset replayed at frozen hashes</td><td>Proves only the exact DOM semantics, browser interactions, containment, and scenario transitions recorded in <code>browser-evidence.md</code>.</td></tr>
           <tr><td>Formal / managed profile separation</td><td class="status status--covered">Separate sources replayed at phone and tablet widths</td><td>Formal commerce and read-only access do not share a profile switch; neither browser proof establishes a canonical entitlement.</td></tr>
           <tr><td>Native iOS / Android / tablet</td><td class="status status--blocked">No accepted evidence</td><td>Safe area, IME, System/Predictive Back, VoiceOver/TalkBack, store, audio, and process restore remain open.</td></tr>
@@ -97,12 +97,13 @@
         <thead><tr><th>Path</th><th>Required actions</th><th>Pass condition</th></tr></thead>
         <tbody>
           <tr><td>Auth and Trial boundary</td><td>Invalid phone → valid phone → code error → resend restraint → login → Learning-session pending → first card.</td><td>Inputs/focus recover; login alone does not start Trial; only successful Learning entry changes access.</td></tr>
-          <tr><td>Five families</td><td>Flip → Four-choice → Lock wrong/correct → Elimination wrong/correct → Swipe short cancel/wrong/correct.</td><td>Each stays distinct; pending precedes accepted result; incorrect patterns never unlock; exactly one continuation.</td></tr>
+          <tr><td>Five families</td><td>Flip → Four-choice → Lock wrong/correct → Elimination wrong/correct → Swipe short cancel/wrong/correct.</td><td>Each stays distinct; pending precedes accepted result; wrong Lock cannot continue before correction; accepted auto-scored outcomes expose exactly one continuation.</td></tr>
           <tr><td>Learning ↔ Space</td><td>Open exact location → favorite pending/accepted → sleep pending/accepted → return without wake.</td><td>Knowledge ownership remains stable; a sleeping current card is excluded and Learning requests a new selection.</td></tr>
+          <tr><td>Simple check-in</td><td>Available → pending → acknowledgement → refresh/reconciled. Separately force an uncertain prior outcome and retry the same retained command to prove exact-duplicate acknowledgement; then exercise offline queue, retry, matching restart recovery, and stale account/day rejection.</td><td>One explicit day action only; no streak/reward/counter fabrication, duplicate transition, or cross-account/day replay.</td></tr>
           <tr><td>Formal access</td><td>Learning limit and Space limit → compare → cancel → purchase unavailable/retry → restore none.</td><td>No local Premium claim; exact origin and current access survive every branch.</td></tr>
           <tr><td>Managed access</td><td>Open access detail → refresh pending → active/absent/error → return.</td><td>No commerce/self-grant code or control; base access is not overwritten.</td></tr>
           <tr><td>Reflow and platform mapping</td><td>320/360/390/430, phone landscape, 761/800/1024 tablet, reduced motion.</td><td>No page overflow, hidden clipping, covered action, permanent empty pane, or unauthorized Four-choice single-column exception.</td></tr>
-          <tr><td>Focus and Back</td><td>Rerendered selections/tools, result focus, dialog trap/Escape/invoker return, one-step Space Back, browser history.</td><td>No focus loss, double Back, route loop, silent pending dismissal, or incorrect origin.</td></tr>
+          <tr><td>Focus and Back</td><td>Rerendered selections/tools, Auth pending status, result/correction focus, dialog trap/Escape/invoker return, one-step Space Back, iOS tab-local Back, Android top-level Back, and scroll/focus restoration.</td><td>No focus loss, top-level iOS pop, double Back, route loop, silent pending dismissal, or incorrect origin.</td></tr>
           <tr><td>Audience boundary</td><td>Visible copy, AT names, DOM, source comments, external JS, URL, and reviewer separation.</td><td>Zero runtime predicate, internal key, reviewer guidance, test/process narration, or hidden profile switch.</td></tr>
         </tbody>
       </table>
