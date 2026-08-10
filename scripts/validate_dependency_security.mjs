@@ -8,6 +8,23 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const POLICY_PATH = path.join(ROOT, 'security', 'dependency-audit-policy.json');
 
+export function auditArguments(policy) {
+  if (policy.include_all_dependency_classes !== true) {
+    throw new Error(
+      'dependency security policy must include every dependency class',
+    );
+  }
+
+  return [
+    'audit',
+    '--include=prod',
+    '--include=dev',
+    '--include=optional',
+    '--include=peer',
+    '--json',
+  ];
+}
+
 export function collectAdvisories(report) {
   const advisories = new Map();
 
@@ -123,9 +140,9 @@ function advisoryId(advisory) {
   return githubId?.toUpperCase() ?? `npm-${advisory.source}`;
 }
 
-function auditTarget(target) {
+function auditTarget(target, auditArgs) {
   const cwd = path.join(ROOT, target.path);
-  const result = spawnSync('npm', ['audit', '--omit=dev', '--json'], {
+  const result = spawnSync('npm', auditArgs, {
     cwd,
     encoding: 'utf8',
     maxBuffer: 32 * 1024 * 1024,
@@ -184,7 +201,8 @@ function auditTarget(target) {
 
 function main() {
   const policy = JSON.parse(fs.readFileSync(POLICY_PATH, 'utf8'));
-  const targets = policy.targets.map(auditTarget);
+  const auditArgs = auditArguments(policy);
+  const targets = policy.targets.map(target => auditTarget(target, auditArgs));
   const output = {
     schema_version: 'dependency-security-report.v1',
     ok: targets.every(target => target.ok),

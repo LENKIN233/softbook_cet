@@ -224,11 +224,22 @@ jobs:
         with:
           node-version: "22.13.0"
           cache: npm
-          cache-dependency-path: apps/mobile/package-lock.json
+          cache-dependency-path: |
+            apps/mobile/package-lock.json
+            apps/web/package-lock.json
+            infra/cloudbase/functions/softbook-api/package-lock.json
 
       - name: Install mobile dependency tree
         working-directory: apps/mobile
         run: npm ci
+
+      - name: Install Web dependency tree
+        working-directory: apps/web
+        run: npm ci --ignore-scripts
+
+      - name: Install backend dependency tree
+        working-directory: infra/cloudbase/functions/softbook-api
+        run: npm ci --ignore-scripts
 
       - name: Test dependency policies
         run: |
