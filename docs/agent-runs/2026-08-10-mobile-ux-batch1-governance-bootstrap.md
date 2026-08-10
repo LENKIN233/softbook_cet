@@ -40,6 +40,7 @@
 
 - `.github/workflows/formal-approval.yml`: add full-commit-pinned, read-only, base-only trusted validation before protected approval; revalidate the exact current run after release without checking out or executing PR-head code.
 - `.github/workflows/pr-gates.yml`: add syntax and regression gates for the bootstrap, successor, and recovery modules.
+- `scripts/test_android_release_boundary.mjs`: bind the Android release boundary regression to the immutable `setup-java` commit installed by this bootstrap rather than the former movable `v5` tag.
 - `scripts/classify_formal_approval_scope.mjs` and `scripts/test_classify_formal_approval_scope.mjs`: add exact decision classes, rename-aware fail-closed classification, and bypass regressions.
 - `scripts/lib/mobile_ux_batch1_governance_contract.mjs` and `scripts/test_mobile_ux_batch1_governance_contract.mjs`: add strict decision, event, receipt, ancestry, validity, privacy, legacy dual-chain, and zero-authority contracts.
 - `scripts/lib/mobile_ux_batch1_github_event_reader.mjs` and `scripts/test_mobile_ux_batch1_github_event_reader.mjs`: add immutable GitHub event and Git-object revalidation with truncation and identity checks.
@@ -55,6 +56,7 @@
 
 - Exact Node `22.13.0` syntax checks over all Batch 1 JavaScript modules and CLIs.
 - Exact Node `22.13.0` regression suites for classifier, governance, GitHub reader, recovery, successor, and end-to-end trusted-base PR validation.
+- Exact Node `22.13.0` Android release boundary regression.
 - `python3 scripts/test_harness_module_boundaries.py`.
 - `python3 scripts/test_validate_harness_runner.py`.
 - `python3 scripts/test_run_local_gates.py`.
@@ -69,6 +71,7 @@
 
 - Exact Node `22.13.0` workspace suites: `300/300` passed; zero failed, cancelled, skipped, or todo.
 - Exact Node `22.13.0` clean-snapshot suites: `300/300` passed with the same frozen bytes.
+- Android release boundary: `4/4` passed against the full `setup-java` commit pin.
 - Python harness module boundaries: `18/18` passed. Harness runner: `21/21` passed. Local-gate runner regressions: `29/29` passed.
 - `python3 scripts/validate_harness.py --mode local`: passed with the expected `PARTIAL` result and `selected=15`; `python3 scripts/validate_harness.py`: passed.
 - Fresh frozen PR-A Git snapshot `/tmp/softbook-clean-pra-frozen.PID9or`: hooks installed, local/full harness passed, Git status clean, and the four canonical PR-B activation files were physically absent.
