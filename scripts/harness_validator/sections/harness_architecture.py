@@ -16,8 +16,359 @@ def validate(context) -> None:
 
     harness_architecture_spec = load("harness-architecture.json")
 
-    check_equal("harness architecture version", "vnext-6", harness_architecture_spec["version"])
+    check_equal("harness architecture version", "vnext-7", harness_architecture_spec["version"])
     check_equal("harness architecture layer", "repo_governance_truth", harness_architecture_spec["layer"])
+
+    batch1_architecture = harness_architecture_spec[
+        "mobile_ux_batch1_governance_validation_contract"
+    ]
+    batch1_delivery = delivery["ci_contract"][
+        "mobile_ux_batch1_governance_bootstrap"
+    ]
+    delivery_runtime_text = (
+        ROOT / "scripts/harness_validator/sections/delivery_runtime.py"
+    ).read_text(encoding="utf-8")
+    active_policy_load_marker = (
+        'active_policy = context.load("mobile-ux-batch1-governance.json")'
+    )
+    check_equal(
+        "inactive bootstrap delivery runtime has one active-only PR-B policy load",
+        1,
+        delivery_runtime_text.count(active_policy_load_marker),
+    )
+    if (
+        active_policy_load_marker in delivery_runtime_text
+        and "if active_anchor_shape:" in delivery_runtime_text
+        and delivery_runtime_text.index(active_policy_load_marker)
+        < delivery_runtime_text.index("if active_anchor_shape:")
+    ):
+        errors.append(
+            "inactive bootstrap delivery runtime loads the PR-B policy before active anchor validation"
+        )
+    check_equal(
+        "mobile UX Batch 1 foundation doc-manifest dynamic transition",
+        {
+            "base_version_requirement": "vnext-N_with_N_at_least_9",
+            "version_transition": "exact_base_vnext_N_to_head_vnext_N_plus_1",
+            "active_spec_to_add": "spec/mobile-ux-batch1-governance.json",
+            "insert_after": "spec/authority-map.json",
+            "all_other_fields_must_equal_bootstrap_base": True,
+        },
+        batch1_delivery["foundation_state_contract"][
+            "doc_manifest_transition"
+        ],
+    )
+    check_equal(
+        "mobile UX Batch 1 foundation doc-manifest transition mirror",
+        batch1_delivery["foundation_state_contract"]["doc_manifest_transition"],
+        batch1_architecture["foundation_state_contract"][
+            "doc_manifest_transition"
+        ],
+    )
+    check_equal(
+        "mobile UX Batch 1 trusted and essential recovery closure mirror",
+        batch1_delivery["trusted_code_closure"],
+        batch1_architecture["trusted_code_closure"],
+    )
+    check_equal(
+        "mobile UX Batch 1 trusted recovery closure has eleven paths",
+        11,
+        len(batch1_architecture["trusted_code_closure"]),
+    )
+    check_equal(
+        "mobile UX Batch 1 trusted code policy mirror",
+        batch1_delivery["trusted_code_policy"],
+        batch1_architecture["trusted_code_policy"],
+    )
+    check_equal(
+        "mobile UX Batch 1 trusted formal-approval workflow digest",
+        "13e67dede95f30de747155552e43b0ef758059bd375612d59eedbe24685d2de2",
+        batch1_architecture["trusted_code_policy"][
+            "pull_request_target_workflow_raw_sha256"
+        ],
+    )
+    check_equal(
+        "mobile UX Batch 1 trusted pull-request gate workflow digest",
+        "f1bcaa0b168646b85a21da89102b7a0540c323fe9652719557d68131485ea549",
+        batch1_architecture["trusted_code_policy"][
+            "pull_request_gate_workflow_raw_sha256"
+        ],
+    )
+    for trusted_workflow_flag in [
+        "pull_request_target_workflow_all_values_and_nested_mappings_must_match_exact_closed_bytes",
+        "proposed_head_workflow_must_equal_trusted_base_mode_length_and_sha256",
+        "pull_request_gate_workflow_all_values_and_nested_mappings_must_match_exact_closed_bytes",
+        "proposed_head_pull_request_gate_workflow_must_equal_trusted_base_mode_length_and_sha256",
+        "pull_request_gate_action_uses_must_be_full_commit_pinned",
+    ]:
+        check_equal(
+            "mobile UX Batch 1 trusted workflow fail-closed field "
+            + trusted_workflow_flag,
+            True,
+            batch1_architecture["trusted_code_policy"].get(trusted_workflow_flag),
+        )
+    check_equal(
+        "mobile UX Batch 1 classification and validation scope source",
+        "verified_base_to_exact_event_head_git_full_tree_diff",
+        batch1_architecture["trusted_code_policy"].get(
+            "classification_and_validation_scope_source"
+        ),
+    )
+    check_equal(
+        "mobile UX Batch 1 classification and validation rename/copy detection",
+        "name_status_z_M_C_find_copies_harder_l0",
+        batch1_architecture["trusted_code_policy"].get(
+            "classification_and_validation_rename_copy_detection"
+        ),
+    )
+    check_equal(
+        "mobile UX Batch 1 live pull-request files usage",
+        "current_filename_set_completeness_cross_check_only_against_exact_git_records",
+        batch1_architecture["trusted_code_policy"].get(
+            "live_pull_request_files_usage"
+        ),
+    )
+    for trusted_classification_flag in [
+        "live_pull_request_files_as_classification_or_scope_truth_forbidden",
+        "event_head_sha_must_equal_fetched_commit",
+        "live_pull_request_file_status_or_previous_filename_semantics_forbidden",
+    ]:
+        check_equal(
+            "mobile UX Batch 1 trusted classification field "
+            + trusted_classification_flag,
+            True,
+            batch1_architecture["trusted_code_policy"].get(
+                trusted_classification_flag
+            ),
+        )
+    check_equal(
+        "mobile UX Batch 1 stage-separation merge integrity mirror",
+        batch1_delivery["stage_separation_merge_integrity_contract"],
+        batch1_architecture["stage_separation_merge_integrity_contract"],
+    )
+    check_equal(
+        "mobile UX Batch 1 squash merge first-parent binding",
+        {
+            "verified_squash_merge_commit_must_have_exactly_one_parent_equal_to_pull_request_base_sha": True,
+        },
+        batch1_architecture["stage_separation_merge_integrity_contract"],
+    )
+    check_equal(
+        "mobile UX Batch 1 protected current-run approval mirror",
+        batch1_delivery["protected_current_run_approval_contract"],
+        batch1_architecture["protected_current_run_approval_contract"],
+    )
+    check_equal(
+        "mobile UX Batch 1 protected current-run approval contract",
+        {
+            "current_run_approval_only_first_attempt_supported": True,
+            "current_run_approval_comment_contract": "approve <decision_class> PR #<number> head <40sha>",
+            "current_run_approval_comment_comparison": "exact_utf8_string_no_trim_case_fold_or_space_normalization",
+            "current_run_failure_reapproval_policy": "new_pull_request_event_run_and_new_environment_approval_required_rerun_cannot_reuse_attempt_1_approval",
+        },
+        batch1_architecture["protected_current_run_approval_contract"],
+    )
+    check_equal(
+        "mobile UX Batch 1 activation current-run failure policy mirror",
+        batch1_delivery["activation_current_run_revalidation_failure_policy"],
+        batch1_architecture[
+            "activation_current_run_revalidation_failure_policy"
+        ],
+    )
+    check_equal(
+        "mobile UX Batch 1 activation current-run failure policy",
+        "missing_mixed_wrong_attempt_noncanonical_comment_or_unverifiable_fails_closed",
+        batch1_architecture[
+            "activation_current_run_revalidation_failure_policy"
+        ],
+    )
+    check_equal(
+        "mobile UX Batch 1 activation decision-class mirror",
+        batch1_delivery["activation_decision_class_contract"],
+        batch1_architecture["activation_decision_class_contract"],
+    )
+    check_equal(
+        "mobile UX Batch 1 activation artifact and workflow decision classes",
+        {
+            "artifact_required_decision_class": "schema_definition",
+            "workflow_required_decision_class": "governance_foundation",
+        },
+        batch1_architecture["activation_decision_class_contract"],
+    )
+    check_equal(
+        "mobile UX Batch 1 recovery contract mirror",
+        batch1_delivery["governance_recovery_contract"],
+        batch1_architecture["governance_recovery_contract"],
+    )
+    check_equal(
+        "mobile UX Batch 1 recovery states",
+        ["inactive_initial", "inactive_bootstrap_installed", "active", "revoked"],
+        batch1_architecture["governance_recovery_contract"]["states"],
+    )
+    check_equal(
+        "mobile UX Batch 1 recovery operations",
+        {
+            "bootstrap_maintenance": "inactive_bootstrap_installed_to_inactive_bootstrap_installed",
+            "active_maintenance": "active_to_active",
+            "revoked_recovery": "revoked_to_revoked",
+            "revoke_active_governance": "active_to_revoked",
+            "rebootstrap_same_policy": "revoked_to_active",
+        },
+        batch1_architecture["governance_recovery_contract"]["operations"],
+    )
+    check_equal(
+        "mobile UX Batch 1 recovery decision classes",
+        [
+            "governance_maintenance",
+            "governance_revocation",
+            "governance_rebootstrap",
+        ],
+        batch1_architecture["governance_recovery_contract"]["decision_classes"],
+    )
+    check_equal(
+        "mobile UX Batch 1 owned anchor projection",
+        [
+            "authority_map_mobile_ux_batch1_governance_domain",
+            "agent_harness_mobile_ux_batch1_read_path",
+            "agent_harness_mobile_ux_batch1_governance_policy",
+            "agent_harness_mobile_ux_batch1_compaction_anchor_count",
+            "doc_manifest_mobile_ux_batch1_policy_count",
+            "agents_mobile_ux_batch1_governance_heading_count",
+            "agents_mobile_ux_batch1_activation_line_counts",
+        ],
+        batch1_architecture["governance_recovery_contract"][
+            "anchor_owned_projection"
+        ],
+    )
+    check_equal(
+        "mobile UX Batch 1 B2 nonclaim mirror",
+        batch1_delivery["B2_validation_nonclaim"],
+        batch1_architecture["B2_validation_nonclaim"],
+    )
+    check_equal(
+        "mobile UX Batch 1 timeless owned-anchor shape mirror",
+        batch1_delivery["timeless_anchor_shape_contract"],
+        batch1_architecture["timeless_anchor_shape_contract"],
+    )
+    check_equal(
+        "mobile UX Batch 1 global versions never derive governance state",
+        True,
+        batch1_architecture["timeless_anchor_shape_contract"][
+            "global_versions_must_not_derive_batch1_state"
+        ],
+    )
+    check_equal(
+        "mobile UX Batch 1 inactive anchors require trusted lineage to distinguish installed from revoked",
+        True,
+        batch1_architecture["timeless_anchor_shape_contract"][
+            "inactive_installed_vs_revoked_state_requires_trusted_lineage_proof"
+        ],
+    )
+    for inactive_policy_loading_field in [
+        "inactive_bootstrap_validation_uses_timeless_tracked_mirrors_without_loading_pr_b_canonical_artifacts",
+        "active_policy_equality_loaded_only_when_active_anchor_shape_and_tracked_policy_exist",
+    ]:
+        check_equal(
+            "mobile UX Batch 1 policy loading boundary "
+            + inactive_policy_loading_field,
+            True,
+            batch1_architecture["timeless_anchor_shape_contract"].get(
+                inactive_policy_loading_field
+            ),
+        )
+    check_equal(
+        "mobile UX Batch 1 caller boolean cannot select authority state",
+        False,
+        batch1_architecture["timeless_anchor_shape_contract"][
+            "caller_boolean_may_select_authority_state"
+        ],
+    )
+    check_equal(
+        "mobile UX Batch 1 non-owned anchor bytes may evolve",
+        True,
+        batch1_architecture["timeless_anchor_shape_contract"][
+            "non_batch1_fields_and_bytes_may_evolve"
+        ],
+    )
+    check_equal(
+        "mobile UX Batch 1 synthetic anchor transition regressions have no gate effect",
+        "none",
+        batch1_architecture["timeless_anchor_shape_contract"][
+            "synthetic_transition_gate_effect"
+        ],
+    )
+    recovery_contract = batch1_architecture["governance_recovery_contract"]
+    check_equal(
+        "mobile UX Batch 1 formal-approval workflow absent from v1 maintenance allowlist",
+        False,
+        ".github/workflows/formal-approval.yml"
+        in recovery_contract["maintenance_exact_allowlist_paths"],
+    )
+    check_equal(
+        "mobile UX Batch 1 pull-request gate workflow absent from v1 maintenance allowlist",
+        False,
+        ".github/workflows/pr-gates.yml"
+        in recovery_contract["maintenance_exact_allowlist_paths"],
+    )
+    check_equal(
+        "mobile UX Batch 1 bootstrap-installed kernel snapshots",
+        {
+            "closure_artifacts_at_bootstrap_merge": "exact_essential_recovery_kernel_paths_tracked_regular_100644_nonempty",
+            "closure_artifacts_at_trusted_base": "exact_essential_recovery_kernel_paths_tracked_regular_100644_nonempty",
+            "byte_equality_between_snapshots_required": False,
+            "later_addition_after_bootstrap_merge_cannot_satisfy_bootstrap_installation": True,
+        },
+        recovery_contract.get("bootstrap_installed_proof_kernel_snapshots"),
+    )
+    check_equal(
+        "mobile UX Batch 1 bootstrap materialization required base SHA",
+        "7960ebd29d0eec4a5139a38c7e5eb8bde00d6e47",
+        recovery_contract.get("bootstrap_materialization_required_pull_request_base_sha"),
+    )
+    check_equal(
+        "mobile UX Batch 1 anchor documents transition independently from their own versions",
+        "each_base_vnext_N_to_head_vnext_N_plus_1_independently",
+        recovery_contract.get("anchor_document_version_transition"),
+    )
+    check_equal(
+        "mobile UX Batch 1 cross-document version parity is not required",
+        False,
+        recovery_contract.get(
+            "cross_document_version_parity_or_fixed_activation_version_required"
+        ),
+    )
+    check_equal(
+        "mobile UX Batch 1 lineage enumeration uses complete trusted-base history",
+        "complete_trusted_base_git_history_not_current_tree_only",
+        recovery_contract.get("lineage_enumeration_source"),
+    )
+    for recovery_integrity_field in [
+        "bootstrap_remote_landing_base_must_equal_required_base_sha",
+        "bootstrap_required_base_must_be_direct_first_parent_of_materialization_merge",
+        "maintenance_allowlist_payload_without_exact_recovery_pair_forbidden",
+        "formal_approval_workflow_maintenance_in_v1_forbidden",
+        "pull_request_gate_workflow_maintenance_in_v1_forbidden",
+        "all_mobile_ux_batch1_run_records_are_permanently_sensitive_and_add_only",
+        "standalone_historical_decision_or_run_record_modify_delete_copy_or_rename_fails_closed",
+        "foundation_activation_and_every_recovery_lineage_event_require_unique_add_introduction",
+        "every_lineage_event_requires_unique_associated_merged_same_repository_main_pull_request",
+        "every_lineage_event_requires_approved_head_tree_equal_merge_tree_and_merge_reachable_from_trusted_base",
+        "every_lineage_decision_and_run_record_merge_bytes_must_equal_current_trusted_base_mode_length_and_sha256",
+        "historical_recovery_decision_or_run_record_delete_copy_or_rename_invalidates_state",
+        "transition_commits_after_terminal_event_must_be_recomputed_and_empty",
+        "foundation_lineage_event_must_replay_exact_eight_path_scope_three_immutable_hashes_dynamic_anchor_transition_and_stable_run_record",
+        "terminal_lineage_event_must_match_derived_anchor_state",
+        "current_run_protected_owner_approval_revalidation_required",
+        "full_anchor_file_byte_freeze_after_revocation_forbidden",
+        "revoked_state_rejects_mobile_ux_batch1_successor_receipt_execution_and_authority_decision_use",
+        "revoked_state_allows_unrelated_generic_sensitive_protected_changes_when_owned_projection_remains_revoked",
+        "unrelated_anchor_file_fields_and_lines_may_evolve_via_generic_sensitive_protected_change_when_owned_projection_is_preserved",
+    ]:
+        check_equal(
+            "mobile UX Batch 1 recovery fail-closed field " + recovery_integrity_field,
+            True,
+            recovery_contract.get(recovery_integrity_field),
+        )
 
     runner_contract = harness_architecture_spec["runner_contract"]
     check_equal("harness runner entrypoint", "scripts/validate_harness.py", runner_contract["entrypoint"])

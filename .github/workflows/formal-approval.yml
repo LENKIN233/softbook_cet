@@ -11,7 +11,9 @@ on:
       - ready_for_review
 
 permissions:
+  actions: read
   contents: read
+  deployments: read
   pull-requests: read
 
 concurrency:
@@ -25,37 +27,154 @@ jobs:
     timeout-minutes: 5
     outputs:
       sensitive: ${{ steps.scope.outputs.sensitive }}
+      decision_class: ${{ steps.scope.outputs.decision_class }}
+      trusted_validation_required: ${{ steps.scope.outputs.trusted_validation_required }}
+      classification_error: ${{ steps.scope.outputs.classification_error }}
     steps:
       - name: Checkout trusted base revision
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
           persist-credentials: false
 
-      - name: Read changed paths from GitHub
+      - name: Verify trusted base checkout
+        env:
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Set up trusted Node.js runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22.13.0"
+
+      - name: Fetch exact event head as Git data
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/pull/$PR_NUMBER/head"
+          test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_HEAD_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Classify formal approval scope
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          node scripts/classify_formal_approval_scope.mjs \
+            --root . \
+            --base-sha "$BASE_SHA" \
+            --head-sha "$HEAD_SHA" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Fail closed on classification errors
+        env:
+          CLASSIFICATION_ERROR: ${{ steps.scope.outputs.classification_error }}
+        run: |
+          set -euo pipefail
+          if [ -n "$CLASSIFICATION_ERROR" ]; then
+            printf 'Formal approval classification failed closed: %s\n' \
+              "$CLASSIFICATION_ERROR" >&2
+            exit 1
+          fi
+
+  trusted_validation:
+    name: formal-approval-trusted-validation
+    needs: classify
+    if: >-
+      needs.classify.result == 'success' &&
+      needs.classify.outputs.trusted_validation_required == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout trusted base revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify trusted base checkout
+        env:
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Set up trusted Node.js runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22.13.0"
+
+      - name: Read pull request data from GitHub
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          set -euo pipefail
           gh api "repos/$GH_REPO/pulls/$PR_NUMBER" --jq .changed_files \
             > "$RUNNER_TEMP/formal-approval-count.txt"
           gh api --paginate --slurp \
             "repos/$GH_REPO/pulls/$PR_NUMBER/files?per_page=100" \
             > "$RUNNER_TEMP/formal-approval-files.json"
 
-      - name: Classify formal approval scope
-        id: scope
-        run: >-
-          node scripts/classify_formal_approval_scope.mjs
-          --github-files "$RUNNER_TEMP/formal-approval-files.json"
-          --expected-count "$(cat "$RUNNER_TEMP/formal-approval-count.txt")"
-          --github-output "$GITHUB_OUTPUT"
+      - name: Fetch untrusted head as data only
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/pull/$PR_NUMBER/head"
+          test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_HEAD_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Validate the pull request with trusted base code
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          REPOSITORY_ID: ${{ github.event.repository.id }}
+          CANONICAL_ORIGIN: https://github.com/${{ github.repository }}.git
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: refs/heads/${{ github.event.pull_request.base.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          DECISION_CLASS: ${{ needs.classify.outputs.decision_class }}
+          FILES_JSON: ${{ runner.temp }}/formal-approval-files.json
+        run: |
+          set -euo pipefail
+          CHANGED_COUNT="$(cat "$RUNNER_TEMP/formal-approval-count.txt")"
+          node scripts/validate_mobile_ux_batch1_governance.mjs validate-pr \
+            --repository "$GITHUB_REPOSITORY" \
+            --repository-id "$REPOSITORY_ID" \
+            --origin "$CANONICAL_ORIGIN" \
+            --pull-request "$PR_NUMBER" \
+            --base-ref "$BASE_REF" \
+            --base-sha "$BASE_SHA" \
+            --head-sha "$HEAD_SHA" \
+            --decision-class "$DECISION_CLASS" \
+            --github-files "$FILES_JSON" \
+            --expected-count "$CHANGED_COUNT"
 
   automatic:
     name: formal-approval-automatic
     needs: classify
-    if: needs.classify.outputs.sensitive != 'true'
+    if: >-
+      needs.classify.result == 'success' &&
+      needs.classify.outputs.sensitive == 'false' &&
+      needs.classify.outputs.trusted_validation_required == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -63,21 +182,83 @@ jobs:
 
   product_owner:
     name: formal-approval-product-owner
-    needs: classify
-    if: needs.classify.outputs.sensitive == 'true'
+    needs:
+      - classify
+      - trusted_validation
+    if: >-
+      always() &&
+      needs.classify.result == 'success' &&
+      needs.classify.outputs.sensitive == 'true' &&
+      needs.classify.outputs.trusted_validation_required == 'true' &&
+      needs.trusted_validation.result == 'success'
     environment:
       name: formal-product-owner-approval
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 10
     steps:
-      - name: Record protected approval
-        run: echo "Protected product-owner environment approved ${{ github.event.pull_request.head.sha }}."
+      - name: Checkout trusted base revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify trusted base checkout
+        env:
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Set up trusted Node.js runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22.13.0"
+
+      - name: Fetch untrusted head as data only
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/pull/$PR_NUMBER/head"
+          test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_HEAD_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Verify the current protected approval from trusted base code
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          REPOSITORY_ID: ${{ github.event.repository.id }}
+          CANONICAL_ORIGIN: https://github.com/${{ github.repository }}.git
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: refs/heads/${{ github.event.pull_request.base.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          DECISION_CLASS: ${{ needs.classify.outputs.decision_class }}
+        run: |
+          set -euo pipefail
+          node scripts/validate_mobile_ux_batch1_governance.mjs verify-current-run-approval \
+            --repository "$GITHUB_REPOSITORY" \
+            --repository-id "$REPOSITORY_ID" \
+            --origin "$CANONICAL_ORIGIN" \
+            --pull-request "$PR_NUMBER" \
+            --base-ref "$BASE_REF" \
+            --base-sha "$BASE_SHA" \
+            --head-sha "$HEAD_SHA" \
+            --decision-class "$DECISION_CLASS" \
+            --workflow-run-id "$GITHUB_RUN_ID" \
+            --workflow-run-attempt "$GITHUB_RUN_ATTEMPT"
 
   result:
     name: formal-approval
     if: always()
     needs:
       - classify
+      - trusted_validation
       - automatic
       - product_owner
     runs-on: ubuntu-latest
@@ -87,12 +268,29 @@ jobs:
         env:
           CLASSIFY_RESULT: ${{ needs.classify.result }}
           SENSITIVE: ${{ needs.classify.outputs.sensitive }}
+          DECISION_CLASS: ${{ needs.classify.outputs.decision_class }}
+          TRUSTED_VALIDATION_REQUIRED: ${{ needs.classify.outputs.trusted_validation_required }}
+          CLASSIFICATION_ERROR: ${{ needs.classify.outputs.classification_error }}
+          TRUSTED_VALIDATION_RESULT: ${{ needs.trusted_validation.result }}
           AUTOMATIC_RESULT: ${{ needs.automatic.result }}
           PRODUCT_OWNER_RESULT: ${{ needs.product_owner.result }}
         run: |
+          set -euo pipefail
           test "$CLASSIFY_RESULT" = "success"
+          test -n "$DECISION_CLASS"
+          test -z "$CLASSIFICATION_ERROR"
           if [ "$SENSITIVE" = "true" ]; then
+            test "$DECISION_CLASS" != "ordinary"
+            test "$TRUSTED_VALIDATION_REQUIRED" = "true"
+            test "$TRUSTED_VALIDATION_RESULT" = "success"
+            test "$AUTOMATIC_RESULT" = "skipped"
             test "$PRODUCT_OWNER_RESULT" = "success"
-          else
+          elif [ "$SENSITIVE" = "false" ]; then
+            test "$DECISION_CLASS" = "ordinary"
+            test "$TRUSTED_VALIDATION_REQUIRED" = "false"
+            test "$TRUSTED_VALIDATION_RESULT" = "skipped"
             test "$AUTOMATIC_RESULT" = "success"
+            test "$PRODUCT_OWNER_RESULT" = "skipped"
+          else
+            exit 1
           fi

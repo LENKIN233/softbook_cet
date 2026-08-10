@@ -1,0 +1,666 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "repo://spec/mobile-ux-batch1-governance-recovery-decision.schema.json",
+  "title": "Mobile UX Batch 1 governance recovery decision",
+  "description": "Closed data-only contract for protected bootstrap maintenance, active maintenance, revocation, revoked recovery, and exact same-policy rebootstrap decisions. The current PR approval binds the decision artifact itself; changed_artifacts binds every other changed path, including the run record. Trusted-base validation does not prove candidate head code semantics, safety, or future operability.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_id",
+    "decision_class",
+    "operation",
+    "repository",
+    "pull_request",
+    "trusted_base_sha",
+    "decision_path",
+    "run_record_path",
+    "state_transition",
+    "revocation_context",
+    "policy_selection",
+    "changed_artifacts",
+    "current_run_gate",
+    "authority",
+    "non_claims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "mobile-ux-batch1-governance-recovery-decision.v1"
+    },
+    "decision_id": {
+      "type": "string",
+      "pattern": "^mobile-ux-batch1-governance-(maintenance|revocation|rebootstrap)-pr-[1-9][0-9]*-[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "decision_class": {
+      "enum": [
+        "governance_maintenance",
+        "governance_revocation",
+        "governance_rebootstrap"
+      ]
+    },
+    "operation": {
+      "enum": [
+        "bootstrap_maintenance",
+        "active_maintenance",
+        "revoked_recovery",
+        "revoke_active_governance",
+        "rebootstrap_same_policy"
+      ]
+    },
+    "repository": {
+      "$ref": "#/$defs/repository"
+    },
+    "pull_request": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "trusted_base_sha": {
+      "$ref": "#/$defs/sha1"
+    },
+    "decision_path": {
+      "type": "string",
+      "pattern": "^docs/design/decisions/mobile-ux-batch1-governance-(maintenance|revocation|rebootstrap)-v1/pr-[1-9][0-9]*-[a-z0-9]+(?:-[a-z0-9]+)*\\.json$"
+    },
+    "run_record_path": {
+      "type": "string",
+      "pattern": "^docs/agent-runs/[0-9]{4}-[0-9]{2}-[0-9]{2}-mobile-ux-batch1-governance-(maintenance|revocation|rebootstrap)-pr-[1-9][0-9]*-[a-z0-9]+(?:-[a-z0-9]+)*\\.md$"
+    },
+    "state_transition": {
+      "$ref": "#/$defs/stateTransition"
+    },
+    "revocation_context": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/revocationContext"
+        }
+      ]
+    },
+    "policy_selection": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/policySelection"
+        }
+      ]
+    },
+    "changed_artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/changedArtifact"
+      }
+    },
+    "current_run_gate": {
+      "$ref": "#/$defs/currentRunGate"
+    },
+    "authority": {
+      "$ref": "#/$defs/allFalseAuthority"
+    },
+    "non_claims": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "prefixItems": [
+        {
+          "const": "no_product_authority"
+        },
+        {
+          "const": "no_visual_authority"
+        },
+        {
+          "const": "no_implementation_authority"
+        },
+        {
+          "const": "no_native_authority"
+        },
+        {
+          "const": "no_release_authority"
+        },
+        {
+          "const": "no_leadership_readiness_authority"
+        },
+        {
+          "const": "head_artifacts_are_untrusted_data_only"
+        },
+        {
+          "const": "trusted_base_validation_does_not_prove_head_code_semantics_safety_or_future_operability"
+        },
+        {
+          "const": "independent_agent_review_and_exact_head_protected_owner_approval_are_required"
+        },
+        {
+          "const": "candidate_code_becomes_a_trust_base_only_after_protected_merge"
+        }
+      ],
+      "items": false
+    }
+  },
+  "oneOf": [
+    {
+      "title": "Bootstrap-installed maintenance",
+      "properties": {
+        "decision_class": {
+          "const": "governance_maintenance"
+        },
+        "operation": {
+          "const": "bootstrap_maintenance"
+        },
+        "state_transition": {
+          "const": {
+            "from": "inactive_bootstrap_installed",
+            "to": "inactive_bootstrap_installed"
+          }
+        },
+        "revocation_context": {
+          "type": "null"
+        },
+        "policy_selection": {
+          "type": "null"
+        }
+      }
+    },
+    {
+      "title": "Active maintenance",
+      "properties": {
+        "decision_class": {
+          "const": "governance_maintenance"
+        },
+        "operation": {
+          "const": "active_maintenance"
+        },
+        "state_transition": {
+          "const": {
+            "from": "active",
+            "to": "active"
+          }
+        },
+        "revocation_context": {
+          "type": "null"
+        },
+        "policy_selection": {
+          "type": "null"
+        }
+      }
+    },
+    {
+      "title": "Revoked-state recovery maintenance",
+      "properties": {
+        "decision_class": {
+          "const": "governance_maintenance"
+        },
+        "operation": {
+          "const": "revoked_recovery"
+        },
+        "state_transition": {
+          "const": {
+            "from": "revoked",
+            "to": "revoked"
+          }
+        },
+        "revocation_context": {
+          "$ref": "#/$defs/revocationContext"
+        },
+        "policy_selection": {
+          "type": "null"
+        }
+      }
+    },
+    {
+      "title": "Active governance revocation",
+      "properties": {
+        "decision_class": {
+          "const": "governance_revocation"
+        },
+        "operation": {
+          "const": "revoke_active_governance"
+        },
+        "state_transition": {
+          "const": {
+            "from": "active",
+            "to": "revoked"
+          }
+        },
+        "revocation_context": {
+          "type": "null"
+        },
+        "policy_selection": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/policySelection"
+            },
+            {
+              "properties": {
+                "mode": {
+                  "const": "revoked_policy"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "title": "Same-policy rebootstrap",
+      "properties": {
+        "decision_class": {
+          "const": "governance_rebootstrap"
+        },
+        "operation": {
+          "const": "rebootstrap_same_policy"
+        },
+        "state_transition": {
+          "const": {
+            "from": "revoked",
+            "to": "active"
+          }
+        },
+        "revocation_context": {
+          "$ref": "#/$defs/revocationContext"
+        },
+        "policy_selection": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/policySelection"
+            },
+            {
+              "properties": {
+                "mode": {
+                  "const": "reuse_revoked_policy"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repositoryPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*[\\u0000-\\u001F\\u007F])[^/]+(?:/[^/]+)*$"
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "full_name",
+        "repository_id",
+        "base_ref"
+      ],
+      "properties": {
+        "full_name": {
+          "const": "LENKIN233/softbook_cet"
+        },
+        "repository_id": {
+          "const": 1216764160
+        },
+        "base_ref": {
+          "const": "refs/heads/main"
+        }
+      }
+    },
+    "stateTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "enum": [
+            "inactive_bootstrap_installed",
+            "active",
+            "revoked"
+          ]
+        },
+        "to": {
+          "enum": [
+            "inactive_bootstrap_installed",
+            "active",
+            "revoked"
+          ]
+        }
+      }
+    },
+    "artifactPresent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "present",
+        "git_mode",
+        "byte_length",
+        "raw_sha256"
+      ],
+      "properties": {
+        "present": {
+          "const": true
+        },
+        "git_mode": {
+          "const": "100644"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "raw_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "artifactAbsent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "present",
+        "git_mode",
+        "byte_length",
+        "raw_sha256"
+      ],
+      "properties": {
+        "present": {
+          "const": false
+        },
+        "git_mode": {
+          "type": "null"
+        },
+        "byte_length": {
+          "type": "null"
+        },
+        "raw_sha256": {
+          "type": "null"
+        }
+      }
+    },
+    "artifactSnapshot": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/artifactPresent"
+        },
+        {
+          "$ref": "#/$defs/artifactAbsent"
+        }
+      ]
+    },
+    "changedArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "change_type",
+        "base",
+        "head"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/repositoryPath"
+        },
+        "change_type": {
+          "enum": [
+            "add",
+            "modify",
+            "delete"
+          ]
+        },
+        "base": {
+          "$ref": "#/$defs/artifactSnapshot"
+        },
+        "head": {
+          "$ref": "#/$defs/artifactSnapshot"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "change_type": {
+                "const": "add"
+              }
+            },
+            "required": [
+              "change_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "base": {
+                "$ref": "#/$defs/artifactAbsent"
+              },
+              "head": {
+                "$ref": "#/$defs/artifactPresent"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "change_type": {
+                "const": "modify"
+              }
+            },
+            "required": [
+              "change_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "base": {
+                "$ref": "#/$defs/artifactPresent"
+              },
+              "head": {
+                "$ref": "#/$defs/artifactPresent"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "change_type": {
+                "const": "delete"
+              }
+            },
+            "required": [
+              "change_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "base": {
+                "$ref": "#/$defs/artifactPresent"
+              },
+              "head": {
+                "$ref": "#/$defs/artifactAbsent"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "revocationContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_path",
+        "raw_sha256",
+        "materialization_pull_request",
+        "materialization_head_sha",
+        "materialization_head_tree_sha",
+        "merge_commit_sha",
+        "merge_tree_sha"
+      ],
+      "properties": {
+        "decision_path": {
+          "type": "string",
+          "pattern": "^docs/design/decisions/mobile-ux-batch1-governance-revocation-v1/pr-[1-9][0-9]*-[a-z0-9]+(?:-[a-z0-9]+)*\\.json$"
+        },
+        "raw_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "materialization_pull_request": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "materialization_head_sha": {
+          "$ref": "#/$defs/sha1"
+        },
+        "materialization_head_tree_sha": {
+          "$ref": "#/$defs/sha1"
+        },
+        "merge_commit_sha": {
+          "$ref": "#/$defs/sha1"
+        },
+        "merge_tree_sha": {
+          "$ref": "#/$defs/sha1"
+        }
+      }
+    },
+    "policySelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "path",
+        "raw_sha256"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "revoked_policy",
+            "reuse_revoked_policy"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/repositoryPath"
+        },
+        "raw_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "currentRunGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment_id",
+        "environment_name",
+        "reviewer_immutable_id",
+        "non_empty_scope_comment_required",
+        "approval_without_merge_has_effect",
+        "merge_required",
+        "head_code_execution_forbidden"
+      ],
+      "properties": {
+        "environment_id": {
+          "const": 18348068326
+        },
+        "environment_name": {
+          "const": "formal-product-owner-approval"
+        },
+        "reviewer_immutable_id": {
+          "const": "github:LENKIN233#113219944"
+        },
+        "non_empty_scope_comment_required": {
+          "const": true
+        },
+        "approval_without_merge_has_effect": {
+          "const": false
+        },
+        "merge_required": {
+          "const": true
+        },
+        "head_code_execution_forbidden": {
+          "const": true
+        }
+      }
+    },
+    "allFalseAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "freeze",
+        "reservation_activation",
+        "manifest_creation",
+        "provision",
+        "execution",
+        "evidence",
+        "data_manifest_population",
+        "aggregation",
+        "promotion",
+        "architecture_acceptance",
+        "checkpoint_coverage",
+        "visual",
+        "implementation",
+        "native",
+        "release",
+        "leadership_readiness"
+      ],
+      "properties": {
+        "freeze": {
+          "const": false
+        },
+        "reservation_activation": {
+          "const": false
+        },
+        "manifest_creation": {
+          "const": false
+        },
+        "provision": {
+          "const": false
+        },
+        "execution": {
+          "const": false
+        },
+        "evidence": {
+          "const": false
+        },
+        "data_manifest_population": {
+          "const": false
+        },
+        "aggregation": {
+          "const": false
+        },
+        "promotion": {
+          "const": false
+        },
+        "architecture_acceptance": {
+          "const": false
+        },
+        "checkpoint_coverage": {
+          "const": false
+        },
+        "visual": {
+          "const": false
+        },
+        "implementation": {
+          "const": false
+        },
+        "native": {
+          "const": false
+        },
+        "release": {
+          "const": false
+        },
+        "leadership_readiness": {
+          "const": false
+        }
+      }
+    }
+  }
+}
