@@ -87,7 +87,7 @@ export const FOUNDATION_ACTIVATION_RUN_RECORD =
 export const BOOTSTRAP_RUN_RECORD =
   'docs/agent-runs/2026-08-10-mobile-ux-batch1-governance-bootstrap.md';
 export const BOOTSTRAP_TRUSTED_BASE_SHA =
-  '7960ebd29d0eec4a5139a38c7e5eb8bde00d6e47';
+  'b423d8ffb9271f0618229605797e708919eebdea';
 
 export const MAINTENANCE_EXACT_ALLOWLIST = Object.freeze([
   'scripts/classify_formal_approval_scope.mjs',

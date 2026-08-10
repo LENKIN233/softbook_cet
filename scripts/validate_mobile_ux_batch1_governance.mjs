@@ -160,9 +160,9 @@ const AGENTS_HARD_BOUNDARY_LINES = Object.freeze([
 // of the three immutable foundation subjects.
 export const FOUNDATION_ACTIVATION_RAW_SHA256 = Object.freeze({
   'docs/design/decisions/mobile-ux-batch1-governance-foundation-v1.md':
-    '5d97b819fd29df10803e804bd28a4db97ac9f92a1ee71ca2e4a4d7d321fd2e29',
+    '4289f0881533a754418a5641678fcd1288eaa1d98353fd964344daef0bd85926',
   'spec/mobile-ux-batch1-governance.json':
-    'b54c84ce3797194c69777a22eeeed90145e69b158299f5da00b7ee5c3149a75b',
+    '176dd5bf4dec4fafd0ab171c6276f410e525a97d3b8b42185277994d6203be2c',
   'spec/mobile-ux-batch1-resolved-requirement.schema.json':
     '3f292ce02155ab511f4d76c49de3586fff0083b3e95ed94561eeb871ea65d50b',
 });
@@ -666,7 +666,7 @@ export const FORMAL_APPROVAL_WORKFLOW_RAW_SHA256 =
   '13e67dede95f30de747155552e43b0ef758059bd375612d59eedbe24685d2de2';
 export const PULL_REQUEST_GATE_WORKFLOW_PATH = '.github/workflows/pr-gates.yml';
 export const PULL_REQUEST_GATE_WORKFLOW_RAW_SHA256 =
-  'f1bcaa0b168646b85a21da89102b7a0540c323fe9652719557d68131485ea549';
+  '176669820888a9f4d109740a447175ab3ef99c1dc351642f3a665266867c81a0';
 
 export function validatePullRequestGateWorkflowStructure(workflowText) {
   if (typeof workflowText !== 'string' || workflowText.length === 0) {
@@ -2012,6 +2012,7 @@ async function readHistoricalEvidence(origin, readers) {
     readers.readApprovalEvent({
       repository: TRUSTED_IDENTITY.repository,
       pullRequestNumber: HISTORICAL_PREPARATION.pullRequest,
+      approvalTargetHeadSha: HISTORICAL_PREPARATION.approvalTargetHeadSha,
       workflowRunId: HISTORICAL_PREPARATION.workflowRunId,
       deploymentId: HISTORICAL_PREPARATION.deploymentId,
       origin,
@@ -2167,14 +2168,34 @@ async function contextHistoricalEvidence(context) {
   return context.historicalPromise;
 }
 
-async function contextApprovalEvent(context, receipt) {
-  const key = `${receipt.pull_request}:${receipt.workflow_run_id}:${receipt.deployment_id}`;
+export function approvalEventCacheKey(receipt) {
+  if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt)) {
+    fail('approval event cache receipt must be an object');
+  }
+  const pullRequest = asPositiveInteger(receipt.pull_request, 'approval event cache pull request');
+  const workflowRunId = asPositiveInteger(receipt.workflow_run_id, 'approval event cache workflow run');
+  const deploymentId = asPositiveInteger(receipt.deployment_id, 'approval event cache deployment');
+  assertCommit(receipt.trusted_base_sha, 'approval event cache trusted base SHA');
+  assertCommit(receipt.approval_target_head_sha, 'approval event cache target head SHA');
+  return JSON.stringify([
+    pullRequest,
+    receipt.trusted_base_sha,
+    receipt.approval_target_head_sha,
+    workflowRunId,
+    deploymentId,
+  ]);
+}
+
+export async function contextApprovalEvent(context, receipt) {
+  const key = approvalEventCacheKey(receipt);
   if (!context.approvalEventPromises.has(key)) {
     context.approvalEventPromises.set(
       key,
       context.readers.readApprovalEvent({
         repository: TRUSTED_IDENTITY.repository,
         pullRequestNumber: receipt.pull_request,
+        pullRequestBaseSha: receipt.trusted_base_sha,
+        approvalTargetHeadSha: receipt.approval_target_head_sha,
         workflowRunId: receipt.workflow_run_id,
         deploymentId: receipt.deployment_id,
         origin: context.origin,
@@ -2184,6 +2205,20 @@ async function contextApprovalEvent(context, receipt) {
   const event = await context.approvalEventPromises.get(key);
   if (event === null || typeof event !== 'object' || event.event === null || typeof event.event !== 'object') {
     fail('verified GitHub approval event envelope is malformed');
+  }
+  const exactBindings = {
+    repository_full_name: TRUSTED_IDENTITY.repository,
+    repository_id: TRUSTED_IDENTITY.repositoryId,
+    pull_request_number: receipt.pull_request,
+    pull_request_base_sha: receipt.trusted_base_sha,
+    approval_target_head_sha: receipt.approval_target_head_sha,
+    workflow_run_id: receipt.workflow_run_id,
+    deployment_id: receipt.deployment_id,
+  };
+  for (const [field, expected] of Object.entries(exactBindings)) {
+    if (event.event[field] !== expected) {
+      fail(`verified GitHub approval event ${field} mismatch`);
+    }
   }
   latestObservedAt(event.provider_observed_at);
   return event;

@@ -11,6 +11,7 @@ import {gzipSync} from 'node:zlib';
 
 import {
   TRUSTED_CODE_CLOSURE,
+  contextApprovalEvent,
   createEvidenceContext,
   exactGitClassificationPaths,
   parseCommandArgs,
@@ -3662,9 +3663,88 @@ test('self-contained exact-byte fixtures fail closed on encoding, compression, l
 
 test('legacy preparation materialization validates the remote historical blob and both live event chains', async (t) => {
   const fixture = buildLegacyPreparationChain(t);
-  const result = await validatePreparationFixture(fixture);
+  const approvalReaderCalls = [];
+  const result = await validatePreparationFixture(fixture, {
+    readApprovalEvent: async (args) => {
+      approvalReaderCalls.push(structuredClone(args));
+      return fixture.readers.readApprovalEvent(args);
+    },
+  });
   assert.equal(result.stage, 'receipt_materialization');
   assert.equal(result.approval_instance_digest, fixture.preparationReceipt.approval_instance_digest);
+  assert.deepEqual(
+    approvalReaderCalls.find((call) => call.pullRequestNumber === fixture.intent.pull_request),
+    {
+      repository: TRUSTED_IDENTITY.repository,
+      pullRequestNumber: fixture.intent.pull_request,
+      pullRequestBaseSha: fixture.migrationReceipt.trusted_base_sha,
+      approvalTargetHeadSha: fixture.migrationReceipt.approval_target_head_sha,
+      workflowRunId: fixture.migrationReceipt.workflow_run_id,
+      deploymentId: fixture.migrationReceipt.deployment_id,
+      origin: 'https://github.com/LENKIN233/softbook_cet.git',
+    },
+  );
+});
+
+test('approval event cache isolates base and head identities while deduplicating one exact subject', async () => {
+  const readerCalls = [];
+  const context = createEvidenceContext(
+    'https://github.com/LENKIN233/softbook_cet.git',
+    {
+      readApprovalEvent: async (args) => {
+        readerCalls.push(structuredClone(args));
+        return {
+          event: {
+            repository_full_name: args.repository,
+            repository_id: TRUSTED_IDENTITY.repositoryId,
+            pull_request_number: args.pullRequestNumber,
+            pull_request_base_sha: args.pullRequestBaseSha,
+            approval_target_head_sha: args.approvalTargetHeadSha,
+            workflow_run_id: args.workflowRunId,
+            deployment_id: args.deploymentId,
+          },
+          provider_observed_at: '2026-08-10T00:00:10Z',
+        };
+      },
+    },
+  );
+  const receipt = {
+    pull_request: 999,
+    trusted_base_sha: '1'.repeat(40),
+    approval_target_head_sha: '2'.repeat(40),
+    workflow_run_id: 31339999999,
+    deployment_id: 5821999999,
+  };
+
+  await Promise.all([
+    contextApprovalEvent(context, receipt),
+    contextApprovalEvent(context, structuredClone(receipt)),
+  ]);
+  assert.equal(readerCalls.length, 1);
+
+  await contextApprovalEvent(context, {...receipt, trusted_base_sha: '3'.repeat(40)});
+  await contextApprovalEvent(context, {...receipt, approval_target_head_sha: '4'.repeat(40)});
+  await contextApprovalEvent(context, {...receipt, pull_request: 1000});
+  await contextApprovalEvent(context, {...receipt, workflow_run_id: 31340000000});
+  await contextApprovalEvent(context, {...receipt, deployment_id: 5822000000});
+  assert.equal(readerCalls.length, 6);
+  assert.deepEqual(
+    readerCalls.map((call) => [
+      call.pullRequestNumber,
+      call.pullRequestBaseSha,
+      call.approvalTargetHeadSha,
+      call.workflowRunId,
+      call.deploymentId,
+    ]),
+    [
+      [999, '1'.repeat(40), '2'.repeat(40), 31339999999, 5821999999],
+      [999, '3'.repeat(40), '2'.repeat(40), 31339999999, 5821999999],
+      [999, '1'.repeat(40), '4'.repeat(40), 31339999999, 5821999999],
+      [1000, '1'.repeat(40), '2'.repeat(40), 31339999999, 5821999999],
+      [999, '1'.repeat(40), '2'.repeat(40), 31340000000, 5821999999],
+      [999, '1'.repeat(40), '2'.repeat(40), 31339999999, 5822000000],
+    ],
+  );
 });
 
 test('legacy preparation CLI wiring fails closed on truncated remote history or event drift', async (t) => {
@@ -3696,6 +3776,32 @@ test('legacy preparation CLI wiring fails closed on truncated remote history or 
       /historical preparation event\.deployment_success_status_id/,
     );
   });
+
+  for (const [label, field, mutate] of [
+    ['repository', 'repository_full_name', () => 'OTHER/repository'],
+    ['repository id', 'repository_id', () => 42],
+    ['pull request', 'pull_request_number', (value) => value + 1],
+    ['base SHA', 'pull_request_base_sha', () => 'a'.repeat(40)],
+    ['approval head', 'approval_target_head_sha', () => 'a'.repeat(40)],
+    ['workflow run', 'workflow_run_id', (value) => value + 1],
+    ['deployment', 'deployment_id', (value) => value + 1],
+  ]) {
+    await t.test(`dynamic approval event rejects ${label} projection drift at context boundary`, async (t) => {
+      const fixture = buildLegacyPreparationChain(t);
+      await assert.rejects(
+        validatePreparationFixture(fixture, {
+          readApprovalEvent: async (args) => {
+            const event = await fixture.readers.readApprovalEvent(args);
+            if (args.pullRequestNumber === fixture.intent.pull_request) {
+              event.event[field] = mutate(event.event[field]);
+            }
+            return event;
+          },
+        }),
+        new RegExp(`verified GitHub approval event ${field} mismatch`),
+      );
+    });
+  }
 });
 
 test('legacy preparation rejects forged preparation bindings and non-root parents', async (t) => {

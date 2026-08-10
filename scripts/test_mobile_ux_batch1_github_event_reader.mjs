@@ -29,6 +29,7 @@ function fixtureBodies() {
         repo: {id: 1216764160},
       },
       head: {
+        ref: 'cross/mobile-ux-architecture-v5',
         sha: '641d33c7ccb320f2e410718129e895993ce425ad',
         repo: {id: 1216764160},
       },
@@ -39,7 +40,9 @@ function fixtureBodies() {
       workflow_id: 315520763,
       event: 'pull_request_target',
       path: '.github/workflows/formal-approval.yml',
+      head_branch: 'cross/mobile-ux-architecture-v5',
       head_sha: '8f4f82b35b660d9a775d6551e530fe6703c3ac54',
+      head_repository: {id: 1216764160},
       conclusion: 'success',
       repository: {id: 1216764160},
       pull_requests: [
@@ -51,6 +54,7 @@ function fixtureBodies() {
             repo: {id: 1216764160},
           },
           head: {
+            ref: 'cross/mobile-ux-architecture-v5',
             sha: '641d33c7ccb320f2e410718129e895993ce425ad',
             repo: {id: 1216764160},
           },
@@ -142,9 +146,37 @@ function currentRunApi(mutator = null) {
   };
 }
 
+function mergedDeletedBranchApi(mutator = null, observedAtByPath = {}) {
+  const bodies = fixtureBodies();
+  const pullPath = `/repos/${REPOSITORY}/pulls/484`;
+  const runPath = `/repos/${REPOSITORY}/actions/runs/31326457854`;
+  const pullRequest = bodies[pullPath];
+  const workflowRun = bodies[runPath];
+  pullRequest.state = 'closed';
+  pullRequest.merged = true;
+  pullRequest.merged_at = '2026-08-09T20:10:00Z';
+  pullRequest.merge_commit_sha = 'b423d8ffb9271f0618229605797e708919eebdea';
+  pullRequest.head.sha = workflowRun.head_sha;
+  workflowRun.pull_requests = [];
+  const associationPath =
+    `/repos/${REPOSITORY}/commits/${workflowRun.head_sha}/pulls?per_page=100`;
+  const headAssociation = structuredClone(pullRequest);
+  delete headAssociation.merged;
+  bodies[associationPath] = [headAssociation];
+  if (mutator) mutator(bodies, {pullPath, runPath, associationPath});
+  return async (relativePath) => {
+    if (!Object.hasOwn(bodies, relativePath)) throw new Error(`unexpected fixture path ${relativePath}`);
+    return {
+      body: structuredClone(bodies[relativePath]),
+      observedAt: observedAtByPath[relativePath] ?? OBSERVED_AT,
+    };
+  };
+}
+
 test('historical approval remains verifiable after the live pull-request head advances', async () => {
   const result = await readVerifiedGitHubApprovalEvent({
     pullRequestNumber: 484,
+    approvalTargetHeadSha: '8f4f82b35b660d9a775d6551e530fe6703c3ac54',
     workflowRunId: 31326457854,
     deploymentId: 5821110397,
     origin: 'https://github.com/LENKIN233/softbook_cet.git',
@@ -160,6 +192,150 @@ test('historical approval remains verifiable after the live pull-request head ad
   assert.match(result.authority_event_sha256, /^[0-9a-f]{64}$/);
 });
 
+test('historical approval remains verifiable after merge auto-deletes the head branch', async () => {
+  const associationPath =
+    `/repos/${REPOSITORY}/commits/8f4f82b35b660d9a775d6551e530fe6703c3ac54/pulls?per_page=100`;
+  const associationObservedAt = '2026-08-10T00:00:02Z';
+  const result = await readVerifiedGitHubApprovalEvent({
+    pullRequestNumber: 484,
+    approvalTargetHeadSha: '8f4f82b35b660d9a775d6551e530fe6703c3ac54',
+    workflowRunId: 31326457854,
+    deploymentId: 5821110397,
+    origin: 'https://github.com/LENKIN233/softbook_cet.git',
+    api: mergedDeletedBranchApi(null, {[associationPath]: associationObservedAt}),
+  });
+
+  assert.equal(result.event.pull_request_number, 484);
+  assert.equal(result.event.pull_request_base_sha, '7960ebd29d0eec4a5139a38c7e5eb8bde00d6e47');
+  assert.equal(result.event.approval_target_head_sha, '8f4f82b35b660d9a775d6551e530fe6703c3ac54');
+  assert.equal(result.provider_observed_at, associationObservedAt);
+
+  const inlineResult = await readVerifiedGitHubApprovalEvent({
+    pullRequestNumber: 484,
+    approvalTargetHeadSha: '8f4f82b35b660d9a775d6551e530fe6703c3ac54',
+    workflowRunId: 31326457854,
+    deploymentId: 5821110397,
+    origin: 'https://github.com/LENKIN233/softbook_cet.git',
+    api: mergedDeletedBranchApi((bodies, {runPath, associationPath: path}) => {
+      bodies[runPath].pull_requests = [structuredClone(bodies[path][0])];
+    }),
+  });
+  assert.deepEqual(result.event, inlineResult.event);
+  assert.equal(result.authority_event_sha256, inlineResult.authority_event_sha256);
+});
+
+test('historical approval binds caller-provided base and approved head before fallback', async (t) => {
+  const options = {
+    pullRequestNumber: 484,
+    pullRequestBaseSha: '7960ebd29d0eec4a5139a38c7e5eb8bde00d6e47',
+    approvalTargetHeadSha: '8f4f82b35b660d9a775d6551e530fe6703c3ac54',
+    workflowRunId: 31326457854,
+    deploymentId: 5821110397,
+    origin: 'https://github.com/LENKIN233/softbook_cet.git',
+  };
+  await t.test('base SHA mismatch', async () => {
+    await assert.rejects(
+      readVerifiedGitHubApprovalEvent({
+        ...options,
+        pullRequestBaseSha: 'a'.repeat(40),
+        api: mergedDeletedBranchApi(),
+      }),
+      /expected approval subject identity mismatch/,
+    );
+  });
+  await t.test('approved head mismatch', async () => {
+    await assert.rejects(
+      readVerifiedGitHubApprovalEvent({
+        ...options,
+        approvalTargetHeadSha: 'a'.repeat(40),
+        api: mergedDeletedBranchApi(),
+      }),
+      /expected approval subject identity mismatch/,
+    );
+  });
+});
+
+test('historical empty-association fallback rejects ambiguous or mismatched merge lineage', async (t) => {
+  const options = {
+    pullRequestNumber: 484,
+    approvalTargetHeadSha: '8f4f82b35b660d9a775d6551e530fe6703c3ac54',
+    workflowRunId: 31326457854,
+    deploymentId: 5821110397,
+    origin: 'https://github.com/LENKIN233/softbook_cet.git',
+  };
+  const cases = [
+    ['missing workflow association array', (bodies, {runPath}) => {
+      delete bodies[runPath].pull_requests;
+    }],
+    ['open pull request', (bodies, {pullPath}) => {
+      bodies[pullPath].state = 'open';
+      bodies[pullPath].merged = false;
+    }],
+    ['invalid merged timestamp', (bodies, {pullPath}) => {
+      bodies[pullPath].merged_at = '2026-02-30T00:10:00Z';
+    }],
+    ['future merged timestamp', (bodies, {pullPath}) => {
+      bodies[pullPath].merged_at = '2026-08-10T00:00:01Z';
+    }],
+    ['malformed direct merge commit', (bodies, {pullPath}) => {
+      bodies[pullPath].merge_commit_sha = 'not-a-commit';
+    }],
+    ['zero head associations', (bodies, {associationPath}) => {
+      bodies[associationPath] = [];
+    }],
+    ['multiple head associations', (bodies, {associationPath}) => {
+      bodies[associationPath].push(structuredClone(bodies[associationPath][0]));
+    }],
+    ['wrong pull request number', (bodies, {associationPath}) => {
+      bodies[associationPath][0].number = 999;
+    }],
+    ['fork head repository', (bodies, {associationPath}) => {
+      bodies[associationPath][0].head.repo.id = 42;
+    }],
+    ['fork base repository', (bodies, {associationPath}) => {
+      bodies[associationPath][0].base.repo.id = 42;
+    }],
+    ['association is not closed', (bodies, {associationPath}) => {
+      bodies[associationPath][0].state = 'open';
+    }],
+    ['association merged timestamp drift', (bodies, {associationPath}) => {
+      bodies[associationPath][0].merged_at = '2026-08-09T20:11:00Z';
+    }],
+    ['wrong base ref', (bodies, {associationPath}) => {
+      bodies[associationPath][0].base.ref = 'release';
+    }],
+    ['wrong base SHA', (bodies, {associationPath}) => {
+      bodies[associationPath][0].base.sha = 'a'.repeat(40);
+    }],
+    ['wrong head ref', (bodies, {associationPath}) => {
+      bodies[associationPath][0].head.ref = 'other-head';
+    }],
+    ['wrong head SHA', (bodies, {associationPath}) => {
+      bodies[associationPath][0].head.sha = 'a'.repeat(40);
+    }],
+    ['wrong merge commit', (bodies, {associationPath}) => {
+      bodies[associationPath][0].merge_commit_sha = 'a'.repeat(40);
+    }],
+    ['workflow head branch drift', (bodies, {runPath}) => {
+      bodies[runPath].head_branch = 'other-head';
+    }],
+    ['workflow head repository drift', (bodies, {runPath}) => {
+      bodies[runPath].head_repository.id = 42;
+    }],
+    ['pull request final head drift', (bodies, {pullPath}) => {
+      bodies[pullPath].head.sha = 'a'.repeat(40);
+    }],
+  ];
+  for (const [label, mutate] of cases) {
+    await t.test(label, async () => {
+      await assert.rejects(
+        readVerifiedGitHubApprovalEvent({...options, api: mergedDeletedBranchApi(mutate)}),
+        /associat|merged final-head pull request|merged historical/,
+      );
+    });
+  }
+});
+
 test('approval review rejection fails closed', async () => {
   const api = fixtureApi((bodies) => {
     bodies[`/repos/${REPOSITORY}/actions/runs/31326457854/approvals`][0].state = 'rejected';
@@ -167,6 +343,7 @@ test('approval review rejection fails closed', async () => {
   await assert.rejects(
     readVerifiedGitHubApprovalEvent({
       pullRequestNumber: 484,
+      approvalTargetHeadSha: '8f4f82b35b660d9a775d6551e530fe6703c3ac54',
       workflowRunId: 31326457854,
       deploymentId: 5821110397,
       origin: 'git@github.com:LENKIN233/softbook_cet.git',
@@ -183,6 +360,7 @@ test('historical approval rejects a whitespace-only scope comment', async () => 
   await assert.rejects(
     readVerifiedGitHubApprovalEvent({
       pullRequestNumber: 484,
+      approvalTargetHeadSha: '8f4f82b35b660d9a775d6551e530fe6703c3ac54',
       workflowRunId: 31326457854,
       deploymentId: 5821110397,
       origin: 'https://github.com/LENKIN233/softbook_cet.git',
@@ -190,6 +368,32 @@ test('historical approval rejects a whitespace-only scope comment', async () => 
     }),
     /non-whitespace scope text/,
   );
+});
+
+test('historical approval rejects noncanonical injected provider observation time', async (t) => {
+  for (const invalidObservedAt of [
+    '2026-02-30T00:00:00Z',
+    '2026-08-10T00:00:00.001Z',
+  ]) {
+    await t.test(invalidObservedAt, async () => {
+      const baseApi = fixtureApi();
+      const api = async (relativePath) => {
+        const response = await baseApi(relativePath);
+        return {...response, observedAt: invalidObservedAt};
+      };
+      await assert.rejects(
+        readVerifiedGitHubApprovalEvent({
+          pullRequestNumber: 484,
+          approvalTargetHeadSha: '8f4f82b35b660d9a775d6551e530fe6703c3ac54',
+          workflowRunId: 31326457854,
+          deploymentId: 5821110397,
+          origin: 'https://github.com/LENKIN233/softbook_cet.git',
+          api,
+        }),
+        /not canonical UTC second precision/,
+      );
+    });
+  }
 });
 
 test('current-run protected approval binds exact PR, run attempt, environment, and reviewer', async () => {
@@ -252,7 +456,7 @@ test('current-run protected approval fails closed on run or subject mismatch', a
     });
     await assert.rejects(
       readVerifiedGitHubCurrentRunApproval({...options, api}),
-      /workflow id, attempt, event, path, repository, or PR association mismatch/,
+      /canonical pull-request association|workflow id, attempt, event, path, repository, or PR association mismatch/,
     );
   });
   await t.test('an extra unrelated workflow association is rejected', async () => {
@@ -262,6 +466,15 @@ test('current-run protected approval fails closed on run or subject mismatch', a
         base: {ref: 'main', sha: '1'.repeat(40), repo: {id: 1216764160}},
         head: {sha: '2'.repeat(40), repo: {id: 1216764160}},
       });
+    });
+    await assert.rejects(
+      readVerifiedGitHubCurrentRunApproval({...options, api}),
+      /exactly one canonical pull-request association/,
+    );
+  });
+  await t.test('an empty workflow association never falls back during current-run approval', async () => {
+    const api = currentRunApi((bodies) => {
+      bodies[`/repos/${REPOSITORY}/actions/runs/31326457854`].pull_requests = [];
     });
     await assert.rejects(
       readVerifiedGitHubCurrentRunApproval({...options, api}),
@@ -384,6 +597,7 @@ test('missing exact waiting status and environment bypass drift fail closed', as
   await assert.rejects(
     readVerifiedGitHubApprovalEvent({
       pullRequestNumber: 484,
+      approvalTargetHeadSha: '8f4f82b35b660d9a775d6551e530fe6703c3ac54',
       workflowRunId: 31326457854,
       deploymentId: 5821110397,
       origin: 'https://github.com/LENKIN233/softbook_cet',
@@ -398,6 +612,7 @@ test('missing exact waiting status and environment bypass drift fail closed', as
   await assert.rejects(
     readVerifiedGitHubApprovalEvent({
       pullRequestNumber: 484,
+      approvalTargetHeadSha: '8f4f82b35b660d9a775d6551e530fe6703c3ac54',
       workflowRunId: 31326457854,
       deploymentId: 5821110397,
       origin: 'https://github.com/LENKIN233/softbook_cet',
@@ -663,8 +878,9 @@ test('pull-request merge reader rejects head, tree, timestamp, and one-parent sq
 function commitAssociationFixture(mutator = null) {
   const fixture = squashMergeApi();
   const pull = structuredClone(fixture.bodies[`/repos/${REPOSITORY}/pulls/478`]);
+  delete pull.merged;
   fixture.bodies[
-    `/repos/${REPOSITORY}/commits/${fixture.mergeCommitSha}/pulls`
+    `/repos/${REPOSITORY}/commits/${fixture.mergeCommitSha}/pulls?per_page=100`
   ] = [pull];
   if (mutator) mutator({...fixture, pull});
   return fixture;
@@ -686,7 +902,7 @@ test('commit-associated PR reader binds one canonical merged squash landing', as
 
 test('commit-associated PR reader fails closed on ambiguous or noncanonical associations', async (t) => {
   const associationPath = (fixture) =>
-    `/repos/${REPOSITORY}/commits/${fixture.mergeCommitSha}/pulls`;
+    `/repos/${REPOSITORY}/commits/${fixture.mergeCommitSha}/pulls?per_page=100`;
   for (const [name, mutate, pattern] of [
     ['none', ({fixture}) => {
       fixture.bodies[associationPath(fixture)] = [];
@@ -706,6 +922,15 @@ test('commit-associated PR reader fails closed on ambiguous or noncanonical asso
     ['wrong merge', ({pull}) => {
       pull.merge_commit_sha = '9'.repeat(40);
     }, /canonical merged same-repository main/],
+    ['base SHA drift from direct pull request', ({pull}) => {
+      pull.base.sha = '8'.repeat(40);
+    }, /does not exactly materialize/],
+    ['head SHA drift from direct pull request', ({pull}) => {
+      pull.head.sha = '8'.repeat(40);
+    }, /final head drifted/],
+    ['merged timestamp drift from direct pull request', ({pull}) => {
+      pull.merged_at = '2026-08-09T12:00:01Z';
+    }, /does not exactly materialize/],
   ]) {
     await t.test(name, async () => {
       const fixture = commitAssociationFixture(({bodies, ...rest}) => {

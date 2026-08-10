@@ -53,7 +53,7 @@ function assertRepositoryPath(value, label) {
   }
 }
 
-function requireExactAssociation(workflowRun, pullRequestNumber, repositoryId) {
+function requireExactAssociation(workflowRun, pullRequest, pullRequestNumber, repositoryId) {
   if (!Array.isArray(workflowRun.pull_requests)) {
     fail('workflow run pull_requests association is missing');
   }
@@ -65,11 +65,111 @@ function requireExactAssociation(workflowRun, pullRequestNumber, repositoryId) {
     association?.number !== pullRequestNumber ||
     association?.base?.repo?.id !== repositoryId ||
     association?.head?.repo?.id !== repositoryId ||
-    association?.base?.ref !== 'main'
+    association?.base?.ref !== 'main' ||
+    association?.base?.ref !== pullRequest.base?.ref ||
+    association?.base?.sha !== pullRequest.base?.sha ||
+    association?.head?.ref !== pullRequest.head?.ref ||
+    association?.head?.sha !== pullRequest.head?.sha
   ) {
     fail('workflow run must contain exactly one canonical pull-request association');
   }
   return association;
+}
+
+function requireExactHistoricalHeadAssociation(associations, pullRequest, repositoryId) {
+  if (!Array.isArray(associations) || associations.length !== 1) {
+    fail('merged approval head must resolve to exactly one associated pull request');
+  }
+  const association = assertObject(
+    associations[0],
+    'merged approval head pull-request association',
+  );
+  if (
+    association.number !== pullRequest.number ||
+    association.state !== 'closed' ||
+    association.merged_at !== pullRequest.merged_at ||
+    association.merge_commit_sha !== pullRequest.merge_commit_sha ||
+    association.base?.repo?.id !== repositoryId ||
+    association.base?.ref !== pullRequest.base?.ref ||
+    association.base?.sha !== pullRequest.base?.sha ||
+    association.head?.repo?.id !== repositoryId ||
+    association.head?.ref !== pullRequest.head?.ref ||
+    association.head?.sha !== pullRequest.head?.sha
+  ) {
+    fail('merged approval head association does not match the exact pull request');
+  }
+  return association;
+}
+
+async function resolveHistoricalPullRequestAssociation({
+  workflowRun,
+  pullRequest,
+  pullRequestNumber,
+  repositoryId,
+  repository,
+  read,
+  responses,
+}) {
+  if (!Array.isArray(workflowRun.pull_requests)) {
+    fail('workflow run pull_requests association is missing');
+  }
+  if (workflowRun.pull_requests.length === 1) {
+    return requireExactAssociation(
+      workflowRun,
+      pullRequest,
+      pullRequestNumber,
+      repositoryId,
+    );
+  }
+  if (workflowRun.pull_requests.length !== 0) {
+    fail('workflow run must contain at most one canonical pull-request association');
+  }
+
+  assertCommitSha(workflowRun.head_sha, 'merged historical workflow run head SHA');
+  assertCommitSha(pullRequest.head?.sha, 'merged historical pull request head SHA');
+  assertCommitSha(pullRequest.merge_commit_sha, 'merged historical pull request merge SHA');
+  if (
+    pullRequest.state !== 'closed' ||
+    pullRequest.merged !== true ||
+    typeof pullRequest.merged_at !== 'string' ||
+    !RFC3339_SECOND_RE.test(pullRequest.merged_at) ||
+    !Number.isFinite(Date.parse(pullRequest.merged_at)) ||
+    new Date(pullRequest.merged_at).toISOString().replace('.000Z', 'Z') !==
+      pullRequest.merged_at ||
+    pullRequest.head.sha !== workflowRun.head_sha ||
+    typeof pullRequest.head?.ref !== 'string' ||
+    pullRequest.head.ref.length === 0 ||
+    pullRequest.head.ref !== workflowRun.head_branch ||
+    workflowRun.head_repository?.id !== repositoryId ||
+    Date.parse(pullRequest.merged_at) > Date.parse(responses.pullRequest.observedAt)
+  ) {
+    fail(
+      'empty workflow association is valid only for one exact merged final-head pull request',
+    );
+  }
+
+  const associationPath =
+    `/repos/${repository}/commits/${workflowRun.head_sha}/pulls?per_page=100`;
+  const associationResponse = await read(associationPath);
+  responses.historicalHeadAssociations = associationResponse;
+  requireExactHistoricalHeadAssociation(
+    associationResponse.body,
+    pullRequest,
+    repositoryId,
+  );
+  return {
+    number: pullRequest.number,
+    base: {
+      ref: pullRequest.base.ref,
+      sha: pullRequest.base.sha,
+      repo: {id: pullRequest.base.repo.id},
+    },
+    head: {
+      ref: pullRequest.head.ref,
+      sha: pullRequest.head.sha,
+      repo: {id: pullRequest.head.repo.id},
+    },
+  };
 }
 
 function requiredReviewerIds(environment) {
@@ -168,6 +268,8 @@ export async function githubApiRequest(relativePath, {
 export async function readVerifiedGitHubApprovalEvent({
   repository = TRUSTED_IDENTITY.repository,
   pullRequestNumber,
+  pullRequestBaseSha,
+  approvalTargetHeadSha,
   workflowRunId,
   deploymentId,
   origin,
@@ -177,6 +279,10 @@ export async function readVerifiedGitHubApprovalEvent({
   const prNumber = asPositiveInteger(pullRequestNumber, 'pullRequestNumber');
   const runId = asPositiveInteger(workflowRunId, 'workflowRunId');
   const deploymentRecordId = asPositiveInteger(deploymentId, 'deploymentId');
+  if (pullRequestBaseSha !== undefined) {
+    assertCommitSha(pullRequestBaseSha, 'pullRequestBaseSha');
+  }
+  assertCommitSha(approvalTargetHeadSha, 'approvalTargetHeadSha');
   if (typeof api !== 'function') fail('GitHub API reader must be a function');
 
   const read = async (relativePath) => {
@@ -185,7 +291,12 @@ export async function readVerifiedGitHubApprovalEvent({
     if (!Object.hasOwn(response, 'body') || !Object.hasOwn(response, 'observedAt')) {
       fail(`GitHub API wrapper response is incomplete for ${relativePath}`);
     }
-    if (!RFC3339_SECOND_RE.test(response.observedAt)) {
+    if (
+      !RFC3339_SECOND_RE.test(response.observedAt) ||
+      !Number.isFinite(Date.parse(response.observedAt)) ||
+      new Date(response.observedAt).toISOString().replace('.000Z', 'Z') !==
+        response.observedAt
+    ) {
       fail(`GitHub API observedAt is not canonical UTC second precision for ${relativePath}`);
     }
     return response;
@@ -232,20 +343,26 @@ export async function readVerifiedGitHubApprovalEvent({
   ) {
     fail('remote workflow immutable identity or active state mismatch');
   }
-  const association = requireExactAssociation(
-    workflowRun,
-    prNumber,
-    TRUSTED_IDENTITY.repositoryId,
-  );
   if (
     workflowRun.id !== runId ||
     workflowRun.workflow_id !== TRUSTED_IDENTITY.workflowId ||
     workflowRun.event !== 'pull_request_target' ||
     workflowRun.path !== TRUSTED_IDENTITY.workflowPath ||
-    workflowRun.repository?.id !== TRUSTED_IDENTITY.repositoryId
+    workflowRun.repository?.id !== TRUSTED_IDENTITY.repositoryId ||
+    workflowRun.head_sha !== approvalTargetHeadSha ||
+    (pullRequestBaseSha !== undefined && pullRequest.base?.sha !== pullRequestBaseSha)
   ) {
-    fail('remote workflow run identity mismatch');
+    fail('remote workflow run or expected approval subject identity mismatch');
   }
+  const association = await resolveHistoricalPullRequestAssociation({
+    workflowRun,
+    pullRequest,
+    pullRequestNumber: prNumber,
+    repositoryId: TRUSTED_IDENTITY.repositoryId,
+    repository,
+    read,
+    responses,
+  });
   if (
     deployment.id !== deploymentRecordId ||
     deployment.sha !== workflowRun.head_sha ||
@@ -408,6 +525,7 @@ export async function readVerifiedGitHubCurrentRunApproval({
   }
   const association = requireExactAssociation(
     workflowRun,
+    pullRequest,
     prNumber,
     TRUSTED_IDENTITY.repositoryId,
   );
@@ -703,7 +821,8 @@ export async function readVerifiedGitHubCommitPullRequestAssociation({
   assertCommitSha(mergeCommitSha, 'mergeCommitSha');
   if (typeof api !== 'function') fail('GitHub API reader must be a function');
 
-  const associationPath = `/repos/${repository}/commits/${mergeCommitSha}/pulls`;
+  const associationPath =
+    `/repos/${repository}/commits/${mergeCommitSha}/pulls?per_page=100`;
   const associationResponse = await api(associationPath);
   assertObject(
     associationResponse,
@@ -741,12 +860,16 @@ export async function readVerifiedGitHubCommitPullRequestAssociation({
     association.head?.sha,
     'commit-associated pull request final head SHA',
   );
+  assertCommitSha(
+    association.base?.sha,
+    'commit-associated pull request base SHA',
+  );
   if (
     association.base?.ref !== 'main' ||
     association.base?.repo?.id !== TRUSTED_IDENTITY.repositoryId ||
     association.head?.repo?.id !== TRUSTED_IDENTITY.repositoryId ||
     association.state !== 'closed' ||
-    association.merged !== true ||
+    (association.merged !== undefined && association.merged !== true) ||
     association.merge_commit_sha !== mergeCommitSha
   ) {
     fail('commit-associated pull request is not one canonical merged same-repository main pull request');
@@ -759,8 +882,13 @@ export async function readVerifiedGitHubCommitPullRequestAssociation({
     origin,
     api,
   });
-  if (landing.merge_commit_sha !== mergeCommitSha) {
-    fail('commit-associated pull request does not materialize the requested merge commit');
+  if (
+    landing.merge_commit_sha !== mergeCommitSha ||
+    landing.pull_request_base_sha !== association.base.sha ||
+    landing.approval_target_head_sha !== association.head.sha ||
+    landing.merged_at !== association.merged_at
+  ) {
+    fail('commit-associated pull request does not exactly materialize the requested merge commit');
   }
   return Object.freeze({
     ...landing,

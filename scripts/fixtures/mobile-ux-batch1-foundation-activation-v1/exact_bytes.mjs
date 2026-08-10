@@ -10,7 +10,7 @@ export const EXACT_BYTE_FIXTURES = Object.freeze({
   'spec/mobile-ux-batch1-governance.json': Object.freeze({
     source: 'planned_unmaterialized_pr_b',
     byte_length: 43426,
-    raw_sha256: 'b54c84ce3797194c69777a22eeeed90145e69b158299f5da00b7ee5c3149a75b',
+    raw_sha256: '176dd5bf4dec4fafd0ab171c6276f410e525a97d3b8b42185277994d6203be2c',
     compressed_file: 'pr-b-governance-policy.json.gz.base64',
   }),
   'spec/mobile-ux-batch1-resolved-requirement.schema.json': Object.freeze({
@@ -22,7 +22,7 @@ export const EXACT_BYTE_FIXTURES = Object.freeze({
   'docs/design/decisions/mobile-ux-batch1-governance-foundation-v1.md': Object.freeze({
     source: 'planned_unmaterialized_pr_b',
     byte_length: 25374,
-    raw_sha256: '5d97b819fd29df10803e804bd28a4db97ac9f92a1ee71ca2e4a4d7d321fd2e29',
+    raw_sha256: '4289f0881533a754418a5641678fcd1288eaa1d98353fd964344daef0bd85926',
     compressed_file: 'pr-b-foundation-decision.md.gz.base64',
   }),
   'docs/agent-runs/2026-08-10-mobile-ux-batch1-governance-foundation-v1.md': Object.freeze({

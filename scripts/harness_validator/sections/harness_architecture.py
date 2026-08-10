@@ -89,7 +89,7 @@ def validate(context) -> None:
     )
     check_equal(
         "mobile UX Batch 1 trusted pull-request gate workflow digest",
-        "f1bcaa0b168646b85a21da89102b7a0540c323fe9652719557d68131485ea549",
+        "176669820888a9f4d109740a447175ab3ef99c1dc351642f3a665266867c81a0",
         batch1_architecture["trusted_code_policy"][
             "pull_request_gate_workflow_raw_sha256"
         ],
@@ -322,7 +322,7 @@ def validate(context) -> None:
     )
     check_equal(
         "mobile UX Batch 1 bootstrap materialization required base SHA",
-        "7960ebd29d0eec4a5139a38c7e5eb8bde00d6e47",
+        "b423d8ffb9271f0618229605797e708919eebdea",
         recovery_contract.get("bootstrap_materialization_required_pull_request_base_sha"),
     )
     check_equal(
