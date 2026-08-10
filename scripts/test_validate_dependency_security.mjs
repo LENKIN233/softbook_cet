@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {
+  auditArguments,
   collectAdvisories,
   isAuditReport,
   validateTargetReport,
@@ -10,6 +14,43 @@ import {
   legacyMinimatchPackages,
   normalizeMinimatchSource,
 } from './normalize_minimatch_brace_expansion.mjs';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const policy = JSON.parse(
+  fs.readFileSync(
+    path.join(ROOT, 'security', 'dependency-audit-policy.json'),
+    'utf8',
+  ),
+);
+
+assert.equal(policy.include_all_dependency_classes, true);
+assert.deepEqual(auditArguments(policy), [
+  'audit',
+  '--include=prod',
+  '--include=dev',
+  '--include=optional',
+  '--include=peer',
+  '--json',
+]);
+for (const dependencyClass of ['prod', 'dev', 'optional', 'peer']) {
+  assert.equal(
+    auditArguments(policy).includes(`--include=${dependencyClass}`),
+    true,
+  );
+}
+assert.equal(auditArguments(policy).includes('--omit=dev'), false);
+assert.throws(
+  () => auditArguments({...policy, include_all_dependency_classes: false}),
+  /must include every dependency class/,
+);
+assert.deepEqual(
+  policy.targets.map(target => target.id),
+  ['mobile', 'web', 'cloudbase-api'],
+);
+assert.equal(
+  policy.targets.find(target => target.id === 'web')?.path,
+  'apps/web',
+);
 
 const report = {
   vulnerabilities: {
