@@ -79,6 +79,11 @@ const INACTIVE_GOVERNANCE_ANCHOR_FILES = Object.freeze([
   'spec/agent-harness.json',
   'spec/doc-manifest.json',
 ]);
+const INACTIVE_INITIAL_GOVERNANCE_FIXTURE = Object.freeze({
+  state: 'inactive_initial',
+  anchorSourceCommit: BOOTSTRAP_TRUSTED_BASE_SHA,
+  canonicalPolicy: 'absent',
+});
 
 function runGit(root, args) {
   const result = spawnSync('git', args, {cwd: root, encoding: 'utf8'});
@@ -92,19 +97,54 @@ function writeFromRepository(tempRoot, relativePath) {
   fs.copyFileSync(path.join(ROOT, relativePath), target);
 }
 
-function makeRepository(t) {
+function writeFromRepositoryCommit(tempRoot, commit, relativePath) {
+  const source = spawnSync(
+    'git',
+    ['show', `${commit}:${relativePath}`],
+    {cwd: ROOT, encoding: null},
+  );
+  assert.equal(
+    source.status,
+    0,
+    `governance fixture source is unavailable: ${commit}:${relativePath}`,
+  );
+  const target = path.join(tempRoot, relativePath);
+  fs.mkdirSync(path.dirname(target), {recursive: true});
+  fs.writeFileSync(target, source.stdout);
+}
+
+function materializeGovernanceFixture(tempRoot, fixture) {
+  assert.deepEqual(fixture, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
+  for (const relativePath of INACTIVE_GOVERNANCE_ANCHOR_FILES) {
+    writeFromRepositoryCommit(
+      tempRoot,
+      fixture.anchorSourceCommit,
+      relativePath,
+    );
+  }
+  const policyAtFixtureSource = spawnSync(
+    'git',
+    ['cat-file', '-e', `${fixture.anchorSourceCommit}:${ARTIFACT_PATHS.governancePolicy}`],
+    {cwd: ROOT, encoding: 'utf8'},
+  );
+  assert.notEqual(
+    policyAtFixtureSource.status,
+    0,
+    'inactive_initial fixture must not contain the canonical governance policy',
+  );
+}
+
+function makeRepository(t, governanceFixture) {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-batch1-governance-'));
   t.after(() => fs.rmSync(tempRoot, {recursive: true, force: true}));
   runGit(tempRoot, ['init', '-b', 'main']);
   runGit(tempRoot, ['config', 'user.name', 'Fixture']);
   runGit(tempRoot, ['config', 'user.email', 'fixture@example.invalid']);
   runGit(tempRoot, ['remote', 'add', 'origin', 'https://github.com/LENKIN233/softbook_cet.git']);
-  for (const relativePath of [
-    ...TRUSTED_CODE_CLOSURE,
-    ...INACTIVE_GOVERNANCE_ANCHOR_FILES,
-  ]) {
+  for (const relativePath of TRUSTED_CODE_CLOSURE) {
     writeFromRepository(tempRoot, relativePath);
   }
+  materializeGovernanceFixture(tempRoot, governanceFixture);
   fs.writeFileSync(path.join(tempRoot, 'README.md'), 'trusted base\n');
   runGit(tempRoot, [
     'add',
@@ -960,7 +1000,7 @@ function decisionValidityPolicyFixture() {
 }
 
 function buildLegacyPreparationChain(t, {mutatePreparation} = {}) {
-  const {tempRoot, baseSha: initialBaseSha} = makeRepository(t);
+  const {tempRoot, baseSha: initialBaseSha} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
   writeJson(tempRoot, ARTIFACT_PATHS.governancePolicy, {
     decision_validity_policy: decisionValidityPolicyFixture(),
   });
@@ -2122,7 +2162,7 @@ function buildManifestReceiptChain(t, {mutateB2, mutateReceipt} = {}) {
 }
 
 test('trusted base code validates a generic-sensitive head strictly as Git data', async (t) => {
-  const {tempRoot, baseSha} = makeRepository(t);
+  const {tempRoot, baseSha} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
   const headSha = commitBootstrapProbe(tempRoot);
   runGit(tempRoot, ['checkout', '--detach', baseSha]);
   const file = githubFiles(t, tempRoot, BOOTSTRAP_PROBE_FILES);
@@ -2136,7 +2176,7 @@ test('trusted base code validates a generic-sensitive head strictly as Git data'
 });
 
 test('live Files API rename metadata cannot replace exact event-head Git classification truth', async (t) => {
-  const {tempRoot, baseSha} = makeRepository(t);
+  const {tempRoot, baseSha} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
   const headSha = commitBootstrapProbe(tempRoot);
   runGit(tempRoot, ['checkout', '--detach', baseSha]);
   const file = githubFiles(t, tempRoot, BOOTSTRAP_PROBE_FILES, {
@@ -2155,7 +2195,7 @@ test('live Files API rename metadata cannot replace exact event-head Git classif
 
 test('historical replay classification paths retain both sides of exact Git renames and copies', async (t) => {
   await t.test('rename', () => {
-    const {tempRoot} = makeRepository(t);
+    const {tempRoot} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
     const sourcePath = 'docs/release/historical-replay-rename-source.json';
     const targetPath = 'docs/release/historical-replay-rename-target.json';
     writeText(tempRoot, sourcePath, '{"stable":"rename"}\n');
@@ -2173,7 +2213,7 @@ test('historical replay classification paths retain both sides of exact Git rena
   });
 
   await t.test('copy', () => {
-    const {tempRoot} = makeRepository(t);
+    const {tempRoot} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
     const sourcePath = 'docs/release/historical-replay-copy-source.json';
     const targetPath = 'docs/release/historical-replay-copy-target.json';
     writeText(tempRoot, sourcePath, '{"stable":"copy"}\n');
@@ -3109,7 +3149,7 @@ test('inactive governance rejects every partial activation surface on a generic-
 
   for (const fixtureCase of cases) {
     await t.test(fixtureCase.label, async (t) => {
-      const {tempRoot, baseSha} = makeRepository(t);
+      const {tempRoot, baseSha} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
       fixtureCase.mutate(tempRoot);
       const headSha = commitPaths(
         tempRoot,
@@ -3129,7 +3169,7 @@ test('inactive governance rejects every partial activation surface on a generic-
 });
 
 test('decision class mismatch and incomplete GitHub file enumeration fail closed', async (t) => {
-  const {tempRoot, baseSha} = makeRepository(t);
+  const {tempRoot, baseSha} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
   const headSha = commitBootstrapProbe(tempRoot);
   runGit(tempRoot, ['checkout', '--detach', baseSha]);
   const complete = githubFiles(t, tempRoot, BOOTSTRAP_PROBE_FILES);
@@ -3152,7 +3192,7 @@ test('decision class mismatch and incomplete GitHub file enumeration fail closed
 test('worktree validator bytes must equal the exact trusted base blobs', async (t) => {
   for (const relativePath of TRUSTED_CODE_CLOSURE) {
     await t.test(relativePath, async (t) => {
-      const {tempRoot, baseSha} = makeRepository(t);
+      const {tempRoot, baseSha} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
       const headSha = commitBootstrapProbe(tempRoot);
       runGit(tempRoot, ['checkout', '--detach', baseSha]);
       const file = githubFiles(t, tempRoot, BOOTSTRAP_PROBE_FILES);
@@ -3202,7 +3242,7 @@ test('foundation and specialized stages reject reuse or rewrite of an existing a
   ];
   for (const fixtureCase of specializedCases) {
     await t.test(fixtureCase.label, async (t) => {
-      const {tempRoot} = makeRepository(t);
+      const {tempRoot} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
       writeText(tempRoot, fixtureCase.runRecord, '# prior run record\n');
       const baseSha = commitPaths(tempRoot, 'add prior run record', [fixtureCase.runRecord]);
       for (const relativePath of fixtureCase.requiredPaths) {
@@ -3235,7 +3275,7 @@ test('foundation and specialized stages reject reuse or rewrite of an existing a
   }
 
   await t.test('foundation fixed run record', async (t) => {
-    const {tempRoot} = makeRepository(t);
+    const {tempRoot} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
     const runRecord =
       'docs/agent-runs/2026-08-10-mobile-ux-batch1-governance-foundation-v1.md';
     writeText(tempRoot, runRecord, '# prior foundation run record\n');
@@ -3288,7 +3328,7 @@ test('specialized run record requires an exact Git add and a tracked 100644 blob
     ARTIFACT_PATHS.cohortNonPiiAttestation,
   ];
   await t.test('symlink mode', async (t) => {
-    const {tempRoot, baseSha} = makeRepository(t);
+    const {tempRoot, baseSha} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
     for (const relativePath of requiredPaths) writeText(tempRoot, relativePath, '{}\n');
     const target = path.join(tempRoot, runRecord);
     fs.mkdirSync(path.dirname(target), {recursive: true});
@@ -3312,7 +3352,7 @@ test('specialized run record requires an exact Git add and a tracked 100644 blob
 });
 
 test('a proposed workflow head is parsed as data and rejects an injected unnamed run step', async (t) => {
-  const {tempRoot, baseSha} = makeRepository(t);
+  const {tempRoot, baseSha} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
   const workflowPath = TRUSTED_IDENTITY.workflowPath;
   const workflow = fs.readFileSync(path.join(tempRoot, workflowPath), 'utf8');
   const boundary = workflow.indexOf('\n  result:');
@@ -3335,7 +3375,7 @@ test('a proposed workflow head is parsed as data and rejects an injected unnamed
 });
 
 test('a proposed pull-request gate workflow cannot preserve job names while making a required check a no-op', async (t) => {
-  const {tempRoot, baseSha} = makeRepository(t);
+  const {tempRoot, baseSha} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
   const workflowPath = '.github/workflows/pr-gates.yml';
   const workflow = fs.readFileSync(path.join(tempRoot, workflowPath), 'utf8');
   const noOp = workflow.replace(
@@ -3358,7 +3398,7 @@ test('a proposed pull-request gate workflow cannot preserve job names while maki
 });
 
 test('CLI interface matches the protected workflow contract', (t) => {
-  const {tempRoot, baseSha} = makeRepository(t);
+  const {tempRoot, baseSha} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
   const headSha = commitBootstrapProbe(tempRoot);
   runGit(tempRoot, ['checkout', '--detach', baseSha]);
   const file = githubFiles(t, tempRoot, BOOTSTRAP_PROBE_FILES);
@@ -3386,7 +3426,7 @@ test('CLI interface matches the protected workflow contract', (t) => {
 });
 
 test('current-run approval CLI parser and trusted reader injection bind the exact workflow run', async (t) => {
-  const {tempRoot, baseSha} = makeRepository(t);
+  const {tempRoot, baseSha} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
   const headSha = commitBootstrapProbe(tempRoot);
   runGit(tempRoot, ['checkout', '--detach', baseSha]);
   const parsed = parseCommandArgs([
@@ -3480,7 +3520,7 @@ test('current-run approval CLI parser and trusted reader injection bind the exac
 });
 
 test('current-run approval verifier fails closed before or after a malformed reader projection', async (t) => {
-  const {tempRoot, baseSha} = makeRepository(t);
+  const {tempRoot, baseSha} = makeRepository(t, INACTIVE_INITIAL_GOVERNANCE_FIXTURE);
   const headSha = commitBootstrapProbe(tempRoot);
   runGit(tempRoot, ['checkout', '--detach', baseSha]);
   const options = {
