@@ -1,6 +1,7 @@
 import {
   createInMemoryMutationQueueStorage,
   MAX_MUTATION_RETRIES,
+  MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
   MutationQueueManager,
 } from '../src/sync/mutationQueue';
 import type { MembershipState } from '../src/membership/localMembership';
@@ -333,6 +334,10 @@ describe('MutationQueueRepository', () => {
         phoneNumber: '13800138002',
       },
       currentState,
+      provenance: {
+        schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+        trigger: 'explicit_user' as const,
+      },
     };
 
     await repository.enqueueMutation('start_membership_trial', payload);
@@ -354,6 +359,41 @@ describe('MutationQueueRepository', () => {
       payload.currentState,
     );
     await expect(repository.getQueueSize()).resolves.toBe(0);
+  });
+
+  it('drops an unversioned persisted Trial start before replay', async () => {
+    const sharedStore = {
+      __softbook_mutation_queue: JSON.stringify([
+        {
+          id: 'membership-trial:replay',
+          payload: {
+            context: { phoneNumber: '13800138002' },
+            currentState: { stage: 'trial_available' },
+          },
+          retryCount: 0,
+          timestamp: '2026-08-11T00:00:00.000Z',
+          type: 'start_membership_trial',
+        },
+      ]),
+    };
+    const queueManager = new MutationQueueManager({
+      storage: createInMemoryMutationQueueStorage(sharedStore),
+    });
+    const repository = createMutationQueueRepository({
+      membershipRepository: mockMembershipRepository as never,
+      progressSyncRepository: mockProgressSyncRepository as never,
+      queueManager,
+      spaceStateRepository: mockSpaceStateRepository as never,
+    });
+
+    await repository.hydrate();
+    await expect(
+      repository.startReplay({ phoneNumber: '13800138002' }),
+    ).resolves.toEqual([]);
+
+    expect(mockMembershipRepository.startTrial).not.toHaveBeenCalled();
+    await expect(repository.getQueueSize()).resolves.toBe(0);
+    expect(sharedStore.__softbook_mutation_queue).toBe('[]');
   });
 
   it('keeps failed entries after retries reach the warning threshold', async () => {

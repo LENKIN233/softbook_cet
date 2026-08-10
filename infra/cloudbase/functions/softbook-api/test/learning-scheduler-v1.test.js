@@ -429,7 +429,7 @@ test('free access uses the canonical half-prefix and sleeping cards never enter 
   );
 });
 
-test('an initial empty selection persists a valid revision before confirmation', async () => {
+test('an initial empty selection never consumes an available trial', async () => {
   const store = createMemoryStore();
   const {api} = createTestApi({store});
   const session = await authenticatedSession(api, '127.0.0.18');
@@ -449,15 +449,306 @@ test('an initial empty selection persists a valid revision before confirmation',
 
   const first = await learningSession(api, session);
   const second = await learningSession(api, session);
+  const membership = await store.getMembership(PHONE);
 
-  assert.equal(first.statusCode, 200, JSON.stringify(first.body));
-  assert.equal(first.body.data.selection, null);
-  assert.equal(first.body.data.next_due_at, null);
-  assert.equal(second.statusCode, 200, JSON.stringify(second.body));
-  assert.equal(second.body.data.selection, null);
+  assert.equal(first.statusCode, 409, JSON.stringify(first.body));
+  assert.equal(
+    first.body.error.code,
+    'learning_session_trial_selection_required',
+  );
+  assert.equal(second.statusCode, 409, JSON.stringify(second.body));
+  assert.equal(
+    second.body.error.code,
+    'learning_session_trial_selection_required',
+  );
+  assert.equal(membership.stage, 'trial_available');
+  assert.equal(membership.counted_entry_count, 0);
+  assert.equal(membership.trial_started_at_entry_count, null);
   const sessionState = [...store.snapshot().learningSessions.values()][0];
   assert.equal(sessionState.revision, 1);
   assert.equal(sessionState.cursor, null);
+
+  await submitSpaceActions(api, session, source, [
+    {
+      action_id: `space_wake_${source.card_records[0].card_id}`,
+      card_id: source.card_records[0].card_id,
+      client_occurred_at: START_TIME.toISOString(),
+      dimension: 'sleep',
+      value: false,
+    },
+  ]);
+  const recovered = await learningSession(api, session);
+  const activatedMembership = await store.getMembership(PHONE);
+  const recoveredSessionState = [
+    ...store.snapshot().learningSessions.values(),
+  ][0];
+
+  assert.equal(recovered.statusCode, 200, JSON.stringify(recovered.body));
+  assert.equal(recovered.body.data.membership_stage, 'trial');
+  assert.equal(
+    recovered.body.data.selection.card_id,
+    source.card_records[0].card_id,
+  );
+  assert.equal(activatedMembership.stage, 'trial');
+  assert.equal(activatedMembership.counted_entry_count, 1);
+  assert.equal(recoveredSessionState.revision, 2);
+  assert.notEqual(recoveredSessionState.cursor, null);
+
+  const repeatedRecovered = await learningSession(api, session);
+  const repeatedMembership = await store.getMembership(PHONE);
+  const repeatedSessionState = [
+    ...store.snapshot().learningSessions.values(),
+  ][0];
+
+  assert.equal(
+    repeatedRecovered.statusCode,
+    200,
+    JSON.stringify(repeatedRecovered.body),
+  );
+  assert.equal(
+    repeatedRecovered.body.data.selection.selection_id,
+    recovered.body.data.selection.selection_id,
+  );
+  assert.equal(repeatedMembership.stage, 'trial');
+  assert.equal(repeatedMembership.counted_entry_count, 1);
+  assert.equal(repeatedMembership.trial_started_at_entry_count, 1);
+  assert.equal(repeatedSessionState.revision, 2);
+
+  await submitSpaceActions(api, session, source, [
+    {
+      action_id: `space_resleep_${source.card_records[0].card_id}`,
+      card_id: source.card_records[0].card_id,
+      client_occurred_at: new Date(
+        START_TIME.getTime() + 60 * 1000,
+      ).toISOString(),
+      dimension: 'sleep',
+      value: true,
+    },
+  ]);
+  const activeTrialEmpty = await learningSession(api, session);
+
+  assert.equal(
+    activeTrialEmpty.statusCode,
+    200,
+    JSON.stringify(activeTrialEmpty.body),
+  );
+  assert.equal(activeTrialEmpty.body.data.membership_stage, 'trial');
+  assert.equal(activeTrialEmpty.body.data.selection, null);
+  assert.equal(activeTrialEmpty.body.data.next_due_at, null);
+});
+
+test('membership drift after an empty cursor write recomputes before responding', async () => {
+  const baseStore = createMemoryStore();
+  let upgradeAfterEmptyWrite = true;
+  const store = {
+    ...baseStore,
+    saveLearningSessionCursor: async input => {
+      const accepted = await baseStore.saveLearningSessionCursor(input);
+
+      if (accepted && input.cursor === null && upgradeAfterEmptyWrite) {
+        upgradeAfterEmptyWrite = false;
+        await baseStore.purchase(PHONE, START_TIME.toISOString());
+      }
+
+      return accepted;
+    },
+  };
+  const {api} = createTestApi({store});
+  const session = await authenticatedSession(api, '127.0.0.19');
+  const source = await cardSource(api, session);
+
+  await submitSpaceActions(
+    api,
+    session,
+    source,
+    source.card_records.map((card, index) => ({
+      action_id: `space_drift_sleep_${index}`,
+      card_id: card.card_id,
+      client_occurred_at: new Date(
+        START_TIME.getTime() + index * 1000,
+      ).toISOString(),
+      dimension: 'sleep',
+      value: true,
+    })),
+  );
+
+  const response = await learningSession(api, session);
+  const membership = await baseStore.getMembership(PHONE);
+  const sessionState = [
+    ...baseStore.snapshot().learningSessions.values(),
+  ][0];
+
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  assert.equal(response.body.data.membership_stage, 'premium');
+  assert.deepEqual(response.body.data.access, {
+    mode: 'full',
+    accessible_card_count: source.card_records.length,
+    total_card_count: source.card_records.length,
+  });
+  assert.equal(response.body.data.selection, null);
+  assert.equal(response.body.data.next_due_at, null);
+  assert.equal(membership.stage, 'premium');
+  assert.equal(membership.counted_entry_count, 0);
+  assert.equal(membership.trial_started_at_entry_count, null);
+  assert.equal(sessionState.revision, 1);
+  assert.equal(sessionState.cursor, null);
+});
+
+test('a beta Premium grant after a non-null cursor write prevents Trial activation', async () => {
+  const baseStore = createMemoryStore();
+  const betaAcknowledgedAt = '2026-04-30T12:00:01.000Z';
+  let betaPremiumActive = false;
+  let grantAfterCursorWrite = true;
+  const store = {
+    ...baseStore,
+    getMembership: async phoneNumber => {
+      const membership = await baseStore.getMembership(phoneNumber);
+
+      return betaPremiumActive
+        ? {
+            ...membership,
+            acknowledged_at: betaAcknowledgedAt,
+            last_experience_ended_by: null,
+            recovery_prompt_visible: false,
+            stage: 'premium',
+          }
+        : membership;
+    },
+    saveLearningSessionCursor: async input => {
+      const accepted = await baseStore.saveLearningSessionCursor(input);
+
+      if (accepted && input.cursor !== null && grantAfterCursorWrite) {
+        grantAfterCursorWrite = false;
+        betaPremiumActive = true;
+      }
+
+      return accepted;
+    },
+  };
+  const {api} = createTestApi({store});
+  const session = await authenticatedSession(api, '127.0.0.20');
+  const source = await cardSource(api, session);
+
+  const response = await learningSession(api, session);
+  const canonicalMembership = await store.getMembership(PHONE);
+  const baseMembership = await baseStore.getMembership(PHONE);
+
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  assert.equal(response.body.data.membership_stage, 'premium');
+  assert.deepEqual(response.body.data.access, {
+    mode: 'full',
+    accessible_card_count: source.card_records.length,
+    total_card_count: source.card_records.length,
+  });
+  assert.equal(
+    response.body.data.selection.card_id,
+    source.card_records[0].card_id,
+  );
+  assert.equal(canonicalMembership.stage, 'premium');
+  assert.equal(baseMembership.stage, 'trial_available');
+  assert.equal(baseMembership.counted_entry_count, 0);
+  assert.equal(baseMembership.trial_started_at_entry_count, null);
+});
+
+test('a beta Premium revoke after resumed-cursor confirmation forces a full retry', async () => {
+  const baseStore = createMemoryStore();
+  const firstRuntime = createTestApi({store: baseStore});
+  const session = await authenticatedSession(
+    firstRuntime.api,
+    '127.0.0.21',
+  );
+  await baseStore.purchase(PHONE, '2026-04-30T11:58:00.000Z');
+  const initial = await learningSession(firstRuntime.api, session);
+  assert.equal(initial.statusCode, 200, JSON.stringify(initial.body));
+  assert.equal(initial.body.data.membership_stage, 'premium');
+  assert.notEqual(initial.body.data.selection, null);
+
+  baseStore.snapshot().memberships.set(PHONE, {
+    entitlement: {
+      counted_entry_count: 0,
+      last_experience_ended_by: null,
+      recovery_prompt_visible: false,
+      stage: 'trial_available',
+      trial_duration_days: 5,
+      trial_started_at_entry_count: null,
+    },
+    updated_at: '2026-04-30T11:59:00.000Z',
+  });
+
+  let betaPremiumActive = true;
+  let revokeAfterCursorConfirmation = true;
+  const store = {
+    ...baseStore,
+    confirmLearningSessionCursor: async input => {
+      const accepted = await baseStore.confirmLearningSessionCursor(input);
+
+      if (accepted && revokeAfterCursorConfirmation) {
+        revokeAfterCursorConfirmation = false;
+        betaPremiumActive = false;
+      }
+
+      return accepted;
+    },
+    getMembership: async phoneNumber => {
+      const membership = await baseStore.getMembership(phoneNumber);
+
+      return betaPremiumActive
+        ? {
+            ...membership,
+            acknowledged_at: '2026-04-30T12:00:00.000Z',
+            last_experience_ended_by: null,
+            recovery_prompt_visible: false,
+            stage: 'premium',
+          }
+        : membership;
+    },
+  };
+  const secondRuntime = createTestApi({store});
+  const response = await learningSession(secondRuntime.api, session);
+  const membership = await baseStore.getMembership(PHONE);
+
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  assert.equal(response.body.data.membership_stage, 'trial');
+  assert.equal(response.body.data.selection.reason, 'persisted_cursor');
+  assert.equal(
+    response.body.data.selection.selection_id,
+    initial.body.data.selection.selection_id,
+  );
+  assert.equal(membership.stage, 'trial');
+  assert.equal(membership.counted_entry_count, 1);
+  assert.equal(membership.trial_started_at_entry_count, 1);
+});
+
+test('same-stage membership acknowledgement drift retries without moving time backward', async () => {
+  const baseStore = createMemoryStore();
+  const newerAcknowledgedAt = '2026-04-30T12:00:01.000Z';
+  let injectAcknowledgementDrift = true;
+  let trialStartAttempts = 0;
+  const store = {
+    ...baseStore,
+    startTrial: async (...args) => {
+      trialStartAttempts += 1;
+
+      if (injectAcknowledgementDrift) {
+        injectAcknowledgementDrift = false;
+        await baseStore.dismissRecovery(PHONE, newerAcknowledgedAt);
+      }
+
+      return baseStore.startTrial(...args);
+    },
+  };
+  const {api} = createTestApi({store});
+  const session = await authenticatedSession(api, '127.0.0.22');
+  const response = await learningSession(api, session);
+  const membership = await baseStore.getMembership(PHONE);
+
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  assert.equal(response.body.data.membership_stage, 'trial');
+  assert.equal(trialStartAttempts, 2);
+  assert.equal(membership.stage, 'trial');
+  assert.equal(membership.counted_entry_count, 1);
+  assert.equal(membership.trial_started_at_entry_count, 1);
+  assert.equal(membership.acknowledged_at, newerAcknowledgedAt);
 });
 
 test('concurrent session reads converge on one persisted opaque selection', async () => {
@@ -489,6 +780,10 @@ test('concurrent session reads converge on one persisted opaque selection', asyn
     new Set(['catalog_new', 'persisted_cursor']),
   );
   assert.equal(store.snapshot().learningSessions.size, 1);
+  const membership = await store.getMembership(PHONE);
+  assert.equal(membership.stage, 'trial');
+  assert.equal(membership.counted_entry_count, 1);
+  assert.equal(membership.trial_started_at_entry_count, 1);
 });
 
 test('a concurrent first event cannot be overwritten by a stale new-card selection', async () => {

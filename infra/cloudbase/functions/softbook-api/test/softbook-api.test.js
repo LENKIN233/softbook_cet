@@ -1052,6 +1052,24 @@ test('transactional membership mutations cannot downgrade concurrent purchases',
 
   const dismissed = await store.getMembership('13800138003');
   assert.equal(dismissed.stage, 'premium');
+
+  const checkpointPhone = '13800138006';
+  const newerAcknowledgedAt = '2026-04-30T12:00:01.000Z';
+  await store.dismissRecovery(checkpointPhone, newerAcknowledgedAt);
+  const checkpoint = await store.getMembership(checkpointPhone);
+  const activated = await store.startTrial(
+    checkpointPhone,
+    acknowledgedAt,
+    {
+      expectedAcknowledgedAt: checkpoint.acknowledged_at,
+      expectedStage: checkpoint.stage,
+    },
+  );
+  const activatedCanonical = await store.getMembership(checkpointPhone);
+
+  assert.equal(activated.stage, 'trial');
+  assert.equal(activated.counted_entry_count, 1);
+  assert.equal(activatedCanonical.acknowledged_at, newerAcknowledgedAt);
 });
 
 test('bootstrap rejects corrupted persisted canonical state', async () => {
@@ -1957,6 +1975,76 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
   betaDocument.updated_at = '2026-05-02T12:00:00.000Z';
   const revoked = await store.getMembership(phoneNumber);
   assert.equal(revoked.stage, 'premium');
+});
+
+test('CloudBase Trial start honors active beta Premium without touching base counters', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const phoneNumber = '13800138004';
+  const grantEvent = {
+    schema_version: 'beta-entitlement-audit.v1',
+    action: 'grant',
+    actor_id: 'receiver-operator',
+    command_sha256: `sha256:${'b'.repeat(64)}`,
+    event_id: 'beta-event-grant-trial-guard-0001',
+    grant_id: 'cet4-beta-grant-trial-guard-0001',
+    occurred_at: fixedNow.toISOString(),
+    previous_stage: 'trial_available',
+    reason: 'closed_beta_access',
+    resulting_stage: 'premium',
+  };
+  db.snapshot().get('softbook_beta_entitlements').set(phoneNumber, {
+    active_grant: {
+      schema_version: 'beta-entitlement.v1',
+      actor_id: grantEvent.actor_id,
+      command_sha256: grantEvent.command_sha256,
+      grant_event_id: grantEvent.event_id,
+      grant_id: grantEvent.grant_id,
+      granted_at: grantEvent.occurred_at,
+      reason: grantEvent.reason,
+    },
+    audit: [grantEvent],
+    phone_number: phoneNumber,
+    revision: 1,
+    updated_at: fixedNow.toISOString(),
+  });
+
+  const storeResult = await store.startTrial(
+    phoneNumber,
+    '2026-04-30T12:01:00.000Z',
+  );
+  assert.equal(storeResult.stage, 'premium');
+  assert.equal(storeResult.counted_entry_count, 0);
+  assert.equal(storeResult.trial_started_at_entry_count, null);
+  assert.equal(
+    db.snapshot().get('softbook_memberships').has(phoneNumber),
+    false,
+  );
+
+  const api = createTestApi({store});
+  const session = await authenticatedV2Session(
+    api,
+    phoneNumber,
+    '127.0.0.24',
+  );
+  const response = await request(api, {
+    body: {phone_number: phoneNumber},
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'POST',
+    path: '/v1/membership/start-trial',
+  });
+
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  assert.equal(response.body.data.entitlement.stage, 'premium');
+  assert.equal(response.body.data.entitlement.counted_entry_count, 0);
+  assert.equal(
+    response.body.data.entitlement.trial_started_at_entry_count,
+    null,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_memberships').has(phoneNumber),
+    false,
+  );
 });
 
 test('CloudBase membership fails closed on malformed active beta evidence', async () => {

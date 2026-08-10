@@ -128,8 +128,10 @@ The endpoint returns at most one card ID and never returns card body content.
    card-source index, then card ID.
 3. If no review is due, choose the first accessible, non-sleeping unseen card
    in normalized `card_records` order.
-4. If neither exists, return `selection: null` and the earliest eligible future
-   `next_due_at`, or `null` when no future review exists.
+4. If neither exists and membership is already `trial`, `free`, or `premium`,
+   return `selection: null` and the earliest eligible future `next_due_at`, or
+   `null` when no future review exists. An account still at `trial_available`
+   follows the explicit non-consuming `409` boundary below.
 
 Canonical sleeping state removes a card from resume, due, new, and future-due
 selection without deleting its learning or FSRS history. Favorite state does
@@ -146,6 +148,17 @@ Canonical context validation, selection ID generation, and required cursor
 persistence complete before trial activation. Invalid content, unavailable
 selection entropy, or a failed cursor write therefore cannot consume an
 available trial.
+
+After every fresh cursor write, resumed-cursor confirmation, or empty-cursor
+confirmation, the scheduler re-reads canonical membership. Any change to its
+stage or `acknowledged_at` forces the entire scheduling loop to recompute before
+activation or response. Trial activation conditionally matches that checkpoint;
+the CloudBase transaction reads both base membership and beta entitlement, so
+an active beta Premium grant returns Premium without rewriting base membership
+or incrementing Trial counters. The activation clock is sampled when the
+mutation begins, and the committed acknowledgement is the later of that value
+and the current canonical acknowledgement, so a retry cannot move membership
+freshness backward.
 
 Repository-local CloudBase trial, purchase, and recovery mutations use one
 membership-document transaction. A concurrent trial start or recovery
@@ -208,6 +221,14 @@ cursor preserves its original phase and due time but reports
 The response membership stage is `trial`, `free`, or `premium`;
 `trial_available` must be activated before a successful response. `free`
 requires `free_subset` access, while `trial` and `premium` require `full`.
+If an account is still `trial_available` and canonical scheduling produces no
+eligible selection, the endpoint returns
+`409 learning_session_trial_selection_required`. Before returning that failure, it
+rechecks membership after the empty cursor write; membership drift causes a
+full scheduling retry so access and selection are recomputed from one canonical
+context. The failure preserves the canonical empty cursor revision but does not
+start or consume Trial. Waking an eligible card or otherwise restoring a valid
+server selection makes a later request eligible to start Trial.
 
 ## Mobile binding
 
@@ -215,13 +236,24 @@ Remote mobile learning fetches `learning-session.v1` and the canonical card
 source under the same authenticated session. It requires exact track,
 `source_id`, and `content_version` agreement, resolves only the returned
 `card_id`, and never reorders cards or reapplies client membership, sleep, or
-review policy. `selection: null` is valid and never triggers bundled-card
-fallback.
+review policy. For an already active `trial`, `free`, or `premium` membership,
+`selection: null` is valid and never triggers bundled-card fallback.
 
 If `membership_stage` differs from the bootstrap snapshot because the session
 activated or observed a newer entitlement, mobile refreshes bootstrap and
 requires the canonical stage to match before presenting the session. It never
 constructs entitlement counters or dates from the session response.
+Authentication alone never invokes Trial start. When mobile uses local
+scheduling, its automatic Trial entry waits until a concrete current card is
+ready; explicit protected-entry actions remain user initiated.
+
+An offline `start_membership_trial` command is credential-free and carries
+closed `membership-trial-entry.v1` provenance. An explicit protected-entry
+action records `explicit_user`; an automatic local counted entry binds the
+exact local `card_id`, `source_id`, and track. Queue hydration discards every
+legacy unversioned, missing, unknown-version, or unclosed provenance before
+replay, so an upgrade cannot replay an authentication-era automatic Trial
+start.
 
 Completion persists `selection_id`, selected card, server phase, exact content
 version, event ID, and installation cursor before leaving the result state. A
@@ -236,8 +268,9 @@ offline.
 - `400`: malformed or authority-bearing request input;
 - `401`: missing, expired, or revoked active session;
 - `409`: the learning projection changed while a cursor write was attempted
-  and bounded retry could not converge, or an unseen completion did not match
-  the current selection;
+  and bounded retry could not converge, an unseen completion did not match the
+  current selection, or Trial cannot start because no eligible selection can be
+  persisted;
 - `500`: a stored learning, scheduler, or learning-session projection violates
   its integrity contract;
 - `503`: canonical content, space, or storage is unavailable or invalid.

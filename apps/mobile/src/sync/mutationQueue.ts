@@ -15,6 +15,22 @@ export type MutationType =
   | 'start_membership_trial'
   | 'refresh_membership';
 
+export const MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION =
+  'membership-trial-entry.v1' as const;
+
+export type MembershipTrialEntryProvenance =
+  | {
+      schemaVersion: typeof MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION;
+      trigger: 'explicit_user';
+    }
+  | {
+      cardId: string;
+      schemaVersion: typeof MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION;
+      sourceId: string;
+      track: LearningTrack;
+      trigger: 'counted_local_entry';
+    };
+
 export type MutationPayloadByType = {
   refresh_membership: {
     context: MembershipRepositoryContext;
@@ -22,6 +38,7 @@ export type MutationPayloadByType = {
   start_membership_trial: {
     context: MembershipRepositoryContext;
     currentState: MembershipState;
+    provenance: MembershipTrialEntryProvenance;
   };
   check_in_daily_progress: {
     context: ProgressSyncContext;
@@ -460,6 +477,7 @@ function sanitizeMutationPayload<Type extends MutationType>(
       return {
         context,
         currentState: cloneCredentialFreeObject(payload.currentState),
+        provenance: sanitizeMembershipTrialEntryProvenance(payload.provenance),
       } as MutationPayloadByType[Type];
     case 'check_in_daily_progress':
       if (
@@ -494,6 +512,75 @@ function sanitizeMutationPayload<Type extends MutationType>(
         track,
       } as MutationPayloadByType[Type];
     }
+  }
+}
+
+function sanitizeMembershipTrialEntryProvenance(
+  value: unknown,
+): MembershipTrialEntryProvenance {
+  if (
+    !isObject(value) ||
+    value.schemaVersion !== MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION
+  ) {
+    throw new Error(
+      'Membership trial mutation requires versioned entry provenance.',
+    );
+  }
+
+  if (value.trigger === 'explicit_user') {
+    assertExactObjectKeys(value, ['schemaVersion', 'trigger']);
+    return {
+      schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+      trigger: 'explicit_user',
+    };
+  }
+
+  if (value.trigger === 'counted_local_entry') {
+    assertExactObjectKeys(value, [
+      'cardId',
+      'schemaVersion',
+      'sourceId',
+      'track',
+      'trigger',
+    ]);
+
+    if (
+      typeof value.cardId !== 'string' ||
+      !/^\d{6}$/.test(value.cardId) ||
+      typeof value.sourceId !== 'string' ||
+      !/^[0-9A-Za-z][0-9A-Za-z._:-]{0,127}$/.test(value.sourceId) ||
+      (value.track !== 'cet4' && value.track !== 'cet6')
+    ) {
+      throw new Error(
+        'Membership trial counted entry requires a concrete local card binding.',
+      );
+    }
+
+    return {
+      cardId: value.cardId,
+      schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+      sourceId: value.sourceId,
+      track: value.track,
+      trigger: 'counted_local_entry',
+    };
+  }
+
+  throw new Error('Membership trial mutation has an invalid entry trigger.');
+}
+
+function assertExactObjectKeys(
+  value: Record<string, unknown>,
+  expectedKeys: string[],
+) {
+  const keys = Object.keys(value).sort();
+
+  if (
+    keys.length !== expectedKeys.length ||
+    keys.some((key, index) => key !== expectedKeys[index])
+  ) {
+    throw new Error(
+      'Membership trial mutation has unexpected provenance fields.',
+    );
   }
 }
 

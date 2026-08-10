@@ -52,6 +52,15 @@ records do not change membership. Account/smoke lifecycle cleanup treats the
 beta-entitlement document as user data and removes it by exact manifest-owned
 phone ID.
 
+Canonical Trial activation reads the base membership and beta-entitlement
+document in one CloudBase transaction. An active beta grant returns Premium and
+does not create or rewrite the base membership or increment Trial counters.
+Learning-session scheduling also rechecks the canonical membership stage and
+acknowledgement after every accepted fresh, resumed, or empty cursor operation;
+grant or revoke drift forces a full scheduling retry before response. A
+conditional Trial commit preserves the later canonical acknowledgement, so
+retrying after beta or base-membership drift cannot move freshness backward.
+
 ## Operator safety
 
 `infra/cloudbase/manage-beta-entitlement.mjs` is read/write only against a

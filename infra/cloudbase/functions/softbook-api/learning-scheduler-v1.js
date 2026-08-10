@@ -6,7 +6,7 @@ const SCHEDULER_POLICY_VERSION = 'softbook-fsrs.v1';
 const SCHEDULER_ALGORITHM = 'FSRS-6';
 const SCHEDULER_LIBRARY = 'ts-fsrs';
 const SCHEDULER_LIBRARY_VERSION = '5.4.1';
-const SESSION_SELECTION_ATTEMPTS = 3;
+const SESSION_SELECTION_ATTEMPTS = 5;
 const CHINA_OFFSET_MILLISECONDS = 8 * 60 * 60 * 1000;
 const TRACKS = ['cet4', 'cet6'];
 const MEMBERSHIP_STAGES = ['trial_available', 'trial', 'free', 'premium'];
@@ -136,11 +136,19 @@ async function readLearningSession(config, input) {
         continue;
       }
       if (
+        !(await canonicalMembershipMatchesSelectionContext(
+          config,
+          context,
+          input.phoneNumber,
+        ))
+      ) {
+        continue;
+      }
+      if (
         !(await activateAvailableTrial(
           config,
           context,
           input.phoneNumber,
-          generatedAtIso,
         ))
       ) {
         continue;
@@ -176,11 +184,27 @@ async function readLearningSession(config, input) {
 
     if (cursorStateAccepted) {
       if (
+        !(await canonicalMembershipMatchesSelectionContext(
+          config,
+          context,
+          input.phoneNumber,
+        ))
+      ) {
+        continue;
+      }
+
+      if (cursor === null && context.membershipStage === 'trial_available') {
+        throw learningSchedulerError(
+          409,
+          'learning_session_trial_selection_required',
+          'An eligible learning selection is required before Trial can start.',
+        );
+      }
+      if (
         !(await activateAvailableTrial(
           config,
           context,
           input.phoneNumber,
-          generatedAtIso,
         ))
       ) {
         continue;
@@ -201,11 +225,39 @@ async function readLearningSession(config, input) {
   );
 }
 
+async function canonicalMembershipMatchesSelectionContext(
+  config,
+  context,
+  phoneNumber,
+) {
+  let latestMembership;
+
+  try {
+    latestMembership = normalizeCanonicalMembership(
+      await config.store.getMembership(phoneNumber),
+    );
+  } catch (error) {
+    if (Number.isInteger(error.statusCode)) {
+      throw error;
+    }
+
+    throw learningSchedulerError(
+      500,
+      'learning_scheduler_projection_invalid',
+      `Canonical membership is invalid: ${error.message}`,
+    );
+  }
+
+  return (
+    latestMembership.stage === context.membershipStage &&
+    latestMembership.acknowledgedAt === context.membershipAcknowledgedAt
+  );
+}
+
 async function activateAvailableTrial(
   config,
   context,
   phoneNumber,
-  acknowledgedAt,
 ) {
   if (context.membershipStage !== 'trial_available') {
     return true;
@@ -213,7 +265,11 @@ async function activateAvailableTrial(
 
   const activatedMembership = await config.store.startTrial(
     phoneNumber,
-    acknowledgedAt,
+    requireValidDate(config.now(), 'scheduler clock').toISOString(),
+    {
+      expectedAcknowledgedAt: context.membershipAcknowledgedAt,
+      expectedStage: context.membershipStage,
+    },
   );
   const activatedStage = requireMembershipStage(activatedMembership.stage);
 
@@ -227,6 +283,7 @@ async function activateAvailableTrial(
 
 function normalizeCanonicalSelectionContext(input) {
   try {
+    const membership = normalizeCanonicalMembership(input.membership);
     const sessionState = normalizeLearningSessionState(
       input.sessionStateValue,
       {
@@ -239,7 +296,8 @@ function normalizeCanonicalSelectionContext(input) {
       cardSource: input.cardSource,
       generatedAt: input.generatedAt,
       learningState: input.learningState,
-      membershipStage: requireMembershipStage(input.membership.stage),
+      membershipAcknowledgedAt: membership.acknowledgedAt,
+      membershipStage: membership.stage,
       sessionState,
       spaceState: input.spaceState,
       track: input.track,
@@ -255,6 +313,23 @@ function normalizeCanonicalSelectionContext(input) {
       `Canonical scheduler state is invalid: ${error.message}`,
     );
   }
+}
+
+function normalizeCanonicalMembership(value) {
+  if (!isObject(value)) {
+    throw new Error('membership must be an object.');
+  }
+
+  return {
+    acknowledgedAt:
+      value.acknowledged_at === null
+        ? null
+        : requireIsoTimestamp(
+            value.acknowledged_at,
+            'membership.acknowledged_at',
+          ),
+    stage: requireMembershipStage(value.stage),
+  };
 }
 
 function normalizeSelectionContext(input) {
@@ -312,6 +387,7 @@ function normalizeSelectionContext(input) {
     contentVersion,
     generatedAt: input.generatedAt,
     learning,
+    membershipAcknowledgedAt: input.membershipAcknowledgedAt,
     membershipStage: input.membershipStage,
     sessionState: input.sessionState,
     sleepingCardIds,

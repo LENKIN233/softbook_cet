@@ -1357,7 +1357,7 @@ def learning_scheduler_contract_findings(
         (
             "scheduler empty-selection consistency",
             ("server_scheduler_v1", "selection_contract", "future_rule"),
-            "when no due review or new card exists, return selection null plus the earliest future next_due_at when one exists only after transactionally confirming the matching learning-projection watermark and session revision",
+            "when no due review or new card exists and membership is already trial, free, or premium, return selection null plus the earliest future next_due_at when one exists only after transactionally confirming the matching learning-projection watermark and session revision; trial_available instead follows the non-consuming trial-selection-required failure boundary",
         ),
         (
             "scheduler sleep authority",
@@ -1367,7 +1367,7 @@ def learning_scheduler_contract_findings(
         (
             "scheduler membership authority",
             ("server_scheduler_v1", "selection_contract", "membership_rule"),
-            "the first authenticated learning-session entry starts an available trial exactly once only after canonical context validation, selection generation, and required cursor persistence succeed; trial and premium may schedule the full library, while free schedules a stable release-scoped prefix of ceil(card_count * 0.5) in canonical card-source order",
+            "the first authenticated learning-session entry starts an available trial exactly once only after canonical context validation, non-null selection generation, selection-ID generation, and required cursor persistence succeed; after every fresh, resumed, or empty cursor acceptance, drift in canonical membership stage or acknowledged_at forces a full scheduling retry before response; Trial activation conditionally matches that checkpoint, commits an acknowledged_at no earlier than the current canonical acknowledgement, and its CloudBase transaction reads both base membership and beta entitlement so an active beta Premium grant cannot be overwritten or increment Trial counters; trial and premium may schedule the full library, while free schedules a stable release-scoped prefix of ceil(card_count * 0.5) in canonical card-source order",
         ),
         (
             "scheduler content authority",
@@ -1399,7 +1399,16 @@ def learning_scheduler_contract_findings(
                 "mobile_binding_contract",
                 "membership_reconciliation_rule",
             ),
-            "when learning-session.v1 membership_stage differs from the bootstrap snapshot, remote mobile refreshes canonical bootstrap and requires the exact stage before presenting the selection; it never synthesizes entitlement counters or dates from the session response",
+            "when learning-session.v1 membership_stage differs from the bootstrap snapshot, remote mobile refreshes canonical bootstrap and requires the exact stage before presenting the selection; it never synthesizes entitlement counters or dates from the session response; authentication alone never starts Trial, and a local automatic start is permitted only after a concrete current card is ready while explicit protected-entry actions remain user initiated",
+        ),
+        (
+            "mobile Trial queue provenance",
+            (
+                "server_scheduler_v1",
+                "mobile_binding_contract",
+                "trial_queue_rule",
+            ),
+            "an offline start_membership_trial command is credential-free and requires membership-trial-entry.v1 provenance: either explicit_user or counted_local_entry bound to the exact local card_id, source_id, and track; hydration discards every legacy, missing, unknown-version, or unclosed provenance before replay",
         ),
         (
             "mobile next-card binding",
@@ -1426,7 +1435,7 @@ def learning_scheduler_contract_findings(
                 "mobile_binding_contract",
                 "empty_rule",
             ),
-            "selection null is a valid server result and does not trigger bundled-card fallback or client ordering",
+            "selection null is a valid server result for an already active trial, free, or premium membership and does not trigger bundled-card fallback or client ordering; while canonical membership remains trial_available, a null selection fails with learning_session_trial_selection_required and does not consume Trial",
         ),
         (
             "scheduler response reasons",

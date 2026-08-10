@@ -3592,7 +3592,7 @@ test('replays queued membership refresh after network reconnect', async () => {
   ).toBeGreaterThanOrEqual(2);
 });
 
-test('starts the remote trial automatically on the first authenticated entry', async () => {
+test('waits for a concrete local learning card before starting a remote trial', async () => {
   const fetchCalls: MockFetchCall[] = [];
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
@@ -3641,16 +3641,25 @@ test('starts the remote trial automatically on the first authenticated entry', a
   });
 
   const root = tree!.root;
-  await loginIntoLearningFlow(root);
-  await openRoute(root, 'space');
+  await authenticateIntoLearningBootstrap(root);
 
   await ReactTestRenderer.act(async () => {
     await flushAsyncEffects();
   });
 
-  const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('转折关系');
-  expect(output).not.toContain('完整物理空间需要试用或会员');
+  expect(
+    fetchCalls.filter(
+      call =>
+        call.input === 'https://api.softbook.example/v1/membership/start-trial',
+    ),
+  ).toHaveLength(0);
+
+  await resolveLearningBootstrap();
+  await waitForLearningSurface(root);
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+  await openRoute(root, 'space');
 
   const startTrialRequest = fetchCalls.find(
     call =>
@@ -3660,13 +3669,15 @@ test('starts the remote trial automatically on the first authenticated entry', a
     authorization: 'Bearer remote-auth-token',
   });
 
-  const unlockedSpaceText = JSON.stringify(tree!.toJSON());
-  expect(unlockedSpaceText).toContain('当前盒桌');
-  expect(unlockedSpaceText).toContain('同盒卡片');
-  expect(unlockedSpaceText).toContain('回学习');
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('转折关系');
+  expect(output).not.toContain('完整物理空间需要试用或会员');
+  expect(output).toContain('当前盒桌');
+  expect(output).toContain('同盒卡片');
+  expect(output).toContain('回学习');
 });
 
-test('waits for server confirmation before a queued automatic trial unlocks', async () => {
+test('waits for server confirmation before a queued counted trial entry unlocks', async () => {
   const fetchCalls: MockFetchCall[] = [];
   const replayTrialResponse =
     createDeferred<ReturnType<typeof createJsonResponse>>();
@@ -3737,6 +3748,24 @@ test('waits for server confirmation before a queued automatic trial unlocks', as
   expect(output).toContain('转折关系');
   expect(output).toContain('完整物理空间需要试用或会员');
   expect(startTrialRequestCount).toBeGreaterThanOrEqual(1);
+  expect(
+    JSON.parse(
+      (await AsyncStorage.getItem('__softbook_mutation_queue')) ?? '[]',
+    ),
+  ).toMatchObject([
+    {
+      payload: {
+        provenance: {
+          cardId: '002001',
+          schemaVersion: 'membership-trial-entry.v1',
+          sourceId: 'local-structured-card-source',
+          track: 'cet4',
+          trigger: 'counted_local_entry',
+        },
+      },
+      type: 'start_membership_trial',
+    },
+  ]);
 
   await openRoute(root, 'statistics');
 
@@ -5296,7 +5325,7 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   expect(output).toContain('已收藏');
 });
 
-test('starts the local trial automatically on the first authenticated entry', async () => {
+test('waits for a concrete local learning card before starting a local trial', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -5304,15 +5333,28 @@ test('starts the local trial automatically on the first authenticated entry', as
   });
 
   const root = tree!.root;
-  await loginIntoLearningFlow(root);
-  await openRoute(root, 'space');
+  await authenticateIntoLearningBootstrap(root);
+  await openRoute(root, 'mine');
 
   await ReactTestRenderer.act(async () => {
     await flushAsyncEffects();
   });
 
-  const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('转折关系');
+  let output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('试用待开始');
+  expect(
+    root.findAllByProps({ testID: 'membership-start-trial-button' }).length,
+  ).toBeGreaterThan(0);
+
+  await openRoute(root, 'learning');
+  await resolveLearningBootstrap();
+  await waitForLearningSurface(root);
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+  await openRoute(root, 'space');
+
+  output = JSON.stringify(tree!.toJSON());
   expect(output).not.toContain('完整物理空间需要试用或会员');
   expect(output).toContain('当前盒桌');
   expect(output).toContain('同盒卡片');
@@ -5326,7 +5368,7 @@ test('starts the local trial automatically on the first authenticated entry', as
   ).toBeGreaterThan(0);
 });
 
-test('keeps the full five-card session after automatic trial entry', async () => {
+test('keeps the full five-card session after the counted learning entry', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {

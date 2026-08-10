@@ -1132,17 +1132,20 @@ test('CloudBase concurrent submissions converge without duplicate projection wri
   );
   assert.equal(db.snapshot().get('softbook_learning_events').size, 1);
 
+  const cet6Source = await cardSource(firstApi, session, 'cet6');
   const second = eventFor(source, 1, {
     event_id: 'event_concurrent_0002',
     device_cursor: {device_id: 'device_installation_0001', sequence: 2},
   });
-  const third = eventFor(source, 2, {
+  const third = eventFor(cet6Source, 0, {
     event_id: 'event_concurrent_0003',
     device_cursor: {device_id: 'device_installation_0002', sequence: 1},
   });
+  await bindEventsToCurrentSelection(firstApi, session, [second], 'cet4');
+  await bindEventsToCurrentSelection(secondApi, session, [third], 'cet6');
   const distinctRace = await Promise.all([
     submit(firstApi, session, [second]),
-    submit(secondApi, session, [third]),
+    submit(secondApi, session, [third], 'cet6'),
   ]);
   assert.deepEqual(
     distinctRace
@@ -1158,7 +1161,16 @@ test('CloudBase concurrent submissions converge without duplicate projection wri
     query: {day_key: DAY_KEY, track: 'cet4'},
   });
   assert.equal(bootstrap.body.data.progress.learning_completed_count, 3);
-  assert.equal(bootstrap.body.data.learning.card_states.length, 3);
+  assert.equal(bootstrap.body.data.learning.card_states.length, 2);
+
+  const cet6Bootstrap = await request(secondApi, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v2/bootstrap',
+    query: {day_key: DAY_KEY, track: 'cet6'},
+  });
+  assert.equal(cet6Bootstrap.body.data.progress.learning_completed_count, 3);
+  assert.equal(cet6Bootstrap.body.data.learning.card_states.length, 1);
 });
 
 test('CloudBase transaction failure leaves no partial event, cursor, or projection', async () => {

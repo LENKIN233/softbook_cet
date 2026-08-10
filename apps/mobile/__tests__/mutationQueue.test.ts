@@ -1,6 +1,7 @@
 import {
   createInMemoryMutationQueueStorage,
   MAX_MUTATION_RETRIES,
+  MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
   MutationQueueManager,
 } from '../src/sync/mutationQueue';
 
@@ -123,7 +124,7 @@ describe('MutationQueueManager', () => {
     await expect(manager.size()).resolves.toBe(1);
   });
 
-  it('migrates only a valid checked-in legacy snapshot and strips counters and credentials', async () => {
+  it('migrates only valid commands, drops an unproven legacy trial start, and strips credentials', async () => {
     const sharedStore = {
       __softbook_mutation_queue: JSON.stringify([
         {
@@ -179,11 +180,7 @@ describe('MutationQueueManager', () => {
     );
     expect(
       JSON.parse(serialized).map((entry: { id: string }) => entry.id),
-    ).toEqual([
-      'check-in:13800138000:2026-04-27',
-      'membership:replay',
-      'membership-trial:replay',
-    ]);
+    ).toEqual(['check-in:13800138000:2026-04-27', 'membership:replay']);
     await expect(manager.peek()).resolves.toMatchObject({
       id: 'check-in:13800138000:2026-04-27',
       payload: {
@@ -193,6 +190,153 @@ describe('MutationQueueManager', () => {
       retryCount: 2,
       type: 'check_in_daily_progress',
     });
+  });
+
+  it('persists closed versioned provenance for explicit and counted Trial entries', async () => {
+    const sharedStore: Record<string, string> = {};
+    const manager = new MutationQueueManager({
+      storage: createInMemoryMutationQueueStorage(sharedStore),
+    });
+    const currentState = {
+      countedEntryCount: 0,
+      lastExperienceEndedBy: null,
+      recoveryPromptVisible: false,
+      stage: 'trial_available' as const,
+      trialDurationDays: 5,
+      trialStartedAtEntryCount: null,
+    };
+
+    await manager.enqueue(
+      'start_membership_trial',
+      {
+        context: {
+          authToken: 'explicit-secret',
+          phoneNumber: '13800138000',
+        },
+        currentState,
+        provenance: {
+          schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+          trigger: 'explicit_user',
+        },
+      },
+      'membership-trial:start',
+    );
+    await manager.enqueue(
+      'start_membership_trial',
+      {
+        context: {
+          authToken: 'counted-secret',
+          phoneNumber: '13800138001',
+        },
+        currentState,
+        provenance: {
+          cardId: '002001',
+          schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+          sourceId: 'local-structured-card-source',
+          track: 'cet4',
+          trigger: 'counted_local_entry',
+        },
+      },
+      'membership-trial:replay',
+    );
+
+    const entries = await manager.getAll();
+    expect(entries).toMatchObject([
+      {
+        payload: {
+          context: { phoneNumber: '13800138000' },
+          provenance: {
+            schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+            trigger: 'explicit_user',
+          },
+        },
+        type: 'start_membership_trial',
+      },
+      {
+        payload: {
+          context: { phoneNumber: '13800138001' },
+          provenance: {
+            cardId: '002001',
+            schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+            sourceId: 'local-structured-card-source',
+            track: 'cet4',
+            trigger: 'counted_local_entry',
+          },
+        },
+        type: 'start_membership_trial',
+      },
+    ]);
+    expect(sharedStore.__softbook_mutation_queue).not.toMatch(
+      /explicit-secret|counted-secret/,
+    );
+  });
+
+  it.each([
+    undefined,
+    {
+      schemaVersion: 'membership-trial-entry.v0',
+      trigger: 'explicit_user',
+    },
+    {
+      schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+      trigger: 'automatic_authentication',
+    },
+    {
+      extra: true,
+      schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+      trigger: 'explicit_user',
+    },
+    {
+      cardId: 'not-local',
+      schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+      sourceId: 'local-structured-card-source',
+      track: 'cet4',
+      trigger: 'counted_local_entry',
+    },
+    {
+      schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+      sourceId: 'local-structured-card-source',
+      track: 'cet4',
+      trigger: 'counted_local_entry',
+    },
+    {
+      cardId: '002001',
+      schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+      track: 'cet4',
+      trigger: 'counted_local_entry',
+    },
+    {
+      cardId: '002001',
+      schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+      sourceId: 'local-structured-card-source',
+      trigger: 'counted_local_entry',
+    },
+    {
+      cardId: '002001',
+      schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+      sourceId: 'local-structured-card-source',
+      track: 'cet5',
+      trigger: 'counted_local_entry',
+    },
+    {
+      cardId: '002001',
+      refreshToken: 'nested-secret',
+      schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+      sourceId: 'local-structured-card-source',
+      track: 'cet4',
+      trigger: 'counted_local_entry',
+    },
+  ])('rejects unclosed Trial entry provenance %#', async provenance => {
+    const manager = new MutationQueueManager();
+
+    await expect(
+      manager.enqueue('start_membership_trial', {
+        context: { phoneNumber: '13800138000' },
+        currentState: { stage: 'trial_available' },
+        provenance,
+      } as never),
+    ).rejects.toThrow(/Trial|trial/);
+    await expect(manager.size()).resolves.toBe(0);
   });
 
   it('migrates a legacy space snapshot into deterministic scoped-later actions', async () => {

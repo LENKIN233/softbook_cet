@@ -817,10 +817,21 @@ function createMemoryStore() {
         ...cloneMembership(document?.entitlement ?? createInitialMembership()),
       };
     },
-    startTrial: (phoneNumber, acknowledgedAt) => {
+    startTrial: (phoneNumber, acknowledgedAt, expectedCheckpoint) => {
+      const document = memberships.get(phoneNumber);
       const current = cloneMembership(
-        memberships.get(phoneNumber)?.entitlement ?? createInitialMembership(),
+        document?.entitlement ?? createInitialMembership(),
       );
+
+      if (
+        !membershipMatchesExpectedCheckpoint(
+          current,
+          document?.updated_at ?? null,
+          expectedCheckpoint,
+        )
+      ) {
+        return current;
+      }
 
       if (current.stage === 'trial_available') {
         current.counted_entry_count += 1;
@@ -828,12 +839,15 @@ function createMemoryStore() {
         current.recovery_prompt_visible = false;
         current.stage = 'trial';
         current.trial_started_at_entry_count = current.counted_entry_count;
+        memberships.set(phoneNumber, {
+          entitlement: current,
+          updated_at: latestAcknowledgedAt(
+            document?.updated_at,
+            acknowledgedAt,
+          ),
+        });
       }
 
-      memberships.set(phoneNumber, {
-        entitlement: current,
-        updated_at: acknowledgedAt,
-      });
       return current;
     },
     purchase: (phoneNumber, acknowledgedAt) => {
@@ -1308,28 +1322,58 @@ function createCloudBaseStore(options = {}) {
         ...entitlement,
       };
     },
-    startTrial: (phoneNumber, acknowledgedAt) =>
+    startTrial: (phoneNumber, acknowledgedAt, expectedCheckpoint) =>
       db.runTransaction(async transaction => {
         const transactionMemberships = transaction.collection(
           CLOUDBASE_COLLECTIONS.memberships,
         );
+        const transactionBetaEntitlements = transaction.collection(
+          CLOUDBASE_COLLECTIONS.betaEntitlements,
+        );
+        const [membershipDocument, betaEntitlement] = await Promise.all([
+          getCloudBaseDocument(transactionMemberships, phoneNumber),
+          getCloudBaseDocument(transactionBetaEntitlements, phoneNumber),
+        ]);
         const current = cloneMembership(
-          await getCloudBaseMembership(transactionMemberships, phoneNumber),
+          membershipDocument
+            ? deserializeMembershipDocument(membershipDocument)
+            : createInitialMembership(),
+        );
+        const canonical = applyBetaEntitlement(
+          cloneMembership(current),
+          betaEntitlement,
+          phoneNumber,
+        );
+        const canonicalAcknowledgedAt = latestAcknowledgedAt(
+          membershipDocument?.updated_at,
+          betaEntitlement?.updated_at,
         );
 
-        if (current.stage === 'trial_available') {
-          current.counted_entry_count += 1;
-          current.last_experience_ended_by = null;
-          current.recovery_prompt_visible = false;
-          current.stage = 'trial';
-          current.trial_started_at_entry_count = current.counted_entry_count;
+        if (
+          !membershipMatchesExpectedCheckpoint(
+            canonical,
+            canonicalAcknowledgedAt,
+            expectedCheckpoint,
+          ) ||
+          canonical.stage !== 'trial_available'
+        ) {
+          return canonical;
         }
+
+        current.counted_entry_count += 1;
+        current.last_experience_ended_by = null;
+        current.recovery_prompt_visible = false;
+        current.stage = 'trial';
+        current.trial_started_at_entry_count = current.counted_entry_count;
 
         await saveCloudBaseMembership(
           transactionMemberships,
           phoneNumber,
           current,
-          acknowledgedAt,
+          latestAcknowledgedAt(
+            canonicalAcknowledgedAt,
+            acknowledgedAt,
+          ),
         );
         return current;
       }),
@@ -2866,6 +2910,22 @@ function cloneMembership(membership) {
     trial_duration_days: membership.trial_duration_days,
     trial_started_at_entry_count: membership.trial_started_at_entry_count,
   };
+}
+
+function membershipMatchesExpectedCheckpoint(
+  membership,
+  acknowledgedAt,
+  expectedCheckpoint,
+) {
+  if (expectedCheckpoint === undefined) {
+    return true;
+  }
+
+  return (
+    isObject(expectedCheckpoint) &&
+    expectedCheckpoint.expectedStage === membership.stage &&
+    expectedCheckpoint.expectedAcknowledgedAt === acknowledgedAt
+  );
 }
 
 function serializeMembershipEntitlement(entitlement) {

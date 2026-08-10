@@ -111,6 +111,10 @@ import {
 import { StatisticsSurface } from './src/statistics/StatisticsSurface';
 import { getChinaDayKey } from './src/shared/chinaDay';
 import { formatLearningSessionDisplayLabel } from './src/shared/uiMetadata/displayMetadata';
+import {
+  MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+  type MembershipTrialEntryProvenance,
+} from './src/sync/mutationQueue';
 import { createMutationQueueRepository } from './src/sync/mutationQueueRepository';
 import { createLearningEventSyncRepository } from './src/sync/learningEventSyncRepository';
 import { createLearningEventsRepository } from './src/sync/learningEventsRepository';
@@ -483,6 +487,7 @@ function AppShell({
     () => createLearningSessionRepository(learningSessionRepositoryConfig),
     [learningSessionRepositoryConfig],
   );
+  const runtimeLearningSessionMode = learningSessionRepositoryConfig.mode;
   const membershipRepositoryConfig = useMemo(() => {
     const resolved = resolveMembershipRepositoryConfig(runtimeConfig);
 
@@ -623,7 +628,7 @@ function AppShell({
   const previousMembershipStage = useRef<MembershipStage>(
     membershipState.stage,
   );
-  const automaticTrialAccountRef = useRef<string | null>(null);
+  const countedTrialEntryAccountRef = useRef<string | null>(null);
   const lastMembershipRefreshKey = useRef<string | null>(null);
   const pendingMembershipRefreshKey = useRef<string | null>(null);
   const persistedLearningCursor = useRef<PersistedLearningCursor | null>(null);
@@ -654,7 +659,7 @@ function AppShell({
     (error: string | null = null) => {
       lastMembershipRefreshKey.current = null;
       pendingMembershipRefreshKey.current = null;
-      automaticTrialAccountRef.current = null;
+      countedTrialEntryAccountRef.current = null;
       persistedLearningCursor.current = null;
       accountBootstrapStatusRef.current =
         runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required';
@@ -2579,7 +2584,13 @@ function AppShell({
     }
   };
 
-  const beginMembershipTrial = (nextGate: MembershipGate | null) => {
+  const beginMembershipTrial = (
+    nextGate: MembershipGate | null,
+    provenance: MembershipTrialEntryProvenance = {
+      schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+      trigger: 'explicit_user',
+    },
+  ) => {
     if (
       authenticatedRuntimeContext === null ||
       membershipPendingAction !== null
@@ -2623,6 +2634,7 @@ function AppShell({
               {
                 context: authenticatedRuntimeContext,
                 currentState: membershipState,
+                provenance,
               },
               'membership-trial:start',
             )
@@ -2651,6 +2663,10 @@ function AppShell({
     if (
       !persistenceHydrated ||
       authState.stage !== 'authenticated' ||
+      runtimeLearningSessionMode !== 'local' ||
+      learningBootstrapStatus !== 'ready' ||
+      learningSession === null ||
+      currentLearningCard === null ||
       membershipState.stage !== 'trial_available' ||
       membershipPendingAction !== null ||
       (runtimeMembershipRepositoryMode === 'remote' && !canWriteAccountState)
@@ -2659,19 +2675,29 @@ function AppShell({
     }
 
     const accountKey = authState.phoneNumber;
-    if (automaticTrialAccountRef.current === accountKey) {
+    if (countedTrialEntryAccountRef.current === accountKey) {
       return;
     }
 
-    automaticTrialAccountRef.current = accountKey;
-    beginMembershipTrialRef.current(null);
+    countedTrialEntryAccountRef.current = accountKey;
+    beginMembershipTrialRef.current(null, {
+      cardId: currentLearningCard.card_id,
+      schemaVersion: MEMBERSHIP_TRIAL_ENTRY_SCHEMA_VERSION,
+      sourceId: learningSession.sourceId,
+      track: learningSession.track,
+      trigger: 'counted_local_entry',
+    });
   }, [
     authState.phoneNumber,
     authState.stage,
     canWriteAccountState,
+    currentLearningCard,
+    learningBootstrapStatus,
+    learningSession,
     membershipPendingAction,
     membershipState.stage,
     persistenceHydrated,
+    runtimeLearningSessionMode,
     runtimeMembershipRepositoryMode,
   ]);
 
