@@ -63,7 +63,10 @@
   "authentication_policy": {
     "login_is_required_before_learning": true,
     "guest_learning_before_authentication": false,
-    "primary_login_method": "phone_sms_code"
+    "primary_login_method": "phone_sms_code",
+    "dedicated_login_surface_required": true,
+    "top_level_navigation_is_authenticated_only": true,
+    "signed_out_product_surfaces_reachable": false
   },
   "audio_surface_policy": {
     "audio_must_be_available_on_all_release_targets": true,

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-8",
+  "version": "vnext-9",
   "product_promise": "帮助中国大学生以更轻松、更低负担、但仍然可信的方式通过 CET4/CET6。",
   "source_anchors": {
     "default_learning_path": "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
@@ -175,7 +175,10 @@
     },
     "authentication_model": {
       "login_required_before_learning": true,
-      "guest_learning_is_not_supported": true
+      "guest_learning_is_not_supported": true,
+      "dedicated_login_surface_required": true,
+      "top_level_product_shell_requires_authentication": true,
+      "signed_out_users_cannot_see_or_enter_learning_space_statistics_or_mine": true
     }
   },
   "monetization": {
@@ -184,7 +187,30 @@
       "max": 7
     },
     "trial_is_complete_experience": true,
-    "trial_start_trigger": "first_entry_counted_as_membership_trial",
+    "trial_start_trigger": "inside_the_first_successful_authenticated_learning_session_after_server_content_validation_selection_and_cursor_persistence_succeed",
+    "trial_time_authority": "server_trial_started_at_and_trial_expires_at",
+    "controlled_pilot": {
+      "classification": "pre_beta_controlled_product_pilot",
+      "scope": "cet4_ios_android_only",
+      "trial_duration_hours": 120,
+      "card_count": 120,
+      "stable_free_card_count_after_trial": 60,
+      "cohort": "30_to_50",
+      "payment_connected": false,
+      "round_size": 5,
+      "round_completion_authority": "server_confirmed_cumulative_account_track_event_sequence_and_server_persisted_continue_acknowledgement",
+      "round_review_content_authority": "server_returned_ordered_review_card_ids_derived_from_currently_accessible_non_sleeping_cards_whose_canonical_latest_account_track_event_projection_needs_review_at_the_unacknowledged_boundary",
+      "round_space_card_authority": "server_returned_space_card_id_equal_to_the_active_content_card_from_the_canonical_event_whose_server_sequence_equals_the_unacknowledged_completed_count_boundary_clients_never_infer_it_from_phase_grouping_or_client_time",
+      "round_daily_progress_rule": "day_scoped_progress_remains_for_daily_feedback_and_never_opens_or_skips_a_round_boundary",
+      "round_completion_actions": [
+        "回看待复习内容",
+        "查看所在Space",
+        "继续下一轮"
+      ],
+      "round_next_selection_rule": "do_not_read_or_return_the_next_card_until_the_current_five_event_boundary_is_acknowledged",
+      "gate_eligible": false,
+      "formal_closed_beta_thresholds_remain_1180_cards_and_301_audio_references": true
+    },
     "premium_core_value": "我被更聪明地带着过级。",
     "free_after_trial": "基础学习保留，但完整能力受限",
     "free_card_access_contract": {

@@ -70,6 +70,13 @@ The bundle requires:
 Every referenced file must remain inside the bundle directory and match its
 declared SHA-256. Missing evidence fails closed.
 
+`controlled-pilot-profile.v1`, `controlled-pilot-bundle.v1`, and
+`pilot-content-release.v1` are separate pre-beta artifacts and are rejected by
+this formal delivery path. Their 120-card/60-free scope, approvals, audio QC,
+deployment, or outcome report cannot satisfy, replace, reduce, or contribute to
+the 1,180-card, 301-audio, whole-track final approval requirements above. See
+`infra/cloudbase/controlled-pilot-v1-runtime-contract.md`.
+
 ## Publish and rollback ordering
 
 Publishing performs only this order:

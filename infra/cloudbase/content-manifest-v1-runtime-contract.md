@@ -76,12 +76,17 @@ Rules:
 
 - Only `track` and `content_version` are accepted query fields.
 - A request body and client-provided account or phone identity are rejected.
-- The requested source must be the active source, have a non-null matching
-  `content-release.v1`, and match the exact canonical content version.
+- The requested source must be the active source, match the exact canonical
+  content version, and have a descriptor owned by its runtime mode: formal
+  closed-beta/release requires `content-release.v1`; `controlled_pilot`
+  requires `pilot-content-release.v1` with exactly 120 CET4 cards, an approved
+  stable 60-card free subset, and `gate_eligible=false`. The two descriptor
+  families are never interchangeable.
 - Temporary downloads are filtered by canonical membership: trial and premium
   receive the full card prefix, free receives the stable first `ceil(50%)`
-  prefix, and `trial_available` receives no download until the learning-session
-  authority starts the trial.
+  prefix (exactly the approved first 60 cards in `controlled_pilot`), and
+  `trial_available` receives no download until the learning-session authority
+  starts the trial.
 - Missing signing or private-download configuration fails with 503. There is
   no unsigned or public-URL fallback.
 
