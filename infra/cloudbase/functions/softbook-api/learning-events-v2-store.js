@@ -1791,6 +1791,7 @@ function isObject(value) {
 }
 
 module.exports = {
+  countLegacyPendingReview,
   commitLearningEventsTransaction,
   createAccountDailyProgressId,
   createAccountDailyProgressKey,

@@ -101,6 +101,29 @@ describe('learningEventSyncRepository', () => {
     expect(retained.retryCount).toBe(1);
   });
 
+  it('rechecks canonical write authority after reading the durable batch', async () => {
+    const outbox = createOutbox();
+    const submitEvents = jest.fn();
+    const repository = createLearningEventSyncRepository({
+      eventsRepository: {submitEvents} as never,
+      outbox,
+    });
+    const original = await repository.enqueueCompletion(createInput());
+
+    await expect(
+      repository.startReplay(
+        {authToken: 'token', phoneNumber: PHONE},
+        {canSubmit: () => false},
+      ),
+    ).resolves.toMatchObject({
+      acknowledgedEntries: [],
+      pendingCount: 1,
+    });
+
+    expect(submitEvents).not.toHaveBeenCalled();
+    await expect(outbox.getAll()).resolves.toEqual([original]);
+  });
+
   it('surfaces authorization failure without removing or rewriting the event', async () => {
     const outbox = createOutbox();
     const submitEvents = jest

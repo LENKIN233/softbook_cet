@@ -1156,7 +1156,7 @@
         "stored_business_schema_and_digest_integrity_fail_closed",
         "cloudbase_adapter_strips_only_system_id",
         "memory_and_cloudbase_commits_are_transactional",
-        "maximum_twenty_action_cloudbase_commit_uses_at_most_42_operations",
+        "maximum_twenty_action_cloudbase_commit_uses_at_most_64_operations",
         "legacy_phone_and_phone_day_documents_are_read_only_migration_inputs",
         "legacy_dimension_clocks_use_last_modified_at_and_deterministic_action_ids",
         "get_and_post_v1_space_state_sync_always_return_410",

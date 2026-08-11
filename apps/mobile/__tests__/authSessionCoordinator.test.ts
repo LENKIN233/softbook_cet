@@ -90,16 +90,29 @@ test('concurrent access requests share one rotating refresh operation', async ()
 });
 
 test('refresh authorization rejection clears the secure session', async () => {
+  const restoredSession = createSession({
+    accessTokenExpiresAt: '2026-07-20T00:00:30.000Z',
+  });
   const {authRepository, authSessionStore, coordinator} = createHarness(
-    createSession({accessTokenExpiresAt: '2026-07-20T00:00:30.000Z'}),
+    restoredSession,
   );
+  const observeRestoredSession = jest.fn();
+  const scopeListener = jest.fn();
+  coordinator.subscribeSessionScope(scopeListener);
   jest
     .mocked(authRepository.refreshSession)
     .mockRejectedValue(new RemoteHttpError('revoked', 401));
 
-  await expect(coordinator.restore()).rejects.toMatchObject({status: 401});
+  await expect(
+    coordinator.restore(observeRestoredSession),
+  ).rejects.toMatchObject({status: 401});
+  expect(observeRestoredSession).toHaveBeenCalledWith(restoredSession);
   expect(authSessionStore.clear).toHaveBeenCalledTimes(1);
   expect(coordinator.getCurrentSession()).toBeNull();
+  expect(scopeListener).toHaveBeenLastCalledWith(
+    null,
+    'authorization_invalidated',
+  );
 });
 
 test('late refresh completion cannot resurrect an invalidated session', async () => {
@@ -264,8 +277,8 @@ test('publishes only logical session-scope changes', async () => {
   await coordinator.establish(session);
 
   expect(listener.mock.calls).toEqual([
-    ['remote:13800138000:session-123'],
-    [null],
+    ['remote:13800138000:session-123', 'session_changed'],
+    [null, 'session_changed'],
   ]);
 });
 

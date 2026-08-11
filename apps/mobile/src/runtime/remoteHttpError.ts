@@ -11,8 +11,10 @@ export class RemoteHttpError extends Error {
 }
 
 export function isRemoteAuthorizationError(error: unknown): boolean {
+  const errorStatus = (error as {status?: unknown} | null)?.status;
+
   return (
-    error instanceof RemoteHttpError &&
-    (error.status === 401 || error.status === 403)
+    error instanceof Error &&
+    (errorStatus === 401 || errorStatus === 403)
   );
 }

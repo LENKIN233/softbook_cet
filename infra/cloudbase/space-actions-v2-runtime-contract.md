@@ -38,8 +38,12 @@ Favorite and sleep use separate clocks. Each clock orders writes by
 returns `applied`, `stale`, or `duplicate` per input action.
 
 CloudBase commits legacy migration, ledger checks, both dimension merges,
-ledger inserts, and the account state in one transaction. A failed batch
-commits nothing.
+ledger inserts, action-lineage records, the digest-bound revision sidecar, and
+the rollback-compatible account state in one transaction. A failed batch
+commits nothing. That same transaction advances the account-state revision once
+when the batch creates at least one new ledger, including a newly ledgered
+`stale` action; an all-`duplicate` batch does not advance unless a directly
+proven previous-package ledger must gain committed-state lineage.
 
 ## Canonical Projection
 
@@ -55,6 +59,35 @@ requested track's current projection:
 
 Bootstrap uses the same projection. Scheduler sleep authority reads the same
 account state; it does not delete learning history or scheduler state.
+
+The canonical revision lives in the account-keyed
+`softbook_space_state_revisions` sidecar as a positive safe integer plus state
+digest and a deterministic, cumulative set of action digest/result bindings.
+Current writes use `space-state-revision.v2`; the retained v1 sidecar is a
+read-only migration input and the next write/checkpoint upgrades it. The direct
+`space-state.v2` business and wire shape remains
+unchanged for rollback compatibility; bootstrap exposes the value only through
+top-level `component_revisions.space.state_revision` and repeats it as the
+Learning and Progress Space dependency. Missing canonical state and sidecar is
+revision zero. Retained exact legacy state without a sidecar reconciles at
+revision one or higher. A sidecar without state fails closed; a state-digest
+mismatch advances through a new transactional checkpoint. The briefly
+unreleased inline `revision` shape is accepted only as a migration floor and is
+stripped on rewrite. CloudBase `_id` remains the only adapter-owned field
+removed before exact stored-shape validation.
+
+Each current ledger also owns an immutable record in
+`softbook_space_action_lineages`, binding its digest and result to a committed
+state checkpoint. Duplicate acknowledgement requires both that lineage and the
+exact digest/result binding in the current cumulative revision authority, so a
+coordinated ledger/lineage rewrite cannot invent a committed action without
+also violating the checkpoint. A previous-package ledger without lineage is
+acknowledged as duplicate only when the current canonical state directly proves
+its `applied` or `stale` result; reconciliation then creates lineage atomically.
+An older applied ledger that has already been superseded cannot be distinguished
+from a forged orphan by the old schema. Rollout therefore requires a fenced
+baseline/intermediate dual-write before those old ledgers are eligible for
+automatic recovery; without that evidence the runtime fails closed.
 
 ## Mobile Durability
 
@@ -74,14 +107,23 @@ Two exact HTTP 409 codes are terminal for an immutable queued action:
 `space_card_not_in_content` and `space_action_id_conflict`. Mobile durably moves
 those credential-free commands into a bounded local quarantine before removing
 them from the active FIFO. It surfaces the rejection, continues later
-mutations, and refreshes bootstrap before presenting reconciled space state.
+mutations, and starts a causally later bootstrap request before presenting
+reconciled space state. That refresh may correctly return the same Space
+revision because a rejected command commits no canonical change.
 Quarantined actions are diagnostic evidence, not acknowledgement or approval,
 and logout clears them with the active queue.
 
 `space_content_version_mismatch`, unknown HTTP failures, transport failures,
 malformed responses, and every other non-terminal rejection remain active.
+For `space_content_version_mismatch`, mobile requests a fresh bootstrap before
+one same-track content-envelope rebound attempt. If refreshed content identity
+and component revisions are unchanged, the queue remains blocked without an
+automatic refresh/replay loop.
 Authorization and session cancellation keep their separate session lifecycle
 handling.
+An action retained for an inactive track is rotated past without deletion so it
+cannot starve current-track or account-wide mutations; it is retried only after
+that track has its own validated bootstrap/content hydration.
 
 Hydration starts from canonical bootstrap and overlays only matching durable
 pending actions for the same account and track, including actions awaiting

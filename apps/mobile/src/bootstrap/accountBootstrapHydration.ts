@@ -1,5 +1,6 @@
 import type { LearningCardResult, LearningSession } from '../learning/model';
 import type { PersistedUserState } from '../persistence/userStateStore';
+import { getChinaDayKey } from '../shared/chinaDay';
 import {
   applySpaceActionToMap,
   spaceStateSnapshotToMap,
@@ -59,51 +60,26 @@ export function resolveAccountBootstrapLearningState(
     );
   }
 
-  if (
-    bootstrap.learning.source !== null &&
-    bootstrap.learning.source.id !== learningSession.sourceId
-  ) {
-    throw new Error(
-      'Canonical learning state does not match the loaded learning source.',
-    );
-  }
-
   const cardById = new Map(
     learningSession.catalogCards.map(card => [card.card_id, card]),
   );
+  const learningSourceMatches =
+    bootstrap.learning.source === null ||
+    bootstrap.learning.source.id === learningSession.sourceId;
 
-  for (const state of bootstrap.learning.cardStates) {
-    const card = cardById.get(state.cardId);
+  const dailyCardStates = bootstrap.learning.cardStates.filter(state => {
+    const currentCard = cardById.get(state.cardId);
 
-    if (!card || card.interaction_id !== state.interactionId) {
-      throw new Error(
-        `Canonical learning card ${state.cardId} does not match loaded content.`,
-      );
-    }
-  }
-
-  for (const state of bootstrap.space.snapshot.states) {
-    if (!cardById.has(state.cardId)) {
-      throw new Error(
-        `Canonical space card ${state.cardId} does not match loaded content.`,
-      );
-    }
-  }
-
-  if (
-    bootstrap.learning.cursor !== null &&
-    (bootstrap.learning.cursor.sourceId !== learningSession.sourceId ||
-      !cardById.has(bootstrap.learning.cursor.cardId))
-  ) {
-    throw new Error(
-      'Canonical learning cursor does not match the loaded learning content.',
+    return (
+      learningSourceMatches &&
+      currentCard?.interaction_id === state.interactionId &&
+      getChinaDayKey(new Date(state.completedAt)) === bootstrap.dayKey
     );
-  }
-
-  const learningResults = bootstrap.learning.cardStates
+  });
+  const learningResults = dailyCardStates
     .filter(state => state.phase === 'learning')
     .map(stripPhase);
-  const reviewResults = bootstrap.learning.cardStates
+  const reviewResults = dailyCardStates
     .filter(state => state.phase === 'review')
     .map(stripPhase);
   return {

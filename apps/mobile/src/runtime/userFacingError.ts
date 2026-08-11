@@ -1,25 +1,6 @@
 const REMOTE_STATUS_ERROR_PATTERN =
   /^Remote (auth request-code|auth verify-code|learning card source request|membership entitlement request|membership mutation|progress sync|learning state sync|space state sync) failed(?: with status| with)? (\d+)\.$/;
 
-const UNSAFE_USER_COPY_PATTERN =
-  /[A-Za-z]{2,}|https?:|file:|\/|\\|@|\b[1-5]\d{2}\b|数据库|云函数|密钥|令牌|模块|堆栈|调用栈|原生|内部|卡源|队列|缓存|接口|状态码|响应体|配置|文件路径|运行时|开发环境|测试环境|调试/i;
-
-const HAN_CHARACTER_PATTERN = /[\u3400-\u9fff]/;
-const MAX_USER_COPY_LENGTH = 120;
-
-function hasUnsafeUnicodeControl(message: string): boolean {
-  return Array.from(message).some(character => {
-    const codePoint = character.codePointAt(0) ?? 0;
-
-    return (
-      codePoint <= 0x1f ||
-      (codePoint >= 0x7f && codePoint <= 0x9f) ||
-      (codePoint >= 0x202a && codePoint <= 0x202e) ||
-      (codePoint >= 0x2066 && codePoint <= 0x2069)
-    );
-  });
-}
-
 function getKnownRemoteErrorCopy(type: string): string | null {
   switch (type) {
     case 'auth request-code':
@@ -62,15 +43,9 @@ export function getUserFacingErrorMessage(
     return getKnownRemoteErrorCopy(remoteStatusMatch[1]) ?? fallback;
   }
 
-  if (
-    message.length === 0 ||
-    message.length > MAX_USER_COPY_LENGTH ||
-    !HAN_CHARACTER_PATTERN.test(message) ||
-    hasUnsafeUnicodeControl(message) ||
-    UNSAFE_USER_COPY_PATTERN.test(message)
-  ) {
-    return fallback;
-  }
-
-  return message;
+  // Exception text is never user copy. A language/length/blacklist heuristic
+  // cannot distinguish a safe sentence from leaked prompts, storage content,
+  // native diagnostics, or attacker-controlled text. Only explicit mappings
+  // above may cross this rendering boundary.
+  return fallback;
 }

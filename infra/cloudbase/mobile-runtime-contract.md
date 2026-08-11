@@ -183,6 +183,24 @@ for missing account/day/track documents. The full response and production
 content-release boundary are defined in
 `infra/cloudbase/bootstrap-v2-runtime-contract.md`.
 
+The additive top-level `component_revisions` object uses
+`bootstrap-component-revisions.v1`: base-plus-beta Membership;
+requested-track event sequence plus account-and-track session revision plus
+Space dependency for Learning; account-wide event sequence plus monotonic
+account-day check-in plus Space dependency for Progress; and account-wide
+Space state revision. `generated_at` and `acknowledged_at` are observation and
+audit timestamps, not same-millisecond conflict ordering, and no scalar global
+bootstrap revision exists. Content SHA and release identity remain scope
+identity rather than a monotonic counter.
+
+Progress also carries `learning_authority`: `account_events_v2`,
+`legacy_account_baseline`, or `empty`. Mobile requires the marker, rejects a
+non-v2 authority with a positive learning sequence, rejects v2 authority at
+sequence zero, requires an empty authority to carry zero pending review, and
+keeps both authority and pending review strict at an unchanged sequence. The
+server makes the legacy account baseline stable across China-day rollover; the
+client does not relax that invariant.
+
 The React Native client calls this endpoint after login and restored-session
 authentication, before replaying queued mutations or enabling product-state
 writes. It validates the response schema and request scope, then uses server
@@ -210,6 +228,17 @@ Replay, bootstrap, and authenticated HTTP authorization handling are scoped to
 the originating auth session ID, not phone number alone. A late 401/403 from a
 signed-out or replaced session cannot refresh or invalidate the current
 session, including when the same phone number authenticated again.
+
+Bootstrap request identity additionally includes requested track, China day,
+and whether the read is a forced post-result refresh. A monotonically increasing
+client request generation suppresses a late response from an older request in
+the same auth session; changing track/day or forcing terminal/mismatch recovery
+cannot reuse the older in-flight promise. Revision-aware merging rejects owner
+revision regression and validates equal-revision owner invariants rather than
+using response timestamps. A terminal Space 409 starts a fresh generation and
+may reconcile to the same state revision. A content-version mismatch keeps the
+command active, refreshes once, and retries only after a changed content scope;
+an unchanged refresh cannot create an automatic loop.
 
 Staged development smoke may explicitly keep `accountBootstrap` local. The
 remaining `/v1` card source and membership mutations are still a development

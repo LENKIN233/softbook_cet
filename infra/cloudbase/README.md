@@ -134,7 +134,7 @@ while `/v2` owns authentication and the canonical bootstrap read:
 - Physical-space actions v2 validate the active card source and content version,
   merge favorite and sleep on independent clocks, and commit immutable action
   records plus account canonical state atomically. A maximum 20-action request
-  uses at most 42 CloudBase transaction operations.
+  uses at most 64 CloudBase transaction operations.
 - The CloudBase adapter hard-caps an atomic event request at 9 and accepts at
   most one unseen selection-bound event in a request. The tested first-event
   all-track migration and the maximum replay batch of 8 exact duplicates plus

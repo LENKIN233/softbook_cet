@@ -16,6 +16,10 @@ export type AuthSessionLogoutResult = {
   remoteRevocation: 'failed' | 'not_required' | 'succeeded';
 };
 
+export type AuthSessionScopeChangeReason =
+  | 'authorization_invalidated'
+  | 'session_changed';
+
 export type AuthSessionCoordinator = {
   establish: (session: AuthSession) => Promise<void>;
   forceRefresh: () => Promise<RemoteAuthSession>;
@@ -23,9 +27,14 @@ export type AuthSessionCoordinator = {
   getCurrentSession: () => AuthSession | null;
   invalidate: () => Promise<void>;
   logout: () => Promise<AuthSessionLogoutResult>;
-  restore: () => Promise<AuthSession | null>;
+  restore: (
+    observeRestoredSession?: (session: AuthSession) => void,
+  ) => Promise<AuthSession | null>;
   subscribeSessionScope: (
-    listener: (sessionScopeKey: string | null) => void,
+    listener: (
+      sessionScopeKey: string | null,
+      reason: AuthSessionScopeChangeReason,
+    ) => void,
   ) => () => void;
 };
 
@@ -49,10 +58,16 @@ export function createAuthSessionCoordinator(options: {
   let sessionRevision = 0;
   let storageTransition: Promise<void> = Promise.resolve();
   const sessionScopeListeners = new Set<
-    (sessionScopeKey: string | null) => void
+    (
+      sessionScopeKey: string | null,
+      reason: AuthSessionScopeChangeReason,
+    ) => void
   >();
 
-  const setCurrentSession = (session: AuthSession | null) => {
+  const setCurrentSession = (
+    session: AuthSession | null,
+    reason: AuthSessionScopeChangeReason = 'session_changed',
+  ) => {
     const previousScopeKey = getAuthSessionScopeKey(currentSession);
     const nextScopeKey = getAuthSessionScopeKey(session);
     currentSession = session;
@@ -63,7 +78,7 @@ export function createAuthSessionCoordinator(options: {
 
     for (const listener of sessionScopeListeners) {
       try {
-        listener(nextScopeKey);
+        listener(nextScopeKey, reason);
       } catch {
         console.warn(
           '[AuthSessionCoordinator] Session-scope listener failed.',
@@ -87,16 +102,21 @@ export function createAuthSessionCoordinator(options: {
     return result;
   };
 
-  const invalidate = async () => {
+  const invalidate = async (
+    reason: AuthSessionScopeChangeReason = 'session_changed',
+  ) => {
     sessionRevision += 1;
-    setCurrentSession(null);
+    setCurrentSession(null, reason);
     abortRefreshInFlight();
     await runStorageTransition(() => options.authSessionStore.clear());
   };
 
-  const invalidateWithoutMasking = async (error: unknown) => {
+  const invalidateWithoutMasking = async (
+    error: unknown,
+    reason: AuthSessionScopeChangeReason = 'session_changed',
+  ) => {
     try {
-      await invalidate();
+      await invalidate(reason);
     } catch {
       console.warn(
         '[AuthSessionCoordinator] Local auth cleanup could not be confirmed.',
@@ -138,7 +158,7 @@ export function createAuthSessionCoordinator(options: {
         });
       } catch (error) {
         if (isRemoteAuthorizationError(error) && isCurrentRefresh()) {
-          await invalidateWithoutMasking(error);
+          await invalidateWithoutMasking(error, 'authorization_invalidated');
         }
 
         throw error;
@@ -279,7 +299,7 @@ export function createAuthSessionCoordinator(options: {
       return {remoteRevocation};
     },
 
-    async restore() {
+    async restore(observeRestoredSession) {
       const restoreRevision = sessionRevision + 1;
       sessionRevision = restoreRevision;
       setCurrentSession(null);
@@ -295,6 +315,8 @@ export function createAuthSessionCoordinator(options: {
       if (!restoredSession) {
         return null;
       }
+
+      observeRestoredSession?.(restoredSession);
 
       if (
         isRemoteAuthSession(restoredSession) &&

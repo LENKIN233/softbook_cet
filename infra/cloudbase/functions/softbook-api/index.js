@@ -32,6 +32,7 @@ const {
   toBootstrapLearningCursor,
 } = require('./learning-scheduler-v1');
 const {
+  countLegacyPendingReview,
   createAccountDailyProgressId,
   createAccountDailyProgressKey,
   createAccountLearningStateId,
@@ -42,13 +43,21 @@ const {
   createSerializedTransactionRunner,
 } = require('./learning-events-v2-store');
 const {
+  assertRecoverablePreviousWriterLedger,
+  assertSpaceActionLineageAuthority,
   cloneSpaceState,
+  createSpaceActionLineageId,
   createSpaceActionLedgerId,
   createSpaceActionsV2Service,
+  createSpaceRevisionCheckpoint,
   createSpaceStateId,
+  createSpaceStateDigest,
+  createSpaceStateRevisionId,
   migrateLegacySpaceDocuments,
   normalizeStoredSpaceState,
+  normalizeStoredSpaceStateRevision,
   prepareSpaceActionCommit,
+  toStoredSpaceState,
 } = require('./space-actions-v2');
 
 const DEFAULT_SMS_CODE = '2468';
@@ -68,6 +77,15 @@ const DAILY_CHECK_IN_DOCUMENT_KEYS = [
 ];
 const LEGACY_SPACE_QUERY_PAGE_SIZE = 100;
 const LEGACY_SPACE_QUERY_MAX_DOCUMENTS = 5000;
+const LEGACY_LEARNING_QUERY_PAGE_SIZE = 100;
+const LEGACY_LEARNING_QUERY_MAX_DOCUMENTS = 5000;
+const MEMBERSHIP_REVISION_SCHEMA_VERSION = 'membership-revision.v1';
+const MEMBERSHIP_REVISION_KEYS = [
+  'phone_number',
+  'revision',
+  'schema_version',
+  'state_digest',
+];
 const CLOUDBASE_COLLECTIONS = {
   accountDeletions: 'softbook_account_deletions',
   authChallenges: 'softbook_auth_challenges',
@@ -85,7 +103,10 @@ const CLOUDBASE_COLLECTIONS = {
   learningSessions: 'softbook_learning_sessions',
   learningStates: 'softbook_learning_states',
   memberships: 'softbook_memberships',
+  membershipRevisions: 'softbook_membership_revisions',
+  spaceActionLineages: 'softbook_space_action_lineages',
   spaceActions: 'softbook_space_actions',
+  spaceStateRevisions: 'softbook_space_state_revisions',
   spaceStates: 'softbook_space_states',
 };
 const DEFAULT_CARD_SOURCE = {
@@ -636,6 +657,7 @@ function createMemoryStore() {
   const cardSources = new Map();
   const cardSourceVersions = new Map();
   const memberships = new Map();
+  const membershipRevisions = new Map();
   const dailyCheckIns = new Map();
   const dailyProgress = new Map();
   const learningEventCursors = new Map();
@@ -644,7 +666,9 @@ function createMemoryStore() {
   const learningMigrationRevisions = new Map();
   const learningSessions = new Map();
   const learningStates = new Map();
+  const spaceActionLineages = new Map();
   const spaceActions = new Map();
+  const spaceStateRevisions = new Map();
   const spaceStates = new Map();
   const runLearningTransaction = createSerializedTransactionRunner();
   const runSpaceTransaction = createSerializedTransactionRunner();
@@ -700,16 +724,25 @@ function createMemoryStore() {
         options.accountKey,
         'daily progress',
       );
+      const legacyProgress = accountProgress
+        ? null
+        : dailyProgress.get(`${phoneNumber}:${dayKey}`) ?? null;
       const progress = cloneJson(
-        accountProgress ??
-          dailyProgress.get(`${phoneNumber}:${dayKey}`) ??
-          createEmptyDailyProgress(dayKey),
+        accountProgress ?? legacyProgress ?? createEmptyDailyProgress(dayKey),
       );
       const sequence = options.accountKey
         ? learningEventSequences.get(
             createLearningEventSequenceId(options.accountKey),
           )
         : null;
+      const legacyBaseline = deriveLegacyPendingReviewBaseline(
+        [...dailyProgress.entries()]
+          .filter(([key]) => key.startsWith(`${phoneNumber}:`))
+          .map(([, value]) => value),
+        [...learningStates.entries()]
+          .filter(([key]) => key.startsWith(`${phoneNumber}:`))
+          .map(([, value]) => value),
+      );
 
       if (!sequence) {
         assertNoOrphanedLearningProjection(accountProgress, options.accountKey);
@@ -719,9 +752,22 @@ function createMemoryStore() {
         progress,
         sequence,
         options.accountKey,
+        legacyBaseline.pendingReviewCount,
       );
 
-      return overlayDailyCheckIn(progress, dailyCheckIn);
+      return {
+        ...overlayDailyCheckIn(progress, dailyCheckIn),
+        learning_authority: sequence
+          ? 'account_events_v2'
+          : legacyBaseline.hasLegacyAuthority
+            ? 'legacy_account_baseline'
+            : 'empty',
+        component_revision: {
+          check_in_revision: dailyCheckIn === null ? 0 : 1,
+          learning_server_sequence:
+            sequence?.last_server_sequence ?? 0,
+        },
+      };
     },
     getLearningState: (phoneNumber, dayKey, track, options = {}) => {
       const accountState = options.accountKey
@@ -775,6 +821,15 @@ function createMemoryStore() {
 
       return {
         ...state,
+        component_revision: {
+          event_server_sequence:
+            accountState?.projection_version === 'learning-events.v2'
+              ? maximumLearningServerSequence(
+                  accountState.events_by_card_id,
+                )
+              : 0,
+          session_revision: sessionState?.revision ?? 0,
+        },
         cursor:
           sessionState === null
             ? state.cursor ?? null
@@ -810,17 +865,28 @@ function createMemoryStore() {
         );
       }),
     getMembership: phoneNumber => {
-      const document = memberships.get(phoneNumber);
+      const base = reconcileMemoryMembershipRevision(
+        memberships,
+        membershipRevisions,
+        phoneNumber,
+      );
 
       return {
-        acknowledged_at: document?.updated_at ?? null,
-        ...cloneMembership(document?.entitlement ?? createInitialMembership()),
+        acknowledged_at: base.document?.updated_at ?? null,
+        component_revision: {
+          base_membership_revision: base.revision,
+          beta_entitlement_revision: 0,
+        },
+        ...base.entitlement,
       };
     },
     startTrial: (phoneNumber, acknowledgedAt) => {
-      const current = cloneMembership(
-        memberships.get(phoneNumber)?.entitlement ?? createInitialMembership(),
+      const base = reconcileMemoryMembershipRevision(
+        memberships,
+        membershipRevisions,
+        phoneNumber,
       );
+      const current = cloneMembership(base.entitlement);
 
       if (current.stage === 'trial_available') {
         current.counted_entry_count += 1;
@@ -830,34 +896,52 @@ function createMemoryStore() {
         current.trial_started_at_entry_count = current.counted_entry_count;
       }
 
-      memberships.set(phoneNumber, {
-        entitlement: current,
-        updated_at: acknowledgedAt,
-      });
+      saveMemoryMembership(
+        memberships,
+        membershipRevisions,
+        phoneNumber,
+        current,
+        acknowledgedAt,
+        base.revision,
+      );
       return current;
     },
     purchase: (phoneNumber, acknowledgedAt) => {
-      const current = cloneMembership(
-        memberships.get(phoneNumber)?.entitlement ?? createInitialMembership(),
+      const base = reconcileMemoryMembershipRevision(
+        memberships,
+        membershipRevisions,
+        phoneNumber,
       );
+      const current = cloneMembership(base.entitlement);
       current.last_experience_ended_by = null;
       current.recovery_prompt_visible = false;
       current.stage = 'premium';
-      memberships.set(phoneNumber, {
-        entitlement: current,
-        updated_at: acknowledgedAt,
-      });
+      saveMemoryMembership(
+        memberships,
+        membershipRevisions,
+        phoneNumber,
+        current,
+        acknowledgedAt,
+        base.revision,
+      );
       return current;
     },
     dismissRecovery: (phoneNumber, acknowledgedAt) => {
-      const current = cloneMembership(
-        memberships.get(phoneNumber)?.entitlement ?? createInitialMembership(),
+      const base = reconcileMemoryMembershipRevision(
+        memberships,
+        membershipRevisions,
+        phoneNumber,
       );
+      const current = cloneMembership(base.entitlement);
       current.recovery_prompt_visible = false;
-      memberships.set(phoneNumber, {
-        entitlement: current,
-        updated_at: acknowledgedAt,
-      });
+      saveMemoryMembership(
+        memberships,
+        membershipRevisions,
+        phoneNumber,
+        current,
+        acknowledgedAt,
+        base.revision,
+      );
       return current;
     },
     seedLegacyDailyProgressForMigrationTest: (
@@ -960,40 +1044,84 @@ function createMemoryStore() {
       runSpaceTransaction(async () => {
         assertLearningWriteAccountKey(options.accountKey);
         const stateKey = createSpaceStateId(options.accountKey);
+        const revisionKey = createSpaceStateRevisionId(options.accountKey);
         const stored = spaceStates.get(stateKey);
-        let canonical;
+        let state;
+        let shouldStoreState = false;
 
         if (stored) {
-          canonical = normalizeStoredSpaceState(stored, options.accountKey);
+          state = normalizeStoredSpaceState(stored, options.accountKey);
+          shouldStoreState = Object.hasOwn(stored, 'revision');
         } else {
           const legacy = spaceStates.get(phoneNumber);
-          canonical = migrateLegacySpaceDocuments(
+          state = migrateLegacySpaceDocuments(
             legacy ? [legacy] : [],
             options.accountKey,
             options.acknowledgedAt ?? new Date().toISOString(),
           );
-
-          if (Object.keys(canonical.states_by_card_id).length > 0) {
-            spaceStates.set(stateKey, canonical);
-          }
+          shouldStoreState = hasPersistedSpaceState(state);
         }
 
-        return cloneSpaceState(canonical);
+        const snapshot = inspectSpaceRevisionSnapshot({
+          accountKey: options.accountKey,
+          needsStateRewrite:
+            stored !== undefined
+              ? Object.hasOwn(stored, 'revision')
+              : shouldStoreState,
+          revision: spaceStateRevisions.get(revisionKey) ?? null,
+          state,
+          stateExists: stored !== undefined || shouldStoreState,
+        });
+        if (snapshot.needsCheckpoint) {
+          const checkpoint = createSpaceRevisionCheckpoint({
+            accountKey: options.accountKey,
+            ledgers: [],
+            previousActionBindings:
+              snapshot.revision?.action_bindings ?? [],
+            previousLineageDigest:
+              snapshot.revision?.lineage_digest ?? null,
+            revision: snapshot.nextRevision,
+            state: snapshot.state,
+          });
+          snapshot.state.revision = checkpoint.head.revision;
+          spaceStateRevisions.set(revisionKey, checkpoint.head);
+          shouldStoreState = true;
+        }
+        if (shouldStoreState) {
+          spaceStates.set(
+            stateKey,
+            toStoredSpaceState(snapshot.state, options.accountKey),
+          );
+        }
+
+        return cloneSpaceState(snapshot.state);
       }),
     commitSpaceActions: input =>
       runSpaceTransaction(async () => {
         assertLearningWriteAccountKey(input.accountKey);
         const stateKey = createSpaceStateId(input.accountKey);
+        const revisionKey = createSpaceStateRevisionId(input.accountKey);
         const stored = spaceStates.get(stateKey);
-        const state =
-          stored ??
-          migrateLegacySpaceDocuments(
-            spaceStates.has(input.phoneNumber)
-              ? [spaceStates.get(input.phoneNumber)]
-              : [],
-            input.accountKey,
-            input.acknowledgedAt,
-          );
+        const migrated =
+          stored === undefined
+            ? migrateLegacySpaceDocuments(
+                spaceStates.has(input.phoneNumber)
+                  ? [spaceStates.get(input.phoneNumber)]
+                  : [],
+                input.accountKey,
+                input.acknowledgedAt,
+              )
+            : null;
+        const snapshot = inspectSpaceRevisionSnapshot({
+          accountKey: input.accountKey,
+          needsStateRewrite:
+            stored !== undefined
+              ? Object.hasOwn(stored, 'revision')
+              : hasPersistedSpaceState(migrated),
+          revision: spaceStateRevisions.get(revisionKey) ?? null,
+          state: stored ?? migrated,
+          stateExists: stored !== undefined || hasPersistedSpaceState(migrated),
+        });
         const ledgerByActionId = new Map(
           input.actions.map(action => [
             action.action_id,
@@ -1005,13 +1133,73 @@ function createMemoryStore() {
             ) ?? null,
           ]),
         );
+        const verifiedDuplicateActionIds = new Set();
+        const recoveredLedgers = [];
+
+        for (const action of input.actions) {
+          const ledger = ledgerByActionId.get(action.action_id);
+          if (ledger === null || ledger === undefined) continue;
+          const lineage = spaceActionLineages.get(
+            createSpaceActionLineageId(input.accountKey, action.action_id),
+          );
+          if (lineage) {
+            assertSpaceActionLineageAuthority({
+              accountKey: input.accountKey,
+              actionId: action.action_id,
+              ledger,
+              lineage,
+              revision: snapshot.revision,
+            });
+          } else {
+            recoveredLedgers.push(
+              assertRecoverablePreviousWriterLedger(
+                ledger,
+                snapshot.state,
+                {accountKey: input.accountKey, actionId: action.action_id},
+              ),
+            );
+          }
+          verifiedDuplicateActionIds.add(action.action_id);
+        }
         const prepared = prepareSpaceActionCommit({
           acknowledgedAt: input.acknowledgedAt,
           accountKey: input.accountKey,
           actions: input.actions,
           ledgerByActionId,
-          state,
+          state: snapshot.state,
+          verifiedDuplicateActionIds,
         });
+
+        const checkpointLedgers = [...recoveredLedgers, ...prepared.ledgers];
+        const needsCheckpoint =
+          snapshot.needsCheckpoint || checkpointLedgers.length > 0;
+        if (needsCheckpoint) {
+          prepared.state.revision = resolveSpaceCommitRevision({
+            hasNewLedgers: prepared.ledgers.length > 0,
+            recoveredLedgerCount: recoveredLedgers.length,
+            snapshot,
+          });
+          const checkpoint = createSpaceRevisionCheckpoint({
+            accountKey: input.accountKey,
+            ledgers: checkpointLedgers,
+            previousActionBindings:
+              snapshot.revision?.action_bindings ?? [],
+            previousLineageDigest:
+              snapshot.revision?.lineage_digest ?? null,
+            revision: prepared.state.revision,
+            state: prepared.state,
+          });
+          spaceStateRevisions.set(revisionKey, checkpoint.head);
+          checkpoint.lineages.forEach(lineage => {
+            spaceActionLineages.set(
+              createSpaceActionLineageId(
+                input.accountKey,
+                lineage.action_id,
+              ),
+              lineage,
+            );
+          });
+        }
 
         prepared.ledgers.forEach(ledger => {
           spaceActions.set(
@@ -1023,8 +1211,15 @@ function createMemoryStore() {
           );
         });
 
-        if (prepared.ledgers.length > 0) {
-          spaceStates.set(stateKey, prepared.state);
+        if (
+          prepared.ledgers.length > 0 ||
+          snapshot.needsStateRewrite ||
+          snapshot.needsCheckpoint
+        ) {
+          spaceStates.set(
+            stateKey,
+            toStoredSpaceState(prepared.state, input.accountKey),
+          );
         }
 
         return {
@@ -1060,7 +1255,10 @@ function createMemoryStore() {
       learningSessions,
       learningStates,
       memberships,
+      membershipRevisions,
+      spaceActionLineages,
       spaceActions,
+      spaceStateRevisions,
       spaceStates,
     }),
   };
@@ -1075,6 +1273,9 @@ function createCloudBaseStore(options = {}) {
   const cardSources = db.collection(CLOUDBASE_COLLECTIONS.cardSources);
   const betaEntitlements = db.collection(CLOUDBASE_COLLECTIONS.betaEntitlements);
   const memberships = db.collection(CLOUDBASE_COLLECTIONS.memberships);
+  const membershipRevisions = db.collection(
+    CLOUDBASE_COLLECTIONS.membershipRevisions,
+  );
   const dailyCheckIns = db.collection(CLOUDBASE_COLLECTIONS.dailyCheckIns);
   const dailyProgress = db.collection(CLOUDBASE_COLLECTIONS.dailyProgress);
   const learningEventSequences = db.collection(
@@ -1082,7 +1283,13 @@ function createCloudBaseStore(options = {}) {
   );
   const learningSessions = db.collection(CLOUDBASE_COLLECTIONS.learningSessions);
   const learningStates = db.collection(CLOUDBASE_COLLECTIONS.learningStates);
+  const spaceActionLineages = db.collection(
+    CLOUDBASE_COLLECTIONS.spaceActionLineages,
+  );
   const spaceActions = db.collection(CLOUDBASE_COLLECTIONS.spaceActions);
+  const spaceStateRevisions = db.collection(
+    CLOUDBASE_COLLECTIONS.spaceStateRevisions,
+  );
   const spaceStates = db.collection(CLOUDBASE_COLLECTIONS.spaceStates);
   const commitLearningEvents = createCloudBaseLearningEventsCommitter({
     collections: CLOUDBASE_COLLECTIONS,
@@ -1115,53 +1322,102 @@ function createCloudBaseStore(options = {}) {
       return defaultCardSource;
     },
     getDailyProgress: async (phoneNumber, dayKey, options = {}) => {
-      const dailyCheckIn = options.accountKey
-        ? normalizeStoredDailyCheckIn(
-            await getCloudBaseDocument(
-              dailyCheckIns,
+      const [legacyProgressDocuments, legacyLearningStates] =
+        await Promise.all([
+          listCloudBaseDocumentsByQuery(
+            dailyProgress,
+            {phone_number: phoneNumber},
+            LEGACY_LEARNING_QUERY_PAGE_SIZE,
+            LEGACY_LEARNING_QUERY_MAX_DOCUMENTS,
+          ),
+          listCloudBaseDocumentsByQuery(
+            learningStates,
+            {phone_number: phoneNumber},
+            LEGACY_LEARNING_QUERY_PAGE_SIZE,
+            LEGACY_LEARNING_QUERY_MAX_DOCUMENTS,
+          ),
+        ]);
+      const legacyBaseline = deriveLegacyPendingReviewBaseline(
+        legacyProgressDocuments,
+        legacyLearningStates,
+      );
+
+      return db.runTransaction(async transaction => {
+        const transactionDailyCheckIns = transaction.collection(
+          CLOUDBASE_COLLECTIONS.dailyCheckIns,
+        );
+        const transactionDailyProgress = transaction.collection(
+          CLOUDBASE_COLLECTIONS.dailyProgress,
+        );
+        const transactionLearningEventSequences = transaction.collection(
+          CLOUDBASE_COLLECTIONS.learningEventSequences,
+        );
+        const dailyCheckIn = options.accountKey
+          ? normalizeStoredDailyCheckIn(
+              await getCloudBaseDocument(
+                transactionDailyCheckIns,
+                createAccountDailyProgressId(options.accountKey, dayKey),
+              ),
+              options.accountKey,
+              dayKey,
+            )
+          : null;
+        const accountProgress = options.accountKey
+          ? await getCloudBaseDocument(
+              transactionDailyProgress,
               createAccountDailyProgressId(options.accountKey, dayKey),
-            ),
+            )
+          : null;
+        assertLearningProjectionMetadata(
+          accountProgress,
+          options.accountKey,
+          'daily progress',
+        );
+        const legacyProgress = accountProgress
+          ? null
+          : await getCloudBaseDocument(
+              transactionDailyProgress,
+              createCloudBaseDocumentId(`${phoneNumber}:${dayKey}`),
+            );
+        const progress =
+          accountProgress ??
+          legacyProgress ??
+          createEmptyDailyProgress(dayKey);
+        const sequence = options.accountKey
+          ? await getCloudBaseDocument(
+              transactionLearningEventSequences,
+              createLearningEventSequenceId(options.accountKey),
+            )
+          : null;
+
+        if (!sequence) {
+          assertNoOrphanedLearningProjection(
+            accountProgress,
             options.accountKey,
-            dayKey,
-          )
-        : null;
-      const accountProgress = options.accountKey
-        ? await getCloudBaseDocument(
-            dailyProgress,
-            createAccountDailyProgressId(options.accountKey, dayKey),
-          )
-        : null;
-      assertLearningProjectionMetadata(
-        accountProgress,
-        options.accountKey,
-        'daily progress',
-      );
-      const legacyProgress = accountProgress
-        ? null
-        : await getCloudBaseDocument(
-            dailyProgress,
-            createCloudBaseDocumentId(`${phoneNumber}:${dayKey}`),
           );
-      const progress =
-        accountProgress ?? legacyProgress ?? createEmptyDailyProgress(dayKey);
-      const sequence = options.accountKey
-        ? await getCloudBaseDocument(
-            learningEventSequences,
-            createLearningEventSequenceId(options.accountKey),
-          )
-        : null;
+        }
 
-      if (!sequence) {
-        assertNoOrphanedLearningProjection(accountProgress, options.accountKey);
-      }
+        applyLearningSequencePendingReview(
+          progress,
+          sequence,
+          options.accountKey,
+          legacyBaseline.pendingReviewCount,
+        );
 
-      applyLearningSequencePendingReview(
-        progress,
-        sequence,
-        options.accountKey,
-      );
-
-      return overlayDailyCheckIn(progress, dailyCheckIn);
+        return {
+          ...overlayDailyCheckIn(progress, dailyCheckIn),
+          learning_authority: sequence
+            ? 'account_events_v2'
+            : legacyBaseline.hasLegacyAuthority
+              ? 'legacy_account_baseline'
+              : 'empty',
+          component_revision: {
+            check_in_revision: dailyCheckIn === null ? 0 : 1,
+            learning_server_sequence:
+              sequence?.last_server_sequence ?? 0,
+          },
+        };
+      });
     },
     getLearningState: async (phoneNumber, dayKey, track, options = {}) => {
       const accountState = options.accountKey
@@ -1223,6 +1479,15 @@ function createCloudBaseStore(options = {}) {
 
       return {
         ...state,
+        component_revision: {
+          event_server_sequence:
+            accountState?.projection_version === 'learning-events.v2'
+              ? maximumLearningServerSequence(
+                  accountState.events_by_card_id,
+                )
+              : 0,
+          session_revision: sessionState?.revision ?? 0,
+        },
         cursor:
           sessionState === null
             ? state.cursor ?? null
@@ -1278,33 +1543,33 @@ function createCloudBaseStore(options = {}) {
         return true;
       }),
     getMembership: async phoneNumber => {
-      const [existing, betaEntitlement] = await Promise.all([
-        getCloudBaseDocument(memberships, phoneNumber),
+      const [base, betaEntitlement] = await Promise.all([
+        db.runTransaction(async transaction =>
+          getCloudBaseMembershipRecord(
+            transaction.collection(CLOUDBASE_COLLECTIONS.memberships),
+            transaction.collection(
+              CLOUDBASE_COLLECTIONS.membershipRevisions,
+            ),
+            phoneNumber,
+          ),
+        ),
         getCloudBaseDocument(betaEntitlements, phoneNumber),
       ]);
 
-      if (existing) {
-        const entitlement = applyBetaEntitlement(
-          deserializeMembershipDocument(existing),
-          betaEntitlement,
-          phoneNumber,
-        );
-        return {
-          acknowledged_at: latestAcknowledgedAt(
-            existing.updated_at,
-            betaEntitlement?.updated_at,
-          ),
-          ...entitlement,
-        };
-      }
-
       const entitlement = applyBetaEntitlement(
-        createInitialMembership(),
+        base.entitlement,
         betaEntitlement,
         phoneNumber,
       );
       return {
-        acknowledged_at: betaEntitlement?.updated_at ?? null,
+        acknowledged_at: latestAcknowledgedAt(
+          base.document?.updated_at,
+          betaEntitlement?.updated_at,
+        ),
+        component_revision: {
+          base_membership_revision: base.revision,
+          beta_entitlement_revision: betaEntitlement?.revision ?? 0,
+        },
         ...entitlement,
       };
     },
@@ -1313,9 +1578,15 @@ function createCloudBaseStore(options = {}) {
         const transactionMemberships = transaction.collection(
           CLOUDBASE_COLLECTIONS.memberships,
         );
-        const current = cloneMembership(
-          await getCloudBaseMembership(transactionMemberships, phoneNumber),
+        const transactionMembershipRevisions = transaction.collection(
+          CLOUDBASE_COLLECTIONS.membershipRevisions,
         );
+        const base = await getCloudBaseMembershipRecord(
+          transactionMemberships,
+          transactionMembershipRevisions,
+          phoneNumber,
+        );
+        const current = cloneMembership(base.entitlement);
 
         if (current.stage === 'trial_available') {
           current.counted_entry_count += 1;
@@ -1327,9 +1598,11 @@ function createCloudBaseStore(options = {}) {
 
         await saveCloudBaseMembership(
           transactionMemberships,
+          transactionMembershipRevisions,
           phoneNumber,
           current,
           acknowledgedAt,
+          base.revision,
         );
         return current;
       }),
@@ -1338,17 +1611,25 @@ function createCloudBaseStore(options = {}) {
         const transactionMemberships = transaction.collection(
           CLOUDBASE_COLLECTIONS.memberships,
         );
-        const current = cloneMembership(
-          await getCloudBaseMembership(transactionMemberships, phoneNumber),
+        const transactionMembershipRevisions = transaction.collection(
+          CLOUDBASE_COLLECTIONS.membershipRevisions,
         );
+        const base = await getCloudBaseMembershipRecord(
+          transactionMemberships,
+          transactionMembershipRevisions,
+          phoneNumber,
+        );
+        const current = cloneMembership(base.entitlement);
         current.last_experience_ended_by = null;
         current.recovery_prompt_visible = false;
         current.stage = 'premium';
         await saveCloudBaseMembership(
           transactionMemberships,
+          transactionMembershipRevisions,
           phoneNumber,
           current,
           acknowledgedAt,
+          base.revision,
         );
         return current;
       }),
@@ -1357,15 +1638,23 @@ function createCloudBaseStore(options = {}) {
         const transactionMemberships = transaction.collection(
           CLOUDBASE_COLLECTIONS.memberships,
         );
-        const current = cloneMembership(
-          await getCloudBaseMembership(transactionMemberships, phoneNumber),
+        const transactionMembershipRevisions = transaction.collection(
+          CLOUDBASE_COLLECTIONS.membershipRevisions,
         );
+        const base = await getCloudBaseMembershipRecord(
+          transactionMemberships,
+          transactionMembershipRevisions,
+          phoneNumber,
+        );
+        const current = cloneMembership(base.entitlement);
         current.recovery_prompt_visible = false;
         await saveCloudBaseMembership(
           transactionMemberships,
+          transactionMembershipRevisions,
           phoneNumber,
           current,
           acknowledgedAt,
+          base.revision,
         );
         return current;
       }),
@@ -1491,32 +1780,35 @@ function createCloudBaseStore(options = {}) {
     commitLearningEvents,
     getSpaceState: async (phoneNumber, dayKey, options = {}) => {
       assertLearningWriteAccountKey(options.accountKey);
-      const documentId = createSpaceStateId(options.accountKey);
-      const existing = await getCloudBaseDocument(spaceStates, documentId);
-
-      if (existing) {
-        return cloneSpaceState(
-          normalizeStoredSpaceState(existing, options.accountKey),
-        );
-      }
-
-      const legacyDocuments = await listCloudBaseDocumentsByQuery(
-        spaceStates,
-        {phone_number: phoneNumber},
-        LEGACY_SPACE_QUERY_PAGE_SIZE,
-        LEGACY_SPACE_QUERY_MAX_DOCUMENTS,
-      );
+      const stateId = createSpaceStateId(options.accountKey);
+      const revisionId = createSpaceStateRevisionId(options.accountKey);
+      const existing = await getCloudBaseDocument(spaceStates, stateId);
+      const legacyDocuments = existing
+        ? []
+        : await listCloudBaseDocumentsByQuery(
+            spaceStates,
+            {phone_number: phoneNumber},
+            LEGACY_SPACE_QUERY_PAGE_SIZE,
+            LEGACY_SPACE_QUERY_MAX_DOCUMENTS,
+          );
       return db.runTransaction(async transaction => {
         const transactionSpaceStates = transaction.collection(
           CLOUDBASE_COLLECTIONS.spaceStates,
         );
-        const transactionExisting = await getCloudBaseDocument(
-          transactionSpaceStates,
-          documentId,
+        const transactionSpaceStateRevisions = transaction.collection(
+          CLOUDBASE_COLLECTIONS.spaceStateRevisions,
         );
-        const canonical = transactionExisting
+        const storedState = await getCloudBaseDocument(
+          transactionSpaceStates,
+          stateId,
+        );
+        const storedRevision = await getCloudBaseDocument(
+          transactionSpaceStateRevisions,
+          revisionId,
+        );
+        const state = storedState
           ? normalizeStoredSpaceState(
-              transactionExisting,
+              storedState,
               options.accountKey,
             )
           : migrateLegacySpaceDocuments(
@@ -1524,19 +1816,50 @@ function createCloudBaseStore(options = {}) {
               options.accountKey,
               options.acknowledgedAt ?? new Date().toISOString(),
             );
+        const stateExists =
+          storedState !== null || hasPersistedSpaceState(state);
+        const snapshot = inspectSpaceRevisionSnapshot({
+          accountKey: options.accountKey,
+          needsStateRewrite:
+            storedState !== null
+              ? Object.hasOwn(storedState, 'revision')
+              : stateExists,
+          revision: storedRevision,
+          state,
+          stateExists,
+        });
+        let shouldStoreState =
+          (storedState !== null && Object.hasOwn(storedState, 'revision')) ||
+          (storedState === null && stateExists);
 
-        if (
-          !transactionExisting &&
-          Object.keys(canonical.states_by_card_id).length > 0
-        ) {
+        if (snapshot.needsCheckpoint) {
+          const checkpoint = createSpaceRevisionCheckpoint({
+            accountKey: options.accountKey,
+            ledgers: [],
+            previousActionBindings:
+              snapshot.revision?.action_bindings ?? [],
+            previousLineageDigest:
+              snapshot.revision?.lineage_digest ?? null,
+            revision: snapshot.nextRevision,
+            state: snapshot.state,
+          });
+          snapshot.state.revision = checkpoint.head.revision;
+          await setCloudBaseDocument(
+            transactionSpaceStateRevisions,
+            revisionId,
+            checkpoint.head,
+          );
+          shouldStoreState = true;
+        }
+        if (shouldStoreState) {
           await setCloudBaseDocument(
             transactionSpaceStates,
-            documentId,
-            canonical,
+            stateId,
+            toStoredSpaceState(snapshot.state, options.accountKey),
           );
         }
 
-        return cloneSpaceState(canonical);
+        return cloneSpaceState(snapshot.state);
       });
     },
     commitSpaceActions: async input => {
@@ -1553,8 +1876,14 @@ function createCloudBaseStore(options = {}) {
           );
 
       return db.runTransaction(async transaction => {
+        const transactionSpaceActionLineages = transaction.collection(
+          CLOUDBASE_COLLECTIONS.spaceActionLineages,
+        );
         const transactionSpaceActions = transaction.collection(
           CLOUDBASE_COLLECTIONS.spaceActions,
+        );
+        const transactionSpaceStateRevisions = transaction.collection(
+          CLOUDBASE_COLLECTIONS.spaceStateRevisions,
         );
         const transactionSpaceStates = transaction.collection(
           CLOUDBASE_COLLECTIONS.spaceStates,
@@ -1563,6 +1892,11 @@ function createCloudBaseStore(options = {}) {
           transactionSpaceStates,
           stateId,
         );
+        const revisionId = createSpaceStateRevisionId(input.accountKey);
+        const storedRevision = await getCloudBaseDocument(
+          transactionSpaceStateRevisions,
+          revisionId,
+        );
         const state =
           storedState ??
           migrateLegacySpaceDocuments(
@@ -1570,19 +1904,56 @@ function createCloudBaseStore(options = {}) {
             input.accountKey,
             input.acknowledgedAt,
           );
+        const snapshot = inspectSpaceRevisionSnapshot({
+          accountKey: input.accountKey,
+          needsStateRewrite:
+            storedState !== null
+              ? Object.hasOwn(storedState, 'revision')
+              : hasPersistedSpaceState(state),
+          revision: storedRevision,
+          state,
+          stateExists:
+            storedState !== null || hasPersistedSpaceState(state),
+        });
         const ledgerByActionId = new Map();
+        const verifiedDuplicateActionIds = new Set();
+        const recoveredLedgers = [];
 
         for (const action of input.actions) {
-          ledgerByActionId.set(
-            action.action_id,
-            await getCloudBaseDocument(
-              transactionSpaceActions,
-              createSpaceActionLedgerId(
-                input.accountKey,
-                action.action_id,
-              ),
+          const ledger = await getCloudBaseDocument(
+            transactionSpaceActions,
+            createSpaceActionLedgerId(
+              input.accountKey,
+              action.action_id,
             ),
           );
+          ledgerByActionId.set(action.action_id, ledger);
+          if (ledger === null) continue;
+          const lineage = await getCloudBaseDocument(
+            transactionSpaceActionLineages,
+            createSpaceActionLineageId(
+              input.accountKey,
+              action.action_id,
+            ),
+          );
+          if (lineage) {
+            assertSpaceActionLineageAuthority({
+              accountKey: input.accountKey,
+              actionId: action.action_id,
+              ledger,
+              lineage,
+              revision: snapshot.revision,
+            });
+          } else {
+            recoveredLedgers.push(
+              assertRecoverablePreviousWriterLedger(
+                ledger,
+                snapshot.state,
+                {accountKey: input.accountKey, actionId: action.action_id},
+              ),
+            );
+          }
+          verifiedDuplicateActionIds.add(action.action_id);
         }
 
         const prepared = prepareSpaceActionCommit({
@@ -1590,8 +1961,45 @@ function createCloudBaseStore(options = {}) {
           accountKey: input.accountKey,
           actions: input.actions,
           ledgerByActionId,
-          state,
+          state: snapshot.state,
+          verifiedDuplicateActionIds,
         });
+
+        const checkpointLedgers = [...recoveredLedgers, ...prepared.ledgers];
+        const needsCheckpoint =
+          snapshot.needsCheckpoint || checkpointLedgers.length > 0;
+        if (needsCheckpoint) {
+          prepared.state.revision = resolveSpaceCommitRevision({
+            hasNewLedgers: prepared.ledgers.length > 0,
+            recoveredLedgerCount: recoveredLedgers.length,
+            snapshot,
+          });
+          const checkpoint = createSpaceRevisionCheckpoint({
+            accountKey: input.accountKey,
+            ledgers: checkpointLedgers,
+            previousActionBindings:
+              snapshot.revision?.action_bindings ?? [],
+            previousLineageDigest:
+              snapshot.revision?.lineage_digest ?? null,
+            revision: prepared.state.revision,
+            state: prepared.state,
+          });
+          await setCloudBaseDocument(
+            transactionSpaceStateRevisions,
+            revisionId,
+            checkpoint.head,
+          );
+          for (const lineage of checkpoint.lineages) {
+            await setCloudBaseDocument(
+              transactionSpaceActionLineages,
+              createSpaceActionLineageId(
+                input.accountKey,
+                lineage.action_id,
+              ),
+              lineage,
+            );
+          }
+        }
 
         for (const ledger of prepared.ledgers) {
           await setCloudBaseDocument(
@@ -1604,11 +2012,15 @@ function createCloudBaseStore(options = {}) {
           );
         }
 
-        if (prepared.ledgers.length > 0) {
+        if (
+          prepared.ledgers.length > 0 ||
+          snapshot.needsStateRewrite ||
+          snapshot.needsCheckpoint
+        ) {
           await setCloudBaseDocument(
             transactionSpaceStates,
             stateId,
-            prepared.state,
+            toStoredSpaceState(prepared.state, input.accountKey),
           );
         }
 
@@ -1839,13 +2251,74 @@ function applyLearningSequencePendingReview(
   progress,
   sequence,
   expectedAccountKey,
+  legacyPendingReviewCount = 0,
 ) {
   if (sequence === null || sequence === undefined) {
+    if (
+      !Number.isSafeInteger(legacyPendingReviewCount) ||
+      legacyPendingReviewCount < 0
+    ) {
+      throw learningProjectionInvalidError(
+        'The legacy pending-review baseline is invalid.',
+      );
+    }
+    progress.pending_review_count = legacyPendingReviewCount;
     return;
   }
 
   assertLearningSequenceMetadata(sequence, expectedAccountKey);
   progress.pending_review_count = sequence.pending_review_count;
+}
+
+function deriveLegacyPendingReviewBaseline(
+  legacyProgressDocuments,
+  legacyLearningStates,
+) {
+  try {
+    return deriveLegacyPendingReviewBaselineUnchecked(
+      legacyProgressDocuments,
+      legacyLearningStates,
+    );
+  } catch (_error) {
+    throw httpError(
+      500,
+      'invalid_canonical_state',
+      'The legacy pending-review baseline is invalid.',
+    );
+  }
+}
+
+function deriveLegacyPendingReviewBaselineUnchecked(
+  legacyProgressDocuments,
+  legacyLearningStates,
+) {
+  let latestProgress = null;
+  let latestOrderKey = null;
+
+  for (const value of legacyProgressDocuments) {
+    if (!isObject(value) || !isValidDayKey(value.day_key)) {
+      throw learningProjectionInvalidError(
+        'A legacy daily progress baseline is invalid.',
+      );
+    }
+
+    const progress = normalizeStoredDailyProgress(value, value.day_key, null);
+    const observedAt =
+      progress.acknowledged_at ?? `${progress.day_key}T00:00:00.000Z`;
+    const orderKey = `${observedAt}:${progress.day_key}`;
+    if (latestOrderKey === null || orderKey > latestOrderKey) {
+      latestOrderKey = orderKey;
+      latestProgress = progress;
+    }
+  }
+
+  return {
+    hasLegacyAuthority:
+      legacyProgressDocuments.length > 0 || legacyLearningStates.length > 0,
+    pendingReviewCount:
+      latestProgress?.pending_review_count ??
+      countLegacyPendingReview(legacyLearningStates),
+  };
 }
 
 function assertLearningProjectionSequence(
@@ -2054,7 +2527,7 @@ async function listCloudBaseDocumentsByQuery(
       throw httpError(
         500,
         'invalid_canonical_state',
-        'Legacy physical-space migration exceeds the supported bound.',
+        'Legacy migration exceeds the supported bound.',
       );
     }
 
@@ -2079,29 +2552,381 @@ function createCloudBaseApp() {
   return cloudbase.init({env});
 }
 
-async function getCloudBaseMembership(collection, phoneNumber) {
-  const existing = await getCloudBaseDocument(collection, phoneNumber);
+async function getCloudBaseMembershipRecord(
+  membershipCollection,
+  revisionCollection,
+  phoneNumber,
+) {
+  const existing = await getCloudBaseDocument(
+    membershipCollection,
+    phoneNumber,
+  );
+  const storedRevision = await getCloudBaseDocument(
+    revisionCollection,
+    phoneNumber,
+  );
+  const reconciled = reconcileBaseMembershipRevision(
+    existing,
+    storedRevision,
+    phoneNumber,
+  );
 
-  return existing
-    ? deserializeMembershipDocument(existing)
-    : createInitialMembership();
+  if (reconciled.sidecarToWrite) {
+    await setCloudBaseDocument(
+      revisionCollection,
+      phoneNumber,
+      reconciled.sidecarToWrite,
+    );
+  }
+
+  return reconciled;
 }
 
 async function saveCloudBaseMembership(
-  collection,
+  membershipCollection,
+  revisionCollection,
   phoneNumber,
   membership,
   acknowledgedAt,
+  currentRevision,
 ) {
-  await setCloudBaseDocument(collection, phoneNumber, {
+  const document = {
     entitlement: membership,
     phone_number: phoneNumber,
     updated_at: acknowledgedAt,
-  });
+  };
+  const revision = nextBaseMembershipRevision(currentRevision);
+
+  await setCloudBaseDocument(membershipCollection, phoneNumber, document);
+  await setCloudBaseDocument(
+    revisionCollection,
+    phoneNumber,
+    createMembershipRevisionSidecar(phoneNumber, revision, document),
+  );
+}
+
+function reconcileMemoryMembershipRevision(
+  memberships,
+  membershipRevisions,
+  phoneNumber,
+) {
+  const reconciled = reconcileBaseMembershipRevision(
+    memberships.get(phoneNumber) ?? null,
+    membershipRevisions.get(phoneNumber) ?? null,
+    phoneNumber,
+  );
+  if (reconciled.sidecarToWrite) {
+    membershipRevisions.set(phoneNumber, reconciled.sidecarToWrite);
+  }
+  return reconciled;
+}
+
+function saveMemoryMembership(
+  memberships,
+  membershipRevisions,
+  phoneNumber,
+  membership,
+  acknowledgedAt,
+  currentRevision,
+) {
+  const document = {
+    entitlement: membership,
+    phone_number: phoneNumber,
+    updated_at: acknowledgedAt,
+  };
+  const revision = nextBaseMembershipRevision(currentRevision);
+  memberships.set(phoneNumber, document);
+  membershipRevisions.set(
+    phoneNumber,
+    createMembershipRevisionSidecar(phoneNumber, revision, document),
+  );
+}
+
+function reconcileBaseMembershipRevision(
+  document,
+  sidecarValue,
+  phoneNumber,
+) {
+  const sidecar = normalizeMembershipRevisionSidecar(
+    sidecarValue,
+    phoneNumber,
+  );
+  if (document === null || document === undefined) {
+    if (sidecar !== null) {
+      throw httpError(
+        500,
+        'invalid_membership_revision',
+        'A base membership revision cannot outlive its business state.',
+      );
+    }
+    return {
+      document: null,
+      entitlement: createInitialMembership(),
+      revision: 0,
+      sidecarToWrite: null,
+    };
+  }
+
+  assertMembershipDocumentOwner(document, phoneNumber);
+
+  const legacyRevisionFloor = Object.hasOwn(document, 'revision')
+    ? requirePositiveBaseMembershipRevision(document.revision)
+    : 1;
+  const stateDigest = createMembershipStateDigest(document, phoneNumber);
+  let revision;
+
+  if (sidecar === null) {
+    revision = legacyRevisionFloor;
+  } else if (sidecar.state_digest === stateDigest) {
+    revision = Math.max(sidecar.revision, legacyRevisionFloor);
+  } else {
+    revision = Math.max(
+      legacyRevisionFloor,
+      nextBaseMembershipRevision(sidecar.revision),
+    );
+  }
+
+  const sidecarToWrite =
+    sidecar === null ||
+    sidecar.revision !== revision ||
+    sidecar.state_digest !== stateDigest
+      ? createMembershipRevisionSidecar(
+          phoneNumber,
+          revision,
+          document,
+        )
+      : null;
+
+  return {
+    document,
+    entitlement: deserializeMembershipDocument(document),
+    revision,
+    sidecarToWrite,
+  };
+}
+
+function normalizeMembershipRevisionSidecar(value, phoneNumber) {
+  if (value === null || value === undefined) return null;
+  const stored = {...value};
+  delete stored._id;
+  const actualKeys = Object.keys(stored).sort();
+  const expectedKeys = [...MEMBERSHIP_REVISION_KEYS].sort();
+  if (
+    actualKeys.length !== expectedKeys.length ||
+    actualKeys.some((key, index) => key !== expectedKeys[index]) ||
+    stored.schema_version !== MEMBERSHIP_REVISION_SCHEMA_VERSION ||
+    stored.phone_number !== phoneNumber ||
+    typeof stored.state_digest !== 'string' ||
+    !/^[0-9a-f]{64}$/.test(stored.state_digest)
+  ) {
+    throw httpError(
+      500,
+      'invalid_membership_revision',
+      'The base membership revision sidecar is invalid.',
+    );
+  }
+  requirePositiveBaseMembershipRevision(stored.revision);
+  return stored;
+}
+
+function createMembershipRevisionSidecar(phoneNumber, revision, document) {
+  return {
+    phone_number: phoneNumber,
+    revision: requirePositiveBaseMembershipRevision(revision),
+    schema_version: MEMBERSHIP_REVISION_SCHEMA_VERSION,
+    state_digest: createMembershipStateDigest(document, phoneNumber),
+  };
+}
+
+function createMembershipStateDigest(document, phoneNumber) {
+  assertMembershipDocumentOwner(document, phoneNumber);
+  const canonical = {
+    entitlement: deserializeMembershipDocument(document),
+    phone_number: phoneNumber,
+    updated_at: document.updated_at ?? null,
+  };
+  return crypto
+    .createHash('sha256')
+    .update(stableDigestJson(canonical))
+    .digest('hex');
+}
+
+function assertMembershipDocumentOwner(document, phoneNumber) {
+  if (
+    Object.hasOwn(document, 'phone_number') &&
+    document.phone_number !== phoneNumber
+  ) {
+    throw httpError(
+      500,
+      'invalid_membership_revision',
+      'The base membership business state owner is invalid.',
+    );
+  }
 }
 
 function deserializeMembershipDocument(document) {
   return cloneMembership(document.entitlement ?? document);
+}
+
+function requirePositiveBaseMembershipRevision(value) {
+  const revision = requireNonNegativeSafeInteger(
+    value,
+    'base membership revision',
+  );
+  if (revision === 0) {
+    throw httpError(
+      500,
+      'invalid_membership_revision',
+      'A stored base membership revision must be positive.',
+    );
+  }
+  return revision;
+}
+
+function inspectSpaceRevisionSnapshot(input) {
+  const state = normalizeStoredSpaceState(input.state, input.accountKey);
+  const revision = normalizeStoredSpaceStateRevision(
+    input.revision,
+    input.accountKey,
+  );
+  const stateExists = input.stateExists === true;
+
+  if (!stateExists) {
+    if (revision !== null) {
+      throw httpError(
+        500,
+        'space_state_invalid',
+        'A physical-space revision sidecar cannot outlive canonical state.',
+      );
+    }
+    state.revision = 0;
+    return {
+      baseRevision: 0,
+      needsCheckpoint: false,
+      needsStateRewrite: input.needsStateRewrite === true,
+      nextRevision: 0,
+      revision: null,
+      state,
+      stateExists: false,
+    };
+  }
+
+  const legacyRevisionFloor = Math.max(state.revision, 1);
+  const stateDigest = createSpaceStateDigest(state, input.accountKey);
+  if (revision === null) {
+    state.revision = legacyRevisionFloor;
+    return {
+      baseRevision: legacyRevisionFloor,
+      needsCheckpoint: true,
+      needsStateRewrite: input.needsStateRewrite === true,
+      nextRevision: legacyRevisionFloor,
+      revision: null,
+      state,
+      stateExists: true,
+    };
+  }
+
+  const baseRevision = Math.max(revision.revision, legacyRevisionFloor);
+  const needsCheckpoint =
+    revision.state_digest !== stateDigest ||
+    legacyRevisionFloor > revision.revision;
+  const nextRevision = needsCheckpoint
+    ? Math.max(
+        legacyRevisionFloor,
+        nextSpaceStateRevision(revision.revision),
+      )
+    : revision.revision;
+  state.revision = baseRevision;
+  return {
+    baseRevision,
+    needsCheckpoint,
+    needsStateRewrite: input.needsStateRewrite === true,
+    nextRevision,
+    revision,
+    state,
+    stateExists: true,
+  };
+}
+
+function resolveSpaceCommitRevision(input) {
+  if (input.hasNewLedgers) {
+    return nextSpaceStateRevision(input.snapshot.baseRevision);
+  }
+  if (input.snapshot.needsCheckpoint) {
+    return input.snapshot.nextRevision;
+  }
+  if (input.recoveredLedgerCount > 0) {
+    return nextSpaceStateRevision(input.snapshot.baseRevision);
+  }
+  return input.snapshot.baseRevision;
+}
+
+function nextSpaceStateRevision(value) {
+  const revision = requireNonNegativeSafeInteger(
+    value,
+    'physical-space state revision',
+  );
+  if (revision === Number.MAX_SAFE_INTEGER) {
+    throw httpError(
+      500,
+      'space_state_invalid',
+      'The physical-space state revision is exhausted.',
+    );
+  }
+  return revision + 1;
+}
+
+function hasPersistedSpaceState(value) {
+  return (
+    value !== null &&
+    value !== undefined &&
+    (value.acknowledged_at !== null ||
+      Object.keys(value.states_by_card_id ?? {}).length > 0)
+  );
+}
+
+function stableDigestJson(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableDigestJson).join(',')}]`;
+  }
+  if (isObject(value)) {
+    return `{${Object.keys(value)
+      .sort()
+      .map(
+        key => `${JSON.stringify(key)}:${stableDigestJson(value[key])}`,
+      )
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function nextBaseMembershipRevision(currentRevision) {
+  const revision = requireNonNegativeSafeInteger(
+    currentRevision,
+    'base membership revision',
+  );
+
+  if (revision === Number.MAX_SAFE_INTEGER) {
+    throw httpError(
+      500,
+      'membership_revision_exhausted',
+      'The base membership revision is exhausted.',
+    );
+  }
+
+  return revision + 1;
+}
+
+function requireNonNegativeSafeInteger(value, label) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw httpError(
+      500,
+      'invalid_canonical_revision',
+      `${label} must be a non-negative safe integer.`,
+    );
+  }
+
+  return value;
 }
 
 function applyBetaEntitlement(membership, document, phoneNumber) {

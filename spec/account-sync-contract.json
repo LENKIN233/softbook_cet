@@ -72,16 +72,32 @@
       "learning_card_state",
       "nullable_learning_cursor",
       "physical_space_state",
-      "content_version"
+      "content_version",
+      "component_revisions"
     ],
     "identity_rule": "derive the account only from the active v2 session; bootstrap never accepts phone_number in its query or body",
     "day_key_rule": "mobile derives the China product day from the current instant at fixed UTC+8 through one shared helper; bootstrap, explicit check-in, and local daily presentation must never use the host timezone or the UTC calendar date as independent authorities",
     "missing_state_rule": "return explicit empty canonical state for a valid account/day/track; never copy device-local state into a canonical read",
     "cursor_rule": "return null when the service has no stored scheduler cursor; do not infer exact cross-device position from device-local state or claim exact resume",
-    "consistency_rule": "generated_at binds one response and each mutable component exposes acknowledged_at freshness; the current CloudBase multi-collection adapter does not claim a serializable cross-collection transaction",
+    "consistency_rule": "generated_at binds one observation and acknowledged_at remains audit freshness, while bootstrap-component-revisions.v1 supplies owner-scoped monotonic comparison authority; no timestamp or component vector claims one serializable cross-collection transaction",
+    "component_revision_rule": {
+      "schema_version": "bootstrap-component-revisions.v1",
+      "wire_rule": "one additive top-level component_revisions object preserves bootstrap.v2 and old-client compatibility; do not add revision fields inside the strict space-state.v2 projection",
+      "membership": "base_membership_revision plus beta_entitlement_revision; the base revision lives in a rollback-compatible digest-bound sidecar committed atomically with every current base write, missing business state plus missing sidecar reads as zero, a retained legacy business document without a sidecar reads as at least one and creates the sidecar transactionally, an orphan sidecar fails closed, and beta reuses its audited revision",
+      "learning": "event_server_sequence is the requested-track projection maximum positive server_sequence, every retained legacy card is serialized explicitly with server_sequence zero, the sequence-zero legacy baseline is scoped to the requested China day and may expire on day rollover while positive v2 history cannot regress, session_revision is the account-and-track learning-session revision, and space_revision identifies the physical-space snapshot that owns favorite overlays",
+      "progress": "learning_server_sequence is the account-wide accepted-event sequence, check_in_revision is zero when the exact account-day record is absent and one when present, and space_revision identifies the snapshot that owns favorite and sleeping counts; progress.learning_authority is account_events_v2, legacy_account_baseline, or empty: account_events_v2 requires a positive sequence, non-v2 authority requires sequence zero, empty requires pending_review_count zero, and an unchanged sequence cannot relabel authority",
+      "space": "state_revision is account-wide and lives in the rollback-compatible space-state-revision.v2 sidecar with canonical-state digest and cumulative action bindings; missing canonical state plus missing sidecar is zero, retained v1 sidecars or legacy state are migration input, every newly ledgered batch advances once while exact duplicates do not, and every duplicate ledger requires current binding plus committed lineage or direct proof from current canonical state",
+      "content": "content version and release identity remain scope identity rather than a fabricated monotonic revision",
+      "owner_read_rule": "CloudBase reads the account-day progress projection, account event sequence, and monotonic check-in record in one read transaction so the returned Progress vector describes the returned Progress owner fields; other top-level owners remain a deliberately composed non-global read",
+      "no_global_revision": "the service must not synthesize a scalar bootstrap revision or imply atomic ordering across membership learning progress and space",
+      "same_revision_rule": "within one owner scope the same component vector must preserve owner fields exactly except server-derived presentation values such as trial remaining time; a lower revision is stale or corrupt rather than newer because of generated_at"
+    },
+    "legacy_pending_review_rule": "before the first accepted v2 event, bootstrap derives pending_review_count from the latest valid account-wide legacy daily baseline, with legacy learning states as fallback, rather than from only the requested day; the derived legacy_account_baseline therefore remains stable across China-day rollover at learning_server_sequence zero, while the first accepted v2 event migrates ownership to account_events_v2",
     "content_rule": "content version is the SHA-256 of the normalized ordered source; production requires a matching published content-release.v1 descriptor while development may return release_id null",
     "release_publication_rule": "the development importer rejects non-null release descriptors; a separate publication pipeline must verify formal content approval before writing content-release.v1",
     "client_rule": "an authenticated client may use validated cached state while offline, but must reconcile with this server read before pushing restored state; without previously validated canonical state and required content, mobile keeps a valid session retryable but blocks learning, local persistence of the reconciled snapshot, mutation replay, and product-state writes until bootstrap succeeds and the loaded card-source content version matches",
+    "client_projection_mapping_rule": "learning card_states, their source metadata, the bootstrap cursor, and Space states are retained account projections and are not constrained by the current content card_count or active source ID; after the bootstrap content identity is validated, mobile maps only source ID, card ID, and interaction ID facts compatible with the loaded current catalog into current-session UI, leaves current selection authority to the validated learning-session response, and uses canonical Progress rather than recounting filtered historical projections",
+    "retained_event_replay_rule": "after a fresh authenticated bootstrap validates the account and active release, a durable pending learning event keeps its immutable retained content_version, selection_id, track, card, and interaction and replays before mobile asks the scheduler for a replacement current selection; the replay endpoint validates that retained event independently, acknowledgement is exact-once, and only then may mobile load and map the active release; a content or China-day change must not deadlock the outbox behind current-session UI hydration",
     "known_gap": "the repository-local CloudBase learning-events.v2 backend, explicit daily check-in, physical-space actions, React Native durable producer/replay, server scheduler, and mobile scheduler-session binding are implemented but not deployed; production publication remains unimplemented"
   },
   "daily_check_in_v2": {
@@ -154,16 +170,19 @@
       "content_rule": "track, content_version, and every card_id must match the current normalized server card source; production additionally requires its published content-release.v1 descriptor",
       "time_rule": "client_occurred_at is retained for long-offline ordering but rejected when it is more than five minutes ahead of server time",
       "merge_rule": "favorite and sleep use independent last-writer-wins clocks with action_id as the deterministic equal-time tie breaker, so an action in one dimension cannot overwrite the other",
-      "transaction_rule": "legacy migration, ledger conflict detection, dimension merge, immutable action records, and canonical account state commit atomically; a rejected batch commits nothing",
+      "transaction_rule": "legacy migration, ledger conflict detection, dimension merge, immutable action records, action lineage, digest-bound revision checkpoint, and rollback-compatible canonical account state commit atomically; a rejected batch commits nothing",
       "response_rule": "return one ordered result for every submitted action plus the requested track's canonical projection and matching content_version"
     },
     "storage_contract": {
       "state_collection": "softbook_space_states",
       "action_collection": "softbook_space_actions",
+      "state_revision_collection": "softbook_space_state_revisions",
+      "action_lineage_collection": "softbook_space_action_lineages",
       "state_identity": "hash_of_account_key",
       "action_identity": "hash_of_account_key_and_action_id",
-      "state_integrity": "stored space-state.v2 business fields and each dimension clock/action pair are validated exactly on every canonical read and write; CloudBase system _id is the only removable adapter field",
-      "action_integrity": "stored ledger payload, canonical digest, result, acknowledgement, and account ownership are validated exactly before duplicate acknowledgement",
+      "state_integrity": "stored space-state.v2 business fields and each dimension clock/action pair are validated exactly on every canonical read and write; current writes keep the previous package's exact business schema and CloudBase system _id is the only removable adapter field, while a briefly unreleased inline revision is accepted only as a migration floor and stripped on rewrite",
+      "state_revision_integrity": "the account-keyed space-state-revision.v2 sidecar owns one positive persisted safe-integer revision, canonical-state digest, and deterministic cumulative action digest/result bindings; revision zero exists only when state and sidecar are absent, retained v1 sidecars and exact legacy state are read-only migration inputs, a sidecar without state fails closed, and digest or binding drift cannot silently relabel state",
+      "action_integrity": "stored ledger payload, canonical digest, result, acknowledgement, and account ownership are validated exactly before duplicate acknowledgement; current ledgers require immutable lineage plus an exact binding in the current cumulative revision authority, while a previous-package ledger without lineage is recoverable only when its applied or stale result is directly proven by current canonical state; superseded old-schema ledgers require a fenced baseline or intermediate dual-write and otherwise fail closed",
       "legacy_migration": "old phone and phone-day space documents are read-only input; the first account-scoped v2 read or write migrates each legacy card into both dimension clocks using last_modified_at and deterministic synthetic action ids without deleting the source documents"
     },
     "mobile_contract": {
@@ -171,11 +190,13 @@
       "request_rule": "replay preserves every immutable action field and action_id, injects the current access token in memory, and for the same track binds the request envelope to the currently validated content version; it never rebinds an action across tracks",
       "ack_rule": "remove queued actions as acknowledged only after a strict matching space-actions-ack.v2 result of applied, stale, or duplicate and a canonical projection matching track/content",
       "terminal_rejection_rule": "only strict HTTP 409 error codes space_card_not_in_content and space_action_id_conflict are terminal for an immutable queued action; durably quarantine the credential-free command and exact code before removing it from the active FIFO, surface the rejection to the app, continue later mutations, and refresh canonical bootstrap before presenting reconciled space state",
-      "retryable_failure_rule": "space_content_version_mismatch, unknown HTTP failures, transport failures, malformed responses, and every non-terminal rejection remain active and block later ordered space actions until retry or explicit reconciliation; authorization and session cancellation retain their separate session lifecycle handling",
+      "retryable_failure_rule": "space_content_version_mismatch, unknown HTTP failures, transport failures, malformed responses, and every non-terminal rejection remain active and block later same-track ordered space actions until retry or explicit reconciliation; an inactive-track action is preserved but rotated past so current-track and account-wide mutations can proceed; authorization and session cancellation retain their separate session lifecycle handling",
+      "content_mismatch_refresh_rule": "space_content_version_mismatch requests a fresh canonical bootstrap before one content-rebound retry; when content identity and component revisions remain unchanged it stays queued without an automatic refresh loop",
       "quarantine_rule": "terminal quarantine is account-local, credential-free, bounded, excluded from optimistic overlays and formal acknowledgement counts, cleared on logout with the active queue, and retained only as local diagnostic evidence rather than server approval",
       "legacy_queue_rule": "during hydration migrate each valid legacy sync_space_state card snapshot into deterministic favorite and sleep actions, discard phone_number, day_key, counters, tokens, and malformed snapshots, and never replay the original whole snapshot",
       "recovery_rule": "canonical bootstrap is the base; overlay only active same-account, same-track durable pending actions in queue order, including actions awaiting same-track content-version rebinding; quarantined actions are excluded, so rejected or unqueued device state can never overwrite server authority",
-      "reconciliation_rule": "after remote acknowledgement refresh canonical bootstrap before treating space state and scheduler eligibility as reconciled"
+      "reconciliation_rule": "after remote acknowledgement refresh canonical bootstrap before treating space state and scheduler eligibility as reconciled",
+      "terminal_reconciliation_rule": "after terminal rejection start a causally later bootstrap request before presenting reconciled space state; that read may correctly return the same state revision because a rejected command committed no canonical change"
     },
     "legacy_cutover": {
       "disabled_routes": [

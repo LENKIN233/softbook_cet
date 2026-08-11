@@ -31,9 +31,13 @@ export function createAuthenticatedFetch(options: {
       timeoutMs,
       subscribeCancellation: cancel =>
         options.authSessionCoordinator.subscribeSessionScope(
-          nextSessionScopeKey => {
+          (nextSessionScopeKey, reason) => {
             if (nextSessionScopeKey !== requestSessionScopeKey) {
-              cancel('session_superseded');
+              cancel(
+                reason === 'authorization_invalidated'
+                  ? 'authorization_invalidated'
+                  : 'session_superseded',
+              );
             }
           },
         ),

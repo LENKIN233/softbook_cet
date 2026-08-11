@@ -11,8 +11,10 @@ const {
   validateCardSourceForImport,
 } = require('../index');
 const {
+  createSpaceActionLineageId,
   createSpaceActionLedgerId,
   createSpaceStateId,
+  createSpaceStateRevisionId,
   normalizeStoredSpaceState,
   prepareSpaceActionCommit,
 } = require('../space-actions-v2');
@@ -382,6 +384,24 @@ test('v2 bootstrap returns explicit empty canonical state without identity leaka
   );
   assert.equal(response.body.data.content.release_id, null);
   assert.equal(response.body.data.content.card_count, 5);
+  assert.deepEqual(response.body.data.component_revisions, {
+    schema_version: 'bootstrap-component-revisions.v1',
+    learning: {
+      event_server_sequence: 0,
+      session_revision: 0,
+      space_revision: 0,
+    },
+    membership: {
+      base_membership_revision: 0,
+      beta_entitlement_revision: 0,
+    },
+    progress: {
+      check_in_revision: 0,
+      learning_server_sequence: 0,
+      space_revision: 0,
+    },
+    space: {state_revision: 0},
+  });
   assert.equal(response.body.data.membership.acknowledged_at, null);
   assert.equal(response.body.data.membership.stage, 'trial_available');
   assert.deepEqual(response.body.data.learning, {
@@ -396,6 +416,7 @@ test('v2 bootstrap returns explicit empty canonical state without identity leaka
     day_key: '2026-04-30',
     favorite_count: 0,
     learning_completed_count: 0,
+    learning_authority: 'empty',
     pending_review_count: 0,
     review_completed_count: 0,
     sleeping_count: 0,
@@ -409,6 +430,34 @@ test('v2 bootstrap returns explicit empty canonical state without identity leaka
     track: 'cet4',
   });
   assert.equal(JSON.stringify(response.body).includes('13800138000'), false);
+});
+
+test('v2 bootstrap reads account-wide Progress after requested-track Learning', async () => {
+  const store = createMemoryStore();
+  const calls = [];
+  const getLearningState = store.getLearningState.bind(store);
+  const getDailyProgress = store.getDailyProgress.bind(store);
+  store.getLearningState = (...args) => {
+    calls.push('learning');
+    return getLearningState(...args);
+  };
+  store.getDailyProgress = (...args) => {
+    calls.push('progress');
+    return getDailyProgress(...args);
+  };
+  const api = createTestApi({store});
+  const session = await authenticatedV2Session(api);
+  calls.length = 0;
+
+  const response = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v2/bootstrap',
+    query: {day_key: '2026-04-30', track: 'cet4'},
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(calls, ['learning', 'progress']);
 });
 
 test('v2 bootstrap restores persisted canonical state and isolates accounts', async () => {
@@ -428,6 +477,7 @@ test('v2 bootstrap restores persisted canonical state and isolates accounts', as
       day_key: '2026-04-30',
       favorite_count: 1,
       learning_completed_count: 1,
+      learning_authority: 'legacy_account_baseline',
       pending_review_count: 0,
       phone_number: '13800138000',
       review_completed_count: 0,
@@ -440,8 +490,9 @@ test('v2 bootstrap restores persisted canonical state and isolates accounts', as
       interaction_id: 'flip',
       is_favorited: true,
       outcome: 'confident',
-      phase: 'learning',
-      used_hint: false,
+          phase: 'learning',
+          server_sequence: 0,
+          used_hint: false,
       used_peek: false,
     };
     const spaceState = {
@@ -505,6 +556,24 @@ test('v2 bootstrap restores persisted canonical state and isolates accounts', as
       fixedNow.toISOString(),
     );
     assert.equal(firstBootstrap.body.data.membership.stage, 'trial');
+    assert.deepEqual(firstBootstrap.body.data.component_revisions, {
+      schema_version: 'bootstrap-component-revisions.v1',
+      learning: {
+        event_server_sequence: 0,
+        session_revision: 0,
+        space_revision: 1,
+      },
+      membership: {
+        base_membership_revision: 1,
+        beta_entitlement_revision: 0,
+      },
+      progress: {
+        check_in_revision: 0,
+        learning_server_sequence: 0,
+        space_revision: 1,
+      },
+      space: {state_revision: 1},
+    });
     assert.deepEqual(firstBootstrap.body.data.progress, {
       acknowledged_at: fixedNow.toISOString(),
       ...Object.fromEntries(
@@ -818,6 +887,7 @@ test('content manifest grants download URLs only for the canonical membership pr
   assert.deepEqual(requestedAssets, ['cet4.052199.prompt']);
 
   store.snapshot().memberships.delete('13800138000');
+  store.snapshot().membershipRevisions.delete('13800138000');
   const trialNotStarted = await request(api, {
     headers: {authorization: `Bearer ${session.access_token}`},
     method: 'GET',
@@ -950,6 +1020,10 @@ test('production learning session fails closed before trial without a published 
     .collection('softbook_card_sources')
     .doc('cet4')
     .set(createReleasedCardSource('cet4'));
+  assert.equal(
+    db.snapshot().get('softbook_card_sources').get('cet4').release.release_id,
+    'cet4-test-release',
+  );
   const available = await requestSession();
 
   assert.equal(available.statusCode, 200, JSON.stringify(available.body));
@@ -1085,6 +1159,109 @@ test('bootstrap rejects corrupted persisted canonical state', async () => {
   assert.equal(response.body.error.code, 'invalid_canonical_state');
 });
 
+test('memory bootstrap preserves a legacy account pending-review baseline across days', async () => {
+  const store = createMemoryStore();
+  const api = createTestApi({store});
+  const session = await authenticatedV2Session(api);
+  const headers = {authorization: `Bearer ${session.access_token}`};
+
+  await store.seedLegacyDailyProgressForMigrationTest(
+    '13800138000',
+    {
+      checked_in_today: false,
+      day_key: '2026-04-30',
+      favorite_count: 0,
+      learning_completed_count: 1,
+      pending_review_count: 1,
+      review_completed_count: 0,
+      sleeping_count: 0,
+      total_completed_count: 1,
+    },
+    '2026-04-30T12:00:00.000Z',
+  );
+
+  const firstDay = await request(api, {
+    headers,
+    method: 'GET',
+    path: '/v2/bootstrap',
+    query: {day_key: '2026-04-30', track: 'cet4'},
+  });
+  const nextDay = await request(api, {
+    headers,
+    method: 'GET',
+    path: '/v2/bootstrap',
+    query: {day_key: '2026-05-01', track: 'cet4'},
+  });
+
+  for (const response of [firstDay, nextDay]) {
+    assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+    assert.equal(response.body.data.progress.pending_review_count, 1);
+    assert.equal(
+      response.body.data.progress.learning_authority,
+      'legacy_account_baseline',
+    );
+    assert.equal(
+      response.body.data.component_revisions.progress
+        .learning_server_sequence,
+      0,
+    );
+  }
+});
+
+test('CloudBase bootstrap preserves a legacy account pending-review baseline across days', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const api = createTestApi({store});
+  const session = await authenticatedV2Session(
+    api,
+    '13800138004',
+    '127.0.0.24',
+  );
+  const headers = {authorization: `Bearer ${session.access_token}`};
+
+  await store.seedLegacyDailyProgressForMigrationTest(
+    '13800138004',
+    {
+      checked_in_today: false,
+      day_key: '2026-04-30',
+      favorite_count: 0,
+      learning_completed_count: 1,
+      pending_review_count: 1,
+      review_completed_count: 0,
+      sleeping_count: 0,
+      total_completed_count: 1,
+    },
+    '2026-04-30T12:00:00.000Z',
+  );
+
+  const firstDay = await request(api, {
+    headers,
+    method: 'GET',
+    path: '/v2/bootstrap',
+    query: {day_key: '2026-04-30', track: 'cet4'},
+  });
+  const nextDay = await request(api, {
+    headers,
+    method: 'GET',
+    path: '/v2/bootstrap',
+    query: {day_key: '2026-05-01', track: 'cet4'},
+  });
+
+  for (const response of [firstDay, nextDay]) {
+    assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+    assert.equal(response.body.data.progress.pending_review_count, 1);
+    assert.equal(
+      response.body.data.progress.learning_authority,
+      'legacy_account_baseline',
+    );
+    assert.equal(
+      response.body.data.component_revisions.progress
+        .learning_server_sequence,
+      0,
+    );
+  }
+});
+
 test('membership entitlement and mutations preserve server-side state by phone', async () => {
   const api = createTestApi();
   const token = await authenticatedToken(api);
@@ -1117,6 +1294,166 @@ test('membership entitlement and mutations preserve server-side state by phone',
   assert.equal(trial.body.data.entitlement.stage, 'trial');
   assert.equal(trial.body.data.entitlement.trial_started_at_entry_count, 1);
   assert.equal(premium.body.data.entitlement.stage, 'premium');
+});
+
+test('base membership revisions disambiguate same-millisecond writes and migrate legacy documents', async () => {
+  const stores = [
+    createMemoryStore(),
+    createCloudBaseStore({db: createFakeCloudBaseDb()}),
+  ];
+
+  for (const store of stores) {
+    assert.deepEqual((await store.getMembership('13800138000')).component_revision, {
+      base_membership_revision: 0,
+      beta_entitlement_revision: 0,
+    });
+
+    await store.startTrial('13800138000', fixedNow.toISOString());
+    assert.equal(
+      (await store.getMembership('13800138000')).component_revision
+        .base_membership_revision,
+      1,
+    );
+
+    await store.purchase('13800138000', fixedNow.toISOString());
+    assert.equal(
+      (await store.getMembership('13800138000')).component_revision
+        .base_membership_revision,
+      2,
+    );
+
+    await store.dismissRecovery('13800138000', fixedNow.toISOString());
+    assert.equal(
+      (await store.getMembership('13800138000')).component_revision
+        .base_membership_revision,
+      3,
+    );
+  }
+
+  const legacyStore = createMemoryStore();
+  legacyStore.snapshot().memberships.set('13800138000', {
+    entitlement: {
+      counted_entry_count: 0,
+      last_experience_ended_by: null,
+      recovery_prompt_visible: false,
+      stage: 'trial_available',
+      trial_duration_days: 5,
+      trial_started_at_entry_count: null,
+    },
+    updated_at: fixedNow.toISOString(),
+  });
+  assert.equal(
+    legacyStore.getMembership('13800138000').component_revision
+      .base_membership_revision,
+    1,
+  );
+  legacyStore.purchase('13800138000', fixedNow.toISOString());
+  assert.equal(
+    legacyStore.getMembership('13800138000').component_revision
+      .base_membership_revision,
+    2,
+  );
+});
+
+test('membership revision sidecar survives previous-package writes without regressing', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const phoneNumber = '13800138000';
+
+  await store.startTrial(phoneNumber, fixedNow.toISOString());
+  await store.purchase(phoneNumber, fixedNow.toISOString());
+  await store.dismissRecovery(phoneNumber, fixedNow.toISOString());
+  assert.equal(
+    (await store.getMembership(phoneNumber)).component_revision
+      .base_membership_revision,
+    3,
+  );
+
+  const businessDocument = db
+    .snapshot()
+    .get('softbook_memberships')
+    .get(phoneNumber);
+  assert.deepEqual(Object.keys(businessDocument).sort(), [
+    'entitlement',
+    'phone_number',
+    'updated_at',
+  ]);
+
+  await db.collection('softbook_memberships').doc(phoneNumber).set({
+    entitlement: {
+      ...businessDocument.entitlement,
+      stage: 'free',
+    },
+    phone_number: phoneNumber,
+    updated_at: '2026-04-30T12:00:01.000Z',
+  });
+
+  const reconciled = await store.getMembership(phoneNumber);
+  assert.equal(reconciled.stage, 'free');
+  assert.equal(
+    reconciled.component_revision.base_membership_revision,
+    4,
+  );
+  assert.equal(
+    (await store.getMembership(phoneNumber)).component_revision
+      .base_membership_revision,
+    4,
+  );
+  assert.equal(
+    db.snapshot()
+      .get('softbook_membership_revisions')
+      .get(phoneNumber).revision,
+    4,
+  );
+});
+
+test('membership business state cannot be relabeled to another document owner', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const phoneNumber = '13800138000';
+
+  await db.collection('softbook_memberships').doc(phoneNumber).set({
+    entitlement: {
+      counted_entry_count: 0,
+      last_experience_ended_by: null,
+      recovery_prompt_visible: false,
+      stage: 'premium',
+      trial_duration_days: 5,
+      trial_started_at_entry_count: null,
+    },
+    phone_number: '13900139000',
+    updated_at: fixedNow.toISOString(),
+  });
+
+  await assert.rejects(
+    () => store.getMembership(phoneNumber),
+    error => error.code === 'invalid_membership_revision',
+  );
+  assert.equal(
+    db.snapshot().get('softbook_membership_revisions')?.has(phoneNumber) ?? false,
+    false,
+  );
+});
+
+test('membership business state and sidecar roll back atomically', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const phoneNumber = '13800138000';
+  db.failNextTransactionSet('softbook_membership_revisions');
+
+  await assert.rejects(
+    () => store.purchase(phoneNumber, fixedNow.toISOString()),
+    /injected transaction set failure/,
+  );
+  assert.equal(db.snapshot().get('softbook_memberships').size, 0);
+  assert.equal(db.snapshot().get('softbook_membership_revisions').size, 0);
+
+  await store.purchase(phoneNumber, fixedNow.toISOString());
+  assert.equal(
+    (await store.getMembership(phoneNumber)).component_revision
+      .base_membership_revision,
+    1,
+  );
 });
 
 test('v2 check-in is strict while legacy snapshot writes stay disabled', async () => {
@@ -1274,6 +1611,12 @@ test('v2 check-in is monotonic and idempotent in memory and CloudBase', async ()
     const first = await requestCheckIn();
     now = new Date('2026-04-30T12:05:00.000Z');
     const replay = await requestCheckIn();
+    const bootstrap = await request(api, {
+      headers: {authorization: `Bearer ${session.access_token}`},
+      method: 'GET',
+      path: '/v2/bootstrap',
+      query: {day_key: '2026-04-30', track: 'cet4'},
+    });
 
     assert.equal(first.statusCode, 200, name);
     assert.equal(replay.statusCode, 200, name);
@@ -1283,6 +1626,11 @@ test('v2 check-in is monotonic and idempotent in memory and CloudBase', async ()
       name,
     );
     assert.equal(replay.body.data.checked_in_today, true, name);
+    assert.equal(
+      bootstrap.body.data.component_revisions.progress.check_in_revision,
+      1,
+      name,
+    );
   }
 });
 
@@ -1377,6 +1725,14 @@ test('space actions merge dimensions independently and keep immutable idempotenc
       value: true,
     };
     const first = await submitSpaceActions(api, session, [favorite]);
+    const readBootstrap = () =>
+      request(api, {
+        headers: {authorization: `Bearer ${session.access_token}`},
+        method: 'GET',
+        path: '/v2/bootstrap',
+        query: {day_key: '2026-04-30', track: 'cet4'},
+      });
+    const afterFirst = await readBootstrap();
     const independentSleep = await submitSpaceActions(api, session, [
       {
         action_id: 'space_sleep_independent',
@@ -1386,6 +1742,7 @@ test('space actions merge dimensions independently and keep immutable idempotenc
         value: true,
       },
     ]);
+    const afterSleep = await readBootstrap();
     const staleFavorite = await submitSpaceActions(api, session, [
       {
         action_id: 'space_favorite_stale',
@@ -1395,7 +1752,9 @@ test('space actions merge dimensions independently and keep immutable idempotenc
         value: false,
       },
     ]);
+    const afterStale = await readBootstrap();
     const duplicate = await submitSpaceActions(api, session, [favorite]);
+    const afterDuplicate = await readBootstrap();
     const conflict = await submitSpaceActions(api, session, [
       {...favorite, value: false},
     ]);
@@ -1406,11 +1765,36 @@ test('space actions merge dimensions independently and keep immutable idempotenc
     assert.deepEqual(staleFavorite.body.data.results, [
       {action_id: 'space_favorite_stale', status: 'stale'},
     ]);
+    assert.equal(duplicate.statusCode, 200, JSON.stringify(duplicate.body));
     assert.deepEqual(duplicate.body.data.results, [
       {action_id: 'space_favorite_first', status: 'duplicate'},
     ]);
     assert.equal(conflict.statusCode, 409);
     assert.equal(conflict.body.error.code, 'space_action_id_conflict');
+    assert.equal(
+      afterFirst.body.data.component_revisions.space.state_revision,
+      1,
+    );
+    assert.equal(
+      afterSleep.body.data.component_revisions.space.state_revision,
+      2,
+    );
+    assert.equal(
+      afterStale.body.data.component_revisions.space.state_revision,
+      3,
+    );
+    assert.equal(
+      afterDuplicate.body.data.component_revisions.space.state_revision,
+      3,
+    );
+    assert.equal(
+      afterDuplicate.body.data.component_revisions.learning.space_revision,
+      3,
+    );
+    assert.equal(
+      afterDuplicate.body.data.component_revisions.progress.space_revision,
+      3,
+    );
     assert.deepEqual(duplicate.body.data.space_state.states, [
       {
         card_id: '002001',
@@ -1420,6 +1804,250 @@ test('space actions merge dimensions independently and keep immutable idempotenc
       },
     ]);
   }
+});
+
+test('space sidecars recover a directly proven previous-package commit without changing the old state schema', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const api = createTestApi({store});
+  const session = await authenticatedV2Session(api);
+  const firstAction = {
+    action_id: 'space_current_writer_first',
+    card_id: '002001',
+    client_occurred_at: '2026-04-30T11:00:00.000Z',
+    dimension: 'favorite',
+    value: true,
+  };
+  assert.equal(
+    (await submitSpaceActions(api, session, [firstAction])).statusCode,
+    200,
+  );
+  const accountKey = [
+    ...db.snapshot().get('softbook_auth_sessions').values(),
+  ][0].account_key;
+  const stateId = createSpaceStateId(accountKey);
+  const previousWriterAction = {
+    action_id: 'space_previous_writer_sleep',
+    card_id: '002001',
+    client_occurred_at: '2026-04-30T11:01:00.000Z',
+    dimension: 'sleep',
+    value: true,
+  };
+  const previousWriterCommit = prepareSpaceActionCommit({
+    acknowledgedAt: '2026-04-30T12:00:01.000Z',
+    accountKey,
+    actions: [previousWriterAction],
+    ledgerByActionId: new Map([[previousWriterAction.action_id, null]]),
+    state: db.snapshot().get('softbook_space_states').get(stateId),
+  });
+  const previousWriterState = cloneJson(previousWriterCommit.state);
+  delete previousWriterState.revision;
+
+  await db.runTransaction(async transaction => {
+    await transaction
+      .collection('softbook_space_actions')
+      .doc(createSpaceActionLedgerId(accountKey, previousWriterAction.action_id))
+      .set(previousWriterCommit.ledgers[0]);
+    await transaction
+      .collection('softbook_space_states')
+      .doc(stateId)
+      .set(previousWriterState);
+  });
+
+  const replay = await submitSpaceActions(api, session, [previousWriterAction]);
+  assert.equal(replay.statusCode, 200, JSON.stringify(replay.body));
+  assert.deepEqual(replay.body.data.results, [
+    {action_id: previousWriterAction.action_id, status: 'duplicate'},
+  ]);
+  const revision = db
+    .snapshot()
+    .get('softbook_space_state_revisions')
+    .get(createSpaceStateRevisionId(accountKey));
+  const lineage = db
+    .snapshot()
+    .get('softbook_space_action_lineages')
+    .get(createSpaceActionLineageId(accountKey, previousWriterAction.action_id));
+  assert.equal(revision.revision, 2);
+  assert.equal(lineage.committed_state_revision, 2);
+  assert.equal(lineage.committed_lineage_digest, revision.lineage_digest);
+  assert.deepEqual(
+    Object.keys(db.snapshot().get('softbook_space_states').get(stateId)).sort(),
+    [
+      'account_key',
+      'acknowledged_at',
+      'schema_version',
+      'states_by_card_id',
+    ],
+  );
+});
+
+test('space ledger, lineage, revision, and state roll back after a ledger-stage failure', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const input = {
+    acknowledgedAt: fixedNow.toISOString(),
+    accountKey: 'account-space-staged-rollback',
+    actions: [
+      {
+        action_id: 'space_staged_rollback',
+        card_id: '002001',
+        client_occurred_at: fixedNow.toISOString(),
+        dimension: 'favorite',
+        value: true,
+      },
+    ],
+    phoneNumber: '13800138000',
+  };
+  db.failNextTransactionSet('softbook_space_states');
+
+  await assert.rejects(
+    () => store.commitSpaceActions(input),
+    /injected transaction set failure/,
+  );
+  for (const collection of [
+    'softbook_space_actions',
+    'softbook_space_action_lineages',
+    'softbook_space_state_revisions',
+    'softbook_space_states',
+  ]) {
+    assert.equal(db.snapshot().get(collection).size, 0, collection);
+  }
+
+  const retried = await store.commitSpaceActions(input);
+  assert.deepEqual(retried.results, [
+    {action_id: 'space_staged_rollback', status: 'applied'},
+  ]);
+  assert.equal(retried.state.revision, 1);
+});
+
+test('an unproven previous-writer ledger never becomes a duplicate acknowledgement', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const api = createTestApi({store});
+  const session = await authenticatedV2Session(api);
+  const currentAction = {
+    action_id: 'space_lineage_current',
+    card_id: '002001',
+    client_occurred_at: '2026-04-30T12:00:00.000Z',
+    dimension: 'favorite',
+    value: false,
+  };
+  await submitSpaceActions(api, session, [currentAction]);
+  const accountKey = [
+    ...db.snapshot().get('softbook_auth_sessions').values(),
+  ][0].account_key;
+  const orphanAction = {
+    ...currentAction,
+    action_id: 'space_lineage_unproven_orphan',
+    client_occurred_at: '2026-04-30T11:00:00.000Z',
+    value: true,
+  };
+  const orphan = prepareSpaceActionCommit({
+    acknowledgedAt: fixedNow.toISOString(),
+    accountKey,
+    actions: [orphanAction],
+    ledgerByActionId: new Map([[orphanAction.action_id, null]]),
+    state: null,
+  }).ledgers[0];
+  await db
+    .collection('softbook_space_actions')
+    .doc(createSpaceActionLedgerId(accountKey, orphanAction.action_id))
+    .set(orphan);
+
+  const replay = await submitSpaceActions(api, session, [orphanAction]);
+  assert.equal(replay.statusCode, 500);
+  assert.equal(replay.body.error.code, 'space_state_invalid');
+  assert.equal(
+    db.snapshot()
+      .get('softbook_space_action_lineages')
+      .has(createSpaceActionLineageId(accountKey, orphanAction.action_id)),
+    false,
+  );
+  assert.equal(
+    db.snapshot()
+      .get('softbook_space_state_revisions')
+      .get(createSpaceStateRevisionId(accountKey)).revision,
+    1,
+  );
+});
+
+test('current checkpoint rejects a coordinated ledger and lineage result rewrite', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const api = createTestApi({store});
+  const session = await authenticatedV2Session(api);
+  const action = {
+    action_id: 'space_binding_tamper',
+    card_id: '002001',
+    client_occurred_at: '2026-04-30T12:00:00.000Z',
+    dimension: 'favorite',
+    value: true,
+  };
+  assert.equal((await submitSpaceActions(api, session, [action])).statusCode, 200);
+  const accountKey = [
+    ...db.snapshot().get('softbook_auth_sessions').values(),
+  ][0].account_key;
+  const ledger = db
+    .snapshot()
+    .get('softbook_space_actions')
+    .get(createSpaceActionLedgerId(accountKey, action.action_id));
+  const lineage = db
+    .snapshot()
+    .get('softbook_space_action_lineages')
+    .get(createSpaceActionLineageId(accountKey, action.action_id));
+  ledger.result = 'stale';
+  lineage.result = 'stale';
+
+  const replay = await submitSpaceActions(api, session, [action]);
+  assert.equal(replay.statusCode, 500);
+  assert.equal(replay.body.error.code, 'space_state_invalid');
+});
+
+test('mixed duplicate, stale, and new space actions share one committed revision', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const accountKey = 'account-space-mixed-lineage';
+  const existing = {
+    action_id: 'space_mixed_existing',
+    card_id: '002001',
+    client_occurred_at: '2026-04-30T12:00:00.000Z',
+    dimension: 'favorite',
+    value: true,
+  };
+  await store.commitSpaceActions({
+    acknowledgedAt: fixedNow.toISOString(),
+    accountKey,
+    actions: [existing],
+    phoneNumber: '13800138000',
+  });
+  const mixed = await store.commitSpaceActions({
+    acknowledgedAt: '2026-04-30T12:00:01.000Z',
+    accountKey,
+    actions: [
+      existing,
+      {
+        ...existing,
+        action_id: 'space_mixed_stale',
+        client_occurred_at: '2026-04-30T11:00:00.000Z',
+        value: false,
+      },
+      {
+        ...existing,
+        action_id: 'space_mixed_sleep',
+        dimension: 'sleep',
+      },
+    ],
+    phoneNumber: '13800138000',
+  });
+
+  assert.deepEqual(mixed.results, [
+    {action_id: 'space_mixed_existing', status: 'duplicate'},
+    {action_id: 'space_mixed_stale', status: 'stale'},
+    {action_id: 'space_mixed_sleep', status: 'applied'},
+  ]);
+  assert.equal(mixed.state.revision, 2);
+  assert.equal(db.snapshot().get('softbook_space_actions').size, 3);
+  assert.equal(db.snapshot().get('softbook_space_action_lineages').size, 3);
 });
 
 test('space action state maps treat prototype-like card ids as data keys', () => {
@@ -1448,7 +2076,44 @@ test('space action state maps treat prototype-like card ids as data keys', () =>
     sleep_action_id: null,
     sleep_changed_at: null,
   });
+  assert.equal(commit.state.revision, 1);
   assert.deepEqual(normalizeStoredSpaceState(commit.state, accountKey), commit.state);
+
+  const legacyState = {...commit.state};
+  delete legacyState.revision;
+  assert.equal(normalizeStoredSpaceState(legacyState, accountKey).revision, 1);
+});
+
+test('space action replay fails closed when a ledger is orphaned from canonical state', () => {
+  const accountKey = 'account-orphan-ledger';
+  const action = {
+    action_id: 'space_orphan_ledger_action',
+    card_id: '002001',
+    client_occurred_at: fixedNow.toISOString(),
+    dimension: 'favorite',
+    value: true,
+  };
+  const committed = prepareSpaceActionCommit({
+    acknowledgedAt: fixedNow.toISOString(),
+    accountKey,
+    actions: [action],
+    ledgerByActionId: new Map([[action.action_id, null]]),
+    state: null,
+  });
+
+  assert.throws(
+    () =>
+      prepareSpaceActionCommit({
+        acknowledgedAt: fixedNow.toISOString(),
+        accountKey,
+        actions: [action],
+        ledgerByActionId: new Map([
+          [action.action_id, committed.ledgers[0]],
+        ]),
+        state: null,
+      }),
+    /no verified committed-state lineage/,
+  );
 });
 
 test('space actions reject identity, snapshot, time, batch, and content authority drift before writes', async () => {
@@ -1767,7 +2432,7 @@ test('CloudBase space action storage accepts only system ids beyond exact busine
   assert.equal(corruptState.body.error.code, 'space_state_invalid');
 });
 
-test('maximum CloudBase space action batch stays within 42 transaction operations', async () => {
+test('maximum CloudBase space action batch stays within 64 transaction operations', async () => {
   const db = createFakeCloudBaseDb();
   const api = createTestApi({store: createCloudBaseStore({db})});
   const session = await authenticatedV2Session(api);
@@ -1785,7 +2450,7 @@ test('maximum CloudBase space action batch stays within 42 transaction operation
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.body.data.results.length, 20);
-  assert.equal(db.transactionOperationCounts().at(-1), 42);
+  assert.equal(db.transactionOperationCounts().at(-1), 64);
 });
 
 test('space action ids and canonical state stay isolated between accounts', async () => {
@@ -1928,6 +2593,10 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
 
   const granted = await store.getMembership(phoneNumber);
   assert.equal(granted.stage, 'premium');
+  assert.deepEqual(granted.component_revision, {
+    base_membership_revision: 1,
+    beta_entitlement_revision: 1,
+  });
   assert.equal(
     db.snapshot().get('softbook_memberships').get(phoneNumber).entitlement.stage,
     'trial',
@@ -1939,6 +2608,10 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
     purchasedDuringBeta.acknowledged_at,
     '2026-05-01T12:00:00.000Z',
   );
+  assert.deepEqual(purchasedDuringBeta.component_revision, {
+    base_membership_revision: 2,
+    beta_entitlement_revision: 1,
+  });
 
   const betaDocument = db
     .snapshot()
@@ -1957,6 +2630,10 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
   betaDocument.updated_at = '2026-05-02T12:00:00.000Z';
   const revoked = await store.getMembership(phoneNumber);
   assert.equal(revoked.stage, 'premium');
+  assert.deepEqual(revoked.component_revision, {
+    base_membership_revision: 2,
+    beta_entitlement_revision: 2,
+  });
 });
 
 test('CloudBase membership fails closed on malformed active beta evidence', async () => {
@@ -2045,7 +2722,7 @@ test('CloudBase space transactions preserve simultaneous writes from separate fu
     '002001',
     '002002',
   ]);
-  assert.equal(db.transactionCount(), 2);
+  assert.equal(db.transactionCount(), 3);
 });
 
 test('CloudBase store reads and seeds card source documents', async () => {
@@ -2163,15 +2840,21 @@ function createFakeCloudBaseDb() {
   const collections = new Map();
   let transactionCount = 0;
   let activeTransactionOperationCount = null;
+  let activeTransactionWrites = null;
+  let failNextTransactionSetCollection = null;
   let transactionTail = Promise.resolve();
   const transactionOperationCounts = [];
 
-  const collection = (name, transactional = false) => {
-    if (!collections.has(name)) {
-      collections.set(name, new Map());
+  const collection = (
+    name,
+    transactional = false,
+    collectionState = collections,
+  ) => {
+    if (!collectionState.has(name)) {
+      collectionState.set(name, new Map());
     }
 
-    const documents = collections.get(name);
+    const documents = collectionState.get(name);
 
     return {
       doc: documentId => ({
@@ -2196,6 +2879,11 @@ function createFakeCloudBaseDb() {
         set: async data => {
           if (transactional) {
             activeTransactionOperationCount += 1;
+            if (failNextTransactionSetCollection === name) {
+              failNextTransactionSetCollection = null;
+              throw new Error(`injected transaction set failure: ${name}`);
+            }
+            activeTransactionWrites.add(JSON.stringify([name, documentId]));
           }
           documents.set(documentId, cloneJson(data));
 
@@ -2259,12 +2947,23 @@ function createFakeCloudBaseDb() {
       const run = transactionTail.then(async () => {
         transactionCount += 1;
         activeTransactionOperationCount = 0;
+        activeTransactionWrites = new Set();
+        const stagedCollections = cloneCollectionMaps(collections);
 
         try {
-          return await callback({collection: name => collection(name, true)});
+          const result = await callback({
+            collection: name => collection(name, true, stagedCollections),
+          });
+          commitCollectionWrites(
+            collections,
+            stagedCollections,
+            activeTransactionWrites,
+          );
+          return result;
         } finally {
           transactionOperationCounts.push(activeTransactionOperationCount);
           activeTransactionOperationCount = null;
+          activeTransactionWrites = null;
         }
       });
       transactionTail = run.then(
@@ -2273,10 +2972,39 @@ function createFakeCloudBaseDb() {
       );
       return run;
     },
+    failNextTransactionSet: collectionName => {
+      failNextTransactionSetCollection = collectionName;
+    },
     snapshot: () => collections,
     transactionCount: () => transactionCount,
     transactionOperationCounts: () => [...transactionOperationCounts],
   };
+}
+
+function cloneCollectionMaps(collections) {
+  return new Map(
+    [...collections.entries()].map(([name, documents]) => [
+      name,
+      new Map(
+        [...documents.entries()].map(([documentId, document]) => [
+          documentId,
+          cloneJson(document),
+        ]),
+      ),
+    ]),
+  );
+}
+
+function commitCollectionWrites(target, staged, writes) {
+  for (const encoded of writes) {
+    const [name, documentId] = JSON.parse(encoded);
+    if (!target.has(name)) target.set(name, new Map());
+    const targetDocuments = target.get(name);
+    targetDocuments.set(
+      documentId,
+      cloneJson(staged.get(name).get(documentId)),
+    );
+  }
 }
 
 function cloneJson(value) {

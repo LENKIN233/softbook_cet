@@ -157,6 +157,24 @@ function createCanonicalBootstrapPayload() {
         generated_at: new Date().toISOString(),
         day_key: dayKey,
         track: 'cet4',
+        component_revisions: {
+          schema_version: 'bootstrap-component-revisions.v1',
+          membership: {
+            base_membership_revision: 1,
+            beta_entitlement_revision: 0,
+          },
+          learning: {
+            event_server_sequence: 1,
+            session_revision: 1,
+            space_revision: 1,
+          },
+          progress: {
+            learning_server_sequence: 1,
+            check_in_revision: 0,
+            space_revision: 1,
+          },
+          space: { state_revision: 1 },
+        },
         content: {
           card_count: session.catalogCards.length,
           release_id: null,
@@ -177,6 +195,7 @@ function createCanonicalBootstrapPayload() {
               outcome:
                 firstCard.interaction_id === 'flip' ? 'confident' : 'correct',
               phase: 'learning',
+              server_sequence: 1,
               used_hint: false,
               used_peek: false,
             },
@@ -203,6 +222,7 @@ function createCanonicalBootstrapPayload() {
           day_key: dayKey,
           favorite_count: 1,
           learning_completed_count: 1,
+          learning_authority: 'account_events_v2',
           pending_review_count: 0,
           review_completed_count: 0,
           sleeping_count: 0,
@@ -687,18 +707,22 @@ test('discards a pre-selection v1 outbox without replaying it', async () => {
   }
 });
 
-test('replays a restored selection-bound v2 event before allowing the stale card to advance again', async () => {
+test('replays a restored selection-bound v2 event before loading any stale selection', async () => {
   const originalFetch = globalThis.fetch;
   const canonical = createCanonicalBootstrapPayload();
   const staleBootstrap = JSON.parse(JSON.stringify(canonical.payload));
+  canonical.payload.data.component_revisions.learning.session_revision = 2;
+  staleBootstrap.data.component_revisions.learning.session_revision = 1;
   const firstCard = canonical.session.catalogCards[0];
   staleBootstrap.data.learning.card_states = [];
+  staleBootstrap.data.component_revisions.learning.event_server_sequence = 0;
+  staleBootstrap.data.component_revisions.progress.learning_server_sequence = 0;
+  staleBootstrap.data.progress.learning_authority = 'empty';
   staleBootstrap.data.learning.cursor = {
     card_id: firstCard.card_id,
     source_id: canonical.session.sourceId,
     track: canonical.session.track,
   };
-  staleBootstrap.data.progress.favorite_count = 0;
   staleBootstrap.data.progress.learning_completed_count = 0;
   staleBootstrap.data.progress.total_completed_count = 0;
   let bootstrapRequestCount = 0;
@@ -751,12 +775,8 @@ test('replays a restored selection-bound v2 event before allowing the stale card
         return createTestJsonResponse(
           createRemoteLearningSessionPayload(
             canonical,
-            learningSessionRequestCount === 1
-              ? firstCard.card_id
-              : canonical.cursorCard.card_id,
-            learningSessionRequestCount === 1
-              ? 'sel_persistence_restore_0001'
-              : 'sel_persistence_restore_0002',
+            canonical.cursorCard.card_id,
+            'sel_persistence_restore_0002',
           ),
         );
       }
@@ -817,19 +837,22 @@ test('replays a restored selection-bound v2 event before allowing the stale card
       }),
     );
 
-    tree = await renderAppAndWaitForLearning(
-      <App
-        softbookRemoteRuntimeProfile={{
-          baseUrl: 'https://api.softbook.example/',
-          featureModes: {
-            contentManifest: 'local',
-            membership: 'local',
-            progressSync: 'local',
-            spaceState: 'local',
-          },
-        }}
-      />,
-    );
+    await ReactTestRenderer.act(async () => {
+      tree = ReactTestRenderer.create(
+        <App
+          softbookRemoteRuntimeProfile={{
+            baseUrl: 'https://api.softbook.example/',
+            featureModes: {
+              contentManifest: 'local',
+              membership: 'local',
+              progressSync: 'local',
+              spaceState: 'local',
+            },
+          }}
+        />,
+      );
+      await flushAsyncEffects();
+    });
 
     for (let attempt = 0; attempt < 12; attempt += 1) {
       await ReactTestRenderer.act(async () => {
@@ -840,26 +863,9 @@ test('replays a restored selection-bound v2 event before allowing the stale card
       }
     }
     expect(learningEventsWriteCount).toBe(1);
-
-    await ReactTestRenderer.act(() => {
-      tree!.root
-        .findByProps({ testID: 'learning-flip-button' })
-        .props.onPress();
-    });
-    await ReactTestRenderer.act(() => {
-      tree!.root
-        .findByProps({ testID: 'learning-flip-confident-button' })
-        .props.onPress();
-    });
-    await ReactTestRenderer.act(() => {
-      tree!.root
-        .findByProps({ testID: 'learning-next-button' })
-        .props.onPress();
-    });
-    await ReactTestRenderer.act(async () => {
-      await flushAsyncEffects();
-    });
-
+    expect(
+      tree!.root.findAllByProps({testID: 'learning-flip-button'}),
+    ).toHaveLength(0);
     const stillPending = JSON.parse(
       String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)),
     );
@@ -888,7 +894,7 @@ test('replays a restored selection-bound v2 event before allowing the stale card
         await flushAsyncEffects();
       });
       if (
-        JSON.stringify(tree.toJSON()).includes(
+        JSON.stringify(tree!.toJSON()).includes(
           canonical.cursorCard.front.prompt,
         )
       ) {
@@ -900,11 +906,11 @@ test('replays a restored selection-bound v2 event before allowing the stale card
       String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)),
     );
     expect(reconciledOutbox.entries).toEqual([]);
-    expect(JSON.stringify(tree.toJSON())).toContain(
+    expect(JSON.stringify(tree!.toJSON())).toContain(
       canonical.cursorCard.front.prompt,
     );
     expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
-    expect(learningSessionRequestCount).toBeGreaterThanOrEqual(2);
+    expect(learningSessionRequestCount).toBe(1);
   } finally {
     if (tree) {
       await ReactTestRenderer.act(() => {

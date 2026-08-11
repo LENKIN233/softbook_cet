@@ -4,7 +4,10 @@ import {
   MutationQueueManager,
 } from '../src/sync/mutationQueue';
 import type { MembershipState } from '../src/membership/localMembership';
-import { createMutationQueueRepository } from '../src/sync/mutationQueueRepository';
+import {
+  createMutationQueueRepository,
+  hasCausalSpaceBootstrapAdvance,
+} from '../src/sync/mutationQueueRepository';
 import { RemoteHttpError } from '../src/runtime/remoteHttpError';
 import { RemoteRequestLifecycleError } from '../src/runtime/remoteRequest';
 
@@ -32,8 +35,39 @@ const createSpacePayload = () => ({
   track: 'cet4' as const,
 });
 
+const createComponentRevisions = (spaceRevision = 3) => ({
+  learning: {
+    eventServerSequence: 7,
+    sessionRevision: 2,
+    spaceRevision,
+  },
+  membership: {
+    baseMembershipRevision: 4,
+    betaEntitlementRevision: 1,
+  },
+  progress: {
+    checkInRevision: 1,
+    learningServerSequence: 9,
+    spaceRevision,
+  },
+  schemaVersion: 'bootstrap-component-revisions.v1' as const,
+  space: { stateRevision: spaceRevision },
+});
+
+const createBootstrapObservation = (
+  forceFresh = false,
+  generation = 1,
+) => ({
+  forceFresh,
+  generation,
+  runtimeSessionId: 'bootstrap-runtime:test-session-0001',
+  schemaVersion: 'account-bootstrap-observation.v1' as const,
+});
+
 const createSpaceReplayContext = () => ({
   authToken: 'token-space',
+  bootstrapObservation: createBootstrapObservation(),
+  componentRevisions: createComponentRevisions(),
   contentVersion: `sha256:${'a'.repeat(64)}`,
   dayKey: '2026-04-27',
   phoneNumber: '13800138001',
@@ -98,6 +132,59 @@ describe('MutationQueueRepository', () => {
     });
   });
 
+  it('binds a mismatch refresh to its exact track while allowing daily vectors to reset', () => {
+    const baselineContext = createSpaceReplayContext();
+    const baseline = {
+      bootstrapObservation: baselineContext.bootstrapObservation,
+      componentRevisions: baselineContext.componentRevisions,
+      contentVersion: baselineContext.contentVersion,
+      dayKey: baselineContext.dayKey,
+      schemaVersion: 'space-canonical-refresh-baseline.v1' as const,
+      track: baselineContext.track,
+    };
+    const nextContentVersion = `sha256:${'b'.repeat(64)}`;
+
+    expect(
+      hasCausalSpaceBootstrapAdvance(
+        {
+          ...baselineContext,
+          contentVersion: nextContentVersion,
+          track: 'cet6',
+        },
+        baseline,
+      ),
+    ).toBe(false);
+    expect(
+      hasCausalSpaceBootstrapAdvance(
+        {
+          ...baselineContext,
+          componentRevisions: createComponentRevisions(2),
+          contentVersion: nextContentVersion,
+        },
+        baseline,
+      ),
+    ).toBe(false);
+
+    expect(
+      hasCausalSpaceBootstrapAdvance(
+        {
+          ...baselineContext,
+          bootstrapObservation: createBootstrapObservation(true, 2),
+          componentRevisions: {
+            ...createComponentRevisions(),
+            progress: {
+              ...createComponentRevisions().progress,
+              checkInRevision: 0,
+            },
+          },
+          contentVersion: nextContentVersion,
+          dayKey: '2026-04-28',
+        },
+        baseline,
+      ),
+    ).toBe(true);
+  });
+
   it('enqueues mutations', () => {
     const repository = createMutationQueueRepository({
       membershipRepository: mockMembershipRepository as never,
@@ -127,6 +214,28 @@ describe('MutationQueueRepository', () => {
       createCheckInPayload(),
     );
 
+    await expect(repository.getQueueSize()).resolves.toBe(1);
+  });
+
+  it('rechecks canonical write authority after reading a queued mutation', async () => {
+    const repository = createMutationQueueRepository({
+      membershipRepository: mockMembershipRepository as never,
+      progressSyncRepository: mockProgressSyncRepository as never,
+      spaceStateRepository: mockSpaceStateRepository as never,
+    });
+    await repository.enqueueMutation(
+      'check_in_daily_progress',
+      createCheckInPayload(),
+    );
+
+    await expect(
+      repository.startReplay(
+        {authToken: 'token', phoneNumber: '13800138000'},
+        {canSubmit: () => false},
+      ),
+    ).resolves.toEqual([]);
+
+    expect(mockProgressSyncRepository.checkIn).not.toHaveBeenCalled();
     await expect(repository.getQueueSize()).resolves.toBe(1);
   });
 
@@ -278,6 +387,47 @@ describe('MutationQueueRepository', () => {
       '2026-04-27',
     );
     await expect(repository.getQueueSize()).resolves.toBe(0);
+  });
+
+  it('preserves an inactive-track Space action without starving current-scope mutations', async () => {
+    const queueManager = new MutationQueueManager({
+      storage: createInMemoryMutationQueueStorage(),
+    });
+    const repository = createMutationQueueRepository({
+      membershipRepository: mockMembershipRepository as never,
+      progressSyncRepository: mockProgressSyncRepository as never,
+      queueManager,
+      spaceStateRepository: mockSpaceStateRepository as never,
+    });
+    const cet4Space = createSpacePayload();
+    cet4Space.context.phoneNumber = '13800138000';
+
+    await repository.enqueueMutation('apply_space_action', cet4Space);
+    await repository.enqueueMutation(
+      'check_in_daily_progress',
+      createCheckInPayload(),
+    );
+
+    await expect(
+      repository.startReplay({
+        ...createSpaceReplayContext(),
+        contentVersion: `sha256:${'b'.repeat(64)}`,
+        phoneNumber: '13800138000',
+        track: 'cet6',
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        entry: expect.objectContaining({type: 'check_in_daily_progress'}),
+      }),
+    ]);
+
+    expect(mockSpaceStateRepository.applyActions).not.toHaveBeenCalled();
+    expect(mockProgressSyncRepository.checkIn).toHaveBeenCalledTimes(1);
+    await expect(repository.getQueueSize()).resolves.toBe(1);
+    await expect(queueManager.peek()).resolves.toMatchObject({
+      type: 'apply_space_action',
+      payload: {track: 'cet4'},
+    });
   });
 
   it('replays membership refreshes through loadState', async () => {
@@ -458,8 +608,10 @@ describe('MutationQueueRepository', () => {
     },
   );
 
-  it('keeps a content-version 409 active and blocks later ordered mutations', async () => {
-    const queueManager = new MutationQueueManager();
+  it('persists a content-version refresh gate across restart without spinning', async () => {
+    const sharedStore: Record<string, string> = {};
+    const storage = createInMemoryMutationQueueStorage(sharedStore);
+    const queueManager = new MutationQueueManager({ storage });
     const repository = createMutationQueueRepository({
       membershipRepository: mockMembershipRepository as never,
       progressSyncRepository: mockProgressSyncRepository as never,
@@ -487,12 +639,111 @@ describe('MutationQueueRepository', () => {
       checkInPayload,
     );
 
-    await expect(
-      repository.startReplay(createSpaceReplayContext()),
-    ).resolves.toEqual([]);
+    const baselineContext = createSpaceReplayContext();
+    await expect(repository.startReplay(baselineContext)).resolves.toEqual([
+      expect.objectContaining({
+        canonicalRefreshRequired: {
+          bootstrapObservation: baselineContext.bootstrapObservation,
+          componentRevisions: baselineContext.componentRevisions,
+          contentVersion: baselineContext.contentVersion,
+          dayKey: baselineContext.dayKey,
+          schemaVersion: 'space-canonical-refresh-baseline.v1',
+          track: baselineContext.track,
+        },
+        entry: expect.objectContaining({
+          retryCount: 1,
+          type: 'apply_space_action',
+        }),
+      }),
+    ]);
     await expect(repository.getQueueSize()).resolves.toBe(2);
     await expect(queueManager.getQuarantined()).resolves.toEqual([]);
     expect(mockProgressSyncRepository.checkIn).not.toHaveBeenCalled();
+    expect(mockSpaceStateRepository.applyActions).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(sharedStore)).not.toContain('token-space');
+
+    const restoredQueueManager = new MutationQueueManager({ storage });
+    const restoredRepository = createMutationQueueRepository({
+      membershipRepository: mockMembershipRepository as never,
+      progressSyncRepository: mockProgressSyncRepository as never,
+      queueManager: restoredQueueManager,
+      spaceStateRepository: mockSpaceStateRepository as never,
+    });
+
+    await expect(
+      restoredRepository.startReplay(baselineContext),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        canonicalRefreshRequired: expect.objectContaining({
+          contentVersion: baselineContext.contentVersion,
+        }),
+      }),
+    ]);
+    expect(mockSpaceStateRepository.applyActions).toHaveBeenCalledTimes(1);
+
+    await expect(
+      restoredRepository.startReplay({
+        ...baselineContext,
+        componentRevisions: createComponentRevisions(2),
+        contentVersion: `sha256:${'b'.repeat(64)}`,
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        canonicalRefreshRequired: expect.objectContaining({
+          contentVersion: baselineContext.contentVersion,
+        }),
+      }),
+    ]);
+    expect(mockSpaceStateRepository.applyActions).toHaveBeenCalledTimes(1);
+
+    await expect(
+      restoredRepository.startReplay({
+        ...baselineContext,
+        bootstrapObservation: createBootstrapObservation(true, 2),
+        componentRevisions: createComponentRevisions(4),
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        canonicalRefreshRequired: expect.objectContaining({
+          contentVersion: baselineContext.contentVersion,
+        }),
+      }),
+    ]);
+    expect(mockSpaceStateRepository.applyActions).toHaveBeenCalledTimes(1);
+
+    await expect(
+      restoredRepository.startReplay({
+        ...baselineContext,
+        componentRevisions: createComponentRevisions(4),
+        contentVersion: `sha256:${'b'.repeat(64)}`,
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        canonicalRefreshRequired: expect.objectContaining({
+          contentVersion: baselineContext.contentVersion,
+        }),
+      }),
+    ]);
+    expect(mockSpaceStateRepository.applyActions).toHaveBeenCalledTimes(1);
+
+    mockSpaceStateRepository.applyActions.mockResolvedValueOnce({
+      acknowledgedAt: '2026-04-27T00:00:01.000Z',
+      contentVersion: `sha256:${'b'.repeat(64)}`,
+      results: [{ actionId: 'space_action_0001', status: 'applied' }],
+      snapshot: { dayKey: '2026-04-27', states: [] },
+      track: 'cet4',
+    });
+    await expect(
+      restoredRepository.startReplay({
+        ...baselineContext,
+        bootstrapObservation: createBootstrapObservation(true, 2),
+        componentRevisions: createComponentRevisions(4),
+        contentVersion: `sha256:${'b'.repeat(64)}`,
+      }),
+    ).resolves.toHaveLength(2);
+    await expect(restoredRepository.getQueueSize()).resolves.toBe(0);
+    expect(mockSpaceStateRepository.applyActions).toHaveBeenCalledTimes(2);
+    expect(mockProgressSyncRepository.checkIn).toHaveBeenCalledTimes(1);
   });
 
   it('surfaces authorization failures so the app can revoke the session', async () => {
@@ -652,8 +903,8 @@ describe('MutationQueueRepository', () => {
     );
 
     const firstReplay = repository.startReplay(createSpaceReplayContext());
-    await replayStarted;
     const secondReplay = repository.startReplay(createSpaceReplayContext());
+    await replayStarted;
 
     resolveReplay?.();
     await Promise.all([firstReplay, secondReplay]);

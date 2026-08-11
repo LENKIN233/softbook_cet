@@ -22,8 +22,9 @@ Referenced active specs:
 
 - `GET /v2/bootstrap` is the current canonical account-read boundary.
 - The current CloudBase adapter reads several collections for one response. It
-  reports one `generated_at` value and per-component freshness, but does not
-  claim a serializable cross-collection transaction.
+  reports one `generated_at` observation, audit timestamps, and explicit
+  owner-scoped component revisions, but does not claim a serializable
+  cross-collection transaction or synthesize one scalar bootstrap revision.
 - A scheduler cursor is nullable until `/v2/learning/session` persists one in
   the account-and-track `softbook_learning_sessions` record. Bootstrap overlays
   only its sanitized card/source/track identity and never infers an exact
@@ -79,6 +80,26 @@ Rules:
     "generated_at": "2026-07-20T10:00:00.000Z",
     "day_key": "2026-07-20",
     "track": "cet4",
+    "component_revisions": {
+      "schema_version": "bootstrap-component-revisions.v1",
+      "membership": {
+        "base_membership_revision": 0,
+        "beta_entitlement_revision": 0
+      },
+      "learning": {
+        "event_server_sequence": 0,
+        "session_revision": 0,
+        "space_revision": 0
+      },
+      "progress": {
+        "learning_server_sequence": 0,
+        "check_in_revision": 0,
+        "space_revision": 0
+      },
+      "space": {
+        "state_revision": 0
+      }
+    },
     "content": {
       "card_count": 5,
       "release_id": null,
@@ -112,6 +133,7 @@ Rules:
       "day_key": "2026-07-20",
       "favorite_count": 0,
       "learning_completed_count": 0,
+      "learning_authority": "empty",
       "pending_review_count": 0,
       "review_completed_count": 0,
       "sleeping_count": 0,
@@ -119,8 +141,10 @@ Rules:
     },
     "space": {
       "acknowledged_at": null,
-      "day_key": "2026-07-20",
-      "states": []
+      "content_version": "sha256:<64 lowercase hex characters>",
+      "schema_version": "space-state.v2",
+      "states": [],
+      "track": "cet4"
     }
   }
 }
@@ -131,6 +155,90 @@ empty state. They do not cause the server to copy a device snapshot or silently
 use another day or track. `card_states` and `space.states` use deterministic
 card-ID ordering. A non-null learning cursor contains only `card_id`,
 `source_id`, and `track`; the opaque selection ID remains server-internal.
+
+`card_states`, their source metadata, the bootstrap cursor, and `space.states`
+are retained account projections, so a legal content replacement may leave a
+historical source, card IDs, or interaction IDs that no longer exist in the
+current source and the projection can exceed current `content.card_count`.
+After validating the exact bootstrap content identity, mobile maps only
+current-source/current-catalog card and interaction matches into current
+learning presentation. Current selection authority comes from the validated
+learning-session response; a retained bootstrap cursor is not mapped into a
+different source. Daily totals and pending review remain the canonical Progress
+projection; clients must not recount the filtered history and invent different
+totals.
+
+A fresh authenticated bootstrap may validate account authority for replay while
+a durable learning outbox still targets an older retained content version. In
+that case mobile preserves the immutable event, replays it before requesting a
+replacement scheduler selection, and only after exact acknowledgement loads
+and maps the active release. A content replacement or China-day rollover must
+not require current-session UI hydration before this retained-event replay.
+
+## Component revision authority
+
+`component_revisions` is an additive top-level `bootstrap.v2` field. Keeping it
+outside the strict `space-state.v2` object lets already-shipped parsers ignore
+the new metadata while revision-aware clients require and validate its exact
+shape. Backend deployment therefore precedes a client release that requires
+`bootstrap-component-revisions.v1`.
+
+- Membership is a two-part vector. `base_membership_revision` lives in a
+  digest-bound sidecar and increments in the same transaction as every current
+  base membership write, preserving rollback compatibility with the previous
+  package's exact business document schema. Missing business state and sidecar
+  is revision zero. A retained legacy document without a sidecar is revision
+  one or higher and creates its sidecar transactionally; an orphan sidecar
+  fails closed. A previous-package write is detected by digest mismatch and
+  advances rather than reusing the old revision. Beta entitlement reuses the
+  already-audited entitlement document revision, or zero when absent.
+- Learning is scoped to the requested account and track.
+  `event_server_sequence` equals the maximum positive `server_sequence` in the
+  returned track projection and therefore the maximum returned card-state
+  sequence. Every retained legacy card is serialized with an explicit
+  `server_sequence: 0`; that pre-v2 baseline is scoped to the requested China
+  day and may disappear on day rollover, while positive v2 history remains
+  monotonic across day/content changes. `session_revision` is the existing account-and-track scheduler
+  revision. `space_revision` identifies the account Space snapshot used to
+  overlay `is_favorited`.
+- Progress is scoped to the requested account and product day.
+  `learning_server_sequence` is the account-wide event sequence because
+  pending review is account-wide; `check_in_revision` is zero for an absent
+  account-day record and one for the monotonic checked-in record;
+  `space_revision` identifies the snapshot used for favorite and sleep counts.
+  `progress.learning_authority` is one of `account_events_v2`,
+  `legacy_account_baseline`, or `empty`. Before the first accepted v2 event,
+  the adapter derives the pending-review count from the latest valid
+  account-wide legacy daily snapshot (falling back to validated legacy learning
+  states), so a requested-day change cannot erase pending review while the
+  sequence is zero. `account_events_v2` requires a positive event sequence, a
+  non-v2 authority requires sequence zero, `empty` requires zero pending review,
+  and an unchanged sequence cannot relabel the authority.
+  The CloudBase adapter reads the daily projection, account sequence, and
+  check-in record in one read transaction before Space-derived counts are
+  applied, preventing one Progress vector from labeling a split event read.
+- Space `state_revision` is account-wide and lives in the v2 sidecar with the
+  canonical-state digest and cumulative action digest/result bindings;
+  current writes keep the strict `space-state.v2` business document unchanged.
+  No canonical state and no sidecar is zero. Retained legacy state without a
+  sidecar reconciles at revision one or higher. Every batch that creates at
+  least one new immutable action ledger advances once in the same transaction
+  as state, revision checkpoint, and action lineage, including a newly
+  ledgered stale action. An all-duplicate batch does not advance unless a
+  directly proven previous-package ledger must gain lineage; out-of-band
+  previous-package state writes are detected by digest and advance on read.
+
+`generated_at` and `acknowledged_at` remain observation and audit values. They
+cannot order writes accepted in the same clock millisecond. Content SHA-256 and
+release identity remain content scope rather than a monotonic revision. Equal
+owner revisions require equal owner state, except for explicitly derived
+presentation fields such as a server-calculated remaining duration.
+
+The component vectors intentionally expose a composed read: Membership,
+Learning, Progress, and Space may be observed at different valid generations.
+Per-component stored revision fences prevent a revision from describing
+different bytes inside its owner; they do not turn the complete response into
+one cross-collection snapshot.
 
 ## Content release boundary
 

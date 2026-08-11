@@ -47,11 +47,8 @@ async function readBootstrap(config, input) {
     );
   }
 
-  const [membership, progress, learning, space] = await Promise.all([
+  const [membership, learning, space] = await Promise.all([
     config.store.getMembership(input.phoneNumber),
-    config.store.getDailyProgress(input.phoneNumber, input.dayKey, {
-      accountKey: input.accountKey,
-    }),
     config.store.getLearningState(
       input.phoneNumber,
       input.dayKey,
@@ -63,6 +60,14 @@ async function readBootstrap(config, input) {
       acknowledgedAt: generatedAt,
     }),
   ]);
+  // Progress owns the account-wide accepted-event sequence. Read it after the
+  // requested-track Learning projection so a concurrently committed event can
+  // only make Progress newer, never causally older than Learning.
+  const progress = await config.store.getDailyProgress(
+    input.phoneNumber,
+    input.dayKey,
+    {accountKey: input.accountKey},
+  );
   const normalizedSpace = serializeSpaceState(space, {
     accountKey: input.accountKey,
     cardIds: new Set(cardSource.card_records.map(card => card.card_id)),
@@ -77,18 +82,129 @@ async function readBootstrap(config, input) {
     normalizeDailyProgress(progress, input.dayKey),
     normalizedSpace,
   );
+  const componentRevisions = normalizeComponentRevisions({
+    learning,
+    membership,
+    normalizedLearning,
+    normalizedProgress,
+    progress,
+    space,
+  });
 
   return {
     schema_version: BOOTSTRAP_SCHEMA_VERSION,
     generated_at: generatedAt,
     day_key: input.dayKey,
     track: input.track,
+    component_revisions: componentRevisions,
     content: serializeContent(cardSource),
     learning: normalizedLearning,
     membership: normalizeMembership(membership),
     progress: normalizedProgress,
     space: normalizedSpace,
   };
+}
+
+function normalizeComponentRevisions(input) {
+  return readCanonicalState('component revisions', () => {
+    const membership = requireExactObject(
+      input.membership.component_revision,
+      ['base_membership_revision', 'beta_entitlement_revision'],
+      'membership.component_revision',
+    );
+    const learning = requireExactObject(
+      input.learning.component_revision,
+      ['event_server_sequence', 'session_revision'],
+      'learning state.component_revision',
+    );
+    const progress = requireExactObject(
+      input.progress.component_revision,
+      ['check_in_revision', 'learning_server_sequence'],
+      'daily progress.component_revision',
+    );
+    const spaceRevision = requireNonNegativeSafeInteger(
+      input.space.revision,
+      'space state.revision',
+    );
+    const eventServerSequence = requireNonNegativeSafeInteger(
+      learning.event_server_sequence,
+      'learning state.component_revision.event_server_sequence',
+    );
+    const maximumSerializedSequence = input.normalizedLearning.card_states
+      .reduce(
+        (maximum, state) =>
+          Math.max(maximum, state.server_sequence ?? 0),
+        0,
+      );
+
+    if (eventServerSequence !== maximumSerializedSequence) {
+      throw new Error(
+        'learning state component revision does not match its projection.',
+      );
+    }
+
+    const checkInRevision = requireNonNegativeSafeInteger(
+      progress.check_in_revision,
+      'daily progress.component_revision.check_in_revision',
+    );
+    if (checkInRevision !== 0 && checkInRevision !== 1) {
+      throw new Error('daily progress check-in revision is invalid.');
+    }
+    const learningServerSequence = requireNonNegativeSafeInteger(
+      progress.learning_server_sequence,
+      'daily progress.component_revision.learning_server_sequence',
+    );
+
+    const learningAuthority = input.normalizedProgress.learning_authority;
+    if (
+      (learningAuthority === 'account_events_v2' &&
+        learningServerSequence === 0) ||
+      (learningAuthority !== 'account_events_v2' &&
+        learningServerSequence !== 0) ||
+      (learningAuthority === 'empty' &&
+        input.normalizedProgress.pending_review_count !== 0)
+    ) {
+      throw new Error(
+        'daily progress learning authority is inconsistent.',
+      );
+    }
+
+    if (learningServerSequence < eventServerSequence) {
+      throw new Error(
+        'daily progress component revision is older than Learning.',
+      );
+    }
+
+    return {
+      schema_version: 'bootstrap-component-revisions.v1',
+      membership: {
+        base_membership_revision: requireNonNegativeSafeInteger(
+          membership.base_membership_revision,
+          'membership.component_revision.base_membership_revision',
+        ),
+        beta_entitlement_revision: requireNonNegativeSafeInteger(
+          membership.beta_entitlement_revision,
+          'membership.component_revision.beta_entitlement_revision',
+        ),
+      },
+      learning: {
+        event_server_sequence: eventServerSequence,
+        session_revision: requireNonNegativeSafeInteger(
+          learning.session_revision,
+          'learning state.component_revision.session_revision',
+        ),
+        space_revision: spaceRevision,
+      },
+      progress: {
+        learning_server_sequence: learningServerSequence,
+        check_in_revision: checkInRevision,
+        space_revision: spaceRevision,
+      },
+      space: {
+        state_revision: spaceRevision,
+      },
+    };
+  });
 }
 
 function serializeContent(cardSource) {
@@ -139,6 +255,11 @@ function normalizeDailyProgress(snapshot, expectedDayKey) {
       learning_completed_count: requireNonNegativeInteger(
         progress.learning_completed_count,
         'daily progress.learning_completed_count',
+      ),
+      learning_authority: requireEnum(
+        progress.learning_authority,
+        ['account_events_v2', 'legacy_account_baseline', 'empty'],
+        'daily progress.learning_authority',
       ),
       pending_review_count: requireNonNegativeInteger(
         progress.pending_review_count,
@@ -251,6 +372,10 @@ function normalizeLearningEvent(value, label, isV2Projection) {
     return {
       ...normalized,
       is_favorited: requireBoolean(event.is_favorited, `${label}.is_favorited`),
+      // Legacy snapshots are a day-scoped migration baseline, not accepted
+      // learning-events.v2 history. Make that authority explicit on the wire
+      // so strict clients never have to infer a missing sequence.
+      server_sequence: 0,
     };
   }
 
@@ -580,6 +705,21 @@ function requireObject(value, fieldName) {
   }
 
   return value;
+}
+
+function requireExactObject(value, expectedKeys, fieldName) {
+  const object = requireObject(value, fieldName);
+  const actual = Object.keys(object).sort();
+  const expected = [...expectedKeys].sort();
+
+  if (
+    actual.length !== expected.length ||
+    actual.some((key, index) => key !== expected[index])
+  ) {
+    throw new Error(`${fieldName} has unexpected fields.`);
+  }
+
+  return object;
 }
 
 function requireString(value, fieldName) {

@@ -7,6 +7,7 @@ import ReactTestRenderer from 'react-test-renderer';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
+import {USER_STATE_STORAGE_KEY} from '../src/persistence/userStateStore';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
 import { LearningCard, LearningSession } from '../src/learning/model';
 import { createLocalLearningSession } from '../src/learning/session';
@@ -15,6 +16,8 @@ import {
   type SoftbookRemoteRuntimeProfile,
 } from '../src/runtime/appRuntimeConfig';
 import { getChinaDayKey } from '../src/shared/chinaDay';
+import * as ChinaDay from '../src/shared/chinaDay';
+import { LEARNING_EVENT_OUTBOX_STORAGE_KEY } from '../src/sync/learningEventOutbox';
 import App, { isCompactMineViewport, isPhoneMineViewport } from '../App';
 
 const mockCreateLearningSessionRepository = jest.fn();
@@ -198,7 +201,7 @@ beforeEach(() => {
   mockLoadSession.mockReset();
   mockLoadSession.mockImplementation(() => pendingSession.promise);
   mockFetch.mockReset();
-  mockFetch.mockImplementation(async (input: string) => {
+  mockFetch.mockImplementation(async (input: string, _init?: MockFetchInit) => {
     throw new Error(`Unexpected fetch call in App test: ${input}`);
   });
   originalFetch = globalWithFetch.fetch;
@@ -667,6 +670,13 @@ function createAccountBootstrapPayload(
   const reviewCompletedCount = learningEvents.filter(
     event => event.phase === 'review',
   ).length;
+  const learningServerSequence = learningEvents.length;
+  const baseMembershipRevision = {
+    trial_available: 0,
+    trial: 1,
+    free: 2,
+    premium: 3,
+  }[stage];
 
   return {
     data: {
@@ -674,6 +684,24 @@ function createAccountBootstrapPayload(
       generated_at: new Date().toISOString(),
       day_key: dayKey,
       track: session.track,
+      component_revisions: {
+        schema_version: 'bootstrap-component-revisions.v1',
+        membership: {
+          base_membership_revision: baseMembershipRevision,
+          beta_entitlement_revision: 0,
+        },
+        learning: {
+          event_server_sequence: learningServerSequence,
+          session_revision: learningServerSequence,
+          space_revision: 0,
+        },
+        progress: {
+          learning_server_sequence: learningServerSequence,
+          check_in_revision: Number(checkedInToday),
+          space_revision: 0,
+        },
+        space: { state_revision: 0 },
+      },
       content: {
         card_count: session.catalogCards.length,
         release_id: null,
@@ -689,13 +717,14 @@ function createAccountBootstrapPayload(
       learning: {
         acknowledged_at:
           learningEvents.length > 0 ? new Date().toISOString() : null,
-        card_states: learningEvents.map(event => ({
+        card_states: learningEvents.map((event, index) => ({
           card_id: event.card_id,
           completed_at: event.client_occurred_at,
           interaction_id: event.interaction_id,
           is_favorited: false,
           outcome: event.outcome,
           phase: event.phase,
+          server_sequence: index + 1,
           used_hint: event.used_hint,
           used_peek: event.used_peek,
         })),
@@ -723,6 +752,8 @@ function createAccountBootstrapPayload(
         day_key: dayKey,
         favorite_count: 0,
         learning_completed_count: learningCompletedCount,
+        learning_authority:
+          learningEvents.length > 0 ? 'account_events_v2' : 'empty',
         pending_review_count: learningEvents.filter(
           event => event.answer_grade === 'review_needed',
         ).length,
@@ -1330,6 +1361,126 @@ test('does not expose native credential storage failures inside the auth gate', 
   expect(output).toContain('验证码暂时没通过。');
   expect(output).not.toContain('TurboModuleRegistry');
   expect(output).not.toContain('RNKeychain');
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('clears an established session when initial canonical hydration returns terminal authorization', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      learningState: 'local',
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        {error: {code: 'forbidden', message: 'Session revoked.'}},
+        403,
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  await authenticateIntoLearningBootstrap(tree!.root);
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(tree!.root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+  expect(output).toContain('登录已失效，请重新验证手机号。');
+  expect(output).not.toContain('账户，已确认');
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('clears app and durable account state when resource and refresh both return 401', async () => {
+  let bootstrapRequestCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {membership: 'local'},
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/refresh') {
+      return createJsonResponse(
+        {error: {code: 'invalid_refresh_token', message: 'Session revoked.'}},
+        401,
+      );
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      return bootstrapRequestCount === 1
+        ? createJsonResponse(createAccountBootstrapPayload())
+        : createJsonResponse(
+            {error: {code: 'unauthorized', message: 'Session expired.'}},
+            401,
+          );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await AsyncStorage.setItem(
+    USER_STATE_STORAGE_KEY,
+    JSON.stringify({
+      checked_in_day_key: null,
+      learning_cursor: null,
+      owner_phone_number: '13800138000',
+      schema_version: 'user-state.v2',
+      space_card_state_by_id: {},
+    }),
+  );
+  await AsyncStorage.setItem('__softbook_mutation_queue', '[{"pending":true}]');
+
+  await openRoute(root, 'mine');
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+  expect(root.findAllByProps({testID: 'learning-surface'})).toHaveLength(0);
+  expect(output).toContain('登录已失效，请重新验证手机号。');
+  expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).toBeNull();
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
+  expect(
+    await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY),
+  ).not.toContain('13800138000');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
@@ -1994,6 +2145,7 @@ test('blocks product state writes until canonical bootstrap succeeds on reconnec
 
     bootstrapAvailable = true;
     await ReactTestRenderer.act(async () => {
+      emitNetInfoState({ isConnected: false, isInternetReachable: false });
       emitNetInfoState({ isConnected: true, isInternetReachable: true });
       await flushAsyncEffects();
     });
@@ -2098,12 +2250,159 @@ test('keeps validated account state usable when a later bootstrap refresh fails'
   }
 });
 
-test('does not map a pre-ack bootstrap response that started before event enqueue', async () => {
-  const delayedBootstrapRefresh =
-    createDeferred<ReturnType<typeof createJsonResponse>>();
+test('locks writes after canonical owner drift until a valid revision advance', async () => {
+  const {emitNetInfoState} = jest.requireMock(
+    '@react-native-community/netinfo',
+  ) as {emitNetInfoState: (state: unknown) => void};
   let bootstrapRequestCount = 0;
-  let learningEventsWriteCount = 0;
+  let learningEventWriteCount = 0;
 
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      const payload = createAccountBootstrapPayload();
+
+      if (bootstrapRequestCount >= 2) {
+        payload.data.membership.recovery_prompt_visible = true;
+      }
+      if (bootstrapRequestCount >= 3) {
+        payload.data.component_revisions.membership.base_membership_revision += 1;
+      }
+      return createJsonResponse(payload);
+    }
+    if (input === 'https://api.softbook.example/v2/learning/events') {
+      learningEventWriteCount += 1;
+      return createLearningEventsAckResponse(init);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+  expect(bootstrapRequestCount).toBe(2);
+
+  await openRoute(root, 'learning');
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({testID: 'learning-flip-confident-button'})
+      .props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-next-button'}).props.onPress();
+  });
+  expect(learningEventWriteCount).toBe(0);
+  expect(
+    (await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)) ?? '',
+  ).not.toContain('event_id');
+
+  await ReactTestRenderer.act(() => {
+    emitNetInfoState({isConnected: false, isInternetReachable: false});
+    emitNetInfoState({isConnected: true, isInternetReachable: true});
+  });
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(3);
+
+  await openRoute(root, 'learning');
+  await waitForLearningSurface(root);
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({testID: 'learning-flip-confident-button'})
+      .props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-next-button'}).props.onPress();
+  });
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+  expect(learningEventWriteCount).toBe(1);
+});
+
+test('clears authenticated app state when a later bootstrap refresh is forbidden', async () => {
+  let bootstrapRequestCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {membership: 'local'},
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      return bootstrapRequestCount === 1
+        ? createJsonResponse(createAccountBootstrapPayload())
+        : createJsonResponse(
+            {error: {code: 'forbidden', message: 'Session revoked.'}},
+            403,
+          );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+  expect(output).toContain('登录已失效，请重新验证手机号。');
+  expect(output).not.toContain('账户，已确认');
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('clears the session and durable learning event when replay is forbidden', async () => {
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
     baseUrl: 'https://api.softbook.example',
     featureModes: {
@@ -2120,6 +2419,134 @@ test('does not map a pre-ack bootstrap response that started before event enqueu
       return createRemoteAuthSessionResponse();
     }
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(createAccountBootstrapPayload());
+    }
+    if (input === 'https://api.softbook.example/v2/learning/events') {
+      return createJsonResponse(
+        {error: {code: 'forbidden', message: 'Session revoked.'}},
+        403,
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({testID: 'learning-flip-confident-button'})
+      .props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-next-button'}).props.onPress();
+  });
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+
+  expect(root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+  const outbox = JSON.parse(
+    String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)),
+  );
+  expect(outbox.entries).toEqual([]);
+  expect(JSON.stringify(tree!.toJSON())).toContain(
+    '登录已失效，请重新验证手机号。',
+  );
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('clears the session and durable Space action when replay is forbidden', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      learningState: 'local',
+      membership: 'local',
+      progressSync: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(createAccountBootstrapPayload());
+    }
+    if (input === 'https://api.softbook.example/v2/space/actions') {
+      return createJsonResponse(
+        {error: {code: 'forbidden', message: 'Session revoked.'}},
+        403,
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-favorite-button'}).props.onPress();
+  });
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+
+  expect(root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
+  expect(JSON.stringify(tree!.toJSON())).toContain(
+    '登录已失效，请重新验证手机号。',
+  );
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('supersedes an ordinary pre-enqueue refresh before replaying retained content', async () => {
+  const delayedBootstrapRefresh =
+    createDeferred<ReturnType<typeof createJsonResponse>>();
+  let bootstrapRequestCount = 0;
+  let learningEventsWriteCount = 0;
+  const contentB = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: `sha256:${'b'.repeat(64)}`,
+    sourceId: 'ordinary-refresh-source-b',
+    sourceLabel: 'Ordinary refresh source B',
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
       bootstrapRequestCount += 1;
       return bootstrapRequestCount === 1
         ? createJsonResponse(createAccountBootstrapPayload())
@@ -2127,7 +2554,7 @@ test('does not map a pre-ack bootstrap response that started before event enqueu
     }
     if (input === 'https://api.softbook.example/v2/learning/events') {
       learningEventsWriteCount += 1;
-      return createJsonResponse({}, 503);
+      return createLearningEventsAckResponse(init);
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -2164,8 +2591,9 @@ test('does not map a pre-ack bootstrap response that started before event enqueu
     await AsyncStorage.getItem('__softbook_learning_event_outbox_v2'),
   ).toContain('event_id');
 
+  resolvedSession = contentB;
   delayedBootstrapRefresh.resolve(
-    createJsonResponse(createAccountBootstrapPayload()),
+    createJsonResponse(createAccountBootstrapPayload(contentB)),
   );
   await ReactTestRenderer.act(async () => {
     for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -2173,20 +2601,33 @@ test('does not map a pre-ack bootstrap response that started before event enqueu
     }
   });
   expect(learningEventsWriteCount).toBe(1);
+  expect(
+    JSON.parse(
+      String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)),
+    ).entries,
+  ).toEqual([]);
 
   await openRoute(root, 'statistics');
   expect(
     findPressableByTestId(root, 'statistics-checkin-button').props.disabled,
-  ).toBe(false);
+  ).toBe(true);
 });
 
-test('does not replay queued learning events before refreshed content is validated', async () => {
+test('replays a retained offline event before loading a replacement content source', async () => {
   const { emitNetInfoState } = jest.requireMock(
     '@react-native-community/netinfo',
   );
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
   let bootstrapRequestCount = 0;
   let learningEventsWriteCount = 0;
+  const acceptedLearningEvents: MockLearningEvent[] = [];
+  const learningEventBodies: string[] = [];
+  const contentB = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: `sha256:${'b'.repeat(64)}`,
+    sourceId: 'replacement-source-b',
+    sourceLabel: 'Replacement source B',
+  };
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
     baseUrl: 'https://api.softbook.example',
@@ -2205,20 +2646,33 @@ test('does not replay queued learning events before refreshed content is validat
     }
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
       bootstrapRequestCount += 1;
-      const payload = createAccountBootstrapPayload();
+      if (bootstrapRequestCount === 1) {
+        return createJsonResponse(createAccountBootstrapPayload());
+      }
 
-      if (bootstrapRequestCount > 1) {
-        payload.data.content.version = `sha256:${'b'.repeat(64)}`;
+      const payload = createAccountBootstrapPayload(
+        contentB,
+        'free',
+        acceptedLearningEvents,
+      );
+      if (acceptedLearningEvents.length > 0) {
+        payload.data.learning.source = {
+          id: 'local-cet4-source',
+          label: 'CET4 本地演示卡源',
+        };
       }
 
       return createJsonResponse(payload);
     }
     if (input === 'https://api.softbook.example/v2/learning/events') {
-      readLearningEventsRequest(init);
+      learningEventBodies.push(String(init?.body));
       learningEventsWriteCount += 1;
-      return learningEventsWriteCount === 1
-        ? createJsonResponse({}, 503)
-        : createLearningEventsAckResponse(init);
+      if (learningEventsWriteCount === 1) {
+        return createJsonResponse({}, 503);
+      }
+
+      acceptedLearningEvents.push(...readLearningEventsRequest(init).events);
+      return createLearningEventsAckResponse(init);
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -2247,6 +2701,7 @@ test('does not replay queued learning events before refreshed content is validat
       await flushAsyncEffects();
     });
     expect(learningEventsWriteCount).toBe(1);
+    resolvedSession = contentB;
 
     await ReactTestRenderer.act(async () => {
       emitNetInfoState({ isConnected: false, isInternetReachable: false });
@@ -2255,7 +2710,14 @@ test('does not replay queued learning events before refreshed content is validat
     });
 
     expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
-    expect(learningEventsWriteCount).toBe(1);
+    expect(learningEventsWriteCount).toBe(2);
+    expect(learningEventBodies[1]).toBe(learningEventBodies[0]);
+    expect(
+      JSON.parse(
+        String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)),
+      ).entries,
+    ).toEqual([]);
+    expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(
       mockFetch.mock.calls.some(
         ([input]) =>
@@ -2263,8 +2725,8 @@ test('does not replay queued learning events before refreshed content is validat
       ),
     ).toBe(false);
     expect(
-      root.findAllByProps({ testID: 'learning-bootstrap-retry-button' }).length,
-    ).toBeGreaterThan(0);
+      root.findAllByProps({ testID: 'learning-bootstrap-retry-button' }),
+    ).toHaveLength(0);
   } finally {
     await ReactTestRenderer.act(() => {
       tree!.unmount();
@@ -2335,6 +2797,120 @@ test('does not start a remote trial before bootstrap content is validated', asyn
         call.input.startsWith('https://api.softbook.example/v2/bootstrap?'),
       ).length,
     ).toBeGreaterThanOrEqual(2);
+  } finally {
+    await ReactTestRenderer.act(() => {
+      tree!.unmount();
+    });
+    warn.mockRestore();
+  }
+});
+
+test('bounds bootstrap retries with a retained generic queue and permanent content mismatch', async () => {
+  const {emitNetInfoState} = jest.requireMock(
+    '@react-native-community/netinfo',
+  ) as {emitNetInfoState: (state: unknown) => void};
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+  let bootstrapRequestCount = 0;
+  let genericWriteCount = 0;
+  const contentB = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: `sha256:${'b'.repeat(64)}`,
+    sourceId: 'permanent-mismatch-source-b',
+    sourceLabel: 'Permanent mismatch source B',
+  };
+
+  await AsyncStorage.setItem(
+    '__softbook_mutation_queue',
+    JSON.stringify([
+      {
+        id: `check-in:13800138000:${getChinaDayKey()}`,
+        payload: {
+          context: {phoneNumber: '13800138000'},
+          dayKey: getChinaDayKey(),
+        },
+        retryCount: 0,
+        timestamp: new Date().toISOString(),
+        type: 'check_in_daily_progress',
+      },
+    ]),
+  );
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      return createJsonResponse(createAccountBootstrapPayload(contentB));
+    }
+    if (input === 'https://api.softbook.example/v2/progress/check-in') {
+      genericWriteCount += 1;
+      return createJsonResponse({});
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  try {
+    const root = tree!.root;
+    await authenticateIntoLearningBootstrap(root);
+    await resolveLearningBootstrap();
+    for (let attempt = 0; attempt < 24; attempt += 1) {
+      await ReactTestRenderer.act(async () => {
+        await flushAsyncEffects();
+      });
+    }
+
+    expect(bootstrapRequestCount).toBeGreaterThanOrEqual(1);
+    expect(bootstrapRequestCount).toBeLessThanOrEqual(2);
+    const settledBootstrapRequestCount = bootstrapRequestCount;
+
+    for (let attempt = 0; attempt < 24; attempt += 1) {
+      await ReactTestRenderer.act(async () => {
+        await flushAsyncEffects();
+      });
+    }
+    expect(bootstrapRequestCount).toBe(settledBootstrapRequestCount);
+    expect(genericWriteCount).toBe(0);
+    expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toContain(
+      'check_in_daily_progress',
+    );
+
+    await ReactTestRenderer.act(() => {
+      emitNetInfoState({isConnected: false, isInternetReachable: false});
+      emitNetInfoState({isConnected: true, isInternetReachable: true});
+    });
+    for (let attempt = 0; attempt < 24; attempt += 1) {
+      await ReactTestRenderer.act(async () => {
+        await flushAsyncEffects();
+      });
+    }
+
+    expect(bootstrapRequestCount).toBeLessThanOrEqual(
+      settledBootstrapRequestCount + 1,
+    );
+    const postWakeBootstrapRequestCount = bootstrapRequestCount;
+    for (let attempt = 0; attempt < 24; attempt += 1) {
+      await ReactTestRenderer.act(async () => {
+        await flushAsyncEffects();
+      });
+    }
+    expect(bootstrapRequestCount).toBe(postWakeBootstrapRequestCount);
+    expect(genericWriteCount).toBe(0);
+    expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toContain(
+      'check_in_daily_progress',
+    );
+    expectNoUserVisibleMetadataLeakage(tree!);
   } finally {
     await ReactTestRenderer.act(() => {
       tree!.unmount();
@@ -2479,6 +3055,292 @@ test('queues a failed explicit remote check-in without uploading progress counte
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
+test('does not count a prior China-day card projection as today or enable check-in', async () => {
+  const session = createLocalLearningSession('cet4');
+  const firstCard = session.catalogCards[0];
+  const historicalEvent: MockLearningEvent = {
+    answer_grade: 'passed',
+    card_id: firstCard.card_id,
+    client_occurred_at: new Date(
+      Date.now() - 24 * 60 * 60 * 1000,
+    ).toISOString(),
+    content_version: TEST_CONTENT_VERSION,
+    device_cursor: {device_id: 'historical-device', sequence: 1},
+    event_id: 'event_historical_day_0001',
+    interaction_id: firstCard.interaction_id,
+    outcome: firstCard.interaction_id === 'flip' ? 'confident' : 'correct',
+    phase: 'learning',
+    selection_id: 'sel_historical_day_0001',
+    used_hint: false,
+    used_peek: false,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+  });
+
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      return createJsonResponse(createRemoteMembershipPayload('free'));
+    }
+
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      const payload = createAccountBootstrapPayload(
+        session,
+        'free',
+        [historicalEvent],
+      );
+      payload.data.progress.learning_completed_count = 0;
+      payload.data.progress.review_completed_count = 0;
+      payload.data.progress.total_completed_count = 0;
+      return createJsonResponse(payload);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root, session);
+  await openRoute(root, 'statistics');
+
+  expect(readMetricValue(root, 'statistics-metric-completed')).toBe('0');
+  expect(
+    findPressableByTestId(root, 'statistics-checkin-button').props.disabled,
+  ).toBe(true);
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('settles a failed China-day rollover refresh as waiting for update', async () => {
+  const initialDayKey = getChinaDayKey();
+  const nextDayKey = getChinaDayKey(
+    new Date(Date.now() + 24 * 60 * 60 * 1000),
+  );
+  let liveDayKey = initialDayKey;
+  const chinaDaySpy = jest
+    .spyOn(ChinaDay, 'getChinaDayKey')
+    .mockImplementation(() => liveDayKey);
+  let bootstrapRequestCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+  });
+
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      return createJsonResponse(createRemoteMembershipPayload('free'));
+    }
+
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      if (bootstrapRequestCount === 1) {
+        return createJsonResponse(createAccountBootstrapPayload());
+      }
+      return createJsonResponse(
+        {
+          error: {
+            code: 'service_unavailable',
+            message: 'Canonical progress is temporarily unavailable.',
+          },
+        },
+        503,
+      );
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'statistics');
+
+  liveDayKey = nextDayKey;
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+    await flushAsyncEffects();
+    await flushAsyncEffects();
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(bootstrapRequestCount).toBeLessThanOrEqual(3);
+  expect(output).toContain('待更新');
+  expect(output).toContain('今天的学习进展暂时无法确认');
+  expect(output).not.toContain('更新中');
+  expectNoUserVisibleMetadataLeakage(tree!);
+  await ReactTestRenderer.act(() => {
+    tree!.unmount();
+  });
+  chinaDaySpy.mockRestore();
+});
+
+test('settles a failed retained replay across China-day and recovers on the next wake', async () => {
+  const {emitNetInfoState} = jest.requireMock(
+    '@react-native-community/netinfo',
+  ) as {emitNetInfoState: (state: unknown) => void};
+  const initialDayKey = getChinaDayKey();
+  const nextDayKey = getChinaDayKey(
+    new Date(Date.now() + 24 * 60 * 60 * 1000),
+  );
+  let liveDayKey = initialDayKey;
+  const chinaDaySpy = jest
+    .spyOn(ChinaDay, 'getChinaDayKey')
+    .mockImplementation(() => liveDayKey);
+  let bootstrapRequestCount = 0;
+  let learningEventWriteCount = 0;
+  const acceptedLearningEvents: MockLearningEvent[] = [];
+  const contentB = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: `sha256:${'b'.repeat(64)}`,
+    sourceId: 'midnight-source-b',
+    sourceLabel: 'Midnight source B',
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      const payload = createAccountBootstrapPayload(
+        bootstrapRequestCount === 1
+          ? createLocalLearningSession('cet4')
+          : contentB,
+        'free',
+        acceptedLearningEvents,
+      );
+      payload.data.day_key = liveDayKey;
+      payload.data.progress.day_key = liveDayKey;
+      return createJsonResponse(payload);
+    }
+    if (input === 'https://api.softbook.example/v2/learning/events') {
+      learningEventWriteCount += 1;
+      if (learningEventWriteCount <= 2) {
+        return createJsonResponse({}, 503);
+      }
+      acceptedLearningEvents.push(...readLearningEventsRequest(init).events);
+      return createLearningEventsAckResponse(init);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  try {
+    const root = tree!.root;
+    await loginIntoLearningFlow(root);
+    await ReactTestRenderer.act(() => {
+      root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      root
+        .findByProps({testID: 'learning-flip-confident-button'})
+        .props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      root.findByProps({testID: 'learning-next-button'}).props.onPress();
+    });
+    await ReactTestRenderer.act(async () => {
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        await flushAsyncEffects();
+      }
+    });
+    expect(learningEventWriteCount).toBe(1);
+    expect(
+      String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)),
+    ).toContain('event_id');
+
+    resolvedSession = contentB;
+    await openRoute(root, 'statistics');
+    liveDayKey = nextDayKey;
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        await flushAsyncEffects();
+      }
+    });
+
+    expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+    expect(learningEventWriteCount).toBe(2);
+    const failedRolloverOutput = JSON.stringify(tree!.toJSON());
+    expect(failedRolloverOutput).toContain('待更新');
+    expect(failedRolloverOutput).not.toContain('更新中');
+    expect(
+      JSON.parse(
+        String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)),
+      ).entries,
+    ).not.toEqual([]);
+
+    await ReactTestRenderer.act(() => {
+      emitNetInfoState({isConnected: false, isInternetReachable: false});
+      emitNetInfoState({isConnected: true, isInternetReachable: true});
+    });
+    await ReactTestRenderer.act(async () => {
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        await flushAsyncEffects();
+      }
+    });
+
+    expect(learningEventWriteCount).toBe(3);
+    expect(
+      JSON.parse(
+        String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)),
+      ).entries,
+    ).toEqual([]);
+    expect(
+      mockFetch.mock.calls.some(([input]) =>
+        String(input).includes(`day_key=${nextDayKey}`),
+      ),
+    ).toBe(true);
+    expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
+  } finally {
+    await ReactTestRenderer.act(() => {
+      tree!.unmount();
+    });
+    chinaDaySpy.mockRestore();
+  }
+});
+
 test('queues a failed remote learning event for exact later replay', async () => {
   const learningEventRequests: MockLearningEventsRequest[] = [];
   const dependentLegacyRequests: string[] = [];
@@ -2577,7 +3439,7 @@ test('queues a failed remote learning event for exact later replay', async () =>
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('记录待重试');
-  expect(bootstrapRequestCount).toBe(bootstrapCountBeforeEvent);
+  expect(bootstrapRequestCount).toBe(bootstrapCountBeforeEvent + 1);
   expect(learningEventRequests).toHaveLength(1);
   expect(learningEventRequests[0].events).toHaveLength(1);
   expect(JSON.stringify(learningEventRequests[0])).not.toMatch(
@@ -2891,6 +3753,7 @@ test('replays an explicit queued check-in and confirms it through bootstrap afte
   shouldFailProgressSync = false;
 
   await ReactTestRenderer.act(async () => {
+    emitNetInfoState({ isConnected: false, isInternetReachable: false });
     emitNetInfoState({ isConnected: true, isInternetReachable: true });
     await flushAsyncEffects();
   });
@@ -3198,6 +4061,7 @@ test('replays the exact queued learning event after network reconnect', async ()
   shouldFailLearningEventsSync = false;
 
   await ReactTestRenderer.act(async () => {
+    emitNetInfoState({ isConnected: false, isInternetReachable: false });
     emitNetInfoState({ isConnected: true, isInternetReachable: true });
     await flushAsyncEffects();
     await flushAsyncEffects();
@@ -3225,7 +4089,8 @@ test('invalidates an acknowledged selection until post-ack bootstrap recovery lo
   const acceptedLearningEvents: MockLearningEvent[] = [];
   const learningEventRequests: MockLearningEventsRequest[] = [];
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-  let failNextBootstrap = false;
+  let bootstrapRequestCount = 0;
+  let failedBootstrapRequestNumber: number | null = null;
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
     baseUrl: 'https://api.softbook.example',
@@ -3243,8 +4108,8 @@ test('invalidates an acknowledged selection until post-ack bootstrap recovery lo
       return createRemoteAuthSessionResponse();
     }
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
-      if (failNextBootstrap) {
-        failNextBootstrap = false;
+      bootstrapRequestCount += 1;
+      if (bootstrapRequestCount === failedBootstrapRequestNumber) {
         return createJsonResponse({}, 503);
       }
 
@@ -3274,7 +4139,9 @@ test('invalidates an acknowledged selection until post-ack bootstrap recovery lo
   await loginIntoLearningFlow(root);
   expect(mockLoadSession).toHaveBeenCalledTimes(1);
 
-  failNextBootstrap = true;
+  // Retained replay now performs a fresh pre-submit validation. Fail the
+  // following post-ack reconciliation read, not that required validation.
+  failedBootstrapRequestNumber = bootstrapRequestCount + 2;
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
   });
@@ -3416,6 +4283,7 @@ test('replays a queued space action after network reconnect', async () => {
   shouldFailSpaceSync = false;
 
   await ReactTestRenderer.act(async () => {
+    emitNetInfoState({ isConnected: false, isInternetReachable: false });
     emitNetInfoState({ isConnected: true, isInternetReachable: true });
     await flushAsyncEffects();
   });
@@ -3433,12 +4301,13 @@ test('replays a queued space action after network reconnect', async () => {
 
 test('quarantines a removed-card space action and restores canonical state', async () => {
   let bootstrapRequestCount = 0;
+  const bootstrapCacheModes: Array<string | undefined> = [];
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
     baseUrl: 'https://api.softbook.example',
   });
 
-  mockFetch.mockImplementation(async (input: string) => {
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
     if (input === 'https://api.softbook.example/v2/auth/request-code') {
       return createRemoteAuthChallengeResponse();
     }
@@ -3453,6 +4322,9 @@ test('quarantines a removed-card space action and restores canonical state', asy
 
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
       bootstrapRequestCount += 1;
+      bootstrapCacheModes.push(
+        normalizeMockHeaders(init?.headers)['cache-control'],
+      );
       return createJsonResponse(createAccountBootstrapPayload());
     }
 
@@ -3500,6 +4372,7 @@ test('quarantines a removed-card space action and restores canonical state', asy
     '这项操作未能保存，空间已恢复到上次可用状态。',
   );
   expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(bootstrapCacheModes).toContain('no-cache');
   expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
   expect(
     await AsyncStorage.getItem('__softbook_mutation_queue:quarantine'),
@@ -3508,6 +4381,133 @@ test('quarantines a removed-card space action and restores canonical state', asy
     await AsyncStorage.getItem('__softbook_mutation_queue:quarantine'),
   ).not.toContain('remote-access-token');
   expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('bounds canonical refresh attempts while a Space content mismatch remains unchanged', async () => {
+  const { emitNetInfoState } = jest.requireMock(
+    '@react-native-community/netinfo',
+  );
+  let bootstrapRequestCount = 0;
+  let spaceActionRequestCount = 0;
+  let learningEventRequestCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+  });
+
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      return createJsonResponse(createRemoteMembershipPayload('free'));
+    }
+
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      return createJsonResponse(createAccountBootstrapPayload());
+    }
+
+    if (input === 'https://api.softbook.example/v2/space/actions') {
+      spaceActionRequestCount += 1;
+      return createJsonResponse(
+        {
+          error: {
+            code: 'space_content_version_mismatch',
+            message: 'The content scope has changed.',
+          },
+        },
+        409,
+      );
+    }
+
+    if (input === 'https://api.softbook.example/v2/learning/events') {
+      learningEventRequestCount += 1;
+      return createLearningEventsAckResponse(init);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-favorite-button' }).props.onPress();
+  });
+  for (let attempt = 0; attempt < 16; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+
+  expect(spaceActionRequestCount).toBe(1);
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  const settledBootstrapRequestCount = bootstrapRequestCount;
+
+  for (let attempt = 0; attempt < 16; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+
+  expect(bootstrapRequestCount).toBe(settledBootstrapRequestCount);
+  expect(spaceActionRequestCount).toBe(1);
+
+  await openRoute(root, 'learning');
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({testID: 'learning-flip-confident-button'})
+      .props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-next-button'}).props.onPress();
+  });
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+  expect(learningEventRequestCount).toBe(1);
+  const bootstrapCountAfterLearningReplay = bootstrapRequestCount;
+
+  await ReactTestRenderer.act(async () => {
+    emitNetInfoState({ isConnected: false, isInternetReachable: false });
+    emitNetInfoState({ isConnected: true, isInternetReachable: true });
+    emitNetInfoState({ isConnected: true, isInternetReachable: true });
+    await flushAsyncEffects();
+  });
+  for (let attempt = 0; attempt < 16; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+
+  expect(bootstrapRequestCount).toBe(bootstrapCountAfterLearningReplay + 1);
+  expect(spaceActionRequestCount).toBe(1);
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toContain(
+    'space-canonical-refresh-baseline.v1',
+  );
+  await openRoute(root, 'space');
+  expect(JSON.stringify(tree!.toJSON())).toContain('待更新');
+  expectNoUserVisibleMetadataLeakage(tree!);
+  await ReactTestRenderer.act(() => {
+    tree!.unmount();
+  });
 });
 
 test('replays queued membership refresh after network reconnect', async () => {
@@ -3577,6 +4577,7 @@ test('replays queued membership refresh after network reconnect', async () => {
   expect(JSON.stringify(tree!.toJSON())).toContain('网络恢复后会自动再试');
 
   await ReactTestRenderer.act(async () => {
+    emitNetInfoState({ isConnected: false, isInternetReachable: false });
     emitNetInfoState({ isConnected: true, isInternetReachable: true });
     await flushAsyncEffects();
   });

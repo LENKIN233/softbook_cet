@@ -33,6 +33,7 @@ const collections = [
   'softbook_card_source_versions',
   'softbook_card_sources',
   'softbook_memberships',
+  'softbook_membership_revisions',
   'softbook_daily_check_ins',
   'softbook_daily_progress',
   'softbook_learning_event_cursors',
@@ -41,7 +42,9 @@ const collections = [
   'softbook_learning_migration_revisions',
   'softbook_learning_sessions',
   'softbook_learning_states',
+  'softbook_space_action_lineages',
   'softbook_space_actions',
+  'softbook_space_state_revisions',
   'softbook_space_states',
 ];
 
