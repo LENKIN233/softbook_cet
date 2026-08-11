@@ -19,7 +19,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useColorScheme,
   useWindowDimensions,
   View,
   ViewStyle,
@@ -146,8 +145,8 @@ import {
 } from './src/runtime/remoteRequest';
 import { getUserFacingErrorMessage } from './src/runtime/userFacingError';
 import {
+  BRAND_IDENTITY,
   hexToRgba,
-  LIBRARY_IDENTITY,
   resolveLibraryTone,
 } from './src/visual/tokens';
 
@@ -270,7 +269,7 @@ type AuthenticatedRuntimeHydration = {
 
 type SpaceCardState = SpaceCardStateValue;
 
-const SHELL_ACCENT = LIBRARY_IDENTITY.reading;
+const SHELL_ACCENT = BRAND_IDENTITY.primary;
 
 type AuthHandlers = {
   onChangePhone: (value: string) => void;
@@ -313,59 +312,25 @@ const ROUTES: ShellRoute[] = [
 const MINE_ROUTE = ROUTES.find(route => route.key === 'mine')!;
 
 const LIGHT_PALETTE: Palette = {
-  background: '#F1F0F6',
-  panel: 'rgba(255,255,255,0.76)',
-  panelStrong: 'rgba(255,255,255,0.92)',
-  border: 'rgba(11,11,20,0.08)',
-  text: '#0B0B14',
-  textMuted: '#66667A',
+  background: '#F6F5FF',
+  panel: '#FFFFFF',
+  panelStrong: '#F8F7FF',
+  border: '#DED9EC',
+  text: '#1C1630',
+  textMuted: '#665D78',
   accent: SHELL_ACCENT,
-  accentSoft: hexToRgba(SHELL_ACCENT, 0.12),
-  accentStrong: hexToRgba(SHELL_ACCENT, 0.82),
-  activeSurface: SHELL_ACCENT,
-  activeText: '#0B0B14',
+  accentSoft: BRAND_IDENTITY.soft,
+  accentStrong: BRAND_IDENTITY.deep,
+  activeSurface: BRAND_IDENTITY.soft,
+  activeText: BRAND_IDENTITY.deep,
   primaryActionSurface: SHELL_ACCENT,
-  primaryActionText: '#0B0B14',
-  primaryActionMuted: hexToRgba('#0B0B14', 0.66),
-  tabIdle: '#8A8A9C',
-  success: '#22C58B',
+  primaryActionText: '#FFFFFF',
+  primaryActionMuted: 'rgba(255,255,255,0.76)',
+  tabIdle: '#7A718C',
+  success: '#167956',
   warning: '#F5B100',
-  warningText: '#0B0B14',
-  danger: '#F15B6E',
-};
-
-const DARK_PALETTE: Palette = {
-  background: '#0B0B12',
-  panel: 'rgba(25,26,36,0.78)',
-  panelStrong: 'rgba(31,33,45,0.94)',
-  border: 'rgba(238,235,218,0.1)',
-  text: '#F3F0E7',
-  textMuted: '#BAB6A8',
-  accent: SHELL_ACCENT,
-  accentSoft: hexToRgba(SHELL_ACCENT, 0.18),
-  accentStrong: hexToRgba(SHELL_ACCENT, 0.9),
-  activeSurface: SHELL_ACCENT,
-  activeText: '#0B0B14',
-  primaryActionSurface: SHELL_ACCENT,
-  primaryActionText: '#0B0B14',
-  primaryActionMuted: hexToRgba('#0B0B14', 0.66),
-  tabIdle: '#86869C',
-  success: '#4FDE9C',
-  warning: '#F5B100',
-  warningText: '#12131A',
-  danger: '#F15B6E',
-};
-
-const ANDROID_LIGHT_PALETTE: Palette = {
-  ...LIGHT_PALETTE,
-  panel: '#FBFAFD',
-  panelStrong: '#FFFFFF',
-};
-
-const ANDROID_DARK_PALETTE: Palette = {
-  ...DARK_PALETTE,
-  panel: '#191A24',
-  panelStrong: '#1F212D',
+  warningText: '#6B4A00',
+  danger: '#A7394D',
 };
 
 const PROTECTED_ROUTES: RouteKey[] = ['learning', 'space', 'statistics'];
@@ -437,15 +402,7 @@ function AppShell({
 }: {
   runtimeConfig: SoftbookAppRuntimeConfig | undefined;
 }) {
-  const scheme = useColorScheme();
-  const basePalette =
-    Platform.OS === 'android'
-      ? scheme === 'dark'
-        ? ANDROID_DARK_PALETTE
-        : ANDROID_LIGHT_PALETTE
-      : scheme === 'dark'
-      ? DARK_PALETTE
-      : LIGHT_PALETTE;
+  const palette = LIGHT_PALETTE;
   const learningTrack = useMemo(
     () => resolveLearningTrack(runtimeConfig),
     [runtimeConfig],
@@ -969,19 +926,17 @@ function AppShell({
   const activeLibraryTone = currentLearningCard
     ? resolveLibraryTone(currentLearningCard.space_metadata.library)
     : null;
-  const palette: Palette = activeLibraryTone
+  const learningPalette: Palette = activeLibraryTone
     ? {
-        ...basePalette,
+        ...palette,
         accent: activeLibraryTone.accent,
         accentSoft: activeLibraryTone.accentSoft,
         accentStrong: activeLibraryTone.accentStrong,
-        activeSurface: activeLibraryTone.accent,
-        activeText: '#0B0B14',
         primaryActionSurface: activeLibraryTone.accent,
-        primaryActionText: '#0B0B14',
-        primaryActionMuted: hexToRgba('#0B0B14', 0.66),
+        primaryActionText: '#3A1708',
+        primaryActionMuted: 'rgba(58,23,8,0.68)',
       }
-    : basePalette;
+    : palette;
   currentLearningCardIdRef.current = currentLearningCard?.card_id ?? null;
   const reviewCandidateCards =
     learningSession?.schedulingMode === 'server'
@@ -4571,7 +4526,7 @@ function AppShell({
       authRepositoryMode={runtimeAuthRepositoryMode}
       authState={authState}
       handlers={authHandlers}
-      palette={palette}
+      palette={learningPalette}
       route={route}
     />
   ) : route.key === 'mine' ? (
@@ -4610,7 +4565,7 @@ function AppShell({
           setSpaceScreen('overview');
         });
       }}
-      palette={palette}
+      palette={learningPalette}
       learningStateSyncState={learningStateSyncState}
       progressSyncState={progressSyncState}
       reviewResults={reviewCompletedResults}
@@ -4741,7 +4696,9 @@ function AppShell({
       style={[styles.safeArea, { backgroundColor: palette.background }]}
     >
       <StatusBar
-        barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={palette.background}
+        barStyle="dark-content"
+        translucent={false}
       />
       <AppCanvasBackdrop palette={palette} />
       <View style={styles.safeAreaBody}>
@@ -4956,8 +4913,8 @@ function AppCanvasBackdrop({ palette }: { palette: Palette }) {
         style={[
           styles.appAuroraTop,
           {
-            backgroundColor: hexToRgba(palette.accent, 0.13),
-            shadowColor: palette.accent,
+            backgroundColor: hexToRgba('#FF8A3D', 0.14),
+            shadowColor: '#FF8A3D',
           },
         ]}
         testID="app-aurora-top"
@@ -4966,7 +4923,7 @@ function AppCanvasBackdrop({ palette }: { palette: Palette }) {
         style={[
           styles.appAuroraBottom,
           {
-            backgroundColor: hexToRgba(palette.accent, 0.075),
+            backgroundColor: hexToRgba(palette.accent, 0.1),
             shadowColor: palette.accent,
           },
         ]}
@@ -5236,25 +5193,37 @@ function PhoneTopBar({
         { backgroundColor: 'transparent', borderColor: 'transparent' },
       ]}
     >
-      <View style={styles.phoneTopCopy}>
-        <Text
+      <View style={styles.phoneBrandLockup}>
+        <View
           style={[
-            styles.phoneTopTitle,
-            route.key === 'learning' ? styles.phoneTopTitleLearning : null,
-            { color: palette.text },
+            styles.phoneBrandMark,
+            { backgroundColor: palette.accent, shadowColor: palette.accent },
           ]}
         >
-          {route.label}
-        </Text>
-        <Text
-          style={[
-            styles.phoneTopMeta,
-            route.key === 'learning' ? styles.phoneTopMetaLearning : null,
-            { color: palette.textMuted },
-          ]}
-        >
-          {routeCue}
-        </Text>
+          <Text allowFontScaling={false} style={styles.phoneBrandMarkLabel}>
+            软
+          </Text>
+        </View>
+        <View style={styles.phoneTopCopy}>
+          <Text
+            style={[
+              styles.phoneTopTitle,
+              route.key === 'learning' ? styles.phoneTopTitleLearning : null,
+              { color: palette.text },
+            ]}
+          >
+            软书四六级
+          </Text>
+          <Text
+            style={[
+              styles.phoneTopMeta,
+              route.key === 'learning' ? styles.phoneTopMetaLearning : null,
+              { color: palette.textMuted },
+            ]}
+          >
+            {route.label} · {routeCue}
+          </Text>
+        </View>
       </View>
       <Pressable
         accessibilityLabel={`${accountChipCopy.label}，${accountChipCopy.value}`}
@@ -6686,7 +6655,10 @@ function MembershipHostCard({
               style={[
                 styles.membershipAccessStep,
                 compact ? styles.membershipAccessStepCompact : null,
-                { borderColor: palette.border },
+                {
+                  backgroundColor: palette.panelStrong,
+                  borderColor: 'transparent',
+                },
               ]}
               testID="membership-access-step"
             >
@@ -6810,9 +6782,9 @@ function MembershipActionGroup({
   quiet?: boolean;
 }) {
   const isPending = membershipPendingAction !== null;
-  const actionBackground = quiet ? palette.accentSoft : palette.accent;
-  const actionBorder = quiet ? palette.accent : 'transparent';
-  const actionText = quiet ? palette.accent : palette.primaryActionText;
+  const actionBackground = palette.accent;
+  const actionBorder = 'transparent';
+  const actionText = palette.primaryActionText;
   const showLocalDebugActions =
     membershipRepositoryMode === 'local' && process.env.NODE_ENV === 'test';
 
@@ -7728,13 +7700,13 @@ const styles = StyleSheet.create({
   },
   phoneTopBar: {
     alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
+    borderRadius: 0,
+    borderWidth: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginTop: 4,
-    paddingHorizontal: 13,
+    paddingHorizontal: 0,
     paddingVertical: 8,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0,
@@ -7750,6 +7722,29 @@ const styles = StyleSheet.create({
   phoneTopCopy: {
     flex: 1,
     gap: 2,
+  },
+  phoneBrandLockup: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 10,
+    minWidth: 0,
+  },
+  phoneBrandMark: {
+    alignItems: 'center',
+    borderRadius: 13,
+    height: 38,
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    width: 38,
+  },
+  phoneBrandMarkLabel: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -1,
   },
   phoneTopTitle: {
     fontSize: 16,
@@ -7768,7 +7763,7 @@ const styles = StyleSheet.create({
   phoneAccountChip: {
     alignItems: 'center',
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     flexDirection: 'row',
     gap: 6,
     minWidth: 72,
@@ -8091,15 +8086,15 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   authEntryCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 28,
     gap: 13,
     paddingHorizontal: 16,
     paddingVertical: 15,
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.1,
-    shadowRadius: 30,
-    elevation: 5,
+    shadowOpacity: 0.08,
+    shadowRadius: 34,
+    elevation: 4,
   },
   authEntryCardEmbedded: {
     flexShrink: 1,
@@ -8186,7 +8181,7 @@ const styles = StyleSheet.create({
   },
   authRetainedObject: {
     borderRadius: 22,
-    borderWidth: 1,
+    borderWidth: 0,
     gap: 9,
     paddingHorizontal: 11,
     paddingVertical: 10,
@@ -8199,7 +8194,7 @@ const styles = StyleSheet.create({
   },
   authRetainedObjectMine: {
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: 0,
     paddingHorizontal: 10,
     paddingVertical: 9,
   },
@@ -8238,7 +8233,7 @@ const styles = StyleSheet.create({
   authContinuityPromisePill: {
     alignItems: 'center',
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     flexShrink: 0,
     justifyContent: 'center',
     minHeight: 34,
@@ -8253,7 +8248,7 @@ const styles = StyleSheet.create({
   authObjectBadge: {
     alignItems: 'center',
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     flexDirection: 'row',
     gap: 6,
     paddingHorizontal: 12,
@@ -8300,7 +8295,7 @@ const styles = StyleSheet.create({
     lineHeight: 23,
   },
   authPanel: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -8339,7 +8334,7 @@ const styles = StyleSheet.create({
   },
   authPanelStatePill: {
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     maxWidth: 96,
     paddingHorizontal: 9,
     paddingVertical: 5,
@@ -8356,7 +8351,7 @@ const styles = StyleSheet.create({
   },
   authRequestInlineDock: {
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: 0,
     gap: 9,
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -8396,7 +8391,7 @@ const styles = StyleSheet.create({
   authRequestReadinessPill: {
     alignItems: 'center',
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     justifyContent: 'center',
     minHeight: 28,
     minWidth: 56,
@@ -8419,7 +8414,7 @@ const styles = StyleSheet.create({
   authRequestButton: {
     alignItems: 'center',
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     alignSelf: 'stretch',
     justifyContent: 'center',
     minHeight: 50,
@@ -8439,7 +8434,7 @@ const styles = StyleSheet.create({
   },
   authCodeInlineDock: {
     borderRadius: 20,
-    borderWidth: 1,
+    borderWidth: 0,
     gap: 11,
     minHeight: 214,
     paddingHorizontal: 13,
@@ -8501,7 +8496,7 @@ const styles = StyleSheet.create({
     minHeight: 54,
     minWidth: 0,
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: 0,
     justifyContent: 'center',
     overflow: 'hidden',
     width: '100%',
@@ -8523,7 +8518,7 @@ const styles = StyleSheet.create({
   authCodeCell: {
     alignItems: 'center',
     borderRadius: 11,
-    borderWidth: 1,
+    borderWidth: 0,
     height: 40,
     justifyContent: 'center',
     width: 36,
@@ -8556,7 +8551,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'stretch',
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     justifyContent: 'center',
     minHeight: 45,
     paddingHorizontal: 10,
@@ -8578,7 +8573,7 @@ const styles = StyleSheet.create({
   authCodeResendButton: {
     alignItems: 'center',
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     justifyContent: 'center',
     paddingHorizontal: 10,
     paddingVertical: 7,
@@ -8814,7 +8809,7 @@ const styles = StyleSheet.create({
   mineProfilePanel: {
     alignItems: 'stretch',
     borderRadius: 26,
-    borderWidth: 1,
+    borderWidth: 0,
     flex: 1,
     gap: 9,
     justifyContent: 'space-between',
@@ -8822,9 +8817,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 13,
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.09,
-    shadowRadius: 30,
-    elevation: 4,
+    shadowOpacity: 0.07,
+    shadowRadius: 34,
+    elevation: 3,
   },
   mineProfilePanelCompact: {
     gap: 5,
@@ -8894,7 +8889,7 @@ const styles = StyleSheet.create({
   },
   mineMembershipPill: {
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     maxWidth: 108,
     paddingHorizontal: 9,
     paddingVertical: 6,
@@ -8912,7 +8907,7 @@ const styles = StyleSheet.create({
   mineIdentityBand: {
     alignItems: 'center',
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: 0,
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 10,
@@ -8951,7 +8946,7 @@ const styles = StyleSheet.create({
   mineMetricStrip: {
     alignItems: 'center',
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     flexDirection: 'row',
     gap: 5,
     paddingHorizontal: 4,
@@ -9022,7 +9017,7 @@ const styles = StyleSheet.create({
   },
   mineActionCard: {
     alignItems: 'stretch',
-    borderWidth: 1,
+    borderWidth: 0,
     gap: 8,
     justifyContent: 'center',
     overflow: 'hidden',
@@ -9107,7 +9102,7 @@ const styles = StyleSheet.create({
   },
   mineActionPrimaryMetaPill: {
     borderRadius: 15,
-    borderWidth: 1,
+    borderWidth: 0,
     flex: 1,
     gap: 2,
     justifyContent: 'center',
@@ -9134,7 +9129,7 @@ const styles = StyleSheet.create({
   mineActionGlyph: {
     alignItems: 'center',
     borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: 0,
     height: 30,
     justifyContent: 'center',
     width: 30,
@@ -9200,7 +9195,7 @@ const styles = StyleSheet.create({
   membershipInlineStatus: {
     alignItems: 'center',
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
@@ -9210,7 +9205,7 @@ const styles = StyleSheet.create({
     lineHeight: 12,
   },
   membershipFocusCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 18,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -9221,7 +9216,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   membershipRecoveryCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 18,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -9256,7 +9251,7 @@ const styles = StyleSheet.create({
   membershipAccessCompactDock: {
     alignItems: 'center',
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: 0,
     flexDirection: 'row',
     gap: 7,
     minHeight: 68,
@@ -9297,7 +9292,7 @@ const styles = StyleSheet.create({
   membershipCompactBenefitChip: {
     alignItems: 'center',
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     flexDirection: 'row',
     gap: 4,
     paddingHorizontal: 6,
@@ -9329,7 +9324,7 @@ const styles = StyleSheet.create({
   membershipCompactPurchaseButton: {
     alignItems: 'center',
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     justifyContent: 'center',
     minHeight: 44,
     minWidth: 82,
@@ -9342,7 +9337,7 @@ const styles = StyleSheet.create({
   },
   membershipAccessStep: {
     borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: 0,
     flex: 1,
     gap: 5,
     minWidth: 0,
@@ -9357,7 +9352,7 @@ const styles = StyleSheet.create({
   },
   membershipAccessDot: {
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: 0,
     height: 8,
     width: 8,
   },
@@ -9384,7 +9379,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   membershipQuietAction: {
-    borderWidth: 1,
+    borderWidth: 0,
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -9401,12 +9396,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   phoneTabBarWrap: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 8,
   },
   phoneTabBar: {
-    borderWidth: 1,
-    borderRadius: 999,
+    borderWidth: 0,
+    borderRadius: 26,
     flexDirection: 'row',
     paddingHorizontal: 5,
     paddingVertical: 5,
@@ -9422,7 +9417,7 @@ const styles = StyleSheet.create({
     minHeight: 54,
     justifyContent: 'center',
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: 19,
   },
   phoneTabButtonActive: {
     shadowOffset: { width: 0, height: 10 },

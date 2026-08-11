@@ -24,12 +24,25 @@ import {resolveWebRuntime} from './runtime';
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type AuthStage = 'phone' | 'code' | 'authenticated';
 
-const ROUTES: {id: RouteKey; label: string; mark: string}[] = [
-  {id: 'learning', label: '学习', mark: '学'},
-  {id: 'space', label: '空间', mark: '域'},
-  {id: 'statistics', label: '统计', mark: '记'},
-  {id: 'mine', label: '我的', mark: '我'},
+const ROUTES: {id: RouteKey; label: string}[] = [
+  {id: 'learning', label: '学习'},
+  {id: 'space', label: '空间'},
+  {id: 'statistics', label: '统计'},
+  {id: 'mine', label: '我的'},
 ];
+
+function RouteIcon({route}: {route: RouteKey}) {
+  if (route === 'learning') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h9a3 3 0 0 1 3 3v12H8a3 3 0 0 1-3-3v-12Z"/><path d="M17 7.5h2a2 2 0 0 1 2 2v10h-8"/><path d="M8.5 9h5M8.5 12.5h5"/></svg>;
+  }
+  if (route === 'space') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5 12 3l8 3.5-8 3.5-8-3.5Z"/><path d="m4 11 8 3.5 8-3.5M4 15.5l8 3.5 8-3.5"/></svg>;
+  }
+  if (route === 'statistics') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V9m7 10V5m7 14v-7"/></svg>;
+  }
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>;
+}
 
 const PHONE_PATTERN = /^1\d{10}$/;
 
@@ -87,7 +100,7 @@ export function App() {
       return;
     }
     if (runtime.mode === 'remote') {
-      setAuthError('远端短信登录接线尚未完成，当前构建不会降级为本地账户。');
+      setAuthError('暂时无法发送验证码，请稍后再试。');
       return;
     }
     if (!PHONE_PATTERN.test(phone)) {
@@ -144,7 +157,7 @@ export function App() {
     return (
       <main className="auth-shell">
         <section className="auth-object" aria-labelledby="auth-title">
-          <span className="wordmark">SOFTBOOK · CET</span>
+          <div className="brand-lockup"><span aria-hidden="true" className="brand-mark">软</span><span className="wordmark">软书四六级</span></div>
           <p className="eyebrow">同一账户 · 连续学习</p>
           <h1 id="auth-title">验证后开始今天的学习</h1>
           <p className="lede">手机号用于建立同一学习账户；已有进度会在验证后读取，新用户会从第一张卡开始。</p>
@@ -183,7 +196,7 @@ export function App() {
               更换手机号
             </button>
           ) : null}
-          <p className="privacy-copy">当前开发构建只验证登录流程，不会把验证码写入页面或错误信息。正式上线前将在此提供服务条款与隐私政策链接。</p>
+          <p className="privacy-copy">手机号仅用于账户验证与学习进度同步。验证码不会显示在页面或错误信息中。</p>
         </section>
       </main>
     );
@@ -192,11 +205,11 @@ export function App() {
   return (
     <div className="app-shell">
       <header className="mobile-header">
-        <span className="wordmark">SOFTBOOK · CET</span>
+        <div className="brand-lockup"><span aria-hidden="true" className="brand-mark">软</span><span className="wordmark">软书四六级</span></div>
         <button className="text-button" onClick={signOut}>退出</button>
       </header>
       <nav className="route-rail" aria-label="主要导航">
-        <span className="wordmark">SOFTBOOK</span>
+        <div className="brand-lockup rail-brand"><span aria-hidden="true" className="brand-mark">软</span><span className="wordmark">软书四六级</span></div>
         <div className="route-list">
           {ROUTES.map(item => (
             <button
@@ -205,7 +218,7 @@ export function App() {
               aria-current={route === item.id ? 'page' : undefined}
               onClick={() => setRoute(item.id)}
             >
-              <span aria-hidden="true">{item.mark}</span>
+              <span className="route-icon"><RouteIcon route={item.id}/></span>
               {item.label}
             </button>
           ))}
@@ -436,7 +449,7 @@ function LearningSurface(props: LearningSurfaceProps) {
             </button>
           ) : null}
           {cardState.isHintVisible && card.hint_layer ? <p className="attached-note">{card.hint_layer.content}</p> : null}
-          {card.audio ? <button className="tool" disabled>卡片音频 · 尚未接入</button> : <p className="muted">这张卡没有附着音频。</p>}
+          {card.audio ? <button className="tool" disabled>卡片音频暂不可用</button> : <p className="muted">这张卡没有附着音频。</p>}
           <p className="shortcut-note">{shortcutLabel(card)}</p>
         </section>
       </aside>
@@ -546,13 +559,13 @@ function MineSurface({phone, membership, onLogout}: {phone: string; membership: 
   return <main className="account-workbench"><section className="account-object" aria-labelledby="mine-title">
     <p className="eyebrow">账户对象</p><h1 id="mine-title">{maskPhone(phone)}</h1>
     <div className="account-row"><span>会员状态</span><strong>{stageLabel}</strong></div>
-    <div className="account-row"><span>跨端同步</span><strong>尚未连接</strong></div>
+    <div className="account-row"><span>跨端同步</span><strong>等待同步</strong></div>
     {membership.stage === 'premium' ? <p className="notice">完整卡片库、算法与空间访问已开启。</p> : null}
-    <button className="secondary" disabled>购买会员 · 尚未接入</button>
-    <button className="tool" disabled>恢复购买 · 尚未接入</button>
+    <button className="secondary" disabled>会员服务暂不可用</button>
+    <button className="tool" disabled>暂时无法恢复购买</button>
     <button className="tool" aria-expanded={showPrivacy} onClick={() => setShowPrivacy(value => !value)}>隐私与账户规则</button>
-    {showPrivacy ? <section className="account-policy" aria-label="隐私与账户规则说明"><h2>当前开发构建的账户边界</h2><p>手机号只用于登录流程和账户归属。正式发布前必须接入可访问的服务条款、隐私政策、账户删除与购买恢复能力；未接入的服务不会伪装成可用入口。</p></section> : null}
-    <button className="tool danger" disabled>删除账户 · 尚未接入</button>
+    {showPrivacy ? <section className="account-policy" aria-label="隐私与账户规则说明"><h2>账户与隐私</h2><p>手机号只用于登录、账户归属和学习进度同步。账户操作不可用时会明确停用，不会提交未确认的请求。</p></section> : null}
+    <button className="tool danger" disabled>暂时无法删除账户</button>
     <button className="tool danger" onClick={onLogout}>退出登录</button>
   </section></main>;
 }

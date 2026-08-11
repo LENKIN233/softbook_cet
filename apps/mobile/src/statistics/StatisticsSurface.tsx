@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Pressable,
+  ScrollView,
   StyleProp,
   StyleSheet,
   Text,
@@ -167,8 +168,14 @@ export function StatisticsSurface({
     : palette.panel;
 
   return (
-    <View
-      style={[styles.page, deviceClass === 'tablet' ? styles.pageTablet : null]}
+    <ScrollView
+      contentContainerStyle={[
+        styles.page,
+        deviceClass === 'tablet' ? styles.pageTablet : null,
+      ]}
+      showsVerticalScrollIndicator={false}
+      style={styles.pageScroll}
+      testID="statistics-scroll"
     >
       <SurfaceCard
         palette={palette}
@@ -178,7 +185,12 @@ export function StatisticsSurface({
         ]}
         testID="statistics-day-object"
       >
-        <View style={styles.dailyHeader}>
+        <View
+          style={[
+            styles.dailyHeader,
+            usesAccessibilityLayout ? styles.dailyHeaderAccessible : null,
+          ]}
+        >
           <View style={styles.dailyHeading}>
             <View style={styles.dailyEyebrowRow}>
               <View
@@ -227,8 +239,8 @@ export function StatisticsSurface({
           style={[
             styles.progressDock,
             {
-              backgroundColor: hexToRgba(dailyRailTone, 0.055),
-              borderColor: hexToRgba(dailyRailTone, 0.16),
+              backgroundColor: hexToRgba(dailyRailTone, 0.085),
+              borderColor: 'transparent',
             },
           ]}
           testID="statistics-progress-dock"
@@ -276,7 +288,13 @@ export function StatisticsSurface({
         </View>
       </SurfaceCard>
 
-      <View style={styles.metricLedger} testID="statistics-metric-strip">
+      <View
+        style={[
+          styles.metricLedger,
+          usesAccessibilityLayout ? styles.metricLedgerAccessible : null,
+        ]}
+        testID="statistics-metric-strip"
+      >
         <MetricLedgerRow
           detail={`首轮 ${learningResults.length}`}
           label="今日完成"
@@ -303,8 +321,8 @@ export function StatisticsSurface({
           style={[
             styles.actionDock,
             {
-              backgroundColor: hexToRgba(palette.accent, 0.03),
-              borderColor: hexToRgba(palette.accent, 0.08),
+              backgroundColor: palette.panel,
+              borderColor: 'transparent',
             },
           ]}
           testID="statistics-action-dock"
@@ -315,7 +333,7 @@ export function StatisticsSurface({
               styles.nextStepRow,
               usesAccessibilityLayout ? styles.nextStepRowAccessible : null,
               {
-                backgroundColor: 'transparent',
+                backgroundColor: palette.accentSoft,
                 borderColor: 'transparent',
               },
             ]}
@@ -387,8 +405,8 @@ export function StatisticsSurface({
             style={[
               styles.actionObjectRow,
               {
-                backgroundColor: hexToRgba(palette.accent, 0.035),
-                borderColor: hexToRgba(palette.accent, 0.08),
+                backgroundColor: hexToRgba(palette.success, 0.085),
+                borderColor: 'transparent',
               },
               styles.checkInDockRow,
               usesAccessibilityLayout ? styles.checkInDockRowAccessible : null,
@@ -474,7 +492,7 @@ export function StatisticsSurface({
             </View>
           </View>
         </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -508,7 +526,7 @@ function MetricLedgerRow({
         styles.metricLedgerRow,
         {
           backgroundColor: palette.panel,
-          borderColor: palette.border,
+          borderColor: 'transparent',
         },
       ]}
       testID={testID}
@@ -549,7 +567,7 @@ function SurfaceCard({
       style={[
         styles.surfaceCard,
         style,
-        { backgroundColor: palette.panel, borderColor: palette.border },
+        { backgroundColor: palette.panel, borderColor: 'transparent' },
       ]}
       testID={testID}
     >
@@ -578,7 +596,7 @@ function LedgerRow({
       style={[
         styles.ledgerRow,
         {
-          backgroundColor: 'transparent',
+          backgroundColor: palette.panelStrong,
           borderColor: 'transparent',
         },
       ]}
@@ -610,11 +628,14 @@ function LedgerRow({
 
 const styles = StyleSheet.create({
   page: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 18,
     paddingTop: 6,
     paddingBottom: 8,
     gap: 10,
+  },
+  pageScroll: {
+    flex: 1,
   },
   pageTablet: {
     paddingHorizontal: 24,
@@ -635,27 +656,31 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   metricLedger: {
+    flexDirection: 'row',
     gap: 7,
   },
+  metricLedgerAccessible: {
+    flexDirection: 'column',
+  },
   metricLedgerRow: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
-    minHeight: 52,
+    alignItems: 'flex-start',
+    borderRadius: 20,
+    borderWidth: 0,
+    flex: 1,
+    gap: 5,
+    justifyContent: 'center',
+    minHeight: 78,
     minWidth: 0,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
   },
   metricValue: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '900',
     fontVariant: ['tabular-nums'],
     lineHeight: 28,
-    minWidth: 42,
-    textAlign: 'right',
+    minWidth: 0,
+    textAlign: 'left',
   },
   metricLabel: {
     fontSize: 13,
@@ -673,7 +698,7 @@ const styles = StyleSheet.create({
     lineHeight: 13,
   },
   surfaceCard: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 26,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -698,6 +723,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
+  },
+  dailyHeaderAccessible: {
+    alignItems: 'stretch',
+    flexDirection: 'column',
   },
   dailyHeading: {
     flex: 1,
@@ -725,7 +754,7 @@ const styles = StyleSheet.create({
   },
   progressDock: {
     borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: 0,
     gap: 7,
     paddingHorizontal: 11,
     paddingVertical: 9,
@@ -767,32 +796,36 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   actionDock: {
-    borderRadius: 20,
-    borderWidth: 1,
+    borderRadius: 24,
+    borderWidth: 0,
     flexShrink: 0,
-    gap: 0,
+    gap: 8,
     overflow: 'hidden',
-    paddingHorizontal: 11,
-    paddingVertical: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.07,
+    shadowRadius: 24,
+    elevation: 2,
   },
   actionObjectRow: {
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 19,
+    borderWidth: 0,
   },
   nextStepRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
-    paddingHorizontal: 2,
-    paddingBottom: 8,
-    paddingTop: 2,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    paddingTop: 12,
   },
   nextStepRowAccessible: {
     alignItems: 'stretch',
     flexDirection: 'column',
   },
   actionDockDivider: {
-    height: 1,
+    height: 0,
   },
   nextStepCopy: {
     flex: 1,
@@ -813,9 +846,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     minHeight: 42,
-    paddingHorizontal: 10,
-    paddingBottom: 8,
-    paddingTop: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 11,
+    paddingTop: 11,
   },
   checkInDockRowTablet: {
     alignItems: 'flex-start',
@@ -834,7 +867,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   primaryButton: {
-    borderWidth: 1,
+    borderWidth: 0,
     borderRadius: 18,
     paddingHorizontal: 12,
     paddingVertical: 9,
@@ -888,14 +921,14 @@ const styles = StyleSheet.create({
   ledgerRow: {
     alignItems: 'flex-start',
     borderRadius: 14,
-    borderWidth: 1,
+    borderWidth: 0,
     flex: 1,
     gap: 2,
     justifyContent: 'center',
-    minHeight: 34,
+    minHeight: 54,
     minWidth: 0,
-    paddingHorizontal: 4,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   ledgerValueStack: {
     alignItems: 'flex-start',
@@ -905,7 +938,7 @@ const styles = StyleSheet.create({
   },
   statusLedger: {
     paddingHorizontal: 0,
-    paddingTop: 8,
+    paddingTop: 0,
     paddingBottom: 0,
   },
 });
