@@ -943,11 +943,9 @@ export function SpaceSurface({
                                   : null,
                                 {
                                   backgroundColor: isCurrent
-                                    ? hexToRgba(selectedTone.accent, 0.075)
+                                    ? selectedTone.accentSoft
                                     : solidPanelStrong,
-                                  borderColor: isCurrent
-                                    ? hexToRgba(selectedTone.accent, 0.3)
-                                    : palette.border,
+                                  borderColor: 'transparent',
                                 },
                               ]}
                               testID="space-overview-card-object"
@@ -2671,21 +2669,18 @@ const styles = StyleSheet.create({
   },
   deckCardOverview: {
     borderRadius: 23,
-    borderWidth: 1,
+    borderWidth: 0,
     gap: 7,
     justifyContent: 'flex-start',
     minWidth: 0,
     position: 'absolute',
     paddingHorizontal: 12,
     paddingVertical: 12,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    elevation: 1,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   deckCardOverviewActive: {
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
+    shadowOpacity: 0,
   },
   deckCardOverviewAccessible: {
     height: 'auto',

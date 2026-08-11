@@ -25,7 +25,7 @@ describe('PC Web core flow', () => {
       within(navigation)
         .getAllByRole('button')
         .map(button => button.textContent),
-    ).toEqual(['学学习', '域空间', '记统计', '我我的']);
+    ).toEqual(['学习', '空间', '统计', '我的']);
     expect(screen.getByRole('heading', {name: '当前学习卡'})).toBeInTheDocument();
   });
 
@@ -103,9 +103,9 @@ describe('PC Web core flow', () => {
 
     expect(screen.getByText('5 天体验中')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /开启 5 天体验/})).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: '购买会员 · 尚未接入'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: '恢复购买 · 尚未接入'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: '删除账户 · 尚未接入'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: '会员服务暂不可用'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: '暂时无法恢复购买'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: '暂时无法删除账户'})).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', {name: '隐私与账户规则'}));
     expect(screen.getByRole('region', {name: '隐私与账户规则说明'})).toBeInTheDocument();

@@ -1,3 +1,9 @@
+export const BRAND_IDENTITY = {
+  primary: '#6047C6',
+  deep: '#46309F',
+  soft: '#E9E4FF',
+} as const;
+
 export const LIBRARY_IDENTITY = {
   listening: '#5B6DF5',
   reading: '#FF8A3D',

@@ -841,9 +841,9 @@ test('renders correctly', async () => {
     tree!.root.findByProps({ testID: 'route-tab-learning' }).props.style,
   );
   expect(signedOutAuroraStyle.backgroundColor).toBe(
-    'rgba(255, 138, 61, 0.13)',
+    'rgba(255, 138, 61, 0.14)',
   );
-  expect(signedOutLearningTabStyle.backgroundColor).toBe('#FF8A3D');
+  expect(signedOutLearningTabStyle.backgroundColor).toBe('#E9E4FF');
   expect(output).toContain('验证后开始今天的学习');
   expect(output).toContain('学习位置将在验证后确定');
   expect(output).toContain('已有进度会接上；新账号从系统第一张卡开始');
@@ -875,7 +875,7 @@ test('renders correctly', async () => {
   const requestDockStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'auth-request-inline-dock' }).props.style,
   );
-  expect(requestDockStyle.borderWidth).toBe(1);
+  expect(requestDockStyle.borderWidth).toBe(0);
   expect(requestDockStyle.borderRadius).toBe(18);
   const smsPanelStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'auth-sms-panel' }).props.style,
@@ -984,7 +984,7 @@ test('keeps signed-out mine as an account object instead of a learning gate', as
     mineProfileCard.findByProps({ testID: 'auth-request-inline-dock' }).props
       .style,
   );
-  expect(requestDockStyle.borderWidth).toBe(1);
+  expect(requestDockStyle.borderWidth).toBe(0);
   const smsPanelStyle = StyleSheet.flatten(
     mineProfileCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
   );
@@ -1058,7 +1058,7 @@ test('keeps mine code-sent state attached to the account object', async () => {
   const inlineDockStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'auth-code-inline-dock' }).props.style,
   );
-  expect(inlineDockStyle.borderWidth).toBe(1);
+  expect(inlineDockStyle.borderWidth).toBe(0);
   expect(inlineDockStyle.borderRadius).toBe(20);
   const smsPanelStyle = StyleSheet.flatten(
     mineProfileCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
@@ -5378,7 +5378,7 @@ test('keeps phone primary surfaces inside one-screen app panels', async () => {
   expect(root.findAllByType(ScrollView)).toHaveLength(0);
 
   await openRoute(root, 'statistics');
-  expect(root.findAllByType(ScrollView)).toHaveLength(0);
+  expect(root.findAllByType(ScrollView)).toHaveLength(1);
 
   await openRoute(root, 'mine');
   expect(root.findAllByType(ScrollView)).toHaveLength(0);
@@ -5840,7 +5840,7 @@ test('can check in from statistics after making learning progress', async () => 
   const metricLedgerStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'statistics-metric-strip' }).props.style,
   );
-  expect(metricLedgerStyle.flexDirection).toBeUndefined();
+  expect(metricLedgerStyle.flexDirection).toBe('row');
   expect(metricLedgerStyle.gap).toBe(7);
   const actionDock = root.findByProps({ testID: 'statistics-action-dock' });
   const actionDockStyle = StyleSheet.flatten(actionDock.props.style);
@@ -6041,7 +6041,7 @@ test('mine page keeps profile status and route actions in one screen after login
     findPressableByTestId(root, 'membership-purchase-button').props.style,
   );
   expect(purchaseButtonStyle.backgroundColor).not.toBe('transparent');
-  expect(purchaseButtonStyle.borderColor).not.toBe('transparent');
+  expect(purchaseButtonStyle.borderColor).toBe('transparent');
   expect(
     root.findAllByProps({ testID: 'membership-start-trial-button' }),
   ).toHaveLength(0);

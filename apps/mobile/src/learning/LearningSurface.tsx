@@ -499,7 +499,8 @@ export function LearningSurface({
           {
             backgroundColor: palette.panel,
             borderColor: palette.border,
-            shadowColor: palette.text,
+            borderTopColor: tone.accent,
+            shadowColor: '#46309F',
           },
         ]}
         testID="learning-current-card"
@@ -620,8 +621,8 @@ export function LearningSurface({
             styles.studyCardTop,
             isCompactPhone ? styles.studyCardTopCompact : null,
             {
-              backgroundColor: palette.panelStrong,
-              borderColor: palette.border,
+              backgroundColor: 'transparent',
+              borderColor: 'transparent',
             },
           ]}
         >
@@ -918,7 +919,7 @@ export function LearningSurface({
                       },
                     ]}
                   >
-                    提交
+                    确认答案
                   </Text>
                 </Pressable>
               </View>
@@ -2589,10 +2590,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   glassCard: {
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.14,
-    shadowRadius: 34,
-    elevation: 7,
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.13,
+    shadowRadius: 30,
+    elevation: 6,
   },
   heroCard: {
     borderWidth: 1,
@@ -2905,6 +2906,7 @@ const styles = StyleSheet.create({
   },
   studyCard: {
     borderWidth: 1,
+    borderTopWidth: 8,
     borderRadius: 30,
     overflow: 'hidden',
     paddingHorizontal: 20,
@@ -2938,11 +2940,12 @@ const styles = StyleSheet.create({
   },
   cardObjectAccent: {
     borderRadius: 999,
-    height: 32,
-    width: 6,
+    height: 9,
+    width: 9,
   },
   cardObjectAccentCompact: {
-    height: 28,
+    height: 8,
+    width: 8,
   },
   cardObjectHeaderText: {
     flex: 1,
@@ -3011,17 +3014,17 @@ const styles = StyleSheet.create({
   },
   studyCardTop: {
     alignItems: 'flex-start',
-    borderRadius: 22,
-    borderWidth: 1,
+    borderRadius: 0,
+    borderWidth: 0,
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'space-between',
-    paddingHorizontal: 13,
-    paddingVertical: 11,
+    paddingHorizontal: 0,
+    paddingVertical: 7,
   },
   studyCardTopCompact: {
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingHorizontal: 0,
+    paddingVertical: 4,
   },
   studyTitleWrap: {
     flex: 1,
@@ -3033,17 +3036,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   cardPrompt: {
-    fontSize: 27,
-    lineHeight: 35,
+    fontSize: 29,
+    lineHeight: 36,
     fontWeight: '800',
   },
   cardPromptOneScreen: {
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: 23,
+    lineHeight: 29,
   },
   cardPromptOneScreenCompact: {
-    fontSize: 18,
-    lineHeight: 23,
+    fontSize: 20,
+    lineHeight: 25,
   },
   contextCard: {
     borderWidth: 1,
@@ -3272,8 +3275,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   optionCard: {
-    borderWidth: 1,
-    borderRadius: 20,
+    borderWidth: 1.5,
+    borderRadius: 17,
     flexBasis: '47%',
     flexGrow: 1,
     gap: 8,
@@ -3580,7 +3583,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   primaryButton: {
-    borderRadius: 999,
+    borderRadius: 17,
     paddingHorizontal: 16,
     paddingVertical: 14,
     alignItems: 'center',
@@ -3605,14 +3608,14 @@ const styles = StyleSheet.create({
   },
   submitActionDock: {
     alignItems: 'center',
-    borderRadius: 21,
-    borderWidth: 1,
+    borderRadius: 18,
+    borderWidth: 0,
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'space-between',
     minHeight: 58,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
+    paddingHorizontal: 0,
+    paddingVertical: 4,
   },
   submitActionDockCompact: {
     gap: 8,
@@ -3637,10 +3640,10 @@ const styles = StyleSheet.create({
   },
   submitActionButton: {
     alignItems: 'center',
-    borderRadius: 999,
+    borderRadius: 17,
     justifyContent: 'center',
     minHeight: 42,
-    minWidth: 72,
+    minWidth: 118,
     paddingHorizontal: 16,
   },
   submitActionButtonLabel: {
