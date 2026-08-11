@@ -4,6 +4,9 @@ const REQUEST_SCHEMA_VERSION = 'space-actions.v2';
 const RESPONSE_SCHEMA_VERSION = 'space-actions-ack.v2';
 const STATE_SCHEMA_VERSION = 'space-state.v2';
 const LEDGER_SCHEMA_VERSION = 'space-action-ledger.v2';
+const LEGACY_STATE_REVISION_SCHEMA_VERSION = 'space-state-revision.v1';
+const STATE_REVISION_SCHEMA_VERSION = 'space-state-revision.v2';
+const ACTION_LINEAGE_SCHEMA_VERSION = 'space-action-lineage.v1';
 const DEFAULT_BATCH_LIMIT = 20;
 const DEFAULT_FUTURE_SKEW_SECONDS = 5 * 60;
 const TRACKS = ['cet4', 'cet6'];
@@ -22,6 +25,10 @@ const STATE_KEYS = [
   'schema_version',
   'states_by_card_id',
 ];
+// `revision` was briefly written inline by an unreleased implementation. Read
+// it only as a migration floor; every current write strips it so the previous
+// package's exact `space-state.v2` reader remains rollback-compatible.
+const INLINE_REVISION_STATE_KEYS = [...STATE_KEYS, 'revision'];
 const STATE_ITEM_KEYS = [
   'card_id',
   'favorite_action_id',
@@ -37,6 +44,29 @@ const LEDGER_KEYS = [
   'action',
   'action_digest',
   'action_id',
+  'result',
+  'schema_version',
+];
+const STATE_REVISION_KEYS = [
+  'account_key',
+  'action_bindings',
+  'lineage_digest',
+  'revision',
+  'schema_version',
+  'state_digest',
+];
+const LEGACY_STATE_REVISION_KEYS = STATE_REVISION_KEYS.filter(
+  key => key !== 'action_bindings',
+);
+const ACTION_LINEAGE_KEYS = [
+  'account_key',
+  'action_bindings_digest',
+  'action_digest',
+  'action_id',
+  'committed_lineage_digest',
+  'committed_state_digest',
+  'committed_state_revision',
+  'previous_lineage_digest',
   'result',
   'schema_version',
 ];
@@ -219,6 +249,7 @@ function createEmptySpaceState(accountKey) {
   return {
     account_key: requireAccountKey(accountKey),
     acknowledged_at: null,
+    revision: 0,
     schema_version: STATE_SCHEMA_VERSION,
     states_by_card_id: {},
   };
@@ -230,7 +261,19 @@ function normalizeStoredSpaceState(value, expectedAccountKey) {
   }
 
   const stored = stripCloudBaseSystemId(value);
-  assertExactStoredKeys(stored, STATE_KEYS, 'canonical space state');
+  const hasInlineRevision = hasExactStoredKeys(
+    stored,
+    INLINE_REVISION_STATE_KEYS,
+  );
+
+  if (
+    !hasExactStoredKeys(stored, STATE_KEYS) &&
+    !hasInlineRevision
+  ) {
+    throw invalidStoredState(
+      'canonical space state has unexpected fields.',
+    );
+  }
 
   if (
     stored.schema_version !== STATE_SCHEMA_VERSION ||
@@ -293,12 +336,50 @@ function normalizeStoredSpaceState(value, expectedAccountKey) {
     };
   }
 
+  const revision = hasInlineRevision
+    ? requireStoredNonNegativeSafeInteger(
+        stored.revision,
+        'canonical space state.revision',
+      )
+    : 1;
+
+  if (
+    revision === 0 &&
+    (acknowledgedAt !== null || Object.keys(normalizedStates).length > 0)
+  ) {
+    throw invalidStoredState(
+      'The canonical physical-space revision is inconsistent.',
+    );
+  }
+
   return {
     account_key: stored.account_key,
     acknowledged_at: acknowledgedAt,
+    revision,
     schema_version: stored.schema_version,
     states_by_card_id: normalizedStates,
   };
+}
+
+function toStoredSpaceState(value, expectedAccountKey) {
+  const state = normalizeStoredSpaceState(value, expectedAccountKey);
+  return {
+    account_key: state.account_key,
+    acknowledged_at: state.acknowledged_at,
+    schema_version: state.schema_version,
+    states_by_card_id: Object.fromEntries(
+      Object.entries(state.states_by_card_id).map(([cardId, item]) => [
+        cardId,
+        {...item},
+      ]),
+    ),
+  };
+}
+
+function createSpaceStateDigest(value, expectedAccountKey) {
+  return createSha256Digest(
+    toStoredSpaceState(value, expectedAccountKey),
+  );
 }
 
 function normalizeStoredDimension(item, dimension, label) {
@@ -392,8 +473,369 @@ function normalizeStoredAction(value) {
   };
 }
 
+function normalizeStoredSpaceStateRevision(value, expectedAccountKey) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const stored = stripCloudBaseSystemId(value);
+  const isLegacy =
+    stored.schema_version === LEGACY_STATE_REVISION_SCHEMA_VERSION;
+  assertExactStoredKeys(
+    stored,
+    isLegacy ? LEGACY_STATE_REVISION_KEYS : STATE_REVISION_KEYS,
+    'space state revision sidecar',
+  );
+
+  if (
+    (!isLegacy && stored.schema_version !== STATE_REVISION_SCHEMA_VERSION) ||
+    stored.account_key !== expectedAccountKey
+  ) {
+    throw invalidStoredState('The physical-space revision sidecar is invalid.');
+  }
+
+  const revision = requireStoredNonNegativeSafeInteger(
+    stored.revision,
+    'space state revision sidecar.revision',
+  );
+  if (revision === 0) {
+    throw invalidStoredState(
+      'A stored physical-space revision sidecar must be positive.',
+    );
+  }
+
+  const actionBindings = isLegacy
+    ? null
+    : normalizeStoredActionBindings(
+        stored.action_bindings,
+        'space state revision sidecar.action_bindings',
+      );
+  if (!isLegacy) {
+    const actionBindingsDigest = createSha256Digest(actionBindings);
+    const expectedLineageDigest = createSpaceStateLineageDigest({
+      accountKey: expectedAccountKey,
+      actionBindingsDigest,
+      previousLineageDigest: null,
+      revision,
+      stateDigest: stored.state_digest,
+    });
+    if (expectedLineageDigest !== stored.lineage_digest) {
+      throw invalidStoredState(
+        'The physical-space revision binding authority is invalid.',
+      );
+    }
+  }
+
+  return {
+    account_key: stored.account_key,
+    action_bindings: actionBindings,
+    lineage_digest: requireStoredSha256Digest(
+      stored.lineage_digest,
+      'space state revision sidecar.lineage_digest',
+    ),
+    revision,
+    schema_version: stored.schema_version,
+    state_digest: requireStoredSha256Digest(
+      stored.state_digest,
+      'space state revision sidecar.state_digest',
+    ),
+  };
+}
+
+function normalizeStoredSpaceActionLineage(
+  value,
+  expectedAccountKey,
+  expectedActionId,
+) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const stored = stripCloudBaseSystemId(value);
+  assertExactStoredKeys(
+    stored,
+    ACTION_LINEAGE_KEYS,
+    'space action lineage sidecar',
+  );
+
+  if (
+    stored.schema_version !== ACTION_LINEAGE_SCHEMA_VERSION ||
+    stored.account_key !== expectedAccountKey ||
+    stored.action_id !== expectedActionId ||
+    !['applied', 'stale'].includes(stored.result)
+  ) {
+    throw invalidStoredState('The physical-space action lineage is invalid.');
+  }
+
+  const lineage = {
+    account_key: stored.account_key,
+    action_bindings_digest: requireStoredSha256Digest(
+      stored.action_bindings_digest,
+      'space action lineage.action_bindings_digest',
+    ),
+    action_digest: requireStoredSha256Digest(
+      stored.action_digest,
+      'space action lineage.action_digest',
+    ),
+    action_id: stored.action_id,
+    committed_lineage_digest: requireStoredSha256Digest(
+      stored.committed_lineage_digest,
+      'space action lineage.committed_lineage_digest',
+    ),
+    committed_state_digest: requireStoredSha256Digest(
+      stored.committed_state_digest,
+      'space action lineage.committed_state_digest',
+    ),
+    committed_state_revision: requireStoredNonNegativeSafeInteger(
+      stored.committed_state_revision,
+      'space action lineage.committed_state_revision',
+    ),
+    previous_lineage_digest:
+      stored.previous_lineage_digest === null
+        ? null
+        : requireStoredSha256Digest(
+            stored.previous_lineage_digest,
+            'space action lineage.previous_lineage_digest',
+          ),
+    result: stored.result,
+    schema_version: stored.schema_version,
+  };
+
+  if (lineage.committed_state_revision === 0) {
+    throw invalidStoredState(
+      'A physical-space action lineage must name a committed revision.',
+    );
+  }
+
+  const expectedLineageDigest = createSpaceStateLineageDigest({
+    accountKey: expectedAccountKey,
+    actionBindingsDigest: lineage.action_bindings_digest,
+    previousLineageDigest: lineage.previous_lineage_digest,
+    revision: lineage.committed_state_revision,
+    stateDigest: lineage.committed_state_digest,
+  });
+  if (expectedLineageDigest !== lineage.committed_lineage_digest) {
+    throw invalidStoredState(
+      'The physical-space action lineage digest is invalid.',
+    );
+  }
+
+  return lineage;
+}
+
+function assertSpaceActionLineageAuthority(input) {
+  const ledger = normalizeStoredSpaceAction(
+    input.ledger,
+    input.accountKey,
+    input.actionId,
+  );
+  const lineage = normalizeStoredSpaceActionLineage(
+    input.lineage,
+    input.accountKey,
+    input.actionId,
+  );
+  const revision = normalizeStoredSpaceStateRevision(
+    input.revision,
+    input.accountKey,
+  );
+  const authoritativeBinding = revision?.action_bindings?.find(
+    binding => binding.action_id === input.actionId,
+  );
+
+  if (
+    lineage === null ||
+    revision === null ||
+    authoritativeBinding === undefined ||
+    authoritativeBinding.action_digest !== ledger.action_digest ||
+    authoritativeBinding.result !== ledger.result ||
+    lineage.action_digest !== ledger.action_digest ||
+    lineage.result !== ledger.result ||
+    lineage.committed_state_revision > revision.revision ||
+    (lineage.committed_state_revision === revision.revision &&
+      (lineage.committed_lineage_digest !== revision.lineage_digest ||
+        lineage.committed_state_digest !== revision.state_digest))
+  ) {
+    throw invalidStoredState(
+      'The physical-space action ledger has no valid committed-state lineage.',
+    );
+  }
+
+  return {ledger, lineage};
+}
+
+function assertRecoverablePreviousWriterLedger(ledgerValue, stateValue, input) {
+  const ledger = normalizeStoredSpaceAction(
+    ledgerValue,
+    input.accountKey,
+    input.actionId,
+  );
+  const state = normalizeStoredSpaceState(stateValue, input.accountKey);
+  const item = state.states_by_card_id[ledger.action.card_id];
+
+  if (!item) {
+    throw invalidStoredState(
+      'A previous-writer physical-space ledger is not proven by canonical state.',
+    );
+  }
+
+  const changedAt = item[`${ledger.action.dimension}_changed_at`];
+  const actionId = item[`${ledger.action.dimension}_action_id`];
+  const valueField =
+    ledger.action.dimension === 'favorite' ? 'is_favorited' : 'is_sleeping';
+  const authorityComparison = compareSpaceActionAuthority(
+    changedAt,
+    actionId,
+    ledger.action.client_occurred_at,
+    ledger.action.action_id,
+  );
+  const directlyProvenApplied =
+    ledger.result === 'applied' &&
+    authorityComparison === 0 &&
+    item[valueField] === ledger.action.value;
+  const directlyProvenStale =
+    ledger.result === 'stale' && authorityComparison > 0;
+
+  if (!directlyProvenApplied && !directlyProvenStale) {
+    throw invalidStoredState(
+      'A previous-writer physical-space ledger is not proven by canonical state.',
+    );
+  }
+
+  return ledger;
+}
+
+function createSpaceRevisionCheckpoint(input) {
+  const state = normalizeStoredSpaceState(input.state, input.accountKey);
+  const revision = requireStoredNonNegativeSafeInteger(
+    input.revision,
+    'physical-space checkpoint revision',
+  );
+  if (revision === 0) {
+    throw invalidStoredState(
+      'A physical-space checkpoint revision must be positive.',
+    );
+  }
+
+  const previousBindings = normalizeStoredActionBindings(
+    input.previousActionBindings ?? [],
+    'physical-space previous action bindings',
+  );
+  const newBindings = [...(input.ledgers ?? [])]
+    .map(value =>
+      normalizeStoredSpaceAction(value, input.accountKey, value.action_id),
+    )
+    .map(binding => ({
+      action_digest: binding.action_digest,
+      action_id: binding.action_id,
+      result: binding.result,
+    }));
+  const bindingByActionId = new Map(
+    previousBindings.map(binding => [binding.action_id, binding]),
+  );
+  for (const binding of newBindings) {
+    const existing = bindingByActionId.get(binding.action_id);
+    if (existing && stableJsonStringify(existing) !== stableJsonStringify(binding)) {
+      throw invalidStoredState(
+        'A physical-space checkpoint conflicts with an action binding.',
+      );
+    }
+    bindingByActionId.set(binding.action_id, binding);
+  }
+  const bindings = [...bindingByActionId.values()].sort((left, right) =>
+    left.action_id.localeCompare(right.action_id),
+  );
+
+  const actionBindingsDigest = createSha256Digest(
+    bindings,
+  );
+  const stateDigest = createSpaceStateDigest(state, input.accountKey);
+  const lineageDigest = createSpaceStateLineageDigest({
+    accountKey: input.accountKey,
+    actionBindingsDigest,
+    previousLineageDigest: null,
+    revision,
+    stateDigest,
+  });
+  const head = {
+    account_key: input.accountKey,
+    action_bindings: bindings,
+    lineage_digest: lineageDigest,
+    revision,
+    schema_version: STATE_REVISION_SCHEMA_VERSION,
+    state_digest: stateDigest,
+  };
+  const lineages = newBindings.map(binding => ({
+    account_key: input.accountKey,
+    action_bindings_digest: actionBindingsDigest,
+    action_digest: binding.action_digest,
+    action_id: binding.action_id,
+    committed_lineage_digest: lineageDigest,
+    committed_state_digest: stateDigest,
+    committed_state_revision: revision,
+    previous_lineage_digest: null,
+    result: binding.result,
+    schema_version: ACTION_LINEAGE_SCHEMA_VERSION,
+  }));
+
+  return {head, lineages};
+}
+
+function normalizeStoredActionBindings(value, label) {
+  if (!Array.isArray(value)) {
+    throw invalidStoredState(`${label} must be an array.`);
+  }
+  const actionIds = new Set();
+  const bindings = value.map((entry, index) => {
+    const binding = requireStoredObject(entry, `${label}[${index}]`);
+    assertExactStoredKeys(
+      binding,
+      ['action_digest', 'action_id', 'result'],
+      `${label}[${index}]`,
+    );
+    const normalized = {
+      action_digest: requireStoredSha256Digest(
+        binding.action_digest,
+        `${label}[${index}].action_digest`,
+      ),
+      action_id: requireStoredOpaqueId(
+        binding.action_id,
+        `${label}[${index}].action_id`,
+      ),
+      result: requireStoredEnum(
+        binding.result,
+        ['applied', 'stale'],
+        `${label}[${index}].result`,
+      ),
+    };
+    if (actionIds.has(normalized.action_id)) {
+      throw invalidStoredState(`${label} repeats an action_id.`);
+    }
+    actionIds.add(normalized.action_id);
+    return normalized;
+  });
+  const sorted = [...bindings].sort((left, right) =>
+    left.action_id.localeCompare(right.action_id),
+  );
+  if (stableJsonStringify(bindings) !== stableJsonStringify(sorted)) {
+    throw invalidStoredState(`${label} must use deterministic action order.`);
+  }
+  return bindings;
+}
+
+function createSpaceStateLineageDigest(input) {
+  return createSha256Digest({
+    account_key: input.accountKey,
+    action_bindings_digest: input.actionBindingsDigest,
+    previous_lineage_digest: input.previousLineageDigest,
+    revision: input.revision,
+    state_digest: input.stateDigest,
+  });
+}
+
 function prepareSpaceActionCommit(input) {
   const state = normalizeStoredSpaceState(input.state, input.accountKey);
+  const verifiedDuplicateActionIds =
+    input.verifiedDuplicateActionIds ?? new Set();
   const results = [];
   const ledgers = [];
   let changed = false;
@@ -416,6 +858,13 @@ function prepareSpaceActionCommit(input) {
         );
       }
 
+
+      if (!verifiedDuplicateActionIds.has(action.action_id)) {
+        throw invalidStoredState(
+          'A physical-space action ledger has no verified committed-state lineage.',
+        );
+      }
+
       results.push({action_id: action.action_id, status: 'duplicate'});
       return;
     }
@@ -433,10 +882,16 @@ function prepareSpaceActionCommit(input) {
   });
 
   if (changed) {
+    if (state.revision === Number.MAX_SAFE_INTEGER) {
+      throw invalidStoredState(
+        'The canonical physical-space revision is exhausted.',
+      );
+    }
     state.acknowledged_at = requireStoredIsoTimestamp(
       input.acknowledgedAt,
       'space action acknowledgement',
     );
+    state.revision += 1;
   }
 
   return {ledgers, results, state};
@@ -543,6 +998,7 @@ function migrateLegacySpaceDocuments(
       acknowledgedAt,
       'space migration acknowledgement',
     );
+    state.revision = 1;
   }
 
   return state;
@@ -660,11 +1116,49 @@ function createSpaceStateId(accountKey) {
     .digest('hex');
 }
 
+function createSpaceStateRevisionId(accountKey) {
+  return crypto
+    .createHash('sha256')
+    .update(`space-state-revision.v1\u0000${accountKey}`)
+    .digest('hex');
+}
+
+function createSpaceActionLineageId(accountKey, actionId) {
+  return crypto
+    .createHash('sha256')
+    .update(`space-action-lineage.v1\u0000${accountKey}\u0000${actionId}`)
+    .digest('hex');
+}
+
 function createSpaceActionDigest(action) {
   return crypto
     .createHash('sha256')
     .update(stableJsonStringify(action))
     .digest('hex');
+}
+
+function createSha256Digest(value) {
+  return crypto
+    .createHash('sha256')
+    .update(stableJsonStringify(value))
+    .digest('hex');
+}
+
+function compareSpaceActionAuthority(
+  currentChangedAt,
+  currentActionId,
+  candidateChangedAt,
+  candidateActionId,
+) {
+  if (currentChangedAt === null || currentActionId === null) {
+    return -1;
+  }
+  const currentTime = Date.parse(currentChangedAt);
+  const candidateTime = Date.parse(candidateChangedAt);
+  if (currentTime !== candidateTime) {
+    return currentTime > candidateTime ? 1 : -1;
+  }
+  return currentActionId.localeCompare(candidateActionId);
 }
 
 function createLegacyActionId(input) {
@@ -743,6 +1237,19 @@ function assertExactStoredKeys(value, expectedKeys, label) {
   ) {
     throw invalidStoredState(`${label} has unexpected fields.`);
   }
+}
+
+function hasExactStoredKeys(value, expectedKeys) {
+  if (!isObject(value)) {
+    return false;
+  }
+
+  const actual = Object.keys(value).sort();
+  const expected = [...expectedKeys].sort();
+  return (
+    actual.length === expected.length &&
+    actual.every((key, index) => key === expected[index])
+  );
 }
 
 function stripCloudBaseSystemId(value) {
@@ -856,6 +1363,22 @@ function requireStoredBoolean(value, label) {
   return value;
 }
 
+function requireStoredNonNegativeSafeInteger(value, label) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw invalidStoredState(`${label} must be a non-negative safe integer.`);
+  }
+
+  return value;
+}
+
+function requireStoredSha256Digest(value, label) {
+  if (typeof value !== 'string' || !/^[0-9a-f]{64}$/.test(value)) {
+    throw invalidStoredState(`${label} must be a lowercase SHA-256 digest.`);
+  }
+
+  return value;
+}
+
 function requireEnum(value, allowed, label) {
   if (!allowed.includes(value)) {
     throw invalidCommand(`${label} must be one of: ${allowed.join(', ')}.`);
@@ -934,15 +1457,24 @@ function isObject(value) {
 }
 
 module.exports = {
+  assertRecoverablePreviousWriterLedger,
+  assertSpaceActionLineageAuthority,
   cloneSpaceState,
   createEmptySpaceState,
+  createSpaceActionLineageId,
   createSpaceActionLedgerId,
   createSpaceActionsV2Service,
+  createSpaceRevisionCheckpoint,
   createSpaceStateId,
+  createSpaceStateDigest,
+  createSpaceStateRevisionId,
   migrateLegacySpaceDocuments,
+  normalizeStoredSpaceActionLineage,
   normalizeStoredSpaceAction,
   normalizeStoredSpaceState,
+  normalizeStoredSpaceStateRevision,
   parseSpaceActionsCommand,
   prepareSpaceActionCommit,
   serializeSpaceState,
+  toStoredSpaceState,
 };

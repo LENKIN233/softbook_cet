@@ -25,14 +25,15 @@ export type LearningEventSyncRepository = {
   getPendingCount: (phoneNumber: string) => Promise<number>;
   startReplay: (
     context: LearningEventsContext,
+    options?: {canSubmit?: () => boolean},
   ) => Promise<LearningEventReplayResult>;
 };
 
-export function createLearningEventSyncRepository(options: {
+export function createLearningEventSyncRepository(config: {
   eventsRepository: LearningEventsRepository;
   outbox?: LearningEventOutbox;
 }): LearningEventSyncRepository {
-  const outbox = options.outbox ?? new LearningEventOutbox();
+  const outbox = config.outbox ?? new LearningEventOutbox();
   const replayInFlightByAccount = new Map<
     string,
     Promise<LearningEventReplayResult>
@@ -40,6 +41,7 @@ export function createLearningEventSyncRepository(options: {
 
   const replay = async (
     context: LearningEventsContext,
+    options: {canSubmit?: () => boolean} = {},
   ): Promise<LearningEventReplayResult> => {
     const acknowledgedEntries: LearningEventOutboxEntry[] = [];
     const acknowledgements: LearningEventAcknowledgement[] = [];
@@ -51,8 +53,12 @@ export function createLearningEventSyncRepository(options: {
         break;
       }
 
+      if (options.canSubmit?.() === false) {
+        break;
+      }
+
       try {
-        const acknowledgement = await options.eventsRepository.submitEvents(
+        const acknowledgement = await config.eventsRepository.submitEvents(
           context,
           batch[0].track,
           batch.map(entry => entry.event),
@@ -99,14 +105,14 @@ export function createLearningEventSyncRepository(options: {
       return outbox.getPendingCount(phoneNumber);
     },
 
-    startReplay(context) {
+    startReplay(context, replayOptions) {
       const existingReplay = replayInFlightByAccount.get(context.phoneNumber);
 
       if (existingReplay) {
         return existingReplay;
       }
 
-      const task = replay(context);
+      const task = replay(context, replayOptions);
       replayInFlightByAccount.set(context.phoneNumber, task);
       task.then(
         () => {

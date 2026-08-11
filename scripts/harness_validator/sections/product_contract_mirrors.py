@@ -1786,7 +1786,7 @@ def space_actions_contract_findings(
                 "command_contract",
                 "transaction_rule",
             ),
-            "legacy migration, ledger conflict detection, dimension merge, immutable action records, and canonical account state commit atomically; a rejected batch commits nothing",
+            "legacy migration, ledger conflict detection, dimension merge, immutable action records, action lineage, digest-bound revision checkpoint, and rollback-compatible canonical account state commit atomically; a rejected batch commits nothing",
         ),
         (
             "response",
@@ -1812,6 +1812,24 @@ def space_actions_contract_findings(
             "softbook_space_actions",
         ),
         (
+            "state revision collection",
+            (
+                "physical_space_actions_v2",
+                "storage_contract",
+                "state_revision_collection",
+            ),
+            "softbook_space_state_revisions",
+        ),
+        (
+            "action lineage collection",
+            (
+                "physical_space_actions_v2",
+                "storage_contract",
+                "action_lineage_collection",
+            ),
+            "softbook_space_action_lineages",
+        ),
+        (
             "state identity",
             ("physical_space_actions_v2", "storage_contract", "state_identity"),
             "hash_of_account_key",
@@ -1824,12 +1842,21 @@ def space_actions_contract_findings(
         (
             "state integrity",
             ("physical_space_actions_v2", "storage_contract", "state_integrity"),
-            "stored space-state.v2 business fields and each dimension clock/action pair are validated exactly on every canonical read and write; CloudBase system _id is the only removable adapter field",
+            "stored space-state.v2 business fields and each dimension clock/action pair are validated exactly on every canonical read and write; current writes keep the previous package's exact business schema and CloudBase system _id is the only removable adapter field, while a briefly unreleased inline revision is accepted only as a migration floor and stripped on rewrite",
+        ),
+        (
+            "state revision integrity",
+            (
+                "physical_space_actions_v2",
+                "storage_contract",
+                "state_revision_integrity",
+            ),
+            "the account-keyed space-state-revision.v2 sidecar owns one positive persisted safe-integer revision, canonical-state digest, and deterministic cumulative action digest/result bindings; revision zero exists only when state and sidecar are absent, retained v1 sidecars and exact legacy state are read-only migration inputs, a sidecar without state fails closed, and digest or binding drift cannot silently relabel state",
         ),
         (
             "action integrity",
             ("physical_space_actions_v2", "storage_contract", "action_integrity"),
-            "stored ledger payload, canonical digest, result, acknowledgement, and account ownership are validated exactly before duplicate acknowledgement",
+            "stored ledger payload, canonical digest, result, acknowledgement, and account ownership are validated exactly before duplicate acknowledgement; current ledgers require immutable lineage plus an exact binding in the current cumulative revision authority, while a previous-package ledger without lineage is recoverable only when its applied or stale result is directly proven by current canonical state; superseded old-schema ledgers require a fenced baseline or intermediate dual-write and otherwise fail closed",
         ),
         (
             "legacy migration",
@@ -1867,7 +1894,7 @@ def space_actions_contract_findings(
                 "mobile_contract",
                 "retryable_failure_rule",
             ),
-            "space_content_version_mismatch, unknown HTTP failures, transport failures, malformed responses, and every non-terminal rejection remain active and block later ordered space actions until retry or explicit reconciliation; authorization and session cancellation retain their separate session lifecycle handling",
+            "space_content_version_mismatch, unknown HTTP failures, transport failures, malformed responses, and every non-terminal rejection remain active and block later same-track ordered space actions until retry or explicit reconciliation; an inactive-track action is preserved but rotated past so current-track and account-wide mutations can proceed; authorization and session cancellation retain their separate session lifecycle handling",
         ),
         (
             "mobile terminal quarantine",
@@ -1957,7 +1984,12 @@ def space_actions_contract_findings(
         (
             "storage collections",
             ("storage_collections",),
-            ["softbook_space_states", "softbook_space_actions"],
+            [
+                "softbook_space_states",
+                "softbook_space_actions",
+                "softbook_space_state_revisions",
+                "softbook_space_action_lineages",
+            ],
         ),
         (
             "merge authority",
@@ -1972,7 +2004,17 @@ def space_actions_contract_findings(
         (
             "transaction boundary",
             ("transaction_boundary",),
-            "legacy_migration_ledger_conflict_detection_dimension_merge_action_insert_and_account_state_commit",
+            "legacy_migration_ledger_conflict_detection_dimension_merge_action_insert_action_lineage_checkpoint_revision_sidecar_and_account_state_commit",
+        ),
+        (
+            "state revision transaction rule",
+            ("state_revision_transaction_rule",),
+            "the same transaction checkpoints the space-state-revision.v2 canonical-state digest, cumulative action digest/result bindings, and new action lineage, incrementing once when any new action ledger is inserted including stale; duplicate-only batches do not increment unless a directly proven previous-package ledger or out-of-band previous-package state write must be reconciled",
+        ),
+        (
+            "state revision",
+            ("state_revision",),
+            "missing_account_state_and_sidecar_is_zero_retained_v1_sidecar_or_legacy_state_is_migration_input_new_ledger_batches_increment_once_exact_duplicates_do_not_advance_and_digest_or_binding_drift_fails_closed",
         ),
         (
             "mobile queue",
@@ -2074,7 +2116,7 @@ def space_actions_contract_findings(
         "stored_business_schema_and_digest_integrity_fail_closed",
         "cloudbase_adapter_strips_only_system_id",
         "memory_and_cloudbase_commits_are_transactional",
-        "maximum_twenty_action_cloudbase_commit_uses_at_most_42_operations",
+        "maximum_twenty_action_cloudbase_commit_uses_at_most_64_operations",
         "legacy_phone_and_phone_day_documents_are_read_only_migration_inputs",
         "legacy_dimension_clocks_use_last_modified_at_and_deterministic_action_ids",
         "get_and_post_v1_space_state_sync_always_return_410",

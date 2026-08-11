@@ -35,6 +35,7 @@ export const REQUIRED_COLLECTIONS = Object.freeze([
   "softbook_card_source_versions",
   "softbook_card_sources",
   "softbook_memberships",
+  "softbook_membership_revisions",
   "softbook_daily_check_ins",
   "softbook_daily_progress",
   "softbook_learning_event_cursors",
@@ -43,7 +44,9 @@ export const REQUIRED_COLLECTIONS = Object.freeze([
   "softbook_learning_migration_revisions",
   "softbook_learning_sessions",
   "softbook_learning_states",
+  "softbook_space_action_lineages",
   "softbook_space_actions",
+  "softbook_space_state_revisions",
   "softbook_space_states",
 ]);
 
@@ -88,6 +91,11 @@ const IDENTITY_PROBES = Object.freeze([
     id: "beta_entitlements",
   },
   {
+    collection: "softbook_membership_revisions",
+    filter: {phone_number: {$exists: true}},
+    id: "membership_revisions",
+  },
+  {
     collection: "softbook_learning_event_cursors",
     filter: {account_key: {$exists: true}},
     id: "learning_event_cursors",
@@ -118,9 +126,19 @@ const IDENTITY_PROBES = Object.freeze([
     id: "learning_states_v2",
   },
   {
+    collection: "softbook_space_action_lineages",
+    filter: {account_key: {$exists: true}},
+    id: "space_action_lineages",
+  },
+  {
     collection: "softbook_space_actions",
     filter: {account_key: {$exists: true}},
     id: "space_actions",
+  },
+  {
+    collection: "softbook_space_state_revisions",
+    filter: {account_key: {$exists: true}},
+    id: "space_state_revisions",
   },
   {
     collection: "softbook_space_states",

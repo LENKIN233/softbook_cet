@@ -291,6 +291,84 @@ async function loadBootstrap(label) {
   const progress = assertObject(data.progress, `${label}.progress`);
   const learning = assertObject(data.learning, `${label}.learning`);
   const space = assertObject(data.space, `${label}.space`);
+  const componentRevisions = assertObject(
+    data.component_revisions,
+    `${label}.component_revisions`,
+  );
+
+  if (
+    componentRevisions.schema_version !==
+    'bootstrap-component-revisions.v1'
+  ) {
+    fail(`${label}.component_revisions schema is invalid.`);
+  }
+
+  const membershipRevision = assertObject(
+    componentRevisions.membership,
+    `${label}.component_revisions.membership`,
+  );
+  const learningRevision = assertObject(
+    componentRevisions.learning,
+    `${label}.component_revisions.learning`,
+  );
+  const progressRevision = assertObject(
+    componentRevisions.progress,
+    `${label}.component_revisions.progress`,
+  );
+  const spaceRevision = assertObject(
+    componentRevisions.space,
+    `${label}.component_revisions.space`,
+  );
+  assertNonNegativeInteger(
+    membershipRevision.base_membership_revision,
+    `${label}.component_revisions.membership.base_membership_revision`,
+  );
+  assertNonNegativeInteger(
+    membershipRevision.beta_entitlement_revision,
+    `${label}.component_revisions.membership.beta_entitlement_revision`,
+  );
+  const learningEventSequence = assertNonNegativeInteger(
+    learningRevision.event_server_sequence,
+    `${label}.component_revisions.learning.event_server_sequence`,
+  );
+  assertNonNegativeInteger(
+    learningRevision.session_revision,
+    `${label}.component_revisions.learning.session_revision`,
+  );
+  const canonicalSpaceRevision = assertNonNegativeInteger(
+    spaceRevision.state_revision,
+    `${label}.component_revisions.space.state_revision`,
+  );
+  const progressLearningSequence = assertNonNegativeInteger(
+    progressRevision.learning_server_sequence,
+    `${label}.component_revisions.progress.learning_server_sequence`,
+  );
+  const checkInRevision = assertNonNegativeInteger(
+    progressRevision.check_in_revision,
+    `${label}.component_revisions.progress.check_in_revision`,
+  );
+  const progressLearningAuthority = progress.learning_authority;
+
+  if (
+    learningRevision.space_revision !== canonicalSpaceRevision ||
+    progressRevision.space_revision !== canonicalSpaceRevision ||
+    progressLearningSequence < learningEventSequence ||
+    checkInRevision !== Number(progress.checked_in_today) ||
+    ![
+      'account_events_v2',
+      'legacy_account_baseline',
+      'empty',
+    ].includes(progressLearningAuthority) ||
+    (progressLearningAuthority === 'account_events_v2' &&
+      progressLearningSequence === 0) ||
+    (progressLearningAuthority !== 'account_events_v2' &&
+      progressLearningSequence !== 0) ||
+    (progressLearningAuthority === 'empty' &&
+      progress.pending_review_count !== 0) ||
+    Object.hasOwn(progress, 'component_revision')
+  ) {
+    fail(`${label}.component_revisions dependencies are inconsistent.`);
+  }
 
   if (!Array.isArray(learning.card_states) || !Array.isArray(space.states)) {
     fail(`${label} learning.card_states and space.states must be arrays.`);
@@ -1120,6 +1198,8 @@ function assertNonNegativeInteger(value, label) {
   if (!Number.isInteger(value) || value < 0) {
     fail(`${label} must be a non-negative integer.`);
   }
+
+  return value;
 }
 
 function assertPositiveInteger(value, label) {

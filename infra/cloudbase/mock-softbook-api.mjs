@@ -296,6 +296,7 @@ async function route(request, response) {
     memberships.set(session.phoneNumber, {
       acknowledged_at: new Date().toISOString(),
       entitlement: membership,
+      revision: (memberships.get(session.phoneNumber)?.revision ?? 0) + 1,
     });
     sendJson(response, 200, entitlementPayload(membership));
     return;
@@ -308,6 +309,7 @@ async function route(request, response) {
     memberships.set(session.phoneNumber, {
       acknowledged_at: new Date().toISOString(),
       entitlement: membership,
+      revision: (memberships.get(session.phoneNumber)?.revision ?? 0) + 1,
     });
     sendJson(response, 200, entitlementPayload(membership));
     return;
@@ -320,6 +322,7 @@ async function route(request, response) {
     memberships.set(session.phoneNumber, {
       acknowledged_at: new Date().toISOString(),
       entitlement: membership,
+      revision: (memberships.get(session.phoneNumber)?.revision ?? 0) + 1,
     });
     sendJson(response, 200, entitlementPayload(membership));
     return;
@@ -411,15 +414,15 @@ function entitlementPayload(membership) {
 async function bootstrapPayload(phoneNumber, track, dayKey) {
   const accountKey = accountKeyForPhone(phoneNumber);
   const cardSource = getMockCardSource(track);
-  const progress = learningEventsStore.getDailyProgress(phoneNumber, dayKey, {
-    accountKey,
-  });
   const learning = learningEventsStore.getLearningState(
     phoneNumber,
     dayKey,
     track,
     {accountKey},
   );
+  const progress = learningEventsStore.getDailyProgress(phoneNumber, dayKey, {
+    accountKey,
+  });
   const space = await learningEventsStore.getSpaceState(
     phoneNumber,
     dayKey,
@@ -428,6 +431,9 @@ async function bootstrapPayload(phoneNumber, track, dayKey) {
       acknowledgedAt: new Date().toISOString(),
     },
   );
+  const {component_revision: progressRevision, ...progressProjection} =
+    progress;
+  const membershipRevision = memberships.get(phoneNumber)?.revision ?? 0;
 
   return {
     data: {
@@ -435,6 +441,26 @@ async function bootstrapPayload(phoneNumber, track, dayKey) {
       generated_at: new Date().toISOString(),
       day_key: dayKey,
       track,
+      component_revisions: {
+        schema_version: 'bootstrap-component-revisions.v1',
+        membership: {
+          base_membership_revision: membershipRevision,
+          beta_entitlement_revision: 0,
+        },
+        learning: {
+          event_server_sequence:
+            learning.component_revision.event_server_sequence,
+          session_revision: learning.component_revision.session_revision,
+          space_revision: space.revision,
+        },
+        progress: {
+          check_in_revision: progressRevision.check_in_revision,
+          learning_server_sequence:
+            progressRevision.learning_server_sequence,
+          space_revision: space.revision,
+        },
+        space: {state_revision: space.revision},
+      },
       content: {
         card_count: cardSource.card_records.length,
         release_id: null,
@@ -458,7 +484,7 @@ async function bootstrapPayload(phoneNumber, track, dayKey) {
         acknowledged_at: memberships.get(phoneNumber)?.acknowledged_at ?? null,
         ...getMembership(phoneNumber),
       },
-      progress,
+      progress: progressProjection,
       space: serializeSpaceState(space, {
         accountKey,
         cardIds: new Set(

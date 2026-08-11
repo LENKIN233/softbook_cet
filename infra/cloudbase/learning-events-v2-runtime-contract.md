@@ -270,6 +270,16 @@ Canonical event order is `server_sequence`; client clocks and device sequences
 cannot override it. The highest valid server sequence for a card is its latest
 canonical learning event.
 
+Bootstrap exposes this existing authority without inventing another counter.
+`component_revisions.learning.event_server_sequence` is the maximum positive
+sequence in the requested-track latest-card projection and must equal the
+maximum `server_sequence` returned in that track's `card_states`.
+`component_revisions.progress.learning_server_sequence` is instead the current
+account-wide sequence because pending review is account-wide. An event accepted
+on the sibling track can therefore advance Progress without falsely advancing
+the requested track's Learning revision. Sequence-zero migration baselines do
+not invent a positive Learning revision.
+
 The service derives per-card learning state and learning/review completion
 aggregates from accepted immutable events. It does not accept a client-authored
 learning snapshot or progress counters. Favorite and sleeping state remain

@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { MembershipState } from '../membership/localMembership';
 import type { MembershipRepositoryContext } from '../membership/membershipRepository';
 import type { LearningTrack } from '../learning/model';
+import type { AccountBootstrapComponentRevisions } from '../bootstrap/accountBootstrapRepository';
 import type {
   SpaceAction,
   SpaceStateContext,
@@ -29,10 +30,27 @@ export type MutationPayloadByType = {
   };
   apply_space_action: {
     action: SpaceAction;
+    canonicalRefreshBaseline?: SpaceCanonicalRefreshBaseline;
     contentVersion: string | null;
     context: SpaceStateContext;
     track: LearningTrack | null;
   };
+};
+
+export type SpaceCanonicalRefreshBaseline = {
+  bootstrapObservation: AccountBootstrapObservationProof;
+  componentRevisions: AccountBootstrapComponentRevisions;
+  contentVersion: string;
+  dayKey: string;
+  schemaVersion: 'space-canonical-refresh-baseline.v1';
+  track: LearningTrack;
+};
+
+export type AccountBootstrapObservationProof = {
+  forceFresh: boolean;
+  generation: number;
+  runtimeSessionId: string;
+  schemaVersion: 'account-bootstrap-observation.v1';
 };
 
 export type MutationQueueEntry = {
@@ -93,7 +111,8 @@ export class MutationQueueManager {
   private readonly storage: MutationQueueStorage;
   private entries: MutationQueueEntry[] = [];
   private quarantined: QuarantinedMutation[] = [];
-  private readonly hydrationPromise: Promise<void>;
+  private hydrated = false;
+  private hydrationPromise: Promise<void> | null = null;
   private operationTail: Promise<void> = Promise.resolve();
 
   constructor(
@@ -107,45 +126,40 @@ export class MutationQueueManager {
     this.quarantineKey = `${this.key}${MUTATION_QUARANTINE_SUFFIX}`;
     this.now = options.now ?? (() => new Date().toISOString());
     this.storage = options.storage ?? createReactNativeMutationQueueStorage();
-    this.hydrationPromise = this.load();
   }
 
   private async load(): Promise<void> {
-    try {
-      const stored = await this.storage.getItem(this.key);
-      const parsed: unknown = stored ? JSON.parse(stored) : [];
-      this.entries = sanitizeMutationEntries(parsed);
+    // Storage I/O failures are not evidence that the durable queue is empty.
+    // Read both keys before mutating memory so a transient failure cannot be
+    // followed by an overwrite that silently drops persisted commands.
+    const [storedEntries, storedQuarantine] = await Promise.all([
+      this.storage.getItem(this.key),
+      this.storage.getItem(this.quarantineKey),
+    ]);
+    const entries = sanitizeMutationEntries(parsePersistedJson(storedEntries));
+    const quarantined = sanitizeQuarantinedMutations(
+      parsePersistedJson(storedQuarantine),
+    );
 
-      if (stored && stored !== JSON.stringify(this.entries)) {
-        await this.storage.setItem(this.key, JSON.stringify(this.entries));
-      }
-    } catch (error) {
-      console.warn('[MutationQueue] Failed to load persisted entries.', error);
-      this.entries = [];
+    if (storedEntries && storedEntries !== JSON.stringify(entries)) {
+      await this.storage.setItem(this.key, JSON.stringify(entries));
     }
-
-    try {
-      const stored = await this.storage.getItem(this.quarantineKey);
-      const parsed: unknown = stored ? JSON.parse(stored) : [];
-      this.quarantined = sanitizeQuarantinedMutations(parsed);
-
-      if (stored && stored !== JSON.stringify(this.quarantined)) {
-        await this.storage.setItem(
-          this.quarantineKey,
-          JSON.stringify(this.quarantined),
-        );
-      }
-    } catch (error) {
-      console.warn(
-        '[MutationQueue] Failed to load quarantined entries.',
-        error,
+    if (
+      storedQuarantine &&
+      storedQuarantine !== JSON.stringify(quarantined)
+    ) {
+      await this.storage.setItem(
+        this.quarantineKey,
+        JSON.stringify(quarantined),
       );
-      this.quarantined = [];
     }
+
+    this.entries = entries;
+    this.quarantined = quarantined;
   }
 
   async hydrate(): Promise<void> {
-    await this.hydrationPromise;
+    await this.ensureHydrated();
   }
 
   enqueue<Type extends MutationType>(
@@ -221,6 +235,22 @@ export class MutationQueueManager {
     });
   }
 
+  moveFirstToEndIfUnchanged(expected: MutationQueueEntry): Promise<boolean> {
+    return this.runExclusive(async () => {
+      const entry = this.entries[0];
+
+      if (!entry || !areMutationEntriesEqual(entry, expected)) {
+        return false;
+      }
+
+      await this.persistCandidate([
+        ...this.entries.slice(1).map(cloneMutationEntry),
+        cloneMutationEntry(entry),
+      ]);
+      return true;
+    });
+  }
+
   peek(): Promise<MutationQueueEntry | undefined> {
     return this.runExclusive(async () => {
       const entry = this.entries[0];
@@ -266,6 +296,50 @@ export class MutationQueueManager {
         );
       }
       return true;
+    });
+  }
+
+  markCanonicalRefreshRequiredIfUnchanged(
+    expected: Extract<MutationQueueEntry, { type: 'apply_space_action' }>,
+    baseline: SpaceCanonicalRefreshBaseline,
+  ): Promise<
+    Extract<MutationQueueEntry, { type: 'apply_space_action' }> | undefined
+  > {
+    return this.runExclusive(async () => {
+      const entry = this.entries[0];
+
+      if (
+        !entry ||
+        entry.type !== 'apply_space_action' ||
+        !areMutationEntriesEqual(entry, expected)
+      ) {
+        return undefined;
+      }
+
+      if (entry.payload.track !== baseline.track) {
+        throw new Error(
+          'Space canonical refresh baseline must match the queued track.',
+        );
+      }
+
+      const candidate = this.entries.map(cloneMutationEntry);
+      const candidateEntry = candidate[0] as Extract<
+        MutationQueueEntry,
+        { type: 'apply_space_action' }
+      >;
+      candidateEntry.payload = {
+        ...candidateEntry.payload,
+        canonicalRefreshBaseline: sanitizeSpaceCanonicalRefreshBaseline(
+          baseline,
+        ),
+        contentVersion: baseline.contentVersion,
+      };
+      candidateEntry.retryCount += 1;
+      await this.persistCandidate(candidate);
+      return cloneMutationEntry(candidateEntry) as Extract<
+        MutationQueueEntry,
+        { type: 'apply_space_action' }
+      >;
     });
   }
 
@@ -330,7 +404,7 @@ export class MutationQueueManager {
     operation: () => Promise<Result>,
   ): Promise<Result> {
     const result = this.operationTail
-      .then(() => this.hydrationPromise)
+      .then(() => this.ensureHydrated())
       .then(operation);
 
     this.operationTail = result.then(
@@ -340,9 +414,42 @@ export class MutationQueueManager {
     return result;
   }
 
+  private async ensureHydrated(): Promise<void> {
+    if (this.hydrated) {
+      return;
+    }
+
+    if (this.hydrationPromise === null) {
+      this.hydrationPromise = this.load().then(() => {
+        this.hydrated = true;
+      });
+    }
+
+    const hydration = this.hydrationPromise;
+    try {
+      await hydration;
+    } finally {
+      if (this.hydrationPromise === hydration) {
+        this.hydrationPromise = null;
+      }
+    }
+  }
+
   private async persistCandidate(candidate: MutationQueueEntry[]) {
     await this.storage.setItem(this.key, JSON.stringify(candidate));
     this.entries = candidate;
+  }
+}
+
+function parsePersistedJson(stored: string | null): unknown {
+  if (stored === null || stored.length === 0) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return [];
   }
 }
 
@@ -480,6 +587,12 @@ function sanitizeMutationPayload<Type extends MutationType>(
       const contentVersion = sanitizeOptionalContentVersion(
         payload.contentVersion,
       );
+      const canonicalRefreshBaseline =
+        payload.canonicalRefreshBaseline === undefined
+          ? undefined
+          : sanitizeSpaceCanonicalRefreshBaseline(
+              payload.canonicalRefreshBaseline,
+            );
 
       if ((track === null) !== (contentVersion === null)) {
         throw new Error(
@@ -489,12 +602,123 @@ function sanitizeMutationPayload<Type extends MutationType>(
 
       return {
         action: sanitizeSpaceAction(payload.action),
+        ...(canonicalRefreshBaseline === undefined
+          ? {}
+          : { canonicalRefreshBaseline }),
         contentVersion,
         context,
         track,
       } as MutationPayloadByType[Type];
     }
   }
+}
+
+function sanitizeSpaceCanonicalRefreshBaseline(
+  value: unknown,
+): SpaceCanonicalRefreshBaseline {
+  if (
+    !isObject(value) ||
+    value.schemaVersion !== 'space-canonical-refresh-baseline.v1' ||
+    !isObject(value.bootstrapObservation) ||
+    typeof value.contentVersion !== 'string' ||
+    !/^sha256:[0-9a-f]{64}$/.test(value.contentVersion) ||
+    typeof value.dayKey !== 'string' ||
+    !isValidDayKey(value.dayKey) ||
+    (value.track !== 'cet4' && value.track !== 'cet6') ||
+    !isObject(value.componentRevisions)
+  ) {
+    throw new Error('Space canonical refresh baseline is invalid.');
+  }
+
+  const revisions = value.componentRevisions;
+  const membership = sanitizeRevisionRecord(revisions.membership, [
+    'baseMembershipRevision',
+    'betaEntitlementRevision',
+  ]);
+  const learning = sanitizeRevisionRecord(revisions.learning, [
+    'eventServerSequence',
+    'sessionRevision',
+    'spaceRevision',
+  ]);
+  const progress = sanitizeRevisionRecord(revisions.progress, [
+    'checkInRevision',
+    'learningServerSequence',
+    'spaceRevision',
+  ]);
+  const space = sanitizeRevisionRecord(revisions.space, ['stateRevision']);
+
+  if (revisions.schemaVersion !== 'bootstrap-component-revisions.v1') {
+    throw new Error('Space canonical refresh baseline is invalid.');
+  }
+
+  return {
+    bootstrapObservation: sanitizeAccountBootstrapObservationProof(
+      value.bootstrapObservation,
+    ),
+    componentRevisions: {
+      learning: learning as AccountBootstrapComponentRevisions['learning'],
+      membership:
+        membership as AccountBootstrapComponentRevisions['membership'],
+      progress: progress as AccountBootstrapComponentRevisions['progress'],
+      schemaVersion: 'bootstrap-component-revisions.v1',
+      space: space as AccountBootstrapComponentRevisions['space'],
+    },
+    contentVersion: value.contentVersion,
+    dayKey: value.dayKey,
+    schemaVersion: 'space-canonical-refresh-baseline.v1',
+    track: value.track,
+  };
+}
+
+function sanitizeAccountBootstrapObservationProof(
+  value: unknown,
+): AccountBootstrapObservationProof {
+  if (
+    !isObject(value) ||
+    value.schemaVersion !== 'account-bootstrap-observation.v1' ||
+    typeof value.forceFresh !== 'boolean' ||
+    !Number.isSafeInteger(value.generation) ||
+    (value.generation as number) < 1 ||
+    typeof value.runtimeSessionId !== 'string' ||
+    !/^bootstrap-runtime:[0-9A-Za-z._:-]{8,160}$/.test(
+      value.runtimeSessionId,
+    )
+  ) {
+    throw new Error('Account bootstrap observation proof is invalid.');
+  }
+
+  return {
+    forceFresh: value.forceFresh,
+    generation: value.generation as number,
+    runtimeSessionId: value.runtimeSessionId,
+    schemaVersion: 'account-bootstrap-observation.v1',
+  };
+}
+
+function sanitizeRevisionRecord(
+  value: unknown,
+  expectedKeys: string[],
+): Record<string, number> {
+  if (!isObject(value)) {
+    throw new Error('Space canonical refresh baseline is invalid.');
+  }
+
+  const keys = Object.keys(value).sort();
+  const sortedExpectedKeys = [...expectedKeys].sort();
+
+  if (
+    keys.length !== sortedExpectedKeys.length ||
+    keys.some((key, index) => key !== sortedExpectedKeys[index]) ||
+    expectedKeys.some(
+      key => !Number.isSafeInteger(value[key]) || (value[key] as number) < 0,
+    )
+  ) {
+    throw new Error('Space canonical refresh baseline is invalid.');
+  }
+
+  return Object.fromEntries(
+    expectedKeys.map(key => [key, value[key] as number]),
+  );
 }
 
 function cloneMutationEntry(entry: MutationQueueEntry): MutationQueueEntry {

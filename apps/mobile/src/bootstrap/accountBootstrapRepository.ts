@@ -8,6 +8,16 @@ import type { DailyProgressSnapshot } from '../sync/progressSyncRepository';
 
 export type AccountBootstrapRepositoryMode = 'local' | 'remote';
 
+export class AccountBootstrapIntegrityError extends Error {
+  readonly integrityCause: unknown;
+
+  constructor(cause: unknown) {
+    super('Remote account bootstrap failed integrity validation.');
+    this.name = 'AccountBootstrapIntegrityError';
+    this.integrityCause = cause;
+  }
+}
+
 export type AccountBootstrapContent = {
   cardCount: number;
   minimumClientVersion: string | null;
@@ -23,6 +33,7 @@ export type AccountBootstrapContent = {
 
 export type AccountBootstrapLearningCardState = LearningCardResult & {
   phase: 'learning' | 'review';
+  serverSequence: number;
 };
 
 export type AccountBootstrapLearningState = {
@@ -39,7 +50,29 @@ export type AccountBootstrapLearningState = {
   } | null;
 };
 
+export type AccountBootstrapComponentRevisions = {
+  learning: {
+    eventServerSequence: number;
+    sessionRevision: number;
+    spaceRevision: number;
+  };
+  membership: {
+    baseMembershipRevision: number;
+    betaEntitlementRevision: number;
+  };
+  progress: {
+    checkInRevision: number;
+    learningServerSequence: number;
+    spaceRevision: number;
+  };
+  schemaVersion: 'bootstrap-component-revisions.v1';
+  space: {
+    stateRevision: number;
+  };
+};
+
 export type AccountBootstrapSnapshot = {
+  componentRevisions: AccountBootstrapComponentRevisions;
   content: AccountBootstrapContent;
   dayKey: string;
   generatedAt: string;
@@ -50,6 +83,10 @@ export type AccountBootstrapSnapshot = {
   };
   progress: {
     acknowledgedAt: string | null;
+    learningAuthority:
+      | 'account_events_v2'
+      | 'legacy_account_baseline'
+      | 'empty';
     snapshot: DailyProgressSnapshot;
   };
   schemaVersion: 'bootstrap.v2';
@@ -70,6 +107,7 @@ export type AccountBootstrapFetch = (
   init?: {
     headers?: Record<string, string>;
     method?: string;
+    signal?: AbortSignal;
   },
 ) => Promise<{
   json: () => Promise<unknown>;
@@ -87,6 +125,10 @@ export type AccountBootstrapRepository = {
   load: (
     track: LearningTrack,
     dayKey: string,
+    options?: {
+      forceFresh?: boolean;
+      signal?: AbortSignal;
+    },
   ) => Promise<AccountBootstrapSnapshot | null>;
 };
 
@@ -102,7 +144,7 @@ export function createAccountBootstrapRepository(
   config: AccountBootstrapRepositoryConfig,
 ): AccountBootstrapRepository {
   return {
-    async load(track, dayKey) {
+    async load(track, dayKey, options = {}) {
       assertTrack(track, 'requested track');
       assertDayKey(dayKey, 'requested day_key');
 
@@ -120,9 +162,11 @@ export function createAccountBootstrapRepository(
         {
           headers: {
             Accept: 'application/json',
+            ...(options.forceFresh ? { 'Cache-Control': 'no-cache' } : {}),
             ...config.remoteConfig.headers,
           },
           method: 'GET',
+          ...(options.signal ? { signal: options.signal } : {}),
         },
       );
 
@@ -133,7 +177,11 @@ export function createAccountBootstrapRepository(
         );
       }
 
-      return parseAccountBootstrapPayload(await response.json(), track, dayKey);
+      try {
+        return parseAccountBootstrapPayload(await response.json(), track, dayKey);
+      } catch (error) {
+        throw new AccountBootstrapIntegrityError(error);
+      }
     },
   };
 }
@@ -179,6 +227,9 @@ export function parseAccountBootstrapPayload(
   }
 
   const content = parseContent(data.content);
+  const componentRevisions = parseComponentRevisions(
+    data.component_revisions,
+  );
   const learning = parseLearning(data.learning, expectedTrack);
   const membership = parseMembership(data.membership);
   const progress = parseProgress(data.progress, expectedDayKey);
@@ -189,21 +240,76 @@ export function parseAccountBootstrapPayload(
     content.version,
   );
 
+  const positiveLearningSequences = learning.cardStates
+    .map(state => state.serverSequence)
+    .filter(sequence => sequence > 0);
+  const maximumLearningSequence = positiveLearningSequences.length
+    ? Math.max(...positiveLearningSequences)
+    : 0;
+
   if (
-    (learning.source !== null && learning.source.id !== content.source.id) ||
-    (learning.cursor !== null && learning.cursor.sourceId !== content.source.id)
+    new Set(positiveLearningSequences).size !==
+      positiveLearningSequences.length ||
+    maximumLearningSequence !==
+      componentRevisions.learning.eventServerSequence
   ) {
-    throw new Error('Bootstrap learning source must match content source.');
+    throw new Error(
+      'Bootstrap learning revision must match its unique server sequences.',
+    );
   }
 
   if (
-    learning.cardStates.length > content.cardCount ||
-    space.snapshot.states.length > content.cardCount
+    componentRevisions.learning.spaceRevision !==
+      componentRevisions.space.stateRevision ||
+    componentRevisions.progress.spaceRevision !==
+      componentRevisions.space.stateRevision ||
+    componentRevisions.progress.learningServerSequence <
+      componentRevisions.learning.eventServerSequence ||
+    componentRevisions.progress.checkInRevision !==
+      Number(progress.snapshot.checkedInToday)
   ) {
-    throw new Error('Bootstrap account state exceeds the content card count.');
+    throw new Error(
+      'Bootstrap component revisions do not match their canonical dependencies.',
+    );
   }
+
+  const progressLearningSequence =
+    componentRevisions.progress.learningServerSequence;
+  if (
+    (progress.learningAuthority === 'account_events_v2' &&
+      progressLearningSequence === 0) ||
+    (progress.learningAuthority !== 'account_events_v2' &&
+      progressLearningSequence !== 0) ||
+    (progress.learningAuthority === 'empty' &&
+      progress.snapshot.pendingReviewCount !== 0)
+  ) {
+    throw new Error(
+      'Bootstrap Progress learning authority is inconsistent.',
+    );
+  }
+
+  if (
+    componentRevisions.space.stateRevision === 0 &&
+    space.snapshot.states.length > 0
+  ) {
+    throw new Error(
+      'Bootstrap Space revision zero requires an empty canonical state.',
+    );
+  }
+
+  if (
+    componentRevisions.learning.sessionRevision === 0 &&
+    learning.cursor !== null
+  ) {
+    throw new Error(
+      'Bootstrap Learning session revision zero cannot own a cursor.',
+    );
+  }
+
+  assertSpaceOwnerProjectionMatches(learning, progress, space);
 
   return {
+    componentRevisions,
     content,
     dayKey,
     generatedAt: readIsoTimestamp(
@@ -216,6 +322,127 @@ export function parseAccountBootstrapPayload(
     schemaVersion: 'bootstrap.v2',
     space,
     track,
+  };
+}
+
+function assertSpaceOwnerProjectionMatches(
+  learning: AccountBootstrapLearningState,
+  progress: ReturnType<typeof parseProgress>,
+  space: ReturnType<typeof parseSpace>,
+) {
+  const spaceStateByCardId = new Map(
+    space.snapshot.states.map(state => [state.cardId, state]),
+  );
+  const favoriteCount = space.snapshot.states.filter(
+    state => state.isFavorited,
+  ).length;
+  const sleepingCount = space.snapshot.states.filter(
+    state => state.isSleeping,
+  ).length;
+
+  if (
+    progress.snapshot.favoriteCount !== favoriteCount ||
+    progress.snapshot.sleepingCount !== sleepingCount
+  ) {
+    throw new Error(
+      'Bootstrap Progress Space counts must match canonical Space state.',
+    );
+  }
+
+  for (const learningState of learning.cardStates) {
+    const canonicalFavorite =
+      spaceStateByCardId.get(learningState.cardId)?.isFavorited ?? false;
+
+    if (learningState.isFavorited !== canonicalFavorite) {
+      throw new Error(
+        'Bootstrap Learning favorite overlay must match canonical Space state.',
+      );
+    }
+  }
+}
+
+function parseComponentRevisions(
+  value: unknown,
+): AccountBootstrapComponentRevisions {
+  const revisions = requireExactObject(
+    value,
+    ['learning', 'membership', 'progress', 'schema_version', 'space'],
+    'bootstrap component_revisions',
+  );
+
+  if (revisions.schema_version !== 'bootstrap-component-revisions.v1') {
+    throw new Error(
+      'Bootstrap component_revisions.schema_version must be bootstrap-component-revisions.v1.',
+    );
+  }
+
+  const membership = requireExactObject(
+    revisions.membership,
+    ['base_membership_revision', 'beta_entitlement_revision'],
+    'bootstrap component_revisions.membership',
+  );
+  const learning = requireExactObject(
+    revisions.learning,
+    ['event_server_sequence', 'session_revision', 'space_revision'],
+    'bootstrap component_revisions.learning',
+  );
+  const progress = requireExactObject(
+    revisions.progress,
+    ['check_in_revision', 'learning_server_sequence', 'space_revision'],
+    'bootstrap component_revisions.progress',
+  );
+  const space = requireExactObject(
+    revisions.space,
+    ['state_revision'],
+    'bootstrap component_revisions.space',
+  );
+
+  return {
+    learning: {
+      eventServerSequence: readNonNegativeInteger(
+        learning.event_server_sequence,
+        'bootstrap component_revisions.learning.event_server_sequence',
+      ),
+      sessionRevision: readNonNegativeInteger(
+        learning.session_revision,
+        'bootstrap component_revisions.learning.session_revision',
+      ),
+      spaceRevision: readNonNegativeInteger(
+        learning.space_revision,
+        'bootstrap component_revisions.learning.space_revision',
+      ),
+    },
+    membership: {
+      baseMembershipRevision: readNonNegativeInteger(
+        membership.base_membership_revision,
+        'bootstrap component_revisions.membership.base_membership_revision',
+      ),
+      betaEntitlementRevision: readNonNegativeInteger(
+        membership.beta_entitlement_revision,
+        'bootstrap component_revisions.membership.beta_entitlement_revision',
+      ),
+    },
+    progress: {
+      checkInRevision: readNonNegativeInteger(
+        progress.check_in_revision,
+        'bootstrap component_revisions.progress.check_in_revision',
+      ),
+      learningServerSequence: readNonNegativeInteger(
+        progress.learning_server_sequence,
+        'bootstrap component_revisions.progress.learning_server_sequence',
+      ),
+      spaceRevision: readNonNegativeInteger(
+        progress.space_revision,
+        'bootstrap component_revisions.progress.space_revision',
+      ),
+    },
+    schemaVersion: 'bootstrap-component-revisions.v1',
+    space: {
+      stateRevision: readNonNegativeInteger(
+        space.state_revision,
+        'bootstrap component_revisions.space.state_revision',
+      ),
+    },
   };
 }
 
@@ -345,6 +572,10 @@ function parseLearning(
         ['learning', 'review'] as const,
         `bootstrap learning.card_states[${index}].phase`,
       ),
+      serverSequence: readNonNegativeInteger(
+        state.server_sequence,
+        `bootstrap learning.card_states[${index}].server_sequence`,
+      ),
       usedHint: readBoolean(
         state.used_hint,
         `bootstrap learning.card_states[${index}].used_hint`,
@@ -424,6 +655,11 @@ function parseProgress(value: unknown, expectedDayKey: string) {
     acknowledgedAt: readOptionalIsoTimestamp(
       progress.acknowledged_at,
       'bootstrap progress.acknowledged_at',
+    ),
+    learningAuthority: readEnum(
+      progress.learning_authority,
+      ['account_events_v2', 'legacy_account_baseline', 'empty'] as const,
+      'bootstrap progress.learning_authority',
     ),
     snapshot: {
       checkedInToday: readBoolean(
@@ -556,6 +792,25 @@ function requireObject(input: unknown, field: string): Record<string, unknown> {
   return input as Record<string, unknown>;
 }
 
+function requireExactObject(
+  input: unknown,
+  expectedFields: readonly string[],
+  field: string,
+): Record<string, unknown> {
+  const parsedObject = requireObject(input, field);
+  const actualFields = Object.keys(parsedObject).sort();
+  const expected = [...expectedFields].sort();
+
+  if (
+    actualFields.length !== expected.length ||
+    actualFields.some((candidate, index) => candidate !== expected[index])
+  ) {
+    throw new Error(`${field} has unexpected fields.`);
+  }
+
+  return parsedObject;
+}
+
 function readString(value: unknown, label: string) {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new Error(`${label} must be a non-empty string.`);
@@ -581,7 +836,7 @@ function readBoolean(value: unknown, label: string) {
 }
 
 function readNonNegativeInteger(value: unknown, label: string) {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
     throw new Error(`${label} must be a non-negative integer.`);
   }
 

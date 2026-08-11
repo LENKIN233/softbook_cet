@@ -1,6 +1,7 @@
 export const DEFAULT_REMOTE_REQUEST_TIMEOUT_MS = 15_000;
 
 export type RemoteRequestLifecycleReason =
+  | 'authorization_invalidated'
   | 'caller_cancelled'
   | 'session_superseded'
   | 'timeout';
@@ -8,18 +9,21 @@ export type RemoteRequestLifecycleReason =
 export class RemoteRequestLifecycleError extends Error {
   readonly reason: RemoteRequestLifecycleReason;
   readonly retryable: boolean;
+  readonly status: number | null;
 
   constructor(reason: RemoteRequestLifecycleReason) {
     super(getRemoteRequestLifecycleMessage(reason));
     this.name = 'RemoteRequestLifecycleError';
     this.reason = reason;
     this.retryable = reason === 'timeout';
+    this.status = reason === 'authorization_invalidated' ? 401 : null;
   }
 }
 
 export function isRemoteRequestCancellationError(error: unknown): boolean {
   return (
     error instanceof RemoteRequestLifecycleError &&
+    error.reason !== 'authorization_invalidated' &&
     error.reason !== 'timeout'
   );
 }
@@ -158,6 +162,8 @@ function getRemoteRequestLifecycleMessage(
   reason: RemoteRequestLifecycleReason,
 ) {
   switch (reason) {
+    case 'authorization_invalidated':
+      return 'Remote authorization is no longer valid.';
     case 'caller_cancelled':
       return 'Remote request was cancelled.';
     case 'session_superseded':

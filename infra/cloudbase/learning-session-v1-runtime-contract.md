@@ -73,6 +73,14 @@ selection. The sequence component prevents two event transactions accepted in
 the same clock millisecond from making a split old-projection/new-session read
 look current.
 
+Bootstrap reuses the same account-and-track document `revision` as
+`component_revisions.learning.session_revision`; it does not derive cursor
+freshness from `learning_acknowledged_at`. Cursor-only selection changes and
+event transactions accepted in the same clock millisecond therefore remain
+distinguishable. The requested-track projection maximum remains the separate
+`event_server_sequence` component, while Space favorite overlay authority is a
+third `space_revision` dependency.
+
 For every positive-sequence latest card event, exactly one scheduler entry
 must exist. Each entry records the matching latest event ID and server
 sequence, the exact algorithm and library versions, and the serialized FSRS

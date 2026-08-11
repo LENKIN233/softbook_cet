@@ -241,6 +241,19 @@ test('learning-events v2 writes canonical projections in memory and CloudBase', 
     assert.equal(bootstrap.body.data.progress.review_completed_count, 0);
     assert.equal(bootstrap.body.data.progress.total_completed_count, 1);
     assert.equal(bootstrap.body.data.progress.pending_review_count, 0);
+    assert.equal(
+      bootstrap.body.data.component_revisions.learning.event_server_sequence,
+      1,
+    );
+    assert.equal(
+      bootstrap.body.data.component_revisions.learning.session_revision,
+      2,
+    );
+    assert.equal(
+      bootstrap.body.data.component_revisions.progress
+        .learning_server_sequence,
+      1,
+    );
     assert.equal(bootstrap.body.data.learning.cursor, null);
     assert.deepEqual(bootstrap.body.data.learning.source, source.source);
     assert.deepEqual(bootstrap.body.data.learning.card_states, [
@@ -1380,6 +1393,18 @@ test('first v2 event preserves the legacy baseline for both tracks', async () =>
     assert.equal(
       migratedCet6.body.data.learning.card_states[0].server_sequence,
       0,
+      name,
+    );
+    assert.equal(
+      migratedCet6.body.data.component_revisions.learning
+        .event_server_sequence,
+      0,
+      name,
+    );
+    assert.equal(
+      migratedCet6.body.data.component_revisions.progress
+        .learning_server_sequence,
+      1,
       name,
     );
     const resumedCet6 = await request(api, {

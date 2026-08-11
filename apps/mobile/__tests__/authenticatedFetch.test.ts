@@ -6,6 +6,7 @@ import {
 } from '../src/auth/authSessionCoordinator';
 import type {RemoteAuthSession} from '../src/auth/authSession';
 import type {AuthSessionStore} from '../src/persistence/authSessionStore';
+import {RemoteHttpError} from '../src/runtime/remoteHttpError';
 import {RemoteRequestLifecycleError} from '../src/runtime/remoteRequest';
 
 function createResponse(status: number) {
@@ -101,6 +102,46 @@ test.each([403, 401])(
     expect(coordinator.invalidate).toHaveBeenCalledTimes(1);
   },
 );
+
+test('preserves terminal authorization semantics when refresh itself returns 401', async () => {
+  const session = createRemoteSession('session-old');
+  const authSessionStore: AuthSessionStore = {
+    clear: jest.fn(async () => undefined),
+    load: jest.fn(async () => null),
+    save: jest.fn(async () => undefined),
+  };
+  const authRepository: AuthRepository = {
+    logout: jest.fn(async () => undefined),
+    refreshSession: jest.fn(async () => {
+      throw new RemoteHttpError('Refresh token was rejected.', 401);
+    }),
+    requestSmsCode: jest.fn(),
+    verifySmsCode: jest.fn(),
+  };
+  const coordinator = createAuthSessionCoordinator({
+    authRepository,
+    authSessionStore,
+  });
+  const fetchImpl = jest.fn(async () => createResponse(401));
+  const authenticatedFetch = createAuthenticatedFetch({
+    authSessionCoordinator: coordinator,
+    fetchImpl: fetchImpl as typeof fetch,
+  });
+  await coordinator.establish(session);
+
+  await expect(
+    authenticatedFetch('https://api.softbook.example/resource'),
+  ).rejects.toMatchObject({
+    reason: 'authorization_invalidated',
+    retryable: false,
+    status: 401,
+  });
+
+  expect(fetchImpl).toHaveBeenCalledTimes(1);
+  expect(authRepository.refreshSession).toHaveBeenCalledTimes(1);
+  expect(authSessionStore.clear).toHaveBeenCalledTimes(1);
+  expect(coordinator.getCurrentSession()).toBeNull();
+});
 
 test.each([403, 401])(
   'returns terminal authorization status %s while a real coordinator clears the session',
@@ -346,7 +387,9 @@ function installSessionScopeHarness(
   initialSession: RemoteAuthSession,
 ) {
   let currentSession = initialSession;
-  const listeners = new Set<(scopeKey: string | null) => void>();
+  const listeners = new Set<
+    Parameters<AuthSessionCoordinator['subscribeSessionScope']>[0]
+  >();
   coordinator.getCurrentSession = jest.fn(() => currentSession);
   coordinator.subscribeSessionScope = jest.fn(listener => {
     listeners.add(listener);
@@ -357,7 +400,10 @@ function installSessionScopeHarness(
     replace(session: RemoteAuthSession) {
       currentSession = session;
       listeners.forEach(listener =>
-        listener(`remote:${session.phoneNumber}:${session.sessionId}`),
+        listener(
+          `remote:${session.phoneNumber}:${session.sessionId}`,
+          'session_changed',
+        ),
       );
     },
   };

@@ -123,6 +123,50 @@ describe('MutationQueueManager', () => {
     await expect(manager.size()).resolves.toBe(1);
   });
 
+  it('fails closed on transient read I/O and preserves durable entries after recovery', async () => {
+    const values: Record<string, string> = {};
+    const seedManager = new MutationQueueManager({
+      storage: createInMemoryMutationQueueStorage(values),
+    });
+    await seedManager.enqueue(
+      'check_in_daily_progress',
+      createCheckInPayload(),
+    );
+    const durableSeed = values.__softbook_mutation_queue;
+    let failMainReadOnce = true;
+    const manager = new MutationQueueManager({
+      storage: {
+        getItem: async key => {
+          if (key === '__softbook_mutation_queue' && failMainReadOnce) {
+            failMainReadOnce = false;
+            throw new Error('storage temporarily unavailable');
+          }
+          return values[key] ?? null;
+        },
+        setItem: async (key, value) => {
+          values[key] = value;
+        },
+      },
+    });
+
+    await expect(manager.hydrate()).rejects.toThrow(
+      'storage temporarily unavailable',
+    );
+    expect(values.__softbook_mutation_queue).toBe(durableSeed);
+
+    await manager.enqueue('refresh_membership', {
+      context: {phoneNumber: '13800138000'},
+    });
+
+    await expect(manager.getAll()).resolves.toEqual([
+      expect.objectContaining({type: 'check_in_daily_progress'}),
+      expect.objectContaining({type: 'refresh_membership'}),
+    ]);
+    expect(values.__softbook_mutation_queue).toContain(
+      'check_in_daily_progress',
+    );
+  });
+
   it('migrates only a valid checked-in legacy snapshot and strips counters and credentials', async () => {
     const sharedStore = {
       __softbook_mutation_queue: JSON.stringify([
