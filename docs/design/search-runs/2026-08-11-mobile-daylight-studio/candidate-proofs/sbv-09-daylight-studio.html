@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>软书四六级</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f6f5ff;
+      --page-deep: #ecebff;
+      --surface: #ffffff;
+      --surface-soft: #f8f7ff;
+      --ink: #1c1630;
+      --ink-2: #443a59;
+      --muted: #665d78;
+      --line: #ded9ec;
+      --brand: #6047c6;
+      --brand-deep: #46309f;
+      --brand-soft: #e9e4ff;
+      --hall-current: rgb(255 138 61);
+      --hall-current-deep: #8a3400;
+      --hall-current-soft: #ffe0cc;
+      --hall-current-wash: #fff2e9;
+      --mint: #22c58b;
+      --amber: #f5b100;
+      --success: #167956;
+      --danger: #a7394d;
+      --shadow: 0 24px 60px rgba(50, 35, 89, .16), 0 3px 14px rgba(50, 35, 89, .09);
+      --shadow-soft: 0 12px 30px rgba(50, 35, 89, .11);
+      --radius-xl: 30px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 14px;
+      --safe-top: max(18px, env(safe-area-inset-top));
+      --safe-bottom: max(18px, env(safe-area-inset-bottom));
+      font-family: Inter, "SF Pro Display", "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      background: var(--page);
+      color: var(--ink);
+      overflow-x: hidden;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible {
+      outline: 3px solid rgba(107, 80, 168, .36);
+      outline-offset: 3px;
+    }
+    .app {
+      min-height: 100dvh;
+      background:
+        radial-gradient(circle at 92% 0%, rgba(240, 100, 50, .24), transparent 30%),
+        radial-gradient(circle at 4% 100%, rgba(96, 71, 198, .20), transparent 34%),
+        var(--page);
+      padding: var(--safe-top) 16px calc(104px + var(--safe-bottom));
+      position: relative;
+    }
+    .app::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .012;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+      z-index: 30;
+    }
+    .shell { width: min(100%, 1180px); margin: 0 auto; }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 54px;
+      margin-bottom: 16px;
+      gap: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(145deg, #7258df, var(--brand-deep));
+      box-shadow: 0 8px 20px rgba(70, 48, 159, .31), inset 0 1px rgba(255,255,255,.4);
+      color: #fffaf6;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -.08em;
+    }
+    .brand-copy { min-width: 0; }
+    .brand-copy strong { display: block; font-size: 16px; letter-spacing: -.02em; }
+    .brand-copy span { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .day-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,.78);
+      border-radius: 999px;
+      background: rgba(255,255,255,.94);
+      box-shadow: var(--shadow-soft), inset 0 1px rgba(255,255,255,.92);
+      backdrop-filter: blur(18px);
+      color: var(--ink-2);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .day-chip b { font-variant-numeric: tabular-nums; color: var(--ink); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); flex: 0 0 auto; }
+
+    .view { display: none; }
+    .view.active { display: block; animation: enter .32s cubic-bezier(.2,.8,.2,1); }
+    @keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    .section-heading { margin: 4px 2px 16px; }
+    .section-heading .eyebrow { color: var(--hall-current-deep); font-size: 13px; font-weight: 800; letter-spacing: .02em; }
+    .section-heading h1 { font-size: clamp(28px, 8vw, 42px); line-height: 1.08; margin: 7px 0 8px; letter-spacing: -.045em; }
+    .section-heading p { color: var(--muted); margin: 0; font-size: 14px; line-height: 1.55; }
+
+    .learning-grid { display: grid; gap: 14px; }
+    .progress-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 16px;
+      border-radius: var(--radius-md);
+      background: #fff;
+      border: 1px solid rgba(96,71,198,.10);
+      box-shadow: 0 8px 24px rgba(57,39,77,.07), inset 0 1px rgba(255,255,255,.9);
+      backdrop-filter: blur(18px);
+    }
+    .progress-meta { min-width: 58px; }
+    .progress-meta b { display: block; font-size: 14px; font-variant-numeric: tabular-nums; }
+    .progress-meta span { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .progress-meter { height: 7px; background: var(--hall-current-soft); border-radius: 999px; flex: 1; overflow: hidden; }
+    .progress-meter i { display: block; width: 38%; height: 100%; background: var(--hall-current); border-radius: inherit; }
+    .topic-pill { color: var(--hall-current-deep); background: var(--hall-current-wash); padding: 7px 10px; border-radius: 999px; font-size: 12px; font-weight: 750; white-space: nowrap; }
+
+    .study-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius-xl);
+      background: var(--surface);
+      border: 1px solid rgba(96,71,198,.12);
+      box-shadow: var(--shadow), inset 0 1px rgba(255,255,255,.94);
+      min-height: 475px;
+      display: flex;
+      flex-direction: column;
+    }
+    .study-card::before {
+      content: "";
+      height: 10px;
+      background: var(--hall-current);
+      display: block;
+      flex: 0 0 auto;
+    }
+    .card-head { padding: 20px 20px 12px; display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
+    .card-kicker { color: var(--hall-current-deep); font-size: 12px; font-weight: 780; letter-spacing: .04em; }
+    .card-address { color: var(--muted); font-size: 11px; margin-top: 4px; }
+    .icon-button {
+      width: 44px; height: 44px; border: 0; border-radius: 15px; background: #f1effa;
+      display: grid; place-items: center; cursor: pointer; flex: 0 0 auto;
+    }
+    .icon-button.active { background: var(--hall-current-soft); color: var(--hall-current-deep); }
+    .icon-button svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.9; }
+    .task-copy { padding: 4px 20px 16px; }
+    .task-copy h2 { font-size: clamp(24px, 6.7vw, 34px); line-height: 1.22; letter-spacing: -.035em; margin: 0 0 12px; }
+    .task-copy p { color: var(--ink-2); line-height: 1.58; margin: 0; font-size: 14px; }
+    .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px 20px 16px; }
+    .option {
+      border: 1.5px solid #d9d3e8;
+      border-radius: 17px;
+      min-height: 72px;
+      padding: 12px;
+      background: #fbfaff;
+      text-align: left;
+      cursor: pointer;
+      transition: .18s ease;
+      display: flex;
+      gap: 9px;
+      align-items: center;
+    }
+    .option:hover { border-color: #d3c7dd; transform: translateY(-1px); }
+    .option.selected { border-color: var(--hall-current); background: var(--hall-current-wash); box-shadow: inset 0 0 0 1px var(--hall-current); }
+    .option.correct { border-color: var(--success); background: #eaf8f1; }
+    .option.wrong { border-color: var(--danger); background: #fff0f2; }
+    .option b { width: 28px; height: 28px; border-radius: 10px; display: grid; place-items: center; background: var(--surface); color: var(--muted); flex: 0 0 auto; }
+    .option.selected b { background: var(--hall-current); color: #3a1708; }
+    .option span { font-weight: 680; font-size: 14px; }
+    .tools { display: flex; gap: 8px; padding: 0 20px 14px; flex-wrap: wrap; }
+    .tool {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      padding: 9px 13px;
+      color: var(--ink-2);
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .hint { display: none; margin: 0 20px 14px; border-radius: 16px; padding: 13px 14px; background: var(--brand-soft); color: #49396b; font-size: 13px; line-height: 1.55; }
+    .hint.open { display: block; }
+    .result { display: none; margin: 0 20px 14px; border-radius: 18px; padding: 15px; background: #eaf8f1; color: #165b43; }
+    .result.wrong { background: #fff0f2; color: #7e2637; }
+    .result.open { display: block; }
+    .result strong { display: block; font-size: 16px; margin-bottom: 5px; }
+    .result p { font-size: 13px; line-height: 1.55; margin: 0; }
+    .primary-zone { margin-top: auto; padding: 4px 20px 20px; }
+    .primary {
+      width: 100%; min-height: 54px; border: 0; border-radius: 17px; background: var(--hall-current); color: #3a1708;
+      font-weight: 800; font-size: 16px; cursor: pointer; box-shadow: 0 12px 24px rgba(138,52,0,.24);
+    }
+    .primary:disabled { background: #d9d1dd; box-shadow: none; color: #82778a; cursor: default; }
+    .continuity { margin: 12px 4px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12px; }
+    .continuity button { border: 0; background: transparent; color: var(--hall-current-deep); font-weight: 750; min-height: 44px; cursor: pointer; }
+    .desktop-context { display: none; width: 100%; }
+
+    .flip-body { display: none; flex: 1; padding: 8px 20px 20px; }
+    .study-card.flip-mode .choice-body { display: none; }
+    .study-card.flip-mode .flip-body { display: flex; flex-direction: column; }
+    .flip-front, .flip-back { flex: 1; display: flex; flex-direction: column; }
+    .flip-front h2, .flip-back h2 { font-size: clamp(28px, 7vw, 39px); line-height: 1.18; letter-spacing: -.04em; margin: 10px 0 14px; }
+    .flip-front p, .flip-back p { color: var(--ink-2); line-height: 1.62; font-size: 15px; }
+    .flip-back { display: none; }
+    .flip-body.revealed .flip-front { display: none; }
+    .flip-body.revealed .flip-back { display: flex; }
+    .analysis-box { margin-top: 14px; padding: 16px; border-radius: 18px; background: var(--hall-current-wash); border-left: 4px solid var(--hall-current); }
+    .analysis-box strong { display: block; margin-bottom: 6px; }
+    .assess { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: auto; padding-top: 18px; }
+    .assess button { min-height: 52px; border: 0; border-radius: 16px; font-weight: 780; cursor: pointer; }
+    .confident { background: #d8f6eb; color: #0c6c4b; }
+    .review { background: #fff0bf; color: #7a5500; }
+    .reveal { margin-top: auto; }
+
+    .space-layout { display: grid; gap: 14px; }
+    .topic-strip { display: flex; gap: 9px; overflow-x: auto; padding: 2px 2px 7px; scrollbar-width: none; }
+    .topic-strip::-webkit-scrollbar { display: none; }
+    .topic {
+      flex: 0 0 auto; min-height: 44px; border: 1px solid rgba(255,255,255,.9); border-radius: 999px; background: rgba(255,254,252,.72);
+      padding: 9px 13px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 680; box-shadow: 0 5px 16px rgba(57,39,77,.06);
+    }
+    .topic.current { background: var(--hall-current); color: #3a1708; border-color: var(--hall-current); }
+    .topic i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .65; }
+    .space-card { min-width: 0; border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow); overflow: hidden; border: 1px solid rgba(255,255,255,.9); }
+    .space-hero { padding: 22px; background: var(--hall-current-wash); border-bottom: 1px solid var(--hall-current-soft); }
+    .breadcrumb { color: var(--hall-current-deep); font-size: 12px; font-weight: 760; }
+    .space-hero h2 { font-size: clamp(28px, 7vw, 42px); margin: 8px 0 7px; letter-spacing: -.045em; }
+    .space-hero p { color: var(--ink-2); margin: 0; font-size: 14px; }
+    .box-shelf { padding: 18px; display: grid; gap: 12px; }
+    .box-card { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 20px; padding: 16px; background: var(--surface-soft); }
+    .box-card.current { border-color: rgba(255,138,61,.58); box-shadow: inset 5px 0 var(--hall-current); }
+    .box-card header { display: flex; justify-content: space-between; gap: 12px; }
+    .box-card header > div { min-width: 0; }
+    .box-card header .topic-pill { flex: 0 0 auto; align-self: flex-start; }
+    .box-card h3 { margin: 0 0 5px; font-size: 17px; }
+    .box-card p { margin: 0; color: var(--muted); font-size: 12px; }
+    .card-row { display: flex; gap: 8px; margin-top: 13px; overflow-x: auto; padding-bottom: 2px; }
+    .mini-card { min-width: 112px; min-height: 76px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); padding: 11px; font-size: 12px; display: flex; flex-direction: column; justify-content: space-between; }
+    .mini-card.active { background: var(--hall-current-wash); border-color: var(--hall-current); }
+    .mini-card span { color: var(--muted); }
+    .mini-card b { color: var(--hall-current-deep); }
+    .zone-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin-top: 12px; padding: 14px; border-radius: 17px; background: #f0edf5; }
+    .zone-row strong { display: block; font-size: 14px; }
+    .zone-row span { color: var(--muted); font-size: 12px; display: block; margin-top: 3px; }
+    .switch { width: 60px; height: 44px; padding: 6px; border: 0; border-radius: 999px; background: #cfc5d9; cursor: pointer; }
+    .switch i { display: block; width: 32px; height: 32px; border-radius: 50%; background: var(--surface); box-shadow: 0 2px 5px rgba(0,0,0,.14); transition: .2s; }
+    .switch.on { background: var(--hall-current); }
+    .switch.on i { transform: translateX(16px); }
+
+    .ledger, .account-card { background: var(--surface); border-radius: var(--radius-xl); box-shadow: var(--shadow); overflow: hidden; }
+    .ledger-top { padding: 22px; background: var(--brand); color: #fffaf6; }
+    .ledger-top span { opacity: .82; font-size: 13px; }
+    .ledger-top strong { display: block; font-size: 54px; font-variant-numeric: tabular-nums; letter-spacing: -.06em; margin: 9px 0 1px; }
+    .ledger-top p { margin: 0; opacity: .82; font-size: 13px; }
+    .week { display: grid; grid-template-columns: repeat(7,1fr); gap: 8px; align-items: end; height: 108px; padding: 18px 18px 8px; }
+    .bar { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
+    .bar i { width: 100%; max-width: 26px; height: var(--h); background: var(--brand-soft); border-radius: 9px 9px 4px 4px; }
+    .bar.today i { background: var(--brand); }
+    .ledger-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 15px 20px; border-top: 1px solid var(--line); }
+    .ledger-row span { color: var(--muted); font-size: 13px; }
+    .ledger-row b { font-variant-numeric: tabular-nums; }
+    .checkin { margin: 18px; }
+
+    .account-card { padding: 20px; }
+    .identity { display: flex; gap: 13px; align-items: center; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+    .avatar { width: 52px; height: 52px; border-radius: 18px; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; font-weight: 850; font-size: 20px; }
+    .identity h2 { font-size: 19px; margin: 0 0 4px; }
+    .identity p { color: var(--muted); margin: 0; font-size: 13px; }
+    .membership { margin: 16px 0; padding: 18px; border-radius: 22px; background: var(--brand-soft); border: 1px solid #d9d0ff; }
+    .membership span { color: var(--brand-deep); font-size: 12px; font-weight: 760; }
+    .membership h3 { margin: 7px 0 5px; font-size: 20px; }
+    .membership p { margin: 0; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+    .account-row { width: 100%; min-height: 54px; display: flex; align-items: center; justify-content: space-between; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; cursor: pointer; }
+    .account-row span { color: var(--muted); }
+
+    .nav {
+      position: fixed;
+      z-index: 20;
+      left: 16px;
+      right: 16px;
+      bottom: var(--safe-bottom);
+      height: 70px;
+      padding: 7px;
+      border: 1px solid rgba(255,255,255,.86);
+      border-radius: 26px;
+      background: rgba(255,255,255,.94);
+      box-shadow: 0 18px 42px rgba(57,39,77,.19), inset 0 1px rgba(255,255,255,.94);
+      backdrop-filter: blur(22px) saturate(1.16);
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .nav button { border: 0; border-radius: 19px; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--muted); font-size: 11px; font-weight: 700; cursor: pointer; min-width: 0; }
+    .nav button.active { background: var(--brand-soft); color: var(--brand-deep); }
+    .nav svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+
+    .sheet-backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(38,29,50,.28); display: none; align-items: flex-end; justify-content: center; padding: 18px; }
+    .sheet-backdrop.open { display: flex; }
+    .sheet { width: min(100%, 520px); background: var(--surface); border-radius: 28px; box-shadow: var(--shadow); padding: 20px; }
+    .sheet h2 { margin: 0 0 8px; font-size: 24px; }
+    .sheet p { color: var(--muted); line-height: 1.55; margin: 0 0 18px; }
+    .phone-input { display: flex; gap: 8px; }
+    .phone-input input { flex: 1; min-width: 0; height: 52px; border: 1.5px solid var(--line); border-radius: 15px; padding: 0 14px; background: var(--surface-soft); }
+    .sheet-actions { display: grid; gap: 9px; margin-top: 14px; }
+    .secondary { min-height: 50px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface-soft); font-weight: 720; cursor: pointer; }
+    .ledger .primary, .sheet .primary { background: var(--brand); color: #fff; box-shadow: 0 12px 24px rgba(70,48,159,.24); }
+
+    @media (max-width: 759px) {
+      .app { padding-top: max(14px, env(safe-area-inset-top)); }
+      .topbar { min-height: 46px; margin-bottom: 10px; }
+      .brand-mark { width: 38px; height: 38px; border-radius: 13px; }
+      .day-chip { min-height: 40px; padding: 7px 11px; }
+      .section-heading { margin: 0 2px 10px; }
+      .section-heading .eyebrow { font-size: 12px; }
+      .section-heading h1 { font-size: 27px; margin: 4px 0 4px; }
+      .section-heading p { font-size: 12px; }
+      .learning-grid { gap: 10px; }
+      .progress-card { padding: 9px 13px; border-radius: 16px; }
+      .study-card { min-height: 420px; border-radius: 26px; }
+      .card-head { padding: 13px 16px 7px; }
+      .card-address { display: none; }
+      .icon-button { width: 44px; height: 44px; border-radius: 14px; }
+      .task-copy { padding: 2px 16px 10px; }
+      .task-copy h2 { font-size: 22px; line-height: 1.2; margin-bottom: 7px; }
+      .task-copy p { font-size: 12px; line-height: 1.45; }
+      .option-grid { gap: 8px; padding: 3px 16px 11px; }
+      .option { min-height: 60px; padding: 9px; border-radius: 15px; }
+      .option b { width: 25px; height: 25px; border-radius: 8px; }
+      .option span { font-size: 13px; }
+      .tools { padding: 0 16px 9px; }
+      .tool { min-height: 44px; padding: 8px 12px; font-size: 13px; }
+      .hint, .result { margin: 0 16px 10px; padding: 11px 12px; }
+      .primary-zone { padding: 3px 16px 16px; }
+      .primary { min-height: 50px; }
+      .continuity { margin-top: 4px; }
+      .space-hero { padding: 16px; }
+      .space-hero h2 { font-size: 27px; margin: 5px 0 4px; }
+      .space-hero p { font-size: 12px; }
+      .box-shelf { padding: 14px; gap: 9px; }
+      .box-card { padding: 12px; border-radius: 18px; }
+      .box-card p { font-size: 11px; }
+      .card-row { margin-top: 9px; }
+      .mini-card { min-width: 100px; min-height: 60px; padding: 9px; }
+      .zone-row { margin-top: 9px; padding: 8px 10px; }
+    }
+
+    @media (min-width: 760px) {
+      .app { padding: 24px 28px 32px 130px; }
+      .shell { max-width: 1100px; }
+      .topbar { margin-bottom: 24px; }
+      .nav { left: 24px; right: auto; top: 24px; bottom: 24px; width: 86px; height: auto; grid-template-columns: 1fr; grid-template-rows: repeat(4, minmax(72px,1fr)); max-height: 430px; border-radius: 30px; margin: 0; }
+      .learning-grid { grid-template-columns: minmax(0, 1fr); align-items: start; }
+      .progress-card { grid-column: 1; }
+      .study-card { min-height: 560px; }
+      .continuity { grid-column: 1; margin: 0; padding: 15px 18px; border-radius: 20px; background: rgba(255,255,255,.88); box-shadow: var(--shadow-soft); }
+      .space-layout { grid-template-columns: 220px minmax(0,1fr); align-items: start; }
+      .topic-strip { flex-direction: column; overflow: visible; }
+      .topic { width: 100%; }
+      .ledger, .account-card { max-width: 780px; }
+    }
+
+    @media (min-width: 1280px) {
+      .app { padding-left: 164px; }
+      .nav { left: 36px; width: 96px; }
+      .topbar { margin-top: 10px; }
+      .learning-grid { grid-template-columns: minmax(0, 1.7fr) 330px; gap: 22px; }
+      .progress-card { grid-column: 1 / -1; }
+      .continuity { grid-column: 2; align-self: stretch; padding: 24px; border-radius: var(--radius-xl); flex-direction: column; align-items: flex-start; justify-content: flex-start; }
+      .continuity::before { content: "当前卡片位置"; color: var(--ink); font-size: 18px; font-weight: 800; }
+      .desktop-context { display: grid; gap: 10px; margin-top: 14px; }
+      .context-block { padding: 15px; border-radius: 17px; background: #f8f7ff; border: 1px solid var(--line); }
+      .context-block small { display: block; color: var(--muted); margin-bottom: 7px; }
+      .context-block strong { display: block; color: var(--ink); font-size: 15px; line-height: 1.4; }
+      .context-block em { display: block; color: var(--hall-current-deep); font-style: normal; font-weight: 760; margin-top: 7px; }
+      .continuity > button { margin-top: auto; }
+      .study-card { min-height: 600px; }
+      .task-copy { padding-left: 28px; padding-right: 28px; }
+      .option-grid, .tools, .primary-zone { padding-left: 28px; padding-right: 28px; }
+      .section-heading h1 { font-size: 46px; }
+    }
+
+    @media (min-width: 1280px) and (max-height: 850px) {
+      .app { padding-top: 14px; padding-bottom: 18px; }
+      .topbar { min-height: 46px; margin: 0 0 8px; }
+      .section-heading { margin-bottom: 9px; }
+      .section-heading h1 { font-size: 34px; margin: 4px 0; }
+      .section-heading p { font-size: 12px; }
+      .learning-grid { gap: 10px 18px; }
+      .progress-card { padding: 9px 15px; }
+      .study-card { min-height: 470px; }
+      .card-head { padding: 13px 22px 6px; }
+      .task-copy { padding: 2px 22px 9px; }
+      .task-copy h2 { font-size: 27px; margin-bottom: 7px; }
+      .task-copy p { font-size: 12px; }
+      .option-grid { padding: 2px 22px 10px; gap: 8px; }
+      .option { min-height: 58px; padding: 9px 12px; }
+      .tools { padding: 0 22px 8px; }
+      .primary-zone { padding: 2px 22px 14px; }
+      .primary { min-height: 48px; }
+      .continuity { padding: 18px; }
+      .desktop-context { margin-top: 8px; }
+      .context-block { padding: 11px 13px; }
+    }
+
+    @media (max-width: 359px) {
+      .app { padding-left: 12px; padding-right: 12px; }
+      .topbar { min-height: 40px; margin-bottom: 7px; }
+      .brand-mark { width: 34px; height: 34px; font-size: 17px; }
+      .brand-copy span { display: none; }
+      .day-chip { padding-inline: 10px; }
+      .section-heading { margin-bottom: 7px; }
+      .section-heading h1 { font-size: 24px; margin-top: 2px; }
+      .section-heading p { display: none; }
+      .progress-card { padding-block: 7px; }
+      .card-head, .task-copy, .option-grid, .tools, .primary-zone, .flip-body { padding-left: 16px; padding-right: 16px; }
+      .card-head { padding-top: 9px; padding-bottom: 4px; }
+      .icon-button { width: 44px; height: 44px; }
+      .task-copy { padding-bottom: 7px; }
+      .task-copy h2 { font-size: 19px; margin-bottom: 5px; }
+      .option-grid { gap: 8px; }
+      .option { min-height: 52px; padding: 8px; }
+      .tools { padding-bottom: 6px; }
+      .tool { min-height: 44px; }
+      .primary { min-height: 48px; }
+      .nav { left: 12px; right: 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="sbv-09">
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand"><div class="brand-mark">软</div><div class="brand-copy"><strong>软书四六级</strong><span>今天只推进眼前这一张</span></div></div>
+        <div class="day-chip"><i class="dot"></i><span>今日</span><b>7 / 18</b></div>
+      </header>
+
+      <main>
+        <section class="view active" data-view="learning" aria-labelledby="learning-title">
+          <div class="section-heading"><div class="eyebrow">当前馆 · 本轮</div><h1 id="learning-title" tabindex="-1">继续今天的学习</h1><p>系统已经排好顺序，完成当前题即可继续。</p></div>
+          <div class="learning-grid">
+            <div class="progress-card"><div class="progress-meta"><b>07 / 18</b><span>今日进度</span></div><div class="progress-meter" aria-label="今日学习进度 38%"><i></i></div><div class="topic-pill">当前馆</div></div>
+
+            <article class="study-card" id="study-card">
+              <div class="choice-body">
+                <header class="card-head"><div><div class="card-kicker">四选一 · 选出最符合句意的词</div><div class="card-address">当前馆 / 当前组 / 当前盒</div></div><button class="icon-button" id="favorite" aria-label="收藏这张卡" aria-pressed="false"><svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 3.8h10.8a1 1 0 0 1 1 1v15.4L12 16.7l-6.4 3.5V4.8a1 1 0 0 1 1-1Z"/></svg></button></header>
+                <div class="task-copy"><h2>The committee postponed the vote because several details were still ____.</h2><p>投票被推迟，说明关键信息还没有清楚。</p></div>
+                <div class="option-grid" role="radiogroup" aria-label="答案选项">
+                  <button class="option" data-answer="urgent" role="radio" aria-checked="false"><b>A</b><span>urgent</span></button>
+                  <button class="option" data-answer="unclear" role="radio" aria-checked="false"><b>B</b><span>unclear</span></button>
+                  <button class="option" data-answer="formal" role="radio" aria-checked="false"><b>C</b><span>formal</span></button>
+                  <button class="option" data-answer="similar" role="radio" aria-checked="false"><b>D</b><span>similar</span></button>
+                </div>
+                <div class="tools"><button class="tool" id="hint-button" aria-expanded="false">看提示</button><button class="tool" id="peek-button">先看知识点</button></div>
+                <div class="hint" id="hint">postpone 往往搭配“信息未定”或“条件未备齐”的原因。</div>
+                <div class="result" id="result" aria-live="polite"><strong id="result-title"></strong><p id="result-copy"></p></div>
+                <div class="primary-zone"><button class="primary" id="submit" disabled>确认答案</button></div>
+              </div>
+
+              <div class="flip-body" id="flip-body">
+                <div class="flip-front"><div class="card-kicker">翻面 · 当前知识卡</div><h2>短对话里听到 however，优先盯哪一半信息？</h2><p>先抓转折，不要被前半句带跑。需要时可以主动播放原句，音频不会自动开始。</p><div class="tools" style="padding:14px 0 0"><button class="tool">播放原句</button><button class="tool">看提示</button></div><button class="primary reveal" id="reveal">翻到答案</button></div>
+                <div class="flip-back"><div class="card-kicker">答案与解析</div><h2>优先盯转折后的半句</h2><p>再回头核对前面的让步或铺垫信息。</p><div class="analysis-box"><strong>先抓态度转向，再判断答案</strong><p>however 往往把说话人的真正结论推到后半句。先抓后半句，能减少被表面信息误导。</p></div><div class="assess"><button class="confident" data-assess="confident">有把握</button><button class="review" data-assess="review">再回看</button></div></div>
+              </div>
+            </article>
+
+            <div class="continuity"><span>这张卡位于「当前馆 / 当前组 / 当前盒」</span><div class="desktop-context"><div class="context-block"><small>下一张</small><strong>however 之后，信息发生怎样的转向？</strong><em>翻面 · 当前知识卡</em></div><div class="context-block"><small>本轮节奏</small><strong>完成当前题后继续，无需挑选内容。</strong><em>07 / 18</em></div></div><button data-go="space">查看它在空间里的位置 →</button></div>
+          </div>
+        </section>
+
+        <section class="view" data-view="space" aria-labelledby="space-title">
+          <div class="section-heading"><div class="eyebrow">知识空间</div><h1 id="space-title" tabindex="-1">每张卡都有位置</h1><p>沿着学科、知识组和盒子查看掌握中的内容。</p></div>
+          <div class="space-layout">
+            <div class="topic-strip" data-canonical-hall-index="1" aria-label="知识馆列表"><button class="topic"><i style="color:rgb(91 109 245)"></i>甲馆</button><button class="topic current"><i></i>当前馆</button><button class="topic"><i style="color:rgb(34 197 139)"></i>丙馆</button><button class="topic"><i style="color:rgb(181 104 245)"></i>丁馆</button><button class="topic"><i style="color:rgb(24 196 224)"></i>戊馆</button><button class="topic"><i style="color:rgb(241 91 110)"></i>己馆</button><button class="topic"><i style="color:rgb(245 177 0)"></i>庚馆</button></div>
+            <article class="space-card"><div class="space-hero"><div class="breadcrumb">当前馆 / 当前组</div><h2>当前盒</h2><p>18 张知识卡 · 7 张已完成</p></div><div class="box-shelf"><div class="box-card current"><header><div><h3>今天正在这里</h3><p>知识卡按系统安排进入学习，位置始终可追溯。</p></div><span class="topic-pill">当前盒</span></header><div class="card-row"><div class="mini-card active" id="space-current-card"><span id="space-current-label">当前卡</span><b>unclear</b></div><div class="mini-card"><span>下一张</span><b>however</b></div><div class="mini-card"><span>待回看</span><b>postpone</b></div></div><div class="zone-row"><div><strong>稍后再学</strong><span id="sleep-copy">移入后会暂时离开学习流，随时可以恢复。</span></div><button class="switch" id="sleep-switch" aria-label="移入稍后再学" aria-pressed="false"><i></i></button></div></div><div class="box-card"><header><div><h3>相邻盒</h3><p>12 张知识卡 · 5 张已完成</p></div><span>›</span></header></div><button class="primary" id="space-continue" data-go="learning">继续当前卡</button></div></article>
+          </div>
+        </section>
+
+        <section class="view" data-view="statistics" aria-labelledby="statistics-title">
+          <div class="section-heading"><div class="eyebrow">今日记录</div><h1 id="statistics-title" tabindex="-1">进度被轻轻记住</h1><p>这里记录连续性，不替你安排学习。</p></div>
+          <article class="ledger"><div class="ledger-top"><span>今天完成</span><strong>07</strong><p>张知识卡 · 还有 3 张待回看</p></div><div class="week" aria-label="近七天完成数量"><div class="bar" style="--h:30%"><i></i><span>四</span></div><div class="bar" style="--h:55%"><i></i><span>五</span></div><div class="bar" style="--h:42%"><i></i><span>六</span></div><div class="bar" style="--h:68%"><i></i><span>日</span></div><div class="bar" style="--h:47%"><i></i><span>一</span></div><div class="bar" style="--h:74%"><i></i><span>二</span></div><div class="bar today" style="--h:62%"><i></i><span>今</span></div></div><div class="ledger-row"><span>今日首次完成</span><b>5</b></div><div class="ledger-row"><span>今日回看</span><b>2</b></div><div class="ledger-row"><span>等待回看</span><b>3</b></div><div class="checkin"><button class="primary" id="checkin">记录今天</button></div></article>
+        </section>
+
+        <section class="view" data-view="mine" aria-labelledby="mine-title">
+          <div class="section-heading"><div class="eyebrow">我的</div><h1 id="mine-title" tabindex="-1">账户与学习权益</h1><p>登录、会员与隐私集中在这里，不打断学习。</p></div>
+          <article class="account-card"><div class="identity"><div class="avatar">林</div><div><h2>学习账户</h2><p>138 **** 2618 · 已验证</p></div></div><div class="membership"><span>完整体验</span><h3>试用还剩 5 天</h3><p>完整卡库、智能学习顺序和知识空间已开启。</p></div><button class="account-row" id="membership-button"><b>管理会员</b><span>查看权益 ›</span></button><button class="account-row"><b>恢复购买</b><span>检查其他设备 ›</span></button><button class="account-row"><b>隐私与账户</b><span>查看 ›</span></button><button class="account-row" id="account-button"><b>切换账户</b><span>手机号验证 ›</span></button></article>
+        </section>
+      </main>
+    </div>
+
+    <nav class="nav" aria-label="主要导航">
+      <button class="active" data-route="learning" aria-current="page"><svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h9a3 3 0 0 1 3 3v12H8a3 3 0 0 1-3-3v-12Z"/><path d="M17 7.5h2a2 2 0 0 1 2 2v10h-8"/><path d="M8.5 9h5M8.5 12.5h5"/></svg><span>学习</span></button>
+      <button data-route="space"><svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5 12 3l8 3.5-8 3.5-8-3.5Z"/><path d="m4 11 8 3.5 8-3.5M4 15.5l8 3.5 8-3.5"/></svg><span>空间</span></button>
+      <button data-route="statistics"><svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V9m7 10V5m7 14v-7"/></svg><span>统计</span></button>
+      <button data-route="mine"><svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg><span>我的</span></button>
+    </nav>
+  </div>
+
+  <div class="sheet-backdrop" id="account-sheet" role="dialog" aria-modal="true" aria-labelledby="account-title"><div class="sheet"><h2 id="account-title">手机号验证</h2><p>验证后会读取你的学习进度、知识空间和会员状态。</p><div class="phone-input"><input id="phone" inputmode="tel" autocomplete="tel" placeholder="请输入手机号" aria-label="手机号" /></div><div class="sheet-actions"><button class="primary" id="send-code">获取验证码</button><button class="secondary" data-close="account-sheet">暂不切换</button></div></div></div>
+  <div class="sheet-backdrop" id="membership-sheet" role="dialog" aria-modal="true" aria-labelledby="membership-title"><div class="sheet"><h2 id="membership-title">完整学习与知识空间</h2><p>会员在 iOS、Android 和网页端共享。基础学习会保留，完整卡库、智能顺序和知识空间需要会员。</p><div class="sheet-actions"><button class="primary">继续完整体验</button><button class="secondary">恢复购买</button><button class="secondary" data-close="membership-sheet">以后再说</button></div></div></div>
+
+  <script>
+    (() => {
+      const app = document.getElementById('sbv-09');
+      const routeButtons = [...document.querySelectorAll('[data-route]')];
+      const views = [...document.querySelectorAll('[data-view]')];
+      const go = route => {
+        views.forEach(view => view.classList.toggle('active', view.dataset.view === route));
+        routeButtons.forEach(button => {
+          const active = button.dataset.route === route;
+          button.classList.toggle('active', active);
+          active ? button.setAttribute('aria-current', 'page') : button.removeAttribute('aria-current');
+        });
+        window.scrollTo({top: 0, behavior: 'smooth'});
+        requestAnimationFrame(() => document.querySelector(`[data-view="${route}"] h1`)?.focus({preventScroll: true}));
+      };
+      routeButtons.forEach(button => button.addEventListener('click', () => go(button.dataset.route)));
+      document.querySelectorAll('[data-go]').forEach(button => button.addEventListener('click', () => go(button.dataset.go)));
+
+      let selected = null;
+      let answered = false;
+      const options = [...document.querySelectorAll('.option')];
+      const submit = document.getElementById('submit');
+      const result = document.getElementById('result');
+      options.forEach(option => option.addEventListener('click', () => {
+        if (answered) return;
+        selected = option.dataset.answer;
+        options.forEach(item => {
+          const active = item === option;
+          item.classList.toggle('selected', active);
+          item.setAttribute('aria-checked', active ? 'true' : 'false');
+        });
+        submit.disabled = false;
+      }));
+      submit.addEventListener('click', () => {
+        if (!selected) return;
+        if (answered) {
+          document.getElementById('study-card').classList.add('flip-mode');
+          return;
+        }
+        answered = true;
+        const correct = selected === 'unclear';
+        options.forEach(option => {
+          if (option.dataset.answer === 'unclear') option.classList.add('correct');
+          if (option.dataset.answer === selected && !correct) option.classList.add('wrong');
+        });
+        result.classList.add('open');
+        result.classList.toggle('wrong', !correct);
+        document.getElementById('result-title').textContent = correct ? '判断正确' : '再看一次因果关系';
+        document.getElementById('result-copy').textContent = '因为“细节还不清楚”才会推迟投票。urgent 和 formal 都能修饰 details，但和 postponed the vote 的因果不成立。';
+        submit.textContent = '继续下一张';
+        requestAnimationFrame(() => submit.scrollIntoView({behavior: 'smooth', block: 'center'}));
+      });
+
+      const hintButton = document.getElementById('hint-button');
+      hintButton.addEventListener('click', () => {
+        const hint = document.getElementById('hint');
+        const open = hint.classList.toggle('open');
+        hintButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+        hintButton.textContent = open ? '收起提示' : '看提示';
+      });
+      document.getElementById('peek-button').addEventListener('click', event => {
+        event.currentTarget.textContent = '知识点：因果语义';
+      });
+      document.getElementById('favorite').addEventListener('click', event => {
+        const button = event.currentTarget;
+        const active = button.classList.toggle('active');
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        button.setAttribute('aria-label', active ? '取消收藏' : '收藏这张卡');
+      });
+      document.getElementById('reveal').addEventListener('click', () => document.getElementById('flip-body').classList.add('revealed'));
+      document.querySelectorAll('[data-assess]').forEach(button => button.addEventListener('click', () => {
+        go('learning');
+        document.getElementById('study-card').classList.remove('flip-mode');
+        document.getElementById('flip-body').classList.remove('revealed');
+        answered = false;
+        selected = null;
+        options.forEach(option => {
+          option.classList.remove('selected', 'correct', 'wrong');
+          option.setAttribute('aria-checked', 'false');
+        });
+        result.classList.remove('open', 'wrong');
+        submit.disabled = true;
+        submit.textContent = '确认答案';
+      }));
+      document.getElementById('sleep-switch').addEventListener('click', event => {
+        const button = event.currentTarget;
+        const active = button.classList.toggle('on');
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        button.setAttribute('aria-label', active ? '移出稍后再学' : '移入稍后再学');
+        document.getElementById('space-current-card').classList.toggle('active', !active);
+        document.getElementById('space-current-label').textContent = active ? '稍后再学' : '当前卡';
+        document.getElementById('sleep-copy').textContent = active ? '已移出近期学习流；可在这里恢复。' : '移入后会暂时离开学习流，随时可以恢复。';
+        document.getElementById('space-continue').textContent = active ? '继续下一张' : '继续当前卡';
+        document.getElementById('study-card').classList.toggle('flip-mode', active);
+        if (active) document.getElementById('flip-body').classList.remove('revealed');
+      });
+      document.getElementById('checkin').addEventListener('click', event => {
+        event.currentTarget.textContent = '今天已记录';
+        event.currentTarget.disabled = true;
+      });
+      let lastFocused = null;
+      const openSheet = id => {
+        const backdrop = document.getElementById(id);
+        lastFocused = document.activeElement;
+        app.inert = true;
+        backdrop.classList.add('open');
+        requestAnimationFrame(() => backdrop.querySelector('input, button')?.focus());
+      };
+      const closeSheet = backdrop => {
+        backdrop.classList.remove('open');
+        app.inert = false;
+        lastFocused?.focus();
+      };
+      document.getElementById('account-button').addEventListener('click', () => openSheet('account-sheet'));
+      document.getElementById('membership-button').addEventListener('click', () => openSheet('membership-sheet'));
+      document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => closeSheet(document.getElementById(button.dataset.close))));
+      document.getElementById('send-code').addEventListener('click', event => {
+        const phone = document.getElementById('phone').value.replace(/\s/g, '');
+        event.currentTarget.textContent = /^1\d{10}$/.test(phone) ? '验证码已发送' : '请检查手机号';
+      });
+      document.querySelectorAll('.sheet-backdrop').forEach(backdrop => backdrop.addEventListener('click', event => { if (event.target === backdrop) closeSheet(backdrop); }));
+      document.addEventListener('keydown', event => {
+        const open = document.querySelector('.sheet-backdrop.open');
+        if (!open) return;
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeSheet(open);
+          return;
+        }
+        if (event.key !== 'Tab') return;
+        const focusable = [...open.querySelectorAll('button:not(:disabled), input:not(:disabled)')];
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      });
+
+      const params = new URLSearchParams(location.search);
+      if (params.get('route')) go(params.get('route'));
+      if (params.get('state') === 'auth') openSheet('account-sheet');
+    })();
+  </script>
+</body>
+</html>
