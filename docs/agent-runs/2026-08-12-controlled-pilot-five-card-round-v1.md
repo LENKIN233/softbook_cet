@@ -4,7 +4,7 @@
 
 - Date: 2026-08-12
 - Branch: `infra/controlled-pilot-round-gate-v1`
-- PR: pending
+- PR: `https://github.com/LENKIN233/softbook_cet/pull/498`
 - Summary: Implement the controlled-pilot five-card server gate end to end: canonical completion receipt, exact idempotent continuation, persistent CloudBase acknowledgement, strict mobile parsing, and one accepted completion-state action.
 
 ## Referenced specs
@@ -65,6 +65,7 @@
 - Full mobile Jest run -> 46 suites / 497 tests passed.
 - `python3 scripts/test_learning_scheduler_contract.py` -> 9/9 passed.
 - `python3 scripts/validate_harness.py --mode local` -> passed after installing repository hooks in this worktree.
+- `python3 scripts/validate_harness.py` -> full harness validation passed before PR creation.
 - `git diff --check` -> passed.
 
 ## Validation results
@@ -83,9 +84,9 @@
 
 ## Agent review status
 
-- Reviewer: pending PR Agent review
-- Status: pending
-- Blocking findings: protected review and CI have not run on the eventual PR head.
+- Reviewer: Codex pre-PR review; protected Agent review pending
+- Status: local review passed; remote review pending
+- Blocking findings: none locally; protected review and CI have not run on the PR head.
 
 ## User-visible UI impact
 
