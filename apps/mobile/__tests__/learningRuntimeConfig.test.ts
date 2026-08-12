@@ -39,7 +39,7 @@ test('learning runtime config can switch repository mode to remote', () => {
 
   expect(config.mode).toBe('remote');
   expect(config.remoteConfig?.endpoint).toBe(
-    'https://api.softbook.example/v1/learning/card-source',
+    'https://api.softbook.example/v2/learning/card-source',
   );
   expect(config.remoteConfig?.headers).toEqual({
     'x-softbook-client': 'mobile',

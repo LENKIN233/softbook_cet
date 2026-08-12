@@ -345,6 +345,69 @@ async function handleHttpRequest(config, request) {
       });
     }
 
+    if (method === 'GET' && path === '/v2/learning/card-source') {
+      await config.authV2.requireActiveSession(request);
+      assertLearningCardSourceRequest(request);
+      return await handleLearningCardSource(config, request);
+    }
+
+    if (method === 'GET' && path === '/v2/membership/entitlement') {
+      const session = await config.authV2.requireActiveSession(request);
+      assertSessionOwnedMembershipRequest(request, false);
+      return jsonResponse(200, {
+        data: {
+          entitlement: serializeMembershipEntitlement(
+            await config.store.getMembership(session.phoneNumber),
+          ),
+        },
+      });
+    }
+
+    if (method === 'POST' && path === '/v2/membership/start-trial') {
+      const session = await config.authV2.requireActiveSession(request);
+      assertSessionOwnedMembershipRequest(request, true);
+      return jsonResponse(200, {
+        data: {
+          entitlement: serializeMembershipEntitlement(
+            await config.store.startTrial(
+              session.phoneNumber,
+              config.now().toISOString(),
+            ),
+          ),
+        },
+      });
+    }
+
+    if (method === 'POST' && path === '/v2/membership/purchase') {
+      const session = await config.authV2.requireActiveSession(request);
+      assertSessionOwnedMembershipRequest(request, true);
+      return jsonResponse(200, {
+        data: {
+          entitlement: serializeMembershipEntitlement(
+            await config.store.purchase(
+              session.phoneNumber,
+              config.now().toISOString(),
+            ),
+          ),
+        },
+      });
+    }
+
+    if (method === 'POST' && path === '/v2/membership/dismiss-recovery') {
+      const session = await config.authV2.requireActiveSession(request);
+      assertSessionOwnedMembershipRequest(request, true);
+      return jsonResponse(200, {
+        data: {
+          entitlement: serializeMembershipEntitlement(
+            await config.store.dismissRecovery(
+              session.phoneNumber,
+              config.now().toISOString(),
+            ),
+          ),
+        },
+      });
+    }
+
     if (method === 'POST' && path === '/v2/learning/events') {
       const session = await config.authV2.requireActiveSession(request);
 
@@ -602,6 +665,36 @@ function assertLearningSessionIdentityComesFromSession(request) {
       400,
       'learning_session_authority_input_forbidden',
       'Learning session authority comes from the active session and server.',
+    );
+  }
+}
+
+function assertLearningCardSourceRequest(request) {
+  const allowedQueryFields = new Set(['track']);
+  const hasForbiddenQuery = Object.keys(request.query).some(
+    field => !allowedQueryFields.has(field),
+  );
+
+  if (hasForbiddenQuery || request.body !== undefined) {
+    throw httpError(
+      400,
+      'learning_card_source_input_forbidden',
+      'Learning card source accepts only its track query.',
+    );
+  }
+
+  requireTrack(request.query.track);
+}
+
+function assertSessionOwnedMembershipRequest(request, expectsBody) {
+  const bodyIsValid = expectsBody
+    ? isObject(request.body) && Object.keys(request.body).length === 0
+    : request.body === undefined;
+  if (Object.keys(request.query).length > 0 || !bodyIsValid) {
+    throw httpError(
+      400,
+      'membership_identity_input_forbidden',
+      'Membership authority comes from the active session.',
     );
   }
 }

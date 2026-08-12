@@ -65,14 +65,14 @@ test('remote membership repository loads entitlement and posts mutations', async
     mode: 'remote',
     remoteConfig: {
       dismissRecoveryEndpoint:
-        'https://api.softbook.example/v1/membership/dismiss-recovery',
+        'https://api.softbook.example/v2/membership/dismiss-recovery',
       entitlementEndpoint:
-        'https://api.softbook.example/v1/membership/entitlement',
+        'https://api.softbook.example/v2/membership/entitlement',
       headers: {
         'x-softbook-client': 'mobile',
       },
-      purchaseEndpoint: 'https://api.softbook.example/v1/membership/purchase',
-      startTrialEndpoint: 'https://api.softbook.example/v1/membership/start-trial',
+      purchaseEndpoint: 'https://api.softbook.example/v2/membership/purchase',
+      startTrialEndpoint: 'https://api.softbook.example/v2/membership/start-trial',
     },
   });
 
@@ -84,15 +84,16 @@ test('remote membership repository loads entitlement and posts mutations', async
   expect(trialResult.state.stage).toBe('trial');
   expect(fetchMock).toHaveBeenNthCalledWith(
     1,
-    'https://api.softbook.example/v1/membership/entitlement',
+    'https://api.softbook.example/v2/membership/entitlement',
     expect.objectContaining({
       method: 'GET',
     }),
   );
   expect(fetchMock).toHaveBeenNthCalledWith(
     2,
-    'https://api.softbook.example/v1/membership/start-trial',
+    'https://api.softbook.example/v2/membership/start-trial',
     expect.objectContaining({
+      body: '{}',
       method: 'POST',
     }),
   );
@@ -104,11 +105,11 @@ test('remote membership repository requires auth token', async () => {
     mode: 'remote',
     remoteConfig: {
       dismissRecoveryEndpoint:
-        'https://api.softbook.example/v1/membership/dismiss-recovery',
+        'https://api.softbook.example/v2/membership/dismiss-recovery',
       entitlementEndpoint:
-        'https://api.softbook.example/v1/membership/entitlement',
-      purchaseEndpoint: 'https://api.softbook.example/v1/membership/purchase',
-      startTrialEndpoint: 'https://api.softbook.example/v1/membership/start-trial',
+        'https://api.softbook.example/v2/membership/entitlement',
+      purchaseEndpoint: 'https://api.softbook.example/v2/membership/purchase',
+      startTrialEndpoint: 'https://api.softbook.example/v2/membership/start-trial',
     },
   });
 
@@ -129,11 +130,11 @@ test('remote membership repository preserves authorization status', async () => 
     mode: 'remote',
     remoteConfig: {
       dismissRecoveryEndpoint:
-        'https://api.softbook.example/v1/membership/dismiss-recovery',
+        'https://api.softbook.example/v2/membership/dismiss-recovery',
       entitlementEndpoint:
-        'https://api.softbook.example/v1/membership/entitlement',
-      purchaseEndpoint: 'https://api.softbook.example/v1/membership/purchase',
-      startTrialEndpoint: 'https://api.softbook.example/v1/membership/start-trial',
+        'https://api.softbook.example/v2/membership/entitlement',
+      purchaseEndpoint: 'https://api.softbook.example/v2/membership/purchase',
+      startTrialEndpoint: 'https://api.softbook.example/v2/membership/start-trial',
     },
   });
 

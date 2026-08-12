@@ -154,14 +154,14 @@ export function createSoftbookRemoteMembershipConfig(
   const baseUrl = trimTrailingSlash(config.baseUrl);
 
   return {
-    dismissRecoveryEndpoint: `${baseUrl}/v1/membership/dismiss-recovery`,
-    entitlementEndpoint: `${baseUrl}/v1/membership/entitlement`,
+    dismissRecoveryEndpoint: `${baseUrl}/v2/membership/dismiss-recovery`,
+    entitlementEndpoint: `${baseUrl}/v2/membership/entitlement`,
     headers: {
       'x-softbook-client': 'mobile',
       ...(config.apiKey ? {'x-api-key': config.apiKey} : {}),
     },
-    purchaseEndpoint: `${baseUrl}/v1/membership/purchase`,
-    startTrialEndpoint: `${baseUrl}/v1/membership/start-trial`,
+    purchaseEndpoint: `${baseUrl}/v2/membership/purchase`,
+    startTrialEndpoint: `${baseUrl}/v2/membership/start-trial`,
   };
 }
 
@@ -292,9 +292,7 @@ async function runRemoteMembershipMutation(
 
   const fetchImpl = config.fetchImpl ?? fetch;
   const response = await fetchImpl(endpoint, {
-    body: JSON.stringify({
-      phone_number: context.phoneNumber,
-    }),
+    body: JSON.stringify({}),
     headers: buildRemoteMembershipHeaders(config.remoteConfig, context),
     method: 'POST',
   });

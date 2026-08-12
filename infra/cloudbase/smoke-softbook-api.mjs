@@ -248,7 +248,7 @@ function parseAuthSession(data, label) {
 }
 
 async function loadMembershipEntitlement() {
-  const response = await get('/v1/membership/entitlement');
+  const response = await get('/v2/membership/entitlement');
 
   assertOk(response, 'membership entitlement');
   const payload = await response.json();
@@ -438,7 +438,7 @@ async function assertBootstrapWrites(
 }
 
 async function loadLearningCardSource() {
-  const response = await get(`/v1/learning/card-source?track=${track}`);
+  const response = await get(`/v2/learning/card-source?track=${track}`);
 
   assertOk(response, 'learning card-source');
   const payload = await response.json();
@@ -865,7 +865,7 @@ function parseSpaceActionAck(
 }
 
 async function startMembershipTrial() {
-  const entitlement = await runMembershipMutation('/v1/membership/start-trial');
+  const entitlement = await runMembershipMutation('/v2/membership/start-trial');
 
   assertExpectedStage(
     entitlement,
@@ -876,7 +876,7 @@ async function startMembershipTrial() {
 }
 
 async function purchaseMembership() {
-  const entitlement = await runMembershipMutation('/v1/membership/purchase');
+  const entitlement = await runMembershipMutation('/v2/membership/purchase');
 
   assertExpectedStage(
     entitlement,
@@ -888,7 +888,7 @@ async function purchaseMembership() {
 
 async function dismissMembershipRecovery() {
   const entitlement = await runMembershipMutation(
-    '/v1/membership/dismiss-recovery',
+    '/v2/membership/dismiss-recovery',
   );
 
   ok('membership dismiss-recovery', entitlement.stage);
@@ -913,7 +913,7 @@ async function assertBootstrapMembership(expectedEntitlement) {
 async function runMembershipMutation(path) {
   const response = await postJson(
     path,
-    {phone_number: phoneNumber},
+    {},
     remoteHeaders,
   );
 

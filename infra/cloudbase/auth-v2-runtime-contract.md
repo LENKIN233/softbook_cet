@@ -23,18 +23,18 @@ Referenced active specs:
 
 - The `/v2` paths, payload field names, token lifetimes, collection names, and
   CloudBase persistence below are the current backend migration contract.
-- The mobile runtime consumes `/v2` auth. The backend now exposes the protected
-  `/v2/bootstrap` canonical read, while the mobile client, card payload, and
-  product mutations still use `/v1` through the development migration bridge.
-  This does not make the backend production-ready because production rejects
-  every remaining `/v1` dependency.
+- The mobile runtime consumes `/v2` auth, protected `/v2/bootstrap`, the
+  authenticated `/v2/learning/card-source`, and session-owned `/v2/membership`
+  reads/mutations. Retained `/v1` aliases are development-only; the full remote
+  profile has no production `/v1` dependency.
 - An account deletion request creates a durable queued task. Actual user-data
   erasure, retention policy enforcement, and deletion-provider orchestration
   remain separate production work.
 
 ## Runtime policy
 
-The function accepts `SOFTBOOK_RUNTIME_MODE=development|production`.
+The function accepts
+`SOFTBOOK_RUNTIME_MODE=development|production|controlled_pilot`.
 
 Development mode keeps `/v1` available and supplies the existing fixed-code
 adapter when no SMS provider is injected. Production mode fails closed unless:
@@ -53,10 +53,10 @@ overrides also cannot re-enable v1 or disable the trusted-client-IP requirement
 in production.
 
 In development only, protected `/v1` product routes accept either a valid legacy
-token or an active server-backed v2 access token. The v2 path uses the same
-session revocation/deletion guard as protected v2 routes. This bridge exists only
-until product-data endpoints move to v2 and is evaluated after the production
-v1 rejection, so it cannot expose v1 in production.
+token or an active server-backed v2 access token. The authenticated card-source
+and membership paths have moved to `/v2`; their development `/v1` aliases are
+evaluated after the non-development v1 rejection, so none can expose v1 in
+production or controlled pilot.
 
 ## Endpoints
 

@@ -181,13 +181,13 @@ test('fails closed when the remote runtime source is unavailable', async () => {
   expect(output).toContain('重新加载本轮卡片');
   expect(output).not.toContain('however');
   expect(fetchMock).toHaveBeenCalledWith(
-    'https://api.softbook.example/v1/learning/card-source?track=cet4',
+    'https://api.softbook.example/v2/learning/card-source?track=cet4',
     expect.objectContaining({method: 'GET'}),
   );
   const cardSourceCall = fetchMock.mock.calls.find(
     ([input]) =>
       input ===
-      'https://api.softbook.example/v1/learning/card-source?track=cet4',
+      'https://api.softbook.example/v2/learning/card-source?track=cet4',
   );
   expect(new Headers(cardSourceCall?.[1]?.headers).get('authorization')).toBe(
     'Bearer remote-auth-token',

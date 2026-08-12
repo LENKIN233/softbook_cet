@@ -382,7 +382,7 @@ test('restores remote account state from canonical bootstrap before local use', 
 
       if (
         input.startsWith(
-          'https://api.softbook.example/v1/learning/card-source?',
+          'https://api.softbook.example/v2/learning/card-source?',
         )
       ) {
         return {
@@ -508,7 +508,7 @@ test('restores an exact queued check-in without treating event-derived progress 
 
       if (
         input.startsWith(
-          'https://api.softbook.example/v1/learning/card-source?',
+          'https://api.softbook.example/v2/learning/card-source?',
         )
       ) {
         return createTestJsonResponse({
@@ -753,7 +753,7 @@ test('replays a restored selection-bound v2 event before loading any stale selec
 
       if (
         input.startsWith(
-          'https://api.softbook.example/v1/learning/card-source?',
+          'https://api.softbook.example/v2/learning/card-source?',
         )
       ) {
         return createTestJsonResponse({
@@ -941,7 +941,7 @@ test('does not persist canonical state before content version validation', async
     }
 
     if (
-      input.startsWith('https://api.softbook.example/v1/learning/card-source?')
+      input.startsWith('https://api.softbook.example/v2/learning/card-source?')
     ) {
       return {
         json: async () => ({
@@ -1125,7 +1125,7 @@ test('reloads remote membership authority when restoring an auth session', async
         method?: string;
       },
     ) => {
-      if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+      if (input === 'https://api.softbook.example/v2/membership/entitlement') {
         return {
           json: async () => ({
             data: {
@@ -1179,7 +1179,7 @@ test('reloads remote membership authority when restoring an auth session', async
       tree.root.findByProps({ testID: 'mine-membership-stage' }).props.children,
     ).toBe('当前是会员态');
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.softbook.example/v1/membership/entitlement',
+      'https://api.softbook.example/v2/membership/entitlement',
       expect.objectContaining({ method: 'GET' }),
     );
     const requestHeaders = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
@@ -1215,7 +1215,7 @@ test('uses bootstrap canonical space state without pushing unqueued restored sta
 
       if (
         input.startsWith(
-          'https://api.softbook.example/v1/learning/card-source?',
+          'https://api.softbook.example/v2/learning/card-source?',
         )
       ) {
         return createTestJsonResponse({

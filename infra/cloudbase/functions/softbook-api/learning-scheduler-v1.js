@@ -362,11 +362,13 @@ function deriveRoundCompletion(context, accountKey) {
     context.learning.eventsByCardId,
   ).filter(event => event.server_sequence === completedCount);
   const boundaryEvent = boundaryEvents[0];
+  // The projection document is already scoped and validated by account plus
+  // track. Accepted event records intentionally do not duplicate that owner
+  // field, so round derivation must not require schema-external event.track.
   if (
     boundaryEvents.length !== 1 ||
     !isObject(boundaryEvent) ||
     !context.cardIdSet.has(boundaryEvent.card_id) ||
-    boundaryEvent.track !== context.track ||
     boundaryEvent.content_version !== context.contentVersion
   ) {
     throw unavailable('The pilot round boundary event is invalid.');
@@ -377,7 +379,6 @@ function deriveRoundCompletion(context, accountKey) {
     if (
       !isObject(event) ||
       event.card_id !== cardId ||
-      event.track !== context.track ||
       !['passed', 'review_needed'].includes(event.answer_grade)
     ) {
       throw unavailable('The pilot round learning projection is invalid.');

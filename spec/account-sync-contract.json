@@ -142,7 +142,7 @@
       "development_response": "410 legacy_snapshot_write_disabled",
       "production_response": "410 legacy_api_disabled",
       "scope_rule": "no runtime option, legacy token, active v2 session, or unmigrated account can re-enable either snapshot-write route; retained legacy documents are read-only migration input",
-      "remaining_v1_rule": "card-source and membership v1 routes remain a development migration bridge only and production still rejects every v1 route"
+      "remaining_v1_rule": "authenticated card-source and membership reads/mutations use /v2 session-owned routes; their v1 aliases remain a development migration bridge only, and production still rejects every v1 route"
     }
   },
   "physical_space_actions_v2": {

@@ -24,8 +24,9 @@ Current boundary:
   `infra/cloudbase/auth-v2-runtime-contract.md`. Mobile authentication now uses
   that contract. Mobile login and restored sessions now reconcile through
   `/v2/bootstrap` before learning or product-state writes. Card payload and
-  membership mutations remain on `/v1` only as a development migration bridge;
-  production continues to reject every `/v1` route.
+  membership reads/mutations use authenticated session-owned `/v2` routes;
+  their `/v1` aliases remain development-only and production continues to
+  reject every `/v1` route.
 - The replacement learning mutation boundary is contract-defined in
   `infra/cloudbase/learning-events-v2-runtime-contract.md`. The repository-local
   CloudBase backend and current mobile runtime implement it locally. The client
@@ -241,10 +242,10 @@ command active, refreshes once, and retries only after a changed content scope;
 an unchanged refresh cannot create an automatic loop.
 
 Staged development smoke may explicitly keep `accountBootstrap` local. The
-remaining `/v1` card source and membership mutations are still a development
-migration bridge, not a production contract. Remote membership canonical reads
-come from bootstrap; the legacy entitlement read is no longer used by the full
-remote mobile profile.
+remaining `/v1` card-source and membership aliases are development migration
+bridges, not production contracts. Remote learning and membership use
+authenticated session-owned `/v2` routes; Bootstrap remains the canonical
+cross-owner account read.
 
 ### Learning Session
 
@@ -290,7 +291,7 @@ before showing another card.
 ### Learning Card Source
 
 ```http
-GET /v1/learning/card-source?track=cet4
+GET /v2/learning/card-source?track=cet4
 Authorization: Bearer <access_token>
 Accept: application/json
 x-softbook-client: mobile
@@ -319,11 +320,13 @@ and must match `/v2/bootstrap` before canonical learning state can hydrate the
 loaded cards. A mismatch fails closed because it indicates that the two reads
 observed different content revisions.
 
-CloudBase development backend note: when `SOFTBOOK_STORE_MODE=cloudbase`, this
-endpoint reads the `softbook_card_sources` collection by track (`cet4` or
-`cet6`). If a track document is missing, the function seeds the current
-development card records into that collection before returning the same response
-shape. This persistence detail must not change the mobile contract below.
+The endpoint requires an active v2 session, accepts only one explicit `track`
+query, and derives no content or account authority from client input. In
+`production` and `controlled_pilot`, the selected track must already have a
+matching current release and missing content fails closed. In development, when
+`SOFTBOOK_STORE_MODE=cloudbase`, a missing track may seed the current development
+card records before returning the same response shape. The `/v1` alias remains
+development-only and is never used by the remote mobile profile.
 Use `node infra/cloudbase/import-card-source.mjs --file <json> --track <track>`
 for controlled development imports; dry-run is the default, and `--apply`
 upserts only after the same validator accepts the payload.
@@ -333,6 +336,26 @@ the deployed CET4/CET6 documents after imports or deploys, including active
 
 Remote card-source failure is fail-closed. The app renders the existing retry
 state and never substitutes bundled development cards in remote mode.
+
+Before receiver deployment, the approved external candidate can be exercised
+through the same authenticated v2 card-source, Learning Session, Learning
+Events, five-card round continuation, Bootstrap and signed content-manifest
+services with:
+
+```bash
+node infra/cloudbase/smoke-controlled-pilot-candidate-runtime.mjs \
+  --candidate-payload <card-make-candidate.json> \
+  --pilot-review <controlled-pilot-review.json> \
+  --approval <controlled-pilot-approval.json> \
+  --audit <scoped-card-quality-audit.json> \
+  --checked-at <ISO-8601 timestamp>
+```
+
+The command hash-binds the exact payload, review, approval, audit and 120-card
+scope, then hydrates only synthetic private storage IDs in memory. It does not
+approve audio, use persistent receiver storage, deploy anything, or exercise a
+real device; its report therefore always states those gaps and
+`gate_eligible=false`.
 
 Every card record must satisfy:
 
@@ -366,7 +389,7 @@ Supported `interaction_id` values:
 ### Membership Entitlement
 
 ```http
-GET /v1/membership/entitlement
+GET /v2/membership/entitlement
 Authorization: Bearer <access_token>
 content-type: application/json
 x-softbook-client: mobile
@@ -402,17 +425,15 @@ Field rules:
 ### Membership Mutations
 
 ```http
-POST /v1/membership/start-trial
-POST /v1/membership/purchase
-POST /v1/membership/dismiss-recovery
+POST /v2/membership/start-trial
+POST /v2/membership/purchase
+POST /v2/membership/dismiss-recovery
 Authorization: Bearer <access_token>
 content-type: application/json
 x-softbook-client: mobile
 x-api-key: <optional>
 
-{
-  "phone_number": "13800138000"
-}
+{}
 ```
 
 Response: same shape as membership entitlement.
@@ -572,14 +593,14 @@ ordering, and acknowledgement contract is in
    content SHA-256, membership, progress, learning, and physical-space state.
 6. Writes performed through the active v2 endpoints are visible in a later
    bootstrap read for the same account and absent for another account.
-7. `/v1/learning/card-source?track=<track>` returns non-empty valid
+7. `/v2/learning/card-source?track=<track>` returns non-empty valid
    `card_records` and a `content_version` equal to the preceding bootstrap
    content version.
 8. At least one card for each core interaction is available in the remote card
    source before full visual QA: `flip`, `multiple_choice`, `lock`,
    `elimination`, `swipe`.
-9. `/v1/membership/entitlement` returns a valid entitlement.
-10. Space gate can trigger `/v1/membership/start-trial`.
+9. `/v2/membership/entitlement` returns a valid session-owned entitlement.
+10. Space gate can trigger `/v2/membership/start-trial` without an identity body.
 11. Membership purchase and dismiss recovery return valid entitlement payloads.
 12. `/v2/learning/session?track=<track>` returns a strict selection whose track,
     source, and content version match the loaded card source.

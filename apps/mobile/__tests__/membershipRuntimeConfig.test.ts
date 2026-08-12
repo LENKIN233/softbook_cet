@@ -27,15 +27,15 @@ test('membership runtime config can switch repository mode to remote', () => {
     mode: 'remote',
     remoteConfig: {
       dismissRecoveryEndpoint:
-        'https://api.softbook.example/v1/membership/dismiss-recovery',
+        'https://api.softbook.example/v2/membership/dismiss-recovery',
       entitlementEndpoint:
-        'https://api.softbook.example/v1/membership/entitlement',
+        'https://api.softbook.example/v2/membership/entitlement',
       headers: {
         'x-api-key': 'membership-key',
         'x-softbook-client': 'mobile',
       },
-      purchaseEndpoint: 'https://api.softbook.example/v1/membership/purchase',
-      startTrialEndpoint: 'https://api.softbook.example/v1/membership/start-trial',
+      purchaseEndpoint: 'https://api.softbook.example/v2/membership/purchase',
+      startTrialEndpoint: 'https://api.softbook.example/v2/membership/start-trial',
     },
   });
 });
