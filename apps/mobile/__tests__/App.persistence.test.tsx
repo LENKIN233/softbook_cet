@@ -162,6 +162,7 @@ function createCanonicalBootstrapPayload() {
           membership: {
             base_membership_revision: 1,
             beta_entitlement_revision: 0,
+            pilot_entitlement_revision: 0,
           },
           learning: {
             event_server_sequence: 1,

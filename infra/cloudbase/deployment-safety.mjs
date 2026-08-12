@@ -43,6 +43,7 @@ export const REQUIRED_COLLECTIONS = Object.freeze([
   "softbook_learning_event_sequences",
   "softbook_learning_migration_revisions",
   "softbook_pilot_round_continuations",
+  "softbook_pilot_entitlements",
   "softbook_learning_sessions",
   "softbook_learning_states",
   "softbook_space_action_lineages",
@@ -120,6 +121,11 @@ const IDENTITY_PROBES = Object.freeze([
     collection: "softbook_pilot_round_continuations",
     filter: {account_key: {$exists: true}},
     id: "pilot_round_continuations",
+  },
+  {
+    collection: "softbook_pilot_entitlements",
+    filter: {phone_number: {$exists: true}},
+    id: "pilot_entitlements",
   },
   {
     collection: "softbook_learning_sessions",

@@ -111,6 +111,12 @@ test('controlled-pilot deploy injects controlled_pilot without a development SMS
   ]);
   const runtime = runner.deployedConfig.functions[0].envVariables;
   assert.equal(runtime.SOFTBOOK_RUNTIME_MODE, 'controlled_pilot');
+  assert.equal(runtime.SOFTBOOK_PILOT_ID, 'cet4-pilot-2026');
+  assert.equal(runtime.SOFTBOOK_PILOT_EXPIRES_AT, '2026-09-10T00:00:00.000Z');
+  assert.equal(
+    runtime.SOFTBOOK_PILOT_OPERATOR_SECRET,
+    'pilot-operator-secret-0123456789-ABCDEFG',
+  );
   assert.equal(Object.hasOwn(runtime, 'SOFTBOOK_SMS_DEV_CODE'), false);
   assert.equal(report.gate_eligible, false);
 });
@@ -235,6 +241,7 @@ function receiverEnvironment() {
   return {
     SOFTBOOK_AUTH_INDEX_SECRET: 'index-secret-0123456789-ABCDEFGHIJK',
     SOFTBOOK_AUTH_TOKEN_SECRET: 'token-secret-9876543210-ZYXWVUTSRQP',
+    SOFTBOOK_PILOT_OPERATOR_SECRET: 'pilot-operator-secret-0123456789-ABCDEFG',
     SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM: privateKey.export({
       format: 'pem',
       type: 'pkcs8',

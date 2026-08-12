@@ -43,6 +43,7 @@ const createComponentRevisions = (spaceRevision = 3) => ({
   membership: {
     baseMembershipRevision: 4,
     betaEntitlementRevision: 1,
+    pilotEntitlementRevision: 0,
   },
   progress: {
     checkInRevision: 1,

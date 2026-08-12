@@ -4,6 +4,7 @@ const test = require('node:test');
 const {
   createBootstrapV2Service,
 } = require('../bootstrap-v2');
+const {createMemoryStore} = require('../index');
 
 const fixedNow = new Date('2026-07-20T12:00:00.000Z');
 
@@ -68,4 +69,52 @@ test('production bootstrap checks the content release before account state', asy
       error.code === 'content_release_unavailable',
   );
   assert.deepEqual(accountReads, []);
+});
+
+test('controlled-pilot bootstrap exposes its independent entitlement revision', async () => {
+  const store = createMemoryStore();
+  const contentVersion = `sha256:${'a'.repeat(64)}`;
+  store.snapshot().cardSources.set('cet4', {
+    assets: [],
+    card_records: Array.from({length: 120}, (_, index) => ({
+      card_id: String(index + 1).padStart(6, '0'),
+    })),
+    content_version: contentVersion,
+    release: {
+      schema_version: 'pilot-content-release.v1',
+      activated_at: '2026-07-01T00:00:00.000Z',
+      card_count: 120,
+      content_version: contentVersion,
+      expires_at: '2026-09-01T00:00:00.000Z',
+      free_card_count: 60,
+      gate_eligible: false,
+      minimum_client_versions: {android: '1.0.0', ios: '1.0.0'},
+      pilot_id: 'cet4-pilot-2026',
+      profile_id: 'receiver-controlled-pilot',
+      release_class: 'controlled_pilot',
+      release_id: 'cet4-pilot-release-001',
+      runtime_mode: 'controlled_pilot',
+      track: 'cet4',
+    },
+    source: {id: 'pilot-source', label: 'Pilot source'},
+    track: 'cet4',
+  });
+  const service = createBootstrapV2Service({
+    now: () => fixedNow,
+    runtimeMode: 'controlled_pilot',
+    store,
+  });
+
+  const result = await service.read({
+    accountKey: 'pilot-account-key',
+    dayKey: '2026-07-20',
+    phoneNumber: '13800138000',
+    track: 'cet4',
+  });
+
+  assert.deepEqual(result.component_revisions.membership, {
+    base_membership_revision: 0,
+    beta_entitlement_revision: 0,
+    pilot_entitlement_revision: 0,
+  });
 });

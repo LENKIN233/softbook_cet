@@ -95,6 +95,7 @@ async function readBootstrap(config, input) {
     normalizedLearning,
     normalizedProgress,
     progress,
+    runtimeMode: config.runtimeMode,
     space,
   });
 
@@ -114,9 +115,14 @@ async function readBootstrap(config, input) {
 
 function normalizeComponentRevisions(input) {
   return readCanonicalState('component revisions', () => {
+    const pilotRuntime = input.runtimeMode === 'controlled_pilot';
     const membership = requireExactObject(
       input.membership.component_revision,
-      ['base_membership_revision', 'beta_entitlement_revision'],
+      [
+        'base_membership_revision',
+        'beta_entitlement_revision',
+        'pilot_entitlement_revision',
+      ],
       'membership.component_revision',
     );
     const learning = requireExactObject(
@@ -193,6 +199,14 @@ function normalizeComponentRevisions(input) {
           membership.beta_entitlement_revision,
           'membership.component_revision.beta_entitlement_revision',
         ),
+        ...(pilotRuntime
+          ? {
+              pilot_entitlement_revision: requireNonNegativeSafeInteger(
+                membership.pilot_entitlement_revision,
+                'membership.component_revision.pilot_entitlement_revision',
+              ),
+            }
+          : {}),
       },
       learning: {
         event_server_sequence: eventServerSequence,

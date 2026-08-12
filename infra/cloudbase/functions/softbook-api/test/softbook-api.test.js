@@ -8,6 +8,7 @@ const {
   createCloudBaseStore,
   createMemoryStore,
   createSoftbookApi,
+  handlePilotEntitlementOperatorInvoke,
   validateCardSourceForImport,
 } = require('../index');
 const {
@@ -1380,6 +1381,7 @@ test('base membership revisions disambiguate same-millisecond writes and migrate
     assert.deepEqual((await store.getMembership('13800138000')).component_revision, {
       base_membership_revision: 0,
       beta_entitlement_revision: 0,
+          pilot_entitlement_revision: 0,
     });
 
     await store.startTrial('13800138000', fixedNow.toISOString());
@@ -2670,6 +2672,7 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
   assert.deepEqual(granted.component_revision, {
     base_membership_revision: 1,
     beta_entitlement_revision: 1,
+          pilot_entitlement_revision: 0,
   });
   assert.equal(
     db.snapshot().get('softbook_memberships').get(phoneNumber).entitlement.stage,
@@ -2685,6 +2688,7 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
   assert.deepEqual(purchasedDuringBeta.component_revision, {
     base_membership_revision: 2,
     beta_entitlement_revision: 1,
+          pilot_entitlement_revision: 0,
   });
 
   const betaDocument = db
@@ -2707,6 +2711,7 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
   assert.deepEqual(revoked.component_revision, {
     base_membership_revision: 2,
     beta_entitlement_revision: 2,
+          pilot_entitlement_revision: 0,
   });
 });
 
@@ -2723,6 +2728,256 @@ test('CloudBase membership fails closed on malformed active beta evidence', asyn
   await assert.rejects(
     () => store.getMembership('13800138000'),
     error => error.code === 'invalid_beta_entitlement',
+  );
+});
+
+test('controlled-pilot membership overlays only an exact active pilot grant', async () => {
+  const db = createFakeCloudBaseDb();
+  const pilotId = 'cet4-pilot-2026';
+  const store = createCloudBaseStore({
+    db,
+    pilotExpiresAt: '2026-09-01T00:00:00.000Z',
+    pilotId,
+    runtimeMode: 'controlled_pilot',
+  });
+  const phoneNumber = '13800138000';
+  const occurredAt = fixedNow.toISOString();
+  const event = {
+    schema_version: 'pilot-entitlement-audit.v1',
+    action: 'grant',
+    actor: 'receiver-operator',
+    command_sha256: `sha256:${'b'.repeat(64)}`,
+    event_id: 'pilot-event-grant-0001',
+    occurred_at: occurredAt,
+    pilot_id: pilotId,
+    previous_stage: 'trial_available',
+    reason: 'controlled_pilot_continued_access',
+    resulting_stage: 'pilot_premium',
+  };
+  db.snapshot().get('softbook_pilot_entitlements').set(phoneNumber, {
+    active_grant: {
+      schema_version: 'pilot-entitlement.v1',
+      actor: event.actor,
+      command_sha256: event.command_sha256,
+      grant_event_id: event.event_id,
+      granted_at: occurredAt,
+      pilot_id: pilotId,
+      reason: event.reason,
+    },
+    audit: [event],
+    phone_number: phoneNumber,
+    pilot_id: pilotId,
+    revision: 1,
+    updated_at: occurredAt,
+  });
+
+  const granted = await store.getMembership(phoneNumber, occurredAt);
+  assert.equal(granted.stage, 'premium');
+  assert.deepEqual(granted.component_revision, {
+    base_membership_revision: 0,
+    beta_entitlement_revision: 0,
+    pilot_entitlement_revision: 2,
+  });
+  assert.equal(db.snapshot().get('softbook_memberships')?.has(phoneNumber) ?? false, false);
+
+  const productionStore = createCloudBaseStore({db, runtimeMode: 'production'});
+  const outsidePilot = await productionStore.getMembership(phoneNumber, occurredAt);
+  assert.equal(outsidePilot.stage, 'trial_available');
+  assert.equal(outsidePilot.component_revision.pilot_entitlement_revision, 0);
+
+  const afterExpiry = await createCloudBaseStore({
+    db,
+    pilotExpiresAt: '2026-05-01T00:00:00.000Z',
+    pilotId,
+    runtimeMode: 'controlled_pilot',
+  }).getMembership(phoneNumber, '2026-05-01T00:00:00.000Z');
+  assert.equal(afterExpiry.stage, 'trial_available');
+  assert.equal(afterExpiry.component_revision.pilot_entitlement_revision, 3);
+});
+
+test('pilot entitlement operator invocation rederives and commits grant atomically', async () => {
+  const db = createFakeCloudBaseDb();
+  const pilotId = 'cet4-pilot-2026';
+  const store = createCloudBaseStore({
+    db,
+    pilotExpiresAt: '2026-09-01T00:00:00.000Z',
+    pilotId,
+    runtimeMode: 'controlled_pilot',
+  });
+  const command = {
+    schema_version: 'pilot-entitlement-command.v1',
+    event_id: 'pilot-event-grant-0001',
+    pilot_id: pilotId,
+    phone_number: '13800138000',
+    action: 'grant',
+    actor: 'receiver-operator',
+    reason: 'controlled_pilot_continued_access',
+    occurred_at: '2026-04-30T12:00:00.000Z',
+    previous_stage: 'trial_available',
+    resulting_stage: 'pilot_premium',
+  };
+  const invoke = () =>
+    handlePilotEntitlementOperatorInvoke(
+      {
+        schema_version: 'pilot-entitlement-operator-invoke.v1',
+        command,
+        signature: createPilotOperatorSignature(command),
+      },
+      {
+        now: () => new Date('2026-04-30T12:00:01.000Z'),
+        operatorSecret: 'pilot-operator-secret-0123456789-ABCDEFG',
+        pilotExpiresAt: '2026-09-01T00:00:00.000Z',
+        pilotId,
+        runtimeMode: 'controlled_pilot',
+        store,
+      },
+    );
+
+  const first = await invoke();
+  const replay = await invoke();
+  assert.equal(first.writes_performed, true);
+  assert.equal(first.result.previous_stage, 'trial_available');
+  assert.equal(replay.writes_performed, false);
+  assert.equal(replay.result.idempotent, true);
+  assert.equal(db.transactionCount(), 2);
+  assert.equal(
+    db.snapshot().get('softbook_pilot_entitlements').get(command.phone_number)
+      .audit.length,
+    1,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_memberships')?.has(command.phone_number) ?? false,
+    false,
+  );
+});
+
+test('pilot entitlement transaction rejects a stale claimed base stage without writing', async () => {
+  const db = createFakeCloudBaseDb();
+  const pilotId = 'cet4-pilot-2026';
+  const phoneNumber = '13800138000';
+  const store = createCloudBaseStore({
+    db,
+    pilotExpiresAt: '2026-09-01T00:00:00.000Z',
+    pilotId,
+    runtimeMode: 'controlled_pilot',
+  });
+  db.snapshot().get('softbook_memberships').set(phoneNumber, {
+    entitlement: {
+      counted_entry_count: 1,
+      last_experience_ended_by: 'trial',
+      recovery_prompt_visible: true,
+      stage: 'free',
+      trial_duration_days: 5,
+      trial_expires_at: '2026-04-29T12:00:00.000Z',
+      trial_started_at: '2026-04-24T12:00:00.000Z',
+      trial_started_at_entry_count: 1,
+    },
+    phone_number: phoneNumber,
+    updated_at: '2026-04-29T12:00:00.000Z',
+  });
+  await assert.rejects(
+    () =>
+      store.applyPilotEntitlementCommand({
+        schema_version: 'pilot-entitlement-command.v1',
+        event_id: 'pilot-event-grant-0001',
+        pilot_id: pilotId,
+        phone_number: phoneNumber,
+        action: 'grant',
+        actor: 'receiver-operator',
+        reason: 'controlled_pilot_continued_access',
+        occurred_at: '2026-04-30T12:00:00.000Z',
+        previous_stage: 'trial_available',
+        resulting_stage: 'pilot_premium',
+      }),
+    /canonical base membership/,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_pilot_entitlements')?.has(phoneNumber) ?? false,
+    false,
+  );
+});
+
+test('pilot entitlement operator invocation rejects a client-callable unsigned request', async () => {
+  const pilotId = 'cet4-pilot-2026';
+  const command = {
+    schema_version: 'pilot-entitlement-command.v1',
+    event_id: 'pilot-event-grant-0001',
+    pilot_id: pilotId,
+    phone_number: '13800138000',
+    action: 'grant',
+    actor: 'receiver-operator',
+    reason: 'controlled_pilot_continued_access',
+    occurred_at: '2026-04-30T12:00:00.000Z',
+    previous_stage: 'trial_available',
+    resulting_stage: 'pilot_premium',
+  };
+  let storeCalled = false;
+  await assert.rejects(
+    () =>
+      handlePilotEntitlementOperatorInvoke(
+        {
+          schema_version: 'pilot-entitlement-operator-invoke.v1',
+          command,
+          signature: `hmac-sha256:${'0'.repeat(64)}`,
+        },
+        {
+          now: () => new Date('2026-04-30T12:00:01.000Z'),
+          operatorSecret: 'pilot-operator-secret-0123456789-ABCDEFG',
+          pilotExpiresAt: '2026-09-01T00:00:00.000Z',
+          pilotId,
+          runtimeMode: 'controlled_pilot',
+          store: {
+            applyPilotEntitlementCommand: async () => {
+              storeCalled = true;
+            },
+          },
+        },
+      ),
+    /operator authentication failed/,
+  );
+  assert.equal(storeCalled, false);
+});
+
+test('controlled-pilot membership rejects active entitlement from another pilot', async () => {
+  const db = createFakeCloudBaseDb();
+  const phoneNumber = '13800138000';
+  const occurredAt = fixedNow.toISOString();
+  const store = createCloudBaseStore({
+    db,
+    pilotExpiresAt: '2026-09-01T00:00:00.000Z',
+    pilotId: 'cet4-pilot-2026',
+    runtimeMode: 'controlled_pilot',
+  });
+  db.snapshot().get('softbook_pilot_entitlements').set(phoneNumber, {
+    active_grant: {
+      schema_version: 'pilot-entitlement.v1',
+      actor: 'receiver-operator',
+      command_sha256: `sha256:${'c'.repeat(64)}`,
+      grant_event_id: 'pilot-event-grant-0001',
+      granted_at: occurredAt,
+      pilot_id: 'another-pilot',
+      reason: 'controlled_pilot_continued_access',
+    },
+    audit: [{
+      schema_version: 'pilot-entitlement-audit.v1',
+      action: 'grant',
+      actor: 'receiver-operator',
+      command_sha256: `sha256:${'c'.repeat(64)}`,
+      event_id: 'pilot-event-grant-0001',
+      occurred_at: occurredAt,
+      pilot_id: 'another-pilot',
+      previous_stage: 'trial_available',
+      reason: 'controlled_pilot_continued_access',
+      resulting_stage: 'pilot_premium',
+    }],
+    phone_number: phoneNumber,
+    pilot_id: 'another-pilot',
+    revision: 1,
+    updated_at: occurredAt,
+  });
+  await assert.rejects(
+    () => store.getMembership(phoneNumber, occurredAt),
+    error => error.code === 'invalid_pilot_entitlement',
   );
 });
 
@@ -3083,6 +3338,14 @@ function commitCollectionWrites(target, staged, writes) {
 
 function cloneJson(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function createPilotOperatorSignature(command) {
+  const canonical = JSON.stringify(command, Object.keys(command).sort());
+  return `hmac-sha256:${crypto
+    .createHmac('sha256', 'pilot-operator-secret-0123456789-ABCDEFG')
+    .update(canonical)
+    .digest('hex')}`;
 }
 
 function createPersistedCardSource(track) {

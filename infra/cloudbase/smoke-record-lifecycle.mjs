@@ -55,6 +55,7 @@ export const CLEANUP_COLLECTIONS = Object.freeze(
   [
     ...AUTH_COLLECTIONS,
     "softbook_beta_entitlements",
+    "softbook_pilot_entitlements",
     "softbook_memberships",
     "softbook_membership_revisions",
     ...ACCOUNT_COLLECTIONS,
@@ -334,6 +335,9 @@ export function createCloudBaseRunner({
         softbook_beta_entitlements: readDocuments("softbook_beta_entitlements", {
           _id: {$in: phones},
         }),
+        softbook_pilot_entitlements: readDocuments("softbook_pilot_entitlements", {
+          _id: {$in: phones},
+        }),
         softbook_memberships: readDocuments("softbook_memberships", {
           _id: {$in: phones},
         }),
@@ -398,6 +402,7 @@ function validateInventoryOwnership(
   const challenges = inventory.softbook_auth_challenges ?? [];
   const rateLimits = inventory.softbook_auth_rate_limits ?? [];
   const betaEntitlements = inventory.softbook_beta_entitlements ?? [];
+  const pilotEntitlements = inventory.softbook_pilot_entitlements ?? [];
   const memberships = inventory.softbook_memberships ?? [];
   const membershipRevisions =
     inventory.softbook_membership_revisions ?? [];
@@ -413,6 +418,7 @@ function validateInventoryOwnership(
 
   for (const document of [
     ...betaEntitlements,
+    ...pilotEntitlements,
     ...memberships,
     ...membershipRevisions,
   ]) {
