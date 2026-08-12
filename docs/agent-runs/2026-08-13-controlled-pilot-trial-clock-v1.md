@@ -4,7 +4,7 @@
 
 - Date: 2026-08-13
 - Branch: `module/controlled-pilot-trial-clock-v1`
-- PR: pending
+- PR: `https://github.com/LENKIN233/softbook_cet/pull/501`
 - Summary: Implement the exact server-authoritative 120-hour trial from the first successful eligible Learning Session through membership, Bootstrap, content access, mobile parsing, display, and runtime smoke.
 
 ## Referenced specs
