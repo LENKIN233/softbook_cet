@@ -93,12 +93,13 @@
 - Interaction/motion artifact: N/A; no core card interaction or motion changes.
 - Implementation mapping: existing Mine membership summary -> `MembershipState.trialRemainingSeconds` from strict Bootstrap/Learning Session parsing.
 - Unimplemented gap: real-device confirmation remains pending until receiver deployment.
-- Q1: no library identity changed; the membership copy uses the existing brand-violet account surface and adds no competing accent.
+- Q1 / Law of One: no library identity changed; the current library membership copy uses the existing brand-violet account surface, preserves a single strong accent, and adds no competing library accent.
 - Q2: the existing account/membership card remains focal; remaining time is secondary status and chrome remains tertiary.
 - Q3: the accepted Mine membership silhouette is unchanged; no new card or interaction family was introduced.
-- Q4: no forbidden gradient text, gamification chrome, full-width tab bar, serif, pure black/white, or self-assess change was introduced.
+- Q4 / forbidden_design_patterns: no forbidden gradient text, gamification chrome, full-width tab bar, serif, pure black/white, or self-assess change was introduced.
 - Q5: no layout dimensions changed; existing compact/phone containment tests still pass, while real-device proof remains pending.
 - Q6: Learning remains the single-card primary path; flip retains exactly `有把握` / `再回看`.
+- AP-22: the design review checklist six-question review was completed before implementation through the accepted pre-render proof, which already contains the Mine membership panel and remaining-days state; this implementation changes only its authority source and does not use React Native output to define a new visual.
 
 ## Card make external workspace impact
 
