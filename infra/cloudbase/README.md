@@ -4,7 +4,7 @@ Referenced specs: `spec/account-sync-contract.json`, `spec/membership.json`, `sp
 
 `product_truth`: remote learning must still enforce phone-code login before learning, shared membership entitlement, daily-level progress sync, and physical-space state sync.
 
-`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication and canonical bootstrap use `/v2`; the repository-local backend and React Native client also implement `POST /v2/learning/events`, `GET /v2/learning/session`, `POST /v2/progress/check-in`, `POST /v2/space/actions`, durable mobile queues, exact replay, transactional ledgers, and projections. Card payload and membership mutations still rely on `/v1` only as a development migration bridge; the former v1 daily, learning, and physical-space snapshot APIs are disabled. None of these repository-local changes proves deployment. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to TypeScript CloudBase Run + PostgreSQL on the formal work server.
+`implementation_hypothesis`: CloudBase is the current free/low-cost China-friendly staging runtime. It is not the final production architecture. Mobile authentication, canonical bootstrap, card payload, membership, learning events/session, daily check-in and Space actions use authenticated `/v2` routes with durable mobile queues, exact replay, transactional ledgers and projections. Their retained `/v1` card-source and membership aliases are development-only; the former v1 daily, learning and physical-space snapshot APIs are disabled. None of these repository-local changes proves deployment. Isolate CloudBase NoSQL/function details behind a service adapter and preserve a future migration path to TypeScript CloudBase Run + PostgreSQL on the formal work server.
 
 ## Current Environment
 
@@ -44,17 +44,22 @@ POST /v2/auth/refresh
 POST /v2/auth/logout
 POST /v2/account/deletion
 GET  /v2/bootstrap?track=cet4|cet6&day_key=YYYY-MM-DD
+GET  /v2/learning/card-source?track=cet4|cet6
+GET  /v2/membership/entitlement
+POST /v2/membership/start-trial
+POST /v2/membership/purchase
+POST /v2/membership/dismiss-recovery
 GET  /v2/learning/session?track=cet4|cet6
 POST /v2/learning/round/continue  # controlled_pilot only
 POST /v2/learning/events
 POST /v2/progress/check-in
 POST /v2/space/actions
 
-GET  /v1/learning/card-source?track=cet4|cet6
-GET  /v1/membership/entitlement
-POST /v1/membership/start-trial
-POST /v1/membership/purchase
-POST /v1/membership/dismiss-recovery
+GET  /v1/learning/card-source?track=cet4|cet6  # development migration alias only
+GET  /v1/membership/entitlement                  # development migration alias only
+POST /v1/membership/start-trial                  # development migration alias only
+POST /v1/membership/purchase                     # development migration alias only
+POST /v1/membership/dismiss-recovery             # development migration alias only
 
 DISABLED (410) POST /v1/progress/daily-sync
 DISABLED (410) POST /v1/learning/state-sync
@@ -151,7 +156,7 @@ while `/v2` owns authentication and the canonical bootstrap read:
   account revision fence for first-event migration, while legacy space
   documents are read-only after the global v1 space cutover.
 - Card source, membership state, independent `softbook_daily_check_ins`, event-derived daily progress, learning state, space action ledger, and space state persist to CloudBase NoSQL when `SOFTBOOK_STORE_MODE=cloudbase`; retained legacy daily, learning, and space documents are migration reads only. Local tests still default to the in-memory adapter.
-- Card source reads `softbook_card_sources` by track. Development mode seeds the CET4/CET6 records when a track document is missing; production bootstrap never seeds development content and fails closed. The legacy card-source response envelope remains the same one parsed by the mobile app.
+- Authenticated `/v2/learning/card-source` reads `softbook_card_sources` by track and is the mobile contract in every runtime. Development mode may seed CET4/CET6 records when a track document is missing; non-development modes never seed development content and fail closed without a matching release. The `/v1` alias is retained only for development migration compatibility.
 - The router uses classic event-style `exports.main` so it can be bound to CloudBase HTTP access service paths such as `/softbook-api`.
 
 The tracked `cloudbaserc.json` deliberately contains no environment variable
@@ -307,6 +312,21 @@ Audit the current CloudBase documents without writing:
 node infra/cloudbase/audit-card-sources.mjs
 node infra/cloudbase/audit-card-sources.mjs --track cet4
 ```
+
+An exact approved controlled-pilot candidate can be exercised locally through
+the authenticated v2 card-source, five-card server round and signed manifest
+without claiming deployment or audio approval:
+
+```bash
+node infra/cloudbase/smoke-controlled-pilot-candidate-runtime.mjs \
+  --candidate-payload <candidate.json> \
+  --pilot-review <review.json> \
+  --approval <approval.json> \
+  --audit <audit.json> \
+  --checked-at <ISO-8601 timestamp>
+```
+
+The report is repository validation only and always `gate_eligible=false`.
 
 The audit command reads `softbook_card_sources` with `QUERY`, reuses the same
 runtime validator, and checks `spec/box-catalog.json` prefix/path alignment, so

@@ -97,17 +97,17 @@ test('remote runtime profile switches every remote-capable surface to one base u
   expect(
     resolveLearningSessionRepositoryConfig(config).remoteConfig,
   ).toMatchObject({
-    endpoint: 'https://api.softbook.example/v1/learning/card-source',
+    endpoint: 'https://api.softbook.example/v2/learning/card-source',
     headers: {
       'x-softbook-client': 'mobile',
     },
   });
   expect(resolveMembershipRepositoryConfig(config).remoteConfig).toMatchObject({
     entitlementEndpoint:
-      'https://api.softbook.example/v1/membership/entitlement',
-    purchaseEndpoint: 'https://api.softbook.example/v1/membership/purchase',
+      'https://api.softbook.example/v2/membership/entitlement',
+    purchaseEndpoint: 'https://api.softbook.example/v2/membership/purchase',
     startTrialEndpoint:
-      'https://api.softbook.example/v1/membership/start-trial',
+      'https://api.softbook.example/v2/membership/start-trial',
     headers: {
       'x-api-key': 'dev-key',
       'x-softbook-client': 'mobile',

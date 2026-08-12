@@ -134,7 +134,7 @@ test('softbook remote learning config maps runtime baseUrl and payload envelope'
   );
 
   expect(fetchMock).toHaveBeenCalledWith(
-    'https://api.softbook.example/v1/learning/card-source?track=cet4',
+    'https://api.softbook.example/v2/learning/card-source?track=cet4',
     {
       method: 'GET',
       headers: {

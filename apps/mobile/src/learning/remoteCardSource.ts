@@ -253,7 +253,7 @@ export function createSoftbookRemoteLearningCardSourceConfig(
   config: SoftbookRemoteLearningCardSourceRuntimeConfig,
 ): RemoteLearningCardSourceConfig {
   return {
-    endpoint: `${trimTrailingSlash(config.baseUrl)}/v1/learning/card-source`,
+    endpoint: `${trimTrailingSlash(config.baseUrl)}/v2/learning/card-source`,
     apiKey: config.apiKey,
     headers: {
       'x-softbook-client': 'mobile',

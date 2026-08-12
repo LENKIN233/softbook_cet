@@ -259,11 +259,27 @@ async function route(request, response) {
     return;
   }
 
-  if (method === 'GET' && path === '/v1/learning/card-source') {
-    const track = url.searchParams.get('track') || 'cet4';
+  if (
+    method === 'GET' &&
+    (path === '/v2/learning/card-source' ||
+      path === '/v1/learning/card-source')
+  ) {
+    const track =
+      url.searchParams.get('track') ||
+      (path.startsWith('/v1/') ? 'cet4' : null);
 
     if (track !== 'cet4' && track !== 'cet6') {
       sendJson(response, 400, {error: 'track must be cet4 or cet6'});
+      return;
+    }
+
+    if (
+      path === '/v2/learning/card-source' &&
+      (url.searchParams.size !== 1 || !url.searchParams.has('track'))
+    ) {
+      sendJson(response, 400, {
+        error: {code: 'learning_card_source_input_forbidden'},
+      });
       return;
     }
 
@@ -280,7 +296,11 @@ async function route(request, response) {
     return;
   }
 
-  if (method === 'GET' && path === '/v1/membership/entitlement') {
+  if (
+    method === 'GET' &&
+    (path === '/v2/membership/entitlement' ||
+      path === '/v1/membership/entitlement')
+  ) {
     sendJson(
       response,
       200,
@@ -289,9 +309,13 @@ async function route(request, response) {
     return;
   }
 
-  if (method === 'POST' && path === '/v1/membership/start-trial') {
+  if (
+    method === 'POST' &&
+    (path === '/v2/membership/start-trial' ||
+      path === '/v1/membership/start-trial')
+  ) {
     const body = await readJson(request);
-    assertSessionPhone(body, session);
+    if (path.startsWith('/v1/')) assertSessionPhone(body, session);
     const membership = createMembership('trial');
     memberships.set(session.phoneNumber, {
       acknowledged_at: new Date().toISOString(),
@@ -302,9 +326,13 @@ async function route(request, response) {
     return;
   }
 
-  if (method === 'POST' && path === '/v1/membership/purchase') {
+  if (
+    method === 'POST' &&
+    (path === '/v2/membership/purchase' ||
+      path === '/v1/membership/purchase')
+  ) {
     const body = await readJson(request);
-    assertSessionPhone(body, session);
+    if (path.startsWith('/v1/')) assertSessionPhone(body, session);
     const membership = createMembership('premium');
     memberships.set(session.phoneNumber, {
       acknowledged_at: new Date().toISOString(),
@@ -315,9 +343,13 @@ async function route(request, response) {
     return;
   }
 
-  if (method === 'POST' && path === '/v1/membership/dismiss-recovery') {
+  if (
+    method === 'POST' &&
+    (path === '/v2/membership/dismiss-recovery' ||
+      path === '/v1/membership/dismiss-recovery')
+  ) {
     const body = await readJson(request);
-    assertSessionPhone(body, session);
+    if (path.startsWith('/v1/')) assertSessionPhone(body, session);
     const membership = createMembership('free', false, 'trial');
     memberships.set(session.phoneNumber, {
       acknowledged_at: new Date().toISOString(),

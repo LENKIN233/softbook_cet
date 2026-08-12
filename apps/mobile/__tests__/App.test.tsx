@@ -1520,7 +1520,7 @@ test('keeps verified remote auth when entitlement bootstrap is unavailable', asy
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse({}, 503);
     }
 
@@ -1552,7 +1552,7 @@ test('keeps verified remote auth when entitlement bootstrap is unavailable', asy
   expect(
     fetchCalls.filter(
       call =>
-        call.input === 'https://api.softbook.example/v1/membership/entitlement',
+        call.input === 'https://api.softbook.example/v2/membership/entitlement',
     ).length,
   ).toBeGreaterThanOrEqual(1);
 });
@@ -1589,7 +1589,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
       );
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
@@ -1625,7 +1625,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
     mode: 'remote',
     remoteConfig: {
       apiKey: 'profile-key',
-      endpoint: 'https://api.softbook.example/v1/learning/card-source',
+      endpoint: 'https://api.softbook.example/v2/learning/card-source',
       headers: {
         'x-softbook-client': 'mobile',
       },
@@ -1720,7 +1720,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
   expect(
     fetchCalls.some(
       call =>
-        call.input === 'https://api.softbook.example/v1/membership/entitlement',
+        call.input === 'https://api.softbook.example/v2/membership/entitlement',
     ),
   ).toBe(false);
 
@@ -2858,7 +2858,7 @@ test('does not start a remote trial before bootstrap content is validated', asyn
       fetchCalls.filter(
         call =>
           call.input ===
-          'https://api.softbook.example/v1/membership/start-trial',
+          'https://api.softbook.example/v2/membership/start-trial',
       ),
     ).toHaveLength(0);
     expect(
@@ -3059,7 +3059,7 @@ test('queues a failed explicit remote check-in without uploading progress counte
       return createJsonResponse(createAccountBootstrapPayload());
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
@@ -3157,7 +3157,7 @@ test('does not count a prior China-day card projection as today or enable check-
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
@@ -3216,7 +3216,7 @@ test('settles a failed China-day rollover refresh as waiting for update', async 
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
@@ -3760,7 +3760,7 @@ test('replays an explicit queued check-in and confirms it through bootstrap afte
       );
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
@@ -4305,7 +4305,7 @@ test('replays a queued space action after network reconnect', async () => {
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
@@ -4385,7 +4385,7 @@ test('quarantines a removed-card space action and restores canonical state', asy
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
@@ -4473,7 +4473,7 @@ test('bounds canonical refresh attempts while a Space content mismatch remains u
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
@@ -4612,7 +4612,7 @@ test('replays queued membership refresh after network reconnect', async () => {
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       entitlementRequestCount += 1;
 
       if (entitlementRequestCount === 2) {
@@ -4657,7 +4657,7 @@ test('replays queued membership refresh after network reconnect', async () => {
   expect(
     fetchCalls.filter(
       call =>
-        call.input === 'https://api.softbook.example/v1/membership/entitlement',
+        call.input === 'https://api.softbook.example/v2/membership/entitlement',
     ).length,
   ).toBeGreaterThanOrEqual(2);
 });
@@ -4691,13 +4691,13 @@ test('starts the remote trial automatically on the first authenticated entry', a
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(
         createRemoteMembershipPayload('trial_available'),
       );
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/start-trial') {
+    if (input === 'https://api.softbook.example/v2/membership/start-trial') {
       return createJsonResponse(createRemoteMembershipPayload('trial'));
     }
 
@@ -4724,7 +4724,7 @@ test('starts the remote trial automatically on the first authenticated entry', a
 
   const startTrialRequest = fetchCalls.find(
     call =>
-      call.input === 'https://api.softbook.example/v1/membership/start-trial',
+      call.input === 'https://api.softbook.example/v2/membership/start-trial',
   );
   expect(normalizeMockHeaders(startTrialRequest?.init?.headers)).toMatchObject({
     authorization: 'Bearer remote-auth-token',
@@ -4768,7 +4768,7 @@ test('waits for server confirmation before a queued automatic trial unlocks', as
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(
         createRemoteMembershipPayload(
           startTrialRequestCount >= 2 ? 'trial' : 'trial_available',
@@ -4776,7 +4776,7 @@ test('waits for server confirmation before a queued automatic trial unlocks', as
       );
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/start-trial') {
+    if (input === 'https://api.softbook.example/v2/membership/start-trial') {
       startTrialRequestCount += 1;
 
       if (startTrialRequestCount === 1) {
@@ -4831,7 +4831,7 @@ test('waits for server confirmation before a queued automatic trial unlocks', as
 
   const startTrialRequests = fetchCalls.filter(
     call =>
-      call.input === 'https://api.softbook.example/v1/membership/start-trial',
+      call.input === 'https://api.softbook.example/v2/membership/start-trial',
   );
   expect(startTrialRequests).toHaveLength(2);
 });
@@ -4887,11 +4887,11 @@ test('can unlock gated space after remote purchase', async () => {
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/purchase') {
+    if (input === 'https://api.softbook.example/v2/membership/purchase') {
       return createJsonResponse(createRemoteMembershipPayload('premium'));
     }
 
@@ -4938,7 +4938,7 @@ test('can unlock gated space after remote purchase', async () => {
 
   const purchaseRequest = fetchCalls.find(
     call =>
-      call.input === 'https://api.softbook.example/v1/membership/purchase',
+      call.input === 'https://api.softbook.example/v2/membership/purchase',
   );
   expect(normalizeMockHeaders(purchaseRequest?.init?.headers)).toMatchObject({
     authorization: 'Bearer remote-auth-token',
@@ -5002,11 +5002,11 @@ test('keeps remote purchase failure copy user-facing', async () => {
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(createRemoteMembershipPayload('free'));
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/purchase') {
+    if (input === 'https://api.softbook.example/v2/membership/purchase') {
       return createJsonResponse({}, 503);
     }
 
@@ -5064,7 +5064,7 @@ test('can dismiss remote recovery reminder from mine', async () => {
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(
         createRemoteMembershipPayload('free', {
           last_experience_ended_by: 'trial',
@@ -5074,7 +5074,7 @@ test('can dismiss remote recovery reminder from mine', async () => {
     }
 
     if (
-      input === 'https://api.softbook.example/v1/membership/dismiss-recovery'
+      input === 'https://api.softbook.example/v2/membership/dismiss-recovery'
     ) {
       return createJsonResponse(
         createRemoteMembershipPayload('free', {
@@ -5121,7 +5121,7 @@ test('can dismiss remote recovery reminder from mine', async () => {
   const dismissRecoveryRequest = fetchCalls.find(
     call =>
       call.input ===
-      'https://api.softbook.example/v1/membership/dismiss-recovery',
+      'https://api.softbook.example/v2/membership/dismiss-recovery',
   );
   expect(
     normalizeMockHeaders(dismissRecoveryRequest?.init?.headers),
@@ -5155,7 +5155,7 @@ test('keeps remote recovery-dismiss failure copy user-facing', async () => {
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       return createJsonResponse(
         createRemoteMembershipPayload('free', {
           last_experience_ended_by: 'trial',
@@ -5165,7 +5165,7 @@ test('keeps remote recovery-dismiss failure copy user-facing', async () => {
     }
 
     if (
-      input === 'https://api.softbook.example/v1/membership/dismiss-recovery'
+      input === 'https://api.softbook.example/v2/membership/dismiss-recovery'
     ) {
       return createJsonResponse({}, 503);
     }
@@ -5227,7 +5227,7 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       entitlementRequestCount += 1;
 
       return createJsonResponse(
@@ -5270,7 +5270,7 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
   expect(
     fetchCalls.filter(
       call =>
-        call.input === 'https://api.softbook.example/v1/membership/entitlement',
+        call.input === 'https://api.softbook.example/v2/membership/entitlement',
     ),
   ).toHaveLength(2);
 });
@@ -5302,7 +5302,7 @@ test('refreshes remote entitlement again after leaving mine and reopening it', a
       return createRemoteAuthSessionResponse();
     }
 
-    if (input === 'https://api.softbook.example/v1/membership/entitlement') {
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
       entitlementRequestCount += 1;
 
       return createJsonResponse(
