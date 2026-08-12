@@ -48,6 +48,23 @@ test('controlled pilot profile is CET4-only, receiver-owned in shape, and never 
   );
 });
 
+test('controlled pilot profile requires a credential-free HTTPS function path', () => {
+  const missingPath = profileFixture();
+  missingPath.api_base_url = 'https://pilot-api.softbook.example';
+  assert.throws(
+    () => pilot.validateControlledPilotProfile(missingPath),
+    /with a path/,
+  );
+
+  const credentialed = profileFixture();
+  credentialed.api_base_url =
+    'https://user:secret@pilot-api.softbook.example/softbook-api';
+  assert.throws(
+    () => pilot.validateControlledPilotProfile(credentialed),
+    /credential-free/,
+  );
+});
+
 test('controlled pilot bundle locks 120 cards, 60 free cards, all libraries, approval, audit, and audio QC', () => {
   const bundle = pilot.validateControlledPilotBundle(bundleFixture());
   assert.equal(bundle.content.card_count, 120);
@@ -248,7 +265,7 @@ function profileFixture() {
     pilot_id: 'cet4-pilot-2026',
     environment_id: 'receiver-pilot-environment',
     region: 'ap-shanghai',
-    api_base_url: 'https://pilot-api.softbook.example',
+    api_base_url: 'https://pilot-api.softbook.example/softbook-api',
     runtime_mode: 'controlled_pilot',
     enabled_tracks: ['cet4'],
     minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},

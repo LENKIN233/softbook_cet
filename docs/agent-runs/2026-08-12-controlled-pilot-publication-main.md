@@ -34,6 +34,7 @@
 - Added a publisher that validates all bound bytes before private upload, stages and verifies content, activates last, and rereads the active pilot release through an injected receiver adapter.
 - Added shared runtime content authority: production accepts only `content-release.v1`; `controlled_pilot` accepts only a current `pilot-content-release.v1` with 120 cards and 60 free cards; development remains non-formal.
 - Applied the same authority to authenticated card-source reads, Bootstrap, Learning Events, Learning Session and Space actions. Non-development auth continues to require strong separate secrets, persistent storage, trusted client IP and a non-development SMS provider.
+- Reused the concrete CloudBase receiver adapter under an explicit pilot profile boundary and added a separate dry-run-first `preflight|provision|deploy|publish|verify` command. Pilot deployment injects `controlled_pilot`, records distinct staged verification, rereads uploaded assets, activates last and refuses to replace a different active release.
 
 ## Workspace boundary and read scope
 
@@ -49,6 +50,7 @@
 - `infra/cloudbase/controlled-pilot-v1-runtime-contract.md`: define product and implementation boundaries without claiming deployment.
 - `infra/cloudbase/controlled-pilot-v1.mjs`: validate pilot schemas and exact 120/60 constraints.
 - `infra/cloudbase/controlled-pilot-publisher-v1.mjs`: verify bound content, approval, audit, audio bytes/QC and activate last through an adapter.
+- `infra/cloudbase/deliver-controlled-pilot.mjs` and shared receiver delivery code: add exact-main-only pilot provisioning, deployment, publication and remote verification without relaxing production delivery.
 - `infra/cloudbase/functions/softbook-api/content-release-runtime.js`: central runtime-mode release authority.
 - Backend auth, Bootstrap, card-source, Learning Events, scheduler, SMS and Space modules: consume the central authority and accept the explicit controlled-pilot runtime mode without loosening production.
 - Controlled-pilot and runtime-mode tests: positive and fail-closed coverage.
@@ -64,6 +66,8 @@
 - `python3 scripts/validate_harness.py` -> passed after spec and doc-manifest updates.
 - Real candidate release-mode smoke using `/tmp/softbook-pilot-real-main.P5Htfm/card-make-candidate-handoff-cet4-card-source.json` -> 120 cards, 24 audio assets, unchanged content version `sha256:d2de9ebb3e4fcbb14acdd4ff5d76251a6d8d17e1c6445a0e42a264982f7594c9`, controlled-pilot accepted, production rejected, expiry rejected, free boundary `012106` / `000007`.
 - Real candidate publication preflight using the same payload -> bundle structure accepted with 120 cards, 60 free cards, exact seven-library and five-interaction distributions, and 24 audio assets; verification then failed closed exactly at the absent `controlled_pilot_120` user approval record. Report: `/tmp/cet4-controlled-pilot-real-preflight-report.json` (`gate_eligible=false`); next required gate after approval is human QC for all 24 referenced audio assets.
+- `node --test test/deliver-controlled-pilot.test.js test/deliver-release.test.js test/cloudbase-receiver-adapter.test.js test/controlled-pilot-publisher-v1.test.js` -> 26/26 passed after pilot receiver/deployment wiring and exact active-reread binding; formal release behavior remains covered in the same run.
+- `npm test` in `infra/cloudbase/functions/softbook-api` after receiver/deployment wiring -> 238/238 passed.
 
 ## Validation results
 
@@ -82,8 +86,8 @@
 ## Agent review status
 
 - Reviewer: Codex independent review record in PR #497
-- Status: passed locally; remote job awaits rerun because its first attempt read the pre-fix PR description
-- Blocking findings: none from the review record; protected product-owner environment approval and remaining required checks are still pending
+- Status: previous head passed remotely; the new receiver-delivery commit requires a fresh remote run
+- Blocking findings: none from the previous review record; protected product-owner environment approval and fresh required checks remain pending
 
 ## User-visible UI impact
 
@@ -97,9 +101,9 @@
 
 - The exact 120-card batch is still candidate content until the user gives final batch approval.
 - All 24 referenced audio assets still require human perceptual QC and the three product-semantics checks not covered by the current listening worklist.
-- A live receiver adapter/deployment command, pilot entitlement overlay, exact 120-hour trial timestamps, five-card round gate, deletion-worker extension and mobile pilot-specific wiring remain outside this PR.
+- Receiver-owned profile/secrets and actual execution, pilot entitlement overlay, exact 120-hour trial timestamps, five-card round gate, deletion-worker extension and mobile pilot-specific wiring remain outside repository-local completion.
 - All controlled-pilot artifacts remain `gate_eligible=false` and cannot satisfy formal closed-beta or launch gates.
 
 ## Follow-up
 
-- Land the candidate intake and publication-contract PRs on `main`, complete human content approval and audio QC, build an exact bound controlled-pilot bundle, add a receiver adapter/deployment slice, and execute real iOS/Android learning and private-audio smoke in an independent receiver environment.
+- Land the candidate intake and publication-contract PRs on `main`, complete human content approval and audio QC, build an exact bound controlled-pilot bundle, then execute the receiver delivery command and real iOS/Android learning/private-audio smoke in an independent environment.

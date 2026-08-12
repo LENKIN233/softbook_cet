@@ -186,6 +186,36 @@ test('pilot publication never activates before release time or after expiry', as
   );
 });
 
+test('pilot publication rejects a mismatched active reread after activation', async () => {
+  const fixture = await createFixture();
+  const verified = publisher.verifyControlledPilotBundleDirectory({
+    bundlePath: fixture.bundlePath,
+    profilePath: fixture.profilePath,
+  });
+  let staged;
+  const adapter = {
+    uploadAsset: async ({asset}) =>
+      `cloud://receiver-pilot/audio/${asset.asset_id}.mp3`,
+    stageContent: async ({cardSource}) => {
+      staged = structuredClone(cardSource);
+    },
+    verifyStaged: async () => {},
+    activateRelease: async () => {},
+    verifyActiveRelease: async () => ({
+      ...staged,
+      release: {...staged.release, pilot_id: 'different-pilot'},
+    }),
+  };
+
+  await assert.rejects(
+    () =>
+      publisher.publishVerifiedControlledPilot(verified, adapter, {
+        now: () => new Date('2026-08-10T00:00:00.000Z'),
+      }),
+    /could not be reverified/,
+  );
+});
+
 async function createFixture() {
   const directory = mkdtempSync(join(tmpdir(), 'controlled-pilot-publisher-'));
   temporaryDirectories.push(directory);
@@ -365,7 +395,7 @@ async function createFixture() {
     pilot_id: 'cet4-pilot-2026',
     environment_id: 'receiver-pilot-environment',
     region: 'ap-shanghai',
-    api_base_url: 'https://pilot.softbook.example',
+    api_base_url: 'https://pilot.softbook.example/softbook-api',
     runtime_mode: 'controlled_pilot',
     enabled_tracks: ['cet4'],
     minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},

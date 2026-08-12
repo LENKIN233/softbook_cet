@@ -26,7 +26,7 @@ Referenced active sources:
 - The repository implements fail-closed profile, bundle, approval, audit, audio-QC and release validators plus publication sequencing through an injected receiver adapter.
 - Runtime content authority distinguishes `development`, `production` and `controlled_pilot`: production accepts only `content-release.v1`; controlled pilot accepts only a current `pilot-content-release.v1` with exactly 120 cards and a 60-card free prefix; neither mode falls back to development content.
 - The shared authenticated card-source, Bootstrap, Learning Events, Learning Session and Space paths apply that mode boundary. Non-development authentication still requires strong separate secrets, a persistent store, trusted client IP and a non-development SMS provider.
-- Receiver adapter wiring, entitlement operations, five-card round gating, exact 120-hour trial timestamps, deletion-worker extensions, deployment tooling, mobile pilot-specific UI and real-device evidence remain separate and incomplete on current `main`.
+- A concrete CloudBase receiver adapter and dry-run-first `preflight|provision|deploy|publish|verify` command are implemented locally. Receiver-owned profile/secrets and execution, entitlement operations, five-card round gating, exact 120-hour trial timestamps, deletion-worker extensions, mobile pilot-specific UI and real-device evidence remain separate and incomplete on current `main`.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
 - None of this has been deployed to the receiver environment in this repository run. Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
 
@@ -52,7 +52,8 @@ The profile binds an independent receiver-owned environment,
 `runtime_mode=controlled_pilot`, only `cet4`, iOS and Android minimum versions,
 a public signing key ID, a 30–50 account cohort limit and a pilot expiry. The
 known personal development environment is rejected. It contains no credential
-or user identity and is always `gate_eligible=false`.
+or user identity, requires a credential-free HTTPS API base URL with a function
+path, and is always `gate_eligible=false`.
 
 ### `controlled-pilot-bundle.v1`
 
@@ -112,12 +113,25 @@ monitoring evidence remain pending.
 bound file hash, actual 120/60 distribution, catalog mapping, interaction
 counts, audio bytes and QC coverage. Given an injected receiver adapter,
 publication uploads private audio, stages hydrated content, verifies staged
-evidence, activates last and rereads the active pointer. This repository slice
-does not provide or invoke a live receiver adapter or deployment CLI.
+evidence, activates last and rereads the active pointer. The shared concrete
+CloudBase receiver adapter accepts the pilot profile without loosening the
+formal release profile, records a distinct `pilot-stage-verification.v1`, and
+refuses to replace a different active release in pilot mode.
 
-Receiver deployment, SMS delivery, route probes, trigger logs, deletion drills,
-rollback and real-device playback remain external work. Repository fixtures and
-in-memory adapters are never deployment evidence.
+`deliver-controlled-pilot.mjs` provides `preflight`, `provision`, `deploy`,
+`publish`, and `verify`. Every mutation is dry-run unless `--apply` is explicit;
+apply requires Node 22.13.0, clean exact `main`, an independent receiver
+environment, a complete collection catalog, strong separate auth/SMS/signing
+secrets and successful remote inspection. Deployment injects
+`SOFTBOOK_RUNTIME_MODE=controlled_pilot`, persistent CloudBase storage and a
+non-development SMS provider, and excludes fixed development codes. The
+command never emits launch-eligible evidence and does not provide pilot
+rollback; a failed or expired pilot must remain fail closed rather than silently
+activate arbitrary retained content.
+
+Actual receiver execution, SMS delivery, authenticated route probes, trigger
+logs, deletion drills and real-device playback remain external work. Repository
+fixtures, dry-runs and in-memory adapters are never deployment evidence.
 
 ### `pilot-outcome-report.v1`
 

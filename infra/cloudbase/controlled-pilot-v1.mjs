@@ -92,7 +92,7 @@ export function validateControlledPilotProfile(value) {
     pilot_id: requirePattern(profile.pilot_id, IDENTIFIER_PATTERN, 'pilot_id'),
     environment_id: environmentId,
     region: requirePattern(profile.region, /^[a-z]+-[a-z]+(?:-\d+)?$/, 'region'),
-    api_base_url: requireHttpsOrigin(profile.api_base_url, 'api_base_url'),
+    api_base_url: requireHttpsApiBaseUrl(profile.api_base_url, 'api_base_url'),
     runtime_mode: 'controlled_pilot',
     enabled_tracks: ['cet4'],
     minimum_client_versions: validateMinimumClientVersions(
@@ -767,25 +767,25 @@ function requireSafeRelativePath(value, label) {
   return path;
 }
 
-function requireHttpsOrigin(value, label) {
+function requireHttpsApiBaseUrl(value, label) {
   const candidate = requireString(value, label);
   let url;
   try {
     url = new URL(candidate);
   } catch {
-    fail(`${label} must be a valid HTTPS origin.`);
+    fail(`${label} must be a valid HTTPS API base URL.`);
   }
   if (
     url.protocol !== 'https:' ||
     url.username ||
     url.password ||
-    url.pathname !== '/' ||
+    url.pathname === '/' ||
     url.search ||
     url.hash
   ) {
-    fail(`${label} must be a credential-free HTTPS origin.`);
+    fail(`${label} must be a credential-free HTTPS API base URL with a path.`);
   }
-  return url.origin;
+  return url.toString().replace(/\/$/, '');
 }
 
 function requireStringArray(value, label) {

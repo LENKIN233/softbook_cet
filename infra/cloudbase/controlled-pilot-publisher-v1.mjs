@@ -228,7 +228,15 @@ export async function publishVerifiedControlledPilot(
   });
   if (
     active?.release?.schema_version !== 'pilot-content-release.v1' ||
-    active.release.gate_eligible !== false
+    active.release.pilot_id !== verified.bundle.pilot_id ||
+    active.release.profile_id !== verified.bundle.profile_id ||
+    active.release.release_id !== verified.bundle.release_id ||
+    active.release.content_version !== runtimeCardSource.content_version ||
+    active.release.card_count !== 120 ||
+    active.release.free_card_count !== 60 ||
+    active.release.expires_at !== verified.bundle.pilot_expires_at ||
+    active.release.gate_eligible !== false ||
+    JSON.stringify(active) !== JSON.stringify(runtimeCardSource)
   ) {
     fail('active controlled pilot release could not be reverified.');
   }
