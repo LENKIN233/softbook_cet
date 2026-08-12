@@ -4,7 +4,7 @@
 
 - Date: 2026-08-12
 - Branch: `infra/controlled-pilot-publication-main`
-- PR: pending
+- PR: `https://github.com/LENKIN233/softbook_cet/pull/497`
 - Summary: Restore the fail-closed CET4 controlled-pilot publication contract on current `main`, and make shared content authority distinguish development, production, and controlled-pilot releases without weakening formal production.
 
 ## Referenced specs
@@ -63,12 +63,14 @@
 - `npm test` in `infra/cloudbase/functions/softbook-api` with Node 22.13.0 -> 232/232 passed.
 - `python3 scripts/validate_harness.py` -> passed after spec and doc-manifest updates.
 - Real candidate release-mode smoke using `/tmp/softbook-pilot-real-main.P5Htfm/card-make-candidate-handoff-cet4-card-source.json` -> 120 cards, 24 audio assets, unchanged content version `sha256:d2de9ebb3e4fcbb14acdd4ff5d76251a6d8d17e1c6445a0e42a264982f7594c9`, controlled-pilot accepted, production rejected, expiry rejected, free boundary `012106` / `000007`.
+- Real candidate publication preflight using the same payload -> bundle structure accepted with 120 cards, 60 free cards, exact seven-library and five-interaction distributions, and 24 audio assets; verification then failed closed exactly at the absent `controlled_pilot_120` user approval record. Report: `/tmp/cet4-controlled-pilot-real-preflight-report.json` (`gate_eligible=false`); next required gate after approval is human QC for all 24 referenced audio assets.
 
 ## Validation results
 
 - Exact production/pilot mode separation passes.
 - The full existing backend contract suite passes with no production regression.
 - The real 120-card candidate can be normalized into a pilot release without changing its content identity.
+- The real candidate cannot enter publication without an exact, byte-bound user approval artifact; no approval or audio-QC evidence was synthesized for the preflight.
 - A live API smoke correctly refuses memory-backed non-development authentication, preserving the persistent-store boundary; no receiver deployment was attempted.
 - `./scripts/run_local_gates --profile pr` initially reported 22/36 passed because the new worktree lacked installed dependencies, the shell used Node 25/Ruby 2.6, and no PR/upstream existed. After installing lockfile dependencies, every affected mobile, web and backend command passed under Node 22.13.0. The required Ruby 3.3 toolchain and PR-context gates remain for GitHub CI.
 
@@ -79,9 +81,9 @@
 
 ## Agent review status
 
-- Reviewer: pending independent Agent review through PR gate
-- Status: pending
-- Blocking findings: none from local tests; PR review and required checks remain pending
+- Reviewer: Codex independent review record in PR #497
+- Status: passed locally; remote job awaits rerun because its first attempt read the pre-fix PR description
+- Blocking findings: none from the review record; protected product-owner environment approval and remaining required checks are still pending
 
 ## User-visible UI impact
 
@@ -100,4 +102,4 @@
 
 ## Follow-up
 
-- Land the candidate intake PR on `main`, complete human content approval and audio QC, build an exact bound controlled-pilot bundle, add a receiver adapter/deployment slice, and execute real iOS/Android learning and private-audio smoke in an independent receiver environment.
+- Land the candidate intake and publication-contract PRs on `main`, complete human content approval and audio QC, build an exact bound controlled-pilot bundle, add a receiver adapter/deployment slice, and execute real iOS/Android learning and private-audio smoke in an independent receiver environment.
