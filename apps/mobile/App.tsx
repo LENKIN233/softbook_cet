@@ -570,6 +570,11 @@ function AppShell({
   >([]);
   const [learningCurrentResult, setLearningCurrentResult] =
     useState<LearningCardResult | null>(null);
+  const [learningRoundContinuePending, setLearningRoundContinuePending] =
+    useState(false);
+  const [learningRoundContinueError, setLearningRoundContinueError] = useState<
+    string | null
+  >(null);
   const [learningPhase, setLearningPhase] = useState<LearningPhase>('learning');
   const [reviewSessionCards, setReviewSessionCards] = useState<LearningCard[]>(
     [],
@@ -923,8 +928,16 @@ function AppShell({
       ? reviewCompletedResults
       : learningCompletedResults;
   const currentLearningCard = activeSessionCards[learningIndex] ?? null;
-  const activeLibraryTone = currentLearningCard
-    ? resolveLibraryTone(currentLearningCard.space_metadata.library)
+  const currentRoundCompletion = learningSession?.roundCompletion ?? null;
+  const currentRoundSpaceCard = currentRoundCompletion
+    ? learningSession?.catalogCards.find(
+        card => card.card_id === currentRoundCompletion.spaceCardId,
+      ) ?? null
+    : null;
+  const activeLearningContextCard =
+    currentLearningCard ?? currentRoundSpaceCard;
+  const activeLibraryTone = activeLearningContextCard
+    ? resolveLibraryTone(activeLearningContextCard.space_metadata.library)
     : null;
   const learningPalette: Palette = activeLibraryTone
     ? {
@@ -2397,6 +2410,8 @@ function AppShell({
       setLearningIndex(0);
       setLearningPhase('learning');
       setLearningCurrentResult(null);
+      setLearningRoundContinuePending(false);
+      setLearningRoundContinueError(null);
       setLearningCompletedResults([]);
       setReviewSessionCards([]);
       setReviewCompletedResults([]);
@@ -2613,6 +2628,8 @@ function AppShell({
       setLearningSession(null);
       setLearningBootstrapStatus('idle');
       setLearningBootstrapError(null);
+      setLearningRoundContinuePending(false);
+      setLearningRoundContinueError(null);
       setLearningIndex(0);
       setLearningCurrentResult(null);
       setLearningCompletedResults([]);
@@ -3010,6 +3027,8 @@ function AppShell({
         setMappedAccountBootstrapSnapshot(accountBootstrapSnapshot);
 
         setLearningSession(session);
+        setLearningRoundContinuePending(false);
+        setLearningRoundContinueError(null);
         setLearningCurrentResult(null);
         setLearningCompletedResults(canonicalLearningState.learningResults);
         const scheduledPhase =
@@ -4180,6 +4199,65 @@ function AppShell({
       );
     },
     onRestartDeck: resetLearningDeck,
+    onContinueRound: () => {
+      if (
+        learningRoundContinuePending ||
+        currentRoundCompletion === null ||
+        learningSession === null ||
+        authenticatedRuntimeContext === null
+      ) {
+        return;
+      }
+      const continuationSession = authSessionCoordinator.getCurrentSession();
+      const continuationScopeKey = getAuthSessionScopeKey(continuationSession);
+      if (
+        continuationSession === null ||
+        continuationScopeKey === null ||
+        continuationSession.phoneNumber !==
+          authenticatedRuntimeContext.phoneNumber
+      ) {
+        setLearningRoundContinueError('登录状态已失效，请重新登录后再继续。');
+        return;
+      }
+      setLearningRoundContinuePending(true);
+      setLearningRoundContinueError(null);
+      learningSessionRepository
+        .continueRound(authenticatedRuntimeContext, learningSession)
+        .then(() => {
+          if (
+            getAuthSessionScopeKey(
+              authSessionCoordinator.getCurrentSession(),
+            ) !== continuationScopeKey
+          ) {
+            return;
+          }
+          setLearningSession(null);
+          setLearningCardState(null);
+          setLearningBootstrapStatus('idle');
+          setLearningBootstrapError(null);
+          setLearningRoundContinuePending(false);
+        })
+        .catch((error: unknown) => {
+          if (
+            getAuthSessionScopeKey(
+              authSessionCoordinator.getCurrentSession(),
+            ) !== continuationScopeKey ||
+            isRemoteRequestCancellationError(error)
+          ) {
+            return;
+          }
+          if (isRemoteAuthorizationError(error)) {
+            clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
+              () => undefined,
+            );
+            return;
+          }
+          setLearningRoundContinuePending(false);
+          setLearningRoundContinueError(
+            getUserFacingErrorMessage(error, '暂时无法继续下一轮，请重试。'),
+          );
+        });
+    },
   };
 
   const spaceHandlers = {
@@ -4635,6 +4713,7 @@ function AppShell({
       onFlip={learningHandlers.onFlip}
       onOpenResultDetail={() => setLearningScreen('result_detail')}
       onRestartDeck={learningHandlers.onRestartDeck}
+      onContinueRound={learningHandlers.onContinueRound}
       onStartReview={learningHandlers.onStartReview}
       onSelectOption={learningHandlers.onSelectOption}
       onSelectSwipeState={learningHandlers.onSelectSwipeState}
@@ -4647,6 +4726,17 @@ function AppShell({
       onTogglePeek={learningHandlers.onTogglePeek}
       palette={palette}
       reviewCandidateCount={reviewCandidateCards.length}
+      roundCompletion={
+        currentRoundCompletion && currentRoundSpaceCard
+          ? {
+              completedCount: currentRoundCompletion.completedCount,
+              reviewCardCount: currentRoundCompletion.reviewCardIds.length,
+              spaceCard: currentRoundSpaceCard,
+            }
+          : null
+      }
+      roundContinueError={learningRoundContinueError}
+      roundContinuePending={learningRoundContinuePending}
       sessionCards={activeSessionCards}
       sessionLabel={formatLearningSessionDisplayLabel(learningPhase)}
     />

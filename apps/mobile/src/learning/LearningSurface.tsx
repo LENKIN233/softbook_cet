@@ -62,6 +62,13 @@ type LearningSurfaceProps = {
   currentResult: LearningCardResult | null;
   completedResults: LearningCardResult[];
   reviewCandidateCount: number;
+  roundCompletion?: {
+    completedCount: number;
+    reviewCardCount: number;
+    spaceCard: LearningCard;
+  } | null;
+  roundContinueError?: string | null;
+  roundContinuePending?: boolean;
   onTogglePeek: () => void;
   onToggleFavorite: () => void;
   onToggleHint: () => void;
@@ -75,6 +82,7 @@ type LearningSurfaceProps = {
   onOpenResultDetail?: () => void;
   onAdvanceCard: () => void;
   onRestartDeck: () => void;
+  onContinueRound?: () => void;
   onStartReview?: () => void;
 };
 
@@ -225,6 +233,9 @@ export function LearningSurface({
   currentResult,
   completedResults,
   reviewCandidateCount,
+  roundCompletion = null,
+  roundContinueError = null,
+  roundContinuePending = false,
   onTogglePeek,
   onToggleFavorite,
   onToggleHint,
@@ -238,6 +249,7 @@ export function LearningSurface({
   onOpenResultDetail,
   onAdvanceCard,
   onRestartDeck,
+  onContinueRound,
   onStartReview,
 }: LearningSurfaceProps) {
   const {
@@ -273,6 +285,24 @@ export function LearningSurface({
       sessionCards.length,
     );
     const primaryAction = getPrimaryActionColors(palette);
+    const roundShelf = roundCompletion
+      ? formatSpaceDisplayName(
+          roundCompletion.spaceCard.space_metadata.library,
+          '当前书架',
+        )
+      : null;
+    const roundSection = roundCompletion
+      ? formatSpaceDisplayName(
+          roundCompletion.spaceCard.space_metadata.group,
+          '当前分区',
+        )
+      : null;
+    const roundContainer = roundCompletion
+      ? formatSpaceDisplayName(
+          roundCompletion.spaceCard.space_metadata.box,
+          '当前卡盒',
+        )
+      : null;
 
     return (
       <View style={[styles.oneScreenPage, styles.completeScreen]}>
@@ -290,26 +320,44 @@ export function LearningSurface({
           testID="learning-complete-summary"
         >
           <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-            {isReviewPhase ? '回看练习' : '单卡学习'}
+            {roundCompletion
+              ? '五卡一回合'
+              : isReviewPhase
+              ? '回看练习'
+              : '单卡学习'}
           </Text>
           <Text style={[styles.heroTitle, { color: palette.text }]}>
-            {isReviewPhase ? '本轮回看已走完' : '本轮学习已走完'}
+            {roundCompletion
+              ? '这一回合已收好'
+              : isReviewPhase
+              ? '本轮回看已走完'
+              : '本轮学习已走完'}
           </Text>
           <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
-            {isReviewPhase
+            {roundCompletion
+              ? '五张卡已经完成，学习位置和需要再看的卡都已由系统收好。'
+              : isReviewPhase
               ? `这轮从${displaySessionLabel}里回看了 ${sessionCards.length} 张卡，把“需要回看”的部分集中处理了一遍。`
               : `这轮从${displaySessionLabel}里完成了 ${sessionCards.length} 张卡，下一次会继续从需要再看的地方开始。`}
           </Text>
           <View style={styles.metricWrap}>
             <MetricPill
               label="完成"
-              value={`${summary.completed}/${summary.total}`}
+              value={
+                roundCompletion
+                  ? '5/5'
+                  : `${summary.completed}/${summary.total}`
+              }
               palette={palette}
             />
             <MetricPill
               label="下一步"
               value={
-                !isReviewPhase && reviewCandidateCount > 0
+                roundCompletion
+                  ? roundCompletion.reviewCardCount > 0
+                    ? `回看 ${roundCompletion.reviewCardCount}`
+                    : '已收好'
+                  : !isReviewPhase && reviewCandidateCount > 0
                   ? `回看 ${reviewCandidateCount}`
                   : '已收好'
               }
@@ -333,12 +381,18 @@ export function LearningSurface({
           <Text
             style={[styles.resultExplanationTitle, { color: palette.text }]}
           >
-            {isReviewPhase ? '回看已经收好' : '这一轮已经收好'}
+            {roundCompletion
+              ? '空间位置已收好'
+              : isReviewPhase
+              ? '回看已经收好'
+              : '这一轮已经收好'}
           </Text>
           <Text
             style={[styles.resultExplanationBody, { color: palette.textMuted }]}
           >
-            {isReviewPhase
+            {roundCompletion
+              ? `${roundShelf} · ${roundSection} · ${roundContainer}`
+              : isReviewPhase
               ? '仍不稳的点会留在后续学习里自然出现。'
               : '需要再看的卡已经收进回看，不要求你管理列表。'}
           </Text>
@@ -348,13 +402,20 @@ export function LearningSurface({
           <Text
             style={[styles.resultExplanationBody, { color: palette.textMuted }]}
           >
-            {isReviewPhase
+            {roundCompletion
+              ? roundCompletion.reviewCardCount > 0
+                ? `系统已按原卡源顺序留下 ${roundCompletion.reviewCardCount} 张需要再看的卡。确认后继续下一轮。`
+                : '这一回合没有需要再看的卡，确认后继续下一轮。'
+              : isReviewPhase
               ? '回看已经结束。可以回到首轮重新开始，也可以稍后按学习节奏继续。'
               : reviewCandidateCount > 0
               ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
               : '这一轮已经完成，可以重新练这轮卡。'}
           </Text>
-          {!isReviewPhase && reviewCandidateCount > 0 && onStartReview ? (
+          {!roundCompletion &&
+          !isReviewPhase &&
+          reviewCandidateCount > 0 &&
+          onStartReview ? (
             <Pressable
               onPress={onStartReview}
               style={[
@@ -373,18 +434,46 @@ export function LearningSurface({
               </Text>
             </Pressable>
           ) : null}
+          {roundContinueError ? (
+            <Text
+              style={[styles.resultExplanationBody, { color: palette.danger }]}
+              testID="learning-round-continue-error"
+            >
+              {roundContinueError}
+            </Text>
+          ) : null}
           <Pressable
-            onPress={onRestartDeck}
+            accessibilityRole="button"
+            accessibilityState={{
+              busy: roundCompletion ? roundContinuePending : false,
+              disabled: roundCompletion ? roundContinuePending : false,
+            }}
+            disabled={roundCompletion ? roundContinuePending : false}
+            onPress={
+              roundCompletion && onContinueRound
+                ? onContinueRound
+                : onRestartDeck
+            }
             style={[
               styles.primaryButton,
               { backgroundColor: primaryAction.surface },
             ]}
-            testID="learning-restart-button"
+            testID={
+              roundCompletion
+                ? 'learning-continue-round-button'
+                : 'learning-restart-button'
+            }
           >
             <Text
               style={[styles.primaryButtonLabel, { color: primaryAction.text }]}
             >
-              {isReviewPhase ? '回到首轮重新开始' : '重新练这轮卡'}
+              {roundCompletion
+                ? roundContinuePending
+                  ? '正在继续…'
+                  : '继续下一轮'
+                : isReviewPhase
+                ? '回到首轮重新开始'
+                : '重新练这轮卡'}
             </Text>
           </Pressable>
         </View>

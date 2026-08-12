@@ -103,6 +103,7 @@ const CLOUDBASE_COLLECTIONS = {
   learningEvents: 'softbook_learning_events',
   learningEventSequences: 'softbook_learning_event_sequences',
   learningMigrationRevisions: 'softbook_learning_migration_revisions',
+  pilotRoundContinuations: 'softbook_pilot_round_continuations',
   learningSessions: 'softbook_learning_sessions',
   learningStates: 'softbook_learning_states',
   memberships: 'softbook_memberships',
@@ -352,6 +353,21 @@ async function handleHttpRequest(config, request) {
       });
     }
 
+    if (method === 'POST' && path === '/v2/learning/round/continue') {
+      if (config.runtimeMode !== 'controlled_pilot') {
+        throw httpError(404, 'route_not_found', 'Route not found.');
+      }
+      const session = await config.authV2.requireActiveSession(request);
+      assertPilotRoundContinueRequest(request);
+      return jsonResponse(200, {
+        data: await config.learningSchedulerV1.continueRound({
+          accountKey: session.accountKey,
+          body: request.body,
+          phoneNumber: session.phoneNumber,
+        }),
+      });
+    }
+
     if (method === 'POST' && path === '/v2/progress/check-in') {
       const session = await config.authV2.requireActiveSession(request);
 
@@ -590,6 +606,16 @@ function assertLearningSessionIdentityComesFromSession(request) {
   }
 }
 
+function assertPilotRoundContinueRequest(request) {
+  if (Object.keys(request.query).length > 0 || request.body === undefined) {
+    throw httpError(
+      400,
+      'pilot_round_authority_input_forbidden',
+      'Pilot round continuation accepts only its exact command body.',
+    );
+  }
+}
+
 function assertContentManifestRequest(request) {
   const allowedQueryFields = new Set(['content_version', 'track']);
   const hasForbiddenQuery = Object.keys(request.query).some(
@@ -682,6 +708,7 @@ function createMemoryStore() {
   const learningEvents = new Map();
   const learningEventSequences = new Map();
   const learningMigrationRevisions = new Map();
+  const pilotRoundContinuations = new Map();
   const learningSessions = new Map();
   const learningStates = new Map();
   const spaceActionLineages = new Map();
@@ -1057,6 +1084,23 @@ function createMemoryStore() {
         );
         return true;
       }),
+    getPilotRoundContinuation: input =>
+      runLearningTransaction(async () =>
+        cloneJson(
+          pilotRoundContinuations.get(
+            createPilotRoundContinuationKey(input),
+          ) ?? null,
+        ),
+      ),
+    savePilotRoundContinuation: input =>
+      runLearningTransaction(async () => {
+        const key = createPilotRoundContinuationKey(input);
+        const existing = pilotRoundContinuations.get(key);
+        if (existing) return cloneJson(existing);
+        const acknowledgement = createStoredPilotRoundContinuation(input);
+        pilotRoundContinuations.set(key, acknowledgement);
+        return cloneJson(acknowledgement);
+      }),
     commitLearningEvents,
     getSpaceState: (phoneNumber, dayKey, options = {}) =>
       runSpaceTransaction(async () => {
@@ -1270,6 +1314,7 @@ function createMemoryStore() {
       learningEvents,
       learningEventSequences,
       learningMigrationRevisions,
+      pilotRoundContinuations,
       learningSessions,
       learningStates,
       memberships,
@@ -1298,6 +1343,9 @@ function createCloudBaseStore(options = {}) {
   const dailyProgress = db.collection(CLOUDBASE_COLLECTIONS.dailyProgress);
   const learningEventSequences = db.collection(
     CLOUDBASE_COLLECTIONS.learningEventSequences,
+  );
+  const pilotRoundContinuations = db.collection(
+    CLOUDBASE_COLLECTIONS.pilotRoundContinuations,
   );
   const learningSessions = db.collection(CLOUDBASE_COLLECTIONS.learningSessions);
   const learningStates = db.collection(CLOUDBASE_COLLECTIONS.learningStates);
@@ -1794,6 +1842,34 @@ function createCloudBaseStore(options = {}) {
           createNextLearningSessionState(current, input),
         );
         return true;
+      }),
+    getPilotRoundContinuation: async input => {
+      const document = await getCloudBaseDocument(
+        pilotRoundContinuations,
+        createPilotRoundContinuationId(input),
+      );
+      if (!isObject(document) || !Object.hasOwn(document, '_id')) {
+        return document;
+      }
+      const value = {...document};
+      delete value._id;
+      return value;
+    },
+    savePilotRoundContinuation: input =>
+      db.runTransaction(async transaction => {
+        const collection = transaction.collection(
+          CLOUDBASE_COLLECTIONS.pilotRoundContinuations,
+        );
+        const documentId = createPilotRoundContinuationId(input);
+        const existing = await getCloudBaseDocument(collection, documentId);
+        if (existing) {
+          const value = {...existing};
+          delete value._id;
+          return value;
+        }
+        const acknowledgement = createStoredPilotRoundContinuation(input);
+        await setCloudBaseDocument(collection, documentId, acknowledgement);
+        return acknowledgement;
       }),
     commitLearningEvents,
     getSpaceState: async (phoneNumber, dayKey, options = {}) => {
@@ -3071,6 +3147,27 @@ async function setCloudBaseDocument(collection, documentId, data) {
 
 function createCloudBaseDocumentId(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function createPilotRoundContinuationKey(input) {
+  return `${input.accountKey}:${input.track}:${input.completedCount}`;
+}
+
+function createPilotRoundContinuationId(input) {
+  return createCloudBaseDocumentId(createPilotRoundContinuationKey(input));
+}
+
+function createStoredPilotRoundContinuation(input) {
+  return {
+    account_key: input.accountKey,
+    acknowledged_at: input.acknowledgedAt,
+    completed_count: input.completedCount,
+    content_version: input.contentVersion,
+    pilot_id: input.pilotId,
+    receipt_id: input.receiptId,
+    schema_version: 'pilot-round-continue-ack.v1',
+    track: input.track,
+  };
 }
 
 function createDefaultCardSource(track) {

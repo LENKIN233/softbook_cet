@@ -288,6 +288,7 @@ function createRemoteLearningSessionPayload(
         due_at: null,
       },
       next_due_at: null,
+      round_completion: null,
     },
   };
 }

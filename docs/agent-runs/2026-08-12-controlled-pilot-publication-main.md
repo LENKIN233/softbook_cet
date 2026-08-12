@@ -64,7 +64,7 @@
 - `npm run lint && npm run typecheck && npm test -- --run && npm run build` in `apps/web` with Node 22.13.0 -> lint and typecheck passed; 12 tests passed; production bundle built and excluded development card content.
 - `npm test` in `infra/cloudbase/functions/softbook-api` with Node 22.13.0 -> 232/232 passed.
 - `python3 scripts/validate_harness.py` -> passed after spec and doc-manifest updates.
-- Real candidate release-mode smoke using `/tmp/softbook-pilot-real-main.P5Htfm/card-make-candidate-handoff-cet4-card-source.json` -> 120 cards, 24 audio assets, unchanged content version `sha256:d2de9ebb3e4fcbb14acdd4ff5d76251a6d8d17e1c6445a0e42a264982f7594c9`, controlled-pilot accepted, production rejected, expiry rejected, free boundary `012106` / `000007`.
+- Initial candidate release-mode smoke used content version `sha256:d2de9ebb3e4fcbb14acdd4ff5d76251a6d8d17e1c6445a0e42a264982f7594c9`. After card-make PR #154 removed author-facing `front.context` copy, restored three lock word-bank mirrors, and fixed two product-consumed analysis mirrors, the smoke was rerun against `/tmp/softbook-cet4-pilot-final.KqAEeq/card-make-candidate-handoff-cet4-card-source.json`: 120 cards, 24 audio assets, content version `sha256:dd2d397532556563a205351f04f98184afc09a4cd6a2580966556052ffc24f36`, payload SHA-256 `5f75b4ddd2e3462854d9c5dbdf9543178993356d150e23910966375fbb9feea3`, controlled-pilot accepted, production rejected, expiry rejected, free boundary `012106` / `000007`, internal production phrasing on learner-visible contexts 0.
 - Real candidate publication preflight using the same payload -> bundle structure accepted with 120 cards, 60 free cards, exact seven-library and five-interaction distributions, and 24 audio assets; verification then failed closed exactly at the absent `controlled_pilot_120` user approval record. Report: `/tmp/cet4-controlled-pilot-real-preflight-report.json` (`gate_eligible=false`); next required gate after approval is human QC for all 24 referenced audio assets.
 - `node --test test/deliver-controlled-pilot.test.js test/deliver-release.test.js test/cloudbase-receiver-adapter.test.js test/controlled-pilot-publisher-v1.test.js` -> 26/26 passed after pilot receiver/deployment wiring and exact active-reread binding; formal release behavior remains covered in the same run.
 - `npm test` in `infra/cloudbase/functions/softbook-api` after rebasing onto merged candidate intake -> 240/240 passed.
@@ -73,7 +73,7 @@
 
 - Exact production/pilot mode separation passes.
 - The full existing backend contract suite passes with no production regression.
-- The real 120-card candidate can be normalized into a pilot release without changing its content identity.
+- The current 120-card candidate can be normalized into a pilot release while preserving its current `dd2d3975...` content identity; any later card edit must produce and revalidate a different identity.
 - The real candidate cannot enter publication without an exact, byte-bound user approval artifact; no approval or audio-QC evidence was synthesized for the preflight.
 - A live API smoke correctly refuses memory-backed non-development authentication, preserving the persistent-store boundary; no receiver deployment was attempted.
 - `./scripts/run_local_gates --profile pr` initially reported 22/36 passed because the new worktree lacked installed dependencies, the shell used Node 25/Ruby 2.6, and no PR/upstream existed. After installing lockfile dependencies, every affected mobile, web and backend command passed under Node 22.13.0. The required Ruby 3.3 toolchain and PR-context gates remain for GitHub CI.
@@ -95,15 +95,15 @@
 
 ## Card make external workspace impact
 
-- No external card content, sample confirmation, formal approval, audio-QC record, or candidate review was modified.
+- Card content was not authored here. After this run, card-make PR #154 merged the final corrections and PR #155 recorded the user's explicit exact-version approval; audio-QC remains separate and incomplete.
 
 ## Risks and open questions
 
-- The exact 120-card batch is still candidate content until the user gives final batch approval.
+- The exact 120-card `dd2d3975...` batch is now user-approved through card-make PR #155; any later content change requires a new identity and approval.
 - All 24 referenced audio assets still require human perceptual QC and the three product-semantics checks not covered by the current listening worklist.
 - Receiver-owned profile/secrets and actual execution, pilot entitlement overlay, exact 120-hour trial timestamps, five-card round gate, deletion-worker extension and mobile pilot-specific wiring remain outside repository-local completion.
 - All controlled-pilot artifacts remain `gate_eligible=false` and cannot satisfy formal closed-beta or launch gates.
 
 ## Follow-up
 
-- Land the candidate intake and publication-contract PRs on `main`, complete human content approval and audio QC, build an exact bound controlled-pilot bundle, then execute the receiver delivery command and real iOS/Android learning/private-audio smoke in an independent environment.
+- With candidate intake, publication contract and exact content approval now landed, complete human audio QC, build the exact bound controlled-pilot bundle, then execute the receiver delivery command and real iOS/Android learning/private-audio smoke in an independent environment.

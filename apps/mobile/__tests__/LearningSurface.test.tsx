@@ -514,6 +514,59 @@ test('completion state keeps the next step primary instead of a metric dashboard
   expect(output).not.toContain('自动判错');
 });
 
+test('controlled-pilot round completion reuses the completion card with one canonical continue action', () => {
+  const session = createLocalLearningSession('cet4');
+  const onContinueRound = jest.fn();
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <LearningSurface
+        palette={palette}
+        sessionCards={[]}
+        sessionLabel={session.sourceLabel}
+        phase="learning"
+        currentCard={null}
+        currentCardState={null}
+        currentIndex={0}
+        currentResult={null}
+        completedResults={[]}
+        reviewCandidateCount={0}
+        roundCompletion={{
+          completedCount: 5,
+          reviewCardCount: 2,
+          spaceCard: session.catalogCards[0],
+        }}
+        onTogglePeek={jest.fn()}
+        onToggleFavorite={jest.fn()}
+        onToggleHint={jest.fn()}
+        onFlip={jest.fn()}
+        onSetFlipConfidence={jest.fn()}
+        onSelectOption={jest.fn()}
+        onSetLockSelection={jest.fn()}
+        onToggleEliminationItem={jest.fn()}
+        onSelectSwipeState={jest.fn()}
+        onSubmitCurrentCard={jest.fn()}
+        onAdvanceCard={jest.fn()}
+        onRestartDeck={jest.fn()}
+        onContinueRound={onContinueRound}
+      />,
+    );
+  });
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('五卡一回合');
+  expect(output).toContain('5/5');
+  expect(output).toContain('回看 2');
+  expect(output).toContain(session.catalogCards[0].space_metadata.library);
+  expect(
+    tree!.root.findAllByProps({ testID: 'learning-restart-button' }),
+  ).toHaveLength(0);
+  const button = tree!.root.findByProps({
+    testID: 'learning-continue-round-button',
+  });
+  ReactTestRenderer.act(() => button.props.onPress());
+  expect(onContinueRound).toHaveBeenCalledTimes(1);
+});
+
 test('result detail reads as a resolved card without raw metadata', () => {
   const session = createLocalLearningSession('cet4');
   const card = session.cards.find(

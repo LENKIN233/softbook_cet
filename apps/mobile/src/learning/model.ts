@@ -167,12 +167,22 @@ export type LearningServerSelection = {
 
 export type LearningServerMembershipStage = 'trial' | 'free' | 'premium';
 
+export type LearningRoundCompletion = {
+  completedCount: number;
+  contentVersion: string;
+  pilotId: string;
+  receiptId: string;
+  reviewCardIds: string[];
+  spaceCardId: string;
+};
+
 export type LearningSession = {
   catalogCards: LearningCard[];
   contentManifest: VerifiedContentManifest | null;
   contentVersion: string | null;
   membershipStage: LearningServerMembershipStage | null;
   nextDueAt: string | null;
+  roundCompletion: LearningRoundCompletion | null;
   schedulingMode: 'local' | 'server';
   serverSelection: LearningServerSelection | null;
   sourceId: string;

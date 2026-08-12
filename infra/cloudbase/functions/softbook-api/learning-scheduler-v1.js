@@ -5,6 +5,11 @@ const {
 } = require('./content-release-runtime');
 
 const LEARNING_SESSION_SCHEMA_VERSION = 'learning-session.v1';
+const PILOT_ROUND_COMPLETION_SCHEMA_VERSION = 'pilot-round-completion.v1';
+const PILOT_ROUND_CONTINUE_SCHEMA_VERSION = 'pilot-round-continue.v1';
+const PILOT_ROUND_CONTINUE_ACK_SCHEMA_VERSION =
+  'pilot-round-continue-ack.v1';
+const PILOT_ROUND_SIZE = 5;
 const SCHEDULER_POLICY_VERSION = 'softbook-fsrs.v1';
 const SCHEDULER_ALGORITHM = 'FSRS-6';
 const SCHEDULER_LIBRARY = 'ts-fsrs';
@@ -63,6 +68,7 @@ function createLearningSchedulerV1Service(options) {
   validateServiceConfig(config);
 
   return {
+    continueRound: input => continuePilotRound(config, input),
     read: input => readLearningSession(config, input),
   };
 }
@@ -122,6 +128,45 @@ async function readLearningSession(config, input) {
         context.learning.projectionServerSequence
     ) {
       continue;
+    }
+    const roundCompletion = await resolvePendingRoundCompletion(
+      config,
+      context,
+      input.accountKey,
+    );
+    if (roundCompletion !== null) {
+      const cursorAlreadyEmpty = context.sessionState.cursor === null;
+      const cursorStateAccepted = cursorAlreadyEmpty
+        ? await config.store.confirmLearningSessionCursor({
+            accountKey: input.accountKey,
+            expectedLearningAcknowledgedAt:
+              context.learning.projectionAcknowledgedAt,
+            expectedLearningServerSequence:
+              context.learning.projectionServerSequence,
+            expectedRevision: context.sessionState.revision,
+            track,
+          })
+        : await config.store.saveLearningSessionCursor({
+            accountKey: input.accountKey,
+            cursor: null,
+            expectedRevision: context.sessionState.revision,
+            learningAcknowledgedAt:
+              context.learning.projectionAcknowledgedAt,
+            learningServerSequence:
+              context.learning.projectionServerSequence,
+            track,
+            updatedAt: generatedAtIso,
+          });
+      if (!cursorStateAccepted) {
+        continue;
+      }
+      return serializeLearningSession(
+        context,
+        null,
+        null,
+        null,
+        roundCompletion,
+      );
     }
     const resumed = resumePersistedCursor(context);
 
@@ -203,6 +248,172 @@ async function readLearningSession(config, input) {
     'learning_session_conflict',
     'Learning state changed while selecting the next card.',
   );
+}
+
+async function continuePilotRound(config, input) {
+  if (config.runtimeMode !== 'controlled_pilot') {
+    throw learningSchedulerError(
+      404,
+      'route_not_found',
+      'The requested route is unavailable.',
+    );
+  }
+  let command;
+  try {
+    command = normalizePilotRoundContinueCommand(input.body);
+  } catch (error) {
+    if (Number.isInteger(error.statusCode)) throw error;
+    throw learningSchedulerError(400, 'invalid_request', error.message);
+  }
+  const generatedAt = requireValidDate(config.now(), 'scheduler clock');
+  const generatedAtIso = generatedAt.toISOString();
+  const dayKey = chinaActivityDay(generatedAt.getTime());
+  const [cardSource, learningState, membership, spaceState] = await Promise.all([
+    config.store.getCardSource(command.track, {allowDevelopmentDefault: false}),
+    config.store.getLearningState(input.phoneNumber, dayKey, command.track, {
+      accountKey: input.accountKey,
+      includeSchedulerState: true,
+    }),
+    config.store.getMembership(input.phoneNumber),
+    config.store.getSpaceState(input.phoneNumber, dayKey, {
+      accountKey: input.accountKey,
+      acknowledgedAt: generatedAtIso,
+    }),
+  ]);
+  assertPublishedContentAvailable(
+    cardSource,
+    config.runtimeMode,
+    command.track,
+    generatedAt,
+  );
+  const context = normalizeSelectionContext({
+    cardSource,
+    generatedAt,
+    learningState,
+    membershipStage: requireMembershipStage(membership.stage),
+    sessionState: null,
+    spaceState,
+    track: command.track,
+  });
+  const receipt = deriveRoundCompletion(context, input.accountKey);
+  if (
+    receipt === null ||
+    command.content_version !== receipt.content_version ||
+    command.receipt_id !== receipt.receipt_id ||
+    command.completed_count !== receipt.completed_count
+  ) {
+    throw learningSchedulerError(
+      409,
+      'pilot_round_authority_drift',
+      'The pilot round command no longer matches canonical learning state.',
+    );
+  }
+  const acknowledgement = await config.store.savePilotRoundContinuation({
+    accountKey: input.accountKey,
+    acknowledgedAt: generatedAtIso,
+    completedCount: receipt.completed_count,
+    contentVersion: receipt.content_version,
+    pilotId: receipt.pilot_id,
+    receiptId: receipt.receipt_id,
+    track: command.track,
+  });
+  return serializePilotRoundAcknowledgement(
+    normalizePilotRoundAcknowledgement(acknowledgement, {
+      accountKey: input.accountKey,
+      completedCount: receipt.completed_count,
+      contentVersion: receipt.content_version,
+      pilotId: receipt.pilot_id,
+      receiptId: receipt.receipt_id,
+      track: command.track,
+    }),
+  );
+}
+
+async function resolvePendingRoundCompletion(config, context, accountKey) {
+  if (config.runtimeMode !== 'controlled_pilot') return null;
+  const receipt = deriveRoundCompletion(context, accountKey);
+  if (receipt === null) return null;
+  const acknowledgement = await config.store.getPilotRoundContinuation({
+    accountKey,
+    completedCount: receipt.completed_count,
+    track: context.track,
+  });
+  if (acknowledgement === null) return receipt;
+  const normalized = normalizePilotRoundAcknowledgement(acknowledgement, {
+    accountKey,
+    completedCount: receipt.completed_count,
+    contentVersion: receipt.content_version,
+    pilotId: receipt.pilot_id,
+    receiptId: receipt.receipt_id,
+    track: context.track,
+  });
+  return normalized ? null : receipt;
+}
+
+function deriveRoundCompletion(context, accountKey) {
+  const completedCount = context.learning.projectionServerSequence;
+  if (completedCount <= 0 || completedCount % PILOT_ROUND_SIZE !== 0) {
+    return null;
+  }
+  if (context.track !== 'cet4' || context.pilotId === null) {
+    throw unavailable('The pilot round release context is invalid.');
+  }
+  const boundaryEvents = Object.values(
+    context.learning.eventsByCardId,
+  ).filter(event => event.server_sequence === completedCount);
+  const boundaryEvent = boundaryEvents[0];
+  if (
+    boundaryEvents.length !== 1 ||
+    !isObject(boundaryEvent) ||
+    !context.cardIdSet.has(boundaryEvent.card_id) ||
+    boundaryEvent.track !== context.track ||
+    boundaryEvent.content_version !== context.contentVersion
+  ) {
+    throw unavailable('The pilot round boundary event is invalid.');
+  }
+  for (const [cardId, event] of Object.entries(
+    context.learning.eventsByCardId,
+  )) {
+    if (
+      !isObject(event) ||
+      event.card_id !== cardId ||
+      event.track !== context.track ||
+      !['passed', 'review_needed'].includes(event.answer_grade)
+    ) {
+      throw unavailable('The pilot round learning projection is invalid.');
+    }
+  }
+  const reviewCardIds = context.accessibleCards
+    .filter(card => {
+      const event = context.learning.eventsByCardId[card.cardId];
+      return (
+        !context.sleepingCardIds.has(card.cardId) &&
+        isObject(event) &&
+        event.answer_grade === 'review_needed'
+      );
+    })
+    .map(card => card.cardId);
+  const receiptId = `prc_${crypto
+    .createHash('sha256')
+    .update(
+      [
+        accountKey,
+        context.pilotId,
+        context.track,
+        context.contentVersion,
+        String(completedCount),
+      ].join('\u0000'),
+    )
+    .digest('base64url')}`;
+  return {
+    schema_version: PILOT_ROUND_COMPLETION_SCHEMA_VERSION,
+    pilot_id: context.pilotId,
+    content_version: context.contentVersion,
+    receipt_id: receiptId,
+    completed_count: completedCount,
+    space_card_id: boundaryEvent.card_id,
+    review_card_ids: reviewCardIds,
+  };
 }
 
 async function activateAvailableTrial(
@@ -317,6 +528,13 @@ function normalizeSelectionContext(input) {
     generatedAt: input.generatedAt,
     learning,
     membershipStage: input.membershipStage,
+    pilotId:
+      input.cardSource.release?.schema_version === 'pilot-content-release.v1'
+        ? requireNonEmptyString(
+            input.cardSource.release.pilot_id,
+            'card source.release.pilot_id',
+          )
+        : null,
     sessionState: input.sessionState,
     sleepingCardIds,
     sourceId,
@@ -530,6 +748,7 @@ function serializeLearningSession(
   selection,
   responseReason,
   nextDueAt = null,
+  roundCompletion = null,
 ) {
   const cursor = selection?.cursor ?? null;
 
@@ -561,6 +780,89 @@ function serializeLearningSession(
         }
       : null,
     next_due_at: nextDueAt,
+    round_completion: roundCompletion,
+  };
+}
+
+function normalizePilotRoundContinueCommand(value) {
+  requireExactKeys(
+    value,
+    [
+      'completed_count',
+      'content_version',
+      'receipt_id',
+      'schema_version',
+      'track',
+    ],
+    'pilot round continue command',
+  );
+  if (value.schema_version !== PILOT_ROUND_CONTINUE_SCHEMA_VERSION) {
+    throw learningSchedulerError(400, 'invalid_request', 'Pilot round command schema is invalid.');
+  }
+  const track = requireTrack(value.track, 'pilot round command.track');
+  if (track !== 'cet4') {
+    throw learningSchedulerError(400, 'invalid_request', 'Pilot rounds require CET4.');
+  }
+  const receiptId = requireNonEmptyString(
+    value.receipt_id,
+    'pilot round command.receipt_id',
+  );
+  if (!/^prc_[A-Za-z0-9_-]{43}$/.test(receiptId)) {
+    throw learningSchedulerError(400, 'invalid_request', 'Pilot round receipt ID is invalid.');
+  }
+  return {
+    completed_count: requirePositiveSafeInteger(
+      value.completed_count,
+      'pilot round command.completed_count',
+    ),
+    content_version: requireContentVersion(
+      value.content_version,
+      'pilot round command.content_version',
+    ),
+    receipt_id: receiptId,
+    track,
+  };
+}
+
+function normalizePilotRoundAcknowledgement(value, expected) {
+  requireExactKeys(
+    value,
+    [
+      'account_key',
+      'acknowledged_at',
+      'completed_count',
+      'content_version',
+      'pilot_id',
+      'receipt_id',
+      'schema_version',
+      'track',
+    ],
+    'pilot round acknowledgement',
+  );
+  if (
+    value.schema_version !== PILOT_ROUND_CONTINUE_ACK_SCHEMA_VERSION ||
+    value.account_key !== expected.accountKey ||
+    value.pilot_id !== expected.pilotId ||
+    value.track !== expected.track ||
+    value.content_version !== expected.contentVersion ||
+    value.receipt_id !== expected.receiptId ||
+    value.completed_count !== expected.completedCount
+  ) {
+    throw new Error('Pilot round acknowledgement authority is invalid.');
+  }
+  requireIsoTimestamp(value.acknowledged_at, 'pilot round acknowledgement.acknowledged_at');
+  return value;
+}
+
+function serializePilotRoundAcknowledgement(value) {
+  return {
+    schema_version: value.schema_version,
+    pilot_id: value.pilot_id,
+    track: value.track,
+    content_version: value.content_version,
+    receipt_id: value.receipt_id,
+    completed_count: value.completed_count,
+    acknowledged_at: value.acknowledged_at,
   };
 }
 
@@ -1033,8 +1335,10 @@ function validateServiceConfig(config) {
     'getLearningSessionCursor',
     'getLearningState',
     'getMembership',
+    'getPilotRoundContinuation',
     'getSpaceState',
     'saveLearningSessionCursor',
+    'savePilotRoundContinuation',
     'startTrial',
   ]) {
     if (typeof config.store?.[name] !== 'function') {
@@ -1200,6 +1504,9 @@ function learningSchedulerError(statusCode, code, message) {
 
 module.exports = {
   LEARNING_SESSION_SCHEMA_VERSION,
+  PILOT_ROUND_COMPLETION_SCHEMA_VERSION,
+  PILOT_ROUND_CONTINUE_ACK_SCHEMA_VERSION,
+  PILOT_ROUND_CONTINUE_SCHEMA_VERSION,
   SCHEDULER_ALGORITHM,
   SCHEDULER_LIBRARY,
   SCHEDULER_LIBRARY_VERSION,
