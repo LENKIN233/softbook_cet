@@ -44,7 +44,7 @@
 
 - Active truth/source read: the referenced specs, runtime contracts, accepted design artifacts, backend/mobile implementation, tests, and current PR/run-record context.
 - Generated/dependency/cache/archive read: lockfile-installed mobile and backend dependencies only for validation; no archive was used as product truth.
-- External workspace read: no new read or write in `/Users/lenkin/programing/card make`; the already-known 120-card handoff identity was not changed.
+- External workspace read: the current 120-card handoff was regenerated from `/Users/lenkin/programing/card-make-worktrees/cet4-pilot-samples` after card-make PR #154. No content was copied into this repository and no approval or audio-QC artifact was created here.
 
 ## Files changed
 
@@ -67,6 +67,7 @@
 - `python3 scripts/validate_harness.py --mode local` -> passed after installing repository hooks in this worktree.
 - `python3 scripts/validate_harness.py` -> full harness validation passed before PR creation.
 - `git diff --check` -> passed.
+- Current real-candidate consumer smoke -> 120 cards, stable 60-card free boundary `012106` / `000007`, 24 audio assets, content version `sha256:dd2d397532556563a205351f04f98184afc09a4cd6a2580966556052ffc24f36`; controlled-pilot accepted, production and expiry rejected, learner-visible internal-production phrasing 0, corrected lock and analysis mirrors present.
 
 ## Validation results
 
@@ -76,6 +77,7 @@
 - CloudBase reads and exact replays remove the database `_id` metadata before business-schema validation and survive separate store instances.
 - Mobile rejects conflicting, malformed, inaccessible, duplicate, or reordered receipt content and reloads Learning only after an exact acknowledgement.
 - UI completion state has one canonical continuation action and preserves retry/error state without leaking implementation metadata.
+- The server-controlled round gate consumes the current regenerated candidate content identity without hard-coding the previous candidate hash; content changes continue to invalidate receipts through the existing content-version binding.
 
 ## Binary evidence
 
