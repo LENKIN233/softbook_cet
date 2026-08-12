@@ -1,5 +1,9 @@
 const crypto = require('node:crypto');
 const {serializeSpaceState} = require('./space-actions-v2');
+const {
+  PILOT_RELEASE_SCHEMA,
+  isContentReleaseValidForRuntime,
+} = require('./content-release-runtime');
 
 const BOOTSTRAP_SCHEMA_VERSION = 'bootstrap.v2';
 const CONTENT_RELEASE_SCHEMA_VERSION = 'content-release.v1';
@@ -35,12 +39,15 @@ function createBootstrapV2Service(options) {
 async function readBootstrap(config, input) {
   const generatedAt = config.now().toISOString();
   const cardSource = await config.store.getCardSource(input.track, {
-    allowDevelopmentDefault: config.runtimeMode !== 'production',
+    allowDevelopmentDefault: config.runtimeMode === 'development',
   });
 
   if (
-    config.runtimeMode === 'production' &&
-    (cardSource.release === null || cardSource.release === undefined)
+    !isContentReleaseValidForRuntime(
+      cardSource,
+      config.runtimeMode,
+      generatedAt,
+    )
   ) {
     throw contentReleaseUnavailableError(
       'A matching published content release is required.',
@@ -209,6 +216,23 @@ function normalizeComponentRevisions(input) {
 
 function serializeContent(cardSource) {
   const release = cardSource.release;
+
+  if (release?.schema_version === PILOT_RELEASE_SCHEMA) {
+    return {
+      card_count: cardSource.card_records.length,
+      release_id: release.release_id,
+      release_class: 'controlled_pilot',
+      pilot_id: release.pilot_id,
+      minimum_client_versions: release.minimum_client_versions,
+      expires_at: release.expires_at,
+      gate_eligible: false,
+      source: {
+        id: cardSource.source.id,
+        label: cardSource.source.label,
+      },
+      version: cardSource.content_version,
+    };
+  }
 
   return {
     card_count: cardSource.card_records.length,
@@ -572,6 +596,9 @@ function normalizeContentRelease(value, contentVersion, expectedTrack) {
     release.schema_version,
     'card source.release.schema_version',
   );
+  if (schemaVersion === PILOT_RELEASE_SCHEMA) {
+    return normalizePilotContentRelease(release, contentVersion, expectedTrack);
+  }
   const track = requireCardSourceTrack(
     release.track,
     'card source.release.track',
@@ -646,6 +673,92 @@ function normalizeContentRelease(value, contentVersion, expectedTrack) {
   };
 }
 
+function normalizePilotContentRelease(release, contentVersion, expectedTrack) {
+  const track = requireCardSourceTrack(
+    release.track,
+    'card source.release.track',
+  );
+  const declaredContentVersion = requireCardSourceString(
+    release.content_version,
+    'card source.release.content_version',
+  );
+  const releaseId = requireContentReleaseId(
+    release.release_id,
+    'card source.release.release_id',
+  );
+  const pilotId = requireContentReleaseId(
+    release.pilot_id,
+    'card source.release.pilot_id',
+  );
+  const profileId = requireContentReleaseId(
+    release.profile_id,
+    'card source.release.profile_id',
+  );
+  const activatedAt = requireCardSourceString(
+    release.activated_at,
+    'card source.release.activated_at',
+  );
+  const expiresAt = requireCardSourceString(
+    release.expires_at,
+    'card source.release.expires_at',
+  );
+  const minimumClientVersions = requireCardSourceObject(
+    release.minimum_client_versions,
+    'card source.release.minimum_client_versions',
+  );
+  const normalizedMinimumClients = Object.fromEntries(
+    ['android', 'ios'].map(platform => {
+      const version = requireCardSourceString(
+        minimumClientVersions[platform],
+        `card source.release.minimum_client_versions.${platform}`,
+      );
+      if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
+        throw cardSourceError(
+          `card source.release.minimum_client_versions.${platform} must use semantic version form.`,
+        );
+      }
+      return [platform, version];
+    }),
+  );
+  if (
+    track !== expectedTrack ||
+    track !== 'cet4' ||
+    declaredContentVersion !== contentVersion ||
+    release.runtime_mode !== 'controlled_pilot' ||
+    release.release_class !== 'controlled_pilot' ||
+    release.card_count !== 120 ||
+    release.free_card_count !== 60 ||
+    release.gate_eligible !== false ||
+    !isCanonicalIsoTimestamp(activatedAt) ||
+    !isCanonicalIsoTimestamp(expiresAt) ||
+    activatedAt >= expiresAt
+  ) {
+    throw cardSourceError('card source pilot release is invalid.');
+  }
+  return {
+    schema_version: PILOT_RELEASE_SCHEMA,
+    release_id: releaseId,
+    profile_id: profileId,
+    pilot_id: pilotId,
+    release_class: 'controlled_pilot',
+    runtime_mode: 'controlled_pilot',
+    track: 'cet4',
+    content_version: declaredContentVersion,
+    card_count: 120,
+    free_card_count: 60,
+    activated_at: activatedAt,
+    expires_at: expiresAt,
+    minimum_client_versions: normalizedMinimumClients,
+    gate_eligible: false,
+  };
+}
+
+function isCanonicalIsoTimestamp(value) {
+  if (typeof value !== 'string') return false;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) && date.toISOString() === value;
+}
+
 function stableJsonStringify(value) {
   if (Array.isArray(value)) {
     return `[${value.map(item => stableJsonStringify(item)).join(',')}]`;
@@ -662,7 +775,11 @@ function stableJsonStringify(value) {
 }
 
 function validateConfig(config) {
-  if (!['development', 'production'].includes(config.runtimeMode)) {
+  if (
+    !['development', 'production', 'controlled_pilot'].includes(
+      config.runtimeMode,
+    )
+  ) {
     throw new Error(
       `Unsupported bootstrap runtime mode: ${config.runtimeMode}`,
     );

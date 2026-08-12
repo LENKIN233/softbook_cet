@@ -1,4 +1,7 @@
 const crypto = require('node:crypto');
+const {
+  isContentReleaseValidForRuntime,
+} = require('./content-release-runtime');
 
 const REQUEST_SCHEMA_VERSION = 'space-actions.v2';
 const RESPONSE_SCHEMA_VERSION = 'space-actions-ack.v2';
@@ -91,12 +94,13 @@ function createSpaceActionsV2Service(options) {
         ),
       });
       const cardSource = await config.store.getCardSource(command.track, {
-        allowDevelopmentDefault: config.runtimeMode !== 'production',
+        allowDevelopmentDefault: config.runtimeMode === 'development',
       });
       assertCardSourceAuthority(
         cardSource,
         command,
         config.runtimeMode,
+        now,
       );
       const commit = await config.store.commitSpaceActions({
         acknowledgedAt: now.toISOString(),
@@ -196,7 +200,7 @@ function parseSpaceActionsCommand(body, options = {}) {
   };
 }
 
-function assertCardSourceAuthority(cardSource, command, runtimeMode) {
+function assertCardSourceAuthority(cardSource, command, runtimeMode, now) {
   if (
     !isObject(cardSource) ||
     cardSource.track !== command.track ||
@@ -210,10 +214,7 @@ function assertCardSourceAuthority(cardSource, command, runtimeMode) {
     );
   }
 
-  if (
-    runtimeMode === 'production' &&
-    (cardSource.release === null || cardSource.release === undefined)
-  ) {
+  if (!isContentReleaseValidForRuntime(cardSource, runtimeMode, now)) {
     throw httpError(
       503,
       'content_release_unavailable',
@@ -1200,7 +1201,9 @@ function validateServiceConfig(config) {
     !Number.isSafeInteger(config.futureSkewSeconds) ||
     config.futureSkewSeconds <= 0 ||
     typeof config.now !== 'function' ||
-    !['development', 'production'].includes(config.runtimeMode) ||
+    !['development', 'production', 'controlled_pilot'].includes(
+      config.runtimeMode,
+    ) ||
     !config.store ||
     typeof config.store.getCardSource !== 'function' ||
     typeof config.store.commitSpaceActions !== 'function'

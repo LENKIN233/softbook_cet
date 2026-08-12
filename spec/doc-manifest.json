@@ -779,6 +779,28 @@
       "status": "active"
     },
     {
+      "path": "infra/cloudbase/controlled-pilot-v1-runtime-contract.md",
+      "authority": "controlled_pilot_runtime_contract",
+      "audience": [
+        "agent",
+        "engineer",
+        "reviewer"
+      ],
+      "load_when": [
+        "controlled_pilot_content_task",
+        "controlled_pilot_runtime_task",
+        "controlled_pilot_publication_task"
+      ],
+      "depends_on": [
+        "spec/requirement-memory.json",
+        "spec/product-core.json",
+        "spec/membership.json",
+        "spec/box-catalog.json",
+        "spec/runtime-boundaries.json"
+      ],
+      "status": "active"
+    },
+    {
       "path": "docs/agent-runs/TEMPLATE.md",
       "authority": "agent_run_record_template",
       "audience": [

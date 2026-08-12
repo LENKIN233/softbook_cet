@@ -2,6 +2,9 @@ const crypto = require('node:crypto');
 const {createAuthV2Service} = require('./auth-v2');
 const {createRuntimeSmsProvider} = require('./sms-provider');
 const {
+  isContentReleaseValidForRuntime,
+} = require('./content-release-runtime');
+const {
   normalizeCloudBaseDocuments,
 } = require('./cloudbase-documents');
 const {isCloudBaseDocumentMissingError} = require('./cloudbase-errors');
@@ -138,7 +141,7 @@ function createSoftbookApi(options = {}) {
     'softbook-cloudbase-dev-secret';
   const config = {
     allowLegacyV1:
-      runtimeMode === 'production' ? false : options.allowLegacyV1 ?? true,
+      runtimeMode === 'development' ? options.allowLegacyV1 ?? true : false,
     apiKey: options.apiKey ?? process.env.SOFTBOOK_API_KEY,
     now: options.now ?? (() => new Date()),
     runtimeMode,
@@ -184,6 +187,7 @@ function createSoftbookApi(options = {}) {
   config.contentManifestV1 = createContentManifestV1Service({
     downloadTtlSeconds: options.contentManifestDownloadTtlSeconds,
     now: config.now,
+    runtimeMode,
     resolveDownloadUrl:
       options.contentAssetUrlResolver ?? createDefaultContentAssetUrlResolver(),
     signer:
@@ -531,7 +535,21 @@ async function handleLearningCardSource(config, request) {
     throw httpError(400, 'invalid_track', 'track must be cet4 or cet6.');
   }
 
-  const cardSource = await config.store.getCardSource(track);
+  const cardSource = await config.store.getCardSource(track, {
+    allowDevelopmentDefault: config.runtimeMode === 'development',
+  });
+
+  if (
+    !isContentReleaseValidForRuntime(
+      cardSource,
+      config.runtimeMode,
+      config.now(),
+    )
+  ) {
+    throw contentReleaseUnavailableError(
+      'A matching published content release is required.',
+    );
+  }
 
   return jsonResponse(200, {
     data: serializeCardSourceResponse(cardSource, track),
