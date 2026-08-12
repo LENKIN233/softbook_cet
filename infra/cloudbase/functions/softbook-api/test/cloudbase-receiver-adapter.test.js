@@ -99,6 +99,56 @@ test('receiver stages and verifies evidence before changing the active pointer',
   assert.equal(runner.findVersion(bundle.release_id).release_verification.verified, true);
 });
 
+test('receiver stores and activates a verified pilot release without weakening formal releases', async () => {
+  const runner = createDatabaseRunner();
+  const adapter = adapterModule.createCloudBaseReceiverAdapter({
+    now: () => new Date('2026-08-12T07:00:00.000Z'),
+    profile: controlledPilotProfileFixture(),
+    runner,
+  });
+  const cardSource = createPilotRuntimeCardSource('cet4-pilot-release-1');
+  const bundle = pilotBundleFixture(cardSource);
+
+  await adapter.stageContent({bundle, cardSource});
+  await adapter.verifyStaged({bundle, cardSource});
+  await adapter.activateRelease({bundle, cardSource});
+  const active = await adapter.verifyActiveRelease({
+    contentVersion: cardSource.content_version,
+    releaseId: bundle.release_id,
+  });
+
+  assert.equal(active.release.schema_version, 'pilot-content-release.v1');
+  assert.equal(active.release.gate_eligible, false);
+  assert.equal(
+    runner.findVersion(bundle.release_id).release_verification.schema_version,
+    'pilot-stage-verification.v1',
+  );
+  assert.equal(
+    runner.current().imported_via,
+    'infra/cloudbase/deliver-controlled-pilot.mjs',
+  );
+});
+
+test('receiver pilot activation refuses to replace a different active release', async () => {
+  const runner = createDatabaseRunner();
+  const adapter = adapterModule.createCloudBaseReceiverAdapter({
+    profile: controlledPilotProfileFixture(),
+    runner,
+  });
+  const current = createPilotRuntimeCardSource('cet4-pilot-release-current');
+  runner.seedCurrent(current);
+  const candidate = createPilotRuntimeCardSource('cet4-pilot-release-next');
+  const bundle = pilotBundleFixture(candidate);
+
+  await adapter.stageContent({bundle, cardSource: candidate});
+  await adapter.verifyStaged({bundle, cardSource: candidate});
+  await assert.rejects(
+    () => adapter.activateRelease({bundle, cardSource: candidate}),
+    /refuses to replace a different active release/,
+  );
+  assert.equal(runner.current().release.release_id, 'cet4-pilot-release-current');
+});
+
 test('receiver rejects a release whose parent is not currently active', async () => {
   const runner = createDatabaseRunner();
   const adapter = adapterModule.createCloudBaseReceiverAdapter({
@@ -262,11 +312,52 @@ function createRuntimeCardSource(releaseId, parentReleaseId) {
   );
 }
 
+function createPilotRuntimeCardSource(releaseId) {
+  const formal = createRuntimeCardSource(releaseId, null);
+  return require('../index').validateCardSourceForImport(
+    {
+      ...formal,
+      release: {
+        schema_version: 'pilot-content-release.v1',
+        pilot_id: 'cet4-pilot-2026',
+        profile_id: 'receiver-pilot-profile',
+        release_id: releaseId,
+        release_class: 'controlled_pilot',
+        runtime_mode: 'controlled_pilot',
+        track: 'cet4',
+        content_version: formal.content_version,
+        card_count: 120,
+        free_card_count: 60,
+        activated_at: '2026-08-12T07:00:00.000Z',
+        expires_at: '2026-09-10T00:00:00.000Z',
+        minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
+        gate_eligible: false,
+      },
+    },
+    'cet4',
+  );
+}
+
 function bundleFixture(cardSource, parentReleaseId) {
   return {
     bundle_id: `bundle-${cardSource.release.release_id}`,
     release_id: cardSource.release.release_id,
     parent_release_id: parentReleaseId,
+    approval: {record_sha256: `sha256:${'a'.repeat(64)}`},
+    audit: {report_sha256: `sha256:${'b'.repeat(64)}`},
+    audio: {
+      manifest_sha256: `sha256:${'c'.repeat(64)}`,
+      qc_index_sha256: `sha256:${'d'.repeat(64)}`,
+    },
+  };
+}
+
+function pilotBundleFixture(cardSource) {
+  return {
+    schema_version: 'controlled-pilot-bundle.v1',
+    bundle_id: `bundle-${cardSource.release.release_id}`,
+    pilot_id: cardSource.release.pilot_id,
+    release_id: cardSource.release.release_id,
     approval: {record_sha256: `sha256:${'a'.repeat(64)}`},
     audit: {report_sha256: `sha256:${'b'.repeat(64)}`},
     audio: {
@@ -287,6 +378,24 @@ function profileFixture() {
     enabled_tracks: ['cet4'],
     minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
     signing_key_id: 'receiver-signing-key-1',
+  };
+}
+
+function controlledPilotProfileFixture() {
+  return {
+    schema_version: 'controlled-pilot-profile.v1',
+    profile_id: 'receiver-pilot-profile',
+    pilot_id: 'cet4-pilot-2026',
+    environment_id: 'receiver-pilot-123',
+    region: 'ap-shanghai',
+    api_base_url: 'https://pilot.receiver.example/softbook-api',
+    runtime_mode: 'controlled_pilot',
+    enabled_tracks: ['cet4'],
+    minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
+    signing_key_id: 'receiver-pilot-signing-key-1',
+    cohort_limit: 50,
+    pilot_expires_at: '2026-09-10T00:00:00.000Z',
+    gate_eligible: false,
   };
 }
 

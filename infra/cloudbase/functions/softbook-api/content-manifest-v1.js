@@ -1,4 +1,8 @@
 const crypto = require('node:crypto');
+const {
+  PILOT_RELEASE_SCHEMA,
+  isContentReleaseValidForRuntime,
+} = require('./content-release-runtime');
 
 const CONTENT_MANIFEST_SCHEMA_VERSION = 'content-manifest.v1';
 const CONTENT_MANIFEST_SIGNATURE_ALGORITHM = 'ed25519';
@@ -6,9 +10,11 @@ const DOWNLOAD_TTL_SECONDS = 15 * 60;
 
 function createContentManifestV1Service(options) {
   validateServiceOptions(options);
+  const runtimeMode = options.runtimeMode ?? 'development';
 
   return {
     read: async input => {
+      const issuedAt = options.now();
       const track = requireTrack(input.track);
       const expectedContentVersion = requireContentVersion(
         input.contentVersion,
@@ -19,7 +25,8 @@ function createContentManifestV1Service(options) {
 
       if (
         cardSource.content_version !== expectedContentVersion ||
-        cardSource.release === null
+        cardSource.release === null ||
+        !isContentReleaseValidForRuntime(cardSource, runtimeMode, issuedAt)
       ) {
         throw contentManifestError(
           409,
@@ -46,7 +53,6 @@ function createContentManifestV1Service(options) {
       const resolveDownloadUrl = requireDownloadUrlResolver(
         options.resolveDownloadUrl,
       );
-      const issuedAt = options.now();
       const expiresAt = new Date(
         issuedAt.getTime() +
           (options.downloadTtlSeconds ?? DOWNLOAD_TTL_SECONDS) * 1000,
@@ -150,6 +156,27 @@ function createContentManifestSigner(keyId, privateKeyPem) {
 }
 
 function createStableManifest(cardSource) {
+  if (cardSource.release.schema_version === PILOT_RELEASE_SCHEMA) {
+    return {
+      schema_version: CONTENT_MANIFEST_SCHEMA_VERSION,
+      release_id: cardSource.release.release_id,
+      release_class: 'controlled_pilot',
+      pilot_id: cardSource.release.pilot_id,
+      track: cardSource.track,
+      content_version: cardSource.content_version,
+      minimum_client_versions: cardSource.release.minimum_client_versions,
+      expires_at: cardSource.release.expires_at,
+      gate_eligible: false,
+      assets: cardSource.assets.map(asset => ({
+        asset_id: asset.asset_id,
+        duration_ms: asset.duration_ms,
+        media_type: asset.media_type,
+        sha256: asset.sha256,
+        size_bytes: asset.size_bytes,
+      })),
+    };
+  }
+
   return {
     schema_version: CONTENT_MANIFEST_SCHEMA_VERSION,
     release_id: cardSource.release.release_id,
@@ -222,6 +249,13 @@ function validateServiceOptions(options) {
 
   if (typeof options.now !== 'function') {
     throw new Error('Content manifest service requires a clock.');
+  }
+  if (
+    !['development', 'production', 'controlled_pilot'].includes(
+      options.runtimeMode ?? 'development',
+    )
+  ) {
+    throw new Error('Content manifest service runtime mode is invalid.');
   }
 
   if (

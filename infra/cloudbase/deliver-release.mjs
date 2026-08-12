@@ -340,7 +340,7 @@ async function readCatalog({databaseInstanceId, profile, runner}) {
   };
 }
 
-async function provisionCollections({profile, runner, preflight}) {
+export async function provisionCollections({profile, runner, preflight}) {
   const created = [];
   for (const collection of preflight.catalog.missing_required_collections) {
     if (!REQUIRED_COLLECTIONS.includes(collection)) {
@@ -388,7 +388,14 @@ async function waitForCompleteCatalog(input) {
   return catalog;
 }
 
-async function deployReceiverFunction({env, processRunner, profile, runner}) {
+export async function deployReceiverFunction({
+  description = 'Softbook CET receiver-owned closed beta runtime',
+  env,
+  processRunner,
+  profile,
+  runner,
+  runtimeMode = 'production',
+}) {
   const temporaryDirectory = mkdtempSync(join(tmpdir(), 'softbook-receiver-deploy-'));
   const artifactDirectory = join(temporaryDirectory, 'function');
   const configPath = join(temporaryDirectory, 'cloudbaserc.json');
@@ -420,7 +427,7 @@ async function deployReceiverFunction({env, processRunner, profile, runner}) {
       filter: path => !path.split(sep).includes('test'),
       recursive: true,
     });
-    const runtime = buildReceiverRuntimeEnvironment(profile, env);
+    const runtime = buildReceiverRuntimeEnvironment(profile, env, {runtimeMode});
     writeFileSync(
       configPath,
       `${JSON.stringify(
@@ -429,7 +436,7 @@ async function deployReceiverFunction({env, processRunner, profile, runner}) {
           envId: profile.environment_id,
           functions: [
             {
-              description: 'Softbook CET receiver-owned closed beta runtime',
+              description,
               envVariables: runtime,
               handler: 'index.main',
               installDependency: false,
@@ -479,7 +486,14 @@ async function deployReceiverFunction({env, processRunner, profile, runner}) {
   }
 }
 
-export function buildReceiverRuntimeEnvironment(profile, env) {
+export function buildReceiverRuntimeEnvironment(
+  profile,
+  env,
+  {runtimeMode = 'production'} = {},
+) {
+  if (runtimeMode !== 'production' && runtimeMode !== 'controlled_pilot') {
+    throw new ReleaseDeliveryError('receiver runtime mode is invalid.');
+  }
   const inspection = inspectReceiverSecrets(profile, env);
   if (!inspection.ok) {
     throw new ReleaseDeliveryError(inspection.errors.join('; '));
@@ -492,7 +506,7 @@ export function buildReceiverRuntimeEnvironment(profile, env) {
     SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT: '9',
     SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS: '300',
     SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS: '90',
-    SOFTBOOK_RUNTIME_MODE: 'production',
+    SOFTBOOK_RUNTIME_MODE: runtimeMode,
     SOFTBOOK_SMS_PROVIDER: inspection.provider,
     SOFTBOOK_STORE_MODE: 'cloudbase',
   };
@@ -639,7 +653,7 @@ function isTimeoutMilliseconds(value) {
   return /^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 15000;
 }
 
-function inspectWriteSafety({nodeVersion, repository}) {
+export function inspectWriteSafety({nodeVersion, repository}) {
   const errors = [];
   if (nodeVersion !== REQUIRED_DEPLOYMENT_NODE_VERSION) {
     errors.push(`Node must be ${REQUIRED_DEPLOYMENT_NODE_VERSION}; received ${nodeVersion}`);
@@ -652,12 +666,12 @@ function inspectWriteSafety({nodeVersion, repository}) {
   return {errors, ok: errors.length === 0, ...repository};
 }
 
-function requireApplyReady({preflight, secretInspection, writeSafety}) {
+export function requireApplyReady({preflight, secretInspection, writeSafety}) {
   const errors = [...preflight.errors, ...secretInspection.errors, ...writeSafety.errors];
   if (errors.length > 0) throw new ReleaseDeliveryError(errors.join('; '));
 }
 
-async function readUserDataCounts({profile, runner}) {
+export async function readUserDataCounts({profile, runner}) {
   const commands = USER_DATA_COLLECTIONS.map(collection => ({
     TableName: collection,
     CommandType: 'COMMAND',
@@ -698,7 +712,7 @@ async function readUserDataCounts({profile, runner}) {
   };
 }
 
-async function verifyApiRoute(baseUrl, fetchImpl) {
+export async function verifyApiRoute(baseUrl, fetchImpl) {
   if (typeof fetchImpl !== 'function') {
     return {ok: false, reason: 'fetch unavailable'};
   }
@@ -759,7 +773,7 @@ function requireDatabaseInstanceId(value) {
   }
 }
 
-function createProcessRunner({spawn = spawnSync} = {}) {
+export function createProcessRunner({spawn = spawnSync} = {}) {
   return {
     async run(command, args, options = {}) {
       const result = spawn(command, args, {
@@ -778,7 +792,7 @@ function createProcessRunner({spawn = spawnSync} = {}) {
   };
 }
 
-function readRepositoryState() {
+export function readRepositoryState() {
   const run = args => {
     const result = spawnSync('git', args, {
       cwd: REPOSITORY_ROOT,

@@ -11,6 +11,7 @@ import {
   createCardSourceVersionDocumentId,
 } from './card-source-import-commands.mjs';
 import {ReleaseDeliveryError, validateDeliveryProfile} from './release-delivery-v1.mjs';
+import {validateControlledPilotProfile} from './controlled-pilot-v1.mjs';
 import {parseTcbJson, redactText} from './deployment-safety.mjs';
 
 const require = createRequire(import.meta.url);
@@ -51,7 +52,8 @@ export function createCloudBaseReceiverAdapter({
   profile: profileInput,
   runner = createCloudBaseCommandRunner(),
 } = {}) {
-  const profile = validateDeliveryProfile(profileInput);
+  const profile = validateReceiverProfile(profileInput);
+  const controlledPilot = profile.schema_version === 'controlled-pilot-profile.v1';
   const envId = profile.environment_id;
 
   async function queryOne(collection, filter, label) {
@@ -210,7 +212,14 @@ export function createCloudBaseReceiverAdapter({
         const normalizedCurrent = normalizeStoredCardSource(current, cardSource.track);
         if (normalizedCurrent.release?.release_id === bundle.release_id) {
           assertReleaseIdentity(normalizedCurrent, bundle.release_id, cardSource.content_version);
+          assertRuntimeSourceEquivalent(normalizedCurrent, cardSource);
           return;
+        }
+
+        if (controlledPilot) {
+          throw new ReleaseDeliveryError(
+            'controlled pilot activation refuses to replace a different active release.',
+          );
         }
 
         if (normalizedCurrent.release?.release_id !== bundle.parent_release_id) {
@@ -235,7 +244,7 @@ export function createCloudBaseReceiverAdapter({
           ],
           'retain previous release',
         );
-      } else if (bundle.parent_release_id !== null) {
+      } else if (!controlledPilot && bundle.parent_release_id !== null) {
         throw new ReleaseDeliveryError(
           'bundle declares a parent release but the receiver has no active release.',
         );
@@ -404,7 +413,10 @@ function createCurrentSourceFields(cardSource, updatedAt) {
     assets: cardSource.assets,
     card_records: cardSource.card_records,
     content_version: cardSource.content_version,
-    imported_via: 'infra/cloudbase/deliver-release.mjs',
+    imported_via:
+      cardSource.release?.schema_version === 'pilot-content-release.v1'
+        ? 'infra/cloudbase/deliver-controlled-pilot.mjs'
+        : 'infra/cloudbase/deliver-release.mjs',
     release: cardSource.release,
     source: cardSource.source,
     track: cardSource.track,
@@ -414,7 +426,10 @@ function createCurrentSourceFields(cardSource, updatedAt) {
 
 function createReleaseVerification(bundle, verified, stagedAt, verifiedAt = null) {
   return {
-    schema_version: 'release-stage-verification.v1',
+    schema_version:
+      bundle.schema_version === 'controlled-pilot-bundle.v1'
+        ? 'pilot-stage-verification.v1'
+        : 'release-stage-verification.v1',
     approval_record_sha256: bundle.approval.record_sha256,
     audit_report_sha256: bundle.audit.report_sha256,
     audio_manifest_sha256: bundle.audio.manifest_sha256,
@@ -427,9 +442,13 @@ function createReleaseVerification(bundle, verified, stagedAt, verifiedAt = null
 }
 
 function assertVerificationBinding(value, bundle) {
+  const expectedSchema =
+    bundle.schema_version === 'controlled-pilot-bundle.v1'
+      ? 'pilot-stage-verification.v1'
+      : 'release-stage-verification.v1';
   if (
     !value ||
-    value.schema_version !== 'release-stage-verification.v1' ||
+    value.schema_version !== expectedSchema ||
     value.bundle_id !== bundle.bundle_id ||
     value.approval_record_sha256 !== bundle.approval.record_sha256 ||
     value.audit_report_sha256 !== bundle.audit.report_sha256 ||
@@ -438,6 +457,13 @@ function assertVerificationBinding(value, bundle) {
   ) {
     throw new ReleaseDeliveryError('staged release evidence does not match the verified bundle.');
   }
+}
+
+function validateReceiverProfile(value) {
+  if (value?.schema_version === 'controlled-pilot-profile.v1') {
+    return validateControlledPilotProfile(value);
+  }
+  return validateDeliveryProfile(value);
 }
 
 function normalizeStoredCardSource(document, track) {

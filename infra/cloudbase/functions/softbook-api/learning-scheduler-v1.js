@@ -1,5 +1,8 @@
 const crypto = require('node:crypto');
 const {createEmptyCard, fsrs, Rating, State} = require('ts-fsrs');
+const {
+  isContentReleaseValidForRuntime,
+} = require('./content-release-runtime');
 
 const LEARNING_SESSION_SCHEMA_VERSION = 'learning-session.v1';
 const SCHEDULER_POLICY_VERSION = 'softbook-fsrs.v1';
@@ -80,7 +83,7 @@ async function readLearningSession(config, input) {
     ] =
       await Promise.all([
         config.store.getCardSource(track, {
-          allowDevelopmentDefault: config.runtimeMode !== 'production',
+          allowDevelopmentDefault: config.runtimeMode === 'development',
         }),
         config.store.getLearningState(
           input.phoneNumber,
@@ -100,6 +103,7 @@ async function readLearningSession(config, input) {
       cardSource,
       config.runtimeMode,
       track,
+      generatedAt,
     );
     const context = normalizeCanonicalSelectionContext({
       accountKey: input.accountKey,
@@ -991,9 +995,9 @@ function createSelectionId(randomBytes) {
   return `sel_${bytes.toString('base64url')}`;
 }
 
-function assertPublishedContentAvailable(cardSource, runtimeMode, track) {
+function assertPublishedContentAvailable(cardSource, runtimeMode, track, now) {
   if (!isObject(cardSource)) {
-    if (runtimeMode !== 'production') {
+    if (runtimeMode === 'development') {
       throw unavailable('The canonical card source is unavailable.');
     }
 
@@ -1005,10 +1009,8 @@ function assertPublishedContentAvailable(cardSource, runtimeMode, track) {
   }
 
   if (
-    runtimeMode === 'production' &&
-    (!isObject(cardSource.release) ||
-      cardSource.release.track !== track ||
-      cardSource.release.content_version !== cardSource.content_version)
+    cardSource.track !== track ||
+    !isContentReleaseValidForRuntime(cardSource, runtimeMode, now)
   ) {
     throw learningSchedulerError(
       503,
@@ -1043,8 +1045,9 @@ function validateServiceConfig(config) {
   if (
     typeof config.now !== 'function' ||
     typeof config.randomBytes !== 'function' ||
-    (config.runtimeMode !== 'development' &&
-      config.runtimeMode !== 'production')
+    !['development', 'production', 'controlled_pilot'].includes(
+      config.runtimeMode,
+    )
   ) {
     throw new Error('Learning scheduler configuration is invalid.');
   }

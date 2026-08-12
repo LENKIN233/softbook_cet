@@ -300,6 +300,24 @@
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"
   },
+  "controlled_pilot_runtime": {
+    "classification": "implementation_hypothesis",
+    "owner": "spec/runtime-boundaries.json#controlled_pilot_runtime",
+    "runtime_contract": "infra/cloudbase/controlled-pilot-v1-runtime-contract.md",
+    "scope": "cet4_pre_beta_controlled_pilot_exactly_120_cards",
+    "approval_boundary": "controlled-pilot-approval.v1 approved_by_user=true exact content version and exact 120 card IDs required; candidate conversion and sample confirmation are not approval",
+    "audio_boundary": "every referenced asset requires hash-bound formal audio QC with all ten required checks; technical audit and pending perceptual worklists are not QC approval",
+    "content_boundary": "exact 120 cards, stable first 60 free cards, fixed library distribution, active box mapping, all five core interactions and disclosed synthetic training source risk",
+    "runtime_mode_boundary": "production accepts only content-release.v1; controlled_pilot accepts only a current pilot-content-release.v1 for CET4 with 120 cards and a 60-card free prefix; neither non-development mode falls back to development content",
+    "publish_order": "verify every bound artifact and audio byte then upload private assets, stage content, verify staged content, activate last and reread the active release",
+    "gate_replacement": false,
+    "repository_validation_gate_eligible": false,
+    "implementation_status": "profile_bundle_approval_audit_audio_qc_release_validation_publication_sequencing_shared_runtime_mode_content_authority_cloudbase_receiver_adapter_and_dry_run_first_delivery_command_implemented_locally",
+    "remaining_runtime_work": "receiver_owned_profile_secrets_and_execution, pilot entitlement overlay, atomic 120-hour trial timestamps, five-card round gate, deletion-worker extension and mobile pilot-specific wiring",
+    "content_status": "exact_120_candidate_payload_runtime_validated_but_not_final_user_approved_and_24_audio_assets_not_human_perceptually_approved",
+    "deployment_status": "not_deployed_by_repository_change",
+    "launch_gate_status": "not_applicable_controlled_pilot_never_replaces_closed_beta_or_launch_evidence"
+  },
   "beta_entitlement_runtime": {
     "classification": "implementation_hypothesis",
     "owner": "spec/membership.json#policy.closed_beta_entitlement",

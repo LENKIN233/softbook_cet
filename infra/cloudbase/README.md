@@ -360,6 +360,34 @@ SOFTBOOK_SMS_WEBHOOK_URL
 SOFTBOOK_SMS_WEBHOOK_SECRET
 ```
 
+## CET4 controlled-pilot delivery
+
+The 120-card pre-beta pilot uses `controlled-pilot-profile.v1` and
+`controlled-pilot-bundle.v1`; it cannot be passed to the formal closed-beta
+command above. Its dedicated command is also dry-run by default:
+
+```bash
+node infra/cloudbase/deliver-controlled-pilot.mjs preflight \
+  --profile path/to/controlled-pilot-profile.json
+node infra/cloudbase/deliver-controlled-pilot.mjs provision \
+  --profile path/to/controlled-pilot-profile.json
+node infra/cloudbase/deliver-controlled-pilot.mjs deploy \
+  --profile path/to/controlled-pilot-profile.json
+node infra/cloudbase/deliver-controlled-pilot.mjs publish \
+  --profile path/to/controlled-pilot-profile.json \
+  --bundle path/to/controlled-pilot-bundle.json
+node infra/cloudbase/deliver-controlled-pilot.mjs verify \
+  --profile path/to/controlled-pilot-profile.json \
+  --bundle path/to/controlled-pilot-bundle.json
+```
+
+Add `--apply` only to `provision`, `deploy`, or `publish`. Apply has the same
+Node 22.13.0, clean exact-`main`, independent receiver, collection, and secret
+requirements as formal delivery, but injects
+`SOFTBOOK_RUNTIME_MODE=controlled_pilot`. All reports and releases remain
+`gate_eligible=false`. The command does not create content approval, audio QC,
+receiver credentials, launch evidence, or a rollback authority.
+
 Or select the direct Tencent Cloud SMS adapter:
 
 ```text
