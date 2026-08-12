@@ -52,8 +52,8 @@
 
 - `./scripts/install_git_hooks.sh` -> passed.
 - `npm ci` in `infra/cloudbase/functions/softbook-api` -> installed committed-lockfile dependencies, zero vulnerabilities.
-- `node --test infra/cloudbase/functions/softbook-api/test/controlled-pilot-publisher-v1.test.js` -> passed, 5/5.
-- `cd infra/cloudbase/functions/softbook-api && npm test` -> passed, 244/244.
+- `node --test infra/cloudbase/functions/softbook-api/test/controlled-pilot-publisher-v1.test.js` -> passed, 7/7 after self-review additions.
+- `cd infra/cloudbase/functions/softbook-api && npm test` -> passed, 246/246 after self-review additions.
 - `python3 scripts/test_validate_harness_runner.py && python3 scripts/test_harness_module_boundaries.py && python3 scripts/test_run_local_gates.py` -> passed, 68/68.
 - `python3 scripts/validate_harness.py` -> passed.
 - `scripts/run_local_gates --profile dev` -> `PASSED_WITH_EXCEPTION`, 23/24 passed; only the declared toolchain-version exception remained.
@@ -61,9 +61,9 @@
 
 ## Validation results
 
-- Publisher/assembler integration and tamper tests: passed, 5/5.
+- Publisher/assembler integration, tamper, ISO-time and non-human-QC rejection tests: passed, 7/7.
 - Exact approved-batch preflight: correctly blocked only at missing formal audio QC; content payload hash, approval binding, audit binding and corpus fingerprint were accepted before that boundary.
-- Full backend suite: passed, 244/244.
+- Full backend suite: passed, 246/246.
 - Harness/local-gate regression suites: passed, 68/68.
 - Full harness: passed.
 - Local dev gate profile: `PASSED_WITH_EXCEPTION`, 23/24 passed; only the declared toolchain-version exception remained.
@@ -76,9 +76,9 @@
 
 ## Agent review status
 
-- Reviewer: pending
-- Status: pending
-- Blocking findings: pending review
+- Reviewer: Codex self-review under explicit user authorization
+- Status: Passed after fixes
+- Blocking findings: none; review tightened dry-run isolation, timestamp syntax and direct non-human-QC coverage before approval
 
 ## User-visible UI impact
 

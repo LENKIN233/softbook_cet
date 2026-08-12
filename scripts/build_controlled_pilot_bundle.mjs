@@ -12,6 +12,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
+import {tmpdir} from 'node:os';
 import {dirname, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -42,8 +43,11 @@ const REQUIRED_AUDIO_QC_CHECKS = Object.freeze([
 export class ControlledPilotBundleBuildError extends Error {}
 
 export function normalizeEvidenceTimestamp(value, label) {
-  if (typeof value !== 'string' || value.trim() !== value || value.length === 0) {
-    fail(`${label} must be a non-empty ISO-8601 timestamp.`);
+  if (
+    typeof value !== 'string' ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)
+  ) {
+    fail(`${label} must be a complete ISO-8601 timestamp with a timezone.`);
   }
   const timestamp = new Date(value);
   if (!Number.isFinite(timestamp.getTime())) {
@@ -135,8 +139,9 @@ export function assembleControlledPilotBundle(
     qcDirectory: normalized.audioQcDirectory,
   });
 
-  mkdirSync(normalized.outputParent, {recursive: true});
-  const staging = mkdtempSync(join(normalized.outputParent, '.controlled-pilot-bundle-'));
+  if (normalized.apply) mkdirSync(normalized.outputParent, {recursive: true});
+  const stagingParent = normalized.apply ? normalized.outputParent : tmpdir();
+  const staging = mkdtempSync(join(stagingParent, '.controlled-pilot-bundle-'));
   try {
     const contentPath = 'content/cet4-controlled-pilot.json';
     const approvalPath = 'approval/controlled-pilot-approval.json';

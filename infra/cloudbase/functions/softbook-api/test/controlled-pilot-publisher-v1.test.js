@@ -220,6 +220,57 @@ test('pilot publication rejects a mismatched active reread after activation', as
   );
 });
 
+test('pilot bundle builder normalizes offset evidence time and rejects incomplete dates', () => {
+  assert.equal(
+    bundleBuilder.normalizeEvidenceTimestamp(
+      '2026-08-09T08:00:00+08:00',
+      'reviewed_at',
+    ),
+    '2026-08-09T00:00:00.000Z',
+  );
+  assert.throws(
+    () => bundleBuilder.normalizeEvidenceTimestamp('2026-08-09', 'reviewed_at'),
+    /complete ISO-8601 timestamp with a timezone/,
+  );
+});
+
+test('pilot bundle builder rejects agent-authored perceptual QC', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'controlled-pilot-builder-qc-'));
+  temporaryDirectories.push(directory);
+  const hash = digestText('approved-audio').slice('sha256:'.length);
+  writeJson(join(directory, 'qc.json'), {
+    verdict: {formal_audio_ready: true},
+    legacy_adoption: {
+      reviewer: 'codex-agent',
+      reviewed_at: '2026-08-09T00:00:00.000Z',
+    },
+    generated_assets: [{card_id: '000001', file_sha256: hash}],
+    qa_checks: Object.fromEntries(
+      [
+        'audio_matches_text',
+        'target_signal_audible',
+        'accurate_pronunciation',
+        'suitable_speed',
+        'natural_rhythm',
+        'stress_and_pauses_do_not_mislead',
+        'no_unwanted_noise_or_clipping',
+        'no_autoplay_assumption',
+        'front_side_no_required_subtitles',
+        'tts_audio_not_used_as_source_authenticity',
+      ].map(check => [check, true]),
+    ),
+    per_card_qc: [{card_id: '000001'}],
+  });
+  assert.throws(
+    () => bundleBuilder.collectAudioQcBindings({
+      assets: [{asset_id: 'cet4-000001-audio', sha256: `sha256:${hash}`}],
+      cards: [{card_id: '000001', audio: {asset_id: 'cet4-000001-audio'}}],
+      qcDirectory: directory,
+    }),
+    /identified human reviewer/,
+  );
+});
+
 async function createFixture() {
   const directory = mkdtempSync(join(tmpdir(), 'controlled-pilot-publisher-'));
   temporaryDirectories.push(directory);
