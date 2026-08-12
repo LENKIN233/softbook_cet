@@ -37,6 +37,7 @@ function createSessionPayload(
     } | null;
     sourceId?: string;
     totalCardCount?: number;
+    roundCompletion?: Record<string, unknown> | null;
   } = {},
 ) {
   const totalCardCount =
@@ -72,6 +73,7 @@ function createSessionPayload(
             }
           : overrides.selection,
       next_due_at: null,
+      round_completion: overrides.roundCompletion ?? null,
     },
   };
 }
@@ -90,6 +92,7 @@ function createRemoteRepository(
       parsePayload: parseSoftbookRemoteLearningCardSourcePayload,
     },
     remoteSessionConfig: {
+      continueEndpoint: 'https://example.com/v2/learning/round/continue',
       endpoint: 'https://example.com/v2/learning/session',
     },
     fetchImpl,
@@ -353,6 +356,95 @@ test('remote selection null is valid and never falls back to local ordering', as
   expect(session.serverSelection).toBeNull();
   expect(session.cards).toEqual([]);
   expect(session.catalogCards).toHaveLength(localLearningCardRecords.length);
+});
+
+test('remote repository preserves canonical round review order and continues the exact receipt', async () => {
+  const receiptId = `prc_${'b'.repeat(43)}`;
+  const reviewCardIds = [
+    localLearningCardRecords[0].card_id,
+    localLearningCardRecords[2].card_id,
+  ];
+  const roundCompletion = {
+    schema_version: 'pilot-round-completion.v1',
+    pilot_id: 'cet4-pilot-2026',
+    content_version: CONTENT_VERSION,
+    receipt_id: receiptId,
+    completed_count: 5,
+    space_card_id: localLearningCardRecords[4].card_id,
+    review_card_ids: reviewCardIds,
+  };
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () =>
+        createSessionPayload({ selection: null, roundCompletion }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: {
+          schema_version: 'pilot-round-continue-ack.v1',
+          pilot_id: 'cet4-pilot-2026',
+          track: 'cet4',
+          content_version: CONTENT_VERSION,
+          receipt_id: receiptId,
+          completed_count: 5,
+          acknowledged_at: '2026-07-24T08:01:00.000Z',
+        },
+      }),
+    });
+  const repository = createRemoteRepository(fetchMock);
+  const session = await repository.loadSession(authenticatedContext, 'cet4');
+  expect(session.roundCompletion?.reviewCardIds).toEqual(reviewCardIds);
+  expect(session.cards).toEqual([]);
+  await expect(
+    repository.continueRound(authenticatedContext, session),
+  ).resolves.toBeUndefined();
+  expect(fetchMock.mock.calls[2][0]).toBe(
+    'https://example.com/v2/learning/round/continue',
+  );
+});
+
+test('remote repository rejects reordered or inaccessible round review cards', async () => {
+  const invalidRound = {
+    schema_version: 'pilot-round-completion.v1',
+    pilot_id: 'cet4-pilot-2026',
+    content_version: CONTENT_VERSION,
+    receipt_id: `prc_${'c'.repeat(43)}`,
+    completed_count: 5,
+    space_card_id: localLearningCardRecords[0].card_id,
+    review_card_ids: [
+      localLearningCardRecords[2].card_id,
+      localLearningCardRecords[0].card_id,
+    ],
+  };
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () =>
+        createSessionPayload({
+          selection: null,
+          roundCompletion: invalidRound,
+        }),
+    });
+  await expect(
+    createRemoteRepository(fetchMock).loadSession(authenticatedContext, 'cet4'),
+  ).rejects.toThrow('not in canonical source order');
 });
 
 test.each([

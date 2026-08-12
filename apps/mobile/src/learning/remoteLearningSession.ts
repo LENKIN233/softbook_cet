@@ -1,4 +1,8 @@
-import type { LearningServerSelection, LearningTrack } from './model';
+import type {
+  LearningRoundCompletion,
+  LearningServerSelection,
+  LearningTrack,
+} from './model';
 import type {
   FetchLike,
   RemoteLearningCardSourceContext,
@@ -9,6 +13,8 @@ const LEARNING_SESSION_SCHEMA_VERSION = 'learning-session.v1';
 const CONTENT_VERSION_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const SELECTION_ID_PATTERN = /^sel_[A-Za-z0-9_-]{16,128}$/;
 const CARD_ID_PATTERN = /^\d{6}$/;
+const PILOT_ID_PATTERN = /^[0-9A-Za-z][0-9A-Za-z._-]{0,127}$/;
+const RECEIPT_ID_PATTERN = /^prc_[A-Za-z0-9_-]{43}$/;
 const MEMBERSHIP_STAGES = ['trial', 'free', 'premium'] as const;
 const SELECTION_PHASES = ['learning', 'review'] as const;
 const SELECTION_REASONS = [
@@ -33,6 +39,7 @@ export type RemoteLearningSessionResponse = {
   generatedAt: string;
   membershipStage: (typeof MEMBERSHIP_STAGES)[number];
   nextDueAt: string | null;
+  roundCompletion: LearningRoundCompletion | null;
   selection: LearningServerSelection | null;
   sourceId: string;
   track: LearningTrack;
@@ -40,11 +47,66 @@ export type RemoteLearningSessionResponse = {
 
 export type RemoteLearningSessionConfig = {
   endpoint: string;
+  continueEndpoint?: string;
   apiKey?: string;
   apiKeyHeader?: string;
   headers?: Record<string, string>;
   trackQueryParam?: string;
 };
+
+export type RemoteLearningRoundAcknowledgement = {
+  acknowledgedAt: string;
+  completedCount: number;
+  contentVersion: string;
+  pilotId: string;
+  receiptId: string;
+  track: 'cet4';
+};
+
+export async function continueRemoteLearningRound(
+  context: RemoteLearningCardSourceContext,
+  track: LearningTrack,
+  completion: LearningRoundCompletion,
+  config: RemoteLearningSessionConfig,
+  fetchImpl: FetchLike,
+): Promise<RemoteLearningRoundAcknowledgement> {
+  if (!context.authToken) {
+    throw new RemoteHttpError('Remote learning round requires authToken.', 401);
+  }
+  if (track !== 'cet4' || !config.continueEndpoint) {
+    throw new Error('Remote learning round continuation is unavailable.');
+  }
+  const response = await fetchImpl(config.continueEndpoint, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${context.authToken}`,
+      'Content-Type': 'application/json',
+      ...config.headers,
+      ...(config.apiKey
+        ? { [config.apiKeyHeader ?? 'x-api-key']: config.apiKey }
+        : {}),
+    },
+    body: JSON.stringify({
+      schema_version: 'pilot-round-continue.v1',
+      track,
+      content_version: completion.contentVersion,
+      receipt_id: completion.receiptId,
+      completed_count: completion.completedCount,
+    }),
+  });
+  if (!response.ok) {
+    throw new RemoteHttpError(
+      `Remote learning round request failed with status ${response.status}.`,
+      response.status,
+    );
+  }
+  return parseRemoteLearningRoundAcknowledgement(
+    await response.json(),
+    track,
+    completion,
+  );
+}
 
 export type SoftbookRemoteLearningSessionRuntimeConfig = {
   apiKey?: string;
@@ -107,6 +169,7 @@ export function parseRemoteLearningSessionPayload(
       'access',
       'selection',
       'next_due_at',
+      'round_completion',
     ],
     'response.data',
   );
@@ -158,10 +221,27 @@ export function parseRemoteLearningSessionPayload(
     data.next_due_at === null
       ? null
       : requireRfc3339(data.next_due_at, 'response.data.next_due_at');
+  const roundCompletion = parseRoundCompletion(data.round_completion);
 
   if (selection !== null && nextDueAt !== null) {
     throw new Error(
       'Remote learning session cannot expose next_due_at with a selection.',
+    );
+  }
+  if (
+    roundCompletion !== null &&
+    (selection !== null || nextDueAt !== null || expectedTrack !== 'cet4')
+  ) {
+    throw new Error(
+      'Remote learning round completion conflicts with session selection.',
+    );
+  }
+  if (
+    roundCompletion !== null &&
+    roundCompletion.contentVersion !== contentVersion
+  ) {
+    throw new Error(
+      'Remote learning round completion content version conflicts with session.',
     );
   }
 
@@ -172,10 +252,77 @@ export function parseRemoteLearningSessionPayload(
     generatedAt,
     membershipStage,
     nextDueAt,
+    roundCompletion,
     selection,
     sourceId,
     track: expectedTrack,
   };
+}
+
+function parseRoundCompletion(
+  candidate: unknown,
+): LearningRoundCompletion | null {
+  if (candidate === null) return null;
+  const receipt = requireExactObject(
+    candidate,
+    [
+      'schema_version',
+      'pilot_id',
+      'content_version',
+      'receipt_id',
+      'completed_count',
+      'space_card_id',
+      'review_card_ids',
+    ],
+    'response.data.round_completion',
+  );
+  if (receipt.schema_version !== 'pilot-round-completion.v1') {
+    throw new Error('Remote learning round completion schema is invalid.');
+  }
+  const reviewCardIds = requireUniqueCardIds(
+    receipt.review_card_ids,
+    'response.data.round_completion.review_card_ids',
+  );
+  return {
+    completedCount: requirePositiveSafeInteger(
+      receipt.completed_count,
+      'response.data.round_completion.completed_count',
+    ),
+    contentVersion: requirePattern(
+      receipt.content_version,
+      CONTENT_VERSION_PATTERN,
+      'response.data.round_completion.content_version',
+    ),
+    pilotId: requirePattern(
+      receipt.pilot_id,
+      PILOT_ID_PATTERN,
+      'response.data.round_completion.pilot_id',
+    ),
+    receiptId: requirePattern(
+      receipt.receipt_id,
+      RECEIPT_ID_PATTERN,
+      'response.data.round_completion.receipt_id',
+    ),
+    reviewCardIds,
+    spaceCardId: requirePattern(
+      receipt.space_card_id,
+      CARD_ID_PATTERN,
+      'response.data.round_completion.space_card_id',
+    ),
+  };
+}
+
+function requireUniqueCardIds(candidate: unknown, contextName: string) {
+  if (!Array.isArray(candidate)) {
+    throw new Error(`${contextName} must be an array.`);
+  }
+  const values = candidate.map((value, index) =>
+    requirePattern(value, CARD_ID_PATTERN, `${contextName}[${index}]`),
+  );
+  if (new Set(values).size !== values.length) {
+    throw new Error(`${contextName} must contain unique card IDs.`);
+  }
+  return values;
 }
 
 export function createSoftbookRemoteLearningSessionConfig(
@@ -183,11 +330,58 @@ export function createSoftbookRemoteLearningSessionConfig(
 ): RemoteLearningSessionConfig {
   return {
     endpoint: `${trimTrailingSlash(config.baseUrl)}/v2/learning/session`,
+    continueEndpoint: `${trimTrailingSlash(
+      config.baseUrl,
+    )}/v2/learning/round/continue`,
     apiKey: config.apiKey,
     headers: {
       'x-softbook-client': 'mobile',
     },
     trackQueryParam: 'track',
+  };
+}
+
+function parseRemoteLearningRoundAcknowledgement(
+  payload: unknown,
+  expectedTrack: 'cet4',
+  expected: LearningRoundCompletion,
+): RemoteLearningRoundAcknowledgement {
+  const envelope = requireExactObject(payload, ['data'], 'response');
+  const data = requireExactObject(
+    envelope.data,
+    [
+      'schema_version',
+      'pilot_id',
+      'track',
+      'content_version',
+      'receipt_id',
+      'completed_count',
+      'acknowledged_at',
+    ],
+    'response.data',
+  );
+  if (
+    data.schema_version !== 'pilot-round-continue-ack.v1' ||
+    data.track !== expectedTrack ||
+    data.pilot_id !== expected.pilotId ||
+    data.content_version !== expected.contentVersion ||
+    data.receipt_id !== expected.receiptId ||
+    data.completed_count !== expected.completedCount
+  ) {
+    throw new Error(
+      'Remote learning round acknowledgement drifted from its command.',
+    );
+  }
+  return {
+    acknowledgedAt: requireRfc3339(
+      data.acknowledged_at,
+      'response.data.acknowledged_at',
+    ),
+    completedCount: expected.completedCount,
+    contentVersion: expected.contentVersion,
+    pilotId: expected.pilotId,
+    receiptId: expected.receiptId,
+    track: expectedTrack,
   };
 }
 

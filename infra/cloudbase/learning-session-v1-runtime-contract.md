@@ -203,7 +203,8 @@ output.
       "reason": "catalog_new",
       "due_at": null
     },
-    "next_due_at": null
+    "next_due_at": null,
+    "round_completion": null
   }
 }
 ```
@@ -216,6 +217,12 @@ cursor preserves its original phase and due time but reports
 The response membership stage is `trial`, `free`, or `premium`;
 `trial_available` must be activated before a successful response. `free`
 requires `free_subset` access, while `trial` and `premium` require `full`.
+
+`round_completion` is always present. It is `null` outside controlled-pilot
+runtime and away from an unacknowledged positive five-event boundary. At a
+controlled-pilot boundary it is the exact `pilot-round-completion.v1` object
+defined by `infra/cloudbase/controlled-pilot-v1-runtime-contract.md`, while
+both `selection` and `next_due_at` are `null`.
 
 ## Mobile binding
 

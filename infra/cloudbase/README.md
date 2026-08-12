@@ -45,6 +45,7 @@ POST /v2/auth/logout
 POST /v2/account/deletion
 GET  /v2/bootstrap?track=cet4|cet6&day_key=YYYY-MM-DD
 GET  /v2/learning/session?track=cet4|cet6
+POST /v2/learning/round/continue  # controlled_pilot only
 POST /v2/learning/events
 POST /v2/progress/check-in
 POST /v2/space/actions
@@ -131,6 +132,11 @@ while `/v2` owns authentication and the canonical bootstrap read:
   transactional resumed-cursor confirmation so concurrent events force a
   complete reselection; see
   `infra/cloudbase/learning-session-v1-runtime-contract.md`.
+- Controlled-pilot Learning Session pauses at each unacknowledged positive
+  five-event boundary, returns one deterministic round receipt, and resumes
+  only after exact idempotent `POST /v2/learning/round/continue`
+  acknowledgement stored in `softbook_pilot_round_continuations`. Formal
+  production does not expose or apply this pilot-only gate.
 - Physical-space actions v2 validate the active card source and content version,
   merge favorite and sleep on independent clocks, and commit immutable action
   records plus account canonical state atomically. A maximum 20-action request

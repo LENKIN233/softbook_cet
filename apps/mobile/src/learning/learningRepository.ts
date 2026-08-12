@@ -12,6 +12,7 @@ import {
 } from './remoteCardSource';
 import {
   RemoteLearningSessionConfig,
+  continueRemoteLearningRound,
   loadRemoteLearningSession,
 } from './remoteLearningSession';
 import {
@@ -28,6 +29,10 @@ export type LearningSessionRepositoryContext = {
 };
 
 export type LearningSessionRepository = {
+  continueRound: (
+    context: LearningSessionRepositoryContext,
+    session: LearningSession,
+  ) => Promise<void>;
   loadSession: (
     context: LearningSessionRepositoryContext,
     track: LearningTrack,
@@ -72,6 +77,22 @@ export function createLearningSessionRepository(
     );
 
   return {
+    continueRound: async (context, session) => {
+      if (
+        config.mode !== 'remote' ||
+        !config.remoteSessionConfig ||
+        !session.roundCompletion
+      ) {
+        throw new Error('Learning session has no remote round to continue.');
+      }
+      await continueRemoteLearningRound(
+        context,
+        session.track,
+        session.roundCompletion,
+        config.remoteSessionConfig,
+        config.fetchImpl ?? fetch,
+      );
+    },
     loadSession: async (context, track) => {
       if (config.mode === 'remote') {
         if (
@@ -83,7 +104,6 @@ export function createLearningSessionRepository(
             'Remote learning repository requires card-source, session, and content-manifest configs.',
           );
         }
-
         const fetchImpl = config.fetchImpl ?? fetch;
         const source = await loadRemoteLearningCardSource(
           context,
@@ -97,6 +117,7 @@ export function createLearningSessionRepository(
           config.remoteSessionConfig,
           fetchImpl,
         );
+        assertRoundCompletionMatchesSource(source.cards, scheduled);
 
         if (
           source.track !== scheduled.track ||
@@ -144,6 +165,7 @@ export function createLearningSessionRepository(
           contentVersion: scheduled.contentVersion,
           membershipStage: scheduled.membershipStage,
           nextDueAt: scheduled.nextDueAt,
+          roundCompletion: scheduled.roundCompletion,
           schedulingMode: 'server',
           serverSelection: scheduled.selection,
           sourceId: source.sourceId,
@@ -155,6 +177,41 @@ export function createLearningSessionRepository(
       return createLocalSession(track);
     },
   };
+}
+
+function assertRoundCompletionMatchesSource(
+  cards: LearningSession['catalogCards'],
+  scheduled: Awaited<ReturnType<typeof loadRemoteLearningSession>>,
+) {
+  const completion = scheduled.roundCompletion;
+  if (completion === null) return;
+  const byId = new Map(cards.map(card => [card.card_id, card]));
+  const accessibleIds = new Set(
+    cards
+      .slice(0, scheduled.access.accessibleCardCount)
+      .map(card => card.card_id),
+  );
+  if (
+    !byId.has(completion.spaceCardId) ||
+    completion.reviewCardIds.some(cardId => !accessibleIds.has(cardId))
+  ) {
+    throw new Error(
+      'Remote learning round references cards outside canonical accessible content.',
+    );
+  }
+  const sourceOrder = cards
+    .filter(card => completion.reviewCardIds.includes(card.card_id))
+    .map(card => card.card_id);
+  if (
+    sourceOrder.length !== completion.reviewCardIds.length ||
+    sourceOrder.some(
+      (cardId, index) => cardId !== completion.reviewCardIds[index],
+    )
+  ) {
+    throw new Error(
+      'Remote learning round review cards are not in canonical source order.',
+    );
+  }
 }
 
 async function loadContentManifestForSession(options: {

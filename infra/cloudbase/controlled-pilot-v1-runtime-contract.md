@@ -26,7 +26,7 @@ Referenced active sources:
 - The repository implements fail-closed profile, bundle, approval, audit, audio-QC and release validators plus publication sequencing through an injected receiver adapter.
 - Runtime content authority distinguishes `development`, `production` and `controlled_pilot`: production accepts only `content-release.v1`; controlled pilot accepts only a current `pilot-content-release.v1` with exactly 120 cards and a 60-card free prefix; neither mode falls back to development content.
 - The shared authenticated card-source, Bootstrap, Learning Events, Learning Session and Space paths apply that mode boundary. Non-development authentication still requires strong separate secrets, a persistent store, trusted client IP and a non-development SMS provider.
-- A concrete CloudBase receiver adapter and dry-run-first `preflight|provision|deploy|publish|verify` command are implemented locally. Receiver-owned profile/secrets and execution, entitlement operations, five-card round gating, exact 120-hour trial timestamps, deletion-worker extensions, mobile pilot-specific UI and real-device evidence remain separate and incomplete on current `main`.
+- A concrete CloudBase receiver adapter and dry-run-first `preflight|provision|deploy|publish|verify` command are implemented locally. Five-card round gating, its exact continuation store and the mobile completion-state binding are implemented in the repository follow-up to the publication candidate but remain undeployed. Receiver-owned profile/secrets and execution, entitlement operations, exact 120-hour trial timestamps, deletion-worker execution, and real-device evidence remain separate and incomplete.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
 - None of this has been deployed to the receiver environment in this repository run. Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
 
@@ -36,13 +36,52 @@ Authentication alone never starts the trial. The Learning Session authority may 
 
 Invalid content, a missing selection, cursor write failure, failed cursor confirmation or an unsuccessful session response cannot consume the trial. Repeated or concurrent session reads are idempotent. Membership, Bootstrap and Learning Session responses expose the canonical timestamps plus server-derived `trial_remaining_seconds`, calculated against that response's server time and set to zero outside an active trial; clients display them and never manufacture entitlement time or remaining duration.
 
-## Five-card round authority (target contract; not yet implemented on current `main`)
+## Five-card round authority (repository implementation; not yet deployed)
 
 Controlled-pilot rounds are server gates, not client counters. `completed_count` is the cumulative count of newly accepted account-and-track learning or review events and equals the canonical learning projection's maximum `server_sequence`. A boundary exists only when that cumulative sequence is a positive multiple of five. Activity-day `progress.total_completed_count` remains daily feedback and is never round authority; this prevents midnight rollover from duplicating or skipping a boundary. At an unacknowledged boundary, `learning-session.v1` returns no selection or next-due time and returns one deterministic round-completion receipt bound to the authenticated account, active `pilot_id`, content version and completed count. That object contains `space_card_id`, equal to the active-content card ID from the canonical event whose `server_sequence` exactly equals `completed_count`; mobile resolves only this ID for the compact actual Space address and never infers the boundary card from phase grouping, `client_occurred_at`, or device time. It also contains ordered unique `review_card_ids`, derived in active card-source order from currently accessible, non-sleeping cards whose latest canonical account-and-track event has `answer_grade=review_needed`. Mobile may resolve only those IDs for the receipt's read-only review action and may not infer or reorder review content. The scheduler must not create or persist the next card cursor while that receipt is pending.
 
 The primary “继续下一轮” action calls authenticated `POST /v2/learning/round/continue` with an exact `pilot-round-continue.v1` command containing only schema version, CET4, content version, receipt ID and completed count. The server rederives the account, pilot, active release, canonical count and receipt, requires a positive multiple of five, then writes one exact `pilot-round-continue-ack.v1` record. Exact replay is idempotent; account, pilot, content, count or receipt drift fails closed. Only after this acknowledgement may a later Learning Session select the next card.
 
 The account-scoped continuation record is stored in `softbook_pilot_round_continuations`, validated exactly on every read, included in receiver provisioning/preflight/lifecycle cleanup and removed by account deletion. Duplicate learning events, offline replay, app restart and cross-device reads cannot increment, skip or acknowledge a boundary. Formal beta/production runtime does not expose the endpoint or apply this pilot gate.
+
+The exact `pilot-round-completion.v1` receipt returned as
+`learning-session.v1.round_completion` contains only:
+
+```json
+{
+  "schema_version": "pilot-round-completion.v1",
+  "pilot_id": "<active pilot ID>",
+  "content_version": "sha256:<64 lowercase hex characters>",
+  "receipt_id": "prc_<43 base64url characters>",
+  "completed_count": 5,
+  "space_card_id": "000005",
+  "review_card_ids": ["000002", "000005"]
+}
+```
+
+The exact `pilot-round-continue.v1` request body contains only
+`schema_version`, `track`, `content_version`, `receipt_id`, and
+`completed_count`. The exact successful response and stored acknowledgement
+contains only the following public fields; storage additionally owns the
+non-public `account_key` scope used for lookup and deletion:
+
+```json
+{
+  "schema_version": "pilot-round-continue-ack.v1",
+  "pilot_id": "<active pilot ID>",
+  "track": "cet4",
+  "content_version": "sha256:<64 lowercase hex characters>",
+  "receipt_id": "prc_<43 base64url characters>",
+  "completed_count": 5,
+  "acknowledged_at": "2026-08-12T00:00:00.000Z"
+}
+```
+
+Receipt IDs are deterministic SHA-256-derived opaque identifiers over the
+server-owned account key, pilot ID, track, content version and completed count.
+They never encode a phone number or accept client entropy. A continuation
+document is keyed by account, track and completed count so exact replay returns
+the original acknowledgement timestamp while later boundaries remain auditable.
 
 ## Schemas
 

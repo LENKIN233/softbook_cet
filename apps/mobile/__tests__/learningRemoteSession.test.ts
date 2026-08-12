@@ -1,4 +1,5 @@
 import {
+  continueRemoteLearningRound,
   createSoftbookRemoteLearningSessionConfig,
   loadRemoteLearningSession,
   parseRemoteLearningSessionPayload,
@@ -35,6 +36,7 @@ function createPayload() {
         due_at: null,
       },
       next_due_at: null,
+      round_completion: null,
     },
   };
 }
@@ -93,6 +95,61 @@ test('accepts a canonical empty selection with the next due time', () => {
     nextDueAt: '2026-07-25T08:00:00.000Z',
     selection: null,
   });
+});
+
+test('strictly parses and acknowledges a controlled-pilot five-card receipt', async () => {
+  const payload = createPayload();
+  const receiptId = `prc_${'a'.repeat(43)}`;
+  payload.data.selection = null as never;
+  payload.data.round_completion = {
+    schema_version: 'pilot-round-completion.v1',
+    pilot_id: 'cet4-pilot-2026',
+    content_version: CONTENT_VERSION,
+    receipt_id: receiptId,
+    completed_count: 5,
+    space_card_id: '100101',
+    review_card_ids: ['100101'],
+  } as never;
+  const parsed = parseRemoteLearningSessionPayload(payload, 'cet4');
+  const fetchMock = jest.fn().mockResolvedValue({
+    json: async () => ({
+      data: {
+        schema_version: 'pilot-round-continue-ack.v1',
+        pilot_id: 'cet4-pilot-2026',
+        track: 'cet4',
+        content_version: CONTENT_VERSION,
+        receipt_id: receiptId,
+        completed_count: 5,
+        acknowledged_at: '2026-07-24T08:01:00.000Z',
+      },
+    }),
+    ok: true,
+    status: 200,
+  });
+  await expect(
+    continueRemoteLearningRound(
+      { authToken: 'current-token', phoneNumber: '13800138000' },
+      'cet4',
+      parsed.roundCompletion!,
+      createSoftbookRemoteLearningSessionConfig({
+        baseUrl: 'https://api.softbook.example',
+      }),
+      fetchMock,
+    ),
+  ).resolves.toMatchObject({ completedCount: 5, receiptId });
+  expect(fetchMock).toHaveBeenCalledWith(
+    'https://api.softbook.example/v2/learning/round/continue',
+    expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({
+        schema_version: 'pilot-round-continue.v1',
+        track: 'cet4',
+        content_version: CONTENT_VERSION,
+        receipt_id: receiptId,
+        completed_count: 5,
+      }),
+    }),
+  );
 });
 
 test.each([

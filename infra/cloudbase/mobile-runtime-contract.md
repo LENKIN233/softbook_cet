@@ -269,6 +269,18 @@ the first session changing `trial_available` to `trial`, mobile refreshes and
 verifies canonical bootstrap before presenting the session. It does not
 synthesize entitlement details from the session response.
 
+In `controlled_pilot`, the same response may instead contain one exact
+`pilot-round-completion.v1` in `round_completion`, with `selection` and
+`next_due_at` both null. Mobile resolves only the receipt's `space_card_id`
+and ordered unique `review_card_ids` from the matching canonical source,
+requires review IDs to remain inside the server-declared accessible prefix,
+and never infers or reorders them. Its existing Learning completion object
+shows the compact Space address and review count with one primary “继续下一轮”
+action. That action sends the exact authenticated `pilot-round-continue.v1`
+command to `POST /v2/learning/round/continue`; only a strict matching
+acknowledgement permits a fresh session read. Failure keeps the receipt visible
+and cannot advance locally. Other runtime modes do not expose this endpoint.
+
 The opaque `selection_id`, server phase, selected card, and content version are
 persisted in `learning-event-outbox.v2` before the completed card leaves its
 result state. One pending unseen event blocks another completion. After a strict

@@ -312,8 +312,8 @@
     "publish_order": "verify every bound artifact and audio byte then upload private assets, stage content, verify staged content, activate last and reread the active release",
     "gate_replacement": false,
     "repository_validation_gate_eligible": false,
-    "implementation_status": "profile_bundle_approval_audit_audio_qc_release_validation_publication_sequencing_shared_runtime_mode_content_authority_cloudbase_receiver_adapter_and_dry_run_first_delivery_command_implemented_locally",
-    "remaining_runtime_work": "receiver_owned_profile_secrets_and_execution, pilot entitlement overlay, atomic 120-hour trial timestamps, five-card round gate, deletion-worker extension and mobile pilot-specific wiring",
+    "implementation_status": "profile_bundle_approval_audit_audio_qc_release_validation_publication_sequencing_shared_runtime_mode_content_authority_cloudbase_receiver_adapter_dry_run_first_delivery_command_five_card_round_gate_continuation_store_and_mobile_completion_binding_implemented_locally",
+    "remaining_runtime_work": "receiver_owned_profile_secrets_and_execution, pilot entitlement overlay, atomic 120-hour trial timestamps, deletion-worker execution and real-device evidence",
     "content_status": "exact_120_candidate_payload_runtime_validated_but_not_final_user_approved_and_24_audio_assets_not_human_perceptually_approved",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "not_applicable_controlled_pilot_never_replaces_closed_beta_or_launch_evidence"

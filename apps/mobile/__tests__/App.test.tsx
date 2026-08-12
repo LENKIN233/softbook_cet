@@ -22,6 +22,7 @@ import App, { isCompactMineViewport, isPhoneMineViewport } from '../App';
 
 const mockCreateLearningSessionRepository = jest.fn();
 const mockLoadSession = jest.fn();
+const mockContinueRound = jest.fn();
 const mockFetch = jest.fn();
 const TEST_CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
 
@@ -157,6 +158,8 @@ jest.mock('../src/learning/learningRepository', () => ({
     mockCreateLearningSessionRepository(...args);
 
     return {
+      continueRound: (...continueArgs: unknown[]) =>
+        mockContinueRound(...continueArgs),
       loadSession: (...loadArgs: unknown[]) => mockLoadSession(...loadArgs),
     };
   },
@@ -199,6 +202,8 @@ beforeEach(() => {
   serverSelectionCounter = 0;
   mockCreateLearningSessionRepository.mockReset();
   mockLoadSession.mockReset();
+  mockContinueRound.mockReset();
+  mockContinueRound.mockResolvedValue(undefined);
   mockLoadSession.mockImplementation(() => pendingSession.promise);
   mockFetch.mockReset();
   mockFetch.mockImplementation(async (input: string, _init?: MockFetchInit) => {
@@ -361,6 +366,7 @@ function resolveSessionForRuntime(session: LearningSession): LearningSession {
     ...session,
     cards: [selectedCard],
     nextDueAt: null,
+    roundCompletion: null,
     schedulingMode: 'server',
     serverSelection: {
       cardId: selectedCard.card_id,
@@ -797,6 +803,7 @@ function createRemoteCatalogSession(): LearningSession {
     contentVersion: TEST_CONTENT_VERSION,
     membershipStage: 'free',
     nextDueAt: null,
+    roundCompletion: null,
     schedulingMode: 'server',
     serverSelection: {
       cardId: remoteCard.card_id,
@@ -2008,6 +2015,7 @@ test('keeps a remote null selection empty without local card or sleep fallback',
     contentVersion: TEST_CONTENT_VERSION,
     membershipStage: 'premium',
     nextDueAt: '2026-07-25T08:00:00.000Z',
+    roundCompletion: null,
     schedulingMode: 'server',
     serverSelection: null,
   };
@@ -2069,6 +2077,67 @@ test('keeps a remote null selection empty without local card or sleep fallback',
   expect(root.findAllByProps({ testID: 'learning-flip-button' })).toHaveLength(
     0,
   );
+});
+
+test('continues an exact controlled-pilot round before requesting another server card', async () => {
+  const baseSession = createLocalLearningSession('cet4');
+  const roundSession: LearningSession = {
+    ...baseSession,
+    cards: [],
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'premium',
+    nextDueAt: null,
+    roundCompletion: {
+      completedCount: 5,
+      contentVersion: TEST_CONTENT_VERSION,
+      pilotId: 'cet4-pilot-2026',
+      receiptId: `prc_${'a'.repeat(43)}`,
+      reviewCardIds: [baseSession.catalogCards[0].card_id],
+      spaceCardId: baseSession.catalogCards[4].card_id,
+    },
+    schedulingMode: 'server',
+    serverSelection: null,
+  };
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(
+        createAccountBootstrapPayload(roundSession, 'premium'),
+      );
+    }
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  await authenticateIntoLearningBootstrap(tree!.root);
+  await resolveLearningBootstrap(roundSession);
+  const continueButton = tree!.root.findByProps({
+    testID: 'learning-continue-round-button',
+  });
+  await ReactTestRenderer.act(async () => {
+    continueButton.props.onPress();
+    await flushAsyncEffects();
+  });
+  expect(mockContinueRound).toHaveBeenCalledWith(
+    expect.objectContaining({ phoneNumber: '13800138000' }),
+    expect.objectContaining({ roundCompletion: roundSession.roundCompletion }),
+  );
+  expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
 });
 
 test('blocks product state writes until canonical bootstrap succeeds on reconnect', async () => {

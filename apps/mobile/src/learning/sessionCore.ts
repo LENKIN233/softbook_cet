@@ -26,6 +26,7 @@ export function createLearningSession(
     contentVersion,
     membershipStage: null,
     nextDueAt: null,
+    roundCompletion: null,
     schedulingMode: 'local',
     serverSelection: null,
     sourceId,

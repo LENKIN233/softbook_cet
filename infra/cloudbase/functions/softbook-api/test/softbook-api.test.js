@@ -1106,6 +1106,38 @@ test('CloudBase learning-session cursor survives separate function instances', a
   });
 });
 
+test('CloudBase pilot round acknowledgement survives separate function instances', async () => {
+  const db = createFakeCloudBaseDb();
+  const firstStore = createCloudBaseStore({db});
+  const secondStore = createCloudBaseStore({db});
+  const input = {
+    accountKey: 'account-key-round-persistence',
+    acknowledgedAt: '2026-04-30T12:00:00.000Z',
+    completedCount: 5,
+    contentVersion: `sha256:${'a'.repeat(64)}`,
+    pilotId: 'cet4-controlled-pilot-round-persistence',
+    receiptId: `prc_${'b'.repeat(43)}`,
+    track: 'cet4',
+  };
+
+  const saved = await firstStore.savePilotRoundContinuation(input);
+  const restored = await secondStore.getPilotRoundContinuation(input);
+  const replayed = await secondStore.savePilotRoundContinuation(input);
+
+  assert.equal(Object.hasOwn(restored, '_id'), false);
+  assert.deepEqual(replayed, saved);
+  assert.deepEqual(restored, {
+    account_key: input.accountKey,
+    acknowledged_at: input.acknowledgedAt,
+    completed_count: input.completedCount,
+    content_version: input.contentVersion,
+    pilot_id: input.pilotId,
+    receipt_id: input.receiptId,
+    schema_version: 'pilot-round-continue-ack.v1',
+    track: input.track,
+  });
+});
+
 test('transactional membership mutations cannot downgrade concurrent purchases', async () => {
   const db = createFakeCloudBaseDb();
   const store = createCloudBaseStore({db});
