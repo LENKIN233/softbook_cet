@@ -218,6 +218,12 @@ function createFixture({formal = false} = {}) {
   const continuationKey = input =>
     `${input.accountKey}:${input.track}:${input.completedCount}`;
   const store = {
+    activateTrialForLearningSession: async () => ({
+      stage: 'trial',
+      trial_expires_at: '2026-08-17T06:00:00.000Z',
+      trial_remaining_seconds: 432000,
+      trial_started_at: '2026-08-12T06:00:00.000Z',
+    }),
     confirmLearningSessionCursor: async input =>
       input.expectedRevision === sessionState.revision &&
       input.expectedLearningAcknowledgedAt ===
@@ -227,7 +233,12 @@ function createFixture({formal = false} = {}) {
     getCardSource: async () => cardSource,
     getLearningSessionCursor: async () => sessionState,
     getLearningState: async () => learningState,
-    getMembership: async () => ({stage: 'trial'}),
+    getMembership: async () => ({
+      stage: 'trial',
+      trial_expires_at: '2026-08-17T06:00:00.000Z',
+      trial_remaining_seconds: 432000,
+      trial_started_at: '2026-08-12T06:00:00.000Z',
+    }),
     getPilotRoundContinuation: async input =>
       continuations.get(continuationKey(input)) ?? null,
     getSpaceState: async () => ({states_by_card_id: {}}),

@@ -55,7 +55,7 @@ async function readBootstrap(config, input) {
   }
 
   const [membership, learning, space] = await Promise.all([
-    config.store.getMembership(input.phoneNumber),
+    config.store.getMembership(input.phoneNumber, generatedAt),
     config.store.getLearningState(
       input.phoneNumber,
       input.dayKey,
@@ -533,6 +533,23 @@ function normalizeMembership(value) {
   return readCanonicalState('membership', () => {
     const membership = requireObject(value, 'membership');
     const trialStartedAtEntryCount = membership.trial_started_at_entry_count;
+    const stage = requireEnum(
+      membership.stage,
+      ['trial_available', 'trial', 'free', 'premium'],
+      'membership.stage',
+    );
+    const trialStartedAt = optionalIsoTimestamp(
+      membership.trial_started_at,
+      'membership.trial_started_at',
+    );
+    const trialExpiresAt = optionalIsoTimestamp(
+      membership.trial_expires_at,
+      'membership.trial_expires_at',
+    );
+    const trialRemainingSeconds = requireNonNegativeInteger(
+      membership.trial_remaining_seconds,
+      'membership.trial_remaining_seconds',
+    );
 
     if (
       trialStartedAtEntryCount !== null &&
@@ -541,17 +558,26 @@ function normalizeMembership(value) {
     ) {
       throw new Error('membership trial start count is invalid.');
     }
+    if (
+      (trialStartedAt === null) !== (trialExpiresAt === null) ||
+      (stage === 'trial' &&
+        (trialStartedAt === null ||
+          trialExpiresAt === null ||
+          Date.parse(trialExpiresAt) - Date.parse(trialStartedAt) !==
+            120 * 60 * 60 * 1000 ||
+          trialRemainingSeconds <= 0 ||
+          trialRemainingSeconds > 432000)) ||
+      (stage !== 'trial' && trialRemainingSeconds !== 0)
+    ) {
+      throw new Error('membership trial clock is invalid.');
+    }
 
     return {
       acknowledged_at: optionalIsoTimestamp(
         membership.acknowledged_at,
         'membership.acknowledged_at',
       ),
-      stage: requireEnum(
-        membership.stage,
-        ['trial_available', 'trial', 'free', 'premium'],
-        'membership.stage',
-      ),
+      stage,
       counted_entry_count: requireNonNegativeInteger(
         membership.counted_entry_count,
         'membership.counted_entry_count',
@@ -572,6 +598,9 @@ function normalizeMembership(value) {
         membership.trial_duration_days,
         'membership.trial_duration_days',
       ),
+      trial_expires_at: trialExpiresAt,
+      trial_remaining_seconds: trialRemainingSeconds,
+      trial_started_at: trialStartedAt,
       trial_started_at_entry_count: trialStartedAtEntryCount,
     };
   });

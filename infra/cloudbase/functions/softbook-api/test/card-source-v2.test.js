@@ -159,9 +159,10 @@ test('controlled-pilot HTTP events reach the five-card round boundary without sc
   );
 });
 
-test('controlled-pilot membership v2 derives identity from the active session while v1 remains disabled', async () => {
+test('controlled-pilot trial starts only from an authenticated valid Learning Session', async () => {
   const store = createMemoryStore();
   store.kind = 'test_persistent_store';
+  store.snapshot().cardSources.set('cet4', await createControlledPilotCardSource());
   const api = createSoftbookApi({
     authV2CodeGenerator: () => '2468',
     authV2IndexSecret: 'controlled-pilot-index-secret-00000003',
@@ -191,8 +192,8 @@ test('controlled-pilot membership v2 derives identity from the active session wh
     method: 'POST',
     path: '/v2/membership/start-trial',
   });
-  assert.equal(trial.statusCode, 200, JSON.stringify(trial.body));
-  assert.equal(trial.body.data.entitlement.stage, 'trial');
+  assert.equal(trial.statusCode, 404, JSON.stringify(trial.body));
+  assert.equal(trial.body.error.code, 'route_not_found');
 
   const injectedIdentity = await request(api, {
     body: {phone_number: '13900139000'},
@@ -200,11 +201,22 @@ test('controlled-pilot membership v2 derives identity from the active session wh
     method: 'POST',
     path: '/v2/membership/start-trial',
   });
-  assert.equal(injectedIdentity.statusCode, 400);
+  assert.equal(injectedIdentity.statusCode, 404);
+
+  const learning = await request(api, {
+    headers,
+    method: 'GET',
+    path: '/v2/learning/session',
+    query: {track: 'cet4'},
+  });
+  assert.equal(learning.statusCode, 200, JSON.stringify(learning.body));
+  assert.equal(learning.body.data.membership_stage, 'trial');
+  assert.equal(learning.body.data.trial_started_at, NOW.toISOString());
   assert.equal(
-    injectedIdentity.body.error.code,
-    'membership_identity_input_forbidden',
+    learning.body.data.trial_expires_at,
+    '2026-08-17T08:00:00.000Z',
   );
+  assert.equal(learning.body.data.trial_remaining_seconds, 432000);
 
   const legacy = await request(api, {
     headers,

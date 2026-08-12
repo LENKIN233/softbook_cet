@@ -15,7 +15,6 @@ export type MembershipRemoteConfig = {
   headers?: Record<string, string>;
   parsePayload?: (payload: unknown) => MembershipState;
   purchaseEndpoint: string;
-  startTrialEndpoint: string;
 };
 
 export type MembershipRepositoryContext = {
@@ -133,10 +132,8 @@ export function createMembershipRepository(
     },
     startTrial: async (context, currentState) => {
       if (config.mode === 'remote') {
-        return runRemoteMembershipMutation(
-          config,
-          context,
-          config.remoteConfig?.startTrialEndpoint,
+        throw new Error(
+          'Remote membership trials start only from Learning Session.',
         );
       }
 
@@ -161,7 +158,6 @@ export function createSoftbookRemoteMembershipConfig(
       ...(config.apiKey ? {'x-api-key': config.apiKey} : {}),
     },
     purchaseEndpoint: `${baseUrl}/v2/membership/purchase`,
-    startTrialEndpoint: `${baseUrl}/v2/membership/start-trial`,
   };
 }
 
@@ -241,6 +237,15 @@ export function parseSoftbookRemoteMembershipPayload(
   }
 
   const trialStartedAtEntryCount = entitlement.trial_started_at_entry_count;
+  const trialStartedAt = readNullableCanonicalTimestamp(
+    entitlement.trial_started_at,
+    'trial_started_at',
+  );
+  const trialExpiresAt = readNullableCanonicalTimestamp(
+    entitlement.trial_expires_at,
+    'trial_expires_at',
+  );
+  const trialRemainingSeconds = entitlement.trial_remaining_seconds;
 
   if (
     trialStartedAtEntryCount !== null &&
@@ -253,12 +258,34 @@ export function parseSoftbookRemoteMembershipPayload(
     );
   }
 
+  if (
+    typeof trialRemainingSeconds !== 'number' ||
+    !Number.isSafeInteger(trialRemainingSeconds) ||
+    trialRemainingSeconds < 0 ||
+    (trialStartedAt === null) !== (trialExpiresAt === null) ||
+    (stage === 'trial' &&
+      (trialStartedAt === null ||
+        trialExpiresAt === null ||
+        trialRemainingSeconds <= 0 ||
+        Date.parse(trialExpiresAt) - Date.parse(trialStartedAt) !==
+          120 * 60 * 60 * 1000 ||
+        trialRemainingSeconds > 432000)) ||
+    (stage !== 'trial' && trialRemainingSeconds !== 0)
+  ) {
+    throw new Error(
+      'Remote membership payload.data.entitlement trial clock is invalid.',
+    );
+  }
+
   return {
     countedEntryCount,
     lastExperienceEndedBy,
     recoveryPromptVisible,
     stage,
     trialDurationDays,
+    trialExpiresAt,
+    trialRemainingSeconds,
+    trialStartedAt,
     trialStartedAtEntryCount,
   };
 }
@@ -328,6 +355,22 @@ function createLocalMembershipRepositoryResult(
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function readNullableCanonicalTimestamp(value: unknown, contextName: string) {
+  if (value === null) return null;
+  if (typeof value !== 'string') {
+    throw new Error(
+      `Remote membership payload.data.entitlement.${contextName} must be a canonical UTC timestamp or null.`,
+    );
+  }
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) {
+    throw new Error(
+      `Remote membership payload.data.entitlement.${contextName} must be a canonical UTC timestamp or null.`,
+    );
+  }
+  return value;
 }
 
 function trimTrailingSlash(value: string) {

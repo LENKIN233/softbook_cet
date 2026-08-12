@@ -25,7 +25,7 @@ test('local membership repository loads trial-available state and updates it loc
   expect(trialResult.state.stage).toBe('trial');
 });
 
-test('remote membership repository loads entitlement and posts mutations', async () => {
+test('remote membership repository loads entitlement and refuses direct trial mutation', async () => {
   const fetchMock = jest
     .fn()
     .mockResolvedValueOnce({
@@ -37,23 +37,10 @@ test('remote membership repository loads entitlement and posts mutations', async
             recovery_prompt_visible: false,
             stage: 'free',
             trial_duration_days: 5,
+            trial_expires_at: '2026-07-20T08:00:00.000Z',
+            trial_remaining_seconds: 0,
+            trial_started_at: '2026-07-15T08:00:00.000Z',
             trial_started_at_entry_count: 1,
-          },
-        },
-      }),
-      ok: true,
-      status: 200,
-    })
-    .mockResolvedValueOnce({
-      json: async () => ({
-        data: {
-          entitlement: {
-            counted_entry_count: 3,
-            last_experience_ended_by: null,
-            recovery_prompt_visible: false,
-            stage: 'trial',
-            trial_duration_days: 5,
-            trial_started_at_entry_count: 3,
           },
         },
       }),
@@ -72,16 +59,14 @@ test('remote membership repository loads entitlement and posts mutations', async
         'x-softbook-client': 'mobile',
       },
       purchaseEndpoint: 'https://api.softbook.example/v2/membership/purchase',
-      startTrialEndpoint: 'https://api.softbook.example/v2/membership/start-trial',
     },
   });
 
   const state = await repository.loadState(authenticatedContext);
-  const trialResult = await repository.startTrial(authenticatedContext, state);
-
   expect(state.stage).toBe('free');
-  expect(trialResult.mode).toBe('remote');
-  expect(trialResult.state.stage).toBe('trial');
+  await expect(repository.startTrial(authenticatedContext, state)).rejects.toThrow(
+    'Remote membership trials start only from Learning Session.',
+  );
   expect(fetchMock).toHaveBeenNthCalledWith(
     1,
     'https://api.softbook.example/v2/membership/entitlement',
@@ -89,14 +74,7 @@ test('remote membership repository loads entitlement and posts mutations', async
       method: 'GET',
     }),
   );
-  expect(fetchMock).toHaveBeenNthCalledWith(
-    2,
-    'https://api.softbook.example/v2/membership/start-trial',
-    expect.objectContaining({
-      body: '{}',
-      method: 'POST',
-    }),
-  );
+  expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 
 test('remote membership repository requires auth token', async () => {
@@ -109,7 +87,6 @@ test('remote membership repository requires auth token', async () => {
       entitlementEndpoint:
         'https://api.softbook.example/v2/membership/entitlement',
       purchaseEndpoint: 'https://api.softbook.example/v2/membership/purchase',
-      startTrialEndpoint: 'https://api.softbook.example/v2/membership/start-trial',
     },
   });
 
@@ -134,7 +111,6 @@ test('remote membership repository preserves authorization status', async () => 
       entitlementEndpoint:
         'https://api.softbook.example/v2/membership/entitlement',
       purchaseEndpoint: 'https://api.softbook.example/v2/membership/purchase',
-      startTrialEndpoint: 'https://api.softbook.example/v2/membership/start-trial',
     },
   });
 
@@ -153,11 +129,36 @@ test('remote membership payload parser validates stage', () => {
           recovery_prompt_visible: false,
           stage: 'invalid',
           trial_duration_days: 5,
+          trial_expires_at: null,
+          trial_remaining_seconds: 0,
+          trial_started_at: null,
           trial_started_at_entry_count: null,
         },
       },
     }),
   ).toThrow(
     'Remote membership payload.data.entitlement.stage must be a valid membership stage.',
+  );
+});
+
+test('remote membership payload parser rejects trial clock drift', () => {
+  expect(() =>
+    parseSoftbookRemoteMembershipPayload({
+      data: {
+        entitlement: {
+          counted_entry_count: 1,
+          last_experience_ended_by: null,
+          recovery_prompt_visible: false,
+          stage: 'trial',
+          trial_duration_days: 5,
+          trial_expires_at: '2026-07-21T08:00:00.000Z',
+          trial_remaining_seconds: 432001,
+          trial_started_at: '2026-07-15T08:00:00.000Z',
+          trial_started_at_entry_count: 1,
+        },
+      },
+    }),
+  ).toThrow(
+    'Remote membership payload.data.entitlement trial clock is invalid.',
   );
 });

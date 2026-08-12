@@ -146,12 +146,6 @@ export async function smokeControlledPilotCandidateRuntime(options) {
     'membership entitlement',
   );
   assert.equal(entitlement.entitlement.stage, 'trial_available');
-  const startedTrial = await expectOk(
-    api,
-    {body: {}, headers, method: 'POST', path: '/v2/membership/start-trial'},
-    'membership start trial',
-  );
-  assert.equal(startedTrial.entitlement.stage, 'trial');
 
   const completedCardIds = [];
   const reviewCardIds = [];
@@ -162,6 +156,13 @@ export async function smokeControlledPilotCandidateRuntime(options) {
       `learning session ${index + 1}`,
     );
     assert.notEqual(scheduled.selection, null);
+    assert.equal(scheduled.membership_stage, 'trial');
+    assert.equal(scheduled.trial_started_at, checkedAt.toISOString());
+    assert.equal(
+      scheduled.trial_expires_at,
+      new Date(checkedAt.getTime() + 120 * 60 * 60 * 1000).toISOString(),
+    );
+    assert.equal(scheduled.trial_remaining_seconds, 432000);
     const card = runtimeSource.card_records.find(
       record => record.card_id === scheduled.selection.card_id,
     );

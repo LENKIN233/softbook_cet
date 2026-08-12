@@ -230,6 +230,12 @@ test('learning session is authenticated, strict, starts trial, and persists one 
   });
   assert.equal(first.body.data.schema_version, 'learning-session.v1');
   assert.equal(first.body.data.membership_stage, 'trial');
+  assert.equal(first.body.data.trial_started_at, START_TIME.toISOString());
+  assert.equal(
+    first.body.data.trial_expires_at,
+    '2026-05-05T12:00:00.000Z',
+  );
+  assert.equal(first.body.data.trial_remaining_seconds, 432000);
   assert.deepEqual(first.body.data.access, {
     mode: 'full',
     accessible_card_count: source.card_records.length,
@@ -455,6 +461,11 @@ test('an initial empty selection persists a valid revision before confirmation',
   assert.equal(first.body.data.next_due_at, null);
   assert.equal(second.statusCode, 200, JSON.stringify(second.body));
   assert.equal(second.body.data.selection, null);
+  const membership = await store.getMembership(PHONE, START_TIME.toISOString());
+  assert.equal(membership.stage, 'trial_available');
+  assert.equal(membership.trial_started_at, null);
+  assert.equal(membership.trial_expires_at, null);
+  assert.equal(membership.trial_remaining_seconds, 0);
   const sessionState = [...store.snapshot().learningSessions.values()][0];
   assert.equal(sessionState.revision, 1);
   assert.equal(sessionState.cursor, null);

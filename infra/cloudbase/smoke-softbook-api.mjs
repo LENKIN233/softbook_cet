@@ -150,7 +150,6 @@ if (enableWrites) {
 }
 
 if (enableMembershipMutations) {
-  await startMembershipTrial();
   await purchaseMembership();
   const finalEntitlement = await dismissMembershipRecovery();
   await assertBootstrapMembership(finalEntitlement);
@@ -498,10 +497,14 @@ async function loadLearningSelection(cardSource) {
       'generated_at',
       'membership_stage',
       'next_due_at',
+      'round_completion',
       'schema_version',
       'selection',
       'source_id',
       'track',
+      'trial_expires_at',
+      'trial_remaining_seconds',
+      'trial_started_at',
     ],
     'learning session.data',
   );
@@ -516,6 +519,33 @@ async function loadLearningSelection(cardSource) {
   }
 
   assertIsoTimestamp(data.generated_at, 'learning session.data.generated_at');
+  if (
+    expectedStartTrialStage &&
+    data.membership_stage !== expectedStartTrialStage
+  ) {
+    fail(
+      `learning-session trial expected stage ${expectedStartTrialStage}, got ${data.membership_stage}.`,
+    );
+  }
+  if (data.membership_stage === 'trial') {
+    assertIsoTimestamp(
+      data.trial_started_at,
+      'learning session.data.trial_started_at',
+    );
+    assertIsoTimestamp(
+      data.trial_expires_at,
+      'learning session.data.trial_expires_at',
+    );
+    if (
+      Date.parse(data.trial_expires_at) - Date.parse(data.trial_started_at) !==
+        120 * 60 * 60 * 1000 ||
+      !Number.isSafeInteger(data.trial_remaining_seconds) ||
+      data.trial_remaining_seconds <= 0 ||
+      data.trial_remaining_seconds > 432000
+    ) {
+      fail('learning session returned an invalid 120-hour trial clock.');
+    }
+  }
   const selection = assertExactKeys(
     data.selection,
     ['card_id', 'due_at', 'phase', 'reason', 'selection_id'],
@@ -533,7 +563,7 @@ async function loadLearningSelection(cardSource) {
 
   ok(
     'learning session',
-    `${selection.phase}:${selection.card_id}`,
+    `${selection.phase}:${selection.card_id}; stage=${data.membership_stage}; remaining=${data.trial_remaining_seconds}`,
   );
   return selection;
 }
@@ -862,17 +892,6 @@ function parseSpaceActionAck(
   ) {
     fail(`${label}.data.space_state is not the canonical favorite state.`);
   }
-}
-
-async function startMembershipTrial() {
-  const entitlement = await runMembershipMutation('/v2/membership/start-trial');
-
-  assertExpectedStage(
-    entitlement,
-    expectedStartTrialStage,
-    'membership start-trial',
-  );
-  ok('membership start-trial', entitlement.stage);
 }
 
 async function purchaseMembership() {

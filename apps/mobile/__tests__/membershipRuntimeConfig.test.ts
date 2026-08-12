@@ -35,7 +35,6 @@ test('membership runtime config can switch repository mode to remote', () => {
         'x-softbook-client': 'mobile',
       },
       purchaseEndpoint: 'https://api.softbook.example/v2/membership/purchase',
-      startTrialEndpoint: 'https://api.softbook.example/v2/membership/start-trial',
     },
   });
 });

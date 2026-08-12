@@ -181,6 +181,9 @@ export type LearningSession = {
   contentManifest: VerifiedContentManifest | null;
   contentVersion: string | null;
   membershipStage: LearningServerMembershipStage | null;
+  membershipTrialExpiresAt: string | null;
+  membershipTrialRemainingSeconds: number;
+  membershipTrialStartedAt: string | null;
   nextDueAt: string | null;
   roundCompletion: LearningRoundCompletion | null;
   schedulingMode: 'local' | 'server';

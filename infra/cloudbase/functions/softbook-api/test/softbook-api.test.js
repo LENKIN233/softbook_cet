@@ -1160,6 +1160,48 @@ test('transactional membership mutations cannot downgrade concurrent purchases',
   assert.equal(dismissed.stage, 'premium');
 });
 
+test('trial clock lasts exactly 120 hours and expires atomically at the boundary', async () => {
+  const stores = [
+    createMemoryStore(),
+    createCloudBaseStore({db: createFakeCloudBaseDb()}),
+  ];
+  const startedAt = '2026-04-30T12:00:00.000Z';
+  const justBeforeExpiry = '2026-05-05T11:59:59.001Z';
+  const expiresAt = '2026-05-05T12:00:00.000Z';
+
+  for (const store of stores) {
+    const started = await store.startTrial('13800138000', startedAt);
+    assert.equal(started.stage, 'trial');
+    assert.equal(started.trial_started_at, startedAt);
+    assert.equal(started.trial_expires_at, expiresAt);
+    assert.equal(started.trial_remaining_seconds, 432000);
+
+    const before = await store.getMembership(
+      '13800138000',
+      justBeforeExpiry,
+    );
+    assert.equal(before.stage, 'trial');
+    assert.equal(before.trial_remaining_seconds, 1);
+
+    const expired = await store.getMembership('13800138000', expiresAt);
+    assert.equal(expired.stage, 'free');
+    assert.equal(expired.last_experience_ended_by, 'trial');
+    assert.equal(expired.recovery_prompt_visible, true);
+    assert.equal(expired.trial_remaining_seconds, 0);
+    assert.equal(
+      expired.component_revision.base_membership_revision,
+      before.component_revision.base_membership_revision + 1,
+    );
+
+    const replay = await store.getMembership('13800138000', expiresAt);
+    assert.equal(replay.stage, 'free');
+    assert.equal(
+      replay.component_revision.base_membership_revision,
+      expired.component_revision.base_membership_revision,
+    );
+  }
+});
+
 test('bootstrap rejects corrupted persisted canonical state', async () => {
   const store = createMemoryStore();
   const api = createTestApi({store});

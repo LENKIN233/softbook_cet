@@ -97,7 +97,7 @@ async function readLearningSession(config, input) {
           track,
           {accountKey: input.accountKey, includeSchedulerState: true},
         ),
-        config.store.getMembership(input.phoneNumber),
+        config.store.getMembership(input.phoneNumber, generatedAtIso),
         config.store.getSpaceState(input.phoneNumber, dayKey, {
           accountKey: input.accountKey,
           acknowledgedAt: generatedAtIso,
@@ -190,6 +190,7 @@ async function readLearningSession(config, input) {
           context,
           input.phoneNumber,
           generatedAtIso,
+          resumed,
         ))
       ) {
         continue;
@@ -230,6 +231,7 @@ async function readLearningSession(config, input) {
           context,
           input.phoneNumber,
           generatedAtIso,
+          next.selection,
         ))
       ) {
         continue;
@@ -274,7 +276,7 @@ async function continuePilotRound(config, input) {
       accountKey: input.accountKey,
       includeSchedulerState: true,
     }),
-    config.store.getMembership(input.phoneNumber),
+    config.store.getMembership(input.phoneNumber, generatedAtIso),
     config.store.getSpaceState(input.phoneNumber, dayKey, {
       accountKey: input.accountKey,
       acknowledgedAt: generatedAtIso,
@@ -287,9 +289,11 @@ async function continuePilotRound(config, input) {
     generatedAt,
   );
   const context = normalizeSelectionContext({
+    accountKey: input.accountKey,
     cardSource,
     generatedAt,
     learningState,
+    membership,
     membershipStage: requireMembershipStage(membership.stage),
     sessionState: null,
     spaceState,
@@ -422,15 +426,20 @@ async function activateAvailableTrial(
   context,
   phoneNumber,
   acknowledgedAt,
+  selection,
 ) {
-  if (context.membershipStage !== 'trial_available') {
+  if (context.membershipStage !== 'trial_available' || selection === null) {
     return true;
   }
 
-  const activatedMembership = await config.store.startTrial(
-    phoneNumber,
+  const activatedMembership = await config.store.activateTrialForLearningSession({
+    accountKey: context.accountKey,
     acknowledgedAt,
-  );
+    phoneNumber,
+    selectionId: selection.cursor.selection_id,
+    track: context.track,
+  });
+  if (activatedMembership === null) return false;
   const activatedStage = requireMembershipStage(activatedMembership.stage);
 
   if (activatedStage !== 'trial') {
@@ -438,6 +447,7 @@ async function activateAvailableTrial(
   }
 
   context.membershipStage = activatedStage;
+  context.membership = normalizeSessionMembership(activatedMembership);
   return true;
 }
 
@@ -452,9 +462,11 @@ function normalizeCanonicalSelectionContext(input) {
     );
 
     return normalizeSelectionContext({
+      accountKey: input.accountKey,
       cardSource: input.cardSource,
       generatedAt: input.generatedAt,
       learningState: input.learningState,
+      membership: input.membership,
       membershipStage: requireMembershipStage(input.membership.stage),
       sessionState,
       spaceState: input.spaceState,
@@ -519,6 +531,7 @@ function normalizeSelectionContext(input) {
   );
 
   return {
+    accountKey: input.accountKey ?? null,
     accessibleCardCount,
     accessibleCardIds,
     accessibleCards,
@@ -528,6 +541,7 @@ function normalizeSelectionContext(input) {
     contentVersion,
     generatedAt: input.generatedAt,
     learning,
+    membership: normalizeSessionMembership(input.membership),
     membershipStage: input.membershipStage,
     pilotId:
       input.cardSource.release?.schema_version === 'pilot-content-release.v1'
@@ -760,6 +774,9 @@ function serializeLearningSession(
     content_version: context.contentVersion,
     source_id: context.sourceId,
     membership_stage: context.membershipStage,
+    trial_started_at: context.membership.trialStartedAt,
+    trial_expires_at: context.membership.trialExpiresAt,
+    trial_remaining_seconds: context.membership.trialRemainingSeconds,
     algorithm: {
       id: SCHEDULER_ALGORITHM,
       library: SCHEDULER_LIBRARY,
@@ -782,6 +799,42 @@ function serializeLearningSession(
       : null,
     next_due_at: nextDueAt,
     round_completion: roundCompletion,
+  };
+}
+
+function normalizeSessionMembership(value) {
+  if (!isObject(value)) {
+    throw unavailable('The canonical membership is invalid.');
+  }
+  const stage = requireMembershipStage(value.stage);
+  const startedAt =
+    value.trial_started_at === null
+      ? null
+      : requireIsoTimestamp(value.trial_started_at, 'membership.trial_started_at');
+  const expiresAt =
+    value.trial_expires_at === null
+      ? null
+      : requireIsoTimestamp(value.trial_expires_at, 'membership.trial_expires_at');
+  const remainingSeconds = requireNonNegativeSafeInteger(
+    value.trial_remaining_seconds,
+    'membership.trial_remaining_seconds',
+  );
+  if (
+    (startedAt === null) !== (expiresAt === null) ||
+    (stage === 'trial' &&
+      (startedAt === null ||
+        expiresAt === null ||
+        Date.parse(expiresAt) - Date.parse(startedAt) !== 120 * 60 * 60 * 1000 ||
+        remainingSeconds <= 0 ||
+        remainingSeconds > 432000)) ||
+    (stage !== 'trial' && remainingSeconds !== 0)
+  ) {
+    throw unavailable('The canonical membership trial clock is invalid.');
+  }
+  return {
+    trialExpiresAt: expiresAt,
+    trialRemainingSeconds: remainingSeconds,
+    trialStartedAt: startedAt,
   };
 }
 
@@ -1331,6 +1384,7 @@ function chinaActivityDay(timestamp) {
 
 function validateServiceConfig(config) {
   for (const name of [
+    'activateTrialForLearningSession',
     'confirmLearningSessionCursor',
     'getCardSource',
     'getLearningSessionCursor',
@@ -1340,7 +1394,6 @@ function validateServiceConfig(config) {
     'getSpaceState',
     'saveLearningSessionCursor',
     'savePilotRoundContinuation',
-    'startTrial',
   ]) {
     if (typeof config.store?.[name] !== 'function') {
       throw new Error(`Learning scheduler store.${name} is required.`);

@@ -1,5 +1,4 @@
 import type { MembershipRepository } from '../membership/membershipRepository';
-import type { MembershipState } from '../membership/localMembership';
 import type { AccountBootstrapComponentRevisions } from '../bootstrap/accountBootstrapRepository';
 import { areAccountBootstrapComponentRevisionsAtLeast } from '../bootstrap/accountBootstrapRevision';
 import type {
@@ -30,7 +29,6 @@ export type MutationReplayResult =
         {
           type:
             | 'refresh_membership'
-            | 'start_membership_trial'
             | 'apply_space_action';
         }
       >;
@@ -50,9 +48,9 @@ export type MutationReplayResult =
   | {
       entry: Extract<
         MutationQueueEntry,
-        { type: 'refresh_membership' | 'start_membership_trial' }
+        { type: 'refresh_membership' }
       >;
-      membershipState: MembershipState;
+      membershipState: Awaited<ReturnType<MembershipRepository['loadState']>>;
     };
 
 export type MutationReplayContext = {
@@ -157,19 +155,6 @@ export function createMutationQueueRepository(options: {
               membershipState: await options.membershipRepository.loadState(
                 entry.payload.context,
               ),
-            },
-            status: 'replayed',
-          };
-        case 'start_membership_trial':
-          return {
-            result: {
-              entry,
-              membershipState: (
-                await options.membershipRepository.startTrial(
-                  entry.payload.context,
-                  entry.payload.currentState,
-                )
-              ).state,
             },
             status: 'replayed',
           };

@@ -185,6 +185,9 @@ output.
     "content_version": "sha256:<64 lowercase hex characters>",
     "source_id": "cloudbase-dev-card-source",
     "membership_stage": "trial",
+    "trial_started_at": "2026-07-23T04:00:00.000Z",
+    "trial_expires_at": "2026-07-28T04:00:00.000Z",
+    "trial_remaining_seconds": 432000,
     "algorithm": {
       "id": "FSRS-6",
       "library": "ts-fsrs",
@@ -217,6 +220,11 @@ cursor preserves its original phase and due time but reports
 The response membership stage is `trial`, `free`, or `premium`;
 `trial_available` must be activated before a successful response. `free`
 requires `free_subset` access, while `trial` and `premium` require `full`.
+`trial_started_at` and `trial_expires_at` are canonical UTC timestamps exactly
+120 hours apart once a trial has started. `trial_remaining_seconds` is derived
+against `generated_at`, is positive only while `membership_stage=trial`, and is
+zero otherwise. Remote clients display this server value and never reconstruct
+or extend the entitlement clock locally.
 
 `round_completion` is always present. It is `null` outside controlled-pilot
 runtime and away from an unacknowledged positive five-event boundary. At a

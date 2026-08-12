@@ -407,6 +407,9 @@ Response:
       "last_experience_ended_by": null,
       "recovery_prompt_visible": false,
       "trial_duration_days": 5,
+      "trial_started_at": null,
+      "trial_expires_at": null,
+      "trial_remaining_seconds": 0,
       "trial_started_at_entry_count": null
     }
   }
@@ -420,12 +423,16 @@ Field rules:
 - `last_experience_ended_by`: `trial`, `premium`, or `null`.
 - `recovery_prompt_visible`: boolean.
 - `trial_duration_days`: positive integer.
+- `trial_started_at`: canonical UTC timestamp or `null` before first start.
+- `trial_expires_at`: canonical UTC timestamp exactly 120 hours after start, or
+  `null` before first start.
+- `trial_remaining_seconds`: server-derived non-negative integer; positive only
+  for an active trial.
 - `trial_started_at_entry_count`: positive integer or `null`.
 
 ### Membership Mutations
 
 ```http
-POST /v2/membership/start-trial
 POST /v2/membership/purchase
 POST /v2/membership/dismiss-recovery
 Authorization: Bearer <access_token>
@@ -438,8 +445,9 @@ x-api-key: <optional>
 
 Response: same shape as membership entitlement.
 
-If `start-trial` fails with a 5xx, the app locally allows the trial and queues
-the mutation for replay.
+There is no remote client-owned trial-start mutation. A successful Learning
+Session with an eligible selection starts an available trial atomically; the
+mobile client consumes the returned timestamps and remaining seconds.
 
 ### Daily Check-In v2
 
@@ -600,7 +608,9 @@ ordering, and acknowledgement contract is in
    source before full visual QA: `flip`, `multiple_choice`, `lock`,
    `elimination`, `swipe`.
 9. `/v2/membership/entitlement` returns a valid session-owned entitlement.
-10. Space gate can trigger `/v2/membership/start-trial` without an identity body.
+10. The first eligible `/v2/learning/session` read changes `trial_available` to
+    `trial` and returns the exact server trial clock; invalid or empty selection
+    does not consume it.
 11. Membership purchase and dismiss recovery return valid entitlement payloads.
 12. `/v2/learning/session?track=<track>` returns a strict selection whose track,
     source, and content version match the loaded card source.
@@ -652,7 +662,8 @@ node infra/cloudbase/smoke-softbook-api.mjs
 Use `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1` for write-enabled smoke runs so
 membership mutations do not change a shared manual-acceptance phone. Isolated
 runs assert the expected membership stage sequence: `trial_available` before
-mutations, `trial` after start-trial, and `premium` after purchase.
+Learning Session, `trial` after its first eligible selection, and `premium`
+after purchase.
 
 Expected high-level output:
 
@@ -668,9 +679,9 @@ Expected high-level output:
 [ok] learning-events v2: accepted then duplicate at server_sequence=1
 [ok] space-actions v2: applied then duplicate
 [ok] bootstrap after writes: sha256:<digest>; release=none
-[ok] membership start-trial: trial
+[ok] learning-session trial: trial; remaining=432000
 [ok] membership purchase: premium
-[ok] membership dismiss-recovery: free
+[ok] membership dismiss-recovery: premium
 [ok] bootstrap after membership mutations: sha256:<digest>; release=none
 ```
 
