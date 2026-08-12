@@ -26,11 +26,11 @@ Referenced active sources:
 - The repository implements fail-closed profile, bundle, approval, audit, audio-QC and release validators plus publication sequencing through an injected receiver adapter.
 - Runtime content authority distinguishes `development`, `production` and `controlled_pilot`: production accepts only `content-release.v1`; controlled pilot accepts only a current `pilot-content-release.v1` with exactly 120 cards and a 60-card free prefix; neither mode falls back to development content.
 - The shared authenticated `GET /v2/learning/card-source`, Bootstrap, Learning Events, Learning Session and Space paths apply that mode boundary. Non-development authentication still requires strong separate secrets, a persistent store, trusted client IP and a non-development SMS provider. The controlled-pilot mobile runtime has no `/v1` dependency for loading card bodies.
-- A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, and dry-run-first approved-artifact bundle assembler are implemented locally. Five-card round gating, its exact continuation store and the mobile completion-state binding are implemented in the repository follow-up to the publication candidate but remain undeployed. Receiver-owned profile/secrets and execution, complete identified-human audio QC, entitlement operations, exact 120-hour trial timestamps, deletion-worker execution, and real-device evidence remain separate and incomplete.
+- A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, and dry-run-first approved-artifact bundle assembler are implemented locally. Five-card round gating, its exact continuation store, the mobile completion-state binding, and the atomic 120-hour Learning Session trial clock are implemented in the repository but remain undeployed. Receiver-owned profile/secrets and execution, complete identified-human audio QC, pilot entitlement operations, deletion-worker execution, and real-device evidence remain separate and incomplete.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
 - None of this has been deployed to the receiver environment in this repository run. Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
 
-## Trial authority (target contract; not yet fully implemented on current `main`)
+## Trial authority (repository implementation; not yet deployed)
 
 Authentication alone never starts the trial. The Learning Session authority may start an available trial only after it has validated canonical content and access, selected an eligible card, persisted and confirmed the selection cursor, and is ready to return a successful session. It stores server-authoritative `trial_started_at` and `trial_expires_at` exactly 120 hours apart in the same membership transaction that changes `trial_available -> trial`.
 
@@ -171,8 +171,8 @@ It creates neither candidate content nor content/audio approval.
 pre-deployment consumer-side integration check for an exact approved candidate.
 It hash-binds the candidate payload, review, approval and scoped audit; hydrates
 environment-only private object IDs in memory; and exercises authenticated
-`/v2/learning/card-source`, session-owned membership read/trial start, Learning
-Session, five selection-bound Learning Events, the server-owned round boundary
+`/v2/learning/card-source`, session-owned membership read and Learning
+Session-owned trial start, five selection-bound Learning Events, the server-owned round boundary
 and continuation, Bootstrap, and the signed 24-asset content manifest. It never
 substitutes for complete identified
 human audio QC, persistent receiver execution, private-object byte delivery or

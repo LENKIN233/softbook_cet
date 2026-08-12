@@ -312,8 +312,8 @@
     "publish_order": "verify every bound artifact and audio byte then upload private assets, stage content, verify staged content, activate last and reread the active release",
     "gate_replacement": false,
     "repository_validation_gate_eligible": false,
-    "implementation_status": "profile_bundle_approval_audit_audio_qc_release_validation_publication_sequencing_shared_runtime_mode_content_authority_authenticated_v2_card_source_cloudbase_receiver_adapter_dry_run_first_delivery_command_exact_approved_candidate_runtime_smoke_five_card_round_gate_continuation_store_and_mobile_completion_binding_implemented_locally",
-    "remaining_runtime_work": "receiver_owned_profile_secrets_and_execution, pilot entitlement overlay, atomic 120-hour trial timestamps, deletion-worker execution and real-device evidence",
+    "implementation_status": "profile_bundle_approval_audit_audio_qc_release_validation_publication_sequencing_shared_runtime_mode_content_authority_authenticated_v2_card_source_cloudbase_receiver_adapter_dry_run_first_delivery_command_exact_approved_candidate_runtime_smoke_five_card_round_gate_continuation_store_mobile_completion_binding_and_atomic_120_hour_learning_session_trial_clock_implemented_locally",
+    "remaining_runtime_work": "receiver_owned_profile_secrets_and_execution, pilot entitlement overlay, deletion-worker execution and real-device evidence",
     "content_status": "exact_120_payload_user_approved_in_card_make_pr_155_for_content_version_sha256_dd2d397532556563a205351f04f98184afc09a4cd6a2580966556052ffc24f36_while_24_audio_assets_remain_not_human_perceptually_approved",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "not_applicable_controlled_pilot_never_replaces_closed_beta_or_launch_evidence"

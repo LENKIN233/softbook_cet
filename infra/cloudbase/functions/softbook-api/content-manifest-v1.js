@@ -39,6 +39,7 @@ function createContentManifestV1Service(options) {
         options.store,
         input.phoneNumber,
         cardSource,
+        issuedAt,
       );
       const manifest = createStableManifest(cardSource);
       const serializedAccess = {
@@ -83,7 +84,7 @@ function createContentManifestV1Service(options) {
   };
 }
 
-async function resolveContentAccess(store, phoneNumber, cardSource) {
+async function resolveContentAccess(store, phoneNumber, cardSource, issuedAt) {
   if (typeof phoneNumber !== 'string' || phoneNumber.length === 0) {
     throw contentManifestError(
       401,
@@ -92,7 +93,10 @@ async function resolveContentAccess(store, phoneNumber, cardSource) {
     );
   }
 
-  const membership = await store.getMembership(phoneNumber);
+  const membership = await store.getMembership(
+    phoneNumber,
+    issuedAt.toISOString(),
+  );
   const totalCardCount = cardSource.card_records.length;
   let accessibleCardCount;
   let mode;

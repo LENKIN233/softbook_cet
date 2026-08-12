@@ -106,8 +106,6 @@ test('remote runtime profile switches every remote-capable surface to one base u
     entitlementEndpoint:
       'https://api.softbook.example/v2/membership/entitlement',
     purchaseEndpoint: 'https://api.softbook.example/v2/membership/purchase',
-    startTrialEndpoint:
-      'https://api.softbook.example/v2/membership/start-trial',
     headers: {
       'x-api-key': 'dev-key',
       'x-softbook-client': 'mobile',

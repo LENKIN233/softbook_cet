@@ -164,6 +164,10 @@ export function createLearningSessionRepository(
           contentManifest,
           contentVersion: scheduled.contentVersion,
           membershipStage: scheduled.membershipStage,
+          membershipTrialExpiresAt: scheduled.membershipTrialExpiresAt,
+          membershipTrialRemainingSeconds:
+            scheduled.membershipTrialRemainingSeconds,
+          membershipTrialStartedAt: scheduled.membershipTrialStartedAt,
           nextDueAt: scheduled.nextDueAt,
           roundCompletion: scheduled.roundCompletion,
           schedulingMode: 'server',

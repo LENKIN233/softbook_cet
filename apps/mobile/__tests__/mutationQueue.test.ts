@@ -226,7 +226,6 @@ describe('MutationQueueManager', () => {
     ).toEqual([
       'check-in:13800138000:2026-04-27',
       'membership:replay',
-      'membership-trial:replay',
     ]);
     await expect(manager.peek()).resolves.toMatchObject({
       id: 'check-in:13800138000:2026-04-27',

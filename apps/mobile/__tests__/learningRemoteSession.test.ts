@@ -17,6 +17,9 @@ function createPayload() {
       content_version: CONTENT_VERSION,
       source_id: 'remote-learning-cards',
       membership_stage: 'trial',
+      trial_started_at: '2026-07-24T08:00:00.000Z',
+      trial_expires_at: '2026-07-29T08:00:00.000Z',
+      trial_remaining_seconds: 432000,
       algorithm: {
         id: 'FSRS-6',
         library: 'ts-fsrs',
@@ -195,6 +198,18 @@ test.each([
     label: 'unactivated trial state',
     mutate: (payload: ReturnType<typeof createPayload>) => {
       payload.data.membership_stage = 'trial_available';
+    },
+  },
+  {
+    label: 'trial clock duration drift',
+    mutate: (payload: ReturnType<typeof createPayload>) => {
+      payload.data.trial_expires_at = '2026-07-30T08:00:00.000Z';
+    },
+  },
+  {
+    label: 'trial remaining time exceeds duration',
+    mutate: (payload: ReturnType<typeof createPayload>) => {
+      payload.data.trial_remaining_seconds = 432001;
     },
   },
   {

@@ -645,6 +645,9 @@ function createRemoteMembershipPayload(
     last_experience_ended_by: 'trial' | 'premium' | null;
     recovery_prompt_visible: boolean;
     trial_duration_days: number;
+    trial_expires_at: string | null;
+    trial_remaining_seconds: number;
+    trial_started_at: string | null;
     trial_started_at_entry_count: number | null;
   }> = {},
 ) {
@@ -656,6 +659,11 @@ function createRemoteMembershipPayload(
         recovery_prompt_visible: false,
         stage,
         trial_duration_days: 5,
+        trial_expires_at:
+          stage === 'trial' ? '2026-08-17T08:00:00.000Z' : null,
+        trial_remaining_seconds: stage === 'trial' ? 432000 : 0,
+        trial_started_at:
+          stage === 'trial' ? '2026-08-12T08:00:00.000Z' : null,
         trial_started_at_entry_count: stage === 'trial' ? 1 : null,
         ...overrides,
       },
@@ -750,6 +758,11 @@ function createAccountBootstrapPayload(
         recovery_prompt_visible: false,
         stage,
         trial_duration_days: 5,
+        trial_expires_at:
+          stage === 'trial' ? '2026-08-17T08:00:00.000Z' : null,
+        trial_remaining_seconds: stage === 'trial' ? 432000 : 0,
+        trial_started_at:
+          stage === 'trial' ? '2026-08-12T08:00:00.000Z' : null,
         trial_started_at_entry_count: stage === 'trial' ? 1 : null,
       },
       progress: {
@@ -802,6 +815,9 @@ function createRemoteCatalogSession(): LearningSession {
     contentManifest: null,
     contentVersion: TEST_CONTENT_VERSION,
     membershipStage: 'free',
+    membershipTrialExpiresAt: null,
+    membershipTrialRemainingSeconds: 0,
+    membershipTrialStartedAt: null,
     nextDueAt: null,
     roundCompletion: null,
     schedulingMode: 'server',
@@ -1811,12 +1827,14 @@ test('refreshes canonical membership when learning-session starts the trial', as
     ...createLocalLearningSession('cet4'),
     contentVersion: TEST_CONTENT_VERSION,
     membershipStage: 'trial' as const,
+    membershipTrialExpiresAt: '2026-08-15T08:00:00.000Z',
+    membershipTrialRemainingSeconds: 259199,
+    membershipTrialStartedAt: '2026-08-10T08:00:00.000Z',
   };
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
     baseUrl: 'https://api.softbook.example',
     featureModes: {
-      membership: 'local',
       progressSync: 'local',
       spaceState: 'local',
     },
@@ -1830,10 +1848,32 @@ test('refreshes canonical membership when learning-session starts the trial', as
     }
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
       bootstrapRequestCount += 1;
+      const payload = createAccountBootstrapPayload(
+        trialSession,
+        bootstrapRequestCount === 1 ? 'trial_available' : 'trial',
+      );
+      if (bootstrapRequestCount > 1) {
+        payload.data.membership.trial_expires_at =
+          trialSession.membershipTrialExpiresAt;
+        payload.data.membership.trial_remaining_seconds =
+          trialSession.membershipTrialRemainingSeconds;
+        payload.data.membership.trial_started_at =
+          trialSession.membershipTrialStartedAt;
+      }
       return createJsonResponse(
-        createAccountBootstrapPayload(
-          trialSession,
-          bootstrapRequestCount === 1 ? 'trial_available' : 'trial',
+        payload,
+      );
+    }
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
+      return createJsonResponse(
+        createRemoteMembershipPayload(
+          'trial',
+          {
+            trial_expires_at: trialSession.membershipTrialExpiresAt,
+            trial_remaining_seconds:
+              trialSession.membershipTrialRemainingSeconds,
+            trial_started_at: trialSession.membershipTrialStartedAt,
+          },
         ),
       );
     }
@@ -1852,12 +1892,16 @@ test('refreshes canonical membership when learning-session starts the trial', as
 
   expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
   await openRoute(root, 'mine');
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
   expect(
     root.findByProps({ testID: 'mine-membership-stage' }).props.children,
   ).toBe('完整试用进行中');
   expect(
     root.findAllByProps({ testID: 'membership-start-trial-button' }),
   ).toHaveLength(0);
+  expect(JSON.stringify(tree!.toJSON())).toContain('试用还剩 3 天');
 });
 
 test('fails closed when refreshed bootstrap still disagrees with learning-session membership', async () => {
@@ -1866,6 +1910,9 @@ test('fails closed when refreshed bootstrap still disagrees with learning-sessio
     ...createLocalLearningSession('cet4'),
     contentVersion: TEST_CONTENT_VERSION,
     membershipStage: 'trial' as const,
+    membershipTrialExpiresAt: '2026-08-17T08:00:00.000Z',
+    membershipTrialRemainingSeconds: 432000,
+    membershipTrialStartedAt: '2026-08-12T08:00:00.000Z',
   };
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
@@ -4662,7 +4709,7 @@ test('replays queued membership refresh after network reconnect', async () => {
   ).toBeGreaterThanOrEqual(2);
 });
 
-test('starts the remote trial automatically on the first authenticated entry', async () => {
+test('remote login never calls the retired direct trial mutation', async () => {
   const fetchCalls: MockFetchCall[] = [];
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
@@ -4697,10 +4744,6 @@ test('starts the remote trial automatically on the first authenticated entry', a
       );
     }
 
-    if (input === 'https://api.softbook.example/v2/membership/start-trial') {
-      return createJsonResponse(createRemoteMembershipPayload('trial'));
-    }
-
     throw new Error(`Unexpected remote fetch: ${input}`);
   });
 
@@ -4720,120 +4763,13 @@ test('starts the remote trial automatically on the first authenticated entry', a
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('转折关系');
-  expect(output).not.toContain('完整物理空间需要试用或会员');
-
-  const startTrialRequest = fetchCalls.find(
-    call =>
-      call.input === 'https://api.softbook.example/v2/membership/start-trial',
-  );
-  expect(normalizeMockHeaders(startTrialRequest?.init?.headers)).toMatchObject({
-    authorization: 'Bearer remote-auth-token',
-  });
-
-  const unlockedSpaceText = JSON.stringify(tree!.toJSON());
-  expect(unlockedSpaceText).toContain('当前盒桌');
-  expect(unlockedSpaceText).toContain('同盒卡片');
-  expect(unlockedSpaceText).toContain('回学习');
-});
-
-test('waits for server confirmation before a queued automatic trial unlocks', async () => {
-  const fetchCalls: MockFetchCall[] = [];
-  const replayTrialResponse =
-    createDeferred<ReturnType<typeof createJsonResponse>>();
-  let startTrialRequestCount = 0;
-
-  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
-    auth: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-    membership: {
-      mode: 'remote',
-      remote: {
-        baseUrl: 'https://api.softbook.example',
-      },
-    },
-  };
-
-  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
-    fetchCalls.push({ init, input });
-
-    if (input === 'https://api.softbook.example/v2/auth/request-code') {
-      return createRemoteAuthChallengeResponse();
-    }
-
-    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
-      return createRemoteAuthSessionResponse();
-    }
-
-    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
-      return createJsonResponse(
-        createRemoteMembershipPayload(
-          startTrialRequestCount >= 2 ? 'trial' : 'trial_available',
-        ),
-      );
-    }
-
-    if (input === 'https://api.softbook.example/v2/membership/start-trial') {
-      startTrialRequestCount += 1;
-
-      if (startTrialRequestCount === 1) {
-        return createJsonResponse({}, 503);
-      }
-
-      return replayTrialResponse.promise;
-    }
-
-    throw new Error(`Unexpected remote fetch: ${input}`);
-  });
-
-  let tree: ReactTestRenderer.ReactTestRenderer;
-
-  await ReactTestRenderer.act(() => {
-    tree = ReactTestRenderer.create(<App />);
-  });
-
-  const root = tree!.root;
-  await loginIntoLearningFlow(root);
-  await openRoute(root, 'space');
-
-  await ReactTestRenderer.act(async () => {
-    await flushAsyncEffects();
-  });
-
-  let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('转折关系');
   expect(output).toContain('完整物理空间需要试用或会员');
-  expect(startTrialRequestCount).toBeGreaterThanOrEqual(1);
-
-  await openRoute(root, 'statistics');
-
-  await ReactTestRenderer.act(async () => {
-    await flushAsyncEffects();
-  });
-
-  expect(startTrialRequestCount).toBe(2);
-  replayTrialResponse.resolve(
-    createJsonResponse(createRemoteMembershipPayload('trial')),
-  );
-
-  await ReactTestRenderer.act(async () => {
-    await flushAsyncEffects();
-  });
-
-  await openRoute(root, 'mine');
-
-  output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('完整试用进行中');
-  expect(output).not.toContain('试用待开始');
-
-  const startTrialRequests = fetchCalls.filter(
-    call =>
-      call.input === 'https://api.softbook.example/v2/membership/start-trial',
-  );
-  expect(startTrialRequests).toHaveLength(2);
+  expect(
+    fetchCalls.filter(
+      call =>
+        call.input === 'https://api.softbook.example/v2/membership/start-trial',
+    ),
+  ).toHaveLength(0);
 });
 
 test('space surface follows the loaded session catalog instead of local fixtures', async () => {

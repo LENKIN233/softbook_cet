@@ -65,6 +65,9 @@ const {
 
 const DEFAULT_SMS_CODE = '2468';
 const DEFAULT_TRIAL_DURATION_DAYS = 5;
+const DEFAULT_TRIAL_DURATION_HOURS = 120;
+const TRIAL_DURATION_MILLISECONDS =
+  DEFAULT_TRIAL_DURATION_HOURS * 60 * 60 * 1000;
 const DEFAULT_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 const LEGACY_SNAPSHOT_WRITE_PATHS = new Set([
   '/v1/learning/state-sync',
@@ -357,28 +360,28 @@ async function handleHttpRequest(config, request) {
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
-            await config.store.getMembership(session.phoneNumber),
+            await readCanonicalMembership(config, session.phoneNumber),
           ),
         },
       });
     }
 
     if (method === 'POST' && path === '/v2/membership/start-trial') {
-      const session = await config.authV2.requireActiveSession(request);
-      assertSessionOwnedMembershipRequest(request, true);
-      return jsonResponse(200, {
-        data: {
-          entitlement: serializeMembershipEntitlement(
-            await config.store.startTrial(
-              session.phoneNumber,
-              config.now().toISOString(),
-            ),
-          ),
-        },
-      });
+      throw httpError(
+        404,
+        'route_not_found',
+        'Remote trials start only from Learning Session.',
+      );
     }
 
     if (method === 'POST' && path === '/v2/membership/purchase') {
+      if (config.runtimeMode === 'controlled_pilot') {
+        throw httpError(
+          404,
+          'route_not_found',
+          'Controlled-pilot payment is unavailable.',
+        );
+      }
       const session = await config.authV2.requireActiveSession(request);
       assertSessionOwnedMembershipRequest(request, true);
       return jsonResponse(200, {
@@ -517,7 +520,7 @@ async function handleHttpRequest(config, request) {
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
-            await config.store.getMembership(session.phoneNumber),
+            await readCanonicalMembership(config, session.phoneNumber),
           ),
         },
       });
@@ -574,6 +577,11 @@ async function handleHttpRequest(config, request) {
   } catch (error) {
     return errorResponse(error);
   }
+}
+
+function readCanonicalMembership(config, phoneNumber) {
+  const observedAt = config.now().toISOString();
+  return config.store.getMembership(phoneNumber, observedAt);
 }
 
 function handleRequestCode(request) {
@@ -1002,20 +1010,38 @@ function createMemoryStore() {
             input.expectedLearningServerSequence
         );
       }),
-    getMembership: phoneNumber => {
+    getMembership: (phoneNumber, observedAt) => {
       const base = reconcileMemoryMembershipRevision(
         memberships,
         membershipRevisions,
         phoneNumber,
       );
+      const normalized = expireMembershipIfNeeded(
+        base.entitlement,
+        observedAt,
+      );
+      if (normalized.changed) {
+        saveMemoryMembership(
+          memberships,
+          membershipRevisions,
+          phoneNumber,
+          normalized.entitlement,
+          normalized.observedAt,
+          base.revision,
+        );
+      }
 
       return {
-        acknowledged_at: base.document?.updated_at ?? null,
+        acknowledged_at:
+          normalized.changed
+            ? normalized.observedAt
+            : base.document?.updated_at ?? null,
         component_revision: {
-          base_membership_revision: base.revision,
+          base_membership_revision:
+            normalized.changed ? nextBaseMembershipRevision(base.revision) : base.revision,
           beta_entitlement_revision: 0,
         },
-        ...base.entitlement,
+        ...serializeMembershipAt(normalized.entitlement, normalized.observedAt),
       };
     },
     startTrial: (phoneNumber, acknowledgedAt) => {
@@ -1027,11 +1053,7 @@ function createMemoryStore() {
       const current = cloneMembership(base.entitlement);
 
       if (current.stage === 'trial_available') {
-        current.counted_entry_count += 1;
-        current.last_experience_ended_by = null;
-        current.recovery_prompt_visible = false;
-        current.stage = 'trial';
-        current.trial_started_at_entry_count = current.counted_entry_count;
+        startCanonicalTrial(current, acknowledgedAt);
       }
 
       saveMemoryMembership(
@@ -1042,8 +1064,37 @@ function createMemoryStore() {
         acknowledgedAt,
         base.revision,
       );
-      return current;
+      return serializeMembershipAt(current, acknowledgedAt);
     },
+    activateTrialForLearningSession: input =>
+      runLearningTransaction(async () => {
+        const session = normalizeStoreLearningSession(
+          learningSessions.get(
+            createAccountLearningSessionKey(input.accountKey, input.track),
+          ) ?? null,
+          input.accountKey,
+          input.track,
+        );
+        if (session.cursor?.selection_id !== input.selectionId) return null;
+        const base = reconcileMemoryMembershipRevision(
+          memberships,
+          membershipRevisions,
+          input.phoneNumber,
+        );
+        const current = cloneMembership(base.entitlement);
+        if (current.stage === 'trial_available') {
+          startCanonicalTrial(current, input.acknowledgedAt);
+          saveMemoryMembership(
+            memberships,
+            membershipRevisions,
+            input.phoneNumber,
+            current,
+            input.acknowledgedAt,
+            base.revision,
+          );
+        }
+        return serializeMembershipAt(current, input.acknowledgedAt);
+      }),
     purchase: (phoneNumber, acknowledgedAt) => {
       const base = reconcileMemoryMembershipRevision(
         memberships,
@@ -1062,7 +1113,7 @@ function createMemoryStore() {
         acknowledgedAt,
         base.revision,
       );
-      return current;
+      return serializeMembershipAt(current, acknowledgedAt);
     },
     dismissRecovery: (phoneNumber, acknowledgedAt) => {
       const base = reconcileMemoryMembershipRevision(
@@ -1080,7 +1131,7 @@ function createMemoryStore() {
         acknowledgedAt,
         base.revision,
       );
-      return current;
+      return serializeMembershipAt(current, acknowledgedAt);
     },
     seedLegacyDailyProgressForMigrationTest: (
       phoneNumber,
@@ -1701,17 +1752,46 @@ function createCloudBaseStore(options = {}) {
         );
         return true;
       }),
-    getMembership: async phoneNumber => {
+    getMembership: async (phoneNumber, observedAt) => {
       const [base, betaEntitlement] = await Promise.all([
-        db.runTransaction(async transaction =>
-          getCloudBaseMembershipRecord(
-            transaction.collection(CLOUDBASE_COLLECTIONS.memberships),
-            transaction.collection(
-              CLOUDBASE_COLLECTIONS.membershipRevisions,
-            ),
+        db.runTransaction(async transaction => {
+          const transactionMemberships = transaction.collection(
+            CLOUDBASE_COLLECTIONS.memberships,
+          );
+          const transactionMembershipRevisions = transaction.collection(
+            CLOUDBASE_COLLECTIONS.membershipRevisions,
+          );
+          const current = await getCloudBaseMembershipRecord(
+            transactionMemberships,
+            transactionMembershipRevisions,
             phoneNumber,
-          ),
-        ),
+          );
+          const normalized = expireMembershipIfNeeded(
+            current.entitlement,
+            observedAt,
+          );
+          if (normalized.changed) {
+            await saveCloudBaseMembership(
+              transactionMemberships,
+              transactionMembershipRevisions,
+              phoneNumber,
+              normalized.entitlement,
+              normalized.observedAt,
+              current.revision,
+            );
+          }
+          return {
+            ...current,
+            entitlement: normalized.entitlement,
+            observedAt: normalized.observedAt,
+            revision: normalized.changed
+              ? nextBaseMembershipRevision(current.revision)
+              : current.revision,
+            updatedAt: normalized.changed
+              ? normalized.observedAt
+              : current.document?.updated_at ?? null,
+          };
+        }),
         getCloudBaseDocument(betaEntitlements, phoneNumber),
       ]);
 
@@ -1722,14 +1802,14 @@ function createCloudBaseStore(options = {}) {
       );
       return {
         acknowledged_at: latestAcknowledgedAt(
-          base.document?.updated_at,
+          base.updatedAt,
           betaEntitlement?.updated_at,
         ),
         component_revision: {
           base_membership_revision: base.revision,
           beta_entitlement_revision: betaEntitlement?.revision ?? 0,
         },
-        ...entitlement,
+        ...serializeMembershipAt(entitlement, base.observedAt),
       };
     },
     startTrial: (phoneNumber, acknowledgedAt) =>
@@ -1748,11 +1828,7 @@ function createCloudBaseStore(options = {}) {
         const current = cloneMembership(base.entitlement);
 
         if (current.stage === 'trial_available') {
-          current.counted_entry_count += 1;
-          current.last_experience_ended_by = null;
-          current.recovery_prompt_visible = false;
-          current.stage = 'trial';
-          current.trial_started_at_entry_count = current.counted_entry_count;
+          startCanonicalTrial(current, acknowledgedAt);
         }
 
         await saveCloudBaseMembership(
@@ -1763,7 +1839,46 @@ function createCloudBaseStore(options = {}) {
           acknowledgedAt,
           base.revision,
         );
-        return current;
+        return serializeMembershipAt(current, acknowledgedAt);
+      }),
+    activateTrialForLearningSession: input =>
+      db.runTransaction(async transaction => {
+        const transactionSessions = transaction.collection(
+          CLOUDBASE_COLLECTIONS.learningSessions,
+        );
+        const session = normalizeStoreLearningSession(
+          await getCloudBaseDocument(
+            transactionSessions,
+            createAccountLearningSessionId(input.accountKey, input.track),
+          ),
+          input.accountKey,
+          input.track,
+        );
+        if (session.cursor?.selection_id !== input.selectionId) return null;
+        const transactionMemberships = transaction.collection(
+          CLOUDBASE_COLLECTIONS.memberships,
+        );
+        const transactionMembershipRevisions = transaction.collection(
+          CLOUDBASE_COLLECTIONS.membershipRevisions,
+        );
+        const base = await getCloudBaseMembershipRecord(
+          transactionMemberships,
+          transactionMembershipRevisions,
+          input.phoneNumber,
+        );
+        const current = cloneMembership(base.entitlement);
+        if (current.stage === 'trial_available') {
+          startCanonicalTrial(current, input.acknowledgedAt);
+          await saveCloudBaseMembership(
+            transactionMemberships,
+            transactionMembershipRevisions,
+            input.phoneNumber,
+            current,
+            input.acknowledgedAt,
+            base.revision,
+          );
+        }
+        return serializeMembershipAt(current, input.acknowledgedAt);
       }),
     purchase: (phoneNumber, acknowledgedAt) =>
       db.runTransaction(async transaction => {
@@ -1790,7 +1905,7 @@ function createCloudBaseStore(options = {}) {
           acknowledgedAt,
           base.revision,
         );
-        return current;
+        return serializeMembershipAt(current, acknowledgedAt);
       }),
     dismissRecovery: (phoneNumber, acknowledgedAt) =>
       db.runTransaction(async transaction => {
@@ -1815,7 +1930,7 @@ function createCloudBaseStore(options = {}) {
           acknowledgedAt,
           base.revision,
         );
-        return current;
+        return serializeMembershipAt(current, acknowledgedAt);
       }),
     seedLegacyDailyProgressForMigrationTest: (
       phoneNumber,
@@ -2952,7 +3067,19 @@ function assertMembershipDocumentOwner(document, phoneNumber) {
 }
 
 function deserializeMembershipDocument(document) {
-  return cloneMembership(document.entitlement ?? document);
+  const entitlement = {...(document.entitlement ?? document)};
+  if (
+    entitlement.stage === 'trial' &&
+    entitlement.trial_started_at === undefined &&
+    entitlement.trial_expires_at === undefined &&
+    isCanonicalIsoTimestamp(document.updated_at)
+  ) {
+    entitlement.trial_started_at = document.updated_at;
+    entitlement.trial_expires_at = new Date(
+      Date.parse(document.updated_at) + TRIAL_DURATION_MILLISECONDS,
+    ).toISOString();
+  }
+  return cloneMembership(entitlement);
 }
 
 function requirePositiveBaseMembershipRevision(value) {
@@ -3886,23 +4013,132 @@ function createInitialMembership() {
     recovery_prompt_visible: false,
     stage: 'trial_available',
     trial_duration_days: DEFAULT_TRIAL_DURATION_DAYS,
+    trial_expires_at: null,
+    trial_started_at: null,
     trial_started_at_entry_count: null,
   };
 }
 
+function startCanonicalTrial(membership, startedAt) {
+  if (!isCanonicalIsoTimestamp(startedAt)) {
+    throw httpError(
+      500,
+      'invalid_membership_clock',
+      'Trial start time must be canonical UTC.',
+    );
+  }
+  membership.counted_entry_count += 1;
+  membership.last_experience_ended_by = null;
+  membership.recovery_prompt_visible = false;
+  membership.stage = 'trial';
+  membership.trial_started_at_entry_count = membership.counted_entry_count;
+  membership.trial_started_at = startedAt;
+  membership.trial_expires_at = new Date(
+    Date.parse(startedAt) + TRIAL_DURATION_MILLISECONDS,
+  ).toISOString();
+}
+
 function cloneMembership(membership) {
-  return {
+  const cloned = {
     counted_entry_count: membership.counted_entry_count,
     last_experience_ended_by: membership.last_experience_ended_by,
     recovery_prompt_visible: membership.recovery_prompt_visible,
     stage: membership.stage,
     trial_duration_days: membership.trial_duration_days,
+    trial_expires_at: membership.trial_expires_at ?? null,
+    trial_started_at: membership.trial_started_at ?? null,
     trial_started_at_entry_count: membership.trial_started_at_entry_count,
+  };
+  assertMembershipTrialClock(cloned);
+  return cloned;
+}
+
+function serializeMembershipEntitlement(entitlement, observedAt) {
+  const membership = cloneMembership(entitlement);
+  const serialized = serializeMembershipAt(membership, observedAt);
+  if (
+    observedAt === undefined &&
+    Number.isSafeInteger(entitlement.trial_remaining_seconds) &&
+    entitlement.trial_remaining_seconds >= 0
+  ) {
+    serialized.trial_remaining_seconds = entitlement.trial_remaining_seconds;
+  }
+  return serialized;
+}
+
+function serializeMembershipAt(membership, observedAt) {
+  const canonical = cloneMembership(membership);
+  const observed = resolveMembershipObservation(observedAt, canonical);
+  return {
+    ...canonical,
+    trial_remaining_seconds: deriveTrialRemainingSeconds(canonical, observed),
   };
 }
 
-function serializeMembershipEntitlement(entitlement) {
-  return cloneMembership(entitlement);
+function resolveMembershipObservation(observedAt, membership) {
+  const fallback = membership.trial_started_at ?? '1970-01-01T00:00:00.000Z';
+  const value = observedAt ?? fallback;
+  if (!isCanonicalIsoTimestamp(value)) {
+    throw httpError(
+      500,
+      'invalid_membership_clock',
+      'Membership observation time must be canonical UTC.',
+    );
+  }
+  return value;
+}
+
+function deriveTrialRemainingSeconds(membership, observedAt) {
+  if (membership.stage !== 'trial') return 0;
+  return Math.max(
+    0,
+    Math.ceil(
+      (Date.parse(membership.trial_expires_at) - Date.parse(observedAt)) / 1000,
+    ),
+  );
+}
+
+function expireMembershipIfNeeded(membership, observedAt) {
+  const entitlement = cloneMembership(membership);
+  const canonicalObservedAt = resolveMembershipObservation(observedAt, entitlement);
+  if (
+    entitlement.stage !== 'trial' ||
+    Date.parse(canonicalObservedAt) < Date.parse(entitlement.trial_expires_at)
+  ) {
+    return {changed: false, entitlement, observedAt: canonicalObservedAt};
+  }
+  entitlement.last_experience_ended_by = 'trial';
+  entitlement.recovery_prompt_visible = true;
+  entitlement.stage = 'free';
+  return {changed: true, entitlement, observedAt: canonicalObservedAt};
+}
+
+function assertMembershipTrialClock(membership) {
+  const startedAt = membership.trial_started_at;
+  const expiresAt = membership.trial_expires_at;
+  if (startedAt === null && expiresAt === null) {
+    if (membership.stage === 'trial') {
+      throw httpError(
+        500,
+        'invalid_membership_clock',
+        'An active trial requires canonical timestamps.',
+      );
+    }
+    return;
+  }
+  if (
+    !isCanonicalIsoTimestamp(startedAt) ||
+    !isCanonicalIsoTimestamp(expiresAt) ||
+    Date.parse(expiresAt) - Date.parse(startedAt) !==
+      TRIAL_DURATION_MILLISECONDS ||
+    membership.trial_started_at_entry_count === null
+  ) {
+    throw httpError(
+      500,
+      'invalid_membership_clock',
+      'Canonical trial timestamps are invalid.',
+    );
+  }
 }
 
 function createAuthToken(config, phoneNumber) {

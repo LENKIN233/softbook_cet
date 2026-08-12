@@ -620,7 +620,8 @@ function AppShell({
   const previousMembershipStage = useRef<MembershipStage>(
     membershipState.stage,
   );
-  const automaticTrialAccountRef = useRef<string | null>(null);
+  const membershipStateRef = useRef(membershipState);
+  membershipStateRef.current = membershipState;
   const lastMembershipRefreshKey = useRef<string | null>(null);
   const pendingMembershipRefreshKey = useRef<string | null>(null);
   const persistedLearningCursor = useRef<PersistedLearningCursor | null>(null);
@@ -682,7 +683,6 @@ function AppShell({
       accountBootstrapRetryInFlight.current = null;
       lastMembershipRefreshKey.current = null;
       pendingMembershipRefreshKey.current = null;
-      automaticTrialAccountRef.current = null;
       persistedLearningCursor.current = null;
       accountBootstrapStatusRef.current =
         runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required';
@@ -1609,6 +1609,7 @@ function AppShell({
     retryCanonicalAccountBootstrap,
     runtimeAccountBootstrapMode,
     runtimeLearningEventsMode,
+    runtimeMembershipRepositoryMode,
     todayKey,
   ]);
   const activeMembershipRefreshKey =
@@ -3014,6 +3015,39 @@ function AppShell({
           return;
         }
 
+        const currentMembershipState = membershipStateRef.current;
+        let effectiveMembershipState = currentMembershipState;
+        if (
+          runtimeMembershipRepositoryMode === 'local' &&
+          session.schedulingMode === 'local' &&
+          currentMembershipState.stage === 'trial_available'
+        ) {
+          effectiveMembershipState = startMembershipTrial(
+            currentMembershipState,
+          );
+        } else if (
+          session.schedulingMode === 'server' &&
+          session.membershipStage !== null &&
+          (currentMembershipState.stage !== session.membershipStage ||
+            currentMembershipState.trialStartedAt !==
+              session.membershipTrialStartedAt ||
+            currentMembershipState.trialExpiresAt !==
+              session.membershipTrialExpiresAt ||
+            currentMembershipState.trialRemainingSeconds !==
+              session.membershipTrialRemainingSeconds)
+        ) {
+          effectiveMembershipState = {
+            ...currentMembershipState,
+            stage: session.membershipStage,
+            trialExpiresAt: session.membershipTrialExpiresAt,
+            trialRemainingSeconds: session.membershipTrialRemainingSeconds,
+            trialStartedAt: session.membershipTrialStartedAt,
+          };
+        }
+        if (effectiveMembershipState !== currentMembershipState) {
+          setMembershipState(effectiveMembershipState);
+        }
+
         const canonicalLearningState = accountBootstrapSnapshot
           ? resolveAccountBootstrapLearningState(
               accountBootstrapSnapshot,
@@ -3047,7 +3081,7 @@ function AppShell({
                   0,
                   resolveAccessibleLearningCardCount(
                     session.cards.length,
-                    membershipState,
+                    effectiveMembershipState,
                   ),
                 )
                 .filter(card => !readSpaceCardState(card.card_id).isSleeping);
@@ -3114,12 +3148,12 @@ function AppShell({
     learningBootstrapStatus,
     learningTrack,
     learningSessionRepository,
-    membershipState,
     pendingLearningEventCount,
     readSpaceCardState,
     retryCanonicalAccountBootstrap,
     runtimeAccountBootstrapMode,
     runtimeLearningEventsMode,
+    runtimeMembershipRepositoryMode,
   ]);
 
   useEffect(() => {
@@ -3345,80 +3379,14 @@ function AppShell({
       completeMembershipUnlock(startMembershipTrial(membershipState), nextGate);
       return;
     }
-
-    setMembershipPendingAction('start_trial');
-    membershipRepository
-      .startTrial(authenticatedRuntimeContext, membershipState)
-      .then(result => {
-        setMembershipPendingAction(null);
-        completeMembershipUnlock(result.state, nextGate);
-      })
-      .catch((error: unknown) => {
-        if (isRemoteAuthorizationError(error)) {
-          clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
-            () => undefined,
-          );
-          return;
-        }
-
-        if (shouldQueueMembershipTrialStart(error)) {
-          mutationQueueRepository
-            .enqueueMutation(
-              'start_membership_trial',
-              {
-                context: authenticatedRuntimeContext,
-                currentState: membershipState,
-              },
-              'membership-trial:start',
-            )
-            .catch(() => undefined);
-          setMembershipError(
-            `${getUserFacingErrorMessage(
-              error,
-              '试用开通暂时失败。',
-            )} 已记录；联网后会自动更新。`,
-          );
-          setMembershipPendingAction(null);
-          return;
-        }
-
-        setMembershipError(
-          getUserFacingErrorMessage(error, '试用开通暂时失败。'),
-        );
-        setMembershipPendingAction(null);
-      });
+    startTransition(() => {
+      setActiveRoute('learning');
+      setLearningScreen('practice');
+      setSpaceScreen('overview');
+    });
+    setLearningBootstrapStatus('idle');
+    setLearningBootstrapError(null);
   };
-
-  const beginMembershipTrialRef = useRef(beginMembershipTrial);
-  beginMembershipTrialRef.current = beginMembershipTrial;
-
-  useEffect(() => {
-    if (
-      !persistenceHydrated ||
-      authState.stage !== 'authenticated' ||
-      membershipState.stage !== 'trial_available' ||
-      membershipPendingAction !== null ||
-      (runtimeMembershipRepositoryMode === 'remote' && !canWriteAccountState)
-    ) {
-      return;
-    }
-
-    const accountKey = authState.phoneNumber;
-    if (automaticTrialAccountRef.current === accountKey) {
-      return;
-    }
-
-    automaticTrialAccountRef.current = accountKey;
-    beginMembershipTrialRef.current(null);
-  }, [
-    authState.phoneNumber,
-    authState.stage,
-    canWriteAccountState,
-    membershipPendingAction,
-    membershipState.stage,
-    persistenceHydrated,
-    runtimeMembershipRepositoryMode,
-  ]);
 
   const handleSelectRoute = (nextRoute: RouteKey) => {
     if (
@@ -7708,21 +7676,6 @@ function shouldClearMembershipGate(
   }
 }
 
-function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback;
-}
-
-function shouldQueueMembershipTrialStart(error: unknown) {
-  const message = getErrorMessage(error, '');
-
-  return (
-    /Remote membership mutation failed with 5\d{2}\./.test(message) ||
-    /network error/i.test(message) ||
-    /network request failed/i.test(message) ||
-    /failed to fetch/i.test(message)
-  );
-}
-
 function getMembershipCardSummary(
   membershipState: MembershipState,
   mode: 'local' | 'remote',
@@ -7732,7 +7685,9 @@ function getMembershipCardSummary(
       return '首次计入学习时开启试用；完整卡库、完整空间和智能回看会一起放开。';
     case 'trial':
       return mode === 'remote'
-        ? `完整试用 ${membershipState.trialDurationDays} 天已开启，空间和回看同步放开。`
+        ? `试用还剩 ${Math.ceil(
+            membershipState.trialRemainingSeconds / (24 * 60 * 60),
+          )} 天，完整卡库、空间和回看已开启。`
         : `完整试用 ${membershipState.trialDurationDays} 天已开启，先完整体验路线和空间。`;
     case 'free':
       return '当前保留基础学习；完整空间、卡库和回看需要会员。';

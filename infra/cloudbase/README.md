@@ -46,7 +46,6 @@ POST /v2/account/deletion
 GET  /v2/bootstrap?track=cet4|cet6&day_key=YYYY-MM-DD
 GET  /v2/learning/card-source?track=cet4|cet6
 GET  /v2/membership/entitlement
-POST /v2/membership/start-trial
 POST /v2/membership/purchase
 POST /v2/membership/dismiss-recovery
 GET  /v2/learning/session?track=cet4|cet6
@@ -528,7 +527,8 @@ The wrapper allocates a one-off valid dev phone and owns its cleanup lifecycle.
 Calling `smoke-softbook-api.mjs` directly against the allowlisted CloudBase dev
 environment is rejected when authentication or writes are not backed by that
 lifecycle. Isolated runs also assert that initial entitlement starts at
-`trial_available`, start-trial returns `trial`, and purchase returns `premium`.
+`trial_available`, the first eligible Learning Session returns `trial` with an
+exact server clock, and purchase returns `premium`.
 Override those checks only for a deliberate fixture with
 `SOFTBOOK_CET_EXPECT_INITIAL_STAGE`, `SOFTBOOK_CET_EXPECT_START_TRIAL_STAGE`,
 or `SOFTBOOK_CET_EXPECT_PURCHASE_STAGE`.

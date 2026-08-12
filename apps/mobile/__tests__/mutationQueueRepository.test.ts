@@ -3,7 +3,6 @@ import {
   MAX_MUTATION_RETRIES,
   MutationQueueManager,
 } from '../src/sync/mutationQueue';
-import type { MembershipState } from '../src/membership/localMembership';
 import {
   createMutationQueueRepository,
   hasCausalSpaceBootstrapAdvance,
@@ -459,49 +458,6 @@ describe('MutationQueueRepository', () => {
 
     expect(mockMembershipRepository.loadState).toHaveBeenCalledWith(
       payload.context,
-    );
-    await expect(repository.getQueueSize()).resolves.toBe(0);
-  });
-
-  it('replays queued membership trial starts through startTrial', async () => {
-    const repository = createMutationQueueRepository({
-      membershipRepository: mockMembershipRepository as never,
-      progressSyncRepository: mockProgressSyncRepository as never,
-      spaceStateRepository: mockSpaceStateRepository as never,
-    });
-    const currentState: MembershipState = {
-      countedEntryCount: 0,
-      lastExperienceEndedBy: null,
-      recoveryPromptVisible: false,
-      stage: 'trial_available',
-      trialDurationDays: 5,
-      trialStartedAtEntryCount: null,
-    };
-    const payload = {
-      context: {
-        authToken: 'token-membership',
-        phoneNumber: '13800138002',
-      },
-      currentState,
-    };
-
-    await repository.enqueueMutation('start_membership_trial', payload);
-    await expect(
-      repository.startReplay(payload.context),
-    ).resolves.toMatchObject([
-      {
-        entry: {
-          type: 'start_membership_trial',
-        },
-        membershipState: {
-          stage: 'trial',
-        },
-      },
-    ]);
-
-    expect(mockMembershipRepository.startTrial).toHaveBeenCalledWith(
-      payload.context,
-      payload.currentState,
     );
     await expect(repository.getQueueSize()).resolves.toBe(0);
   });

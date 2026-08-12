@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { MembershipState } from '../membership/localMembership';
 import type { MembershipRepositoryContext } from '../membership/membershipRepository';
 import type { LearningTrack } from '../learning/model';
 import type { AccountBootstrapComponentRevisions } from '../bootstrap/accountBootstrapRepository';
@@ -13,16 +12,11 @@ import type { ProgressSyncContext } from './progressSyncRepository';
 export type MutationType =
   | 'check_in_daily_progress'
   | 'apply_space_action'
-  | 'start_membership_trial'
   | 'refresh_membership';
 
 export type MutationPayloadByType = {
   refresh_membership: {
     context: MembershipRepositoryContext;
-  };
-  start_membership_trial: {
-    context: MembershipRepositoryContext;
-    currentState: MembershipState;
   };
   check_in_daily_progress: {
     context: ProgressSyncContext;
@@ -533,10 +527,6 @@ function sanitizeMutationId(
       : 'membership:replay';
   }
 
-  if (type === 'start_membership_trial') {
-    return id === 'membership-trial:start' ? id : 'membership-trial:replay';
-  }
-
   return id;
 }
 
@@ -559,15 +549,6 @@ function sanitizeMutationPayload<Type extends MutationType>(
   switch (type) {
     case 'refresh_membership':
       return { context } as MutationPayloadByType[Type];
-    case 'start_membership_trial':
-      if (!isObject(payload.currentState)) {
-        throw new Error('Membership trial mutation requires currentState.');
-      }
-
-      return {
-        context,
-        currentState: cloneCredentialFreeObject(payload.currentState),
-      } as MutationPayloadByType[Type];
     case 'check_in_daily_progress':
       if (
         typeof payload.dayKey !== 'string' ||
@@ -778,53 +759,11 @@ function sanitizeQuarantinedMutations(
     .slice(-MAX_QUARANTINED_MUTATIONS);
 }
 
-function cloneCredentialFreeObject(
-  value: Record<string, unknown>,
-): Record<string, unknown> {
-  const cloned: unknown = JSON.parse(JSON.stringify(value));
-
-  if (!isObject(cloned)) {
-    throw new Error('Mutation payload must be a JSON object.');
-  }
-
-  assertNoCredentialFields(cloned);
-  return cloned;
-}
-
-function assertNoCredentialFields(value: unknown) {
-  if (Array.isArray(value)) {
-    value.forEach(assertNoCredentialFields);
-    return;
-  }
-
-  if (!isObject(value)) {
-    return;
-  }
-
-  for (const [key, nestedValue] of Object.entries(value)) {
-    if (
-      key === 'authToken' ||
-      key === 'auth_token' ||
-      key === 'accessToken' ||
-      key === 'access_token' ||
-      key === 'refreshToken' ||
-      key === 'refresh_token'
-    ) {
-      throw new Error(
-        'Mutation payload contains a forbidden credential field.',
-      );
-    }
-
-    assertNoCredentialFields(nestedValue);
-  }
-}
-
 function isMutationType(value: unknown): value is MutationType {
   return (
     value === 'check_in_daily_progress' ||
     value === 'apply_space_action' ||
-    value === 'refresh_membership' ||
-    value === 'start_membership_trial'
+    value === 'refresh_membership'
   );
 }
 

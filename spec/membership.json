@@ -7,6 +7,15 @@
     "all_release_targets_must_support_purchase": true,
     "membership_entitlement_is_shared_across_ios_android_web": true,
     "trial_start_trigger": "first_entry_counted_as_membership_trial",
+    "remote_trial_clock": {
+      "duration_hours": 120,
+      "authority": "server_only",
+      "start_commit": "first_valid_learning_session_after_selection_cursor_persist_and_confirmation",
+      "stored_fields": ["trial_started_at", "trial_expires_at"],
+      "derived_field": "trial_remaining_seconds",
+      "expiry_transition": "atomic_trial_to_free_before_any_canonical_read_returns",
+      "client_clock_authority": false
+    },
     "purchase_recovery_reminder": "after_membership_experience_ends",
     "web_and_app_purchase_authority": "equal",
     "closed_beta_entitlement": {

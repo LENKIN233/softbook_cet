@@ -28,7 +28,6 @@ const host = process.env.HOST || '127.0.0.1';
 const smsCode = process.env.SOFTBOOK_CET_TEST_CODE || '123456';
 const challenges = new Map();
 const sessions = new Map();
-const memberships = new Map();
 const learningEventsStore = createMemoryStore();
 const dailyCheckInService = createDailyCheckInV2Service({
   now: () => new Date(),
@@ -304,24 +303,31 @@ async function route(request, response) {
     sendJson(
       response,
       200,
-      entitlementPayload(getMembership(session.phoneNumber)),
+      entitlementPayload(
+        await learningEventsStore.getMembership(
+          session.phoneNumber,
+          new Date().toISOString(),
+        ),
+      ),
     );
     return;
   }
 
   if (
     method === 'POST' &&
-    (path === '/v2/membership/start-trial' ||
-      path === '/v1/membership/start-trial')
+    path === '/v2/membership/start-trial'
   ) {
+    sendJson(response, 404, {error: {code: 'route_not_found'}});
+    return;
+  }
+
+  if (method === 'POST' && path === '/v1/membership/start-trial') {
     const body = await readJson(request);
-    if (path.startsWith('/v1/')) assertSessionPhone(body, session);
-    const membership = createMembership('trial');
-    memberships.set(session.phoneNumber, {
-      acknowledged_at: new Date().toISOString(),
-      entitlement: membership,
-      revision: (memberships.get(session.phoneNumber)?.revision ?? 0) + 1,
-    });
+    assertSessionPhone(body, session);
+    const membership = await learningEventsStore.startTrial(
+      session.phoneNumber,
+      new Date().toISOString(),
+    );
     sendJson(response, 200, entitlementPayload(membership));
     return;
   }
@@ -333,12 +339,10 @@ async function route(request, response) {
   ) {
     const body = await readJson(request);
     if (path.startsWith('/v1/')) assertSessionPhone(body, session);
-    const membership = createMembership('premium');
-    memberships.set(session.phoneNumber, {
-      acknowledged_at: new Date().toISOString(),
-      entitlement: membership,
-      revision: (memberships.get(session.phoneNumber)?.revision ?? 0) + 1,
-    });
+    const membership = await learningEventsStore.purchase(
+      session.phoneNumber,
+      new Date().toISOString(),
+    );
     sendJson(response, 200, entitlementPayload(membership));
     return;
   }
@@ -350,12 +354,10 @@ async function route(request, response) {
   ) {
     const body = await readJson(request);
     if (path.startsWith('/v1/')) assertSessionPhone(body, session);
-    const membership = createMembership('free', false, 'trial');
-    memberships.set(session.phoneNumber, {
-      acknowledged_at: new Date().toISOString(),
-      entitlement: membership,
-      revision: (memberships.get(session.phoneNumber)?.revision ?? 0) + 1,
-    });
+    const membership = await learningEventsStore.dismissRecovery(
+      session.phoneNumber,
+      new Date().toISOString(),
+    );
     sendJson(response, 200, entitlementPayload(membership));
     return;
   }
@@ -412,33 +414,11 @@ function sessionPayload(session) {
   };
 }
 
-function createMembership(
-  stage,
-  recoveryPromptVisible = false,
-  lastExperienceEndedBy = null,
-) {
-  return {
-    stage,
-    counted_entry_count: stage === 'trial_available' ? 0 : 1,
-    last_experience_ended_by: lastExperienceEndedBy,
-    recovery_prompt_visible: recoveryPromptVisible,
-    trial_duration_days: 5,
-    trial_started_at_entry_count:
-      stage === 'trial' || stage === 'premium' ? 1 : null,
-  };
-}
-
-function getMembership(phoneNumber) {
-  return (
-    memberships.get(phoneNumber)?.entitlement ??
-    createMembership('trial_available')
-  );
-}
-
 function entitlementPayload(membership) {
+  const {acknowledged_at, component_revision, ...entitlement} = membership;
   return {
     data: {
-      entitlement: {...membership},
+      entitlement,
     },
   };
 }
@@ -465,7 +445,14 @@ async function bootstrapPayload(phoneNumber, track, dayKey) {
   );
   const {component_revision: progressRevision, ...progressProjection} =
     progress;
-  const membershipRevision = memberships.get(phoneNumber)?.revision ?? 0;
+  const membership = await learningEventsStore.getMembership(
+    phoneNumber,
+    new Date().toISOString(),
+  );
+  const {component_revision: membershipComponentRevision, ...membershipProjection} =
+    membership;
+  const membershipRevision =
+    membershipComponentRevision.base_membership_revision;
 
   return {
     data: {
@@ -513,8 +500,7 @@ async function bootstrapPayload(phoneNumber, track, dayKey) {
           : null,
       },
       membership: {
-        acknowledged_at: memberships.get(phoneNumber)?.acknowledged_at ?? null,
-        ...getMembership(phoneNumber),
+        ...membershipProjection,
       },
       progress: progressProjection,
       space: serializeSpaceState(space, {

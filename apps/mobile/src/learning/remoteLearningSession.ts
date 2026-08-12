@@ -38,6 +38,9 @@ export type RemoteLearningSessionResponse = {
   contentVersion: string;
   generatedAt: string;
   membershipStage: (typeof MEMBERSHIP_STAGES)[number];
+  membershipTrialExpiresAt: string | null;
+  membershipTrialRemainingSeconds: number;
+  membershipTrialStartedAt: string | null;
   nextDueAt: string | null;
   roundCompletion: LearningRoundCompletion | null;
   selection: LearningServerSelection | null;
@@ -165,6 +168,9 @@ export function parseRemoteLearningSessionPayload(
       'content_version',
       'source_id',
       'membership_stage',
+      'trial_started_at',
+      'trial_expires_at',
+      'trial_remaining_seconds',
       'algorithm',
       'access',
       'selection',
@@ -204,6 +210,33 @@ export function parseRemoteLearningSessionPayload(
     MEMBERSHIP_STAGES,
     'response.data.membership_stage',
   );
+  const membershipTrialStartedAt = requireNullableRfc3339(
+    data.trial_started_at,
+    'response.data.trial_started_at',
+  );
+  const membershipTrialExpiresAt = requireNullableRfc3339(
+    data.trial_expires_at,
+    'response.data.trial_expires_at',
+  );
+  const membershipTrialRemainingSeconds = requireNonNegativeSafeInteger(
+    data.trial_remaining_seconds,
+    'response.data.trial_remaining_seconds',
+  );
+  if (
+    (membershipTrialStartedAt === null) !==
+      (membershipTrialExpiresAt === null) ||
+    (membershipStage === 'trial' &&
+      (membershipTrialStartedAt === null ||
+        membershipTrialExpiresAt === null ||
+        membershipTrialRemainingSeconds <= 0 ||
+        Date.parse(membershipTrialExpiresAt) -
+            Date.parse(membershipTrialStartedAt) !==
+          120 * 60 * 60 * 1000 ||
+        membershipTrialRemainingSeconds > 432000)) ||
+    (membershipStage !== 'trial' && membershipTrialRemainingSeconds !== 0)
+  ) {
+    throw new Error('Remote learning session trial clock is invalid.');
+  }
   const algorithm = parseAlgorithm(data.algorithm);
   const access = parseAccess(data.access);
 
@@ -251,6 +284,9 @@ export function parseRemoteLearningSessionPayload(
     contentVersion,
     generatedAt,
     membershipStage,
+    membershipTrialExpiresAt,
+    membershipTrialRemainingSeconds,
+    membershipTrialStartedAt,
     nextDueAt,
     roundCompletion,
     selection,
@@ -561,6 +597,10 @@ function requireRfc3339(candidate: unknown, contextName: string) {
     throw new Error(`${contextName} must be an RFC3339 instant.`);
   }
   return candidate;
+}
+
+function requireNullableRfc3339(candidate: unknown, contextName: string) {
+  return candidate === null ? null : requireRfc3339(candidate, contextName);
 }
 
 function requireNonNegativeSafeInteger(
