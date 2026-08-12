@@ -67,7 +67,7 @@
 - Real candidate release-mode smoke using `/tmp/softbook-pilot-real-main.P5Htfm/card-make-candidate-handoff-cet4-card-source.json` -> 120 cards, 24 audio assets, unchanged content version `sha256:d2de9ebb3e4fcbb14acdd4ff5d76251a6d8d17e1c6445a0e42a264982f7594c9`, controlled-pilot accepted, production rejected, expiry rejected, free boundary `012106` / `000007`.
 - Real candidate publication preflight using the same payload -> bundle structure accepted with 120 cards, 60 free cards, exact seven-library and five-interaction distributions, and 24 audio assets; verification then failed closed exactly at the absent `controlled_pilot_120` user approval record. Report: `/tmp/cet4-controlled-pilot-real-preflight-report.json` (`gate_eligible=false`); next required gate after approval is human QC for all 24 referenced audio assets.
 - `node --test test/deliver-controlled-pilot.test.js test/deliver-release.test.js test/cloudbase-receiver-adapter.test.js test/controlled-pilot-publisher-v1.test.js` -> 26/26 passed after pilot receiver/deployment wiring and exact active-reread binding; formal release behavior remains covered in the same run.
-- `npm test` in `infra/cloudbase/functions/softbook-api` after receiver/deployment wiring -> 238/238 passed.
+- `npm test` in `infra/cloudbase/functions/softbook-api` after rebasing onto merged candidate intake -> 240/240 passed.
 
 ## Validation results
 
