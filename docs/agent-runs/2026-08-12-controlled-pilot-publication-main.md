@@ -95,15 +95,15 @@
 
 ## Card make external workspace impact
 
-- No external card content, sample confirmation, formal approval, audio-QC record, or candidate review was modified.
+- Card content was not authored here. After this run, card-make PR #154 merged the final corrections and PR #155 recorded the user's explicit exact-version approval; audio-QC remains separate and incomplete.
 
 ## Risks and open questions
 
-- The exact 120-card batch is still candidate content until the user gives final batch approval.
+- The exact 120-card `dd2d3975...` batch is now user-approved through card-make PR #155; any later content change requires a new identity and approval.
 - All 24 referenced audio assets still require human perceptual QC and the three product-semantics checks not covered by the current listening worklist.
 - Receiver-owned profile/secrets and actual execution, pilot entitlement overlay, exact 120-hour trial timestamps, five-card round gate, deletion-worker extension and mobile pilot-specific wiring remain outside repository-local completion.
 - All controlled-pilot artifacts remain `gate_eligible=false` and cannot satisfy formal closed-beta or launch gates.
 
 ## Follow-up
 
-- Land the candidate intake and publication-contract PRs on `main`, complete human content approval and audio QC, build an exact bound controlled-pilot bundle, then execute the receiver delivery command and real iOS/Android learning/private-audio smoke in an independent environment.
+- With candidate intake, publication contract and exact content approval now landed, complete human audio QC, build the exact bound controlled-pilot bundle, then execute the receiver delivery command and real iOS/Android learning/private-audio smoke in an independent environment.

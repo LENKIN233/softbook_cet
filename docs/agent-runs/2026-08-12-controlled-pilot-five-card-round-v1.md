@@ -44,7 +44,7 @@
 
 - Active truth/source read: the referenced specs, runtime contracts, accepted design artifacts, backend/mobile implementation, tests, and current PR/run-record context.
 - Generated/dependency/cache/archive read: lockfile-installed mobile and backend dependencies only for validation; no archive was used as product truth.
-- External workspace read: the current 120-card handoff was regenerated from `/Users/lenkin/programing/card-make-worktrees/cet4-pilot-samples` after card-make PR #154. No content was copied into this repository and no approval or audio-QC artifact was created here.
+- External workspace read: the current 120-card handoff was regenerated from the card-make workspace after card-make PR #154. The user subsequently approved the exact `dd2d3975...` version and card-make PR #155 recorded the canonical aggregate review and `controlled-pilot-approval.v1` artifact. No content or audio-QC artifact is copied into this repository.
 
 ## Files changed
 
@@ -104,15 +104,15 @@
 
 ## Card make external workspace impact
 
-- None. No candidate content, approval, batch, audio-QC artifact, or export payload was produced or modified.
+- Card-make PR #154 merged the final learner-facing card corrections. Card-make PR #155 then recorded the user's explicit approval for the exact 120-card `dd2d3975...` controlled-pilot scope. No audio-QC artifact or export payload was produced or modified by this product PR.
 
 ## Risks and open questions
 
-- The exact 120-card candidate still needs explicit user content approval.
+- The exact 120-card content version is user-approved in card-make PR #155 and remains bound to `controlled-pilot-approval.v1`; any card change invalidates that identity and requires a new approval.
 - The 24 referenced audio assets still need human perceptual QC.
 - Receiver-owned `pilot_id`, profile, secrets, entitlement operation, exact 120-hour trial, deletion-worker execution, deployment, and real-device evidence remain pending.
-- The base publication PR is still blocked on formal product-owner approval; this branch must remain stacked and must not merge ahead of it.
+- The base publication PR #497 passed protected product-owner approval and merged as `bb8a7ee`; this PR has been rebased onto that current `main`.
 
 ## Follow-up
 
-- Complete PR review and CI for this stacked change; after explicit human content/audio approval and receiver configuration, build the exact bound bundle, deploy to the independent receiver, grant pilot entitlement, and run real iOS/Android five-card continuation plus private-audio smoke.
+- Complete PR review and CI for this change; after human audio approval and receiver configuration, build the exact bound bundle from the already approved content, deploy to the independent receiver, grant pilot entitlement, and run real iOS/Android five-card continuation plus private-audio smoke.
