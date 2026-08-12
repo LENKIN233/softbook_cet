@@ -4,7 +4,7 @@
 
 - Date: 2026-08-12
 - Branch: `module/controlled-pilot-candidate-runtime-smoke-v1`
-- PR: pending
+- PR: `#500`
 - Summary: Removed the production mobile card-body dependency on disabled `/v1`, fixed the real five-card event-to-round boundary, and exercised the exact approved CET4 120-card payload through the authenticated learning runtime.
 
 ## Referenced specs
