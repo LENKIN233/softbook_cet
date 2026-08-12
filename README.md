@@ -150,6 +150,31 @@ npm start
 
 如果远端学习卡源请求失败或 payload 不合法，`learningRepository` 会自动回退到本地结构化卡源，保持现有学习 UI 和交互不变。
 
+### CET4 受控试点 bundle 装配
+
+卡片候选内容和批准仍只发生在同级 `card make` 工作区。收到它导出的 120 卡
+runtime payload、正式用户批准、scoped audit，以及 24 条音频的完整人耳 QC 后，
+用产品仓库的装配器生成发布器可直接验证的 `controlled-pilot-bundle.v1`：
+
+```bash
+node scripts/build_controlled_pilot_bundle.mjs \
+  --profile /absolute/path/controlled-pilot-profile.json \
+  --pilot-review /absolute/path/controlled-pilot-review.json \
+  --approval /absolute/path/controlled-pilot-approval.json \
+  --audit /absolute/path/controlled-pilot-audit.json \
+  --candidate-payload /absolute/path/card-source.json \
+  --audio-qc-dir '/absolute/path/card make/reviews/audio_qc' \
+  --output-dir /absolute/path/cet4-controlled-pilot-bundle \
+  --bundle-id cet4-pilot-bundle-001 \
+  --release-id cet4-pilot-release-001 \
+  --created-at 2026-08-12T12:00:00.000Z \
+  --release-at 2026-08-13T00:00:00.000Z
+```
+
+默认只在临时目录装配并执行生产发布器的完整校验；加 `--apply` 才保留输出目录。
+缺少或重复音频 QC、非人类 reviewer、hash/范围漂移都会 fail closed。装配结果始终
+`gate_eligible=false`，不能替代正式封闭内测或 launch evidence。
+
 ### iOS / CloudBase 远端 smoke
 
 `product_truth`: iOS 端远端运行时必须继续满足登录先于学习、完整试用入口、共享会员 entitlement、日级进展同步、学习状态同步和物理空间状态同步。

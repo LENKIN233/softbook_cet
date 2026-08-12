@@ -26,7 +26,7 @@ Referenced active sources:
 - The repository implements fail-closed profile, bundle, approval, audit, audio-QC and release validators plus publication sequencing through an injected receiver adapter.
 - Runtime content authority distinguishes `development`, `production` and `controlled_pilot`: production accepts only `content-release.v1`; controlled pilot accepts only a current `pilot-content-release.v1` with exactly 120 cards and a 60-card free prefix; neither mode falls back to development content.
 - The shared authenticated card-source, Bootstrap, Learning Events, Learning Session and Space paths apply that mode boundary. Non-development authentication still requires strong separate secrets, a persistent store, trusted client IP and a non-development SMS provider.
-- A concrete CloudBase receiver adapter and dry-run-first `preflight|provision|deploy|publish|verify` command are implemented locally. Five-card round gating, its exact continuation store and the mobile completion-state binding are implemented in the repository follow-up to the publication candidate but remain undeployed. Receiver-owned profile/secrets and execution, entitlement operations, exact 120-hour trial timestamps, deletion-worker execution, and real-device evidence remain separate and incomplete.
+- A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, and dry-run-first approved-artifact bundle assembler are implemented locally. Five-card round gating, its exact continuation store and the mobile completion-state binding are implemented in the repository follow-up to the publication candidate but remain undeployed. Receiver-owned profile/secrets and execution, complete identified-human audio QC, entitlement operations, exact 120-hour trial timestamps, deletion-worker execution, and real-device evidence remain separate and incomplete.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
 - None of this has been deployed to the receiver environment in this repository run. Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
 
@@ -156,6 +156,16 @@ evidence, activates last and rereads the active pointer. The shared concrete
 CloudBase receiver adapter accepts the pilot profile without loosening the
 formal release profile, records a distinct `pilot-stage-verification.v1`, and
 refuses to replace a different active release in pilot mode.
+
+`scripts/build_controlled_pilot_bundle.mjs` consumes only explicit artifacts
+from the external card workspace: the hash-bound candidate runtime payload,
+user-approved pilot review, exact approval record, scoped audit, audio bytes,
+and complete formal audio-QC records. It derives the corpus fingerprint and
+all release evidence summaries, copies immutable bytes into a temporary bundle,
+and invokes the production publisher verifier before returning. The command is
+dry-run by default and retains the verified directory only with `--apply`; an
+absent, duplicate, non-human, failed, or hash-mismatched QC record fails closed.
+It creates neither candidate content nor content/audio approval.
 
 `deliver-controlled-pilot.mjs` provides `preflight`, `provision`, `deploy`,
 `publish`, and `verify`. Every mutation is dry-run unless `--apply` is explicit;

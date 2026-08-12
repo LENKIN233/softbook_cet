@@ -8,7 +8,7 @@ const {
   writeFileSync,
 } = require('node:fs');
 const {tmpdir} = require('node:os');
-const {join, resolve} = require('node:path');
+const {join, relative, resolve} = require('node:path');
 const {pathToFileURL} = require('node:url');
 const {after, before, test} = require('node:test');
 
@@ -19,6 +19,7 @@ const {
 
 let catalog;
 let publisher;
+let bundleBuilder;
 const temporaryDirectories = [];
 
 before(async () => {
@@ -29,6 +30,9 @@ before(async () => {
     pathToFileURL(
       resolve(__dirname, '../../../controlled-pilot-publisher-v1.mjs'),
     )
+  );
+  bundleBuilder = await import(
+    pathToFileURL(resolve(__dirname, '../../../../../scripts/build_controlled_pilot_bundle.mjs'))
   );
 });
 
@@ -320,6 +324,8 @@ async function createFixture() {
     ...content,
     corpus_fingerprint: corpusFingerprint,
   });
+  const candidatePayloadPath = join(directory, 'candidate-payload.json');
+  const candidatePayloadHash = writeJson(candidatePayloadPath, content);
   const approvalHash = writeJson(join(directory, 'approval/pilot-approval.json'), {
     schema_version: 'controlled-pilot-approval.v1',
     pilot_id: 'cet4-pilot-2026',
@@ -327,7 +333,7 @@ async function createFixture() {
     scope: 'controlled_pilot_120',
     status: 'approved',
     approved_by_user: true,
-    approved_at: '2026-08-09T00:00:00.000Z',
+    approved_at: '2026-08-09T08:00:00+08:00',
     card_ids: content.card_records.map(card => card.card_id),
   });
   const auditPath = join(directory, 'audit/pilot-audit.json');
@@ -356,6 +362,14 @@ async function createFixture() {
     const recordPath = `audio/qc/${asset.asset_id}.json`;
     const recordHash = writeJson(join(directory, recordPath), {
       verdict: {formal_audio_ready: true},
+      legacy_adoption: {
+        reviewer: 'human-reviewer',
+        reviewed_at: '2026-08-09T08:00:00+08:00',
+      },
+      generated_assets: cardIds.map(cardId => ({
+        card_id: cardId,
+        file_sha256: asset.sha256.slice('sha256:'.length),
+      })),
       qa_checks: Object.fromEntries(
         [
           'audio_matches_text',
@@ -485,7 +499,34 @@ async function createFixture() {
     minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
     gate_eligible: false,
   });
-  return {auditPath, bundlePath, firstAudioPath, profilePath};
+  const pilotReviewPath = join(directory, 'controlled-pilot-review.json');
+  writeJson(pilotReviewPath, {
+    status: 'user_approved',
+    content_version: content.content_version,
+    approval: {approved_by_user: true},
+    source_records: {runtime_payload_sha256: candidatePayloadHash},
+  });
+  const assembledDirectory = join(directory, 'assembled');
+  bundleBuilder.assembleControlledPilotBundle({
+    profilePath,
+    pilotReviewPath,
+    approvalPath: join(directory, 'approval/pilot-approval.json'),
+    auditPath,
+    candidatePayloadPath,
+    audioQcDirectory: join(directory, 'audio/qc'),
+    outputDirectory: assembledDirectory,
+    bundleId: 'cet4-pilot-bundle-assembled',
+    releaseId: 'cet4-pilot-release-assembled',
+    createdAt: '2026-08-09T00:00:00.000Z',
+    releaseAt: '2026-08-10T00:00:00.000Z',
+    apply: true,
+  });
+  return {
+    auditPath: join(assembledDirectory, 'audit/controlled-pilot-audit.json'),
+    bundlePath: join(assembledDirectory, 'controlled-pilot-bundle.json'),
+    firstAudioPath: join(assembledDirectory, relative(directory, firstAudioPath)),
+    profilePath,
+  };
 }
 
 function detailedAuditFixture(cards, corpusDigest) {
