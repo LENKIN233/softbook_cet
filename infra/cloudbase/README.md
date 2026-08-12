@@ -460,6 +460,32 @@ stored together in `softbook_beta_entitlements`. The base membership document
 is not modified. Command files contain phone numbers and must not be committed
 or included in a release bundle.
 
+Controlled-pilot continued access uses a separate receiver-only overlay and
+never reuses the formal closed-beta grant. Create an untracked
+`pilot-entitlement-command.v1`, verify its phone-free dry-run plan, then apply
+the exact same command only from clean `main`:
+
+```bash
+node infra/cloudbase/manage-pilot-entitlement.mjs \
+  --profile path/to/controlled-pilot-profile.json \
+  --command path/to/pilot-entitlement-command.json
+
+node infra/cloudbase/manage-pilot-entitlement.mjs \
+  --profile path/to/controlled-pilot-profile.json \
+  --command path/to/pilot-entitlement-command.json \
+  --apply
+```
+
+The command must bind the exact profile pilot ID. Its active overlay and audit
+history share one `softbook_pilot_entitlements` document; Bootstrap exposes an
+independent `pilot_entitlement_revision`, clients continue to receive the
+existing `premium` stage, and no client grant or revoke route exists. Apply uses
+the receiver IAM-authenticated non-HTTP function invocation: that function
+also requires a command-bound HMAC from the receiver-only
+`SOFTBOOK_PILOT_OPERATOR_SECRET`, reads base membership plus beta and pilot overlays, rederives the claimed
+stages, and commits the audit and active overlay in one database transaction.
+The CLI then independently rereads the audit event before reporting success.
+
 ### Real-provider SMS smoke
 
 The repository provides a database-free, two-phase provider smoke. Dry-run

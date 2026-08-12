@@ -33,7 +33,7 @@ test("createCleanupPlan attributes every exact document to the lifecycle", () =>
     NOW
   );
 
-  assert.equal(plan.total_documents, 7);
+  assert.equal(plan.total_documents, 8);
   assert.deepEqual(plan.documents.softbook_auth_sessions, ["session-1"]);
   assert.deepEqual(plan.documents.softbook_learning_events, ["event-1"]);
   assert.deepEqual(plan.account_keys, [ACCOUNT_KEY]);
@@ -121,7 +121,7 @@ test("validateResumablePlan accepts only the remaining exact IDs", () => {
     NOW
   );
 
-  assert.equal(plan.total_documents, 7);
+  assert.equal(plan.total_documents, 8);
 });
 
 test("cleanup persists a plan before delete and resumes after partial failure", () => {
@@ -152,7 +152,7 @@ test("cleanup persists a plan before delete and resumes after partial failure", 
       /simulated partial deletion/
     );
     const failed = JSON.parse(readFileSync(manifestPath, "utf8"));
-    assert.equal(failed.cleanup_plan.total_documents, 7);
+    assert.equal(failed.cleanup_plan.total_documents, 8);
 
     const result = cleanupSmokeLifecycle({
       apply: true,
@@ -361,6 +361,14 @@ function createInventory() {
     {
       _id: PHONE,
       phone_number: PHONE,
+      updated_at: "2026-07-28T10:03:00.000Z",
+    },
+  ];
+  inventory.softbook_pilot_entitlements = [
+    {
+      _id: PHONE,
+      phone_number: PHONE,
+      pilot_id: "cet4-pilot-2026",
       updated_at: "2026-07-28T10:03:00.000Z",
     },
   ];

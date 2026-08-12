@@ -26,7 +26,7 @@ Referenced active sources:
 - The repository implements fail-closed profile, bundle, approval, audit, audio-QC and release validators plus publication sequencing through an injected receiver adapter.
 - Runtime content authority distinguishes `development`, `production` and `controlled_pilot`: production accepts only `content-release.v1`; controlled pilot accepts only a current `pilot-content-release.v1` with exactly 120 cards and a 60-card free prefix; neither mode falls back to development content.
 - The shared authenticated `GET /v2/learning/card-source`, Bootstrap, Learning Events, Learning Session and Space paths apply that mode boundary. Non-development authentication still requires strong separate secrets, a persistent store, trusted client IP and a non-development SMS provider. The controlled-pilot mobile runtime has no `/v1` dependency for loading card bodies.
-- A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, and dry-run-first approved-artifact bundle assembler are implemented locally. Five-card round gating, its exact continuation store, the mobile completion-state binding, and the atomic 120-hour Learning Session trial clock are implemented in the repository but remain undeployed. Receiver-owned profile/secrets and execution, complete identified-human audio QC, pilot entitlement operations, deletion-worker execution, and real-device evidence remain separate and incomplete.
+- A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, and dry-run-first approved-artifact bundle assembler are implemented locally. Five-card round gating, its exact continuation store, the mobile completion-state binding, the atomic 120-hour Learning Session trial clock, and audited pilot entitlement operations are implemented in the repository but remain undeployed. Receiver-owned profile/secrets and execution, complete identified-human audio QC, deletion-worker execution, and real-device evidence remain separate and incomplete.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
 - None of this has been deployed to the receiver environment in this repository run. Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
 
@@ -122,16 +122,26 @@ An untracked receiver-operator input contains one idempotent event, pilot,
 phone, `grant|revoke`, actor, reason, UTC occurrence time, previous stage and
 resulting stage. Grant must result in
 `pilot_premium`; revoke must restore the canonical base stage. Future mutation
-implementation must rederive and atomically verify those stages while storing
+implementation rederives and atomically verifies those stages while storing
 the event and active overlay, leave base membership unchanged, reject client
-routes, and clean all account-keyed pilot entitlement data during account
-deletion. Dry-run/apply is an execution mode outside the immutable command:
+routes. The collection is included in exact lifecycle cleanup and remains a
+required target for the still-pending account-deletion worker. Dry-run/apply is
+an execution mode outside the immutable command:
 tooling defaults to dry-run and requires an explicit apply flag so the exact
 same command hash can be verified before mutation.
 
-The current mainline validates this command shape only. Receiver mutation and
-membership overlay wiring remain pending and must not be inferred from schema
-validation.
+The repository stores the active overlay and append-only audit in one
+`softbook_pilot_entitlements` document keyed by phone, accepts it only when its
+pilot ID matches the receiver runtime's exact configured pilot, exposes the
+overlay to clients as the existing `premium` product state, and publishes its
+independent audited revision in controlled-pilot Bootstrap. The overlay stops
+granting access at the profile's exact pilot expiry. The operator command is receiver
+only, dry-run first, and has no HTTP client route. Apply uses the receiver's
+IAM-authenticated non-HTTP function invocation with a command-bound HMAC from
+an independent receiver-only operator secret; the receiver function reads
+base, beta and pilot records and commits audit plus overlay in one database
+transaction, after which the CLI independently rereads the audit event. These
+repository guarantees remain undeployed until receiver execution is completed.
 
 ## Account deletion (target extension; not yet implemented on current `main`)
 

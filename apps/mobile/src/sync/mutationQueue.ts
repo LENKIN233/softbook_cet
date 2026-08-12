@@ -615,6 +615,7 @@ function sanitizeSpaceCanonicalRefreshBaseline(
   const membership = sanitizeRevisionRecord(revisions.membership, [
     'baseMembershipRevision',
     'betaEntitlementRevision',
+    'pilotEntitlementRevision',
   ]);
   const learning = sanitizeRevisionRecord(revisions.learning, [
     'eventServerSequence',

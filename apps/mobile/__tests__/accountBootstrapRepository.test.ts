@@ -21,6 +21,7 @@ function createBootstrapPayload(): any {
         membership: {
           base_membership_revision: 3,
           beta_entitlement_revision: 2,
+          pilot_entitlement_revision: 0,
         },
         learning: {
           event_server_sequence: 7,
@@ -151,6 +152,7 @@ test('loads one scoped bootstrap without sending account identity', async () => 
       membership: {
         baseMembershipRevision: 3,
         betaEntitlementRevision: 2,
+        pilotEntitlementRevision: 0,
       },
       progress: {
         checkInRevision: 1,
@@ -186,6 +188,21 @@ test('loads one scoped bootstrap without sending account identity', async () => 
     },
   );
   expect(fetchImpl.mock.calls[0]?.[0]).not.toContain('phone');
+});
+
+test('normalizes an absent pilot entitlement revision to zero', () => {
+  const payload = createBootstrapPayload();
+  delete payload.data.component_revisions.membership.pilot_entitlement_revision;
+
+  expect(parseAccountBootstrapPayload(payload, 'cet4', DAY_KEY)).toMatchObject({
+    componentRevisions: {
+      membership: {
+        baseMembershipRevision: 3,
+        betaEntitlementRevision: 2,
+        pilotEntitlementRevision: 0,
+      },
+    },
+  });
 });
 
 test('keeps local bootstrap side-effect free', async () => {

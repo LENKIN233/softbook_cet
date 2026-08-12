@@ -29,6 +29,7 @@ function createBootstrapFixture(): AccountBootstrapSnapshot {
       membership: {
         baseMembershipRevision: 0,
         betaEntitlementRevision: 0,
+        pilotEntitlementRevision: 0,
       },
       progress: {
         checkInRevision: 0,

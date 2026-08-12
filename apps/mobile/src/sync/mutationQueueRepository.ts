@@ -469,6 +469,8 @@ function haveCrossDayCanonicalOwnersNotRegressed(
       baseline.membership.baseMembershipRevision &&
     candidate.membership.betaEntitlementRevision >=
       baseline.membership.betaEntitlementRevision &&
+    candidate.membership.pilotEntitlementRevision >=
+      baseline.membership.pilotEntitlementRevision &&
     candidate.learning.eventServerSequence >=
       baseline.learning.eventServerSequence &&
     candidate.learning.sessionRevision >=

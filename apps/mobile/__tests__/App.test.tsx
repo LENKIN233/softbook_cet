@@ -703,6 +703,7 @@ function createAccountBootstrapPayload(
         membership: {
           base_membership_revision: baseMembershipRevision,
           beta_entitlement_revision: 0,
+          pilot_entitlement_revision: 0,
         },
         learning: {
           event_server_sequence: learningServerSequence,

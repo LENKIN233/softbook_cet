@@ -23,6 +23,13 @@ const {
   createContentManifestV1Service,
 } = require('./content-manifest-v1');
 const {createDailyCheckInV2Service} = require('./daily-check-in-v2');
+const {
+  PilotEntitlementError,
+  pilotEntitlementInternals,
+  planPilotEntitlementMutation,
+  publicPilotEntitlementPlan,
+  validatePilotEntitlementCommand,
+} = require('./pilot-entitlement-v1');
 const {createLearningEventsV2Service} = require('./learning-events-v2');
 const {
   SCHEDULER_POLICY_VERSION,
@@ -107,6 +114,7 @@ const CLOUDBASE_COLLECTIONS = {
   learningEventSequences: 'softbook_learning_event_sequences',
   learningMigrationRevisions: 'softbook_learning_migration_revisions',
   pilotRoundContinuations: 'softbook_pilot_round_continuations',
+  pilotEntitlements: 'softbook_pilot_entitlements',
   learningSessions: 'softbook_learning_sessions',
   learningStates: 'softbook_learning_states',
   memberships: 'softbook_memberships',
@@ -124,7 +132,80 @@ const DEFAULT_CARD_SOURCE = {
 let defaultApi;
 
 async function main(event, context) {
+  if (event?.schema_version === 'pilot-entitlement-operator-invoke.v1') {
+    return handlePilotEntitlementOperatorInvoke(event);
+  }
   return getDefaultApi().handleCloudBaseEvent(event, context);
+}
+
+async function handlePilotEntitlementOperatorInvoke(event, options = {}) {
+  const actualKeys = Object.keys(event ?? {}).sort();
+  if (
+    actualKeys.length !== 3 ||
+    actualKeys[0] !== 'command' ||
+    actualKeys[1] !== 'schema_version' ||
+    actualKeys[2] !== 'signature'
+  ) {
+    throw new PilotEntitlementError('pilot entitlement operator invocation is invalid.');
+  }
+  const runtimeMode =
+    options.runtimeMode ?? process.env.SOFTBOOK_RUNTIME_MODE ?? 'development';
+  const pilotId = options.pilotId ?? process.env.SOFTBOOK_PILOT_ID ?? null;
+  const pilotExpiresAt =
+    options.pilotExpiresAt ?? process.env.SOFTBOOK_PILOT_EXPIRES_AT ?? null;
+  const operatorSecret =
+    options.operatorSecret ?? process.env.SOFTBOOK_PILOT_OPERATOR_SECRET ?? null;
+  const observedAt = (options.now ?? (() => new Date()))().toISOString();
+  const command = validatePilotEntitlementCommand(event.command);
+  assertPilotOperatorSignature(command, event.signature, operatorSecret);
+  if (
+    runtimeMode !== 'controlled_pilot' ||
+    !isCanonicalIsoTimestamp(pilotExpiresAt) ||
+    command.pilot_id !== pilotId ||
+    Date.parse(command.occurred_at) > Date.parse(observedAt) ||
+    Date.parse(command.occurred_at) >= Date.parse(pilotExpiresAt) ||
+    Date.parse(observedAt) >= Date.parse(pilotExpiresAt)
+  ) {
+    throw new PilotEntitlementError(
+      'pilot entitlement command is outside the active receiver pilot.',
+    );
+  }
+  const store =
+    options.store ?? createDefaultStore({pilotExpiresAt, pilotId, runtimeMode});
+  if (typeof store.applyPilotEntitlementCommand !== 'function') {
+    throw new PilotEntitlementError('pilot entitlement operator store is unavailable.');
+  }
+  const result = await store.applyPilotEntitlementCommand(command);
+  return {
+    schema_version: 'pilot-entitlement-operator-result.v1',
+    gate_eligible: false,
+    status: 'passed',
+    writes_performed: result.changed,
+    result,
+  };
+}
+
+function assertPilotOperatorSignature(command, signature, secret) {
+  if (
+    typeof secret !== 'string' ||
+    secret.length < 32 ||
+    typeof signature !== 'string' ||
+    !/^hmac-sha256:[a-f0-9]{64}$/.test(signature)
+  ) {
+    throw new PilotEntitlementError('pilot entitlement operator authentication failed.');
+  }
+  const expected = `hmac-sha256:${crypto
+    .createHmac('sha256', secret)
+    .update(pilotEntitlementInternals.stableStringify(command))
+    .digest('hex')}`;
+  if (
+    !crypto.timingSafeEqual(
+      Buffer.from(signature, 'utf8'),
+      Buffer.from(expected, 'utf8'),
+    )
+  ) {
+    throw new PilotEntitlementError('pilot entitlement operator authentication failed.');
+  }
 }
 
 function getDefaultApi() {
@@ -138,7 +219,11 @@ function getDefaultApi() {
 function createSoftbookApi(options = {}) {
   const runtimeMode =
     options.runtimeMode ?? process.env.SOFTBOOK_RUNTIME_MODE ?? 'development';
-  const store = options.store ?? createDefaultStore();
+  const pilotId = options.pilotId ?? process.env.SOFTBOOK_PILOT_ID ?? null;
+  const pilotExpiresAt =
+    options.pilotExpiresAt ?? process.env.SOFTBOOK_PILOT_EXPIRES_AT ?? null;
+  const store =
+    options.store ?? createDefaultStore({pilotExpiresAt, pilotId, runtimeMode});
   const tokenSecret =
     options.tokenSecret ??
     process.env.SOFTBOOK_AUTH_TOKEN_SECRET ??
@@ -732,7 +817,7 @@ function assertContentManifestRequest(request) {
   }
 }
 
-function createDefaultStore() {
+function createDefaultStore({pilotExpiresAt, pilotId, runtimeMode}) {
   const storeMode = process.env.SOFTBOOK_STORE_MODE ?? 'memory';
 
   if (storeMode === 'memory') {
@@ -740,7 +825,7 @@ function createDefaultStore() {
   }
 
   if (storeMode === 'cloudbase') {
-    return createCloudBaseStore();
+    return createCloudBaseStore({pilotExpiresAt, pilotId, runtimeMode});
   }
 
   throw new Error(`Unsupported SOFTBOOK_STORE_MODE: ${storeMode}`);
@@ -1040,6 +1125,7 @@ function createMemoryStore() {
           base_membership_revision:
             normalized.changed ? nextBaseMembershipRevision(base.revision) : base.revision,
           beta_entitlement_revision: 0,
+          pilot_entitlement_revision: 0,
         },
         ...serializeMembershipAt(normalized.entitlement, normalized.observedAt),
       };
@@ -1473,12 +1559,16 @@ function createMemoryStore() {
 
 function createCloudBaseStore(options = {}) {
   const db = options.db ?? createCloudBaseDatabase();
+  const runtimeMode = options.runtimeMode ?? 'development';
+  const pilotId = options.pilotId ?? null;
+  const pilotExpiresAt = options.pilotExpiresAt ?? null;
   const authStateStore = createCloudBaseAuthStateStore(
     db,
     CLOUDBASE_COLLECTIONS,
   );
   const cardSources = db.collection(CLOUDBASE_COLLECTIONS.cardSources);
   const betaEntitlements = db.collection(CLOUDBASE_COLLECTIONS.betaEntitlements);
+  const pilotEntitlements = db.collection(CLOUDBASE_COLLECTIONS.pilotEntitlements);
   const memberships = db.collection(CLOUDBASE_COLLECTIONS.memberships);
   const membershipRevisions = db.collection(
     CLOUDBASE_COLLECTIONS.membershipRevisions,
@@ -1752,8 +1842,58 @@ function createCloudBaseStore(options = {}) {
         );
         return true;
       }),
+    applyPilotEntitlementCommand: command =>
+      db.runTransaction(async transaction => {
+        if (runtimeMode !== 'controlled_pilot' || command.pilot_id !== pilotId) {
+          throw new PilotEntitlementError(
+            'pilot entitlement command does not match this runtime.',
+          );
+        }
+        const transactionMemberships = transaction.collection(
+          CLOUDBASE_COLLECTIONS.memberships,
+        );
+        const transactionBetaEntitlements = transaction.collection(
+          CLOUDBASE_COLLECTIONS.betaEntitlements,
+        );
+        const transactionPilotEntitlements = transaction.collection(
+          CLOUDBASE_COLLECTIONS.pilotEntitlements,
+        );
+        const membershipDocument = await getCloudBaseDocument(
+          transactionMemberships,
+          command.phone_number,
+        );
+        const betaEntitlement = await getCloudBaseDocument(
+          transactionBetaEntitlements,
+          command.phone_number,
+        );
+        const pilotEntitlement = await getCloudBaseDocument(
+          transactionPilotEntitlements,
+          command.phone_number,
+        );
+        const baseMembership = membershipDocument
+          ? deserializeMembershipDocument(membershipDocument)
+          : createInitialMembership();
+        const canonicalMembership = applyBetaEntitlement(
+          baseMembership,
+          betaEntitlement,
+          command.phone_number,
+        );
+        const plan = planPilotEntitlementMutation(
+          command,
+          pilotEntitlement,
+          canonicalMembership,
+        );
+        if (plan.changed) {
+          await setCloudBaseDocument(
+            transactionPilotEntitlements,
+            command.phone_number,
+            plan.document,
+          );
+        }
+        return publicPilotEntitlementPlan(plan);
+      }),
     getMembership: async (phoneNumber, observedAt) => {
-      const [base, betaEntitlement] = await Promise.all([
+      const [base, betaEntitlement, pilotEntitlement] = await Promise.all([
         db.runTransaction(async transaction => {
           const transactionMemberships = transaction.collection(
             CLOUDBASE_COLLECTIONS.memberships,
@@ -1793,21 +1933,39 @@ function createCloudBaseStore(options = {}) {
           };
         }),
         getCloudBaseDocument(betaEntitlements, phoneNumber),
+        runtimeMode === 'controlled_pilot'
+          ? getCloudBaseDocument(pilotEntitlements, phoneNumber)
+          : null,
       ]);
 
-      const entitlement = applyBetaEntitlement(
+      const betaMembership = applyBetaEntitlement(
         base.entitlement,
         betaEntitlement,
         phoneNumber,
+      );
+      const entitlement = applyPilotEntitlement(
+        betaMembership,
+        pilotEntitlement,
+        phoneNumber,
+        pilotId,
+        pilotExpiresAt,
+        base.observedAt,
+      );
+      const pilotRevision = derivePilotEntitlementComponentRevision(
+        pilotEntitlement,
+        pilotExpiresAt,
+        base.observedAt,
       );
       return {
         acknowledged_at: latestAcknowledgedAt(
           base.updatedAt,
           betaEntitlement?.updated_at,
+          pilotEntitlement?.updated_at,
         ),
         component_revision: {
           base_membership_revision: base.revision,
           beta_entitlement_revision: betaEntitlement?.revision ?? 0,
+          pilot_entitlement_revision: pilotRevision,
         },
         ...serializeMembershipAt(entitlement, base.observedAt),
       };
@@ -3256,6 +3414,77 @@ function applyBetaEntitlement(membership, document, phoneNumber) {
     recovery_prompt_visible: false,
     stage: 'premium',
   };
+}
+
+function applyPilotEntitlement(
+  membership,
+  document,
+  phoneNumber,
+  pilotId,
+  pilotExpiresAt,
+  observedAt,
+) {
+  if (document === null || document === undefined) return membership;
+  assertPilotEntitlementDocument(document, phoneNumber, pilotId);
+  if ((document.active_grant ?? null) === null) return membership;
+  if (!isCanonicalIsoTimestamp(pilotExpiresAt)) {
+    throw httpError(
+      500,
+      'invalid_pilot_entitlement',
+      'Controlled-pilot expiry is invalid.',
+    );
+  }
+  if (Date.parse(observedAt) >= Date.parse(pilotExpiresAt)) {
+    return membership;
+  }
+  return {
+    ...membership,
+    last_experience_ended_by: null,
+    recovery_prompt_visible: false,
+    stage: 'premium',
+  };
+}
+
+function derivePilotEntitlementComponentRevision(
+  document,
+  pilotExpiresAt,
+  observedAt,
+) {
+  if (document === null || document === undefined) return 0;
+  const auditRevision = requireNonNegativeSafeInteger(
+    document.revision,
+    'pilot entitlement audit revision',
+  );
+  const active = (document.active_grant ?? null) !== null;
+  const expired =
+    active &&
+    isCanonicalIsoTimestamp(pilotExpiresAt) &&
+    isCanonicalIsoTimestamp(observedAt) &&
+    Date.parse(observedAt) >= Date.parse(pilotExpiresAt);
+  return auditRevision * 2 + (expired ? 1 : 0);
+}
+
+function assertPilotEntitlementDocument(document, phoneNumber, pilotId) {
+  const invalid = () =>
+    httpError(
+      500,
+      'invalid_pilot_entitlement',
+      'Canonical pilot entitlement is invalid.',
+    );
+  let normalized;
+  try {
+    normalized =
+      pilotEntitlementInternals.normalizePilotEntitlementDocument(document);
+  } catch {
+    throw invalid();
+  }
+  if (
+    normalized.phone_number !== phoneNumber ||
+    (normalized.active_grant !== null &&
+      normalized.active_grant.pilot_id !== pilotId)
+  ) {
+    throw invalid();
+  }
 }
 
 function assertBetaEntitlementDocument(document, phoneNumber) {
@@ -4965,6 +5194,7 @@ module.exports = {
   createCloudBaseStore,
   createMemoryStore,
   createSoftbookApi,
+  handlePilotEntitlementOperatorInvoke,
   get defaultApi() {
     return getDefaultApi();
   },

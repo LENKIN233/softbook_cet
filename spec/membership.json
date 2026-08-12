@@ -26,6 +26,18 @@
       "client_self_grant_forbidden": true,
       "grant_state_and_audit_history_must_share_one_atomic_record": true,
       "base_membership_must_not_be_overwritten": true
+    },
+    "controlled_pilot_entitlement": {
+      "access_state": "premium",
+      "audit_result_state": "pilot_premium",
+      "delivery_rule": "receiver_operator_grant_only",
+      "payment_required": false,
+      "audit_required": true,
+      "client_self_grant_forbidden": true,
+      "client_visible_stage": "premium",
+      "grant_state_and_audit_history_must_share_one_atomic_record": true,
+      "base_membership_must_not_be_overwritten": true,
+      "active_pilot_id_must_match_runtime": true
     }
   },
   "states": {

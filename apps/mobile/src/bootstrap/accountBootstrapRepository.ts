@@ -59,6 +59,7 @@ export type AccountBootstrapComponentRevisions = {
   membership: {
     baseMembershipRevision: number;
     betaEntitlementRevision: number;
+    pilotEntitlementRevision: number;
   };
   progress: {
     checkInRevision: number;
@@ -376,11 +377,30 @@ function parseComponentRevisions(
     );
   }
 
-  const membership = requireExactObject(
+  const membership = requireObject(
     revisions.membership,
-    ['base_membership_revision', 'beta_entitlement_revision'],
     'bootstrap component_revisions.membership',
   );
+  const membershipKeys = Object.keys(membership).sort();
+  const legacyMembershipKeys = [
+    'base_membership_revision',
+    'beta_entitlement_revision',
+  ];
+  const pilotMembershipKeys = [
+    ...legacyMembershipKeys,
+    'pilot_entitlement_revision',
+  ];
+  if (
+    ![legacyMembershipKeys, pilotMembershipKeys].some(
+      expected =>
+        expected.length === membershipKeys.length &&
+        expected.every((key, index) => key === membershipKeys[index]),
+    )
+  ) {
+    throw new Error(
+      'bootstrap component_revisions.membership fields are invalid.',
+    );
+  }
   const learning = requireExactObject(
     revisions.learning,
     ['event_server_sequence', 'session_revision', 'space_revision'],
@@ -420,6 +440,10 @@ function parseComponentRevisions(
       betaEntitlementRevision: readNonNegativeInteger(
         membership.beta_entitlement_revision,
         'bootstrap component_revisions.membership.beta_entitlement_revision',
+      ),
+      pilotEntitlementRevision: readNonNegativeInteger(
+        membership.pilot_entitlement_revision ?? 0,
+        'bootstrap component_revisions.membership.pilot_entitlement_revision',
       ),
     },
     progress: {

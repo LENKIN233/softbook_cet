@@ -41,6 +41,7 @@ const collections = [
   'softbook_learning_event_sequences',
   'softbook_learning_migration_revisions',
   'softbook_pilot_round_continuations',
+  'softbook_pilot_entitlements',
   'softbook_learning_sessions',
   'softbook_learning_states',
   'softbook_space_action_lineages',
