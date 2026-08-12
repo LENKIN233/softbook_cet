@@ -4,7 +4,7 @@
 
 - Date: 2026-08-13
 - Branch: `module/controlled-pilot-entitlement-v1`
-- PR: pending
+- PR: `https://github.com/LENKIN233/softbook_cet/pull/502`
 - Summary: Implement a dry-run-first, receiver-operator controlled-pilot entitlement that atomically rederives base membership, stores its audit plus overlay, appears to clients as existing premium access, and never exposes a client grant route.
 
 ## Referenced specs
