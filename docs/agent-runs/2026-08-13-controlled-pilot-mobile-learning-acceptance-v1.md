@@ -99,7 +99,7 @@
 - Visible metadata: fixed session label, source label/ID, content version, pilot/release/key IDs, card/knowledge/box refs and download URLs stayed out of rendered output; the mobile metadata scan passed.
 - Full regression: mobile 512/512, CloudBase 270/270, Web 12/12 plus production build, harness regression 68/68, the 15-section local/partial harness, and the full remote-aware harness all passed.
 - Repository mutation: the acceptance runner observed no worktree change and removed its temporary card-bearing fixture.
-- CI and remote delivery controls: pending at record creation.
+- PR #503 first CI wave: Agent review, Android release, backend contract, dependency security, mobile quality, full harness, Web quality, evidence archive and repository health passed. The first design-artifact job read a PR body without its required machine-readable field labels and failed; the corrected body then passed `scripts/validate_pr_design_gate.py --base origin/main --head HEAD --body-file /dev/stdin` locally. A new CI wave is required to confirm that correction remotely; iOS release and formal product-owner approval were still pending when this record was updated.
 
 ## Binary evidence
 
