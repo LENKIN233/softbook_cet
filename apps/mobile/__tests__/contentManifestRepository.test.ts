@@ -1,6 +1,6 @@
-import {localLearningCardRecords} from '../src/learning/localCardRecords';
-import {generateKeyPairSync, sign} from 'node:crypto';
-import {normalizeLearningCardRecord} from '../src/learning/sourceContract';
+import { localLearningCardRecords } from '../src/learning/localCardRecords';
+import { generateKeyPairSync, sign } from 'node:crypto';
+import { normalizeLearningCardRecord } from '../src/learning/sourceContract';
 import {
   assertContentManifestMatchesCards,
   loadRemoteContentManifest,
@@ -8,7 +8,7 @@ import {
   resolveCardAudioDownload,
   stableJsonStringify,
 } from '../src/audio/contentManifestRepository';
-import {createPinnedContentManifestSignatureVerifier} from '../src/audio/contentManifestSignature';
+import { createPinnedContentManifestSignatureVerifier } from '../src/audio/contentManifestSignature';
 
 const CONTENT_VERSION = `sha256:${'c'.repeat(64)}`;
 const ASSET_SHA256 = `sha256:${'a'.repeat(64)}`;
@@ -55,6 +55,23 @@ function createPayload() {
   };
 }
 
+function createControlledPilotPayload() {
+  const payload: any = createPayload();
+  payload.data.manifest = {
+    assets: payload.data.manifest.assets,
+    content_version: CONTENT_VERSION,
+    expires_at: '2026-08-01T12:00:00.000Z',
+    gate_eligible: false,
+    minimum_client_versions: { android: '1.0.0', ios: '1.0.0' },
+    pilot_id: 'cet4-controlled-pilot-2026',
+    release_class: 'controlled_pilot',
+    release_id: 'cet4-controlled-pilot-release',
+    schema_version: 'content-manifest.v1',
+    track: 'cet4',
+  };
+  return payload;
+}
+
 function createAudioCard() {
   return normalizeLearningCardRecord({
     ...localLearningCardRecords[0],
@@ -86,7 +103,9 @@ test('remote content manifest requires auth, exact scope, and signature verifica
   });
 
   expect(fetchImpl).toHaveBeenCalledWith(
-    `https://api.softbook.example/v2/content/manifest?track=cet4&content_version=${encodeURIComponent(CONTENT_VERSION)}`,
+    `https://api.softbook.example/v2/content/manifest?track=cet4&content_version=${encodeURIComponent(
+      CONTENT_VERSION,
+    )}`,
     {
       headers: {
         Accept: 'application/json',
@@ -157,12 +176,14 @@ test('content manifest parser fails closed on storage leakage, expiry, and asset
   const missingDownload = createPayload();
   missingDownload.data.downloads = [];
   const parsedMissingDownload = parseContentManifestPayload(missingDownload, {
-      contentVersion: CONTENT_VERSION,
-      now: NOW,
-      track: 'cet4',
-    });
+    contentVersion: CONTENT_VERSION,
+    now: NOW,
+    track: 'cet4',
+  });
   expect(() =>
-    assertContentManifestMatchesCards(parsedMissingDownload, [createAudioCard()]),
+    assertContentManifestMatchesCards(parsedMissingDownload, [
+      createAudioCard(),
+    ]),
   ).toThrow('downloads do not match the server-authorized card prefix');
 
   const extraDownload = createPayload();
@@ -174,6 +195,84 @@ test('content manifest parser fails closed on storage leakage, expiry, and asset
       track: 'cet4',
     }),
   ).toThrow('download is not present in signed assets');
+});
+
+test('parses the exact controlled-pilot manifest without erasing its signed gate boundary', () => {
+  const payload = createControlledPilotPayload();
+  const parsed = parseContentManifestPayload(payload, {
+    contentVersion: CONTENT_VERSION,
+    now: NOW,
+    track: 'cet4',
+  });
+
+  expect(parsed.manifest).toMatchObject({
+    expires_at: '2026-08-01T12:00:00.000Z',
+    gate_eligible: false,
+    minimum_client_versions: { android: '1.0.0', ios: '1.0.0' },
+    pilot_id: 'cet4-controlled-pilot-2026',
+    release_class: 'controlled_pilot',
+  });
+});
+
+test.each([
+  {
+    label: 'gate eligibility drift',
+    mutate: (payload: ReturnType<typeof createControlledPilotPayload>) => {
+      payload.data.manifest.gate_eligible = true as never;
+    },
+  },
+  {
+    label: 'missing platform minimum version',
+    mutate: (payload: ReturnType<typeof createControlledPilotPayload>) => {
+      delete payload.data.manifest.minimum_client_versions.android;
+    },
+  },
+  {
+    label: 'minimum version whitespace',
+    mutate: (payload: ReturnType<typeof createControlledPilotPayload>) => {
+      payload.data.manifest.minimum_client_versions.android = ' 1.0.0';
+    },
+  },
+  {
+    label: 'release identifier whitespace',
+    mutate: (payload: ReturnType<typeof createControlledPilotPayload>) => {
+      payload.data.manifest.release_id = 'cet4-controlled-pilot-release ';
+    },
+  },
+  {
+    label: 'expired release',
+    mutate: (payload: ReturnType<typeof createControlledPilotPayload>) => {
+      payload.data.manifest.expires_at = NOW.toISOString();
+    },
+  },
+  {
+    label: 'formal and pilot field mixing',
+    mutate: (payload: ReturnType<typeof createControlledPilotPayload>) => {
+      (payload.data.manifest as any).parent_release_id = null;
+    },
+  },
+  {
+    label: 'expiry whitespace',
+    mutate: (payload: ReturnType<typeof createControlledPilotPayload>) => {
+      payload.data.manifest.expires_at = ' 2026-08-01T12:00:00.000Z';
+    },
+  },
+  {
+    label: 'download outlives release',
+    mutate: (payload: ReturnType<typeof createControlledPilotPayload>) => {
+      payload.data.downloads[0].expires_at = '2026-08-02T12:00:00.000Z';
+    },
+  },
+])('rejects controlled-pilot $label', ({ mutate }) => {
+  const payload = createControlledPilotPayload();
+  mutate(payload);
+  expect(() =>
+    parseContentManifestPayload(payload, {
+      contentVersion: CONTENT_VERSION,
+      now: NOW,
+      track: 'cet4',
+    }),
+  ).toThrow();
 });
 
 test('signed manifest resolves only audio that matches the loaded card catalog', () => {
@@ -236,7 +335,7 @@ test('shared audio assets require one authorized download across multiple cards'
   const firstCard = createAudioCard();
   const secondCard = normalizeLearningCardRecord({
     ...localLearningCardRecords[1],
-    audio: {...firstCard.audio!},
+    audio: { ...firstCard.audio! },
   });
 
   expect(() =>
@@ -245,9 +344,9 @@ test('shared audio assets require one authorized download across multiple cards'
 });
 
 test('pinned verifier checks a real Node Ed25519 signature with strict semantics', async () => {
-  const {privateKey, publicKey} = generateKeyPairSync('ed25519');
+  const { privateKey, publicKey } = generateKeyPairSync('ed25519');
   const rawPublicKey = publicKey
-    .export({format: 'der', type: 'spki'})
+    .export({ format: 'der', type: 'spki' })
     .subarray(-32)
     .toString('hex');
   const payload = createPayload().data;

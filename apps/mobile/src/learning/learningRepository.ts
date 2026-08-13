@@ -47,6 +47,7 @@ export type RemoteLearningContentManifestConfig =
       mode: 'remote';
       apiKey?: string;
       baseUrl: string;
+      now?: () => Date;
       verifySignature: ContentManifestSignatureVerifier;
     };
 
@@ -241,6 +242,7 @@ async function loadContentManifestForSession(options: {
     baseUrl: options.config.baseUrl,
     contentVersion: options.contentVersion,
     fetchImpl: options.fetchImpl,
+    now: options.config.now,
     track: options.track,
     verifySignature: options.config.verifySignature,
   });

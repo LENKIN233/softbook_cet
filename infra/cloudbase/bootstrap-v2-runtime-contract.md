@@ -51,6 +51,13 @@ Referenced active specs:
 - CloudBase legacy physical-space discovery is paged outside the transaction;
   the deterministic account document is re-read and merged with that snapshot
   using doc-only transaction operations.
+- Content metadata is an exact runtime-discriminated projection. Development
+  and production retain the original seven-field shape; `controlled_pilot`
+  returns its separate exact nine-field shape with pilot/release identity,
+  exact Android/iOS minimum versions, canonical expiry, and
+  `gate_eligible=false`. The repository-local mobile Bootstrap parser accepts
+  those variants fail closed, but it does not yet compare an installed app
+  version with the declared platform minimum.
 
 ## Request
 
@@ -149,6 +156,46 @@ Rules:
   }
 }
 ```
+
+The example above shows the exact development/formal `content` variant. It
+contains exactly `card_count`, `minimum_client_version`, `parent_release_id`,
+`published_at`, `release_id`, `source`, and `version`; `source` contains exactly
+`id` and `label`. Development uses null release fields. A formal production
+release requires non-null release identity, semantic minimum client version,
+and publication time.
+
+In a `controlled_pilot` runtime, `data.content` instead contains exactly these
+nine fields:
+
+```json
+{
+  "card_count": 120,
+  "expires_at": "2026-09-10T00:00:00.000Z",
+  "gate_eligible": false,
+  "minimum_client_versions": {
+    "android": "1.0.0",
+    "ios": "1.0.0"
+  },
+  "pilot_id": "cet4-pilot-2026",
+  "release_class": "controlled_pilot",
+  "release_id": "cet4-controlled-pilot-2026",
+  "source": {
+    "id": "cet4-controlled-pilot-source",
+    "label": "CET4 Controlled Pilot"
+  },
+  "version": "sha256:<64 lowercase hex characters>"
+}
+```
+
+This variant is valid only for the outer `track=cet4`. Its
+`minimum_client_versions` object contains exactly semantic-version `android`
+and `ios` entries, `expires_at` is a canonical UTC timestamp later than the
+response's `generated_at`, `gate_eligible` is exactly `false`, and
+`release_class` is exactly `controlled_pilot`. The formal-only
+`minimum_client_version`, `parent_release_id`, and `published_at` fields are
+forbidden. Unknown fields, a missing platform, invalid pilot/release identity,
+an expired release, gate drift, or formal/pilot field mixing fails closed in
+the repository-local mobile parser.
 
 Missing account-state documents for a valid account/day/track return explicit
 empty state. They do not cause the server to copy a device snapshot or silently
@@ -250,15 +297,28 @@ card arrays and duplicate card IDs before computing that version.
 Development content may have `release_id: null`. Production bootstrap fails
 closed with `503 content_release_unavailable` unless the content source carries
 a `content-release.v1` descriptor whose track and content version match the
-normalized payload. This endpoint returns release metadata, not card records,
-signed manifests, pack URLs, or audio URLs.
+normalized payload. A `controlled_pilot` Bootstrap likewise fails closed unless
+the active source carries a current `pilot-content-release.v1` for CET4 with
+exactly 120 cards, a stable 60-card free prefix, exact Android/iOS semantic
+minimum versions, canonical activation/expiry bounds, and
+`gate_eligible=false`. Production and controlled-pilot modes accept only their
+own release class and never fall back to development content.
+
+This endpoint returns the applicable release metadata projection, not card
+records, a signed manifest, private-object URLs, pack URLs, or audio bytes.
+Cards remain on authenticated `/v2/learning/card-source`; the separately
+authenticated `GET /v2/content/manifest` returns the implemented
+Ed25519-signed exact formal or controlled-pilot manifest plus membership-scoped
+expiring private downloads. For pilot responses those download expiries cannot
+outlive the signed pilot release. Bootstrap parsing and semantic-version shape
+validation do not yet enforce the installed client version.
 
 The current `import-card-source.mjs` is a development importer and rejects
 non-null release descriptors. On apply it validates and archives a replaced
 current source in `softbook_card_source_versions`, then registers the new
-current version as active. A separate publication pipeline must prove formal
-content approval before it can persist `content-release.v1`; that pipeline is
-not implemented by this change.
+current version as active. Formal and controlled-pilot publication use their
+separate fail-closed release pipelines; their repository-local implementation
+does not constitute receiver deployment or launch evidence.
 
 ## Explicit non-claims
 
@@ -268,5 +328,10 @@ This contract does not prove:
 - real SMS provider readiness;
 - production shipment of the repository-local mobile durable
   `learning-events.v2` replay and `/v2/learning/session` selection binding;
-- signed content manifests, complete approved content, or audio QC;
+- installed-client minimum-version enforcement, receiver-owned formal manifest
+  key injection, complete identified-human audio QC, private-object byte
+  delivery, or real-device playback;
+- complete formal whole-track approved content or any conversion of the
+  controlled-pilot payload, fixtures, dry-runs, or smoke reports into beta or
+  launch evidence;
 - payment entitlement, deletion completion, or launch readiness.

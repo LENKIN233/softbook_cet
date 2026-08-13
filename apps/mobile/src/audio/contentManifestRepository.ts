@@ -3,7 +3,7 @@ import type {
   LearningCard,
   LearningTrack,
 } from '../learning/model';
-import {RemoteHttpError} from '../runtime/remoteHttpError';
+import { RemoteHttpError } from '../runtime/remoteHttpError';
 
 export type ContentManifestAsset = {
   asset_id: string;
@@ -13,7 +13,7 @@ export type ContentManifestAsset = {
   size_bytes: number;
 };
 
-export type ContentManifest = {
+export type ProductionContentManifest = {
   schema_version: 'content-manifest.v1';
   release_id: string;
   track: LearningTrack;
@@ -22,6 +22,26 @@ export type ContentManifest = {
   parent_release_id: string | null;
   assets: ContentManifestAsset[];
 };
+
+export type ControlledPilotContentManifest = {
+  schema_version: 'content-manifest.v1';
+  release_id: string;
+  release_class: 'controlled_pilot';
+  pilot_id: string;
+  track: 'cet4';
+  content_version: string;
+  minimum_client_versions: {
+    android: string;
+    ios: string;
+  };
+  expires_at: string;
+  gate_eligible: false;
+  assets: ContentManifestAsset[];
+};
+
+export type ContentManifest =
+  | ProductionContentManifest
+  | ControlledPilotContentManifest;
 
 export type ContentAssetDownload = {
   asset_id: string;
@@ -99,7 +119,7 @@ export async function loadRemoteContentManifest(options: {
         Accept: 'application/json',
         Authorization: `Bearer ${options.authToken}`,
         'x-softbook-client': 'mobile',
-        ...(options.apiKey ? {'x-api-key': options.apiKey} : {}),
+        ...(options.apiKey ? { 'x-api-key': options.apiKey } : {}),
       },
     },
   );
@@ -149,11 +169,26 @@ export function parseContentManifestPayload(
     'Content manifest response.data',
   );
   const access = parseAccess(data.access);
-  const manifest = parseManifest(data.manifest, expected);
+  const manifest = parseManifest(data.manifest, expected.now, expected);
   const signature = parseSignature(data.signature);
-  const downloads = parseDownloads(data.downloads, manifest.assets, expected.now);
+  const downloads = parseDownloads(
+    data.downloads,
+    manifest.assets,
+    expected.now,
+  );
+  if (
+    'release_class' in manifest &&
+    downloads.some(
+      download =>
+        Date.parse(download.expires_at) > Date.parse(manifest.expires_at),
+    )
+  ) {
+    throw new Error(
+      'Content manifest download cannot outlive the controlled-pilot release.',
+    );
+  }
 
-  return {access, downloads, manifest, signature};
+  return { access, downloads, manifest, signature };
 }
 
 export function assertContentManifestMatchesCards(
@@ -184,15 +219,17 @@ export function assertContentManifestMatchesCards(
   }
 
   if (result.access.total_card_count !== cards.length) {
-    throw new Error('Content manifest access does not match the loaded catalog.');
+    throw new Error(
+      'Content manifest access does not match the loaded catalog.',
+    );
   }
 
   const expectedAccessibleCardCount =
     result.access.mode === 'full'
       ? cards.length
       : result.access.mode === 'free_subset'
-        ? Math.ceil(cards.length * 0.5)
-        : 0;
+      ? Math.ceil(cards.length * 0.5)
+      : 0;
 
   if (result.access.accessible_card_count !== expectedAccessibleCardCount) {
     throw new Error('Content manifest accessible card count is invalid.');
@@ -209,7 +246,9 @@ export function assertContentManifestMatchesCards(
     .map(download => download.asset_id)
     .sort();
 
-  if (JSON.stringify(actualDownloadIds) !== JSON.stringify(expectedDownloadIds)) {
+  if (
+    JSON.stringify(actualDownloadIds) !== JSON.stringify(expectedDownloadIds)
+  ) {
     throw new Error(
       'Content manifest downloads do not match the server-authorized card prefix.',
     );
@@ -233,10 +272,12 @@ export function resolveCardAudioDownload(
   );
 
   if (!download) {
-    throw new Error(`Content manifest has no download for ${card.audio.asset_id}.`);
+    throw new Error(
+      `Content manifest has no download for ${card.audio.asset_id}.`,
+    );
   }
 
-  return {asset, download};
+  return { asset, download };
 }
 
 export function stableJsonStringify(value: unknown): string {
@@ -256,9 +297,13 @@ export function stableJsonStringify(value: unknown): string {
 
 function parseManifest(
   value: unknown,
-  expected: {contentVersion: string; track: LearningTrack},
+  now: Date,
+  expected: { contentVersion: string; track: LearningTrack },
 ): ContentManifest {
   const manifest = requireObject(value, 'Content manifest');
+  if (manifest.release_class === 'controlled_pilot') {
+    return parseControlledPilotManifest(manifest, now, expected);
+  }
   assertExactKeys(
     manifest,
     [
@@ -274,7 +319,9 @@ function parseManifest(
   );
 
   if (manifest.schema_version !== 'content-manifest.v1') {
-    throw new Error('Content manifest schema_version must be content-manifest.v1.');
+    throw new Error(
+      'Content manifest schema_version must be content-manifest.v1.',
+    );
   }
   if (manifest.track !== expected.track) {
     throw new Error('Content manifest track does not match the request.');
@@ -289,7 +336,9 @@ function parseManifest(
       ? null
       : requireReleaseId(manifest.parent_release_id, 'parent_release_id');
   if (parentReleaseId === releaseId) {
-    throw new Error('Content manifest parent release must differ from release_id.');
+    throw new Error(
+      'Content manifest parent release must differ from release_id.',
+    );
   }
   const minimumClientVersion = requireString(
     manifest.minimum_client_version,
@@ -319,6 +368,79 @@ function parseManifest(
   };
 }
 
+function parseControlledPilotManifest(
+  manifest: Record<string, unknown>,
+  now: Date,
+  expected: { contentVersion: string; track: LearningTrack },
+): ControlledPilotContentManifest {
+  assertExactKeys(
+    manifest,
+    [
+      'assets',
+      'content_version',
+      'expires_at',
+      'gate_eligible',
+      'minimum_client_versions',
+      'pilot_id',
+      'release_class',
+      'release_id',
+      'schema_version',
+      'track',
+    ],
+    'Controlled-pilot content manifest',
+  );
+  if (
+    manifest.schema_version !== 'content-manifest.v1' ||
+    manifest.release_class !== 'controlled_pilot' ||
+    manifest.track !== 'cet4' ||
+    expected.track !== 'cet4' ||
+    manifest.content_version !== expected.contentVersion ||
+    manifest.gate_eligible !== false
+  ) {
+    throw new Error('Controlled-pilot content manifest scope is invalid.');
+  }
+
+  const expiresAt = requireCanonicalFutureTimestamp(
+    manifest.expires_at,
+    now,
+    'Controlled-pilot content manifest expires_at',
+  );
+  const minimumClientVersions = requireExactObject(
+    manifest.minimum_client_versions,
+    ['android', 'ios'],
+    'Controlled-pilot content manifest minimum_client_versions',
+  );
+  const android = requireSemanticVersion(
+    minimumClientVersions.android,
+    'Controlled-pilot Android minimum client version',
+  );
+  const ios = requireSemanticVersion(
+    minimumClientVersions.ios,
+    'Controlled-pilot iOS minimum client version',
+  );
+  const rawAssets = expectArray(manifest.assets, 'Content manifest assets');
+  const assets = rawAssets.map((asset, index) =>
+    parseAsset(asset, `Content manifest assets[${index}]`),
+  );
+  assertUniqueIds(assets, 'Content manifest assets');
+
+  return {
+    assets,
+    content_version: requireContentVersion(
+      manifest.content_version,
+      'Content manifest content_version',
+    ),
+    expires_at: expiresAt,
+    gate_eligible: false,
+    minimum_client_versions: { android, ios },
+    pilot_id: requireReleaseId(manifest.pilot_id, 'pilot_id'),
+    release_class: 'controlled_pilot',
+    release_id: requireReleaseId(manifest.release_id, 'release_id'),
+    schema_version: 'content-manifest.v1',
+    track: 'cet4',
+  };
+}
+
 function parseAccess(value: unknown): ContentManifestAccess {
   const access = requireObject(value, 'Content manifest access');
   assertExactKeys(
@@ -342,7 +464,9 @@ function parseAccess(value: unknown): ContentManifestAccess {
     'Content manifest total_card_count',
   );
   if (accessibleCardCount > totalCardCount) {
-    throw new Error('Content manifest accessible card count exceeds total cards.');
+    throw new Error(
+      'Content manifest accessible card count exceeds total cards.',
+    );
   }
 
   return {
@@ -431,7 +555,9 @@ function parseDownloads(
   const signedAssetIds = new Set(assets.map(asset => asset.asset_id));
 
   if (downloads.some(download => !signedAssetIds.has(download.asset_id))) {
-    throw new Error('Content manifest download is not present in signed assets.');
+    throw new Error(
+      'Content manifest download is not present in signed assets.',
+    );
   }
 
   return downloads;
@@ -447,8 +573,13 @@ function assertAudioMatchesAsset(
       `Card ${cardId} audio references missing manifest asset ${audio.asset_id}.`,
     );
   }
-  if (asset.sha256 !== audio.sha256 || asset.duration_ms !== audio.duration_ms) {
-    throw new Error(`Card ${cardId} audio does not match its signed manifest asset.`);
+  if (
+    asset.sha256 !== audio.sha256 ||
+    asset.duration_ms !== audio.duration_ms
+  ) {
+    throw new Error(
+      `Card ${cardId} audio does not match its signed manifest asset.`,
+    );
   }
 }
 
@@ -462,7 +593,9 @@ function buildContentManifestUrl(
     throw new Error('Remote content manifest requires baseUrl.');
   }
 
-  return `${normalized}/v2/content/manifest?track=${track}&content_version=${encodeURIComponent(contentVersion)}`;
+  return `${normalized}/v2/content/manifest?track=${track}&content_version=${encodeURIComponent(
+    contentVersion,
+  )}`;
 }
 
 function requireObject(
@@ -473,6 +606,16 @@ function requireObject(
     throw new Error(`${label} must be an object.`);
   }
   return value;
+}
+
+function requireExactObject(
+  value: unknown,
+  keys: readonly string[],
+  label: string,
+) {
+  const parsed = requireObject(value, label);
+  assertExactKeys(parsed, keys, label);
+  return parsed;
 }
 
 function expectArray(input: unknown, fieldName: string): unknown[] {
@@ -489,6 +632,31 @@ function requireString(value: unknown, label: string): string {
   return value.trim();
 }
 
+function requireSemanticVersion(value: unknown, label: string) {
+  const version = requireExactString(value, label);
+  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
+    throw new Error(`${label} is invalid.`);
+  }
+  return version;
+}
+
+function requireCanonicalFutureTimestamp(
+  value: unknown,
+  now: Date,
+  label: string,
+) {
+  const timestamp = requireExactString(value, label);
+  const parsed = new Date(timestamp);
+  if (
+    !Number.isFinite(parsed.getTime()) ||
+    parsed.toISOString() !== timestamp ||
+    parsed.getTime() <= now.getTime()
+  ) {
+    throw new Error(`${label} must be a future canonical ISO timestamp.`);
+  }
+  return timestamp;
+}
+
 function requireAssetId(value: unknown, label: string) {
   const id = requireString(value, label);
   if (!/^[a-z0-9][a-z0-9._-]{2,127}$/.test(id)) {
@@ -498,11 +666,22 @@ function requireAssetId(value: unknown, label: string) {
 }
 
 function requireReleaseId(value: unknown, label: string) {
-  const id = requireString(value, `Content manifest ${label}`);
+  const id = requireExactString(value, `Content manifest ${label}`);
   if (!/^[0-9A-Za-z][0-9A-Za-z._-]{0,127}$/.test(id)) {
     throw new Error(`Content manifest ${label} is invalid.`);
   }
   return id;
+}
+
+function requireExactString(value: unknown, label: string) {
+  if (
+    typeof value !== 'string' ||
+    value.length === 0 ||
+    value.trim() !== value
+  ) {
+    throw new Error(`${label} must be a non-empty exact string.`);
+  }
+  return value;
 }
 
 function requireContentVersion(value: unknown, label: string) {
@@ -542,13 +721,15 @@ function requireHttpsUrl(value: unknown, label: string) {
 }
 
 function assertUniqueIds(
-  records: readonly {asset_id: string}[],
+  records: readonly { asset_id: string }[],
   label: string,
 ) {
   const ids = new Set<string>();
   for (const record of records) {
     if (ids.has(record.asset_id)) {
-      throw new Error(`${label} contains duplicate asset_id ${record.asset_id}.`);
+      throw new Error(
+        `${label} contains duplicate asset_id ${record.asset_id}.`,
+      );
     }
     ids.add(record.asset_id);
   }

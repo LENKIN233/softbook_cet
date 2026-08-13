@@ -43,6 +43,13 @@ Current boundary:
   use strict v2 commands; learning and space counts retain their separate server
   authorities. Neither backend nor mobile release deployment is implied by this
   repository-local implementation.
+- Bootstrap content and signed content-manifest parsing are exact
+  discriminated unions. The mobile runtime now accepts the separate formal or
+  development shape and the literal `controlled_pilot` shape, including exact
+  dual-platform semantic-version fields, canonical pilot expiry and
+  `gate_eligible=false`; mixed or unknown fields fail closed. The parser does
+  not yet obtain and compare the installed iOS or Android app version, so this
+  shape validation is not minimum-version enforcement.
 
 ## Runtime Activation
 
@@ -183,6 +190,26 @@ space. It never accepts a phone number and returns explicit empty server state
 for missing account/day/track documents. The full response and production
 content-release boundary are defined in
 `infra/cloudbase/bootstrap-v2-runtime-contract.md`.
+
+`data.content` is an exact discriminated union. Development and formal
+production responses retain exactly `card_count`, `minimum_client_version`,
+`parent_release_id`, `published_at`, `release_id`, `source`, and `version`;
+development uses null release fields, while a formal release requires its
+release ID, semantic minimum version and publication time. The exact
+`controlled_pilot` variant instead contains only `card_count`, `expires_at`,
+`gate_eligible`, `minimum_client_versions`, `pilot_id`, `release_class`,
+`release_id`, `source`, and `version`. Its `release_class` is the literal
+`controlled_pilot`, `gate_eligible` is the literal `false`, and
+`minimum_client_versions` contains exactly semantic-version `android` and `ios`
+entries. Both variants require `source` to contain exactly `id` and `label`.
+
+The React Native Bootstrap repository parses this pilot variant locally and
+requires a canonical UTC `expires_at` later than the response's
+`generated_at`. It rejects missing platforms, unknown or mixed formal fields,
+invalid pilot/release identifiers, expired content, and gate drift. It retains
+the parsed minimum versions and release identity for later enforcement, but no
+runtime component currently compares an installed app version with those
+minimums.
 
 The additive top-level `component_revisions` object uses
 `bootstrap-component-revisions.v1`: base-plus-beta Membership;
@@ -357,6 +384,30 @@ approve audio, use persistent receiver storage, deploy anything, or exercise a
 real device; its report therefore always states those gaps and
 `gate_eligible=false`.
 
+The same exact approved artifacts can additionally cross the real backend wire
+shapes, mobile repositories, pinned-key verifier, canonical-answer evaluation
+for all 98 auto-scored cards, confident self-assessment completion for all 22
+flip cards, and one Learning UI completion for each interaction family through:
+
+```bash
+node scripts/run_controlled_pilot_mobile_acceptance.mjs \
+  --candidate-payload <card-make-candidate.json> \
+  --pilot-review <controlled-pilot-review.json> \
+  --approval <controlled-pilot-approval.json> \
+  --audit <scoped-card-quality-audit.json>
+```
+
+The acceptance runner requires all four inputs to remain outside this product
+repository. It creates a mode-`0600` backend-response fixture in a private
+temporary directory, passes only an ephemeral Ed25519 public key to mobile,
+verifies that the worktree is unchanged, and removes the fixture before
+returning a content-free count/ID report. It covers parser, repository,
+signature, owned scoring/self-assessment state and rendered Learning behavior
+only. It does
+not compare the installed app version, inject a receiver release key, approve
+or play audio bytes on a real device, use persistent receiver state, deploy, or
+produce gate-eligible evidence.
+
 Every card record must satisfy:
 
 - `card_id`: 6 digits.
@@ -385,6 +436,40 @@ Supported `interaction_id` values:
   non-empty `answer_key.correct_items` that exist in items.
 - `swipe`: requires exactly 2 `swipe_states`, `auto_scoring: true`, and
   `answer_key.correct_state` that exists in states.
+
+### Content Manifest
+
+```http
+GET /v2/content/manifest?track=cet4&content_version=sha256%3A...
+Authorization: Bearer <access_token>
+Accept: application/json
+x-softbook-client: mobile
+x-api-key: <optional>
+```
+
+The exact response and signing rules are owned by
+`infra/cloudbase/content-manifest-v1-runtime-contract.md`. The mobile repository
+accepts only one of two exact signed `content-manifest.v1` variants:
+
+- Formal content has no `release_class` and contains exactly `assets`,
+  `content_version`, `minimum_client_version`, `parent_release_id`,
+  `release_id`, `schema_version`, and `track`.
+- Controlled-pilot content additionally discriminates with
+  `release_class=controlled_pilot` and contains exactly `assets`,
+  `content_version`, `expires_at`, `gate_eligible`,
+  `minimum_client_versions`, `pilot_id`, `release_class`, `release_id`,
+  `schema_version`, and `track`. It requires CET4, a future canonical UTC
+  expiry, `gate_eligible=false`, and exactly semantic-version `android` and
+  `ios` minimums.
+
+Both variants remain inside the Ed25519-signed `{access, manifest}` payload.
+The mobile parser rejects unknown or mixed fields and rejects any pilot download
+whose expiry is later than the signed release expiry. Backend URL issuance also
+caps each pilot download expiry at that same release expiry. Installed-client
+minimum-version comparison, receiver-owned key injection, persistent receiver
+execution, private-object device download and real-device playback remain
+pending; the pilot manifest and every repository pilot smoke result remain
+`gate_eligible=false` and cannot replace formal beta or launch evidence.
 
 ### Membership Entitlement
 

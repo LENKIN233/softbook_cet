@@ -54,10 +54,19 @@ function createContentManifestV1Service(options) {
       const resolveDownloadUrl = requireDownloadUrlResolver(
         options.resolveDownloadUrl,
       );
-      const expiresAt = new Date(
+      const downloadTtlExpiresAt = new Date(
         issuedAt.getTime() +
           (options.downloadTtlSeconds ?? DOWNLOAD_TTL_SECONDS) * 1000,
       );
+      const expiresAt =
+        manifest.release_class === 'controlled_pilot'
+          ? new Date(
+              Math.min(
+                downloadTtlExpiresAt.getTime(),
+                Date.parse(manifest.expires_at),
+              ),
+            )
+          : downloadTtlExpiresAt;
       const downloads = await Promise.all(
         access.assets.map(async asset => ({
           asset_id: asset.asset_id,

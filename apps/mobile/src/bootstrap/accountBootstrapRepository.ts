@@ -18,18 +18,33 @@ export class AccountBootstrapIntegrityError extends Error {
   }
 }
 
-export type AccountBootstrapContent = {
+type AccountBootstrapContentBase = {
   cardCount: number;
-  minimumClientVersion: string | null;
-  parentReleaseId: string | null;
-  publishedAt: string | null;
-  releaseId: string | null;
   source: {
     id: string;
     label: string;
   };
   version: string;
 };
+
+export type AccountBootstrapContent = AccountBootstrapContentBase &
+  (
+    | {
+        releaseClass: 'controlled_pilot';
+        releaseId: string;
+        pilotId: string;
+        minimumClientVersions: {android: string; ios: string};
+        expiresAt: string;
+        gateEligible: false;
+      }
+    | {
+        releaseClass: 'development' | 'production';
+        releaseId: string | null;
+        minimumClientVersion: string | null;
+        parentReleaseId: string | null;
+        publishedAt: string | null;
+      }
+  );
 
 export type AccountBootstrapLearningCardState = LearningCardResult & {
   phase: 'learning' | 'review';
@@ -222,12 +237,16 @@ export function parseAccountBootstrapPayload(
 
   const track = readTrack(data.track, 'bootstrap payload.data.track');
   const dayKey = readDayKey(data.day_key, 'bootstrap payload.data.day_key');
+  const generatedAt = readIsoTimestamp(
+    data.generated_at,
+    'bootstrap payload.data.generated_at',
+  );
 
   if (track !== expectedTrack || dayKey !== expectedDayKey) {
     throw new Error('Bootstrap payload scope must match the request.');
   }
 
-  const content = parseContent(data.content);
+  const content = parseContent(data.content, new Date(generatedAt));
   const componentRevisions = parseComponentRevisions(
     data.component_revisions,
   );
@@ -313,10 +332,7 @@ export function parseAccountBootstrapPayload(
     componentRevisions,
     content,
     dayKey,
-    generatedAt: readIsoTimestamp(
-      data.generated_at,
-      'bootstrap payload.data.generated_at',
-    ),
+    generatedAt,
     learning,
     membership,
     progress,
@@ -470,9 +486,13 @@ function parseComponentRevisions(
   };
 }
 
-function parseContent(value: unknown): AccountBootstrapContent {
+function parseContent(value: unknown, observedAt: Date): AccountBootstrapContent {
   const content = requireObject(value, 'bootstrap content');
-  const source = requireObject(content.source, 'bootstrap content.source');
+  const source = requireExactObject(
+    content.source,
+    ['id', 'label'],
+    'bootstrap content.source',
+  );
   const cardCount = readPositiveInteger(
     content.card_count,
     'bootstrap content.card_count',
@@ -482,6 +502,33 @@ function parseContent(value: unknown): AccountBootstrapContent {
   if (!CONTENT_VERSION_PATTERN.test(version)) {
     throw new Error('Bootstrap content.version must be a SHA-256 identifier.');
   }
+
+  const base = {
+    cardCount,
+    source: {
+      id: readString(source.id, 'bootstrap content.source.id'),
+      label: readString(source.label, 'bootstrap content.source.label'),
+    },
+    version,
+  };
+
+  if (content.release_class === 'controlled_pilot') {
+    return parseControlledPilotContent(content, base, observedAt);
+  }
+
+  requireExactObject(
+    content,
+    [
+      'card_count',
+      'minimum_client_version',
+      'parent_release_id',
+      'published_at',
+      'release_id',
+      'source',
+      'version',
+    ],
+    'bootstrap content',
+  );
 
   const releaseId = readOptionalString(
     content.release_id,
@@ -530,16 +577,72 @@ function parseContent(value: unknown): AccountBootstrapContent {
   }
 
   return {
-    cardCount,
+    ...base,
     minimumClientVersion,
     parentReleaseId,
     publishedAt,
+    releaseClass: releaseId === null ? 'development' : 'production',
     releaseId,
-    source: {
-      id: readString(source.id, 'bootstrap content.source.id'),
-      label: readString(source.label, 'bootstrap content.source.label'),
-    },
-    version,
+  };
+}
+
+function parseControlledPilotContent(
+  content: Record<string, unknown>,
+  base: AccountBootstrapContentBase,
+  observedAt: Date,
+): AccountBootstrapContent {
+  const expectedKeys = [
+    'card_count',
+    'expires_at',
+    'gate_eligible',
+    'minimum_client_versions',
+    'pilot_id',
+    'release_class',
+    'release_id',
+    'source',
+    'version',
+  ];
+  const actualKeys = Object.keys(content).sort();
+  if (
+    actualKeys.length !== expectedKeys.length ||
+    actualKeys.some((key, index) => key !== [...expectedKeys].sort()[index])
+  ) {
+    throw new Error('Bootstrap controlled-pilot content fields are invalid.');
+  }
+  if (content.gate_eligible !== false) {
+    throw new Error('Bootstrap controlled-pilot content must stay gate ineligible.');
+  }
+  const minimumClientVersions = requireExactObject(
+    content.minimum_client_versions,
+    ['android', 'ios'],
+    'bootstrap controlled-pilot minimum_client_versions',
+  );
+  const android = readSemanticVersion(
+    minimumClientVersions.android,
+    'bootstrap controlled-pilot Android minimum version',
+  );
+  const ios = readSemanticVersion(
+    minimumClientVersions.ios,
+    'bootstrap controlled-pilot iOS minimum version',
+  );
+  return {
+    ...base,
+    expiresAt: readFutureIsoTimestamp(
+      content.expires_at,
+      observedAt,
+      'bootstrap controlled-pilot expires_at',
+    ),
+    gateEligible: false,
+    minimumClientVersions: {android, ios},
+    pilotId: readIdentifier(
+      content.pilot_id,
+      'bootstrap controlled-pilot pilot_id',
+    ),
+    releaseClass: 'controlled_pilot',
+    releaseId: readIdentifier(
+      content.release_id,
+      'bootstrap controlled-pilot release_id',
+    ),
   };
 }
 
@@ -849,6 +952,34 @@ function readOptionalString(value: unknown, label: string) {
   }
 
   return readString(value, label);
+}
+
+function readIdentifier(value: unknown, label: string) {
+  const identifier = readString(value, label);
+  if (!/^[0-9A-Za-z][0-9A-Za-z._-]{0,127}$/.test(identifier)) {
+    throw new Error(`${label} is invalid.`);
+  }
+  return identifier;
+}
+
+function readSemanticVersion(value: unknown, label: string) {
+  const version = readString(value, label);
+  if (!SEMANTIC_VERSION_PATTERN.test(version)) {
+    throw new Error(`${label} must use semantic version form.`);
+  }
+  return version;
+}
+
+function readFutureIsoTimestamp(value: unknown, observedAt: Date, label: string) {
+  const timestamp = readIsoTimestamp(value, label);
+  const parsed = new Date(timestamp);
+  if (
+    parsed.toISOString() !== timestamp ||
+    parsed.getTime() <= observedAt.getTime()
+  ) {
+    throw new Error(`${label} must be a future canonical ISO timestamp.`);
+  }
+  return timestamp;
 }
 
 function readBoolean(value: unknown, label: string) {

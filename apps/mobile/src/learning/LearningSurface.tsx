@@ -29,7 +29,10 @@ import {
   hexToRgba,
   resolveLibraryTone,
 } from '../visual/tokens';
-import { formatSpaceDisplayName } from '../space/spaceMetadataDisplay';
+import {
+  formatLearningSessionDisplayLabel,
+  formatSpaceDisplayName,
+} from '../space/spaceMetadataDisplay';
 
 export type LearningSurfacePalette = {
   background: string;
@@ -85,20 +88,6 @@ type LearningSurfaceProps = {
   onContinueRound?: () => void;
   onStartReview?: () => void;
 };
-
-function formatLearningSessionLabelForDisplay(
-  sessionLabel: string,
-  phase: 'learning' | 'review',
-) {
-  const trimmedLabel = sessionLabel.trim();
-  const exposesSourceMetadata = /系统顺序|卡源|catalog/i.test(trimmedLabel);
-
-  if (!trimmedLabel || exposesSourceMetadata) {
-    return phase === 'review' ? '本轮回看卡' : '本轮学习卡';
-  }
-
-  return trimmedLabel;
-}
 
 function formatLearningActionCue(
   card: LearningCard,
@@ -225,7 +214,6 @@ export function LearningSurface({
   palette,
   contentManifest = null,
   sessionCards,
-  sessionLabel,
   phase,
   currentCard,
   currentCardState,
@@ -263,10 +251,7 @@ export function LearningSurface({
     viewportHeight,
   );
   const isReviewPhase = phase === 'review';
-  const displaySessionLabel = formatLearningSessionLabelForDisplay(
-    sessionLabel,
-    phase,
-  );
+  const displaySessionLabel = formatLearningSessionDisplayLabel(phase);
   const visibleShelfName = formatSpaceDisplayName(
     currentCard?.space_metadata.library ?? '',
     '当前书架',
@@ -404,7 +389,7 @@ export function LearningSurface({
           >
             {roundCompletion
               ? roundCompletion.reviewCardCount > 0
-                ? `系统已按原卡源顺序留下 ${roundCompletion.reviewCardCount} 张需要再看的卡。确认后继续下一轮。`
+                ? `系统已留下 ${roundCompletion.reviewCardCount} 张需要再看的卡。确认后继续下一轮。`
                 : '这一回合没有需要再看的卡，确认后继续下一轮。'
               : isReviewPhase
               ? '回看已经结束。可以回到首轮重新开始，也可以稍后按学习节奏继续。'
@@ -1969,7 +1954,6 @@ export function LearningResultDetailSurface({
   phase,
   result,
   sessionCardCount,
-  sessionLabel,
 }: {
   card: LearningCard;
   cardState: LearningCardState;
@@ -1994,10 +1978,7 @@ export function LearningResultDetailSurface({
     viewportWidth,
     viewportHeight,
   );
-  const displaySessionLabel = formatLearningSessionLabelForDisplay(
-    sessionLabel,
-    phase,
-  );
+  const displaySessionLabel = formatLearningSessionDisplayLabel(phase);
   const visibleShelfName = formatSpaceDisplayName(
     card.space_metadata.library,
     '当前书架',
