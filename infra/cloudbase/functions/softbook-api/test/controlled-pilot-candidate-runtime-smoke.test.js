@@ -21,12 +21,16 @@ test.before(async () => {
 test('candidate runtime smoke exercises an exact approved 120-card five-card round', async () => {
   const fixture = await createFixture();
   try {
+    let mobileAcceptanceFixture = null;
     const report = await smokeModule.smokeControlledPilotCandidateRuntime({
       approvalPath: fixture.approvalPath,
       auditPath: fixture.auditPath,
       candidatePayloadPath: fixture.candidatePath,
       checkedAt: '2026-08-12T12:00:00.000Z',
       pilotReviewPath: fixture.reviewPath,
+      captureMobileAcceptanceFixture: captured => {
+        mobileAcceptanceFixture = captured;
+      },
     });
     assert.equal(report.card_count, 120);
     assert.equal(report.audio_asset_count, 24);
@@ -37,6 +41,24 @@ test('candidate runtime smoke exercises an exact approved 120-card five-card rou
     assert.equal(report.membership_v2_verified, true);
     assert.equal(report.human_audio_qc_verified, false);
     assert.equal(report.gate_eligible, false);
+    assert.equal(
+      mobileAcceptanceFixture.schema_version,
+      'controlled-pilot-mobile-acceptance-fixture.v1',
+    );
+    assert.equal(mobileAcceptanceFixture.card_source.data.card_records.length, 120);
+    assert.equal(
+      mobileAcceptanceFixture.content_manifest.data.manifest.release_class,
+      'controlled_pilot',
+    );
+    assert.equal(
+      mobileAcceptanceFixture.bootstrap.data.content.release_class,
+      'controlled_pilot',
+    );
+    assert.match(mobileAcceptanceFixture.public_key.value, /^[a-f0-9]{64}$/);
+    assert.doesNotMatch(
+      JSON.stringify(mobileAcceptanceFixture),
+      /private_key|access_token|phone_number/i,
+    );
   } finally {
     rmSync(fixture.root, {recursive: true, force: true});
   }

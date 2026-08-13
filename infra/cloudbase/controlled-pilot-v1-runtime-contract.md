@@ -25,8 +25,8 @@ Referenced active sources:
 
 - The repository implements fail-closed profile, bundle, approval, audit, audio-QC and release validators plus publication sequencing through an injected receiver adapter.
 - Runtime content authority distinguishes `development`, `production` and `controlled_pilot`: production accepts only `content-release.v1`; controlled pilot accepts only a current `pilot-content-release.v1` with exactly 120 cards and a 60-card free prefix; neither mode falls back to development content.
-- The shared authenticated `GET /v2/learning/card-source`, Bootstrap, Learning Events, Learning Session and Space paths apply that mode boundary. Non-development authentication still requires strong separate secrets, a persistent store, trusted client IP and a non-development SMS provider. The controlled-pilot mobile runtime has no `/v1` dependency for loading card bodies.
-- A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, and dry-run-first approved-artifact bundle assembler are implemented locally. Five-card round gating, its exact continuation store, the mobile completion-state binding, the atomic 120-hour Learning Session trial clock, and audited pilot entitlement operations are implemented in the repository but remain undeployed. Receiver-owned profile/secrets and execution, complete identified-human audio QC, deletion-worker execution, and real-device evidence remain separate and incomplete.
+- The shared authenticated `GET /v2/learning/card-source`, Bootstrap, Learning Events, Learning Session, content-manifest and Space paths apply that mode boundary. Bootstrap and content-manifest expose exact `controlled_pilot` variants rather than mixing formal release fields into pilot responses, and the mobile repositories parse those variants fail closed. Non-development authentication still requires strong separate secrets, a persistent store, trusted client IP and a non-development SMS provider. The controlled-pilot mobile runtime has no `/v1` dependency for loading card bodies.
+- A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, and dry-run-first approved-artifact bundle assembler are implemented locally. Five-card round gating, its exact continuation store, the mobile completion-state binding, the atomic 120-hour Learning Session trial clock, audited pilot entitlement operations, strict dual-platform minimum-version shape validation, and exact pilot Bootstrap/content-manifest parsing are implemented in the repository but remain undeployed. The installed iOS or Android app version is not yet compared with the signed minimum. Receiver-owned profile/secrets and execution, complete identified-human audio QC, deletion-worker execution, persistent-environment proof, and real-device evidence remain separate and incomplete.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
 - None of this has been deployed to the receiver environment in this repository run. Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
 
@@ -113,8 +113,62 @@ Approval scope is `controlled_pilot_120`. The bundle binds the exact `card-make-
 
 The activated descriptor binds one exact controlled-pilot profile and is
 accepted only in a `controlled_pilot` runtime. It binds 120 total cards, 60 free
-cards, exact content version, minimum clients and pilot expiry. It is never
-accepted by the formal release publisher and remains `gate_eligible=false`.
+cards, exact content version, minimum clients and pilot expiry. Runtime
+authority accepts `minimum_client_versions` only when it contains exactly
+`android` and `ios`, each with a semantic-version string, and accepts the
+release only inside its activation-to-expiry window. The descriptor contains
+exactly `activated_at`, `card_count`, `content_version`, `expires_at`,
+`free_card_count`, `gate_eligible`, `minimum_client_versions`, `pilot_id`,
+`profile_id`, `release_class`, `release_id`, `runtime_mode`, `schema_version`,
+and `track`; an unknown field or non-string identifier fails closed. It is never accepted by
+the formal release publisher and remains `gate_eligible=false`.
+
+### Controlled-pilot client projections
+
+The signed `content-manifest.v1` controlled-pilot variant contains exactly
+`schema_version`, `release_id`, `release_class`, `pilot_id`, `track`,
+`content_version`, `minimum_client_versions`, `expires_at`, `gate_eligible`,
+and `assets`. `release_class` is exactly `controlled_pilot`, `track` is exactly
+`cet4`, `minimum_client_versions` contains exactly semantic-version `android`
+and `ios` entries, `expires_at` is a future canonical UTC timestamp, and
+`gate_eligible` is exactly `false`. The formal
+`minimum_client_version`/`parent_release_id` fields are forbidden. Each private
+download expiry is capped at the signed release expiry, and mobile rejects a
+download that outlives it. The complete signed wire shape is owned by
+`infra/cloudbase/content-manifest-v1-runtime-contract.md`.
+
+Bootstrap `data.content` uses a separate exact controlled-pilot projection:
+
+```json
+{
+  "card_count": 120,
+  "expires_at": "2026-09-10T00:00:00.000Z",
+  "gate_eligible": false,
+  "minimum_client_versions": {
+    "android": "1.0.0",
+    "ios": "1.0.0"
+  },
+  "pilot_id": "cet4-pilot-2026",
+  "release_class": "controlled_pilot",
+  "release_id": "cet4-controlled-pilot-2026",
+  "source": {
+    "id": "cet4-controlled-pilot-source",
+    "label": "CET4 Controlled Pilot"
+  },
+  "version": "sha256:<64 lowercase hex characters>"
+}
+```
+
+Mobile now parses this exact Bootstrap variant, including the exact
+`source.id`/`source.label` object, both semantic-version fields, canonical
+expiry later than the response's `generated_at`, pilot and release identifiers,
+and literal false gate marker. It rejects unknown fields, missing platforms,
+formal-field mixing, expired pilot content, or any gate drift. Formal and
+development Bootstrap content retain their separate exact seven-field shape.
+Neither this parsing nor server-side semantic-version validation compares the
+installed app version against the applicable platform minimum; that enforcement
+remains required before receiver use and cannot be inferred from a valid wire
+shape.
 
 ### `pilot-entitlement-command.v1`
 
@@ -187,6 +241,23 @@ and continuation, Bootstrap, and the signed 24-asset content manifest. It never
 substitutes for complete identified
 human audio QC, persistent receiver execution, private-object byte delivery or
 real-device proof, and its output is always `gate_eligible=false`.
+
+`scripts/run_controlled_pilot_mobile_acceptance.mjs` composes that backend
+smoke with the opt-in React Native acceptance suite. It requires the exact
+approved candidate/review/approval/audit outside the product repository,
+captures the backend's real card-source, first Learning Session, signed pilot
+manifest and post-round Bootstrap responses only in a private temporary file,
+and deletes that file after mobile validation. The mobile suite parses all 120
+cards, canonically evaluates the 98 auto-scored cards, completes the 22 `flip`
+cards through the owned confident self-assessment state, uses a pinned ephemeral Ed25519 public key
+to verify the real signed manifest, parses the exact pilot Bootstrap variant,
+and completes representative `flip`, `multiple_choice`, `lock`, `elimination`
+and `swipe` cards through the rendered Learning surface. Its retained report
+contains only hashes, counts, fixed card IDs and explicit false capability
+flags. It remains an in-memory repository acceptance check, not identified-
+human audio QC, installed-client version enforcement, receiver key injection,
+persistent environment proof, real-device proof, deployment or launch
+evidence; `gate_eligible` is always false.
 
 `deliver-controlled-pilot.mjs` provides `preflight`, `provision`, `deploy`,
 `publish`, and `verify`. Every mutation is dry-run unless `--apply` is explicit;

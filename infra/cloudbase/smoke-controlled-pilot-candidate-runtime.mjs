@@ -31,6 +31,12 @@ const DEVICE_ID = 'candidate_runtime_smoke_device';
 export class ControlledPilotCandidateRuntimeSmokeError extends Error {}
 
 export async function smokeControlledPilotCandidateRuntime(options) {
+  if (
+    options.captureMobileAcceptanceFixture !== undefined &&
+    typeof options.captureMobileAcceptanceFixture !== 'function'
+  ) {
+    fail('captureMobileAcceptanceFixture must be a function when provided.');
+  }
   const checkedAt = requireTimestamp(options.checkedAt, 'checkedAt');
   const candidateRecord = readJsonWithBytes(
     options.candidatePayloadPath,
@@ -149,12 +155,14 @@ export async function smokeControlledPilotCandidateRuntime(options) {
 
   const completedCardIds = [];
   const reviewCardIds = [];
+  let firstScheduled = null;
   for (let index = 0; index < 5; index += 1) {
     const scheduled = await expectOk(
       api,
       {headers, method: 'GET', path: '/v2/learning/session', query: {track: TRACK}},
       `learning session ${index + 1}`,
     );
+    if (firstScheduled === null) firstScheduled = scheduled;
     assert.notEqual(scheduled.selection, null);
     assert.equal(scheduled.membership_stage, 'trial');
     assert.equal(scheduled.trial_started_at, checkedAt.toISOString());
@@ -277,6 +285,28 @@ export async function smokeControlledPilotCandidateRuntime(options) {
   assert.equal(bootstrap.content.card_count, EXPECTED_CARD_COUNT);
   assert.equal(bootstrap.progress.total_completed_count, 5);
   assert.equal(bootstrap.progress.pending_review_count, reviewCardIds.length);
+
+  if (options.captureMobileAcceptanceFixture) {
+    const publicKeyHex = publicKey
+      .export({format: 'der', type: 'spki'})
+      .subarray(-32)
+      .toString('hex');
+    await options.captureMobileAcceptanceFixture({
+      schema_version: 'controlled-pilot-mobile-acceptance-fixture.v1',
+      checked_at: checkedAt.toISOString(),
+      candidate_payload_sha256: candidateHash,
+      content_version: candidate.content_version,
+      public_key: {
+        algorithm: 'ed25519',
+        key_id: 'candidate-runtime-smoke-key',
+        value: publicKeyHex,
+      },
+      card_source: {data: cardSource},
+      learning_session: {data: firstScheduled},
+      content_manifest: {data: manifest},
+      bootstrap: {data: bootstrap},
+    });
+  }
 
   return {
     schema_version: 'controlled-pilot-candidate-runtime-smoke.v1',

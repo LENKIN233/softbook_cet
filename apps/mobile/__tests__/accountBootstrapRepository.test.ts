@@ -116,6 +116,22 @@ function createBootstrapPayload(): any {
   };
 }
 
+function createControlledPilotBootstrapPayload(): any {
+  const payload = createBootstrapPayload();
+  payload.data.content = {
+    card_count: 120,
+    expires_at: '2099-08-13T00:00:00.000Z',
+    gate_eligible: false,
+    minimum_client_versions: {android: '1.0.0', ios: '1.0.0'},
+    pilot_id: 'cet4-controlled-pilot-2026',
+    release_class: 'controlled_pilot',
+    release_id: 'cet4-controlled-pilot-release',
+    source: payload.data.content.source,
+    version: CONTENT_VERSION,
+  };
+  return payload;
+}
+
 function moveBootstrapPayloadToDay(payload: any, dayKey: string) {
   payload.data.day_key = dayKey;
   payload.data.progress.day_key = dayKey;
@@ -203,6 +219,54 @@ test('normalizes an absent pilot entitlement revision to zero', () => {
       },
     },
   });
+});
+
+test('strictly parses controlled-pilot bootstrap content without treating it as a formal release', () => {
+  expect(
+    parseAccountBootstrapPayload(
+      createControlledPilotBootstrapPayload(),
+      'cet4',
+      DAY_KEY,
+    ).content,
+  ).toEqual({
+    cardCount: 120,
+    expiresAt: '2099-08-13T00:00:00.000Z',
+    gateEligible: false,
+    minimumClientVersions: {android: '1.0.0', ios: '1.0.0'},
+    pilotId: 'cet4-controlled-pilot-2026',
+    releaseClass: 'controlled_pilot',
+    releaseId: 'cet4-controlled-pilot-release',
+    source: {
+      id: 'cloudbase-dev-card-source',
+      label: 'CloudBase development card source',
+    },
+    version: CONTENT_VERSION,
+  });
+});
+
+test.each([
+  {
+    label: 'gate drift',
+    mutate: (payload: ReturnType<typeof createControlledPilotBootstrapPayload>) => {
+      payload.data.content.gate_eligible = true;
+    },
+  },
+  {
+    label: 'minimum version map drift',
+    mutate: (payload: ReturnType<typeof createControlledPilotBootstrapPayload>) => {
+      payload.data.content.minimum_client_versions.web = '1.0.0';
+    },
+  },
+  {
+    label: 'formal field mixing',
+    mutate: (payload: ReturnType<typeof createControlledPilotBootstrapPayload>) => {
+      payload.data.content.parent_release_id = null;
+    },
+  },
+])('rejects controlled-pilot bootstrap $label', ({mutate}) => {
+  const payload = createControlledPilotBootstrapPayload();
+  mutate(payload);
+  expect(() => parseAccountBootstrapPayload(payload, 'cet4', DAY_KEY)).toThrow();
 });
 
 test('keeps local bootstrap side-effect free', async () => {

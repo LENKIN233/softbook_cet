@@ -28,13 +28,20 @@ Referenced active specs:
 - The stable manifest is signed with Ed25519. Expiring private-object URLs are
   returned separately because expiry is transport state, not signed content
   identity.
-- The repository-local CloudBase endpoint, mobile parser, strict runtime keyring
-  consumer, pinned-key Ed25519 verifier, native content-addressed cache with
-  completed-byte hashing, Learning controller, attached control, and iOS/Android
-  native playback adapters are implemented locally but not deployed or device
-  smoked. Production key values and native release injection, real private-object
-  download/playback proof, and cross-platform visual evidence remain pending, so
-  the audio launch gate stays pending.
+- The signed payload is an exact discriminated union: formal
+  `content-release.v1` content uses the original formal field set, while
+  `pilot-content-release.v1` content carries the literal
+  `release_class=controlled_pilot`, pilot identity, exact iOS/Android minimum
+  versions, pilot expiry, and `gate_eligible=false`. Mixed or unknown fields
+  fail closed.
+- The repository-local CloudBase endpoint, exact mobile parser, strict runtime
+  keyring consumer, pinned-key Ed25519 verifier, native content-addressed cache
+  with completed-byte hashing, Learning controller, attached control, and
+  iOS/Android native playback adapters are implemented locally but not deployed
+  or device smoked. Production key values and native release injection, actual
+  installed-client minimum-version comparison, persistent receiver execution,
+  real private-object download/playback proof, and cross-platform visual
+  evidence remain pending, so the audio launch gate stays pending.
 
 ## Card source
 
@@ -76,8 +83,11 @@ Rules:
 
 - Only `track` and `content_version` are accepted query fields.
 - A request body and client-provided account or phone identity are rejected.
-- The requested source must be the active source, have a non-null matching
-  `content-release.v1`, and match the exact canonical content version.
+- The requested source must be the active source, have the release class allowed
+  by the runtime (`content-release.v1` in production or a current
+  `pilot-content-release.v1` in `controlled_pilot`), and match the exact
+  canonical content version. Neither non-development runtime falls back to
+  development content.
 - Temporary downloads are filtered by canonical membership: trial and premium
   receive the full card prefix, free receives the stable first `ceil(50%)`
   prefix, and `trial_available` receives no download until the learning-session
@@ -87,7 +97,9 @@ Rules:
 
 ## Response
 
-`data.manifest` is the canonical signed payload:
+`data.manifest` is one of two exact canonical signed variants. The formal
+variant contains exactly the following top-level fields and deliberately has no
+`release_class` field:
 
 ```json
 {
@@ -109,6 +121,43 @@ Rules:
 }
 ```
 
+The `controlled_pilot` variant contains exactly the following top-level
+fields:
+
+```json
+{
+  "schema_version": "content-manifest.v1",
+  "release_id": "cet4-controlled-pilot-2026",
+  "release_class": "controlled_pilot",
+  "pilot_id": "cet4-pilot-2026",
+  "track": "cet4",
+  "content_version": "sha256:<64 lowercase hex characters>",
+  "minimum_client_versions": {
+    "android": "1.0.0",
+    "ios": "1.0.0"
+  },
+  "expires_at": "2026-09-10T00:00:00.000Z",
+  "gate_eligible": false,
+  "assets": [
+    {
+      "asset_id": "cet4.002001.prompt",
+      "duration_ms": 2100,
+      "media_type": "audio/mpeg",
+      "sha256": "sha256:<64 lowercase hex characters>",
+      "size_bytes": 4096
+    }
+  ]
+}
+```
+
+For `controlled_pilot`, `track` is exactly `cet4`,
+`minimum_client_versions` contains exactly `android` and `ios` semantic-version
+strings, `expires_at` is a future canonical UTC timestamp, and
+`gate_eligible` is the literal `false`. The pilot expiry and gate marker are
+inside the signed payload. The formal-only `minimum_client_version` and
+`parent_release_id` fields are forbidden in this variant; pilot-only fields are
+forbidden in the formal variant.
+
 `data.access` records `mode`, `accessible_card_count`, and `total_card_count`.
 The client recomputes the expected audio IDs from the canonical card prefix and
 rejects over-granted or missing downloads.
@@ -120,34 +169,48 @@ rejects over-granted or missing downloads.
 server-authorized card prefix, with `asset_id`, a future `expires_at`, and a
 credential-free HTTPS URL. The signed manifest may describe additional assets
 outside that membership scope. Storage file IDs never leave the server response
-boundary.
+boundary. In `controlled_pilot`, each download expiry is
+`min(issued_at + download TTL, manifest.expires_at)` and therefore never
+outlives the signed pilot release; the mobile parser independently rejects any
+pilot download whose expiry is later than that release expiry.
 
 ## Client acceptance
 
 The client must:
 
 1. require an authenticated request and exact track/content-version match;
-2. reject unknown or missing fields, duplicate IDs, expired URLs, and any
-   difference between the authorized card-prefix asset IDs and download IDs;
-3. verify the Ed25519 signature using a pinned key ID and public key with
+2. select exactly one formal or `controlled_pilot` manifest variant and reject
+   unknown, missing, or mixed fields, invalid pilot identity or gate state,
+   non-semantic minimum versions, non-canonical or expired pilot release time,
+   duplicate IDs, expired URLs, and any difference between the authorized
+   card-prefix asset IDs and download IDs;
+3. compare the installed platform client version with the applicable signed
+   minimum before exposing content;
+4. verify the Ed25519 signature using a pinned key ID and public key with
    strict RFC 8032 semantics;
-4. match every loaded card audio reference to its signed descriptor;
-5. download to an account-independent content-addressed cache;
-6. hash the completed bytes and delete any mismatch before playback;
-7. start playback only after an explicit user action.
+5. match every loaded card audio reference to its signed descriptor;
+6. download to an account-independent content-addressed cache;
+7. hash the completed bytes and delete any mismatch before playback;
+8. start playback only after an explicit user action.
 
-Steps 1-4 and the reusable strict verifier are implemented in the
-repository-local mobile runtime. When remote learning is enabled, the Learning
-repository loads the canonical card source and server selection first, then
-loads this manifest for that exact track/content version. It rejects any card
-catalog, membership access mode, or access-count drift before returning a
-selected card. Remote runtime configuration consumes a non-empty
-release-owned public-key map and fails closed when it is absent or invalid, but
-production key values and cross-platform release injection remain external
-pending work. A deliberately local content-manifest feature is allowed only as
-an explicit development smoke configuration; it returns no manifest.
+Exact variant parsing, expiry checks, steps 1, 2, 4 and 5, and the reusable
+strict verifier are implemented in the repository-local mobile runtime. The
+backend and mobile parser validate the controlled-pilot semantic-version shape,
+but step 3 is not implemented: no current installed iOS or Android app version
+is yet compared with the signed minimum. A valid minimum-version string
+therefore must not be reported as client-version enforcement.
 
-Steps 5-6 are implemented through `react-native-blob-util@0.24.10`: downloads
+When remote learning is enabled, the Learning repository loads the canonical
+card source and server selection first, then loads this manifest for that exact
+track/content version. It rejects any card catalog, membership access mode, or
+access-count drift before returning a selected card. Remote runtime
+configuration consumes a non-empty release-owned public-key map and fails
+closed when it is absent or invalid, but production key values and
+cross-platform release injection remain external pending work. A deliberately
+local content-manifest feature is allowed only as an explicit development smoke
+configuration; it returns no manifest.
+
+Steps 6-7 are implemented through `react-native-blob-util@0.24.10`: downloads
 write directly to a unique partial file under the app cache, then native stat
 and SHA-256 must match the signed descriptor before same-directory promotion to
 `softbook-content-v1/sha256/<prefix>/<digest>.mp3`. Corrupt hits, failed

@@ -177,7 +177,7 @@ test('does not expose raw space metadata while learning', () => {
       <LearningSurface
         palette={palette}
         sessionCards={sessionCards}
-        sessionLabel={session.sourceLabel}
+        sessionLabel="LEAK_SENTINEL_INTERNAL_SOURCE_7A"
         phase="learning"
         currentCard={currentCard}
         currentCardState={currentCardState}
@@ -232,6 +232,7 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('先完成这一张，再继续下一步');
   expect(output).not.toContain('系统递给你当前这一张');
   expect(output).toContain('本轮学习卡');
+  expect(output).not.toContain('LEAK_SENTINEL_INTERNAL_SOURCE_7A');
   expect(output).not.toContain('本组第');
   expect(output).not.toContain('这一组学习卡');
   expect(output).not.toContain('这组回看卡');
@@ -556,6 +557,7 @@ test('controlled-pilot round completion reuses the completion card with one cano
   expect(output).toContain('五卡一回合');
   expect(output).toContain('5/5');
   expect(output).toContain('回看 2');
+  expect(output).not.toContain('卡源');
   expect(output).toContain(session.catalogCards[0].space_metadata.library);
   expect(
     tree!.root.findAllByProps({ testID: 'learning-restart-button' }),

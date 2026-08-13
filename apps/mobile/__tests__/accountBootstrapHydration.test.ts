@@ -44,6 +44,7 @@ function createBootstrapFixture(): AccountBootstrapSnapshot {
       minimumClientVersion: null,
       parentReleaseId: null,
       publishedAt: null,
+      releaseClass: 'development',
       releaseId: null,
       source: { id: session.sourceId, label: session.sourceLabel },
       version: CONTENT_VERSION,

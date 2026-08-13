@@ -219,7 +219,7 @@ test('remote repository binds a verified manifest to the canonical card source a
           downloads: [
             {
               asset_id: 'cet4.002001.prompt',
-              expires_at: '2099-01-01T00:00:00.000Z',
+              expires_at: '2026-07-24T08:05:00.000Z',
               url: 'https://private-content.example/cet4.mp3?token=opaque',
             },
           ],
@@ -252,6 +252,7 @@ test('remote repository binds a verified manifest to the canonical card source a
     apiKey: 'runtime-key',
     baseUrl: 'https://example.com',
     mode: 'remote',
+    now: () => new Date('2026-07-24T08:00:00.000Z'),
     verifySignature: () => true,
   });
 

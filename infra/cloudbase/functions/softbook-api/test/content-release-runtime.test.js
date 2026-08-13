@@ -95,6 +95,105 @@ test('controlled-pilot release rejects expiry and 120/60 scope drift', () => {
     isContentReleaseValidForRuntime(shortSource, 'controlled_pilot', CHECKED_AT),
     false,
   );
+  assert.equal(
+    isContentReleaseValidForRuntime(
+      pilotSource({minimum_client_versions: {ios: '1.0.0'}}),
+      'controlled_pilot',
+      CHECKED_AT,
+    ),
+    false,
+  );
+  assert.equal(
+    isContentReleaseValidForRuntime(
+      pilotSource({minimum_client_versions: {android: 'latest', ios: '1.0.0'}}),
+      'controlled_pilot',
+      CHECKED_AT,
+    ),
+    false,
+  );
+  for (const invalidVersion of [
+    ['1.0.0'],
+    {value: '1.0.0'},
+    new String('1.0.0'),
+  ]) {
+    assert.equal(
+      isContentReleaseValidForRuntime(
+        pilotSource({
+          minimum_client_versions: {
+            android: invalidVersion,
+            ios: '1.0.0',
+          },
+        }),
+        'controlled_pilot',
+        CHECKED_AT,
+      ),
+      false,
+    );
+  }
+  assert.equal(
+    isContentReleaseValidForRuntime(
+      pilotSource({activated_at: '2026-08-12T13:00:00.000+08:00'}),
+      'controlled_pilot',
+      CHECKED_AT,
+    ),
+    false,
+  );
+  assert.equal(
+    isContentReleaseValidForRuntime(
+      pilotSource({expires_at: '2026-09-12T13:00:00.000+08:00'}),
+      'controlled_pilot',
+      CHECKED_AT,
+    ),
+    false,
+  );
+  assert.equal(
+    isContentReleaseValidForRuntime(
+      pilotSource({pilot_id: 'invalid pilot id'}),
+      'controlled_pilot',
+      CHECKED_AT,
+    ),
+    false,
+  );
+  assert.equal(
+    isContentReleaseValidForRuntime(
+      pilotSource({release_id: ''}),
+      'controlled_pilot',
+      CHECKED_AT,
+    ),
+    false,
+  );
+  assert.equal(
+    isContentReleaseValidForRuntime(
+      pilotSource({release_id: ['cet4-pilot-release-001']}),
+      'controlled_pilot',
+      CHECKED_AT,
+    ),
+    false,
+  );
+  assert.equal(
+    isContentReleaseValidForRuntime(
+      pilotSource({pilot_id: new String('cet4-pilot-2026')}),
+      'controlled_pilot',
+      CHECKED_AT,
+    ),
+    false,
+  );
+  assert.equal(
+    isContentReleaseValidForRuntime(
+      pilotSource({profile_id: ['receiver-pilot-profile']}),
+      'controlled_pilot',
+      CHECKED_AT,
+    ),
+    false,
+  );
+  assert.equal(
+    isContentReleaseValidForRuntime(
+      pilotSource({unexpected: true}),
+      'controlled_pilot',
+      CHECKED_AT,
+    ),
+    false,
+  );
 });
 
 test('content manifest applies the same runtime-mode authority', async () => {
@@ -121,6 +220,18 @@ test('content manifest applies the same runtime-mode authority', async () => {
   });
   assert.equal(result.manifest.release_class, 'controlled_pilot');
   assert.equal(result.manifest.gate_eligible, false);
+  assert.deepEqual(Object.keys(result.manifest).sort(), [
+    'assets',
+    'content_version',
+    'expires_at',
+    'gate_eligible',
+    'minimum_client_versions',
+    'pilot_id',
+    'release_class',
+    'release_id',
+    'schema_version',
+    'track',
+  ]);
 
   const production = createContentManifestV1Service({
     ...common,
@@ -136,4 +247,42 @@ test('content manifest applies the same runtime-mode authority', async () => {
       error.statusCode === 409 &&
       error.code === 'content_manifest_version_mismatch',
   );
+});
+
+test('controlled-pilot download expiry never outlives its signed release', async () => {
+  const releaseExpiresAt = new Date(CHECKED_AT.getTime() + 60_000);
+  const source = pilotSource({expires_at: releaseExpiresAt.toISOString()});
+  source.card_records[0].audio = {
+    asset_id: 'cet4-pilot-audio-000001',
+    duration_ms: 1000,
+    sha256: `sha256:${'b'.repeat(64)}`,
+  };
+  source.assets = [
+    {
+      asset_id: 'cet4-pilot-audio-000001',
+      duration_ms: 1000,
+      media_type: 'audio/mpeg',
+      sha256: `sha256:${'b'.repeat(64)}`,
+      size_bytes: 1024,
+    },
+  ];
+  const {privateKey} = crypto.generateKeyPairSync('ed25519');
+  const service = createContentManifestV1Service({
+    downloadTtlSeconds: 900,
+    now: () => CHECKED_AT,
+    resolveDownloadUrl: async () => 'https://private.example/pilot.mp3',
+    runtimeMode: 'controlled_pilot',
+    signer: {keyId: 'pilot-manifest-key', privateKey},
+    store: {
+      getCardSource: async () => source,
+      getMembership: async () => ({stage: 'trial'}),
+    },
+  });
+  const result = await service.read({
+    contentVersion: CONTENT_VERSION,
+    phoneNumber: '13800138000',
+    track: 'cet4',
+  });
+  assert.equal(result.manifest.expires_at, releaseExpiresAt.toISOString());
+  assert.equal(result.downloads[0].expires_at, releaseExpiresAt.toISOString());
 });
