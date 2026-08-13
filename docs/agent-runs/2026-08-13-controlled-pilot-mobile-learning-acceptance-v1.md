@@ -4,7 +4,7 @@
 
 - Date: 2026-08-13
 - Branch: `cross/controlled-pilot-mobile-payload-smoke-v1`
-- PR: pending
+- PR: [#503](https://github.com/LENKIN233/softbook_cet/pull/503)
 - Summary: Connected the exact approved CET4 120-card controlled-pilot payload to the real mobile card-source, Learning Session, signed content-manifest, Bootstrap, evaluator and rendered Learning paths; fixed the pilot wire-contract mismatches and added a repeatable content-safe acceptance command.
 
 ## Referenced specs
