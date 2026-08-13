@@ -83,7 +83,7 @@
 - `npm test` in `infra/cloudbase/functions/softbook-api` -> passed, 270/270.
 - Web `npm run lint`, `npm run typecheck`, `npm test -- --runInBand`, and `npm run build` -> passed; 12/12 tests and the production bundle excludes development card content.
 - Bundled Python 3.12 `scripts/validate_harness.py --mode local` -> passed the 15 local semantic sections in partial/local mode.
-- Full `scripts/validate_harness.py` -> attempted; 14/15 sections passed and `delivery_runtime` remained blocked because the local GitHub CLI credential cannot read repository settings, `main` branch protection, or the formal approval environment.
+- Full `scripts/validate_harness.py` -> passed with the fixed Node 22, bundled Python 3.12 and GitHub CLI PATH (`HARNESS VALIDATION OK`). Two preceding attempts exposed missing `node` and then missing `gh` in the escalated command PATH; neither was a product or governance assertion failure.
 - `scripts/run_local_gates --profile pr` and `--profile dev` -> attempted but not counted as passed: the PR profile requires the unavailable GitHub control plane/network, while the sandboxed dev runner cannot start macOS `sandbox-exec` and resolves system Python 3.9 instead of the required bundled runtime. The constituent repository suites are recorded separately above.
 - `python3 scripts/test_validate_harness_runner.py && python3 scripts/test_harness_module_boundaries.py && python3 scripts/test_run_local_gates.py` -> passed, 68/68.
 - `jq empty spec/runtime-boundaries.json`, Node JSON parse, syntax checks and `git diff --check` -> passed.
@@ -97,7 +97,7 @@
 - Audio surface: the two representative audio cards rendered the accepted explicit accessible player control; audio bytes were not played or perceptually reviewed by this test.
 - Wire contracts: real backend pilot manifest exact shape, mobile pinned-key Ed25519 verification, download/release expiry ordering, and real Bootstrap exact pilot content shape passed.
 - Visible metadata: fixed session label, source label/ID, content version, pilot/release/key IDs, card/knowledge/box refs and download URLs stayed out of rendered output; the mobile metadata scan passed.
-- Full local regression: mobile 512/512, CloudBase 270/270, Web 12/12 plus production build, harness regression 68/68, and the 15-section local/partial harness passed. Full remote-aware harness completion remains pending on GitHub CLI authentication and is not claimed here.
+- Full regression: mobile 512/512, CloudBase 270/270, Web 12/12 plus production build, harness regression 68/68, the 15-section local/partial harness, and the full remote-aware harness all passed.
 - Repository mutation: the acceptance runner observed no worktree change and removed its temporary card-bearing fixture.
 - CI and remote delivery controls: pending at record creation.
 
@@ -122,7 +122,7 @@
 - Reviewer: Codex self-review under the user's explicit authorization, informed by the completed independent read-only review.
 - Status: Passed locally after every independent-review finding was corrected and the complete code/spec diff was re-reviewed.
 - Blocking findings: none in the implementation. The review caught and closed five issues: missing durable run evidence, non-native-string coercion, permissive safe-report forwarding, incorrect treatment of flip self-assessment as auto-scoring, and stale Bootstrap pilot-contract documentation. Follow-up self-review also closed missing `profile_id`/unknown-field checks, whitespace-tolerant exact identifiers, and wall-clock-dependent acceptance.
-- Delivery caveat: remote GitHub controls, required checks and CI have not yet passed, so this local Agent review does not authorize merge by itself.
+- Delivery caveat: remote required checks and CI have not yet passed, so this Agent review and successful full harness do not authorize merge by themselves.
 
 ## User-visible UI impact
 
